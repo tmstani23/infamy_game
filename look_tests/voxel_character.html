@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<title>Voxel Ronin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #07090f;
+    --ink: #efe4cf;
+    --ink-dim: #a99c86;
+    --ember: #ffb15c;
+    --glass: rgba(10, 12, 18, 0.62);
+    --glass-edge: rgba(255, 196, 128, 0.16);
+    --glass-hover: rgba(255, 177, 92, 0.12);
+    --serif: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; }
+  body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  #stage canvas:active { cursor: grabbing; }
+  .vignette { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.55) 100%); }
+  .card {
+    position: fixed; top: 16px; left: 16px; max-width: min(340px, calc(100vw - 32px));
+    padding: 14px 18px 13px; border-radius: 14px;
+    background: var(--glass); border: 1px solid var(--glass-edge);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); pointer-events: none;
+  }
+  .eyebrow { font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ember); margin: 0 0 6px; }
+  h1 { font-family: var(--serif); font-weight: 700; font-size: 26px; line-height: 1.1; margin: 0 0 6px; }
+  .sub { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-dim); }
+  .controls { position: fixed; left: 16px; right: 16px; bottom: max(16px, env(safe-area-inset-bottom));
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; pointer-events: none; }
+  .group { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--glass);
+    border: 1px solid var(--glass-edge); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); pointer-events: auto; }
+  button { font: 500 13px/1 var(--sans); color: var(--ink-dim); background: transparent; border: 0; border-radius: 9px;
+    padding: 10px 13px; cursor: pointer; min-height: 38px; transition: background 0.2s, color 0.2s; }
+  button:hover { background: var(--glass-hover); color: var(--ink); }
+  button[aria-pressed="true"] { color: #1a0f06; background: linear-gradient(180deg, #ffc27a, #f0954a); }
+  button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+  #err { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; background: var(--bg); }
+  #err[hidden] { display: none; }
+  #err p { max-width: 420px; color: var(--ink-dim); font-size: 15px; line-height: 1.5; }
+  @media (max-width: 560px) {
+    .card { padding: 11px 14px; } h1 { font-size: 21px; } .sub { font-size: 12px; }
+    button { padding: 9px 10px; font-size: 12.5px; }
+  }
+</style>
+
+<div id="stage" aria-label="A voxel samurai character on a dark stage. Drag to rotate, scroll or pinch to zoom."></div>
+<div class="vignette"></div>
+
+<header class="card">
+  <p class="eyebrow">Voxel look test · one character</p>
+  <h1>Ronin</h1>
+  <p class="sub" id="stats">Drag to rotate. Scroll or pinch to zoom.</p>
+</header>
+
+<nav class="controls" aria-label="Character controls">
+  <div class="group" role="group" aria-label="Animation">
+    <button id="aIdle" aria-pressed="true">Idle</button>
+    <button id="aWalk" aria-pressed="false">Walk</button>
+  </div>
+  <div class="group" role="group" aria-label="Lighting">
+    <button id="lNight" aria-pressed="true">Lantern night</button>
+    <button id="lDay" aria-pressed="false">Daylight</button>
+  </div>
+  <div class="group" role="group" aria-label="Camera">
+    <button id="tSpin" aria-pressed="true">Turntable</button>
+    <button id="tFace">Close-up</button>
+  </div>
+</nav>
+
+<div id="err" hidden><p>Loading…</p></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+(function () {
+'use strict';
+const errBox = document.getElementById('err');
+function fail(m) { errBox.hidden = false; errBox.querySelector('p').textContent = m; }
+if (!window.THREE || !THREE.OrbitControls) { fail('The 3D library did not load. Check your connection and reload.'); return; }
+
+let reduceMotion = false;
+try { reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+/* ================= voxel scale ================= */
+// He is sculpted from smooth shapes (signed distance functions), then converted to cubes.
+// 1.1 cm cubes: about 160 cubes from sandal to topknot.
+const VS = 0.011;
+
+/* ================= palette (sRGB hex, roughness, metalness) ================= */
+const PAL = {
+  skin: ['#e6b48f', 0.6, 0], skinShade: ['#c68a66', 0.64, 0], blush: ['#e19a86', 0.62, 0], lip: ['#a4584a', 0.5, 0],
+  eyeW: ['#f3eee6', 0.3, 0], iris: ['#3b2216', 0.2, 0], pupil: ['#0c0807', 0.2, 0], lash: ['#120d0b', 0.5, 0], brow: ['#1c1411', 0.6, 0],
+  hair: ['#0f1018', 0.42, 0], hairHi: ['#25283c', 0.36, 0],
+  indigo: ['#27375f', 0.82, 0], indigoDk: ['#182141', 0.86, 0],
+  collar: ['#ece6d8', 0.72, 0], under: ['#d3cab8', 0.78, 0],
+  obi: ['#912c25', 0.68, 0], obiDk: ['#641c18', 0.72, 0], gold: ['#d4a94e', 0.3, 0.85],
+  hakama: ['#3d3e48', 0.86, 0], hakamaDk: ['#30313a', 0.9, 0],
+  tabi: ['#ece7dd', 0.8, 0], straw: ['#c09d61', 0.85, 0], strawDk: ['#9b7a45', 0.85, 0], strap: ['#2b1913', 0.6, 0],
+  lacquer: ['#101015', 0.16, 0.1], lacquerHi: ['#34343f', 0.12, 0.1],
+  wrapW: ['#ddd7ca', 0.7, 0], wrapB: ['#141417', 0.65, 0],
+  mon: ['#f0eadd', 0.72, 0], lining: ['#7d231f', 0.8, 0],
+};
+const PKEYS = Object.keys(PAL);
+const PIDX = {}; PKEYS.forEach((k, i) => PIDX[k] = i + 1);
+const PCOL = [null], PROUGH = [0], PMETAL = [0];
+PKEYS.forEach(k => { PCOL.push(new THREE.Color(PAL[k][0]).convertSRGBToLinear()); PROUGH.push(PAL[k][1]); PMETAL.push(PAL[k][2]); });
+
+/* ================= SDF toolkit ================= */
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const fract = v => v - Math.floor(v);
+function sdEll(x, y, z, cx, cy, cz, rx, ry, rz) {
+  const px = (x - cx) / rx, py = (y - cy) / ry, pz = (z - cz) / rz;
+  const k0 = Math.hypot(px, py, pz), k1 = Math.hypot(px / rx, py / ry, pz / rz);
+  return k1 === 0 ? -Math.min(rx, ry, rz) : k0 * (k0 - 1) / k1;
+}
+function capT(x, y, z, ax, ay, az, bx, by, bz) {
+  const bax = bx - ax, bay = by - ay, baz = bz - az;
+  return clamp(((x - ax) * bax + (y - ay) * bay + (z - az) * baz) / (bax * bax + bay * bay + baz * baz), 0, 1);
+}
+function sdCone(x, y, z, ax, ay, az, bx, by, bz, r1, r2) {
+  const h = capT(x, y, z, ax, ay, az, bx, by, bz);
+  return Math.hypot(x - ax - (bx - ax) * h, y - ay - (by - ay) * h, z - az - (bz - az) * h) - (r1 + (r2 - r1) * h);
+}
+const sdCap = (x, y, z, ax, ay, az, bx, by, bz, r) => sdCone(x, y, z, ax, ay, az, bx, by, bz, r, r);
+function sdRBox(x, y, z, cx, cy, cz, hx, hy, hz, r) {
+  const qx = Math.abs(x - cx) - hx + r, qy = Math.abs(y - cy) - hy + r, qz = Math.abs(z - cz) - hz + r;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qy, qz), 0) - r;
+}
+function smin(a, b, k) { const h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1); return b * (1 - h) + a * h - k * h * (1 - h); }
+function hash3(x, y, z) { let h = (x * 374761393 + y * 668265263 + z * 1274126177) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
+function pick(list) { let best = list[0]; for (const c of list) if (c[0] < best[0]) best = c; return best; }
+
+/* ================= the character, part by part =================
+   each part returns [distance, colour] for a point in metres (feet at y = 0, facing +z) */
+
+// asanoha-style diamond lattice woven into the kimono
+function kimonoCloth(x, y, z) {
+  const u = Math.abs(x) / 0.17 > Math.abs(z) / 0.11 ? z : x;
+  const a = fract((u + y) / 0.05), b = fract((u - y) / 0.05);
+  return (a < 0.17 || b < 0.17) ? 'indigoDk' : 'indigo';
+}
+
+function torso(x, y, z) {
+  const chest = sdEll(x, y, z, 0, 1.29, 0, 0.175, 0.19, 0.116);
+  const waist = sdEll(x, y, z, 0, 1.06, 0, 0.152, 0.14, 0.106);
+  const sh = sdCap(x, y, z, -0.17, 1.405, -0.005, 0.17, 1.405, -0.005, 0.062);
+  let kim = smin(smin(chest, waist, 0.06), sh, 0.05);
+  // crossed collar: left panel over right, opening into a V
+  const half = Math.max(0, (y - 1.2) * 0.34), ax = Math.abs(x + 0.006);
+  let band = false, inV = false;
+  if (z > 0.03 && y > 1.2 && y < 1.47) { if (Math.abs(ax - half) < 0.015) band = true; else if (ax < half) inV = true; }
+  if (z > 0.03 && y > 1.085 && y <= 1.2 && Math.abs(x - (1.2 - y) * 0.55) < 0.015) band = true;   // left panel's edge down to the obi
+  if (band) kim -= 0.007;
+  // obi sash with a knot at the back
+  const ring = Math.max((Math.hypot(x / 0.173, z / 0.125) - 1) * 0.125, Math.abs(y - 1.035) - 0.052);
+  const knot = Math.min(sdEll(x, y, z, 0, 1.04, -0.138, 0.078, 0.052, 0.036), sdEll(x, y, z, 0, 0.985, -0.142, 0.045, 0.05, 0.02));
+  // katana through the obi on his left hip
+  const tsuka = sdCap(x, y, z, 0.136, 1.118, 0.33, 0.15, 1.076, 0.178, 0.016);
+  const kashira = sdEll(x, y, z, 0.135, 1.121, 0.336, 0.019, 0.019, 0.012);
+  const tsuba = sdEll(x, y, z, 0.15, 1.075, 0.166, 0.038, 0.038, 0.0075);
+  const saya = sdCap(x, y, z, 0.152, 1.07, 0.152, 0.19, 0.915, -0.43, 0.019);
+  const [d, k] = pick([[kim, 'kim'], [ring, 'obi'], [knot, 'knot'], [tsuka, 'tsuka'], [kashira, 'gold'], [tsuba, 'gold'], [saya, 'saya']]);
+  let c;
+  if (k === 'kim') {
+    if (band) c = 'collar';
+    else if (inV) c = (y > 1.35) ? 'skin' : 'under';
+    else if (z < -0.07 && (() => { const r = Math.hypot(x, y - 1.3); return (r > 0.038 && r < 0.052) || r < 0.016 || (Math.abs(r - 0.027) < 0.004 && fract(Math.atan2(y - 1.3, x) / (Math.PI * 2 / 3)) < 0.5); })()) c = 'mon';
+    else c = kimonoCloth(x, y, z);
+  } else if (k === 'obi') c = Math.abs(y - 1.035) > 0.041 ? 'gold' : (hash3(Math.floor(x / VS), Math.floor(y / VS), 7) > 0.86 ? 'obiDk' : 'obi');
+  else if (k === 'knot') c = fract((y - 0.9) / 0.022) < 0.25 ? 'obiDk' : 'obi';
+  else if (k === 'tsuka') {
+    const t = capT(x, y, z, 0.136, 1.118, 0.33, 0.15, 1.076, 0.178), phi = Math.atan2(y - 1.1, x - 0.143) / Math.PI;
+    c = ((fract(t * 9 + phi) < 0.5) !== (fract(t * 9 - phi) < 0.5)) ? 'wrapW' : 'wrapB';
+  } else if (k === 'saya') {
+    const t = capT(x, y, z, 0.152, 1.07, 0.152, 0.19, 0.915, -0.43), ay = 1.07 + (0.915 - 1.07) * t;
+    c = (y - ay > 0.011) ? 'lacquerHi' : 'lacquer';
+  } else c = k;
+  return [d, c];
+}
+
+const HEAD_SCALE = 1.2;
+function head(x0, y0, z0) {
+  const x = x0 / HEAD_SCALE, y = 1.5 + (y0 - 1.5 + 0.03) / HEAD_SCALE, z = z0 / HEAD_SCALE;   // big head, sat a little lower
+  const [d, c] = headUnscaled(x, y, z);
+  return [d * HEAD_SCALE, c];
+}
+function headUnscaled(x, y, z) {
+  const skull = smin(sdEll(x, y, z, 0, 1.628, 0, 0.088, 0.108, 0.1), sdEll(x, y, z, 0, 1.566, 0.024, 0.064, 0.062, 0.072), 0.03);
+  const nose = sdCap(x, y, z, 0, 1.634, 0.096, 0, 1.6, 0.113, 0.0105);
+  const ears = Math.min(sdEll(x, y, z, -0.089, 1.615, 0, 0.013, 0.026, 0.018), sdEll(x, y, z, 0.089, 1.615, 0, 0.013, 0.026, 0.018));
+  const neck = sdCap(x, y, z, 0, 1.43, 0, 0, 1.56, 0.006, 0.046);
+  const skin = Math.min(smin(smin(skull, nose, 0.012), neck, 0.03), ears);
+  // hair: a cap with the face cut out, swept fringe, topknot and a tail
+  let cap = sdEll(x, y, z, 0, 1.642, -0.01, 0.097, 0.116, 0.113);
+  const hl = 1.69 + 0.03 * Math.pow(x / 0.09, 2);
+  const sideburn = Math.abs(x) > 0.071 && z < 0.056 && y > 1.585;
+  if (z > 0.0 && y < hl && !sideburn) cap = Math.max(cap, 0.002);
+  let hair = cap;
+  for (const [fx, sw] of [[-0.064, -0.006], [-0.034, 0.004], [-0.004, 0.01], [0.03, 0.012], [0.062, 0.006]])
+    hair = smin(hair, sdCone(x, y, z, fx, 1.74, 0.06, fx + sw, 1.678 - Math.abs(fx) * 0.3, 0.1, 0.013, 0.005), 0.008);
+  const topknot = sdCap(x, y, z, 0, 1.74, -0.03, 0, 1.768, -0.062, 0.021);
+  const tail = Math.min(sdCone(x, y, z, 0, 1.765, -0.07, 0.004, 1.71, -0.142, 0.019, 0.015), sdCone(x, y, z, 0.004, 1.71, -0.142, 0.012, 1.6, -0.152, 0.015, 0.007));
+  hair = Math.min(hair, topknot, tail);
+  const tie = Math.abs(capT(x, y, z, 0, 1.74, -0.03, 0, 1.768, -0.062) - 0.82) < 0.12 && topknot < 0.004;
+  if (hair < 0 || (hair < skin && hair < 0.004)) {
+    let c = 'hair';
+    if (tie) c = 'obi';
+    else if (fract(Math.atan2(x, z + 0.02) * 6 / Math.PI) < 0.14 && y > 1.62) c = 'hairHi';   // strands radiating from the crown
+    return [hair, c];
+  }
+  // face painting (front-facing cubes only)
+  let c = 'skin';
+  if (z > 0.045) {
+    for (const s of [-1, 1]) {
+      const ex = s * 0.036, ey = 1.622, dx = (x - ex) / 0.026, dy = (y - ey) / 0.0165;
+      if (dx * dx + dy * dy < 1) {
+        const ix = (x - (ex - s * 0.002)) / 0.012, iy = (y - ey + 0.001) / 0.0155;
+        const ir = Math.hypot(ix, iy);
+        c = ir < 0.42 ? 'pupil' : ir < 1 ? 'iris' : 'eyeW';
+        if (Math.hypot(x - (ex - s * 0.005), y - (ey + 0.007)) < 0.0045) c = 'eyeW';      // catchlight
+        if (y > ey + 0.0105) c = 'lash';                                                     // heavy upper lid
+      } else if (dx * dx + dy * dy < 1.35 && y > ey + 0.004) c = 'lash';
+      if (Math.sign(x) === s && Math.abs(x - ex - s * 0.02) < 0.006 && y > ey + 0.002 && y < ey + 0.016) c = 'lash';   // outer flick
+      const bx = Math.abs(x) - 0.016, by = 1.664 - bx * 0.28;
+      if (Math.sign(x) === s && bx > 0 && bx < 0.046 && Math.abs(y - by) < 0.0045) c = 'brow';
+      if (Math.hypot(x - s * 0.054, y - 1.594) < 0.011 && c === 'skin') c = 'blush';
+    }
+    if (Math.abs(x) < 0.014 && Math.abs(y - 1.57) < 0.0042) c = 'lip';
+    if (nose < 0.002 && y < 1.607) c = 'skinShade';
+  }
+  if (ears < skull && ears < 0.002) c = 'skinShade';
+  if (y < 1.5) c = 'skin';
+  return [skin, c];
+}
+
+function leg(s) {
+  const hx = s * 0.074;
+  return (x, y, z) => {
+    // hakama: a wide, pleated cone per leg
+    let d = y < 0.085 ? 1 : sdCone(x, y, z, hx, 0.99, 0, s * 0.122, 0.09, 0.012, 0.096, 0.152);
+    const phi = Math.atan2(z, x - (hx + (s * 0.122 - hx) * clamp((0.99 - y) / 0.9, 0, 1)));
+    const pleat = z > 0.0 && fract(phi * 5 / Math.PI) < 0.5;
+    if (pleat) d -= 0.0045;
+    // tabi + zori
+    const fx = s * 0.104;
+    const foot = sdRBox(x, y, z, fx, 0.047, 0.05, 0.04, 0.034, 0.105, 0.02);
+    const sole = sdRBox(x, y, z, fx, 0.012, 0.055, 0.05, 0.012, 0.128, 0.008);
+    const strap = Math.min(sdCap(x, y, z, fx, 0.04, 0.14, fx - 0.044, 0.028, 0.06, 0.0075), sdCap(x, y, z, fx, 0.04, 0.14, fx + 0.044, 0.028, 0.06, 0.0075));
+    const [dd, k] = pick([[d, 'hak'], [foot, 'tabi'], [sole, 'sole'], [strap, 'strap']]);
+    let c = k;
+    if (k === 'hak') c = (z > 0 && !pleat) ? 'hakamaDk' : 'hakama';
+    if (k === 'sole') c = ((Math.floor(x / VS) + Math.floor(z / VS)) & 1) ? 'straw' : 'strawDk';
+    return [dd, c];
+  };
+}
+
+function arm(s) {
+  const S = [s * 0.2, 1.4, -0.005], E = [s * 0.255, 1.17, 0.03], W = [s * 0.262, 0.99, 0.112];
+  return (x, y, z) => {
+    const upper = sdCap(x, y, z, ...S, ...E, 0.052);
+    const fore = sdCone(x, y, z, ...E, ...W, 0.046, 0.036);
+    const sleeve = sdRBox(x, y, z, s * 0.258, 1.125, -0.015, 0.046, 0.155, 0.105, 0.038);
+    const cloth = smin(smin(upper, sleeve, 0.04), fore, 0.03);
+    const hand = Math.min(sdEll(x, y, z, W[0], W[1] - 0.034, W[2] + 0.016, 0.028, 0.045, 0.038), sdCap(x, y, z, W[0] - s * 0.022, W[1] - 0.02, W[2] + 0.03, W[0] - s * 0.024, W[1] - 0.05, W[2] + 0.045, 0.011));
+    const [d, k] = pick([[cloth, 'cloth'], [hand, 'skin']]);
+    let c = k;
+    if (k === 'cloth') {
+      const t = capT(x, y, z, ...E, ...W);
+      c = (t > 0.78 && fore < 0.004) ? 'lining' : (y < 0.985 ? 'lining' : kimonoCloth(x, y, z));
+    }
+    return [d, c];
+  };
+}
+
+const PART_DEFS = [
+  { name: 'torso', pivot: [0, 0.98, 0], lo: [-0.24, 0.86, -0.48], hi: [0.24, 1.5, 0.36], f: torso },
+  { name: 'head', pivot: [0, 1.5, 0], lo: [-0.135, 1.38, -0.21], hi: [0.135, 1.85, 0.16], f: head, core: true },
+  { name: 'legR', pivot: [-0.074, 0.98, 0], lo: [-0.29, 0, -0.18], hi: [0.04, 1.06, 0.2], f: leg(-1), core: true },
+  { name: 'legL', pivot: [0.074, 0.98, 0], lo: [-0.04, 0, -0.18], hi: [0.29, 1.06, 0.2], f: leg(1), core: true },
+  { name: 'armR', pivot: [-0.2, 1.4, -0.005], lo: [-0.33, 0.9, -0.15], hi: [-0.13, 1.47, 0.18], f: arm(-1), core: true },
+  { name: 'armL', pivot: [0.2, 1.4, -0.005], lo: [0.13, 0.9, -0.15], hi: [0.33, 1.47, 0.18], f: arm(1), core: true },
+];
+
+/* ================= voxelise: every cell goes to the part it is most inside ================= */
+function voxelise() {
+  const parts = PART_DEFS.map(P => {
+    const i0 = Math.floor(P.lo[0] / VS), j0 = Math.floor(P.lo[1] / VS), k0 = Math.floor(P.lo[2] / VS);
+    const nx = Math.ceil(P.hi[0] / VS) - i0, ny = Math.ceil(P.hi[1] / VS) - j0, nz = Math.ceil(P.hi[2] / VS) - k0;
+    return Object.assign({}, P, { i0, j0, k0, nx, ny, nz, grid: new Uint8Array(nx * ny * nz), count: 0 });
+  });
+  const lo = [0, 1, 2].map(a => Math.min(...parts.map(p => [p.i0, p.j0, p.k0][a])));
+  const hi = [0, 1, 2].map(a => Math.max(...parts.map(p => [p.i0 + p.nx, p.j0 + p.ny, p.k0 + p.nz][a])));
+  const res = new Array(parts.length);
+  for (let j = lo[1]; j < hi[1]; j++) for (let k = lo[2]; k < hi[2]; k++) for (let i = lo[0]; i < hi[0]; i++) {
+    const x = (i + 0.5) * VS, y = (j + 0.5) * VS, z = (k + 0.5) * VS;
+    let best = -1, bd = 0;
+    for (let p = 0; p < parts.length; p++) {
+      const P = parts[p]; res[p] = null;
+      if (i < P.i0 || j < P.j0 || k < P.k0 || i >= P.i0 + P.nx || j >= P.j0 + P.ny || k >= P.k0 + P.nz) continue;
+      const r = P.f(x, y, z); res[p] = r;
+      if (r[0] < bd) { bd = r[0]; best = p; }
+    }
+    for (let p = 0; p < parts.length; p++) {
+      const r = res[p]; if (!r) continue;
+      const P = parts[p];
+      // the winner owns the cell; jointed parts also keep a hidden core so joints never open up
+      if (p === best || (P.core && r[0] < -2.5 * VS)) {
+        P.grid[(i - P.i0) + P.nx * ((j - P.j0) + P.ny * (k - P.k0))] = PIDX[r[1]] || PIDX.skin;
+        P.count++;
+      }
+    }
+  }
+  return parts;
+}
+
+/* ================= mesher: exposed faces, per-corner AO, per-cube colour jitter ================= */
+const DIRS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+const AO_CURVE = [0.46, 0.66, 0.84, 1.0];
+function meshPart(P) {
+  const { nx, ny, nz, grid } = P;
+  const at = (i, j, k) => (i < 0 || j < 0 || k < 0 || i >= nx || j >= ny || k >= nz) ? 0 : grid[i + nx * (j + ny * k)];
+  const pos = [], nor = [], col = [], quad = [], rough = [], metal = [], idx = [];
+  const ox = P.i0 * VS - P.pivot[0], oy = P.j0 * VS - P.pivot[1], oz = P.k0 * VS - P.pivot[2];
+  const vc = [0, 0, 0], p = [0, 0, 0], du = [0, 0, 0], dv = [0, 0, 0], aos = [0, 0, 0, 0];
+  const CORNERS = [[0, 0], [1, 0], [1, 1], [0, 1]];
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const ci = grid[i + nx * (j + ny * k)];
+    if (!ci) continue;
+    const base = PCOL[ci], jit = 0.92 + 0.16 * hash3(i + P.i0, j + P.j0, k + P.k0);
+    vc[0] = i; vc[1] = j; vc[2] = k;
+    for (let f = 0; f < 6; f++) {
+      const n = DIRS[f];
+      const ni = i + n[0], nj = j + n[1], nk = k + n[2];
+      if (at(ni, nj, nk)) continue;
+      const d = f >> 1, s = (f & 1) ? -1 : 1, u = (d + 1) % 3, v = (d + 2) % 3;
+      const start = pos.length / 3;
+      for (let c = 0; c < 4; c++) {
+        const cu = CORNERS[c][0], cv = CORNERS[c][1];
+        p[d] = vc[d] + (s > 0 ? 1 : 0); p[u] = vc[u] + cu; p[v] = vc[v] + cv;
+        du[0] = du[1] = du[2] = 0; dv[0] = dv[1] = dv[2] = 0; du[u] = cu ? 1 : -1; dv[v] = cv ? 1 : -1;
+        const s1 = at(ni + du[0], nj + du[1], nk + du[2]) ? 1 : 0;
+        const s2 = at(ni + dv[0], nj + dv[1], nk + dv[2]) ? 1 : 0;
+        const cc = at(ni + du[0] + dv[0], nj + du[1] + dv[1], nk + du[2] + dv[2]) ? 1 : 0;
+        const ao = (s1 && s2) ? 0 : 3 - (s1 + s2 + cc);
+        aos[c] = ao;
+        pos.push(ox + p[0] * VS, oy + p[1] * VS, oz + p[2] * VS);
+        nor.push(n[0], n[1], n[2]);
+        const a = AO_CURVE[ao] * jit;
+        col.push(base.r * a, base.g * a, base.b * a);
+        quad.push(cu, cv); rough.push(PROUGH[ci]); metal.push(PMETAL[ci]);
+      }
+      const flip = aos[0] + aos[2] < aos[1] + aos[3];
+      let tri = flip ? [0, 1, 3, 1, 2, 3] : [0, 1, 2, 0, 2, 3];
+      if (s < 0) tri = [tri[0], tri[2], tri[1], tri[3], tri[5], tri[4]];
+      for (const t of tri) idx.push(start + t);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('aQ', new THREE.Float32BufferAttribute(quad, 2));
+  g.setAttribute('aRough', new THREE.Float32BufferAttribute(rough, 1));
+  g.setAttribute('aMetal', new THREE.Float32BufferAttribute(metal, 1));
+  g.setIndex(pos.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(idx, 1) : new THREE.Uint16BufferAttribute(idx, 1));
+  g.computeBoundingSphere();
+  return g;
+}
+
+/* ================= renderer + scene ================= */
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { fail('This browser could not start WebGL, which the scene needs.'); return; }
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('stage').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.05, 60);
+
+// material: vertex colours + per-voxel roughness/metal + a fine bevel line at every cube edge
+const SEAM = { value: 0.2 };
+const voxMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+voxMat.onBeforeCompile = (sh) => {
+  sh.uniforms.uSeam = SEAM;
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nattribute vec2 aQ; attribute float aRough; attribute float aMetal;\nvarying vec2 vQ; varying float vRough; varying float vMetal;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvQ = aQ; vRough = aRough; vMetal = aMetal;');
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec2 vQ; varying float vRough; varying float vMetal; uniform float uSeam;')
+    .replace('#include <color_fragment>', `#include <color_fragment>
+      vec2 qe = min(vQ, 1.0 - vQ);
+      float seam = 1.0 - smoothstep(0.0, 0.11, min(qe.x, qe.y));
+      diffuseColor.rgb *= 1.0 - uSeam * seam;`)
+    .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = vRough;')
+    .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = vMetal;');
+};
+
+const rig = new THREE.Group();
+scene.add(rig);
+const built = voxelise();
+const meshes = {};
+let voxelCount = 0;
+for (const P of built) {
+  voxelCount += P.count;
+  const m = new THREE.Mesh(meshPart(P), voxMat);
+  m.castShadow = true; m.receiveShadow = true;
+  m.position.set(P.pivot[0], P.pivot[1], P.pivot[2]);
+  meshes[P.name] = m;
+}
+// hierarchy: torso carries head and arms so they ride its bob and twist
+const hips = new THREE.Group(); rig.add(hips);
+hips.add(meshes.legL, meshes.legR, meshes.torso);
+const torsoPivot = new THREE.Vector3(...PART_DEFS[0].pivot);
+for (const n of ['head', 'armL', 'armR']) { meshes.torso.add(meshes[n]); meshes[n].position.sub(torsoPivot); }
+document.getElementById('stats').textContent = `${voxelCount.toLocaleString()} cubes, each about 1 cm. Drag to rotate, scroll or pinch to zoom.`;
+
+/* ================= stage: a wet stone disc that fades into the dark ================= */
+function discTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+  x.fillStyle = '#20232a'; x.fillRect(0, 0, 512, 512);
+  for (let r = 0; r < 14; r++) for (let i = 0; i < 18; i++) {   // rough paving
+    const v = 26 + Math.floor(Math.random() * 14);
+    x.fillStyle = `rgb(${v},${v + 2},${v + 6})`;
+    x.fillRect(i * 30 + (r % 2) * 15 + 1, r * 38 + 1, 28, 36);
+  }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+function fadeTexture() {   // the disc dissolves into whatever the background is
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  const g = x.createRadialGradient(128, 128, 20, 128, 128, 128);
+  g.addColorStop(0, '#fff'); g.addColorStop(0.55, '#bbb'); g.addColorStop(1, '#000');
+  x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+const floor = new THREE.Mesh(new THREE.CircleGeometry(3.2, 64),
+  new THREE.MeshStandardMaterial({ map: discTexture(), alphaMap: fadeTexture(), transparent: true, depthWrite: false, roughness: 0.28, metalness: 0.2, color: 0xb0b6c4 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+scene.add(floor);
+
+/* ================= lighting presets ================= */
+const hemi = new THREE.HemisphereLight(0x2a3a6a, 0x120c08, 0.6); scene.add(hemi);
+const key = new THREE.SpotLight(0xffa25a, 3.2, 9, 0.75, 0.65, 1.3);
+key.position.set(-1.3, 2.4, 1.7); key.target.position.set(0, 0.9, 0);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015;
+key.shadow.camera.near = 0.5; key.shadow.camera.far = 8;
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x86a6ff, 1.25);
+rim.position.set(1.8, 3.0, -2.6); rim.castShadow = true; rim.shadow.mapSize.set(1024, 1024);
+rim.shadow.camera.left = rim.shadow.camera.bottom = -1.6; rim.shadow.camera.right = rim.shadow.camera.top = 1.6;
+rim.shadow.bias = -0.0006; rim.shadow.normalBias = 0.015;
+scene.add(rim);
+const lanternGlow = new THREE.PointLight(0xff7b3a, 0.6, 4, 2); lanternGlow.position.set(-1.1, 2.1, 1.5); scene.add(lanternGlow);
+
+const PRESETS = {
+  night: { bg: 0x07090f, hemi: [0x2a3a6a, 0x120c08, 0.6], key: [0xffa25a, 3.2], rim: [0x86a6ff, 1.25], glow: 0.6, exp: 1.15, floor: 0xb0b6c4 },
+  day:   { bg: 0x9fb0c4, hemi: [0xdfe8ff, 0x6b5a48, 1.0], key: [0xfff1dd, 2.4], rim: [0xbcd2ff, 0.9], glow: 0.0, exp: 1.0, floor: 0xe0e3ea },
+};
+function applyPreset(name) {
+  const p = PRESETS[name];
+  scene.background = new THREE.Color(p.bg).convertSRGBToLinear();
+  hemi.color.set(p.hemi[0]); hemi.groundColor.set(p.hemi[1]); hemi.intensity = p.hemi[2];
+  key.color.set(p.key[0]); key.intensity = p.key[1];
+  rim.color.set(p.rim[0]); rim.intensity = p.rim[1];
+  lanternGlow.intensity = p.glow; renderer.toneMappingExposure = p.exp;
+  floor.material.color.set(p.floor);
+  document.getElementById('lNight').setAttribute('aria-pressed', String(name === 'night'));
+  document.getElementById('lDay').setAttribute('aria-pressed', String(name === 'day'));
+}
+applyPreset('night');
+
+/* ================= camera ================= */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 0.45; controls.maxDistance = 9; controls.maxPolarAngle = 1.55; controls.enablePan = false;
+controls.autoRotateSpeed = 1.6;
+const VIEWS = {
+  full: { target: new THREE.Vector3(0, 0.9, 0), r: 4.2, phi: 1.36, theta: 0.5 },
+  face: { target: new THREE.Vector3(0, 1.62, 0.05), r: 1.0, phi: 1.47, theta: 0.3 },
+};
+function frameView(v) { controls.target.copy(v.target); camera.position.setFromSphericalCoords(v.r, v.phi, v.theta).add(v.target); controls.update(); }
+let tween = null;
+function goTo(v) {
+  if (reduceMotion) { frameView(v); return; }
+  tween = { t: 0, from: new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target)), ft: controls.target.clone(), v };
+}
+frameView(VIEWS.full);
+
+/* ================= UI ================= */
+const state = { walk: false, spin: !reduceMotion, face: false };
+const setP = (id, on) => document.getElementById(id).setAttribute('aria-pressed', String(on));
+function setSpin(on) { state.spin = on; controls.autoRotate = on; setP('tSpin', on); }
+document.getElementById('aIdle').onclick = () => { state.walk = false; setP('aIdle', true); setP('aWalk', false); };
+document.getElementById('aWalk').onclick = () => { state.walk = true; setP('aIdle', false); setP('aWalk', true); };
+document.getElementById('lNight').onclick = () => applyPreset('night');
+document.getElementById('lDay').onclick = () => applyPreset('day');
+document.getElementById('tSpin').onclick = () => setSpin(!state.spin);
+document.getElementById('tFace').onclick = () => { state.face = !state.face; setP('tFace', state.face); goTo(state.face ? VIEWS.face : VIEWS.full); };
+controls.addEventListener('start', () => { tween = null; });
+setSpin(state.spin);
+
+function resize() {
+  camera.aspect = innerWidth / innerHeight;
+  camera.fov = camera.aspect < 0.8 ? 42 : 30;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+}
+addEventListener('resize', resize); resize();
+
+/* ================= animation ================= */
+const clock = new THREE.Clock();
+let t = 0, walkBlend = 0;
+const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05); t += dt;
+  walkBlend += ((state.walk ? 1 : 0) - walkBlend) * Math.min(1, dt * 5);
+
+  const ph = t * 6.2;                 // walk phase
+  const swing = Math.sin(ph) * 0.55 * walkBlend;
+  const breathe = Math.sin(t * 1.7) * (1 - walkBlend);
+  meshes.legL.rotation.x = swing;  meshes.legR.rotation.x = -swing;
+  meshes.armL.rotation.x = -swing * 0.65 + breathe * 0.02; meshes.armR.rotation.x = swing * 0.65 + breathe * 0.02;
+  meshes.armL.rotation.z = 0.05 + breathe * 0.015; meshes.armR.rotation.z = -0.05 - breathe * 0.015;
+  hips.position.y = Math.abs(Math.cos(ph)) * 0.028 * walkBlend + breathe * 0.004;
+  meshes.torso.rotation.y = Math.sin(ph) * 0.12 * walkBlend;
+  meshes.torso.rotation.x = 0.05 * walkBlend + breathe * 0.012;
+  meshes.head.rotation.y = -Math.sin(ph) * 0.1 * walkBlend + Math.sin(t * 0.45) * 0.22 * (1 - walkBlend);
+  meshes.head.rotation.x = Math.sin(t * 0.7) * 0.03 * (1 - walkBlend);
+
+  if (tween) {
+    tween.t = Math.min(1, tween.t + dt / 1.2);
+    const k = ease(tween.t), f = tween.from, v = tween.v;
+    controls.target.lerpVectors(tween.ft, v.target, k);
+    let dTh = v.theta - f.theta; dTh = Math.atan2(Math.sin(dTh), Math.cos(dTh));
+    camera.position.setFromSphericalCoords(f.radius + (v.r - f.radius) * k, f.phi + (v.phi - f.phi) * k, f.theta + dTh * k).add(controls.target);
+    if (tween.t >= 1) tween = null;
+  }
+  controls.update();
+  // bevel lines fade out as cubes get small on screen, so they never shimmer
+  const dist = camera.position.distanceTo(controls.target);
+  SEAM.value = 0.22 * THREE.MathUtils.clamp((2.6 - dist) / 1.6, 0, 1);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
