@@ -1,0 +1,1834 @@
+{
+ "buildings/teahouse": {
+  "w": 481,
+  "h": 332,
+  "left": 2,
+  "right": 478,
+  "bottomX": 276,
+  "bottomY": 329,
+  "glows": [
+   [
+    243,
+    244,
+    1088
+   ],
+   [
+    399,
+    198,
+    386
+   ],
+   [
+    105,
+    200,
+    150
+   ],
+   [
+    118,
+    200,
+    126
+   ],
+   [
+    200,
+    163,
+    117
+   ],
+   [
+    183,
+    154,
+    98
+   ]
+  ]
+ },
+ "buildings/gambling_den": {
+  "w": 397,
+  "h": 324,
+  "left": 2,
+  "right": 394,
+  "bottomX": 240,
+  "bottomY": 321,
+  "glows": [
+   [
+    105,
+    113,
+    132
+   ],
+   [
+    182,
+    235,
+    117
+   ],
+   [
+    106,
+    197,
+    115
+   ],
+   [
+    20,
+    166,
+    109
+   ],
+   [
+    325,
+    246,
+    109
+   ],
+   [
+    226,
+    188,
+    98
+   ],
+   [
+    328,
+    140,
+    95
+   ],
+   [
+    68,
+    210,
+    77
+   ]
+  ]
+ },
+ "buildings/warehouse": {
+  "w": 491,
+  "h": 333,
+  "left": 2,
+  "right": 488,
+  "bottomX": 300,
+  "bottomY": 330,
+  "glows": []
+ },
+ "buildings/townhouse": {
+  "w": 355,
+  "h": 311,
+  "left": 2,
+  "right": 352,
+  "bottomX": 201,
+  "bottomY": 308,
+  "glows": [
+   [
+    87,
+    116,
+    189
+   ],
+   [
+    169,
+    221,
+    155
+   ],
+   [
+    64,
+    109,
+    54
+   ]
+  ]
+ },
+ "buildings/shop": {
+  "w": 400,
+  "h": 326,
+  "left": 2,
+  "right": 397,
+  "bottomX": 264,
+  "bottomY": 323,
+  "glows": [
+   [
+    153,
+    131,
+    338
+   ],
+   [
+    220,
+    167,
+    271
+   ],
+   [
+    295,
+    145,
+    103
+   ],
+   [
+    140,
+    212,
+    67
+   ]
+  ]
+ },
+ "buildings/shrine": {
+  "w": 470,
+  "h": 333,
+  "left": 2,
+  "right": 467,
+  "bottomX": 259,
+  "bottomY": 330,
+  "glows": [
+   [
+    213,
+    135,
+    28
+   ]
+  ]
+ },
+ "buildings/sake_brewery": {
+  "w": 489,
+  "h": 333,
+  "left": 2,
+  "right": 486,
+  "bottomX": 274,
+  "bottomY": 330,
+  "glows": []
+ },
+ "buildings/abandoned_house": {
+  "w": 418,
+  "h": 333,
+  "left": 2,
+  "right": 415,
+  "bottomX": 202,
+  "bottomY": 330,
+  "glows": []
+ },
+ "buildings/western_office": {
+  "w": 441,
+  "h": 332,
+  "left": 2,
+  "right": 438,
+  "bottomX": 218,
+  "bottomY": 329,
+  "glows": [
+   [
+    21,
+    128,
+    35
+   ]
+  ]
+ },
+ "buildings/watch_post": {
+  "w": 463,
+  "h": 333,
+  "left": 2,
+  "right": 460,
+  "bottomX": 221,
+  "bottomY": 332,
+  "glows": [
+   [
+    288,
+    249,
+    508
+   ],
+   [
+    390,
+    218,
+    212
+   ],
+   [
+    167,
+    188,
+    177
+   ],
+   [
+    99,
+    70,
+    101
+   ],
+   [
+    116,
+    68,
+    76
+   ]
+  ]
+ },
+ "buildings/dock_warehouse": {
+  "w": 482,
+  "h": 321,
+  "left": 2,
+  "right": 479,
+  "bottomX": 242,
+  "bottomY": 320,
+  "glows": [
+   [
+    284,
+    242,
+    54
+   ],
+   [
+    275,
+    232,
+    28
+   ]
+  ]
+ },
+ "buildings/manor": {
+  "w": 502,
+  "h": 333,
+  "left": 0,
+  "right": 499,
+  "bottomX": 230,
+  "bottomY": 332,
+  "glows": [
+   [
+    332,
+    262,
+    149
+   ],
+   [
+    200,
+    180,
+    139
+   ],
+   [
+    262,
+    188,
+    125
+   ],
+   [
+    417,
+    235,
+    120
+   ],
+   [
+    137,
+    155,
+    75
+   ],
+   [
+    363,
+    154,
+    70
+   ],
+   [
+    413,
+    124,
+    64
+   ],
+   [
+    416,
+    157,
+    60
+   ]
+  ]
+ },
+ "buildings/inn": {
+  "w": 445,
+  "h": 325,
+  "left": 3,
+  "right": 442,
+  "bottomX": 244,
+  "bottomY": 324,
+  "glows": [
+   [
+    23,
+    164,
+    361
+   ],
+   [
+    60,
+    105,
+    348
+   ],
+   [
+    101,
+    204,
+    331
+   ],
+   [
+    82,
+    115,
+    315
+   ],
+   [
+    198,
+    170,
+    312
+   ],
+   [
+    224,
+    182,
+    301
+   ],
+   [
+    179,
+    161,
+    282
+   ],
+   [
+    287,
+    226,
+    205
+   ]
+  ]
+ },
+ "buildings/blacksmith": {
+  "w": 432,
+  "h": 316,
+  "left": 2,
+  "right": 428,
+  "bottomX": 252,
+  "bottomY": 312,
+  "glows": [
+   [
+    204,
+    203,
+    232
+   ],
+   [
+    176,
+    199,
+    196
+   ],
+   [
+    213,
+    264,
+    57
+   ],
+   [
+    191,
+    252,
+    55
+   ],
+   [
+    207,
+    220,
+    28
+   ]
+  ]
+ },
+ "buildings/bathhouse": {
+  "w": 499,
+  "h": 330,
+  "left": 3,
+  "right": 495,
+  "bottomX": 312,
+  "bottomY": 329,
+  "glows": [
+   [
+    236,
+    219,
+    203
+   ],
+   [
+    96,
+    153,
+    170
+   ],
+   [
+    222,
+    232,
+    116
+   ],
+   [
+    259,
+    219,
+    107
+   ],
+   [
+    105,
+    177,
+    97
+   ],
+   [
+    132,
+    191,
+    69
+   ]
+  ]
+ },
+ "buildings/forest_hut": {
+  "w": 503,
+  "h": 332,
+  "left": 2,
+  "right": 499,
+  "bottomX": 238,
+  "bottomY": 329,
+  "glows": [
+   [
+    249,
+    122,
+    108
+   ],
+   [
+    244,
+    145,
+    72
+   ]
+  ]
+ },
+ "buildings/bandit_camp": {
+  "w": 499,
+  "h": 321,
+  "left": 2,
+  "right": 496,
+  "bottomX": 269,
+  "bottomY": 318,
+  "glows": [
+   [
+    269,
+    187,
+    124
+   ],
+   [
+    228,
+    134,
+    93
+   ],
+   [
+    264,
+    173,
+    79
+   ],
+   [
+    358,
+    41,
+    71
+   ],
+   [
+    181,
+    149,
+    71
+   ],
+   [
+    264,
+    230,
+    58
+   ],
+   [
+    303,
+    220,
+    38
+   ],
+   [
+    335,
+    207,
+    31
+   ]
+  ]
+ },
+ "buildings/bridge": {
+  "w": 503,
+  "h": 317,
+  "left": 0,
+  "right": 500,
+  "bottomX": 153,
+  "bottomY": 313,
+  "glows": [
+   [
+    103,
+    173,
+    178
+   ],
+   [
+    465,
+    61,
+    130
+   ],
+   [
+    378,
+    29,
+    124
+   ],
+   [
+    31,
+    128,
+    64
+   ],
+   [
+    22,
+    126,
+    52
+   ]
+  ]
+ },
+ "props/lantern_post": {
+  "w": 110,
+  "h": 243,
+  "left": 2,
+  "right": 107,
+  "bottomX": 36,
+  "bottomY": 240,
+  "glows": [
+   [
+    76,
+    115,
+    1819
+   ],
+   [
+    97,
+    99,
+    38
+   ]
+  ]
+ },
+ "props/stone_lantern": {
+  "w": 139,
+  "h": 240,
+  "left": 2,
+  "right": 136,
+  "bottomX": 69,
+  "bottomY": 238,
+  "glows": [
+   [
+    56,
+    85,
+    144
+   ],
+   [
+    81,
+    85,
+    124
+   ],
+   [
+    54,
+    107,
+    77
+   ]
+  ]
+ },
+ "props/barrels": {
+  "w": 260,
+  "h": 217,
+  "left": 2,
+  "right": 257,
+  "bottomX": 154,
+  "bottomY": 214,
+  "glows": [
+   [
+    172,
+    46,
+    92
+   ],
+   [
+    183,
+    108,
+    79
+   ],
+   [
+    130,
+    47,
+    73
+   ],
+   [
+    31,
+    106,
+    71
+   ],
+   [
+    25,
+    80,
+    67
+   ],
+   [
+    98,
+    34,
+    66
+   ],
+   [
+    195,
+    38,
+    51
+   ],
+   [
+    194,
+    103,
+    44
+   ]
+  ]
+ },
+ "props/sake_barrels": {
+  "w": 237,
+  "h": 231,
+  "left": 2,
+  "right": 234,
+  "bottomX": 178,
+  "bottomY": 228,
+  "glows": [
+   [
+    122,
+    31,
+    1897
+   ],
+   [
+    34,
+    113,
+    970
+   ],
+   [
+    64,
+    133,
+    741
+   ],
+   [
+    165,
+    141,
+    657
+   ],
+   [
+    207,
+    128,
+    515
+   ],
+   [
+    7,
+    159,
+    113
+   ],
+   [
+    36,
+    181,
+    90
+   ],
+   [
+    55,
+    150,
+    86
+   ]
+  ]
+ },
+ "props/crates": {
+  "w": 271,
+  "h": 238,
+  "left": 2,
+  "right": 268,
+  "bottomX": 116,
+  "bottomY": 235,
+  "glows": [
+   [
+    114,
+    163,
+    170
+   ],
+   [
+    221,
+    103,
+    155
+   ],
+   [
+    188,
+    93,
+    154
+   ],
+   [
+    139,
+    154,
+    148
+   ],
+   [
+    202,
+    84,
+    127
+   ],
+   [
+    251,
+    88,
+    125
+   ],
+   [
+    47,
+    132,
+    84
+   ],
+   [
+    122,
+    28,
+    76
+   ]
+  ]
+ },
+ "props/handcart": {
+  "w": 320,
+  "h": 210,
+  "left": 2,
+  "right": 317,
+  "bottomX": 140,
+  "bottomY": 207,
+  "glows": [
+   [
+    141,
+    43,
+    541
+   ],
+   [
+    193,
+    62,
+    229
+   ],
+   [
+    175,
+    72,
+    185
+   ],
+   [
+    204,
+    148,
+    118
+   ],
+   [
+    86,
+    79,
+    52
+   ]
+  ]
+ },
+ "props/rickshaw": {
+  "w": 262,
+  "h": 235,
+  "left": 2,
+  "right": 259,
+  "bottomX": 219,
+  "bottomY": 232,
+  "glows": []
+ },
+ "props/well": {
+  "w": 218,
+  "h": 248,
+  "left": 2,
+  "right": 215,
+  "bottomX": 117,
+  "bottomY": 247,
+  "glows": []
+ },
+ "props/market_stall": {
+  "w": 288,
+  "h": 248,
+  "left": 2,
+  "right": 285,
+  "bottomX": 167,
+  "bottomY": 247,
+  "glows": [
+   [
+    84,
+    133,
+    122
+   ],
+   [
+    104,
+    140,
+    116
+   ],
+   [
+    61,
+    126,
+    34
+   ],
+   [
+    167,
+    60,
+    32
+   ],
+   [
+    83,
+    72,
+    26
+   ]
+  ]
+ },
+ "props/notice_board": {
+  "w": 218,
+  "h": 248,
+  "left": 2,
+  "right": 215,
+  "bottomX": 163,
+  "bottomY": 246,
+  "glows": [
+   [
+    120,
+    134,
+    183
+   ],
+   [
+    135,
+    131,
+    80
+   ],
+   [
+    138,
+    145,
+    53
+   ],
+   [
+    91,
+    131,
+    43
+   ],
+   [
+    88,
+    113,
+    28
+   ]
+  ]
+ },
+ "props/cherry_tree": {
+  "w": 338,
+  "h": 248,
+  "left": 2,
+  "right": 335,
+  "bottomX": 166,
+  "bottomY": 246,
+  "glows": [
+   [
+    189,
+    64,
+    2089
+   ],
+   [
+    148,
+    36,
+    1354
+   ],
+   [
+    278,
+    88,
+    777
+   ],
+   [
+    34,
+    62,
+    401
+   ],
+   [
+    57,
+    93,
+    349
+   ],
+   [
+    123,
+    13,
+    330
+   ],
+   [
+    85,
+    151,
+    252
+   ],
+   [
+    303,
+    134,
+    251
+   ]
+  ]
+ },
+ "props/pine_tree": {
+  "w": 309,
+  "h": 248,
+  "left": 2,
+  "right": 306,
+  "bottomX": 195,
+  "bottomY": 247,
+  "glows": []
+ },
+ "props/dead_tree": {
+  "w": 243,
+  "h": 246,
+  "left": 2,
+  "right": 240,
+  "bottomX": 118,
+  "bottomY": 243,
+  "glows": []
+ },
+ "props/bush": {
+  "w": 253,
+  "h": 231,
+  "left": 2,
+  "right": 250,
+  "bottomX": 156,
+  "bottomY": 228,
+  "glows": [
+   [
+    125,
+    140,
+    67
+   ],
+   [
+    135,
+    125,
+    54
+   ],
+   [
+    158,
+    156,
+    43
+   ],
+   [
+    157,
+    116,
+    41
+   ],
+   [
+    137,
+    61,
+    32
+   ],
+   [
+    153,
+    96,
+    28
+   ]
+  ]
+ },
+ "props/bamboo": {
+  "w": 238,
+  "h": 241,
+  "left": 2,
+  "right": 235,
+  "bottomX": 157,
+  "bottomY": 238,
+  "glows": []
+ },
+ "props/gas_lamp": {
+  "w": 67,
+  "h": 242,
+  "left": 2,
+  "right": 64,
+  "bottomX": 33,
+  "bottomY": 239,
+  "glows": [
+   [
+    39,
+    48,
+    193
+   ],
+   [
+    25,
+    48,
+    181
+   ]
+  ]
+ },
+ "props/iron_chest": {
+  "w": 284,
+  "h": 235,
+  "left": 3,
+  "right": 280,
+  "bottomX": 98,
+  "bottomY": 234,
+  "glows": []
+ },
+ "props/weapon_rack": {
+  "w": 272,
+  "h": 248,
+  "left": 3,
+  "right": 268,
+  "bottomX": 233,
+  "bottomY": 247,
+  "glows": []
+ },
+ "props/dynamite_crate": {
+  "w": 286,
+  "h": 229,
+  "left": 2,
+  "right": 283,
+  "bottomX": 90,
+  "bottomY": 227,
+  "glows": [
+   [
+    142,
+    123,
+    31
+   ]
+  ]
+ },
+ "props/spike_barricade": {
+  "w": 308,
+  "h": 240,
+  "left": 3,
+  "right": 304,
+  "bottomX": 122,
+  "bottomY": 239,
+  "glows": []
+ },
+ "props/clan_banner": {
+  "w": 125,
+  "h": 248,
+  "left": 2,
+  "right": 121,
+  "bottomX": 36,
+  "bottomY": 247,
+  "glows": []
+ },
+ "props/brazier": {
+  "w": 101,
+  "h": 240,
+  "left": 2,
+  "right": 98,
+  "bottomX": 62,
+  "bottomY": 239,
+  "glows": [
+   [
+    53,
+    52,
+    674
+   ],
+   [
+    49,
+    80,
+    85
+   ]
+  ]
+ },
+ "props/campfire": {
+  "w": 299,
+  "h": 190,
+  "left": 3,
+  "right": 295,
+  "bottomX": 108,
+  "bottomY": 186,
+  "glows": [
+   [
+    123,
+    88,
+    641
+   ],
+   [
+    160,
+    65,
+    97
+   ],
+   [
+    141,
+    114,
+    97
+   ],
+   [
+    165,
+    84,
+    52
+   ],
+   [
+    170,
+    99,
+    47
+   ]
+  ]
+ },
+ "props/firewood": {
+  "w": 318,
+  "h": 203,
+  "left": 2,
+  "right": 315,
+  "bottomX": 218,
+  "bottomY": 200,
+  "glows": [
+   [
+    187,
+    80,
+    42
+   ],
+   [
+    193,
+    166,
+    33
+   ],
+   [
+    171,
+    155,
+    30
+   ],
+   [
+    151,
+    58,
+    25
+   ]
+  ]
+ },
+ "props/haystack": {
+  "w": 273,
+  "h": 237,
+  "left": 8,
+  "right": 261,
+  "bottomX": 178,
+  "bottomY": 233,
+  "glows": [
+   [
+    107,
+    98,
+    541
+   ],
+   [
+    102,
+    153,
+    174
+   ],
+   [
+    106,
+    126,
+    163
+   ],
+   [
+    124,
+    122,
+    52
+   ],
+   [
+    118,
+    145,
+    47
+   ],
+   [
+    129,
+    109,
+    40
+   ],
+   [
+    62,
+    125,
+    37
+   ],
+   [
+    70,
+    146,
+    33
+   ]
+  ]
+ },
+ "props/rowboat": {
+  "w": 329,
+  "h": 233,
+  "left": 3,
+  "right": 326,
+  "bottomX": 228,
+  "bottomY": 229,
+  "glows": [
+   [
+    137,
+    83,
+    29
+   ],
+   [
+    163,
+    106,
+    29
+   ],
+   [
+    181,
+    122,
+    26
+   ]
+  ]
+ },
+ "props/rope_bollard": {
+  "w": 291,
+  "h": 219,
+  "left": 3,
+  "right": 287,
+  "bottomX": 182,
+  "bottomY": 216,
+  "glows": [
+   [
+    89,
+    153,
+    83
+   ],
+   [
+    150,
+    26,
+    44
+   ],
+   [
+    54,
+    147,
+    38
+   ]
+  ]
+ },
+ "props/bamboo_fence": {
+  "w": 289,
+  "h": 238,
+  "left": 2,
+  "right": 286,
+  "bottomX": 244,
+  "bottomY": 237,
+  "glows": []
+ },
+ "props/stone_wall": {
+  "w": 283,
+  "h": 233,
+  "left": 2,
+  "right": 279,
+  "bottomX": 240,
+  "bottomY": 230,
+  "glows": []
+ },
+ "props/boulder": {
+  "w": 280,
+  "h": 234,
+  "left": 2,
+  "right": 276,
+  "bottomX": 186,
+  "bottomY": 231,
+  "glows": []
+ },
+ "props/rotten_log": {
+  "w": 356,
+  "h": 224,
+  "left": 3,
+  "right": 352,
+  "bottomX": 93,
+  "bottomY": 221,
+  "glows": []
+ },
+ "props/dice_table": {
+  "w": 326,
+  "h": 234,
+  "left": 2,
+  "right": 323,
+  "bottomX": 225,
+  "bottomY": 231,
+  "glows": [
+   [
+    149,
+    87,
+    26
+   ]
+  ]
+ },
+ "interior/wall_plain": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_shoji_door": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_doorway": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_window": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_corner": {
+  "w": 207,
+  "h": 161,
+  "left": 2,
+  "right": 204,
+  "bottomX": 197,
+  "bottomY": 158,
+  "glows": []
+ },
+ "interior/wall_planks": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_cargo_door": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_den": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/shoji_partition": {
+  "w": 125,
+  "h": 158,
+  "left": 2,
+  "right": 122,
+  "bottomX": 102,
+  "bottomY": 155,
+  "glows": []
+ },
+ "interior/pillar": {
+  "w": 41,
+  "h": 159,
+  "left": 2,
+  "right": 38,
+  "bottomX": 20,
+  "bottomY": 156,
+  "glows": []
+ },
+ "interior/stairs": {
+  "w": 123,
+  "h": 157,
+  "left": 2,
+  "right": 120,
+  "bottomX": 69,
+  "bottomY": 154,
+  "glows": []
+ },
+ "interior/floor_step": {
+  "w": 217,
+  "h": 133,
+  "left": 2,
+  "right": 214,
+  "bottomX": 107,
+  "bottomY": 130,
+  "glows": []
+ },
+ "interior/tokonoma": {
+  "w": 120,
+  "h": 163,
+  "left": 2,
+  "right": 117,
+  "bottomX": 92,
+  "bottomY": 162,
+  "glows": []
+ },
+ "interior/wall_low_plaster": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/wall_low_planks": {
+  "w": 145,
+  "h": 181,
+  "left": 0,
+  "right": 144,
+  "bottomX": 0,
+  "bottomY": 179,
+  "glows": []
+ },
+ "interior/counter": {
+  "w": 191,
+  "h": 139,
+  "left": 2,
+  "right": 188,
+  "bottomX": 57,
+  "bottomY": 136,
+  "glows": []
+ },
+ "interior/tea_table": {
+  "w": 229,
+  "h": 131,
+  "left": 2,
+  "right": 226,
+  "bottomX": 193,
+  "bottomY": 128,
+  "glows": []
+ },
+ "interior/tea_set": {
+  "w": 174,
+  "h": 110,
+  "left": 2,
+  "right": 171,
+  "bottomX": 97,
+  "bottomY": 107,
+  "glows": [
+   [
+    133,
+    29,
+    34
+   ]
+  ]
+ },
+ "interior/futon": {
+  "w": 240,
+  "h": 132,
+  "left": 2,
+  "right": 237,
+  "bottomX": 92,
+  "bottomY": 129,
+  "glows": []
+ },
+ "interior/irori": {
+  "w": 206,
+  "h": 160,
+  "left": 2,
+  "right": 203,
+  "bottomX": 103,
+  "bottomY": 157,
+  "glows": [
+   [
+    103,
+    109,
+    83
+   ]
+  ]
+ },
+ "interior/hibachi": {
+  "w": 109,
+  "h": 122,
+  "left": 2,
+  "right": 106,
+  "bottomX": 54,
+  "bottomY": 119,
+  "glows": [
+   [
+    59,
+    41,
+    26
+   ]
+  ]
+ },
+ "interior/andon": {
+  "w": 79,
+  "h": 150,
+  "left": 2,
+  "right": 76,
+  "bottomX": 40,
+  "bottomY": 147,
+  "glows": [
+   [
+    23,
+    70,
+    1271
+   ],
+   [
+    57,
+    69,
+    1074
+   ],
+   [
+    39,
+    26,
+    338
+   ]
+  ]
+ },
+ "interior/red_lantern": {
+  "w": 67,
+  "h": 138,
+  "left": 2,
+  "right": 64,
+  "bottomX": 33,
+  "bottomY": 135,
+  "glows": [
+   [
+    31,
+    80,
+    997
+   ]
+  ]
+ },
+ "interior/gambling_mat": {
+  "w": 239,
+  "h": 110,
+  "left": 2,
+  "right": 236,
+  "bottomX": 119,
+  "bottomY": 107,
+  "glows": []
+ },
+ "interior/cash_box": {
+  "w": 144,
+  "h": 137,
+  "left": 2,
+  "right": 141,
+  "bottomX": 84,
+  "bottomY": 134,
+  "glows": []
+ },
+ "interior/tansu": {
+  "w": 134,
+  "h": 150,
+  "left": 2,
+  "right": 131,
+  "bottomX": 37,
+  "bottomY": 147,
+  "glows": []
+ },
+ "interior/byobu": {
+  "w": 222,
+  "h": 113,
+  "left": 2,
+  "right": 219,
+  "bottomX": 110,
+  "bottomY": 110,
+  "glows": []
+ },
+ "interior/sake_shelf": {
+  "w": 143,
+  "h": 159,
+  "left": 2,
+  "right": 140,
+  "bottomX": 118,
+  "bottomY": 156,
+  "glows": []
+ },
+ "interior/warehouse_shelves": {
+  "w": 199,
+  "h": 157,
+  "left": 2,
+  "right": 196,
+  "bottomX": 94,
+  "bottomY": 154,
+  "glows": [
+   [
+    20,
+    28,
+    26
+   ]
+  ]
+ },
+ "interior/rice_sacks": {
+  "w": 192,
+  "h": 155,
+  "left": 2,
+  "right": 189,
+  "bottomX": 111,
+  "bottomY": 152,
+  "glows": [
+   [
+    84,
+    48,
+    175
+   ],
+   [
+    52,
+    32,
+    139
+   ],
+   [
+    102,
+    88,
+    74
+   ],
+   [
+    103,
+    9,
+    26
+   ]
+  ]
+ },
+ "interior/vase": {
+  "w": 106,
+  "h": 158,
+  "left": 2,
+  "right": 103,
+  "bottomX": 57,
+  "bottomY": 155,
+  "glows": []
+ },
+ "interior/sake_keg": {
+  "w": 123,
+  "h": 161,
+  "left": 2,
+  "right": 120,
+  "bottomX": 63,
+  "bottomY": 158,
+  "glows": []
+ },
+ "buildings/clinic": {
+  "w": 466,
+  "h": 332,
+  "left": 3,
+  "right": 462,
+  "bottomX": 256,
+  "bottomY": 329,
+  "glows": [
+   [
+    225,
+    197,
+    200
+   ]
+  ]
+ },
+ "buildings/pawnshop": {
+  "w": 414,
+  "h": 332,
+  "left": 2,
+  "right": 410,
+  "bottomX": 234,
+  "bottomY": 331,
+  "glows": [
+   [
+    69,
+    187,
+    516
+   ]
+  ]
+ },
+ "buildings/rice_storehouse": {
+  "w": 443,
+  "h": 333,
+  "left": 2,
+  "right": 438,
+  "bottomX": 221,
+  "bottomY": 332,
+  "glows": []
+ },
+ "buildings/izakaya": {
+  "w": 432,
+  "h": 326,
+  "left": 2,
+  "right": 428,
+  "bottomX": 235,
+  "bottomY": 322,
+  "glows": [
+   [
+    218,
+    226,
+    390
+   ],
+   [
+    55,
+    158,
+    330
+   ],
+   [
+    163,
+    210,
+    248
+   ],
+   [
+    258,
+    225,
+    98
+   ],
+   [
+    116,
+    208,
+    70
+   ]
+  ]
+ },
+ "buildings/fish_market": {
+  "w": 484,
+  "h": 333,
+  "left": 3,
+  "right": 480,
+  "bottomX": 212,
+  "bottomY": 330,
+  "glows": [
+   [
+    242,
+    144,
+    126
+   ]
+  ]
+ },
+ "buildings/geisha_house": {
+  "w": 453,
+  "h": 334,
+  "left": 2,
+  "right": 449,
+  "bottomX": 234,
+  "bottomY": 333,
+  "glows": [
+   [
+    198,
+    246,
+    358
+   ],
+   [
+    172,
+    234,
+    332
+   ],
+   [
+    127,
+    120,
+    317
+   ],
+   [
+    215,
+    165,
+    280
+   ],
+   [
+    187,
+    153,
+    180
+   ],
+   [
+    241,
+    259,
+    151
+   ],
+   [
+    156,
+    136,
+    114
+   ],
+   [
+    246,
+    183,
+    107
+   ]
+  ]
+ },
+ "buildings/customs_house": {
+  "w": 467,
+  "h": 331,
+  "left": 3,
+  "right": 464,
+  "bottomX": 227,
+  "bottomY": 328,
+  "glows": []
+ },
+ "buildings/boatbuilder": {
+  "w": 485,
+  "h": 325,
+  "left": 2,
+  "right": 484,
+  "bottomX": 245,
+  "bottomY": 321,
+  "glows": [
+   [
+    322,
+    122,
+    82
+   ]
+  ]
+ },
+ "buildings/tenements": {
+  "w": 449,
+  "h": 328,
+  "left": 3,
+  "right": 445,
+  "bottomX": 292,
+  "bottomY": 324,
+  "glows": [
+   [
+    277,
+    262,
+    200
+   ],
+   [
+    169,
+    121,
+    108
+   ],
+   [
+    53,
+    149,
+    76
+   ],
+   [
+    267,
+    176,
+    53
+   ],
+   [
+    209,
+    231,
+    30
+   ]
+  ]
+ }
+}

@@ -1,0 +1,17 @@
+{
+  "_note": "Crew unit types and clan rules for the sim (docs/crew_recruiting_plan.md). Starting numbers, tune in playtests. Speeds and ranges in world units (the ronin is 2 tall), attackSpeed in seconds between hits, hireSeconds = queue timer, price in ryo before the crew-size step. 'later' types are listed but cannot be hired yet.",
+  "rules": {
+    "startRyo": 300,
+    "baseCap": 3,
+    "capPerBusiness": { "teahouse": 3, "warehouse": 3, "gambling_den": 3 },
+    "priceStepPerCrew": 0.15,
+    "maxQueue": 5
+  },
+  "types": {
+    "thug":      { "sprite": "thug",      "hp": 100, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "walk": 1.6, "run": 5.4, "radius": 0.35, "price": 60,  "hireSeconds": 5 },
+    "brute":     { "sprite": "brute",     "hp": 180, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "walk": 1.4, "run": 4.6, "radius": 0.45, "price": 100, "hireSeconds": 8 },
+    "swordsman": { "sprite": "swordsman", "hp": 120, "damage": 16, "attackRange": 1.6, "attackSpeed": 1.2, "walk": 1.6, "run": 5.6, "radius": 0.35, "price": 120, "hireSeconds": 8 },
+    "rifleman":  { "sprite": "mercenary", "later": "needs projectiles" },
+    "archer":    { "sprite": "archer",    "later": "needs projectiles" }
+  }
+}

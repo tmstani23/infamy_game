@@ -1,0 +1,65 @@
+{
+  "_about": "Parts for 3D interiors. Spec: docs/interiors_spec.md. Units are grid cells (1 cell = 1 world unit; the ronin is 2 tall).",
+  "wall": { "bay": 2, "height": 3.0, "lintel": 2.2, "thickness": 0.2, "low": 0.6, "post": 0.2 },
+
+  "materials": {
+    "plaster":    { "file": "plaster",       "tile": [2.4, 1.5], "tint": "#e6dccb", "gain": 1.15, "detail": 0.45 },
+    "plaster_dim":{ "file": "plaster",       "tile": [2.4, 1.5], "tint": "#b8ae9c", "detail": 0.4 },
+    "wood":       { "file": "wood",          "tile": [1.2, 0.8], "tint": "#8c7a68", "gain": 2.6, "detail": 0.7 },
+    "timber":     { "file": "grain",         "tile": [0.6, 1.8], "tint": "#d0b494", "gain": 1.9, "detail": 0.85 },
+    "wood_warm":  { "file": "wood",          "tile": [1.0, 0.7], "tint": "#c49870", "gain": 3.4, "detail": 0.6 },
+    "iron":       { "file": "wood",          "tile": [0.8, 0.5], "tint": "#4c5056", "detail": 0.3 },
+    "ceramic":    { "file": "plaster",       "tile": [0.6, 0.4], "tint": "#c8ccb0", "gain": 1.2, "detail": 0.3 },
+    "shoji":      { "file": "shoji",         "uv": "mesh", "glow": 0.18 },
+    "noren":      { "file": "noren",         "uv": "mesh" },
+    "planks":     { "file": "wood",          "tile": [1.6, 1.1], "tint": "#b09a80", "gain": 4.4, "detail": 0.8 },
+    "red_planks": { "file": "red_planks",    "tile": [1.6, 1.1], "gain": 1.35, "detail": 0.8 },
+    "scroll":     { "file": "scroll",        "uv": "mesh" },
+    "byobu":      { "file": "byobu",         "uv": "mesh" },
+    "andon":      { "file": "andon_paper",   "uv": "mesh", "glow": 0.95 },
+    "lantern":    { "file": "lantern_paper", "uv": "mesh", "glow": 0.85 },
+    "coals":      { "file": "coals",         "uv": "mesh", "glow": 1.1 },
+    "cushion":    { "file": "cushion",       "uv": "mesh", "tint": "#a8b878" },
+    "straw":      { "file": "tatami",        "tile": [0.7, 0.7], "tint": "#d8c49a", "gain": 1.25, "detail": 0.7 },
+    "gambling_mat": { "file": "gambling_mat", "uv": "mesh", "gain": 1.15 }
+  },
+
+  "floors": {
+    "tatami":      { "file": "tatami", "pattern": "tatami", "gain": 1.15 },
+    "floorboards": { "file": "wood", "pattern": "boards", "tint": "#b09a80", "gain": 4.2 }
+  },
+
+  "bays": {
+    "plaster":    { "fill": "plaster" },
+    "window":     { "fill": "plaster", "window": [1.0, 1.9], "pane": "shoji" },
+    "shoji_door": { "fill": "plaster", "door": true, "pane": "shoji" },
+    "doorway":    { "fill": "plaster", "door": true, "open": true, "curtain": "noren" },
+    "planks":     { "fill": "planks" },
+    "red":        { "fill": "red_planks" },
+    "cargo_door": { "fill": "planks", "door": true, "slab": "planks" }
+  },
+
+  "props": {
+    "tea_table":   { "size": [2, 3], "rule": "floor", "solid": [1.4, 0.9], "surface": 0.42 },
+    "zabuton":     { "size": [1, 1], "rule": "floor" },
+    "tokonoma":    { "size": [4, 1], "rule": "wall", "solid": [4, 1], "surface": 0.16 },
+    "byobu":       { "size": [3, 1], "rule": "floor", "solid": [2.8, 0.5] },
+    "andon":       { "size": [1, 1], "rule": "floor", "solid": [0.45, 0.45], "light": { "y": 0.6, "radius": 6, "color": "#ffc070" } },
+    "hibachi":     { "size": [1, 1], "rule": "floor", "solid": [0.6, 0.6], "light": { "y": 0.5, "radius": 3.5, "color": "#ff7a30", "fire": true } },
+    "red_lantern": { "size": [1, 1], "rule": "ceiling", "solid": [0.4, 0.4], "light": { "y": 1.95, "radius": 4.5, "color": "#ff7a4c" } },
+    "tea_set":     { "size": [1, 1], "rule": "top" },
+    "vase":        { "size": [1, 1], "rule": "floor", "solid": [0.5, 0.5], "cutout": "vase" },
+
+    "gambling_mat":      { "size": [4, 4], "rule": "floor", "solid": [2.4, 2.4] },
+    "counter":           { "size": [4, 2], "rule": "wall", "solid": [4, 2] },
+    "sake_shelf":        { "size": [2, 1], "rule": "wall", "solid": [1.9, 1] },
+    "cash_box":          { "size": [1, 1], "rule": "floor", "solid": [0.8, 0.6], "loot": true },
+    "sake_keg":          { "size": [1, 1], "rule": "floor", "solid": [0.8, 0.8] },
+    "tansu":             { "size": [2, 1], "rule": "wall", "solid": [1.7, 1], "loot": true },
+    "rice_sacks":        { "size": [2, 2], "rule": "floor", "solid": [1.8, 1.6] },
+    "warehouse_shelves": { "size": [4, 1], "rule": "wall", "solid": [3.9, 1] },
+    "crates":            { "size": [2, 2], "rule": "floor", "solid": [1.8, 1.8] },
+    "barrels":           { "size": [2, 2], "rule": "floor", "solid": [1.7, 1.7] },
+    "dynamite_crate":    { "size": [1, 1], "rule": "floor", "solid": [0.8, 0.6], "loot": true }
+  }
+}

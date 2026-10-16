@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infamy - sprite render test</title>
+<style>
+  :root { --bg:#121417; --panel:#1b1e23; --line:#2c3038; --text:#d9d4c7; --muted:#8a8578; --accent:#b8323a; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, sans-serif; }
+  body { display:flex; }
+  #side { width:300px; flex:none; background:var(--panel); border-right:1px solid var(--line); padding:14px; overflow:auto; }
+  #main { flex:1; position:relative; min-width:0; }
+  #view { display:block; width:100%; height:100%; }
+  h1 { font-size:16px; margin:0 0 10px; letter-spacing:.03em; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:16px 0 6px; }
+  #drop { border:1px dashed var(--line); border-radius:6px; padding:14px; text-align:center; color:var(--muted); cursor:pointer; }
+  .drop2 { border:1px dashed var(--line); border-radius:6px; padding:8px; text-align:center; color:var(--muted); cursor:pointer; font-size:12px; }
+  #drop.over { border-color:var(--accent); color:var(--text); }
+  #clips { list-style:none; margin:0; padding:0; }
+  #clips li { padding:5px 8px; border-radius:4px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #clips li:hover { background:#252931; }
+  #clips li.on { background:var(--accent); color:#fff; }
+  label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:6px 0; }
+  select, input[type=number] { background:#111317; color:var(--text); border:1px solid var(--line); border-radius:4px; padding:3px 6px; width:96px; }
+  button { width:100%; margin-top:12px; padding:9px; background:var(--accent); color:#fff; border:0; border-radius:5px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:default; }
+  #log { margin-top:12px; font-size:12px; color:var(--muted); white-space:pre-wrap; }
+  .tag { position:absolute; color:var(--muted); font:600 12px system-ui; pointer-events:none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="side">
+  <h1>Sprite render test</h1>
+  <div id="drop">Drop a character model (e.g. ronin.fbx) and its animation FBX files here, or click to pick them.
+    <input id="pick" type="file" accept=".fbx" multiple hidden></div>
+
+  <h2>Animations</h2>
+  <ul id="clips"><li style="color:var(--muted);cursor:default">No model loaded yet</li></ul>
+  <label>Play animations in place <input id="inplace" type="checkbox" checked></label>
+
+  <h2>Held item</h2>
+  <div id="dropItem" class="drop2">Click to pick an item model (.glb or .fbx), e.g. a rifle
+    <input id="pickItem" type="file" accept=".glb,.gltf,.fbx" hidden></div>
+  <label>Held in <select id="itemMode"><option value="both" selected>both hands</option><option value="right">right hand</option><option value="left">left hand</option></select></label>
+  <label>Length <input id="itemLen" type="number" min="0.1" max="3" step="0.05" value="1.3"></label>
+  <label>Grip point (0 back, 1 front) <input id="itemGrip" type="number" min="0" max="1" step="0.05" value="0.3"></label>
+  <label>Flip front/back <input id="itemFlip" type="checkbox"></label>
+  <label>Roll (deg) <input id="itemRoll" type="number" min="-180" max="180" step="15" value="0"></label>
+  <label>Turn X / Y (deg, one hand) <span><input id="itemRx" type="number" step="15" value="0" style="width:46px"> <input id="itemRy" type="number" step="15" value="0" style="width:46px"></span></label>
+
+  <h2>Spritesheet</h2>
+  <label>Frame size (px) <select id="size"><option>96</option><option>128</option><option selected>160</option><option>192</option><option>256</option></select></label>
+  <label>Frames per second <input id="fps" type="number" min="4" max="30" value="12"></label>
+  <label>Max frames <input id="maxf" type="number" min="1" max="64" value="32"></label>
+  <label>Character scale <input id="cscale" type="number" min="0.5" max="1.5" step="0.05" value="1"></label>
+  <label>Zoom <input id="zoom" type="number" min="0.5" max="2" step="0.05" value="1"></label>
+  <button id="export" disabled>Export spritesheet</button>
+  <div id="log"></div>
+</div>
+<div id="main"><canvas id="view"></canvas></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// Rows of the spritesheet, top to bottom
+const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
+const CHAR_HEIGHT = 2;            // world units after normalizing the model
+const ELEVATION = Math.atan(0.5); // 2:1 dimetric: ground tiles are twice as wide as tall
+
+const $ = id => document.getElementById(id);
+const log = msg => { $('log').textContent = msg; };
+
+// ---------- scene ----------
+const scene = new THREE.Scene();
+
+scene.add(new THREE.HemisphereLight(0x6a7488, 0x231b14, 1.8));
+const key = new THREE.DirectionalLight(0xffd9a8, 3.0);   // warm lantern-like key from top-left of screen
+key.position.set(-2, 5, 4);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x7f9cff, 1.6);   // cool moonlight rim from behind
+rim.position.set(-3, 3, -5);
+scene.add(rim);
+
+// Camera sits to the south-east, looking at the origin from above at the dimetric angle
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+const camDist = 20;
+const VIEW_DIR = new THREE.Vector3(
+  Math.cos(ELEVATION) * Math.SQRT1_2,
+  Math.sin(ELEVATION),
+  Math.cos(ELEVATION) * Math.SQRT1_2);   // from the target toward the camera
+
+// Screen directions on the ground plane for this camera
+const screenRight = new THREE.Vector3(1, 0, -1).normalize();
+const screenDown = new THREE.Vector3(1, 0, 1).normalize();
+const DIR_VEC = {
+  E: screenRight, W: screenRight.clone().negate(),
+  S: screenDown, N: screenDown.clone().negate(),
+};
+for (const [d, a, b] of [['NE', 'N', 'E'], ['NW', 'N', 'W'], ['SE', 'S', 'E'], ['SW', 'S', 'W']])
+  DIR_VEC[d] = DIR_VEC[a].clone().add(DIR_VEC[b]).normalize();
+// Mixamo characters face +Z, so the yaw that faces a ground direction d is atan2(d.x, d.z)
+const yawFor = d => Math.atan2(DIR_VEC[d].x, DIR_VEC[d].z);
+
+// Half the view height in world units. 1.5 leaves room below the feet for
+// lunges and falls (1.2 cut them off at 128px); at 160px cells the character
+// stays the same pixel size as the old 128px sheets.
+const VIEW_HALF = 1.5;
+
+function frameCamera(cam, aspect) {
+  const half = VIEW_HALF / Number($('zoom').value);
+  cam.top = half; cam.bottom = -half;
+  cam.left = -half * aspect; cam.right = half * aspect;
+  // Aim at the character's middle so it sits centered in each cell
+  const target = new THREE.Vector3(0, CHAR_HEIGHT * 0.45, 0);
+  cam.position.copy(target).addScaledVector(VIEW_DIR, camDist);
+  cam.lookAt(target);
+  cam.updateProjectionMatrix();
+}
+
+// ---------- renderer / preview ----------
+const canvas = $('view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x121417, 1);
+
+const tags = DIRS.map(d => { const el = document.createElement('div'); el.className = 'tag'; el.textContent = d; $('main').appendChild(el); return el; });
+
+let root = null;       // normalized character
+let bindHips = null;   // hips rest position, local to the rig
+let modelName = 'model';
+let mixer = null;
+let clips = [];        // { name, clip }
+let current = null;    // index into clips
+const timer = new THREE.Timer();
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+}
+addEventListener('resize', resize);
+resize();
+
+function renderGrid() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const cols = 4, rows = 2;
+  const cw = Math.floor(w / cols), ch = Math.floor(h / rows);
+  renderer.setScissorTest(true);
+  renderer.setClearColor(0x121417, 1);
+  renderer.clear();
+  frameCamera(camera, cw / ch);
+  DIRS.forEach((d, i) => {
+    const x = (i % cols) * cw, yTop = Math.floor(i / cols) * ch;
+    renderer.setViewport(x, h - yTop - ch, cw, ch);
+    renderer.setScissor(x, h - yTop - ch, cw, ch);
+    renderer.setClearColor(i % 2 ? 0x16191d : 0x1a1d22, 1);
+    renderer.clear();
+    if (root) { root.rotation.y = yawFor(d); updateItem(); renderer.render(scene, camera); }
+    tags[i].style.left = (x + 8) + 'px';
+    tags[i].style.top = (yTop + 6) + 'px';
+  });
+  renderer.setScissorTest(false);
+}
+
+renderer.setAnimationLoop(() => {
+  timer.update();
+  const dt = timer.getDelta();
+  if (mixer) mixer.update(dt);
+  renderGrid();
+});
+
+// ---------- loading ----------
+const loader = new FBXLoader();
+
+function hasSkin(obj) {
+  let found = false;
+  obj.traverse(o => { if (o.isSkinnedMesh) found = true; });
+  return found;
+}
+
+// Pin the hips over the model's own rest position on the ground plane, so
+// clips with root motion (runs, jumps, lunges) stay centered in every cell.
+// Height is kept so jumps and crouches still move up and down.
+function stripRootMotion(clip) {
+  const c = clip.clone();
+  for (const t of c.tracks) {
+    if (!/hips\.position$/i.test(t.name) || !bindHips) continue;
+    const v = t.values;
+    for (let i = 0; i < v.length; i += 3) { v[i] = bindHips.x; v[i + 2] = bindHips.z; }
+  }
+  return c;
+}
+
+function setupModel(obj) {
+  if (root) scene.remove(root);
+  // Swap the loader's Phong materials for standard ones so the moody lights read better
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    o.frustumCulled = false;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const out = mats.map(m => new THREE.MeshStandardMaterial({
+      map: m.map || null, color: m.map ? 0xffffff : (m.color || new THREE.Color(0x888888)),
+      normalMap: m.normalMap || null, roughness: 0.85, metalness: 0.0,
+      transparent: m.transparent, alphaTest: m.alphaTest,
+    }));
+    o.material = Array.isArray(o.material) ? out : out[0];
+  });
+
+  // Normalize height and stand the character on the origin
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const s = CHAR_HEIGHT / size.y;
+  obj.scale.multiplyScalar(s);
+  obj.updateMatrixWorld(true);
+  const box2 = new THREE.Box3().setFromObject(obj);
+  const center = box2.getCenter(new THREE.Vector3());
+  obj.position.x -= center.x; obj.position.z -= center.z; obj.position.y -= box2.min.y;
+
+  bindHips = null;
+  obj.traverse(o => { if (!bindHips && o.isBone && /hips$/i.test(o.name)) bindHips = o.position.clone(); });
+
+  root = new THREE.Group();
+  root.scale.setScalar(Number($('cscale').value));
+  root.add(obj);
+  scene.add(root);
+  mixer = new THREE.AnimationMixer(obj);
+}
+
+// ---------- held item (weapon or prop attached to the hands) ----------
+// The item is normalized so its longest side runs along +Z with length 1.
+// "both hands": placed at the main hand and pointed at the other hand every
+// frame, so two-handed weapons (rifles, great swords) line up in any pose.
+// "right"/"left": rides on that hand bone, pointing out of the thumb side of the fist.
+let item = null;      // holder group in the scene
+let itemBox = null;   // normalized model inside the holder
+const gltfLoader = new GLTFLoader();
+const num = id => Number($(id).value);
+const findBone = re => { let b = null; root?.traverse(o => { if (!b && o.isBone && re.test(o.name)) b = o; }); return b; };
+
+async function loadItem(file) {
+  const buf = await file.arrayBuffer();
+  const obj = /\.fbx$/i.test(file.name) ? loader.parse(buf, '') : (await gltfLoader.parseAsync(buf, '')).scene;
+  obj.traverse(o => { if (o.isMesh) { o.frustumCulled = false; if (o.material?.isMeshPhongMaterial) o.material = new THREE.MeshStandardMaterial({ map: o.material.map, roughness: 0.6, metalness: 0.2 }); } });
+  setItemObject(obj);
+  log(`Item ${file.name} loaded.`);
+}
+
+function setItemObject(obj) {
+  if (item) item.parent?.remove(item);
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const inner = new THREE.Group();
+  obj.position.sub(center);
+  inner.add(obj);
+  // Turn the longest side onto +Z, then scale it to length 1
+  const long = Math.max(size.x, size.y, size.z);
+  if (long === size.x) inner.rotation.y = -Math.PI / 2; else if (long === size.y) inner.rotation.x = Math.PI / 2;
+  inner.scale.setScalar(1 / long);
+  itemBox = new THREE.Group();
+  itemBox.add(inner);
+  item = new THREE.Group();
+  item.add(itemBox);
+}
+
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
+function updateItem() {
+  if (!item || !root) return;
+  root.updateMatrixWorld(true);
+  const mode = $('itemMode').value, len = num('itemLen'), grip = num('itemGrip');
+  const flip = $('itemFlip').checked ? Math.PI : 0;
+  // Slide the model so the grip point sits at the hand, and apply flip and roll
+  itemBox.position.set(0, 0, (0.5 - grip) * (flip ? -1 : 1));
+  itemBox.rotation.set(0, flip, THREE.MathUtils.degToRad(num('itemRoll')), 'ZYX');
+  const right = findBone(/RightHand$/), left = findBone(/LeftHand$/);
+  if (mode === 'both' && right && left) {
+    if (item.parent !== scene) scene.add(item);
+    right.getWorldPosition(_a); left.getWorldPosition(_b);
+    item.position.copy(_a);
+    item.scale.setScalar(len * root.scale.x);
+    item.lookAt(_b);   // +Z of the item points from the right hand to the left
+  } else {
+    const bone = mode === 'left' ? left : right;
+    if (!bone) return;
+    if (item.parent !== bone) bone.add(item);
+    bone.getWorldScale(_s);
+    item.position.set(0, 0, 0);
+    item.scale.setScalar(len * root.scale.x / _s.x);
+    // Mixamo hand bones point +Y along the fingers; -Z comes out of the thumb
+    // side of a closed fist, which is where a gripped blade or haft points
+    item.rotation.set(THREE.MathUtils.degToRad(num('itemRx') + 180), THREE.MathUtils.degToRad(num('itemRy')), 0);
+  }
+}
+
+function setItemOptions(o = {}) {
+  if (o.mode) $('itemMode').value = o.mode;
+  for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
+    if (o[k] != null) $(id).value = o[k];
+  if (o.flip != null) $('itemFlip').checked = !!o.flip;
+}
+
+$('dropItem').onclick = () => $('pickItem').click();
+$('pickItem').onchange = e => e.target.files[0] && loadItem(e.target.files[0]);
+
+function addClips(list, label) {
+  for (const clip of list) {
+    const name = list.length > 1 ? `${label} (${clip.name})` : label;
+    clips.push({ name, clip });
+  }
+}
+
+function refreshClipList() {
+  const ul = $('clips');
+  ul.innerHTML = '';
+  if (!clips.length) { ul.innerHTML = '<li style="color:var(--muted);cursor:default">No animations yet</li>'; return; }
+  clips.forEach((c, i) => {
+    const li = document.createElement('li');
+    li.textContent = c.name;
+    li.className = i === current ? 'on' : '';
+    li.onclick = () => play(i);
+    ul.appendChild(li);
+  });
+}
+
+function play(i) {
+  if (!mixer || !clips[i]) return;
+  current = i;
+  mixer.stopAllAction();
+  const clip = $('inplace').checked ? stripRootMotion(clips[i].clip) : clips[i].clip;
+  mixer.clipAction(clip).reset().play();
+  refreshClipList();
+  $('export').disabled = false;
+}
+// Size relative to other characters (every model is first normalized to the same height)
+$('cscale').onchange = () => root && root.scale.setScalar(Number($('cscale').value));
+$('inplace').onchange = () => current != null && play(current);
+
+async function loadFiles(files) {
+  files = [...files].filter(f => /\.fbx$/i.test(f.name));
+  if (!files.length) { log('Only .fbx files are supported.'); return; }
+  log('Loading ' + files.length + ' file(s)...');
+  const parsed = [];
+  for (const f of files) {
+    try {
+      const obj = loader.parse(await f.arrayBuffer(), '');
+      parsed.push({ file: f, obj });
+    } catch (e) {
+      console.error(e);
+      log(`Could not read ${f.name}: ${e.message}`);
+    }
+  }
+  // The file with a skinned mesh is the character; everything else only donates clips
+  const model = parsed.find(p => hasSkin(p.obj) && /ronin|model/i.test(p.file.name)) || parsed.find(p => hasSkin(p.obj) && !root);
+  if (model) {
+    clips = [];
+    current = null;
+    modelName = model.file.name.replace(/\.fbx$/i, '');
+    setupModel(model.obj);
+    addClips(model.obj.animations, model.file.name.replace(/\.fbx$/i, '') + ' (built in)');
+  }
+  if (!root) { log('Drop the character model (ronin.fbx) first or together with the animations.'); return; }
+  for (const p of parsed) if (p !== model) addClips(p.obj.animations, p.file.name.replace(/\.fbx$/i, ''));
+  refreshClipList();
+  if (current == null && clips.length) {
+    const idle = clips.findIndex(c => /idle/i.test(c.name));
+    play(idle >= 0 ? idle : 0);
+  }
+  log(`${clips.length} animation(s) ready. Pick one, then export.`);
+}
+
+const drop = $('drop');
+drop.onclick = () => $('pick').click();
+$('pick').onchange = e => loadFiles(e.target.files);
+addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+addEventListener('dragleave', () => drop.classList.remove('over'));
+addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); loadFiles(e.dataTransfer.files); });
+
+// ---------- export ----------
+// Renders the spritesheet for clip i: 8 rows (directions) x N frames, transparent
+function renderSheet(i) {
+  const size = Number($('size').value);
+  const fps = Math.max(1, Number($('fps').value));
+  const entry = clips[i];
+  const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
+  const frames = Math.max(1, Math.min(Number($('maxf').value), Math.round(clip.duration * fps)));
+
+  const sheet = document.createElement('canvas');
+  sheet.width = size * frames; sheet.height = size * DIRS.length;
+  const ctx = sheet.getContext('2d');
+
+  const off = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  off.setPixelRatio(1);
+  off.setSize(size, size);
+  off.outputColorSpace = THREE.SRGBColorSpace;
+  off.setClearColor(0x000000, 0);
+  const cam = camera.clone();
+  frameCamera(cam, 1);
+
+  // Separate mixer so the live preview's state is restored afterwards
+  const obj = root.children[0];
+  const exMixer = new THREE.AnimationMixer(obj);
+  exMixer.clipAction(clip).play();
+
+  DIRS.forEach((d, row) => {
+    root.rotation.y = yawFor(d);
+    for (let f = 0; f < frames; f++) {
+      exMixer.setTime((f / frames) * clip.duration);
+      updateItem();
+      off.render(scene, cam);
+      ctx.drawImage(off.domElement, f * size, row * size);
+    }
+  });
+
+  exMixer.stopAllAction();
+  exMixer.uncacheRoot(obj);
+  off.dispose();
+  play(current ?? i);
+
+  const safe = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase();
+  const clipName = /\(built in\)/.test(entry.name) ? 'walk' : entry.name;
+  return { sheet, frames, size, fps, fname: `${safe(modelName)}_${safe(clipName)}.png` };
+}
+
+$('export').onclick = () => {
+  if (current == null) return;
+  const { sheet, frames, size, fps, fname } = renderSheet(current);
+  sheet.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/png');
+  log(`Exported ${fname}\nRows top to bottom: ${DIRS.join(', ')}\n${frames} frames at ${fps} fps, ${size}px each.`);
+};
+
+// Hooks for tools/export_sprites.mjs, which drives this page headlessly
+window.spriteTest = {
+  ready: () => clips.length > 0,
+  clipCount: () => clips.length,
+  render: i => { const r = renderSheet(i); return { fname: r.fname, frames: r.frames, dataUrl: r.sheet.toDataURL('image/png') }; },
+  tracks: i => clips[i].clip.tracks.map(t => t.name),
+  clipNames: () => clips.map(c => c.name),
+  itemReady: () => !!item,
+  setItemOptions,
+  // A plain stick for checking alignment without a model
+  testItem: () => setItemObject(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 1), new THREE.MeshStandardMaterial({ color: 0xc0c0c0 }))),
+  setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
+};
+
+log('Waiting for files.');
+</script>
+</body>
+</html>

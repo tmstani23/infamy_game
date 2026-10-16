@@ -8,53 +8,111 @@ Status key: **Settled** = agreed. **Idea** = suggested, not agreed. **Open** = s
 - You rise from nobody to clan leader by building wealth, power and force.
 - Tone: dark, lantern-lit nights in the city.
 
-## One game, two ways to play (Settled)
+## Game shape (Settled)
 
-- It is all one game. Single player fills the city with AI bot clans. Multiplayer runs the same world on a server people join.
-- Clans are filled by a mix of players and bots.
-- A world persists until one clan controls the city, then it resets.
+- One shared, persistent city per server: **50 to 100 players** plus bot clans.
+- Single player is the same game with the city filled by AI bot clans.
+- **2-week seasons**: everything resets at the end of a season except cosmetics.
+- Aimed at **20 to 40 minutes a day**; playing longer is allowed but pays off less.
+- Anti-grind rules:
+  - About **3 raid tokens per clan per night**.
+  - Diminishing returns on infamy and money after a daily share.
+  - Crew caps come from property held, and each extra crew member costs more to hire.
+  - Raids only in a fixed night window.
+  - Heat, plus an **underdog bonus** against the leaders.
 
-## Night raids and offline protection (Settled)
+## Clans (Settled)
 
-- Attacks on other clans happen only at night, during set hours.
-- When a player is offline, an AI runs their clan at a minimal level so it is not defenceless.
+- A clan is **1 to 5 players** sharing territory and a treasury. The boss sets each member's cut.
+- Bot clans fill empty territory.
 
-## Hero and crew (Settled)
+## Starting paths (Settled)
 
-- You control one hero with **4 abilities**, roaming the city GTA-style.
-- You also command a crew RTS-style. Each crew member has **1 to 2 abilities**.
-- The hero is the personal, action layer. The crew is the strategy layer.
+Chosen at the start of each season; switch next season. All paths compete on the same infamy board.
+
+- **Yakuza**: starts in town. Ronin hero, thugs and brutes. Strong at holding territory and income.
+- **Ninja clan**: starts in the ninja village in the forest. Ninja hero, cheap ninja crew. Strong stealth raids and assassinations, harder to hold big territory.
+- **Gaijin gunrunner** (later): starts at the foreign docks. Mercenary hero, cheap riflemen and explosives.
+- Non-ninja players can hire ninjas by earning the ninja village's favour through jobs.
+
+Ideas not taken up yet: Bakuto gambling gangs, a merchant house, a specific Western nation for the gunrunner (British, American, French or Dutch).
 
 ## The city (Settled)
 
-- Buildings are enterable, in the spirit of Project Zomboid.
-- Interiors are generated from **type templates** (teahouse, warehouse, gambling den, and so on), so a large city does not need every room hand-built.
-- Buildings have **owners**. Owning or taking buildings is part of building the empire.
+- About **6 districts** of about **8 blocks** each. Districts contain blocks, blocks contain businesses.
+- Buildings are enterable, in the spirit of Project Zomboid. Interiors come from **type templates**, so a large city does not need every room hand-built.
+- **Businesses**: teahouse (recruits crew), warehouse (storage and smuggling), gambling den (most money, most heat).
+- Own every business in a block for a **block bonus** and your clan banner; own a whole district for a bigger bonus.
+- **Real estate**: houses, shops, storehouses, shrines and abandoned lots are bought with money, not raided.
+  - They pay rent and can each be searched once for random loot.
+  - They can be converted into a safehouse, storage or a crew hideout.
+  - Property in a rival's block gives a foothold and counts toward block control.
+  - Prices rise in busy and contested areas.
+- **Forest outskirts** ring the town: no police and no heat, bandit camps, smuggling routes, rare loot, and buildable secret hideouts. The ninja village is deep in the forest.
 
-## Map and territories (Idea)
+## Taking and holding businesses (Settled)
 
-- The city map is split into **territories** (districts, streets, key buildings) that clans fight over.
-- Holding territory is how a clan grows: income, recruits and influence come from what it controls.
-- Winning the world means controlling the city, so the win condition will be defined in territories.
-- Details to settle: how territories are drawn, how one is taken and held, what each one yields, and whether there are neutral zones.
+- Businesses are taken only by **night raid**.
+- Held by stationing crew there. Stationed crew defend automatically while the owner is offline.
+- A held business pays protection each cycle, plus a bonus when the hero visits.
+- A business just taken stays **contested** for a counter-attack window.
+- Lost when a rival raids at night and holds the back room.
 
-## Playable factions (Idea)
+## Fighting and heat (Settled)
 
-Each faction would play differently: its own hero abilities, crew types and strengths.
+- Fighting can happen any time: street fights, ambushes, hero duels.
+- In daytime there are witnesses, heat rises fast and police arrive quickly.
+- Only business capture is restricted to night raids.
+- Past a heat threshold, police patrols come after you. Bribes lower heat.
 
-Named so far:
-- **Ninja**: stealth, infiltration, assassination, sabotage.
-- **Ronin**: masterless samurai; strong swordsmen and duels, honour and fear.
-- **A Western power**: foreign traders and soldiers with firearms, money and imports. Which nation is open. Fitting candidates for 1870s Japan:
-  - **British**: biggest trading presence in the treaty ports, backed the new government.
-  - **American**: opened Japan in the 1850s; merchants and adventurers.
-  - **French**: trained and armed the old shogunate's army; some advisors stayed and fought.
-  - **Dutch**: the longest-standing Western traders in Japan.
+## Raids (Settled)
 
-Other candidates that fit the setting (suggestions, not agreed):
-- **Bakuto**: gambling gangs, the historical roots of the yakuza. A natural fit for the gambling den.
-- **Merchant house**: wins through money, bribes and owning buildings rather than fighting.
-- The new government's police and army as a non-playable force that cracks down when Infamy gets too high.
+- A raid squad is the hero plus up to **about 6 crew** and costs one raid token.
+- Scout first with a lookout.
+- Defenders are stationed crew plus guards. AI runs them if the owner is offline; the owner can join live.
+- **Win**: hold the back room for 30 seconds. **Lose**: hero knocked out, or time runs out.
+- Crew killed in a fight are dead and gone; rehire at a teahouse (decided 2026-10-16, pure RTS). Survivors keep their damage until you send them to a hospital (bonesetter's clinic) to heal up. The hero is knocked out, not killed.
+
+## Controls (Settled)
+
+- WASD moves the hero, relative to the screen. Optional click-to-move.
+- Mouse aims. Q, E, R and F fire abilities toward the cursor.
+- Right-click orders crew. Drag to select.
+
+## Weapons (Settled)
+
+Noise versus power is a choice on every raid.
+
+- **Swords, clubs**: melee.
+- **Knives**: fast, silent, throwable.
+- **Bows**: silent ranged, no heat.
+- **Revolvers, rifles**: strong, slow to reload, loud (heat).
+- **Explosives**: black powder bombs and early dynamite. Breach walls, area damage, huge heat, friendly fire.
+
+## Hero and crew (Settled)
+
+- You control one hero with **4 abilities**, roaming the city GTA-style, and command a crew RTS-style. Each crew member has **1 to 2 abilities**.
+- Crew types: **Thug, Swordsman, Rifleman, Brute, Lookout, Archer, Demolitions, Ninja**. Knives come as a perk.
+- **Ninja**: invisible until it strikes, climbs walls, smoke bombs, shuriken. Expensive and rare except for the Ninja clan.
+- Crew are RTS units, not named characters (decided 2026-10-16). Hired at teahouses for a one-off price that rises with crew size; no wages or upkeep. Crew cap grows with property held: hero + 3 at the start, about 20 to 30 across your zones in the endgame. Raids still take at most about 6. See `docs/crew_recruiting_plan.md`.
+
+## Hero abilities
+
+- **Ronin** (Idea, draft): Iaido Dash, Intimidate, Rally, Red Lantern (ultimate).
+- **Ninja hero** (Settled 2026-10-15; ninja_leader concept):
+  - Q **Smoke Step**: a short dash in a puff of smoke, then invisible for up to 5s; attacking or taking damage breaks it.
+  - E **Sleep Dart**: a silent shot (no heat) that puts one enemy to sleep for 10s (3s on heroes); any damage wakes them.
+  - R **Shadow Mark**: marks one enemy; your crew focuses it and it takes 20% more damage.
+  - F **Thousand Cuts** (ultimate): blink between up to 5 nearby enemies and slash each.
+- Rule for all hero abilities: they must not need new map or game systems. Numbers get tuned in playtests.
+- **Gunrunner mercenary hero** (Open).
+
+## Economy (Settled)
+
+- One currency: **ryo**.
+- Earned from protection, rent, loot and smuggling.
+- Spent on hiring and replacing crew, property, unit-type upgrades (weapons, training), and police bribes. No upkeep.
+- Upgrades for businesses and properties: guards, more income, escape routes.
 
 ## Inventory and loot (Settled)
 
@@ -64,14 +122,13 @@ Other candidates that fit the setting (suggestions, not agreed):
 - A **stash** for storage and a **fence** for selling stolen goods.
 - **Documents** can be looted and used as leverage (blackmail, deeds, debts).
 
-## Reputation (Idea)
+## Infamy (Settled)
 
-- Two meters that match the name: **Prestige** (respect: allies, better prices, recruits) and **Infamy** (fear: tribute, intimidation, less resistance).
+- One clan score, **Infamy**, on a city leaderboard. There is no Prestige stat.
+- Raised by territory, raids and intimidation.
+- High infamy makes you a target: raiding a high-infamy clan pays more and steals some of its infamy.
 
 ## Open questions
 
-- Hero abilities and crew roles (the actual lists).
-- How a clan "controls the city": which territories count, and for how long.
-- Which factions make the cut, and which Western power.
-- Raid hours and how offline AI defence is balanced.
+- Gunrunner hero abilities; final ronin abilities.
 - Money: free hobby project, or something people pay for later.

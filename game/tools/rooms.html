@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infamy rooms</title>
+<!-- paths below (art, data, src) are relative to the game folder -->
+<base href="../">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+<style>
+  :root { --bg: #111318; --panel: #1b1e25; --line: #2c313b; --text: #e4ddd0; --muted: #9a9384; --accent: #e0b866; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  h1 { margin: 0; font-size: 15px; letter-spacing: 0.08em; color: var(--accent); }
+  .tabs button { background: none; border: 1px solid var(--line); color: var(--text); padding: 5px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+  .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  #picks { color: var(--muted); }
+  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; padding: 16px; }
+  figure { margin: 0; background: var(--panel); border: 2px solid var(--line); border-radius: 8px; overflow: hidden; cursor: pointer; }
+  figure.picked { border-color: var(--accent); }
+  figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #0b0c10; }
+  figcaption { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; }
+  figcaption a { color: var(--accent); }
+  .bad { color: #e07a6a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>INFAMY ROOMS</h1>
+  <div class="tabs" id="tabs"></div>
+  <span id="picks">Click rooms to pick them.</span>
+</header>
+<main id="grid"></main>
+<script type="module">
+import * as THREE from 'three';
+import { generateRoom } from './src/sim/generate.js';
+import { buildRoom3d } from './src/render/interior3d.js';
+import { shared, MAX_LIGHTS } from './src/render/shading.js';
+import { CAM_QUAT, VIEW_DIR, toScreen, PPU } from './src/render/iso.js';
+
+// Shows seeds 1 to 12 of each building type, drawn with the game's own camera and lights.
+const SEEDS = 12, W = 640, H = 480;
+const get = f => fetch(f).then(r => r.json());
+const [recipes, parts] = await Promise.all([get('data/room_recipes.json'), get('data/interior_parts.json')]);
+const types = Object.keys(recipes).filter(k => !k.startsWith('_'));
+const params = new URLSearchParams(location.search);
+let type = params.get('type') || types[0];
+const picks = {};
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+renderer.setSize(W, H, false);
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 600);
+camera.quaternion.copy(CAM_QUAT);
+
+async function draw(room) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#0b0c10');
+  const built = await buildRoom3d(room, parts, renderer);
+  scene.add(built.group, ...built.glows);
+  built.lights.slice(0, MAX_LIGHTS).forEach((l, i) => {
+    shared.uLightPos.value[i].set(l.pos.x, l.pos.y, l.pos.z, l.radius);
+    shared.uLightCol.value[i].set(l.color.r, l.color.g, l.color.b, 1.25);
+  });
+  shared.uLightCount.value = Math.min(built.lights.length, MAX_LIGHTS);
+  // fit the room (floor to wall tops) in the picture
+  const [X, Z] = room.size, pts = [];
+  for (const x of [0, X]) for (const y of [0, parts.wall.height]) for (const z of [0, Z]) pts.push(toScreen(new THREE.Vector3(x, y, z)));
+  const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x)), y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y));
+  const half = Math.max((y1 - y0) / 2, (x1 - x0) / 2 * H / W) * 1.06;
+  camera.top = half; camera.bottom = -half; camera.left = -half * W / H; camera.right = half * W / H;
+  camera.updateProjectionMatrix();
+  const centre = new THREE.Vector3(X / 2, parts.wall.height / 2, Z / 2);
+  camera.position.copy(centre).addScaledVector(VIEW_DIR, 200);
+  renderer.render(scene, camera);
+  built.group.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
+  return renderer.domElement.toDataURL('image/png');
+}
+
+function showPicks() {
+  const list = Object.entries(picks).filter(([, s]) => s.size).map(([t, s]) => `${t.replace('_', ' ')}: ${[...s].sort((a, b) => a - b).join(', ')}`);
+  document.getElementById('picks').textContent = list.length ? `Picked ${list.join(' / ')}` : 'Click rooms to pick them.';
+}
+
+async function show(t) {
+  type = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.type === t));
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const g = generateRoom(t, seed, recipes, parts);
+    const fig = document.createElement('figure');
+    fig.classList.toggle('picked', !!picks[t]?.has(seed));
+    const img = new Image();
+    fig.append(img);
+    const cap = document.createElement('figcaption');
+    const note = g.problems.length ? `<span class="bad">${g.problems.length} problem(s)</span>` : `${g.template.size[0]} x ${g.template.size[1]}`;
+    cap.innerHTML = `<b>Seed ${seed}</b><span>${note}</span><a href="index.html?room=${t}&seed=${seed}" target="_blank">walk in</a>`;
+    if (g.problems.length) cap.title = g.problems.join('\n');
+    fig.append(cap);
+    fig.addEventListener('click', e => {
+      if (e.target.tagName === 'A') return;
+      const s = (picks[t] ||= new Set());
+      s.has(seed) ? s.delete(seed) : s.add(seed);
+      fig.classList.toggle('picked', s.has(seed));
+      showPicks();
+    });
+    grid.append(fig);
+    if (type !== t) return;
+    img.src = await draw(g.room);
+  }
+}
+
+for (const t of types) {
+  const b = document.createElement('button');
+  b.textContent = t.replace('_', ' ');
+  b.dataset.type = t;
+  b.onclick = () => show(t);
+  document.getElementById('tabs').append(b);
+}
+await show(type);
+window.roomsReady = true;
+</script>
+</body>
+</html>

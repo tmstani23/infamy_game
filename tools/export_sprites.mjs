@@ -1,0 +1,160 @@
+// Batch-exports spritesheets: each character model with its own animation set.
+//
+//   node tools/export_sprites.mjs              (every model)
+//   node tools/export_sprites.mjs . thug brute (only these models)
+//
+// Reads   assets/models/*.fbx      (rigged characters with skin; models/source is ignored)
+//         assets/animations/**.fbx (Mixamo clips without skin)
+// Writes  assets/sprites/<model>_<animation>.png  (overwrites earlier exports)
+//
+// Animation files belong to a set by their subfolder, e.g.
+// animations/brawler/Walking.fbx is the "walking" clip of the brawler set, with
+// Mixamo's own filename. A filename prefix works too (animations/brawler_walk.fbx).
+// Files directly in animations/ with no known prefix (the ronin's) count as the
+// combat set. MODEL_SETS below says which sets each model gets; models not
+// listed get DEFAULT_SETS.
+// A variant file such as brawler/Mutant Walking.fbx is only for the models in
+// VARIANTS; it replaces that model's plain brawler/Walking.fbx if there is one
+// and is skipped for others.
+//
+// Held items (weapons, props) are models in assets/models/items/<file>.glb
+// (or .fbx), attached to the hands as ITEMS says. "both" hands points the item
+// from the right hand to the left hand in every frame (rifles, great swords);
+// "right"/"left" rides on one hand. length is in character heights / 2
+// (the character is 2 units tall), grip is where along the item the right
+// hand holds it (0 = back end, 1 = front end). flip and roll fix a model that
+// faces backwards or sits upside down; tune them in the sprite test page.
+//
+// It drives look_tests/sprite_render_test.html in headless Chromium, so the
+// sheets match what that page shows. Needs Node and Playwright once:
+//   npm install playwright && npx playwright install chromium
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const SETS = ['combat', 'brawler', 'gunner', 'civilian', 'ninja', 'archer'];
+const MODEL_SETS = {
+  ronin: ['combat'],
+  swordsman: ['combat'],
+  rival_yakuza: ['combat'],
+  thug: ['brawler'],
+  lookout: ['brawler'],
+  demolitions: ['brawler'],
+  brute: ['brawler'],
+  mercenary: ['gunner'],
+  merc: ['gunner'],
+  ninja_leader: ['ninja'],
+  ninja_grunt: ['ninja'],
+  archer: ['archer'],
+};
+const DEFAULT_SETS = ['civilian'];
+const VARIANTS = { brute: 'mutant' };
+// Size relative to the others (every model is normalized to the same height first)
+const SCALE = { brute: 1.12 };
+const ITEMS = {
+  mercenary: { file: 'rifle', mode: 'both', length: 1.25, grip: 0.25 },
+  ninja_leader: { file: 'ninjato', mode: 'right', length: 0.75, grip: 0.12 },
+  // Two-handed swords: flip points the blade away from the left hand (left hand near the pommel)
+  swordsman: { file: 'katana', mode: 'both', length: 0.95, grip: 0.2, flip: true },
+  rival_yakuza: { file: 'katana', mode: 'both', length: 0.95, grip: 0.2, flip: true },
+  ninja_grunt: { file: 'ninjato', mode: 'right', length: 0.75, grip: 0.12 },
+  archer: { file: 'bow', mode: 'left', length: 1.3, grip: 0.5 },
+};
+// Single clips borrowed from another set (path inside assets/animations)
+const EXTRA = {
+  swordsman: ['brawler/Walking.fbx'],
+  rival_yakuza: ['brawler/Walking.fbx'],
+};
+// Name for the clip baked into the with-skin model file; null skips it
+const BUILT_IN = { ronin: 'walk' };
+
+const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
+const only = process.argv.slice(3).map(s => s.toLowerCase());
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+
+const page_url = pathToFileURL(path.join(root, 'look_tests', 'sprite_render_test.html')).href;
+const fbx = dir => fs.existsSync(dir)
+  ? fs.readdirSync(dir).filter(f => /\.fbx$/i.test(f)).map(f => path.join(dir, f)).sort()
+  : [];
+const base = f => path.basename(f).replace(/\.fbx$/i, '');
+const setOf = f => {
+  const dir = path.basename(path.dirname(f)).toLowerCase();
+  if (SETS.includes(dir)) return dir;
+  const m = base(f).toLowerCase().match(/^([a-z]+)_/);
+  return m && SETS.includes(m[1]) ? m[1] : 'combat';
+};
+// Clip name from a file: set prefix and a trailing _noskin tag dropped
+const clipOf = f => safe(base(f)).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, '');
+const safe = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase();
+
+let models = fbx(path.join(root, 'assets', 'models'));
+if (only.length) models = models.filter(m => only.includes(safe(base(m))));
+const animDir = path.join(root, 'assets', 'animations');
+const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))];
+const outDir = path.join(root, 'assets', 'sprites');
+fs.mkdirSync(outDir, { recursive: true });
+
+if (!models.length) { console.log('No models in assets/models'); process.exit(1); }
+
+const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+let written = 0;
+for (const model of models) {
+  const name = safe(base(model));
+  const sets = MODEL_SETS[name] || DEFAULT_SETS;
+  const variant = VARIANTS[name];
+  const allVariants = [...new Set(Object.values(VARIANTS))];
+  const variantOf = a => allVariants.find(v => clipOf(a).startsWith(v + '_'));
+  // Rename a clip by dropping this model's variant prefix (mutant_walk -> walk)
+  const clipName = c => variant && c.startsWith(variant + '_') ? c.slice(variant.length + 1) : c;
+  let mine = anims.filter(a => sets.includes(setOf(a)) && (!variantOf(a) || variantOf(a) === variant));
+  const overridden = new Set(mine.filter(a => variant && variantOf(a) === variant).map(a => setOf(a) + ':' + clipName(clipOf(a))));
+  mine = mine.filter(a => variantOf(a) || !overridden.has(setOf(a) + ':' + clipOf(a)));
+  for (const e of EXTRA[name] || []) {
+    const f = path.join(animDir, e);
+    if (fs.existsSync(f)) mine.push(f); else console.log(`  missing extra clip ${e}`);
+  }
+  const builtIn = BUILT_IN[name] ?? null;
+  if (!mine.length && !builtIn) { console.log(`${name}: no animations in set(s) ${sets.join(', ')}, skipped`); continue; }
+
+  const page = await browser.newPage();
+  page.on('pageerror', e => console.log('  page error:', e.message));
+  page.on('console', m => /hips travel/.test(m.text()) && console.log('   ', m.text()));
+  // Optional: serve three.js from a local copy when the CDN can't be reached
+  if (process.env.THREE_LOCAL_DIR) {
+    await page.route(/cdn\.jsdelivr\.net\/npm\/three@[^/]+\//, r => r.fulfill({
+      path: path.join(process.env.THREE_LOCAL_DIR, r.request().url().replace(/^.*three@[^/]+\//, '')),
+      contentType: 'text/javascript',
+    }));
+  }
+  await page.goto(page_url);
+  await page.setInputFiles('#pick', [model, ...mine]);
+  await page.waitForFunction(() => window.spriteTest?.ready(), null, { timeout: 300000 });
+  await page.evaluate(s => window.spriteTest.setScale(s), SCALE[name] ?? 1);
+  const it = ITEMS[name];
+  if (it) {
+    const itemFile = ['glb', 'gltf', 'fbx'].map(e => path.join(root, 'assets', 'models', 'items', `${it.file}.${e}`)).find(f => fs.existsSync(f));
+    if (itemFile) {
+      await page.setInputFiles('#pickItem', itemFile);
+      await page.waitForFunction(() => window.spriteTest.itemReady(), null, { timeout: 120000 });
+      await page.evaluate(o => window.spriteTest.setItemOptions(o), it);
+      console.log(`  holding ${path.basename(itemFile)}`);
+    } else console.log(`  no assets/models/items/${it.file}.glb yet, exporting empty-handed`);
+  }
+  const names = await page.evaluate(() => window.spriteTest.clipNames());
+  console.log(`${name} (${sets.join(', ')}): ${names.length} animation(s)`);
+  for (let i = 0; i < names.length; i++) {
+    const isBuiltIn = /\(built in\)/.test(names[i]);
+    if (isBuiltIn && !builtIn) continue;
+    const r = await page.evaluate(i => window.spriteTest.render(i), i);
+    // <model>_<clip> with set and variant prefixes dropped, e.g. brute_walking.png from brawler/Mutant Walking.fbx
+    const clip = isBuiltIn ? builtIn : clipName(safe(names[i]).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, ''));
+    const fname = `${name}_${clip}.png`;
+    fs.writeFileSync(path.join(outDir, fname), Buffer.from(r.dataUrl.split(',')[1], 'base64'));
+    console.log(`  ${fname}  (${r.frames} frames)`);
+    written++;
+  }
+  await page.close();
+}
+await browser.close();
+console.log(`Done: ${written} spritesheet(s) in assets/sprites`);

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infamy</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #06080c; color: #d8d2c4;
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #view { display: block; width: 100vw; height: 100vh; }
+  /* soft vignette, deeper at night */
+  #vignette { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(4,6,10,.45) 100%); transition: background 1s; }
+  body.night #vignette { background: radial-gradient(ellipse at center, transparent 45%, rgba(2,3,8,.7) 100%); }
+  #hud { position: fixed; left: 16px; top: 14px; display: flex; gap: 12px; align-items: center;
+    background: rgba(10,12,16,.62); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 8px 12px; }
+  #hud b { font-weight: 600; letter-spacing: .08em; color: #e9c27a; }
+  #hud span { color: #9a968c; }
+  button { font: inherit; color: #e8e2d2; background: #22262c; border: 1px solid rgba(255,255,255,.14);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  button:hover { background: #2c3139; }
+  #prompt { position: fixed; left: 50%; bottom: 12%; transform: translateX(-50%); padding: 6px 14px;
+    background: rgba(10,12,16,.72); border: 1px solid rgba(233,194,122,.35); border-radius: 6px; color: #e9c27a; letter-spacing: .04em; }
+  #money { color: #e9c27a; white-space: nowrap; }
+  #hire { position: fixed; right: 16px; top: 14px; width: 260px; background: rgba(10,12,16,.82);
+    border: 1px solid rgba(233,194,122,.35); border-radius: 8px; padding: 10px 12px; }
+  #hire h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; color: #e9c27a; }
+  #hire .row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
+  #hire .row small { color: #9a968c; }
+  #hire .row button:disabled { opacity: .4; cursor: default; }
+  #hire .waiting, #hire .notice { color: #9a968c; margin-top: 6px; }
+  #hire .notice { color: #d8d2c4; }
+  #selbox { position: fixed; border: 1px solid rgba(143,209,122,.9); background: rgba(143,209,122,.12); pointer-events: none; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #9a968c; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="vignette"></div>
+<div id="hud">
+  <b>INFAMY</b>
+  <span id="money"></span>
+  <span>WASD move · Shift walk · E door · H hire · click/drag select crew · C all · right-click go (Ctrl hold) · V follow · = / - zoom</span>
+  <button id="daynight">Night (N)</button>
+</div>
+<div id="prompt" hidden></div>
+<div id="hire" hidden></div>
+<div id="selbox" hidden></div>
+<div id="loading">Loading…</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

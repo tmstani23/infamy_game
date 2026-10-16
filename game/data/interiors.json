@@ -1,0 +1,131 @@
+{
+  "teahouse": {
+    "build": "3d",
+    "size": [
+      12,
+      10
+    ],
+    "floor": "tatami",
+    "walls": {
+      "north": [
+        "window",
+        "plaster",
+        "plaster",
+        "shoji_door",
+        "plaster",
+        "window"
+      ],
+      "west": [
+        "plaster",
+        "plaster",
+        "plaster",
+        "plaster",
+        "window"
+      ]
+    },
+    "door": {
+      "side": "north",
+      "bay": 3
+    },
+    "props": [
+      {
+        "type": "tokonoma",
+        "wall": "west",
+        "at": 1
+      },
+      {
+        "type": "vase",
+        "at": [
+          0,
+          3.5
+        ]
+      },
+      {
+        "type": "byobu",
+        "at": [
+          0.3,
+          6
+        ],
+        "rot": 90
+      },
+      {
+        "type": "tea_table",
+        "at": [
+          3,
+          3
+        ]
+      },
+      {
+        "type": "tea_set",
+        "at": [
+          3.5,
+          4
+        ]
+      },
+      {
+        "type": "tea_table",
+        "at": [
+          7,
+          5.5
+        ],
+        "rot": 90
+      },
+      {
+        "type": "tea_set",
+        "at": [
+          8,
+          6
+        ]
+      },
+      {
+        "type": "hibachi",
+        "at": [
+          5.5,
+          7.5
+        ]
+      },
+      {
+        "type": "andon",
+        "at": [
+          0,
+          0
+        ]
+      },
+      {
+        "type": "andon",
+        "at": [
+          11,
+          0
+        ]
+      },
+      {
+        "type": "andon",
+        "at": [
+          11,
+          9
+        ]
+      },
+      {
+        "type": "red_lantern",
+        "at": [
+          3.5,
+          4
+        ]
+      },
+      {
+        "type": "red_lantern",
+        "at": [
+          8,
+          6
+        ]
+      },
+      {
+        "type": "red_lantern",
+        "at": [
+          2,
+          0.2
+        ]
+      }
+    ]
+  }
+}
