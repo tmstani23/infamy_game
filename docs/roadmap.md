@@ -22,10 +22,10 @@ Each layer is playable on its own before the next one starts.
 
 ## Next steps
 
-1. Art: done for the ronin (model, rig, 9 animations, spritesheets). Next, make 3D models of the rest of the cast on Tencent, rig them in Mixamo, and batch-export their sprites.
+1. Art: done for the cast (2026-10-16), except monk, monk2 and old woman (skipped: robes break the rig). Status in `cast_tracker.md`.
 2. Sprite render test: done (`look_tests/sprite_render_test.html`, `tools/export_sprites.mjs`).
-3. Hero movement and camera in the district (placeholder art is fine).
-4. Recruiting and commanding crew.
-5. Interiors from templates for the three buildings.
-6. Rival clan AI and the den raid.
+3. Hero movement and camera in the district: done (2026-10-15).
+4. Recruiting and commanding crew: hiring, orders and combat done (2026-10-16); hospital and playtest left (`crew_recruiting_plan.md`).
+5. Interiors for the three buildings: done (2026-10-16), 3D plus a room generator.
+6. Rival clan AI and the den raid: next.
 7. Then: inventory, stash, fence, documents.

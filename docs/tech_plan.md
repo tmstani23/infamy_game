@@ -1,6 +1,6 @@
 # Tech plan
 
-Status: **Settled** (Tim OK'd it 2026-10-15). Steps 1 and 2 are done: the scene in `game/` now follows this layout.
+Status: **Settled** (Tim OK'd it 2026-10-15). Build steps 1 to 4 are done (2026-10-16); the scene in `game/` follows this layout.
 
 ## Stack
 
@@ -72,18 +72,12 @@ Ground is painted rectangles with soft edges, blended in the shader from tiled t
 - Characters are named `<model>_<anim>.png`. A new export shows up in the game without code changes.
 - Nothing in the code depends on how a picture looks, only on its footprint and catalog entry.
 
-## What step 1 changed (done 2026-10-15)
-
-- `hero.js` moved the ronin and drew him in one place. It is now a `sim` unit and a `render/characters.js` sprite.
-- `district.js` and `art.js` became `data/waterfront.json` and `data/art.json`.
-- Movement used to run every frame. It now runs on the fixed 20-tick loop, and the screen slides units smoothly between ticks.
-
 ## First build steps
 
-1. Split the current scene into `sim/` and `render/`, and move the district and catalog into JSON. The game looks and plays the same afterward.
-2. Fixed-tick sim with interpolation, and movement as commands.
-3. Doors and interiors for the teahouse, warehouse and den, built from templates.
-4. Recruit crew at the teahouse, then follow and right-click orders.
+1. Done (2026-10-15): split the scene into `sim/` and `render/`, district and catalog in JSON.
+2. Done (2026-10-15): fixed-tick sim with interpolation, movement as commands.
+3. Done (2026-10-16): doors and 3D interiors for the teahouse, warehouse and den.
+4. Done (2026-10-16): recruit crew at the teahouse, follow and right-click orders, combat.
 5. One rival bot clan, and the night raid on the den.
 6. Then Colyseus: run `sim` on a server for a few friends.
 

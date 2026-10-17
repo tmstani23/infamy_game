@@ -1,7 +1,7 @@
 # Character prompts
 
 How to use: attach **hero1.png** as the style reference, paste one prompt, and save the result under the file name shown. Then make the 3D model on Tencent.
-Done already: ronin (hero1.png), mercenary (mercenary1.png), brute (brute1.png).
+Done already: ronin (hero1.png), mercenary (mercenary1.png), brute (brute1.png); their prompts are in `image_prompts.md` (Characters).
 
 Every prompt has the same opening and ending. Only the description in the middle changes.
 
@@ -98,9 +98,24 @@ Using the attached image as a style reference, make a full-body character concep
 Using the attached image as a style reference, make a full-body character concept of a wandering Buddhist monk in 1870s Japan for a dark, stylized game, sleek and not cartoony. A calm, tall man with a shaved head, dark grey robes with a muted saffron kesa draped over one shoulder, prayer beads around the neck, a small cloth bundle on the back, and white tabi with straw sandals. Front view, standing straight in an A-pose with the arms held slightly away from the body and the legs slightly apart, nothing in the hands. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, muted and moody colors. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
 ```
 
+**Monk, rig fix** (redo of `monk.png`, attach it as the reference; arms are lost under the long ragged over-robe layers and sleeves, and the hanging stole, tassels and belt bells blur the body outline)
+```
+This is my own character concept for my game. Redraw the same character with these changes only: a symmetrical A-pose with both arms held straight out 45 degrees from the body and clearly apart from the torso, empty open hands with fingers spread, the ragged over-robe sleeves made narrower and ending above the wrists so the forearms and wrist wraps show and the sleeves hang free below the arms instead of covering the sides of the body, the layered over-robe shortened to mid-thigh and split at the sides so it does not drape over the arms or hips, the red stole kept on both shoulders but ending at the waist, the prayer beads kept around the neck but shorter, no bead bracelet (identical wrist wraps on both arms), no tassels, bells or cords hanging from the belt, the white and red front panels shortened to mid-calf so both legs and the wrapped shins are clearly visible and standing apart, feet shoulder-width apart in the same sandals. Keep everything else the same: semi-realistic painted look, detailed textures, muted moody colors. Transparent background (if not possible, a flat solid single-colour background with no checkerboard).
+```
+
+**Monk 2, rig fix** (redo of `monk2.png`, attach it as the reference; the saffron kesa over one shoulder covers that whole arm and side down to the knee, the wide sleeves hide the arms, and the belt pouch and single bracelet make it lopsided)
+```
+This is my own character concept for my game. Redraw the same character with these changes only: a symmetrical A-pose with both arms held straight out 45 degrees from the body and clearly apart from the torso, empty open hands with fingers spread, the saffron kesa kept over the left shoulder but wrapped tight across the chest and tucked into the belt so it ends at the waist and does not hang over the arm, shoulder or hip, the grey and cream sleeves made narrower and ending at the elbows, hanging free below the arms, both sleeves the same length, the ragged robe skirt shortened to mid-thigh so the baggy trousers and both legs are clearly visible and standing apart, the prayer beads kept around the neck, no pouch or tassels hanging from the belt, matching bead bracelets on both wrists, feet shoulder-width apart in the same sandals. Keep everything else the same: semi-realistic painted look, detailed textures, muted moody colors. Transparent background (if not possible, a flat solid single-colour background with no checkerboard).
+```
+
 **Old woman**: `old_woman1.png` (accent: faded rose)
 ```
 Using the attached image as a style reference, make a full-body character concept of an old townswoman in 1870s Japan for a dark, stylized game, sleek and not cartoony. A small, slightly hunched elderly woman with grey hair in a simple bun, a kind, wrinkled face, a plain dark kimono with a faded rose apron, a shawl around the shoulders, white tabi and wooden geta. Front view, standing in an A-pose with the arms held slightly away from the body and the legs slightly apart, nothing in the hands. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, muted and moody colors. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+```
+
+**Old woman, rig fix** (redo of `old_woman.png`, attach it as the reference; first version broke the Mixamo auto-rig)
+```
+This is my own character concept for my game. Redraw the same character with these changes only: standing fully upright with a straight back, in a symmetrical A-pose with both arms held straight out 45 degrees from the body and clearly apart from the torso, empty open hands with fingers spread, the kimono sleeves narrower and hanging free below the arms instead of draping down the sides, the fringed shawl made shorter and identical on both sides so it ends at the elbows and does not cover the arms or hips, no basket or pouch hanging at the belt, the kimono hem shortened to mid-calf so both legs and ankles are clearly visible and standing apart, feet shoulder-width apart in the same sandals. Keep everything else the same: semi-realistic painted look, detailed textures, muted moody colors. Transparent background (if not possible, a flat solid single-colour background with no checkerboard).
 ```
 
 **Sailor**: `sailor1.png` (accent: navy and white stripes)

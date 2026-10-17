@@ -24,7 +24,7 @@ All of these live in `game/data/interior_parts.json` under `wall`.
 
 - The room's floor runs from (0, 0) to its size. North is the low-z wall and west the low-x wall; both are full height. South and east face the camera and are cut low.
 - Each wall is a list of bay types, one per 2-cell bay: `plaster`, `window`, `shoji_door`, `doorway`, `planks`, `red`. A list shorter than the wall repeats. Front walls default to plain bays.
-- The door is one door bay (`shoji_door` or `doorway`) in a back wall. The 2 x 2.5 cells in front of it must stay clear. Pressing E on the ring in front of it leaves the building.
+- The door is one door bay (`shoji_door` or `doorway`) in a back wall. The 2 x 2.5 cells in front of it must stay clear. Pressing Space on the ring in front of it leaves the building.
 - Room sides must be whole bays, so sizes are even numbers of cells.
 
 ## Inner walls and zones
@@ -91,13 +91,7 @@ Rooms live in `game/data/interiors.json`. A 3D room has `"build": "3d"`:
 
 ## Generating variations
 
-`game/src/sim/generate.js` writes this same format, so generated rooms need no new drawing code. A building in the district file points at one with `"interior": { "type": "gambling_den", "seed": 4 }`; `"interior": "teahouse"` uses the hand-made room of that name. Recipes are in `game/data/room_recipes.json`, the preview is `game/tools/rooms.html`, and `node game/tools/test_rooms.mjs` checks 100 seeds per type. How it works:
-
-1. Pick a size from the building type's range (even numbers).
-2. Fill the back walls with bays from the type's list, then pick one door bay.
-3. Place props by priority: wall pieces first (alcove, shelves, counter), then the main furniture (tables with cushions, gambling mats), then lamps in corners, then lanterns over tables, then small things on surfaces (a tea set on every tea table).
-4. Run the checks. Retry anything that fails, and keep a walkway from the door to every table.
-5. Use a seed, so the same building always gets the same room.
+`game/src/sim/generate.js` writes this same format, so generated rooms need no new drawing code. A building in the district file points at one with `"interior": { "type": "gambling_den", "seed": 4 }`; `"interior": "teahouse"` uses the hand-made room of that name. Recipes are in `game/data/room_recipes.json`, the preview is `game/tools/rooms.html`, and `node game/tools/test_rooms.mjs` checks 100 seeds per type. How it works: see "Steps for one room" in `docs/room_generator_plan.md`.
 
 ## Art
 

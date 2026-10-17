@@ -2,20 +2,27 @@
 
 A browser game about building a crime empire in 1870s Japan. You play one hero, recruit a crew, and grow a clan that fights rival clans for territory, with raids at night. Seasons last two weeks in a shared persistent city.
 
+**New here? Read [START_HERE.md](START_HERE.md) first** (working rules, usage rules, key docs).
+
 Hobby project, built with AI in the evenings. Built in playable layers: a tiny single-player version first, then small multiplayer, then the full city.
 
 ## Status
 
-Design and art pipeline. The character pipeline works end to end: the ronin is a rigged 3D model rendered to 8-direction spritesheets. No game code yet beyond look tests and the sprite exporter.
+As of 2026-10-17:
+
+- Playable waterfront district in `game/` (run `start_game.bat`), with day and night.
+- 3D interiors (teahouse, den, warehouse) plus a room generator.
+- Crew hiring, orders and combat work, plus the ronin's four abilities and the action bar. Next: the hospital and playtest tuning.
+- The sprite pipeline works end to end for the whole cast.
+
+See [START_HERE.md](START_HERE.md) for details and links.
 
 ## Repo layout
 
 | Path | What it is |
 |---|---|
-| `docs/gameplay_and_design.md` | Game shape, clans, starting paths, city and territory, raids, controls, weapons, crew, economy, infamy, open questions |
-| `docs/art_direction.md` | The look, what the look tests proved, the sprite pipeline, camera, characters |
-| `docs/roadmap.md` | Build layers, tiny version scope, next steps |
-| `docs/controls.md` | Every game control that works now, plus planned keys |
+| `docs/` | Design and tech docs (listed in [START_HERE.md](START_HERE.md)) |
+| `game/` | The game: sim, render, data (see `docs/architecture.md`) |
 | `look_tests/` | Standalone HTML experiments. Open any file in a browser. |
 | `assets/` | Concepts, environment sheets, models, animations, sprites and prompt files (see `docs/art_direction.md`) |
 | `tools/export_sprites.mjs` | Batch-exports each model with its animation set to `assets/sprites` |

@@ -20,8 +20,8 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | lookout | Crew | ✅ | ✅ | ✅ 7 | brawler |
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
-| police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip |  |  |  |
-| bandit | Enemy | ✅ |  |  |  |
+| police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip | ✅ police.fbx (was policeman2) | ✅ 7 | brawler |
+| bandit | Enemy | ✅ | ✅ | ✅ 7 (cloak touches the edge at the end of dying) | brawler |
 | rival_yakuza | Enemy | ✅ femyakuza2obj1.zip (concept rivalyakuza2) | ✅ | ✅ 10 (walk borrowed from brawler) | combat, katana (confirmed by Tim) |
 | merchant | Townsfolk | ✅ (concept merchant2) | ✅ | ✅ 6 | civilian |
 | geisha | Townsfolk | ✅ geisha2 zip (the older geisha zip won't rig) | ✅ geisha.fbx (was geisha2) | ✅ 6; robe flares as she lands in the new death (Tim: keep) | civilian |
@@ -41,12 +41,12 @@ Thin items are image slabs made by `tools/make_slabs.py` from `assets/concepts/i
 | Item | Used by | Model | Attached in export |
 |---|---|---|---|
 | rifle | mercenary | ✅ slab | ✅ both hands |
-| katana (sheathed for now) | swordsman, rival_yakuza | ✅ slab | ✅ both hands (length 0.95) |
+| katana | ronin, swordsman, rival_yakuza | ✅ built in code (see Weapon look pass) | ✅ both hands; held point-up from the right hand when the hands part (idle, walk) |
 | ninjato | ninja_leader, ninja_grunt | ✅ slab | ✅ right hand |
 | tanto | | ✅ slab | |
 | jitte | | ✅ slab | |
 | spear | | ✅ slab | |
-| wooden_club | | ✅ slab | |
+| wooden_club | thug, brute (until a kanabo model exists) | ✅ built in code (see Weapon look pass) | ✅ right hand; brute's club tip touches the top edge in a few frames |
 | bow | archer | ✅ slab | ✅ left hand |
 | revolver | | ✅ slab | |
 | shuriken (one star) | | ✅ slab | |
@@ -67,3 +67,9 @@ Save Mixamo downloads under their own names in the set's subfolder.
 - **civilian/** (geisha, default for townsfolk): Standing Idle, Catwalk Walk Forward, Scared, Quick Formal Bow, Gentle Reaction (hit), Standing Death Forward 01 (death). Terrified was skipped (sleeves). Dying and Zombie Reaction Hit were retired 2026-10-16 to assets/animations_retired/civilian/; the geisha's old sheets were deleted; the other townsfolk's old *_dying / *_zombie_reaction_hit sheets are kept (Tim, 2026-10-16).
 
 Export note (2026-10-16): clips that stay in place (idles, in-place walks) keep their own hip sway so planted feet don't slide; clips that travel (runs, jumps, lunges) still have the hips pinned. All sheets were re-exported with this.
+
+## Weapon look pass (2026-10-16)
+
+Katana and wooden club are now built in code by `look_tests/sprite_render_test.html` (`PROC_ITEMS`, `ITEMS.proc` in `tools/export_sprites.mjs`) instead of using the image slabs: drawn faceted blade with edge glint, wrapped hilt, gold fittings; ironwood club with leather grip, iron bands and studs; both get a cool moonlight rim. Hands are fitted to the palm centre (both-hand katana) and the club uses a hammer grip (`dir` in the hand bone frame). Preview: `look_tests/weapon_preview.png`. Katana length 1.3 with a strong curve (SORI 0.1); clubs 1.1 (thug) and 1.15 (brute). Tim OK'd 2026-10-16: ronin, swordsman, rival_yakuza, thug, brute (46 sheets) re-exported; the previous versions are kept in `assets/sprites_archive/2026-10-16_weapons/`.
+
+Katana fix 2026-10-17 (Tim playtest): curve reversed (tip curves up, edge down); when the hands part the katana is held point-up and forward from the right hand instead of hanging across the body. ronin, swordsman, rival_yakuza re-exported (30 sheets); originals in assets/sprites_archive/2026-10-16_weapons/.

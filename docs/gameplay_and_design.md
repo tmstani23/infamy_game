@@ -75,9 +75,7 @@ Ideas not taken up yet: Bakuto gambling gangs, a merchant house, a specific West
 
 ## Controls (Settled)
 
-- WASD moves the hero, relative to the screen. Optional click-to-move.
-- Mouse aims. Q, E, R and F fire abilities toward the cursor.
-- Right-click orders crew. Drag to select.
+- WASD hero, Q/E/R/F abilities toward the mouse, RTS mouse control for crew. Every key: `docs/controls.md`.
 
 ## Weapons (Settled)
 
@@ -94,11 +92,11 @@ Noise versus power is a choice on every raid.
 - You control one hero with **4 abilities**, roaming the city GTA-style, and command a crew RTS-style. Each crew member has **1 to 2 abilities**.
 - Crew types: **Thug, Swordsman, Rifleman, Brute, Lookout, Archer, Demolitions, Ninja**. Knives come as a perk.
 - **Ninja**: invisible until it strikes, climbs walls, smoke bombs, shuriken. Expensive and rare except for the Ninja clan.
-- Crew are RTS units, not named characters (decided 2026-10-16). Hired at teahouses for a one-off price that rises with crew size; no wages or upkeep. Crew cap grows with property held: hero + 3 at the start, about 20 to 30 across your zones in the endgame. Raids still take at most about 6. See `docs/crew_recruiting_plan.md`.
+- Crew are RTS units, not named characters, hired at teahouses with no upkeep (decided 2026-10-16). Details: `docs/crew_recruiting_plan.md`.
 
 ## Hero abilities
 
-- **Ronin** (Idea, draft): Iaido Dash, Intimidate, Rally, Red Lantern (ultimate).
+- **Ronin** (Settled, built 2026-10-16): Iaido Dash, Intimidate, Rally, Red Lantern (ultimate). Numbers: `docs/combat_spec.md`, section F.
 - **Ninja hero** (Settled 2026-10-15; ninja_leader concept):
   - Q **Smoke Step**: a short dash in a puff of smoke, then invisible for up to 5s; attacking or taking damage breaks it.
   - E **Sleep Dart**: a silent shot (no heat) that puts one enemy to sleep for 10s (3s on heroes); any damage wakes them.
@@ -130,5 +128,5 @@ Noise versus power is a choice on every raid.
 
 ## Open questions
 
-- Gunrunner hero abilities; final ronin abilities.
+- Gunrunner hero abilities.
 - Money: free hobby project, or something people pay for later.

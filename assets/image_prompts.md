@@ -15,6 +15,8 @@ Saved prompts for Gemini / ChatGPT, copied word for word from the chat with Tim.
 
 ## Characters
 
+The ronin, mercenary and brute prompts are below; every other character prompt is in `character_prompts.md`.
+
 Style notes given with them:
 
 ```

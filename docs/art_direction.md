@@ -40,7 +40,7 @@
 4. **Mixamo** auto-rig with the Standard skeleton.
 5. Export from Mixamo as FBX:
    - one **with-skin** file per character in `assets/models` (for example `ronin.fbx`);
-   - **without-skin** animations in `assets/animations`, grouped into sets by filename prefix (`brawler_`, `gunner_`, `civilian_`; the ronin's combat set has no prefix). They all use the same Mixamo skeleton, so any animation works on any character; the export script pairs each model with its set.
+   - **without-skin** animations in `assets/animations`, grouped into sets by subfolder (list in `cast_tracker.md`, Animation sets). They all use the same Mixamo skeleton, so any animation works on any character; the export script pairs each model with its set.
 6. Render with `look_tests/sprite_render_test.html` (live preview of all 8 directions) or batch-export with `tools/export_sprites.mjs`.
 7. Result: one **8-direction spritesheet** per character and animation in `assets/sprites/<model>_<animation>.png`. Rows top to bottom are S, SW, W, NW, N, NE, E, SE; default frames are 160px at 12 fps (the character is the same size as in the earlier 128px sheets; the extra room keeps lunges and falls inside the cell). Root motion is removed so each frame stays centered, and the feet sit at the same point in every cell.
 
@@ -58,22 +58,7 @@
 ### Superseded
 
 - The 2026-10-13 plan used free 3D building packs (Kasuga) and local Hunyuan3D. It was replaced by the painted sheets above and Tencent's web version, which has textures.
-
-## Tim's earlier note: leaning option 1, Sudden Strike (2026-10-12)
-
-Kept for reference. The 2026-10-14 art pipeline above settles most of it: painted sheets instead of repainted 3D renders, and `hero1.png` as the locked style reference.
-
-**Leaning (Tim, 2026-10-12): option 1, fixed isometric camera with generated 2D sprites.** Target quality: classic Sudden Strike, meaning dense, detailed isometric maps where every building and unit is a crisp pre-rendered sprite.
-
-What that means in practice:
-- Camera angle is locked; no rotation. The see-through effect becomes fading buildings when a character walks behind them.
-- Buildings and props: rough 3D model, rendered from the fixed angle with a depth map and a glow mask, repainted with an image generator, cut out as sprites.
-- Characters: 3D models animated and rendered to 8-direction sprite sheets (no per-frame paint-over).
-- Night lighting, rain, mist and wet reflections stay live effects on top of the sprites.
-
-Still to decide:
-- Which image generator (needs one that can follow a depth or outline guide for consistent shapes).
-- One locked style reference so every sprite matches.
+- Tim's 2026-10-12 lean toward a fixed isometric camera with generated 2D sprites (Sudden Strike quality) became the pipeline above.
 
 ## Assets layout (Settled, 2026-10-14)
 
@@ -82,7 +67,7 @@ Still to decide:
 | `assets/concepts/` | Character concept images, one per character |
 | `assets/environment/` | Buildings, props and ground texture sheets (`props1_cut.png` is props1 with the white background removed) |
 | `assets/models/` | Rigged with-skin FBX per character; `models/source/` holds the raw Tencent exports |
-| `assets/animations/` | Mixamo animations (without skin), in sets by filename prefix |
+| `assets/animations/` | Mixamo animations (without skin), in sets by subfolder |
 | `assets/sprites/` | Exported spritesheets |
 | `assets/image_prompts.md`, `assets/character_prompts.md` | Image-generation prompts for reuse |
 
@@ -94,12 +79,5 @@ Still to decide:
 
 ## Characters (Settled, 2026-10-14)
 
-Concept images in `assets/concepts` (22 files as of 2026-10-14):
-
-- **Heroes:** ronin (`hero1`), western mercenary (`mercenary1`), yakuza brute (`brute1`), ninja leader (`ninja_leader`, plus an earlier take `ninja1`). Gunrunner hero abilities are Open.
-- **Crew:** thug (`thug`), swordsman (`swordsman`), archer (`archer`), lookout (`lookout`), demolitions (`demolitions`), ninja grunt (`ninja_grunt`).
-- **Enemies:** police officer (`police_officer`), bandit (`bandit`), rival yakuza, a woman fighter (`rival_yakuza`).
-- **Townsfolk:** merchant, geisha, laborer, fisherman, monk (two takes: `monk`, `monk2`), old woman (`old_woman`), sailor.
+- Concept images are in `assets/concepts`. Every character, its role and its pipeline status are in `cast_tracker.md`.
 - NPC variety later comes from swaps (hats, colours, hair, props) on these bodies.
-- Done in 3D so far: **ronin** (rigged, with 9 shared animations: Breathing Idle, Great Sword Idle, Great Sword Jump, Great Sword Slash, Thrust Slash, Reaction, Run, Two Handed Sword Death, Yelling Out, plus its built-in walk).
-- In progress: **ninja leader** (Tencent OBJ zip in `assets/models/source`, not rigged yet).
