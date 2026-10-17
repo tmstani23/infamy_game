@@ -7,7 +7,7 @@ Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero cha
 - **Style:** RTS / Dota hybrid. Hero = Dota-style character on WASD; crew = RTS army (select, right-click).
 - **Enemies:** units of different clans in the same place.
 - **Crew:** auto-attack within 6 steps, leashed 10 steps to their hero / station / move point. A plain move ignores enemies until it arrives. Right-click enemy = focus. X + click = attack-move.
-- **Hero:** hits the nearest enemy in reach while standing still; moving stops attacks. Right-click an enemy to chase it and keep hitting (WASD cancels). At 0 HP knocked out, back up at home after 5 s, full HP.
+- **Hero:** hits the nearest enemy in reach while standing still; moving stops attacks. Lock-on (2026-10-17): Ctrl + right-click, Tab or left-click locks a target; the hero swings when within 2.5 steps and does not chase; the lock drops beyond 14 steps or when the target is down. At 0 HP knocked out, back up at the clinic after 20 s.
 - **Hits:** `damage` every `attackSpeed` seconds once within `attackRange`. Damage lands 40% through the swing (build order 1).
 - **Death (2026-10-17):** crew at 0 HP go down first; executed crew play the death animation and are removed (dead, rehire), the rest are carried to the clinic. See section H.
 - **Health (2026-10-16, Tim):** all HP doubled (hero 800, thug 200, brute 360, swordsman 240). Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
@@ -62,7 +62,7 @@ Common causes in RTS/MOBA melee, checked against our code:
 - [x] 2. Damage numbers (B) and crits (done 2026-10-16: `critChance` 0.1 and `critMultiplier` 2 per type in units.json; numbers in `render/hitfx.js` as an HTML overlay `#fx`: white on enemies, red on yours, big gold "N!" for crits, orange on killing blows; pop 1.7x then rise and fade over 0.85 s; max 40.)
 - [x] 3. Hit flash, lean and killing-blow shake (C), slash trails and impact sparks (C2) (done 2026-10-16: `uFlash` in the sprite shader; lean 0.16 steps away from the attacker; steel-blue crescent trail for blades, wider orange smear for clubs; 8 to 16 additive sparks, gold on crits; camera shake on kills (and small on crits) within 9 steps of the hero. Hit-reaction animation not added yet.)
 - [x] 4. Surround spots and turning (D) (done 2026-10-16: attackers spread round the target about 0.9 rad apart at 80% of reach; facing turns one eighth per tick and a swing only starts when facing the target.)
-- [x] Hero chase (Tim: yes): right-click an enemy and the hero runs to it and keeps hitting it; any WASD input cancels. Selected crew attack it too. Command `{ id, type: 'attack', target }`.
+- [x] Hero chase (replaced by lock-on, 2026-10-17; see Now): right-click an enemy and the hero runs to it and keeps hitting it; any WASD input cancels. Selected crew attack it too. Command `{ id, type: 'attack', target }`.
 - [ ] 5. Tim playtests, tune numbers here
 
 ## F. Hero abilities and action bar (approved by Tim 2026-10-16, built)
@@ -71,9 +71,9 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 
 | Key | Ability | What it does | Cooldown |
 |---|---|---|---|
-| Q | Iaido Dash | Dash up to 5 steps toward the mouse (stops at walls), hitting every enemy passed for 150% damage. | 8 s |
+| Q | Iaido Dash | Dash up to 6.5 steps over 0.3 s toward the mouse (stops at walls), hitting every enemy passed for 150% damage (2026-10-17, was 5). | 8 s |
 | E | Intimidate | Enemies within 4 steps deal 30% less damage for 5 s (a dark aura shows on them). | 14 s |
-| R | Rally | Your crew within 8 steps attack 30% faster for 6 s and heal 10% of their health. | 20 s |
+| R | Rally | Your crew within 8 steps attack 30% faster for 6 s and heal 10% of their health. The aura also shows on the ronin (look only). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
 **Keys (done, F2):** doors moved to **Space** (it shows on the door prompt), and E is Intimidate. Hire menu keys 1 to 3 stay as they are (only inside a teahouse).

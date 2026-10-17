@@ -9,14 +9,16 @@ What works in the game now (updated 2026-10-17). Keep this file up to date whene
 | W A S D | Move, relative to the screen |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building). At the clinic ring it opens the clinic menu: 1 heals, 2 and up revive |
-| Mouse side buttons, middle-click, or Shift + right-click an enemy | Your hero runs to it and keeps hitting it (WASD cancels); on a downed enemy, your hero executes them |
+| Ctrl + right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
+| Tab | Lock the nearest enemy; Tab again cycles (skips townsfolk, crew and downed units) |
+| Left-click an enemy | Lock it and show its card |
 | (stand still) | The hero hits the nearest enemy in reach on its own, Dota-style. Moving stops the attacks. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
 | E | Intimidate: enemies within 4 steps deal 30% less damage for 5 s (14 s) |
 | R | Rally: crew within 8 steps attack 30% faster for 6 s and heal 10% (20 s) |
 | F | Red Lantern (ultimate): 8 s of 50% more damage, healing 20% of damage dealt (60 s) |
 
-The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to select them; Shift-click adds or removes.
+The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to select them; Shift-click adds or removes. A red marker shows over the locked target.
 
 ## Hiring crew (inside a teahouse)
 
@@ -46,7 +48,7 @@ The top-left bar shows your ryo and crew count / crew cap. New crew walk out of 
 | Left-click a townsperson | Show their card |
 | G | Selected hurt crew walk to the clinic and heal (0.2 ryo per missing HP) |
 
-Selected crew have a green ring under them. New crew follow you automatically. Crew wait outside when you go into a building.
+Selected crew have a green ring under them. New crew follow you automatically. Selected crew go into buildings with you and come back out with you; unselected crew wait outside (inside, crew just follow) (2026-10-17).
 
 Crew fight back on their own: anything except a plain right-click move makes them attack enemies that come within about 6 steps. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
 
