@@ -2,6 +2,9 @@
 // dash streak, intimidate shockwave and aura, rally ring and aura, red lantern glow.
 // Purely visual: nothing here changes the game state.
 import * as THREE from 'three';
+import { CAM_QUAT as CAM_Q, CAM_RIGHT, CAM_UP, VIEW_DIR } from './iso.js';
+import { onFxLayer } from './bloom.js';
+import { createParticles, createCards, SHAPE, getLantern } from './vfx.js';
 
 const flat = (geo, color, opacity) => {
   const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
@@ -10,19 +13,115 @@ const flat = (geo, color, opacity) => {
   m.rotation.x = -Math.PI / 2;
   m.renderOrder = 3;
   m.frustumCulled = false;
-  return m;
+  return onFxLayer(m);
 };
-const WAVE_GEO = new THREE.RingGeometry(0.86, 1, 64), DISC_GEO = new THREE.CircleGeometry(1, 40), AURA_GEO = new THREE.RingGeometry(0.5, 0.78, 40);
+const WAVE_GEO = new THREE.RingGeometry(0.86, 1, 64), DISC_GEO = new THREE.CircleGeometry(1, 40), AURA_GEO = new THREE.RingGeometry(0.57, 0.77, 48);
 const STREAK_GEO = new THREE.PlaneGeometry(1, 1);
 const AURAS = {
   lantern: { color: 0xff3a1e, size: 1.25, geo: DISC_GEO, opacity: 0.45 },
   intimidated: { color: 0x7a3cff, size: 1, geo: AURA_GEO, opacity: 0.55 },
-  rally: { color: 0x9fe060, size: 1, geo: AURA_GEO, opacity: 0.5 },
-  downed: { color: 0xc01810, size: 1.1, geo: AURA_GEO, opacity: 0.7 },
+  rally: { color: 0xffc850, size: 1, geo: AURA_GEO, opacity: 0.5 },
+  downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
 
-export function createAbilityFx({ scene, overlay, posOf, unitToScreen }) {
+const STEEL = [0.8, 0.9, 1], WHITE = [1, 1, 1], GOLD = [1, 0.8, 0.35], PURPLE = [0.6, 0.3, 1];
+const PETALS = [[1, 0.62, 0.8], [1, 0.75, 0.88], [1, 0.5, 0.7], [1, 0.85, 0.92]];
+const FIRE = [[1, 0.35, 0.1], [1, 0.55, 0.15], [1, 0.8, 0.3], [1, 0.2, 0.08]];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+// emit about rate a second over dt
+const count = (rate, dt) => { const n = rate * dt; return Math.floor(n) + (Math.random() < n % 1 ? 1 : 0); };
+const LANTERNS = 4, ORBIT = 1.3;
+const rand = (a, b) => a + Math.random() * (b - a);
+// screen angle of a ground direction
+const screenAngle = (dx, dz) => Math.atan2(dx * CAM_UP.x + dz * CAM_UP.z, dx * CAM_RIGHT.x + dz * CAM_RIGHT.z);
+
+// glowing outline around a unit's sprite while a buff is on, one colour per buff
+const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff };
+const OUTLINE_GEO = new THREE.PlaneGeometry(1, 1);
+const OUTLINE_RGB = Object.fromEntries(Object.entries(OUTLINE).map(([k, v]) => [k, new THREE.Color(v)]));
+const OUTLINE_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const OUTLINE_FRAG = /* glsl */`
+uniform sampler2D uMap; uniform vec4 uFrame; uniform vec3 uColor; uniform float uOpacity; uniform float uWidth;
+varying vec2 vUv;
+float alphaAt(vec2 c) { return (c.x < 0.0 || c.x > 1.0 || c.y < 0.0 || c.y > 1.0) ? 0.0 : texture2D(uMap, uFrame.xy + c * uFrame.zw).a; }
+void main() {
+  float a = alphaAt(vUv), m = 0.0;
+  // widest alpha nearby (two rings of 12 samples), minus the body itself, leaves a halo outside it
+  for (int i = 0; i < 12; i++) {
+    float t = float(i) * 0.5236;
+    vec2 d = vec2(cos(t), sin(t)) * uWidth;
+    m = max(m, alphaAt(vUv + d) * 0.65);
+    m = max(m, alphaAt(vUv + d * 0.5));
+  }
+  float g = clamp(m - a, 0.0, 1.0);
+  if (g < 0.01) discard;
+  gl_FragColor = vec4(uColor * g * uOpacity, 1.0);
+}`;
+const outlineMesh = (color) => {
+  const m = new THREE.Mesh(OUTLINE_GEO, new THREE.ShaderMaterial({
+    uniforms: { uMap: { value: null }, uFrame: { value: new THREE.Vector4() }, uColor: { value: new THREE.Color(color) }, uOpacity: { value: 1 }, uWidth: { value: 0.03 } },
+    vertexShader: OUTLINE_VERT, fragmentShader: OUTLINE_FRAG, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false,
+  }));
+  m.frustumCulled = false;
+  return onFxLayer(m);
+};
+
+const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.9, 1.9);
+// round soft glow for lantern halos
+let haloTex = null;
+const HALO_TEX = () => haloTex ||= (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 0, 64, 64, 62);
+  r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.25, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+// 灯 seal for under the hero, drawn once
+let sealTex = null;
+const SEAL_TEX = () => sealTex ||= (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.translate(128, 128); g.strokeStyle = '#fff';
+  g.lineWidth = 7; g.beginPath(); g.arc(0, 0, 120, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 100, 0, Math.PI * 2); g.stroke();
+  for (let i = 0; i < 8; i++) { g.rotate(Math.PI / 4); g.beginPath(); g.arc(110, 0, 5, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); }
+  g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '700 120px "Yu Mincho", "MS Mincho", serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('灯', 0, 6);
+  return new THREE.CanvasTexture(c);
+})();
+
+export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen }) {
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
+  const glow = createParticles(scene), cards = createCards(scene);
+  const rallyCasts = new Map();   // hero id -> when they last cast Rally (the buff itself is crew-only)
+  const outlines = new Map();   // "id:buff" -> glowing outline mesh
+  const lanterns = new Map();   // unit id -> the lanterns circling a unit with Red Lantern on
+  let dim = null, dimT = 0;     // Intimidate's brief screen dim
+
+  // the hovering paper lanterns, their halos and a 灯 seal for one unit
+  function lanternSet() {
+    const items = [];
+    for (let i = 0; i < LANTERNS; i++) {
+      const body = new THREE.Mesh(LANTERN_GEO, new THREE.MeshBasicMaterial({ map: getLantern(), transparent: true, depthTest: false, depthWrite: false }));
+      const halo = new THREE.Mesh(HALO_GEO, new THREE.MeshBasicMaterial({ map: HALO_TEX(), color: 0xff5020, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
+      for (const m of [body, halo]) { m.frustumCulled = false; onFxLayer(m); scene.add(m); }
+      items.push({ body, halo });
+    }
+    const seal = flat(DISC_GEO, 0xff3018, 0.0);
+    seal.material.map = SEAL_TEX();
+    seal.material.needsUpdate = true;
+    scene.add(seal);
+    return { items, seal, age: 0, out: null };
+  }
+
+  // a burst of steel sparkles around a point
+  function sparkles(x, y, z, n, color = STEEL, speed = 3, size = 0.32) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = rand(0.3, 1) * speed;
+      glow.emit({ x, y: y + rand(-0.3, 0.3), z, vx: Math.cos(a) * sp, vy: rand(0.5, 2.5), vz: Math.sin(a) * sp, drag: 3, gravity: 2,
+        life: rand(0.35, 0.7), size: size * rand(0.6, 1.3), color, shape: SHAPE.sparkle, twinkle: 0.6, spin: rand(-3, 3) });
+    }
+  }
   const bars = new Map();                             // execute channel bars: unit id -> HTML element
 
   function wave(x, z, radius, color, life, delay = 0) {
@@ -36,18 +135,175 @@ export function createAbilityFx({ scene, overlay, posOf, unitToScreen }) {
   return {
     // c: one entry of state.casts
     cast(c) {
+      const s0 = spriteOf(c.a);
       if (c.kind === 'dash') {
         const m = flat(STREAK_GEO, 0xcfe0ff, 0.8);
         scene.add(m);
-        streaks.push({ m, id: c.a, x: c.x, z: c.z, age: 0, done: null });
+        streaks.push({ m, id: c.a, x: c.x, z: c.z, age: 0, done: null, ghostT: 0 });
+        // the draw: a white flash on the hero, a glint where the blade leaves the scabbard
+        const s = spriteOf(c.a);
+        if (s) s.flash = 1.3;
+        cards.glint(c.x, 1.1, c.z, 1.8);
+        sparkles(c.x, 0.9, c.z, 10, WHITE, 2.5);
       }
-      if (c.kind === 'intimidate') { wave(c.x, c.z, c.radius, 0x8a40ff, 0.45); wave(c.x, c.z, c.radius * 0.7, 0x3a1060, 0.5, 0.08); }
-      if (c.kind === 'rally') { wave(c.x, c.z, c.radius, 0xffd060, 0.6); wave(c.x, c.z, c.radius, 0x9fe060, 0.7, 0.12); }
+      if (c.kind === 'intimidate') {
+        wave(c.x, c.z, c.radius, 0x8a40ff, 0.45); wave(c.x, c.z, c.radius * 0.7, 0x3a1060, 0.5, 0.08);
+        cards.ink(c.x, c.z, c.radius * 0.95, 0.75);
+        cards.seal(c.x, c.z, 2.1, '威', 0x9a50ff, 1.3, { spin: -0.8 });
+        // purple glitter riding out on the shockwave
+        for (let i = 0; i < 70; i++) {
+          const a = Math.random() * Math.PI * 2, v = c.radius * 5 * rand(0.85, 1.05);
+          glow.emit({ x: c.x, y: rand(0.15, 1.2), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0, 0.8), drag: 5,
+            life: rand(0.6, 1.1), size: rand(0.18, 0.34), color: Math.random() < 0.3 ? [0.9, 0.75, 1] : PURPLE, shape: SHAPE.sparkle, twinkle: 0.8, spin: 3 });
+        }
+        if (s0) s0.flash = 1;
+        dimT = 0.55;
+      }
+      if (c.kind === 'rally') {
+        rallyCasts.set(c.a, performance.now() / 1000);
+        wave(c.x, c.z, c.radius, 0xffd060, 0.6); wave(c.x, c.z, c.radius, 0x9fe060, 0.7, 0.12);
+        cards.seal(c.x, c.z, 3, '勇', 0xffc850, 1.8, { spin: 0.5, follow: () => posOf(c.a) });
+        cards.glint(c.x, 1.6, c.z, 2, 0xffe6a0, 0.4);
+        // glowing sakura petals hanging in the air over the ring, drifting down
+        for (let i = 0; i < 70; i++) {
+          const a = Math.random() * Math.PI * 2, r = 3.2 * Math.sqrt(Math.random()) + 0.4;
+          glow.emit({ x: c.x + Math.cos(a) * r, y: rand(1.5, 4.5), z: c.z + Math.sin(a) * r, vx: Math.cos(a) * 0.4, vz: Math.sin(a) * 0.4,
+            vy: rand(-0.7, -0.3), sway: 0.9, life: rand(2.4, 4), size: rand(0.22, 0.34), color: pick(PETALS), alpha: 0.9,
+            shape: SHAPE.petal, spin: rand(-2.5, 2.5) });
+        }
+      }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
-      if (c.kind === 'lantern') { wave(c.x, c.z, 2.4, 0xff4020, 0.5); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06); }
+      if (c.kind === 'lantern') {
+        wave(c.x, c.z, 2.4, 0xff4020, 0.5); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06); wave(c.x, c.z, 3.4, 0xffd070, 0.7, 0.12);
+        cards.glint(c.x, 1.4, c.z, 2.4, 0xffb060, 0.45);
+        cards.pillar(() => posOf(c.a), 0xff4a20, 0.9, 5.5, 1.6);
+        for (let i = 0; i < 40; i++) {
+          const a = Math.random() * Math.PI * 2, v = rand(1, 4);
+          glow.emit({ x: c.x, y: rand(0.3, 1.6), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(1, 4), drag: 2.5, gravity: -0.5,
+            life: rand(0.7, 1.4), size: rand(0.16, 0.34), color: pick(FIRE), shape: Math.random() < 0.4 ? SHAPE.sparkle : SHAPE.ember, twinkle: 0.4 });
+        }
+        if (s0) s0.flash = 1.4;
+      }
+    },
+
+    // h: a hit from the dash (kind 'dash'); attacker: its entity. A blade stroke through the
+    // enemy along the dash, a star glint on the steel and a burst of sparks.
+    cut(h, attacker) {
+      const dx = attacker ? h.x - attacker.x : 1, dz = attacker ? h.z - attacker.z : 0;
+      const ang = screenAngle(dx, dz);
+      cards.stroke(h.x, 1.05, h.z, ang + 0.35, 2.8, 0.36);
+      cards.stroke(h.x, 1.05, h.z, ang + 0.35, 2.0, 0.12, 0xffffff, 0.18);
+      cards.glint(h.x + rand(-0.2, 0.2), rand(1.1, 1.5), h.z, h.crit ? 2.2 : 1.6, h.crit ? 0xffe090 : 0xffffff);
+      sparkles(h.x, 1.0, h.z, h.crit ? 18 : 12, h.crit ? [1, 0.85, 0.4] : STEEL, 4);
+    },
+
+    // health coming back (heal, lifesteal or regeneration): a small quick glowy dazzle.
+    // big: a real heal rather than a regen trickle; lifesteal: red-gold instead of green-gold
+    heal(x, z, big, lifesteal) {
+      const cols = lifesteal ? [[1, 0.45, 0.25], [1, 0.8, 0.4]] : [[0.55, 1, 0.5], [1, 0.9, 0.45]];
+      for (let i = 0, n = big ? 9 : 4; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        glow.emit({ x: x + Math.cos(a) * rand(0.15, 0.4), y: rand(0.5, 1.5), z: z + Math.sin(a) * rand(0.15, 0.4), vy: rand(0.8, 1.6), drag: 1.5,
+          life: rand(0.35, 0.6), size: rand(0.12, big ? 0.26 : 0.18), color: pick(cols), shape: SHAPE.sparkle, twinkle: 0.7, spin: 3 });
+      }
+      if (big) cards.glint(x, rand(1.2, 1.6), z, 0.8, lifesteal ? 0xff9a60 : 0xb8ff90, 0.25);
+    },
+
+    // a hit landed by someone with Red Lantern on: a red-gold sparkle burst
+    lanternHit(h) {
+      sparkles(h.x, 1.1, h.z, h.crit ? 16 : 9, pick(FIRE), 3.5, 0.3);
+      sparkles(h.x, 1.1, h.z, 4, GOLD, 2, 0.4);
+      cards.glint(h.x, rand(1, 1.4), h.z, h.crit ? 1.8 : 1.1, 0xff9a40, 0.25);
     },
 
     update(dt, state) {
+      glow.update(dt);
+      cards.update(dt);
+      const now = performance.now() / 1000;
+
+      // Intimidate: the screen darkens for a moment
+      if (dimT > 0 && overlay) {
+        if (!dim) { dim = document.createElement('div'); dim.style.cssText = 'position:absolute;inset:0;background:#05020a;pointer-events:none;opacity:0'; overlay.prepend(dim); }
+        dimT = Math.max(0, dimT - dt);
+        const k = 1 - dimT / 0.55;
+        dim.style.opacity = String(0.45 * (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85));
+      }
+
+      for (const e of Object.values(state.entities)) {
+        if (e.dead || !e.buffs) continue;
+        const p = posOf(e.id);
+        if (!p) continue;
+        // intimidated: purple wisps rising off them
+        if (e.buffs.intimidated) for (let n = count(7, dt); n > 0; n--)
+          glow.emit({ x: p.x + rand(-0.3, 0.3), y: rand(0.6, 1.6), z: p.z + rand(-0.3, 0.3), vy: rand(0.5, 1.1), sway: 0.5, life: rand(0.8, 1.3),
+            size: rand(0.4, 0.7), grow: 1.2, color: [0.35, 0.12, 0.7], alpha: 0.55, shape: SHAPE.dot });
+        // rallied: a few petals keep drifting down and gold motes rise around them
+        if (e.buffs.rally) {
+          for (let n = count(1.6, dt); n > 0; n--) {
+            const a = Math.random() * Math.PI * 2;
+            glow.emit({ x: p.x + Math.cos(a) * rand(0.4, 1.4), y: rand(2, 3.2), z: p.z + Math.sin(a) * rand(0.4, 1.4), vy: rand(-0.6, -0.3), sway: 0.8,
+              life: rand(2, 3), size: rand(0.2, 0.3), color: pick(PETALS), alpha: 0.85, shape: SHAPE.petal, spin: rand(-2, 2) });
+          }
+          for (let n = count(4, dt); n > 0; n--)
+            glow.emit({ x: p.x + rand(-0.4, 0.4), y: rand(0.1, 0.5), z: p.z + rand(-0.4, 0.4), vy: rand(0.8, 1.6), life: rand(0.6, 1), size: rand(0.12, 0.2),
+              color: GOLD, shape: SHAPE.sparkle, twinkle: 0.7 });
+        }
+        // red lantern: embers and flame licks from his feet
+        if (e.buffs.lantern) {
+          for (let n = count(45, dt); n > 0; n--) {
+            const a = Math.random() * Math.PI * 2, r = rand(0.15, 0.6);
+            glow.emit({ x: p.x + Math.cos(a) * r, y: rand(0.05, 0.5), z: p.z + Math.sin(a) * r, vx: Math.cos(a) * 0.3, vz: Math.sin(a) * 0.3,
+              vy: rand(1.2, 3), gravity: -0.6, sway: 0.6, life: rand(0.5, 1.2), size: rand(0.1, 0.24), color: pick(FIRE), shape: SHAPE.ember });
+          }
+          for (let n = count(14, dt); n > 0; n--)
+            glow.emit({ x: p.x + rand(-0.35, 0.35), y: rand(0.1, 0.6), z: p.z + rand(-0.35, 0.35), vy: rand(1.5, 2.6), drag: 1.5, life: rand(0.35, 0.6),
+              size: rand(0.5, 0.8), grow: -0.6, color: [1, 0.3, 0.08], alpha: 0.45, shape: SHAPE.dot });
+        }
+      }
+
+      // the lanterns: four paper lanterns circling a Red Lantern unit, bobbing and glowing
+      for (const e of Object.values(state.entities)) {
+        if (!e.buffs?.lantern || e.dead || e.downed || lanterns.has(e.id)) continue;
+        lanterns.set(e.id, lanternSet());
+      }
+      for (const [id, L] of lanterns) {
+        const e = state.entities[id], p = posOf(id), sp = spriteOf(id);
+        if (L.out === null && (!e || !e.buffs?.lantern || e.dead || e.downed)) L.out = 0;
+        if (L.out !== null) L.out += dt;
+        L.age += dt;
+        const grow = Math.min(1, L.age / 0.35) * (L.out === null ? 1 : Math.max(0, 1 - L.out / 0.3));
+        if (grow <= 0 || !p) {
+          for (const { body, halo } of L.items) { scene.remove(body, halo); body.material.dispose(); halo.material.dispose(); }
+          scene.remove(L.seal); L.seal.material.dispose();
+          lanterns.delete(id);
+          continue;
+        }
+        const heroOrder = sp?.thing.mesh.renderOrder ?? 99000;
+        L.items.forEach(({ body, halo }, i) => {
+          const a = now * 1.3 + i * Math.PI * 2 / LANTERNS, r = ORBIT * (0.4 + 0.6 * grow);
+          const ox = Math.cos(a) * r, oz = Math.sin(a) * r;
+          const y = 1.75 + 0.18 * Math.sin(now * 2.2 + i * 1.7);
+          body.position.set(p.x + ox, y, p.z + oz);
+          halo.position.copy(body.position);
+          body.quaternion.copy(CAM_Q); body.rotateZ(0.12 * Math.sin(now * 1.8 + i));
+          halo.quaternion.copy(CAM_Q);
+          const flick = 0.85 + 0.15 * Math.sin(now * 11 + i * 3) * Math.sin(now * 6.3 + i);
+          body.scale.setScalar(grow);
+          halo.scale.setScalar(grow * (0.9 + 0.25 * flick));
+          halo.material.opacity = 0.75 * flick;
+          // in front of him or behind him, by which side of him it is on
+          const front = ox * VIEW_DIR.x + oz * VIEW_DIR.z > 0;
+          body.renderOrder = heroOrder + (front ? 0.6 : -0.6);
+          halo.renderOrder = heroOrder + (front ? 0.5 : -0.7);
+          if (Math.random() < dt * 6) glow.emit({ x: body.position.x, y: y - 0.3, z: body.position.z, vy: rand(-0.3, 0.4), sway: 0.4,
+            life: rand(0.5, 0.9), size: rand(0.08, 0.16), color: pick(FIRE), shape: SHAPE.ember });
+        });
+        const pulse = 1 + 0.06 * Math.sin(now * 5);
+        L.seal.position.set(p.x, 0.04, p.z);
+        L.seal.scale.set(1.5 * grow * pulse, 1.5 * grow * pulse, 1);
+        L.seal.rotation.z = now * 0.7;
+        L.seal.material.opacity = 0.85 * grow;
+      }
       for (let i = waves.length - 1; i >= 0; i--) {
         const w = waves[i];
         w.age += dt;
@@ -60,10 +316,20 @@ export function createAbilityFx({ scene, overlay, posOf, unitToScreen }) {
         w.m.material.opacity = 0.9 * (1 - k);
       }
 
-      // dash: a pale streak along the ground from the start point to the hero, fading after
+      // dash: a pale streak along the ground from the start point to the hero, fading after,
+      // blue after-images and a trail of sparkles while it runs, a glint as the blade goes home
       for (let i = streaks.length - 1; i >= 0; i--) {
-        const s = streaks[i], e = state.entities[s.id], p = posOf(s.id);
-        if (!s.done && (!e || !e.dash) && s.age > 0.05) s.done = s.age;
+        const s = streaks[i], e = state.entities[s.id], p = posOf(s.id), sp = spriteOf(s.id);
+        if (!s.done && (!e || !e.dash) && s.age > 0.05) {
+          s.done = s.age;
+          if (p) { cards.glint(p.x, 1.35, p.z, 1.2, 0xfff2d0, 0.35); sparkles(p.x, 1.1, p.z, 6, WHITE, 1.5, 0.26); }
+        }
+        if (!s.done && sp && dt > 0) {
+          s.ghostT -= dt;
+          if (s.ghostT <= 0) { s.ghostT = 0.035; cards.ghost(sp); }
+          for (let j = 0; j < 3; j++) glow.emit({ x: sp.pos.x + rand(-0.3, 0.3), y: rand(0.3, 1.9), z: sp.pos.z + rand(-0.3, 0.3),
+            vy: rand(0.2, 0.9), drag: 2, life: rand(0.35, 0.7), size: rand(0.16, 0.3), color: j ? STEEL : WHITE, shape: SHAPE.sparkle, twinkle: 0.7, spin: 2 });
+        }
         s.age += dt;
         const fade = s.done ? 1 - (s.age - s.done) / 0.3 : 1;
         if (fade <= 0 || !p) { scene.remove(s.m); s.m.material.dispose(); streaks.splice(i, 1); continue; }
@@ -75,24 +341,61 @@ export function createAbilityFx({ scene, overlay, posOf, unitToScreen }) {
       }
 
       // auras under units with an active buff
-      const seen = new Set();
+      const seen = new Set(), now0 = performance.now() / 1000;
+      const rallyOwners = new Set(Object.values(state.entities).filter(u => u.buffs?.rally && !u.dead).map(u => u.owner));
+      for (const [id, t] of rallyCasts) if (!state.entities[id] || (now0 - t > 1.5 && !rallyOwners.has(state.entities[id].owner))) rallyCasts.delete(id);
       for (const e of Object.values(state.entities)) {
-        if ((!e.buffs && !e.downed) || e.dead) continue;
+        // the hero who cast Rally shows its aura too while their crew is rallied
+        // (looks only: in the rules Rally buffs the crew, not the hero)
+        const rallied = e.type === 'hero' && !e.buffs?.rally && !e.downed && rallyCasts.has(e.id)
+          && (now0 - rallyCasts.get(e.id) < 1.5 || rallyOwners.has(e.owner));
+        if ((!e.buffs && !e.downed && !rallied) || e.dead) continue;
         const p = posOf(e.id);
         if (!p) continue;
-        for (const name of [...Object.keys(e.buffs || {}), ...(e.downed ? ['downed'] : [])]) {
+        let layer = 0;   // stacked buffs: each one a little wider and higher than the last
+        for (const name of [...Object.keys(e.buffs || {}), ...(rallied ? ['rally'] : []), ...(e.downed ? ['downed'] : [])]) {
           const a = AURAS[name];
           if (!a) continue;
-          const key = `${e.id}:${name}`;
+          const key = `${e.id}:${name}`, i = OUTLINE[name] ? layer++ : 0;
           seen.add(key);
+          const sp = spriteOf(e.id), now = performance.now() / 1000;
+          if (OUTLINE[name] && sp && !e.downed) {
+            let o = outlines.get(key);
+            if (!o) { o = outlineMesh(OUTLINE[name]); scene.add(o); outlines.set(key, o); }
+            const u = o.material.uniforms, su = sp.material.uniforms;
+            u.uMap.value = su.uMap.value;
+            u.uFrame.value.copy(su.uFrame.value);
+            u.uWidth.value = 0.021 + 0.012 * i;   // outline thickness (Tim: 25% thinner)
+            u.uOpacity.value = 0.8 + 0.25 * Math.sin(now * 4 + e.id * 1.3 + i);
+            o.position.copy(sp.thing.mesh.position);
+            o.quaternion.copy(sp.thing.mesh.quaternion);
+            o.scale.copy(sp.thing.mesh.scale);
+            o.renderOrder = sp.thing.mesh.renderOrder - 0.2 - 0.05 * i;
+            // sparkles circling the body
+            for (let n = count(9, dt); n > 0; n--) {
+              const c = OUTLINE_RGB[name];
+              glow.emit({ x: p.x, y: 0.7 + 0.45 * i + rand(-0.15, 0.25), z: p.z, vy: rand(0.1, 0.4), life: rand(0.5, 0.8), size: rand(0.12, 0.22),
+                color: [c.r, c.g, c.b], shape: SHAPE.sparkle, twinkle: 0.6,
+                orbit: { x: p.x, z: p.z, r: 0.55 + 0.12 * i, w: (i % 2 ? -1 : 1) * rand(3, 4.5), a: Math.random() * Math.PI * 2 } });
+            }
+          }
           let m = auras.get(key);
-          if (!m) { m = flat(a.geo, a.color, a.opacity); scene.add(m); auras.set(key, m); }
+          if (!m) { m = flat(a.geo, a.color, a.opacity); m.userData.born = performance.now(); scene.add(m); auras.set(key, m); }
+          let shrink = 1;
+          if (a.fade) {
+            const left = 1 - (performance.now() - m.userData.born) / 1000 / a.fade;
+            m.visible = left > 0;
+            m.material.opacity = a.opacity * Math.max(0, left);
+            shrink = 0.3 + 0.7 * Math.max(0, left);
+          }
           const pulse = 1 + 0.08 * Math.sin(performance.now() / 160 + e.id * 1.7);
           m.position.set(p.x, 0.035, p.z);
-          m.scale.set(a.size * pulse, a.size * pulse, 1);
+          const ring = a.size * pulse * shrink * (1 + 0.18 * i);
+          m.scale.set(ring, ring, 1);
         }
       }
       for (const [key, m] of auras) if (!seen.has(key)) { scene.remove(m); m.material.dispose(); auras.delete(key); }
+      for (const [key, o] of outlines) if (!seen.has(key) || state.entities[key.split(':')[0]]?.downed) { scene.remove(o); o.material.dispose(); outlines.delete(key); }
 
       // execute channel bars over whoever is finishing someone off
       const busy = new Set();

@@ -3,6 +3,7 @@
 // Purely visual: nothing here changes the game state.
 import * as THREE from 'three';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
+import { onFxLayer } from './bloom.js';
 
 const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'ninja_leader', 'ninja_grunt']);
 const MAX_NUMBERS = 40, NUMBER_LIFE = 0.85, TRAIL_LIFE = 0.16, SPARK_LIFE = 0.32, MAX_SPARKS = 400;
@@ -50,7 +51,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     m.position.set(attacker.x + attacker.fx * 0.5, 1.15, attacker.z + attacker.fz * 0.5);
     m.renderOrder = 99700;
     m.frustumCulled = false;
-    scene.add(m);
+    scene.add(onFxLayer(m));
     trails.push({ m, age: 0 });
   }
   function updateTrails(dt) {
@@ -77,7 +78,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   }));
   points.renderOrder = 99800;
   points.frustumCulled = false;
-  scene.add(points);
+  scene.add(onFxLayer(points));
   const sparks = [];
   const STEEL = new THREE.Color(0.85, 0.92, 1), DUST = new THREE.Color(1, 0.72, 0.4), GOLD = new THREE.Color(1, 0.82, 0.3);
   function addSparks(h, blade) {

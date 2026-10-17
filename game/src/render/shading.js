@@ -284,19 +284,28 @@ export function flameMaterial(seed) {
   });
 }
 
-// Faint pulsing ring on the ground at doors
+// Door ring on the ground (Tim OK'd the mock 2026-10-17): a crisp outer ring with four
+// notches, a slowly turning dashed inner ring, a faint ember glow inside and a bright
+// spot sweeping round the rim, all gently pulsing
 export const doorMaterial = new THREE.ShaderMaterial({
   uniforms: { uTime: shared.uTime },
   vertexShader: QUAD_VERT,
   fragmentShader: /* glsl */`
     uniform float uTime; varying vec2 vUv;
     void main() {
-      float d = length(vUv - 0.5) * 2.0;
-      float pulse = 0.8 + 0.2 * sin(uTime * 2.5);
-      float ring = smoothstep(0.16, 0.0, abs(d - 0.8));
-      float halo = smoothstep(0.45, 0.0, abs(d - 0.8)) * 0.35;   // soft glow around the ring
-      float a = min(1.0, (ring + halo) * pulse);
-      gl_FragColor = vec4(vec3(1.0, 0.8, 0.42) * a * 1.4, a);
+      vec2 p = vUv - 0.5;
+      float d = length(p) * 2.0, ang = atan(p.y, p.x), t = uTime;
+      float pulse = 0.85 + 0.15 * sin(t * 2.5);
+      float rim = abs(d - 0.86);
+      float outer = smoothstep(0.035, 0.0, rim);
+      float halo = smoothstep(0.30, 0.0, rim) * 0.45;
+      float dash = step(0.35, cos(ang * 12.0 - t * 0.8)) * smoothstep(0.03, 0.0, abs(d - 0.66));
+      float notch = step(0.97, cos(ang * 4.0 + t * 0.3)) * smoothstep(0.09, 0.0, rim) * 1.2;
+      float fill = pow(clamp(1.0 - d / 0.86, 0.0, 1.0), 1.5) * 0.28;
+      float sweep = pow(max(cos(ang - t * 1.6), 0.0), 8.0) * smoothstep(0.12, 0.0, rim) * 0.9;
+      vec3 gold = vec3(1.0, 0.78, 0.38), pale = vec3(1.0, 0.92, 0.7), ember = vec3(1.0, 0.45, 0.2);
+      vec3 col = (pale * (outer * 1.5 + notch * 1.4 + sweep) + gold * (halo + dash * 1.1) + ember * fill) * pulse;
+      gl_FragColor = vec4(col, min(1.0, max(col.r, max(col.g, col.b))));
     }`,
   transparent: true, depthTest: false, depthWrite: false,
   blending: THREE.AdditiveBlending,   // reads as light on both the day and night ground
