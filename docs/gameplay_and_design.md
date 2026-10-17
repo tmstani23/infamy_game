@@ -131,7 +131,7 @@ Noise versus power is a choice on every raid.
 - Up to 6 at once and 12 a night: bandits (thug stats, about 20 ryo) and night brutes (brute stats, about 40 ryo).
 - They walk in from the map edge at night, wander like townsfolk and leave at dawn.
 - Neutral until hit; nearby bandits join in. No heat. They die outright, and the killer's clan gets the ryo.
-- Not done yet: the "+ryo" pop-up.
+- A gold "Bandit killed +20 ryo" notice shows by the heat gauge.
 
 ## Future ideas
 

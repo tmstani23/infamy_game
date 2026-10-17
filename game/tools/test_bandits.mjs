@@ -89,4 +89,26 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   assert.ok(!g.state.entities[b].angry, 'gives up when far');
   console.log(`fight ok (+${got} ryo)`);
 }
+
+// Killed ones are replaced up to perNight; crew sent at a calm bandit attack it
+{
+  const g = newGame();
+  const hero = g.spawn('hero', 'ronin', -8, 1, { owner: 'player' });
+  g.step([{ type: 'time', night: true }]);
+  const seen = new Set();
+  for (let i = 0; i < 20 * 600; i++) {
+    g.step();
+    for (const b of bandits(g)) { seen.add(b.id); if (i % 200 === 0) b.hp = 0, b.dead = true, b.diedAt = g.state.tick; }
+  }
+  assert.equal(seen.size, B.rules.perNight, `perNight come when killed (${seen.size})`);
+  const t = g.spawn('night_brute', 'brute', -6, 4, { owner: 'bandits', wild: true }); g.bandits.mind[t] = { spot: 'stay', until: 1e9 };
+  const crew = g.spawn('thug', 'thug', -7, 3, { owner: 'player', order: { kind: 'follow', target: hero } });
+  run(g, 2);
+  assert.ok(!g.state.entities[crew].swing, 'crew ignore calm bandits');
+  g.step([{ id: hero, type: 'order', units: [crew], kind: 'attack', target: t }]);
+  run(g, 3);
+  assert.ok(g.state.entities[t].hp < g.state.entities[t].maxHp, 'crew attack on order');
+  assert.ok(g.state.entities[t].angry?.player, 'and it fights back');
+  console.log('refill + crew ok');
+}
 console.log('bandits ok');
