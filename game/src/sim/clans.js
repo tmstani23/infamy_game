@@ -10,7 +10,8 @@ export function createClans(state, units) {
     // queue: hires paid for and waiting, first one counting down; notice: last hire message;
     // aggression (bots): share of downed enemies they choose to finish off, 0 to 1
     // clinic: crew in hospital ({ unit, model, kind: 'recover' | 'heal', left, cost, hp })
-    state.clans[id] = { id, name, bot, ryo, queue: [], clinic: [], notice: null, ...(bot ? { aggression } : {}) };
+    // heat: trouble caused in the street (sim/game.js addHeat), cools slowly
+    state.clans[id] = { id, name, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, ...(bot ? { aggression } : {}) };
     return state.clans[id];
   }
 
@@ -66,6 +67,9 @@ export function createClans(state, units) {
   function carryOff(e) {
     const clan = state.clans[e.owner], t = types[e.type];
     if (!clan || !t) return false;
+    // bot clans' downed crew are taken home off the map, not to this clinic (they used to walk
+    // out of it next to the player and attack; Tim 2026-10-17). Stand-in until rival bases exist.
+    if (clan.bot) return true;
     clan.clinic.push({ unit: e.type, model: e.model, kind: 'recover', left: t.recoverSeconds || 30,
       cost: Math.round((t.price || 0) * (rules.recoverCostShare ?? 0.25)), hp: 0 });
     say(clan, `Your ${e.type} was carried to the clinic`);
@@ -82,6 +86,42 @@ export function createClans(state, units) {
     say(clan, `Your ${e.type} is healing (${cost} ryo)`);
     return true;
   }
+  // Clinic menu, from a hero standing at the clinic door (the 'clinic' command):
+  // revive = a carried-off patient walks out now for reviveNowCostShare of its hire price
+  // (instead of waiting out the timer and paying recoverCostShare);
+  // heal = the hero and its crew within clinicHealRadius of the door back to full HP at
+  // healCostPerHp, all or nothing. spawn(type, model, business, extra) as for hires.
+  const reviveCost = c => Math.round((types[c.unit]?.price || 0) * (rules.reviveNowCostShare ?? 0.5));
+  function healCost(hero) {
+    const b = clinicOf(), r = rules.clinicHealRadius ?? 8, [dx, dz] = b?.door || [hero.x, hero.z];
+    const who = Object.values(state.entities).filter(e => e.owner === hero.owner && !e.dead && !e.downed && e.place === 'street'
+      && e.maxHp && e.hp < e.maxHp && (e === hero || Math.hypot(e.x - dx, e.z - dz) < r));
+    return { who, cost: Math.ceil(who.reduce((n, e) => n + (e.maxHp - e.hp), 0) * (rules.healCostPerHp ?? 0.2)) };
+  }
+  function clinicMenu(hero, c, door, spawn) {
+    const clan = state.clans[hero.owner], b = clinicOf();
+    if (!clan || hero.type !== 'hero' || hero.dead || door?.menu !== 'clinic' || !b) return null;
+    if (c.action === 'revive') {
+      const p = clan.clinic[c.patient];
+      if (!p || p.kind !== 'recover') return null;
+      const cost = reviveCost(p);
+      if (clan.ryo < cost) return say(clan, `Not enough ryo (${cost} needed)`);
+      clan.ryo -= cost;
+      clan.clinic.splice(c.patient, 1);
+      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, order: { kind: 'follow', target: hero.id } });
+      return say(clan, `Your ${p.unit} is back on their feet (${cost} ryo)`);
+    }
+    if (c.action === 'heal') {
+      const { who, cost } = healCost(hero);
+      if (!who.length) return say(clan, 'Nobody nearby needs healing');
+      if (clan.ryo < cost) return say(clan, `Not enough ryo to heal (${cost} needed)`);
+      clan.ryo -= cost;
+      for (const e of who) e.hp = e.maxHp;
+      return say(clan, `Healed ${who.length} for ${cost} ryo`);
+    }
+    return null;
+  }
+
   function clinicTick(dt, spawn) {
     const b = clinicOf();
     for (const clan of Object.values(state.clans)) {
@@ -115,5 +155,5 @@ export function createClans(state, units) {
     }
   }
 
-  return { addClan, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf };
+  return { addClan, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf, clinicMenu, reviveCost, healCost };
 }

@@ -3,7 +3,15 @@
   "characters": {"ronin":{"idle":{"file":"ronin_breathing_idle","speed":0.5},"walk":"ronin_walk","run":"ronin_run","attack":"ronin_great_sword_slash","death":"ronin_two_handed_sword_death"},
     "thug":{"idle":"thug_fighting_idle","walk":"thug_walking","run":"thug_running","attack":"thug_punching","death":"thug_dying"},
     "brute":{"idle":"brute_idle","walk":"brute_walking","run":"brute_running","attack":"brute_punching","death":"brute_dying"},
-    "swordsman":{"idle":{"file":"swordsman_breathing_idle","speed":0.5},"walk":"swordsman_walking","run":"swordsman_run","attack":"swordsman_great_sword_slash","death":"swordsman_two_handed_sword_death"}},
+    "swordsman":{"idle":{"file":"swordsman_breathing_idle","speed":0.5},"walk":"swordsman_walking","run":"swordsman_run","attack":"swordsman_great_sword_slash","death":"swordsman_two_handed_sword_death"},
+    "monk":{"idle":"monk_standing_idle","walk":"monk_catwalk_walk_forward","run":{"file":"monk_catwalk_walk_forward","speed":2.2},"scared":"monk_scared","bow":"monk_quick_formal_bow","talk":"monk_gentle_reaction","death":"monk_standing_death_forward_01"},
+    "monk2":{"idle":"monk2_standing_idle","walk":"monk2_catwalk_walk_forward","run":{"file":"monk2_catwalk_walk_forward","speed":2.2},"scared":"monk2_scared","bow":"monk2_quick_formal_bow","talk":"monk2_gentle_reaction","death":"monk2_standing_death_forward_01"},
+    "old_woman":{"idle":"old_woman_standing_idle","walk":"old_woman_catwalk_walk_forward","run":{"file":"old_woman_catwalk_walk_forward","speed":2.2},"scared":"old_woman_scared","bow":"old_woman_quick_formal_bow","talk":"old_woman_gentle_reaction","death":"old_woman_standing_death_forward_01"},
+    "merchant":{"idle":"merchant_standing_idle","walk":"merchant_catwalk_walk_forward","run":{"file":"merchant_catwalk_walk_forward","speed":2.2},"scared":"merchant_scared","bow":"merchant_quick_formal_bow","talk":"merchant_gentle_reaction","death":"merchant_standing_death_forward_01"},
+    "geisha":{"idle":"geisha_standing_idle","walk":"geisha_catwalk_walk_forward","run":{"file":"geisha_catwalk_walk_forward","speed":2.2},"scared":"geisha_scared","bow":"geisha_quick_formal_bow","talk":"geisha_gentle_reaction","death":"geisha_standing_death_forward_01"},
+    "fisherman":{"idle":"fisherman_standing_idle","walk":"fisherman_catwalk_walk_forward","run":{"file":"fisherman_catwalk_walk_forward","speed":2.2},"scared":"fisherman_scared","bow":"fisherman_quick_formal_bow","talk":"fisherman_gentle_reaction","death":"fisherman_standing_death_forward_01"},
+    "sailor":{"idle":"sailor_standing_idle","walk":"sailor_catwalk_walk_forward","run":{"file":"sailor_catwalk_walk_forward","speed":2.2},"scared":"sailor_scared","bow":"sailor_quick_formal_bow","talk":"sailor_gentle_reaction","death":"sailor_standing_death_forward_01"},
+    "laborer":{"idle":"laborer_standing_idle","walk":"laborer_catwalk_walk_forward","run":{"file":"laborer_catwalk_walk_forward","speed":2.2},"scared":"laborer_scared","bow":"laborer_quick_formal_bow","talk":"laborer_gentle_reaction","death":"laborer_standing_death_forward_01"}},
   "items": {
     "teahouse": {"kind":"buildings","glows":true},
     "gambling_den": {

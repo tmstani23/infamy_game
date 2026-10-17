@@ -1,16 +1,19 @@
 // The hero's action bar (WoW-style), bottom centre: portrait and health, the basic attack
 // and the Q E R F abilities with cooldown sweeps, active buffs above, crew health pips
-// on the left. Only reads the state; abilities go to the rules as 'ability' commands.
+// with their names on the left (click one to select it, Shift-click to add or drop it).
+// Only reads the state; abilities go to the rules as 'ability' commands.
+import { unitName } from './selection_panel.js';
+
 const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
 function tooltip(a, key, stats) {
   const dmg = stats.damage || 0;
-  if (!a) return { name: 'Attack', key: 'Right-click', lines: [
+  if (!a) return { name: 'Attack', key: 'Middle-click / Shift+right-click', lines: [
     ['Damage', `${dmg} per hit`], ['Attack speed', `every ${stats.attackSpeed} s`], ['Range', `${stats.attackRange} steps`],
     ['Critical hit', `${pct(stats.critChance || 0)} chance, ${stats.critMultiplier || 2}x damage`]],
-    about: 'Right-click an enemy to chase it and keep hitting it. Standing still, the hero hits the nearest enemy in reach.' };
+    about: 'Middle-click or Shift+right-click an enemy (a mouse side button works too) to chase it and keep hitting it (on a downed one: finish it off). Standing still, the hero hits the nearest enemy in reach.' };
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     rally: [['Effect', `crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
@@ -18,7 +21,7 @@ function tooltip(a, key, stats) {
   return { name: a.name + (key === 'F' ? ' (ultimate)' : ''), key, lines: [['Cost', a.cost ? `${a.cost} ryo` : 'None'], ['Cooldown', `${a.cooldown} s`], ...lines], about: a.about };
 }
 
-export function createActionBar({ root, game, units, heroId, tickRate }) {
+export function createActionBar({ root, game, units, heroId, tickRate, crewInput }) {
   const hero = () => game.state.entities[heroId];
   const stats = units.types[hero()?.type] || {};
   const kit = stats.abilities || {};
@@ -31,6 +34,12 @@ export function createActionBar({ root, game, units, heroId, tickRate }) {
   const buffs = el('div', 'buffs', root);
   const row = el('div', 'row', root);
   const crew = el('div', 'crew', row);
+  crew.addEventListener('mousedown', e => {
+    const id = e.target.closest('.mate')?.dataset.id;
+    if (!id || !crewInput || e.button !== 0) return;
+    const sel = crewInput.selected();
+    crewInput.select(!e.shiftKey ? [id] : sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+  });
   const portrait = el('div', 'portrait', row);
   el('div', 'face', portrait, 'R');
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);
@@ -52,7 +61,7 @@ export function createActionBar({ root, game, units, heroId, tickRate }) {
     const sweep = el('div', 'sweep', s), secs = el('div', 'secs', s);
     slots.push({ s, key, a, sweep, secs, wasReady: true });
   };
-  addSlot('RMB', 'attack', null);
+  addSlot('M4', 'attack', null);
   for (const [k, a] of Object.entries(kit)) addSlot(k, a.kind, a);
 
   // t = the current tick with the in-between fraction, so sweeps move smoothly
@@ -63,7 +72,8 @@ export function createActionBar({ root, game, units, heroId, tickRate }) {
     root.classList.toggle('ko', ko);
     const k = h.maxHp ? h.hp / h.maxHp : 0;
     hpFill.style.width = `${k * 100}%`;
-    hpText.textContent = ko ? 'Knocked out' : `${Math.ceil(h.hp)} / ${h.maxHp}`;
+    const back = ko ? Math.max(0, Math.ceil((units.rules?.heroRespawnSeconds ?? 20) - (t - h.diedAt) / tickRate)) : 0;
+    hpText.textContent = ko ? `Knocked out · ${back}s` : `${Math.ceil(h.hp)} / ${h.maxHp}`;
     hpBar.classList.toggle('low', k < 0.25);
 
     for (const sl of slots) {
@@ -84,14 +94,32 @@ export function createActionBar({ root, game, units, heroId, tickRate }) {
     const html = Object.entries(shown).map(([n, until]) => `<span class="buff ${n}">${BUFFS[n] || n} ${Math.max(0, Math.ceil((until - t) / tickRate))}s</span>`).join('');
     if (buffs.innerHTML !== html) buffs.innerHTML = html;
 
+    // crew: a small name over a health bar each; crew in the clinic show greyed out
     const crewList = mine.filter(e => e.type !== 'hero' && e.maxHp);
-    while (crew.children.length < crewList.length) el('div', 'pip', crew);
-    while (crew.children.length > crewList.length) crew.lastChild.remove();
+    const clinic = game.state.clans?.[h.owner]?.clinic || [];
+    const n = crewList.length + clinic.length;
+    while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); }
+    while (crew.children.length > n) crew.lastChild.remove();
     crewList.forEach((e, i) => {
-      const p = crew.children[i], f = e.hp / e.maxHp;
-      p.style.setProperty('--hp', `${f * 100}%`);
-      p.classList.toggle('hurt', f < 0.5);
-      p.title = `${e.type} ${Math.ceil(e.hp)} / ${e.maxHp}`;
+      const m = crew.children[i], f = e.hp / e.maxHp, name = unitName(units, e.type);
+      if (m.firstChild.textContent !== name) m.firstChild.textContent = name;
+      m.lastChild.style.setProperty('--hp', `${f * 100}%`);
+      m.classList.toggle('hurt', f < 0.5);
+      m.classList.toggle('down', !!e.downed);
+      m.classList.remove('away');
+      m.dataset.id = e.id;
+      m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
+      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}`;
+    });
+    clinic.forEach((c, i) => {
+      const m = crew.children[crewList.length + i];
+      m.firstChild.textContent = unitName(units, c.unit);
+      m.lastChild.style.setProperty('--hp', '100%');
+      m.classList.remove('hurt', 'down');
+      m.classList.add('away');
+      m.classList.remove('picked');
+      delete m.dataset.id;
+      m.title = `${unitName(units, c.unit)} at the clinic, back in ${Math.ceil(c.left)} s`;
     });
   }
   return { update };

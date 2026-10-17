@@ -14,7 +14,12 @@
     "carryRadius": 8,
     "recoverCostShare": 0.25,
     "healPerSecond": 8,
-    "healCostPerHp": 0.2
+    "healCostPerHp": 0.2,
+    "reviveNowCostShare": 0.5,
+    "clinicHealRadius": 8,
+    "civilianHeat": { "hit": 2, "down": 10, "kill": 30 },
+    "heatCoolSeconds": 30,
+    "heroRespawnSeconds": 20
   },
   "types": {
     "hero":      { "sprite": "ronin",     "hp": 800, "damage": 30, "attackRange": 1.7, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire",

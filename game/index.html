@@ -22,14 +22,14 @@
   #prompt { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); padding: 6px 14px;
     background: rgba(10,12,16,.72); border: 1px solid rgba(233,194,122,.35); border-radius: 6px; color: #e9c27a; letter-spacing: .04em; }
   #money { color: #e9c27a; white-space: nowrap; }
-  #hire { position: fixed; right: 16px; top: 14px; width: 260px; background: rgba(10,12,16,.82);
+  #hire, #clinic { position: fixed; right: 16px; top: 14px; width: 260px; background: rgba(10,12,16,.82);
     border: 1px solid rgba(233,194,122,.35); border-radius: 8px; padding: 10px 12px; }
-  #hire h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; color: #e9c27a; }
-  #hire .row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
-  #hire .row small { color: #9a968c; }
-  #hire .row button:disabled { opacity: .4; cursor: default; }
-  #hire .waiting, #hire .notice { color: #9a968c; margin-top: 6px; }
-  #hire .notice { color: #d8d2c4; }
+  #clinic h3, #hire h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; color: #e9c27a; }
+  #clinic .row, #hire .row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
+  #clinic .row small, #hire .row small { color: #9a968c; }
+  #clinic .row button:disabled, #hire .row button:disabled { opacity: .4; cursor: default; }
+  #clinic .waiting, #clinic .notice, #hire .waiting, #hire .notice { color: #9a968c; margin-top: 6px; }
+  #clinic .notice, #hire .notice { color: #d8d2c4; }
   #selbox { position: fixed; border: 1px solid rgba(143,209,122,.9); background: rgba(143,209,122,.12); pointer-events: none; }
   /* floating damage numbers (moved and faded by render/hitfx.js) */
   #fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
@@ -71,14 +71,65 @@
   #bar .buff.lantern { color: #ff8a6b; border-color: rgba(255,90,60,.6); }
   #bar .buff.rally { color: #9fe08a; border-color: rgba(143,209,122,.6); }
   #bar .buff.intimidated { color: #b49ad6; }
-  #bar .crew { display: flex; flex-wrap: wrap; width: 66px; gap: 3px; margin-right: 4px; align-self: center; }
-  #bar .pip { width: 9px; height: 14px; border-radius: 2px; border: 1px solid #000; background: linear-gradient(to top, #5fc35a var(--hp), #2a0d0d 0); }
-  #bar .pip.hurt { background: linear-gradient(to top, #e0473c var(--hp), #2a0d0d 0); }
+  #bar .crew { display: grid; grid-template-columns: repeat(3, 40px); gap: 3px 4px; margin-right: 4px; align-self: center; }
+  #bar .mate { display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; padding: 1px 2px; border-radius: 3px; border: 1px solid transparent; }
+  #bar .mate:hover { border-color: rgba(255,211,77,.5); }
+  #bar .mate.picked { border-color: #ffd34d; background: rgba(255,211,77,.12); }
+  #bar .mate.away { cursor: default; }
+  #bar .mate .name { max-width: 40px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 600 9px/10px system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 1px #000; }
+  #bar .pip { width: 36px; height: 7px; border-radius: 2px; border: 1px solid #000; background: linear-gradient(to right, #5fc35a var(--hp), #2a0d0d 0); }
+  #bar .mate.hurt .pip { background: linear-gradient(to right, #e0473c var(--hp), #2a0d0d 0); }
+  #bar .mate.down .pip { background: #2a0d0d; animation: pulse .8s infinite alternate; }
+  #bar .mate.down .name { color: #e0473c; }
+  #bar .mate.away { opacity: .45; filter: grayscale(1); }
+  #selpanel { position: fixed; left: 14px; bottom: 14px; display: grid; grid-template-columns: repeat(2, 168px); gap: 5px; padding: 7px; max-width: 360px;
+    background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; animation: rise .15s ease-out; }
+  #selpanel .card { display: flex; gap: 6px; align-items: center; padding: 3px; border-radius: 5px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); cursor: pointer; }
+  #selpanel .card:hover { border-color: #ffd34d; }
+  #selpanel .pic { flex: none; width: 38px; height: 38px; border-radius: 4px; border: 1px solid #000; background: #22262e center / cover no-repeat; }
+  #selpanel .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  #selpanel b { font: 700 11px/12px system-ui, sans-serif; color: #e9d6a8; }
+  #selpanel .hp { height: 6px; background: #2a0d0d; border: 1px solid #000; border-radius: 2px; overflow: hidden; }
+  #selpanel .hp .fill { height: 100%; transition: width .15s; }
+  #selpanel i { font: italic 10px/12px system-ui, sans-serif; color: #b8b0a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #selpanel .card.down { background: rgba(140,20,20,.25); }
+  #selpanel .card.down i { color: #ff8a6b; }
+  #selpanel[hidden] { display: none; }
+  #selpanel.many { grid-template-columns: repeat(6, 44px); }
+  #selpanel.many .info { display: none; }
+  #selpanel.many .card { padding: 2px; }
+  @keyframes rise { from { transform: translateY(10px); opacity: 0; } }
   #snap { position: fixed; right: 16px; bottom: 18px; padding: 7px 14px; border-color: rgba(233,194,122,.5); color: #e9c27a; background: rgba(10,12,16,.82); }
   /* execute channel bar (render/abilityfx.js) */
   .channel { position: absolute; left: 0; top: 0; width: 64px; height: 8px; background: #140606; border: 1px solid #000; border-radius: 2px; }
   .channel i { display: block; height: 100%; width: 0; background: linear-gradient(#ff5a3c, #9c1a10); }
   .channel span { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); font: 700 10px/1 system-ui, sans-serif; color: #ff8a6b; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+  /* heat gauge (src/heat_badge.js); --k = heat / 100, capped at 1 */
+  #heat { --k: 0; position: fixed; right: 18px; bottom: 18px; width: 120px; height: 120px; pointer-events: none;
+    border-radius: 50%; box-shadow: 0 0 calc(14px + 30px * var(--k)) calc(2px + 8px * var(--k)) rgba(255, calc(170 - 120 * var(--k)), 40, calc(.35 + .5 * var(--k))); }
+  #heat svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  #heat .disc { fill: rgba(14,12,14,.92); stroke: #46342a; stroke-width: 2; }
+  #heat .track { fill: none; stroke: #30201a; stroke-width: 8; }
+  #heat .arc { fill: none; stroke: url(#heatArc); stroke-width: 8; stroke-linecap: round; transition: stroke-dasharray .4s ease-out;
+    filter: drop-shadow(0 0 4px rgba(255,110,40,.9)); }
+  #heat .tick { stroke: rgba(240,220,180,.8); stroke-width: 1.5; }
+  #heat .flame { filter: drop-shadow(0 0 6px rgba(255,140,40,.95)); animation: flicker 1.6s ease-in-out infinite alternate; transform-origin: 0 0; }
+  #heat .num { position: absolute; left: 0; right: 0; top: 52px; text-align: center; font: 900 28px/1 system-ui, sans-serif; color: #fff0d7;
+    text-shadow: 0 0 8px rgba(255, calc(160 - 120 * var(--k)), 40, .95), 0 1px 2px #000; }
+  #heat .lvl { position: absolute; left: 0; right: 0; top: 84px; text-align: center; font: 800 9px/1 system-ui, sans-serif; letter-spacing: .12em; font-style: normal; color: #e6be8c; }
+  #heat.flare { animation: heatflare .6s ease-out; }
+  .heatgain { position: fixed; right: 18px; bottom: 140px; display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; white-space: nowrap; pointer-events: none;
+    padding: 4px 10px; border-radius: 6px; background: linear-gradient(to left, rgba(60,10,6,.75), rgba(60,10,6,0));
+    text-shadow: 0 0 10px #ff5a1e, 0 0 22px rgba(255,60,20,.8), 0 2px 2px #000; animation: heatgain 2.2s ease-out forwards; }
+  .heatgain span { font: 800 15px/1 system-ui, sans-serif; letter-spacing: .04em; color: #f3dcc0; }
+  .heatgain b { font: 900 34px/1 system-ui, sans-serif; color: #ffd27a; }
+  @keyframes heatgain { 0% { opacity: 0; transform: translateY(16px) scale(.6); } 15% { opacity: 1; transform: translateY(0) scale(1.15); }
+    25% { transform: translateY(-4px) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-50px) scale(1); } }
+  #heat.infamous { animation: heatpulse 1s ease-in-out infinite alternate; }
+  #heat.infamous .lvl { color: #ff7a5c; }
+  @keyframes flicker { from { opacity: .88; } to { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,120,30,1)); } }
+  @keyframes heatflare { 0% { transform: scale(1); } 30% { transform: scale(1.14); filter: brightness(1.6); } 100% { transform: scale(1); } }
+  @keyframes heatpulse { from { filter: brightness(1); } to { filter: brightness(1.35); transform: scale(1.04); } }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #9a968c; }
 </style>
 <script type="importmap">
@@ -93,15 +144,18 @@
 <div id="hud">
   <b>INFAMY</b>
   <span id="money"></span>
-  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click go / attack (hero too) (Ctrl hold) · X attack-move · V follow · G heal at clinic · right-click downed foe = execute · M mute · = / - zoom</span>
+  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click crew go / attack (Ctrl hold) · middle-click / Shift+right-click / mouse side button = hero attack · X attack-move · V follow · G heal at clinic · side button / right-click on a downed foe = execute (hero / crew) · Space at clinic ring = clinic · click townsfolk = look, attack them like foes (heat) · M mute · = / - zoom</span>
   <button id="daynight">Night (N)</button>
 </div>
 <button id="snap" hidden>Back to hero (Home)</button>
 <div id="prompt" hidden></div>
 <div id="hire" hidden></div>
+<div id="clinic" hidden></div>
+<div id="heat"></div>
 <div id="selbox" hidden></div>
 <div id="fx"></div>
 <div id="bar"></div>
+<div id="selpanel" hidden></div>
 <div id="loading">Loading…</div>
 <script type="module" src="src/main.js"></script>
 </body>

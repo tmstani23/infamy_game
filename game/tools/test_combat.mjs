@@ -81,7 +81,7 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   for (let i = 0; i < 20; i++) g.step([{ id: hero, type: 'move', right: -1, down: 0 }]);
   g.step([{ id: hero, type: 'move', right: 0, down: 0 }]);
   assert.ok(S[foe].hp >= hp - T.hero.damage, 'no hitting while running');
-  // a crowd beats the hero down: knocked out, then back at home at full health
+  // a crowd beats the hero down: knocked out, then back up at the clinic's door ring at full health
   for (let i = 0; i < 6; i++) g.spawn('swordsman', 'swordsman', S[hero].x + 1 + (i % 3) * 0.5, S[hero].z + (i < 3 ? 1 : -1), { owner: 'kuroda', order: { kind: 'station', x: S[hero].x, z: S[hero].z } });
   let down = false;
   for (let i = 0; i < 20 * 30 && !down; i++) { g.step(); down = S[hero].dead; }
@@ -90,10 +90,11 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   assert.ok(S[hero], 'hero is not removed');
   g.step([{ id: hero, type: 'move', right: 1, down: 0 }]);   // cannot move while down
   let ticks = 0;
-  while (S[hero].dead && ticks < 20 * 10) { g.step(); ticks++; }
+  while (S[hero].dead && ticks < 20 * 30) { g.step(); ticks++; }
   assert.ok(!S[hero].dead && S[hero].hp === S[hero].maxHp, 'hero got back up');
-  assert.ok(Math.abs(ticks / 20 - 5) < 0.2, 'after about 5 seconds');
-  assert.deepEqual([S[hero].x, S[hero].z], [-6, 1]);
+  assert.ok(Math.abs(ticks / 20 - units.rules.heroRespawnSeconds) < 0.2, 'after heroRespawnSeconds');
+  const ring = g.doors.find(d => d.menu === 'clinic');
+  assert.deepEqual([S[hero].x, S[hero].z, S[hero].place], [ring.x, ring.z, 'street'], 'at the clinic');
   assert.deepEqual(JSON.parse(JSON.stringify(g.state)), g.state);
   console.log('hero combat ok');
 }

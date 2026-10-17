@@ -6,6 +6,7 @@ import { buildRoom3d, INTERIOR_ORIGIN } from './interiors.js';
 import { generateRoom } from './generate.js';
 import { createClans } from './clans.js';
 import { createNav } from './nav.js';
+import { createCivilians } from './civilians.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -13,17 +14,25 @@ export const DT = 1 / TICK_RATE;
 // Unit types: size and speeds in world units per second (the ronin is 2 tall)
 export const UNITS = {
   hero: { radius: 0.35, walk: 1.7, run: 6.0 },
+  civilian: { radius: 0.3, walk: 1.1, run: 2.6 },   // townsfolk (sim/civilians.js); run = fleeing
 };
 
 const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export function createGame(options) {
-  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null } = options;
+  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null, civilians: civData = null } = options;
   const scenery = placeScenery(district, catalog, cutouts);
 
   // Rooms for buildings that have an interior, and the doors between them
   const rooms = [], doors = [], roomBlockers = [], roomOf = {};
+  // A street door's ring sits RING_OUT out from the wall (away from the building's middle),
+  // so it reads as a spot in the street rather than sinking into the building
+  const RING_OUT = 1;
+  const ringAt = b => {
+    const [dx, dz] = b.door, ox = dx - b.x, oz = dz - b.z, len = Math.hypot(ox, oz) || 1;
+    return [dx + ox / len * RING_OUT, dz + oz / len * RING_OUT];
+  };
   district.buildings.filter(b => b.interior && b.door).forEach((b, i) => {
     // "interior": "teahouse" names a hand-made room in interiors.json;
     // "interior": { "type": "gambling_den", "seed": 4 } is made by the room generator
@@ -36,9 +45,15 @@ export function createGame(options) {
     roomOf[district.buildings.indexOf(b)] = room.name;
     if (room.blockers) roomBlockers.push(...room.blockers);
     scenery.push(...room.pieces.map(p => placePiece(p, catalog, cutouts)).filter(Boolean));
-    const [dx, dz] = b.door;
+    const [dx, dz] = ringAt(b);
     doors.push({ x: dx, z: dz, to: room.spawn, place: room.name, label: `Enter the ${title(name)}` });
     doors.push({ x: room.exit.x, z: room.exit.z, to: { x: dx, z: dz }, place: 'street', label: 'Leave' });
+  });
+
+  // Buildings with a menu instead of a room (the clinic): a door ring that opens it.
+  // Nothing happens in the rules at that door; the screen opens the menu, which sends commands.
+  district.buildings.forEach((b, i) => {
+    if (b.business === 'clinic' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'clinic', business: `b${i}`, place: 'street', label: 'Open the clinic' });
   });
 
   const B = district.bounds, far = 1000;
@@ -53,7 +68,8 @@ export function createGame(options) {
 
   // Everything here is plain data, so it can be synced to other players as is
   // businesses: { b0: { kind: 'warehouse', x, z, door, owner: null } }, keyed by building index
-  const state = { tick: 0, entities: {}, businesses: {}, hits: [], casts: [] };
+  // night: the sim clock (townsfolk follow it; the 'time' command flips it)
+  const state = { tick: 0, night: false, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [] };
   district.buildings.forEach((b, i) => {
     if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
   });
@@ -101,7 +117,7 @@ export function createGame(options) {
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
     if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal'].includes(c.kind)) return;
-    if (c.kind === 'attack' && !hostile(hero, state.entities[c.target])) return;
+    if (c.kind === 'attack' && !fair(hero, state.entities[c.target])) return;
     if (!['follow', 'attack', 'heal'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
       .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
@@ -162,9 +178,13 @@ export function createGame(options) {
   // --- Combat (RTS / Dota style) ----------------------------------------------------
   // Units of two different clans in the same place are enemies. Crew pick fights on
   // their own within AGGRO, but never wander more than LEASH from where they belong.
-  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, KNOCKOUT_SECONDS = 5;
+  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
   const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place;
+  // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
+  // can be told to attack (and finish off) one. That is what makes heat.
+  const civ = t => t?.type === 'civilian';
+  const fair = (a, b) => hostile(a, b) || (civ(b) && a !== b && !b.dead && !b.downed && !!a.owner && a.place === b.place);
   const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
 
   function nearestEnemy(e, x, z, range) {
@@ -190,7 +210,7 @@ export function createGame(options) {
     const o = e.order || {};
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
-      if (hostile(e, t)) return t;
+      if (fair(e, t)) return t;
       e.order = { kind: 'move', x: e.x, z: e.z };      // target gone: stand there
       return null;
     }
@@ -217,10 +237,12 @@ export function createGame(options) {
     f.target = t.id;
     if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
     const d = Math.hypot(t.x - e.x, t.z - e.z);
-    if (d > reachOf(e, t)) {
+    // a townsperson running away gets away during the wind-up: get right up close first
+    const running = civ(t) && t.flee;
+    if (d > reachOf(e, t) * (running ? 0.5 : 1)) {
       if (chase) {
         // close in on a spot round the target so several attackers surround it instead of queueing
-        const [sx, sz] = surroundSpot(e, t);
+        const [sx, sz] = running ? [t.x, t.z] : surroundSpot(e, t);
         if (moveTo(e, unit, sx, sz, false)) return;
       }
       e.anim = 'idle';
@@ -253,7 +275,7 @@ export function createGame(options) {
     if (!w) return false;
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
-      if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
+      if (fair(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
         const crit = rng() < (unit.critChance || 0);
         hit(e, t, Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1)), crit);
       }
@@ -273,6 +295,22 @@ export function createGame(options) {
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   }
 
+  // Heat: a number per clan for trouble caused in the street (townsfolk hurt or killed),
+  // cooling by 1 every heatCoolSeconds. Nothing reacts to it yet.
+  const heatFor = k => units?.rules?.civilianHeat?.[k] || 0;
+  // state.heatGains = this tick's rises ({ clan, amount, reason }), for the heat pop-ups
+  function addHeat(owner, n, reason) {
+    const c = state.clans?.[owner];
+    if (!c || !n) return;
+    c.heat = (c.heat || 0) + n;
+    state.heatGains.push({ clan: owner, amount: n, reason });
+  }
+  function coolHeat() {
+    const every = secs(units?.rules?.heatCoolSeconds || 10);
+    if (!state.clans || state.tick % every) return;
+    for (const c of Object.values(state.clans)) if (c.heat > 0) c.heat = Math.max(0, c.heat - 1);
+  }
+
   function hit(a, t, damage, crit = false, kind = null) {
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
@@ -282,6 +320,8 @@ export function createGame(options) {
     // Red Lantern: heal part of the damage dealt
     const steal = a.buffs?.lantern?.lifesteal;
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
+    if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
+    if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
     if (t.hp > 0) return;
     delete t.swing;
     delete t.dash;
@@ -305,9 +345,11 @@ export function createGame(options) {
     for (const e of Object.values(state.entities)) {
       if (!e.downed || e.dead) continue;
       e.threatAt ??= e.downedAt;
-      if (Object.values(state.entities).some(o => hostile(o, { ...e, downed: false }) && !o.downed && Math.hypot(o.x - e.x, o.z - e.z) < radius)) e.threatAt = state.tick;
+      // townsfolk fear anyone in a clan; crew only their enemies
+      const threat = civ(e) ? o => o.owner && !o.dead && o.place === e.place : o => hostile(o, { ...e, downed: false });
+      if (Object.values(state.entities).some(o => threat(o) && !o.downed && Math.hypot(o.x - e.x, o.z - e.z) < radius)) e.threatAt = state.tick;
       if (state.tick - e.threatAt < wait || Object.values(state.entities).some(o => o.execute?.target === e.id)) continue;
-      if (!clans?.carryOff(e)) continue;
+      if (!civ(e) && !clans?.carryOff(e)) continue;      // townsfolk are helped home (sim/civilians.js sends a new one out later)
       delete state.entities[e.id];
       delete intents[e.id];
       for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
@@ -319,7 +361,7 @@ export function createGame(options) {
   // finish it: walk up, then channel for executeSeconds; a hit, moving or a new order
   // breaks the channel. e.execute = { target, start (tick the channel began, or null), len }
   // is in the state so the renderer can draw the channel bar.
-  const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && t.owner && a.owner !== t.owner && a.place === t.place;
+  const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && a.place === t.place && (civ(t) || (t.owner && a.owner !== t.owner));
   function startExecute(e, c) {
     let ex = e;
     if (Array.isArray(c.units) && c.units.length) {
@@ -353,32 +395,31 @@ export function createGame(options) {
     t.dead = true;
     t.diedAt = state.tick;
     state.casts.push({ a: e.id, kind: 'execute', target: t.id, x: t.x, z: t.z });
+    if (civ(t)) addHeat(e.owner, heatFor('kill'), 'Townsperson killed');
     delete e.execute;
     return true;
   }
 
   // Bots: once a second an idle bot crew member looks for a downed enemy within AGGRO of
-  // where it belongs. It only goes when that is safe (no standing enemy within SAFE of the
-  // downed unit). Whether the clan finishes a given unit is rolled once against its
-  // aggression; pricier unit types are picked first.
-  const SAFE = 5, botChoice = {};     // "clan:downedId" -> true / false (server-side only)
+  // where it belongs, or within carryRadius of itself (so nothing it keeps from being
+  // carried off is out of its reach). It only goes when that is safe (no standing enemy
+  // within SAFE of the downed unit), and then on a roll against its clan's aggression,
+  // made again every second (a once-only "no" left crew lying there for good); pricier
+  // unit types are picked first.
+  const SAFE = 5;
   function botExecute(e) {
     const clan = state.clans?.[e.owner];
     if (!clan?.bot || (state.tick + Number(e.id)) % TICK_RATE) return false;
-    const [ax, az] = anchorOf(e);
+    const [ax, az] = anchorOf(e), reach = units?.rules?.carryRadius ?? 8;
     const price = t => units?.types[t.type]?.price || 0;
-    const options = Object.values(state.entities).filter(t => downedFoe(e, t) && Math.hypot(t.x - ax, t.z - az) < AGGRO
+    const options = Object.values(state.entities).filter(t => downedFoe(e, t) && !civ(t)
+      && (Math.hypot(t.x - ax, t.z - az) < AGGRO || Math.hypot(t.x - e.x, t.z - e.z) < reach)
       && !Object.values(state.entities).some(o => o.execute?.target === t.id)
       && !Object.values(state.entities).some(o => hostile(e, o) && Math.hypot(o.x - t.x, o.z - t.z) < SAFE));
+    if (!options.length || rng() >= (clan.aggression ?? 0.5)) return false;
     options.sort((a, b) => price(b) - price(a) || Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z));
-    for (const t of options) {
-      const key = `${clan.id}:${t.id}`;
-      botChoice[key] ??= rng() < (clan.aggression ?? 0.5);
-      if (!botChoice[key]) continue;
-      startExecute(e, { target: t.id });
-      return !!e.execute;
-    }
-    return false;
+    startExecute(e, { target: options[0].id });
+    return !!e.execute;
   }
 
   // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
@@ -469,9 +510,12 @@ export function createGame(options) {
         delete intents[e.id];
         for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
       }
-      if (e.type === 'hero' && secs >= KNOCKOUT_SECONDS) {
-        const [hx, hz] = e.home || [e.x, e.z];
-        Object.assign(e, { x: hx, z: hz, place: e.home ? 'street' : e.place, hp: e.maxHp, dead: false, anim: 'idle' });
+      // a knocked-out hero comes round at the clinic's door ring after heroRespawnSeconds (Tim 2026-10-17),
+      // or at home when the map has no clinic
+      if (e.type === 'hero' && secs >= (units?.rules?.heroRespawnSeconds ?? 20)) {
+        const clinic = doors.find(d => d.menu === 'clinic');
+        const [hx, hz] = clinic ? [clinic.x, clinic.z] : e.home || [e.x, e.z];
+        Object.assign(e, { x: hx, z: hz, place: clinic || e.home ? 'street' : e.place, hp: e.maxHp, dead: false, anim: 'idle' });
         delete e.diedAt;
       }
     }
@@ -533,44 +577,87 @@ export function createGame(options) {
     return spawn(type, model, dx, dz, extra);
   }
 
+  // Crew through a door with their hero (Tim 2026-10-17): going in, the crew listed in the
+  // 'use' command (the player's selection) who are near the hero come along; the rest stay
+  // outside. Coming out, everyone of the hero's crew in that room comes out with him.
+  // Whoever comes along lands in a little ring round the hero and follows him.
+  const BRING_RADIUS = 12;
+  function bringCrew(hero, from, d, ids = []) {
+    const out = d.place === 'street';
+    const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.dead && !u.downed && u.place === from
+      && (out || ((ids || []).includes(u.id) && Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS)));
+    const r0 = 0.3;
+    const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
+    crew.forEach((u, k) => {
+      let [x, z] = [hero.x, hero.z];
+      for (let n = k; n < k + 36; n++) {
+        const [ox, oz] = followOffset(n % 36);
+        if (clear(hero.x + ox * 0.8, hero.z + oz * 0.8)) { [x, z] = [hero.x + ox * 0.8, hero.z + oz * 0.8]; break; }
+      }
+      if (out) [x, z] = nav.nearestFree(x, z) || [x, z];
+      Object.assign(u, { x, z, place: d.place, anim: 'idle' });
+      delete paths[u.id]; delete u.execute; delete u.swing;
+      if (fight[u.id]) delete fight[u.id].target;
+      u.order = { kind: 'follow', target: hero.id };
+      u.order.slot = freeSlot(hero.id, u.id);
+    });
+  }
+
   // The door a unit is standing at, if any
   function doorNear(id) {
     const e = state.entities[id];
     return e ? doors.find(d => Math.hypot(d.x - e.x, d.z - e.z) < DOOR_RADIUS) || null : null;
   }
 
-  // Speeds and size: the hero from UNITS, crew from units.json
+  // Speeds and size: the hero and townsfolk from UNITS, crew from units.json
   const statsOf = type => ({ ...units?.types[type], ...UNITS[type] });
 
+  const civilians = createCivilians({
+    state, data: civData, pois: district.pois, nav, spawn, moveTo, statsOf,
+    stopPath: e => { delete paths[e.id]; }, seed: (options.seed ?? 12345) ^ 0x5eed,
+  });
+
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
-  // [{ id, type: 'use' }] to go through the door the unit stands at,
+  // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
+  //   its selected crew, inside with it; coming out, its crew in the room come too),
   // [{ id, type: 'hire', business, unit }] sent by a hero inside a teahouse (players and bots alike),
   // [{ id, type: 'attack', target }] makes a hero chase and hit an enemy until it moves with WASD,
   // [{ id, type: 'execute', target, units? }] finishes off a downed enemy: the hero, or the nearest of `units` (its crew),
   // [{ id, type: 'ability', slot: 'Q' | 'E' | 'R' | 'F', x, z }] uses a hero ability (x, z = aim on the ground),
+  // [{ type: 'time', night? }] sets night on or off (no night given: flips it),
+  // [{ id, type: 'clinic', action: 'revive', patient } | { id, type: 'clinic', action: 'heal' }] from a hero
+  //   at the clinic door: get a carried-off crew member out now, or heal the hero and nearby crew,
   // or [{ id, type: 'order', units: [ids], kind: 'follow' | 'move' | 'station' | 'attackmove', x, z }]
   // and [{ id, type: 'order', units: [ids], kind: 'attack', target }] sent by a hero
   function step(commands = []) {
     state.hits = [];      // this tick's hits and ability uses, for the renderer
     state.casts = [];
+    state.heatGains = [];
     for (const c of commands) {
+      if (c.type === 'time') { state.night = typeof c.night === 'boolean' ? c.night : !state.night; continue; }
       const e = state.entities[c.id];
       if (!e) continue;
       if (c.type === 'move') intents[c.id] = c;
       if (c.type === 'use') {
         const d = doorNear(c.id);
-        if (d) { e.x = d.to.x; e.z = d.to.z; e.place = d.place; }
+        if (d?.to) {                                     // menu doors (the clinic) have no room
+          const from = e.place;
+          e.x = d.to.x; e.z = d.to.z; e.place = d.place;
+          if (e.type === 'hero') bringCrew(e, from, d, c.units);
+        }
       }
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
-      if (c.type === 'attack' && e.type === 'hero' && !e.dead && hostile(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
+      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
+      if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
     }
     clans?.tick(DT, spawnOutside);
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e.type);
+      if (e.type === 'civilian') continue;             // townsfolk move in civilians.tick below
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead) continue;
       if (e.dash) { dashStep(e, unit); continue; }
@@ -586,7 +673,7 @@ export function createGame(options) {
         if (swingStep(e, unit)) continue;
         // a clicked enemy: chase it and keep hitting it (Dota right-click)
         const target = state.entities[e.attackTarget];
-        if (hostile(e, target)) { engage(e, unit, target, true); continue; }
+        if (fair(e, target)) { engage(e, unit, target, true); continue; }
         delete e.attackTarget;
         // otherwise standing still: hit the nearest enemy in reach
         const t = unit.damage && nearestEnemy(e, e.x, e.z, (unit.attackRange || 1) + 0.6);
@@ -603,9 +690,11 @@ export function createGame(options) {
       tryMove(e, unit.radius, dx * d, 0);
       tryMove(e, unit.radius, 0, dz * d);
     }
+    civilians.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
+    coolHeat();
     expireBuffs();
     regen();
     state.tick++;
@@ -625,5 +714,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav };
+  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians };
 }

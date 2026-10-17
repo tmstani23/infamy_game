@@ -7,6 +7,8 @@ import { CharacterSprite, loadSheets } from './characters.js';
 import { buildRoom3d } from './interior3d.js';
 import { createHitFx } from './hitfx.js';
 import { createAbilityFx } from './abilityfx.js';
+import { createBloom } from './bloom.js';
+import { fxShared } from './vfx.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
@@ -17,6 +19,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const bloom = createBloom(renderer);   // glow on effects only
+  const bufSize = new THREE.Vector2();
 
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 600);
@@ -112,15 +116,35 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     scene.background = DAY_SKY.clone().lerp(NIGHT_SKY, shared.uNight.value);
 
     syncSprites(state);
+    if (state.tick !== healTick) { healTick = state.tick; showHeals(state, prev); }
+    // hitstop: on a big impact the screen holds still for a few frames (animation and
+    // effects only; the rules keep running, so this never touches the game)
+    const fdt = freezeT > 0 ? 0 : dt;
+    freezeT = Math.max(0, freezeT - dt);
     for (const [id, s] of sprites) {
       if (!s) continue;
       const e = state.entities[id];
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
-      s.update(dt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT);
+      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT);
       s.setHealth(e.hp, e.maxHp);
+      // Red Lantern: a pulsing red tint on the sprite and a real red light around him
+      const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
+      if (lit) {
+        const k = 0.5 + 0.5 * Math.sin(time * 6);
+        u.uTint.value.setRGB(1.25 + 0.15 * k, 0.78, 0.68);
+        u.uSelfLight.value.setRGB(0.55 + 0.25 * k, 0.12, 0.05);
+        let l = lanternLights.get(id);
+        if (!l) { l = { pos: new THREE.Vector3(), radius: 7, color: new THREE.Color(1, 0.28, 0.1), fire: true, seed: Math.random() * 10 }; lanternLights.set(id, l); lights.push(l); }
+        l.pos.set(s.pos.x, 1.6, s.pos.z);
+      } else if (s.lanternTint) {
+        u.uTint.value.setRGB(1, 1, 1);
+        u.uSelfLight.value.setRGB(0.2, 0.18, 0.16);
+      }
+      s.lanternTint = lit;
     }
+    for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
     const inside = state.entities[followId]?.place !== 'street';
 
@@ -140,8 +164,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       .addScaledVector(CAM_UP, Math.round(s.y * ppx) / ppx - s.y)
       .addScaledVector(VIEW_DIR, 200);
 
-    hitFx.update(dt);
-    abilityFx.update(dt, state);
+    hitFx.update(fdt);
+    abilityFx.update(fdt, state);
     shakeT = Math.max(0, shakeT - dt);
     if (shakeT > 0) {
       const a = shakeAmp * shakeT / 0.18;
@@ -150,15 +174,36 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateLights(time);
     updateCutaway(hero, dt);
     sortThings([...things, ...[...sprites.values()].filter(Boolean).map(s => s.thing)]);
+    // effect particles are sized in world units: pixels per unit of each target drawn
+    const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
+    fxShared.uPx.value = px * bloom.scale;
+    bloom.render(scene, camera);
+    fxShared.uPx.value = px;
     renderer.render(scene, camera);
+    bloom.composite();
   }
 
   // hit effects: damage numbers, trails, sparks, flash and lean, a little shake on kills near the hero
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null,
+  const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   function addCasts(casts) { for (const c of casts) abilityFx.cast(c); }
-  let shakeT = 0, shakeAmp = 0;
+  let shakeT = 0, shakeAmp = 0, freezeT = 0;
+  // health gained since the last tick: real heals sparkle at once, regeneration
+  // sparkles each time it adds up to 4% of a unit's health
+  let healTick = -1;
+  const trickle = new Map();
+  function showHeals(state, prev) {
+    for (const e of Object.values(state.entities)) {
+      const p = prev.entities[e.id], s = sprites.get(e.id);
+      if (!p || !s || !e.maxHp || e.dead || e.downed || p.downed || e.hp <= p.hp) continue;
+      const gain = (e.hp - p.hp) / e.maxHp, steal = !!e.buffs?.lantern && gain > 0.002;   // more than regen gives in a tick
+      if (gain >= 0.015 || steal) { abilityFx.heal(s.pos.x, s.pos.z, true, !!e.buffs?.lantern); trickle.set(e.id, 0); continue; }
+      const t = (trickle.get(e.id) || 0) + gain;
+      if (t >= 0.04) { abilityFx.heal(s.pos.x, s.pos.z, false, false); trickle.set(e.id, 0); } else trickle.set(e.id, t);
+    }
+  }
+  const lanternLights = new Map();   // unit id -> the light that follows it during Red Lantern
   function addHits(hits, state, followId) {
     const me = state.entities[followId];
     for (const h of hits) {
@@ -166,6 +211,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       hitFx.hit(h, a, t?.owner === me?.owner);
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
+      if (h.kind === 'dash') { abilityFx.cut(h, a); freezeT = Math.max(freezeT, 0.07); }
+      else if (h.a === followId && (h.crit || h.kill)) freezeT = Math.max(freezeT, 0.05);
+      if (a?.buffs?.lantern) abilityFx.lanternHit(h);
       if (h.kill && me && Math.hypot(h.x - me.x, h.z - me.z) < 9) { shakeT = 0.18; shakeAmp = 0.12; }
       else if (h.crit && me && Math.hypot(h.x - me.x, h.z - me.z) < 9 && shakeT <= 0) { shakeT = 0.1; shakeAmp = 0.05; }
     }

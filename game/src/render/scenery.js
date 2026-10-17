@@ -242,7 +242,7 @@ export async function buildScenery(scenery, renderer) {
 
 export function doorRings(doors) {
   return doors.map(d => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), doorMaterial);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), doorMaterial);
     m.rotation.x = -Math.PI / 2;
     m.position.set(d.x, 0.02, d.z);
     m.renderOrder = 1;

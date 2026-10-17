@@ -115,6 +115,26 @@ console.log('downed tests passed');
     run(g, 3);
     assert.ok(S[bot].execute === undefined || ![cheap, dear].includes(S[bot].execute?.target) || false, 'no execute while unsafe');
   }
+  { // a bot that rolls no keeps rolling: at aggression 0.5 it still finishes both (the bug Tim hit 2026-10-17)
+    const { g, S, cheap, dear } = setup(0.5);
+    run(g, 20);
+    assert.ok(!S[cheap] && !S[dear], 'a no is not forever');
+  }
+  { // the real fight: the player's crew attack the den guards, the hero stays well away,
+    // and the guards finish off every crew member they put down
+    const g = newGame(), S = g.state.entities;
+    const den = Object.values(g.state.businesses).find(b => b.kind === 'gambling_den');
+    const foes = [0, 1, 2].map(i => { const x = den.door[0] - 1.2 + i * 1.2, z = den.door[1] + 4;
+      return g.spawn('thug', 'thug', x, z, { owner: 'kuroda', order: { kind: 'station', x, z } }); });
+    for (const f of foes) S[f].hp = 1e5;
+    const [hx, hz] = [den.door[0] + 14, den.door[1] + 4];
+    const hero = g.spawn('hero', 'ronin', hx, hz, { owner: 'player' });
+    const crew = [0, 1, 2].map(i => g.spawn('thug', 'thug', hx - 1, hz + i - 1, { owner: 'player' }));
+    g.step([{ id: hero, type: 'order', units: crew, kind: 'attack', target: foes[1] }]);
+    let executed = 0;
+    for (let i = 0; i < 60 * 20; i++) { g.step(); executed += g.state.casts.filter(c => c.kind === 'execute' && crew.includes(c.target)).length; }
+    assert.equal(executed, 3, 'every downed crew member was executed');
+  }
   { // full run: the bot finishes both
     const { g, S, cheap, dear } = setup(1);
     run(g, 15);
@@ -127,6 +147,7 @@ console.log('bot tests passed');
 // Carried off: a downed unit left alone goes to the clinic, recovers, pays, walks out
 {
   const g = newGame(), S = g.state.entities, C = g.state.clans;
+  g.clans.addClan('kuroda', { bot: true, aggression: 0 });     // a guard that never finishes anyone off
   const hero = g.spawn('hero', 'ronin', -30, 1, { owner: 'player' });
   const t = g.spawn('thug', 'thug', -2, 1, { owner: 'player' });
   const foe = g.spawn('thug', 'thug', 0, 1, { owner: 'kuroda' });
