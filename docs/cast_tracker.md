@@ -27,9 +27,9 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | geisha | Townsfolk | ✅ geisha2 zip (the older geisha zip won't rig) | ✅ geisha.fbx (was geisha2) | ✅ 6; robe flares as she lands in the new death (Tim: keep) | civilian |
 | laborer | Townsfolk | ✅ | ✅ | ✅ 6 | civilian |
 | fisherman | Townsfolk | ✅ | ✅ | ✅ 6 (empty-handed) | civilian |
-| monk | Townsfolk, high rig risk: long robe, draped sleeves | ✅ monk1obj1.zip |  |  | civilian |
-| monk2 | Townsfolk, second take, high rig risk: long robe, draped sleeves | ✅ |  |  | civilian |
-| old_woman | Townsfolk, high rig risk: arms near long robe | ✅ |  |  | civilian |
+| monk | Townsfolk | ✅ monk3obj1.zip (redrawn concept monk3) | ✅ monk.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |
+| monk2 | Townsfolk, second take | ✅ monk4obj1.zip (concept monk4) | ✅ monk2.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |
+| old_woman | Townsfolk | ✅ oldwoman2obj1.zip (concept oldwoman2) | ✅ old_woman.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |
 | sailor | Townsfolk | ✅ | ✅ | ✅ 6 | civilian |
 
 ## Held items (assets/models/items)
