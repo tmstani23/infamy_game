@@ -1,6 +1,6 @@
 # Game controls
 
-What works in the game now (updated 2026-10-16). Keep this file up to date whenever a control is added or changed.
+What works in the game now (updated 2026-10-17). Keep this file up to date whenever a control is added or changed.
 
 ## Hero
 
@@ -41,10 +41,14 @@ The top-left bar shows your ryo and crew count / crew cap. New crew walk out of 
 | Right-click your hero, or V | Selected crew follow you again |
 | Right-click an enemy | Your hero runs to it and keeps hitting it (WASD cancels); selected crew attack it too |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
+| Right-click a downed enemy | Finish them off: a 3 s execute by the nearest selected crew member, or by your hero if none are selected. Getting hit or moving breaks it |
+| G | Selected hurt crew walk to the clinic and heal (0.2 ryo per missing HP) |
 
 Selected crew have a green ring under them. New crew follow you automatically. Crew wait outside when you go into a building.
 
-Crew fight back on their own: anything except a plain right-click move makes them attack enemies that come within about 6 steps. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). Dead crew are gone; a beaten hero gets back up at the start point after 5 seconds.
+Crew fight back on their own: anything except a plain right-click move makes them attack enemies that come within about 6 steps. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
+
+Crew at 0 health go down (red ring under them). An enemy can execute them (dead, rehire them). If nobody does it within 5 s with no enemy close by, they are carried to the bonesetter's clinic, recover (30 s thug, 45 s brute/swordsman) and walk back out after paying 25% of their hire price. A beaten hero still gets back up at the start point after 5 seconds.
 
 For testing, three rival thugs stand outside the gambling den. Add `?enemies=0` to the game address to turn them off.
 

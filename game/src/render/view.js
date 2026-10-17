@@ -155,7 +155,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   // hit effects: damage numbers, trails, sparks, flash and lean, a little shake on kills near the hero
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  const abilityFx = createAbilityFx({ scene, posOf: id => sprites.get(id)?.pos || null });
+  const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null,
+    unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   function addCasts(casts) { for (const c of casts) abilityFx.cast(c); }
   let shakeT = 0, shakeAmp = 0;
   function addHits(hits, state, followId) {

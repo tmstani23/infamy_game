@@ -14,7 +14,7 @@ const newGame = () => {
   return g;
 };
 const secs = (g, n, cmds = []) => { g.step(cmds); for (let i = 1; i < n * 20; i++) g.step(); };
-const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead;
+const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !g.state.entities[id].downed;
 
 // Street spot with room around it: the crossroads at x 0, z 1
 {
@@ -32,8 +32,10 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead;
   assert.ok(S[foe].hp < T.thug.hp, 'enemy took hits');
   secs(g, 25);
   assert.ok(!alive(g, foe), 'enemy fell');
-  secs(g, 4);
-  assert.equal(S[foe], undefined, 'body removed after the fall');
+  assert.ok(S[foe].downed, 'crew go down, not dead');
+  g.step([{ id: hero, type: 'execute', target: foe, units: [thug] }]);   // finish it off
+  secs(g, 9);
+  assert.equal(S[foe], undefined, 'executed body removed after the fall');
   assert.ok(alive(g, thug) && alive(g, thug2), 'two beat one');
   delete S[thug2];
 

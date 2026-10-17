@@ -100,16 +100,24 @@ export function createGame(options) {
   // order command from a hero for some of its own crew on the street:
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
-    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove'].includes(c.kind)) return;
+    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal'].includes(c.kind)) return;
     if (c.kind === 'attack' && !hostile(hero, state.entities[c.target])) return;
-    if (!['follow', 'attack'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
+    if (!['follow', 'attack', 'heal'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
-      .filter(u => u && !u.dead && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
+      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
     crew.forEach((u, k) => {
       delete paths[u.id];
+      delete u.execute;
       if (fight[u.id]) delete fight[u.id].target;
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
       if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target }; return; }
+      if (c.kind === 'heal') {
+        const b = clans?.clinicOf();
+        if (!b || u.hp >= u.maxHp) return;
+        const [x, z] = nav.nearestFree(...(b.door || [b.x, b.z])) || [b.x, b.z];
+        u.order = { kind: 'heal', x, z };
+        return;
+      }
       const [ox, oz] = blockOffset(k, crew.length);
       const [x, z] = nav.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
       u.order = { kind: c.kind, x, z };
@@ -156,7 +164,7 @@ export function createGame(options) {
   // their own within AGGRO, but never wander more than LEASH from where they belong.
   const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, KNOCKOUT_SECONDS = 5;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
-  const hostile = (a, b) => b && a !== b && !b.dead && a.owner && b.owner && a.owner !== b.owner && a.place === b.place;
+  const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place;
   const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
 
   function nearestEnemy(e, x, z, range) {
@@ -187,7 +195,11 @@ export function createGame(options) {
       return null;
     }
     // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
-    if (o.kind === 'move' && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
+    if ((o.kind === 'move' || o.kind === 'heal') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
+    // first stop anyone finishing off one of our downed crew nearby
+    const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t)
+      && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
+    if (executor) return executor;
     const [ax, az] = anchorOf(e);
     const f = fight[e.id];
     const old = f && state.entities[f.target];
@@ -264,20 +276,109 @@ export function createGame(options) {
   function hit(a, t, damage, crit = false, kind = null) {
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
+    delete t.execute;                // a hit breaks an execute channel
     // this tick's hits, for damage numbers and effects (cleared every tick)
     state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
     // Red Lantern: heal part of the damage dealt
     const steal = a.buffs?.lantern?.lifesteal;
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
     if (t.hp > 0) return;
-    t.dead = true;
     delete t.swing;
     delete t.dash;
     delete t.buffs;
+    delete paths[t.id];
+    delete fight[t.id];
+    t.anim = 'death';
+    // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
+    if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; return; }
+    t.dead = true;
     t.anim = 'death';
     t.diedAt = state.tick;
     delete paths[t.id];
     delete fight[t.id];
+  }
+
+  // Downed crew left alone (no standing enemy within carryRadius for carryAfterSeconds)
+  // are carried to the clinic. e.threatAt = the last tick an enemy was close.
+  function carryOffDowned() {
+    const r = units?.rules || {}, wait = secs(r.carryAfterSeconds ?? 5), radius = r.carryRadius ?? 8;
+    for (const e of Object.values(state.entities)) {
+      if (!e.downed || e.dead) continue;
+      e.threatAt ??= e.downedAt;
+      if (Object.values(state.entities).some(o => hostile(o, { ...e, downed: false }) && !o.downed && Math.hypot(o.x - e.x, o.z - e.z) < radius)) e.threatAt = state.tick;
+      if (state.tick - e.threatAt < wait || Object.values(state.entities).some(o => o.execute?.target === e.id)) continue;
+      if (!clans?.carryOff(e)) continue;
+      delete state.entities[e.id];
+      delete intents[e.id];
+      for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
+    }
+  }
+
+  // --- Downed crew and executes ----------------------------------------------------
+  // A downed unit lies there and is skipped by attacks. Any unit of another clan can
+  // finish it: walk up, then channel for executeSeconds; a hit, moving or a new order
+  // breaks the channel. e.execute = { target, start (tick the channel began, or null), len }
+  // is in the state so the renderer can draw the channel bar.
+  const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && t.owner && a.owner !== t.owner && a.place === t.place;
+  function startExecute(e, c) {
+    let ex = e;
+    if (Array.isArray(c.units) && c.units.length) {
+      const t = state.entities[c.target];
+      ex = c.units.map(id => state.entities[id])
+        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && u.place === e.place)
+        .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
+    }
+    if (!ex || ex.dead || ex.downed || !downedFoe(ex, state.entities[c.target])) return;
+    delete ex.swing;
+    delete ex.attackTarget;
+    delete paths[ex.id];
+    if (fight[ex.id]) delete fight[ex.id].target;
+    ex.execute = { target: c.target, start: null, len: secs(units?.rules?.executeSeconds || 3) };
+  }
+  // One tick of an execute; false when there is nothing (left) to do
+  function executeStep(e, unit) {
+    const x = e.execute, t = state.entities[x.target];
+    if (!downedFoe(e, t)) { delete e.execute; return false; }
+    if (Math.hypot(t.x - e.x, t.z - e.z) > 1.3) {
+      x.start = null;
+      if (!moveTo(e, unit, t.x, t.z, false)) { delete e.execute; return false; }
+      return true;
+    }
+    delete paths[e.id];
+    e.anim = 'idle';
+    e.dir = dirIndex(t.x - e.x, t.z - e.z);
+    if (x.start === null) x.start = state.tick;
+    if (state.tick - x.start < x.len) return true;
+    delete t.downed;
+    t.dead = true;
+    t.diedAt = state.tick;
+    state.casts.push({ a: e.id, kind: 'execute', target: t.id, x: t.x, z: t.z });
+    delete e.execute;
+    return true;
+  }
+
+  // Bots: once a second an idle bot crew member looks for a downed enemy within AGGRO of
+  // where it belongs. It only goes when that is safe (no standing enemy within SAFE of the
+  // downed unit). Whether the clan finishes a given unit is rolled once against its
+  // aggression; pricier unit types are picked first.
+  const SAFE = 5, botChoice = {};     // "clan:downedId" -> true / false (server-side only)
+  function botExecute(e) {
+    const clan = state.clans?.[e.owner];
+    if (!clan?.bot || (state.tick + Number(e.id)) % TICK_RATE) return false;
+    const [ax, az] = anchorOf(e);
+    const price = t => units?.types[t.type]?.price || 0;
+    const options = Object.values(state.entities).filter(t => downedFoe(e, t) && Math.hypot(t.x - ax, t.z - az) < AGGRO
+      && !Object.values(state.entities).some(o => o.execute?.target === t.id)
+      && !Object.values(state.entities).some(o => hostile(e, o) && Math.hypot(o.x - t.x, o.z - t.z) < SAFE));
+    options.sort((a, b) => price(b) - price(a) || Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z));
+    for (const t of options) {
+      const key = `${clan.id}:${t.id}`;
+      botChoice[key] ??= rng() < (clan.aggression ?? 0.5);
+      if (!botChoice[key]) continue;
+      startExecute(e, { target: t.id });
+      return !!e.execute;
+    }
+    return false;
   }
 
   // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
@@ -285,7 +386,7 @@ export function createGame(options) {
     const r = units?.rules, rate = r?.regenPerSecond || 0, wait = (r?.regenAfterSeconds || 0) / DT;
     if (!rate) return;
     for (const e of Object.values(state.entities)) {
-      if (e.dead || !e.maxHp || e.hp >= e.maxHp || state.tick - (e.hitAt ?? -Infinity) < wait) continue;
+      if (e.dead || e.downed || !e.maxHp || e.hp >= e.maxHp || state.tick - (e.hitAt ?? -Infinity) < wait) continue;
       e.hp = Math.min(e.maxHp, e.hp + e.maxHp * rate * DT);
     }
   }
@@ -377,16 +478,22 @@ export function createGame(options) {
   }
 
   function crewStep(e, unit) {
-    if (e.dead) return;
+    if (e.dead || e.downed) return;
+    if (e.execute && executeStep(e, unit)) return;
     if (swingStep(e, unit)) return;
     const t = crewTarget(e);
     if (t) { engage(e, unit, t); return; }
     if (fight[e.id]) delete fight[e.id].target;
+    if (botExecute(e)) return;
     const goal = crewGoal(e);
     const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;
     if (!goal || dist < goal.near) {
       e.anim = 'idle'; delete paths[e.id];
       if (e.order?.kind === 'attackmove') e.order = { kind: 'move', x: e.order.x, z: e.order.z };   // arrived: hold there
+      if (e.order?.kind === 'heal') {                                       // at the clinic door: go in (or wait if broke)
+        if (clans?.checkIn(e)) { delete state.entities[e.id]; delete intents[e.id]; delete fight[e.id]; return; }
+        e.order = { kind: 'move', x: e.order.x, z: e.order.z };
+      }
       return;
     }
     if (!moveTo(e, unit, goal.x, goal.z, goal.walk && dist < 4)) e.anim = 'idle';
@@ -394,7 +501,7 @@ export function createGame(options) {
 
   // Crew standing on each other get nudged apart a little every tick
   function separate() {
-    const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead);
+    const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead && !e.downed);
     for (let i = 0; i < crew.length; i++) for (let j = i + 1; j < crew.length; j++) {
       const a = crew[i], b = crew[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
       const min = (statsOf(a.type).radius + statsOf(b.type).radius) * 1.1;
@@ -439,6 +546,7 @@ export function createGame(options) {
   // [{ id, type: 'use' }] to go through the door the unit stands at,
   // [{ id, type: 'hire', business, unit }] sent by a hero inside a teahouse (players and bots alike),
   // [{ id, type: 'attack', target }] makes a hero chase and hit an enemy until it moves with WASD,
+  // [{ id, type: 'execute', target, units? }] finishes off a downed enemy: the hero, or the nearest of `units` (its crew),
   // [{ id, type: 'ability', slot: 'Q' | 'E' | 'R' | 'F', x, z }] uses a hero ability (x, z = aim on the ground),
   // or [{ id, type: 'order', units: [ids], kind: 'follow' | 'move' | 'station' | 'attackmove', x, z }]
   // and [{ id, type: 'order', units: [ids], kind: 'attack', target }] sent by a hero
@@ -456,7 +564,8 @@ export function createGame(options) {
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
-      if (c.type === 'attack' && e.type === 'hero' && !e.dead && hostile(e, state.entities[c.target])) e.attackTarget = c.target;
+      if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
+      if (c.type === 'attack' && e.type === 'hero' && !e.dead && hostile(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
     }
     clans?.tick(DT, spawnOutside);
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
@@ -473,6 +582,7 @@ export function createGame(options) {
       }
       const len = Math.hypot(dx, dz);
       if (len < 0.1) {
+        if (e.execute && executeStep(e, unit)) continue;
         if (swingStep(e, unit)) continue;
         // a clicked enemy: chase it and keep hitting it (Dota right-click)
         const target = state.entities[e.attackTarget];
@@ -483,8 +593,9 @@ export function createGame(options) {
         if (t) engage(e, unit, t, false); else e.anim = 'idle';
         continue;
       }
-      // moving with WASD cancels a swing and any chase
+      // moving with WASD cancels a swing, a chase and an execute
       delete e.swing;
+      delete e.execute;
       delete e.attackTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
@@ -494,6 +605,7 @@ export function createGame(options) {
     }
     separate();
     cleanUpDead();
+    carryOffDowned();
     expireBuffs();
     regen();
     state.tick++;

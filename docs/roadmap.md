@@ -22,7 +22,7 @@ Each layer is playable on its own before the next one starts.
 
 ## Next steps
 
-1. Art: done for the cast (2026-10-16), except monk, monk2 and old woman (skipped: robes break the rig). Status in `cast_tracker.md`.
+1. Art: done for the whole cast (2026-10-17). Status in `cast_tracker.md`.
 2. Sprite render test: done (`look_tests/sprite_render_test.html`, `tools/export_sprites.mjs`).
 3. Hero movement and camera in the district: done (2026-10-15).
 4. Recruiting and commanding crew: hiring, orders and combat done (2026-10-16); hospital and playtest left (`crew_recruiting_plan.md`).

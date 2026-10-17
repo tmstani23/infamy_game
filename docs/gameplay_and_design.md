@@ -71,7 +71,7 @@ Ideas not taken up yet: Bakuto gambling gangs, a merchant house, a specific West
 - Scout first with a lookout.
 - Defenders are stationed crew plus guards. AI runs them if the owner is offline; the owner can join live.
 - **Win**: hold the back room for 30 seconds. **Lose**: hero knocked out, or time runs out.
-- Crew killed in a fight are dead and gone; rehire at a teahouse (decided 2026-10-16, pure RTS). Survivors keep their damage until you send them to a hospital (bonesetter's clinic) to heal up. The hero is knocked out, not killed.
+- Crew at 0 HP go down; executed = dead (rehire), otherwise carried to the hospital (`docs/combat_spec.md` H, 2026-10-17). The hero is knocked out, not killed.
 
 ## Controls (Settled)
 

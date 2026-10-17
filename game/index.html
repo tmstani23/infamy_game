@@ -75,6 +75,10 @@
   #bar .pip { width: 9px; height: 14px; border-radius: 2px; border: 1px solid #000; background: linear-gradient(to top, #5fc35a var(--hp), #2a0d0d 0); }
   #bar .pip.hurt { background: linear-gradient(to top, #e0473c var(--hp), #2a0d0d 0); }
   #snap { position: fixed; right: 16px; bottom: 18px; padding: 7px 14px; border-color: rgba(233,194,122,.5); color: #e9c27a; background: rgba(10,12,16,.82); }
+  /* execute channel bar (render/abilityfx.js) */
+  .channel { position: absolute; left: 0; top: 0; width: 64px; height: 8px; background: #140606; border: 1px solid #000; border-radius: 2px; }
+  .channel i { display: block; height: 100%; width: 0; background: linear-gradient(#ff5a3c, #9c1a10); }
+  .channel span { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); font: 700 10px/1 system-ui, sans-serif; color: #ff8a6b; text-shadow: 0 1px 2px #000; white-space: nowrap; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #9a968c; }
 </style>
 <script type="importmap">
@@ -89,7 +93,7 @@
 <div id="hud">
   <b>INFAMY</b>
   <span id="money"></span>
-  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click go / attack (hero too) (Ctrl hold) · X attack-move · V follow · M mute · = / - zoom</span>
+  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click go / attack (hero too) (Ctrl hold) · X attack-move · V follow · G heal at clinic · right-click downed foe = execute · M mute · = / - zoom</span>
   <button id="daynight">Night (N)</button>
 </div>
 <button id="snap" hidden>Back to hero (Home)</button>

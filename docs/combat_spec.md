@@ -9,7 +9,7 @@ Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero cha
 - **Crew:** auto-attack within 6 steps, leashed 10 steps to their hero / station / move point. A plain move ignores enemies until it arrives. Right-click enemy = focus. X + click = attack-move.
 - **Hero:** hits the nearest enemy in reach while standing still; moving stops attacks. Right-click an enemy to chase it and keep hitting (WASD cancels). At 0 HP knocked out, back up at home after 5 s, full HP.
 - **Hits:** `damage` every `attackSpeed` seconds once within `attackRange`. Damage lands 40% through the swing (build order 1).
-- **Death:** crew play the death animation once, then are removed after 3 s. Dead is dead.
+- **Death (2026-10-17):** crew at 0 HP go down first; executed crew play the death animation and are removed (dead, rehire), the rest are carried to the clinic. See section H.
 - **Health (2026-10-16, Tim):** all HP doubled (hero 800, thug 200, brute 360, swordsman 240). Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
 - **Bars:** red over enemies, green over your units when hurt.
 
@@ -117,3 +117,20 @@ Ronin plan (effort / payoff):
 4. Rally (small / medium): gold ground circle and light pillars rising on the crew.
 
 Ninja spells: Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, same gap as rifles and bows); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
+
+## H. Downed, execute and hospital (approved by Tim 2026-10-17)
+
+- **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
+- **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor. Success = dead (rehire at a teahouse).
+- **Carried off:** a downed unit nobody finishes, with no enemy within 8 steps for 5 s, is carried to the hospital. There is only this timer, no bleed-out.
+- **Hospital:** the bonesetter's clinic on the waterfront map. Recovery timer (about 30 s for a thug, longer for pricier types), costing about 25% of the hire price, paid on return (it waits if you have no ryo). Then the unit walks out and follows the hero.
+- **Heal order:** hurt crew can be sent to the clinic for a little ryo.
+- **Controls:** right-click a downed enemy = execute (nearest selected crew, else the hero).
+- **Bots:** each clan has an aggression value from 0 to 1. Bots execute only with no enemy within 5 steps and not in a fight, on an aggression-weighted roll, pricier types first. Executions add heat once heat exists. Defenders attack anyone channelling an execute on a downed friend.
+
+**Build order:**
+- [x] H1. Downed state and execute in the sim, with Node tests (done 2026-10-17: `startExecute`, `executeStep` in `sim/game.js`; test `game/tools/test_downed.mjs`)
+- [x] H2. Bot execute choice (done 2026-10-17: `botExecute` in `sim/game.js`)
+- [x] H3. Carried off, clinic recovery and the heal order (done 2026-10-17: `carryOffDowned` in `sim/game.js`; clinic list, `carryOff`, `checkIn`, `clinicTick` in `sim/clans.js`; heal order on G)
+- [x] H4. Clinic on the map, down marker, channel bar, controls (done 2026-10-17: clinic b9 in `data/waterfront.json`; rules in `units.json`: `executeSeconds`, `botAggression`, `carryAfterSeconds`, `carryRadius`, `recoverCostShare`, `healPerSecond`, `healCostPerHp`, `recoverSeconds`)
+- [ ] H5. Tim playtests

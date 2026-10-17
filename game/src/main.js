@@ -94,6 +94,7 @@ async function start() {
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
   onKey('KeyX', () => crewInput.armAttackMove());
+  onKey('KeyG', () => crewInput.healSelected());
   onKey('Escape', () => { hireMenu.close(); crewInput.clear(); });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].forEach((k, i) => onKey(k, () => hireMenu.pick(i)));
   const sound = createSound();

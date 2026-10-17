@@ -43,6 +43,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (e.button === 2) {
       // right-click an enemy: the hero chases and hits it (Dota-style), and so do selected crew
       const foe = unitAt(e.clientX, e.clientY, enemies());
+      // a downed enemy: finish it off (nearest selected crew member, or the hero)
+      if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: selected }); return; }
       if (foe) {
         send({ id: heroId, type: 'attack', target: foe.id });
         if (selected.length) send({ id: heroId, type: 'order', units: selected, kind: 'attack', target: foe.id });
@@ -82,7 +84,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     clear() { setSelected([]); attackMove = false; document.body.style.cursor = ''; },
     armAttackMove() { if (selected.length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
     followMe() { if (selected.length) send({ id: heroId, type: 'order', units: selected, kind: 'follow' }); },
+    // hurt selected crew walk to the clinic to heal (for ryo)
+    healSelected() { if (selected.length) send({ id: heroId, type: 'order', units: selected, kind: 'heal' }); },
     // drop units that are gone (killed later on) from the selection
-    update() { const alive = selected.filter(id => game.state.entities[id] && !game.state.entities[id].dead); if (alive.length !== selected.length) setSelected(alive); },
+    update() { const alive = selected.filter(id => game.state.entities[id] && !game.state.entities[id].dead && !game.state.entities[id].downed); if (alive.length !== selected.length) setSelected(alive); },
   };
 }

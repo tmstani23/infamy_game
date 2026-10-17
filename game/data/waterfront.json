@@ -30,6 +30,7 @@
     {"art":"gambling_den","x":8,"z":9,"business":"gambling_den","interior":{"type":"gambling_den","seed":4},"door":[7,12.2]},
     {"art":"shop","x":24,"z":9},
     {"art":"abandoned_house","x":-24,"z":25},
+    {"art":"clinic","x":-8,"z":25,"business":"clinic","door":[-8,29]},
     {"art":"townhouse","x":8,"z":25},
     {"art":"bathhouse","x":24,"z":25},
     {"art":"dock_warehouse","x":18,"z":-27},

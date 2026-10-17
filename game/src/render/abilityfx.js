@@ -18,10 +18,12 @@ const AURAS = {
   lantern: { color: 0xff3a1e, size: 1.25, geo: DISC_GEO, opacity: 0.45 },
   intimidated: { color: 0x7a3cff, size: 1, geo: AURA_GEO, opacity: 0.55 },
   rally: { color: 0x9fe060, size: 1, geo: AURA_GEO, opacity: 0.5 },
+  downed: { color: 0xc01810, size: 1.1, geo: AURA_GEO, opacity: 0.7 },
 };
 
-export function createAbilityFx({ scene, posOf }) {
+export function createAbilityFx({ scene, overlay, posOf, unitToScreen }) {
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
+  const bars = new Map();                             // execute channel bars: unit id -> HTML element
 
   function wave(x, z, radius, color, life, delay = 0) {
     const m = flat(WAVE_GEO, color, 0.9);
@@ -41,6 +43,7 @@ export function createAbilityFx({ scene, posOf }) {
       }
       if (c.kind === 'intimidate') { wave(c.x, c.z, c.radius, 0x8a40ff, 0.45); wave(c.x, c.z, c.radius * 0.7, 0x3a1060, 0.5, 0.08); }
       if (c.kind === 'rally') { wave(c.x, c.z, c.radius, 0xffd060, 0.6); wave(c.x, c.z, c.radius, 0x9fe060, 0.7, 0.12); }
+      if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') { wave(c.x, c.z, 2.4, 0xff4020, 0.5); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06); }
     },
 
@@ -74,10 +77,10 @@ export function createAbilityFx({ scene, posOf }) {
       // auras under units with an active buff
       const seen = new Set();
       for (const e of Object.values(state.entities)) {
-        if (!e.buffs || e.dead) continue;
+        if ((!e.buffs && !e.downed) || e.dead) continue;
         const p = posOf(e.id);
         if (!p) continue;
-        for (const name of Object.keys(e.buffs)) {
+        for (const name of [...Object.keys(e.buffs || {}), ...(e.downed ? ['downed'] : [])]) {
           const a = AURAS[name];
           if (!a) continue;
           const key = `${e.id}:${name}`;
@@ -90,6 +93,20 @@ export function createAbilityFx({ scene, posOf }) {
         }
       }
       for (const [key, m] of auras) if (!seen.has(key)) { scene.remove(m); m.material.dispose(); auras.delete(key); }
+
+      // execute channel bars over whoever is finishing someone off
+      const busy = new Set();
+      for (const e of Object.values(state.entities)) {
+        const x = e.execute, p = posOf(e.id);
+        if (!x || x.start === null || !p || !overlay) continue;
+        busy.add(e.id);
+        let el = bars.get(e.id);
+        if (!el) { el = document.createElement('div'); el.className = 'channel'; el.innerHTML = '<i></i><span>Execute</span>'; overlay.appendChild(el); bars.set(e.id, el); }
+        const k = Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
+        el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;
+        el.firstChild.style.width = `${k * 100}%`;
+      }
+      for (const [id, el] of bars) if (!busy.has(id)) { el.remove(); bars.delete(id); }
     },
   };
 }

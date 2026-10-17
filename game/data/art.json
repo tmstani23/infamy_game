@@ -23,6 +23,7 @@
     "inn": {"kind":"buildings","glows":true},
     "bathhouse": {"kind":"buildings","glows":true},
     "blacksmith": {"kind":"buildings","glows":true},
+    "clinic": {"kind":"buildings","glows":true},
     "lantern_post": {"scale":0.6,"foot":[0.6,0.6],"solid":0.5,"lights":[[76,115,7,"#ffb870"]]},
     "stone_lantern": {"scale":0.42,"foot":[0.9,0.9],"lights":[[68,90,4.5,"#ffa050"]]},
     "gas_lamp": {"scale":0.62,"foot":[0.5,0.5],"solid":0.5,"lights":[[32,48,7,"#ffd9a0"]]},

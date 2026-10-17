@@ -26,7 +26,8 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Every working control and planned keys | `docs/controls.md` |
 | Game design: city, clans, raids, economy, weapons, infamy | `docs/gameplay_and_design.md` |
 | Crew hiring, orders, crew phases | `docs/crew_recruiting_plan.md` |
-| Combat rules, feel, hero abilities, action bar, VFX plan | `docs/combat_spec.md` |
+| Combat rules, feel, hero abilities, action bar, VFX plan, downed and hospital | `docs/combat_spec.md` |
+| Civilians walking the streets | `docs/civilians_plan.md` |
 | 3D interior rules, look rules, room data format | `docs/interiors_spec.md` |
 | Room generator | `docs/room_generator_plan.md` |
 | Look, art pipeline, assets layout | `docs/art_direction.md` |

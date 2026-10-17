@@ -61,6 +61,7 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
         if (c.kind === 'intimidate') play('punch_hit_heavy_1', 0.6 * v, 0.6);
         if (c.kind === 'rally') play('katana_clash_1', 0.5 * v);
+        if (c.kind === 'execute') { play(['crit_hit_1', 'crit_hit_2'], 0.7 * v, 0.8); play(['death_thud_1', 'death_thud_2'], 0.6 * v); }
       }
     },
   };
