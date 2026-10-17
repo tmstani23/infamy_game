@@ -3,7 +3,7 @@
 const title = s => s[0].toUpperCase() + s.slice(1);
 
 export function createHireMenu({ panel, money, game, units, heroId, send }) {
-  const hireable = Object.entries(units.types).filter(([, t]) => !t.later).map(([k]) => k);
+  const hireable = Object.entries(units.types).filter(([, t]) => t.price && !t.later).map(([k]) => k);
   let open = false, shown = '';
 
   const hero = () => game.state.entities[heroId];

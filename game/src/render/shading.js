@@ -96,6 +96,7 @@ uniform vec3 uCutCenter;
 uniform float uCutRadius;
 uniform vec3 uSelfLight;
 uniform vec3 uTint;          // multiplies the art (recolours a shared piece to match a room)
+uniform float uFlash;        // 0..1 white hit flash
 uniform vec4 uClip;          // near interior walls: ground point xyz on the wall, w = height to keep
 uniform float uClipSlope;    // screen slope of the wall's foot
 varying vec2 vUv;
@@ -118,7 +119,7 @@ void main() {
     float k = smoothstep(uCutRadius * 0.45, uCutRadius, length(d));
     a *= mix(1.0, mix(0.12, 0.88, k), uCut);
   }
-  gl_FragColor = vec4(grade(t.rgb, vWorld, true, uSelfLight) * (1.0 - edge * 0.7), a);
+  gl_FragColor = vec4(mix(grade(t.rgb, vWorld, true, uSelfLight) * (1.0 - edge * 0.7), vec3(1.0, 0.97, 0.9), uFlash), a);
 }`;
 
 // The parts of a sprite that something solid hides, drawn as a faint silhouette
@@ -151,6 +152,7 @@ export function spriteMaterial(map, extra = {}) {
       uCutRadius: { value: 3.4 },
       uSelfLight: { value: new THREE.Color(0, 0, 0) },
       uTint: { value: new THREE.Color(1, 1, 1) },
+      uFlash: { value: 0 },
       uIndoor: { value: 0 },
       uClip: { value: new THREE.Vector4(0, 0, 0, 0) },
       uClipSlope: { value: 0 },

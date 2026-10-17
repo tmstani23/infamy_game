@@ -41,6 +41,8 @@ const MODEL_SETS = {
   thug: ['brawler'],
   lookout: ['brawler'],
   demolitions: ['brawler'],
+  bandit: ['brawler'],
+  police: ['brawler'],
   brute: ['brawler'],
   mercenary: ['gunner'],
   merc: ['gunner'],
@@ -56,10 +58,17 @@ const ITEMS = {
   mercenary: { file: 'rifle', mode: 'both', length: 1.25, grip: 0.25 },
   ninja_leader: { file: 'ninjato', mode: 'right', length: 0.75, grip: 0.12 },
   // Two-handed swords: flip points the blade away from the left hand (left hand near the pommel)
-  swordsman: { file: 'katana', mode: 'both', length: 0.95, grip: 0.2, flip: true },
-  rival_yakuza: { file: 'katana', mode: 'both', length: 0.95, grip: 0.2, flip: true },
+  // hang: when the hands part (idles, walks) the sword hangs from the right hand along the leg
+  // proc = stylized weapon built in code by the sprite page (drawn blade, wrapped hilt, rim light); beats the image slab
+  ronin: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true },
+  swordsman: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true },
+  rival_yakuza: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true },
   ninja_grunt: { file: 'ninjato', mode: 'right', length: 0.75, grip: 0.12 },
   archer: { file: 'bow', mode: 'left', length: 1.3, grip: 0.5 },
+  // Brawlers swing clubs in the right hand (the brute's grows into a kanabo once it has a model)
+  // dir = haft direction in the hand bone's frame (hammer grip: across the fist, head out of the thumb side)
+  thug: { file: 'wooden_club', proc: 'club', mode: 'right', length: 0.95, grip: 0.15, dir: [0.92, 0.38, 0] },
+  brute: { file: 'wooden_club', proc: 'club', mode: 'right', length: 1.0, grip: 0.15, dir: [0.92, 0.38, 0] },
 };
 // Single clips borrowed from another set (path inside assets/animations)
 const EXTRA = {
@@ -132,7 +141,11 @@ for (const model of models) {
   await page.waitForFunction(() => window.spriteTest?.ready(), null, { timeout: 300000 });
   await page.evaluate(s => window.spriteTest.setScale(s), SCALE[name] ?? 1);
   const it = ITEMS[name];
-  if (it) {
+  if (it?.proc) {
+    await page.evaluate(k => window.spriteTest.setProcItem(k), it.proc);
+    await page.evaluate(o => window.spriteTest.setItemOptions(o), it);
+    console.log(`  holding stylized ${it.proc}`);
+  } else if (it) {
     const itemFile = ['glb', 'gltf', 'fbx'].map(e => path.join(root, 'assets', 'models', 'items', `${it.file}.${e}`)).find(f => fs.existsSync(f));
     if (itemFile) {
       await page.setInputFiles('#pickItem', itemFile);

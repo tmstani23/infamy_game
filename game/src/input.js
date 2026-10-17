@@ -3,7 +3,7 @@ const keys = new Set();
 const handlers = {};
 
 addEventListener('keydown', e => {
-  if (e.code === 'F3') e.preventDefault();
+  if (['F3', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(e.code)) e.preventDefault();
   if (!e.repeat) handlers[e.code]?.();
   keys.add(e.code);
 });
@@ -15,12 +15,15 @@ export function onKey(codes, fn) { for (const c of [].concat(codes)) handlers[c]
 
 const axis = (neg, pos) => (pos.some(k => keys.has(k)) ? 1 : 0) - (neg.some(k => keys.has(k)) ? 1 : 0);
 
+// Arrow keys pan the camera: -1..1 right and up on screen
+export const panAxes = () => ({ right: axis(['ArrowLeft'], ['ArrowRight']), up: axis(['ArrowDown'], ['ArrowUp']) });
+
 // Screen-relative WASD for unit `id`; Shift walks
 export function moveCommand(id) {
   return {
     id, type: 'move',
-    right: axis(['KeyA', 'ArrowLeft'], ['KeyD', 'ArrowRight']),
-    down: axis(['KeyW', 'ArrowUp'], ['KeyS', 'ArrowDown']),
+    right: axis(['KeyA'], ['KeyD']),
+    down: axis(['KeyW'], ['KeyS']),
     walk: keys.has('ShiftLeft') || keys.has('ShiftRight'),
   };
 }

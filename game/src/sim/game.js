@@ -18,7 +18,8 @@ export const UNITS = {
 const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-export function createGame({ district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null }) {
+export function createGame(options) {
+  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null } = options;
   const scenery = placeScenery(district, catalog, cutouts);
 
   // Rooms for buildings that have an interior, and the doors between them
@@ -52,7 +53,7 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
 
   // Everything here is plain data, so it can be synced to other players as is
   // businesses: { b0: { kind: 'warehouse', x, z, door, owner: null } }, keyed by building index
-  const state = { tick: 0, entities: {}, businesses: {} };
+  const state = { tick: 0, entities: {}, businesses: {}, hits: [], casts: [] };
   district.buildings.forEach((b, i) => {
     if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
   });
@@ -65,7 +66,10 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
   function spawn(type, model, x, z, extra = {}) {
     const id = String(nextId++);
     state.entities[id] = { id, type, model, x, z, dir: 0, anim: 'idle', place: 'street', ...extra };
-    const o = state.entities[id].order;
+    const e = state.entities[id], hp = units?.types[type]?.hp;
+    if (hp && e.hp === undefined) e.hp = hp;
+    if (e.hp !== undefined) e.maxHp ??= e.hp;
+    const o = e.order;
     if (o?.kind === 'follow' && o.slot === undefined) o.slot = freeSlot(o.target, id);
     return id;
   }
@@ -96,13 +100,16 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
   // order command from a hero for some of its own crew on the street:
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
-    if (hero.type !== 'hero' || !Array.isArray(c.units) || !['follow', 'move', 'station'].includes(c.kind)) return;
-    if (c.kind !== 'follow' && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
+    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove'].includes(c.kind)) return;
+    if (c.kind === 'attack' && !hostile(hero, state.entities[c.target])) return;
+    if (!['follow', 'attack'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
-      .filter(u => u && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
+      .filter(u => u && !u.dead && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
     crew.forEach((u, k) => {
       delete paths[u.id];
+      if (fight[u.id]) delete fight[u.id].target;
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
+      if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target }; return; }
       const [ox, oz] = blockOffset(k, crew.length);
       const [x, z] = nav.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
       u.order = { kind: c.kind, x, z };
@@ -115,37 +122,279 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
     if (!o) return null;
     if (o.kind === 'follow') {
       const h = state.entities[o.target];
-      if (!h || h.place !== e.place) return null;          // hero went indoors: wait outside
+      if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
       const [ox, oz] = followOffset(o.slot);
       return { x: h.x + ox, z: h.z + oz, near: Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
     }
+    if (o.kind === 'attack') return null;
     return { x: o.x, z: o.z, near: 0.25, walk: false };
   }
 
-  function crewStep(e, unit) {
-    const goal = crewGoal(e);
-    const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;
-    if (!goal || dist < goal.near) { e.anim = 'idle'; delete paths[e.id]; return; }
+  // Walk one tick toward (gx, gz) along a street path; false when there is no way
+  function moveTo(e, unit, gx, gz, walk) {
+    if (e.place !== 'street') paths[e.id] = { pts: [[gx, gz]], gx, gz };   // rooms: walk straight (the walk grid covers the street)
     let p = paths[e.id];
-    if (!p || Math.hypot(p.gx - goal.x, p.gz - goal.z) > 1.2 || !p.pts.length) {
-      p = paths[e.id] = { pts: nav.findPath(e.x, e.z, goal.x, goal.z) || [], gx: goal.x, gz: goal.z };
-      if (!p.pts.length) { e.anim = 'idle'; return; }
+    if (!p || Math.hypot(p.gx - gx, p.gz - gz) > 1.2 || !p.pts.length) {
+      p = paths[e.id] = { pts: nav.findPath(e.x, e.z, gx, gz) || [], gx, gz };
+      if (!p.pts.length) return false;
     }
-    // the last leg goes straight at the live goal (a follower keeps up with a moving hero)
-    let [wx, wz] = p.pts.length === 1 ? [goal.x, goal.z] : p.pts[0];
-    if (p.pts.length > 1 && Math.hypot(wx - e.x, wz - e.z) < 0.35) { p.pts.shift(); [wx, wz] = p.pts.length === 1 ? [goal.x, goal.z] : p.pts[0]; }
+    // the last leg goes straight at the live goal (keeps up with a moving hero or enemy)
+    let [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0];
+    if (p.pts.length > 1 && Math.hypot(wx - e.x, wz - e.z) < 0.35) { p.pts.shift(); [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0]; }
     const dx = wx - e.x, dz = wz - e.z, len = Math.hypot(dx, dz);
-    if (len < 1e-6) return;
-    e.anim = goal.walk && dist < 4 ? 'walk' : 'run';
+    if (len < 1e-6) return true;
+    e.anim = walk ? 'walk' : 'run';
     e.dir = dirIndex(dx, dz);
     const d = Math.min(unit[e.anim] * DT, len) / len;
     tryMove(e, unit.radius, dx * d, 0);
     tryMove(e, unit.radius, 0, dz * d);
+    return true;
+  }
+
+  // --- Combat (RTS / Dota style) ----------------------------------------------------
+  // Units of two different clans in the same place are enemies. Crew pick fights on
+  // their own within AGGRO, but never wander more than LEASH from where they belong.
+  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, KNOCKOUT_SECONDS = 5;
+  const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
+  const hostile = (a, b) => b && a !== b && !b.dead && a.owner && b.owner && a.owner !== b.owner && a.place === b.place;
+  const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
+
+  function nearestEnemy(e, x, z, range) {
+    let best = null, bd = range;
+    for (const t of Object.values(state.entities)) {
+      if (!hostile(e, t)) continue;
+      const d = Math.hypot(t.x - x, t.z - z);
+      if (d < bd) { bd = d; best = t; }
+    }
+    return best;
+  }
+
+  // Where a crew member is tied to: its hero, its station, or where it is going
+  function anchorOf(e) {
+    const o = e.order || {};
+    if (o.kind === 'follow') { const h = state.entities[o.target]; return h && !h.dead && h.place === e.place ? [h.x, h.z] : [e.x, e.z]; }
+    if (o.kind === 'station' || o.kind === 'move' || o.kind === 'attackmove') return [o.x, o.z];
+    return [e.x, e.z];
+  }
+
+  // Who this crew member should be fighting right now, if anyone
+  function crewTarget(e) {
+    const o = e.order || {};
+    if (o.kind === 'attack') {
+      const t = state.entities[o.target];
+      if (hostile(e, t)) return t;
+      e.order = { kind: 'move', x: e.x, z: e.z };      // target gone: stand there
+      return null;
+    }
+    // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
+    if (o.kind === 'move' && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
+    const [ax, az] = anchorOf(e);
+    const f = fight[e.id];
+    const old = f && state.entities[f.target];
+    if (hostile(e, old) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
+    return nearestEnemy(e, e.x, e.z, AGGRO);
+  }
+
+  // Close in on the target, then swing at it every attackSpeed seconds. A swing has a
+  // wind-up and the damage lands on the strike (STRIKE of the way through), Dota-style;
+  // e.swing is in the state so the renderer can time the animation to it.
+  const STRIKE = 0.4;
+  const swingTicks = unit => Math.max(4, Math.round(Math.min(unit.attackSpeed * 0.85, unit.swingSeconds || 0.7) / DT));
+  function engage(e, unit, t, chase = true) {
+    const f = fight[e.id] ||= { cd: 0 };
+    f.target = t.id;
+    if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
+    const d = Math.hypot(t.x - e.x, t.z - e.z);
+    if (d > reachOf(e, t)) {
+      if (chase) {
+        // close in on a spot round the target so several attackers surround it instead of queueing
+        const [sx, sz] = surroundSpot(e, t);
+        if (moveTo(e, unit, sx, sz, false)) return;
+      }
+      e.anim = 'idle';
+      return;
+    }
+    delete paths[e.id];
+    // turn toward the target one eighth per tick instead of snapping round
+    const want = dirIndex(t.x - e.x, t.z - e.z), diff = (want - e.dir + 8) % 8;
+    if (diff) { e.dir = (e.dir + (diff <= 4 ? 1 : 7)) % 8; if (diff !== 1 && diff !== 7) { e.anim = 'idle'; return; } }
+    if (f.cd > 0) { e.anim = 'idle'; return; }
+    const speed = e.buffs?.rally ? unit.attackSpeed / (e.buffs.rally.boost || 1) : unit.attackSpeed;
+    const len = swingTicks({ ...unit, attackSpeed: speed });
+    e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * STRIKE), target: t.id };
+    e.anim = 'attack';
+    f.cd = speed;
+  }
+
+  // Where an attacker should stand round its target: spread out by how many are on it
+  function surroundSpot(e, t) {
+    const on = Object.values(state.entities).filter(u => u.type !== 'hero' && !u.dead && fight[u.id]?.target === t.id).map(u => u.id).sort();
+    const n = on.length, k = Math.max(0, on.indexOf(e.id));
+    const r = reachOf(e, t) * 0.8, a = Math.atan2(e.z - t.z, e.x - t.x) + (n > 1 ? (k - (n - 1) / 2) * 0.9 : 0);
+    const spot = [t.x + Math.cos(a) * r, t.z + Math.sin(a) * r];
+    return t.place === 'street' ? nav.nearestFree(...spot) || [t.x, t.z] : spot;
+  }
+
+  // Swings in progress: land the hit on the strike tick (if the target is still in reach), end the swing
+  function swingStep(e, unit) {
+    const w = e.swing;
+    if (!w) return false;
+    if (state.tick === w.strike) {
+      const t = state.entities[w.target];
+      if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
+        const crit = rng() < (unit.critChance || 0);
+        hit(e, t, Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1)), crit);
+      }
+    }
+    if (state.tick >= w.start + w.len) { delete e.swing; return false; }
+    e.anim = 'attack';
+    return true;
+  }
+
+  // Small seeded random numbers, so a game replays the same way from the same seed
+  let seed = (options.seed ?? 12345) >>> 0;
+  function rng() {
+    seed = (seed + 0x6d2b79f5) >>> 0;
+    let x = seed;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  }
+
+  function hit(a, t, damage, crit = false, kind = null) {
+    t.hp = Math.max(0, t.hp - damage);
+    t.hitAt = state.tick;
+    // this tick's hits, for damage numbers and effects (cleared every tick)
+    state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
+    // Red Lantern: heal part of the damage dealt
+    const steal = a.buffs?.lantern?.lifesteal;
+    if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
+    if (t.hp > 0) return;
+    t.dead = true;
+    delete t.swing;
+    delete t.dash;
+    delete t.buffs;
+    t.anim = 'death';
+    t.diedAt = state.tick;
+    delete paths[t.id];
+    delete fight[t.id];
+  }
+
+  // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
+  function regen() {
+    const r = units?.rules, rate = r?.regenPerSecond || 0, wait = (r?.regenAfterSeconds || 0) / DT;
+    if (!rate) return;
+    for (const e of Object.values(state.entities)) {
+      if (e.dead || !e.maxHp || e.hp >= e.maxHp || state.tick - (e.hitAt ?? -Infinity) < wait) continue;
+      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * rate * DT);
+    }
+  }
+
+
+  // --- Hero abilities (Q / E / R / F) -----------------------------------------------
+  // Defined per hero type in units.json ("abilities"), each with a kind the rules know:
+  // dash, intimidate, rally, lantern. Cooldowns (e.cooldowns: slot -> tick it is ready)
+  // and buffs (e.buffs: name -> { until, ... }) live in the state so the action bar can
+  // draw them. Buffs and the dash are cleared when a unit goes down.
+  const secs = s => Math.round(s / DT);
+  function damageScale(a) {
+    let k = 1;
+    if (a.buffs?.lantern) k *= a.buffs.lantern.damage || 1;
+    if (a.buffs?.intimidated) k *= a.buffs.intimidated.damage || 1;
+    return k;
+  }
+  function addBuff(e, name, seconds, extra = {}) { (e.buffs ||= {})[name] = { until: state.tick + secs(seconds), ...extra }; }
+
+  function useAbility(e, c) {
+    const a = statsOf(e.type).abilities?.[c.slot];
+    if (!a || e.type !== 'hero' || e.dead || e.dash) return;
+    if ((e.cooldowns?.[c.slot] ?? 0) > state.tick) return;
+    const aim = Number.isFinite(c.x) && Number.isFinite(c.z) ? [c.x, c.z] : null;
+    if (a.kind === 'dash') {
+      let dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
+      if (len < 0.2) {   // no aim: dash the way the hero faces
+        const th = e.dir * Math.PI / 4, sx = -Math.sin(th), sy = Math.cos(th);
+        dx = sx * SCREEN_RIGHT.x + sy * SCREEN_DOWN.x; dz = sx * SCREEN_RIGHT.z + sy * SCREEN_DOWN.z; len = Math.hypot(dx, dz);
+      }
+      const dist = Math.min(a.range, Math.max(len, 1.5)), ticks = Math.max(1, secs(a.seconds || 0.25));
+      e.dash = { vx: dx / len * dist / ticks, vz: dz / len * dist / ticks, left: ticks, hit: [], start: state.tick, len: ticks };
+      e.dir = dirIndex(dx, dz);
+    } else if (a.kind === 'intimidate') {
+      for (const t of Object.values(state.entities))
+        if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= a.radius) addBuff(t, 'intimidated', a.seconds, { damage: a.enemyDamage });
+    } else if (a.kind === 'rally') {
+      for (const u of Object.values(state.entities)) {
+        if (u.dead || u.owner !== e.owner || u.type === 'hero' || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
+        addBuff(u, 'rally', a.seconds, { boost: a.attackSpeed });
+        if (u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * a.heal);
+      }
+    } else if (a.kind === 'lantern') {
+      addBuff(e, 'lantern', a.seconds, { damage: a.damage, lifesteal: a.lifesteal });
+    } else return;
+    delete e.swing;
+    (e.cooldowns ||= {})[c.slot] = state.tick + secs(a.cooldown);
+    state.casts.push({ a: e.id, slot: c.slot, kind: a.kind, x: e.x, z: e.z, ...(a.radius ? { radius: a.radius } : {}) });
+  }
+
+  // One tick of a dash: slide toward the aim, cut every enemy passed (once each)
+  function dashStep(e, unit) {
+    const d = e.dash, a = unit.abilities?.Q;
+    e.anim = 'run';
+    tryMove(e, unit.radius, d.vx, 0);
+    tryMove(e, unit.radius, 0, d.vz);
+    for (const t of Object.values(state.entities)) {
+      if (!hostile(e, t) || d.hit.includes(t.id) || Math.hypot(t.x - e.x, t.z - e.z) > statsOf(t.type).radius + 0.9) continue;
+      d.hit.push(t.id);
+      hit(e, t, Math.round(unit.damage * (a?.damageMultiplier || 1) * damageScale(e)), false, 'dash');
+    }
+    if (--d.left <= 0) delete e.dash;
+  }
+
+  function expireBuffs() {
+    for (const e of Object.values(state.entities)) {
+      if (!e.buffs) continue;
+      for (const [k, b] of Object.entries(e.buffs)) if (state.tick >= b.until) delete e.buffs[k];
+      if (!Object.keys(e.buffs).length) delete e.buffs;
+    }
+  }
+
+  // Dead crew are removed after their fall; a knocked-out hero gets up at home with full health
+  function cleanUpDead() {
+    for (const e of Object.values(state.entities)) {
+      if (!e.dead) continue;
+      const secs = (state.tick - e.diedAt) * DT;
+      if (e.type !== 'hero' && secs >= CORPSE_SECONDS) {
+        delete state.entities[e.id];
+        delete intents[e.id];
+        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
+      }
+      if (e.type === 'hero' && secs >= KNOCKOUT_SECONDS) {
+        const [hx, hz] = e.home || [e.x, e.z];
+        Object.assign(e, { x: hx, z: hz, place: e.home ? 'street' : e.place, hp: e.maxHp, dead: false, anim: 'idle' });
+        delete e.diedAt;
+      }
+    }
+  }
+
+  function crewStep(e, unit) {
+    if (e.dead) return;
+    if (swingStep(e, unit)) return;
+    const t = crewTarget(e);
+    if (t) { engage(e, unit, t); return; }
+    if (fight[e.id]) delete fight[e.id].target;
+    const goal = crewGoal(e);
+    const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;
+    if (!goal || dist < goal.near) {
+      e.anim = 'idle'; delete paths[e.id];
+      if (e.order?.kind === 'attackmove') e.order = { kind: 'move', x: e.order.x, z: e.order.z };   // arrived: hold there
+      return;
+    }
+    if (!moveTo(e, unit, goal.x, goal.z, goal.walk && dist < 4)) e.anim = 'idle';
   }
 
   // Crew standing on each other get nudged apart a little every tick
   function separate() {
-    const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street');
+    const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead);
     for (let i = 0; i < crew.length; i++) for (let j = i + 1; j < crew.length; j++) {
       const a = crew[i], b = crew[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
       const min = (statsOf(a.type).radius + statsOf(b.type).radius) * 1.1;
@@ -184,13 +433,18 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
   }
 
   // Speeds and size: the hero from UNITS, crew from units.json
-  const statsOf = type => UNITS[type] || units?.types[type];
+  const statsOf = type => ({ ...units?.types[type], ...UNITS[type] });
 
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use' }] to go through the door the unit stands at,
   // [{ id, type: 'hire', business, unit }] sent by a hero inside a teahouse (players and bots alike),
-  // or [{ id, type: 'order', units: [ids], kind: 'follow' | 'move' | 'station', x, z }] sent by a hero
+  // [{ id, type: 'attack', target }] makes a hero chase and hit an enemy until it moves with WASD,
+  // [{ id, type: 'ability', slot: 'Q' | 'E' | 'R' | 'F', x, z }] uses a hero ability (x, z = aim on the ground),
+  // or [{ id, type: 'order', units: [ids], kind: 'follow' | 'move' | 'station' | 'attackmove', x, z }]
+  // and [{ id, type: 'order', units: [ids], kind: 'attack', target }] sent by a hero
   function step(commands = []) {
+    state.hits = [];      // this tick's hits and ability uses, for the renderer
+    state.casts = [];
     for (const c of commands) {
       const e = state.entities[c.id];
       if (!e) continue;
@@ -201,11 +455,16 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
       }
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'order') giveOrder(e, c);
+      if (c.type === 'ability') useAbility(e, c);
+      if (c.type === 'attack' && e.type === 'hero' && !e.dead && hostile(e, state.entities[c.target])) e.attackTarget = c.target;
     }
     clans?.tick(DT, spawnOutside);
+    for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e.type);
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
+      if (e.dead) continue;
+      if (e.dash) { dashStep(e, unit); continue; }
       const c = intents[e.id];
       let dx = 0, dz = 0;
       if (c) {
@@ -213,7 +472,20 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
         dz = SCREEN_RIGHT.z * c.right + SCREEN_DOWN.z * c.down;
       }
       const len = Math.hypot(dx, dz);
-      if (len < 0.1) { e.anim = 'idle'; continue; }
+      if (len < 0.1) {
+        if (swingStep(e, unit)) continue;
+        // a clicked enemy: chase it and keep hitting it (Dota right-click)
+        const target = state.entities[e.attackTarget];
+        if (hostile(e, target)) { engage(e, unit, target, true); continue; }
+        delete e.attackTarget;
+        // otherwise standing still: hit the nearest enemy in reach
+        const t = unit.damage && nearestEnemy(e, e.x, e.z, (unit.attackRange || 1) + 0.6);
+        if (t) engage(e, unit, t, false); else e.anim = 'idle';
+        continue;
+      }
+      // moving with WASD cancels a swing and any chase
+      delete e.swing;
+      delete e.attackTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
       const d = unit[e.anim] * DT / len;
@@ -221,6 +493,9 @@ export function createGame({ district, catalog, cutouts, interiors = {}, parts =
       tryMove(e, unit.radius, 0, dz * d);
     }
     separate();
+    cleanUpDead();
+    expireBuffs();
+    regen();
     state.tick++;
   }
 

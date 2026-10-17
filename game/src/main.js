@@ -2,9 +2,11 @@
 import { createGame, TICK_RATE } from './sim/game.js';
 import { generateRoom } from './sim/generate.js';
 import { createView } from './render/view.js';
-import { onKey, moveCommand } from './input.js';
+import { onKey, moveCommand, panAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { createCrewInput } from './crew_input.js';
+import { createActionBar } from './action_bar.js';
+import { createSound } from './render/sound.js';
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('loading').textContent = msg; };
@@ -37,12 +39,24 @@ async function start() {
   const inRoom = tryRoom && game.rooms.find(r => r.name === tryRoom);
   const [hx, hz] = inRoom ? [inRoom.spawn.x, inRoom.spawn.z] : district.spawns.hero;
   const heroId = game.spawn('hero', 'ronin', Number(params.get('x')) || hx, Number(params.get('z')) || hz,
-    { owner: 'player', dir: Number(params.get('dir')) || 0, ...(inRoom ? { place: inRoom.name } : {}) });
+    { owner: 'player', home: district.spawns.hero, dir: Number(params.get('dir')) || 0, ...(inRoom ? { place: inRoom.name } : {}) });
+
+  // A few rival thugs guard the gambling den so there is something to fight (?enemies=0 turns them off).
+  // Stand-in until the rival bot clan is built.
+  const enemies = params.has('enemies') ? Number(params.get('enemies')) : 3;
+  const den = Object.values(game.state.businesses).find(b => b.kind === 'gambling_den');
+  if (enemies > 0 && den) {
+    game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
+    for (let i = 0; i < enemies; i++) {
+      const x = den.door[0] - 1.2 + i * 1.2, z = den.door[1] + 4;
+      game.spawn('thug', 'thug', x, z, { owner: 'kuroda', order: { kind: 'station', x, z } });
+    }
+  }
 
   let view;
   try {
     view = await createView({
-      canvas: $('view'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, doors: game.doors,
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, doors: game.doors,
       zoom: Number(params.get('zoom')) || undefined, night: params.get('night') === '1', debug: params.get('debug') === '1',
     });
   } catch (e) {
@@ -57,7 +71,17 @@ async function start() {
   label();
   onKey('F3', () => view.toggleDebug());
   const pending = [];
-  onKey(['KeyE', 'Enter'], () => pending.push({ id: heroId, type: 'use' }));
+  onKey(['Space', 'Enter'], () => pending.push({ id: heroId, type: 'use' }));
+  // Hero abilities aim at the mouse point on the ground
+  let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
+  addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
+  for (const slot of ['Q', 'E', 'R', 'F']) onKey(`Key${slot}`, () => {
+    const p = view.screenToGround(mouse.x, mouse.y);
+    pending.push({ id: heroId, type: 'ability', slot, ...(p ? { x: p.x, z: p.z } : {}) });
+  });
+  // Camera: arrow keys pan, Home or the button snaps back to the hero
+  onKey('Home', () => view.snapBack());
+  $('snap').addEventListener('click', e => { view.snapBack(); e.currentTarget.blur(); });
   onKey(['Equal', 'NumpadAdd'], () => view.zoomBy(1.1));
   onKey(['Minus', 'NumpadSubtract'], () => view.zoomBy(0.9));
   addEventListener('wheel', e => view.zoomBy(e.deltaY > 0 ? 0.9 : 1.1), { passive: true });
@@ -69,8 +93,12 @@ async function start() {
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
+  onKey('KeyX', () => crewInput.armAttackMove());
   onKey('Escape', () => { hireMenu.close(); crewInput.clear(); });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].forEach((k, i) => onKey(k, () => hireMenu.pick(i)));
+  const sound = createSound();
+  onKey('KeyM', () => sound.toggleMute());
+  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE });
   window.infamy = { game, view };   // handy from the browser console
   $('loading').remove();
 
@@ -87,14 +115,21 @@ async function start() {
     while (acc >= tick) {
       prev = structuredClone(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0)]);
+      if (game.state.hits.length) view.addHits(game.state.hits, game.state, heroId);
+      if (game.state.casts.length) view.addCasts(game.state.casts, game.state, heroId);
+      sound.update(game.state, heroId);
       acc -= tick;
       const door = game.doorNear(heroId);
-      $('prompt').textContent = door ? `E  ${door.label}` : '';
+      $('prompt').textContent = door ? `Space  ${door.label}` : '';
       $('prompt').hidden = !door;
       hireMenu.update();
       crewInput.update();
     }
+    const pan = panAxes();
+    view.pan(pan.right, pan.up, dt);
+    $('snap').hidden = !view.isPanned();
     view.render(game.state, prev, acc / tick, dt, now, heroId);
+    bar.update(game.state.tick - 1 + acc / tick);
   });
 }
 

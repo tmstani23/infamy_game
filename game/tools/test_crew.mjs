@@ -54,7 +54,7 @@ function fresh() {
   });
   return g;
 }
-const g = fresh();
+let g = fresh();
 const teaId = Object.values(g.state.businesses).find(b => b.kind === 'teahouse').id;
 const teaB = g.state.businesses[teaId];
 const ticks = s => Math.ceil(s * 20) + 1;
@@ -62,7 +62,9 @@ const run = (n, cmds = []) => { g.step(cmds); for (let i = 1; i < n; i++) g.step
 const crew = id => Object.values(g.state.entities).filter(e => e.owner === id && e.type !== 'hero');
 
 const heroes = {};
+const main = g;
 for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
+  if (clanId === 'kuroda') g = fresh();
   g.clans.addClan(clanId, { bot });
   const hero = g.spawn('hero', 'ronin', teaB.door[0], teaB.door[1], { owner: clanId });
   const clan = g.state.clans[clanId];
@@ -108,9 +110,13 @@ for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
   // New crew follow their hero; the hero is indoors, so they wait outside
   for (const u of crew(clanId)) assert.equal(u.order.kind, 'follow');
   assert.deepEqual(crew(clanId).map(u => u.order.slot).sort(), [0, 1, 2]);
-  assert.ok(crew(clanId).every(u => u.anim === 'idle'));
+  assert.ok(crew(clanId).every(u => u.anim === 'idle'), JSON.stringify(Object.values(g.state.entities).map(e => [e.owner, e.type, e.anim, e.x|0, e.z|0, e.place, e.order?.kind])));
   heroes[clanId] = hero;
 }
+// the bot hired in its own game (clans fight on sight); give it a hero here for the order checks
+g = main;
+g.clans.addClan('kuroda', { bot: true });
+heroes.kuroda = g.spawn('hero', 'ronin', 30, 25, { owner: 'kuroda' });
 
 // --- Orders (phase 4) ---
 const dist = (a, x, z) => Math.hypot(a.x - x, a.z - z);

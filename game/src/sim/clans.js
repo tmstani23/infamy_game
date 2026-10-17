@@ -25,7 +25,7 @@ export function createClans(state, units) {
   // One-off price; each crew member you have or are waiting on makes the next one dearer
   function hirePrice(id, type) {
     const t = types[type];
-    if (!t || t.later) return null;
+    if (!t || t.later || !t.price) return null;
     const have = crewOf(id).length + (state.clans[id]?.queue.length || 0);
     return Math.round(t.price * (1 + rules.priceStepPerCrew * have));
   }

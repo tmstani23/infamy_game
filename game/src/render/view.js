@@ -5,10 +5,12 @@ import { shared, MAX_LIGHTS } from './shading.js';
 import { buildGround, buildScenery, doorRings, sortThings, behind, footprintLines } from './scenery.js';
 import { CharacterSprite, loadSheets } from './characters.js';
 import { buildRoom3d } from './interior3d.js';
+import { createHitFx } from './hitfx.js';
+import { createAbilityFx } from './abilityfx.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false }) {
   const INDOOR_ZOOM = 1.45;   // the camera moves in closer inside buildings
   let zoomNow = zoom;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -21,6 +23,11 @@ export async function createView({ canvas, district, catalog, parts, scenery, ro
   camera.quaternion.copy(CAM_QUAT);
   const camTarget = new THREE.Vector3();
   let camReady = false;
+  let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
+  const PAN_SPEED = 16, PAN_MAX = 45;
+  // screen-up as a ground direction, long enough to move the view as fast as sideways
+  const GROUND_UP = CAM_UP.clone().setY(0).normalize();
+  GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
 
   function resize() {
     const w = innerWidth, h = innerHeight;
@@ -57,13 +64,13 @@ export async function createView({ canvas, district, catalog, parts, scenery, ro
   async function addSprite(e) {
     const s = new CharacterSprite(await loadSheets(catalog, e.model));
     sprites.set(e.id, s);
-    scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring);
+    scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar);
     s.ring.visible = selected.has(e.id);
     return s;
   }
   function syncSprites(state) {
     for (const e of Object.values(state.entities)) if (!sprites.has(e.id)) { sprites.set(e.id, null); addSprite(e); }
-    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring); sprites.delete(id); }
+    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar); sprites.delete(id); }
   }
 
   function updateLights(time) {
@@ -110,15 +117,19 @@ export async function createView({ canvas, district, catalog, parts, scenery, ro
       const e = state.entities[id];
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
-      s.update(dt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim);
+      const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
+      s.update(dt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT);
+      s.setHealth(e.hp, e.maxHp);
     }
     const hero = sprites.get(followId);
     const inside = state.entities[followId]?.place !== 'street';
 
     // camera follows the hero, snapped to whole screen pixels so the art stays crisp
     if (hero) {
-      if (!camReady || camTarget.distanceTo(hero.pos) > 20) { camTarget.copy(hero.pos); camReady = true; }
-      camTarget.lerp(hero.pos, 1 - Math.exp(-dt * 6));
+      // went through a door (or first frame): jump there and follow again
+      if (!camReady || camTarget.distanceTo(hero.pos) > (freeCam ? PAN_MAX + 5 : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
+      camTarget.lerp(freeCam || hero.pos, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
+      heroPos = hero.pos;
     }
     const wantZoom = inside ? Math.min(zoom * INDOOR_ZOOM, 1.1) : zoom;
     if (Math.abs(wantZoom - zoomNow) > 1e-3) { zoomNow += (wantZoom - zoomNow) * (1 - Math.exp(-dt * 5)); resize(); }
@@ -129,16 +140,50 @@ export async function createView({ canvas, district, catalog, parts, scenery, ro
       .addScaledVector(CAM_UP, Math.round(s.y * ppx) / ppx - s.y)
       .addScaledVector(VIEW_DIR, 200);
 
+    hitFx.update(dt);
+    abilityFx.update(dt, state);
+    shakeT = Math.max(0, shakeT - dt);
+    if (shakeT > 0) {
+      const a = shakeAmp * shakeT / 0.18;
+      camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
+    }
     updateLights(time);
     updateCutaway(hero, dt);
     sortThings([...things, ...[...sprites.values()].filter(Boolean).map(s => s.thing)]);
     renderer.render(scene, camera);
   }
 
+  // hit effects: damage numbers, trails, sparks, flash and lean, a little shake on kills near the hero
+  const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
+  const abilityFx = createAbilityFx({ scene, posOf: id => sprites.get(id)?.pos || null });
+  function addCasts(casts) { for (const c of casts) abilityFx.cast(c); }
+  let shakeT = 0, shakeAmp = 0;
+  function addHits(hits, state, followId) {
+    const me = state.entities[followId];
+    for (const h of hits) {
+      const a = state.entities[h.a], t = state.entities[h.t];
+      hitFx.hit(h, a, t?.owner === me?.owner);
+      const s = sprites.get(h.t);
+      if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
+      if (h.kill && me && Math.hypot(h.x - me.x, h.z - me.z) < 9) { shakeT = 0.18; shakeAmp = 0.12; }
+      else if (h.crit && me && Math.hypot(h.x - me.x, h.z - me.z) < 9 && shakeT <= 0) { shakeT = 0.1; shakeAmp = 0.05; }
+    }
+  }
   const raycaster = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const v = new THREE.Vector3();
+  let heroPos = null;
   return {
-    render, renderer, scene,
+    render, renderer, scene, addHits, addCasts,
+    // arrow-key panning (right, up from -1 to 1 on screen); the camera stays there until snapBack
+    pan(right, up, dt) {
+      if (!right && !up) return;
+      freeCam ||= camTarget.clone();
+      const k = PAN_SPEED * dt / zoomNow;
+      freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
+      if (heroPos && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
+    },
+    snapBack() { freeCam = null; },
+    isPanned: () => !!freeCam,
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
     // page pixel -> ground point { x, z }

@@ -187,15 +187,28 @@ function hasSkin(obj) {
   return found;
 }
 
-// Pin the hips over the model's own rest position on the ground plane, so
-// clips with root motion (runs, jumps, lunges) stay centered in every cell.
+// Keep clips centered over the model's rest position on the ground plane.
+// Clips that travel (runs, jumps, lunges) get their hips pinned there. Clips
+// that stay put (idles, in-place walks) keep their own small hip sway, only
+// shifted to center, because pinning the hips would slide the planted feet.
 // Height is kept so jumps and crouches still move up and down.
+const SWAY_LIMIT = 0.2;   // horizontal hip travel, as a fraction of hip height
 function stripRootMotion(clip) {
   const c = clip.clone();
   for (const t of c.tracks) {
     if (!/hips\.position$/i.test(t.name) || !bindHips) continue;
-    const v = t.values;
-    for (let i = 0; i < v.length; i += 3) { v[i] = bindHips.x; v[i + 2] = bindHips.z; }
+    const v = t.values, n = v.length / 3;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, mx = 0, mz = 0;
+    for (let i = 0; i < v.length; i += 3) {
+      x0 = Math.min(x0, v[i]); x1 = Math.max(x1, v[i]); z0 = Math.min(z0, v[i + 2]); z1 = Math.max(z1, v[i + 2]);
+      mx += v[i] / n; mz += v[i + 2] / n;
+    }
+    const still = Math.max(x1 - x0, z1 - z0) < SWAY_LIMIT * Math.abs(bindHips.y || 1);
+    for (let i = 0; i < v.length; i += 3) {
+      if (still) { v[i] += bindHips.x - mx; v[i + 2] += bindHips.z - mz; }
+      else { v[i] = bindHips.x; v[i + 2] = bindHips.z; }
+    }
+    console.log(`${clip.name}: hips travel ${Math.max(x1 - x0, z1 - z0).toFixed(1)} of hip height ${bindHips.y.toFixed(1)}, ${still ? 'kept' : 'pinned'}`);
   }
   return c;
 }
@@ -271,7 +284,137 @@ function setItemObject(obj) {
   item.add(itemBox);
 }
 
+
+// ---------- built-in stylized weapons (real geometry instead of image slabs) ----------
+// Both are built with the back end at z = 0 and the tip/head at z = 1.
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  return t;
+}
+// Cool moonlight rim on top of the scene lights, so weapon edges read against the character
+function rimify(mat, rimColor = 0x8fb4ff, k = 0.8, power = 2.4) {
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.rimCol = { value: new THREE.Color(rimColor) };
+    sh.fragmentShader = 'uniform vec3 rimCol;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+       totalEmissiveRadiance += rimCol * ${k.toFixed(2)} * pow(1.0 - saturate(abs(dot(normalize(vNormal), normalize(vViewPosition)))), ${power.toFixed(1)});`);
+  };
+  return mat;
+}
+const std = (o, rim) => rimify(new THREE.MeshStandardMaterial(o), ...(rim || []));
+
+function buildClub() {
+  const g = new THREE.Group();
+  // Dark ironwood with long grain streaks; leather wrap over the handle (v along the club)
+  const wood = canvasTex(64, 256, (c, w, h) => {
+    c.fillStyle = '#4b3223'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { c.strokeStyle = `rgba(${i % 3 ? '20,12,6' : '120,84,52'},${0.12 + Math.random() * 0.25})`; c.lineWidth = 1 + Math.random() * 2; const x = Math.random() * w; c.beginPath(); c.moveTo(x, 0); c.bezierCurveTo(x + 6 * (Math.random() - .5), h / 3, x - 6 * (Math.random() - .5), h * 2 / 3, x + 4 * (Math.random() - .5), h); c.stroke(); }
+    c.fillStyle = '#1d1511'; c.fillRect(0, h * 0.93, w, h * 0.07);                                 // v=0 is the back end (pommel)
+    c.fillStyle = '#2a1c14'; c.fillRect(0, h * 0.64, w, h * 0.29);                                 // leather wrap (z .07 - .28 after the flip below)
+    c.strokeStyle = '#6a4c36'; c.lineWidth = 2;
+    for (let y = h * 0.64 - 20; y < h * 0.93 + 20; y += 7) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y + 14); c.stroke(); }
+  });
+  const prof = [];
+  const N = 64;
+  for (let i = 0; i <= N; i++) {
+    const z = i / N;
+    let r;
+    if (z < 0.04) r = 0.034 * Math.sin(z / 0.04 * Math.PI / 2) ** 0.6;   // pommel knob
+    else if (z < 0.07) r = 0.034 - (z - 0.04) / 0.03 * 0.008;
+    else if (z < 0.3) r = 0.026;
+    else if (z < 0.96) { const u = (z - 0.3) / 0.66; r = 0.026 + 0.066 * Math.pow(u, 1.4); }
+    else r = 0.092 * Math.sqrt(Math.max(0, 1 - ((z - 0.96) / 0.04) ** 2));  // rounded end
+    prof.push(new THREE.Vector2(Math.max(r, 0.0001), z));
+  }
+  const body = new THREE.LatheGeometry(prof, 18);
+  body.rotateX(Math.PI / 2);
+  // flip v so texture v=1 sits at z=0 (canvas y=0 is v=1)
+  g.add(new THREE.Mesh(body, std({ map: wood, roughness: 0.75, metalness: 0.05, emissive: 0x2a170b }, [0x9ab8ff, 0.22])));
+  const iron = std({ color: 0x3a3e46, roughness: 0.4, metalness: 0.6, emissive: 0x10141a }, [0xa9c4ff, 0.5]);
+  const rAt = z => prof[Math.round(z * N)].x;
+  const band = (z, h) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(rAt(z) + 0.007, rAt(z) + 0.007, h, 18), iron); m.rotation.x = Math.PI / 2; m.position.z = z; g.add(m); };
+  [0.56, 0.74, 0.9].forEach(z => band(z, 0.035));
+  band(0.3, 0.02);
+  // studs in two staggered rows on the head
+  const stud = new THREE.SphereGeometry(0.013, 8, 6);
+  [[0.82, 0], [0.86, Math.PI / 8]].forEach(([z, off]) => { for (let k = 0; k < 8; k++) { const a = off + k * Math.PI / 4, r = rAt(z) + 0.002; const m = new THREE.Mesh(stud, iron); m.position.set(Math.cos(a) * r, Math.sin(a) * r, z); g.add(m); } });
+  return g;
+}
+
+function buildKatana() {
+  const g = new THREE.Group();
+  const gold = std({ color: 0xb08a40, roughness: 0.35, metalness: 0.7, emissive: 0x120d04 }, [0xffe2a0, 0.8]);
+  const darkIron = std({ color: 0x1f2126, roughness: 0.45, metalness: 0.7 }, [0xa9c4ff, 0.9]);
+  const cyl = (rx, ry, z0, z1, mat, seg = 16) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, z1 - z0, seg), mat); m.scale.set(rx, 1, ry); m.rotation.x = Math.PI / 2; m.position.z = (z0 + z1) / 2; g.add(m); return m; };
+  // Handle: indigo cord in a diamond wrap over pale ray-skin
+  const wrap = canvasTex(64, 128, (c, w, h) => {
+    c.fillStyle = '#d8d2c2'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#1b2440';
+    for (let y = -h; y < h * 2; y += 32) { c.beginPath(); c.moveTo(0, y); c.lineTo(w / 2, y + 16); c.lineTo(w, y); c.lineTo(w, y + 9); c.lineTo(w / 2, y + 25); c.lineTo(0, y + 9); c.fill(); c.beginPath(); c.moveTo(0, y + 16); c.lineTo(w / 2, y + 32); c.lineTo(w, y + 16); c.lineTo(w, y + 25); c.lineTo(w / 2, y + 41); c.lineTo(0, y + 25); c.fill(); }
+  });
+  wrap.repeat.set(1, 2);
+  const tsuka = cyl(0.032, 0.024, 0.02, 0.27, std({ map: wrap, roughness: 0.8, metalness: 0 }, [0x8fb4ff, 0.5]));
+  cyl(0.036, 0.028, 0, 0.022, gold);                       // kashira (pommel cap)
+  cyl(0.037, 0.029, 0.27, 0.29, gold);                     // fuchi (collar)
+  cyl(0.085, 0.062, 0.29, 0.3, darkIron, 20);           // tsuba (guard)
+  cyl(0.088, 0.065, 0.2915, 0.2985, gold, 20);             // gold rim
+  // Blade swept along z with a ridge line: flat-shaded facets catch the key light, vertex colours fake the hamon
+  const z0 = 0.31, z1 = 1.0, steps = 28, W0 = 0.075, T0 = 0.011, SORI = 0.1, TIP = 0.07;
+  const rings = [];
+  for (let i = 0; i <= steps; i++) {
+    const s = i / steps, z = z0 + (z1 - z0) * s;
+    const taper = s > 1 - TIP / (z1 - z0) ? Math.max(0, 1 - (s - (1 - TIP / (z1 - z0))) / (TIP / (z1 - z0))) : 1;
+    const w = W0 * (1 - 0.3 * s) * taper, t = T0 * (1 - 0.4 * s) * (0.15 + 0.85 * taper);
+    const spine = -SORI * s * s;                     // tip curves toward the spine side (+y); edge faces -y (down)
+    // ring points: [y (width axis, edge at -y), x (thickness), colour]
+    rings.push({ z, p: [
+      [-spine - w, 0, [0.95, 0.97, 1.0]],            // edge
+      [-spine - w * 0.65, t, [0.8, 0.86, 0.94]],     // hamon line
+      [-spine - w * 0.3, t * 1.05, [0.52, 0.58, 0.67]],   // shinogi ridge
+      [-spine, t * 0.8, [0.3, 0.34, 0.42]],          // spine
+      [-spine, -t * 0.8, [0.3, 0.34, 0.42]],
+      [-spine - w * 0.3, -t * 1.05, [0.52, 0.58, 0.67]],
+      [-spine - w * 0.65, -t, [0.8, 0.86, 0.94]],
+    ] });
+  }
+  const pos = [], col = [];
+  const push = (r, k) => { const [y, x, c] = r.p[k]; pos.push(x, y, r.z); col.push(...c); };
+  for (let i = 0; i < steps; i++) {
+    const a = rings[i], b = rings[i + 1], n = a.p.length;
+    for (let k = 0; k < n; k++) { const k2 = (k + 1) % n; push(a, k); push(b, k); push(b, k2); push(a, k); push(b, k2); push(a, k2); }
+  }
+  const bg = new THREE.BufferGeometry();
+  bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  bg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  // Fix winding so every face points away from the blade's centre line
+  const P = bg.attributes.position, C = bg.attributes.color;
+  for (let f = 0; f < P.count; f += 3) {
+    const v = [0, 1, 2].map(j => new THREE.Vector3().fromBufferAttribute(P, f + j));
+    const n = v[1].clone().sub(v[0]).cross(v[2].clone().sub(v[0]));
+    const cen = v[0].clone().add(v[1]).add(v[2]).divideScalar(3);
+    const mid = new THREE.Vector3(0, -(W0 * 0.5), cen.z);   // rough centre of the cross-section
+    if (n.dot(cen.sub(mid)) < 0) { for (const A of [P, C]) { const sz = A.itemSize; for (let c = 0; c < sz; c++) { const t = A.array[(f + 1) * sz + c]; A.array[(f + 1) * sz + c] = A.array[(f + 2) * sz + c]; A.array[(f + 2) * sz + c] = t; } } }
+  }
+  bg.computeVertexNormals();
+  g.add(new THREE.Mesh(bg, std({ vertexColors: true, roughness: 0.28, metalness: 0.45, emissive: 0x0c1218 }, [0xbad2ff, 1.1, 2.0])));
+  cyl(0.045, 0.018, 0.3, 0.34, gold);                  // habaki (blade collar)
+  return g;
+}
+const PROC_ITEMS = { club: buildClub, katana: buildKatana };
+
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
+// Hand distance (in character heights / 2) below which both hands hold the
+// item, and above which it hangs from the right hand alone
+const HANDS_TOGETHER = 0.22, HANDS_APART = 0.38;
+const _c = new THREE.Vector3();
+const PALM_Y = 0.03;   // palm centre along the hand bone (bone units, Mixamo +Y runs to the fingers)
+const _z = new THREE.Vector3(0, 0, 1);
+let itemDir = null;    // haft direction in the hand bone's frame (one-hand grips)
+const palmOf = (bone, out) => bone.localToWorld(out.set(0, PALM_Y, 0));
+let itemHang = false;   // swords hang when the hands part; rifles stay between the hands
 function updateItem() {
   if (!item || !root) return;
   root.updateMatrixWorld(true);
@@ -283,17 +426,33 @@ function updateItem() {
   const right = findBone(/RightHand$/), left = findBone(/LeftHand$/);
   if (mode === 'both' && right && left) {
     if (item.parent !== scene) scene.add(item);
-    right.getWorldPosition(_a); left.getWorldPosition(_b);
+    palmOf(right, _a); palmOf(left, _b);
     item.position.copy(_a);
     item.scale.setScalar(len * root.scale.x);
+    // When the hands come apart (idles, walks with arms at the sides) the item
+    // can't span both, so it hangs from the right hand instead: blade down and a
+    // little forward along the leg, blending over as the hands separate
+    const apart = !itemHang ? 0 : THREE.MathUtils.smoothstep(_a.distanceTo(_b) / root.scale.x, HANDS_TOGETHER, HANDS_APART);
+    if (apart > 0) {
+      const yaw = root.rotation.y, sign = flip ? -1 : 1;
+      _c.set(Math.sin(yaw) * 0.7, 0.9, Math.cos(yaw) * 0.7).normalize().multiplyScalar(sign);   // where the item's +Z should point
+      _b.sub(_a).normalize().lerp(_c, apart).add(_a);
+    }
     item.lookAt(_b);   // +Z of the item points from the right hand to the left
   } else {
     const bone = mode === 'left' ? left : right;
     if (!bone) return;
     if (item.parent !== bone) bone.add(item);
     bone.getWorldScale(_s);
-    item.position.set(0, 0, 0);
     item.scale.setScalar(len * root.scale.x / _s.x);
+    if (itemDir) {
+      // Hammer grip: the haft runs across the fist along the knuckle line, head out of the thumb side
+      item.position.set(0, PALM_Y, 0);
+      item.quaternion.setFromUnitVectors(_z, itemDir);
+      item.rotateZ(THREE.MathUtils.degToRad(num('itemRoll')));
+      return;
+    }
+    item.position.set(0, 0, 0);
     // Mixamo hand bones point +Y along the fingers; -Z comes out of the thumb
     // side of a closed fist, which is where a gripped blade or haft points
     item.rotation.set(THREE.MathUtils.degToRad(num('itemRx') + 180), THREE.MathUtils.degToRad(num('itemRy')), 0);
@@ -305,6 +464,8 @@ function setItemOptions(o = {}) {
   for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
     if (o[k] != null) $(id).value = o[k];
   if (o.flip != null) $('itemFlip').checked = !!o.flip;
+  itemHang = !!o.hang;
+  itemDir = o.dir ? new THREE.Vector3(...o.dir).normalize() : null;
 }
 
 $('dropItem').onclick = () => $('pickItem').click();
@@ -453,6 +614,9 @@ window.spriteTest = {
   setItemOptions,
   // A plain stick for checking alignment without a model
   testItem: () => setItemObject(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 1), new THREE.MeshStandardMaterial({ color: 0xc0c0c0 }))),
+  boneInfo: () => { root.updateMatrixWorld(true); const o={}; const g=n=>findBone(new RegExp(n+'$')); const R=g('RightHand'); const w=b=>b.getWorldPosition(new THREE.Vector3()); const inv=R.matrixWorld.clone().invert();
+    for (const n of ['RightHand','RightHandThumb1','RightHandPinky1','RightHandIndex1','RightHandMiddle1','RightHandMiddle3']) { const b=g(n); if(b) o[n]=w(b).applyMatrix4(inv).toArray().map(v=>+v.toFixed(3)); } o.scale=R.getWorldScale(new THREE.Vector3()).x; o.rootScale=root.scale.x; return o; },
+  setProcItem: k => setItemObject(PROC_ITEMS[k]()),
   setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
 };
 

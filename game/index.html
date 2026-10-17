@@ -19,7 +19,7 @@
   button { font: inherit; color: #e8e2d2; background: #22262c; border: 1px solid rgba(255,255,255,.14);
     border-radius: 6px; padding: 4px 10px; cursor: pointer; }
   button:hover { background: #2c3139; }
-  #prompt { position: fixed; left: 50%; bottom: 12%; transform: translateX(-50%); padding: 6px 14px;
+  #prompt { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); padding: 6px 14px;
     background: rgba(10,12,16,.72); border: 1px solid rgba(233,194,122,.35); border-radius: 6px; color: #e9c27a; letter-spacing: .04em; }
   #money { color: #e9c27a; white-space: nowrap; }
   #hire { position: fixed; right: 16px; top: 14px; width: 260px; background: rgba(10,12,16,.82);
@@ -31,6 +31,50 @@
   #hire .waiting, #hire .notice { color: #9a968c; margin-top: 6px; }
   #hire .notice { color: #d8d2c4; }
   #selbox { position: fixed; border: 1px solid rgba(143,209,122,.9); background: rgba(143,209,122,.12); pointer-events: none; }
+  /* floating damage numbers (moved and faded by render/hitfx.js) */
+  #fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .dmg { position: absolute; left: 0; top: 0; font: 800 20px/1 "Segoe UI", system-ui, sans-serif; color: #fff7e8;
+    letter-spacing: .02em; white-space: nowrap; will-change: transform, opacity;
+    text-shadow: 0 0 3px #000, 0 2px 0 #1a0d05, 1px 1px 0 #1a0d05, -1px -1px 0 #1a0d05, 1px -1px 0 #1a0d05, -1px 1px 0 #1a0d05; }
+  .dmg.mine { color: #ff6b5e; }
+  .dmg.crit { color: #ffd34d; font-size: 28px; text-shadow: 0 0 8px rgba(255,170,40,.8), 0 2px 0 #3a1a00, 1px 1px 0 #3a1a00, -1px -1px 0 #3a1a00; }
+  .dmg.kill:not(.crit) { color: #ffb070; font-size: 24px; }
+  /* hero action bar (src/action_bar.js) */
+  #bar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; user-select: none; }
+  #bar .row { display: flex; align-items: flex-end; gap: 6px; padding: 8px 10px; background: linear-gradient(#14171d, #0b0d11);
+    border: 1px solid rgba(233,194,122,.28); border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05); }
+  #bar .portrait { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-right: 6px; }
+  #bar .face { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; font: 26px/1 serif; color: #e9c27a;
+    background: radial-gradient(circle at 40% 35%, #3a2a1c, #120c08); border: 2px solid #8a6a3a; }
+  #bar .hp { position: relative; width: 150px; height: 14px; background: #2a0d0d; border: 1px solid #000; border-radius: 3px; overflow: hidden; }
+  #bar .hp .fill { height: 100%; background: linear-gradient(#5fc35a, #2e7d2a); transition: width .15s; }
+  #bar .hp.low .fill { background: linear-gradient(#e0473c, #8f1c14); animation: pulse .8s infinite alternate; }
+  #bar .hp .txt { position: absolute; inset: 0; text-align: center; font: 600 10px/14px system-ui, sans-serif; color: #fff; text-shadow: 0 1px 1px #000; }
+  @keyframes pulse { to { filter: brightness(1.5); } }
+  #bar .slot { position: relative; width: 58px; height: 58px; border-radius: 7px; overflow: hidden; border: 1px solid #5c4a2c;
+    background: radial-gradient(circle at 50% 40%, #2b2f38, #101216); box-shadow: inset 0 0 8px rgba(0,0,0,.8); }
+  #bar .slot .icon { position: absolute; inset: 12px 3px 3px; display: grid; place-items: center; text-align: center; font: 600 10px/1.15 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
+  .tip { position: fixed; width: 260px; padding: 9px 11px; background: rgba(8,10,14,.95); border: 1px solid rgba(233,194,122,.45); border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.6); font: 12px/1.45 system-ui, sans-serif; color: #d8d2c4; pointer-events: none; z-index: 10; }
+  .tip b { color: #ffd34d; font-size: 14px; } .tip i { float: right; font-style: normal; color: #9a968c; }
+  .tip div { display: flex; justify-content: space-between; gap: 10px; } .tip div span { color: #9a968c; }
+  .tip div:first-of-type { margin-top: 4px; } .tip p { margin: 6px 0 0; color: #b9e0a8; }
+  #bar .slot .key { position: absolute; left: 4px; top: 2px; font: 700 10px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+  #bar .slot .sweep { position: absolute; inset: 0; }
+  #bar .slot .secs { position: absolute; inset: 0; display: grid; place-items: center; font: 800 17px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 0 4px #000, 0 1px 0 #000; }
+  #bar .slot.active { border-color: #ffd34d; box-shadow: 0 0 10px rgba(255,190,60,.7), inset 0 0 10px rgba(255,190,60,.35); }
+  #bar .slot.flash { animation: ready .45s ease-out; }
+  @keyframes ready { from { box-shadow: 0 0 18px 4px rgba(255,230,150,.9); filter: brightness(1.8); } }
+  #bar.ko .slot { filter: grayscale(1) brightness(.5); }
+  #bar .buffs { display: flex; gap: 6px; min-height: 20px; }
+  #bar .buff { padding: 2px 8px; border-radius: 10px; font: 600 11px/16px system-ui, sans-serif; background: rgba(10,12,16,.8); border: 1px solid rgba(255,255,255,.15); }
+  #bar .buff.lantern { color: #ff8a6b; border-color: rgba(255,90,60,.6); }
+  #bar .buff.rally { color: #9fe08a; border-color: rgba(143,209,122,.6); }
+  #bar .buff.intimidated { color: #b49ad6; }
+  #bar .crew { display: flex; flex-wrap: wrap; width: 66px; gap: 3px; margin-right: 4px; align-self: center; }
+  #bar .pip { width: 9px; height: 14px; border-radius: 2px; border: 1px solid #000; background: linear-gradient(to top, #5fc35a var(--hp), #2a0d0d 0); }
+  #bar .pip.hurt { background: linear-gradient(to top, #e0473c var(--hp), #2a0d0d 0); }
+  #snap { position: fixed; right: 16px; bottom: 18px; padding: 7px 14px; border-color: rgba(233,194,122,.5); color: #e9c27a; background: rgba(10,12,16,.82); }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #9a968c; }
 </style>
 <script type="importmap">
@@ -45,12 +89,15 @@
 <div id="hud">
   <b>INFAMY</b>
   <span id="money"></span>
-  <span>WASD move · Shift walk · E door · H hire · click/drag select crew · C all · right-click go (Ctrl hold) · V follow · = / - zoom</span>
+  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click go / attack (hero too) (Ctrl hold) · X attack-move · V follow · M mute · = / - zoom</span>
   <button id="daynight">Night (N)</button>
 </div>
+<button id="snap" hidden>Back to hero (Home)</button>
 <div id="prompt" hidden></div>
 <div id="hire" hidden></div>
 <div id="selbox" hidden></div>
+<div id="fx"></div>
+<div id="bar"></div>
 <div id="loading">Loading…</div>
 <script type="module" src="src/main.js"></script>
 </body>
