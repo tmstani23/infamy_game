@@ -55,7 +55,7 @@ When the channel session asks for a sweep (daily while work is happening), the D
 
 To keep sweeps cheap, each one reads only docs and code changed since the last sweep. Commits are rare here, so it goes by file modification time (plus `git log` when there are new commits), then updates the line below.
 
-Last sweep: 2026-10-17 00:22 UTC, the full cleanup (last commit then: 269f19d).
+Last sweep: 2026-10-17 18:50 UTC, after the downed/hospital batch (last commit then: 98b92a5).
 
 ## Commits (Tim, 2026-10-17)
 

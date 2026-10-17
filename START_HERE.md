@@ -26,7 +26,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/controls.md](docs/controls.md) | Every working control, plus planned keys |
 | [docs/crew_recruiting_plan.md](docs/crew_recruiting_plan.md) | Crew hiring and orders, phase by phase |
 | [docs/combat_spec.md](docs/combat_spec.md) | Combat rules and feel, hero abilities, action bar, VFX plan |
-| [docs/civilians_plan.md](docs/civilians_plan.md) | Townsfolk walking the streets (paused) |
+| [docs/civilians_plan.md](docs/civilians_plan.md) | Townsfolk walking the streets |
 | [docs/interiors_spec.md](docs/interiors_spec.md) | 3D interior rules and look |
 | [docs/room_generator_plan.md](docs/room_generator_plan.md) | Room generator |
 | [docs/cast_tracker.md](docs/cast_tracker.md) | Characters, animations and sprite sheet status |

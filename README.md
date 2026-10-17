@@ -12,7 +12,9 @@ As of 2026-10-17:
 
 - Playable waterfront district in `game/` (run `start_game.bat`), with day and night.
 - 3D interiors (teahouse, den, warehouse) plus a room generator.
-- Crew hiring, orders and combat work, plus the ronin's four abilities and the action bar. Next: the hospital and playtest tuning.
+- Crew hiring, orders and combat work, plus the ronin's four abilities with their effects and the action bar.
+- Also working (2026-10-17): downed crew and executions, the bonesetter's clinic (menu), townsfolk walking the streets, the crew selection panel, and heat.
+- Next: playtest tuning, then the rival bot clan.
 - The sprite pipeline works end to end for the whole cast.
 
 See [START_HERE.md](START_HERE.md) for details and links.

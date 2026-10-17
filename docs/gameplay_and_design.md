@@ -126,6 +126,10 @@ Noise versus power is a choice on every raid.
 - Raised by territory, raids and intimidation.
 - High infamy makes you a target: raiding a high-infamy clan pays more and steals some of its infamy.
 
+## Future ideas
+
+- Night street thugs (2026-10-17): a capped number of thugs and brutes spawn at night in random spots and are gone by day. Neutral unless attacked; they drop loot and ryo once inventory exists.
+
 ## Open questions
 
 - Gunrunner hero abilities.

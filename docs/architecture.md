@@ -1,6 +1,6 @@
 # Architecture
 
-How the game is built today (2026-10-16). Short on purpose: details live in the linked docs.
+How the game is built today (2026-10-17). Short on purpose: details live in the linked docs.
 
 - Build plan and conventions: [tech_plan.md](tech_plan.md)
 - 3D rooms: [interiors_spec.md](interiors_spec.md), [room_generator_plan.md](room_generator_plan.md)
@@ -38,11 +38,15 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 
 | Feature | Spec doc | Main code |
 |---|---|---|
-| Movement, camera, zoom, day/night | [tech_plan.md](tech_plan.md), [controls.md](controls.md) | `sim/game.js`, `sim/geometry.js`, `input.js`, `render/view.js`, `render/iso.js`, `render/shading.js` |
+| Movement, camera, zoom, day/night | [tech_plan.md](tech_plan.md), [controls.md](controls.md) | `state.night` and the `time` command in `sim/game.js`, `sim/geometry.js`, `input.js`, `render/view.js`, `render/iso.js`, `render/shading.js` |
 | District map and outdoor art | [tech_plan.md](tech_plan.md) | `data/waterfront.json`, `data/art.json`, `render/scenery.js`, `tools/cut_environment.py` |
 | Interiors and room generator | [interiors_spec.md](interiors_spec.md), [room_generator_plan.md](room_generator_plan.md) | `sim/interiors.js`, `sim/generate.js`, `render/interior3d.js`, `data/interiors.json`, `data/interior_parts.json`, `data/room_recipes.json`, `game/tools/test_rooms.mjs` |
 | Crew hiring and orders | [crew_recruiting_plan.md](crew_recruiting_plan.md) | `sim/clans.js`, `sim/nav.js`, `sim/game.js` (orders), `hire_menu.js`, `crew_input.js`, `data/units.json`, `game/tools/test_crew.mjs` |
-| Combat | [combat_spec.md](combat_spec.md) | `sim/game.js` (attacks, damage, knockouts), `crew_input.js` (attack, attack-move), `render/characters.js` (health bars), `game/tools/test_combat.mjs` |
+| Combat | [combat_spec.md](combat_spec.md) | `sim/game.js` (attacks, damage, knockouts, downed and execute, carry-off), `sim/clans.js` (clinic), `crew_input.js` (attack, attack-move), `clinic_menu.js`, `render/health.js`, `render/hitfx.js`, `game/tools/test_combat.mjs`, `test_downed.mjs`, `test_clinic_townsfolk.mjs` |
+| Abilities and effects | [combat_spec.md](combat_spec.md) F, G | `sim/game.js` (abilities), `action_bar.js`, `render/abilityfx.js`, `render/vfx.js`, `render/bloom.js`, `game/tools/test_abilities.mjs` |
+| Heat | [combat_spec.md](combat_spec.md) H | `state.clans[x].heat` and `state.heatGains` in `sim/game.js`, `heat_badge.js` |
+| Townsfolk | [civilians_plan.md](civilians_plan.md) | `sim/civilians.js`, `data/civilians.json`, `pois` in `data/waterfront.json`, `game/tools/test_civilians.mjs` |
+| Selection panel and portraits | [controls.md](controls.md) | `selection_panel.js`, `portraits.js`, `game/tools/test_selection_panel.mjs`, `test_picking.mjs` |
 | Sprites and art pipeline | [art_direction.md](art_direction.md), [cast_tracker.md](cast_tracker.md) | `tools/export_sprites.mjs`, `look_tests/sprite_render_test.html`, `render/characters.js` |
 
 Code paths are under `game/src/` unless they start with `data/` (`game/data/`), `game/tools/` or `tools/`.
@@ -59,6 +63,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `geometry.js` | Shared math: camera angle, pixels per unit, 8 directions, footprints, placing scenery from the map. |
 | `interiors.js` | Lays out 3D rooms on the grid (walls, props, blockers, checks). Rooms sit far off the street map in the same world. |
 | `generate.js` | Room generator: building type + seed gives a room in the same format as `interiors.json`. |
+| `civilians.js` | Townsfolk: trips between map spots, day/night schedule, fear and fleeing, witnesses. |
 
 **Render** (`game/src/render`, three.js, reads state, never changes it)
 
@@ -70,6 +75,12 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `interior3d.js` | Builds real 3D rooms (walls, floors, furniture) from the sim's room layout. |
 | `shading.js` | Shared shaders: night grade, lantern lights, see-through cutaway, interior materials. |
 | `iso.js` | The fixed isometric camera as three.js vectors. |
+| `abilityfx.js` | Ability effects (dash after-images, seals, rings, lanterns) and buff auras. |
+| `vfx.js` | Shared effect pieces: sparkles, glints, embers, petals. |
+| `bloom.js` | Bloom on effects only. |
+| `hitfx.js` | Damage numbers, hit flash, slash trails, sparks, screen shake. |
+| `health.js` | Health bars over every unit. |
+| `sound.js` | Combat sounds. |
 
 **Input and HUD** (`game/src`, browser only, they only send commands)
 
@@ -79,12 +90,17 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `input.js` | Keyboard to commands (WASD hero move) and view keys. |
 | `crew_input.js` | RTS mouse control: select, right-click move/attack/follow, attack-move. Selection is screen-only. |
 | `hire_menu.js` | Teahouse hire panel and the ryo / crew HUD line; sends `hire` commands. |
+| `action_bar.js` | Hero health, ability slots and cooldowns, buffs, crew pips (click a name to select). |
+| `selection_panel.js` | Panel for the selected crew or townsperson. |
+| `portraits.js` | Portraits for the panels. |
+| `clinic_menu.js` | Clinic menu: heal and revive. |
+| `heat_badge.js` | Heat badge and heat notices. |
 
 **Other**
 
 - `game/index.html`: page, HUD elements, three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`).
-- `game/tools/`: Node checks of the sim (`test_crew.mjs`, `test_combat.mjs`, `test_rooms.mjs`) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, all `.mjs`) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 
@@ -92,7 +108,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 |---|---|
 | `waterfront.json` | The district map: ground zones, buildings, props, doors, spawns, which room each building opens into. |
 | `art.json` | Art catalog: sizes, footprints and scale for every sprite and cut-out, so art can be swapped without code changes. |
-| `units.json` | Unit stats and clan rules (start ryo, cap, prices, HP, regen). |
+| `units.json` | Unit stats and clan rules (start ryo, cap, prices, HP, regen, downed and clinic rules). |
+| `civilians.json` | Townsfolk types and tuning. |
 | `interiors.json` | Hand-made rooms (the approved teahouse). |
 | `interior_parts.json` | Room parts, materials and placement rules. |
 | `room_recipes.json` | Generator recipes per building type and Tim's picked seeds. |

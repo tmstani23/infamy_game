@@ -1,6 +1,6 @@
 # Civilians plan
 
-Status (2026-10-17): Tim OK'd the plan; the build is **paused** (usage). No code changed yet. Owned by the "Townsfolk walking the streets" thread.
+Status: **built 2026-10-17.**
 
 Goal: townsfolk walk the waterfront streets in a way that looks real, as sim entities so it works in Node and in multiplayer.
 
@@ -20,9 +20,10 @@ From Assassin's Creed Unity and Hitman talks:
 4. Fear: a fight or death within about 8 units makes civilians play scared, then walk fast away. Each scared civilian is marked as a witness for heat later.
 5. Civilian types in `game/data/units.json`. Fleeing uses the walk clip played faster (there is no run clip).
 
-## Build steps
+## Built (2026-10-17)
 
-- [ ] 1. Points of interest in the map data
-- [ ] 2. `sim/civilians.js` (trips, schedules, fear)
-- [ ] 3. Hook into `sim/game.js`, `units.json`, `render/characters.js`, `main.js` (shared with the crew thread: coordinate, small edits)
-- [ ] 4. Node test
+- 20 townsfolk. Spots are the `pois` list in `game/data/waterfront.json`; types and tuning are in `game/data/civilians.json`.
+- At night they go indoors (walking home 25% faster) and come back in the morning.
+- Witnesses are marked `e.witness`.
+- Fear: a 0.3 s flinch, then they run; runners that get jammed stop.
+- Combat: attackable on order only, 60 HP, flee when hit, can be executed. A downed townsperson left alone for 5 s is helped home, and a replacement appears after about 60 s.

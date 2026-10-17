@@ -116,7 +116,14 @@ Ronin plan (effort / payoff):
 3. Intimidate (small / medium): brief screen dim, rippling shockwave, purple smoke wisps on affected enemies.
 4. Rally (small / medium): gold ground circle and light pillars rising on the crew.
 
-Ninja spells: Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, same gap as rifles and bows); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
+**Built (2026-10-17), ronin:**
+- Q: after-images, steel glints, hit freeze.
+- E: screen dim, ink ring, seal, purple wisps.
+- R: gold seal, glowing petals, light pillars.
+- F: glowing lanterns orbiting him, red light, embers.
+- Stacking buff auras (outline, ground ring and sparkles per ability), heal, lifesteal and regen sparkles, and bloom on effects only.
+
+Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, same gap as rifles and bows); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
 
 ## H. Downed, execute and hospital (approved by Tim 2026-10-17)
 
@@ -125,8 +132,12 @@ Ninja spells: Smoke Step = smoke bursts at start and end; Sleep Dart = thin trai
 - **Carried off:** a downed unit nobody finishes, with no enemy within 8 steps for 5 s, is carried to the hospital. There is only this timer, no bleed-out.
 - **Hospital:** the bonesetter's clinic on the waterfront map. Recovery timer (about 30 s for a thug, longer for pricier types), costing about 25% of the hire price, paid on return (it waits if you have no ryo). Then the unit walks out and follows the hero.
 - **Heal order:** hurt crew can be sent to the clinic for a little ryo.
+- **Clinic menu (2026-10-17):** heal nearby crew at 0.2 ryo per HP, or revive a recovering crew member now for 50% of the hire price.
+- **Hero:** knocked out, up again at the clinic after 20 s.
+- **Townsfolk:** can be fought too; see `civilians_plan.md`.
+- **Heat (2026-10-17):** per clan, +2 for a hit, +10 for a down, +30 for a kill; cools 1 every 30 s. Shown in the heat badge with notices.
 - **Controls:** right-click a downed enemy = execute (nearest selected crew, else the hero).
-- **Bots:** each clan has an aggression value from 0 to 1. Bots execute only with no enemy within 5 steps and not in a fight, on an aggression-weighted roll, pricier types first. Executions add heat once heat exists. Defenders attack anyone channelling an execute on a downed friend.
+- **Bots:** each clan has an aggression value from 0 to 1. Bots execute only with no enemy within 5 steps and not in a fight, on an aggression-weighted roll (repeated every second), pricier types first. Bot clans' downed crew are taken off the map (not to the clinic) until rival bases exist. Executions add heat once heat exists. Defenders attack anyone channelling an execute on a downed friend.
 
 **Build order:**
 - [x] H1. Downed state and execute in the sim, with Node tests (done 2026-10-17: `startExecute`, `executeStep` in `sim/game.js`; test `game/tools/test_downed.mjs`)
