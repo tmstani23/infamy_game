@@ -22,9 +22,9 @@
     "heroRespawnSeconds": 20
   },
   "types": {
-    "hero":      { "sprite": "ronin",     "hp": 800, "damage": 30, "attackRange": 1.7, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire",
+    "hero":      { "sprite": "ronin",     "hp": 800, "damage": 30, "attackRange": 2.5, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire",
       "abilities": {
-        "Q": { "name": "Iaido Dash",  "kind": "dash",       "cooldown": 8,  "range": 5, "seconds": 0.25, "damageMultiplier": 1.5, "about": "Dash toward the mouse, cutting every enemy passed for 150% damage" },
+        "Q": { "name": "Iaido Dash",  "kind": "dash",       "cooldown": 8,  "range": 6.5, "seconds": 0.3, "damageMultiplier": 1.5, "about": "Dash toward the mouse, cutting every enemy passed for 150% damage" },
         "E": { "name": "Intimidate",  "kind": "intimidate", "cooldown": 14, "radius": 4, "seconds": 5, "enemyDamage": 0.7, "about": "Enemies within 4 steps deal 30% less damage for 5 s" },
         "R": { "name": "Rally",       "kind": "rally",      "cooldown": 20, "radius": 8, "seconds": 6, "attackSpeed": 1.3, "heal": 0.1, "about": "Crew within 8 steps attack 30% faster for 6 s and heal 10%" },
         "F": { "name": "Red Lantern", "kind": "lantern",    "cooldown": 60, "seconds": 8, "damage": 1.5, "lifesteal": 0.2, "about": "8 s of 50% more damage, healing 20% of damage dealt" }
@@ -32,6 +32,8 @@
     "thug":      { "sprite": "thug",      "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "price": 60,  "hireSeconds": 5, "recoverSeconds": 30 },
     "brute":     { "sprite": "brute",     "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "price": 100, "hireSeconds": 8, "recoverSeconds": 45 },
     "swordsman": { "sprite": "swordsman", "hp": 240, "damage": 16, "attackRange": 1.6, "attackSpeed": 1.2, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.6, "radius": 0.35, "price": 120, "hireSeconds": 8, "recoverSeconds": 45 },
+    "bandit":      { "sprite": "bandit", "name": "Bandit", "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "_note": "night bandit (data/bandits.json), not for hire" },
+    "night_brute": { "sprite": "brute",  "name": "Night brute", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "_note": "night bandit (data/bandits.json), not for hire" },
     "rifleman":  { "sprite": "mercenary", "later": "needs projectiles" },
     "archer":    { "sprite": "archer",    "later": "needs projectiles" }
   }

@@ -19,3 +19,28 @@ assert.ok(Math.hypot(head.x - centre.x, head.y - centre.y) > 18, 'head is far fr
 assert.ok(bodyDistance(view, e, centre.x + 40, centre.y) > 30, 'beside it does not count');
 assert.ok(bodyDistance(view, e, head.x, head.y - 60) > 30, 'well above it does not count');
 console.log('picking tests passed');
+
+// Tab targeting: nearest enemy first, then the next; never townsfolk, own crew or downed units
+{
+  const { readFileSync } = await import('node:fs');
+  const { createGame } = await import('../src/sim/game.js');
+  const { tabTarget } = await import('../src/crew_input.js');
+  const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
+  const g = createGame({ district: data('data/waterfront.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
+    interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
+    units: data('data/units.json'), civilians: data('data/civilians.json') });
+  g.clans.addClan('player'); g.clans.addClan('kuroda', { bot: true });
+  const S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', 0, 1, { owner: 'player' });
+  g.spawn('thug', 'thug', 1, 1, { owner: 'player' });
+  g.civilians.add('merchant', 1.5, 1);
+  const near = g.spawn('thug', 'thug', 3, 1, { owner: 'kuroda' }), next = g.spawn('thug', 'thug', 6, 1, { owner: 'kuroda' });
+  const down = g.spawn('thug', 'thug', 2, 1, { owner: 'kuroda' }); S[down].downed = true;
+  g.spawn('thug', 'thug', 30, 1, { owner: 'kuroda' });                     // too far
+  assert.equal(tabTarget(g.state, hero, undefined), near, 'nearest enemy first');
+  assert.equal(tabTarget(g.state, hero, near), next, 'then the next');
+  assert.equal(tabTarget(g.state, hero, next), near, 'and round again');
+  g.step([{ id: hero, type: 'attack', target: tabTarget(g.state, hero) }]);
+  assert.equal(S[hero].attackTarget, near, 'it locks the hero on');
+  console.log('tab targeting ok');
+}

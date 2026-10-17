@@ -168,19 +168,28 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   assert.ok(spread > 1.2, `crew spread round the target (${spread.toFixed(2)} rad)`);
 }
 
-// Hero chase: attack command walks the hero to the enemy and keeps hitting; WASD cancels
+// Hero lock-on: the attack command never chases; the hero hits the target only in reach,
+// WASD keeps the lock, and it drops when the target goes far away
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
   const t = g.spawn('brute', 'brute', 0, 1, { owner: 'kuroda', order: { kind: 'station', x: 0, z: 1 } });
   S[t].hp = S[t].maxHp = 1e9; S[t].damage = 0;
   g.step([{ id: hero, type: 'attack', target: t }]);
-  secs(g, 4);
-  assert.ok(Math.hypot(S[hero].x - S[t].x, S[hero].z - S[t].z) < 2.4, 'hero ran to the target');
-  assert.ok(S[t].hp < 1e9, 'and hit it');
+  secs(g, 2);
+  assert.deepEqual([S[hero].x, S[hero].z], [-6, 1], 'no chasing');
+  assert.equal(S[t].hp, 1e9, 'out of reach: no hits');
+  assert.equal(S[hero].attackTarget, t, 'still locked');
+  S[hero].x = S[t].x - T.hero.attackRange; S[hero].z = S[t].z;   // in reach
+  secs(g, 2);
+  assert.ok(S[t].hp < 1e9, 'hits it once in reach');
   g.step([{ id: hero, type: 'move', right: -1, down: 0 }]);
-  assert.equal(S[hero].attackTarget, undefined, 'WASD cancels the chase');
-  assert.equal(S[hero].swing, undefined);
+  assert.equal(S[hero].attackTarget, t, 'WASD keeps the lock');
+  assert.equal(S[hero].swing, undefined, 'but cancels the swing');
+  g.step([{ id: hero, type: 'move', right: 0, down: 0 }]);
+  S[hero].x = S[t].x - 20;
+  g.step();
+  assert.equal(S[hero].attackTarget, undefined, 'far away: lock dropped');
   // cannot attack your own side
   const mine = g.spawn('thug', 'thug', -8, 1, { owner: 'player' });
   g.step([{ id: hero, type: 'attack', target: mine }]);

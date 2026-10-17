@@ -7,6 +7,7 @@ import { generateRoom } from './generate.js';
 import { createClans } from './clans.js';
 import { createNav } from './nav.js';
 import { createCivilians } from './civilians.js';
+import { createBandits, WILD } from './bandits.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -21,7 +22,7 @@ const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export function createGame(options) {
-  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null, civilians: civData = null } = options;
+  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null, civilians: civData = null, bandits: banditData = null } = options;
   const scenery = placeScenery(district, catalog, cutouts);
 
   // Rooms for buildings that have an interior, and the doors between them
@@ -69,7 +70,7 @@ export function createGame(options) {
   // Everything here is plain data, so it can be synced to other players as is
   // businesses: { b0: { kind: 'warehouse', x, z, door, owner: null } }, keyed by building index
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
-  const state = { tick: 0, night: false, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [] };
+  const state = { tick: 0, night: false, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [] };
   district.buildings.forEach((b, i) => {
     if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
   });
@@ -178,13 +179,17 @@ export function createGame(options) {
   // --- Combat (RTS / Dota style) ----------------------------------------------------
   // Units of two different clans in the same place are enemies. Crew pick fights on
   // their own within AGGRO, but never wander more than LEASH from where they belong.
-  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3;
+  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, LOCK_RANGE = 14;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
-  const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place;
+  // Night bandits (sim/bandits.js) are only enemies of a clan that has made them angry
+  const wild = t => t?.owner === WILD;
+  const angryAt = (w, o) => (w.angry?.[o.owner] ?? -1) > state.tick;
+  const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+    && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a));
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
-  const fair = (a, b) => hostile(a, b) || (civ(b) && a !== b && !b.dead && !b.downed && !!a.owner && a.place === b.place);
+  const fair = (a, b) => hostile(a, b) || ((civ(b) || (wild(b) && !wild(a))) && a !== b && !b.dead && !b.downed && !!a.owner && a.place === b.place);
   const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
 
   function nearestEnemy(e, x, z, range) {
@@ -238,7 +243,7 @@ export function createGame(options) {
     if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
     const d = Math.hypot(t.x - e.x, t.z - e.z);
     // a townsperson running away gets away during the wind-up: get right up close first
-    const running = civ(t) && t.flee;
+    const running = chase && civ(t) && t.flee;
     if (d > reachOf(e, t) * (running ? 0.5 : 1)) {
       if (chase) {
         // close in on a spot round the target so several attackers surround it instead of queueing
@@ -322,6 +327,7 @@ export function createGame(options) {
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
     if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
     if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
+    if (wild(t)) bandits.provoke(t, a.owner);
     if (t.hp > 0) return;
     delete t.swing;
     delete t.dash;
@@ -329,6 +335,8 @@ export function createGame(options) {
     delete paths[t.id];
     delete fight[t.id];
     t.anim = 'death';
+    // bandits die outright and pay the killer's clan
+    if (wild(t)) { t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
     if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; return; }
     t.dead = true;
@@ -485,7 +493,7 @@ export function createGame(options) {
     tryMove(e, unit.radius, d.vx, 0);
     tryMove(e, unit.radius, 0, d.vz);
     for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t) || d.hit.includes(t.id) || Math.hypot(t.x - e.x, t.z - e.z) > statsOf(t.type).radius + 0.9) continue;
+      if (!(hostile(e, t) || (wild(t) && fair(e, t))) || d.hit.includes(t.id) || Math.hypot(t.x - e.x, t.z - e.z) > statsOf(t.type).radius + 0.9) continue;
       d.hit.push(t.id);
       hit(e, t, Math.round(unit.damage * (a?.damageMultiplier || 1) * damageScale(e)), false, 'dash');
     }
@@ -617,6 +625,23 @@ export function createGame(options) {
     stopPath: e => { delete paths[e.id]; }, seed: (options.seed ?? 12345) ^ 0x5eed,
   });
 
+  // A bandit's fighting, one tick: finish a swing, or go for the nearest clan it is angry at
+  // within range; false when there is nobody to fight
+  function fightStep(e, range) {
+    const unit = statsOf(e.type);
+    if (swingStep(e, unit)) return true;
+    const t = e.angry && nearestEnemy(e, e.x, e.z, range);
+    if (t) { engage(e, unit, t); return true; }
+    if (fight[e.id]) delete fight[e.id].target;
+    return false;
+  }
+  const bandits = createBandits({
+    state, data: banditData, units, pois: district.pois, edges: district.edges, nav, spawn, moveTo, fightStep, statsOf,
+    stopPath: e => { delete paths[e.id]; },
+    remove: id => { delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id]; },
+    seed: (options.seed ?? 12345) ^ 0xba7d,
+  });
+
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
   //   its selected crew, inside with it; coming out, its crew in the room come too),
@@ -633,6 +658,7 @@ export function createGame(options) {
     state.hits = [];      // this tick's hits and ability uses, for the renderer
     state.casts = [];
     state.heatGains = [];
+    state.ryoGains = [];
     for (const c of commands) {
       if (c.type === 'time') { state.night = typeof c.night === 'boolean' ? c.night : !state.night; continue; }
       const e = state.entities[c.id];
@@ -657,7 +683,7 @@ export function createGame(options) {
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e.type);
-      if (e.type === 'civilian') continue;             // townsfolk move in civilians.tick below
+      if (e.type === 'civilian' || e.wild) continue;   // townsfolk and bandits move in civilians.tick / bandits.tick below
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead) continue;
       if (e.dash) { dashStep(e, unit); continue; }
@@ -671,19 +697,20 @@ export function createGame(options) {
       if (len < 0.1) {
         if (e.execute && executeStep(e, unit)) continue;
         if (swingStep(e, unit)) continue;
-        // a clicked enemy: chase it and keep hitting it (Dota right-click)
+        // a locked target (Ctrl + right-click): no chasing (Tim 2026-10-17), the hero hits it
+        // whenever it is in reach and the player keeps him there with WASD; the lock drops when
+        // the target is down or gone, or more than LOCK_RANGE away
         const target = state.entities[e.attackTarget];
-        if (fair(e, target)) { engage(e, unit, target, true); continue; }
-        delete e.attackTarget;
+        if (!fair(e, target) || Math.hypot(target.x - e.x, target.z - e.z) > LOCK_RANGE) delete e.attackTarget;
+        else if (Math.hypot(target.x - e.x, target.z - e.z) <= reachOf(e, target)) { engage(e, unit, target, false); continue; }
         // otherwise standing still: hit the nearest enemy in reach
         const t = unit.damage && nearestEnemy(e, e.x, e.z, (unit.attackRange || 1) + 0.6);
         if (t) engage(e, unit, t, false); else e.anim = 'idle';
         continue;
       }
-      // moving with WASD cancels a swing, a chase and an execute
+      // moving with WASD cancels a swing and an execute, but keeps the locked target
       delete e.swing;
       delete e.execute;
-      delete e.attackTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
       const d = unit[e.anim] * DT / len;
@@ -691,6 +718,7 @@ export function createGame(options) {
       tryMove(e, unit.radius, 0, dz * d);
     }
     civilians.tick();
+    bandits.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -714,5 +742,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians };
+  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits };
 }

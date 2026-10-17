@@ -123,6 +123,8 @@
     text-shadow: 0 0 10px #ff5a1e, 0 0 22px rgba(255,60,20,.8), 0 2px 2px #000; animation: heatgain 2.2s ease-out forwards; }
   .heatgain span { font: 800 15px/1 system-ui, sans-serif; letter-spacing: .04em; color: #f3dcc0; }
   .heatgain b { font: 900 34px/1 system-ui, sans-serif; color: #ffd27a; }
+  .ryogain { text-shadow: 0 0 10px #e8b21a, 0 0 22px rgba(232,178,26,.8), 0 2px 2px #000; }
+  .ryogain b { color: #ffe066; }
   @keyframes heatgain { 0% { opacity: 0; transform: translateY(16px) scale(.6); } 15% { opacity: 1; transform: translateY(0) scale(1.15); }
     25% { transform: translateY(-4px) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-50px) scale(1); } }
   #heat.infamous { animation: heatpulse 1s ease-in-out infinite alternate; }
@@ -130,6 +132,11 @@
   @keyframes flicker { from { opacity: .88; } to { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,120,30,1)); } }
   @keyframes heatflare { 0% { transform: scale(1); } 30% { transform: scale(1.14); filter: brightness(1.6); } 100% { transform: scale(1); } }
   @keyframes heatpulse { from { filter: brightness(1); } to { filter: brightness(1.35); transform: scale(1.04); } }
+  /* the hero's locked target (src/crew_input.js drawLock): a glowing red chevron over its head */
+  #lock { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 5; }
+  #lock i { position: absolute; left: -9px; top: -22px; width: 18px; height: 14px; background: #ff3a24;
+    clip-path: polygon(0 0, 100% 0, 50% 100%); filter: drop-shadow(0 0 4px #ff3a24) drop-shadow(0 0 8px rgba(255,80,40,.8)); animation: lockbob .8s ease-in-out infinite alternate; }
+  @keyframes lockbob { from { transform: translateY(-3px); } to { transform: translateY(2px); } }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #9a968c; }
 </style>
 <script type="importmap">
@@ -144,7 +151,7 @@
 <div id="hud">
   <b>INFAMY</b>
   <span id="money"></span>
-  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click crew go / attack (Ctrl hold) · middle-click / Shift+right-click / mouse side button = hero attack · X attack-move · V follow · G heal at clinic · side button / right-click on a downed foe = execute (hero / crew) · Space at clinic ring = clinic · click townsfolk = look, attack them like foes (heat) · M mute · = / - zoom</span>
+  <span>WASD move · arrows pan camera · Shift walk · Space door · Q E R F abilities · H hire · click/drag select crew · C all · right-click crew go / attack (Ctrl hold) · Ctrl+right-click a unit or Tab (next enemy) = hero auto attack (downed: execute) · X attack-move · V follow · G heal at clinic · right-click a downed foe = crew execute · Space at clinic ring = clinic · click townsfolk = look, attack them like foes (heat) · M mute · = / - zoom</span>
   <button id="daynight">Night (N)</button>
 </div>
 <button id="snap" hidden>Back to hero (Home)</button>
@@ -152,6 +159,7 @@
 <div id="hire" hidden></div>
 <div id="clinic" hidden></div>
 <div id="heat"></div>
+<div id="lock" hidden><i></i></div>
 <div id="selbox" hidden></div>
 <div id="fx"></div>
 <div id="bar"></div>

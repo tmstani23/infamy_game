@@ -22,10 +22,10 @@ const getJSON = async url => {
 
 async function start() {
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, units, civilians] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits] = await Promise.all([
     getJSON(`data/${params.get('district') || 'waterfront'}.json`), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json')]);
 
   // ?room=gambling_den&seed=3 swaps in a generated room and starts you inside it
   const tryRoom = params.get('room');
@@ -37,7 +37,7 @@ async function start() {
   }
 
   // Single player runs the rules here. In multiplayer the server runs them instead.
-  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units, civilians });
+  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits });
   game.clans.addClan('player', { name: 'Your clan' });
   const inRoom = tryRoom && game.rooms.find(r => r.name === tryRoom);
   const [hx, hz] = inRoom ? [inRoom.spawn.x, inRoom.spawn.z] : district.spawns.hero;
@@ -109,6 +109,7 @@ async function start() {
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
   onKey('KeyX', () => crewInput.armAttackMove());
+  onKey('Tab', () => crewInput.tab());
   onKey('KeyG', () => crewInput.healSelected());
   onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); crewInput.clear(); });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']
@@ -151,6 +152,7 @@ async function start() {
     view.pan(pan.right, pan.up, dt);
     $('snap').hidden = !view.isPanned();
     view.render(game.state, prev, acc / tick, dt, now, heroId);
+    crewInput.drawLock($('lock'));
     bar.update(game.state.tick - 1 + acc / tick);
   });
 }

@@ -73,6 +73,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.equal(S[id].hp, S[id].maxHp, 'no auto attacks on townsfolk');
   delete S[bot];
   S[id].hp = 1e4; S[id].maxHp = 1e4;
+  delete S[id].flee; delete S[id].scared; S[id].x = S[hero].x + 1.5; S[id].z = S[hero].z;   // in the hero's reach (he does not chase)
   g.step([{ id: hero, type: 'attack', target: id }]);
   let first = null;
   for (let i = 0; i < 20 * 6 && first === null; i++) { g.step(); if (g.state.hits.some(h => h.t === id)) first = g.state.tick; }
@@ -86,7 +87,8 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   // goes down at 0 HP
   S[id].hp = 1; S[id].maxHp = civData.rules.hp;
   let down = false;
-  for (let i = 0; i < 20 * 10 && !down; i++) { g.step(); down = !!S[id].downed; }
+  // the hero does not chase: hold the runner in reach
+  for (let i = 0; i < 20 * 10 && !down; i++) { if (!S[id].downed) { delete S[id].flee; S[id].x = S[hero].x + 1.5; S[id].z = S[hero].z; } g.step(); down = !!S[id].downed; }
   assert.ok(down, 'downed');
   assert.equal(C.player.heat, heat.hit * 2 + heat.down, 'heat for downing');
   // bots never finish townsfolk off

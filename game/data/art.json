@@ -1,6 +1,7 @@
 {
   "buildingScale": 1.3,
   "characters": {"ronin":{"idle":{"file":"ronin_breathing_idle","speed":0.5},"walk":"ronin_walk","run":"ronin_run","attack":"ronin_great_sword_slash","death":"ronin_two_handed_sword_death"},
+    "bandit":{"idle":"bandit_fighting_idle","walk":"bandit_walking","run":"bandit_running","attack":"bandit_punching","death":"bandit_dying"},
     "thug":{"idle":"thug_fighting_idle","walk":"thug_walking","run":"thug_running","attack":"thug_punching","death":"thug_dying"},
     "brute":{"idle":"brute_idle","walk":"brute_walking","run":"brute_running","attack":"brute_punching","death":"brute_dying"},
     "swordsman":{"idle":{"file":"swordsman_breathing_idle","speed":0.5},"walk":"swordsman_walking","run":"swordsman_run","attack":"swordsman_great_sword_slash","death":"swordsman_two_handed_sword_death"},
