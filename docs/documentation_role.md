@@ -56,6 +56,13 @@ To keep sweeps cheap, each one reads only docs and code changed since the last s
 
 Last sweep: 2026-10-17 00:22 UTC, the full cleanup (last commit then: 269f19d).
 
+## Commits (Tim, 2026-10-17)
+
+- The Docs keeper is the only thread that commits, locally, in phases after big changes or when the channel session says a feature or batch is done. Group commits sensibly (docs, game code, art).
+- Never push: Tim pushes.
+- Leave `to_delete/` out of commits. Files over about 50 MB, or ones that don't belong in git, are left out and flagged to Tim.
+- The folder blocks deletes, so git leaves its lock and temp files behind. Run git with `-c core.createObject=rename -c gc.auto=0 -c maintenance.auto=false` and move any leftovers into `.git/stale_tmp/` (Tim can empty it).
+
 ## How the Docs keeper writes
 
 1. Re-read the file right before writing, since other threads may have changed it.
