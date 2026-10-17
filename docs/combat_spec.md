@@ -145,3 +145,12 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 - [x] H3. Carried off, clinic recovery and the heal order (done 2026-10-17: `carryOffDowned` in `sim/game.js`; clinic list, `carryOff`, `checkIn`, `clinicTick` in `sim/clans.js`; heal order on G)
 - [x] H4. Clinic on the map, down marker, channel bar, controls (done 2026-10-17: clinic b9 in `data/waterfront.json`; rules in `units.json`: `executeSeconds`, `botAggression`, `carryAfterSeconds`, `carryRadius`, `recoverCostShare`, `healPerSecond`, `healCostPerHp`, `recoverSeconds`)
 - [ ] H5. Tim playtests
+
+## I. Night bandits (built 2026-10-17)
+
+Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandits.js`; test `game/tools/test_bandits.mjs`.
+
+- Types: bandit (thug stats, about 20 ryo, weight 2) and night brute (brute stats, about 40 ryo, weight 1). Ryo varies by 25%.
+- At night: 2 walk in first, then one every 20 s, up to 6 at once and 12 a night, from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
+- Neutral until hit; then they and every bandit within 8 steps fight that clan, giving up after 10 s without being hit or with nobody of it within 15 steps.
+- No downing (they die at 0 HP) and no heat. The ryo goes to the killer's clan, with a gold "Bandit killed +20 ryo" notice by the heat gauge (`state.ryoGains`).

@@ -126,16 +126,13 @@ Noise versus power is a choice on every raid.
 - Raised by territory, raids and intimidation.
 - High infamy makes you a target: raiding a high-infamy clan pays more and steals some of its infamy.
 
-## Night bandits (built 2026-10-17)
+## Night bandits (Settled, built 2026-10-17)
 
-- Up to 6 at once and 12 a night: bandits (thug stats, about 20 ryo) and night brutes (brute stats, about 40 ryo).
-- They walk in from the map edge at night, wander like townsfolk and leave at dawn.
-- Neutral until hit; nearby bandits join in. No heat. They die outright, and the killer's clan gets the ryo.
-- A gold "Bandit killed +20 ryo" notice shows by the heat gauge.
+Neutral bandits roam the streets at night and pay ryo when killed. Rules: `docs/combat_spec.md`, section I.
 
 ## Future ideas
 
-- Loot drops from night bandits once inventory exists.
+- Night bandits drop loot once inventory exists.
 
 ## Open questions
 

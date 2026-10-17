@@ -45,6 +45,7 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 | Combat | [combat_spec.md](combat_spec.md) | `sim/game.js` (attacks, damage, knockouts, downed and execute, carry-off), `sim/clans.js` (clinic), `crew_input.js` (attack, attack-move), `clinic_menu.js`, `render/health.js`, `render/hitfx.js`, `game/tools/test_combat.mjs`, `test_downed.mjs`, `test_clinic_townsfolk.mjs` |
 | Abilities and effects | [combat_spec.md](combat_spec.md) F, G | `sim/game.js` (abilities), `action_bar.js`, `render/abilityfx.js`, `render/vfx.js`, `render/bloom.js`, `game/tools/test_abilities.mjs` |
 | Heat | [combat_spec.md](combat_spec.md) H | `state.clans[x].heat` and `state.heatGains` in `sim/game.js`, `heat_badge.js` |
+| Night bandits | [combat_spec.md](combat_spec.md) I | `sim/bandits.js`, `data/bandits.json`, `game/tools/test_bandits.mjs` |
 | Townsfolk | [civilians_plan.md](civilians_plan.md) | `sim/civilians.js`, `data/civilians.json`, `pois` in `data/waterfront.json`, `game/tools/test_civilians.mjs` |
 | Selection panel and portraits | [controls.md](controls.md) | `selection_panel.js`, `portraits.js`, `game/tools/test_selection_panel.mjs`, `test_picking.mjs` |
 | Sprites and art pipeline | [art_direction.md](art_direction.md), [cast_tracker.md](cast_tracker.md) | `tools/export_sprites.mjs`, `look_tests/sprite_render_test.html`, `render/characters.js` |
@@ -64,6 +65,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `interiors.js` | Lays out 3D rooms on the grid (walls, props, blockers, checks). Rooms sit far off the street map in the same world. |
 | `generate.js` | Room generator: building type + seed gives a room in the same format as `interiors.json`. |
 | `civilians.js` | Townsfolk: trips between map spots, day/night schedule, fear and fleeing, witnesses. |
+| `bandits.js` | Night bandits: walk in from the map edges, wander, fight back when hit, pay ryo when killed. |
 
 **Render** (`game/src/render`, three.js, reads state, never changes it)
 
@@ -94,22 +96,23 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `selection_panel.js` | Panel for the selected crew or townsperson. |
 | `portraits.js` | Portraits for the panels. |
 | `clinic_menu.js` | Clinic menu: heal and revive. |
-| `heat_badge.js` | Heat badge and heat notices. |
+| `heat_badge.js` | Heat badge, heat notices and ryo gains (`state.ryoGains`). |
 
 **Other**
 
 - `game/index.html`: page, HUD elements, three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`).
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, all `.mjs`) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, all `.mjs`) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 
 | File | Holds |
 |---|---|
-| `waterfront.json` | The district map: ground zones, buildings, props, doors, spawns, which room each building opens into. |
+| `waterfront.json` | The district map: ground zones, buildings, props, doors, spawns, which room each building opens into, townsfolk spots (`pois`) and map `edges`. |
 | `art.json` | Art catalog: sizes, footprints and scale for every sprite and cut-out, so art can be swapped without code changes. |
 | `units.json` | Unit stats and clan rules (start ryo, cap, prices, HP, regen, downed and clinic rules). |
 | `civilians.json` | Townsfolk types and tuning. |
+| `bandits.json` | Night bandit rules and ryo per type. |
 | `interiors.json` | Hand-made rooms (the approved teahouse). |
 | `interior_parts.json` | Room parts, materials and placement rules. |
 | `room_recipes.json` | Generator recipes per building type and Tim's picked seeds. |
