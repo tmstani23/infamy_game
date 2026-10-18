@@ -39,7 +39,7 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 | Feature | Spec doc | Main code |
 |---|---|---|
 | Movement, camera, zoom, day/night | [tech_plan.md](tech_plan.md), [controls.md](controls.md) | `state.night` and the `time` command in `sim/game.js`, `sim/geometry.js`, `input.js`, `render/view.js`, `render/iso.js`, `render/shading.js` |
-| District map and outdoor art | [tech_plan.md](tech_plan.md) | `data/waterfront.json`, `data/art.json`, `render/scenery.js`, `tools/cut_environment.py` |
+| District map and outdoor art | [tech_plan.md](tech_plan.md), [buildings.md](buildings.md) | `data/waterfront.json`, `data/art.json`, `render/scenery.js`, `tools/cut_environment.py` |
 | Interiors and room generator | [interiors_spec.md](interiors_spec.md), [room_generator_plan.md](room_generator_plan.md) | `sim/interiors.js`, `sim/generate.js`, `render/interior3d.js`, `data/interiors.json`, `data/interior_parts.json`, `data/room_recipes.json`, `game/tools/test_rooms.mjs` |
 | Crew hiring and orders | [crew_recruiting_plan.md](crew_recruiting_plan.md) | `sim/clans.js`, `sim/nav.js`, `sim/game.js` (orders), `hire_menu.js`, `crew_input.js`, `data/units.json`, `game/tools/test_crew.mjs` |
 | Combat | [combat_spec.md](combat_spec.md) | `sim/game.js` (attacks, damage, knockouts, downed and execute, carry-off), `sim/clans.js` (clinic), `crew_input.js` (attack, attack-move), `clinic_menu.js`, `render/health.js`, `render/hitfx.js`, `game/tools/test_combat.mjs`, `test_downed.mjs`, `test_clinic_townsfolk.mjs` |

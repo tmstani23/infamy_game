@@ -29,6 +29,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/civilians_plan.md](docs/civilians_plan.md) | Townsfolk walking the streets |
 | [docs/interiors_spec.md](docs/interiors_spec.md) | 3D interior rules and look |
 | [docs/room_generator_plan.md](docs/room_generator_plan.md) | Room generator |
+| [docs/buildings.md](docs/buildings.md) | Every building image: chat number, code id, file, source sheet, map placement |
 | [docs/cast_tracker.md](docs/cast_tracker.md) | Characters, animations and sprite sheet status |
 | [docs/gameplay_and_design.md](docs/gameplay_and_design.md) | Game design |
 | [docs/art_direction.md](docs/art_direction.md) | The look and the sprite pipeline |
