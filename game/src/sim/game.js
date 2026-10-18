@@ -5,10 +5,11 @@ import { placeScenery, placePiece, dirIndex, SCREEN_RIGHT, SCREEN_DOWN } from '.
 import { buildRoom3d, INTERIOR_ORIGIN } from './interiors.js';
 import { generateRoom } from './generate.js';
 import { createClans } from './clans.js';
-import { createNav } from './nav.js';
+import { createNav, ROOM_NAV } from './nav.js';
 import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
 import { createVision } from './vision.js';
+import { createPolice, POLICE } from './police.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -23,7 +24,7 @@ const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export function createGame(options) {
-  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null, civilians: civData = null, bandits: banditData = null } = options;
+  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null, civilians: civData = null, bandits: banditData = null, police: policeData = null } = options;
   const scenery = placeScenery(district, catalog, cutouts);
 
   // Rooms for buildings that have an interior, and the doors between them
@@ -56,6 +57,9 @@ export function createGame(options) {
   // Nothing happens in the rules at that door; the screen opens the menu, which sends commands.
   district.buildings.forEach((b, i) => {
     if (b.business === 'clinic' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'clinic', business: `b${i}`, place: 'street', label: 'Open the clinic' });
+    // the police box (bribes) and the police HQ (bail), sim/police.js
+    if (b.business === 'police_box' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_box', business: `b${i}`, place: 'street', label: 'Talk to the police box' });
+    if (b.business === 'police_hq' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_hq', business: `b${i}`, place: 'street', label: 'Open the police HQ' });
   });
 
   const B = district.bounds, far = 1000;
@@ -71,14 +75,18 @@ export function createGame(options) {
   // Everything here is plain data, so it can be synced to other players as is
   // businesses: { b0: { kind: 'warehouse', x, z, door, owner: null } }, keyed by building index
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
-  const state = { tick: 0, night: false, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [] };
+  const state = { tick: 0, night: false, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [], policeNews: [] };
   district.buildings.forEach((b, i) => {
     if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
   });
-  const clans = units ? createClans(state, units) : null;
+  // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
+  const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1 }) : null;
   const vision = createVision(state, district.bounds, units?.rules?.vision);
   const intents = {};     // latest move command per entity (server-side only)
   const nav = createNav(blockers, district.bounds);
+  // a walk grid per room too, so units path round the furniture indoors instead of snagging on it
+  const roomNavs = Object.fromEntries(rooms.map(r => [r.name, createNav(r.blockers, { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, ROOM_NAV)]));
+  const navOf = place => place === 'street' ? nav : roomNavs[place];
   const paths = {};       // crew walking routes (server-side only, rebuilt when needed)
   let nextId = 1;
 
@@ -116,14 +124,14 @@ export function createGame(options) {
     return [(k % side - (side - 1) / 2) * sp, (Math.floor(k / side) - (rows - 1) / 2) * sp];
   }
 
-  // order command from a hero for some of its own crew on the street:
+  // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
     if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal'].includes(c.kind)) return;
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
     if (!['follow', 'attack', 'heal'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
-      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
+      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === hero.place);
     crew.forEach((u, k) => {
       delete paths[u.id];
       delete u.execute;
@@ -132,13 +140,13 @@ export function createGame(options) {
       if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target }; return; }
       if (c.kind === 'heal') {
         const b = clans?.clinicOf();
-        if (!b || u.hp >= u.maxHp) return;
+        if (!b || u.hp >= u.maxHp || u.place !== 'street') return;   // from the street only
         const [x, z] = nav.nearestFree(...(b.door || [b.x, b.z])) || [b.x, b.z];
         u.order = { kind: 'heal', x, z };
         return;
       }
       const [ox, oz] = blockOffset(k, crew.length);
-      const [x, z] = nav.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
+      const [x, z] = navOf(u.place)?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
       u.order = { kind: c.kind, x, z };
     });
   }
@@ -159,15 +167,19 @@ export function createGame(options) {
 
   // Walk one tick toward (gx, gz) along a street path; false when there is no way
   function moveTo(e, unit, gx, gz, walk) {
-    if (e.place !== 'street') paths[e.id] = { pts: [[gx, gz]], gx, gz };   // rooms: walk straight (the walk grid covers the street)
+    const grid = navOf(e.place);
+    if (!grid) paths[e.id] = { pts: [[gx, gz]], gx, gz };   // a place with no walk grid: walk straight
     let p = paths[e.id];
     if (!p || Math.hypot(p.gx - gx, p.gz - gz) > 1.2 || !p.pts.length) {
-      p = paths[e.id] = { pts: nav.findPath(e.x, e.z, gx, gz) || [], gx, gz };
+      p = paths[e.id] = { pts: grid.findPath(e.x, e.z, gx, gz) || [], gx, gz };
       if (!p.pts.length) return false;
     }
     // the last leg goes straight at the live goal (keeps up with a moving hero or enemy)
     let [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0];
-    if (p.pts.length > 1 && Math.hypot(wx - e.x, wz - e.z) < 0.35) { p.pts.shift(); [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0]; }
+    // a waypoint counts as reached when close and the next one is in clear view (else cutting
+    // the corner snags a wide body on the furniture), or when right on it
+    const near = Math.hypot(wx - e.x, wz - e.z);
+    if (p.pts.length > 1 && (near < 0.05 || (near < 0.35 && grid?.clearLine(e.x, e.z, ...p.pts[1])))) { p.pts.shift(); [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0]; }
     const dx = wx - e.x, dz = wz - e.z, len = Math.hypot(dx, dz);
     if (len < 1e-6) return true;
     e.anim = walk ? 'walk' : 'run';
@@ -185,22 +197,28 @@ export function createGame(options) {
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
   // Night bandits (sim/bandits.js) are only enemies of a clan that has made them angry
   const wild = t => t?.owner === WILD;
+  // Police officers (sim/police.js) are only enemies of a clan they are after (o.angry, like bandits)
+  const cop = t => t?.owner === POLICE;
   const angryAt = (w, o) => (w.angry?.[o.owner] ?? -1) > state.tick;
-  const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
-    && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a));
+  // a jailed hero (sim/police.js) stands greyed out at the HQ: nobody can touch him
+  const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+    && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a));
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
-  const fair = (a, b) => hostile(a, b) || ((civ(b) || (wild(b) && !wild(a))) && a !== b && !b.dead && !b.downed && !!a.owner && a.place === b.place);
+  // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
+  const fair = (a, b) => hostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
   // (night bandits) are not limited.
   const sees = (a, b) => !state.clans?.[a.owner] || vision.canSee(a.owner, b);
   const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
 
+  // Officers are never picked on their own: hitting police (+heat) is always the player's
+  // (or bot's) own order, so standing still next to a squad doesn't spiral the heat
   function nearestEnemy(e, x, z, range) {
     let best = null, bd = range;
     for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t) || !sees(e, t)) continue;
+      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e))) continue;
       const d = Math.hypot(t.x - x, t.z - z);
       if (d < bd) { bd = d; best = t; }
     }
@@ -227,13 +245,13 @@ export function createGame(options) {
     // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
     if ((o.kind === 'move' || o.kind === 'heal') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
     // first stop anyone finishing off one of our downed crew nearby
-    const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t)
+    const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t) && !cop(t)
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
     if (executor) return executor;
     const [ax, az] = anchorOf(e);
     const f = fight[e.id];
     const old = f && state.entities[f.target];
-    if (hostile(e, old) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
+    if (hostile(e, old) && !cop(old) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
     return nearestEnemy(e, e.x, e.z, AGGRO);
   }
 
@@ -309,9 +327,12 @@ export function createGame(options) {
   // cooling by 1 every heatCoolSeconds. Nothing reacts to it yet.
   const heatFor = k => units?.rules?.civilianHeat?.[k] || 0;
   // state.heatGains = this tick's rises ({ clan, amount, reason }), for the heat pop-ups
+  // c.infamy = lifetime heat (stand-in until the infamy board); the top-infamy clan gains more (police.heatScale)
   function addHeat(owner, n, reason) {
     const c = state.clans?.[owner];
     if (!c || !n) return;
+    c.infamy = (c.infamy || 0) + n;
+    n = Math.round(n * (police?.heatScale(owner) ?? 1));
     c.heat = (c.heat || 0) + n;
     state.heatGains.push({ clan: owner, amount: n, reason });
   }
@@ -333,6 +354,13 @@ export function createGame(options) {
     if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
     if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
     if (wild(t)) bandits.provoke(t, a.owner);
+    if (cop(a)) t.copHitAt = state.tick;     // the police box won't take a bribe right after (sim/police.js)
+    // who fought where, for the police (a patrol goes to a clan's last fight, and for units seen fighting)
+    if (state.clans?.[a.owner]) {
+      a.foughtAt = state.tick;
+      if (a.place === 'street') state.clans[a.owner].lastFight = { x: a.x, z: a.z, tick: state.tick };
+      if (cop(t)) { addHeat(a.owner, police.rules.hitPoliceHeat, 'Assaulting police'); police.provoke(t, a.owner); }
+    }
     if (t.hp > 0) return;
     delete t.swing;
     delete t.dash;
@@ -342,8 +370,12 @@ export function createGame(options) {
     t.anim = 'death';
     // bandits die outright and pay the killer's clan
     if (wild(t)) { t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
+    // an officer knocked out is taken away (the HQ sends another)
+    if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
     if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; return; }
+    // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
+    if (cop(a) && police) { t.downed = true; t.downedAt = state.tick; return; }
     t.dead = true;
     t.anim = 'death';
     t.diedAt = state.tick;
@@ -359,9 +391,12 @@ export function createGame(options) {
       if (!e.downed || e.dead) continue;
       e.threatAt ??= e.downedAt;
       // townsfolk fear anyone in a clan; crew only their enemies
-      const threat = civ(e) ? o => o.owner && !o.dead && o.place === e.place : o => hostile(o, { ...e, downed: false });
+      const threat = civ(e) ? o => o.owner && !o.dead && o.place === e.place
+        : o => hostile(o, { ...e, downed: false }) || (cop(o) && !o.dead && police?.tierOf(e.owner) > 0);   // police come to arrest
       if (Object.values(state.entities).some(o => threat(o) && !o.downed && Math.hypot(o.x - e.x, o.z - e.z) < radius)) e.threatAt = state.tick;
       if (state.tick - e.threatAt < wait || Object.values(state.entities).some(o => o.execute?.target === e.id)) continue;
+      // a hero the police knocked down but nobody arrested: knocked out as usual (up at the clinic)
+      if (e.type === 'hero') { delete e.downed; e.dead = true; e.diedAt = state.tick; continue; }
       if (!civ(e) && !clans?.carryOff(e)) continue;      // townsfolk are helped home (sim/civilians.js sends a new one out later)
       delete state.entities[e.id];
       delete intents[e.id];
@@ -374,7 +409,9 @@ export function createGame(options) {
   // finish it: walk up, then channel for executeSeconds; a hit, moving or a new order
   // breaks the channel. e.execute = { target, start (tick the channel began, or null), len }
   // is in the state so the renderer can draw the channel bar.
-  const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && a.place === t.place && (civ(t) || (t.owner && a.owner !== t.owner));
+  // a downed hero (only the police knock one down) can only be arrested, never executed
+  const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && a.place === t.place && (civ(t) || (t.owner && a.owner !== t.owner))
+    && (t.type !== 'hero' || cop(a));
   function startExecute(e, c) {
     let ex = e;
     if (Array.isArray(c.units) && c.units.length) {
@@ -415,6 +452,14 @@ export function createGame(options) {
     e.dir = dirIndex(t.x - e.x, t.z - e.z);
     if (x.start === null) x.start = state.tick;
     if (state.tick - x.start < x.len) return true;
+    // police arrest instead: the unit goes to jail (sim/police.js), nobody dies
+    if (cop(e)) {
+      state.casts.push({ a: e.id, kind: 'arrest', target: t.id, x: t.x, z: t.z });
+      if (t.type === 'hero') police.jailHero(t);
+      else { police.jail(t); removeUnit(t.id); }
+      delete e.execute;
+      return true;
+    }
     delete t.downed;
     t.dead = true;
     t.diedAt = state.tick;
@@ -491,7 +536,7 @@ export function createGame(options) {
         if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= a.radius) addBuff(t, 'intimidated', a.seconds, { damage: a.enemyDamage });
     } else if (a.kind === 'rally') {
       for (const u of Object.values(state.entities)) {
-        if (u.dead || u.owner !== e.owner || u.type === 'hero' || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
+        if (u.dead || u.owner !== e.owner || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
         addBuff(u, 'rally', a.seconds, { boost: a.attackSpeed });
         if (u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * a.heal);
       }
@@ -604,13 +649,14 @@ export function createGame(options) {
 
   // Crew through a door with their hero (Tim 2026-10-17): going in, the crew listed in the
   // 'use' command (the player's selection) who are near the hero come along; the rest stay
-  // outside. Coming out, everyone of the hero's crew in that room comes out with him.
+  // outside. Coming out works the same way (Tim 2026-10-18): the selected crew in that room come
+  // out with him, the rest stay inside and hold the room.
   // Whoever comes along lands in a little ring round the hero and follows him.
   const BRING_RADIUS = 12;
   function bringCrew(hero, from, d, ids = []) {
     const out = d.place === 'street';
     const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.dead && !u.downed && u.place === from
-      && (out || ((ids || []).includes(u.id) && Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS)));
+      && (ids || []).includes(u.id) && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS));
     const r0 = 0.3;
     const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
     crew.forEach((u, k) => {
@@ -659,6 +705,25 @@ export function createGame(options) {
     seed: (options.seed ?? 12345) ^ 0xba7d,
   });
 
+  // Take a unit off the map (arrested, gone home), and stop anyone's attack order on it
+  function removeUnit(id) {
+    delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id];
+    for (const u of Object.values(state.entities)) if (u.order?.target === id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
+  }
+  // Police (sim/police.js): they move and fight through the same rules as crew
+  const police = units && policeData ? createPolice({
+    state, data: policeData, units, district, nav, doors, spawn, spawnOutside, moveTo, statsOf, remove: removeUnit,
+    stopPath: e => { delete paths[e.id]; },
+    act: {
+      swing: e => swingStep(e, statsOf(e.type)),
+      arresting: e => !!e.execute && executeStep(e, statsOf(e.type)),
+      arrest: (e, t) => startExecute(e, { target: t.id }),
+      engage: (e, t) => engage(e, statsOf(e.type), t),
+      hostile,
+    },
+    seed: (options.seed ?? 12345) ^ 0xc095,
+  }) : null;
+
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
   //   its selected crew, inside with it; coming out, its crew in the room come too),
@@ -667,6 +732,7 @@ export function createGame(options) {
   // [{ id, type: 'execute', target, units? }] finishes off a downed enemy: the hero, or the nearest of `units` (its crew),
   // [{ id, type: 'ability', slot: 'Q' | 'E' | 'R' | 'F', x, z }] uses a hero ability (x, z = aim on the ground),
   // [{ type: 'time', night? }] sets night on or off (no night given: flips it),
+  // [{ id, type: 'police', action: 'bribe' }] at the police box, [{ id, type: 'police', action: 'bail', prisoner }] at the HQ,
   // [{ id, type: 'clinic', action: 'revive', patient } | { id, type: 'clinic', action: 'heal' }] from a hero
   //   at the clinic door: get a carried-off crew member out now, or heal the hero and nearby crew,
   // or [{ id, type: 'order', units: [ids], kind: 'follow' | 'move' | 'station' | 'attackmove', x, z }]
@@ -676,10 +742,13 @@ export function createGame(options) {
     state.casts = [];
     state.heatGains = [];
     state.ryoGains = [];
+    state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     for (const c of commands) {
       if (c.type === 'time') { state.night = typeof c.night === 'boolean' ? c.night : !state.night; continue; }
       const e = state.entities[c.id];
       if (!e) continue;
+      // a hero lying down or in jail can still order his crew, nothing else
+      if ((e.downed || e.jailed) && c.type !== 'order' && c.type !== 'move') continue;
       if (c.type === 'move') intents[c.id] = c;
       if (c.type === 'use') {
         const d = doorNear(c.id);
@@ -695,14 +764,15 @@ export function createGame(options) {
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
       if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
+      if (c.type === 'police' && police) police.menu(e, c, doorNear(c.id));
     }
     clans?.tick(DT, spawnOutside);
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e.type);
-      if (e.type === 'civilian' || e.wild) continue;   // townsfolk and bandits move in civilians.tick / bandits.tick below
+      if (e.type === 'civilian' || e.wild || e.cop) continue;   // townsfolk, bandits and police move in their own ticks below
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
-      if (e.dead) continue;
+      if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
       if (e.dash) { dashStep(e, unit); continue; }
       const c = intents[e.id];
       let dx = 0, dz = 0;
@@ -736,6 +806,7 @@ export function createGame(options) {
     }
     civilians.tick();
     bandits.tick();
+    police?.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -760,5 +831,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, vision };
+  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, vision };
 }

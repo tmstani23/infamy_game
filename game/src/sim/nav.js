@@ -2,6 +2,10 @@
 // then the path is straightened so units walk in clean lines instead of zig-zags.
 // Plain code, no three.js, so the server runs exactly the same paths.
 
+// Rooms are small and full of furniture, so their grid is finer, and padded for the
+// biggest crew body (brute 0.45) so a path found there is one every unit fits through
+export const ROOM_NAV = { cell: 0.125, pad: 0.45 };
+
 export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4 } = {}) {
   const x0 = bounds.minX, z0 = bounds.minZ;
   const W = Math.ceil((bounds.maxX - x0) / cell), H = Math.ceil((bounds.maxZ - z0) / cell);
@@ -105,5 +109,5 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4 } = {}) {
     return out;
   }
 
-  return { findPath, clearLine, nearestFree: (x, z) => { const c = nearestFree(x, z); return c && centre(...c); } };
+  return { findPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFree(x, z); return c && centre(...c); } };
 }

@@ -1,0 +1,37 @@
+{
+  "_note": "Police (docs/police_spec.md, Tim settled 2026-10-18). Tiers by clan heat; officers per tier come out of the police HQ. Seconds and world units; numbers are defaults to tune in playtests. hunt: fighting = go for the clan's units seen fighting within sight; hero = a squad hunts the hero; all = hunt hero and crew. Police knock the hero down and arrest him (arrestSeconds channel, only his crew can break it by hitting the officer); he then stands greyed out at the HQ for heroJailSeconds and the clan's heat drops to heroJailHeat (Tim 2026-10-18). Bribe at the police box: bribeHeat off for bribePerTier x (tier + 1) ryo. No bribe if an officer hit the hero in the last bribeBlockSeconds. A knocked-out officer is replaced after replaceSeconds, out of the HQ or the box; the replacement patrols and only joins a hunt once it sees the hero itself (Most Wanted: at once). clinicScale applies from tier clinicScaleFrom (Wanted), payouts cut from payoutCutFrom (Manhunt). noPoliceAreas: [minX, minZ, maxX, maxZ] boxes (the forest outskirts, when the map has them). Infamy = lifetime heat until the infamy board exists. Lost him (Tim 2026-10-18): hunting tiers only know where the hero is while an officer sees him (sight) and for lostSeconds after, never indoors; then they search that spot (searchRadius) for searchSeconds and go back to patrolling. relentless (Most Wanted, 120+): they always know where he is, never give up and follow him indoors.",
+  "rules": {
+    "officer": "junsa",
+    "tiers": [
+      { "name": "Quiet",   "min": 0,  "officers": 0 },
+      { "name": "Watched", "min": 30, "officers": 2, "hunt": "fighting" },
+      { "name": "Wanted",  "min": 60, "officers": 4, "hunt": "hero" },
+      { "name": "Manhunt", "min": 90, "officers": 6, "hunt": "all" },
+      { "name": "Most Wanted", "min": 120, "officers": 6, "hunt": "all", "relentless": true }
+    ],
+    "sight": 9,
+    "seenFightingSeconds": 3,
+    "angrySeconds": 15,
+    "giveUpDistance": 12,
+    "spawnEverySeconds": 4,
+    "hitPoliceHeat": 10,
+    "arrestSeconds": 2,
+    "arrestReach": 8,
+    "jailSeconds": 60,
+    "bailShare": 0.5,
+    "heroJailSeconds": 60,
+    "heroJailHeat": 30,
+    "bribeHeat": 20,
+    "bribePerTier": 10,
+    "clinicScale": 2,
+    "clinicScaleFrom": 2,
+    "payoutCutFrom": 3,
+    "topInfamyHeatBonus": 0.25,
+    "noPoliceAreas": [],
+    "lostSeconds": 2,
+    "searchSeconds": 20,
+    "searchRadius": 5,
+    "bribeBlockSeconds": 5,
+    "replaceSeconds": 60
+  }
+}

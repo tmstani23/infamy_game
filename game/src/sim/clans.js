@@ -2,8 +2,10 @@
 // game state, so players and bot clans follow exactly the same rules.
 // Numbers come from game/data/units.json (docs/crew_recruiting_plan.md).
 
-export function createClans(state, units) {
+// opts.clinicScale(clanId): price factor at the clinic (the police double it at Wanted and up)
+export function createClans(state, units, opts = {}) {
   const rules = units.rules, types = units.types;
+  const scale = id => opts.clinicScale?.(id) ?? 1;
   state.clans = {};
 
   function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5 } = {}) {
@@ -71,14 +73,14 @@ export function createClans(state, units) {
     // out of it next to the player and attack; Tim 2026-10-17). Stand-in until rival bases exist.
     if (clan.bot) return true;
     clan.clinic.push({ unit: e.type, model: e.model, kind: 'recover', left: t.recoverSeconds || 30,
-      cost: Math.round((t.price || 0) * (rules.recoverCostShare ?? 0.25)), hp: 0 });
+      cost: Math.round((t.price || 0) * (rules.recoverCostShare ?? 0.25) * scale(clan.id)), hp: 0 });
     say(clan, `Your ${e.type} was carried to the clinic`);
     return true;
   }
   // a hurt crew member at the clinic door checks in; false when the clan cannot pay
   function checkIn(e) {
     const clan = state.clans[e.owner];
-    const missing = e.maxHp - e.hp, cost = Math.ceil(missing * (rules.healCostPerHp ?? 0.2));
+    const missing = e.maxHp - e.hp, cost = Math.ceil(missing * (rules.healCostPerHp ?? 0.2) * scale(e.owner));
     if (!clan || missing <= 0) return false;
     if (clan.ryo < cost) { say(clan, `Not enough ryo to heal (${cost} needed)`); return false; }
     clan.ryo -= cost;
@@ -91,12 +93,12 @@ export function createClans(state, units) {
   // (instead of waiting out the timer and paying recoverCostShare);
   // heal = the hero and its crew within clinicHealRadius of the door back to full HP at
   // healCostPerHp, all or nothing. spawn(type, model, business, extra) as for hires.
-  const reviveCost = c => Math.round((types[c.unit]?.price || 0) * (rules.reviveNowCostShare ?? 0.5));
+  const reviveCost = (c, clanId) => Math.round((types[c.unit]?.price || 0) * (rules.reviveNowCostShare ?? 0.5) * scale(clanId));
   function healCost(hero) {
     const b = clinicOf(), r = rules.clinicHealRadius ?? 8, [dx, dz] = b?.door || [hero.x, hero.z];
     const who = Object.values(state.entities).filter(e => e.owner === hero.owner && !e.dead && !e.downed && e.place === 'street'
       && e.maxHp && e.hp < e.maxHp && (e === hero || Math.hypot(e.x - dx, e.z - dz) < r));
-    return { who, cost: Math.ceil(who.reduce((n, e) => n + (e.maxHp - e.hp), 0) * (rules.healCostPerHp ?? 0.2)) };
+    return { who, cost: Math.ceil(who.reduce((n, e) => n + (e.maxHp - e.hp), 0) * (rules.healCostPerHp ?? 0.2) * scale(hero.owner)) };
   }
   function clinicMenu(hero, c, door, spawn) {
     const clan = state.clans[hero.owner], b = clinicOf();
@@ -104,7 +106,7 @@ export function createClans(state, units) {
     if (c.action === 'revive') {
       const p = clan.clinic[c.patient];
       if (!p || p.kind !== 'recover') return null;
-      const cost = reviveCost(p);
+      const cost = reviveCost(p, clan.id);
       if (clan.ryo < cost) return say(clan, `Not enough ryo (${cost} needed)`);
       clan.ryo -= cost;
       clan.clinic.splice(c.patient, 1);

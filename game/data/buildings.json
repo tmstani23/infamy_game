@@ -1,0 +1,21 @@
+{
+  "_about": "Names shown in the building panel (src/building_panel.js), keyed by art id; names follow docs/buildings.md. roles: what each business kind does, by kind.",
+  "names": {
+    "teahouse": "Teahouse", "gambling_den": "Gambling den", "warehouse": "Warehouse", "townhouse": "Townhouse",
+    "shop": "Shop", "shrine": "Shrine", "sake_brewery": "Sake brewery", "abandoned_house": "Abandoned house",
+    "western_office": "Western office", "watch_post": "Watch post", "dock_warehouse": "Dock warehouse", "manor": "Manor",
+    "inn": "Inn", "blacksmith": "Blacksmith", "bathhouse": "Bathhouse", "forest_hut": "Forest hut",
+    "bandit_camp": "Bandit camp", "bridge": "Bridge", "clinic": "Bonesetter's clinic", "pawnshop": "Pawnshop",
+    "rice_storehouse": "Rice storehouse", "izakaya": "Izakaya", "fish_market": "Fish market stall",
+    "geisha_house": "Geisha house", "customs_house": "Customs house", "boatbuilder": "Boatbuilder's shed",
+    "tenements": "Nagaya tenements", "police_box": "Police box", "police_hq": "Police HQ"
+  },
+  "roles": {
+    "teahouse": "Hire crew (H inside)",
+    "gambling_den": "Most money, most heat",
+    "warehouse": "Storage and smuggling",
+    "clinic": "Heal and revive crew",
+    "police_box": "Police box (bribes)",
+    "police_hq": "Police HQ (jail)"
+  }
+}

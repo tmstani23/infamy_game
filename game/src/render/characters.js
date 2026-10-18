@@ -2,12 +2,15 @@
 import * as THREE from 'three';
 import { healthBar } from './health.js';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
-import { spriteMaterial, shadowMaterial, hiddenMaterial } from './shading.js';
+import { spriteMaterial, shadowMaterial, hiddenMaterial, weaponGlowMaterial } from './shading.js';
 import { Thing, loadTex } from './scenery.js';
 
 const CELL_WORLD = 3;       // a 160px cell covers 3 world units (see sprite_render_test.html)
 const FEET_UP = 0.9;        // the cell centre is 0.9 units above the feet
 const FPS = 12;
+// drawing scale for characters inside buildings (Tim tried 0.75 on 2026-10-18 and went back to 1);
+// drawing only, reach and body sizes in the rules stay the same
+export const INDOOR_SIZE = 1;
 // health bar above the head: dark back plus a coloured fill that shrinks from the right
 const BAR_W = 0.9, BAR_H = 0.09, BAR_UP = 2.35;
 const BAR_GEO = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
@@ -16,12 +19,20 @@ const BAR_BACK = new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: tru
 const RING_GEO = new THREE.RingGeometry(0.55, 0.68, 40);
 const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.85, depthWrite: false });
 
+// Weapon glow per weapon type and which model holds what, from data/weapon_glow.json (loaded once)
+let glowConfig = null;
+const loadGlowConfig = () => (glowConfig ??= fetch('data/weapon_glow.json').then(r => r.ok ? r.json() : null).catch(() => null));
+
 // Spritesheets per model, from data/art.json "characters"
 const sheetCache = {};
 export async function loadSheets(catalog, model) {
   if (sheetCache[model]) return sheetCache[model];
   const names = catalog.characters[model];
   const sheets = {};
+  const cfg = await loadGlowConfig();
+  const weapon = cfg?.weapons?.[cfg.models?.[model]];
+  // the glow settings ride along on the sheet set, hidden from anything that lists the animations
+  if (weapon) Object.defineProperty(sheets, 'weapon', { value: weapon });
   // each entry is a sheet name, or { file, speed } where speed scales the playback rate
   await Promise.all(Object.entries(names).map(async ([anim, entry]) => {
     const { file, speed = 1 } = typeof entry === 'string' ? { file: entry } : entry;
@@ -32,6 +43,8 @@ export async function loadSheets(catalog, model) {
     tex.needsUpdate = true;
     // rows are the 8 directions; the frame count follows from the sheet's shape
     sheets[anim] = { tex, speed, frames: Math.round(tex.image.width / tex.image.height * 8) };
+    // the weapon alone as a soft halo (tools/export_sprites.mjs), same frames at half size; missing = no glow
+    if (weapon) sheets[anim].glow = await loadTex(`../assets/sprites/${file}_glow.png`).catch(() => null);
   }));
   return (sheetCache[model] = sheets);
 }
@@ -76,11 +89,23 @@ export class CharacterSprite {
     this.pos = new THREE.Vector3();
     this.anim = 'idle';
     this.time = 0;
+    this.size = 1;
+    // faint glow on the held weapon, drawn just after the sprite (Thing extras keep it in the draw order)
+    const weapon = sheets.weapon;
+    if (weapon && Object.values(sheets).some(sh => sh.glow)) {
+      this.weapon = weapon;
+      const firstGlow = Object.values(sheets).find(sh => sh.glow).glow;
+      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0));
+      this.glow.frustumCulled = false;
+      mesh.add(this.glow);
+      this.thing.extras.push(this.glow);
+    }
   }
 
   // x, z: interpolated position; dir and anim come from the latest game state
   // swingT: 0..1 through the current attack swing (the attack sheet is stretched over the swing)
-  update(dt, x, z, dir, anim, swingT = null) {
+  // size: drawing scale (INDOOR_SIZE inside buildings)
+  update(dt, x, z, dir, anim, swingT = null, size = 1) {
     if (anim !== this.anim) { this.anim = anim; this.time = 0; }
     this.time += dt;
     const sheet = this.sheets[anim] || this.sheets.idle;
@@ -98,17 +123,33 @@ export class CharacterSprite {
     const u = this.material.uniforms;
     u.uMap.value = sheet.tex;
     u.uFrame.value.set(frame / sheet.frames, 1 - (dir + 1) / 8, 1 / sheet.frames, 1 / 8);
+    if (this.glow) {
+      // a slow faint shimmer, a little brighter mid-swing, fading out as the unit falls
+      const w = this.weapon, g = this.glow.material.uniforms;
+      this.glow.visible = !!sheet.glow;
+      if (sheet.glow) g.uMap.value = sheet.glow;
+      const swing = anim === 'attack' && swingT !== null ? Math.sin(Math.PI * swingT) * (w.attack || 0) : 0;
+      const fall = anim === 'death' ? Math.max(0, 1 - this.time / 0.8) : 1;
+      g.uStrength.value = w.strength * (0.9 + 0.1 * Math.sin(this.time * 2.2)) * (1 + swing) * fall;
+    }
 
     this.pos.set(x, 0, z);
     const r = 0.2;
-    this.thing.mesh.position.set(x, FEET_UP, z);
-    this.hidden.position.set(x, FEET_UP, z);
+    if (size !== this.size) {
+      this.size = size;
+      this.thing.mesh.scale.set(CELL_WORLD * size, CELL_WORLD * size, 1);
+      this.hidden.scale.copy(this.thing.mesh.scale);
+      this.shadow.scale.setScalar(size);
+      this.ring.scale.setScalar(size);
+    }
+    this.thing.mesh.position.set(x, FEET_UP * size, z);
+    this.hidden.position.set(x, FEET_UP * size, z);
     u.uDepthAt.value.set(x, 0, z, 0.45);
     this.thing.foot = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r };
     this.thing.updateScreen();
     this.shadow.position.set(x, 0.01, z);
     this.ring.position.set(x, 0.02, z);
-    this.bar.position.set(x, BAR_UP, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
+    this.bar.position.set(x, BAR_UP * size, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
   }
 
   // hp bar over every unit with health, hidden once down; length = hp / maxHp,
@@ -122,11 +163,20 @@ export class CharacterSprite {
     this.fill.material.color.setRGB(...color);
   }
 
+  // the same bar used as a timer instead (arrest / execute channel, jail time): frac 0..1, rgb 0..1
+  setBar(frac, rgb) {
+    this.bar.visible = true;
+    this.fill.scale.x = BAR_W * Math.max(0, Math.min(1, frac));
+    this.fill.visible = frac > 0;
+    this.fill.material.color.setRGB(...rgb);
+  }
+
   // free the GPU copies when the unit leaves the map (townsfolk come and go, bandits each night)
   dispose() {
     this.thing.mesh.geometry.dispose();
     this.shadow.geometry.dispose();
     for (const m of [this.material, this.hidden.material, this.fill.material]) m.dispose();
+    this.glow?.material.dispose();
   }
 
   // got hit: flash white and lean away from the attacker (dx, dz: unit push direction)

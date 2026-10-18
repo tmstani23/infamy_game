@@ -20,7 +20,7 @@ assert.equal(bot.bot, true);
 
 // The waterfront has a teahouse, warehouse, den and clinic, nobody owns them at the start
 const kinds = Object.values(state.businesses).map(b => b.kind).sort();
-assert.deepEqual(kinds, ['clinic', 'gambling_den', 'teahouse', 'warehouse']);
+assert.deepEqual(kinds, ['clinic', 'gambling_den', 'police_box', 'police_hq', 'teahouse', 'warehouse']);
 assert.equal(clans.crewCap('player'), R.baseCap);
 
 // Holding businesses raises the cap, for players and bots alike

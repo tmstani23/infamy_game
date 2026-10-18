@@ -26,6 +26,8 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/controls.md](docs/controls.md) | Every working control, plus planned keys |
 | [docs/crew_recruiting_plan.md](docs/crew_recruiting_plan.md) | Crew hiring and orders, phase by phase |
 | [docs/combat_spec.md](docs/combat_spec.md) | Combat rules and feel, hero abilities, action bar, VFX plan |
+| [docs/business_raids_plan.md](docs/business_raids_plan.md) | Owning businesses, payouts, attacks, War Lantern raids, defending (plan) |
+| [docs/police_spec.md](docs/police_spec.md) | Police: heat tiers, arrests, bail, bribes |
 | [docs/civilians_plan.md](docs/civilians_plan.md) | Townsfolk walking the streets |
 | [docs/interiors_spec.md](docs/interiors_spec.md) | 3D interior rules and look |
 | [docs/room_generator_plan.md](docs/room_generator_plan.md) | Room generator |

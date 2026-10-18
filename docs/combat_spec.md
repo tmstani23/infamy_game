@@ -73,7 +73,7 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 |---|---|---|---|
 | Q | Iaido Dash | Dash up to 6.5 steps over 0.3 s toward the mouse (stops at walls), hitting every enemy passed for 150% damage (2026-10-17, was 5). | 8 s |
 | E | Intimidate | Enemies within 4 steps deal 30% less damage for 5 s (a dark aura shows on them). | 14 s |
-| R | Rally | Your crew within 8 steps attack 30% faster for 6 s and heal 10% of their health. The aura also shows on the ronin (look only). | 20 s |
+| R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 10% of your health (hero included 2026-10-18). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
 **Keys (done, F2):** doors moved to **Space** (it shows on the door prompt), and E is Intimidate. Hire menu keys 1 to 3 stay as they are (only inside a teahouse).
@@ -123,12 +123,14 @@ Ronin plan (effort / payoff):
 - F: glowing lanterns orbiting him, red light, embers.
 - Stacking buff auras (outline, ground ring and sparkles per ability), heal, lifesteal and regen sparkles, and bloom on effects only.
 
+**Weapon glow (2026-10-18):** a faint glow on each held weapon (katana steel blue-white, club ember amber, jitte soft blue), a bit brighter mid-swing, fading on death. Tuned in `game/data/weapon_glow.json`; needs the `_glow` sheets from the exporter.
+
 Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, same gap as rifles and bows); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
 
 ## H. Downed, execute and hospital (approved by Tim 2026-10-17)
 
 - **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
-- **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor. Success = dead (rehire at a teahouse).
+- **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
 - **Carried off:** a downed unit nobody finishes, with no enemy within 8 steps for 5 s, is carried to the hospital. There is only this timer, no bleed-out.
 - **Hospital:** the bonesetter's clinic on the waterfront map. Recovery timer (about 30 s for a thug, longer for pricier types), costing about 25% of the hire price, paid on return (it waits if you have no ryo). Then the unit walks out and follows the hero.
 - **Execute ryo (2026-10-18):** executing an enemy pays `executeRyo` from `units.json`: thug 20, swordsman 30, brute 40, ±25%. Townsfolk pay nothing.

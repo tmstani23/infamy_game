@@ -5,15 +5,18 @@ import { createView } from './render/view.js';
 import { onKey, moveCommand, panAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { createClinicMenu } from './clinic_menu.js';
+import { createPoliceMenu } from './police_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { createRyoBadge } from './ryo_badge.js';
 import { createCrewInput } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
-import { createSelectionPanel } from './selection_panel.js';
+import { createSelectionPanel, unitWhere } from './selection_panel.js';
+import { createBuildingPanel } from './building_panel.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
 import { createMinimap } from './minimap.js';
+import { createHudLayout } from './hud_layout.js';
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('loading').textContent = msg; };
@@ -26,10 +29,10 @@ const getJSON = async url => {
 
 async function start() {
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits, buildingInfo, police] = await Promise.all([
     getJSON(`data/${params.get('district') || 'waterfront'}.json`), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json')]);
 
   // ?room=gambling_den&seed=3 swaps in a generated room and starts you inside it
   const tryRoom = params.get('room');
@@ -41,7 +44,7 @@ async function start() {
   }
 
   // Single player runs the rules here. In multiplayer the server runs them instead.
-  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits });
+  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits, police });
   game.clans.addClan('player', { name: 'Your clan' });
   const inRoom = tryRoom && game.rooms.find(r => r.name === tryRoom);
   const [hx, hz] = inRoom ? [inRoom.spawn.x, inRoom.spawn.z] : district.spawns.hero;
@@ -87,9 +90,11 @@ async function start() {
   $('daynight').addEventListener('click', e => { toggleNight(); e.currentTarget.blur(); });
   label();
   onKey('F3', () => view.toggleDebug());
-  // Space at a door: go through it, or at the clinic's ring open the clinic menu (no interior)
+  // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
-    if (game.doorNear(heroId)?.menu === 'clinic') clinicMenu.toggle();
+    const menu = game.doorNear(heroId)?.menu;
+    if (menu === 'clinic') clinicMenu.toggle();
+    else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle();
     else pending.push({ id: heroId, type: 'use', units: crewInput.selected() });   // selected crew come in too
   });
   // Hero abilities aim at the mouse point on the ground
@@ -110,6 +115,7 @@ async function start() {
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, send: c => pending.push(c) });
+  const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
@@ -120,9 +126,9 @@ async function start() {
   onKey('Tab', () => crewInput.tab());
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); crewInput.clear(); $('controls').hidden = true; });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); crewInput.clear(); $('controls').hidden = true; });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']
-    .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : hireMenu.pick(i)));
+    .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : policeMenu.isOpen() ? policeMenu.pick(i) : hireMenu.pick(i)));
   const sound = createSound();
   onKey('KeyM', () => sound.toggleMute());
   const fps = createFps();
@@ -131,9 +137,22 @@ async function start() {
   const toggleControls = () => { $('controls').hidden = !$('controls').hidden; };
   onKey('Slash', toggleControls);
   $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
-  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput });
-  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput });
+  const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse · Waterfront"
+  // double-click a crew name: the camera jumps to him, or to the building's door if he is
+  // inside one the hero isn't in
+  const jump = u => {
+    const door = u.place !== 'street' && u.place !== game.state.entities[heroId]?.place && game.doors.find(d => d.to && d.place === u.place);
+    if (door) view.jumpTo(door.x, door.z); else view.jumpTo(u.x, u.z);
+  };
+  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump });
+  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where });
+  const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player' });
   const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
+  // Positions and sizes live in data/ui_layout.json (written through server.mjs)
+  const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
+  const hudLayout = createHudLayout({ fromFile: uiFile.panels });
+  $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   window.infamy = { game, view };   // handy from the browser console
   $('loading').remove();
 
@@ -152,6 +171,11 @@ async function start() {
       prev = structuredClone(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0)]);
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
+      // the hunters lost your boss (sim/police.js): a short notice at the top
+      if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
+        const el = $('lostcops');
+        el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      }
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
@@ -161,10 +185,16 @@ async function start() {
       $('prompt').hidden = !door;
       hireMenu.update();
       clinicMenu.update();
+      policeMenu.update();
+      // in jail (sim/police.js): big red banner with the time left
+      const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');
+      jailEl.hidden = !jailed;
+      if (jailed) { const t = `IN JAIL<small>out in ${Math.max(0, Math.ceil((jailed.until - game.state.tick) / TICK_RATE))}s</small>`; if (jailEl.innerHTML !== t) jailEl.innerHTML = t; }
       heatBadge.update();
       ryoBadge.update();
       crewInput.update();
       selPanel.update();
+      bldPanel.update();
     }
     const pan = panAxes();
     view.pan(pan.right, pan.up, dt);
@@ -174,6 +204,7 @@ async function start() {
     crewInput.drawMarkers($('lock'));
     minimap.update();
     bar.update(game.state.tick - 1 + acc / tick);
+    hudLayout.update();
   });
 }
 

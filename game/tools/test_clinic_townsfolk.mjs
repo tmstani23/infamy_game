@@ -188,7 +188,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.ok(!S[j].flee, 'a jammed runner stops');
   console.log('flinch and jam ok');
 }
-// Doors: selected crew go in with the hero, the rest stay outside; all come out with him
+// Doors: selected crew go in with the hero, the rest stay outside; coming out, unselected crew stay inside
 {
   const g = newGame(), S = g.state.entities;
   const door = g.doors.find(d => d.label === 'Enter the Teahouse');
@@ -206,12 +206,19 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.equal(S[far].place, 'street', 'selected but far away: stays');
   run(g, 2);
   assert.ok(Math.hypot(S[b].x - bx, S[b].z - bz) < 0.5, 'and wait where they were');
-  // out again: the one inside comes too
+  // out with nobody selected: the one inside stays and holds the room
   const exit = g.doors.find(d => d.label === 'Leave' && d.to.x === door.x && d.to.z === door.z);
   S[hero].x = exit.x; S[hero].z = exit.z;
   g.step([{ id: hero, type: 'use' }]);
   assert.equal(S[hero].place, 'street');
-  assert.equal(S[a].place, 'street', 'came out with the hero');
+  assert.equal(S[a].place, door.place, 'unselected crew stay inside');
+  // back in, then out with it selected: it comes too
+  S[hero].x = door.x; S[hero].z = door.z;
+  g.step([{ id: hero, type: 'use' }]);
+  S[hero].x = exit.x; S[hero].z = exit.z;
+  g.step([{ id: hero, type: 'use', units: [a] }]);
+  assert.equal(S[hero].place, 'street');
+  assert.equal(S[a].place, 'street', 'selected crew came out with the hero');
   assert.equal(S[a].order.kind, 'follow');
   console.log('crew through doors ok');
 }

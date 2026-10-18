@@ -3,7 +3,7 @@
 // Also keeps all sprites in the right draw order.
 import * as THREE from 'three';
 import { CAM_RIGHT, CAM_UP, CAM_QUAT, VIEW_DIR, toScreen } from './iso.js';
-import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial } from './shading.js';
+import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial, crewDoorMaterial } from './shading.js';
 
 const loader = new THREE.TextureLoader();
 export const loadTex = url => new Promise((ok, fail) => loader.load(url, ok, undefined, () => fail(new Error(`Could not load ${url}`))));
@@ -180,6 +180,7 @@ function cutoutThing(s, tex) {
 
   const isBuilding = item.kind === 'buildings';
   const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2);
+  thing.building = s.building ?? null;   // index in the district's buildings (street buildings only)
   if (thing.big) thing.mask = alphaMask(tex.image, flip);
 
   // lamps: a world position for the light, and a glow drawn on the sprite
@@ -247,8 +248,20 @@ export function doorRings(doors) {
     m.rotation.x = -Math.PI / 2;
     m.position.set(d.x, 0.02, d.z);
     m.renderOrder = 1;
+    m.userData.door = d;
     return m;
   });
+}
+
+// Street door rings of rooms that hold some of the hero's crew turn teal
+export function markCrewDoors(rings, state, owner) {
+  const held = new Set();
+  for (const e of Object.values(state.entities)) if (e.owner === owner && e.type !== 'hero' && !e.dead && e.place !== 'street') held.add(e.place);
+  for (const m of rings) {
+    const d = m.userData.door, crew = !!d.to && d.place !== 'street' && held.has(d.place);
+    m.material = crew ? crewDoorMaterial : doorMaterial;
+    m.scale.setScalar(crew ? 1.4 : 1);   // a bigger ring, so it is easy to spot
+  }
 }
 
 // Wire boxes of every footprint and blocking box (F3), for lining up art

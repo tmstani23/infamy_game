@@ -1,70 +1,71 @@
 {
-  "_about": "One recipe per building type for the room generator (game/src/sim/generate.js). Plan: docs/room_generator_plan.md. Ranges [a, b] are picked by the seed. Sizes are even cells. place: 'corners' (floor lamps), 'over' (hanging, over the listed props), 'wall' (against a far wall), 'back_room' (inside the back room); otherwise anywhere in the main room. top: a prop set on each one. picked: the seeds Tim chose from the preview (2026-10-16); buildings use one of these.",
+  "_about": "One recipe per building type for the room generator (game/src/sim/generate.js). Plan: docs/room_generator_plan.md. Ranges [a, b] are picked by the seed. Sizes are even cells. place: 'corners' (floor lamps), 'over' (hanging, over the listed props), 'wall' (against a far wall), 'back_room' (inside the back room); otherwise anywhere in the main room. top: a prop set on each one. picked: the seeds Tim chose from the preview (2026-10-16); buildings use one of these. Sizes and counts raised about 2.5x on 2026-10-18 (Tim), so the picked seeds now give new layouts.",
 
   "teahouse": {
     "picked": [2, 6, 11],
-    "size": { "min": [10, 8], "max": [14, 12] },
+    "size": { "min": [16, 12], "max": [22, 18] },
     "floor": "tatami",
-    "walls": { "fill": ["plaster"], "windows": [1, 2] },
+    "walls": { "fill": ["plaster"], "windows": [2, 4] },
     "door": ["shoji_door"],
     "props": [
-      { "type": "tokonoma", "count": [0, 1] },
-      { "type": "tea_table", "count": [2, 4], "top": "tea_set" },
-      { "type": "byobu", "count": [0, 1] },
-      { "type": "hibachi", "count": [0, 1] },
-      { "type": "andon", "count": [2, 4], "place": "corners" },
-      { "type": "red_lantern", "count": [2, 3], "place": "over", "over": ["tea_table"] }
+      { "type": "tokonoma", "count": [1, 1] },
+      { "type": "tea_table", "count": [5, 8], "top": "tea_set" },
+      { "type": "byobu", "count": [1, 2] },
+      { "type": "hibachi", "count": [1, 2] },
+      { "type": "andon", "count": [3, 4], "place": "corners" },
+      { "type": "red_lantern", "count": [5, 7], "place": "over", "over": ["tea_table"] }
     ]
   },
 
   "gambling_den": {
     "picked": [4, 8, 12],
-    "size": { "min": [12, 12], "max": [16, 14] },
+    "size": { "min": [20, 18], "max": [26, 22] },
     "floor": "tatami",
-    "walls": { "fill": ["red", "red", "plaster"], "windows": [0, 1] },
+    "walls": { "fill": ["red", "red", "plaster"], "windows": [1, 2] },
     "door": ["doorway"],
     "back_room": {
-      "depth": [4, 4], "fill": "red",
+      "depth": [6, 6], "fill": "red",
       "props": [
         { "type": "cash_box", "count": 1 },
-        { "type": "tansu", "count": 1 },
-        { "type": "andon", "count": 1, "place": "corners" }
+        { "type": "tansu", "count": [1, 2] },
+        { "type": "andon", "count": 1, "place": "corners" },
+        { "type": "sake_keg", "count": [1, 2] }
       ]
     },
     "props": [
       { "type": "counter", "count": 1 },
-      { "type": "gambling_mat", "count": [2, 3] },
-      { "type": "sake_shelf", "count": [1, 2] },
-      { "type": "sake_keg", "count": [1, 2] },
-      { "type": "byobu", "count": [0, 1] },
-      { "type": "hibachi", "count": [0, 1] },
-      { "type": "andon", "count": [2, 3], "place": "corners" },
-      { "type": "red_lantern", "count": [2, 3], "place": "over", "over": ["gambling_mat", "counter"] }
+      { "type": "gambling_mat", "count": [5, 7] },
+      { "type": "sake_shelf", "count": [2, 4] },
+      { "type": "sake_keg", "count": [2, 4] },
+      { "type": "byobu", "count": [1, 2] },
+      { "type": "hibachi", "count": [1, 2] },
+      { "type": "andon", "count": [3, 4], "place": "corners" },
+      { "type": "red_lantern", "count": [6, 8], "place": "over", "over": ["gambling_mat", "counter"] }
     ]
   },
 
   "warehouse": {
     "picked": [2, 5, 12],
-    "size": { "min": [12, 12], "max": [16, 14] },
+    "size": { "min": [20, 18], "max": [26, 22] },
     "floor": "floorboards",
     "walls": { "fill": ["planks"], "windows": [0, 0] },
     "door": ["cargo_door"],
     "back_room": {
-      "depth": [4, 4], "fill": "planks",
+      "depth": [6, 6], "fill": "planks",
       "props": [
         { "type": "cash_box", "count": 1 },
-        { "type": "dynamite_crate", "count": [1, 2] },
-        { "type": "crates", "count": [0, 1] }
+        { "type": "dynamite_crate", "count": [2, 3] },
+        { "type": "crates", "count": [1, 3] }
       ]
     },
     "props": [
-      { "type": "warehouse_shelves", "count": [1, 2] },
-      { "type": "rice_sacks", "count": [2, 3] },
-      { "type": "crates", "count": [2, 3] },
-      { "type": "barrels", "count": [1, 2] },
-      { "type": "sake_keg", "count": [0, 1] },
-      { "type": "andon", "count": [2, 3], "place": "corners" },
-      { "type": "red_lantern", "count": [3, 4], "place": "over", "over": ["crates", "rice_sacks", "barrels"] }
+      { "type": "warehouse_shelves", "count": [3, 4] },
+      { "type": "rice_sacks", "count": [5, 7] },
+      { "type": "crates", "count": [5, 7] },
+      { "type": "barrels", "count": [3, 5] },
+      { "type": "sake_keg", "count": [1, 2] },
+      { "type": "andon", "count": [3, 4], "place": "corners" },
+      { "type": "red_lantern", "count": [7, 9], "place": "over", "over": ["crates", "rice_sacks", "barrels"] }
     ]
   }
 }

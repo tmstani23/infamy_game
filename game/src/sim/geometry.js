@@ -76,7 +76,7 @@ export function placePiece(entry, catalog, cutouts) {
 // Every building and prop of a district
 export function placeScenery(district, catalog, cutouts) {
   return [
-    ...district.buildings.map(b => ({ name: b.art, x: b.x, z: b.z, business: b.business || null })),
+    ...district.buildings.map((b, i) => ({ name: b.art, x: b.x, z: b.z, business: b.business || null, building: i })),
     ...district.props.map(([name, x, z]) => ({ name, x, z })),
   ].map(e => placePiece(e, catalog, cutouts)).filter(Boolean);
 }

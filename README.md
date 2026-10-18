@@ -13,7 +13,7 @@ As of 2026-10-17:
 - Playable waterfront district in `game/` (run `start_game.bat`), with day and night.
 - 3D interiors (teahouse, den, warehouse) plus a room generator.
 - Crew hiring, orders and combat work, plus the ronin's four abilities with their effects and the action bar.
-- Also working (2026-10-17): downed crew and executions, the bonesetter's clinic (menu), townsfolk walking the streets, the crew selection panel, heat, hero lock-on, crew entering buildings, and night bandits.
+- Also working (2026-10-17): downed crew and executions, the bonesetter's clinic (menu), townsfolk walking the streets, the crew selection panel, heat, hero lock-on, crew entering buildings, night bandits, fog of war and the minimap.
 - Next: playtest tuning, then the rival bot clan.
 - The sprite pipeline works end to end for the whole cast.
 
@@ -45,6 +45,8 @@ npm install playwright
 npx playwright install chromium
 node tools/export_sprites.mjs
 ```
+
+Add `--glow-only` to write just the weapon glow sheets (`<sheet>_glow.png`) and keep the colour sheets.
 
 This renders each model in `assets/models` with its own animation set from `assets/animations` to `assets/sprites/<model>_<animation>.png`, overwriting earlier exports. Add model names after `.` to export only those (`node tools/export_sprites.mjs . thug brute`). Animation sets go by subfolder of `assets/animations`, keeping Mixamo's own filenames: `brawler/` (thug, brute), `gunner/` (mercenary), `ninja/` (ninja leader and ninja grunt), `archer/` (archer), `civilian/` (geisha and other townsfolk, the default). Files directly in `assets/animations` are the ronin's combat set. `Mutant ...` files in `brawler/` are brute-only and replace the plain clip of the same name (`Mutant Walking` replaces `Walking`). A filename prefix such as `brawler_walk.fbx` also works. The mapping is at the top of the script.
 

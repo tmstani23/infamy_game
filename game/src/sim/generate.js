@@ -3,6 +3,7 @@
 // Pure code with no graphics, so the server can run it too. The same seed always gives
 // the same room.
 import { buildRoom3d, propRect, overlap, turned } from './interiors.js';
+import { createNav, ROOM_NAV } from './nav.js';
 
 // Small seeded random numbers (mulberry32)
 export function random(seed) {
@@ -32,6 +33,10 @@ const evenIn = (rng, a, b) => 2 * rng.int(Math.ceil(a / 2), Math.floor(b / 2));
 const TRIES = 30;          // spots tried per prop before it is skipped
 const ATTEMPTS = 25;       // whole layouts tried per seed before giving up
 const NEEDS_ACCESS = new Set(['tea_table', 'gambling_mat', 'counter']);   // plus anything marked loot
+// gap rule (Tim 2026-10-18): two solid things either nearly touch (one pile) or leave room for
+// the biggest crew body (brute, 0.9 wide) to walk between them on the room walk grid
+const GAP = { pile: 0.5, walk: 1.05 };
+const ENTRY = [4, 4];      // clear floor inside the door, cells across x deep, so crew coming in aren't boxed in
 
 // Generates one room. Returns { template, room, problems, attempt }; problems is empty
 // when the room passed every check.
@@ -90,11 +95,14 @@ function layout(recipe, parts, rng) {
   const along = (door.bay + 0.5) * W.bay;
   const keep = [door.side === 'north' ? { x0: along - 1, x1: along + 1, z0: 0, z1: 2.5 } : { x0: 0, x1: 2.5, z0: along - 1, z1: along + 1 }];
   const zones = { main: { x0: 0, z0: 0, x1: X, z1: back ? at - 0.5 : Z } };
+  const clearings = [];        // { rect, walls }: kept clear after the layout (see "the way in" below)
   if (back) {
     const d = rng.int(0, X / W.bay - 1);
     template.inner = [{ along: 'x', at, door: d, fill: back.fill || fill[0] }];
     template.zones = [{ name: 'main', rect: [0, 0, X, at] }, { name: 'back_room', rect: [0, at, X, Z] }];
     keep.push({ x0: d * W.bay, x1: (d + 1) * W.bay, z0: at - 1, z1: at + 1 });
+    // and room to walk up to it from both sides, wall pieces included
+    clearings.push({ rect: { x0: d * W.bay - 0.5, x1: (d + 1) * W.bay + 0.5, z0: at - 2, z1: at + 2 }, walls: true });
     zones.back_room = { x0: 0, z0: at + 0.5, x1: X, z1: Z };
   }
 
@@ -102,8 +110,25 @@ function layout(recipe, parts, rng) {
   const openBay = (side, i) => (side === door.side && i === door.bay) || walls[side][i] === 'window';
 
   const placed = [];           // standing props: { type, def, rect }
-  const fits = (r, zone) => r.x0 >= zone.x0 && r.z0 >= zone.z0 && r.x1 <= zone.x1 && r.z1 <= zone.z1
-    && !placed.some(q => overlap(r, q.rect)) && !keep.some(k => overlap(r, k));
+  // the walls as rects, for the gap rule (the inner wall leaves its doorway open)
+  const wallRects = [{ x0: -1, x1: X + 1, z0: -1, z1: 0 }, { x0: -1, x1: 0, z0: -1, z1: Z + 1 }, { x0: X, x1: X + 1, z0: -1, z1: Z + 1 }, { x0: -1, x1: X + 1, z0: Z, z1: Z + 1 }];
+  if (template.inner) {
+    const d = template.inner[0].door * W.bay;
+    wallRects.push({ x0: 0, x1: d, z0: at - 0.1, z1: at + 0.1 }, { x0: d + W.bay, x1: X, z0: at - 0.1, z1: at + 0.1 });
+  }
+  let strict = false;          // the gap rule, on once the seed's own layout is done (so it stays as Tim picked it)
+  const fits = (r, zone, def) => r.x0 >= zone.x0 && r.z0 >= zone.z0 && r.x1 <= zone.x1 && r.z1 <= zone.z1
+    && !placed.some(q => overlap(r, q.rect)) && !keep.some(k => overlap(r, k)) && !(strict && tight(r, null, def));
+  // a gap too narrow to walk through between r and anything else (hanging lanterns may sit by a wall)
+  const solidOf = (r, def) => {
+    if (!def?.solid) return r;
+    const [sx, sz] = turned(def.solid, r.rot), cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2;
+    return { x0: cx - sx / 2, x1: cx + sx / 2, z0: cz - sz / 2, z1: cz + sz / 2 };
+  };
+  const tight = (r, self, def = self?.def) => {
+    const me = solidOf(r, def);
+    return [...placed.filter(q => q !== self).map(q => solidOf(q.rect, q.def)), ...(def?.rule === 'ceiling' ? [] : wallRects)].some(o => narrow(me, o));
+  };
 
   const place = (item, zoneName) => {
     const def = parts.props[item.type];
@@ -122,8 +147,8 @@ function layout(recipe, parts, rng) {
         const a = side === 'north' ? r.x0 : r.z0, b = side === 'north' ? r.x1 : r.z1;
         let blocked = false;
         for (let i = Math.floor(a / W.bay); i * W.bay < b; i++) if (openBay(side, i)) blocked = true;
-        if (blocked || !fits(r, zone)) continue;
-        placed.push({ type: item.type, def, rect: r });
+        if (blocked || !fits(r, zone, def)) continue;
+        placed.push({ type: item.type, def, rect: r, p, item, zoneName });
         template.props.push(p);
         return r;
       }
@@ -139,10 +164,11 @@ function layout(recipe, parts, rng) {
         p = { type: item.type, at: [zone.x0 + x, zone.z0 + z], ...(rot ? { rot } : {}) };
       }
       const r = propRect(p, def, [X, Z]);
-      if (!fits(r, zone)) continue;
-      placed.push({ type: item.type, def, rect: r });
+      if (!fits(r, zone, def)) continue;
+      const top = item.top && { type: item.top, at: [(r.x0 + r.x1) / 2 - 0.5, (r.z0 + r.z1) / 2 - 0.5] };
+      placed.push({ type: item.type, def, rect: r, p, top, item, zoneName });
       template.props.push(p);
-      if (item.top) template.props.push({ type: item.top, at: [(r.x0 + r.x1) / 2 - 0.5, (r.z0 + r.z1) / 2 - 0.5] });
+      if (top) template.props.push(top);
       return r;
     }
     return null;
@@ -156,7 +182,8 @@ function layout(recipe, parts, rng) {
     if (over.length) {
       const q = over[0], r = q.rect;
       hangs.push(q);
-      template.props.push({ type: item.type, at: [(r.x0 + r.x1) / 2 - 0.5, (r.z0 + r.z1) / 2 - 0.5] });
+      q.lantern = { type: item.type, at: [(r.x0 + r.x1) / 2 - 0.5, (r.z0 + r.z1) / 2 - 0.5] };
+      template.props.push(q.lantern);
       return true;
     }
     for (let t = 0; t < TRIES; t++) {
@@ -165,9 +192,10 @@ function layout(recipe, parts, rng) {
       const p = onNorth ? [zone.x0 + 0.5 * rng.int(2, (zone.x1 - zone.x0 - 2) * 2), zone.z0 + 0.2]
         : [zone.x0 + 0.2, zone.z0 + 0.5 * rng.int(2, Math.max(2, (zone.z1 - zone.z0 - 2) * 2))];
       const r = { x0: p[0], z0: p[1], x1: p[0] + 1, z1: p[1] + 1 };
-      if (!fits(r, zone)) continue;
-      placed.push({ type: item.type, def: parts.props[item.type], rect: r });
-      template.props.push({ type: item.type, at: p });
+      if (!fits(r, zone, parts.props[item.type])) continue;
+      const lp = { type: item.type, at: p };
+      placed.push({ type: item.type, def: parts.props[item.type], rect: r, p: lp, item, zoneName });
+      template.props.push(lp);
       return true;
     }
     return false;
@@ -193,22 +221,67 @@ function layout(recipe, parts, rng) {
     }
     if (n < j.min) missing.push(`could not fit ${j.min - n} ${j.item.type} in the ${j.zoneName.replace('_', ' ')}`);
   }
+
+  // the way in (Tim 2026-10-18): a wide patch of clear floor inside the door, and room to walk
+  // up to the back room's doorway. Then the gap rule: anything that leaves a gap too narrow to
+  // walk through is moved. Both happen after the layout, so the rest of the room keeps the
+  // layout its seed gave it. Pieces flat against the wall beside the street door stay, and so
+  // does anything with nowhere else to go (the walkway check still makes sure there's a way past).
+  const [ew, ed] = ENTRY;
+  clearings.unshift({ rect: door.side === 'north' ? { x0: along - ew / 2, x1: along + ew / 2, z0: 0, z1: ed } : { x0: 0, x1: ed, z0: along - ew / 2, z1: along + ew / 2 } });
+  keep.push(...clearings.map(c => c.rect));
+  strict = true;
+  const move = q => {
+    const old = [q.p, q.top, q.lantern].filter(Boolean);
+    placed.splice(placed.indexOf(q), 1);
+    template.props = template.props.filter(t => !old.includes(t));
+    const r = q.def.rule === 'ceiling' ? hang(q.item, q.zoneName) : place(q.item, q.zoneName);
+    if (!r) { placed.push(q); template.props.push(...old); return false; }
+    if (q.lantern) template.props.push({ ...q.lantern, at: [(r.x0 + r.x1) / 2 - 0.5, (r.z0 + r.z1) / 2 - 0.5] });
+    return true;
+  };
+  for (const q of placed.filter(q => clearings.some(c => (c.walls || q.def.rule !== 'wall') && overlap(q.rect, c.rect)))) move(q);
+  // a small shift first (half a cell or a cell, so it closes up to a pile or opens a walkway),
+  // else somewhere new; later pieces go first, so the big furniture placed early stays put
+  const nudge = q => {
+    if (q.def.rule === 'wall') return false;
+    placed.splice(placed.indexOf(q), 1);
+    for (const d of [0.5, 1]) for (const [dx, dz] of [[d, 0], [-d, 0], [0, d], [0, -d], [d, d], [d, -d], [-d, d], [-d, -d]]) {
+      const r = { ...q.rect, x0: q.rect.x0 + dx, x1: q.rect.x1 + dx, z0: q.rect.z0 + dz, z1: q.rect.z1 + dz };
+      if (!fits(r, zones[q.zoneName], q.def)) continue;
+      q.rect = r;
+      for (const t of [q.p, q.top, q.lantern]) if (t) t.at = [t.at[0] + dx, t.at[1] + dz];
+      placed.push(q);
+      return true;
+    }
+    placed.push(q);
+    return false;
+  };
+  for (const q of [...placed].reverse()) if (placed.includes(q) && tight(q.rect, q)) nudge(q) || move(q);
+  const left = placed.filter(q => tight(q.rect, q));
+  if (left.length) missing.push(`${left.map(q => q.type).join(', ')} leave a gap too narrow to walk through`);
   return { template, missing };
 }
 
+// Two boxes face each other across a gap that is too narrow: wider than a pile's, but too
+// tight to walk through. Corner-to-corner gaps are fine, as you can always walk round a corner.
+export function narrow(a, b) {
+  const dx = Math.max(b.x0 - a.x1, a.x0 - b.x1), dz = Math.max(b.z0 - a.z1, a.z0 - b.z1);
+  if (dx > 0 && dz > 0) return false;
+  const gap = Math.max(dx, dz);
+  return gap > GAP.pile && gap < GAP.walk;
+}
+
 // ---------- step 6: walkway check ----------
-// Flood-fills the floor on a quarter-cell grid from where you come in. Spots closer than a
-// body's radius to anything solid are blocked, so a gap has to be about a cell wide to pass.
-export function walkway(room, parts, { radius = 0.35, step = 0.25 } = {}) {
-  const [X, Z] = room.size, ox = room.origin.x, oz = room.origin.z;
+// Flood-fills the floor from where you come in, on the same walk grid the crew path on
+// (sim/nav.js ROOM_NAV), so a room that passes is one every crew member can walk round.
+export function walkway(room, parts) {
+  const [X, Z] = room.size, ox = room.origin.x, oz = room.origin.z, step = ROOM_NAV.cell, radius = ROOM_NAV.pad;
+  const nav = createNav(room.blockers, { minX: ox, minZ: oz, maxX: ox + X, maxZ: oz + Z }, ROOM_NAV);
   const nx = Math.round(X / step), nz = Math.round(Z / step);
-  const blocks = room.blockers.map(b => ({ x0: b.minX - ox, x1: b.maxX - ox, z0: b.minZ - oz, z1: b.maxZ - oz }));
   const dist = (b, x, z) => Math.hypot(Math.max(b.x0 - x, 0, x - b.x1), Math.max(b.z0 - z, 0, z - b.z1));
   const free = new Uint8Array(nx * nz), seen = new Uint8Array(nx * nz);
-  for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
-    const x = (i + 0.5) * step, z = (k + 0.5) * step;
-    free[i * nz + k] = blocks.every(b => dist(b, x, z) >= radius) ? 1 : 0;
-  }
+  for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) free[i * nz + k] = nav.free(ox + (i + 0.5) * step, oz + (k + 0.5) * step) ? 1 : 0;
   const start = [Math.floor((room.spawn.x - ox) / step), Math.floor((room.spawn.z - oz) / step)];
   const problems = [];
   if (!free[start[0] * nz + start[1]]) return ['the way in is blocked'];

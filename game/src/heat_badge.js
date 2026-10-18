@@ -25,11 +25,14 @@ export function createHeatBadge({ root, game, heroId }) {
   function notify(g) {
     live = live.filter(p => p.isConnected);
     const pop = document.createElement('div');
-    pop.className = 'heatgain';
+    pop.className = g.amount < 0 ? 'heatgain drop' : 'heatgain';
     pop.innerHTML = `<span></span><b></b>`;
     pop.firstChild.textContent = g.reason || 'Heat';
-    pop.lastChild.textContent = `+${g.amount}`;
-    pop.style.bottom = `${140 + live.length * 44}px`;
+    pop.lastChild.textContent = g.amount < 0 ? `${g.amount}` : `+${g.amount}`;
+    // just above the badge, wherever the movable HUD put it
+    const r = root.getBoundingClientRect();
+    pop.style.right = `${Math.max(0, innerWidth - r.right)}px`;
+    pop.style.bottom = `${innerHeight - r.top + 2 + live.length * 44}px`;
     pop.addEventListener('animationend', () => pop.remove());
     setTimeout(() => pop.remove(), 6000);   // in case the animation never ends (hidden tab)
     document.body.appendChild(pop);
@@ -42,8 +45,10 @@ export function createHeatBadge({ root, game, heroId }) {
     for (const g of game.state.heatGains || []) if (g.clan === clan.id) notify(g);
     const heat = Math.round(clan.heat || 0), k = Math.min(1, heat / 100);
     if (heat === last) return;
-    if (last !== null && heat > last) {
-      root.classList.remove('flare'); void root.offsetWidth; root.classList.add('flare');
+    if (last !== null && heat !== last) {
+      // up: a hot flare; a big drop (out of jail, a bribe): a cool pulse
+      const cls = heat > last ? 'flare' : last - heat >= 5 ? 'cool' : null;
+      if (cls) { root.classList.remove('flare', 'cool'); void root.offsetWidth; root.classList.add(cls); }
     }
     last = heat;
     num.textContent = heat;

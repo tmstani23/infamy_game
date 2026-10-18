@@ -1,0 +1,13 @@
+{
+  "_note": "Faint glow on held weapons (render/characters.js). models: which weapon each character holds. weapons: colour (r, g, b 0..1), strength (0..1, keep it faint), attack = extra brightness while swinging. Needs the <sheet>_glow.png files from tools/export_sprites.mjs; a sheet without one just has no glow.",
+  "models": {
+    "ronin": "katana", "swordsman": "katana", "rival_yakuza": "katana",
+    "thug": "club", "brute": "club",
+    "police": "jitte"
+  },
+  "weapons": {
+    "katana": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35 },
+    "club": { "color": [1.0, 0.56, 0.22], "strength": 0.3, "attack": 0.3 },
+    "jitte": { "color": [0.38, 0.58, 1.0], "strength": 0.4, "attack": 0.3 }
+  }
+}

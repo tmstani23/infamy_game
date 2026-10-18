@@ -176,6 +176,35 @@ export function hiddenMaterial(uniforms) {
   });
 }
 
+// Faint weapon glow over a character: the exporter's _glow sheet (weapon alone, white halo)
+// tinted per weapon type and added on top; shares the sprite's frame, depth and opacity uniforms
+export function weaponGlowMaterial(spriteUniforms, map, color, strength) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uMap: { value: map },
+      uFrame: spriteUniforms.uFrame,
+      uDepthAt: spriteUniforms.uDepthAt,
+      uOpacity: spriteUniforms.uOpacity,
+      uColor: { value: new THREE.Color(...color) },
+      uStrength: { value: strength },
+    },
+    vertexShader: SPRITE_VERT,
+    fragmentShader: /* glsl */`
+      uniform sampler2D uMap;
+      uniform float uOpacity;
+      uniform vec3 uColor;
+      uniform float uStrength;
+      varying vec2 vUv;
+      void main() {
+        float g = texture2D(uMap, vUv).a * uStrength * uOpacity;
+        if (g < 0.01) discard;
+        gl_FragColor = vec4(uColor * g, 1.0);
+      }`,
+    transparent: true, depthTest: true, depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+}
+
 export function spriteMaterial(map, extra = {}) {
   return new THREE.ShaderMaterial({
     uniforms: {
@@ -325,8 +354,9 @@ export function flameMaterial(seed) {
 
 // Door ring on the ground (Tim OK'd the mock 2026-10-17): a crisp outer ring with four
 // notches, a slowly turning dashed inner ring, a faint ember glow inside and a bright
-// spot sweeping round the rim, all gently pulsing
-export const doorMaterial = new THREE.ShaderMaterial({
+// spot sweeping round the rim, all gently pulsing. A building with your crew inside gets the
+// same ring in bright crew teal, bigger and flashing (Tim 2026-10-18).
+const doorRingMaterial = ({ pale, gold, ember, pulse, gain = '1.0' }) => new THREE.ShaderMaterial({
   uniforms: { uTime: shared.uTime, uFog: shared.uFog, uFogRect: shared.uFogRect, uFogOn: shared.uFogOn },
   vertexShader: QUAD_VERT,
   fragmentShader: /* glsl */`
@@ -335,7 +365,7 @@ export const doorMaterial = new THREE.ShaderMaterial({
     void main() {
       vec2 p = vUv - 0.5;
       float d = length(p) * 2.0, ang = atan(p.y, p.x), t = uTime;
-      float pulse = 0.85 + 0.15 * sin(t * 2.5);
+      float pulse = ${pulse};
       float rim = abs(d - 0.86);
       float outer = smoothstep(0.035, 0.0, rim);
       float halo = smoothstep(0.30, 0.0, rim) * 0.45;
@@ -343,14 +373,17 @@ export const doorMaterial = new THREE.ShaderMaterial({
       float notch = step(0.97, cos(ang * 4.0 + t * 0.3)) * smoothstep(0.09, 0.0, rim) * 1.2;
       float fill = pow(clamp(1.0 - d / 0.86, 0.0, 1.0), 1.5) * 0.28;
       float sweep = pow(max(cos(ang - t * 1.6), 0.0), 8.0) * smoothstep(0.12, 0.0, rim) * 0.9;
-      vec3 gold = vec3(1.0, 0.78, 0.38), pale = vec3(1.0, 0.92, 0.7), ember = vec3(1.0, 0.45, 0.2);
-      vec3 col = (pale * (outer * 1.5 + notch * 1.4 + sweep) + gold * (halo + dash * 1.1) + ember * fill) * pulse;
+      vec3 gold = vec3(${gold}), pale = vec3(${pale}), ember = vec3(${ember});
+      vec3 col = (pale * (outer * 1.5 + notch * 1.4 + sweep) + gold * (halo + dash * 1.1) + ember * fill) * pulse * ${gain};
       col *= fogGlow(fogGround());
       gl_FragColor = vec4(col, min(1.0, max(col.r, max(col.g, col.b))));
     }`,
   transparent: true, depthTest: false, depthWrite: false,
   blending: THREE.AdditiveBlending,   // reads as light on both the day and night ground
 });
+export const doorMaterial = doorRingMaterial({ pale: '1.0, 0.92, 0.7', gold: '1.0, 0.78, 0.38', ember: '1.0, 0.45, 0.2', pulse: '0.85 + 0.15 * sin(t * 2.5)' });
+// crew ring: brighter and flashing (Tim 2026-10-18: the soft pulse was hard to notice)
+export const crewDoorMaterial = doorRingMaterial({ pale: '0.75, 1.0, 1.0', gold: '0.3, 0.9, 1.0', ember: '0.2, 0.75, 0.95', pulse: '0.4 + 0.9 * pow(0.5 + 0.5 * sin(t * 4.5), 2.0)', gain: '1.8' });
 
 export const shadowMaterial = new THREE.ShaderMaterial({
   vertexShader: QUAD_VERT,

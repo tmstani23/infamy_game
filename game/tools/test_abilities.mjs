@@ -65,6 +65,7 @@ const cast = (g, id, slot, x, z) => g.step([{ id, type: 'ability', slot, x, z }]
   assert.ok(Math.abs(S[mine].hp - (100 + T.thug.hp * A.R.heal)) < 1);
   assert.ok(S[away].hp < 101);
   assert.ok(S[mine].buffs?.rally && !S[away].buffs);
+  assert.ok(S[hero].buffs?.rally, 'rally buffs the hero too');
   // swing gap: count hits on a tough dummy over 6 s with and without rally
   const count = rally => {
     const g2 = newGame(), E = g2.state.entities;

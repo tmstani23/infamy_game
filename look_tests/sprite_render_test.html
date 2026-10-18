@@ -403,7 +403,28 @@ function buildKatana() {
   cyl(0.045, 0.018, 0.3, 0.34, gold);                  // habaki (blade collar)
   return g;
 }
-const PROC_ITEMS = { club: buildClub, katana: buildKatana };
+// Police jitte: iron truncheon with a side hook (kagi) above a cord-wrapped handle
+function buildJitte() {
+  const g = new THREE.Group();
+  const iron = std({ color: 0x4a4f58, roughness: 0.35, metalness: 0.7, emissive: 0x0e1218 }, [0xa9c4ff, 0.9]);
+  const cord = canvasTex(32, 128, (c, w, h) => {
+    c.fillStyle = '#3a1612'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#7a3a2a'; c.lineWidth = 2;
+    for (let y = -16; y < h + 16; y += 6) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y + 10); c.stroke(); }
+  });
+  const cyl = (r0, r1, z0, z1, mat) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, z1 - z0, 14), mat); m.rotation.x = Math.PI / 2; m.position.z = (z0 + z1) / 2; g.add(m); return m; };
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.009, 8, 16), iron);   // pommel ring
+  ring.rotation.y = Math.PI / 2; ring.position.z = 0.0; g.add(ring);
+  cyl(0.026, 0.026, 0.02, 0.32, std({ map: cord, roughness: 0.85, metalness: 0 }, [0x8fb4ff, 0.4]));
+  cyl(0.03, 0.03, 0.32, 0.345, iron);                     // collar
+  cyl(0.024, 0.018, 0.345, 0.985, iron);                  // shaft
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), iron); tip.position.z = 0.985; g.add(tip);
+  // hook: a short arm out to the side, then a prong running up beside the shaft
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.016, 0.022), iron); arm.position.set(0.045, 0, 0.36); g.add(arm);
+  const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
+  return g;
+}
+const PROC_ITEMS = { club: buildClub, katana: buildKatana, jitte: buildJitte };
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
 // Hand distance (in character heights / 2) below which both hands hold the
@@ -545,8 +566,24 @@ addEventListener('dragleave', () => drop.classList.remove('over'));
 addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); loadFiles(e.dataTransfer.files); });
 
 // ---------- export ----------
+// Glow pass for the in-game weapon glow (render/characters.js): the held item alone in white,
+// hidden where the body is in front of it, blurred into a soft halo at half size.
+// Same rows and frames as the colour sheet, so the game reads it with the same frame numbers.
+const GLOW_BODY = new THREE.MeshBasicMaterial({ colorWrite: false });   // depth only: hides the item behind the body
+const GLOW_ITEM = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function glowSwap(on, saved) {
+  if (on) {
+    const inItem = new Set();
+    item.traverse(o => o.isMesh && inItem.add(o));
+    const swap = (o, mat, order) => { saved.push([o, o.material, o.renderOrder]); o.material = mat; o.renderOrder = order; };
+    root.traverse(o => o.isMesh && !inItem.has(o) && swap(o, GLOW_BODY, -1));   // body first, so its depth is there before the item draws
+    inItem.forEach(o => swap(o, GLOW_ITEM, 1));
+  } else for (const [o, m, r] of saved.splice(0)) { o.material = m; o.renderOrder = r; }
+}
+
 // Renders the spritesheet for clip i: 8 rows (directions) x N frames, transparent
-function renderSheet(i) {
+// withGlow: also render the weapon glow sheet (needs a held item)
+function renderSheet(i, withGlow = false) {
   const size = Number($('size').value);
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
@@ -556,6 +593,15 @@ function renderSheet(i) {
   const sheet = document.createElement('canvas');
   sheet.width = size * frames; sheet.height = size * DIRS.length;
   const ctx = sheet.getContext('2d');
+  const doGlow = withGlow && !!item;
+  const gs = size / 2;
+  const glow = doGlow ? document.createElement('canvas') : null;
+  let gctx = null, cell = null, cctx = null;
+  if (doGlow) {
+    glow.width = gs * frames; glow.height = gs * DIRS.length; gctx = glow.getContext('2d');
+    cell = document.createElement('canvas'); cell.width = cell.height = gs; cctx = cell.getContext('2d');
+  }
+  const saved = [];
 
   const off = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   off.setPixelRatio(1);
@@ -577,6 +623,20 @@ function renderSheet(i) {
       updateItem();
       off.render(scene, cam);
       ctx.drawImage(off.domElement, f * size, row * size);
+      if (doGlow) {
+        glowSwap(true, saved);
+        off.render(scene, cam);
+        glowSwap(false, saved);
+        // soft halo plus a fainter sharp core, blurred inside its own cell so frames never bleed
+        cctx.clearRect(0, 0, gs, gs);
+        cctx.filter = 'blur(2.5px)'; cctx.globalAlpha = 1;
+        cctx.drawImage(off.domElement, 0, 0, gs, gs);
+        cctx.drawImage(off.domElement, 0, 0, gs, gs);
+        cctx.filter = 'none'; cctx.globalAlpha = 0.5;
+        cctx.drawImage(off.domElement, 0, 0, gs, gs);
+        cctx.globalAlpha = 1;
+        gctx.drawImage(cell, f * gs, row * gs);
+      }
     }
   });
 
@@ -587,7 +647,7 @@ function renderSheet(i) {
 
   const safe = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase();
   const clipName = /\(built in\)/.test(entry.name) ? 'walk' : entry.name;
-  return { sheet, frames, size, fps, fname: `${safe(modelName)}_${safe(clipName)}.png` };
+  return { sheet, glow, frames, size, fps, fname: `${safe(modelName)}_${safe(clipName)}.png` };
 }
 
 $('export').onclick = () => {
@@ -607,7 +667,7 @@ $('export').onclick = () => {
 window.spriteTest = {
   ready: () => clips.length > 0,
   clipCount: () => clips.length,
-  render: i => { const r = renderSheet(i); return { fname: r.fname, frames: r.frames, dataUrl: r.sheet.toDataURL('image/png') }; },
+  render: (i, withGlow = false) => { const r = renderSheet(i, withGlow); return { fname: r.fname, frames: r.frames, dataUrl: r.sheet.toDataURL('image/png'), glowUrl: r.glow ? r.glow.toDataURL('image/png') : null }; },
   tracks: i => clips[i].clip.tracks.map(t => t.name),
   clipNames: () => clips.map(c => c.name),
   itemReady: () => !!item,

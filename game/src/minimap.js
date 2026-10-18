@@ -114,7 +114,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   }
 
   // clicks: keep them away from the crew controls underneath (they listen on the window)
-  const at = e => { const r = canvas.getBoundingClientRect(); return toWorld(e.clientX - r.left, e.clientY - r.top); };
+  // (scaled to the minimap's size on screen, which the movable HUD can change)
+  const at = e => { const r = canvas.getBoundingClientRect(); return toWorld((e.clientX - r.left) * size / r.width, (e.clientY - r.top) * size / r.height); };
   let dragging = false;
   canvas.addEventListener('mousedown', e => {
     e.stopPropagation();

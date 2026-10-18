@@ -22,7 +22,10 @@ export function createRyoBadge({ root, game, heroId }) {
     pop.innerHTML = `<span></span><b></b>`;
     pop.firstChild.textContent = g.reason || 'Ryo';
     pop.lastChild.textContent = `+${g.amount} ryo`;
-    pop.style.bottom = `${140 + live.length * 44}px`;
+    // just above the badge, wherever the movable HUD put it
+    const r = root.getBoundingClientRect();
+    pop.style.right = `${Math.max(0, innerWidth - r.right)}px`;
+    pop.style.bottom = `${innerHeight - r.top + 2 + live.length * 44}px`;
     pop.addEventListener('animationend', () => pop.remove());
     setTimeout(() => pop.remove(), 6000);   // in case the animation never ends (hidden tab)
     document.body.appendChild(pop);

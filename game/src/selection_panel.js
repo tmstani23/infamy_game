@@ -9,8 +9,9 @@ export const unitName = (units, type) => units.types[type]?.name || (type.charAt
 // What a unit is doing, in a word or two, from the state alone (no DOM, so Node can check it)
 export function unitStatus(e, state) {
   if (e.dead) return 'Dead';
-  if (e.downed) return Object.values(state.entities).some(o => o.execute?.target === e.id) ? 'Being finished off' : 'Downed';
-  if (e.execute) return 'Finishing off';
+  if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
+  if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
+  if (e.execute) return e.execute.arrest ? 'Arresting' : 'Finishing off';
   if (e.swing) return 'Fighting';
   if (e.type === 'civilian') {
     if (e.scared) return 'Scared';
@@ -28,9 +29,20 @@ export function unitStatus(e, state) {
   return moving ? 'Moving' : 'Idle';
 }
 
+// Where a unit is: "Teahouse · Waterfront" inside a building, just the district outside.
+// info = game/data/buildings.json (the building names)
+export function unitWhere(e, state, district, info = {}) {
+  const zone = district.name || 'Street';
+  if (!e || e.place === 'street') return zone;
+  const b = Object.values(state.businesses).find(b => b.room === e.place);
+  const art = b && district.buildings[Number(b.id.slice(1))]?.art;
+  const name = info.names?.[art] || (e.place.charAt(0).toUpperCase() + e.place.slice(1)).replace(/_/g, ' ');
+  return `${name} · ${zone}`;
+}
+
 const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
 
-export function createSelectionPanel({ root, game, units, catalog, crewInput }) {
+export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '' }) {
   let shown = '';
   const cards = {};
   root.addEventListener('mousedown', e => {
@@ -52,10 +64,10 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput }) 
         const c = document.createElement('div');
         c.className = 'card';
         c.dataset.id = id;
-        c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i></div>';
+        c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
         c.querySelector('b').textContent = unitName(units, e.civ || e.type);
         root.appendChild(c);
-        cards[id] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), model: e.model, hasPic: false };
+        cards[id] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
     }
     for (const id of ids) {
@@ -69,8 +81,10 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput }) 
       k.fill.style.background = css(color);
       const st = unitStatus(e, game.state);
       if (k.status.textContent !== st) k.status.textContent = st;
+      const at = where(e);
+      if (k.where.textContent !== at) k.where.textContent = at;
       k.c.classList.toggle('down', !!e.downed);
-      k.c.title = `${unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}`;
+      k.c.title = `${unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
     }
   }
   return { update };

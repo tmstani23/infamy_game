@@ -5,6 +5,8 @@
 // middle buttons and Shift do not reach the page reliably in Firefox): he chases it and keeps
 // hitting it until it is down or he gets another order, and on a downed one he finishes it off.
 // Townsfolk can be clicked to look at them (selection panel) and attacked like enemies (heat!).
+// Left-click a building (where nothing else is) to look at it (building_panel.js), unless the fog
+// has never shown it.
 // Selection lives only on this screen; orders go to the rules as 'order' commands.
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
@@ -64,9 +66,10 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
   let tabbed = null;          // the Tab (or left-click) target: shown blue until the hero attacks it
+  let building = null;        // the selected building (index in the district's buildings), or null
   const hero = () => game.state.entities[heroId];
   const myCrew = () => Object.values(game.state.entities)
-    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && e.place === 'street');
+    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && e.place === hero()?.place);   // indoors too, so C works there
   const outdoors = () => hero()?.place === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
   const seen = e => !game.vision || game.vision.canSee(hero()?.owner, e);
@@ -75,6 +78,13 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   const townsfolk = () => Object.values(game.state.entities)
     .filter(e => e.type === 'civilian' && !e.dead && e.place === hero()?.place && seen(e));
 
+  // has the hero's clan ever seen any of building i's footprint (centre or corners)?
+  const explored = i => {
+    const s = game.scenery.find(t => t.building === i), g = game.vision?.grid(hero()?.owner);
+    if (!s || !g) return !!s;
+    const { minX, maxX, minZ, maxZ } = s.foot;
+    return [[s.x, s.z], [minX, minZ], [minX, maxZ], [maxX, minZ], [maxX, maxZ]].some(([x, z]) => g.explored[game.vision.cellOf(x, z)] === 1);
+  };
   // the selected units orders go to (a selected townsperson takes none)
   const mine = () => selected.filter(id => game.state.entities[id]?.owner === hero()?.owner);
   function setSelected(ids) {
@@ -100,7 +110,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     else if (foe) send({ id: heroId, type: 'attack', target: foe.id });
   }
   addEventListener('mousedown', e => {
-    if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #controls') || !outdoors()) return;
+    if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls')) return;   // indoors too (rooms sit on the same ground plane)
     const target = () => unitAt(e.clientX, e.clientY, enemies()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
     // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
     // unit sends the selected crew instead (below). On the ground both stay crew orders.
@@ -145,9 +155,13 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (foe) tabbed = foe.id;
       const u = foe || unitAt(e.clientX, e.clientY, myCrew()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
       picked = u ? [u.id] : [];
+      // nothing there but a building: look at the building instead (the crew selection is dropped)
+      const b = u || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
+      building = b !== null && explored(b) ? b : null;
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
       picked = myCrew().filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; }).map(u => u.id);
+      building = null;
     }
     // a townsperson or enemy is only ever looked at on its own (never mixed into a crew selection)
     const civ = id => game.state.entities[id] && game.state.entities[id].owner !== hero()?.owner;
@@ -187,15 +201,16 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       });
     },
     selectAll() { setSelected(myCrew().map(u => u.id)); },
-    clear() { setSelected([]); attackMove = false; document.body.style.cursor = ''; },
+    clear() { setSelected([]); building = null; attackMove = false; document.body.style.cursor = ''; },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
     followMe() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); },
     // hurt selected crew walk to the clinic to heal (for ryo)
     healSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'heal' }); },
-    select(ids) { setSelected(ids); },
+    select(ids) { setSelected(ids); building = null; },
     selected: () => selected,
+    building: () => building,
     // drop units that are gone (killed, or carried to the clinic) from the selection; downed
     // ones stay so the selection panel can show them (the rules ignore orders to them)
-    update() { const alive = selected.filter(id => game.state.entities[id] && !game.state.entities[id].dead); if (alive.length !== selected.length) setSelected(alive); },
+    update() { if (!outdoors()) building = null; const alive = selected.filter(id => game.state.entities[id] && !game.state.entities[id].dead); if (alive.length !== selected.length) setSelected(alive); },
   };
 }

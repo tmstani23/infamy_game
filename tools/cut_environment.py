@@ -56,6 +56,13 @@ SHEETS = {
         'warehouse_shelves', 'rice_sacks', 'vase', 'sake_keg'], 'checker'),
 }
 # Ground tiles: sheet -> {name: (col, row)} on a 4x4 grid
+# Buildings already cut one by one (sheets that are not an even grid, such as buildings5.png):
+# 'kind/name' -> transparent PNG under assets/environment/, run through cut() for the anchor
+SINGLES = {
+    'buildings/police_box': 'buildings/town/police_box.png',
+    'buildings/police_hq': 'buildings/town/police_hq.png',
+}
+
 GROUND = {
     'textures2.png': {'grass': (0, 0), 'mud': (0, 1), 'gravel': (2, 1), 'stone_steps': (3, 1),
                       'planks': (0, 2), 'pond': (1, 2), 'water': (2, 2), 'sand': (3, 2),
@@ -288,6 +295,19 @@ def square_top(img, corners):
     return out, info
 
 
+def cut_singles(meta):
+    for key, src in SINGLES.items():
+        a = np.asarray(Image.open(os.path.join(ENV, src)).convert('RGBA'))
+        res = cut(a, True)
+        if res is None:
+            continue
+        img, info = res
+        kind, name = key.split('/')
+        os.makedirs(os.path.join(OUT, kind), exist_ok=True)
+        Image.fromarray(img).save(os.path.join(OUT, kind, name + '.png'), optimize=True)
+        meta[key] = info
+
+
 def main():
     meta = {}
     for sheet, (kind, cols, rows, names, *bg) in SHEETS.items():
@@ -321,6 +341,7 @@ def main():
                 img, info = square_top(img, TOPS[name])
             Image.fromarray(img).save(os.path.join(OUT, kind, name + '.png'), optimize=True)
             meta[f'{kind}/{name}'] = info
+    cut_singles(meta)
     os.makedirs(os.path.join(OUT, 'ground'), exist_ok=True)
     for sheet, tiles in GROUND.items():
         a = Image.open(os.path.join(ENV, sheet)).convert('RGB')

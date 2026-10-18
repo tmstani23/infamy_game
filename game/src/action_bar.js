@@ -1,6 +1,7 @@
 // The hero's action bar (WoW-style), bottom centre: portrait and health, the basic attack
 // and the Q E R F abilities with cooldown sweeps, active buffs above, crew health pips
-// with their names on the left (click one to select it, Shift-click to add or drop it).
+// with their names on the left (click one to select it, Shift-click to add or drop it,
+// double-click to jump the camera to it).
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 
@@ -13,15 +14,15 @@ function tooltip(a, key, stats) {
   if (!a) return { name: 'Auto attack', key: 'Right-click', lines: [
     ['Damage', `${dmg} per hit`], ['Attack speed', `every ${stats.attackSpeed} s`], ['Range', `${stats.attackRange} steps`],
     ['Critical hit', `${pct(stats.critChance || 0)} chance, ${stats.critMultiplier || 2}x damage`]],
-    about: 'Right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks him onto the nearest enemy (Tab again: the next one); a left-click only marks it in blue. Ctrl + right-click sends your selected crew instead; T sends all your crew at the hero's target. Standing still, the hero hits the nearest enemy in reach.' };
+    about: 'Right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks him onto the nearest enemy (Tab again: the next one); a left-click only marks it in blue. Ctrl + right-click sends your selected crew instead; T sends all your crew at the hero\'s target. Standing still, the hero hits the nearest enemy in reach.' };
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
-    rally: [['Effect', `crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
+    rally: [['Effect', `you and your crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of your and each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     lantern: [['Damage', `+${pct(a.damage - 1)} (${Math.round(dmg * a.damage)} per hit)`], ['Lifesteal', `${pct(a.lifesteal)} of damage dealt`], ['Duration', `${a.seconds} s`]] }[a.kind] || [];
   return { name: a.name + (key === 'F' ? ' (ultimate)' : ''), key, lines: [['Cost', a.cost ? `${a.cost} ryo` : 'None'], ['Cooldown', `${a.cooldown} s`], ...lines], about: a.about };
 }
 
-export function createActionBar({ root, game, units, heroId, tickRate, crewInput }) {
+export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {} }) {
   const hero = () => game.state.entities[heroId];
   const stats = units.types[hero()?.type] || {};
   const kit = stats.abilities || {};
@@ -39,6 +40,10 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     if (!id || !crewInput || e.button !== 0) return;
     const sel = crewInput.selected();
     crewInput.select(!e.shiftKey ? [id] : sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+  });
+  crew.addEventListener('dblclick', e => {
+    const u = game.state.entities[e.target.closest('.mate')?.dataset.id];
+    if (u) jump(u);
   });
   const portrait = el('div', 'portrait', row);
   el('div', 'face', portrait, 'R');
@@ -109,7 +114,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.classList.remove('away');
       m.dataset.id = e.id;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
-      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}`;
+      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}, ${where(e)}`;
     });
     clinic.forEach((c, i) => {
       const m = crew.children[crewList.length + i];

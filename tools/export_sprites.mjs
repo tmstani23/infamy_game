@@ -2,10 +2,13 @@
 //
 //   node tools/export_sprites.mjs              (every model)
 //   node tools/export_sprites.mjs . thug brute (only these models)
+//   add --glow-only to write just the weapon glow sheets and keep the colour sheets
 //
 // Reads   assets/models/*.fbx      (rigged characters with skin; models/source is ignored)
 //         assets/animations/**.fbx (Mixamo clips without skin)
 // Writes  assets/sprites/<model>_<animation>.png  (overwrites earlier exports)
+//         assets/sprites/<model>_<animation>_glow.png  for models holding an item:
+//         the weapon alone as a soft white halo at half size, tinted in the game (data/weapon_glow.json)
 //
 // Animation files belong to a set by their subfolder, e.g.
 // animations/brawler/Walking.fbx is the "walking" clip of the brawler set, with
@@ -69,6 +72,8 @@ const ITEMS = {
   // dir = haft direction in the hand bone's frame (hammer grip: across the fist, head out of the thumb side)
   thug: { file: 'wooden_club', proc: 'club', mode: 'right', length: 0.95, grip: 0.15, dir: [0.92, 0.38, 0] },
   brute: { file: 'wooden_club', proc: 'club', mode: 'right', length: 1.0, grip: 0.15, dir: [0.92, 0.38, 0] },
+  // Police: iron jitte in the right hand, same hammer grip as the clubs
+  police: { file: 'jitte', proc: 'jitte', mode: 'right', length: 0.55, grip: 0.18, dir: [0.92, 0.38, 0] },
 };
 // Single clips borrowed from another set (path inside assets/animations)
 const EXTRA = {
@@ -79,7 +84,9 @@ const EXTRA = {
 const BUILT_IN = { ronin: 'walk' };
 
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
-const only = process.argv.slice(3).map(s => s.toLowerCase());
+const flags = process.argv.slice(3).filter(s => s.startsWith('--'));
+const only = process.argv.slice(3).filter(s => !s.startsWith('--')).map(s => s.toLowerCase());
+const glowOnly = flags.includes('--glow-only');
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
 const page_url = pathToFileURL(path.join(root, 'look_tests', 'sprite_render_test.html')).href;
@@ -141,7 +148,9 @@ for (const model of models) {
   await page.waitForFunction(() => window.spriteTest?.ready(), null, { timeout: 300000 });
   await page.evaluate(s => window.spriteTest.setScale(s), SCALE[name] ?? 1);
   const it = ITEMS[name];
+  let holding = false;
   if (it?.proc) {
+    holding = true;
     await page.evaluate(k => window.spriteTest.setProcItem(k), it.proc);
     await page.evaluate(o => window.spriteTest.setItemOptions(o), it);
     console.log(`  holding stylized ${it.proc}`);
@@ -151,6 +160,7 @@ for (const model of models) {
       await page.setInputFiles('#pickItem', itemFile);
       await page.waitForFunction(() => window.spriteTest.itemReady(), null, { timeout: 120000 });
       await page.evaluate(o => window.spriteTest.setItemOptions(o), it);
+      holding = true;
       console.log(`  holding ${path.basename(itemFile)}`);
     } else console.log(`  no assets/models/items/${it.file}.glb yet, exporting empty-handed`);
   }
@@ -159,13 +169,21 @@ for (const model of models) {
   for (let i = 0; i < names.length; i++) {
     const isBuiltIn = /\(built in\)/.test(names[i]);
     if (isBuiltIn && !builtIn) continue;
-    const r = await page.evaluate(i => window.spriteTest.render(i), i);
+    const r = await page.evaluate(([i, g]) => window.spriteTest.render(i, g), [i, holding]);
     // <model>_<clip> with set and variant prefixes dropped, e.g. brute_walking.png from brawler/Mutant Walking.fbx
     const clip = isBuiltIn ? builtIn : clipName(safe(names[i]).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, ''));
     const fname = `${name}_${clip}.png`;
-    fs.writeFileSync(path.join(outDir, fname), Buffer.from(r.dataUrl.split(',')[1], 'base64'));
-    console.log(`  ${fname}  (${r.frames} frames)`);
-    written++;
+    if (!glowOnly) {
+      fs.writeFileSync(path.join(outDir, fname), Buffer.from(r.dataUrl.split(',')[1], 'base64'));
+      console.log(`  ${fname}  (${r.frames} frames)`);
+      written++;
+    }
+    if (r.glowUrl) {
+      const gname = fname.replace(/\.png$/, '_glow.png');
+      fs.writeFileSync(path.join(outDir, gname), Buffer.from(r.glowUrl.split(',')[1], 'base64'));
+      console.log(`  ${gname}`);
+      written++;
+    }
   }
   await page.close();
 }

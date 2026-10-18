@@ -2,8 +2,8 @@
 import * as THREE from 'three';
 import { VIEW_DIR, CAM_QUAT, CAM_RIGHT, CAM_UP, PPU, toScreen } from './iso.js';
 import { shared, MAX_LIGHTS } from './shading.js';
-import { buildGround, buildScenery, doorRings, sortThings, behind, footprintLines } from './scenery.js';
-import { CharacterSprite, loadSheets } from './characters.js';
+import { buildGround, buildScenery, doorRings, markCrewDoors, sortThings, behind, footprintLines } from './scenery.js';
+import { CharacterSprite, loadSheets, INDOOR_SIZE } from './characters.js';
 import { buildRoom3d } from './interior3d.js';
 import { createHitFx } from './hitfx.js';
 import { createAbilityFx } from './abilityfx.js';
@@ -51,7 +51,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     scene.add(built.group, ...built.glows);
     roomLights.push(...built.lights);
   }
-  for (const d of doorRings(doors)) scene.add(d);
+  const rings = doorRings(doors);
+  for (const d of rings) scene.add(d);
   const things = await buildScenery(scenery, renderer);
   for (const t of things) scene.add(t.mesh, ...t.extras);
   const lights = [...things.flatMap(t => t.lights), ...roomLights];
@@ -64,7 +65,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   // thin ring under every character, coloured by who they are to you, over a faint dark
   // edge so it reads on light and dark ground, day or night
-  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2 };
+  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2, police: 0x4a78e6 };
   const TEAM_GEO = new THREE.RingGeometry(0.5, 0.56, 40), TEAM_EDGE_GEO = new THREE.RingGeometry(0.47, 0.59, 40);
   const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.75, depthWrite: false })]));
   const TEAM_EDGE = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false });
@@ -73,6 +74,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     if (e.type === 'civilian') return 'townsfolk';
     if (me && e.owner === me.owner) return 'crew';
     if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
+    // police: blue, red while after your clan
+    if (e.owner === 'police') return e.angry?.[me?.owner] !== undefined ? 'enemy' : 'police';
     return 'enemy';
   }
   function updateTeamRing(s, e, me) {
@@ -84,9 +87,20 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);
     }
-    s.team.visible = !e.dead && !e.downed;
+    s.team.visible = !e.dead && !e.downed && !e.jailed;
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
     s.team.position.set(s.pos.x, 0.018, s.pos.z);
+    s.team.scale.setScalar(s.size);
+  }
+
+  // text over a unit's channel bar (an officer arresting), DOM in the effects layer
+  const labels = new Map(), labelSeen = new Set(), lv = new THREE.Vector3();
+  function chanLabel(id, x, z, text) {
+    let el = labels.get(id);
+    if (!el) { el = document.createElement('div'); el.className = 'chanlabel'; el.textContent = text; fxLayer.appendChild(el); labels.set(id, el); }
+    lv.set(x, 2.75 * (sprites.get(id)?.size ?? 1), z).project(camera);
+    el.style.transform = `translate(${(lv.x + 1) / 2 * innerWidth}px, ${(1 - lv.y) / 2 * innerHeight}px) translate(-50%, -100%)`;
+    labelSeen.add(id);
   }
 
   // one sprite per unit in the state
@@ -154,8 +168,16 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
-      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT);
+      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT, e.place && e.place !== 'street' ? INDOOR_SIZE : 1);
       s.setHealth(e.hp, e.maxHp);
+      // channels: the bar over an officer arresting (blue) or anyone executing (red) fills up;
+      // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
+      const x = e.execute;
+      if (x && x.start !== null && x.len) s.setBar((state.tick - x.start + alpha) / x.len, x.arrest ? [0.35, 0.55, 1] : [1, 0.25, 0.15]);
+      if (x?.arrest && x.start !== null) chanLabel(id, s.pos.x, s.pos.z, 'ARRESTING');
+      if (e.jailed) s.setBar((e.jailed.until - state.tick - alpha) / e.jailed.len, [0.6, 0.6, 0.65]);
+      const grey = !!e.jailed, gu = s.material.uniforms;
+      if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); gu.uOpacity.value = grey ? 0.55 : 1; s.grey = grey; }
       updateTeamRing(s, e, state.entities[followId]);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
@@ -172,14 +194,21 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
       s.lanternTint = lit;
     }
+    for (const [id, el] of labels) if (!labelSeen.has(id)) { el.remove(); labels.delete(id); }
+    labelSeen.clear();
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
     const inside = state.entities[followId]?.place !== 'street';
+    if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
 
     // camera follows the hero, snapped to whole screen pixels so the art stays crisp
     if (hero) {
       // went through a door (or first frame): jump there and follow again
-      if (!camReady || camTarget.distanceTo(hero.pos) > (freeCam ? PAN_MAX + 5 : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
+      // a crew jump (jumpTo) lasts until the hero moves or goes through a door
+      const place = state.entities[followId]?.place;
+      if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
+      heroPlace = place;
+      if (!camReady || camTarget.distanceTo(hero.pos) > (farCam ? Infinity : freeCam ? PAN_MAX + 5 : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
       camTarget.lerp(freeCam || hero.pos, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
       heroPos = hero.pos;
     }
@@ -249,7 +278,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
   const raycaster = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const v = new THREE.Vector3();
-  let heroPos = null;
+  let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null;
   return {
     render, renderer, scene, addHits, addCasts,
     // arrow-key panning (right, up from -1 to 1 on screen); the camera stays there until snapBack
@@ -258,14 +287,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       freeCam ||= camTarget.clone();
       const k = PAN_SPEED * dt / zoomNow;
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
-      if (heroPos && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
+      if (heroPos && !farCam && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
     },
-    snapBack() { freeCam = null; },
+    snapBack() { freeCam = null; farCam = false; },
     // look at a ground point (minimap click); stays there until snapBack, like panning
     lookAt(x, z) {
+      farCam = false;
       freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z);
       if (heroPos && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
     },
+    // jump to any point however far from the hero (double-click a crew name); stays there until the hero moves, uses a door or Home
+    jumpTo(x, z) { farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
     isPanned: () => !!freeCam,
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
@@ -273,6 +305,16 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     screenToGround(px, py) {
       raycaster.setFromCamera({ x: px / innerWidth * 2 - 1, y: 1 - py / innerHeight * 2 }, camera);
       return raycaster.ray.intersectPlane(groundPlane, v) ? { x: v.x, z: v.z } : null;
+    },
+    // page pixel -> index of the street building painted there (the frontmost one), or null.
+    // Any point on the click's view ray works for Thing.covers, so the ground point is used.
+    buildingAt(px, py) {
+      const p = this.screenToGround(px, py);
+      if (!p) return null;
+      const P = new THREE.Vector3(p.x, 0, p.z);
+      let best = null;
+      for (const t of things) if (t.building !== null && t.covers(P) && (!best || t.mesh.renderOrder > best.mesh.renderOrder)) best = t;
+      return best ? best.building : null;
     },
     // a unit's body centre (about 0.9 above its feet) -> page pixel { x, y }
     unitToScreen(x, z) {

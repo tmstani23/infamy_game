@@ -54,6 +54,7 @@
 
 - Abilities use an existing Mixamo animation plus code or sprite VFX.
 - Night lighting, rain, mist and wet reflections stay live effects on top of the sprites.
+- Weapon glow (2026-10-18): faint per-weapon glow layer; see `combat_spec.md` section G.
 - Door rings (2026-10-17): a notched outer ring, a turning dashed inner ring, ember glow and a sweeping highlight; each ring sits 1 step out from its door.
 
 ### Superseded

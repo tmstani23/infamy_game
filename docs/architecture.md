@@ -46,6 +46,10 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 | Abilities and effects | [combat_spec.md](combat_spec.md) F, G | `sim/game.js` (abilities), `action_bar.js`, `render/abilityfx.js`, `render/vfx.js`, `render/bloom.js`, `game/tools/test_abilities.mjs` |
 | Heat | [combat_spec.md](combat_spec.md) H | `state.clans[x].heat` and `state.heatGains` in `sim/game.js`, `heat_badge.js` |
 | Fog of war and minimap | [combat_spec.md](combat_spec.md) H | `sim/vision.js`, `render/fog.js`, `minimap.js`, `game/tools/test_vision.mjs` |
+| Police | [police_spec.md](police_spec.md) | `sim/police.js`, `data/police.json`, `police_menu.js`, `game/tools/test_police.mjs` |
+| Building panel | [buildings.md](buildings.md) | `building_panel.js`, `data/buildings.json` |
+| HUD layout | [controls.md](controls.md) | `hud_layout.js`, `data/ui_layout.json` (saved by a PUT to `server.mjs`, localStorage fallback) |
+| Weapon glow | [combat_spec.md](combat_spec.md) G | `data/weapon_glow.json`, the exporter's glow pass, `render/shading.js` `weaponGlowMaterial`, `render/characters.js` glow quad |
 | Night bandits | [combat_spec.md](combat_spec.md) I | `sim/bandits.js`, `data/bandits.json`, `game/tools/test_bandits.mjs` |
 | Townsfolk | [civilians_plan.md](civilians_plan.md) | `sim/civilians.js`, `data/civilians.json`, `pois` in `data/waterfront.json`, `game/tools/test_civilians.mjs` |
 | Selection panel and portraits | [controls.md](controls.md) | `selection_panel.js`, `portraits.js`, `game/tools/test_selection_panel.mjs`, `test_picking.mjs` |
@@ -61,7 +65,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 |---|---|
 | `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts. `TICK_RATE = 20`. |
 | `clans.js` | Clan money, businesses held, crew cap, hire queue and prices (numbers from `units.json`). |
-| `nav.js` | Street pathfinding for crew: walk grid from blockers, A*, then straightened paths. |
+| `nav.js` | Pathfinding for crew: walk grid from blockers, A*, then straightened paths. Each room has its own grid (`ROOM_NAV`; `navOf` in `game.js` picks the grid). |
+| `police.js` | Police clan: tiers by heat, patrols and hunts, arrests, jail, bribes. Every spawn starts fresh (`mind.fresh`): it patrols until it sees the hero. |
 | `geometry.js` | Shared math: camera angle, pixels per unit, 8 directions, footprints, placing scenery from the map. |
 | `interiors.js` | Lays out 3D rooms on the grid (walls, props, blockers, checks). Rooms sit far off the street map in the same world. |
 | `generate.js` | Room generator: building type + seed gives a room in the same format as `interiors.json`. |
@@ -75,7 +80,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 |---|---|
 | `view.js` | Foot ring colours per unit category. Owns the scene, camera (follows the hero; arrow keys pan it, Home snaps back; screen-only, not game state), zoom, day/night; draws the state each frame. |
 | `scenery.js` | Ground blend and the painted building/prop cut-outs on invisible footprint boxes; draw order sorting. |
-| `characters.js` | 8-direction sprite sheets for units; `dispose()` frees units that leave the map. |
+| `characters.js` | 8-direction sprite sheets for units, weapon glow quad; `dispose()` frees units that leave the map. `INDOOR_SIZE` sets the indoor draw scale (now 1). |
 | `fog.js` | Draws the fog of war (`?fog=0` turns it off). |
 | `interior3d.js` | Builds real 3D rooms (walls, floors, furniture) from the sim's room layout. |
 | `shading.js` | Shared shaders: night grade, lantern lights, see-through cutaway, interior materials. |
@@ -94,8 +99,11 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `main.js` | Wires everything together and runs the loop above. |
 | `input.js` | Keyboard to commands (WASD hero move) and view keys. |
 | `crew_input.js` | RTS mouse control: select, right-click move/attack/follow, attack-move. Selection is screen-only. |
-| `hire_menu.js` | Teahouse hire panel and the ryo / crew HUD line; sends `hire` commands. |
-| `action_bar.js` | Hero health, ability slots and cooldowns, buffs, crew pips (click a name to select). |
+| `hire_menu.js` | Teahouse hire panel and the crew HUD line; sends `hire` commands. |
+| `action_bar.js` | Hero health, ability slots and cooldowns, buffs, crew pips (click a name to select, double-click to jump the camera). |
+| `building_panel.js` | Panel for a clicked building (data from `data/buildings.json`). |
+| `police_menu.js` | Bribe and bail menus. |
+| `hud_layout.js` | Movable, resizable HUD panels (saved in `data/ui_layout.json`). |
 | `selection_panel.js` | Panel for the selected crew or townsperson, above the action bar. |
 | `portraits.js` | Portraits for the panels. |
 | `clinic_menu.js` | Clinic menu: heal and revive (below the minimap, like the hire menu). |
@@ -107,8 +115,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 **Other**
 
 - `game/index.html`: page, HUD elements, the controls panel (? key), three.js import map (pinned version from a CDN).
-- `game/server.mjs`: tiny static web server (run by `start_game.bat`).
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, all `.mjs`) and the room preview page `rooms.html`.
+- `game/server.mjs`: tiny static web server (run by `start_game.bat`); also saves the HUD layout on PUT.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, all `.mjs`) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 
@@ -119,6 +127,10 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `units.json` | Unit stats and clan rules (start ryo, cap, prices, HP, regen, downed and clinic rules). |
 | `civilians.json` | Townsfolk types and tuning. |
 | `bandits.json` | Night bandit rules and ryo per type. |
+| `police.json` | Police tiers and rules. |
+| `buildings.json` | Building panel info. |
+| `ui_layout.json` | Saved HUD layout. |
+| `weapon_glow.json` | Weapon glow colours and strength per character. |
 | `interiors.json` | Hand-made rooms (the approved teahouse). |
 | `interior_parts.json` | Room parts, materials and placement rules. |
 | `room_recipes.json` | Generator recipes per building type and Tim's picked seeds. |

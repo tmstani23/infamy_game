@@ -27,5 +27,5 @@ Each layer is playable on its own before the next one starts.
 3. Hero movement and camera in the district: done (2026-10-15).
 4. Recruiting and commanding crew: hiring, orders and combat done (2026-10-16); downed and hospital done, plus townsfolk and night bandits (2026-10-17); playtest left (`crew_recruiting_plan.md`).
 5. Interiors for the three buildings: done (2026-10-16), 3D plus a room generator.
-6. Rival clan AI and the den raid: next.
+6. Businesses and raids: ownership, payouts, buying and attacking businesses, War Lantern raids (they replace raid tokens), defending. Plan: `business_raids_plan.md` (after the 2x map and a settings file). Then the rival bot clan.
 7. Then: inventory, stash, fence, documents.

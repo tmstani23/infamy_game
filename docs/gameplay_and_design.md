@@ -15,7 +15,7 @@ Status key: **Settled** = agreed. **Idea** = suggested, not agreed. **Open** = s
 - **2-week seasons**: everything resets at the end of a season except cosmetics.
 - Aimed at **20 to 40 minutes a day**; playing longer is allowed but pays off less.
 - Anti-grind rules:
-  - About **3 raid tokens per clan per night**.
+  - Raids need a **War Lantern** (2,400 ryo, carry 1; see `docs/business_raids_plan.md`, 2026-10-18).
   - Diminishing returns on infamy and money after a daily share.
   - Crew caps come from property held, and each extra crew member costs more to hire.
   - Raids only in a fixed night window.
@@ -63,11 +63,11 @@ Ideas not taken up yet: Bakuto gambling gangs, a merchant house, a specific West
 - Fighting can happen any time: street fights, ambushes, hero duels.
 - In daytime there are witnesses, heat rises fast and police arrive quickly.
 - Only business capture is restricted to night raids.
-- Past a heat threshold, police patrols come after you. Bribes lower heat.
+- Police: heat tiers, arrests, bail and bribes; see `docs/police_spec.md`.
 
 ## Raids (Settled)
 
-- A raid squad is the hero plus up to **about 6 crew** and costs one raid token.
+- A raid squad is the hero plus up to **about 6 crew** and needs a War Lantern.
 - Scout first with a lookout.
 - Defenders are stationed crew plus guards. AI runs them if the owner is offline; the owner can join live.
 - **Win**: hold the back room for 30 seconds. **Lose**: hero knocked out, or time runs out.

@@ -172,6 +172,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
             shape: SHAPE.petal, spin: rand(-2.5, 2.5) });
         }
       }
+      if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') {
         wave(c.x, c.z, 2.4, 0xff4020, 0.5); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06); wave(c.x, c.z, 3.4, 0xffd070, 0.7, 0.12);
@@ -356,8 +357,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       const rallyOwners = new Set(Object.values(state.entities).filter(u => u.buffs?.rally && !u.dead).map(u => u.owner));
       for (const [id, t] of rallyCasts) if (!state.entities[id] || (now0 - t > 1.5 && !rallyOwners.has(state.entities[id].owner))) rallyCasts.delete(id);
       for (const e of Object.values(state.entities)) {
-        // the hero who cast Rally shows its aura too while their crew is rallied
-        // (looks only: in the rules Rally buffs the crew, not the hero)
+        // the hero who cast Rally keeps its aura while their crew is rallied
+        // (after its own buff ends, or if it went down and got up)
         const rallied = e.type === 'hero' && !e.buffs?.rally && !e.downed && rallyCasts.has(e.id)
           && (now0 - rallyCasts.get(e.id) < 1.5 || rallyOwners.has(e.owner));
         if ((!e.buffs && !e.downed && !rallied) || e.dead) continue;

@@ -1,6 +1,6 @@
 # Interiors spec
 
-Status (2026-10-16): every room is built this way. The teahouse is hand-made in `game/data/interiors.json`; the den and warehouse come from the room generator (`docs/room_generator_plan.md`). The older painted wall-piece rooms are gone.
+Status (2026-10-18): every room is built this way, and all three rooms come from the room generator (`docs/room_generator_plan.md`). The hand-made teahouse is kept, unused, in `game/data/interiors.json`. Rooms are about 2.5x larger with about 2x the props (2026-10-18), and each room has its own walk grid. The older painted wall-piece rooms are gone.
 
 ## Why 3D
 

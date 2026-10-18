@@ -20,7 +20,7 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | lookout | Crew | ✅ | ✅ | ✅ 7 | brawler |
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
-| police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip | ✅ police.fbx (was policeman2) | ✅ 7 | brawler |
+| police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip | ✅ police.fbx (was policeman2) | ✅ 7, with jitte (2026-10-18) | brawler |
 | bandit | Enemy | ✅ | ✅ | ✅ 7 (cloak touches the edge at the end of dying) | brawler |
 | rival_yakuza | Enemy | ✅ femyakuza2obj1.zip (concept rivalyakuza2) | ✅ | ✅ 10 (walk borrowed from brawler) | combat, katana (confirmed by Tim) |
 | merchant | Townsfolk | ✅ (concept merchant2) | ✅ | ✅ 6 | civilian |
@@ -44,7 +44,7 @@ Thin items are image slabs made by `tools/make_slabs.py` from `assets/concepts/i
 | katana | ronin, swordsman, rival_yakuza | ✅ built in code (see Weapon look pass) | ✅ both hands; held point-up from the right hand when the hands part (idle, walk) |
 | ninjato | ninja_leader, ninja_grunt | ✅ slab | ✅ right hand |
 | tanto | | ✅ slab | |
-| jitte | | ✅ slab | |
+| jitte | police | ✅ built in code (procedural, 2026-10-18) | ✅ right hand |
 | spear | | ✅ slab | |
 | wooden_club | thug, brute (until a kanabo model exists) | ✅ built in code (see Weapon look pass) | ✅ right hand; brute's club tip touches the top edge in a few frames |
 | bow | archer | ✅ slab | ✅ left hand |
@@ -73,3 +73,5 @@ Export note (2026-10-16): clips that stay in place (idles, in-place walks) keep 
 Katana and wooden club are now built in code by `look_tests/sprite_render_test.html` (`PROC_ITEMS`, `ITEMS.proc` in `tools/export_sprites.mjs`) instead of using the image slabs: drawn faceted blade with edge glint, wrapped hilt, gold fittings; ironwood club with leather grip, iron bands and studs; both get a cool moonlight rim. Hands are fitted to the palm centre (both-hand katana) and the club uses a hammer grip (`dir` in the hand bone frame). Preview: `look_tests/weapon_preview.png`. Katana length 1.3 with a strong curve (SORI 0.1); clubs 1.1 (thug) and 1.15 (brute). Tim OK'd 2026-10-16: ronin, swordsman, rival_yakuza, thug, brute (46 sheets) re-exported; the previous versions are kept in `assets/sprites_archive/2026-10-16_weapons/`.
 
 Katana fix 2026-10-17 (Tim playtest): curve reversed (tip curves up, edge down); when the hands part the katana is held point-up and forward from the right hand instead of hanging across the body. ronin, swordsman, rival_yakuza re-exported (30 sheets); originals in assets/sprites_archive/2026-10-16_weapons/.
+
+Police jitte and weapon glow (2026-10-18): the police sheets were re-exported holding a procedural jitte (old sheets in `assets/sprites_archive/2026-10-18_police_jitte/`). All six armed models (police, ronin, swordsman, rival_yakuza, thug, brute) have `_glow` sheets for the weapon glow (`tools/export_sprites.mjs --glow-only`).
