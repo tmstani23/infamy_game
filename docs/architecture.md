@@ -45,6 +45,7 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 | Combat | [combat_spec.md](combat_spec.md) | `sim/game.js` (attacks, damage, knockouts, downed and execute, carry-off), `sim/clans.js` (clinic), `crew_input.js` (attack, attack-move), `clinic_menu.js`, `render/health.js`, `render/hitfx.js`, `game/tools/test_combat.mjs`, `test_downed.mjs`, `test_clinic_townsfolk.mjs` |
 | Abilities and effects | [combat_spec.md](combat_spec.md) F, G | `sim/game.js` (abilities), `action_bar.js`, `render/abilityfx.js`, `render/vfx.js`, `render/bloom.js`, `game/tools/test_abilities.mjs` |
 | Heat | [combat_spec.md](combat_spec.md) H | `state.clans[x].heat` and `state.heatGains` in `sim/game.js`, `heat_badge.js` |
+| Fog of war and minimap | [combat_spec.md](combat_spec.md) H | `sim/vision.js`, `render/fog.js`, `minimap.js`, `game/tools/test_vision.mjs` |
 | Night bandits | [combat_spec.md](combat_spec.md) I | `sim/bandits.js`, `data/bandits.json`, `game/tools/test_bandits.mjs` |
 | Townsfolk | [civilians_plan.md](civilians_plan.md) | `sim/civilians.js`, `data/civilians.json`, `pois` in `data/waterfront.json`, `game/tools/test_civilians.mjs` |
 | Selection panel and portraits | [controls.md](controls.md) | `selection_panel.js`, `portraits.js`, `game/tools/test_selection_panel.mjs`, `test_picking.mjs` |
@@ -64,6 +65,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `geometry.js` | Shared math: camera angle, pixels per unit, 8 directions, footprints, placing scenery from the map. |
 | `interiors.js` | Lays out 3D rooms on the grid (walls, props, blockers, checks). Rooms sit far off the street map in the same world. |
 | `generate.js` | Room generator: building type + seed gives a room in the same format as `interiors.json`. |
+| `vision.js` | Fog of war: each clan's explored and visible areas, `canSee`; sight 18 for units, 10 for owned businesses. |
 | `civilians.js` | Townsfolk: trips between map spots, day/night schedule, fear and fleeing, witnesses. |
 | `bandits.js` | Night bandits: walk in from the map edges, wander, fight back when hit, pay ryo when killed. |
 
@@ -71,13 +73,14 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 | File | Job |
 |---|---|
-| `view.js` | Owns the scene, camera (follows the hero; arrow keys pan it, Home snaps back; screen-only, not game state), zoom, day/night; draws the state each frame. |
+| `view.js` | Foot ring colours per unit category. Owns the scene, camera (follows the hero; arrow keys pan it, Home snaps back; screen-only, not game state), zoom, day/night; draws the state each frame. |
 | `scenery.js` | Ground blend and the painted building/prop cut-outs on invisible footprint boxes; draw order sorting. |
-| `characters.js` | 8-direction sprite sheets for units, health bars. |
+| `characters.js` | 8-direction sprite sheets for units; `dispose()` frees units that leave the map. |
+| `fog.js` | Draws the fog of war (`?fog=0` turns it off). |
 | `interior3d.js` | Builds real 3D rooms (walls, floors, furniture) from the sim's room layout. |
 | `shading.js` | Shared shaders: night grade, lantern lights, see-through cutaway, interior materials. |
 | `iso.js` | The fixed isometric camera as three.js vectors. |
-| `abilityfx.js` | Ability effects (dash after-images, seals, rings, lanterns) and buff auras. |
+| `abilityfx.js` | Ability effects (dash after-images, seals, rings, lanterns), buff auras, bandit coin burst. |
 | `vfx.js` | Shared effect pieces: sparkles, glints, embers, petals. |
 | `bloom.js` | Bloom on effects only. |
 | `hitfx.js` | Damage numbers, hit flash, slash trails, sparks, screen shake. |
@@ -93,16 +96,19 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `crew_input.js` | RTS mouse control: select, right-click move/attack/follow, attack-move. Selection is screen-only. |
 | `hire_menu.js` | Teahouse hire panel and the ryo / crew HUD line; sends `hire` commands. |
 | `action_bar.js` | Hero health, ability slots and cooldowns, buffs, crew pips (click a name to select). |
-| `selection_panel.js` | Panel for the selected crew or townsperson. |
+| `selection_panel.js` | Panel for the selected crew or townsperson, above the action bar. |
 | `portraits.js` | Portraits for the panels. |
-| `clinic_menu.js` | Clinic menu: heal and revive. |
-| `heat_badge.js` | Heat badge, heat notices and ryo gains (`state.ryoGains`). |
+| `clinic_menu.js` | Clinic menu: heal and revive (below the minimap, like the hire menu). |
+| `heat_badge.js` | Heat badge and heat notices. |
+| `ryo_badge.js` | Ryo and ryo gains (`state.ryoGains`); the top-left line now shows crew only. |
+| `minimap.js` | Minimap: move the view, send or station crew. |
+| `fps.js` | FPS readout (P). |
 
 **Other**
 
-- `game/index.html`: page, HUD elements, three.js import map (pinned version from a CDN).
+- `game/index.html`: page, HUD elements, the controls panel (? key), three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`).
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, all `.mjs`) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, all `.mjs`) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 

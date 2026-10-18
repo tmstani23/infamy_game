@@ -16,6 +16,11 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
   // spots snapped to free ground, so every one can be walked to
   const spots = pois.map(p => { const [x, z] = nav.nearestFree(p.x, p.z) || [p.x, p.z]; return { ...p, x, z }; });
   const homes = spots.filter(p => p.home);
+  // the buildings a type lives in (civilians.json "homes": poi ids in front of them; default every
+  // home): townsfolk only ever go in and come out there, never at the map edge (Tim 2026-10-18)
+  const homesOf = kind => { const ids = types[kind]?.homes; const l = ids ? spots.filter(p => ids.includes(p.id)) : homes; return l.length ? l : homes; };
+  // one fixed total (every type's count): out + indoors + waiting to come back never goes above it
+  const TOTAL = Object.values(types).reduce((n, t) => n + (t.count || 0), 0);
   const mind = {};       // per civilian: { kind, nightOut, home, spot, x, z, until, deadline } (server-side only)
   const away = [];       // civilians indoors for the night: { kind, nightOut, home }
   const lost = [];       // killed or helped home hurt: { kind, nightOut, home, at } (a new one walks out at tick `at`)
@@ -52,7 +57,7 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
   function add(kind, x, z, extra = {}) {
     const t = types[kind];
     const id = spawn('civilian', t.model, x, z, { civ: kind, hp: R.hp ?? 60 });
-    mind[id] = { kind, nightOut: extra.nightOut ?? rng() < (t.nightOut || 0), home: extra.home || (homes.length ? pick(homes).id : null), spot: extra.spot || null };
+    mind[id] = { kind, nightOut: extra.nightOut ?? rng() < (t.nightOut || 0), home: extra.home || (homesOf(kind).length ? pick(homesOf(kind)).id : null), spot: extra.spot || null };
     return id;
   }
 
@@ -97,6 +102,13 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
         }
         if (e.flee) { e.flee = fleeFrom(e, src); break; }          // already running: keep running away
         if (e.scared) break;
+        // reacted lately (Tim: no chains of reactions): no flinch this time, just move off
+        if (state.tick - (mind[e.id]?.reactAt ?? -Infinity) < secs(R.reactSeconds ?? 3)) {
+          delete e.talk; stopPath(e);
+          e.flee = fleeFrom(e, src);
+          break;
+        }
+        if (mind[e.id]) mind[e.id].reactAt = state.tick;
         e.scared = state.tick + secs(R.scaredSeconds ?? 1.2);
         e.danger = [src.x, src.z];
         e.anim = 'scared';
@@ -177,16 +189,20 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     // walking to a spot
     if (m.spot === null || m.spot === undefined) { const p = nextSpot(m); if (p) goTo(e, m, p); else return; }
     const d = Math.hypot(m.x - e.x, m.z - e.z);
-    if (d < 0.4 || state.tick > m.deadline || !moveTo(e, unit, m.x, m.z, true)) arrive(e, m);
+    if (d < 0.4) arrive(e, m, true);
+    else if (state.tick > m.deadline || !moveTo(e, unit, m.x, m.z, true)) arrive(e, m, false);   // blocked: give up there
   }
 
-  function arrive(e, m) {
+  // reached = got to the spot itself; a walker that gave up (blocked by a crowd) only stands
+  // there, it never starts a chat with whoever it bumped into (that read as a hit reaction)
+  function arrive(e, m, reached = true) {
     stopPath(e);
     m.arrived = state.tick;
     m.until = state.tick + secs(range(R.staySeconds || [4, 12]));
     e.anim = m.act === 'bow' ? 'bow' : 'idle';
     if (m.act === 'bow') { const p = spots.find(q => q.id === m.spot); if (p?.face) e.dir = dirIndex(p.face[0] - e.x, p.face[1] - e.z); return; }
-    // someone idle here already, nobody to talk to: chat with them
+    // someone idle here already, nobody to talk to: chat with them (at most once per reactSeconds)
+    if (!reached || state.tick - (m.reactAt ?? -Infinity) < secs(R.reactSeconds ?? 3)) return;
     if (rng() >= (R.chatChance ?? 0.6)) return;
     const other = Object.values(state.entities).find(o => o !== e && o.type === 'civilian' && !o.talk && !o.scared && !o.flee
       && mind[o.id]?.until != null && o.anim === 'idle' && Math.hypot(o.x - e.x, o.z - e.z) < (R.chatRadius ?? 2.5));
@@ -194,6 +210,7 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     const until = Math.max(m.until, mind[other.id].until);
     m.until = mind[other.id].until = until;
     e.talk = other.id; other.talk = e.id;
+    m.reactAt = mind[other.id].reactAt = state.tick;
     e.anim = other.anim = 'talk';
     e.dir = dirIndex(other.x - e.x, other.z - e.z);
     other.dir = dirIndex(e.x - other.x, e.z - other.z);
@@ -216,24 +233,32 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
   function tick() {
     frighten();
     for (const e of Object.values(state.entities)) if (e.type === 'civilian') step(e);
-    // townsfolk killed or helped home hurt: a new one of the same kind walks out of a home later
+    // townsfolk killed or helped home hurt stay gone for replaceSeconds (5 min), so an area can be
+    // cleared; then a new one of the same kind walks out of the same home
     for (const id of Object.keys(mind)) {
       if (state.entities[id]) continue;
       const m = mind[id];
-      lost.push({ kind: m.kind, nightOut: m.nightOut, home: m.home, at: state.tick + secs(R.replaceSeconds ?? 60) });
+      lost.push({ kind: m.kind, nightOut: m.nightOut, home: m.home, at: state.tick + secs(R.replaceSeconds ?? 300) });
       delete mind[id];
     }
     const due = lost.findIndex(l => state.tick >= l.at && (!state.night || l.nightOut));
     if (due >= 0) {
-      const [l] = lost.splice(due, 1), h = spots.find(p => p.id === l.home) || pick(spots);
-      if (h) add(l.kind, h.x, h.z, l);
+      const [l] = lost.splice(due, 1), h = spots.find(p => p.id === l.home) || pick(homesOf(l.kind));
+      if (h && count().out < TOTAL) add(l.kind, h.x, h.z, l);
     }
     // morning: those indoors come back out, a few each second
     if (!state.night && away.length && state.tick % secs(1 / (R.returnPerSecond || 1)) === 0) {
-      const a = away.shift(), h = spots.find(p => p.id === a.home);
-      if (h) add(a.kind, h.x, h.z, a);
+      const a = away.shift(), h = spots.find(p => p.id === a.home) || pick(homesOf(a.kind));
+      if (h && count().out < TOTAL) add(a.kind, h.x, h.z, a);
     }
   }
 
-  return { populate, add, tick, spots, away, lost, mind };
+  // how many townsfolk there are: out (on the map, bodies too), indoors for the night, and
+  // killed or helped home waiting out replaceSeconds; together never more than the total
+  function count() {
+    const out = Object.keys(mind).length;
+    return { out, away: away.length, lost: lost.length, total: TOTAL, all: out + away.length + lost.length };
+  }
+
+  return { populate, add, tick, count, spots, away, lost, mind };
 }

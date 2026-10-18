@@ -161,6 +161,7 @@ function cutoutThing(s, tex) {
   const mat = spriteMaterial(tex);
   if (flip) mat.uniforms.uFrame.value.set(1, 0, -1, 1);
   if (indoor) mat.uniforms.uIndoor.value = 1;
+  else mat.uniforms.uFogAt.value.set(s.x, s.z, 0, 1);   // fog of war darkens it by its footprint
   if (s.depth) {   // stands in a 3D room: hidden behind its walls and furniture
     mat.depthTest = true;
     mat.uniforms.uDepthAt.value.set(s.x, 0, s.z, 0.3);

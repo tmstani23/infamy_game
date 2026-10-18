@@ -122,6 +122,13 @@ export class CharacterSprite {
     this.fill.material.color.setRGB(...color);
   }
 
+  // free the GPU copies when the unit leaves the map (townsfolk come and go, bandits each night)
+  dispose() {
+    this.thing.mesh.geometry.dispose();
+    this.shadow.geometry.dispose();
+    for (const m of [this.material, this.hidden.material, this.fill.material]) m.dispose();
+  }
+
   // got hit: flash white and lean away from the attacker (dx, dz: unit push direction)
   struck(dx, dz, strong) {
     this.flash = strong ? 1.6 : 1;

@@ -1,11 +1,10 @@
-// Hire panel and the ryo / crew line in the HUD. Reads the game state and sends
+// Hire panel and the crew count in the HUD (ryo has its own badge, src/ryo_badge.js). Reads the game state and sends
 // 'hire' commands only; the rules in sim/clans.js decide what actually happens.
 const title = s => s[0].toUpperCase() + s.slice(1);
 
 export function createHireMenu({ panel, money, game, units, heroId, send }) {
   const hireable = Object.entries(units.types).filter(([, t]) => t.price && !t.later).map(([k]) => k);
   let open = false, shown = '';
-
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
   // the teahouse the hero is standing in, if any
@@ -26,7 +25,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     const c = clan();
     if (!c) return;
     const crew = game.clans.crewOf(c.id).length, cap = game.clans.crewCap(c.id);
-    money.textContent = `${c.ryo} ryo · crew ${crew + c.queue.length}/${cap}`;
+    money.textContent = `crew ${crew + c.queue.length}/${cap}`;
 
     const b = teahouse();
     if (!b) open = false;

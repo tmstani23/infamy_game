@@ -96,4 +96,35 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   console.log(`night ok (${owls} stay out)`);
 }
 
+// One fixed total (Tim 2026-10-18): out + indoors + dead waiting their replaceSeconds never goes
+// above it across a night and a day with kills, and townsfolk only ever appear at their own homes
+{
+  const g = newGame();
+  g.civilians.populate();
+  const homeOk = e => {
+    const m = g.civilians.mind[e.id], ids = civData.types[m.kind].homes;
+    const list = g.civilians.spots.filter(p => ids ? ids.includes(p.id) : p.home);
+    return list.some(p => Math.hypot(p.x - e.x, p.z - e.z) < 1.5);
+  };
+  const seen = new Set(civs(g).map(e => e.id));
+  const tick = () => {
+    g.step();
+    const c = g.civilians.count();
+    assert.ok(c.all <= total, `count ${c.all} over ${total}`);
+    for (const e of civs(g)) if (!seen.has(e.id)) { seen.add(e.id); assert.ok(homeOk(e), `${e.civ} came out at its home, not at ${e.x.toFixed(1)},${e.z.toFixed(1)}`); }
+  };
+  const runT = s => { for (let i = 0; i < s * 20; i++) tick(); };
+  runT(2);
+  for (const e of civs(g).slice(0, 5)) delete g.state.entities[e.id];      // five killed and cleared away
+  runT(1);
+  assert.equal(g.civilians.count().lost, 5, 'five waiting');
+  g.step([{ type: 'time', night: true }]); runT(60);
+  g.step([{ type: 'time', night: false }]); runT(60);
+  assert.equal(civs(g).length, total - 5, 'only the living came back out by day');
+  runT(civData.rules.replaceSeconds);
+  assert.equal(civs(g).length, total, 'the dead came back once their time was up');
+  assert.equal(g.civilians.count().all, total);
+  console.log('townsfolk total ok');
+}
+
 console.log('civilian tests passed');

@@ -8,6 +8,7 @@ import { createClans } from './clans.js';
 import { createNav } from './nav.js';
 import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
+import { createVision } from './vision.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -75,6 +76,7 @@ export function createGame(options) {
     if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
   });
   const clans = units ? createClans(state, units) : null;
+  const vision = createVision(state, district.bounds, units?.rules?.vision);
   const intents = {};     // latest move command per entity (server-side only)
   const nav = createNav(blockers, district.bounds);
   const paths = {};       // crew walking routes (server-side only, rebuilt when needed)
@@ -118,7 +120,7 @@ export function createGame(options) {
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
     if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal'].includes(c.kind)) return;
-    if (c.kind === 'attack' && !fair(hero, state.entities[c.target])) return;
+    if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
     if (!['follow', 'attack', 'heal'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
       .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === 'street');
@@ -190,12 +192,15 @@ export function createGame(options) {
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   const fair = (a, b) => hostile(a, b) || ((civ(b) || (wild(b) && !wild(a))) && a !== b && !b.dead && !b.downed && !!a.owner && a.place === b.place);
+  // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
+  // (night bandits) are not limited.
+  const sees = (a, b) => !state.clans?.[a.owner] || vision.canSee(a.owner, b);
   const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
 
   function nearestEnemy(e, x, z, range) {
     let best = null, bd = range;
     for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t)) continue;
+      if (!hostile(e, t) || !sees(e, t)) continue;
       const d = Math.hypot(t.x - x, t.z - z);
       if (d < bd) { bd = d; best = t; }
     }
@@ -378,12 +383,23 @@ export function createGame(options) {
         .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && u.place === e.place)
         .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
     }
-    if (!ex || ex.dead || ex.downed || !downedFoe(ex, state.entities[c.target])) return;
+    if (!ex || ex.dead || ex.downed || !downedFoe(ex, state.entities[c.target]) || !sees(ex, state.entities[c.target])) return;
     delete ex.swing;
     delete ex.attackTarget;
     delete paths[ex.id];
     if (fight[ex.id]) delete fight[ex.id].target;
     ex.execute = { target: c.target, start: null, len: secs(units?.rules?.executeSeconds || 3) };
+  }
+  // An executed enemy (not townsfolk) pays the executor's clan its type's executeRyo, ±executeRyoSpread
+  // (state.ryoGains for the badge notice; cast.ryo tells the view to burst coins)
+  function payExecute(e, t, cast) {
+    const clan = state.clans?.[e.owner], base = units?.types?.[t.type]?.executeRyo || 0;
+    if (!clan || !base) return;
+    const k = units.rules.executeRyoSpread ?? 0, amount = Math.round(base * (1 - k + rng() * 2 * k));
+    clan.ryo += amount;
+    cast.ryo = amount;
+    const name = units.types[t.type].name || t.type[0].toUpperCase() + t.type.slice(1);
+    state.ryoGains.push({ clan: clan.id, amount, reason: `${name} executed` });
   }
   // One tick of an execute; false when there is nothing (left) to do
   function executeStep(e, unit) {
@@ -404,6 +420,7 @@ export function createGame(options) {
     t.diedAt = state.tick;
     state.casts.push({ a: e.id, kind: 'execute', target: t.id, x: t.x, z: t.z });
     if (civ(t)) addHeat(e.owner, heatFor('kill'), 'Townsperson killed');
+    else payExecute(e, t, state.casts[state.casts.length - 1]);
     delete e.execute;
     return true;
   }
@@ -676,7 +693,7 @@ export function createGame(options) {
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
-      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
+      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
       if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
     }
     clans?.tick(DT, spawnOutside);
@@ -725,6 +742,7 @@ export function createGame(options) {
     coolHeat();
     expireBuffs();
     regen();
+    vision.tick();
     state.tick++;
   }
 
@@ -742,5 +760,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits };
+  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, vision };
 }

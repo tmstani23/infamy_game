@@ -12,7 +12,39 @@ export const shared = {
   uLightPos: { value: Array.from({ length: MAX_LIGHTS }, () => new THREE.Vector4()) },
   uLightCol: { value: Array.from({ length: MAX_LIGHTS }, () => new THREE.Vector4()) },
   uLightCount: { value: 0 },
+  // fog of war (render/fog.js): per world cell r = in sight, g = explored; off until fog.js turns it on
+  uFog: { value: new THREE.DataTexture(new Uint8Array([255, 255, 0, 255]), 1, 1) },
+  uFogRect: { value: new THREE.Vector4(0, 0, 1, 1) },   // minX, minZ, width, depth of the grid
+  uFogOn: { value: 0 },
 };
+shared.uFog.value.needsUpdate = true;
+
+// Fog of war: (in sight, explored) at a ground point; rooms (far east, x 300+) have no fog
+const FOG = /* glsl */`
+uniform sampler2D uFog;
+uniform vec4 uFogRect;
+uniform float uFogOn;
+vec2 fogAt(vec2 p) {
+  if (uFogOn < 0.5 || p.x > 200.0) return vec2(1.0);
+  vec2 uv = (p - uFogRect.xy) / uFogRect.zw;
+  if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return vec2(0.0);
+  return texture2D(uFog, uv).rg;
+}
+// never explored: near black; explored but out of sight: dimmed and greyed
+vec3 fogged(vec3 col, vec2 p) {
+  vec2 f = fogAt(p);
+  vec3 dim = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.55) * 0.5 + vec3(0.015, 0.02, 0.04);
+  return mix(mix(vec3(0.027, 0.031, 0.043), dim, f.g), col, f.r);
+}
+// how much of an additive glow shows through the fog
+float fogGlow(vec2 p) { vec2 f = fogAt(p); return mix(f.g * 0.35, 1.0, f.r); }
+`;
+// for glows, flames and door rings: the ground point under the quad's centre, along the view direction
+const v0 = VIEW_DIR;
+const FOG_QUAD = `${FOG}
+const vec3 VIEW_DIR_FOG = vec3(${v0.x.toFixed(6)}, ${v0.y.toFixed(6)}, ${v0.z.toFixed(6)});
+uniform mat4 modelMatrix;
+vec2 fogGround() { vec3 q = modelMatrix[3].xyz; return q.xz - VIEW_DIR_FOG.xz * (q.y / VIEW_DIR_FOG.y); }`;
 
 const v = VIEW_DIR, u = CAM_UP, r = CAM_RIGHT;
 const LIGHTING = /* glsl */`
@@ -25,6 +57,7 @@ uniform float uTime;
 uniform vec4 uLightPos[MAX_LIGHTS];   // xyz, radius
 uniform vec4 uLightCol[MAX_LIGHTS];   // rgb, strength
 uniform int uLightCount;
+${FOG}
 
 // upright = painted sprite standing up facing the camera; otherwise the ground
 vec3 lanternLight(vec3 P, bool upright) {
@@ -99,6 +132,7 @@ uniform vec3 uTint;          // multiplies the art (recolours a shared piece to 
 uniform float uFlash;        // 0..1 white hit flash
 uniform vec4 uClip;          // near interior walls: ground point xyz on the wall, w = height to keep
 uniform float uClipSlope;    // screen slope of the wall's foot
+uniform vec4 uFogAt;         // w > 0: darken by the fog of war at ground point xy (scenery)
 varying vec2 vUv;
 varying vec3 vWorld;
 void main() {
@@ -119,7 +153,9 @@ void main() {
     float k = smoothstep(uCutRadius * 0.45, uCutRadius, length(d));
     a *= mix(1.0, mix(0.12, 0.88, k), uCut);
   }
-  gl_FragColor = vec4(mix(grade(t.rgb, vWorld, true, uSelfLight) * (1.0 - edge * 0.7), vec3(1.0, 0.97, 0.9), uFlash), a);
+  vec3 c = grade(t.rgb, vWorld, true, uSelfLight) * (1.0 - edge * 0.7);
+  if (uFogAt.w > 0.0) c = fogged(c, uFogAt.xy);
+  gl_FragColor = vec4(mix(c, vec3(1.0, 0.97, 0.9), uFlash), a);
 }`;
 
 // The parts of a sprite that something solid hides, drawn as a faint silhouette
@@ -157,6 +193,7 @@ export function spriteMaterial(map, extra = {}) {
       uClip: { value: new THREE.Vector4(0, 0, 0, 0) },
       uClipSlope: { value: 0 },
       uDepthAt: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uFogAt: { value: new THREE.Vector4(0, 0, 0, 0) },
       ...extra,
     },
     vertexShader: SPRITE_VERT,
@@ -214,7 +251,7 @@ void main() {
   // lantern light shimmers on the water at night
   float ripple = 0.6 + 0.4 * sin(p.x * 3.1 + uTime * 1.7) * sin(p.y * 2.3 - uTime * 1.3);
   g += B.b * (1.0 - A.b) * uNight * lanternLight(vWorld, false) * 0.35 * ripple;
-  gl_FragColor = vec4(g, 1.0);
+  gl_FragColor = vec4(fogged(g, p), 1.0);
 }`;
 
 export function groundMaterial(textures, splatA, splatB, bounds, tile) {
@@ -243,12 +280,13 @@ export function glowMaterial(color, seed, indoor = false) {
     vertexShader: QUAD_VERT,
     fragmentShader: /* glsl */`
       uniform float uNight; uniform float uTime; uniform vec3 uColor; uniform float uSeed; uniform float uIndoor;
+      ${FOG_QUAD}
       varying vec2 vUv;
       void main() {
         float d = length(vUv - 0.5) * 2.0;
         float flicker = 0.88 + 0.12 * sin(uTime * 7.0 + uSeed * 13.0) * sin(uTime * 3.1 + uSeed);
         float a = pow(max(0.0, 1.0 - d), 2.2) * max(uNight, uIndoor) * flicker;
-        gl_FragColor = vec4(uColor * a, 1.0);
+        gl_FragColor = vec4(uColor * a * fogGlow(fogGround()), 1.0);
       }`,
     transparent: true, depthTest: false, depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -261,6 +299,7 @@ export function flameMaterial(seed) {
     vertexShader: QUAD_VERT,
     fragmentShader: /* glsl */`
       uniform float uTime; uniform float uSeed; uniform float uNight;
+      ${FOG_QUAD}
       varying vec2 vUv;
       float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float noise(vec2 p) {
@@ -277,7 +316,7 @@ export function flameMaterial(seed) {
         float f = clamp(body * 1.6 + (n - 0.55) * 1.2 * uv.y - 0.15, 0.0, 1.0);
         vec3 col = mix(vec3(0.9, 0.22, 0.03), vec3(1.0, 0.78, 0.35), f * f);
         float a = smoothstep(0.0, 0.5, f) * (0.75 + 0.25 * uNight);
-        gl_FragColor = vec4(col * a, 1.0);
+        gl_FragColor = vec4(col * a * fogGlow(fogGround()), 1.0);
       }`,
     transparent: true, depthTest: false, depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -288,10 +327,11 @@ export function flameMaterial(seed) {
 // notches, a slowly turning dashed inner ring, a faint ember glow inside and a bright
 // spot sweeping round the rim, all gently pulsing
 export const doorMaterial = new THREE.ShaderMaterial({
-  uniforms: { uTime: shared.uTime },
+  uniforms: { uTime: shared.uTime, uFog: shared.uFog, uFogRect: shared.uFogRect, uFogOn: shared.uFogOn },
   vertexShader: QUAD_VERT,
   fragmentShader: /* glsl */`
     uniform float uTime; varying vec2 vUv;
+    ${FOG_QUAD}
     void main() {
       vec2 p = vUv - 0.5;
       float d = length(p) * 2.0, ang = atan(p.y, p.x), t = uTime;
@@ -305,6 +345,7 @@ export const doorMaterial = new THREE.ShaderMaterial({
       float sweep = pow(max(cos(ang - t * 1.6), 0.0), 8.0) * smoothstep(0.12, 0.0, rim) * 0.9;
       vec3 gold = vec3(1.0, 0.78, 0.38), pale = vec3(1.0, 0.92, 0.7), ember = vec3(1.0, 0.45, 0.2);
       vec3 col = (pale * (outer * 1.5 + notch * 1.4 + sweep) + gold * (halo + dash * 1.1) + ember * fill) * pulse;
+      col *= fogGlow(fogGround());
       gl_FragColor = vec4(col, min(1.0, max(col.r, max(col.g, col.b))));
     }`,
   transparent: true, depthTest: false, depthWrite: false,

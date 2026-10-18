@@ -1,0 +1,2 @@
+Copies of the individual building cut-outs. Originals stay in game/art/buildings (game reads those) and assets/environment/ninja_village.
+Sheets: buildings1.png (teahouse..western_office), buildings2.png (watch_post..bridge), buildings4.png (clinic..tenements), ninjabuildings1.png (ninja_village).

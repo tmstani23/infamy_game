@@ -46,6 +46,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput }) 
     if (key !== shown) {
       shown = key;
       root.innerHTML = '';
+      for (const id in cards) delete cards[id];
       for (const id of ids) {
         const e = game.state.entities[id];
         const c = document.createElement('div');

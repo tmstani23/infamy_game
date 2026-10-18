@@ -22,8 +22,9 @@ From Assassin's Creed Unity and Hitman talks:
 
 ## Built (2026-10-17)
 
-- 20 townsfolk. Spots are the `pois` list in `game/data/waterfront.json`; types and tuning are in `game/data/civilians.json`.
-- At night they go indoors (walking home 25% faster) and come back in the morning.
+- A fixed total of 20 townsfolk. Spots are the `pois` list in `game/data/waterfront.json` (never the map edges); types and tuning are in `game/data/civilians.json`.
+- At night about 90% go indoors (`nightOut` 0.1), walking home 25% faster, and come back in the morning. Homes per type: dock workers use the warehouses; merchants use the shop, office, townhouse and inn.
+- At most one reaction (scared or chat) per 3 s; a stuck townsperson stops instead of chatting (2026-10-18).
 - Witnesses are marked `e.witness`.
 - Fear: a 0.3 s flinch, then they run; runners that get jammed stop.
-- Combat: attackable on order only, 60 HP, flee when hit, can be executed. A downed townsperson left alone for 5 s is helped home, and a replacement appears after about 60 s.
+- Combat: attackable on order only, 60 HP, flee when hit, can be executed. A downed townsperson left alone for 5 s is helped home. The dead and the helped-home come back after 5 minutes (`replaceSeconds` 300) at their own home.

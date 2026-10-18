@@ -41,7 +41,7 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
 
   // Focus: right-click order on one enemy; crew go for it even past a nearer one
   const near = g.spawn('thug', 'thug', 0, 5, { owner: 'kuroda', order: { kind: 'station', x: 0, z: 5 } });
-  const far = g.spawn('brute', 'brute', 16, 1, { owner: 'kuroda', order: { kind: 'station', x: 16, z: 1 } });
+  const far = g.spawn('brute', 'brute', 11, 1, { owner: 'kuroda', order: { kind: 'station', x: 11, z: 1 } });   // within sight (fog of war)
   S[near].hp = S[far].hp = S[thug].hp = 1e9;                      // nobody dies here; just watch who gets hit
   g.step([{ id: hero, type: 'order', units: [thug], kind: 'attack', target: far }]);
   secs(g, 6);

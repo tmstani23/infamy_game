@@ -1,5 +1,5 @@
 {
-  "_note": "Townsfolk (docs/civilians_plan.md). Each type walks between the map's pois whose tags it likes, stays a while, then picks the next. nightOut = share that stays out at night (the rest walk home, homeSpeed times their walking speed, and go in). Counts cut 25% 2026-10-17 (Tim). Seconds and world units; tune in playtests.",
+  "_note": "Townsfolk (docs/civilians_plan.md). Each type walks between the map's pois whose tags it likes, stays a while, then picks the next. nightOut = share that stays out at night (the rest walk home, homeSpeed times their walking speed, and go in). Counts cut 25% 2026-10-17 (Tim); nightOut 0.1 so about 90% go in at night (Tim). reactSeconds = at most one scared / chat reaction per townsperson in that time. Seconds and world units; tune in playtests.",
   "rules": {
     "staySeconds": [4, 12],
     "bowSeconds": 2,
@@ -7,22 +7,24 @@
     "chatRadius": 2.5,
     "fearRadius": 8,
     "scaredSeconds": 0.3,
+    "reactSeconds": 3,
     "fleeSeconds": 6,
     "fleeDistance": 14,
     "calmSeconds": 4,
     "returnPerSecond": 1,
     "hp": 60,
-    "replaceSeconds": 60,
+    "replaceSeconds": 300,
+    "_homes": "a type's homes are poi ids in front of the buildings it lives in (default: every home poi); townsfolk only go in and come out there",
     "homeSpeed": 1.25
   },
   "types": {
-    "monk":      { "model": "monk",      "count": 1, "likes": ["shrine", "street", "market"],      "nightOut": 0.5 },
-    "monk2":     { "model": "monk2",     "count": 2, "likes": ["shrine", "street"],                "nightOut": 0.5 },
+    "monk":      { "model": "monk",      "count": 1, "likes": ["shrine", "street", "market"],      "nightOut": 0.1 },
+    "monk2":     { "model": "monk2",     "count": 2, "likes": ["shrine", "street"],                "nightOut": 0.1 },
     "old_woman": { "model": "old_woman", "count": 2, "likes": ["shrine", "market", "street"],      "nightOut": 0 },
-    "merchant":  { "model": "merchant",  "count": 3, "likes": ["market", "shop", "street", "teahouse"], "nightOut": 0.25 },
-    "geisha":    { "model": "geisha",    "count": 2, "likes": ["teahouse", "street", "market"],    "nightOut": 0.7 },
-    "fisherman": { "model": "fisherman", "count": 3, "likes": ["pier", "docks", "market"],         "nightOut": 0.25 },
-    "sailor":    { "model": "sailor",    "count": 3, "likes": ["docks", "pier", "den", "teahouse"], "nightOut": 0.75 },
-    "laborer":   { "model": "laborer",   "count": 4, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.4 }
+    "merchant":  { "model": "merchant",  "count": 3, "likes": ["market", "shop", "street", "teahouse"], "nightOut": 0.1, "homes": ["shop", "western_office", "townhouse", "inn"] },
+    "geisha":    { "model": "geisha",    "count": 2, "likes": ["teahouse", "street", "market"],    "nightOut": 0.1 },
+    "fisherman": { "model": "fisherman", "count": 3, "likes": ["pier", "docks", "market"],         "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse"] },
+    "sailor":    { "model": "sailor",    "count": 3, "likes": ["docks", "pier", "den", "teahouse"], "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse"] },
+    "laborer":   { "model": "laborer",   "count": 4, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "dock_warehouse", "brewery"] }
   }
 }

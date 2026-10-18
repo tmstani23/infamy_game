@@ -62,6 +62,33 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let nightTarget = night ? 1 : 0;
   shared.uNight.value = nightTarget;
 
+  // thin ring under every character, coloured by who they are to you, over a faint dark
+  // edge so it reads on light and dark ground, day or night
+  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2 };
+  const TEAM_GEO = new THREE.RingGeometry(0.5, 0.56, 40), TEAM_EDGE_GEO = new THREE.RingGeometry(0.47, 0.59, 40);
+  const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.75, depthWrite: false })]));
+  const TEAM_EDGE = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false });
+  function teamOf(e, me) {
+    if (e.id === me?.id) return 'hero';
+    if (e.type === 'civilian') return 'townsfolk';
+    if (me && e.owner === me.owner) return 'crew';
+    if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
+    return 'enemy';
+  }
+  function updateTeamRing(s, e, me) {
+    if (!s.team) {
+      s.team = new THREE.Group();
+      const edge = new THREE.Mesh(TEAM_EDGE_GEO, TEAM_EDGE), ring = new THREE.Mesh(TEAM_GEO, TEAM_MAT.enemy);
+      edge.renderOrder = 2; ring.renderOrder = 2;
+      s.team.add(edge, ring);
+      s.team.rotation.x = -Math.PI / 2;
+      scene.add(s.team);
+    }
+    s.team.visible = !e.dead && !e.downed;
+    s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
+    s.team.position.set(s.pos.x, 0.018, s.pos.z);
+  }
+
   // one sprite per unit in the state
   const sprites = new Map();
   let selected = new Set();
@@ -74,7 +101,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
   function syncSprites(state) {
     for (const e of Object.values(state.entities)) if (!sprites.has(e.id)) { sprites.set(e.id, null); addSprite(e); }
-    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar); sprites.delete(id); }
+    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar); if (s.team) scene.remove(s.team); s.dispose(); sprites.delete(id); trickle.delete(id); }
   }
 
   function updateLights(time) {
@@ -129,6 +156,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT);
       s.setHealth(e.hp, e.maxHp);
+      updateTeamRing(s, e, state.entities[followId]);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
       if (lit) {
@@ -187,7 +215,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  function addCasts(casts) { for (const c of casts) abilityFx.cast(c); }
+  function addCasts(casts) { for (const c of casts) { abilityFx.cast(c); if (c.ryo) abilityFx.coins(c.x, c.z); } }   // c.ryo: an execute that paid ryo
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
   // health gained since the last tick: real heals sparkle at once, regeneration
   // sparkles each time it adds up to 4% of a unit's health
@@ -214,6 +242,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (h.kind === 'dash') { abilityFx.cut(h, a); freezeT = Math.max(freezeT, 0.07); }
       else if (h.a === followId && (h.crit || h.kill)) freezeT = Math.max(freezeT, 0.05);
       if (a?.buffs?.lantern) abilityFx.lanternHit(h);
+      if (h.kill && t?.owner === 'bandits') abilityFx.coins(h.x, h.z);   // ryo for the killer's clan
       if (h.kill && me && Math.hypot(h.x - me.x, h.z - me.z) < 9) { shakeT = 0.18; shakeAmp = 0.12; }
       else if (h.crit && me && Math.hypot(h.x - me.x, h.z - me.z) < 9 && shakeT <= 0) { shakeT = 0.1; shakeAmp = 0.05; }
     }
@@ -232,6 +261,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (heroPos && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
     },
     snapBack() { freeCam = null; },
+    // look at a ground point (minimap click); stays there until snapBack, like panning
+    lookAt(x, z) {
+      freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z);
+      if (heroPos && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
+    },
     isPanned: () => !!freeCam,
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },

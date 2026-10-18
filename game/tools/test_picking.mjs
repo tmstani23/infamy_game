@@ -24,7 +24,7 @@ console.log('picking tests passed');
 {
   const { readFileSync } = await import('node:fs');
   const { createGame } = await import('../src/sim/game.js');
-  const { tabTarget } = await import('../src/crew_input.js');
+  const { tabTarget, targetMarkers } = await import('../src/crew_input.js');
   const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
   const g = createGame({ district: data('data/waterfront.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
     interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
@@ -40,7 +40,18 @@ console.log('picking tests passed');
   assert.equal(tabTarget(g.state, hero, undefined), near, 'nearest enemy first');
   assert.equal(tabTarget(g.state, hero, near), next, 'then the next');
   assert.equal(tabTarget(g.state, hero, next), near, 'and round again');
+  assert.equal(tabTarget(g.state, hero, undefined, e => e.id !== near), next, 'skips one hidden in the fog');
   g.step([{ id: hero, type: 'attack', target: tabTarget(g.state, hero) }]);
   assert.equal(S[hero].attackTarget, near, 'it locks the hero on');
+  // markers: blue for the Tab target, red once the hero attacks it, small red for crew targets
+  const mate = Object.values(S).find(e => e.owner === 'player' && e.type === 'thug').id;
+  S[hero].attackTarget = undefined;
+  assert.deepEqual(targetMarkers(g.state, hero, next), [{ id: next, kind: 'tab' }]);
+  S[mate].order = { kind: 'attack', target: near };
+  assert.deepEqual(targetMarkers(g.state, hero, next), [{ id: next, kind: 'tab' }, { id: near, kind: 'crew' }]);
+  S[hero].attackTarget = next;
+  assert.deepEqual(targetMarkers(g.state, hero, next), [{ id: next, kind: 'hero' }, { id: near, kind: 'crew' }], 'tabbed turns red once attacked');
+  S[hero].attackTarget = near;
+  assert.deepEqual(targetMarkers(g.state, hero, null), [{ id: near, kind: 'hero' }], 'crew marker hidden on the hero target');
   console.log('tab targeting ok');
 }

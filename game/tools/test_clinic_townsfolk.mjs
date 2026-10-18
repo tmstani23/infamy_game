@@ -104,6 +104,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.ok(dead, 'executed');
   assert.equal(C.player.heat, heat.hit * 2 + heat.down + heat.kill, 'heat for a kill');
   assert.deepEqual(gains, [{ clan: 'player', amount: heat.kill, reason: 'Townsperson killed' }], 'a notice for the kill');
+  assert.ok(!g.state.casts.some(c => c.ryo), 'townsfolk pay no ryo');
   // heat cools, a new townsperson of the same kind comes out later
   const h0 = C.player.heat;
   run(g, R.heatCoolSeconds * 3 + 0.1);
@@ -111,6 +112,24 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   run(g, civData.rules.replaceSeconds + 1);
   assert.ok(Object.values(S).some(e => e.type === 'civilian' && e.civ === 'merchant'), 'a new merchant walked out');
   console.log('townsfolk fight ok');
+}
+
+// Executing an enemy pays the executor's clan its type's executeRyo (±spread), with a notice
+{
+  const g = newGame(), S = g.state.entities, C = g.state.clans;
+  const hero = g.spawn('hero', 'ronin', 10, 10, { owner: 'player' });
+  const foe = g.spawn('brute', 'brute', 11, 10, { owner: 'kuroda' });
+  S[foe].downed = true; S[foe].hp = 0;
+  const ryo = C.player.ryo, base = units.types.brute.executeRyo, k = R.executeRyoSpread;
+  g.step([{ id: hero, type: 'execute', target: foe }]);
+  const gains = []; let paid = false;
+  for (let i = 0; i < 20 * 6 && !S[foe]?.dead; i++) { g.step(); gains.push(...g.state.ryoGains); paid ||= g.state.casts.some(c => c.ryo); }
+  assert.ok(S[foe]?.dead, 'executed');
+  const got = C.player.ryo - ryo;
+  assert.ok(got >= Math.round(base * (1 - k)) && got <= Math.round(base * (1 + k)), `paid ${got} ryo`);
+  assert.deepEqual(gains, [{ clan: 'player', amount: got, reason: 'Brute executed' }], 'a ryo notice');
+  assert.ok(paid, 'the execute cast carries the ryo for the coin burst');
+  console.log('execute pays ryo ok');
 }
 
 // Crew attack a townsperson on order; a downed one left alone is helped home

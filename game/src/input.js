@@ -3,7 +3,7 @@ const keys = new Set();
 const handlers = {};
 
 addEventListener('keydown', e => {
-  if (['F3', 'Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(e.code)) e.preventDefault();
+  if (['F3', 'Space', 'Tab', 'Slash', 'Quote', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(e.code)) e.preventDefault();
   if (!e.repeat) handlers[e.code]?.();
   keys.add(e.code);
 });

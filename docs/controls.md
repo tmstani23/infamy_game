@@ -9,16 +9,16 @@ What works in the game now (updated 2026-10-17). Keep this file up to date whene
 | W A S D | Move, relative to the screen |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building). At the clinic ring it opens the clinic menu: 1 heals, 2 and up revive |
-| Ctrl + right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
-| Tab | Lock the nearest enemy; Tab again cycles (skips townsfolk, crew and downed units) |
-| Left-click an enemy | Lock it and show its card |
+| Right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
+| Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips townsfolk, crew and downed units) |
+| Left-click an enemy | Mark it as the target and show its card |
 | (stand still) | The hero hits the nearest enemy in reach on its own, Dota-style. Moving stops the attacks. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
 | E | Intimidate: enemies within 4 steps deal 30% less damage for 5 s (14 s) |
 | R | Rally: crew within 8 steps attack 30% faster for 6 s and heal 10% (20 s) |
 | F | Red Lantern (ultimate): 8 s of 50% more damage, healing 20% of damage dealt (60 s) |
 
-The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to select them; Shift-click adds or removes. A red marker shows over the locked target.
+The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to select them; Shift-click adds or removes. The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
 
 ## Hiring crew (inside a teahouse)
 
@@ -42,9 +42,9 @@ The top-left bar shows your ryo and crew count / crew cap. New crew walk out of 
 | Right-click the ground | Send the selected crew there |
 | Ctrl + right-click the ground | Station the selected crew there (they hold that spot) |
 | Right-click your hero, or V | Selected crew follow you again |
-| Right-click an enemy | Selected crew attack it (right-click only orders selected crew) |
+| Ctrl + right-click a unit | Selected crew attack it, or execute it if it is downed |
+| T | All crew attack the hero's target |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
-| Right-click a downed enemy | The nearest selected crew member finishes them off: a 3 s execute. Getting hit or moving breaks it |
 | Left-click a townsperson | Show their card |
 | G | Selected hurt crew walk to the clinic and heal (0.2 ryo per missing HP) |
 
@@ -66,6 +66,10 @@ For testing, three rival thugs stand outside the gambling den. Add `?enemies=0` 
 | N | Switch between day and night (in the sim; townsfolk follow) |
 | M | Mute or unmute sounds |
 | F3 | Show footprint outlines (debugging) |
+| P | Show or hide the FPS readout |
+| ? or the Controls button | Open the controls panel (Esc closes it) |
+| Minimap: left-click or drag | Move the view |
+| Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
 
 ## Planned (not built yet)
 

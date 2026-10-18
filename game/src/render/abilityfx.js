@@ -209,6 +209,17 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       if (big) cards.glint(x, rand(1.2, 1.6), z, 0.8, lifesteal ? 0xff9a60 : 0xb8ff90, 0.25);
     },
 
+    // a bandit killed: gold coins pop out of the body in arcs and land, with a glint
+    coins(x, z) {
+      for (let i = 0; i < 16; i++) {
+        const a = Math.random() * Math.PI * 2, v = rand(1, 2.6);
+        glow.emit({ x, y: 1.1, z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(3.5, 5.5), gravity: 12, life: rand(0.6, 0.85),
+          size: rand(0.16, 0.24), color: Math.random() < 0.3 ? [1, 0.95, 0.6] : [1, 0.75, 0.2], shape: SHAPE.ember, twinkle: 0.5 });
+      }
+      sparkles(x, 1.2, z, 8, GOLD, 2.5, 0.3);
+      cards.glint(x, 1.5, z, 1.4, 0xffd060, 0.3);
+    },
+
     // a hit landed by someone with Red Lantern on: a red-gold sparkle burst
     lanternHit(h) {
       sparkles(h.x, 1.1, h.z, h.crit ? 16 : 9, pick(FIRE), 3.5, 0.3);

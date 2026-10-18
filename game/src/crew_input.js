@@ -28,31 +28,52 @@ export function bodyDistance(view, e, px, py) {
 }
 
 // Tab targeting: the hero's next enemy (another clan's standing unit, never townsfolk or
-// downed ones) within TAB_RANGE, nearest first; pressing again moves on from `current`
+// downed ones) within TAB_RANGE and not hidden in the fog (`seen`), nearest first; pressing
+// again moves on from `current`
 const TAB_RANGE = 14;
-export function tabTarget(state, heroId, current) {
+export function tabTarget(state, heroId, current, seen = () => true) {
   const h = state.entities[heroId];
   if (!h || h.dead) return null;
   const list = Object.values(state.entities)
-    .filter(e => e.owner && e.owner !== h.owner && !e.dead && !e.downed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE)
+    .filter(e => e.owner && e.owner !== h.owner && !e.dead && !e.downed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE && seen(e))
     .sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z) || (a.id < b.id ? -1 : 1));
   if (!list.length) return null;
   const i = list.findIndex(e => e.id === current);
   return list[(i + 1) % list.length].id;
 }
 
+// Which units get a marker over their head: [{ id, kind: 'tab' | 'hero' | 'crew' }]. Red ('hero')
+// once the hero is attacking a unit (locked on or swinging at it), blue ('tab') for the Tab target
+// otherwise, and small red ('crew') for whatever the hero's crew are attacking, unless it is the
+// hero's target already.
+export function targetMarkers(state, heroId, tabbed) {
+  const h = state.entities[heroId], S = state.entities;
+  if (!h) return [];
+  const live = id => S[id] && !S[id].dead && S[id].place === h.place;
+  const heroT = [h.attackTarget, h.swing?.target].find(live);
+  const out = heroT ? [{ id: heroT, kind: 'hero' }] : [];
+  if (live(tabbed) && tabbed !== heroT && !S[tabbed].downed) out.push({ id: tabbed, kind: 'tab' });
+  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.dead && !u.downed)
+    .map(u => u.swing?.target || (u.order?.kind === 'attack' ? u.order.target : u.execute?.target)).filter(live));
+  for (const id of crewT) if (id !== heroT && id !== tabbed) out.push({ id, kind: 'crew' });
+  return out;
+}
+
 export function createCrewInput({ game, view, heroId, send, box }) {
   let selected = [];
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
+  let tabbed = null;          // the Tab (or left-click) target: shown blue until the hero attacks it
   const hero = () => game.state.entities[heroId];
   const myCrew = () => Object.values(game.state.entities)
     .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && e.place === 'street');
   const outdoors = () => hero()?.place === 'street';
+  // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
+  const seen = e => !game.vision || game.vision.canSee(hero()?.owner, e);
   const enemies = () => Object.values(game.state.entities)
-    .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === hero()?.place);
+    .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === hero()?.place && seen(e));
   const townsfolk = () => Object.values(game.state.entities)
-    .filter(e => e.type === 'civilian' && !e.dead && e.place === hero()?.place);
+    .filter(e => e.type === 'civilian' && !e.dead && e.place === hero()?.place && seen(e));
 
   // the selected units orders go to (a selected townsperson takes none)
   const mine = () => selected.filter(id => game.state.entities[id]?.owner === hero()?.owner);
@@ -79,11 +100,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     else if (foe) send({ id: heroId, type: 'attack', target: foe.id });
   }
   addEventListener('mousedown', e => {
-    if (e.target.closest('button, #hire, #clinic, #bar, #selpanel') || !outdoors()) return;
+    if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #controls') || !outdoors()) return;
     const target = () => unitAt(e.clientX, e.clientY, enemies()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
-    // Ctrl + right-click on a unit: the hero's auto attack (Ctrl + right-click on the ground
-    // stays the crew's hold order)
-    if (e.button === 2 && e.ctrlKey && target()) { heroAt(e.clientX, e.clientY); return; }
+    // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
+    // unit sends the selected crew instead (below). On the ground both stay crew orders.
+    if (e.button === 2 && !e.ctrlKey && target()) { heroAt(e.clientX, e.clientY); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -93,8 +114,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     }
     if (e.button === 0) drag = { x: e.clientX, y: e.clientY, add: e.shiftKey };
     if (e.button === 2) {
-      // right-click is for the selected crew only: attack an enemy, finish off a downed one
-      // (the nearest selected crew member does it), or go / follow / hold
+      // crew orders: Ctrl + right-click a unit to attack it or finish it off (the nearest
+      // selected crew member does that); right-click the ground to go there (Ctrl: hold it),
+      // or the hero to follow
       if (!mine().length) return;
       const foe = target();
       if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine() }); return; }
@@ -118,9 +140,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     box.hidden = true;
     let picked;
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
-      // a left-click on an enemy locks the hero onto it (MMO-style) and shows its card
+      // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
       const foe = !unitAt(e.clientX, e.clientY, myCrew()) && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
-      if (foe) send({ id: heroId, type: 'attack', target: foe.id });
+      if (foe) tabbed = foe.id;
       const u = foe || unitAt(e.clientX, e.clientY, myCrew()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
       picked = u ? [u.id] : [];
     } else {
@@ -134,15 +156,35 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   });
 
   return {
-    // Tab: lock the hero onto the next enemy (same lock as Ctrl + right-click)
-    tab() { const t = tabTarget(game.state, heroId, hero()?.attackTarget); if (t) send({ id: heroId, type: 'attack', target: t }); },
-    // keep the lock marker (#lock) over the head of the hero's locked target, every frame
-    drawLock(el) {
-      const t = game.state.entities[hero()?.attackTarget];
-      el.hidden = !t || t.place !== hero()?.place;
-      if (el.hidden) return;
-      const [, head] = feetAndHead(view, t);
-      el.style.transform = `translate(${head.x}px, ${head.y}px)`;
+    // Tab: the next enemy becomes the hero's target and he starts his auto attack on it at once
+    // (Tim 2026-10-18; left-click still only targets, blue)
+    tab() {
+      tabbed = tabTarget(game.state, heroId, tabbed, seen) || null;
+      if (tabbed) send({ id: heroId, type: 'attack', target: tabbed });
+    },
+    // T: all the hero's crew (selected or not) attack his current target, or finish it if it is down
+    crewAttack() {
+      const S = game.state.entities, h = hero();
+      const t = [h?.attackTarget, h?.swing?.target, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
+      const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.dead && !e.downed && e.place === h.place).map(e => e.id);
+      if (!t || !units.length) return;
+      if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units });
+      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id });
+    },
+    // markers over units, for drawMarkers: blue = Tab target, red = the hero's target,
+    // small red = what the crew are attacking (unless it is the hero's target too)
+    markers() { return targetMarkers(game.state, heroId, tabbed); },
+    drawMarkers(root) {
+      const list = targetMarkers(game.state, heroId, tabbed);
+      while (root.children.length < list.length) root.appendChild(document.createElement('i'));
+      [...root.children].forEach((el, k) => {
+        const m = list[k], t = m && game.state.entities[m.id];
+        el.hidden = !t;
+        if (!t) return;
+        const [, head] = feetAndHead(view, t);
+        el.className = m.kind;
+        el.style.transform = `translate(${head.x}px, ${head.y}px)`;
+      });
     },
     selectAll() { setSelected(myCrew().map(u => u.id)); },
     clear() { setSelected([]); attackMove = false; document.body.style.cursor = ''; },

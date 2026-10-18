@@ -6,10 +6,14 @@ import { onKey, moveCommand, panAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createHeatBadge } from './heat_badge.js';
+import { createFps } from './fps.js';
+import { createRyoBadge } from './ryo_badge.js';
 import { createCrewInput } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
 import { createSelectionPanel } from './selection_panel.js';
 import { createSound } from './render/sound.js';
+import { createFog } from './render/fog.js';
+import { createMinimap } from './minimap.js';
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('loading').textContent = msg; };
@@ -70,6 +74,9 @@ async function start() {
     throw e;
   }
 
+  // Fog of war: the screen shows only what your clan can see (?fog=0 turns it off)
+  const fog = createFog({ vision: game.vision, clan: 'player', on: params.get('fog') !== '0' });
+
   const label = () => { $('daynight').textContent = view.isNight() ? 'Day (N)' : 'Night (N)'; document.body.classList.toggle('night', view.isNight()); };
   // Day and night belong to the sim (townsfolk follow it): N sends a 'time' command and
   // the screen follows the state after each tick
@@ -104,20 +111,29 @@ async function start() {
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
+  const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
   onKey('KeyX', () => crewInput.armAttackMove());
   onKey('Tab', () => crewInput.tab());
+  onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); crewInput.clear(); });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); crewInput.clear(); $('controls').hidden = true; });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']
     .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : hireMenu.pick(i)));
   const sound = createSound();
   onKey('KeyM', () => sound.toggleMute());
+  const fps = createFps();
+  onKey('KeyP', () => fps.toggle());
+  // Controls panel: the button or ? opens it, Esc closes it
+  const toggleControls = () => { $('controls').hidden = !$('controls').hidden; };
+  onKey('Slash', toggleControls);
+  $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput });
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput });
+  const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   window.infamy = { game, view };   // handy from the browser console
   $('loading').remove();
 
@@ -127,6 +143,7 @@ async function start() {
   let prev = structuredClone(game.state);
   let acc = 0, last = performance.now() / 1000;
   view.renderer.setAnimationLoop(() => {
+    fps.frame();
     const now = performance.now() / 1000;
     const dt = Math.min(now - last, 0.1);
     last = now;
@@ -135,8 +152,8 @@ async function start() {
       prev = structuredClone(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0)]);
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
-      if (game.state.hits.length) view.addHits(game.state.hits, game.state, heroId);
-      if (game.state.casts.length) view.addCasts(game.state.casts, game.state, heroId);
+      if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
+      if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
       acc -= tick;
       const door = game.doorNear(heroId);
@@ -145,14 +162,17 @@ async function start() {
       hireMenu.update();
       clinicMenu.update();
       heatBadge.update();
+      ryoBadge.update();
       crewInput.update();
       selPanel.update();
     }
     const pan = panAxes();
     view.pan(pan.right, pan.up, dt);
     $('snap').hidden = !view.isPanned();
-    view.render(game.state, prev, acc / tick, dt, now, heroId);
-    crewInput.drawLock($('lock'));
+    fog.update(dt);
+    view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId);
+    crewInput.drawMarkers($('lock'));
+    minimap.update();
     bar.update(game.state.tick - 1 + acc / tick);
   });
 }

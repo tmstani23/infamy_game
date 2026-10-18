@@ -21,16 +21,17 @@ export function createHeatBadge({ root, game, heroId }) {
   let last = null, live = [];
 
   // one notice per heat rise; several at once stack upward instead of overlapping
-  // (ryo gains, from state.ryoGains, use the same notice in gold)
-  function notify(g, kind = 'heatgain') {
+  // (ryo gains have their own badge, src/ryo_badge.js)
+  function notify(g) {
     live = live.filter(p => p.isConnected);
     const pop = document.createElement('div');
-    pop.className = kind;
+    pop.className = 'heatgain';
     pop.innerHTML = `<span></span><b></b>`;
     pop.firstChild.textContent = g.reason || 'Heat';
-    pop.lastChild.textContent = kind === 'heatgain' ? `+${g.amount}` : `+${g.amount} ryo`;
+    pop.lastChild.textContent = `+${g.amount}`;
     pop.style.bottom = `${140 + live.length * 44}px`;
     pop.addEventListener('animationend', () => pop.remove());
+    setTimeout(() => pop.remove(), 6000);   // in case the animation never ends (hidden tab)
     document.body.appendChild(pop);
     live.push(pop);
   }
@@ -39,7 +40,6 @@ export function createHeatBadge({ root, game, heroId }) {
     const clan = game.state.clans?.[game.state.entities[heroId]?.owner];
     if (!clan) return;
     for (const g of game.state.heatGains || []) if (g.clan === clan.id) notify(g);
-    for (const g of game.state.ryoGains || []) if (g.clan === clan.id) notify(g, 'heatgain ryogain');
     const heat = Math.round(clan.heat || 0), k = Math.min(1, heat / 100);
     if (heat === last) return;
     if (last !== null && heat > last) {

@@ -10,10 +10,10 @@ const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
 function tooltip(a, key, stats) {
   const dmg = stats.damage || 0;
-  if (!a) return { name: 'Auto attack', key: 'Ctrl + right-click', lines: [
+  if (!a) return { name: 'Auto attack', key: 'Right-click', lines: [
     ['Damage', `${dmg} per hit`], ['Attack speed', `every ${stats.attackSpeed} s`], ['Range', `${stats.attackRange} steps`],
     ['Critical hit', `${pct(stats.critChance || 0)} chance, ${stats.critMultiplier || 2}x damage`]],
-    about: 'Ctrl + right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks the nearest enemy (Tab again: the next one); a left-click on an enemy locks it too. Standing still, the hero hits the nearest enemy in reach.' };
+    about: 'Right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks him onto the nearest enemy (Tab again: the next one); a left-click only marks it in blue. Ctrl + right-click sends your selected crew instead; T sends all your crew at the hero's target. Standing still, the hero hits the nearest enemy in reach.' };
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     rally: [['Effect', `crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
@@ -61,7 +61,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     const sweep = el('div', 'sweep', s), secs = el('div', 'secs', s);
     slots.push({ s, key, a, sweep, secs, wasReady: true });
   };
-  addSlot('Ctrl', 'attack', null);
+  addSlot('RMB', 'attack', null);
   for (const [k, a] of Object.entries(kit)) addSlot(k, a.kind, a);
 
   // t = the current tick with the in-between fraction, so sweeps move smoothly
