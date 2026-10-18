@@ -16,7 +16,7 @@ Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infa
 
 ## Officers
 
-- Junsa: 360 HP, hit for 14, run 5.3 (the hero runs 6.0). They carry a jitte.
+- Junsa: 360 HP, hit for 14, run 4.8 (the hero runs 6.0). They carry a jitte.
 - They fight whoever hits them first. The hero and crew never auto-target police.
 - A knocked-out officer is replaced after 60 s, coming out of the HQ or the box.
 
@@ -27,14 +27,18 @@ Every new officer (the first squad at a tier, officers added when heat rises, an
 ## Losing the police (60-119 heat)
 
 - Police only know where the hero is while an officer sees him (police sight 9; the fog sight stays 18) and for 2 s after.
-- Watched officers give up beyond 12 steps. Going indoors loses them.
-- They then search a 5-step radius for 20 s and go back to patrolling. A blue "LOST THE POLICE" banner shows.
+- Watched officers give up beyond 12 steps. Going indoors loses them (below 120 there is no search round the door; they patrol on at once).
+- Lost on the street, they search a 5-step radius for 20 s, then go back to patrolling. A blue "LOST THE POLICE" banner shows and they calm down (blue rings).
+- Patrol: round the clan's last fight only while it is under 30 s old (`patrolFightSeconds`); otherwise they wander the streets from where they are in 12-step legs (`patrolRadius`), drifting back toward the HQ.
+- Wanted (60-89): crew are left alone unless they fight or block the chase, so losing the hero calms the officers at once. Manhunt (90-119): crew stay targets on sight.
+- Most Wanted (120+) indoors: officers fight, down and arrest everyone inside, the hero goes to jail, then they walk out.
 
 ## Arrests
 
 - Police knock units down but never kill or execute. Downed units of a clan at 30+ heat are always arrested.
-- Arrested crew go to jail at the police HQ: pay bail (50% of the hire price, Space at the HQ) or wait 60 s.
+- Arrested crew go to jail at the police HQ: they stay there until bailed out (50% of the hire price, Space at the HQ, 1 and up); there is no automatic release. Bailed crew follow the hero. Jailed crew still count toward the crew cap and the hire price.
 - Hero arrest: an "ARRESTING" channel (2 s, `arrestSeconds`) that only his crew can break. He is then jailed for 60 s, greyed out by the HQ door and untouchable, with a red "IN JAIL" banner and countdown. On release his clan's heat is set to 30 (the heat badge pulses "Out of jail -N") and he leaves at full HP.
+- Execute and arrest channels show one labelled bar (EXECUTING red, ARRESTING blue); the health bar is no longer a channel timer.
 - Each hit on police adds +10 heat.
 
 ## Bribes

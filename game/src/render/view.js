@@ -93,16 +93,6 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     s.team.scale.setScalar(s.size);
   }
 
-  // text over a unit's channel bar (an officer arresting), DOM in the effects layer
-  const labels = new Map(), labelSeen = new Set(), lv = new THREE.Vector3();
-  function chanLabel(id, x, z, text) {
-    let el = labels.get(id);
-    if (!el) { el = document.createElement('div'); el.className = 'chanlabel'; el.textContent = text; fxLayer.appendChild(el); labels.set(id, el); }
-    lv.set(x, 2.75 * (sprites.get(id)?.size ?? 1), z).project(camera);
-    el.style.transform = `translate(${(lv.x + 1) / 2 * innerWidth}px, ${(1 - lv.y) / 2 * innerHeight}px) translate(-50%, -100%)`;
-    labelSeen.add(id);
-  }
-
   // one sprite per unit in the state
   const sprites = new Map();
   let selected = new Set();
@@ -170,11 +160,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT, e.place && e.place !== 'street' ? INDOOR_SIZE : 1);
       s.setHealth(e.hp, e.maxHp);
-      // channels: the bar over an officer arresting (blue) or anyone executing (red) fills up;
+      // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
+      // health bar stays a health bar: two bars used to show, Tim 2026-10-18);
       // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
-      const x = e.execute;
-      if (x && x.start !== null && x.len) s.setBar((state.tick - x.start + alpha) / x.len, x.arrest ? [0.35, 0.55, 1] : [1, 0.25, 0.15]);
-      if (x?.arrest && x.start !== null) chanLabel(id, s.pos.x, s.pos.z, 'ARRESTING');
       if (e.jailed) s.setBar((e.jailed.until - state.tick - alpha) / e.jailed.len, [0.6, 0.6, 0.65]);
       const grey = !!e.jailed, gu = s.material.uniforms;
       if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); gu.uOpacity.value = grey ? 0.55 : 1; s.grey = grey; }
@@ -194,8 +182,6 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
       s.lanternTint = lit;
     }
-    for (const [id, el] of labels) if (!labelSeen.has(id)) { el.remove(); labels.delete(id); }
-    labelSeen.clear();
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
     const inside = state.entities[followId]?.place !== 'street';

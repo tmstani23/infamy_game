@@ -1,8 +1,35 @@
 # Businesses and raids plan
 
-Status: agreed with Tim 2026-10-18; still evolving. Nothing built yet. The 2x map and a settings file come first. Numbers are starting points to tune in playtests.
+Status: agreed with Tim 2026-10-18 (map, build order and phases added the same day); still evolving. Nothing built yet. Numbers are starting points to tune in playtests.
 
 Goal: finish the tiny version loop. You take businesses, they pay you, and you (and later the rival bot clan) fight over them.
+
+## 0. Build order (Tim, 2026-10-18)
+
+1. **Game settings file**: one data file for police count, bandits, day/night length, townsfolk count and costs (later a settings menu before a game; a multiplayer host picks from the same settings). Starts after the current batch is committed.
+2. **Bigger map** (section 0a).
+3. **Businesses and raids** (this plan, sections 1-8).
+4. **Rival bot clan**, using the same commands.
+
+## 0a. Bigger map (Tim OK'd layout v2, 2026-10-18)
+
+- Sketch: [map_2x_sketch_v2.png](images/map_2x_sketch_v2.png) (top-down, north up, water south). Hand-made, not generated; later districts are their own hand-made data files joined by road edges, with the rickshaw station as paid fast travel.
+- About **2x area**: town ~100 x 90 (today 72 x 67), forest ring ~2x. Run across town ~17 s.
+- Laid out like a real 1870s port town: **the Bund** (docks: warehouse, rice storehouse, fish market, dock warehouse, piers, boatbuilder), **modern quarter** (police HQ, customs house, telegraph office), a bending **main road** (inn, pawnshop, shop, sake brewery, police box, rickshaw station), a walled **pleasure quarter** with one gate and a plaza in front of the den (den, teahouse, geisha house, kabuki theatre, food stalls), a **canal** with 5 bridges (chokepoints) and the **back alleys** beyond it (tenements, abandoned house, bathhouse), **temple hill** (temple up steps, manor, shrine, clinic), ragged forest edges (bandit camp, forest hut, trails west/east/north).
+- Buildings stay square to the camera; streets, canal and edges bend.
+- **Rival clan starts at the izakaya**, so the den starts unowned (race to buy or attack it).
+- Townsfolk ~30 instead of 20 (a setting).
+- New buildings need cutting into game/art first (tools/cut_environment.py).
+
+### Phase checklist (small phases, usage is low; tick as each lands)
+
+- [ ] S1 Settings file: gather townsfolk, bandit, day/night and cost numbers into one file (police numbers after the "Police and jail fixes" thread is done).
+- [ ] M1 Cut the new buildings into game/art + cutouts.json (Sonnet thread).
+- [ ] M2 New ground: shoreline, Bund boardwalk, piers, canal + bridges, roads, town edge, forest ring (bounds, blockers, nav).
+- [ ] M3 Place all buildings, doors, props, lanterns; pleasure-quarter wall + gate.
+- [ ] M4 Townsfolk pois/homes, bandit edges, police patrol points, forest noPoliceAreas; 30 townsfolk.
+- [ ] M5 Tim playtest + tune.
+- Then businesses and raids checkpoints (section 8), then the rival bot clan.
 
 ## 1. Owning a business
 

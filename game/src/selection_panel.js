@@ -3,11 +3,13 @@
 // crew input to select just that unit.
 import { healthBar } from './render/health.js';
 import { portrait } from './portraits.js';
+import { prisonerOf } from './sim/police.js';
 
 export const unitName = (units, type) => units.types[type]?.name || (type.charAt(0).toUpperCase() + type.slice(1)).replace(/_/g, ' ');
 
 // What a unit is doing, in a word or two, from the state alone (no DOM, so Node can check it)
 export function unitStatus(e, state) {
+  if (e.prisoner) return `In jail: bail ${e.prisoner.bail} ryo at the police HQ`;
   if (e.dead) return 'Dead';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
@@ -21,6 +23,7 @@ export function unitStatus(e, state) {
     return e.anim === 'walk' || e.anim === 'run' ? 'Walking' : 'Idle';
   }
   const k = e.order?.kind, moving = e.anim === 'walk' || e.anim === 'run';
+  if (k === 'stop') return 'Passive (stopped)';
   if (k === 'follow') return 'Following';
   if (k === 'attack') return 'Attacking';
   if (k === 'attackmove') return 'Attack-moving';
@@ -33,6 +36,7 @@ export function unitStatus(e, state) {
 // info = game/data/buildings.json (the building names)
 export function unitWhere(e, state, district, info = {}) {
   const zone = district.name || 'Street';
+  if (e?.prisoner) return `${info.names?.police_hq || 'Police HQ'} · ${zone}`;
   if (!e || e.place === 'street') return zone;
   const b = Object.values(state.businesses).find(b => b.room === e.place);
   const art = b && district.buildings[Number(b.id.slice(1))]?.art;
@@ -51,7 +55,8 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
   });
 
   function update() {
-    const ids = crewInput.selected().filter(id => game.state.entities[id]);
+    const unit = id => game.state.entities[id] || prisonerOf(game.state, id);
+    const ids = crewInput.selected().filter(unit);
     root.hidden = !ids.length;
     root.classList.toggle('many', ids.length > 8);
     const key = ids.join(',');
@@ -60,7 +65,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       root.innerHTML = '';
       for (const id in cards) delete cards[id];
       for (const id of ids) {
-        const e = game.state.entities[id];
+        const e = unit(id);
         const c = document.createElement('div');
         c.className = 'card';
         c.dataset.id = id;
@@ -71,7 +76,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       }
     }
     for (const id of ids) {
-      const e = game.state.entities[id], k = cards[id];
+      const e = unit(id), k = cards[id];
       if (!k.hasPic) {
         const url = portrait(catalog, k.model);
         if (url) { k.pic.style.backgroundImage = `url(${url})`; k.hasPic = true; }
@@ -84,7 +89,8 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       const at = where(e);
       if (k.where.textContent !== at) k.where.textContent = at;
       k.c.classList.toggle('down', !!e.downed);
-      k.c.title = `${unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
+      k.c.classList.toggle('jailed', !!e.prisoner);
+      k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
     }
   }
   return { update };

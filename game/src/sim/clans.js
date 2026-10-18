@@ -19,8 +19,8 @@ export function createClans(state, units, opts = {}) {
 
   // Crew a clan has now (everything it owns except its hero)
   const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero');
-  // ...plus the ones in hospital (they still count for the cap and the hire price)
-  const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0);
+  // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
+  const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0);
 
   // Hero + baseCap crew, plus slots for every business the clan holds
   function crewCap(id) {

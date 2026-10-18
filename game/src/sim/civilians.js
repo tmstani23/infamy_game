@@ -61,15 +61,16 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     return id;
   }
 
-  // Fill the streets: every type's count, each standing at a spot it likes
+  // Fill the streets: every type's count, each starting at one of its own homes (so where a
+  // type appears depends on its buildings; by day they still walk anywhere they like, Tim 2026-10-18)
   function populate() {
     for (const [kind, t] of Object.entries(types)) {
       for (let i = 0; i < (t.count || 0); i++) {
-        const ok = spots.filter(p => p.tags.some(g => t.likes.includes(g)));
-        const p = ok.length ? pick(ok) : spots[0];
+        const own = homesOf(kind);
+        const p = own.length ? pick(own) : spots[0];
         if (!p) return;
         const [x, z] = standAt(p);
-        const id = add(kind, x, z, { spot: p.id });
+        const id = add(kind, x, z, { spot: p.id, home: own.length ? p.id : null });
         mind[id].until = state.tick + secs(range(R.staySeconds || [4, 12]) * rng());
       }
     }

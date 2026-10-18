@@ -127,15 +127,18 @@ export function createGame(options) {
   // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
-    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal'].includes(c.kind)) return;
+    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop'].includes(c.kind)) return;
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
-    if (!['follow', 'attack', 'heal'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
+    if (!['follow', 'attack', 'heal', 'stop'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
       .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === hero.place);
     crew.forEach((u, k) => {
       delete paths[u.id];
       delete u.execute;
       if (fight[u.id]) delete fight[u.id].target;
+      // stop (Z, Tim 2026-10-18): stand still and stay passive, no auto attack even when hit,
+      // until the next order of any kind replaces this one
+      if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
       if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target }; return; }
       if (c.kind === 'heal') {
@@ -154,7 +157,7 @@ export function createGame(options) {
   // Where a crew member wants to be right now, or null to stand still
   function crewGoal(e) {
     const o = e.order;
-    if (!o) return null;
+    if (!o || o.kind === 'stop') return null;
     if (o.kind === 'follow') {
       const h = state.entities[o.target];
       if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
@@ -236,6 +239,7 @@ export function createGame(options) {
   // Who this crew member should be fighting right now, if anyone
   function crewTarget(e) {
     const o = e.order || {};
+    if (o.kind === 'stop') return null;                  // passive (Z): never picks a fight
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
       if (fair(e, t)) return t;
@@ -763,6 +767,8 @@ export function createGame(options) {
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
+      // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
+      if (c.type === 'stopattack' && e.type === 'hero') { if (e.swing?.target === e.attackTarget) delete e.swing; delete e.attackTarget; }
       if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
       if (c.type === 'police' && police) police.menu(e, c, doorNear(c.id));
     }

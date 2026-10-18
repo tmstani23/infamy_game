@@ -8,6 +8,7 @@
 // Left-click a building (where nothing else is) to look at it (building_panel.js), unless the fog
 // has never shown it.
 // Selection lives only on this screen; orders go to the rules as 'order' commands.
+import { prisonerOf } from './sim/police.js';
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
 
@@ -163,6 +164,13 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       picked = myCrew().filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; }).map(u => u.id);
       building = null;
     }
+    // a left-click (or drag) anywhere but the hero's locked target drops it and cancels his auto
+    // attack (Tim 2026-10-18); clicking the target itself keeps it
+    const locked = hero()?.attackTarget;
+    if (locked && !(picked.length === 1 && picked[0] === locked)) {
+      send({ id: heroId, type: 'stopattack' });
+      if (tabbed === locked) tabbed = null;
+    }
     // a townsperson or enemy is only ever looked at on its own (never mixed into a crew selection)
     const civ = id => game.state.entities[id] && game.state.entities[id].owner !== hero()?.owner;
     if (picked.some(civ) || selected.some(civ)) setSelected(picked);
@@ -203,6 +211,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     selectAll() { setSelected(myCrew().map(u => u.id)); },
     clear() { setSelected([]); building = null; attackMove = false; document.body.style.cursor = ''; },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
+    // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')
+    stopSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'stop' }); },
     followMe() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); },
     // hurt selected crew walk to the clinic to heal (for ryo)
     healSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'heal' }); },
@@ -210,7 +220,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     selected: () => selected,
     building: () => building,
     // drop units that are gone (killed, or carried to the clinic) from the selection; downed
-    // ones stay so the selection panel can show them (the rules ignore orders to them)
-    update() { if (!outdoors()) building = null; const alive = selected.filter(id => game.state.entities[id] && !game.state.entities[id].dead); if (alive.length !== selected.length) setSelected(alive); },
+    // ones stay so the selection panel can show them (the rules ignore orders to them), and so do
+    // jailed crew picked on the action bar (prisoner ids, only shown, never sent orders)
+    update() { if (!outdoors()) building = null; const alive = selected.filter(id => game.state.entities[id] ? !game.state.entities[id].dead : !!prisonerOf(game.state, id)); if (alive.length !== selected.length) setSelected(alive); },
   };
 }

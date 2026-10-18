@@ -23,7 +23,7 @@ From Assassin's Creed Unity and Hitman talks:
 ## Built (2026-10-17)
 
 - A fixed total of 20 townsfolk. Spots are the `pois` list in `game/data/waterfront.json` (never the map edges); types and tuning are in `game/data/civilians.json`.
-- At night about 90% go indoors (`nightOut` 0.1), walking home 25% faster, and come back in the morning. Homes per type: dock workers use the warehouses; merchants use the shop, office, townhouse and inn.
+- At night about 90% go indoors (`nightOut` 0.1), walking home 25% faster, and come back in the morning. Homes per type (`homes` in `civilians.json`): monks the shrine; old women the townhouse and abandoned house; merchants the shop, western office, townhouse and inn; geisha the teahouse; fishermen and sailors the dock warehouse and warehouse; laborers the warehouse and brewery. They appear at home at game start and go in and come out there at night; by day they walk anywhere (2026-10-18).
 - At most one reaction (scared or chat) per 3 s; a stuck townsperson stops instead of chatting (2026-10-18).
 - Witnesses are marked `e.witness`.
 - Fear: a 0.3 s flinch, then they run; runners that get jammed stop.

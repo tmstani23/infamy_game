@@ -123,6 +123,7 @@ async function start() {
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
   onKey('KeyX', () => crewInput.armAttackMove());
+  onKey('KeyZ', () => crewInput.stopSelected());   // stop + passive until the next order (Tim 2026-10-18)
   onKey('Tab', () => crewInput.tab());
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());

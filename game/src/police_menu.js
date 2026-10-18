@@ -36,7 +36,7 @@ export function createPoliceMenu({ panel, game, heroId, send }) {
         `<div class="row"><span>1. Bribe the officer<br><small>${blocked ? 'not while the police are hitting you' : `-${P.rules.bribeHeat} heat`}</small></span>` +
         `<button data-pick="0" ${c.heat > 0 && c.ryo >= cost && !blocked ? '' : 'disabled'}>${c.heat > 0 ? `${cost} ryo` : 'no heat'}</button></div>`;
     } else {
-      const rows = (c.jail || []).map((p, k) => `<div class="row"><span>${k + 1}. ${title(p.unit)}<br><small>in jail · out in ${Math.ceil(p.left)}s</small></span>` +
+      const rows = (c.jail || []).map((p, k) => `<div class="row"><span>${k + 1}. ${title(p.unit)}<br><small>in jail until bailed out</small></span>` +
         `<button data-pick="${k}" ${c.ryo >= p.bail ? '' : 'disabled'}>Bail ${p.bail}</button></div>`).join('');
       body = rows || '<div class="waiting">None of your crew in jail</div>';
     }

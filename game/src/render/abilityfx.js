@@ -409,14 +409,19 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       for (const [key, m] of auras) if (!seen.has(key)) { scene.remove(m); m.material.dispose(); auras.delete(key); }
       for (const [key, o] of outlines) if (!seen.has(key) || state.entities[key.split(':')[0]]?.downed) { scene.remove(o); o.material.dispose(); outlines.delete(key); }
 
-      // execute channel bars over whoever is finishing someone off
+      // channel bars over whoever is finishing someone off (EXECUTING, red) or arresting them
+      // (ARRESTING, blue): the only bar for a channel (Tim 2026-10-18)
       const busy = new Set();
       for (const e of Object.values(state.entities)) {
         const x = e.execute, p = posOf(e.id);
         if (!x || x.start === null || !p || !overlay) continue;
         busy.add(e.id);
         let el = bars.get(e.id);
-        if (!el) { el = document.createElement('div'); el.className = 'channel'; el.innerHTML = '<i></i><span>Execute</span>'; overlay.appendChild(el); bars.set(e.id, el); }
+        if (el && el.arrest !== !!x.arrest) { el.remove(); el = null; }
+        if (!el) {
+          el = document.createElement('div'); el.className = x.arrest ? 'channel arrest' : 'channel'; el.arrest = !!x.arrest;
+          el.innerHTML = `<i></i><span>${x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
+        }
         const k = Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
         el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;
         el.firstChild.style.width = `${k * 100}%`;

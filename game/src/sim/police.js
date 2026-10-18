@@ -3,18 +3,29 @@
 // Tiers: Watched = a patrol near the clan's last fight that goes for its units seen fighting;
 // Wanted = a squad hunts the clan's hero; Manhunt = squads hunt the hero and crew.
 // Officers knock units down and arrest them, never kill or execute: arrested crew sit in jail
-// (bail or wait); an arrested hero waits out his time greyed out at the HQ and walks out with less heat.
+// (until bailed out at the HQ); an arrested hero waits out his time greyed out at the HQ and walks out with less heat.
 // Officers walk out of the police HQ (or in from the map edge when the map has none) and
 // walk back when the clan's heat drops. Plain sim code, no three.js.
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
+// A jailed crew member (clan.jail, off the map until bailed out at the HQ) as a
+// stand-in unit the panels can show, by its prisoner id ('jail1', ...), or null
+export function prisonerOf(state, id) {
+  for (const clan of Object.values(state.clans || {})) {
+    const p = clan.jail?.find(p => p.id === id);
+    if (p) return { id, type: p.unit, model: p.model, owner: clan.id, place: 'street', hp: 1, maxHp: 1, prisoner: p };
+  }
+  return null;
+}
+
 const DEFAULTS = {
   officer: 'junsa', sight: 18, seenFightingSeconds: 3, angrySeconds: 15, giveUpDistance: 25,
   spawnEverySeconds: 4, hitPoliceHeat: 10, arrestSeconds: 2, arrestReach: 8,
-  jailSeconds: 60, bailShare: 0.5, heroJailSeconds: 60, heroJailHeat: 30,
+  bailShare: 0.5, heroJailSeconds: 60, heroJailHeat: 30,
   bribeHeat: 20, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: 3,
   topInfamyHeatBonus: 0.25, noPoliceAreas: [], lostSeconds: 8, searchSeconds: 20, searchRadius: 5, bribeBlockSeconds: 5, replaceSeconds: 60,
+  patrolFightSeconds: 30, patrolRadius: 12,
   tiers: [
     { name: 'Quiet', min: 0, officers: 0 },
     { name: 'Watched', min: 30, officers: 2, hunt: 'fighting' },
@@ -82,13 +93,16 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
 
   // --- Arrests ---------------------------------------------------------------------
   // Called by the game when an officer finishes an arrest on a downed unit. Crew go to jail
-  // (bot clans' crew are taken away for good, like their carried-off crew).
+  // until the player bails them out at the HQ, no time limit (Tim 2026-10-18); each prisoner
+  // has an id ('jail1', ...) so the action bar and the selection panel can show it.
+  // Bot clans' crew are taken away for good, like their carried-off crew.
   function jail(t) {
     const clan = state.clans?.[t.owner], ty = types[t.type];
     if (!clan) return;
     if (clan.bot) return;
-    (clan.jail ||= []).push({ unit: t.type, model: t.model, left: R.jailSeconds, bail: Math.round((ty?.price || 0) * R.bailShare) });
-    say(clan, `Your ${t.type} was arrested`);
+    state.jailSeq = (state.jailSeq || 0) + 1;
+    (clan.jail ||= []).push({ id: `jail${state.jailSeq}`, unit: t.type, model: t.model, bail: Math.round((ty?.price || 0) * R.bailShare) });
+    say(clan, `Your ${t.type} was arrested: bail at the police HQ`);
   }
   // An officer finished arresting the knocked-down hero (Tim 2026-10-18): he stands greyed out
   // beside the HQ door for heroJailSeconds (h.jailed = { until, len }, nobody can touch him), and the
@@ -165,20 +179,12 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     if (hq) spawnOutside(p.unit, model, hq, extra);
     else { const [x, z] = edges[0] || [0, 0]; spawn(p.unit, model, x, z, extra); }
   }
-  function jailTick() {
-    for (const clan of Object.values(state.clans || {})) {
-      for (const p of [...(clan.jail || [])]) {
-        if ((p.left = Math.max(0, p.left - DT)) > 0) continue;
-        clan.jail.splice(clan.jail.indexOf(p), 1);
-        release(clan, p);
-        say(clan, `Your ${p.unit} is out of jail`);
-      }
-    }
-  }
 
   // --- Officers ----------------------------------------------------------------------
-  // A clan's units the police can go after: on the street, standing, outside no-police areas
-  const fair = (u, clanId) => u.owner === clanId && u.place === 'street' && !u.dead && !u.downed && !u.jailed && !noPolice(u.x, u.z);
+  // A clan's units the police can go after: on the street (indoors too at Most Wanted, where they
+  // follow the hero in), standing, outside no-police areas
+  const fair = (u, clanId) => u.owner === clanId && (u.place === 'street' || !!tierFor(clanId)?.relentless)
+    && !u.dead && !u.downed && !u.jailed && !noPolice(u.x, u.z);
 
   // Every new officer comes out fresh: it patrols and only joins the hunt once it sees the
   // hero itself within sight (except at Most Wanted, where they always know where he is)
@@ -247,10 +253,13 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     if (t.relentless) return h;
     return h.place === 'street' && !h.downed && state.tick - k.seenAt <= secs(R.lostSeconds) ? h : null;
   }
-  // Lost him a moment ago: the spot to search, until searchSeconds have passed
+  // Lost him a moment ago: the spot to search, until searchSeconds have passed. Not when he got
+  // away into a building: then they just patrol on from there (Tim 2026-10-18, they used to search
+  // round his door for 20 s and be waiting when he came out)
+  const heroInside = clanId => { const h = heroOf(clanId); return !!h && h.place !== 'street'; };
   function searchSpot(clanId) {
     const k = track[clanId];
-    if (!k || knownHero(clanId) || state.tick - k.seenAt > secs(R.lostSeconds + R.searchSeconds)) return null;
+    if (!k || knownHero(clanId) || heroInside(clanId) || state.tick - k.seenAt > secs(R.lostSeconds + R.searchSeconds)) return null;
     return k;
   }
 
@@ -259,22 +268,28 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     const clan = state.clans?.[e.clan], tier = tierFor(e.clan);
     if (clan && tier?.hunt && !quiet()) {
       const theirs = Object.values(state.entities).filter(u => fair(u, e.clan));
-      const inSight = theirs.filter(u => dist(e, u) <= R.sight);
+      const inSight = theirs.filter(u => u.place === e.place && dist(e, u) <= R.sight);
       // Watched: its units seen fighting
       const seenFighting = inSight.filter(u => state.tick - (u.foughtAt ?? -Infinity) <= secs(R.seenFightingSeconds));
       if (hunting(tier)) {
         // Wanted / Manhunt: the hero while they know where he is; crew only when seen
+        // (a downed hero is not a target: he is arrested instead. At Most Wanted knownHero still gives
+        // him while he lies there, and indoors they used to stand swinging at him and never arrest, Tim 2026-10-18)
         let hero = knownHero(e.clan);
+        if (hero?.downed) hero = null;
         const m = mind[e.id];
         if (m?.fresh && hero && !tier.relentless) {
           if (hero.place === e.place && dist(e, hero) <= R.sight) m.fresh = false;   // seen him: joins the hunt
           else hero = null;
         }
-        if (hero || inSight.length) (e.angry ||= {})[e.clan] = state.tick + secs(R.angrySeconds);
         const here = hero && hero.place === e.place ? hero : null;
-        // the squad goes for the hero, but deals with crew that get in the way
-        const close = nearest(e, inSight.filter(u => dist(e, u) <= 3 && u.place === e.place));
-        if (tier.hunt === 'hero') return close || here;
+        // the squad goes for the hero, but deals with crew that get in the way while it chases him.
+        // Wanted (hunt 'hero'): crew the hero left outside are left alone unless seen fighting, so
+        // losing the squad indoors works with crew at the door too (Tim 2026-10-18: they stayed
+        // angry at the crew and never went back to patrolling)
+        const close = here ? nearest(e, inSight.filter(u => dist(e, u) <= 3 && u.place === e.place)) : null;
+        if (hero || close || seenFighting.length || (tier.hunt === 'all' && inSight.length)) (e.angry ||= {})[e.clan] = state.tick + secs(R.angrySeconds);
+        if (tier.hunt === 'hero') return close || here || nearest(e, seenFighting);
         if (here && dist(e, here) <= R.sight) return close || here;
         return nearest(e, inSight) || here;
       }
@@ -321,10 +336,22 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     const k = !fresh && searchSpot(e.clan);
     if (k && m.search !== k.seenAt) { m.search = k.seenAt; m.x = null; m.until = null; }   // just lost him: go look
     if (!k) m.search = null;
+    const inside = heroInside(e.clan);
+    if (inside && !m.inside && m.x != null) { m.x = null; m.until = null; }        // he slipped indoors: patrol on now
+    m.inside = inside;
+    if (k) m.searchedAt = state.tick;
     if (m.x != null && state.tick < m.until) return null;           // waiting at a spot
     if (m.x != null && Math.hypot(m.x - e.x, m.z - e.z) > 0.6 && state.tick < m.deadline) return [m.x, m.z, !k];
     if (m.x != null && m.until == null) { m.until = state.tick + secs(k ? 1 + rng() * 2 : 3 + rng() * 5); stopPath(e); return null; }
-    const f = k || clan?.lastFight || { x: e.x, z: e.z }, a = rng() * Math.PI * 2, r = k ? rng() * R.searchRadius : 2 + rng() * 6;
+    // patrol: round the clan's last fight while it is fresh, not one they already searched past and the hero isn't hiding indoors,
+    // otherwise wander the streets on from where the officer is (Tim 2026-10-18: no more waiting
+    // outside the door the hero went into), drifting back toward the HQ when far from it
+    const lf = clan?.lastFight;
+    const fight = !k && lf && !heroInside(e.clan) && state.tick - lf.tick <= secs(R.patrolFightSeconds) && !(m.searchedAt >= lf.tick);
+    const [hx, hz] = home() || [e.x, e.z];
+    const back = Math.hypot(hx - e.x, hz - e.z) > R.patrolRadius * 3 && rng() < 0.5;
+    const f = k || (fight ? lf : back ? { x: (e.x + hx) / 2, z: (e.z + hz) / 2 } : { x: e.x, z: e.z }), a = rng() * Math.PI * 2;
+    const r = k ? rng() * R.searchRadius : fight ? 2 + rng() * 6 : R.patrolRadius * (0.5 + rng() * 0.5);
     const [x, z] = nav.nearestFree(f.x + Math.cos(a) * r, f.z + Math.sin(a) * r) || [f.x, f.z];
     Object.assign(m, { x, z, until: null, deadline: state.tick + secs(Math.hypot(x - e.x, z - e.z) / statsOf(e.type).walk * 2.5 + 6) });
     return [x, z, !k];
@@ -338,7 +365,12 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       for (const [c, until] of Object.entries(e.angry)) {
         const near = Object.values(state.entities).some(o => o.owner === c && !o.dead && o.place === e.place && Math.hypot(o.x - e.x, o.z - e.z) <= R.giveUpDistance);
         const never = c === e.clan && tierFor(c)?.relentless;           // Most Wanted: they never give up
-        if (!never && (state.tick >= until || !near || quiet())) delete e.angry[c];
+        // Wanted: once they lost the hero they calm down at once (patrol, blue ring), unless his
+        // crew are fighting right here (at Manhunt his crew stay fair game on sight)
+        const lost = c === e.clan && !never && tierFor(c)?.hunt === 'hero' && !knownHero(c)
+          && !Object.values(state.entities).some(o => o.owner === c && !o.dead && o.place === e.place && dist(e, o) <= R.sight
+            && state.tick - (o.foughtAt ?? -Infinity) <= secs(R.seenFightingSeconds));
+        if (!never && (state.tick >= until || !near || quiet() || lost)) delete e.angry[c];
       }
       if (!Object.keys(e.angry).length) delete e.angry;
     }
@@ -365,13 +397,14 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       if (Math.hypot(hx - e.x, hz - e.z) < 1 || state.tick > m.deadline || !moveTo(e, unit, hx, hz, true)) remove(e.id);
       return;
     }
+    // nothing to do indoors (he was arrested, or got out): back out to the street to patrol
+    if (e.place !== 'street') { if (!goThrough(e, 'street', unit)) remove(e.id); return; }
     const goal = patrolSpot(e, m);
     if (!goal || !moveTo(e, unit, goal[0], goal[1], goal[2])) { e.anim = 'idle'; stopPath(e); }
   }
 
   // Called once per tick after the units moved
   function tick() {
-    jailTick();
     releaseHeroes();
     staff();
     updateTracks();

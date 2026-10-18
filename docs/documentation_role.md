@@ -42,6 +42,7 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 ## Where new info goes
 
 - Put it in the doc that owns the topic. If two seem to fit, pick the narrower one and link from the other.
+- Images that docs link to (sketches, diagrams) go in `docs/images/`.
 - Make a new doc only for a new topic big enough to need its own page, and add it to the table above and to `START_HERE.md`'s doc table in the same change.
 
 ## Writing rules

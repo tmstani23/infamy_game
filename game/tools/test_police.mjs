@@ -18,6 +18,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
 const cops = g => Object.values(g.state.entities).filter(e => e.owner === 'police' && !e.dead);
 const clan = g => g.state.clans.player;
 const door = (g, menu) => g.doors.find(d => d.menu === menu);
+const tierOk = g => g.police.tierOf('player') === 2;
 
 // The map has the box and the HQ with their door rings, and the officer has art
 {
@@ -99,7 +100,7 @@ const door = (g, menu) => g.doors.find(d => d.menu === menu);
   console.log('watched ok');
 }
 
-// Arrests: police down crew and jail them (never killed); bail at the HQ; jail time runs out
+// Arrests: police down crew and jail them (never killed); bail at the HQ is the only way out
 {
   const g = newGame();
   const h = g.state.entities[g.spawn('hero', 'ronin', 20, 10, { owner: 'player' })];
@@ -126,10 +127,12 @@ const door = (g, menu) => g.doors.find(d => d.menu === menu);
   assert.equal(clan(g).jail.length, 0, 'bailed out');
   assert.equal(clan(g).ryo, ryo - Math.round(U.types.thug.price * P.bailShare));
   assert.ok(Object.values(g.state.entities).some(e => e.type === 'thug' && e.owner === 'player'), 'thug back on the street');
-  // waiting it out
-  clan(g).jail.push({ unit: 'thug', model: 'thug', left: 1, bail: 30 });
-  run(g, 2);
-  assert.equal(clan(g).jail.length, 0, 'out after the jail time');
+  // no time limit: jailed crew stay until bailed (Tim 2026-10-18), and still count for the crew cap
+  const before = g.clans.crewCount ? g.clans.crewCount('player') : null;
+  clan(g).jail.push({ id: 'jailX', unit: 'thug', model: 'thug', bail: 30 });
+  if (before !== null) assert.equal(g.clans.crewCount('player'), before + 1, 'jailed crew count for the cap');
+  run(g, 180);
+  assert.equal(clan(g).jail.length, 1, 'still in jail after 3 minutes');
   console.log('arrest and bail ok');
 }
 
@@ -241,6 +244,87 @@ const door = (g, menu) => g.doors.find(d => d.menu === menu);
   assert.equal(g.police.knownHero('player'), null, 'indoors: lost');
   run(g, 15);
   assert.ok(cops(g).every(o => o.place === 'street'), 'they do not follow him in at Wanted');
+  console.log('lost him ok');
+}
+
+// Lost indoors (Tim 2026-10-18): the hero fights the squad at a door and slips inside. No search
+// round the door: they patrol on from there and are not waiting when he comes out
+{
+  const g = newGame();
+  const d = g.doors.find(x => x.label === 'Enter the Teahouse');
+  const h = g.state.entities[g.spawn('hero', 'ronin', d.x, d.z + 2, { owner: 'player', hp: 1e7 })];
+  clan(g).heat = 70;
+  run(g, 20);
+  for (const o of cops(g)) { Object.assign(o, { x: d.x + 2, z: d.z + 2 }); g.police.mind[o.id].fresh = false; }
+  run(g, 1);
+  assert.equal(g.police.knownHero('player'), h, 'seen at the door');
+  clan(g).lastFight = { x: d.x, z: d.z, tick: g.state.tick };
+  Object.assign(h, { x: d.to.x, z: d.to.z, place: d.place });
+  run(g, 1);
+  assert.equal(g.police.knownHero('player'), null, 'indoors: lost');
+  assert.equal(g.police.searchSpot('player'), null, 'no search round his door');
+  assert.ok(tierOk(g), 'still Wanted');
+  run(g, 20);
+  const near = cops(g).filter(o => o.place === 'street' && Math.hypot(o.x - d.x, o.z - d.z) < 6).length;
+  assert.ok(near <= 1, `patrolling away, not waiting at the door (${near} of ${cops(g).length} within 6)`);
+  assert.ok(cops(g).every(o => !o.angry), 'calm again (blue rings)');
+}
+// ...the same with two crew left standing at the door (Wanted leaves them alone once the hero is lost)
+{
+  const g = newGame();
+  const d = g.doors.find(x => x.label === 'Enter the Teahouse');
+  const h = g.state.entities[g.spawn('hero', 'ronin', d.x, d.z + 2, { owner: 'player', hp: 1e7 })];
+  for (const i of [0, 1]) g.spawn('thug', 'thug', d.x + i, d.z + 3, { owner: 'player', hp: 1e6, order: { kind: 'follow', target: h.id } });
+  clan(g).heat = 65;
+  run(g, 20);
+  for (const o of cops(g)) { Object.assign(o, { x: d.x + 3, z: d.z + 3 }); g.police.mind[o.id].fresh = false; }
+  run(g, 3);
+  assert.equal(g.police.knownHero('player'), h, 'seen at the door');
+  delete h.attackTarget; delete h.swing;
+  Object.assign(h, { x: d.x, z: d.z });
+  for (let i = 0; i < 10 && h.place === 'street'; i++) g.step([{ id: h.id, type: 'use', units: [] }]);
+  assert.equal(h.place, 'teahouse', 'went in through the door, crew stayed out');
+  assert.ok(tierOk(g), 'still Wanted');
+  run(g, 20);
+  const near = cops(g).filter(o => o.place === 'street' && Math.hypot(o.x - d.x, o.z - d.z) < 6).length;
+  assert.ok(near <= 1, `crew at the door: still back on patrol (${near} of ${cops(g).length} within 6)`);
+  assert.ok(cops(g).every(o => !o.angry), 'not angry at the crew');
+}
+// Manhunt (90-119): hero and crew all go in together: the squad calms down and patrols on (Tim 2026-10-18)
+{
+  const g = newGame();
+  const d = g.doors.find(x => x.label === 'Enter the Teahouse');
+  const h = g.state.entities[g.spawn('hero', 'ronin', d.x, d.z + 2, { owner: 'player', hp: 1e7 })];
+  const crew = [0, 1].map(i => g.spawn('thug', 'thug', d.x + i, d.z + 3, { owner: 'player', hp: 1e6, order: { kind: 'follow', target: h.id } }));
+  clan(g).heat = 95;
+  run(g, 25);
+  for (const o of cops(g)) { Object.assign(o, { x: d.x + 3, z: d.z + 3 }); g.police.mind[o.id].fresh = false; }
+  run(g, 3);
+  assert.equal(g.police.knownHero('player'), h, 'seen at the door');
+  delete h.attackTarget; delete h.swing;
+  Object.assign(h, { x: d.x, z: d.z });
+  for (let i = 0; i < 10 && h.place === 'street'; i++) g.step([{ id: h.id, type: 'use', units: crew }]);
+  assert.ok(h.place === 'teahouse' && crew.every(id => g.state.entities[id].place === 'teahouse'), 'all went in');
+  assert.equal(g.police.tierOf('player'), 3, 'still Manhunt');
+  run(g, 20);
+  const near = cops(g).filter(o => o.place === 'street' && Math.hypot(o.x - d.x, o.z - d.z) < 6).length;
+  assert.ok(near <= 2, `Manhunt: back on patrol (${near} of ${cops(g).length} within 6)`);
+  assert.ok(cops(g).every(o => !o.angry && o.place === 'street'), 'calm, and they stay outside');
+}
+// Most Wanted indoors (Tim 2026-10-18): they follow the hero and crew in, knock them all down and
+// arrest them in there (they used to stand swinging at the downed hero for ever), then walk back out
+{
+  const g = newGame();
+  const d = g.doors.find(x => x.label === 'Enter the Teahouse');
+  const h = g.state.entities[g.spawn('hero', 'ronin', d.to.x, d.to.z, { owner: 'player', place: d.place })];
+  const crew = [0, 1].map(i => g.spawn('thug', 'thug', d.to.x + 1 + i, d.to.z, { owner: 'player', place: d.place, order: { kind: 'follow', target: h.id } }));
+  clan(g).heat = 125;
+  for (let i = 0; i < 20 * 120 && !(h.jailed && clan(g).jail?.length === 2); i++) g.step();
+  assert.ok(h.jailed, 'hero arrested indoors and jailed');
+  assert.equal(clan(g).jail.length, 2, 'both crew arrested indoors');
+  assert.ok(crew.every(id => !g.state.entities[id]), 'crew taken off the map');
+  run(g, 10);
+  assert.ok(cops(g).every(o => o.place === 'street'), 'officers walk back out');
   console.log('lost him ok');
 }
 

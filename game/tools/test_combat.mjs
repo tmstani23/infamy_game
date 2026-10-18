@@ -195,4 +195,34 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   g.step([{ id: hero, type: 'attack', target: mine }]);
   assert.equal(S[hero].attackTarget, undefined);
 }
+// left-click elsewhere (Tim 2026-10-18): 'stopattack' drops the hero's locked target
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', 0, 1, { owner: 'player' });
+  const foe = g.spawn('thug', 'thug', 1.5, 1, { owner: 'kuroda', hp: 1e6 });
+  g.step([{ id: hero, type: 'attack', target: foe }]);
+  assert.equal(S[hero].attackTarget, foe, 'locked on');
+  g.step([{ id: hero, type: 'stopattack' }]);
+  assert.equal(S[hero].attackTarget, undefined, 'target dropped');
+  assert.ok(S[hero].swing?.target !== foe || !S[hero].swing, 'swing at it cancelled');
+  console.log('stop attack ok');
+}
+// Z (Tim 2026-10-18): stopped crew stay passive, no attacking even when hit, until any new order
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player', hp: 1e6 });
+  const mate = g.spawn('thug', 'thug', 0, 1, { owner: 'player', hp: 1e6 });
+  const foe = g.spawn('thug', 'thug', 1, 1, { owner: 'kuroda', hp: 1e6 });
+  g.step([{ id: hero, type: 'order', units: [mate], kind: 'stop' }]);
+  const fhp = S[foe].hp;
+  let swung = false;
+  for (let i = 0; i < 20 * 6; i++) { g.step(); swung ||= !!S[mate].swing; }
+  assert.ok(S[mate].hp < 1e6, 'the enemy hits him');
+  assert.ok(!swung && S[foe].hp === fhp, 'passive: he never hits back');
+  assert.equal(S[mate].order.kind, 'stop');
+  g.step([{ id: hero, type: 'order', units: [mate], kind: 'move', x: 0, z: 1 }]);
+  for (let i = 0; i < 20 * 4; i++) g.step();
+  assert.ok(S[foe].hp < fhp, 'a new order ends passive: he fights again');
+  console.log('stop / passive ok');
+}
 console.log('combat tests passed');

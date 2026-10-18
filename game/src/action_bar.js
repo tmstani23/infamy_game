@@ -14,7 +14,7 @@ function tooltip(a, key, stats) {
   if (!a) return { name: 'Auto attack', key: 'Right-click', lines: [
     ['Damage', `${dmg} per hit`], ['Attack speed', `every ${stats.attackSpeed} s`], ['Range', `${stats.attackRange} steps`],
     ['Critical hit', `${pct(stats.critChance || 0)} chance, ${stats.critMultiplier || 2}x damage`]],
-    about: 'Right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks him onto the nearest enemy (Tab again: the next one); a left-click only marks it in blue. Ctrl + right-click sends your selected crew instead; T sends all your crew at the hero\'s target. Standing still, the hero hits the nearest enemy in reach.' };
+    about: 'Right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks him onto the nearest enemy (Tab again: the next one); a left-click only marks it in blue, and a left-click anywhere else drops his target and stops the auto attack. Ctrl + right-click sends your selected crew instead; T sends all your crew at the hero\'s target. Standing still, the hero hits the nearest enemy in reach.' };
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     rally: [['Effect', `you and your crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of your and each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
@@ -42,8 +42,9 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     crewInput.select(!e.shiftKey ? [id] : sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
   });
   crew.addEventListener('dblclick', e => {
-    const u = game.state.entities[e.target.closest('.mate')?.dataset.id];
+    const id = e.target.closest('.mate')?.dataset.id, u = game.state.entities[id];
     if (u) jump(u);
+    else if (id && game.police?.hq?.door) jump({ place: 'street', x: game.police.hq.door[0], z: game.police.hq.door[1] });   // jailed: the HQ
   });
   const portrait = el('div', 'portrait', row);
   el('div', 'face', portrait, 'R');
@@ -99,10 +100,12 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     const html = Object.entries(shown).map(([n, until]) => `<span class="buff ${n}">${BUFFS[n] || n} ${Math.max(0, Math.ceil((until - t) / tickRate))}s</span>`).join('');
     if (buffs.innerHTML !== html) buffs.innerHTML = html;
 
-    // crew: a small name over a health bar each; crew in the clinic show greyed out
+    // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out
+    // (jailed ones can be picked: the selection panel says they are in jail)
     const crewList = mine.filter(e => e.type !== 'hero' && e.maxHp);
     const clinic = game.state.clans?.[h.owner]?.clinic || [];
-    const n = crewList.length + clinic.length;
+    const jail = game.state.clans?.[h.owner]?.jail || [];
+    const n = crewList.length + clinic.length + jail.length;
     while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); }
     while (crew.children.length > n) crew.lastChild.remove();
     crewList.forEach((e, i) => {
@@ -111,20 +114,31 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.lastChild.style.setProperty('--hp', `${f * 100}%`);
       m.classList.toggle('hurt', f < 0.5);
       m.classList.toggle('down', !!e.downed);
-      m.classList.remove('away');
+      m.classList.remove('away', 'jailed');
+      m.classList.toggle('passive', e.order?.kind === 'stop');   // Z: stopped and passive
       m.dataset.id = e.id;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
-      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}, ${where(e)}`;
+      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}`;
     });
     clinic.forEach((c, i) => {
       const m = crew.children[crewList.length + i];
       m.firstChild.textContent = unitName(units, c.unit);
       m.lastChild.style.setProperty('--hp', '100%');
-      m.classList.remove('hurt', 'down');
+      m.classList.remove('hurt', 'down', 'jailed', 'passive');
       m.classList.add('away');
       m.classList.remove('picked');
       delete m.dataset.id;
       m.title = `${unitName(units, c.unit)} at the clinic, back in ${Math.ceil(c.left)} s`;
+    });
+    jail.forEach((p, i) => {
+      const m = crew.children[crewList.length + clinic.length + i], name = unitName(units, p.unit);
+      if (m.firstChild.textContent !== name) m.firstChild.textContent = name;
+      m.lastChild.style.setProperty('--hp', '100%');
+      m.classList.remove('hurt', 'down', 'passive');
+      m.classList.add('away', 'jailed');
+      m.dataset.id = p.id;
+      m.classList.toggle('picked', crewInput?.selected().includes(p.id) || false);
+      m.title = `${name} in jail: bail ${p.bail} ryo at the police HQ (Space at its door)`;
     });
   }
   return { update };

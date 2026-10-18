@@ -14,17 +14,17 @@
     "returnPerSecond": 1,
     "hp": 60,
     "replaceSeconds": 300,
-    "_homes": "a type's homes are poi ids in front of the buildings it lives in (default: every home poi); townsfolk only go in and come out there",
+    "_homes": "a type's homes are poi ids in front of the buildings it lives in (default: every home poi); townsfolk start there, go in there at night and come out there; by day they walk anywhere they like (Tim 2026-10-18)",
     "homeSpeed": 1.25
   },
   "types": {
-    "monk":      { "model": "monk",      "count": 1, "likes": ["shrine", "street", "market"],      "nightOut": 0.1 },
-    "monk2":     { "model": "monk2",     "count": 2, "likes": ["shrine", "street"],                "nightOut": 0.1 },
-    "old_woman": { "model": "old_woman", "count": 2, "likes": ["shrine", "market", "street"],      "nightOut": 0 },
+    "monk":      { "model": "monk",      "count": 1, "likes": ["shrine", "street", "market"],      "nightOut": 0.1, "homes": ["shrine"] },
+    "monk2":     { "model": "monk2",     "count": 2, "likes": ["shrine", "street"],                "nightOut": 0.1, "homes": ["shrine"] },
+    "old_woman": { "model": "old_woman", "count": 2, "likes": ["shrine", "market", "street"],      "nightOut": 0, "homes": ["townhouse", "abandoned_house"] },
     "merchant":  { "model": "merchant",  "count": 3, "likes": ["market", "shop", "street", "teahouse"], "nightOut": 0.1, "homes": ["shop", "western_office", "townhouse", "inn"] },
-    "geisha":    { "model": "geisha",    "count": 2, "likes": ["teahouse", "street", "market"],    "nightOut": 0.1 },
+    "geisha":    { "model": "geisha",    "count": 2, "likes": ["teahouse", "street", "market"],    "nightOut": 0.1, "homes": ["teahouse"] },
     "fisherman": { "model": "fisherman", "count": 3, "likes": ["pier", "docks", "market"],         "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse"] },
     "sailor":    { "model": "sailor",    "count": 3, "likes": ["docks", "pier", "den", "teahouse"], "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse"] },
-    "laborer":   { "model": "laborer",   "count": 4, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "dock_warehouse", "brewery"] }
+    "laborer":   { "model": "laborer",   "count": 4, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "brewery"] }
   }
 }
