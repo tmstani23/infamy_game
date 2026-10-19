@@ -122,4 +122,4 @@ Top-of-screen callouts, one at a time: "<clan> boss knocked out!" and "<clan> bo
 
 War Lantern burns out when the doors open (2026-10-19): the fight moves to the back room, so the lantern can only be knocked down during the 60 s warm-up. `raidTick` keeps `a.spot` where it stood (the alarm double-click jumps there); the bot boss goes in to the hold spot once the hold starts.
 
-TODO: a "back room contested" alert (not built yet).
+Back-room alerts (built 2026-10-19): during the hold, `raidTick` pushes `state.news` `backRoom` (`taking` / `contested`) whenever the zone changes. The defender sees "Your back room is being taken!" when raiders step onto the hold spot; both sides see "Back room contested!" when defenders step in while raiders are on it.

@@ -222,6 +222,10 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     const theirs = Object.values(state.entities).filter(u => u.owner === a.defender && u.place === a.room && standing(u));
     const inZone = list => list.some(u => Math.hypot(u.x - a.hold.x, u.z - a.hold.z) <= a.hold.r);
     a.holding = inZone(ours) && !inZone(theirs);
+    // alerts (Tim 2026-10-19): raiders step onto the back-room spot, or the owner's side steps in to contest it
+    const zone = inZone(ours) ? (inZone(theirs) ? 'contested' : 'taking') : 'empty';
+    if (zone !== 'empty' && zone !== a.zone) state.news.push({ kind: 'backRoom', state: zone, business: b.id, raider: a.clan, defender: a.defender });
+    a.zone = zone;
     if (a.holding && --a.holdLeft <= 0) end(true);
   }
 

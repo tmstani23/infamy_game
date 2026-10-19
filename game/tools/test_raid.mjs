@@ -51,6 +51,7 @@ g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, 'street', 'no way in during the warm-up');
 for (let i = 0; i < RD.warmupSeconds * 20; i++) g.step();
 assert.equal(a.phase, 'hold');
+assert.ok(!a.lantern && a.spot, 'the lantern burns out when the doors open');
 Object.assign(h, { x: den.ring[0], z: den.ring[1] });
 g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, den.room, 'in after the warm-up');
@@ -68,7 +69,10 @@ Object.assign(h, { x: a.hold.x + 0.5, z: a.hold.z });
 const left = a.holdLeft;
 g.step();
 assert.equal(a.holdLeft, left, 'a defender in the back room holds the timer');
+assert.ok(g.state.news.some(n => n.kind === 'backRoom' && n.state === 'contested'), 'contested alert');
 for (const e of guards()) { e.dead = true; e.diedAt = g.state.tick; }
+Object.assign(h, { x: a.hold.x, z: a.hold.z }); g.step();
+assert.ok(g.state.news.some(n => n.kind === 'backRoom' && n.state === 'taking'), 'being taken alert');
 for (let i = 0; i < RD.holdSeconds * 20 + 20 && g.state.attacks[den.id]; i++) { Object.assign(h, { x: a.hold.x, z: a.hold.z }); g.step(); }
 assert.equal(den.owner, 'player', 'raid won');
 assert.match(g.state.clans.kuroda.notice.text, /lost/);
