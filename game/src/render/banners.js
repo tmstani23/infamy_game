@@ -10,6 +10,23 @@ const W = 112, H = 300;                      // canvas pixels
 const WORLD_H = 2.4,   // about a third of a building, a little taller than a person (Tim 2026-10-19)
       WORLD_W = WORLD_H * W / H;
 
+// War Lantern (Tim OK'd business_visuals/war_lantern_mock_v3.png): art/props/war_lantern.png, the
+// lantern post recoloured crimson with a gold crest, planted at a raid's lantern spot (sim/businesses.js)
+const LW = 220, LH = 486, L_H = 2.9, L_W = L_H * LW / LH,
+      L_FOOT = 72 / LW, L_PAPER = [168 / LW, 214 / LH];   // foot of the post, centre of the paper (texture uv from top-left)
+const PULSE = 2 * Math.PI / 1.6;                           // a gentle beat, about every 1.6 s
+
+function glowTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,110,70,1)'); grad.addColorStop(0.4, 'rgba(230,50,30,0.45)'); grad.addColorStop(1, 'rgba(200,30,20,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace;
+  return t;
+}
+
 const shade = (hex, k) => {
   const c = new THREE.Color(hex);
   return `rgb(${Math.min(255, c.r * 255 * k) | 0},${Math.min(255, c.g * 255 * k) | 0},${Math.min(255, c.b * 255 * k) | 0})`;
@@ -84,6 +101,46 @@ export function createBanners({ scene }) {
   const holds = new Map();           // business id -> back-room ring
   const HOLD_GEO = new THREE.RingGeometry(0.93, 1, 64);
 
+  const lanterns = new Map();        // business id -> { mesh, glow, pool, ring, thing }
+  let lanternTex = null, glowTex = null;
+  const POOL_GEO = new THREE.CircleGeometry(1, 48), LRING_GEO = new THREE.RingGeometry(0.97, 1, 64);
+
+  function addLantern(x, z) {
+    if (!lanternTex) {
+      lanternTex = new THREE.TextureLoader().load('art/props/war_lantern.png');
+      lanternTex.colorSpace = THREE.NoColorSpace;
+      glowTex = glowTexture();
+    }
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(CAM_QUAT);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: lanternTex, transparent: true, depthWrite: false }));
+    mesh.quaternion.copy(CAM_QUAT);
+    mesh.scale.set(L_W, L_H, 1);
+    mesh.position.set(x, 0, z).addScaledVector(CAM_UP, L_H / 2 - 0.02).addScaledVector(right, L_W * (0.5 - L_FOOT));
+    mesh.frustumCulled = false;
+    // soft red glow around the paper, drawn over the sprite
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.quaternion.copy(CAM_QUAT);
+    glow.position.copy(mesh.position).addScaledVector(right, L_W * (L_PAPER[0] - 0.5)).addScaledVector(CAM_UP, L_H * (0.5 - L_PAPER[1]));
+    glow.frustumCulled = false; glow.renderOrder = 4;
+    // a faint pool of red light and a thin ring on the ground
+    const pool = new THREE.Mesh(POOL_GEO, new THREE.MeshBasicMaterial({ color: 0xc82818, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const ring = new THREE.Mesh(LRING_GEO, new THREE.MeshBasicMaterial({ color: 0xff7850, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    for (const m of [pool, ring]) { m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); m.renderOrder = 2; }
+    const thing = new Thing(mesh, { minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
+    thing.extras.push(glow);
+    scene.add(mesh, glow, pool, ring);
+    things.push(thing);
+    return { mesh, glow, pool, ring, thing };
+  }
+  function dropLantern(id) {
+    const l = lanterns.get(id);
+    scene.remove(l.mesh, l.glow, l.pool, l.ring);
+    for (const m of [l.mesh, l.glow]) { m.geometry.dispose(); m.material.dispose(); }
+    l.pool.material.dispose(); l.ring.material.dispose();
+    things.splice(things.indexOf(l.thing), 1);
+    lanterns.delete(id);
+  }
+
   // beside the door ring, a step along the front of the building
   const spot = b => {
     const [rx, rz] = b.ring || b.door || [b.x, b.z];
@@ -145,6 +202,20 @@ export function createBanners({ scene }) {
         scene.add(r); holds.set(a.business, r);
       }
       r.material.opacity = a.holding ? 0.6 + 0.3 * Math.sin(time * 6) : 0.25;
+    }
+    // War Lanterns planted for raids: the glow and the ground ring breathe together, softly
+    for (const id of [...lanterns.keys()]) if (!state.attacks?.[id]?.lantern) dropLantern(id);
+    const beat = 0.5 + 0.5 * Math.sin(time * PULSE);
+    for (const a of Object.values(state.attacks || {})) {
+      if (!a.lantern) continue;
+      let l = lanterns.get(a.business);
+      if (!l) { l = addLantern(a.lantern.x, a.lantern.z); lanterns.set(a.business, l); }
+      l.glow.scale.setScalar(0.9 + 0.15 * beat);
+      l.glow.material.opacity = 0.3 + 0.3 * beat;
+      const r = 0.85 + 0.15 * beat;
+      l.pool.scale.setScalar(r); l.ring.scale.setScalar(r);
+      l.pool.material.opacity = 0.08 + 0.08 * beat;
+      l.ring.material.opacity = 0.25 + 0.35 * beat;
     }
     return claimed;
   }

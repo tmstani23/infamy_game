@@ -10,7 +10,7 @@ const GROUND = {
   water: [40, 66, 84], planks: [110, 82, 56], gravel: [128, 124, 116], paving: [146, 138, 124],
 };
 const BUILDING = [62, 50, 46];
-const MARK = { warehouse: 'W', teahouse: 'T', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P' };
+const MARK = { warehouse: 'W', teahouse: 'T', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M' };
 const S = Math.SQRT1_2;
 
 export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send }) {

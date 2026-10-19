@@ -750,7 +750,8 @@ export function createGame(options) {
   function bringCrew(hero, from, d, ids = []) {
     const out = d.place === 'street';
     const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && u.place === from
-      && (ids || []).includes(u.id) && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS));
+      && (ids || []).includes(u.id) && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS))
+      .slice(0, out ? Infinity : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // a raid takes at most maxCrewInside crew in
     const r0 = 0.3;
     const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
     crew.forEach((u, k) => {
@@ -862,7 +863,7 @@ export function createGame(options) {
   // [{ id, type: 'execute', target, units? }] finishes off a downed enemy: the hero, or the nearest of `units` (its crew),
   // [{ id, type: 'ability', slot: 'Q' | 'E' | 'R' | 'F', x, z }] uses a hero ability (x, z = aim on the ground),
   // [{ type: 'time', night? }] sets night on or off (no night given: flips it),
-  // [{ id, type: 'business', action: 'buy' | 'attack', business }] from a hero at an unclaimed business's door ring (sim/businesses.js),
+  // [{ id, type: 'business', action: 'buy' | 'attack' | 'raid' | 'lantern', business }] from a hero at a business's door ring (sim/businesses.js),
   // [{ id, type: 'police', action: 'bribe' }] at the police box, [{ id, type: 'police', action: 'bail', prisoner }] at the HQ,
   // [{ id, type: 'clinic', action: 'revive', patient } | { id, type: 'clinic', action: 'heal' }] from a hero
   //   at the clinic door: get a carried-off crew member out now, or heal the hero and nearby crew,
@@ -885,7 +886,8 @@ export function createGame(options) {
       if (c.type === 'move') intents[c.id] = c;
       if (c.type === 'use') {
         const d = doorNear(c.id);
-        if (d?.to) {                                     // menu doors (the clinic) have no room
+        // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
+        if (d?.to && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
           const from = e.place;
           e.x = d.to.x; e.z = d.to.z; e.place = d.place;
           if (e.type === 'hero') bringCrew(e, from, d, c.units);

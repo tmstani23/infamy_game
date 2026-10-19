@@ -67,6 +67,15 @@ async function start() {
     }
   }
 
+  // Test only: ?rival=gambling_den (or teahouse / warehouse; 'den' works too) gives a stand-in rival clan
+  // that business with its guards, to try War Lantern raids until the rival bot clan exists
+  const rivalKind = params.get('rival') === 'den' ? 'gambling_den' : params.get('rival');
+  const rivalBiz = rivalKind && Object.values(game.state.businesses).find(b => b.kind === rivalKind);
+  if (rivalBiz) {
+    if (!game.state.clans.kuroda) game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
+    game.clans.setOwner(rivalBiz.id, 'kuroda');
+  }
+
   // Townsfolk walking the streets (?civilians=0 turns them off)
   if (params.get('civilians') !== '0') game.civilians.populate();
 
@@ -199,12 +208,14 @@ async function start() {
         if (a) {
           const where = a.kind.replace(/_/g, ' ');
           bar.classList.toggle('hold', a.phase === 'hold');
-          const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE);
-          bar.textContent = wait > 0 ? `Attacking the ${where}: police arrive in ${wait} s, get inside` : a.phase === 'hold'
+          const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE), opens = Math.ceil((a.opensAt - game.state.tick) / TICK_RATE);
+          bar.textContent = a.phase === 'warmup' ? `Raid on the ${where}: the doors open in ${opens} s`
+            : wait > 0 ? `Attacking the ${where}: police arrive in ${wait} s, get inside` : a.phase === 'hold'
             ? `Hold the back room of the ${where}: ${Math.ceil(a.holdLeft / TICK_RATE)} s${a.holding ? '' : ' (stand in the gold ring)'}`
             : `Attacking the ${where}: police wave ${a.wave} of ${a.waves}`;
         }
       }
+      { const n = game.state.clans.player?.lanterns || 0, el = $('lanterns'); el.hidden = !n; el.textContent = `War Lantern ${n}`; }
       // the hunters lost your boss (sim/police.js): a short notice at the top
       if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
         const el = $('lostcops');

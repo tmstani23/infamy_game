@@ -13,6 +13,7 @@
     "moneylender_house": "Moneylender's house", "lighthouse": "Lighthouse", "telegraph_office": "Telegraph office"
   },
   "roles": {
+    "moneylender": "Sells War Lanterns (building panel at the door)",
     "teahouse": "Hire crew (H inside)",
     "gambling_den": "Most money, most heat",
     "warehouse": "Storage and smuggling",

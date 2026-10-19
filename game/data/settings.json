@@ -36,14 +36,17 @@
     "reviveNowShare": 0.5
   },
   "businesses": {
-    "_note": "price = buy an unclaimed one (about 4 payouts); payout = ryo at every dawn, none during a police Manhunt; attackWaves = police waves when you attack it unclaimed (plus 1 per heat tier)",
-    "teahouse":     { "price": 400,  "payout": 100, "attackWaves": 3 },
-    "warehouse":    { "price": 700,  "payout": 175, "attackWaves": 4 },
-    "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6 }
+    "_note": "price = buy an unclaimed one (about 4 payouts); payout = ryo at every dawn, none during a police Manhunt; attackWaves = police waves when you attack it unclaimed (plus 1 per heat tier); crewSlots = crew it adds to your cap (Tim 2026-10-19: by type, no hard cap)",
+    "teahouse":     { "price": 400,  "payout": 100, "attackWaves": 3, "crewSlots": 3 },
+    "warehouse":    { "price": 700,  "payout": 175, "attackWaves": 4, "crewSlots": 1 },
+    "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "crewSlots": 2 }
+  },
+  "warLantern": {
+    "_note": "a War Lantern: needed to raid a rival-owned business; bought at the moneylender's door",
+    "price": 2400
   },
   "crew": {
     "baseCap": 3,
-    "capPerBusiness": 3,
     "heroRespawnSeconds": 20
   }
 }

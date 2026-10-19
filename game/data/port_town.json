@@ -79,7 +79,7 @@
     {"art":"shrine","x":-32,"z":50},
     {"art":"manor","x":-14,"z":50},
     {"art":"temple","x":10,"z":54},
-    {"art":"moneylender_house","x":-22,"z":16.5},
+    {"art":"moneylender_house","x":-22,"z":16.5,"business":"moneylender","door":[-22,20.3]},
     {"art":"kabuki_theatre","x":30,"z":41},
     {"art":"geisha_house","x":44.5,"z":29},
     {"art":"food_stalls","x":30,"z":33},

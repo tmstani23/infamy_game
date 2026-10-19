@@ -17,9 +17,15 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   if (ur?.capPerBusiness && crew.capPerBusiness !== undefined) for (const k in ur.capPerBusiness) ur.capPerBusiness[k] = crew.capPerBusiness;
   if (ur && heat.townsfolk) ur.civilianHeat = { ...ur.civilianHeat, ...heat.townsfolk };
   set(ur, 'heatCoolSeconds', heat.coolSeconds);
+  if (ur?.raid && s.warLantern?.price !== undefined) ur.raid = { ...ur.raid, lanternPrice: s.warLantern.price };
   if (ur && s.businesses) {
     ur.businesses = ur.businesses || {};
-    for (const [kind, v] of Object.entries(s.businesses)) if (!kind.startsWith('_')) ur.businesses[kind] = { ...ur.businesses[kind], ...v };
+    for (const [kind, v] of Object.entries(s.businesses)) {
+      if (kind.startsWith('_')) continue;
+      const { crewSlots, ...rest } = v;
+      ur.businesses[kind] = { ...ur.businesses[kind], ...rest };
+      if (crewSlots !== undefined) (ur.capPerBusiness ||= {})[kind] = crewSlots;    // crew it adds to the cap
+    }
   }
 
   // townsfolk: one total, shared out by each type's count in civilians.json (largest remainder)

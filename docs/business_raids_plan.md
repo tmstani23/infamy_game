@@ -63,10 +63,11 @@ Two ways, both from the **building panel** (left-click the building; already bui
 ## 4. Raiding a rival's business (War Lantern)
 
 - A rival-owned business (bought or seized) can only be taken by a raid, and a raid always needs a **War Lantern** (Tim 2026-10-19): a tall red lantern on a pole with your clan crest, with a red aura.
-- **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, not on the map yet), from its building panel. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
+- **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, b16 on the map, M on the minimap), from its building panel at the door ring. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
 - **Cost: 2,400 ryo** (2x the den). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
-- The lantern drops by the door and the aura starts. **Raiders can't enter for 30 s** (warm-up). Then the doors open to raiders and they must hold the back room for 30 s.
+- The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 30 s** (warm-up). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
+- **Lost** if the hero goes down, nobody of yours is inside for 10 s, or the business changes owner.
 - **Joining late:** any of your crew who walk in count, up to **6 crew inside** at once (plus the hero).
 - **Used up** whether the raid wins or loses.
 - No police come to a rival raid (yakuza don't call the police on each other). Normal heat rules for hitting townsfolk still apply.
@@ -95,7 +96,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 2. [x] House guards (built 2026-10-19): 2 per owned business, unit type `guard` (thug sprite, 260 HP, hit 10). They patrol the building's rooms at a walk, pausing 3-8 s per spot, and defend on their own. They die outright; the same owner gets a replacement after 120 s (`units.json` `rules.houseGuards`). Not crew: no cap, no orders, not on the action bar. The building panel shows "Guards N of 2".
 3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door in waves: teahouse 3, warehouse 4, den 6, plus 1 per heat tier (`settings.json` `businesses[kind].attackWaves`; count fixed at the start). Waves bring 2 officers, 3 from halfway (`attack.bigWave`, `bigWavesFrom`), 5 s apart, at full street HP, with no heat for fighting them (retuned 2026-10-19). Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
    - Visuals: clan banner (a nobori in the clan colour, about 2.4 tall, soft glow and faint ring at its foot, swaps on owner change; `render/banners.js`), a gold claim burst, and the clan badge (crest + name) in the top bar.
-4. War Lantern: buy at the moneylender's house, Raid button, warm-up, hold, used up.
+4. [x] War Lantern raids (built 2026-10-19, as section 4). Crew slots by business type (`settings.json` `businesses[kind].crewSlots`): teahouse +3, den +2, warehouse +1; no hard cap (base 3 plus the sum). Test param `?rival=den|teahouse|warehouse` gives a rival clan that business. Art: `game/art/props/war_lantern.png` (a recoloured lantern_post) with a soft 1.6 s pulsing red glow and a ground ring.
 5. Defending: alert banner/ping/bell, contested timer pause, lantern knock-down channel.
 6. Controls panel entries + doc notes to the coordinator.
 

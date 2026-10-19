@@ -43,7 +43,7 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   for (const [x, z] of district.edges) { const f = g.nav.nearestFree(x, z); if (!f || !g.nav.findPath(hx, hz, ...f)) miss.push(`edge ${x},${z}`); }
   assert.deepEqual(miss, [], miss.join('\n'));
   const kinds = Object.values(g.state.businesses).map(b => b.kind).sort();
-  assert.deepEqual(kinds, ['clinic', 'gambling_den', 'police_box', 'police_box', 'police_hq', 'teahouse', 'warehouse']);
+  assert.deepEqual(kinds, ['clinic', 'gambling_den', 'moneylender', 'police_box', 'police_box', 'police_hq', 'teahouse', 'warehouse']);
   assert.equal(g.rooms.length, 3, 'warehouse, teahouse and den rooms');
   console.log('doors, spots and edges ok');
 }

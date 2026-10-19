@@ -46,8 +46,12 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     if (i !== shown) {
       shown = i; last = '';
       const file = scenery.find(s => s.building === i)?.item.file;
-      root.innerHTML = '<div class="pic"></div><div class="info"><b></b><i></i><dl></dl><div class="acts"><button class="buy" hidden></button><button class="atk" hidden></button><span class="why"></span></div><div class="notice" hidden></div></div>';
+      root.innerHTML = '<div class="pic"></div><div class="info"><b></b><i></i><dl></dl><div class="acts"><button class="buy" hidden></button><button class="atk" hidden></button><button class="raid" hidden></button><button class="lantern" hidden></button><span class="why"></span></div><div class="notice" hidden></div></div>';
       if (file) root.querySelector('.pic').style.backgroundImage = `url(${file})`;
+      for (const [cls, action] of [['raid', 'raid'], ['lantern', 'lantern']]) root.querySelector(`.${cls}`).addEventListener('click', e => {
+        send({ id: heroId, type: 'business', action, business: `b${shown}` });
+        e.currentTarget.blur();
+      });
       root.querySelector('.atk').addEventListener('click', e => {
         send({ id: heroId, type: 'business', action: 'attack', business: `b${shown}` });
         e.currentTarget.blur();
@@ -63,6 +67,12 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     // Attack (night only, sim/businesses.js canAttack): shown next to Buy for an unclaimed business
     const atk = d.buy ? game.businesses.canAttack(heroId, `b${i}`) : null;
     d.attack = atk && { ok: atk.ok, why: atk.why };
+    // Raid (a rival's business, needs a War Lantern) and Buy War Lantern (the moneylender's)
+    const biz = game.state.businesses[`b${i}`];
+    const raid = biz?.owner && biz.owner !== clan && game.businesses?.rules[biz.kind] ? game.businesses.canRaid(heroId, `b${i}`) : null;
+    d.raid = raid && { ok: raid.ok, why: raid.why };
+    const ml = biz?.kind === 'moneylender' ? game.businesses?.canBuyLantern(heroId, `b${i}`) : null;
+    d.lantern = ml && { ok: ml.ok, why: ml.why, price: ml.price };
     const c = game.state.clans?.[clan];
     d.notice = c?.notice && game.state.tick - c.notice.tick < 20 * 4 ? c.notice.text : '';
     const key = JSON.stringify(d);
@@ -80,10 +90,14 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     const buy = root.querySelector('.buy');
     buy.hidden = !d.buy;
     if (d.buy) { buy.textContent = `Buy (${d.buy.price} ryo)`; buy.disabled = !d.buy.ok; }
+    const raidBtn = root.querySelector('.raid'), mlBtn = root.querySelector('.lantern');
+    raidBtn.hidden = !d.raid; raidBtn.textContent = 'Raid (War Lantern)'; raidBtn.disabled = !d.raid?.ok;
+    mlBtn.hidden = !d.lantern; mlBtn.textContent = `Buy War Lantern (${d.lantern?.price} ryo)`; mlBtn.disabled = !d.lantern?.ok;
     const atkBtn = root.querySelector('.atk');
     atkBtn.hidden = !d.attack; atkBtn.textContent = 'Attack'; atkBtn.disabled = !d.attack?.ok;
     // the reason shown is Buy's, or Attack's when only buying is possible
-    root.querySelector('.why').textContent = d.buy && !d.buy.ok ? d.buy.why : d.attack && !d.attack.ok && d.attack.why !== d.buy?.why ? `Attack: ${d.attack.why.toLowerCase()}` : '';
+    root.querySelector('.why').textContent = d.buy && !d.buy.ok ? d.buy.why : d.attack && !d.attack.ok && d.attack.why !== d.buy?.why ? `Attack: ${d.attack.why.toLowerCase()}`
+      : d.raid && !d.raid.ok ? d.raid.why : d.lantern && !d.lantern.ok ? d.lantern.why : '';
     const note = root.querySelector('.notice');
     note.hidden = !d.notice; note.textContent = d.notice;
   }
