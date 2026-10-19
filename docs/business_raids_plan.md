@@ -120,4 +120,6 @@ Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner,
 
 Top-of-screen callouts, one at a time: "<clan> boss knocked out!" and "<clan> boss arrested!" (only if visible), "War Lantern destroyed!" (defender), "Your War Lantern was destroyed" (raider). The sim pushes `state.news` (`bossDown`, `bossArrested`, `lanternDown`, `crewOut`) from `game.js` `hit()`, `police.js` `jailHero()` and the knock in `businesses.js`; `main.js` `callout()` queues them into `#callout`.
 
-TODO (2026-10-19, document when confirmed): the lantern now disappears when the doors open, and a "back room contested" alert was added (businesses thread's last changes).
+War Lantern burns out when the doors open (2026-10-19): the fight moves to the back room, so the lantern can only be knocked down during the 60 s warm-up. `raidTick` keeps `a.spot` where it stood (the alarm double-click jumps there); the bot boss goes in to the hold spot once the hold starts.
+
+TODO: a "back room contested" alert (not built yet).
