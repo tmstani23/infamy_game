@@ -11,6 +11,7 @@ import { createBandits, WILD } from './bandits.js';
 import { createVision } from './vision.js';
 import { createPolice, POLICE } from './police.js';
 import { applySettings } from './settings.js';
+import { createBusinesses } from './businesses.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -78,7 +79,7 @@ export function createGame(options) {
   ];
 
   // Everything here is plain data, so it can be synced to other players as is
-  // businesses: { b0: { kind: 'warehouse', x, z, door, owner: null } }, keyed by building index
+  // businesses: { b0: { kind: 'warehouse', x, z, door, ring, owner: null } }, keyed by building index (ring = door ring spot)
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
   // clock: the day/night cycle when settings turn it on (auto); left = ticks to the next flip, day = count of days so far;
   // dawn / dusk = true on the tick night turns to day / day to night, from the clock or the 'time' command alike (payouts at dawn)
@@ -92,7 +93,7 @@ export function createGame(options) {
     if (state.clock) state.clock.left = halfTicks(night);
   };
   district.buildings.forEach((b, i) => {
-    if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
+    if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, ring: b.door ? ringAt(b) : null, room: roomOf[i] || null, owner: null };
   });
   // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1 }) : null;
@@ -146,7 +147,7 @@ export function createGame(options) {
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
     if (!['follow', 'attack', 'heal', 'stop'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
-      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && u.place === hero.place);
+      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && u.place === hero.place);
     crew.forEach((u, k) => {
       delete paths[u.id];
       delete u.execute;
@@ -155,7 +156,8 @@ export function createGame(options) {
       // until the next order of any kind replaces this one
       if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
-      if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target }; return; }
+      // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
+      if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target, ...(c.resume ? { prev: resumable(u) } : {}) }; return; }
       if (c.kind === 'heal') {
         const b = clans?.clinicOf();
         if (!b || u.hp >= u.maxHp || u.place !== 'street') return;   // from the street only
@@ -180,7 +182,7 @@ export function createGame(options) {
       return { x: h.x + ox, z: h.z + oz, near: Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
     }
     if (o.kind === 'attack') return null;
-    return { x: o.x, z: o.z, near: 0.25, walk: false };
+    return { x: o.x, z: o.z, near: 0.25, walk: !!o.patrol, stroll: !!o.patrol };   // patrol (house guards): walk the whole way
   }
 
   // Walk one tick toward (gx, gz) along a street path; false when there is no way
@@ -232,11 +234,12 @@ export function createGame(options) {
   const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
 
   // Officers are never picked on their own: hitting police (+heat) is always the player's
-  // (or bot's) own order, so standing still next to a squad doesn't spiral the heat
+  // (or bot's) own order, so standing still next to a squad doesn't spiral the heat.
+  // Except officers defending a business your clan is attacking (e.wave, sim/businesses.js)
   function nearestEnemy(e, x, z, range) {
     let best = null, bd = range;
     for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e))) continue;
+      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;   // police defending a business you attack: fair game
       const d = Math.hypot(t.x - x, t.z - z);
       if (d < bd) { bd = d; best = t; }
     }
@@ -251,6 +254,19 @@ export function createGame(options) {
     return [e.x, e.z];
   }
 
+  // the order a T attack goes back to afterwards: follow, hold / station / move spot, or passive stop
+  function resumable(u) {
+    const o = u.order?.kind === 'attack' ? u.order.prev : u.order;
+    return o && ['follow', 'move', 'station', 'stop'].includes(o.kind) ? { ...o } : null;
+  }
+  // an attack order is over (target gone, down or out of reach): back to the order before a T,
+  // else stand where it is
+  function endAttack(u) {
+    const p = u.order?.prev;
+    if (p?.kind === 'follow') p.slot = freeSlot(p.target, u.id);
+    u.order = p || { kind: 'move', x: u.x, z: u.z };
+  }
+
   // Who this crew member should be fighting right now, if anyone
   function crewTarget(e) {
     const o = e.order || {};
@@ -258,7 +274,7 @@ export function createGame(options) {
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
       if (fair(e, t)) return t;
-      e.order = { kind: 'move', x: e.x, z: e.z };      // target gone: stand there
+      endAttack(e);                                    // target gone: back to the old order, or stand there
       return null;
     }
     // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
@@ -270,7 +286,7 @@ export function createGame(options) {
     const [ax, az] = anchorOf(e);
     const f = fight[e.id];
     const old = f && state.entities[f.target];
-    if (hostile(e, old) && !cop(old) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
+    if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
     return nearestEnemy(e, e.x, e.z, AGGRO);
   }
 
@@ -378,7 +394,8 @@ export function createGame(options) {
     if (state.clans?.[a.owner]) {
       a.foughtAt = state.tick;
       if (a.place === 'street') state.clans[a.owner].lastFight = { x: a.x, z: a.z, tick: state.tick };
-      if (cop(t)) { addHeat(a.owner, police.rules.hitPoliceHeat, 'Assaulting police'); police.provoke(t, a.owner); }
+      // officers defending a business you attack (e.wave) give attack.hitHeat instead: the attack already costs heat when won
+      if (cop(t)) { addHeat(a.owner, t.wave ? units?.rules?.attack?.hitHeat ?? 0 : police.rules.hitPoliceHeat, 'Assaulting police'); police.provoke(t, a.owner); }
     }
     if (t.hp > 0) return;
     delete t.swing;
@@ -391,6 +408,8 @@ export function createGame(options) {
     if (wild(t)) { t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
     // an officer knocked out is taken away (the HQ sends another)
     if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
+    // house guards (sim/businesses.js) die outright; the business sends a new one later
+    if (t.guard) { t.dead = true; t.diedAt = state.tick; return; }
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
     if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; return; }
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
@@ -419,7 +438,7 @@ export function createGame(options) {
       if (!civ(e) && !clans?.carryOff(e)) continue;      // townsfolk are helped home (sim/civilians.js sends a new one out later)
       delete state.entities[e.id];
       delete intents[e.id];
-      for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
+      for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') endAttack(u);
     }
   }
 
@@ -441,7 +460,7 @@ export function createGame(options) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
     if (Array.isArray(c.units) && c.units.length) {
       const u = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && u.place === e.place && lootable(u, body))
+        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && !u.guard && u.place === e.place && lootable(u, body))
         .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z))[0];
       if (!u) return;
       delete paths[u.id]; delete u.execute; delete u.swing;
@@ -477,7 +496,7 @@ export function createGame(options) {
     if (Array.isArray(c.units) && c.units.length) {
       const t = state.entities[c.target];
       ex = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && u.place === e.place)
+        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && !u.guard && u.place === e.place)
         .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
     }
     if (!ex || ex.dead || ex.downed || !downedFoe(ex, state.entities[c.target]) || !sees(ex, state.entities[c.target])) return;
@@ -649,7 +668,7 @@ export function createGame(options) {
       if (e.type !== 'hero' && secs >= (e.loot ? (banditData?.rules?.lootSeconds ?? 60) : CORPSE_SECONDS)) {
         delete state.entities[e.id];
         delete intents[e.id];
-        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) u.order = { kind: 'move', x: u.x, z: u.z };
+        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) { if (u.order.kind === 'attack') endAttack(u); else u.order = { kind: 'move', x: u.x, z: u.z }; }
       }
       // a knocked-out hero comes round at the clinic's door ring after heroRespawnSeconds (Tim 2026-10-17),
       // or at home when the map has no clinic
@@ -685,7 +704,7 @@ export function createGame(options) {
       }
       return;
     }
-    if (!moveTo(e, unit, goal.x, goal.z, goal.walk && dist < 4)) e.anim = 'idle';
+    if (!moveTo(e, unit, goal.x, goal.z, goal.walk && (goal.stroll || dist < 4))) e.anim = 'idle';
   }
 
   // Crew standing on each other get nudged apart a little every tick
@@ -730,7 +749,7 @@ export function createGame(options) {
   const BRING_RADIUS = 12;
   function bringCrew(hero, from, d, ids = []) {
     const out = d.place === 'street';
-    const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.dead && !u.downed && u.place === from
+    const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && u.place === from
       && (ids || []).includes(u.id) && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS));
     const r0 = 0.3;
     const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
@@ -783,7 +802,7 @@ export function createGame(options) {
   // Take a unit off the map (arrested, gone home), and stop anyone's attack order on it
   function removeUnit(id) {
     delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id];
-    for (const u of Object.values(state.entities)) if (u.order?.target === id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
+    for (const u of Object.values(state.entities)) if (u.order?.target === id && u.order.kind === 'attack') endAttack(u);
   }
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
@@ -799,6 +818,42 @@ export function createGame(options) {
     seed: (options.seed ?? 12345) ^ 0xc095,
   }) : null;
 
+  // buying businesses and dawn payouts (sim/businesses.js); the police cut payouts in a Manhunt
+  // house guards stand just inside the front room, either side of the way in (on the street at its ring if it has no room)
+  const guardSpots = b => {
+    const r = rooms.find(r => r.name === b.room);
+    if (!r) return b.ring ? [-1, 1].map(k => ({ x: b.ring[0] + k, z: b.ring[1], place: 'street' })) : [];
+    const mx = r.origin.x + r.size[0] / 2, mz = r.origin.z + r.size[1] / 2;
+    const dx = mx - r.spawn.x, dz = mz - r.spawn.z, len = Math.hypot(dx, dz) || 1, ux = dx / len, uz = dz / len;
+    const step = Math.min(2.5, len * 0.6);
+    const grid = roomNavs[r.name];
+    return [-1, 1].map(k => {
+      // where a path from the way in toward that spot ends (backs off furniture in the way)
+      const x = r.spawn.x + ux * step - uz * k * 1.2, z = r.spawn.z + uz * step + ux * k * 1.2;
+      const way = grid?.findPath(r.spawn.x, r.spawn.z, x, z), p = way?.[way.length - 1] || [r.spawn.x, r.spawn.z];
+      return { x: p[0], z: p[1], place: r.name };
+    });
+  };
+  // spots a house guard walks between: a spread over the building's rooms, on free floor
+  // (only spots a path from the way in reaches, worked out once per room)
+  const patrolCache = {};
+  const patrolSpots = b => {
+    if (patrolCache[b.room]) return patrolCache[b.room];
+    const r = rooms.find(r => r.name === b.room), grid = r && roomNavs[r.name];
+    if (!grid) return [];
+    const out = [];
+    for (const [fx, fz] of [[0.2, 0.2], [0.5, 0.2], [0.8, 0.2], [0.8, 0.5], [0.8, 0.8], [0.5, 0.8], [0.2, 0.8], [0.2, 0.5], [0.5, 0.5]]) {
+      const p = grid.nearestFree(r.origin.x + r.size[0] * fx, r.origin.z + r.size[1] * fz);
+      const way = p && grid.findPath(r.spawn.x, r.spawn.z, p[0], p[1]);
+      const end = way?.[way.length - 1];
+      if (end && Math.hypot(end[0] - p[0], end[1] - p[1]) < 0.5) out.push({ x: p[0], z: p[1] });
+    }
+    return (patrolCache[b.room] = out);
+  };
+  const roomOfBusiness = b => rooms.find(r => r.name === b.room) || null;
+  const businesses = clans ? createBusinesses({ state, units, clans, payoutShare: id => police?.payoutShare(id) ?? 1, tierOf: id => police?.tierOf(id) ?? 0,
+    spawn, guardSpots, patrolSpots, roomOf: roomOfBusiness, remove: removeUnit, addHeatGain: (clan, amount, reason) => state.heatGains.push({ clan, amount, reason }) }) : null;
+
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
   //   its selected crew, inside with it; coming out, its crew in the room come too),
@@ -807,6 +862,7 @@ export function createGame(options) {
   // [{ id, type: 'execute', target, units? }] finishes off a downed enemy: the hero, or the nearest of `units` (its crew),
   // [{ id, type: 'ability', slot: 'Q' | 'E' | 'R' | 'F', x, z }] uses a hero ability (x, z = aim on the ground),
   // [{ type: 'time', night? }] sets night on or off (no night given: flips it),
+  // [{ id, type: 'business', action: 'buy' | 'attack', business }] from a hero at an unclaimed business's door ring (sim/businesses.js),
   // [{ id, type: 'police', action: 'bribe' }] at the police box, [{ id, type: 'police', action: 'bail', prisoner }] at the HQ,
   // [{ id, type: 'clinic', action: 'revive', patient } | { id, type: 'clinic', action: 'heal' }] from a hero
   //   at the clinic door: get a carried-off crew member out now, or heal the hero and nearby crew,
@@ -836,6 +892,7 @@ export function createGame(options) {
         }
       }
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
+      if (c.type === 'business' && businesses && e.type === 'hero') businesses.command(e, c);
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
@@ -889,6 +946,7 @@ export function createGame(options) {
     civilians.tick();
     bandits.tick();
     police?.tick();
+    businesses?.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -914,5 +972,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, vision };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, businesses, vision };
 }

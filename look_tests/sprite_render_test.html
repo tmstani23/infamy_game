@@ -435,7 +435,10 @@ const PALM_Y = 0.03;   // palm centre along the hand bone (bone units, Mixamo +Y
 const _z = new THREE.Vector3(0, 0, 1);
 let itemDir = null;    // haft direction in the hand bone's frame (one-hand grips)
 const palmOf = (bone, out) => bone.localToWorld(out.set(0, PALM_Y, 0));
-let itemHang = false;   // swords hang when the hands part; rifles stay between the hands
+let itemHang = false;
+let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), roll (deg)} or null
+let runPose = false;     // true while a run clip is being drawn
+   // swords hang when the hands part; rifles stay between the hands
 function updateItem() {
   if (!item || !root) return;
   root.updateMatrixWorld(true);
@@ -454,6 +457,15 @@ function updateItem() {
     // can't span both, so it hangs from the right hand instead: blade down and a
     // little forward along the leg, blending over as the hands separate
     const apart = !itemHang ? 0 : THREE.MathUtils.smoothstep(_a.distanceTo(_b) / root.scale.x, HANDS_TOGETHER, HANDS_APART);
+    if (runPose && itemRunBack) {
+      // Running: the blade trails straight behind the hand, almost level (tip a little low), curve bowing up like a frown
+      const yaw = root.rotation.y, sign = flip ? 1 : -1, d = THREE.MathUtils.degToRad(itemRunBack.drop);
+      _c.set(Math.sin(yaw) * Math.cos(d), Math.sin(d), Math.cos(yaw) * Math.cos(d)).multiplyScalar(sign);   // where the item's +Z should point
+      _b.copy(_a).add(_c);
+      item.lookAt(_b);
+      item.rotateZ(THREE.MathUtils.degToRad(itemRunBack.roll));
+      return;
+    }
     if (apart > 0) {
       const yaw = root.rotation.y, sign = flip ? -1 : 1;
       _c.set(Math.sin(yaw) * 0.7, 0.9, Math.cos(yaw) * 0.7).normalize().multiplyScalar(sign);   // where the item's +Z should point
@@ -486,6 +498,7 @@ function setItemOptions(o = {}) {
     if (o[k] != null) $(id).value = o[k];
   if (o.flip != null) $('itemFlip').checked = !!o.flip;
   itemHang = !!o.hang;
+  itemRunBack = o.runBack || null;
   itemDir = o.dir ? new THREE.Vector3(...o.dir).normalize() : null;
 }
 
@@ -587,6 +600,7 @@ function renderSheet(i, withGlow = false) {
   const size = Number($('size').value);
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
+  runPose = /run/i.test(entry.name);
   const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
   const frames = Math.max(1, Math.min(Number($('maxf').value), Math.round(clip.duration * fps)));
 
@@ -640,6 +654,7 @@ function renderSheet(i, withGlow = false) {
     }
   });
 
+  runPose = false;
   exMixer.stopAllAction();
   exMixer.uncacheRoot(obj);
   off.dispose();

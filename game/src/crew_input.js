@@ -56,7 +56,7 @@ export function targetMarkers(state, heroId, tabbed) {
   const heroT = [h.attackTarget, h.swing?.target].find(live);
   const out = heroT ? [{ id: heroT, kind: 'hero' }] : [];
   if (live(tabbed) && tabbed !== heroT && !S[tabbed].downed) out.push({ id: tabbed, kind: 'tab' });
-  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.dead && !u.downed)
+  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed)
     .map(u => u.swing?.target || (u.order?.kind === 'attack' ? u.order.target : u.execute?.target)).filter(live));
   for (const id of crewT) if (id !== heroT && id !== tabbed) out.push({ id, kind: 'crew' });
   return out;
@@ -70,7 +70,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   let building = null;        // the selected building (index in the district's buildings), or null
   const hero = () => game.state.entities[heroId];
   const myCrew = () => Object.values(game.state.entities)
-    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && e.place === hero()?.place);   // indoors too, so C works there
+    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && e.place === hero()?.place);   // indoors too, so C works there
   const outdoors = () => hero()?.place === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
   const seen = e => !game.vision || game.vision.canSee(hero()?.owner, e);
@@ -190,14 +190,15 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       tabbed = tabTarget(game.state, heroId, tabbed, seen) || null;
       if (tabbed) send({ id: heroId, type: 'attack', target: tabbed });
     },
-    // T: all the hero's crew (selected or not) attack his current target, or finish it if it is down
+    // T: all the hero's crew (selected or not) attack the marked unit (left-click, its card showing),
+    // else the hero's current target; a downed one they finish off (Tim 2026-10-19)
     crewAttack() {
       const S = game.state.entities, h = hero();
-      const t = [h?.attackTarget, h?.swing?.target, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
-      const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.dead && !e.downed && e.place === h.place).map(e => e.id);
+      const t = [...selected, h?.attackTarget, h?.swing?.target, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
+      const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && e.place === h.place).map(e => e.id);
       if (!t || !units.length) return;
       if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units });
-      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id });
+      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true });   // then back to their old order
     },
     // markers over units, for drawMarkers: blue = Tab target, red = the hero's target,
     // small red = what the crew are attacking (unless it is the hero's target too)

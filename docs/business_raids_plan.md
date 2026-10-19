@@ -1,6 +1,6 @@
 # Businesses and raids plan
 
-Status: agreed with Tim 2026-10-18 (map, build order and phases added the same day); still evolving. Nothing built yet. Numbers are starting points to tune in playtests.
+Status: agreed with Tim 2026-10-18 (map, build order and phases added the same day); still evolving. Built so far (2026-10-19): the 2x map, the settings file and checkpoints 1-3 (section 8). Numbers are starting points to tune in playtests.
 
 Goal: finish the tiny version loop. You take businesses, they pay you, and you (and later the rival bot clan) fight over them.
 
@@ -91,9 +91,10 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 ## 8. Build checkpoints (each: game runs, Node tests pass)
 
-1. Ownership + payouts at dawn + Buy button (sim + building panel + test).
-2. House guards for owned businesses.
-3. Attack on unowned businesses: police waves, back-room hold, heat reset +15.
+1. [x] Ownership + payouts at dawn + Buy button (built 2026-10-19). Payout at every dawn (a manual N into day counts as a dawn). Prices and payouts in `settings.json` `businesses`: teahouse 400 / 100, warehouse 700 / 175, den 1200 / 300. A rival-owned business can't be bought; payouts are 0 during a Manhunt (`police.payoutShare`).
+2. [x] House guards (built 2026-10-19): 2 per owned business, unit type `guard` (thug sprite, 260 HP, hit 10). They patrol the building's rooms at a walk, pausing 3-8 s per spot, and defend on their own. They die outright; the same owner gets a replacement after 120 s (`units.json` `rules.houseGuards`). Not crew: no cap, no orders, not on the action bar. The building panel shows "Guards N of 2".
+3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door 2 at a time in 3 waves plus 1 per heat tier (count fixed at the start), 8 s apart, at 60% HP (216), with no heat for fighting them. Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
+   - Visuals: clan banner (a nobori in the clan colour, about 2.4 tall, soft glow and faint ring at its foot, swaps on owner change; `render/banners.js`), a gold claim burst, and the clan badge (crest + name) in the top bar.
 4. War Lantern: buy at the moneylender's house, Raid button, warm-up, hold, used up.
 5. Defending: alert banner/ping/bell, contested timer pause, lantern knock-down channel.
 6. Controls panel entries + doc notes to the coordinator.
@@ -102,6 +103,6 @@ Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner,
 
 ## Open (small, can decide during build)
 
-- Payout at dawn: confirm.
+- Payout at dawn: confirmed 2026-10-19.
 - How long a newly taken business stays "contested" (no payout, guards not back yet), if at all.
-- Wave count for police attacks (3 + 1 per tier is a guess).
+- Wave count for police attacks: 3 + 1 per tier, built 2026-10-19; tune in playtests.

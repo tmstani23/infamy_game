@@ -29,11 +29,17 @@
     "coolSeconds": 30
   },
   "costs": {
-    "startRyo": 300,
+    "startRyo": 400,
     "hire": { "thug": 60, "brute": 100, "swordsman": 120 },
     "priceStepPerCrew": 0.15,
     "recoverShare": 0.25,
     "reviveNowShare": 0.5
+  },
+  "businesses": {
+    "_note": "price = buy an unclaimed one (about 4 payouts); payout = ryo at every dawn, none during a police Manhunt",
+    "teahouse":     { "price": 400,  "payout": 100 },
+    "warehouse":    { "price": 700,  "payout": 175 },
+    "gambling_den": { "price": 1200, "payout": 300 }
   },
   "crew": {
     "baseCap": 3,

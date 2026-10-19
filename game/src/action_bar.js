@@ -102,7 +102,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
     // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out
     // (jailed ones can be picked: the selection panel says they are in jail)
-    const crewList = mine.filter(e => e.type !== 'hero' && e.maxHp);
+    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp);
     const clinic = game.state.clans?.[h.owner]?.clinic || [];
     const jail = game.state.clans?.[h.owner]?.jail || [];
     const n = crewList.length + clinic.length + jail.length;

@@ -41,7 +41,7 @@ Thin items are image slabs made by `tools/make_slabs.py` from `assets/concepts/i
 | Item | Used by | Model | Attached in export |
 |---|---|---|---|
 | rifle | mercenary | ✅ slab | ✅ both hands |
-| katana | ronin, swordsman, rival_yakuza | ✅ built in code (see Weapon look pass) | ✅ both hands; held point-up from the right hand when the hands part (idle, walk) |
+| katana | ronin, swordsman, rival_yakuza | ✅ built in code (see Weapon look pass) | ✅ both hands; held point-up from the right hand when the hands part (idle, walk); while running it trails behind the hand with a 12° tip drop (`runBack`, 2026-10-19) |
 | ninjato | ninja_leader, ninja_grunt | ✅ slab | ✅ right hand |
 | tanto | | ✅ slab | |
 | jitte | police | ✅ built in code (procedural, 2026-10-18) | ✅ right hand |
@@ -73,5 +73,7 @@ Export note (2026-10-16): clips that stay in place (idles, in-place walks) keep 
 Katana and wooden club are now built in code by `look_tests/sprite_render_test.html` (`PROC_ITEMS`, `ITEMS.proc` in `tools/export_sprites.mjs`) instead of using the image slabs: drawn faceted blade with edge glint, wrapped hilt, gold fittings; ironwood club with leather grip, iron bands and studs; both get a cool moonlight rim. Hands are fitted to the palm centre (both-hand katana) and the club uses a hammer grip (`dir` in the hand bone frame). Preview: `look_tests/weapon_preview.png`. Katana length 1.3 with a strong curve (SORI 0.1); clubs 1.1 (thug) and 1.15 (brute). Tim OK'd 2026-10-16: ronin, swordsman, rival_yakuza, thug, brute (46 sheets) re-exported; the previous versions are kept in `assets/sprites_archive/2026-10-16_weapons/`.
 
 Katana fix 2026-10-17 (Tim playtest): curve reversed (tip curves up, edge down); when the hands part the katana is held point-up and forward from the right hand instead of hanging across the body. ronin, swordsman, rival_yakuza re-exported (30 sheets); originals in assets/sprites_archive/2026-10-16_weapons/.
+
+Run sword fix 2026-10-19: the katana trails behind the hand while running (`runBack` in `tools/export_sprites.mjs` and `look_tests/sprite_render_test.html`, 12° tip drop). ronin, swordsman, rival_yakuza run and run glow sheets re-exported; old ones in `assets/sprites_archive/2026-10-19_run_sword/`.
 
 Police jitte and weapon glow (2026-10-18): the police sheets were re-exported holding a procedural jitte (old sheets in `assets/sprites_archive/2026-10-18_police_jitte/`). All six armed models (police, ronin, swordsman, rival_yakuza, thug, brute) have `_glow` sheets for the weapon glow (`tools/export_sprites.mjs --glow-only`).

@@ -17,6 +17,10 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   if (ur?.capPerBusiness && crew.capPerBusiness !== undefined) for (const k in ur.capPerBusiness) ur.capPerBusiness[k] = crew.capPerBusiness;
   if (ur && heat.townsfolk) ur.civilianHeat = { ...ur.civilianHeat, ...heat.townsfolk };
   set(ur, 'heatCoolSeconds', heat.coolSeconds);
+  if (ur && s.businesses) {
+    ur.businesses = ur.businesses || {};
+    for (const [kind, v] of Object.entries(s.businesses)) if (!kind.startsWith('_')) ur.businesses[kind] = { ...ur.businesses[kind], ...v };
+  }
 
   // townsfolk: one total, shared out by each type's count in civilians.json (largest remainder)
   const total = s.townsfolk?.total;

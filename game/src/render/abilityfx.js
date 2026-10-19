@@ -135,6 +135,12 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
   }
 
   return {
+    // a business just changed hands (render/banners.js): gold glints round its banner and a thin gold ring
+    claim(x, z) {
+      sparkles(x, 1.4, z, 36, [1, 0.85, 0.45], 3.2, 0.36);
+      cards.glint(x, 1.8, z, 2.2, 0xffe6a0, 0.5);
+      wave(x, z, 3, 0xffd060, 0.7, 0, THIN_WAVE_GEO);
+    },
     // c: one entry of state.casts
     cast(c) {
       const s0 = spriteOf(c.a);

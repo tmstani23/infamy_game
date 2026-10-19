@@ -62,10 +62,11 @@ const ITEMS = {
   ninja_leader: { file: 'ninjato', mode: 'right', length: 0.75, grip: 0.12 },
   // Two-handed swords: flip points the blade away from the left hand (left hand near the pommel)
   // hang: when the hands part (idles, walks) the sword hangs from the right hand along the leg
+  // runBack: while a clip named run plays the blade trails behind the hand, almost level (drop = degrees tip below level, roll 180 bows the curve upward)
   // proc = stylized weapon built in code by the sprite page (drawn blade, wrapped hilt, rim light); beats the image slab
-  ronin: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true },
-  swordsman: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true },
-  rival_yakuza: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true },
+  ronin: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
+  swordsman: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
+  rival_yakuza: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
   ninja_grunt: { file: 'ninjato', mode: 'right', length: 0.75, grip: 0.12 },
   archer: { file: 'bow', mode: 'left', length: 1.3, grip: 0.5 },
   // Brawlers swing clubs in the right hand (the brute's grows into a kanabo once it has a model)

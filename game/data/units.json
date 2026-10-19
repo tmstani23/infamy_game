@@ -21,7 +21,14 @@
     "clinicHealRadius": 8,
     "civilianHeat": { "hit": 2, "down": 10, "kill": 30 },
     "heatCoolSeconds": 30,
-    "heroRespawnSeconds": 20
+    "heroRespawnSeconds": 20,
+    "_businesses": "price = buy an unclaimed one from its building panel at the door ring (within buyReach); payout = ryo at every dawn (docs/business_raids_plan.md); data/settings.json lays over these",
+    "buyReach": 2.5,
+    "_houseGuards": "every owned business comes with count house guards (type below, drawn as model), free; they stroll round inside (a few seconds at each spot) and defend, die outright, and a dead one is replaced after replaceSeconds while the clan still owns it; not part of your crew (no cap, no orders)",
+    "houseGuards": { "count": 2, "type": "guard", "model": "thug", "replaceSeconds": 120, "patrolPauseSeconds": [3, 8] },
+    "_attack": "attacking an unclaimed business at night (sim/businesses.js): startSeconds to get inside, then the police come through its door perWave at a time (officerHp x a street officer's HP; hitting them adds hitHeat, not the usual police heat), waveGapSeconds between waves, waves + wavesPerTier x the clan's police tier waves; beat them all, then hold the back room (the floor spot furthest from the door, holdRadius) for holdSeconds; no one of yours inside for leaveSeconds or the boss down = lost; a win sets heat to what it was before + heatAfterWin, a loss to before + heatAfterLoss (the waves count is fixed when it starts)",
+    "attack": { "startSeconds": 5, "waves": 3, "wavesPerTier": 1, "perWave": 2, "waveGapSeconds": 8, "officerHp": 0.6, "hitHeat": 0, "holdSeconds": 30, "holdRadius": 2.5, "heatAfterWin": 15, "heatAfterLoss": 15, "leaveSeconds": 10 },
+    "businesses": { "teahouse": { "price": 400, "payout": 100 }, "warehouse": { "price": 700, "payout": 175 }, "gambling_den": { "price": 1200, "payout": 300 } }
   },
   "types": {
     "hero":      { "sprite": "ronin",     "hp": 800, "damage": 30, "attackRange": 2.5, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire",
@@ -34,6 +41,7 @@
     "thug":      { "sprite": "thug",      "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "price": 60,  "hireSeconds": 5, "recoverSeconds": 30, "executeRyo": 20 },
     "brute":     { "sprite": "brute",     "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "price": 100, "hireSeconds": 8, "recoverSeconds": 45, "executeRyo": 40 },
     "swordsman": { "sprite": "swordsman", "hp": 240, "damage": 16, "attackRange": 1.6, "attackSpeed": 1.2, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.6, "radius": 0.35, "price": 120, "hireSeconds": 8, "recoverSeconds": 45, "executeRyo": 30 },
+    "guard":     { "sprite": "thug", "name": "House guard", "hp": 260, "damage": 10, "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "_note": "house guard of an owned business (sim/businesses.js), not for hire" },
     "bandit":      { "sprite": "bandit", "name": "Bandit", "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "_note": "night bandit (data/bandits.json), not for hire" },
     "night_brute": { "sprite": "brute",  "name": "Night brute", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "_note": "night bandit (data/bandits.json), not for hire" },
     "junsa":       { "sprite": "police", "name": "Junsa", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.1, "critChance": 0.05, "critMultiplier": 2, "walk": 1.6, "run": 4.8, "radius": 0.35, "_note": "police officer (sim/police.js, data/police.json), not for hire" },

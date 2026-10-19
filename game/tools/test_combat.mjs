@@ -226,3 +226,27 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   console.log('stop / passive ok');
 }
 console.log('combat tests passed');
+
+// T (resume, Tim 2026-10-19): after the attack ends each crew member goes back to its old order
+// (follow, hold, passive stop); a plain attack order still just stands there afterwards
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', -10, 1, { owner: 'player' });
+  const t = g.spawn('thug', 'thug', -6, 1, { owner: 'kuroda', order: { kind: 'station', x: -6, z: 1 } });
+  S[t].damage = 0;
+  const a = g.spawn('thug', 'thug', -8, 1, { owner: 'player', order: { kind: 'follow', target: hero } });
+  const b = g.spawn('thug', 'thug', -8, 2, { owner: 'player', order: { kind: 'station', x: -8, z: 2 } });
+  const c = g.spawn('thug', 'thug', -8, 0, { owner: 'player', order: { kind: 'stop' } });
+  const d = g.spawn('thug', 'thug', -9, 0, { owner: 'player', order: { kind: 'follow', target: hero } });
+  g.step([{ id: hero, type: 'order', units: [a, b, c], kind: 'attack', target: t, resume: true },
+    { id: hero, type: 'order', units: [d], kind: 'attack', target: t }]);
+  assert.equal(S[a].order.kind, 'attack');
+  for (let i = 0; i < 20 * 30 && !(S[t].dead || S[t].downed || !S[t]); i++) g.step([]);
+  for (let i = 0; i < 20; i++) g.step([]);
+  assert.equal(S[a].order.kind, 'follow', 'back to following');
+  assert.equal(S[a].order.target, hero);
+  assert.deepEqual([S[b].order.kind, S[b].order.x, S[b].order.z], ['station', -8, 2], 'back to its post');
+  assert.equal(S[c].order.kind, 'stop', 'back to passive');
+  assert.equal(S[d].order.kind, 'move', 'no resume: stands there');
+}
+console.log('T resume ok');

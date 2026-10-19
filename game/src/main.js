@@ -9,8 +9,10 @@ import { createPoliceMenu } from './police_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { createRyoBadge } from './ryo_badge.js';
+import { drawCrest } from './render/banners.js';
 import { createCrewInput } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
+import { createCrewBar } from './crew_bar.js';
 import { createSelectionPanel, unitWhere } from './selection_panel.js';
 import { createBuildingPanel } from './building_panel.js';
 import { createSound } from './render/sound.js';
@@ -126,6 +128,14 @@ async function start() {
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
+  // your clan's crest and name in the top bar (picked at the start later, Tim 2026-10-19)
+  {
+    const clan = game.state.clans.player, cv = $('clan').querySelector('canvas'), g = cv.getContext('2d');
+    g.fillStyle = clan.color; g.beginPath(); g.arc(28, 28, 26, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#d4aa5a'; g.lineWidth = 2; g.stroke();
+    drawCrest(g, 28, 28, 15);
+    $('clan').querySelector('em').textContent = clan.name;
+  }
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
   onKey('KeyC', () => crewInput.selectAll());
@@ -154,8 +164,9 @@ async function start() {
     if (door) view.jumpTo(door.x, door.z); else view.jumpTo(u.x, u.z);
   };
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump });
+  const crewBar = createCrewBar({ root: $('bar'), game, heroId, crewInput });   // crew order buttons over the crew pips
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where });
-  const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player' });
+  const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c) });
   const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
   // Positions and sizes live in data/ui_layout.json (written through server.mjs)
@@ -181,6 +192,19 @@ async function start() {
       game.step([moveCommand(heroId), ...pending.splice(0)]);
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
       else if (game.state.tick % TICK_RATE === 0) label();   // the clock's countdown
+      // your attack on a business (sim/businesses.js): waves left, then the hold timer
+      {
+        const a = Object.values(game.state.attacks || {}).find(a => a.clan === game.state.entities[heroId]?.owner && a.phase !== 'over'), bar = $('attackbar');
+        bar.hidden = !a;
+        if (a) {
+          const where = a.kind.replace(/_/g, ' ');
+          bar.classList.toggle('hold', a.phase === 'hold');
+          const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE);
+          bar.textContent = wait > 0 ? `Attacking the ${where}: police arrive in ${wait} s, get inside` : a.phase === 'hold'
+            ? `Hold the back room of the ${where}: ${Math.ceil(a.holdLeft / TICK_RATE)} s${a.holding ? '' : ' (stand in the gold ring)'}`
+            : `Attacking the ${where}: police wave ${a.wave} of ${a.waves}`;
+        }
+      }
       // the hunters lost your boss (sim/police.js): a short notice at the top
       if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
         const el = $('lostcops');
@@ -214,6 +238,7 @@ async function start() {
     crewInput.drawMarkers($('lock'));
     minimap.update();
     bar.update(game.state.tick - 1 + acc / tick);
+    crewBar.update();
     hudLayout.update();
   });
 }

@@ -9,7 +9,7 @@ What works in the game now (updated 2026-10-17). Keep this file up to date whene
 | W A S D | Move, relative to the screen |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
-| Left-click a building | Show the building panel |
+| Left-click a building | Show the building panel. At the door ring it has Buy (unowned business) and Attack (unowned, night only) |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
 | Right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
 | Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips townsfolk, crew and downed units) |
@@ -46,13 +46,13 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 | Right-click your hero, or V | Selected crew follow you again |
 | Ctrl + right-click a unit | Selected crew attack it, or execute it if it is downed |
 | Ctrl + right-click a bandit's body | The nearest selected crew member loots it |
-| T | All crew attack the hero's target |
+| T | All crew attack the marked unit (left-clicked, card showing), or the hero's target if nothing is marked; afterwards they go back to their old order (follow, hold or stop) |
 | Z | Selected crew stop and stay passive (even when hit) until any new order; the crew panel shows "Passive (stopped)" |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
 | Left-click a townsperson | Show their card |
 | G | Selected hurt crew walk to the clinic and heal (0.2 ryo per missing HP; street only) |
 
-Selected crew have a green ring under them. New crew follow you automatically. Selected crew go into buildings with you and come back out with you; unselected crew wait outside. Mouse crew orders work indoors too (2026-10-18). A door ring flashes teal while your crew are inside.
+The crew command strip above the crew pips has buttons that do the same as their keys: V follow, T attack, Z stop, X attack-move, G clinic, C select all; each greys out when it would do nothing. Selected crew have a green ring under them. New crew follow you automatically. Selected crew go into buildings with you and come back out with you; unselected crew wait outside. Mouse crew orders work indoors too (2026-10-18). A door ring flashes teal while your crew are inside.
 
 Crew fight back on their own: anything except a plain right-click move makes them attack enemies that come within about 6 steps. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
 

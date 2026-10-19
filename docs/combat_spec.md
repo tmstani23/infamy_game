@@ -83,7 +83,7 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 - Five slots: basic attack (lights up on each swing, shows the target's name), then Q, E, R, F.
 - Each slot: placeholder icon (brush-style symbol until real icons are painted), key letter in the corner, a dark clock-sweep with seconds left while on cooldown, a flash when it comes back, greyed out while knocked out.
 - A buff row above the bar for active effects (Rally, Red Lantern) with time left.
-- A small crew strip at the left end: one health pip per crew member, so you see who is hurt.
+- A small crew strip at the left end: one health pip per crew member, so you see who is hurt. The crew command strip (V, T, Z, X, G, C buttons; `crew_bar.js`) sits above the crew pips (2026-10-19).
 - Built as an HTML overlay that only reads the state (no rules in the browser).
 
 **Build order:**

@@ -141,7 +141,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     if (!state.clans?.[clanId]) return;
     for (const o of officers()) {
       if (o.place !== t.place || Math.hypot(o.x - t.x, o.z - t.z) > R.sight) continue;
-      (o.angry ||= {})[clanId] = state.tick + secs(R.angrySeconds);
+      (o.angry ||= {})[clanId] = Math.max(o.angry[clanId] ?? 0, state.tick + secs(R.angrySeconds));
       if (mind[o.id]) mind[o.id].leaving = false;
     }
   }
@@ -332,7 +332,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       }
     }
     // anyone it is angry at (they hit an officer, or were seen fighting a moment ago)
-    let best = null, bd = R.sight;
+    let best = null, bd = e.wave ? Infinity : R.sight;     // business defenders (sim/businesses.js) see the whole room
     for (const u of Object.values(state.entities)) {
       if (!u.owner || u.owner === POLICE || !act.hostile(e, u) || noPolice(u.x, u.z)) continue;
       const d = dist(e, u);
@@ -396,6 +396,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     // anger runs out, or ends when nobody of that clan is within giveUpDistance
     if (e.angry) {
       for (const [c, until] of Object.entries(e.angry)) {
+        if (e.wave && c === e.waveClan) continue;          // business defenders stay after the attackers
         const near = Object.values(state.entities).some(o => o.owner === c && !o.dead && o.place === e.place && Math.hypot(o.x - e.x, o.z - e.z) <= R.giveUpDistance);
         const never = c === e.clan && tierFor(c)?.relentless;           // Most Wanted: they never give up
         // Wanted: once they lost the hero they calm down at once (patrol, blue ring), unless his
@@ -422,6 +423,8 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       const t = targetOf(e);
       if (t) { act.engage(e, t); m.x = null; return; }
     }
+    // called in to defend a business (sim/businesses.js): wait in the room for the attackers
+    if (e.wave) { e.anim = 'idle'; stopPath(e); return; }
     if (m.leaving) {
       if (e.place !== 'street') { remove(e.id); return; }          // indoors: they just go
       const [hx, hz] = hq ? nav.nearestFree(...home()) || home()

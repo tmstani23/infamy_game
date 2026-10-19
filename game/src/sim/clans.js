@@ -8,17 +8,19 @@ export function createClans(state, units, opts = {}) {
   const scale = id => opts.clinicScale?.(id) ?? 1;
   state.clans = {};
 
-  function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5 } = {}) {
+  // clan colours (banners, badge): the first clan teal, then red, purple, amber... (picked at the start later)
+  const COLORS = ['#24978c', '#b02424', '#7a3fb0', '#c08a1e', '#2f5fb0'];
+  function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5, color = COLORS[Object.keys(state.clans).length % COLORS.length] } = {}) {
     // queue: hires paid for and waiting, first one counting down; notice: last hire message;
     // aggression (bots): share of downed enemies they choose to finish off, 0 to 1
     // clinic: crew in hospital ({ unit, model, kind: 'recover' | 'heal', left, cost, hp })
     // heat: trouble caused in the street (sim/game.js addHeat), cools slowly
-    state.clans[id] = { id, name, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, ...(bot ? { aggression } : {}) };
+    state.clans[id] = { id, name, color, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, ...(bot ? { aggression } : {}) };
     return state.clans[id];
   }
 
-  // Crew a clan has now (everything it owns except its hero)
-  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero');
+  // Crew a clan has now (everything it owns except its hero and its house guards)
+  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && !e.guard);
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
   const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0);
 

@@ -17,7 +17,7 @@ Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infa
 ## Officers
 
 - Junsa: 360 HP, hit for 14, run 4.8 (the hero runs 6.0). They carry a jitte.
-- They fight whoever hits them first. The hero and crew never auto-target police.
+- They fight whoever hits them first. The hero and crew never auto-target police, except officers defending a business you attack.
 - A knocked-out officer is replaced after 60 s, coming out of the HQ or any police box.
 
 ## New officers

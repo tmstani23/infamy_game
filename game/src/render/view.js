@@ -9,6 +9,7 @@ import { createHitFx } from './hitfx.js';
 import { createAbilityFx } from './abilityfx.js';
 import { createBloom } from './bloom.js';
 import { fxShared } from './vfx.js';
+import { createBanners } from './banners.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
@@ -213,6 +214,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       .addScaledVector(CAM_UP, Math.round(s.y * ppx) / ppx - s.y)
       .addScaledVector(VIEW_DIR, 200);
 
+    // clan banners at owned businesses; a gold burst where one just changed hands
+    for (const b of banners.update(state, time)) abilityFx.claim(...banners.spot(b));
     hitFx.update(fdt);
     abilityFx.update(fdt, state);
     shakeT = Math.max(0, shakeT - dt);
@@ -222,7 +225,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     updateLights(time);
     updateCutaway(hero, dt);
-    sortThings([...things, ...[...sprites.values()].filter(Boolean).map(s => s.thing)]);
+    sortThings([...things, ...banners.things, ...[...sprites.values()].filter(Boolean).map(s => s.thing)]);
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
     fxShared.uPx.value = px * bloom.scale;
@@ -233,6 +236,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   // hit effects: damage numbers, trails, sparks, flash and lean, a little shake on kills near the hero
+  const banners = createBanners({ scene });
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
