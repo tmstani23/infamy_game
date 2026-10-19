@@ -128,7 +128,7 @@ Noise versus power is a choice on every raid.
 
 ## Night bandits (Settled, built 2026-10-17)
 
-Neutral bandits roam the streets at night and pay ryo when killed. Rules: `docs/combat_spec.md`, section I.
+Neutral bandits roam the streets at night; their bodies carry ryo that any clan can loot. Rules: `docs/combat_spec.md`, section I.
 
 ## Future ideas
 

@@ -58,7 +58,7 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   console.log(`night ok (max ${most}, ${seen.size} came)`);
 }
 
-// Hit one: it and its friends fight back; killed, they pay ryo, no heat, no downing
+// Hit one: it and its friends fight back; killed, they leave ryo on the body to loot, no heat, no downing
 {
   const g = newGame();
   g.step([{ type: 'time', night: true }]);
@@ -80,14 +80,22 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   assert.ok(!g.state.entities[far].angry, 'the far one does not');
   assert.ok(g.state.hits.length >= 0 && g.state.entities[hero].hp < 100000, 'they hit back');
   const got = g.state.clans.player.ryo - ryo0, base = B.types.bandit.ryo, k = B.rules.ryoSpread;
-  assert.ok(got >= Math.round(base * (1 - k)) && got <= Math.round(base * (1 + k)), `ryo ${got}`);
-  assert.equal(gains.length, 1);
+  assert.equal(got, 0, 'no ryo for the kill itself (Tim 2026-10-19)');
+  const loot = g.state.entities[a].loot;
+  assert.ok(loot >= Math.round(base * (1 - k)) && loot <= Math.round(base * (1 + k)), `loot ${loot}`);
+  assert.equal(gains.length, 0);
   assert.equal(g.state.clans.player.heat, 0, 'no heat');
   // the friend gives up once the hero is far away
   g.state.entities[hero].x = -40; g.state.entities[hero].z = 1;
   run(g, 2);
   assert.ok(!g.state.entities[b].angry, 'gives up when far');
-  console.log(`fight ok (+${got} ryo)`);
+  // right-click the body: the hero walks back and loots it
+  g.state.entities[hero].x = -22;   // back in sight of the body
+  g.step([{ id: hero, type: 'loot', target: a }]);
+  run(g, 12);
+  assert.equal(g.state.clans.player.ryo - ryo0, loot, 'looted the ryo');
+  assert.ok(!g.state.entities[a]?.loot, 'body empty');
+  console.log(`fight and loot ok (+${loot} ryo)`);
 }
 
 // Killed ones are replaced up to perNight; crew sent at a calm bandit attack it
@@ -110,5 +118,23 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   assert.ok(g.state.entities[t].hp < g.state.entities[t].maxHp, 'crew attack on order');
   assert.ok(g.state.entities[t].angry?.player, 'and it fights back');
   console.log('refill + crew ok');
+}
+
+
+// Crew loot with Ctrl + right-click; an unlooted body fades after lootSeconds
+{
+  const g = newGame();
+  const hero = g.spawn('hero', 'ronin', -8, 1, { owner: 'player' });
+  const crew = g.spawn('thug', 'thug', -4, 1, { owner: 'player', order: { kind: 'move', x: -4, z: 1 } });
+  const body = g.spawn('bandit', 'bandit', 4, 1, { owner: 'bandits', wild: true, dead: true, diedAt: 0, loot: 25 });
+  const left = g.spawn('bandit', 'bandit', -20, 1, { owner: 'bandits', wild: true, dead: true, diedAt: 0, loot: 25 });
+  const ryo0 = g.state.clans.player.ryo;
+  g.step([{ id: hero, type: 'loot', target: body, units: [crew] }]);
+  run(g, 6);
+  assert.equal(g.state.clans.player.ryo - ryo0, 25, 'crew looted it');
+  assert.ok(Math.hypot(g.state.entities[hero].x + 8, g.state.entities[hero].z - 1) < 0.5, 'the hero stayed put');
+  run(g, (B.rules.lootSeconds ?? 60) - 4);
+  assert.ok(!g.state.entities[left], 'unlooted body faded');
+  console.log('crew loot and fade ok');
 }
 console.log('bandits ok');

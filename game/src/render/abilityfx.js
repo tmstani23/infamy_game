@@ -16,6 +16,8 @@ const flat = (geo, color, opacity) => {
   return onFxLayer(m);
 };
 const WAVE_GEO = new THREE.RingGeometry(0.86, 1, 64), DISC_GEO = new THREE.CircleGeometry(1, 40), AURA_GEO = new THREE.RingGeometry(0.57, 0.77, 48);
+// Rally's outward ring is 40% thinner than the others (Tim 2026-10-19)
+const THIN_WAVE_GEO = new THREE.RingGeometry(0.916, 1, 64);
 const STREAK_GEO = new THREE.PlaneGeometry(1, 1);
 const AURAS = {
   lantern: { color: 0xff3a1e, size: 1.25, geo: DISC_GEO, opacity: 0.45 },
@@ -66,7 +68,7 @@ const outlineMesh = (color) => {
   return onFxLayer(m);
 };
 
-const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.9, 1.9);
+const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.52, 1.52);   // 20% smaller (Tim 2026-10-19)
 // round soft glow for lantern halos
 let haloTex = null;
 const HALO_TEX = () => haloTex ||= (() => {
@@ -124,8 +126,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
   }
   const bars = new Map();                             // execute channel bars: unit id -> HTML element
 
-  function wave(x, z, radius, color, life, delay = 0) {
-    const m = flat(WAVE_GEO, color, 0.9);
+  function wave(x, z, radius, color, life, delay = 0, geo = WAVE_GEO) {
+    const m = flat(geo, color, 0.9);
     m.position.set(x, 0.04, z);
     m.visible = false;
     scene.add(m);
@@ -161,7 +163,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       }
       if (c.kind === 'rally') {
         rallyCasts.set(c.a, performance.now() / 1000);
-        wave(c.x, c.z, c.radius, 0xffd060, 0.6); wave(c.x, c.z, c.radius, 0x9fe060, 0.7, 0.12);
+        wave(c.x, c.z, c.radius, 0xffd060, 0.6, 0, THIN_WAVE_GEO);
         cards.seal(c.x, c.z, 3, '勇', 0xffc850, 1.8, { spin: 0.5, follow: () => posOf(c.a) });
         cards.glint(c.x, 1.6, c.z, 2, 0xffe6a0, 0.4);
         // glowing sakura petals hanging in the air over the ring, drifting down
@@ -210,6 +212,24 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       if (big) cards.glint(x, rand(1.2, 1.6), z, 0.8, lifesteal ? 0xff9a60 : 0xb8ff90, 0.25);
     },
 
+    // healing rain: small green drops falling onto a unit healed by a Rally tick,
+    // with a few tiny sparkles where they land (Tim 2026-10-19)
+    rain(x, z) {
+      for (let i = 0; i < 7; i++) {
+        const a = Math.random() * Math.PI * 2, r = rand(0.05, 0.45), y = rand(2.1, 2.9), vy = -rand(4.5, 5.5);
+        const size = rand(0.12, 0.18), color = Math.random() < 0.3 ? [0.75, 1, 0.8] : [0.35, 1, 0.55];
+        // a drop and two fainter dots trailing above it, so it reads as a falling streak
+        for (let k = 0; k < 3; k++)
+          glow.emit({ x: x + Math.cos(a) * r, y: y + k * 0.12, z: z + Math.sin(a) * r, vy, life: (y - 0.15) / -vy, size: size * (1 - k * 0.25),
+            color, alpha: 0.9 - k * 0.3, shape: SHAPE.ember });
+      }
+      for (let i = 0; i < 5; i++) {
+        const a = Math.random() * Math.PI * 2, v = rand(0.4, 1.1);
+        glow.emit({ x: x + rand(-0.3, 0.3), y: 0.12, z: z + rand(-0.3, 0.3), vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.6, 1.2), gravity: 3,
+          life: rand(0.3, 0.5), size: rand(0.1, 0.17), color: [0.6, 1, 0.65], shape: SHAPE.sparkle, twinkle: 0.8, spin: 3 });
+      }
+    },
+
     // a bandit killed: gold coins pop out of the body in arcs and land, with a glint
     coins(x, z) {
       for (let i = 0; i < 16; i++) {
@@ -242,6 +262,13 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       }
 
       for (const e of Object.values(state.entities)) {
+        // a bandit's body with ryo on it: a gold glint now and then, so it reads as lootable
+        if (e.dead && e.loot > 0) {
+          const q = posOf(e.id);
+          if (q && Math.random() < dt * 2.5) glow.emit({ x: q.x + rand(-0.3, 0.3), y: rand(0.15, 0.4), z: q.z + rand(-0.3, 0.3), vy: rand(0.3, 0.7),
+            life: rand(0.5, 0.8), size: rand(0.14, 0.22), color: GOLD, shape: SHAPE.sparkle, twinkle: 0.8, spin: 2 });
+          continue;
+        }
         if (e.dead || !e.buffs) continue;
         const p = posOf(e.id);
         if (!p) continue;
@@ -377,7 +404,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
             const u = o.material.uniforms, su = sp.material.uniforms;
             u.uMap.value = su.uMap.value;
             u.uFrame.value.copy(su.uFrame.value);
-            u.uWidth.value = 0.021 + 0.012 * i;   // outline thickness (Tim: 25% thinner)
+            u.uWidth.value = (0.021 + 0.012 * i) * (name === 'rally' ? 0.8 : 1);   // outline thickness (Tim: 25% thinner; Rally's 20% thinner again)
             u.uOpacity.value = 0.8 + 0.25 * Math.sin(now * 4 + e.id * 1.3 + i);
             o.position.copy(sp.thing.mesh.position);
             o.quaternion.copy(sp.thing.mesh.quaternion);

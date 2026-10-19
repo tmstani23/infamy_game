@@ -60,7 +60,7 @@ From `buildings5.png`, which is not an even grid, so each building was cut along
 
 | # | Name | Code id | Image | Source sheet, cell | On the map | Game role | Sorted copy |
 |---|---|---|---|---|---|---|---|
-| 37 | Police box | `buildings/police_box`; `b1` | `game/art/buildings/police_box.png` | buildings5.png, building 1 (cut along outlines) | yes (b1) | Bribes (see `police_spec.md`) | `assets/environment/buildings/town/police_box.png` |
+| 37 | Police box | `buildings/police_box`; `b1`, `b33` | `game/art/buildings/police_box.png` | buildings5.png, building 1 (cut along outlines) | yes (b1, b33) | Bribes (see `police_spec.md`) | `assets/environment/buildings/town/police_box.png` |
 | 38 | Police HQ | `buildings/police_hq`; `b3` | `game/art/buildings/police_hq.png` | buildings5.png, building 2 (cut along outlines) | yes (b3) | Police HQ and jail, bail | `assets/environment/buildings/town/police_hq.png` |
 | 39 | Kabuki theatre | `buildings/kabuki_theatre`; `b17` | `game/art/buildings/kabuki_theatre.png` | buildings5.png, building 3 (cut along outlines) | yes (b17) | | `assets/environment/buildings/town/kabuki_theatre.png` |
 | 40 | Temple | `buildings/temple`; `b15` | `game/art/buildings/temple.png` | buildings5.png, building 4 (cut along outlines) | yes (b15) | | `assets/environment/buildings/town/temple.png` |

@@ -417,6 +417,47 @@ export function createGame(options) {
   // a downed hero (only the police knock one down) can only be arrested, never executed
   const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && a.place === t.place && (civ(t) || (t.owner && a.owner !== t.owner))
     && (t.type !== 'hero' || cop(a));
+  // --- Looting (Tim 2026-10-19) -------------------------------------------------------
+  // A bandit's body carries its ryo (body.loot). Right-click: the hero walks to it and takes it;
+  // Ctrl + right-click: the nearest selected crew member does. The ryo goes to the looter's clan.
+  const LOOT_REACH = 1.6;
+  const lootable = (e, b) => !!b && b.dead && b.loot > 0 && b.place === e.place && sees(e, b);
+  function startLoot(e, c) {
+    const body = state.entities[c.target];
+    if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
+    if (Array.isArray(c.units) && c.units.length) {
+      const u = c.units.map(id => state.entities[id])
+        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && u.place === e.place && lootable(u, body))
+        .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z))[0];
+      if (!u) return;
+      delete paths[u.id]; delete u.execute; delete u.swing;
+      if (fight[u.id]) delete fight[u.id].target;
+      u.order = { kind: 'loot', target: body.id };
+      return;
+    }
+    if (!lootable(e, body)) return;
+    delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id];
+    e.lootTarget = body.id;
+  }
+  // One tick of walking to a body; true while busy with it (takes the ryo once in reach)
+  function lootStep(e, unit, id) {
+    const body = state.entities[id];
+    if (!lootable(e, body)) return false;
+    if (Math.hypot(body.x - e.x, body.z - e.z) <= LOOT_REACH) {
+      const clan = state.clans?.[e.owner];
+      if (clan) {
+        clan.ryo += body.loot;
+        state.ryoGains.push({ clan: clan.id, amount: body.loot, reason: `${body.type === 'night_brute' ? 'Night brute' : 'Bandit'} looted` });
+        state.casts.push({ kind: 'loot', a: e.id, x: body.x, z: body.z, ryo: body.loot });
+      }
+      delete body.loot;   // the body then fades like any other
+      e.anim = 'idle';
+      return false;
+    }
+    if (!moveTo(e, unit, body.x, body.z, false)) return false;
+    return true;
+  }
+
   function startExecute(e, c) {
     let ex = e;
     if (Array.isArray(c.units) && c.units.length) {
@@ -542,8 +583,9 @@ export function createGame(options) {
     } else if (a.kind === 'rally') {
       for (const u of Object.values(state.entities)) {
         if (u.dead || u.owner !== e.owner || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
-        addBuff(u, 'rally', a.seconds, { boost: a.attackSpeed });
-        if (u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * a.heal);
+        // heal over time (Tim 2026-10-19): a.heal in all, in healTicks equal parts, the first at once, then one a second
+        const n = a.healTicks || 1;
+        addBuff(u, 'rally', a.seconds, { boost: a.attackSpeed, heal: a.heal / n, ticksLeft: n, nextHeal: state.tick });
       }
     } else if (a.kind === 'lantern') {
       addBuff(e, 'lantern', a.seconds, { damage: a.damage, lifesteal: a.lifesteal });
@@ -567,6 +609,16 @@ export function createGame(options) {
     if (--d.left <= 0) delete e.dash;
   }
 
+  // Buffs that heal in ticks (Rally): heal share of max health each second while they last
+  function healBuffs() {
+    for (const e of Object.values(state.entities)) {
+      const b = e.buffs?.rally;
+      if (!b?.ticksLeft || state.tick < b.nextHeal || e.dead || e.downed) continue;
+      if (e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * b.heal);
+      b.ticksLeft--; b.nextHeal = state.tick + secs(1);
+    }
+  }
+
   function expireBuffs() {
     for (const e of Object.values(state.entities)) {
       if (!e.buffs) continue;
@@ -580,10 +632,10 @@ export function createGame(options) {
     for (const e of Object.values(state.entities)) {
       if (!e.dead) continue;
       const secs = (state.tick - e.diedAt) * DT;
-      if (e.type !== 'hero' && secs >= CORPSE_SECONDS) {
+      if (e.type !== 'hero' && secs >= (e.loot ? (banditData?.rules?.lootSeconds ?? 60) : CORPSE_SECONDS)) {
         delete state.entities[e.id];
         delete intents[e.id];
-        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') u.order = { kind: 'move', x: u.x, z: u.z };
+        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) u.order = { kind: 'move', x: u.x, z: u.z };
       }
       // a knocked-out hero comes round at the clinic's door ring after heroRespawnSeconds (Tim 2026-10-17),
       // or at home when the map has no clinic
@@ -600,6 +652,10 @@ export function createGame(options) {
     if (e.dead || e.downed) return;
     if (e.execute && executeStep(e, unit)) return;
     if (swingStep(e, unit)) return;
+    if (e.order?.kind === 'loot') {   // Ctrl + right-click on a body: walk there and take its ryo
+      if (lootStep(e, unit, e.order.target)) return;
+      e.order = { kind: 'move', x: e.x, z: e.z };
+    }
     const t = crewTarget(e);
     if (t) { engage(e, unit, t); return; }
     if (fight[e.id]) delete fight[e.id].target;
@@ -767,6 +823,7 @@ export function createGame(options) {
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
+      if (c.type === 'loot') startLoot(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
       if (c.type === 'stopattack' && e.type === 'hero') { if (e.swing?.target === e.attackTarget) delete e.swing; delete e.attackTarget; }
@@ -789,6 +846,7 @@ export function createGame(options) {
       }
       const len = Math.hypot(dx, dz);
       if (len < 0.1) {
+        if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.execute && executeStep(e, unit)) continue;
         if (swingStep(e, unit)) continue;
         // a locked target (Ctrl + right-click): no chasing (Tim 2026-10-17), the hero hits it
@@ -805,6 +863,7 @@ export function createGame(options) {
       // moving with WASD cancels a swing and an execute, but keeps the locked target
       delete e.swing;
       delete e.execute;
+      delete e.lootTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
       const d = unit[e.anim] * DT / len;
@@ -818,6 +877,7 @@ export function createGame(options) {
     cleanUpDead();
     carryOffDowned();
     coolHeat();
+    healBuffs();
     expireBuffs();
     regen();
     vision.tick();

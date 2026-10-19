@@ -59,7 +59,7 @@ When the channel session asks for a sweep (daily while work is happening), the D
 
 To keep sweeps cheap, each one reads only docs and code changed since the last sweep. Commits are rare here, so it goes by file modification time (plus `git log` when there are new commits), then updates the line below.
 
-Last sweep: 2026-10-18 00:22 UTC, after the fog/minimap/HUD batch (last commit then: 8252180).
+Last sweep: 2026-10-19 00:35 UTC, after the 2x map, Rally and looting batch (last commit before it: 86873e1).
 
 ## Commits (Tim, 2026-10-17)
 

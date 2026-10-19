@@ -30,7 +30,7 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   const water = g.blockers.filter(b => !street.some(s => s.solid === b) && b.minX > -200 && b.maxX < 200 && b.maxX - b.minX < 300);
   for (const s of street.filter(s => s.solid && s.name !== 'rowboat'))
     for (const b of blds) if (s !== b && s.item.kind !== 'buildings' && hit(s.solid, b.foot)) problems.push(`${s.name} at ${s.x},${s.z} stands in the ${b.name}`);
-  assert.equal(blds.length, 33, '33 buildings');
+  assert.equal(blds.length, 34, '33 buildings and a second police box');
   assert.deepEqual(problems, [], problems.join('\n'));
   console.log('buildings ok');
 }
@@ -43,7 +43,7 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   for (const [x, z] of district.edges) { const f = g.nav.nearestFree(x, z); if (!f || !g.nav.findPath(hx, hz, ...f)) miss.push(`edge ${x},${z}`); }
   assert.deepEqual(miss, [], miss.join('\n'));
   const kinds = Object.values(g.state.businesses).map(b => b.kind).sort();
-  assert.deepEqual(kinds, ['clinic', 'gambling_den', 'police_box', 'police_hq', 'teahouse', 'warehouse']);
+  assert.deepEqual(kinds, ['clinic', 'gambling_den', 'police_box', 'police_box', 'police_hq', 'teahouse', 'warehouse']);
   assert.equal(g.rooms.length, 3, 'warehouse, teahouse and den rooms');
   console.log('doors, spots and edges ok');
 }

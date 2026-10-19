@@ -1,8 +1,8 @@
 {
-  "_note": "Night bandits (Tim OK'd 2026-10-17). They walk in from the map's edge spots (district 'edges') at night, roam between its pois, and walk back out at dawn. Neutral until hit: then they and every bandit within joinRadius fight that clan until angrySeconds pass without being hit or nobody of it is within giveUpDistance. They die at 0 HP (no downing) and pay ryo (+/- ryoSpread) to the killer's clan. No heat. Stats live in units.json types. Seconds and world units; tune in playtests.",
+  "_note": "Night bandits (Tim OK'd 2026-10-17). Caps raised 1.5x for the 2x map 2026-10-19 (Tim). They walk in from the map's edge spots (district 'edges') at night, roam between its pois, and walk back out at dawn. Neutral until hit: then they and every bandit within joinRadius fight that clan until angrySeconds pass without being hit or nobody of it is within giveUpDistance. They die at 0 HP (no downing) and leave a body with ryo (+/- ryoSpread) on it: right-click it to loot (Tim 2026-10-19), anyone's clan can; unlooted bodies fade after lootSeconds. No heat. Stats live in units.json types. Seconds and world units; tune in playtests.",
   "rules": {
-    "maxOut": 6,
-    "perNight": 12,
+    "maxOut": 9,
+    "perNight": 18,
     "firstWave": 2,
     "everySeconds": 20,
     "minDistance": 25,
@@ -10,7 +10,8 @@
     "joinRadius": 8,
     "angrySeconds": 10,
     "giveUpDistance": 15,
-    "ryoSpread": 0.25
+    "ryoSpread": 0.25,
+    "lootSeconds": 60
   },
   "types": {
     "bandit":      { "weight": 2, "ryo": 20 },

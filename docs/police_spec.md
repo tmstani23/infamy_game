@@ -18,11 +18,11 @@ Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infa
 
 - Junsa: 360 HP, hit for 14, run 4.8 (the hero runs 6.0). They carry a jitte.
 - They fight whoever hits them first. The hero and crew never auto-target police.
-- A knocked-out officer is replaced after 60 s, coming out of the HQ or the box.
+- A knocked-out officer is replaced after 60 s, coming out of the HQ or any police box.
 
 ## New officers
 
-Every new officer (the first squad at a tier, officers added when heat rises, and replacements) walks out of the HQ or the box and patrols around the clan's last fight. It joins the hunt only once it sees the hero itself (within 9 steps, same floor). At Most Wanted (120+) new officers always know where he is and come straight for him.
+Every new officer (the first squad at a tier, officers added when heat rises, and replacements) walks out of the HQ or any police box and patrols around the clan's last fight. It joins the hunt only once it sees the hero itself (within 9 steps, same floor). At Most Wanted (120+) new officers always know where he is and come straight for him.
 
 ## Losing the police (60-119 heat)
 
@@ -43,7 +43,7 @@ Every new officer (the first squad at a tier, officers added when heat rises, an
 
 ## Bribes
 
-At the police box (Space): each bribe removes 20 heat and costs 10 ryo x tier (Quiet 1, Watched 2, Wanted 3, Manhunt 4, Most Wanted 5). A bribe is refused if an officer hit the hero in the last 5 s.
+At either police box (Space): each bribe removes 20 heat and costs 10 ryo x tier (Quiet 1, Watched 2, Wanted 3, Manhunt 4, Most Wanted 5). A bribe is refused if an officer hit the hero in the last 5 s.
 
 ## Rules
 
@@ -53,5 +53,5 @@ At the police box (Space): each bribe removes 20 heat and costs 10 ryo x tier (Q
 
 ## Map
 
-- The police box replaces the watch post.
+- The police box replaces the watch post. The 2x map has two boxes (2026-10-19): b1 on the main road and b33 in the west back alleys (`boxes` in `sim/police.js`).
 - The police HQ (with its jail wing) replaces the western office.

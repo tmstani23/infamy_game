@@ -73,7 +73,7 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 |---|---|---|---|
 | Q | Iaido Dash | Dash up to 6.5 steps over 0.3 s toward the mouse (stops at walls), hitting every enemy passed for 150% damage (2026-10-17, was 5). | 8 s |
 | E | Intimidate | Enemies within 4 steps deal 30% less damage for 5 s (a dark aura shows on them). | 14 s |
-| R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 10% of your health (hero included 2026-10-18). | 20 s |
+| R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 15% of your health over 6 s in 6 ticks (hero included; 2026-10-19). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
 **Keys (done, F2):** doors moved to **Space** (it shows on the door prompt), and E is Intimidate. Hire menu keys 1 to 3 stay as they are (only inside a teahouse).
@@ -99,7 +99,7 @@ Later (Tim 2026-10-16, after the first ability playtest): ability effects work b
 
 - Ability numbers get tuned in Tim's playtests (F5).
 
-## G. Ability VFX upgrade plan (research 2026-10-17, approved for the doc by Tim; nothing built yet)
+## G. Ability VFX upgrade plan (research 2026-10-17, approved by Tim; ronin effects built, see below)
 
 Today `render/abilityfx.js` draws flat additive rings, discs and a ground streak. Upgrade toolkit, best payoff first:
 
@@ -119,8 +119,8 @@ Ronin plan (effort / payoff):
 **Built (2026-10-17), ronin:**
 - Q: after-images, steel glints, hit freeze.
 - E: screen dim, ink ring, seal, purple wisps.
-- R: gold seal, glowing petals, light pillars.
-- F: glowing lanterns orbiting him, red light, embers.
+- R: thin yellow ring, gold seal, glowing petals, light pillars; no green ring. Each heal tick shows green healing rain and a small green +N heal number, offset left and below the damage numbers. The Rally outline is 20% thinner (2026-10-19).
+- F: glowing lanterns orbiting him (halos 20% smaller, 2026-10-19), red light, embers.
 - Stacking buff auras (outline, ground ring and sparkles per ability), heal, lifesteal and regen sparkles, and bloom on effects only.
 
 **Weapon glow (2026-10-18):** a faint glow on each held weapon (katana steel blue-white, club ember amber, jitte soft blue), a bit brighter mid-swing, fading on death. Tuned in `game/data/weapon_glow.json`; needs the `_glow` sheets from the exporter.
@@ -133,6 +133,7 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 - **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
 - **Carried off:** a downed unit nobody finishes, with no enemy within 8 steps for 5 s, is carried to the hospital. There is only this timer, no bleed-out.
 - **Hospital:** the bonesetter's clinic on the waterfront map. Recovery timer (about 30 s for a thug, longer for pricier types), costing about 25% of the hire price, paid on return (it waits if you have no ryo). Then the unit walks out and follows the hero.
+- **Who can be executed (2026-10-19):** only downed rival heroes and crew. Bandits die outright and are looted (section I).
 - **Execute ryo (2026-10-18):** executing an enemy pays `executeRyo` from `units.json`: thug 20, swordsman 30, brute 40, ±25%. Townsfolk pay nothing.
 - **Fog of war (2026-10-18):** you only fight what your clan can see (`sim/vision.js`); bots follow the same rule.
 - **Heal order:** hurt crew can be sent to the clinic for a little ryo.
@@ -155,6 +156,6 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandits.js`; test `game/tools/test_bandits.mjs`.
 
 - Types: bandit (thug stats, about 20 ryo, weight 2) and night brute (brute stats, about 40 ryo, weight 1). Ryo varies by 25%.
-- At night: 2 walk in first, then one every 20 s, up to 6 at once and 12 a night, from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
+- At night: 2 walk in first, then one every 20 s, up to 9 at once and 18 a night (raised for the 2x map, 2026-10-19), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
 - Neutral until hit; then they and every bandit within 8 steps fight that clan, giving up after 10 s without being hit or with nobody of it within 15 steps.
-- No downing (they die at 0 HP) and no heat. The ryo goes to the killer's clan, with a gold "Bandit killed +20 ryo" notice by the heat gauge (`state.ryoGains`).
+- No downing (they die at 0 HP) and no heat. Kills pay nothing (2026-10-19): the body carries the ryo, glints gold and any clan can loot it (hero: right-click; crew: Ctrl + right-click). Unlooted bodies fade after 60 s (`lootSeconds`).

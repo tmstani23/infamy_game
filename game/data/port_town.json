@@ -95,7 +95,8 @@
     {"art":"boatbuilder","x":-60,"z":-31},
     {"art":"lighthouse","x":54,"z":-44},
     {"art":"bandit_camp","x":-70,"z":36},
-    {"art":"forest_hut","x":66,"z":52}
+    {"art":"forest_hut","x":66,"z":52},
+    {"art":"police_box","x":-51,"z":32,"business":"police_box","door":[-51,36]}
   ],
   "props": [
     ["stone_wall",7.22,13.0],

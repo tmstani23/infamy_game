@@ -57,6 +57,8 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     return i < 0 ? null : { id: `b${i}`, ...district.buildings[i] };
   };
   const hq = find('police_hq'), box = find('police_box');
+  // every police box on the map (the 2x map has two), officers come out of any of them
+  const boxes = district.buildings.map((b, i) => ({ id: `b${i}`, ...b })).filter(b => (b.business || b.art) === 'police_box');
   const home = () => hq?.door || hq && [hq.x, hq.z];
   const edges = (district.edges || []).map(([x, z]) => nav.nearestFree(x, z) || [x, z]);
 
@@ -192,7 +194,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   // hero itself within sight (except at Most Wanted, where they always know where he is)
   function comeOut(clanId) {
     const kind = R.officer, model = statsOf(kind).sprite || kind, extra = { owner: POLICE, cop: true, clan: clanId };
-    const from = [hq, box].filter(b => b?.door);
+    const from = [hq, ...boxes].filter(b => b?.door);
     let id;
     if (from.length) id = spawnOutside(kind, model, from[Math.floor(rng() * from.length)], extra);
     else {

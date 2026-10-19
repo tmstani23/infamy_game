@@ -51,9 +51,9 @@ async function start() {
   const heroId = game.spawn('hero', 'ronin', Number(params.get('x')) || hx, Number(params.get('z')) || hz,
     { owner: 'player', home: district.spawns.hero, dir: Number(params.get('dir')) || 0, ...(inRoom ? { place: inRoom.name } : {}) });
 
-  // A few rival thugs guard the gambling den so there is something to fight (?enemies=0 turns them off).
+  // Test only: ?enemies=3 puts that many rival thugs at the gambling den (none by default, Tim 2026-10-19).
   // Stand-in until the rival bot clan is built.
-  const enemies = params.has('enemies') ? Number(params.get('enemies')) : 3;
+  const enemies = params.has('enemies') ? Number(params.get('enemies')) : 0;
   const den = Object.values(game.state.businesses).find(b => b.kind === 'gambling_den');
   if (enemies > 0 && den) {
     game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });

@@ -14,7 +14,8 @@ As of 2026-10-17:
 - 3D interiors (teahouse, den, warehouse) plus a room generator.
 - Crew hiring, orders and combat work, plus the ronin's four abilities with their effects and the action bar.
 - Also working (2026-10-17): downed crew and executions, the bonesetter's clinic (menu), townsfolk walking the streets, the crew selection panel, heat, hero lock-on, crew entering buildings, night bandits, fog of war and the minimap.
-- Next: playtest tuning, then the rival bot clan.
+- Also working (2026-10-19): police (heat tiers, arrests, jail and bail, bribes at two police boxes), the 2x port-town map, looting bandit bodies.
+- Next: a game settings file, then businesses and raids, then the rival bot clan (see `docs/business_raids_plan.md`).
 - The sprite pipeline works end to end for the whole cast.
 
 See [START_HERE.md](START_HERE.md) for details and links.

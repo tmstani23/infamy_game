@@ -78,6 +78,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === hero()?.place && seen(e));
   const townsfolk = () => Object.values(game.state.entities)
     .filter(e => e.type === 'civilian' && !e.dead && e.place === hero()?.place && seen(e));
+  // bandit bodies with ryo on them: right-click to loot (Tim 2026-10-19)
+  const bodies = () => Object.values(game.state.entities)
+    .filter(e => e.dead && e.loot > 0 && e.place === hero()?.place && seen(e));
 
   // has the hero's clan ever seen any of building i's footprint (centre or corners)?
   const explored = i => {
@@ -116,6 +119,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
     // unit sends the selected crew instead (below). On the ground both stay crew orders.
     if (e.button === 2 && !e.ctrlKey && target()) { heroAt(e.clientX, e.clientY); return; }
+    // right-click a bandit's body: the hero walks over and loots it; Ctrl + right-click: the nearest selected crew member does
+    const body = e.button === 2 && !target() && unitAt(e.clientX, e.clientY, bodies());
+    if (body) { send({ id: heroId, type: 'loot', target: body.id, ...(e.ctrlKey && mine().length ? { units: mine() } : {}) }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';

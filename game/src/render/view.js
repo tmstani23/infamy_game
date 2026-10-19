@@ -247,7 +247,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const p = prev.entities[e.id], s = sprites.get(e.id);
       if (!p || !s || !e.maxHp || e.dead || e.downed || p.downed || e.hp <= p.hp) continue;
       const gain = (e.hp - p.hp) / e.maxHp, steal = !!e.buffs?.lantern && gain > 0.002;   // more than regen gives in a tick
-      if (gain >= 0.015 || steal) { abilityFx.heal(s.pos.x, s.pos.z, true, !!e.buffs?.lantern); trickle.set(e.id, 0); continue; }
+      // a real heal: Rally's ticks rain green (Tim 2026-10-19); lifesteal keeps its red-gold dazzle (the rain
+      // was lost in the lanterns' glow, Tim), the clinic's heal its green one
+      if (gain >= 0.015 || steal) { if (e.buffs?.rally && !steal) { abilityFx.rain(s.pos.x, s.pos.z); hitFx.heal(s.pos.x, s.pos.z, Math.round(e.hp - p.hp)); } else abilityFx.heal(s.pos.x, s.pos.z, true, steal); trickle.set(e.id, 0); continue; }
       const t = (trickle.get(e.id) || 0) + gain;
       if (t >= 0.04) { abilityFx.heal(s.pos.x, s.pos.z, false, false); trickle.set(e.id, 0); } else trickle.set(e.id, t);
     }
@@ -263,7 +265,6 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (h.kind === 'dash') { abilityFx.cut(h, a); freezeT = Math.max(freezeT, 0.07); }
       else if (h.a === followId && (h.crit || h.kill)) freezeT = Math.max(freezeT, 0.05);
       if (a?.buffs?.lantern) abilityFx.lanternHit(h);
-      if (h.kill && t?.owner === 'bandits') abilityFx.coins(h.x, h.z);   // ryo for the killer's clan
       if (h.kill && me && Math.hypot(h.x - me.x, h.z - me.z) < 9) { shakeT = 0.18; shakeAmp = 0.12; }
       else if (h.crit && me && Math.hypot(h.x - me.x, h.z - me.z) < 9 && shakeT <= 0) { shakeT = 0.1; shakeAmp = 0.05; }
     }

@@ -1,7 +1,7 @@
 // Night bandits (data/bandits.json). At night bandits and night brutes walk in from the
 // edge of the map, a few at a time, and roam between the district's spots like the
 // townsfolk. They leave everyone alone until someone hits one: then it and the bandits
-// near it fight that clan for a while. Killed, they pay ryo to the killer's clan.
+// near it fight that clan for a while. Killed, they leave a body with ryo on it to loot.
 // At dawn the ones left walk back out. Plain sim code, no three.js.
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const WILD = 'bandits';     // the owner every bandit has (not a clan: nobody hires or runs it)
@@ -66,13 +66,13 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
       (b.angry ||= {})[clan] = state.tick + secs(R.angrySeconds ?? 10);
     }
   }
-  // Killed: ryo to the killer's clan (state.ryoGains = this tick's, for the pop-ups)
+  // Killed: the ryo stays on the body (t.loot) for whoever loots it with a right-click, not the
+  // killer (Tim 2026-10-19); the body lies there lootSeconds, then fades (sim/game.js loot)
   function killed(a, t) {
-    const clan = state.clans?.[a?.owner], base = types[t.type]?.ryo || 0;
-    if (!clan || !base) return;
-    const k = R.ryoSpread ?? 0, amount = Math.round(base * (1 - k + rng() * 2 * k));
-    clan.ryo += amount;
-    state.ryoGains.push({ clan: clan.id, amount, reason: `${t.type === 'night_brute' ? 'Night brute' : 'Bandit'} killed` });
+    const base = types[t.type]?.ryo || 0;
+    if (!base) return;
+    const k = R.ryoSpread ?? 0;
+    t.loot = Math.round(base * (1 - k + rng() * 2 * k));
   }
 
   // One bandit, one tick

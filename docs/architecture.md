@@ -63,16 +63,16 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 | File | Job |
 |---|---|
-| `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts. `TICK_RATE = 20`. |
+| `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts, looting (`loot` command `{id, type: 'loot', target, units?}`, `startLoot`/`lootStep`; ryo to the looter's clan), Rally heal ticks (buff `heal`/`ticksLeft`/`nextHeal`, `healBuffs()`). `TICK_RATE = 20`. Test rival thugs at the den only with `?enemies=N` (`main.js`). |
 | `clans.js` | Clan money, businesses held, crew cap, hire queue and prices (numbers from `units.json`). |
 | `nav.js` | Pathfinding for crew: walk grid from blockers, A*, then straightened paths. Each room has its own grid (`ROOM_NAV`; `navOf` in `game.js` picks the grid). |
-| `police.js` | Police clan: tiers by heat, patrols and hunts, arrests, jail, bribes. Every spawn starts fresh (`mind.fresh`): it patrols until it sees the hero. |
+| `police.js` | Police clan: tiers by heat, patrols and hunts, arrests, jail, bribes. Every spawn starts fresh (`mind.fresh`): it patrols until it sees the hero. Officers come out of the HQ or any box (`boxes`). |
 | `geometry.js` | Shared math: camera angle, pixels per unit, 8 directions, footprints, placing scenery from the map. |
 | `interiors.js` | Lays out 3D rooms on the grid (walls, props, blockers, checks). Rooms sit far off the street map in the same world. |
 | `generate.js` | Room generator: building type + seed gives a room in the same format as `interiors.json`. |
 | `vision.js` | Fog of war: each clan's explored and visible areas, `canSee`; sight 18 for units, 10 for owned businesses. |
 | `civilians.js` | Townsfolk: trips between map spots, day/night schedule, fear and fleeing, witnesses. |
-| `bandits.js` | Night bandits: walk in from the map edges, wander, fight back when hit, pay ryo when killed. |
+| `bandits.js` | Night bandits: walk in from the map edges, wander, fight back when hit, leave a lootable body with ryo. |
 
 **Render** (`game/src/render`, three.js, reads state, never changes it)
 
@@ -127,7 +127,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `art.json` | Art catalog: sizes, footprints and scale for every sprite and cut-out, so art can be swapped without code changes. |
 | `units.json` | Unit stats and clan rules (start ryo, cap, prices, HP, regen, downed and clinic rules). |
 | `civilians.json` | Townsfolk types and tuning. |
-| `bandits.json` | Night bandit rules and ryo per type. |
+| `bandits.json` | Night bandit rules (caps, `lootSeconds`) and ryo per type. |
 | `police.json` | Police tiers and rules. |
 | `buildings.json` | Building panel info. |
 | `ui_layout.json` | Saved HUD layout. |

@@ -55,17 +55,22 @@ const cast = (g, id, slot, x, z) => g.step([{ id, type: 'ability', slot, x, z }]
   console.log('intimidate ok');
 }
 
-// Rally: own crew in range heal 10% and swing faster; enemies and far crew untouched
+// Rally: own crew in range heal 15% over 6 s and swing faster; enemies and far crew untouched
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
   const mine = g.spawn('thug', 'thug', -4, 1, { owner: 'player' }), away = g.spawn('thug', 'thug', 10, 1, { owner: 'player' });
   S[mine].hp = 100; S[away].hp = 100;
   cast(g, hero, 'R');
-  assert.ok(Math.abs(S[mine].hp - (100 + T.thug.hp * A.R.heal)) < 1);
-  assert.ok(S[away].hp < 101);
+  // heal over time: the first share at once, the rest one a second (A.R.heal in all over healTicks)
+  assert.ok(Math.abs(S[mine].hp - (100 + T.thug.hp * A.R.heal / A.R.healTicks)) < 1, `first rally tick ${S[mine].hp}`);
   assert.ok(S[mine].buffs?.rally && !S[away].buffs);
   assert.ok(S[hero].buffs?.rally, 'rally buffs the hero too');
+  const awayHp = S[away].hp;   // regeneration adds a little on top for both
+  for (let i = 0; i < 20 * 6; i++) g.step();
+  assert.ok(S[mine].hp >= 100 + T.thug.hp * A.R.heal - 1, `rally healed ${S[mine].hp}`);
+  assert.ok(S[mine].hp - 100 - T.thug.hp * A.R.heal < (S[away].hp - awayHp) + 1, 'no more than its share plus regen');
+  assert.ok(S[away].hp - awayHp < T.thug.hp * 0.05, 'far crew not healed by rally');
   // swing gap: count hits on a tough dummy over 6 s with and without rally
   const count = rally => {
     const g2 = newGame(), E = g2.state.entities;
