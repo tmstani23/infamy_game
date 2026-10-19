@@ -10,6 +10,7 @@ import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
 import { createVision } from './vision.js';
 import { createPolice, POLICE } from './police.js';
+import { applySettings } from './settings.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -24,7 +25,10 @@ const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export function createGame(options) {
-  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {}, units = null, civilians: civData = null, bandits: banditData = null, police: policeData = null } = options;
+  const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {} } = options;
+  // options.settings (data/settings.json) is laid over the detail files; without it they are used as they are
+  const S = options.settings ? applySettings(options, options.settings) : { ...options, dayNight: null };
+  const { units = null, civilians: civData = null, bandits: banditData = null, police: policeData = null, dayNight } = S;
   const scenery = placeScenery(district, catalog, cutouts);
 
   // Rooms for buildings that have an interior, and the doors between them
@@ -76,7 +80,17 @@ export function createGame(options) {
   // Everything here is plain data, so it can be synced to other players as is
   // businesses: { b0: { kind: 'warehouse', x, z, door, owner: null } }, keyed by building index
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
-  const state = { tick: 0, night: false, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [], policeNews: [] };
+  // clock: the day/night cycle when settings turn it on (auto); left = ticks to the next flip, day = count of days so far;
+  // dawn / dusk = true on the tick night turns to day / day to night, from the clock or the 'time' command alike (payouts at dawn)
+  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [], policeNews: [] };
+  const halfTicks = night => Math.round((night ? dayNight.nightSeconds : dayNight.daySeconds) * TICK_RATE);
+  if (dayNight?.auto) state.clock = { day: 1, left: halfTicks(state.night) };
+  const setNight = night => {
+    if (state.night && !night) { state.dawn = true; if (state.clock) state.clock.day++; }
+    if (!state.night && night) state.dusk = true;
+    state.night = night;
+    if (state.clock) state.clock.left = halfTicks(night);
+  };
   district.buildings.forEach((b, i) => {
     if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, room: roomOf[i] || null, owner: null };
   });
@@ -804,8 +818,10 @@ export function createGame(options) {
     state.heatGains = [];
     state.ryoGains = [];
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
+    state.dawn = state.dusk = false;
+    if (state.clock && --state.clock.left <= 0) setNight(!state.night);
     for (const c of commands) {
-      if (c.type === 'time') { state.night = typeof c.night === 'boolean' ? c.night : !state.night; continue; }
+      if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
       const e = state.entities[c.id];
       if (!e) continue;
       // a hero lying down or in jail can still order his crew, nothing else
@@ -898,5 +914,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, vision };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, vision };
 }

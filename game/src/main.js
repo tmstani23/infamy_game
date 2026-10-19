@@ -29,10 +29,10 @@ const getJSON = async url => {
 
 async function start() {
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits, buildingInfo, police] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings] = await Promise.all([
     getJSON(`data/${params.get('district') || 'port_town'}.json`), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json')]);
 
   // ?room=gambling_den&seed=3 swaps in a generated room and starts you inside it
   const tryRoom = params.get('room');
@@ -44,7 +44,9 @@ async function start() {
   }
 
   // Single player runs the rules here. In multiplayer the server runs them instead.
-  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits, police });
+  // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
+  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings });
+  const units = game.settings.units;   // hire prices etc. as the settings made them
   game.clans.addClan('player', { name: 'Your clan' });
   const inRoom = tryRoom && game.rooms.find(r => r.name === tryRoom);
   const [hx, hz] = inRoom ? [inRoom.spawn.x, inRoom.spawn.z] : district.spawns.hero;
@@ -80,7 +82,13 @@ async function start() {
   // Fog of war: the screen shows only what your clan can see (?fog=0 turns it off)
   const fog = createFog({ vision: game.vision, clan: 'player', on: params.get('fog') !== '0' });
 
-  const label = () => { $('daynight').textContent = view.isNight() ? 'Day (N)' : 'Night (N)'; document.body.classList.toggle('night', view.isNight()); };
+  // the button flips day and night (N); with the clock running it also shows the time to the next flip
+  const label = () => {
+    const c = game.state.clock, s = c ? Math.ceil(c.left / TICK_RATE) : 0;
+    const left = c ? ` in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '';
+    $('daynight').textContent = `${view.isNight() ? 'Day' : 'Night'}${left} (N)`;
+    document.body.classList.toggle('night', view.isNight());
+  };
   // Day and night belong to the sim (townsfolk follow it): N sends a 'time' command and
   // the screen follows the state after each tick
   const pending = [];
@@ -172,6 +180,7 @@ async function start() {
       prev = structuredClone(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0)]);
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
+      else if (game.state.tick % TICK_RATE === 0) label();   // the clock's countdown
       // the hunters lost your boss (sim/police.js): a short notice at the top
       if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
         const el = $('lostcops');

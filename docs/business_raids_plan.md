@@ -23,7 +23,7 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 ### Phase checklist (small phases, usage is low; tick as each lands)
 
-- [ ] S1 (after the map) Settings file: gather townsfolk, bandit, day/night and cost numbers into one file (police numbers after the "Police and jail fixes" thread is done).
+- [x] S1 Settings file (done 2026-10-19): `game/data/settings.json` holds townsfolk, bandits, police officers per tier, jail, bribe, heat, costs, crew cap and `dayNight` (auto: 240 s day, 360 s night). A manual N into day counts as a dawn (payouts at dawn).
 - [x] M1 Cut the new buildings into game/art + cutouts.json (Sonnet thread).
 - [x] M2 New ground: shoreline, Bund boardwalk, piers, canal + bridges, roads, town edge, forest ring (bounds, blockers, nav).
 - [x] M3 Place all buildings, doors, props, lanterns; pleasure-quarter wall + gate.

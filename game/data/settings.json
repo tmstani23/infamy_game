@@ -1,0 +1,43 @@
+{
+  "_note": "Game settings (plan S1, Tim 2026-10-19): the numbers you pick before a game, in one place. The game (src/main.js) lays these over the detail files (units.json, civilians.json, bandits.json, police.json), so a number here wins over the same number there; Node tests use the detail files as they are. Later a settings menu before a game (and a multiplayer host) picks from this same file. Seconds, ryo and world units; tune in playtests.",
+  "dayNight": {
+    "_note": "the clock runs on its own (auto); N still flips it at once and starts that half fresh. Tim 2026-10-19: 4 min day, 6 min night",
+    "auto": true,
+    "daySeconds": 240,
+    "nightSeconds": 360,
+    "startAtNight": false
+  },
+  "townsfolk": {
+    "_note": "total across all types; each type keeps its share of civilians.json counts",
+    "total": 30
+  },
+  "bandits": {
+    "maxOut": 9,
+    "perNight": 18
+  },
+  "police": {
+    "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",
+    "officersPerTier": [0, 2, 4, 6, 6],
+    "heroJailSeconds": 60,
+    "bribeHeat": 20,
+    "bribePerTier": 10,
+    "bailShare": 0.5
+  },
+  "heat": {
+    "townsfolk": { "hit": 2, "down": 10, "kill": 30 },
+    "hitPolice": 10,
+    "coolSeconds": 30
+  },
+  "costs": {
+    "startRyo": 300,
+    "hire": { "thug": 60, "brute": 100, "swordsman": 120 },
+    "priceStepPerCrew": 0.15,
+    "recoverShare": 0.25,
+    "reviveNowShare": 0.5
+  },
+  "crew": {
+    "baseCap": 3,
+    "capPerBusiness": 3,
+    "heroRespawnSeconds": 20
+  }
+}

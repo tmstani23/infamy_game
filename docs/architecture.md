@@ -63,7 +63,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 | File | Job |
 |---|---|
-| `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts, looting (`loot` command `{id, type: 'loot', target, units?}`, `startLoot`/`lootStep`; ryo to the looter's clan), Rally heal ticks (buff `heal`/`ticksLeft`/`nextHeal`, `healBuffs()`). `TICK_RATE = 20`. Test rival thugs at the den only with `?enemies=N` (`main.js`). |
+| `settings.js` | `applySettings` lays `data/settings.json` over the detail data files in `createGame`. |
+| `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts, looting (`loot` command `{id, type: 'loot', target, units?}`, `startLoot`/`lootStep`; ryo to the looter's clan), Rally heal ticks (buff `heal`/`ticksLeft`/`nextHeal`, `healBuffs()`). `TICK_RATE = 20`. Day/night clock `state.clock` `{day, left}`; `state.dawn` / `state.dusk` fire on automatic flips and on N (Node tests run without settings, so no clock). Test rival thugs at the den only with `?enemies=N` (`main.js`). |
 | `clans.js` | Clan money, businesses held, crew cap, hire queue and prices (numbers from `units.json`). |
 | `nav.js` | Pathfinding for crew: walk grid from blockers, A*, then straightened paths. Each room has its own grid (`ROOM_NAV`; `navOf` in `game.js` picks the grid). |
 | `police.js` | Police clan: tiers by heat, patrols and hunts, arrests, jail, bribes. Every spawn starts fresh (`mind.fresh`): it patrols until it sees the hero. Officers come out of the HQ or any box (`boxes`). |
@@ -116,7 +117,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 - `game/index.html`: page, HUD elements, the controls panel (? key), three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`); also saves the HUD layout on PUT.
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, all `.mjs`; 16 in all) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, all `.mjs`; 17 in all) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 
@@ -129,6 +130,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `civilians.json` | Townsfolk types and tuning. |
 | `bandits.json` | Night bandit rules (caps, `lootSeconds`) and ryo per type. |
 | `police.json` | Police tiers and rules. |
+| `settings.json` | Game settings (2026-10-19): townsfolk, bandits, police officers per tier, jail, bribe, heat, costs, crew cap, `dayNight`. Overrides the detail files; later a settings menu and the multiplayer host's choices. |
 | `buildings.json` | Building panel info. |
 | `ui_layout.json` | Saved HUD layout. |
 | `weapon_glow.json` | Weapon glow colours and strength per character. |

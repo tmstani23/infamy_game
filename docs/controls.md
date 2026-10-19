@@ -71,7 +71,7 @@ Click the lock icon to unlock the HUD, then drag panels and resize them by the g
 | Arrow keys | Pan the camera around, anywhere on the map (it stays there until you snap back) |
 | Home, or the "Back to hero" button (bottom right, shown while panned) | Snap the camera back to your hero |
 | Mouse wheel, or = and - | Zoom in and out |
-| N | Switch between day and night (in the sim; townsfolk follow) |
+| N | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
 | M | Mute or unmute sounds |
 | F3 | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
