@@ -14,7 +14,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   const [pauseMin, pauseMax] = G.patrolPauseSeconds || [3, 8], legTicks = 20 * 20;
   let seed = 97;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  const A = { startSeconds: 5, waves: 3, wavesPerTier: 1, perWave: 2, waveGapSeconds: 8, officerHp: 0.6, hitHeat: 0, holdSeconds: 30, holdRadius: 2.5, heatAfterWin: 15, heatAfterLoss: 15, leaveSeconds: 10, ...units?.rules?.attack };
+  const A = { startSeconds: 5, waves: 3, wavesPerTier: 1, perWave: 2, bigWave: 3, bigWavesFrom: 0.5, waveGapSeconds: 5, officerHp: 1, hitHeat: 0, holdSeconds: 30, holdRadius: 2.5, heatAfterWin: 15, heatAfterLoss: 15, leaveSeconds: 10, ...units?.rules?.attack };
   state.attacks ||= {};
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
   const name = b => b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
@@ -57,7 +57,8 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (c.action === 'attack') {
       const can = canAttack(e.id, b.id);
       if (!can.ok) return say(clan, can.why);
-      const room = roomOf(b), waves = A.waves + A.wavesPerTier * tierOf(clan.id);
+      // waves by the business (R[kind].attackWaves: dearer = more), plus wavesPerTier per police tier, fixed now
+      const room = roomOf(b), waves = (R[b.kind]?.attackWaves ?? A.waves) + A.wavesPerTier * tierOf(clan.id);
       // the back room: the floor spot furthest from the way in
       const far = patrolSpots(b).slice().sort((p, q) => Math.hypot(q.x - room.spawn.x, q.z - room.spawn.z) - Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z))[0]
         || { x: room.spawn.x, z: room.spawn.z };
@@ -74,10 +75,12 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   function spawnWave(a) {
     const room = roomOf(state.businesses[a.business]), kind = units?.rules?.attack?.officer || 'junsa';
     const model = units?.types?.[kind]?.sprite || 'police';
-    for (let i = 0; i < A.perWave; i++) {
-      const id = spawn(kind, model, room.spawn.x + (i - (A.perWave - 1) / 2) * 0.9, room.spawn.z + 0.6, {
+    // the later waves (past bigWavesFrom of them) bring bigWave officers instead of perWave
+    const n = a.wave >= Math.ceil(a.waves * A.bigWavesFrom) ? A.bigWave : A.perWave;
+    for (let i = 0; i < n; i++) {
+      const id = spawn(kind, model, room.spawn.x + (i - (n - 1) / 2) * 0.9, room.spawn.z + 0.6, {
         owner: POLICE, cop: true, place: room.name, wave: a.business, waveClan: a.clan, angry: { [a.clan]: 1e12 } });
-      // weaker than street officers (Tim 2026-10-19: a hero and a starting crew should win at low heat)
+      // officerHp x a street officer's HP (tuned 2026-10-19: hero + 3 crew just about take the teahouse; the den needs a full crew and abilities)
       const o = state.entities[id];
       if (o?.maxHp) o.hp = o.maxHp = Math.round(o.maxHp * A.officerHp);
     }

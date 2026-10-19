@@ -1,5 +1,5 @@
 // Minimap, top right: the district turned to match the screen, with the same fog of war,
-// a letter on each business (W warehouse, T teahouse, D den, C clinic, P police),
+// a letter on each business (W warehouse, T teahouse, D den, C clinic, P police; on its owner's colour once seen),
 // dots for units your clan can see, your businesses outlined and a box for the camera's view.
 // Left-click (or drag) moves the camera there; right-click sends the selected crew there
 // (Ctrl: hold there), like right-clicking the ground. Only reads the state and sends commands.
@@ -98,8 +98,11 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       const letter = MARK[b.kind];
       if (!letter) continue;
       const [u, v] = toMap(b.x, b.z);
-      ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(u - 4.5, v - 4.5, 9, 9);
-      ctx.fillStyle = b.kind.startsWith('police') ? '#8fb4ff' : b.kind === 'clinic' ? '#8fe08f' : '#ffe2a0';
+      // once you have seen it, an owned business shows in its owner's colour (Tim 2026-10-19)
+      const vg = game.vision.grid(clan), cell = game.vision.cellOf(b.x, b.z);
+      const ownerColor = b.owner && (b.owner === clan || (cell >= 0 && vg.explored[cell])) ? state.clans?.[b.owner]?.color : null;
+      ctx.fillStyle = ownerColor || 'rgba(0,0,0,.65)'; ctx.fillRect(u - 4.5, v - 4.5, 9, 9);
+      ctx.fillStyle = ownerColor ? '#fff4dc' : b.kind.startsWith('police') ? '#8fb4ff' : b.kind === 'clinic' ? '#8fe08f' : '#ffe2a0';
       ctx.fillText(letter, u, v + 0.5);
     }
     // your businesses

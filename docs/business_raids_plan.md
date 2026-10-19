@@ -62,7 +62,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 ## 4. Raiding a rival's business (War Lantern)
 
-- A rival-owned business can only be taken by a raid, and a raid needs a **War Lantern**: a tall red lantern on a pole with your clan crest, with a red aura.
+- A rival-owned business (bought or seized) can only be taken by a raid, and a raid always needs a **War Lantern** (Tim 2026-10-19): a tall red lantern on a pole with your clan crest, with a red aura.
 - **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, not on the map yet), from its building panel. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
 - **Cost: 2,400 ryo** (2x the den). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
@@ -93,7 +93,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 1. [x] Ownership + payouts at dawn + Buy button (built 2026-10-19). Payout at every dawn (a manual N into day counts as a dawn). Prices and payouts in `settings.json` `businesses`: teahouse 400 / 100, warehouse 700 / 175, den 1200 / 300. A rival-owned business can't be bought; payouts are 0 during a Manhunt (`police.payoutShare`).
 2. [x] House guards (built 2026-10-19): 2 per owned business, unit type `guard` (thug sprite, 260 HP, hit 10). They patrol the building's rooms at a walk, pausing 3-8 s per spot, and defend on their own. They die outright; the same owner gets a replacement after 120 s (`units.json` `rules.houseGuards`). Not crew: no cap, no orders, not on the action bar. The building panel shows "Guards N of 2".
-3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door 2 at a time in 3 waves plus 1 per heat tier (count fixed at the start), 8 s apart, at 60% HP (216), with no heat for fighting them. Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
+3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door in waves: teahouse 3, warehouse 4, den 6, plus 1 per heat tier (`settings.json` `businesses[kind].attackWaves`; count fixed at the start). Waves bring 2 officers, 3 from halfway (`attack.bigWave`, `bigWavesFrom`), 5 s apart, at full street HP, with no heat for fighting them (retuned 2026-10-19). Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
    - Visuals: clan banner (a nobori in the clan colour, about 2.4 tall, soft glow and faint ring at its foot, swaps on owner change; `render/banners.js`), a gold claim burst, and the clan badge (crest + name) in the top bar.
 4. War Lantern: buy at the moneylender's house, Raid button, warm-up, hold, used up.
 5. Defending: alert banner/ping/bell, contested timer pause, lantern knock-down channel.
@@ -101,8 +101,15 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner, back-room hold timer.
 
+## 9. Territory (Tim, 2026-10-19)
+
+- Territory = the businesses a clan holds. The clan holding the most at season end wins.
+- Holding every business in one quarter (Bund, pleasure quarter and so on) controls that quarter: a small extra payout and a map tint.
+- Once a business is revealed (explored in the fog), the minimap (and a full map later) shows it in its owner's colour.
+- A War Lantern is always needed to take a rival-owned business, however the rival got it (bought or seized). See section 4.
+
 ## Open (small, can decide during build)
 
 - Payout at dawn: confirmed 2026-10-19.
 - How long a newly taken business stays "contested" (no payout, guards not back yet), if at all.
-- Wave count for police attacks: 3 + 1 per tier, built 2026-10-19; tune in playtests.
+- Wave count for police attacks: per business + 1 per tier (retuned 2026-10-19); tune in playtests.

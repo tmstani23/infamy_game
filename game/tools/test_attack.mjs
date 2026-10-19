@@ -33,7 +33,8 @@ clan.heat = 20;
 attack();
 const a = g.state.attacks[tea.id];
 assert.ok(a, 'attack started');
-assert.equal(a.waves, A.waves, 'Quiet: base waves only');
+const BZ = data('data/settings.json').businesses;
+assert.equal(a.waves, BZ.teahouse.attackWaves, 'Quiet: the business\'s waves only');
 // a strong crew goes in with the boss and fights the officers on their own
 const room = g.rooms.find(r => r.name === tea.room);
 g.settings.units.types.thug.damage = 400;
@@ -45,9 +46,9 @@ for (let i = 0; i < 20 * 120 && a.phase === 'waves'; i++) {
   g.step();
   if (a.wave > before) waveCount++;
   const cops = Object.values(g.state.entities).filter(u => u.wave === tea.id && !u.dead);
-  assert.ok(cops.length <= A.perWave, 'one wave at a time');
+  assert.ok(cops.length <= Math.max(A.perWave, A.bigWave), 'one wave at a time');
 }
-assert.equal(a.wave, A.waves, 'all waves came'); assert.ok(waveCount >= A.waves - 1);
+assert.equal(a.wave, BZ.teahouse.attackWaves, 'all waves came'); assert.ok(waveCount >= a.waves - 1);
 assert.equal(a.phase, 'hold');
 console.log('police waves beaten by the crew ok');
 // nobody in the back room: the timer waits
@@ -71,7 +72,7 @@ let id = g.spawn('hero', 'ronin', den.ring[0], den.ring[1], { owner: 'player' })
 g.step([{ type: 'time', night: true }]);
 g.state.clans.player.heat = 65;   // Wanted: one more wave
 g.step([{ id, type: 'business', action: 'attack', business: den.id }]);
-assert.equal(g.state.attacks[den.id].waves, A.waves + A.wavesPerTier * 2);
+assert.equal(g.state.attacks[den.id].waves, data('data/settings.json').businesses.gambling_den.attackWaves + A.wavesPerTier * 2);
 for (let i = 0; i < 20 * (A.leaveSeconds + 1); i++) g.step();
 assert.equal(g.state.attacks[den.id]?.phase ?? 'gone', g.state.attacks[den.id] ? 'over' : 'gone');
 assert.match(g.state.clans.player.notice.text, /left the building/);

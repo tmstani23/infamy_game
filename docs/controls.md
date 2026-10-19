@@ -76,7 +76,7 @@ Click the lock icon to unlock the HUD, then drag panels and resize them by the g
 | F3 | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
-| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police |
+| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police. A business letter fills with its owner's colour once explored (your own always) |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
 
 ## Planned (not built yet)
