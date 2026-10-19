@@ -61,6 +61,13 @@ SHEETS = {
 SINGLES = {
     'buildings/police_box': 'buildings/town/police_box.png',
     'buildings/police_hq': 'buildings/town/police_hq.png',
+    'buildings/kabuki_theatre': 'buildings/town/kabuki_theatre.png',
+    'buildings/temple': 'buildings/town/temple.png',
+    'buildings/rickshaw_station': 'buildings/town/rickshaw_station.png',
+    'buildings/food_stalls': 'buildings/town/food_stalls.png',
+    'buildings/moneylender_house': 'buildings/town/moneylender_house.png',
+    'buildings/lighthouse': 'buildings/waterfront/lighthouse.png',
+    'buildings/telegraph_office': 'buildings/town/telegraph_office.png',
 }
 
 GROUND = {

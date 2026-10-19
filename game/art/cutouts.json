@@ -1870,5 +1870,164 @@
     35
    ]
   ]
+ },
+ "buildings/kabuki_theatre": {
+  "w": 467,
+  "h": 381,
+  "left": 3,
+  "right": 463,
+  "bottomX": 322,
+  "bottomY": 378,
+  "glows": [
+   [
+    78,
+    219,
+    106
+   ],
+   [
+    138,
+    218,
+    32
+   ]
+  ]
+ },
+ "buildings/temple": {
+  "w": 493,
+  "h": 365,
+  "left": 2,
+  "right": 489,
+  "bottomX": 223,
+  "bottomY": 361,
+  "glows": [
+   [
+    222,
+    225,
+    62
+   ],
+   [
+    222,
+    238,
+    42
+   ]
+  ]
+ },
+ "buildings/rickshaw_station": {
+  "w": 515,
+  "h": 307,
+  "left": 2,
+  "right": 511,
+  "bottomX": 216,
+  "bottomY": 304,
+  "glows": [
+   [
+    85,
+    175,
+    187
+   ],
+   [
+    177,
+    145,
+    68
+   ]
+  ]
+ },
+ "buildings/food_stalls": {
+  "w": 483,
+  "h": 309,
+  "left": 2,
+  "right": 480,
+  "bottomX": 324,
+  "bottomY": 306,
+  "glows": [
+   [
+    336,
+    209,
+    537
+   ],
+   [
+    91,
+    128,
+    531
+   ],
+   [
+    16,
+    94,
+    502
+   ],
+   [
+    240,
+    178,
+    169
+   ],
+   [
+    161,
+    157,
+    118
+   ],
+   [
+    199,
+    157,
+    116
+   ],
+   [
+    116,
+    128,
+    72
+   ],
+   [
+    133,
+    133,
+    54
+   ]
+  ]
+ },
+ "buildings/moneylender_house": {
+  "w": 446,
+  "h": 329,
+  "left": 3,
+  "right": 443,
+  "bottomX": 227,
+  "bottomY": 326,
+  "glows": []
+ },
+ "buildings/lighthouse": {
+  "w": 462,
+  "h": 340,
+  "left": 3,
+  "right": 458,
+  "bottomX": 200,
+  "bottomY": 336,
+  "glows": [
+   [
+    209,
+    38,
+    387
+   ]
+  ]
+ },
+ "buildings/telegraph_office": {
+  "w": 474,
+  "h": 336,
+  "left": 3,
+  "right": 470,
+  "bottomX": 204,
+  "bottomY": 332,
+  "glows": [
+   [
+    279,
+    153,
+    126
+   ],
+   [
+    185,
+    234,
+    119
+   ],
+   [
+    136,
+    146,
+    66
+   ]
+  ]
  }
 }

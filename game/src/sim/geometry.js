@@ -76,7 +76,81 @@ export function placePiece(entry, catalog, cutouts) {
 // Every building and prop of a district
 export function placeScenery(district, catalog, cutouts) {
   return [
-    ...district.buildings.map((b, i) => ({ name: b.art, x: b.x, z: b.z, business: b.business || null, building: i })),
-    ...district.props.map(([name, x, z]) => ({ name, x, z })),
+    ...district.buildings.map((b, i) => ({ name: b.art, x: b.x, z: b.z, flip: !!b.flip, business: b.business || null, building: i })),
+    // a prop is [name, x, z] or [name, x, z, { flip: true }] (mirrored, so a wall runs along z instead of x)
+    ...district.props.map(([name, x, z, o]) => ({ name, x, z, flip: !!o?.flip })),
   ].map(e => placePiece(e, catalog, cutouts)).filter(Boolean);
+}
+
+// --- Ground shapes -------------------------------------------------------------------
+// A district ground zone is [type, minX, minZ, maxX, maxZ, blur] (a box) or [type, shape, blur],
+// where a shape is { poly: [[x, z], ...] } (a filled outline) or { line: [[x, z], ...], w } (a band
+// w wide along a bending line: roads, the canal). Boxes may stand in for shapes too: [minX, minZ, maxX, maxZ].
+export const asShape = s => Array.isArray(s) ? { poly: [[s[0], s[1]], [s[2], s[1]], [s[2], s[3]], [s[0], s[3]]] } : s;
+
+function segDist(px, pz, [ax, az], [bx, bz]) {
+  const dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz;
+  const t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / L)) : 0;
+  return Math.hypot(px - ax - t * dx, pz - az - t * dz);
+}
+
+// How far point (x, z) is inside the shape: positive inside, negative outside (world units)
+export function shapeDistance(shape, x, z) {
+  const s = asShape(shape);
+  if (s.line) {
+    let d = Infinity;
+    for (let i = 1; i < s.line.length; i++) d = Math.min(d, segDist(x, z, s.line[i - 1], s.line[i]));
+    return s.w / 2 - d;
+  }
+  const P = s.poly;
+  let d = Infinity, inside = false;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+    d = Math.min(d, segDist(x, z, P[j], P[i]));
+    const [xi, zi] = P[i], [xj, zj] = P[j];
+    if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside ? d : -d;
+}
+
+// The box round a shape
+export function shapeBox(shape) {
+  const s = asShape(shape), pts = s.poly || s.line, r = s.line ? s.w / 2 : 0;
+  const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+  return { minX: Math.min(...xs) - r, maxX: Math.max(...xs) + r, minZ: Math.min(...zs) - r, maxZ: Math.max(...zs) + r };
+}
+
+// A ground zone as { type, shape, blur }, whichever way it is written
+export const groundZone = z => typeof z[1] === 'object'
+  ? { type: z[0], shape: z[1], blur: z[2] ?? 0 }
+  : { type: z[0], shape: [z[1], z[2], z[3], z[4]], blur: z[5] ?? 0 };
+
+// Walls for the walk rules from a district's blockShapes (water, the canal) minus its walkShapes
+// (piers, bridges): the shapes are laid on a grid of `cell` and each row's runs become boxes,
+// with equal runs in neighbouring rows joined, so the rules keep using plain boxes.
+export function shapeBlockers(district, cell = 0.5) {
+  const block = district.blockShapes || [], walk = district.walkShapes || [];
+  if (!block.length) return [];
+  const B = district.bounds, x0 = B.minX - 2, z0 = B.minZ - 2;
+  const W = Math.ceil((B.maxX + 2 - x0) / cell), H = Math.ceil((B.maxZ + 2 - z0) / cell);
+  const boxes = [], open = new Map();   // "i0,i1" -> box still growing upward
+  for (let j = 0; j < H; j++) {
+    const z = z0 + (j + 0.5) * cell, runs = [];
+    let start = -1;
+    for (let i = 0; i <= W; i++) {
+      const x = x0 + (i + 0.5) * cell;
+      const on = i < W && block.some(s => shapeDistance(s, x, z) >= 0) && !walk.some(s => shapeDistance(s, x, z) >= 0);
+      if (on && start < 0) start = i;
+      if (!on && start >= 0) { runs.push(`${start},${i}`); start = -1; }
+    }
+    const next = new Map();
+    for (const key of runs) {
+      const box = open.get(key);
+      if (box) { box.maxZ = z0 + (j + 1) * cell; next.set(key, box); continue; }
+      const [a, b] = key.split(',').map(Number);
+      const nb = { minX: x0 + a * cell, maxX: x0 + b * cell, minZ: z0 + j * cell, maxZ: z0 + (j + 1) * cell };
+      boxes.push(nb); next.set(key, nb);
+    }
+    open.clear(); for (const [k, v] of next) open.set(k, v);
+  }
+  return boxes;
 }

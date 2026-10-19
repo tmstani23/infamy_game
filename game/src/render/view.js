@@ -28,7 +28,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const camTarget = new THREE.Vector3();
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
-  const PAN_SPEED = 16, PAN_MAX = 45;
+  const PAN_SPEED = 16;
+  // panning reaches the whole district (a little past its edge), wherever the hero is
+  // (indoors: within 45 of the hero, as before)
+  const B = district.bounds, inMap = p => {
+    if (heroPlace !== 'street') { if (heroPos && p.distanceTo(heroPos) > 45) p.sub(heroPos).setLength(45).add(heroPos); return p; }
+    p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, B.maxX + 4); p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4); return p; };
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -44,7 +49,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   addEventListener('resize', resize);
   resize();
 
-  scene.add(await buildGround(district.ground, renderer));
+  scene.add(await buildGround(district.ground, renderer, district.bounds));
   const roomLights = [];
   for (const r of rooms) {
     const built = await buildRoom3d(r, parts, renderer);
@@ -193,8 +198,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // a crew jump (jumpTo) lasts until the hero moves or goes through a door
       const place = state.entities[followId]?.place;
       if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
+      if (place !== heroPlace) freeCam = null;   // through a door: look at the hero again
       heroPlace = place;
-      if (!camReady || camTarget.distanceTo(hero.pos) > (farCam ? Infinity : freeCam ? PAN_MAX + 5 : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
+      if (!camReady || camTarget.distanceTo(hero.pos) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
       camTarget.lerp(freeCam || hero.pos, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
       heroPos = hero.pos;
     }
@@ -273,14 +279,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       freeCam ||= camTarget.clone();
       const k = PAN_SPEED * dt / zoomNow;
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
-      if (heroPos && !farCam && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
+      inMap(freeCam);
     },
     snapBack() { freeCam = null; farCam = false; },
     // look at a ground point (minimap click); stays there until snapBack, like panning
     lookAt(x, z) {
       farCam = false;
       freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z);
-      if (heroPos && freeCam.distanceTo(heroPos) > PAN_MAX) freeCam.sub(heroPos).setLength(PAN_MAX).add(heroPos);
+      inMap(freeCam);
     },
     // jump to any point however far from the hero (double-click a crew name); stays there until the hero moves, uses a door or Home
     jumpTo(x, z) { farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },

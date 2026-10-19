@@ -6,8 +6,8 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 ## 0. Build order (Tim, 2026-10-18)
 
-1. **Game settings file**: one data file for police count, bandits, day/night length, townsfolk count and costs (later a settings menu before a game; a multiplayer host picks from the same settings). Starts after the current batch is committed.
-2. **Bigger map** (section 0a).
+1. **Bigger map** (section 0a). Moved first by Tim 2026-10-18.
+2. **Game settings file**: one data file for police count, bandits, day/night length, townsfolk count and costs (later a settings menu before a game; a multiplayer host picks from the same settings).
 3. **Businesses and raids** (this plan, sections 1-8).
 4. **Rival bot clan**, using the same commands.
 
@@ -23,12 +23,12 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 ### Phase checklist (small phases, usage is low; tick as each lands)
 
-- [ ] S1 Settings file: gather townsfolk, bandit, day/night and cost numbers into one file (police numbers after the "Police and jail fixes" thread is done).
-- [ ] M1 Cut the new buildings into game/art + cutouts.json (Sonnet thread).
-- [ ] M2 New ground: shoreline, Bund boardwalk, piers, canal + bridges, roads, town edge, forest ring (bounds, blockers, nav).
-- [ ] M3 Place all buildings, doors, props, lanterns; pleasure-quarter wall + gate.
-- [ ] M4 Townsfolk pois/homes, bandit edges, police patrol points, forest noPoliceAreas; 30 townsfolk.
-- [ ] M5 Tim playtest + tune.
+- [ ] S1 (after the map) Settings file: gather townsfolk, bandit, day/night and cost numbers into one file (police numbers after the "Police and jail fixes" thread is done).
+- [x] M1 Cut the new buildings into game/art + cutouts.json (Sonnet thread).
+- [x] M2 New ground: shoreline, Bund boardwalk, piers, canal + bridges, roads, town edge, forest ring (bounds, blockers, nav).
+- [x] M3 Place all buildings, doors, props, lanterns; pleasure-quarter wall + gate.
+- [x] M4 Townsfolk pois/homes, bandit edges, police patrol points, forest noPoliceAreas; 30 townsfolk.
+- [x] M5 Tim playtest + tune (Tim approved the map 2026-10-19).
 - Then businesses and raids checkpoints (section 8), then the rival bot clan.
 
 ## 1. Owning a business

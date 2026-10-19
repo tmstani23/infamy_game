@@ -67,7 +67,9 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   // Business payouts (none exist yet): share a clan gets, 0 during a Manhunt
   const payoutShare = clanId => (tierOf(clanId) >= R.payoutCutFrom ? 0 : 1);
   const quiet = () => !!state.raidWindow;                  // no police during the night raid window
-  const noPolice = (x, z) => R.noPoliceAreas.some(([x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1);
+  // the rules' boxes plus the district's own (its forest outskirts)
+  const noPoliceBoxes = [...R.noPoliceAreas, ...(district.noPoliceAreas || [])];
+  const noPolice = (x, z) => noPoliceBoxes.some(([x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1);
 
   // Underdog rule: the clan with the most infamy (strictly) gains more heat. Infamy is the
   // clan's lifetime heat for now, until the infamy board exists.
@@ -230,14 +232,33 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   const tierFor = clanId => (state.clans?.[clanId] ? R.tiers[tierOf(clanId)] : null);
   const hunting = t => t?.hunt === 'hero' || t?.hunt === 'all';
 
-  // Once a tick: does any officer see each hunted clan's hero? (sight, street, not in a no-police area)
+  // Once a tick: which officers see each hunted clan's hero? (Tim 2026-10-18: no radios) Each officer
+  // keeps its own sighting (mind.saw = { x, z, seenAt }): it sees the hero itself within sight, or it
+  // sees another officer chasing him within sight and takes over that officer's sighting (so a
+  // chase spreads officer to officer, but still runs out lostSeconds after the last real sighting).
+  // track[clan] = the latest sighting by anyone (for the screen and the tests).
+  const chasing = (m, clanId) => m?.saw?.clan === clanId && state.tick - m.saw.seenAt <= secs(R.lostSeconds);
   function updateTracks() {
     for (const clan of Object.values(state.clans || {})) {
       const t = tierFor(clan.id), h = heroOf(clan.id);
-      if (!hunting(t) || !h || quiet()) { delete track[clan.id]; continue; }
-      const seen = t.relentless || (h.place === 'street' && !noPolice(h.x, h.z)
-        && officers().some(o => o.place === 'street' && dist(o, h) <= R.sight));
-      if (seen) track[clan.id] = { x: h.x, z: h.z, place: h.place, seenAt: state.tick };
+      const mine = officers().filter(o => o.clan === clan.id && !mind[o.id]?.leaving);
+      if (!hunting(t) || !h || quiet()) { delete track[clan.id]; for (const o of mine) if (mind[o.id]) delete mind[o.id].saw; continue; }
+      const visible = h.place === 'street' && !h.downed && !noPolice(h.x, h.z);
+      for (const o of mine) {
+        const m = mind[o.id] ||= {};
+        const sees = visible && o.place === 'street' && dist(o, h) <= R.sight;
+        if (sees || t.relentless) m.saw = { clan: clan.id, x: h.x, z: h.z, seenAt: state.tick };
+        if (sees) m.fresh = false;
+      }
+      // spread: an officer who sees a chasing officer joins in (a few passes so a chain can form)
+      if (!t.relentless) for (let pass = 0; pass < 3; pass++) for (const o of mine) {
+        const m = mind[o.id];
+        const lead = mine.find(c => c !== o && c.place === o.place && chasing(mind[c.id], clan.id) && dist(o, c) <= R.sight
+          && mind[c.id].saw.seenAt > (m.saw?.clan === clan.id ? m.saw.seenAt : -Infinity));
+        if (lead) { m.saw = { ...mind[lead.id].saw }; m.fresh = false; }
+      }
+      const latest = mine.map(o => mind[o.id]?.saw).filter(s => s?.clan === clan.id).sort((a, b) => b.seenAt - a.seenAt)[0];
+      if (latest) track[clan.id] = { x: latest.x, z: latest.z, place: 'street', seenAt: latest.seenAt };
     }
     // they just lost the hero (out of sight long enough, or he went indoors): news for the screen
     for (const clan of Object.values(state.clans || {})) {
@@ -246,21 +267,36 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       hunted[clan.id] = now;
     }
   }
-  // The hunted hero, while the police know where he is (seen, or lost less than lostSeconds ago and still outside)
-  function knownHero(clanId) {
-    const t = tierFor(clanId), h = heroOf(clanId), k = track[clanId];
-    if (!h || !k || !hunting(t)) return null;
+  // The hunted hero, while this officer knows where he is (it or an officer it saw chasing him saw
+  // him less than lostSeconds ago, and he is still outside). Most Wanted: always.
+  function knownFor(e) {
+    const t = tierFor(e.clan), h = heroOf(e.clan);
+    if (!h || !hunting(t) || quiet()) return null;
     if (t.relentless) return h;
-    return h.place === 'street' && !h.downed && state.tick - k.seenAt <= secs(R.lostSeconds) ? h : null;
+    return h.place === 'street' && !h.downed && chasing(mind[e.id], e.clan) ? h : null;
+  }
+  // ...while any officer of the squad does (the screen's 'lost' news, Most Wanted following, tests)
+  function knownHero(clanId) {
+    const t = tierFor(clanId), h = heroOf(clanId);
+    if (!h || !hunting(t) || quiet()) return null;
+    if (t.relentless) return track[clanId] ? h : null;
+    return officers().some(o => o.clan === clanId && knownFor(o)) ? h : null;
   }
   // Lost him a moment ago: the spot to search, until searchSeconds have passed. Not when he got
   // away into a building: then they just patrol on from there (Tim 2026-10-18, they used to search
   // round his door for 20 s and be waiting when he came out)
   const heroInside = clanId => { const h = heroOf(clanId); return !!h && h.place !== 'street'; };
-  function searchSpot(clanId) {
-    const k = track[clanId];
-    if (!k || knownHero(clanId) || heroInside(clanId) || state.tick - k.seenAt > secs(R.lostSeconds + R.searchSeconds)) return null;
+  // this officer's spot to search: where it last knew he was, for searchSeconds after losing him
+  function searchFor(e) {
+    const k = mind[e.id]?.saw;
+    if (!k || k.clan !== e.clan || knownFor(e) || heroInside(e.clan) || tierFor(e.clan)?.relentless
+      || state.tick - k.seenAt > secs(R.lostSeconds + R.searchSeconds)) return null;
     return k;
+  }
+  // any officer of the squad searching (tests)
+  function searchSpot(clanId) {
+    for (const o of officers()) if (o.clan === clanId) { const k = searchFor(o); if (k) return k; }
+    return null;
   }
 
   // Who this officer should go for, or null
@@ -275,13 +311,8 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
         // Wanted / Manhunt: the hero while they know where he is; crew only when seen
         // (a downed hero is not a target: he is arrested instead. At Most Wanted knownHero still gives
         // him while he lies there, and indoors they used to stand swinging at him and never arrest, Tim 2026-10-18)
-        let hero = knownHero(e.clan);
+        let hero = knownFor(e);
         if (hero?.downed) hero = null;
-        const m = mind[e.id];
-        if (m?.fresh && hero && !tier.relentless) {
-          if (hero.place === e.place && dist(e, hero) <= R.sight) m.fresh = false;   // seen him: joins the hunt
-          else hero = null;
-        }
         const here = hero && hero.place === e.place ? hero : null;
         // the squad goes for the hero, but deals with crew that get in the way while it chases him.
         // Wanted (hunt 'hero'): crew the hero left outside are left alone unless seen fighting, so
@@ -331,9 +362,9 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   function patrolSpot(e, m) {
     const clan = state.clans?.[e.clan];
     const fresh = m.fresh && !tierFor(e.clan)?.relentless;          // a new officer just patrols
-    const hero = !fresh && knownHero(e.clan);
+    const hero = !fresh && knownFor(e);
     if (hero && hero.place === e.place) return [hero.x, hero.z, false];
-    const k = !fresh && searchSpot(e.clan);
+    const k = !fresh && searchFor(e);
     if (k && m.search !== k.seenAt) { m.search = k.seenAt; m.x = null; m.until = null; }   // just lost him: go look
     if (!k) m.search = null;
     const inside = heroInside(e.clan);
@@ -367,7 +398,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
         const never = c === e.clan && tierFor(c)?.relentless;           // Most Wanted: they never give up
         // Wanted: once they lost the hero they calm down at once (patrol, blue ring), unless his
         // crew are fighting right here (at Manhunt his crew stay fair game on sight)
-        const lost = c === e.clan && !never && tierFor(c)?.hunt === 'hero' && !knownHero(c)
+        const lost = c === e.clan && !never && tierFor(c)?.hunt === 'hero' && !knownFor(e)
           && !Object.values(state.entities).some(o => o.owner === c && !o.dead && o.place === e.place && dist(e, o) <= R.sight
             && state.tick - (o.foughtAt ?? -Infinity) <= secs(R.seenFightingSeconds));
         if (!never && (state.tick >= until || !near || quiet() || lost)) delete e.angry[c];

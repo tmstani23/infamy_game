@@ -328,6 +328,34 @@ const tierOk = g => g.police.tierOf('player') === 2;
   console.log('lost him ok');
 }
 
+// No radios (Tim 2026-10-18): below 120 only officers who see the hero, or see an officer chasing
+// him, go after him; one far off keeps patrolling
+{
+  const g = newGame();
+  const h = g.state.entities[g.spawn('hero', 'ronin', 20, 5, { owner: 'player', hp: 1e7 })];
+  clan(g).heat = 70;
+  Object.assign(h, { x: -40, z: 40 });                           // out of the way while the squad comes out
+  run(g, 20);
+  const [a, b, c] = cops(g);
+  assert.ok(a && b && c, 'squad out');
+  const spot = (x, z) => g.nav.nearestFree(x, z) || [x, z];
+  const put = (o, x, z) => { const [px, pz] = spot(x, z); Object.assign(o, { x: px, z: pz, place: 'street' }); };
+  const [hx, hz] = spot(20, 5);
+  Object.assign(h, { x: hx, z: hz });
+  put(a, hx + 4, hz); put(b, hx + 4 + P.sight - 1, hz); put(c, -40, 40);
+  for (const o of [a, b, c]) { delete g.police.mind[o.id].saw; g.police.mind[o.id].fresh = false; }   // veterans, not fresh replacements
+  assert.ok(Math.hypot(b.x - h.x, b.z - h.z) > P.sight && Math.hypot(b.x - a.x, b.z - a.z) <= P.sight, 'b sees a, not the hero');
+  g.step();
+  const knows = o => !!g.police.mind[o.id].saw && g.state.tick - g.police.mind[o.id].saw.seenAt <= P.lostSeconds * 20;
+  assert.ok(knows(a), 'a sees him');
+  assert.ok(knows(b), 'b sees a chasing and joins');
+  assert.ok(!knows(c), 'c, far off, has no idea');
+  run(g, 3);
+  assert.ok(!c.angry, 'c stays calm on patrol');
+  assert.ok(Math.hypot(c.x - h.x, c.z - h.z) > 20, 'c is not heading for him');
+  console.log('no radios ok');
+}
+
 // Most Wanted (120+): they always know where he is, never give up, and follow him indoors
 {
   const g = newGame();

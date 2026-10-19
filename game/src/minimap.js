@@ -1,12 +1,16 @@
 // Minimap, top right: the district turned to match the screen, with the same fog of war,
+// a letter on each business (W warehouse, T teahouse, D den, C clinic, P police),
 // dots for units your clan can see, your businesses outlined and a box for the camera's view.
 // Left-click (or drag) moves the camera there; right-click sends the selected crew there
 // (Ctrl: hold there), like right-clicking the ground. Only reads the state and sends commands.
+import { shapeDistance, groundZone } from './sim/geometry.js';
+
 const GROUND = {
   grass: [78, 96, 58], dirt: [122, 104, 78], dry_grass: [130, 120, 76], mud: [84, 70, 54], sand: [176, 160, 122],
   water: [40, 66, 84], planks: [110, 82, 56], gravel: [128, 124, 116], paving: [146, 138, 124],
 };
 const BUILDING = [62, 50, 46];
+const MARK = { warehouse: 'W', teahouse: 'T', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P' };
 const S = Math.SQRT1_2;
 
 export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send }) {
@@ -26,11 +30,12 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   };
 
   // the map itself, one pixel per cell: ground, then buildings
+  const zones = district.ground.map(groundZone);
   const base = new Uint8ClampedArray(g.w * g.h * 3);
   for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
     const x = g.minX + i + 0.5, z = g.minZ + j + 0.5;
     let c = GROUND.grass;
-    for (const [type, x0, z0, x1, z1] of district.ground) if (x >= x0 && x <= x1 && z >= z0 && z <= z1) c = GROUND[type] || c;
+    for (const zone of zones) if (shapeDistance(zone.shape, x, z) >= 0) c = GROUND[zone.type] || c;
     for (const s of game.scenery) {
       const r = s.item?.kind === 'buildings' && !s.indoor && s.solid;
       if (r && x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) c = BUILDING;
@@ -87,6 +92,16 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(cells, 0, 0);
     ctx.restore();
+    // every business, as a letter, even under the fog so you can find them (W warehouse, T teahouse, D den, C clinic, P police)
+    ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const b of Object.values(game.state.businesses)) {
+      const letter = MARK[b.kind];
+      if (!letter) continue;
+      const [u, v] = toMap(b.x, b.z);
+      ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(u - 4.5, v - 4.5, 9, 9);
+      ctx.fillStyle = b.kind.startsWith('police') ? '#8fb4ff' : b.kind === 'clinic' ? '#8fe08f' : '#ffe2a0';
+      ctx.fillText(letter, u, v + 0.5);
+    }
     // your businesses
     ctx.strokeStyle = '#ffcd50'; ctx.lineWidth = 1.2;
     for (const b of Object.values(game.state.businesses)) {

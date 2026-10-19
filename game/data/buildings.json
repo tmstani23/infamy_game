@@ -8,7 +8,9 @@
     "bandit_camp": "Bandit camp", "bridge": "Bridge", "clinic": "Bonesetter's clinic", "pawnshop": "Pawnshop",
     "rice_storehouse": "Rice storehouse", "izakaya": "Izakaya", "fish_market": "Fish market stall",
     "geisha_house": "Geisha house", "customs_house": "Customs house", "boatbuilder": "Boatbuilder's shed",
-    "tenements": "Nagaya tenements", "police_box": "Police box", "police_hq": "Police HQ"
+    "tenements": "Nagaya tenements", "police_box": "Police box", "police_hq": "Police HQ",
+    "kabuki_theatre": "Kabuki theatre", "temple": "Temple", "rickshaw_station": "Rickshaw station", "food_stalls": "Food stalls",
+    "moneylender_house": "Moneylender's house", "lighthouse": "Lighthouse", "telegraph_office": "Telegraph office"
   },
   "roles": {
     "teahouse": "Hire crew (H inside)",

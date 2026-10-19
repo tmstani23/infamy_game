@@ -66,7 +66,7 @@ Click the lock icon to unlock the HUD, then drag panels and resize them by the g
 
 | Key | What it does |
 |---|---|
-| Arrow keys | Pan the camera around (it stays there until you snap back) |
+| Arrow keys | Pan the camera around, anywhere on the map (it stays there until you snap back) |
 | Home, or the "Back to hero" button (bottom right, shown while panned) | Snap the camera back to your hero |
 | Mouse wheel, or = and - | Zoom in and out |
 | N | Switch between day and night (in the sim; townsfolk follow) |
@@ -74,7 +74,7 @@ Click the lock icon to unlock the HUD, then drag panels and resize them by the g
 | F3 | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
-| Minimap: left-click or drag | Move the view |
+| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
 
 ## Planned (not built yet)

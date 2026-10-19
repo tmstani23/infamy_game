@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { CAM_RIGHT, CAM_UP, CAM_QUAT, VIEW_DIR, toScreen } from './iso.js';
 import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial, crewDoorMaterial } from './shading.js';
+import { shapeDistance, shapeBox, groundZone } from '../sim/geometry.js';
 
 const loader = new THREE.TextureLoader();
 export const loadTex = url => new Promise((ok, fail) => loader.load(url, ok, undefined, () => fail(new Error(`Could not load ${url}`))));
@@ -74,39 +75,43 @@ export function sortThings(things) {
 
 // ---------- ground ----------
 const SPLAT_RES = 4;                       // weight-map pixels per world unit
-const SPLAT_BOUNDS = [-80, -80, 160, 160]; // minX, minZ, sizeX, sizeZ
+const SPLAT_MARGIN = 34;                   // ground drawn this far past the district's edge
 const CHANNELS = ['paving', 'gravel', 'planks', 'grass', 'sand', 'mud', 'water', 'dry_grass'];
 const GROUND_TEXTURES = {
   tDirt: 'dirt', tPaving: 'paving', tGravel: 'gravel', tPlanks: 'planks', tGrass: 'grass',
   tSand: 'sand', tMud: 'mud', tWater: 'water', tDryGrass: 'dry_grass',
 };
 
-// Paint the district's ground zones into weight maps, one channel per ground type
-function buildSplats(zones) {
-  const N = SPLAT_BOUNDS[2] * SPLAT_RES;
-  const w = Object.fromEntries(['dirt', ...CHANNELS].map(c => [c, new Float32Array(N * N)]));
-  for (const [type, x0, z0, x1, z1, blur] of zones) {
-    if (!w[type]) { console.warn('Unknown ground type', type); continue; }
-    const b = Math.max(blur, 0.3);
-    for (let j = 0; j < N; j++) {
-      const z = SPLAT_BOUNDS[1] + (j + 0.5) / SPLAT_RES;
-      const mz = Math.min(1, Math.max(0, Math.min(z - z0, z1 - z) / b + 0.5));
-      if (mz <= 0) continue;
-      for (let i = 0; i < N; i++) {
-        const x = SPLAT_BOUNDS[0] + (i + 0.5) / SPLAT_RES;
-        let m = Math.min(1, Math.max(0, Math.min(x - x0, x1 - x) / b + 0.5)) * mz;
+// The weight map's area: the district plus a margin. [minX, minZ, sizeX, sizeZ]
+const splatBounds = b => [b.minX - SPLAT_MARGIN, b.minZ - SPLAT_MARGIN, b.maxX - b.minX + 2 * SPLAT_MARGIN, b.maxZ - b.minZ + 2 * SPLAT_MARGIN];
+
+// Paint the district's ground zones (boxes or shapes, sim/geometry.js) into weight maps, one channel per ground type
+function buildSplats(zones, SB) {
+  const NX = Math.round(SB[2] * SPLAT_RES), NZ = Math.round(SB[3] * SPLAT_RES);
+  const w = Object.fromEntries(['dirt', ...CHANNELS].map(c => [c, new Float32Array(NX * NZ)]));
+  for (const zone of zones.map(groundZone)) {
+    if (!w[zone.type]) { console.warn('Unknown ground type', zone.type); continue; }
+    const b = Math.max(zone.blur, 0.3), box = shapeBox(zone.shape);
+    // only the pixels the zone (and its soft edge) can reach
+    const i0 = Math.max(0, Math.floor((box.minX - b - SB[0]) * SPLAT_RES)), i1 = Math.min(NX - 1, Math.ceil((box.maxX + b - SB[0]) * SPLAT_RES));
+    const j0 = Math.max(0, Math.floor((box.minZ - b - SB[1]) * SPLAT_RES)), j1 = Math.min(NZ - 1, Math.ceil((box.maxZ + b - SB[1]) * SPLAT_RES));
+    for (let j = j0; j <= j1; j++) {
+      const z = SB[1] + (j + 0.5) / SPLAT_RES;
+      for (let i = i0; i <= i1; i++) {
+        const x = SB[0] + (i + 0.5) / SPLAT_RES;
+        let m = Math.min(1, Math.max(0, shapeDistance(zone.shape, x, z) / b + 0.5));
         if (m <= 0) continue;
         m = m * m * (3 - 2 * m);
-        const k = j * N + i;
+        const k = j * NX + i;
         for (const c in w) w[c][k] *= 1 - m;
-        w[type][k] += m;
+        w[zone.type][k] += m;
       }
     }
   }
   const pack = names => {
-    const data = new Uint8Array(N * N * 4);
-    for (let k = 0; k < N * N; k++) names.forEach((c, ch) => { data[k * 4 + ch] = Math.round(w[c][k] * 255); });
-    const t = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+    const data = new Uint8Array(NX * NZ * 4);
+    for (let k = 0; k < NX * NZ; k++) names.forEach((c, ch) => { data[k * 4 + ch] = Math.round(w[c][k] * 255); });
+    const t = new THREE.DataTexture(data, NX, NZ, THREE.RGBAFormat);
     t.magFilter = t.minFilter = THREE.LinearFilter;
     t.needsUpdate = true;
     return t;
@@ -114,7 +119,7 @@ function buildSplats(zones) {
   return [pack(CHANNELS.slice(0, 4)), pack(CHANNELS.slice(4))];
 }
 
-export async function buildGround(zones, renderer) {
+export async function buildGround(zones, renderer, bounds = { minX: -46, maxX: 46, minZ: -46, maxZ: 46 }) {
   const textures = {};
   await Promise.all(Object.entries(GROUND_TEXTURES).map(async ([k, name]) => {
     const t = await loadTex(`art/ground/${name}.jpg`);
@@ -122,10 +127,12 @@ export async function buildGround(zones, renderer) {
     t.anisotropy = renderer.capabilities.getMaxAnisotropy();
     textures[k] = t;
   }));
-  const [a, b] = buildSplats(zones);
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(SPLAT_BOUNDS[2], SPLAT_BOUNDS[3]),
-    groundMaterial(textures, a, b, SPLAT_BOUNDS, [5.6, 3.6]));
+  const SB = splatBounds(bounds);
+  const [a, b] = buildSplats(zones, SB);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(SB[2], SB[3]),
+    groundMaterial(textures, a, b, SB, [5.6, 3.6]));
   mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(SB[0] + SB[2] / 2, 0, SB[1] + SB[3] / 2);
   mesh.renderOrder = 0;
   return mesh;
 }

@@ -30,7 +30,7 @@ const getJSON = async url => {
 async function start() {
   status('Loading the district…');
   const [district, catalog, cutouts, interiors, parts, recipes, units, civilians, bandits, buildingInfo, police] = await Promise.all([
-    getJSON(`data/${params.get('district') || 'waterfront'}.json`), getJSON('data/art.json'),
+    getJSON(`data/${params.get('district') || 'port_town'}.json`), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
     getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json')]);
 

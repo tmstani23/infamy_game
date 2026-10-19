@@ -26,9 +26,9 @@ Every new officer (the first squad at a tier, officers added when heat rises, an
 
 ## Losing the police (60-119 heat)
 
-- Police only know where the hero is while an officer sees him (police sight 9; the fog sight stays 18) and for 2 s after.
+- Each officer keeps its own sighting (no radios, 2026-10-19). It chases only if it sees the hero itself (police sight 9; the fog sight stays 18) or sees another chasing officer within 9 and takes over that sighting. So a chase spreads officer to officer, but runs out 2 s (`lostSeconds`) after the last real sighting. Officers that see nothing keep patrolling.
 - Watched officers give up beyond 12 steps. Going indoors loses them (below 120 there is no search round the door; they patrol on at once).
-- Lost on the street, they search a 5-step radius for 20 s, then go back to patrolling. A blue "LOST THE POLICE" banner shows and they calm down (blue rings).
+- Lost on the street, each officer searches its own last-known spot (5-step radius) for 20 s, then goes back to patrolling. A blue "LOST THE POLICE" banner shows and they calm down (blue rings).
 - Patrol: round the clan's last fight only while it is under 30 s old (`patrolFightSeconds`); otherwise they wander the streets from where they are in 12-step legs (`patrolRadius`), drifting back toward the HQ.
 - Wanted (60-89): crew are left alone unless they fight or block the chase, so losing the hero calms the officers at once. Manhunt (90-119): crew stay targets on sight.
 - Most Wanted (120+) indoors: officers fight, down and arrest everyone inside, the hero goes to jail, then they walk out.

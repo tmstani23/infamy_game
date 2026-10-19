@@ -15,15 +15,15 @@ From Assassin's Creed Unity and Hitman talks:
 ## Plan
 
 1. `game/src/sim/civilians.js`: each civilian loops: pick a spot by type and time of day, walk the street path from `nav.js`, stay a few seconds, pick the next. Each rethinks about once a second, so 30 to 40 people stay cheap.
-2. Spots: a `pois` list in `game/data/waterfront.json`, each tagged with who uses it (monk to the shrine, fisherman and sailor to the pier, merchant to the shop, geisha to the teahouse).
+2. Spots: a `pois` list in the district file (`game/data/port_town.json`), each tagged with who uses it (monk to the shrine, fisherman and sailor to the pier, merchant to the shop, geisha to the teahouse).
 3. Sim clock: day and night move from the screen into the sim, so N sends a command and civilians can follow a schedule.
 4. Fear: a fight or death within about 8 units makes civilians play scared, then walk fast away. Each scared civilian is marked as a witness for heat later.
 5. Civilian types in `game/data/units.json`. Fleeing uses the walk clip played faster (there is no run clip).
 
 ## Built (2026-10-17)
 
-- A fixed total of 20 townsfolk. Spots are the `pois` list in `game/data/waterfront.json` (never the map edges); types and tuning are in `game/data/civilians.json`.
-- At night about 90% go indoors (`nightOut` 0.1), walking home 25% faster, and come back in the morning. Homes per type (`homes` in `civilians.json`): monks the shrine; old women the townhouse and abandoned house; merchants the shop, western office, townhouse and inn; geisha the teahouse; fishermen and sailors the dock warehouse and warehouse; laborers the warehouse and brewery. They appear at home at game start and go in and come out there at night; by day they walk anywhere (2026-10-18).
+- A fixed total of 30 townsfolk (2026-10-19). Spots are the `pois` list in `game/data/port_town.json` (never the map edges); types and tuning are in `game/data/civilians.json`.
+- At night about 90% go indoors (`nightOut` 0.1), walking home 25% faster, and come back in the morning. Homes per type (`homes` in `civilians.json`): monks the shrine and temple; old women the townhouse, abandoned house and tenements; merchants the shop, townhouse, inn, pawnshop, moneylender and rickshaw station; geisha the teahouse, geisha house and kabuki theatre; fishermen the dock warehouse, warehouse, fish market and boatbuilder; sailors the dock warehouse, warehouse and customs house; laborers the warehouse, brewery, rice storehouse, blacksmith and tenements. They appear at home at game start and go in and come out there at night; by day they walk anywhere (2026-10-18).
 - At most one reaction (scared or chat) per 3 s; a stuck townsperson stops instead of chatting (2026-10-18).
 - Witnesses are marked `e.witness`.
 - Fear: a 0.3 s flinch, then they run; runners that get jammed stop.

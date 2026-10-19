@@ -1,7 +1,7 @@
 // The game rules. Holds the state and advances it one fixed tick at a time from
 // commands. No three.js and no DOM: in multiplayer a Colyseus server runs this
 // same code, and browsers only send commands and draw the state they get back.
-import { placeScenery, placePiece, dirIndex, SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
+import { placeScenery, placePiece, dirIndex, SCREEN_RIGHT, SCREEN_DOWN, shapeBlockers } from './geometry.js';
 import { buildRoom3d, INTERIOR_ORIGIN } from './interiors.js';
 import { generateRoom } from './generate.js';
 import { createClans } from './clans.js';
@@ -65,6 +65,7 @@ export function createGame(options) {
   const B = district.bounds, far = 1000;
   const blockers = [
     ...district.blockers.map(([x0, z0, x1, z1]) => ({ minX: x0, maxX: x1, minZ: z0, maxZ: z1 })),
+    ...shapeBlockers(district),       // water and the canal drawn as shapes
     ...scenery.filter(s => s.solid).map(s => s.solid),
     ...roomBlockers,
     // the edge of the street map (rooms lie beyond it, closed in by their own walls)
