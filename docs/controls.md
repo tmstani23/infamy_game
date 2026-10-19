@@ -11,9 +11,11 @@ What works in the game now (updated 2026-10-17). Keep this file up to date whene
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
+| Space by a raider's War Lantern | Knock it down (4 s channel; moving or a hit cancels) |
+| Double-click the red raid alarm | Camera to the raided business |
 | Right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
 | Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips townsfolk, crew and downed units) |
-| Left-click an enemy | Mark it as the target and show its card. Left-click or drag anywhere else drops the target and stops the auto attack |
+| Left-click an enemy | Target it (blue) and show it in the target frame (top middle). Left-click or drag anywhere else drops the target and stops the auto attack |
 | (stand still) | The hero hits the nearest enemy in reach on its own, Dota-style. Moving stops the attacks. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
 | E | Intimidate: enemies within 4 steps deal 30% less damage for 5 s (14 s) |
@@ -42,11 +44,12 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 | C | Select all your crew (indoors: the crew in this room) |
 | Esc | Clear the selection |
 | Right-click the ground | Send the selected crew there |
+| Right-click your own business | Selected crew go in and hold near the entrance |
 | Ctrl + right-click the ground | Station the selected crew there (they hold that spot) |
 | Right-click your hero, or V | Selected crew follow you again |
 | Ctrl + right-click a unit | Selected crew attack it, or execute it if it is downed |
 | Ctrl + right-click a bandit's body | The nearest selected crew member loots it |
-| T | All crew attack the marked unit (left-clicked, card showing), or the hero's target if nothing is marked; afterwards they go back to their old order (follow, hold or stop) |
+| T | All crew attack the marked unit (left-clicked, in the target frame), or the hero's target if nothing is marked; afterwards they go back to their old order. T again while they are on a T attack calls it off |
 | Z | Selected crew stop and stay passive (even when hit) until any new order; the crew panel shows "Passive (stopped)" |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
 | Left-click a townsperson | Show their card |
@@ -62,7 +65,7 @@ For testing, three rival thugs stand outside the gambling den. Add `?enemies=0` 
 
 ## Screen layout
 
-Click the lock icon to unlock the HUD, then drag panels and resize them by the gold corner. Reset layout puts everything back. The layout is saved in `game/data/ui_layout.json`.
+The unit frames (your frame and the target frame, small squares top middle under the alerts) each have a lock icon to move and resize them; click the target frame to move the camera to the target. Click the lock icon to unlock the HUD, then drag panels and resize them by the gold corner. Reset layout puts everything back. The layout is saved in `game/data/ui_layout.json`.
 
 ## Camera and view
 

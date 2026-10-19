@@ -112,6 +112,16 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       const [u, v] = toMap(b.x, b.z);
       ctx.strokeRect(u - 4, v - 4, 8, 8);
     }
+    // your business under a raid: a red ping pulsing out from it (checkpoint 5)
+    for (const a of Object.values(game.state.attacks || {})) {
+      if (a.mode !== 'raid' || a.defender !== clan) continue;
+      const b = game.state.businesses[a.business], [u, v] = toMap(b.x, b.z), p = (performance.now() / 1600) % 1;
+      for (const k of [0, 0.5]) {
+        const q = (p + k) % 1;
+        ctx.beginPath(); ctx.arc(u, v, 5 + q * 12, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,70,50,${(1 - q) * 0.9})`; ctx.lineWidth = 1.6; ctx.stroke();
+      }
+    }
     // units on the street that you can see (yours on top)
     const list = Object.values(state.entities).filter(e => e.place === 'street' && !e.dead)
       .sort((a, b) => (a.owner === clan) - (b.owner === clan) || (a.id === heroId) - (b.id === heroId));

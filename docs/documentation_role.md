@@ -30,6 +30,8 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Civilians walking the streets | `docs/civilians_plan.md` |
 | Police, heat tiers, arrests, bribes | `docs/police_spec.md` |
 | Business ownership, payouts, raids, War Lantern | `docs/business_raids_plan.md` |
+| Rival bot clan, difficulties, home hideouts | `docs/rival_bot_plan.md` |
+| Test URL parameters | `docs/test_params.md` |
 | 3D interior rules, look rules, room data format | `docs/interiors_spec.md` |
 | Room generator | `docs/room_generator_plan.md` |
 | Look, art pipeline, assets layout | `docs/art_direction.md` |
@@ -43,6 +45,7 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 
 - Put it in the doc that owns the topic. If two seem to fit, pick the narrower one and link from the other.
 - Images that docs link to (sketches, diagrams) go in `docs/images/`.
+- Every new test URL parameter gets a row in `test_params.md` in the same batch it is built (Tim 2026-10-19).
 - Make a new doc only for a new topic big enough to need its own page, and add it to the table above and to `START_HERE.md`'s doc table in the same change.
 
 ## Writing rules

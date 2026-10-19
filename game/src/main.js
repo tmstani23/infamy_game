@@ -14,6 +14,7 @@ import { createCrewInput } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
 import { createCrewBar } from './crew_bar.js';
 import { createSelectionPanel, unitWhere } from './selection_panel.js';
+import { createUnitFrames } from './unit_frames.js';
 import { createBuildingPanel } from './building_panel.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
@@ -105,17 +106,46 @@ async function start() {
   const pending = [];
   const toggleNight = () => pending.push({ type: 'time' });
   if (params.get('night') === '1') pending.push({ type: 'time', night: true });
+  // Test only: ?raidme=den (or teahouse / warehouse) makes that business yours and gives you 3 crew, then at night a stand-in
+  // Kuroda boss and 3 thugs plant a War Lantern at it, to try defending until the rival bot clan exists
+  const raidKind = params.get('raidme') === 'den' ? 'gambling_den' : params.get('raidme');
+  const raidBiz = raidKind && Object.values(game.state.businesses).find(b => b.kind === raidKind && b.room);
+  if (raidBiz) {
+    if (!game.state.clans.kuroda) game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
+    game.clans.setOwner(raidBiz.id, 'player');
+    game.state.clans.kuroda.lanterns = 1;
+    const boss = game.spawn('hero', 'rival_yakuza', raidBiz.ring[0], raidBiz.ring[1], { owner: 'kuroda' });
+    for (let i = 0; i < 3; i++) {
+      const [x, z] = game.nav.nearestFree(raidBiz.ring[0] + (i - 1) * 1.1, raidBiz.ring[1] + 1.2) || raidBiz.ring;
+      game.spawn('thug', 'thug', x, z, { owner: 'kuroda', order: { kind: 'station', x, z } });
+    }
+    // and you start with 3 crew following you
+    const me = game.state.entities[heroId];
+    for (let i = 0; i < 3; i++) {
+      const [x, z] = game.nav.nearestFree(me.x + (i - 1) * 1.1, me.z + 1.2) || [me.x, me.z];
+      game.spawn('thug', 'thug', x, z, { owner: 'player', order: { kind: 'follow', target: heroId } });
+    }
+    pending.push({ type: 'time', night: true }, { id: boss, type: 'business', action: 'raid', business: raidBiz.id });
+  }
   onKey('KeyN', toggleNight);
   $('daynight').addEventListener('click', e => { toggleNight(); e.currentTarget.blur(); });
   label();
   onKey('F3', () => view.toggleDebug());
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
+    // by a raider's War Lantern at your business: knock it down (checkpoint 5)
+    const lantern = raidOnMe(true);
+    if (lantern) { pending.push({ id: heroId, type: 'business', action: 'knock', business: lantern.business }); return; }
     const menu = game.doorNear(heroId)?.menu;
     if (menu === 'clinic') clinicMenu.toggle();
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle();
     else pending.push({ id: heroId, type: 'use', units: crewInput.selected() });   // selected crew come in too
   });
+  // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
+  const raidOnMe = (near = false) => Object.values(game.state.attacks || {})
+    .filter(a => a.mode === 'raid' && a.defender === game.state.entities[heroId]?.owner && (!near || game.businesses.canKnock(heroId, a.business).ok)).pop();
+  const alarmSeen = new Set();
+  $('raidalarm').addEventListener('dblclick', () => { const a = raidOnMe(); if (a) view.jumpTo(a.lantern.x, a.lantern.z); });
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
   addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
@@ -174,7 +204,10 @@ async function start() {
   };
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump });
   const crewBar = createCrewBar({ root: $('bar'), game, heroId, crewInput });   // crew order buttons over the crew pips
-  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where });
+  // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
+  const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
+  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone });
+  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, where, jump });   // own + target frames, top middle
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c) });
   const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
@@ -215,6 +248,24 @@ async function start() {
             : `Attacking the ${where}: police wave ${a.wave} of ${a.waves}`;
         }
       }
+      // your business is being raided: bell once, red banner, a channel bar while knocking the lantern down
+      {
+        const a = raidOnMe(), el = $('raidalarm');
+        el.hidden = !a;
+        if (a) {
+          const key = `${a.business}:${a.opensAt}`;
+          if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); }
+          const where = a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
+          const s = Math.ceil((a.phase === 'warmup' ? a.opensAt - game.state.tick : a.holdLeft) / TICK_RATE);
+          const b = `Your ${where} is being raided!`, t = a.phase === 'warmup' ? `${who} planted a War Lantern · doors open in ${s} s`
+            : `${who} ${a.holding ? 'hold' : 'fight for'} the back room · ${s} s left${a.holding ? '' : ' (held off)'}`;
+          if (el.querySelector('b').textContent !== b) el.querySelector('b').textContent = b;
+          if (el.querySelector('span').textContent !== t) el.querySelector('span').textContent = t;
+        }
+        const k = a?.knock?.by === heroId ? a.knock : null, kb = $('knockbar');
+        kb.hidden = !k;
+        if (k) kb.querySelector('i').style.width = `${Math.min(100, (game.state.tick - k.start) / ((game.businesses.raidRules.knockSeconds || 4) * TICK_RATE) * 100)}%`;
+      }
       { const n = game.state.clans.player?.lanterns || 0, el = $('lanterns'); el.hidden = !n; el.textContent = `War Lantern ${n}`; }
       // the hunters lost your boss (sim/police.js): a short notice at the top
       if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
@@ -225,9 +276,9 @@ async function start() {
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
       acc -= tick;
-      const door = game.doorNear(heroId);
-      $('prompt').textContent = door ? `Space  ${door.label}` : '';
-      $('prompt').hidden = !door;
+      const door = game.doorNear(heroId), knockable = raidOnMe(true);
+      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : door ? `Space  ${door.label}` : '';
+      $('prompt').hidden = !door && !knockable;
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();
@@ -239,6 +290,7 @@ async function start() {
       ryoBadge.update();
       crewInput.update();
       selPanel.update();
+      unitFrames.update();
       bldPanel.update();
     }
     const pan = panAxes();

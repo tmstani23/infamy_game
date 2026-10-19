@@ -46,7 +46,8 @@ export function unitWhere(e, state, district, info = {}) {
 
 const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
 
-export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '' }) {
+// skip(ids): hide the panel for this selection (a lone enemy or townsperson shows in the target frame instead)
+export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false }) {
   let shown = '';
   const cards = {};
   root.addEventListener('mousedown', e => {
@@ -57,7 +58,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
   function update() {
     const unit = id => game.state.entities[id] || prisonerOf(game.state, id);
     const ids = crewInput.selected().filter(unit);
-    root.hidden = !ids.length;
+    root.hidden = !ids.length || skip(ids);
     root.classList.toggle('many', ids.length > 8);
     const key = ids.join(',');
     if (key !== shown) {

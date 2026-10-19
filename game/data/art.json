@@ -6,6 +6,7 @@
     "thug":{"idle":"thug_fighting_idle","walk":"thug_walking","run":"thug_running","attack":"thug_punching","death":"thug_dying"},
     "brute":{"idle":"brute_idle","walk":"brute_walking","run":"brute_running","attack":"brute_punching","death":"brute_dying"},
     "swordsman":{"idle":{"file":"swordsman_breathing_idle","speed":0.5},"walk":"swordsman_walking","run":"swordsman_run","attack":"swordsman_great_sword_slash","death":"swordsman_two_handed_sword_death"},
+    "rival_yakuza":{"idle":{"file":"rival_yakuza_breathing_idle","speed":0.5},"walk":"rival_yakuza_walking","run":"rival_yakuza_run","attack":"rival_yakuza_great_sword_slash","death":"rival_yakuza_two_handed_sword_death"},
     "monk":{"idle":"monk_standing_idle","walk":"monk_catwalk_walk_forward","run":{"file":"monk_catwalk_walk_forward","speed":2.2},"scared":"monk_scared","bow":"monk_quick_formal_bow","talk":"monk_gentle_reaction","death":"monk_standing_death_forward_01"},
     "monk2":{"idle":"monk2_standing_idle","walk":"monk2_catwalk_walk_forward","run":{"file":"monk2_catwalk_walk_forward","speed":2.2},"scared":"monk2_scared","bow":"monk2_quick_formal_bow","talk":"monk2_gentle_reaction","death":"monk2_standing_death_forward_01"},
     "old_woman":{"idle":"old_woman_standing_idle","walk":"old_woman_catwalk_walk_forward","run":{"file":"old_woman_catwalk_walk_forward","speed":2.2},"scared":"old_woman_scared","bow":"old_woman_quick_formal_bow","talk":"old_woman_gentle_reaction","death":"old_woman_standing_death_forward_01"},

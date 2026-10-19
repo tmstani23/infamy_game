@@ -38,7 +38,25 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
   // loudness for something at (x, z) heard by the hero (nothing from other places)
   const near = (me, x, z, place) => !me || place !== me.place ? 0 : Math.max(0, 1 - Math.hypot(x - me.x, z - me.z) / HEAR);
 
+  // a temple bell, made on the spot (no file): a few soft partials that ring out (raid alarm)
+  function bell() {
+    if (!ctx || muted) return;
+    const t0 = ctx.currentTime;
+    for (const [f, v, len] of [[392, 0.35, 2.6], [784, 0.16, 1.8], [1046, 0.09, 1.2], [1568, 0.05, 0.8]]) {
+      for (const at of [0, 0.55]) {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = f; o.type = 'sine';
+        g.gain.setValueAtTime(0.0001, t0 + at);
+        g.gain.exponentialRampToValueAtTime(v, t0 + at + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len);
+        o.connect(g).connect(master);
+        o.start(t0 + at); o.stop(t0 + at + len);
+      }
+    }
+  }
+
   return {
+    bell,
     toggleMute() { muted = !muted; return muted; },
     // after each tick: new swings, hits and casts
     update(state, followId) {

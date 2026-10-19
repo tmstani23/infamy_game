@@ -250,3 +250,17 @@ console.log('combat tests passed');
   assert.equal(S[d].order.kind, 'move', 'no resume: stands there');
 }
 console.log('T resume ok');
+
+// a second T calls the attack off: back to the old order at once (Tim 2026-10-19)
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', -10, 1, { owner: 'player' });
+  const t = g.spawn('thug', 'thug', -2, 1, { owner: 'kuroda', order: { kind: 'station', x: -2, z: 1 } });
+  const a = g.spawn('thug', 'thug', -8, 1, { owner: 'player', order: { kind: 'follow', target: hero } });
+  const b = g.spawn('thug', 'thug', -8, 2, { owner: 'player', order: { kind: 'station', x: -8, z: 2 } });
+  g.step([{ id: hero, type: 'order', units: [a, b], kind: 'attack', target: t, resume: true }]);
+  g.step([{ id: hero, type: 'order', units: [a, b], kind: 'resume' }]);
+  assert.equal(S[a].order.kind, 'follow', 'called off: following again');
+  assert.deepEqual([S[b].order.kind, S[b].order.x, S[b].order.z], ['station', -8, 2], 'called off: back to its post');
+}
+console.log('T call-off ok');

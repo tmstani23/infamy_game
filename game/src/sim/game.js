@@ -143,9 +143,12 @@ export function createGame(options) {
   // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
-    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop'].includes(c.kind)) return;
+    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop', 'enter', 'resume'].includes(c.kind)) return;
+    // enter (right-click your own business, checkpoint 5): walk to its door, go in and hold the room
+    const door = c.kind === 'enter' && state.businesses[c.business]?.owner === hero.owner && doors.find(d => d.to && d.place === state.businesses[c.business].room);
+    if (c.kind === 'enter' && !door) return;
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
-    if (!['follow', 'attack', 'heal', 'stop'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
+    if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
       .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && u.place === hero.place);
     crew.forEach((u, k) => {
@@ -154,6 +157,8 @@ export function createGame(options) {
       if (fight[u.id]) delete fight[u.id].target;
       // stop (Z, Tim 2026-10-18): stand still and stay passive, no auto attack even when hit,
       // until the next order of any kind replaces this one
+      // resume (a second T, Tim 2026-10-19): call off the T attack, back to the order before it
+      if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u); } return; }
       if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
       // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
@@ -163,6 +168,12 @@ export function createGame(options) {
         if (!b || u.hp >= u.maxHp || u.place !== 'street') return;   // from the street only
         const [x, z] = nav.nearestFree(...(b.door || [b.x, b.z])) || [b.x, b.z];
         u.order = { kind: 'heal', x, z };
+        return;
+      }
+      if (c.kind === 'enter') {
+        if (u.place !== 'street') return;
+        const [x, z] = nav.nearestFree(door.x, door.z) || [door.x, door.z];
+        u.order = { kind: 'enter', room: door.place, x, z, k, n: crew.length };
         return;
       }
       const [ox, oz] = blockOffset(k, crew.length);
@@ -254,10 +265,11 @@ export function createGame(options) {
     return [e.x, e.z];
   }
 
-  // the order a T attack goes back to afterwards: follow, hold / station / move spot, or passive stop
+  // the order a T attack goes back to afterwards: follow, hold / station / move spot, passive stop,
+  // or one still on its way (attack-move, going into a business, off to the clinic)
   function resumable(u) {
     const o = u.order?.kind === 'attack' ? u.order.prev : u.order;
-    return o && ['follow', 'move', 'station', 'stop'].includes(o.kind) ? { ...o } : null;
+    return o && ['follow', 'move', 'station', 'stop', 'attackmove', 'enter', 'heal'].includes(o.kind) ? { ...o } : null;
   }
   // an attack order is over (target gone, down or out of reach): back to the order before a T,
   // else stand where it is
@@ -278,7 +290,7 @@ export function createGame(options) {
       return null;
     }
     // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
-    if ((o.kind === 'move' || o.kind === 'heal') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
+    if ((o.kind === 'move' || o.kind === 'heal' || o.kind === 'enter') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
     // first stop anyone finishing off one of our downed crew nearby
     const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t) && !cop(t)
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
@@ -689,6 +701,7 @@ export function createGame(options) {
       if (lootStep(e, unit, e.order.target)) return;
       e.order = { kind: 'move', x: e.x, z: e.z };
     }
+    if (e.order?.kind === 'enter' && enterStep(e)) return;
     const t = crewTarget(e);
     if (t) { engage(e, unit, t); return; }
     if (fight[e.id]) delete fight[e.id].target;
@@ -705,6 +718,21 @@ export function createGame(options) {
       return;
     }
     if (!moveTo(e, unit, goal.x, goal.z, goal.walk && (goal.stroll || dist < 4))) e.anim = 'idle';
+  }
+
+  // At the door of the business they were sent into: step inside and hold a spot near the way in
+  // (a station order: they fight whoever comes in, then go back to it)
+  function enterStep(e) {
+    const o = e.order, d = doors.find(d => d.to && d.place === o.room);
+    if (!d) { e.order = { kind: 'move', x: e.x, z: e.z }; return false; }
+    if (Math.hypot(d.x - e.x, d.z - e.z) >= DOOR_RADIUS || (businesses && !businesses.mayEnter(e, d.place))) return false;
+    const [ox, oz] = blockOffset(o.k, o.n);
+    const [x, z] = navOf(d.place)?.nearestFree(d.to.x + ox, d.to.z + oz) || [d.to.x, d.to.z];
+    Object.assign(e, { x, z, place: d.place, anim: 'idle' });
+    delete paths[e.id]; delete e.swing;
+    if (fight[e.id]) delete fight[e.id].target;
+    e.order = { kind: 'station', x, z };
+    return true;
   }
 
   // Crew standing on each other get nudged apart a little every tick
@@ -921,6 +949,8 @@ export function createGame(options) {
       }
       const len = Math.hypot(dx, dz);
       if (len < 0.1) {
+        // knocking down a War Lantern (sim/businesses.js): busy, no auto attack (it only drew hits back)
+        if (Object.values(state.attacks || {}).some(a => a.knock?.by === e.id)) { e.anim = 'idle'; continue; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.execute && executeStep(e, unit)) continue;
         if (swingStep(e, unit)) continue;

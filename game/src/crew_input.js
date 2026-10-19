@@ -139,6 +139,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine() }); return; }
       if (foe) { send({ id: heroId, type: 'order', units: mine(), kind: 'attack', target: foe.id }); return; }
       if (unitAt(e.clientX, e.clientY, [hero()])) { send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); return; }
+      // right-click your own business: they walk to its door, go in and hold it (checkpoint 5)
+      const i = !e.ctrlKey && outdoors() ? view.buildingAt(e.clientX, e.clientY) : null, biz = i !== null && game.state.businesses[`b${i}`];
+      if (biz && biz.room && biz.owner === hero()?.owner) { send({ id: heroId, type: 'order', units: mine(), kind: 'enter', business: biz.id }); return; }
       const p = view.screenToGround(e.clientX, e.clientY);
       if (p) send({ id: heroId, type: 'order', units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }
@@ -196,6 +199,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const S = game.state.entities, h = hero();
       const t = [...selected, h?.attackTarget, h?.swing?.target, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
       const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && e.place === h.place).map(e => e.id);
+      // a second T while they are on a T attack calls it off: back to what they were doing (Tim 2026-10-19)
+      if (units.some(id => S[id].order?.kind === 'attack' && 'prev' in S[id].order)) { send({ id: heroId, type: 'order', units, kind: 'resume' }); return; }
       if (!t || !units.length) return;
       if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units });
       else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true });   // then back to their old order
@@ -203,6 +208,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // markers over units, for drawMarkers: blue = Tab target, red = the hero's target,
     // small red = what the crew are attacking (unless it is the hero's target too)
     markers() { return targetMarkers(game.state, heroId, tabbed); },
+    tabbed() { return tabbed; },   // for the target frame (src/unit_frames.js)
     drawMarkers(root) {
       const list = targetMarkers(game.state, heroId, tabbed);
       while (root.children.length < list.length) root.appendChild(document.createElement('i'));

@@ -9,7 +9,7 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 1. **Bigger map** (section 0a). Moved first by Tim 2026-10-18.
 2. **Game settings file**: one data file for police count, bandits, day/night length, townsfolk count and costs (later a settings menu before a game; a multiplayer host picks from the same settings).
 3. **Businesses and raids** (this plan, sections 1-8).
-4. **Rival bot clan**, using the same commands.
+4. **Rival bot clan**, using the same commands (plan: `rival_bot_plan.md`, not built).
 
 ## 0a. Bigger map (Tim OK'd layout v2, 2026-10-18)
 
@@ -74,11 +74,12 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 ## 5. Defending
 
-- **Alert:** bell sound, red banner "Your <business> is being raided", flashing minimap ping. Double-click the banner to jump the camera there (same as double-clicking a crew name).
+- **Alert (built 2026-10-19):** a bell (WebAudio, no sound file) and a red banner at the top: first the doors-open countdown, then the hold time and whether the raiders are held off. Double-click the banner to jump the camera there. A red ping pulses on the minimap.
 - **Time to get there:** 30 s warm-up + the time to beat your guards/crew + the 30 s hold. Crossing the district takes the hero about 15 s (estimate).
 - **Contested back room:** while any of your units stand in the back room, the 30 s hold timer pauses.
-- **Knock down the lantern:** a defender channels **4 s** at the lantern; any hit cancels it (like the 3 s execute). Lantern down = raid cancelled. So you must clear or KO the attackers near the door first.
-- Offline or too far away: guards and stationed crew defend on their own (AI).
+- **Knock down the lantern (built):** the owner's hero stands within 1.6 of it and presses Space: a **4 s** channel (`raid.knockSeconds`, `knockReach`) that moving or any hit cancels; he doesn't auto-attack meanwhile (the channel clears his swing and locked target). Lantern down = the raid is lost for the raider. So you must clear or KO the attackers near the door first.
+- **Send crew in:** right-click your own business and the selected crew go to its door, go in and hold near the entrance (station order).
+- Offline or too far away: house guards and stationed crew fight on their own, and defenders in the back room pause the hold timer (built in checkpoint 4).
 
 ## 6. Controls to add (Controls panel, ? key)
 
@@ -97,7 +98,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door in waves: teahouse 3, warehouse 4, den 6, plus 1 per heat tier (`settings.json` `businesses[kind].attackWaves`; count fixed at the start). Waves bring 2 officers, 3 from halfway (`attack.bigWave`, `bigWavesFrom`), 5 s apart, at full street HP, with no heat for fighting them (retuned 2026-10-19). Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
    - Visuals: clan banner (a nobori in the clan colour, about 2.4 tall, soft glow and faint ring at its foot, swaps on owner change; `render/banners.js`), a gold claim burst, and the clan badge (crest + name) in the top bar.
 4. [x] War Lantern raids (built 2026-10-19, as section 4). Crew slots by business type (`settings.json` `businesses[kind].crewSlots`): teahouse +3, den +2, warehouse +1; no hard cap (base 3 plus the sum). Test param `?rival=den|teahouse|warehouse` gives a rival clan that business. Art: `game/art/props/war_lantern.png` (a recoloured lantern_post) with a soft 1.6 s pulsing red glow and a ground ring.
-5. Defending: alert banner/ping/bell, contested timer pause, lantern knock-down channel.
+5. [x] Defending (built 2026-10-19, as section 5). Test with `?raidme=den` (see `test_params.md`).
 6. Controls panel entries + doc notes to the coordinator.
 
 Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner, back-room hold timer.

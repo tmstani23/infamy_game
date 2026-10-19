@@ -17,7 +17,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   let seed = 97;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const A = { startSeconds: 5, waves: 3, wavesPerTier: 1, perWave: 2, bigWave: 3, bigWavesFrom: 0.5, waveGapSeconds: 5, officerHp: 1, hitHeat: 0, holdSeconds: 30, holdRadius: 2.5, heatAfterWin: 15, heatAfterLoss: 15, leaveSeconds: 10, ...units?.rules?.attack };
-  const RD = { lanternPrice: 2400, lanternCarry: 1, warmupSeconds: 30, holdSeconds: 30, holdRadius: 2.5, maxCrewInside: 6, leaveSeconds: 10, ...units?.rules?.raid };
+  const RD = { lanternPrice: 2400, lanternCarry: 1, warmupSeconds: 30, holdSeconds: 30, holdRadius: 2.5, maxCrewInside: 6, leaveSeconds: 10, knockSeconds: 4, knockReach: 1.6, ...units?.rules?.raid };
   state.attacks ||= {};
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
   const name = b => b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
@@ -76,6 +76,17 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     return { ok: true, why: '' };
   }
 
+  // Defending (checkpoint 5): the owner's hero, standing by a raider's War Lantern, can knock it
+  // down with a knockSeconds channel; moving or taking any hit cancels it. Ends the raid. { ok, why }
+  function canKnock(heroId, businessId) {
+    const e = state.entities[heroId], a = state.attacks[businessId];
+    if (!a || a.mode !== 'raid' || !a.lantern) return { ok: false, why: 'No War Lantern here' };
+    if (a.defender !== e?.owner) return { ok: false, why: 'Not your business' };
+    if (!able(e) || e.place !== 'street') return { ok: false, why: 'Your boss cannot do that now' };
+    if (Math.hypot(e.x - a.lantern.x, e.z - a.lantern.z) > RD.knockReach) return { ok: false, why: 'Walk up to the lantern' };
+    return { ok: true, why: '' };
+  }
+
   // Doors: raiders wait out the warm-up outside; once open, at most maxCrewInside of their crew inside
   function mayEnter(e, place) {
     const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.room === place && a.clan === e.owner);
@@ -100,6 +111,12 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       clan.ryo -= can.price;
       clan.lanterns = (clan.lanterns || 0) + 1;
       say(clan, 'You have a War Lantern: raid a rival business at night');
+    }
+    if (c.action === 'knock') {
+      const can = canKnock(e.id, b.id);
+      if (!can.ok) return say(clan, can.why);
+      state.attacks[b.id].knock = { by: e.id, start: state.tick, hp: e.hp, x: e.x, z: e.z };
+      delete e.swing; delete e.attackTarget;   // hands on the lantern: no swinging while channelling
     }
     if (c.action === 'raid') {
       const can = canRaid(e.id, b.id);
@@ -185,6 +202,16 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     };
     if (b.owner !== a.defender) return end(false, 'it changed hands');
     if (!standing(state.entities[a.hero])) return end(false, 'your boss went down');
+    if (a.knock) {
+      const k = a.knock, u = state.entities[k.by], def = state.clans[a.defender];
+      if (!standing(u) || u.place !== 'street' || u.hp < k.hp || Math.hypot(u.x - k.x, u.z - k.z) > 0.3) {
+        delete a.knock;
+        if (def) say(def, 'Knocking down the lantern was interrupted');
+      } else if (state.tick - k.start >= secs(RD.knockSeconds)) {
+        if (def) say(def, 'You knocked down the War Lantern');
+        return end(false, 'they knocked down your War Lantern');
+      } else k.hp = u.hp;   // healing doesn't count as a hit
+    }
     if (a.phase === 'warmup') { if (state.tick >= a.opensAt) a.phase = 'hold'; return; }
     const ours = Object.values(state.entities).filter(u => u.owner === a.clan && u.place === a.room && standing(u));
     a.away = ours.length ? 0 : a.away + 1;
@@ -297,5 +324,5 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     }
   }
 
-  return { canBuy, canAttack, canBuyLantern, canRaid, mayEnter, crewSlots, command, tick, rules: R, attackRules: A, raidRules: RD };
+  return { canBuy, canAttack, canBuyLantern, canRaid, canKnock, mayEnter, crewSlots, command, tick, rules: R, attackRules: A, raidRules: RD };
 }
