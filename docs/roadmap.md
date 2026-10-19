@@ -27,7 +27,7 @@ Each layer is playable on its own before the next one starts.
 3. Hero movement and camera in the district: done (2026-10-15).
 4. Recruiting and commanding crew: hiring, orders and combat done (2026-10-16); downed and hospital done, plus townsfolk and night bandits (2026-10-17); playtest left (`crew_recruiting_plan.md`).
 5. Interiors for the three buildings: done (2026-10-16), 3D plus a room generator.
-6. Built 2026-10-19: the 2x hand-made port-town map, the game settings file, and businesses and raids (buying, attacking, War Lantern raids, defending; `business_raids_plan.md`). Next: the rival bot clan (starts at the izakaya; plan in `rival_bot_plan.md`, not built).
+6. Built 2026-10-19: the 2x hand-made port-town map, the game settings file, and businesses and raids (buying, attacking, War Lantern raids, defending; `business_raids_plan.md`). The rival bot clan is built too (2026-10-19, `rival_bot_plan.md`).
 7. Then: inventory, stash, fence, documents.
 8. Before any public release: close the test URL parameters (`test_params.md`) or put them behind a dev-only switch or sign-in (Tim 2026-10-19).
 9. Later (after the core game): combat variety (Tim 2026-10-19, planned, not built), so fights aren't one big auto-attack huddle. Ideas: per-enemy special attacks (knockdowns, stuns, charged shots); police types such as ranged officers who back off and fire a charged shot, and a captain; AI that spreads out and flanks instead of piling in.

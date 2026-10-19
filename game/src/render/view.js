@@ -14,7 +14,8 @@ import { createBanners } from './banners.js';
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
 export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false }) {
-  const INDOOR_ZOOM = 1.45;   // the camera moves in closer inside buildings
+  const INDOOR_ZOOM = 1.45;
+  const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
   let zoomNow = zoom;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
@@ -146,8 +147,19 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
   }
 
+  // a building pulses softly twice: crew were sent in, or came out (Tim 2026-10-19)
+  const flashes = new Map();   // building index -> seconds since the flash started
+  function updateFlashes(dt) {
+    for (const [i, age] of flashes) {
+      const a = age + dt, k = a / FLASH_SECONDS;
+      for (const t of things) if (t.building === i) t.mesh.material.uniforms.uFlash.value = k < 1 ? 0.32 * Math.sin(Math.PI * 2 * k) ** 2 : 0;
+      if (k >= 1) flashes.delete(i); else flashes.set(i, a);
+    }
+  }
+
   // state: current tick; prev: the tick before; alpha: how far between them (0..1)
   function render(state, prev, alpha, dt, time, followId) {
+    updateFlashes(dt);
     shared.uTime.value = time;
     shared.uNight.value = THREE.MathUtils.clamp(shared.uNight.value + Math.sign(nightTarget - shared.uNight.value) * dt / 1.2, 0, 1);
     scene.background = DAY_SKY.clone().lerp(NIGHT_SKY, shared.uNight.value);
@@ -296,6 +308,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // jump to any point however far from the hero (double-click a crew name); stays there until the hero moves, uses a door or Home
     jumpTo(x, z) { farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
     isPanned: () => !!freeCam,
+    flashBuilding(i) { if (i !== null && i !== undefined) flashes.set(i, 0); },
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
     // page pixel -> ground point { x, z }

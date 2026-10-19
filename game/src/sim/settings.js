@@ -17,6 +17,7 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   if (ur?.capPerBusiness && crew.capPerBusiness !== undefined) for (const k in ur.capPerBusiness) ur.capPerBusiness[k] = crew.capPerBusiness;
   if (ur && heat.townsfolk) ur.civilianHeat = { ...ur.civilianHeat, ...heat.townsfolk };
   set(ur, 'heatCoolSeconds', heat.coolSeconds);
+  if (ur && s.hideout) { const { _note, ...h } = s.hideout; ur.hideout = { ...ur.hideout, ...h }; }
   if (ur?.raid && s.warLantern?.price !== undefined) ur.raid = { ...ur.raid, lanternPrice: s.warLantern.price };
   if (ur && s.businesses) {
     ur.businesses = ur.businesses || {};

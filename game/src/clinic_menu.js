@@ -35,7 +35,7 @@ export function createClinicMenu({ panel, game, heroId, send }) {
     const rows = c.clinic.map(p => {
       if (p.kind !== 'recover') return `<div class="row"><span>${title(p.unit)}<br><small>healing, out in ${Math.ceil(p.left)}s</small></span></div>`;
       n++;
-      const now = game.clans.reviveCost(p, c.id), wait = p.left > 0 ? `or ${p.cost} ryo in ${Math.ceil(p.left)}s` : `${p.cost} ryo to leave`;
+      const now = game.clans.reviveCost(p, c.id), wait = p.left > 0 ? `${p.cost} ryo in ${Math.ceil(p.left)}s` : 'recovered, waiting for you';
       return `<div class="row"><span>${n + 1}. ${title(p.unit)}<br><small>downed · ${wait}</small></span>` +
         `<button data-pick="${n}" ${c.ryo >= now ? '' : 'disabled'}>Revive ${now}</button></div>`;
     }).join('');

@@ -42,7 +42,7 @@ const cast = (g, id, slot, x, z) => g.step([{ id, type: 'ability', slot, x, z }]
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
-  const near = g.spawn('thug', 'thug', -5, 1, { owner: 'kuroda' }), far = g.spawn('thug', 'thug', 6, 1, { owner: 'kuroda' });
+  const near = g.spawn('thug', 'thug', -5, 1, { owner: 'kuroda', order: { kind: 'attack', target: hero } }), far = g.spawn('thug', 'thug', 6, 1, { owner: 'kuroda' });
   cast(g, hero, 'E');
   assert.ok(S[near].buffs?.intimidated && !S[far].buffs);
   S[hero].hp = 1e6; S[near].hp = 1e6;
@@ -92,7 +92,7 @@ const cast = (g, id, slot, x, z) => g.step([{ id, type: 'ability', slot, x, z }]
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
-  const foe = g.spawn('brute', 'brute', -4.6, 1, { owner: 'kuroda' });
+  const foe = g.spawn('brute', 'brute', -4.6, 1, { owner: 'kuroda', order: { kind: 'attack', target: hero } });
   S[foe].hp = 1e6;
   cast(g, hero, 'F');
   S[hero].hp = 100;

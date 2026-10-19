@@ -17,7 +17,8 @@ As of 2026-10-17:
 - Also working (2026-10-19): police (heat tiers, arrests, jail and bail, bribes at two police boxes), the 2x port-town map, looting bandit bodies.
 - Also working (2026-10-19): the game settings file with an automatic day/night clock, buying businesses (dawn payouts, house guards) and attacking unowned ones at night.
 - Also working (2026-10-19): War Lantern raids on rival businesses, defending your own, and the unit frames.
-- Next: the rival bot clan (see `docs/rival_bot_plan.md`).
+- Also working (2026-10-19): the rival bot clan (3 difficulties, home hideouts).
+- Next: playtest and tune; see `docs/roadmap.md`.
 - The sprite pipeline works end to end for the whole cast.
 
 See [START_HERE.md](START_HERE.md) for details and links.

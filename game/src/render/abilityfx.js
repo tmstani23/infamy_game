@@ -17,12 +17,14 @@ const flat = (geo, color, opacity) => {
 };
 const WAVE_GEO = new THREE.RingGeometry(0.86, 1, 64), DISC_GEO = new THREE.CircleGeometry(1, 40), AURA_GEO = new THREE.RingGeometry(0.57, 0.77, 48);
 // Rally's outward ring is 40% thinner than the others (Tim 2026-10-19)
-const THIN_WAVE_GEO = new THREE.RingGeometry(0.916, 1, 64);
+const THIN_WAVE_GEO = new THREE.RingGeometry(0.958, 1, 64);   // halved again (Tim 2026-10-19)
+// Rally, Intimidate and Red Lantern rings, auras and halos 50% thinner (Tim 2026-10-19: they hid the characters)
+const HALF_WAVE_GEO = new THREE.RingGeometry(0.93, 1, 64), BUFF_AURA_GEO = new THREE.RingGeometry(0.67, 0.77, 48);
 const STREAK_GEO = new THREE.PlaneGeometry(1, 1);
 const AURAS = {
-  lantern: { color: 0xff3a1e, size: 1.25, geo: DISC_GEO, opacity: 0.45 },
-  intimidated: { color: 0x7a3cff, size: 1, geo: AURA_GEO, opacity: 0.55 },
-  rally: { color: 0xffc850, size: 1, geo: AURA_GEO, opacity: 0.5 },
+  lantern: { color: 0xff3a1e, size: 0.625, geo: DISC_GEO, opacity: 0.45 },
+  intimidated: { color: 0x7a3cff, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },
+  rally: { color: 0xffc850, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
   downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
 
@@ -68,7 +70,7 @@ const outlineMesh = (color) => {
   return onFxLayer(m);
 };
 
-const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.52, 1.52);   // 20% smaller (Tim 2026-10-19)
+const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.23, 1.23);   // halo 50% thinner (Tim 2026-10-19)   // 20% smaller (Tim 2026-10-19)
 // round soft glow for lantern halos
 let haloTex = null;
 const HALO_TEX = () => haloTex ||= (() => {
@@ -155,7 +157,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         sparkles(c.x, 0.9, c.z, 10, WHITE, 2.5);
       }
       if (c.kind === 'intimidate') {
-        wave(c.x, c.z, c.radius, 0x8a40ff, 0.45); wave(c.x, c.z, c.radius * 0.7, 0x3a1060, 0.5, 0.08);
+        wave(c.x, c.z, c.radius, 0x8a40ff, 0.45, 0, HALF_WAVE_GEO); wave(c.x, c.z, c.radius * 0.7, 0x3a1060, 0.5, 0.08, HALF_WAVE_GEO);
         cards.ink(c.x, c.z, c.radius * 0.95, 0.75);
         cards.seal(c.x, c.z, 2.1, '威', 0x9a50ff, 1.3, { spin: -0.8 });
         // purple glitter riding out on the shockwave
@@ -183,7 +185,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') {
-        wave(c.x, c.z, 2.4, 0xff4020, 0.5); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06); wave(c.x, c.z, 3.4, 0xffd070, 0.7, 0.12);
+        wave(c.x, c.z, 2.4, 0xff4020, 0.5, 0, HALF_WAVE_GEO); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06, HALF_WAVE_GEO); wave(c.x, c.z, 3.4, 0xffd070, 0.7, 0.12, HALF_WAVE_GEO);
         cards.glint(c.x, 1.4, c.z, 2.4, 0xffb060, 0.45);
         cards.pillar(() => posOf(c.a), 0xff4a20, 0.9, 5.5, 1.6);
         for (let i = 0; i < 40; i++) {
@@ -410,7 +412,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
             const u = o.material.uniforms, su = sp.material.uniforms;
             u.uMap.value = su.uMap.value;
             u.uFrame.value.copy(su.uFrame.value);
-            u.uWidth.value = (0.021 + 0.012 * i) * (name === 'rally' ? 0.8 : 1);   // outline thickness (Tim: 25% thinner; Rally's 20% thinner again)
+            u.uWidth.value = (0.021 + 0.012 * i) * (name === 'rally' ? 0.8 : 1) * 0.5;   // outline thickness (Tim: 25% thinner; Rally's 20% thinner again; all halved 2026-10-19)
             u.uOpacity.value = 0.8 + 0.25 * Math.sin(now * 4 + e.id * 1.3 + i);
             o.position.copy(sp.thing.mesh.position);
             o.quaternion.copy(sp.thing.mesh.quaternion);

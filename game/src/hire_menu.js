@@ -8,7 +8,8 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
   // the teahouse the hero is standing in, if any
-  const teahouse = () => Object.values(game.state.businesses).find(b => b.kind === 'teahouse' && b.room && b.room === hero()?.place);
+  // (or your own hideout: slower hiring)
+  const teahouse = () => Object.values(game.state.businesses).find(b => (b.kind === 'teahouse' || (b.kind === 'hideout' && b.owner === hero()?.owner)) && b.room && b.room === hero()?.place);
 
   function pick(i) {
     const b = teahouse();
@@ -34,7 +35,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     const rows = hireable.map((k, i) => {
       const t = units.types[k], price = game.clans.hirePrice(c.id, k);
       const can = price !== null && c.ryo >= price && crew + c.queue.length < cap && c.queue.length < units.rules.maxQueue;
-      return `<div class="row"><span>${i + 1}. ${title(k)}<br><small>${t.hp} hp · ${t.damage} dmg · ${t.hireSeconds}s</small></span>` +
+      return `<div class="row"><span>${i + 1}. ${title(k)}<br><small>${t.hp} hp · ${t.damage} dmg · ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s</small></span>` +
         `<button data-pick="${i}" ${can ? '' : 'disabled'}>${price} ryo</button></div>`;
     }).join('');
     const h = c.queue[0];

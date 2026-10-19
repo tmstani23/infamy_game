@@ -45,6 +45,12 @@
     "_note": "a War Lantern: needed to raid a rival-owned business; bought at the moneylender's door",
     "price": 2400
   },
+  "hideout": {
+    "_note": "home hideouts (inn: you, izakaya: the rival clan): never taken; hire there hireTimeFactor x slower; heat cools heatCoolFactor x faster with the boss inside; rest heals restPerSecond of max HP a second",
+    "hireTimeFactor": 2,
+    "heatCoolFactor": 2,
+    "restPerSecond": 0.01
+  },
   "crew": {
     "baseCap": 3,
     "heroRespawnSeconds": 20

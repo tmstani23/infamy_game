@@ -66,7 +66,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 - **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, b16 on the map, M on the minimap), from its building panel at the door ring. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
 - **Cost: 2,400 ryo** (2x the den). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
-- The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 30 s** (warm-up). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
+- The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 60 s** (warm-up; `rules.raid.warmupSeconds`, 2026-10-19). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
 - **Lost** if the hero goes down, nobody of yours is inside for 10 s, or the business changes owner.
 - **Joining late:** any of your crew who walk in count, up to **6 crew inside** at once (plus the hero).
 - **Used up** whether the raid wins or loses.
@@ -75,7 +75,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 ## 5. Defending
 
 - **Alert (built 2026-10-19):** a bell (WebAudio, no sound file) and a red banner at the top: first the doors-open countdown, then the hold time and whether the raiders are held off. Double-click the banner to jump the camera there. A red ping pulses on the minimap.
-- **Time to get there:** 30 s warm-up + the time to beat your guards/crew + the 30 s hold. Crossing the district takes the hero about 15 s (estimate).
+- **Time to get there:** 60 s warm-up + the time to beat your guards/crew + the 30 s hold. Crossing the district takes the hero about 15 s (estimate).
 - **Contested back room:** while any of your units stand in the back room, the 30 s hold timer pauses.
 - **Knock down the lantern (built):** the owner's hero stands within 1.6 of it and presses Space: a **4 s** channel (`raid.knockSeconds`, `knockReach`) that moving or any hit cancels; he doesn't auto-attack meanwhile (the channel clears his swing and locked target). Lantern down = the raid is lost for the raider. So you must clear or KO the attackers near the door first.
 - **Send crew in:** right-click your own business and the selected crew go to its door, go in and hold near the entrance (station order).
@@ -115,3 +115,9 @@ Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner,
 - Payout at dawn: confirmed 2026-10-19.
 - How long a newly taken business stays "contested" (no payout, guards not back yet), if at all.
 - Wave count for police attacks: per business + 1 per tier (retuned 2026-10-19); tune in playtests.
+
+## Alerts (built 2026-10-19)
+
+Top-of-screen callouts, one at a time: "<clan> boss knocked out!" and "<clan> boss arrested!" (only if visible), "War Lantern destroyed!" (defender), "Your War Lantern was destroyed" (raider). The sim pushes `state.news` (`bossDown`, `bossArrested`, `lanternDown`, `crewOut`) from `game.js` `hit()`, `police.js` `jailHero()` and the knock in `businesses.js`; `main.js` `callout()` queues them into `#callout`.
+
+TODO (2026-10-19, document when confirmed): the lantern now disappears when the doors open, and a "back room contested" alert was added (businesses thread's last changes).

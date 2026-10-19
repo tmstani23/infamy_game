@@ -1,6 +1,6 @@
 # Rival bot clan plan
 
-Status: agreed with Tim 2026-10-19. Not built: it comes after businesses and raids, on Tim's go.
+Status: built 2026-10-19 (B1-B5 in one go, Tim playtested). Code `game/src/sim/bot.js` (`createBot`, `BOT_DEFAULTS`), knobs `game/data/bots.json` (difficulty "easy" for now). See "As built" at the end.
 
 Already decided: the bot clan starts at the izakaya; it acts only through the same sim commands as a player, with the same fog of war; territory = businesses held, most at season end wins; a War Lantern is always needed to take a rival-owned business.
 
@@ -54,3 +54,25 @@ Knobs in a data file (tune in playtests): think interval, ambush on/off and rang
 
 Answered 2026-10-19: fair play, 3 difficulties (easy no ambush; medium/hard ambush; hard prioritises your hero), rival_yakuza boss sprite.
 Home hideouts agreed: bot izakaya, player inn.
+
+## As built (2026-10-19)
+
+- **Brain:** a client that sends the same commands as a player and sees only what its clan sees; it gives a goal up when stuck. Every `thinkSeconds` it picks one goal, in order: defend (raid on its business: boss runs to knock the lantern down, crew attack-move there or go in when the doors open), bribe at `bribeAtHeat`, revive recovered crew at the clinic, buy the dearest business it can afford, hire at home, raid, night attack on an unclaimed business, station spare crew (beyond an escort of 3, one per business), patrol.
+- **Raids:** once decided the plan sticks: buy a War Lantern at the moneylender, scout by day with 1 crew (remembers defenders), raid the weakest at night, go in when the doors open, hold the back room.
+- **Every `reactSeconds`:** night bandit hunting and looting, ambush of lone rival crew near its turf (medium/hard), focus fire, going for the rival boss (hard: `heroPriority`), executing downed crew when safe, hurt crew to the clinic, abilities. Its crew only fight through these explicit orders (no auto-aggro).
+- **Revenge (every level):** if your boss hits its boss, or downs `revengeDowns` (2) of its crew within `revengeRange` (14) of its boss inside `revengeSeconds` (30), its boss and crew go for your boss.
+- **Flee:** below `fleeHp` (0.3) its boss runs home to the hideout and rests until `restUntilHp` (0.8); crew stay. `fleeInRaid`: easy true (flees mid-raid too), medium and hard false.
+
+| Knob | Easy | Medium | Hard |
+|---|---|---|---|
+| thinkSeconds / reactSeconds | 5 / 2 | 2 / 1 | 1 / 0.5 |
+| attackChance / raidChance | 0.2 / 0.15 | 0.5 / 0.5 | 0.8 / 0.8 |
+| raidWhenWeak, memorySeconds | no, 30 | no, 60 | yes, 180 |
+| ambush (range) | no | yes (10) | yes (14) |
+| heroPriority, focusFire, executeDowned | no | no | yes |
+| retreatHp | 0 | 0.3 | 0.35 |
+| fleeHp / restUntilHp / fleeInRaid | 0.3 / 0.8 / yes | 0.3 / 0.8 / no | 0.3 / 0.8 / no |
+| abilities | R | Q E R F | Q E R F |
+
+- **Hideouts:** inn (you) and izakaya (Kuroda) in `port_town.json`, business `hideout`, teahouse-style rooms. `clans.addClan` claims it; never for sale, can't be attacked or raided, no guards. `units.json` `rules.hideout` / `settings.json` `hideout`: hiring 2x slower, heat cools 2x with the boss inside, everyone inside heals 0.01 of max HP a second, a KO'd hero wakes there. Minimap letter H.
+- **Tests:** `game/tools/test_bot.mjs` (incl. revenge and flee) and `test_bot_game.mjs` (15 simulated minutes).

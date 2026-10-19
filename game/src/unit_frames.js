@@ -97,7 +97,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
     self.c.hidden = !h;
     if (!h) { target.c.hidden = true; return; }
     fill(self, h, h);
-    const id = frameTarget(game.state, heroId, crewInput.selected(), crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e));
+    const id = frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e));
     target.c.hidden = !id;
     if (id) fill(target, S[id], h);
   }

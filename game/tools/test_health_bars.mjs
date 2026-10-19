@@ -24,7 +24,7 @@ const S = g.state.entities;
 const ids = ['hero', 'thug', 'brute', 'swordsman'].map((t, i) => g.spawn(t, t === 'hero' ? 'ronin' : t, -6 + i, 1, { owner: 'player' }));
 for (const id of ids) { assert.equal(S[id].maxHp, units.types[S[id].type].hp); assert.equal(S[id].hp, S[id].maxHp); }
 // a fight: the bar fraction always equals the real health share
-const foe = g.spawn('brute', 'brute', -6, 2.2, { owner: 'kuroda' });
+const foe = g.spawn('brute', 'brute', -6, 2.2, { owner: 'kuroda', order: { kind: 'attack', target: ids[1] } });
 for (let i = 0; i < 200; i++) {
   g.step();
   for (const e of Object.values(S)) if (e.maxHp) close(healthBar(e.hp, e.maxHp).frac, Math.max(0, e.hp) / e.maxHp);

@@ -1,6 +1,5 @@
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
-import { generateRoom } from './sim/generate.js';
 import { createView } from './render/view.js';
 import { onKey, moveCommand, panAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
@@ -18,12 +17,13 @@ import { createUnitFrames } from './unit_frames.js';
 import { createBuildingPanel } from './building_panel.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
+import { createBot } from './sim/bot.js';
+import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
 import { createHudLayout } from './hud_layout.js';
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('loading').textContent = msg; };
-const params = new URLSearchParams(location.search);
 const getJSON = async url => {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Could not load ${url}`);
@@ -32,67 +32,52 @@ const getJSON = async url => {
 
 async function start() {
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings] = await Promise.all([
-    getJSON(`data/${params.get('district') || 'port_town'}.json`), getJSON('data/art.json'),
+  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots] = await Promise.all([
+    getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json')]);
-
-  // ?room=gambling_den&seed=3 swaps in a generated room and starts you inside it
-  const tryRoom = params.get('room');
-  if (tryRoom) {
-    const seed = Number(params.get('seed')) || 1;
-    const g = generateRoom(tryRoom, seed, recipes, parts);
-    if (g.problems.length) console.warn(`Generated ${tryRoom} has problems:\n  ${g.problems.join('\n  ')}`);
-    for (const b of district.buildings) if ((b.interior?.type || b.interior) === tryRoom) b.interior = { type: tryRoom, seed };
-  }
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json')]);
 
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
   const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings });
   const units = game.settings.units;   // hire prices etc. as the settings made them
   game.clans.addClan('player', { name: 'Your clan' });
-  const inRoom = tryRoom && game.rooms.find(r => r.name === tryRoom);
-  const [hx, hz] = inRoom ? [inRoom.spawn.x, inRoom.spawn.z] : district.spawns.hero;
-  const heroId = game.spawn('hero', 'ronin', Number(params.get('x')) || hx, Number(params.get('z')) || hz,
-    { owner: 'player', home: district.spawns.hero, dir: Number(params.get('dir')) || 0, ...(inRoom ? { place: inRoom.name } : {}) });
+  const [hx, hz] = district.spawns.hero;
+  const heroId = game.spawn('hero', 'ronin', hx, hz, { owner: 'player', home: district.spawns.hero, dir: 0 });
+  // ?test=bot (test_params.js): you start richer and with a business the bot can raid
+  if (TEST.playerRyo !== undefined) game.state.clans.player.ryo = TEST.playerRyo;
+  const startBiz = TEST.playerOwns && Object.values(game.state.businesses).find(b => b.kind === TEST.playerOwns);
+  if (startBiz) game.clans.setOwner(startBiz.id, 'player');
 
-  // Test only: ?enemies=3 puts that many rival thugs at the gambling den (none by default, Tim 2026-10-19).
-  // Stand-in until the rival bot clan is built.
-  const enemies = params.has('enemies') ? Number(params.get('enemies')) : 0;
-  const den = Object.values(game.state.businesses).find(b => b.kind === 'gambling_den');
-  if (enemies > 0 && den) {
-    game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
-    for (let i = 0; i < enemies; i++) {
-      const x = den.door[0] - 1.2 + i * 1.2, z = den.door[1] + 4;
-      game.spawn('thug', 'thug', x, z, { owner: 'kuroda', order: { kind: 'station', x, z } });
+  // Townsfolk walking the streets
+  game.civilians.populate();
+
+  // The rival bot clan (docs/rival_bot_plan.md): its boss starts at its hideout (the izakaya) and
+  // plays through the same commands as you (sim/bot.js); ?test=bot gives it 5000 ryo
+  let bot = null;
+  {
+    const bc = bots.clan;
+    if (!game.state.clans[bc.id]) game.clans.addClan(bc.id, { name: bc.name, bot: true });
+    if (TEST.botRyo !== undefined) game.state.clans[bc.id].ryo = TEST.botRyo;
+    const home = Object.values(game.state.businesses).find(b => b.hideout === bc.id);
+    if (home) {
+      const boss = game.spawn('hero', bc.boss, home.ring[0], home.ring[1], { owner: bc.id, home: home.ring });
+      bot = createBot(game, { clan: bc.id, hero: boss, rules: bots.levels[bots.difficulty] });
     }
   }
-
-  // Test only: ?rival=gambling_den (or teahouse / warehouse; 'den' works too) gives a stand-in rival clan
-  // that business with its guards, to try War Lantern raids until the rival bot clan exists
-  const rivalKind = params.get('rival') === 'den' ? 'gambling_den' : params.get('rival');
-  const rivalBiz = rivalKind && Object.values(game.state.businesses).find(b => b.kind === rivalKind);
-  if (rivalBiz) {
-    if (!game.state.clans.kuroda) game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
-    game.clans.setOwner(rivalBiz.id, 'kuroda');
-  }
-
-  // Townsfolk walking the streets (?civilians=0 turns them off)
-  if (params.get('civilians') !== '0') game.civilians.populate();
 
   let view;
   try {
     view = await createView({
       canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, doors: game.doors,
-      zoom: Number(params.get('zoom')) || undefined, night: params.get('night') === '1', debug: params.get('debug') === '1',
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');
     throw e;
   }
 
-  // Fog of war: the screen shows only what your clan can see (?fog=0 turns it off)
-  const fog = createFog({ vision: game.vision, clan: 'player', on: params.get('fog') !== '0' });
+  // Fog of war: the screen shows only what your clan can see
+  const fog = createFog({ vision: game.vision, clan: 'player', on: true });
 
   // the button flips day and night (N); with the clock running it also shows the time to the next flip
   const label = () => {
@@ -105,32 +90,11 @@ async function start() {
   // the screen follows the state after each tick
   const pending = [];
   const toggleNight = () => pending.push({ type: 'time' });
-  if (params.get('night') === '1') pending.push({ type: 'time', night: true });
-  // Test only: ?raidme=den (or teahouse / warehouse) makes that business yours and gives you 3 crew, then at night a stand-in
-  // Kuroda boss and 3 thugs plant a War Lantern at it, to try defending until the rival bot clan exists
-  const raidKind = params.get('raidme') === 'den' ? 'gambling_den' : params.get('raidme');
-  const raidBiz = raidKind && Object.values(game.state.businesses).find(b => b.kind === raidKind && b.room);
-  if (raidBiz) {
-    if (!game.state.clans.kuroda) game.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
-    game.clans.setOwner(raidBiz.id, 'player');
-    game.state.clans.kuroda.lanterns = 1;
-    const boss = game.spawn('hero', 'rival_yakuza', raidBiz.ring[0], raidBiz.ring[1], { owner: 'kuroda' });
-    for (let i = 0; i < 3; i++) {
-      const [x, z] = game.nav.nearestFree(raidBiz.ring[0] + (i - 1) * 1.1, raidBiz.ring[1] + 1.2) || raidBiz.ring;
-      game.spawn('thug', 'thug', x, z, { owner: 'kuroda', order: { kind: 'station', x, z } });
-    }
-    // and you start with 3 crew following you
-    const me = game.state.entities[heroId];
-    for (let i = 0; i < 3; i++) {
-      const [x, z] = game.nav.nearestFree(me.x + (i - 1) * 1.1, me.z + 1.2) || [me.x, me.z];
-      game.spawn('thug', 'thug', x, z, { owner: 'player', order: { kind: 'follow', target: heroId } });
-    }
-    pending.push({ type: 'time', night: true }, { id: boss, type: 'business', action: 'raid', business: raidBiz.id });
-  }
-  onKey('KeyN', toggleNight);
-  $('daynight').addEventListener('click', e => { toggleNight(); e.currentTarget.blur(); });
+  // dev only (test_params.js DEV): flipping day and night by hand
+  if (DEV) onKey('KeyN', toggleNight);
+  $('daynight').addEventListener('click', e => { if (DEV) toggleNight(); e.currentTarget.blur(); });
   label();
-  onKey('F3', () => view.toggleDebug());
+  if (DEV) onKey('F3', () => view.toggleDebug());
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
@@ -145,7 +109,23 @@ async function start() {
   const raidOnMe = (near = false) => Object.values(game.state.attacks || {})
     .filter(a => a.mode === 'raid' && a.defender === game.state.entities[heroId]?.owner && (!near || game.businesses.canKnock(heroId, a.business).ok)).pop();
   const alarmSeen = new Set();
-  $('raidalarm').addEventListener('dblclick', () => { const a = raidOnMe(); if (a) view.jumpTo(a.lantern.x, a.lantern.z); });
+  // big callouts at the top of the screen, queued so two at once don't overwrite each other
+  const callouts = [];
+  let calloutBusy = false;
+  function callout(text, kind) {
+    callouts.push({ text, kind });
+    if (calloutBusy) return;
+    const next = () => {
+      const c = callouts.shift(), el = $('callout');
+      if (!c) { calloutBusy = false; return; }
+      calloutBusy = true;
+      el.textContent = c.text; el.className = c.kind; el.hidden = false;
+      void el.offsetWidth; el.classList.add('show');
+      setTimeout(next, 2700);
+    };
+    next();
+  }
+  $('raidalarm').addEventListener('dblclick', () => { const a = raidOnMe(); if (a) { const p = a.lantern || a.spot; view.jumpTo(p.x, p.z); } });
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
   addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
@@ -215,7 +195,7 @@ async function start() {
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
   const hudLayout = createHudLayout({ fromFile: uiFile.panels });
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
-  window.infamy = { game, view };   // handy from the browser console
+  if (DEV) window.infamy = { game, view };   // handy from the browser console
   $('loading').remove();
 
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
@@ -231,7 +211,7 @@ async function start() {
     acc += dt;
     while (acc >= tick) {
       prev = structuredClone(game.state);
-      game.step([moveCommand(heroId), ...pending.splice(0)]);
+      game.step([moveCommand(heroId), ...pending.splice(0), ...(bot ? bot.tick() : [])]);
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
       else if (game.state.tick % TICK_RATE === 0) label();   // the clock's countdown
       // your attack on a business (sim/businesses.js): waves left, then the hold timer
@@ -271,6 +251,16 @@ async function start() {
       if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
         const el = $('lostcops');
         el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      }
+      // big moments (Tim 2026-10-19): a rival boss knocked out or arrested where you can see him,
+      // and a War Lantern knocked down in a raid you are in; shown one after another at the top
+      for (const n of game.state.news) {
+        const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
+        if (n.kind === 'bossDown' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss knocked out!`, n.by === me ? 'win' : 'news');
+        if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
+        if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');
+        if (n.kind === 'lanternDown' && n.raider === me) callout('Your War Lantern was destroyed', 'loss');
+        if (n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
       }
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);

@@ -49,6 +49,9 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 | Police | [police_spec.md](police_spec.md) | `sim/police.js`, `data/police.json`, `police_menu.js`, `game/tools/test_police.mjs` |
 | Building panel | [buildings.md](buildings.md) | `building_panel.js`, `data/buildings.json` |
 | Businesses and attacks | [business_raids_plan.md](business_raids_plan.md) | `sim/businesses.js` (`canBuy`, dawn payouts via `police.payoutShare`, house guards with `e.guard` = business id, attacks in `state.attacks`, mode `'raid'` with warmup/hold and `a.lantern`; `mayEnter`, `crewSlots`, `canKnock`; lantern knock-down `attack.knock {by, start, hp, x, z}`), `clan.lanterns`, crew order kind `enter` `{room, k, n}` (turned into station by `enterStep`), `render/sound.js` `bell()`, `business` command, `sim/clans.js` (`crewOf`, `clan.color`), `render/banners.js` (banners and War Lanterns), `building_panel.js`, `settings.json` `businesses`, `game/tools/test_businesses.mjs`, `test_attack.mjs` |
+| Rival bot clan | [rival_bot_plan.md](rival_bot_plan.md) | `sim/bot.js` (`createBot`, `BOT_DEFAULTS`), `data/bots.json`, hideouts in `data/port_town.json` + `rules.hideout`, `game/tools/test_bot.mjs`, `test_bot_game.mjs` |
+| Alerts | [business_raids_plan.md](business_raids_plan.md) | `state.news` (sim), `main.js` `callout()`, `#callout` in `index.html` |
+| Test switches | [test_params.md](test_params.md) | `test_params.js` (single source, `DEV`) |
 | Crew command strip | [controls.md](controls.md) | `crew_bar.js` (buttons above the crew pips on the action bar) |
 | Unit frames | [controls.md](controls.md) | `unit_frames.js`: your frame and the target frame, small squares top middle under the alerts, each movable/resizable with its lock (`hud_layout.js`; Reset layout restores them). Target = lone left-clicked unit, else the hero's attack target, else the Tab target; border colour by side. `game/tools/test_unit_frames.mjs` |
 | HUD layout | [controls.md](controls.md) | `hud_layout.js`, `data/ui_layout.json` (saved by a PUT to `server.mjs`, localStorage fallback) |
@@ -122,7 +125,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 - `game/index.html`: page, HUD elements, the controls panel (? key), three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`); also saves the HUD layout on PUT.
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, `test_businesses`, `test_attack`, `test_building_panel`, `test_raid`, `test_defend`, `test_unit_frames`, all `.mjs`; 22 in all) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, `test_businesses`, `test_attack`, `test_building_panel`, `test_raid`, `test_defend`, `test_unit_frames`, `test_bot`, `test_bot_game`, all `.mjs`; 24 in all) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 

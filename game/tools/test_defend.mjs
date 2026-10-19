@@ -74,6 +74,16 @@ for (const id of crew) {
 assert.equal(h.place, 'street', 'the boss stays outside');
 console.log('send crew into your business ok');
 
+// and back out (Tim 2026-10-19): from the street, an order for crew inside walks them out the door
+g.step([{ id: hero, type: 'order', units: crew.slice(0, 2), kind: 'move', x: h.x + 1, z: h.z }]);
+g.step([{ id: hero, type: 'order', units: [crew[2]], kind: 'follow' }]);
+for (let i = 0; i < 20 * 20 && crew.some(id => g.state.entities[id].place !== 'street'); i++) g.step();
+for (const id of crew) assert.equal(g.state.entities[id].place, 'street', 'came out');
+for (let i = 0; i < 20 * 10; i++) g.step();
+assert.ok(Math.hypot(g.state.entities[crew[0]].x - h.x - 1, g.state.entities[crew[0]].z - h.z) < 1.5, 'and went where they were sent');
+assert.ok(Math.hypot(g.state.entities[crew[2]].x - h.x, g.state.entities[crew[2]].z - h.z) < 3, 'or back to the boss');
+console.log('call crew out of a business ok');
+
 // channelling: the boss doesn't swing at a raider standing next to him
 {
   const g2 = createGame({

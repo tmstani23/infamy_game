@@ -123,6 +123,12 @@ Ronin plan (effort / payoff):
 - F: glowing lanterns orbiting him (halos 20% smaller, 2026-10-19), red light, embers.
 - Stacking buff auras (outline, ground ring and sparkles per ability), heal, lifesteal and regen sparkles, and bloom on effects only.
 
+**Thinner effects (2026-10-19):** Rally, Intimidate and Red Lantern outlines, ground rings, cast rings and lantern halos are 50% thinner (`render/abilityfx.js`).
+
+**Sounds (2026-10-19, `render/sound.js`):** brutes pick 50/50 between `club_hit_1-3` and Kenney `impactSoft_medium_000-004` at pitch 0.85; Intimidate uses `impactSoft_medium` at pitch 0.6 (`punch_hit_heavy_1` no longer loaded).
+
+**Targeting (2026-10-19):** nobody picks fights on their own except house guards; see `crew_recruiting_plan.md`.
+
 **Weapon glow (2026-10-18):** a faint glow on each held weapon (katana steel blue-white, club ember amber, jitte soft blue), a bit brighter mid-swing, fading on death. Tuned in `game/data/weapon_glow.json`; needs the `_glow` sheets from the exporter.
 
 Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, same gap as rifles and bows); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
@@ -132,7 +138,7 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 - **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
 - **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
 - **Carried off:** a downed unit nobody finishes, with no enemy within 8 steps for 5 s, is carried to the hospital. There is only this timer, no bleed-out.
-- **Hospital:** the bonesetter's clinic on the waterfront map. Recovery timer (about 30 s for a thug, longer for pricier types), costing about 25% of the hire price, paid on return (it waits if you have no ryo). Then the unit walks out and follows the hero.
+- **Hospital:** the bonesetter's clinic. Recovery timer (30 s thug, 45 s brute/swordsman); since 2026-10-19 crew stay until their boss pays at the clinic menu (25% of the hire price once recovered, 50% before). See `crew_recruiting_plan.md`.
 - **Who can be executed (2026-10-19):** only downed rival heroes and crew. Bandits die outright and are looted (section I).
 - **Execute ryo (2026-10-18):** executing an enemy pays `executeRyo` from `units.json`: thug 20, swordsman 30, brute 40, ±25%. Townsfolk pay nothing.
 - **Fog of war (2026-10-18):** you only fight what your clan can see (`sim/vision.js`); bots follow the same rule.
@@ -142,7 +148,7 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 - **Townsfolk:** can be fought too; see `civilians_plan.md`.
 - **Heat (2026-10-17):** per clan, +2 for a hit, +10 for a down, +30 for a kill; cools 1 every 30 s. Shown in the heat badge with notices.
 - **Controls:** right-click a downed enemy = execute (nearest selected crew, else the hero).
-- **Bots:** each clan has an aggression value from 0 to 1. Bots execute only with no enemy within 5 steps and not in a fight, on an aggression-weighted roll (repeated every second), pricier types first. Bot clans' downed crew are taken off the map (not to the clinic) until rival bases exist. Executions add heat once heat exists. Defenders attack anyone channelling an execute on a downed friend.
+- **Bots:** each clan has an aggression value from 0 to 1. Bots execute only with no enemy within 5 steps and not in a fight, on an aggression-weighted roll (repeated every second), pricier types first. Bot clans' downed crew go to the clinic like yours and wait for a paid revive (2026-10-19). Executions add heat once heat exists. Defenders attack anyone channelling an execute on a downed friend.
 
 **Build order:**
 - [x] H1. Downed state and execute in the sim, with Node tests (done 2026-10-17: `startExecute`, `executeStep` in `sim/game.js`; test `game/tools/test_downed.mjs`)

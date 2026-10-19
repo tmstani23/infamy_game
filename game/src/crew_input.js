@@ -67,6 +67,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
   let tabbed = null;          // the Tab (or left-click) target: shown blue until the hero attacks it
+  let looked = null;          // a townsperson (or other non-enemy) left-clicked to look at in the target frame
   let building = null;        // the selected building (index in the district's buildings), or null
   const hero = () => game.state.entities[heroId];
   const myCrew = () => Object.values(game.state.entities)
@@ -129,7 +130,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (p && mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'attackmove', x: p.x, z: p.z });
       return;
     }
-    if (e.button === 0) drag = { x: e.clientX, y: e.clientY, add: e.shiftKey };
+    if (e.button === 0) drag = { x: e.clientX, y: e.clientY };
     if (e.button === 2) {
       // crew orders: Ctrl + right-click a unit to attack it or finish it off (the nearest
       // selected crew member does that); right-click the ground to go there (Ctrl: hold it),
@@ -141,7 +142,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (unitAt(e.clientX, e.clientY, [hero()])) { send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); return; }
       // right-click your own business: they walk to its door, go in and hold it (checkpoint 5)
       const i = !e.ctrlKey && outdoors() ? view.buildingAt(e.clientX, e.clientY) : null, biz = i !== null && game.state.businesses[`b${i}`];
-      if (biz && biz.room && biz.owner === hero()?.owner) { send({ id: heroId, type: 'order', units: mine(), kind: 'enter', business: biz.id }); return; }
+      if (biz && biz.room && biz.owner === hero()?.owner) { if (mine().length) view.flashBuilding(i); send({ id: heroId, type: 'order', units: mine(), kind: 'enter', business: biz.id }); return; }
       const p = view.screenToGround(e.clientX, e.clientY);
       if (p) send({ id: heroId, type: 'order', units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }
@@ -155,23 +156,31 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   });
   addEventListener('mouseup', e => {
     if (!drag || e.button !== 0) return;
-    const { x, y, add } = drag;
+    const { x, y } = drag;
     drag = null;
     box.hidden = true;
-    let picked;
+    // the crew selection sticks (Tim 2026-10-19): a click on one of your crew toggles it, a drag adds,
+    // and clicking anything else (an enemy, a townsperson, a building, the ground) leaves it alone;
+    // only Esc, clicking them off here or on their name on the bar unselects
+    let picked = [];
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
-      const foe = !unitAt(e.clientX, e.clientY, myCrew()) && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
+      const mate = unitAt(e.clientX, e.clientY, myCrew());
+      const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) tabbed = foe.id;
-      const u = foe || unitAt(e.clientX, e.clientY, myCrew()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
-      picked = u ? [u.id] : [];
-      // nothing there but a building: look at the building instead (the crew selection is dropped)
-      const b = u || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
+      const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
+      looked = civ ? civ.id : null;
+      if (mate) picked = [mate.id];
+      // nothing there but a building: look at the building
+      const b = mate || foe || civ || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
+      if (mate) setSelected(selected.includes(mate.id) ? selected.filter(id => id !== mate.id) : [...selected, mate.id]);
+      if (foe) picked = [foe.id];
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
       picked = myCrew().filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; }).map(u => u.id);
       building = null;
+      setSelected([...new Set([...selected, ...picked])]);
     }
     // a left-click (or drag) anywhere but the hero's locked target drops it and cancels his auto
     // attack (Tim 2026-10-18); clicking the target itself keeps it
@@ -180,10 +189,6 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       send({ id: heroId, type: 'stopattack' });
       if (tabbed === locked) tabbed = null;
     }
-    // a townsperson or enemy is only ever looked at on its own (never mixed into a crew selection)
-    const civ = id => game.state.entities[id] && game.state.entities[id].owner !== hero()?.owner;
-    if (picked.some(civ) || selected.some(civ)) setSelected(picked);
-    else setSelected(add ? [...new Set([...selected, ...picked])] : picked);
   });
 
   return {
@@ -209,6 +214,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // small red = what the crew are attacking (unless it is the hero's target too)
     markers() { return targetMarkers(game.state, heroId, tabbed); },
     tabbed() { return tabbed; },   // for the target frame (src/unit_frames.js)
+    looked() { return looked; },
     drawMarkers(root) {
       const list = targetMarkers(game.state, heroId, tabbed);
       while (root.children.length < list.length) root.appendChild(document.createElement('i'));
@@ -221,8 +227,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
         el.style.transform = `translate(${head.x}px, ${head.y}px)`;
       });
     },
-    selectAll() { setSelected(myCrew().map(u => u.id)); },
-    clear() { setSelected([]); building = null; attackMove = false; document.body.style.cursor = ''; },
+    // outdoors, C also picks crew inside buildings: a street order walks them out (Tim 2026-10-19)
+    selectAll() { setSelected((outdoors() ? Object.values(game.state.entities).filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && !e.dead) : myCrew()).map(u => u.id)); },
+    clear() { setSelected([]); looked = null; building = null; attackMove = false; document.body.style.cursor = ''; },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
     // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')
     stopSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'stop' }); },

@@ -209,10 +209,13 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         if (def) say(def, 'Knocking down the lantern was interrupted');
       } else if (state.tick - k.start >= secs(RD.knockSeconds)) {
         if (def) say(def, 'You knocked down the War Lantern');
+        state.news.push({ kind: 'lanternDown', business: b.id, raider: a.clan, defender: a.defender, x: a.lantern.x, z: a.lantern.z });
         return end(false, 'they knocked down your War Lantern');
       } else k.hp = u.hp;   // healing doesn't count as a hit
     }
-    if (a.phase === 'warmup') { if (state.tick >= a.opensAt) a.phase = 'hold'; return; }
+    // the doors open: the War Lantern burns out and the fight moves to the back room, where everyone is
+    // (Tim 2026-10-19: nobody inside can see a lantern out on the street); a.spot keeps where it stood
+    if (a.phase === 'warmup') { if (state.tick >= a.opensAt) { a.phase = 'hold'; a.spot = a.lantern; a.lantern = null; delete a.knock; } return; }
     const ours = Object.values(state.entities).filter(u => u.owner === a.clan && u.place === a.room && standing(u));
     a.away = ours.length ? 0 : a.away + 1;
     if (a.away > secs(RD.leaveSeconds)) return end(false, 'you left the building');

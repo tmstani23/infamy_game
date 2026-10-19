@@ -16,6 +16,8 @@ export function createClans(state, units, opts = {}) {
     // clinic: crew in hospital ({ unit, model, kind: 'recover' | 'heal', left, cost, hp })
     // heat: trouble caused in the street (sim/game.js addHeat), cools slowly
     state.clans[id] = { id, name, color, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, ...(bot ? { aggression } : {}) };
+    // the clan's home hideout (port_town.json "hideout": clan id) is its own from the start, for good
+    for (const b of Object.values(state.businesses)) if (b.hideout === id) b.owner = id;
     return state.clans[id];
   }
 
@@ -51,14 +53,16 @@ export function createClans(state, units, opts = {}) {
   function hire(hero, businessId, type) {
     const clan = state.clans[hero.owner], b = state.businesses[businessId];
     if (!clan || hero.type !== 'hero') return null;
-    if (!b || b.kind !== 'teahouse' || hero.place !== b.room) return say(clan, 'Hire crew inside a teahouse');
+    // in a teahouse, or (slower) in your own hideout
+    const home = b?.kind === 'hideout' && b.owner === clan.id;
+    if (!b || (b.kind !== 'teahouse' && !home) || hero.place !== b.room) return say(clan, 'Hire crew inside a teahouse or your hideout');
     const price = hirePrice(clan.id, type);
     if (price === null) return say(clan, 'Nobody here for that job yet');
     if (crewCount(clan.id) + clan.queue.length >= crewCap(clan.id)) return say(clan, 'Crew is full: hold more buildings for more crew');
     if (clan.queue.length >= rules.maxQueue) return say(clan, 'Too many hires waiting');
     if (clan.ryo < price) return say(clan, `Not enough ryo (${price} needed)`);
     clan.ryo -= price;
-    clan.queue.push({ unit: type, business: b.id, left: types[type].hireSeconds });
+    clan.queue.push({ unit: type, business: b.id, left: types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1) });
     return say(clan, `Hired a ${type} for ${price} ryo`);
   }
 
@@ -71,9 +75,8 @@ export function createClans(state, units, opts = {}) {
   function carryOff(e) {
     const clan = state.clans[e.owner], t = types[e.type];
     if (!clan || !t) return false;
-    // bot clans' downed crew are taken home off the map, not to this clinic (they used to walk
-    // out of it next to the player and attack; Tim 2026-10-17). Stand-in until rival bases exist.
-    if (clan.bot) return true;
+    // every clan's downed crew go to the clinic, bots too, and wait there until their boss comes
+    // and pays to revive them (Tim 2026-10-19)
     clan.clinic.push({ unit: e.type, model: e.model, kind: 'recover', left: t.recoverSeconds || 30,
       cost: Math.round((t.price || 0) * (rules.recoverCostShare ?? 0.25) * scale(clan.id)), hp: 0 });
     say(clan, `Your ${e.type} was carried to the clinic`);
@@ -95,7 +98,8 @@ export function createClans(state, units, opts = {}) {
   // (instead of waiting out the timer and paying recoverCostShare);
   // heal = the hero and its crew within clinicHealRadius of the door back to full HP at
   // healCostPerHp, all or nothing. spawn(type, model, business, extra) as for hires.
-  const reviveCost = (c, clanId) => Math.round((types[c.unit]?.price || 0) * (rules.reviveNowCostShare ?? 0.5) * scale(clanId));
+  // reviving costs reviveNowCostShare of the hire price while still recovering, recoverCostShare once recovered
+  const reviveCost = (c, clanId) => c.left > 0 ? Math.round((types[c.unit]?.price || 0) * (rules.reviveNowCostShare ?? 0.5) * scale(clanId)) : c.cost;
   function healCost(hero) {
     const b = clinicOf(), r = rules.clinicHealRadius ?? 8, [dx, dz] = b?.door || [hero.x, hero.z];
     const who = Object.values(state.entities).filter(e => e.owner === hero.owner && !e.dead && !e.downed && e.place === 'street'
@@ -130,6 +134,8 @@ export function createClans(state, units, opts = {}) {
     const b = clinicOf();
     for (const clan of Object.values(state.clans)) {
       for (const c of [...clan.clinic]) {
+        // downed crew never walk out on their own: the boss revives them at the clinic menu (Tim 2026-10-19)
+        if (c.kind === 'recover') { c.left = Math.max(0, c.left - dt); continue; }
         if ((c.left = Math.max(0, c.left - dt)) > 0) continue;
         if (clan.ryo < c.cost) { if (!c.broke) { c.broke = true; say(clan, `Your ${c.unit} is ready: ${c.cost} ryo to leave the clinic`); } continue; }
         if (!b) continue;

@@ -19,7 +19,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
-  const foe = g.spawn('thug', 'thug', -4.4, 1, { owner: 'kuroda' });
+  const foe = g.spawn('thug', 'thug', -4.4, 1, { owner: 'kuroda', order: { kind: 'attack', target: hero } });
   S[foe].hp = 1;
   run(g, 2);
   assert.ok(S[foe] && S[foe].downed && !S[foe].dead && S[foe].hp === 0, 'down, not dead');
@@ -160,24 +160,20 @@ console.log('bot tests passed');
   assert.equal(S[t], undefined, 'carried off');
   assert.equal(C.player.clinic.length, 1);
   assert.equal(g.clans.crewCount('player'), 1, 'still counts for the cap');
+  // recovered crew wait at the clinic until the boss pays to revive them there (Tim 2026-10-19)
   const ryo = C.player.ryo, cost = Math.round(units.types.thug.price * R.recoverCostShare);
-  run(g, units.types.thug.recoverSeconds + 0.5);
+  run(g, units.types.thug.recoverSeconds + 5);
+  assert.equal(C.player.clinic.length, 1, 'never walks out on its own');
+  assert.equal(C.player.ryo, ryo, 'nothing paid yet');
+  const ring = g.doors.find(d => d.menu === 'clinic');
+  Object.assign(S[hero], { x: ring.x, z: ring.z });
+  g.step([{ id: hero, type: 'clinic', action: 'revive', patient: 0 }]);
   assert.equal(C.player.clinic.length, 0);
-  assert.equal(C.player.ryo, ryo - cost, 'paid on leaving');
+  assert.equal(C.player.ryo, ryo - cost, 'recovered: the cheap price');
   const back = Object.values(S).find(e => e.type === 'thug' && e.owner === 'player');
   const clinic = g.clans.clinicOf();
   assert.ok(back && back.hp === back.maxHp && Math.hypot(back.x - clinic.door[0], back.z - clinic.door[1]) < 6, 'walked out at full health');
   assert.equal(back.order.kind, 'follow');
-  void hero;
-  // broke clans wait until they can pay
-  const t2 = g.spawn('thug', 'thug', -2, 1, { owner: 'player' });
-  Object.assign(S[t2], { hp: 0, downed: true, downedAt: g.state.tick });
-  C.player.ryo = 0;
-  run(g, R.carryAfterSeconds + units.types.thug.recoverSeconds + 2);
-  assert.equal(C.player.clinic.length, 1, 'waits when broke');
-  C.player.ryo = 100;
-  run(g, 0.2);
-  assert.equal(C.player.clinic.length, 0, 'leaves once paid');
   console.log('carry off ok');
 }
 

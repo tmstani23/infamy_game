@@ -15,6 +15,7 @@
   "roles": {
     "moneylender": "Sells War Lanterns (building panel at the door)",
     "teahouse": "Hire crew (H inside)",
+    "hideout": "Home hideout: hire (H inside, slower), rest and lay low; can't be taken",
     "gambling_den": "Most money, most heat",
     "warehouse": "Storage and smuggling",
     "clinic": "Heal and revive crew",

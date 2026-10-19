@@ -11,24 +11,24 @@ What works in the game now (updated 2026-10-17). Keep this file up to date whene
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
-| Space by a raider's War Lantern | Knock it down (4 s channel; moving or a hit cancels) |
+| Space by a raider's War Lantern | Knock it down (4 s channel; moving or a hit cancels). Raid warm-up is 60 s |
 | Double-click the red raid alarm | Camera to the raided business |
 | Right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
 | Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips townsfolk, crew and downed units) |
 | Left-click an enemy | Target it (blue) and show it in the target frame (top middle). Left-click or drag anywhere else drops the target and stops the auto attack |
-| (stand still) | The hero hits the nearest enemy in reach on its own, Dota-style. Moving stops the attacks. |
+| (no target) | The hero doesn't pick fights (2026-10-19): he swings only at his locked target (Tab or right-click), or hits back at whoever hit him in the last 5 s if in reach. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
 | E | Intimidate: enemies within 4 steps deal 30% less damage for 5 s (14 s) |
 | R | Rally: crew within 8 steps attack 30% faster and heal 15% over 6 s (20 s) |
 | F | Red Lantern (ultimate): 8 s of 50% more damage, healing 20% of damage dealt (60 s) |
 
-The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to select them; Shift-click adds or removes; double-click jumps the camera to them until the hero moves or uses a door. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
+The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to add or remove them from the selection (no Shift needed); double-click jumps the camera to them until the hero moves or uses a door. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
 
 ## Hiring crew (inside a teahouse)
 
 | Key | What it does |
 |---|---|
-| H | Open or close the hire panel |
+| H | Open or close the hire panel. Also works in your hideout (the inn), at half speed; the hideout also lets heat cool 2x with your boss inside, heals everyone inside slowly, and is where your KO'd hero wakes |
 | 1 / 2 / 3 (or click the price) | Hire a Thug / Brute / Swordsman |
 | Esc | Close the panel |
 
@@ -38,11 +38,10 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 
 | Input | What it does |
 |---|---|
-| Left-click a crew member | Select them |
-| Left-drag a box | Select every crew member in the box |
-| Shift + click or drag | Add to the selection |
-| C | Select all your crew (indoors: the crew in this room) |
-| Esc | Clear the selection |
+| Left-click a crew member | Add or remove them from the selection (sticky; clicking a building or the ground keeps it) |
+| Left-drag a box | Add every crew member in the box |
+| C | Select all your crew (on the street this includes crew inside buildings; indoors: the crew in this room) |
+| Esc | Clear the whole selection |
 | Right-click the ground | Send the selected crew there |
 | Right-click your own business | Selected crew go in and hold near the entrance |
 | Ctrl + right-click the ground | Station the selected crew there (they hold that spot) |
@@ -52,16 +51,16 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 | T | All crew attack the marked unit (left-clicked, in the target frame), or the hero's target if nothing is marked; afterwards they go back to their old order. T again while they are on a T attack calls it off |
 | Z | Selected crew stop and stay passive (even when hit) until any new order; the crew panel shows "Passive (stopped)" |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
-| Left-click a townsperson | Show their card |
+| Left-click a townsperson | Show them in the target frame |
 | G | Selected hurt crew walk to the clinic and heal (0.2 ryo per missing HP; street only) |
 
 The crew command strip above the crew pips has buttons that do the same as their keys: V follow, T attack, Z stop, X attack-move, G clinic, C select all; each greys out when it would do nothing. Selected crew have a green ring under them. New crew follow you automatically. Selected crew go into buildings with you and come back out with you; unselected crew wait outside. Mouse crew orders work indoors too (2026-10-18). A door ring flashes teal while your crew are inside.
 
-Crew fight back on their own: anything except a plain right-click move makes them attack enemies that come within about 6 steps. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
+Crew don't pick fights (2026-10-19): they fight on an attack order or T, an attack-move (X), or while stationed in a business; otherwise they only hit back at whoever hit them in the last 5 s. Orders given from the street to crew inside a building walk them out first, and the building flashes when crew go in or come out. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
 
-Crew at 0 health go down (red ring under them). An enemy can execute them (dead, rehire them). If nobody does it within 5 s with no enemy close by, they are carried to the bonesetter's clinic, recover (30 s thug, 45 s brute/swordsman) and walk back out after paying 25% of their hire price. A beaten hero is knocked out and gets back up at the clinic after 20 seconds.
+Crew at 0 health go down (red ring under them). An enemy can execute them (dead, rehire them). If nobody does it within 5 s with no enemy close by, they are carried to the bonesetter's clinic. They stay there until you pay at the clinic menu: 25% of the hire price once recovered (30 s thug, 45 s brute/swordsman), 50% before that (2026-10-19). The crew pip tooltip says recovering or recovered. A beaten hero is knocked out and gets back up at the clinic after 20 seconds.
 
-For testing, three rival thugs stand outside the gambling den. Add `?enemies=0` to the game address to turn them off, and `?civilians=0` to turn off the townsfolk.
+For testing, see `test_params.md` (`?test=bot`).
 
 ## Screen layout
 
@@ -74,12 +73,12 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Arrow keys | Pan the camera around, anywhere on the map (it stays there until you snap back) |
 | Home, or the "Back to hero" button (bottom right, shown while panned) | Snap the camera back to your hero |
 | Mouse wheel, or = and - | Zoom in and out |
-| N | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
+| N (dev only) | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
 | M | Mute or unmute sounds |
-| F3 | Show footprint outlines (debugging) |
+| F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
-| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender. A business letter fills with its owner's colour once explored (your own always) |
+| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout. A business letter fills with its owner's colour once explored (your own always) |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
 
 ## Planned (not built yet)

@@ -148,8 +148,8 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.equal(S[id], undefined, 'helped home');
   console.log('crew vs townsfolk ok');
 }
-// Only the player's own crew go to the clinic and come back from it: downed enemies left
-// alone are taken away, never listed, never walk out of the clinic
+// Every clan's downed crew go to the clinic, each on its own clan's list, and nobody walks out
+// until its own boss revives them there (Tim 2026-10-19); townsfolk are helped home
 {
   const g = newGame(), S = g.state.entities, C = g.state.clans;
   const hero = g.spawn('hero', 'ronin', -30, 1, { owner: 'player' });
@@ -160,12 +160,11 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   run(g, R.carryAfterSeconds + 1);
   assert.ok(!S[mine] && !S[foe] && !S[civ], 'all three carried away');
   assert.equal(C.player.clinic.length, 1, 'our crew member is in the clinic');
-  assert.equal(C.kuroda.clinic.length, 0, 'enemies never are');
-  C.player.ryo = 1000;
+  assert.equal(C.kuroda.clinic.length, 1, 'and theirs, on their own list');
+  C.player.ryo = C.kuroda.ryo = 1000;
   run(g, units.types.thug.recoverSeconds + 1);
-  const out = Object.values(S).filter(e => e.type === 'thug');
-  assert.equal(out.length, 1, 'only one walks out');
-  assert.ok(out[0].owner === 'player' && out[0].order?.kind === 'follow' && out[0].order.target === hero, 'ours, following the hero');
+  assert.equal(Object.values(S).filter(e => e.type === 'thug').length, 0, 'nobody walks out on their own');
+  void hero;
   console.log('clinic only for our crew ok');
 }
 // Bystanders only flinch briefly before running (Tim: the scared clip was too long), and a

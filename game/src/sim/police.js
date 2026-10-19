@@ -119,6 +119,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     Object.assign(h, { x, z, place: 'street', anim: 'idle', jailed: { until: state.tick + secs(R.heroJailSeconds), len: secs(R.heroJailSeconds) } });
     stopPath(h);
     if (clan) say(clan, `Your boss was arrested: out in ${R.heroJailSeconds}s`);
+    state.news.push({ kind: 'bossArrested', clan: h.owner, hero: h.id });
   }
   // Time served: out of the HQ door with full health
   function releaseHeroes() {

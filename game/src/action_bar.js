@@ -39,7 +39,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;
     const sel = crewInput.selected();
-    crewInput.select(!e.shiftKey ? [id] : sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+    crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);   // toggles: the selection sticks (Tim 2026-10-19)
   });
   crew.addEventListener('dblclick', e => {
     const id = e.target.closest('.mate')?.dataset.id, u = game.state.entities[id];
@@ -128,7 +128,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.classList.add('away');
       m.classList.remove('picked');
       delete m.dataset.id;
-      m.title = `${unitName(units, c.unit)} at the clinic, back in ${Math.ceil(c.left)} s`;
+      m.title = `${unitName(units, c.unit)} at the clinic, ${c.kind !== 'recover' ? `back in ${Math.ceil(c.left)} s` : c.left > 0 ? `recovering, ${Math.ceil(c.left)} s` : 'recovered: revive at the clinic'}`;
     });
     jail.forEach((p, i) => {
       const m = crew.children[crewList.length + clinic.length + i], name = unitName(units, p.unit);

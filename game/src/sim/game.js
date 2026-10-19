@@ -44,9 +44,9 @@ export function createGame(options) {
   district.buildings.filter(b => b.interior && b.door).forEach((b, i) => {
     // "interior": "teahouse" names a hand-made room in interiors.json;
     // "interior": { "type": "gambling_den", "seed": 4 } is made by the room generator
-    const name = b.interior.type || b.interior;
-    const t = b.interior.type ? generateRoom(name, b.interior.seed, recipes, parts).template : interiors[name];
-    if (!t) { console.warn(`No interior template "${name}"`); return; }
+    const type = b.interior.type || b.interior, name = b.interior.name || type;   // name: two rooms of one type (hideouts) need their own
+    const t = b.interior.type ? generateRoom(type, b.interior.seed, recipes, parts).template : interiors[type];
+    if (!t) { console.warn(`No interior template "${type}"`); return; }
     const ox = INTERIOR_ORIGIN.x + i * INTERIOR_ORIGIN.spacing, oz = INTERIOR_ORIGIN.z;
     const room = buildRoom3d(name, t, parts, ox, oz);
     rooms.push(room);
@@ -83,7 +83,7 @@ export function createGame(options) {
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
   // clock: the day/night cycle when settings turn it on (auto); left = ticks to the next flip, day = count of days so far;
   // dawn / dusk = true on the tick night turns to day / day to night, from the clock or the 'time' command alike (payouts at dawn)
-  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [], policeNews: [] };
+  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [], policeNews: [], news: [] };
   const halfTicks = night => Math.round((night ? dayNight.nightSeconds : dayNight.daySeconds) * TICK_RATE);
   if (dayNight?.auto) state.clock = { day: 1, left: halfTicks(state.night) };
   const setNight = night => {
@@ -93,7 +93,7 @@ export function createGame(options) {
     if (state.clock) state.clock.left = halfTicks(night);
   };
   district.buildings.forEach((b, i) => {
-    if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, ring: b.door ? ringAt(b) : null, room: roomOf[i] || null, owner: null };
+    if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, ring: b.door ? ringAt(b) : null, room: roomOf[i] || null, owner: null, ...(b.hideout ? { hideout: b.hideout } : {}) };
   });
   // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1 }) : null;
@@ -150,7 +150,8 @@ export function createGame(options) {
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
     if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
-      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && u.place === hero.place);
+      // from the street the hero can also order crew who are inside a building: they walk out first (crewOut)
+      .filter(u => u && !u.dead && !u.downed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && (u.place === hero.place || hero.place === 'street'));
     crew.forEach((u, k) => {
       delete paths[u.id];
       delete u.execute;
@@ -165,7 +166,7 @@ export function createGame(options) {
       if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target, ...(c.resume ? { prev: resumable(u) } : {}) }; return; }
       if (c.kind === 'heal') {
         const b = clans?.clinicOf();
-        if (!b || u.hp >= u.maxHp || u.place !== 'street') return;   // from the street only
+        if (!b || u.hp >= u.maxHp) return;
         const [x, z] = nav.nearestFree(...(b.door || [b.x, b.z])) || [b.x, b.z];
         u.order = { kind: 'heal', x, z };
         return;
@@ -177,9 +178,29 @@ export function createGame(options) {
         return;
       }
       const [ox, oz] = blockOffset(k, crew.length);
-      const [x, z] = navOf(u.place)?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
-      u.order = { kind: c.kind, x, z };
+      const [x, z] = navOf(hero.place)?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
+      u.order = { kind: c.kind, x, z, place: hero.place };
     });
+  }
+
+  // Crew inside a building whose order is out on the street (Tim 2026-10-19): walk to the room's
+  // way out and step out of the front door, then carry on with the order. True while doing that
+  function crewOut(e, unit) {
+    if (e.place === 'street') return false;
+    const o = e.order || {}, t = state.entities[o.target];
+    const out = o.place === 'street' || o.kind === 'heal' || (o.kind === 'follow' && t?.place === 'street' && !t.dead)
+      || (o.kind === 'attack' && t?.place === 'street');
+    if (!out) return false;
+    const room = rooms.find(r => r.name === e.place);
+    const d = room && doors.find(d => d.place === 'street' && d.to && d.x === room.exit.x && d.z === room.exit.z);
+    if (!d) return false;
+    if (Math.hypot(d.x - e.x, d.z - e.z) > 0.6) { if (!moveTo(e, unit, d.x, d.z, false)) e.anim = 'idle'; return true; }
+    const [x, z] = nav.nearestFree(d.to.x, d.to.z) || [d.to.x, d.to.z];
+    state.news.push({ kind: 'crewOut', clan: e.owner, building: Number(Object.keys(roomOf).find(k => roomOf[k] === e.place)) });   // the screen flashes the building
+    Object.assign(e, { x, z, place: 'street', anim: 'idle' });
+    delete paths[e.id]; delete e.swing;
+    if (fight[e.id]) delete fight[e.id].target;
+    return true;
   }
 
   // Where a crew member wants to be right now, or null to stand still
@@ -224,7 +245,7 @@ export function createGame(options) {
   // --- Combat (RTS / Dota style) ----------------------------------------------------
   // Units of two different clans in the same place are enemies. Crew pick fights on
   // their own within AGGRO, but never wander more than LEASH from where they belong.
-  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, LOCK_RANGE = 14;
+  const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, LOCK_RANGE = 14, RETALIATE_SECONDS = 5;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
   // Night bandits (sim/bandits.js) are only enemies of a clan that has made them angry
   const wild = t => t?.owner === WILD;
@@ -296,6 +317,12 @@ export function createGame(options) {
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
     if (executor) return executor;
     const [ax, az] = anchorOf(e);
+    // crew of every clan, bots too, only pick fights on an attack-move or while stationed in a business;
+    // otherwise they swing back at whoever hit them (Tim 2026-10-19). House guards keep auto-aggro
+    if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station') {
+      const by = e.hitBy && state.tick - e.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[e.hitBy.id];
+      return hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
+    }
     const f = fight[e.id];
     const old = f && state.entities[f.target];
     if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
@@ -383,15 +410,25 @@ export function createGame(options) {
     c.heat = (c.heat || 0) + n;
     state.heatGains.push({ clan: owner, amount: n, reason });
   }
+  // a clan's home hideout (b.hideout = clan id; sim/clans.js gives it to the clan) and whether a unit is in it
+  const hideoutOf = id => Object.values(state.businesses).find(b => b.hideout === id && b.owner === id);
+  const atHome = e => !!e && e.place !== 'street' && hideoutOf(e.owner)?.room === e.place;
   function coolHeat() {
     const every = secs(units?.rules?.heatCoolSeconds || 10);
-    if (!state.clans || state.tick % every) return;
-    for (const c of Object.values(state.clans)) if (c.heat > 0) c.heat = Math.max(0, c.heat - 1);
+    if (!state.clans) return;
+    // laying low: with the boss inside the hideout heat cools heatCoolFactor times as fast
+    const f = units?.rules?.hideout?.heatCoolFactor ?? 1, fast = Math.max(1, Math.round(every / f));
+    for (const c of Object.values(state.clans)) {
+      if (!(c.heat > 0)) continue;
+      const boss = Object.values(state.entities).find(e => e.owner === c.id && e.type === 'hero');
+      if (state.tick % (atHome(boss) ? fast : every) === 0) c.heat = Math.max(0, c.heat - 1);
+    }
   }
 
   function hit(a, t, damage, crit = false, kind = null) {
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
+    t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
     delete t.execute;                // a hit breaks an execute channel
     // this tick's hits, for damage numbers and effects (cleared every tick)
     state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
@@ -425,6 +462,7 @@ export function createGame(options) {
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
     if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; return; }
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
+    state.news.push({ kind: 'bossDown', clan: t.owner, hero: t.id, by: a.owner || null, x: t.x, z: t.z });
     if (cop(a) && police) { t.downed = true; t.downedAt = state.tick; return; }
     t.dead = true;
     t.anim = 'death';
@@ -586,10 +624,11 @@ export function createGame(options) {
   // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
   function regen() {
     const r = units?.rules, rate = r?.regenPerSecond || 0, wait = (r?.regenAfterSeconds || 0) / DT;
-    if (!rate) return;
+    if (!rate && !r?.hideout?.restPerSecond) return;
+    const rest = r?.hideout?.restPerSecond || 0;   // resting in your own hideout: faster, free
     for (const e of Object.values(state.entities)) {
       if (e.dead || e.downed || !e.maxHp || e.hp >= e.maxHp || state.tick - (e.hitAt ?? -Infinity) < wait) continue;
-      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * rate * DT);
+      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * (rate + (rest && atHome(e) ? rest : 0)) * DT);
     }
   }
 
@@ -682,9 +721,15 @@ export function createGame(options) {
         delete intents[e.id];
         for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) { if (u.order.kind === 'attack') endAttack(u); else u.order = { kind: 'move', x: u.x, z: u.z }; }
       }
-      // a knocked-out hero comes round at the clinic's door ring after heroRespawnSeconds (Tim 2026-10-17),
-      // or at home when the map has no clinic
+      // a knocked-out hero comes round inside his clan's hideout after heroRespawnSeconds (rival bot plan),
+      // else at the clinic's door ring (Tim 2026-10-17), or at home when the map has no clinic
       if (e.type === 'hero' && secs >= (units?.rules?.heroRespawnSeconds ?? 20)) {
+        const hd = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room);
+        if (hd) {
+          Object.assign(e, { x: hd.to.x, z: hd.to.z, place: hd.place, hp: e.maxHp, dead: false, anim: 'idle' });
+          delete e.diedAt;
+          continue;
+        }
         const clinic = doors.find(d => d.menu === 'clinic');
         const [hx, hz] = clinic ? [clinic.x, clinic.z] : e.home || [e.x, e.z];
         Object.assign(e, { x: hx, z: hz, place: clinic || e.home ? 'street' : e.place, hp: e.maxHp, dead: false, anim: 'idle' });
@@ -702,6 +747,7 @@ export function createGame(options) {
       e.order = { kind: 'move', x: e.x, z: e.z };
     }
     if (e.order?.kind === 'enter' && enterStep(e)) return;
+    if (crewOut(e, unit)) return;
     const t = crewTarget(e);
     if (t) { engage(e, unit, t); return; }
     if (fight[e.id]) delete fight[e.id].target;
@@ -902,6 +948,7 @@ export function createGame(options) {
     state.casts = [];
     state.heatGains = [];
     state.ryoGains = [];
+    state.news = [];         // this tick's big moments (boss knocked out or arrested, War Lantern knocked down), for the screen
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     state.dawn = state.dusk = false;
     if (state.clock && --state.clock.left <= 0) setNight(!state.night);
@@ -960,8 +1007,10 @@ export function createGame(options) {
         const target = state.entities[e.attackTarget];
         if (!fair(e, target) || Math.hypot(target.x - e.x, target.z - e.z) > LOCK_RANGE) delete e.attackTarget;
         else if (Math.hypot(target.x - e.x, target.z - e.z) <= reachOf(e, target)) { engage(e, unit, target, false); continue; }
-        // otherwise standing still: hit the nearest enemy in reach
-        const t = unit.damage && nearestEnemy(e, e.x, e.z, (unit.attackRange || 1) + 0.6);
+        // otherwise standing still: swing back at whoever hit him lately, if in reach (Tim 2026-10-19:
+        // no picking fights with any enemy who happens to stand close; that takes a target)
+        const by = e.hitBy && state.tick - e.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[e.hitBy.id];
+        const t = unit.damage && by && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - e.x, by.z - e.z) <= reachOf(e, by) + 0.6 ? by : null;
         if (t) engage(e, unit, t, false); else e.anim = 'idle';
         continue;
       }

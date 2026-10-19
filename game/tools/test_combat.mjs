@@ -212,7 +212,7 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player', hp: 1e6 });
   const mate = g.spawn('thug', 'thug', 0, 1, { owner: 'player', hp: 1e6 });
-  const foe = g.spawn('thug', 'thug', 1, 1, { owner: 'kuroda', hp: 1e6 });
+  const foe = g.spawn('thug', 'thug', 1, 1, { owner: 'kuroda', hp: 1e6, order: { kind: 'attack', target: mate } });
   g.step([{ id: hero, type: 'order', units: [mate], kind: 'stop' }]);
   const fhp = S[foe].hp;
   let swung = false;
@@ -264,3 +264,32 @@ console.log('T resume ok');
   assert.deepEqual([S[b].order.kind, S[b].order.x, S[b].order.z], ['station', -8, 2], 'called off: back to its post');
 }
 console.log('T call-off ok');
+
+// Tim 2026-10-19: a player's hero and crew don't pick fights with enemies standing close; they
+// swing back once hit, and an attack-move still picks fights on the way
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', -1, 1, { owner: 'player' });
+  const thug = g.spawn('thug', 'thug', -1, 2, { owner: 'player', order: { kind: 'follow', target: hero } });
+  const foe = g.spawn('thug', 'thug', 0.5, 1.5, { owner: 'kuroda', order: { kind: 'move', x: 0.5, z: 1.5 } });   // bot crew holding a spot
+  secs(g, 3);
+  assert.equal(S[foe].hp, T.thug.hp, 'nobody picked a fight');
+  assert.equal(S[hero].hp, T.hero.hp, 'the bot crew left the hero alone too');
+  S[foe].order = { kind: 'attack', target: thug };       // it goes for the crew member, who fights back
+  secs(g, 4);
+  assert.equal(S[thug].hitBy?.id, foe, 'crew member was hit');
+  assert.ok(S[foe].hp < T.thug.hp, 'and swung back');
+  console.log('no picking fights ok');
+}
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
+  const thug = g.spawn('thug', 'thug', -4, 1, { owner: 'player', order: { kind: 'move', x: -4, z: 1 } });
+  const foe = g.spawn('thug', 'thug', 0, 1, { owner: 'kuroda', order: { kind: 'stop' } });
+  secs(g, 2);
+  assert.equal(S[foe].hp, T.thug.hp, 'holding crew leave it alone');
+  g.step([{ id: hero, type: 'order', units: [thug], kind: 'attackmove', x: 2, z: 1 }]);
+  secs(g, 4);
+  assert.ok(S[foe].hp < T.thug.hp, 'attack-move picks the fight');
+  console.log('attack-move ok');
+}
