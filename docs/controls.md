@@ -80,9 +80,9 @@ The unit frames (your frame and the target frame, small squares top middle under
 | N (dev only) | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
 | M, or the Map button | Open or close the full game map (Esc closes it too): territory, businesses, police, units, quarters, season score. The game keeps running. Click a spot to move the camera there |
 | Shinobi: H in the village dojo or longhouse | Hire ninja crew (J on the minimap is the dojo) |
-| Shinobi: Space at a lit lantern | Snuff it (3 per night; they relight at dawn) |
+| Shinobi: hover a lit lantern within 7, then left-click or Space | Snuff it ("Snuff (N left tonight)"; 3 per night, badge shows N/3; they relight at dawn) |
 | Shinobi: Space at the village shrine | Open the contract board |
-| Shinobi: Q E R F | Shadow Step, Caltrops, Smoke Bomb, Assassinate (see `combat_spec.md`) |
+| Shinobi: Q E R F | Shadow Step (on a visible enemy or townsperson: lands next to them with a sure crit, then auto-attacks), Caltrops, Smoke Bomb, Assassinate (reach about 4.4) (see `combat_spec.md`) |
 | K, or the Mute button | Mute or unmute sounds |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |

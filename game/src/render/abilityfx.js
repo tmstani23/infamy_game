@@ -210,6 +210,15 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         }
       }
       if (c.kind === 'shadowstep') {
+        // landed on a target with the sure crit (Tim 2026-10-20): a massive violet slash across him
+        if (c.crit) {
+          const ang = Math.atan2(c.tz - c.z, c.tx - c.x);
+          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 6.2, 1.0, 0x6a4ab0, 0.45);
+          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 5.2, 0.3, 0xf0eaff, 0.32);
+          cards.stroke(c.tx, 1.0, c.tz, ang + 0.7, 4.0, 0.5, 0x3c4a8a, 0.38);
+          cards.glint(c.tx, 1.3, c.tz, 3.4, 0xe8e0ff, 0.3);
+          sparkles(c.tx, 1.1, c.tz, 22, [0.85, 0.8, 1], 5);
+        }
         // gone in black smoke, a fading violet ghost where he stood, a smoke trail, out of a smoke swirl
         if (s0) cards.ghost(s0, [0.36, 0.24, 0.6], 0.7, 0.6);
         smokeBurst(c.fx, c.fz, 34, 1, 1.2); motes(c.fx, c.fz, 14);
@@ -237,6 +246,12 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         }
         wave(c.tx, c.tz, 2, 0x3c4a8a, 0.6, 0.05, THIN_WAVE_GEO);
       }
+      if (c.kind === 'snuff') {
+        // a Shinobi snuffing a lantern from afar (Tim 2026-10-20): a small blackish-purple smoke flash off him, a wisp at the lantern
+        smokeBurst(c.x, c.z, 16, 0.5, 0.8); motes(c.x, c.z, 10, 0.5);
+        wave(c.x, c.z, 1.2, 0x5c3c8c, 0.35, 0, THIN_WAVE_GEO);
+        smokeBurst(c.tx, c.tz, 6, 0.3, 0.6);
+      }
       if (c.kind === 'smoke') {
         // the bomb goes off: a big black burst (the cloud itself keeps billowing in update) and a thin ring
         smokeBurst(c.x, c.z, 70, c.radius * 0.6, 1.5);
@@ -259,6 +274,12 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         motes(c.tx, c.tz, 18, 0.5);
         flashT = 0.22;
         if (s0) s0.flash = 1.6;
+        // the stab (Tim 2026-10-20): a thin V of light shooting out through him, away from the ninja
+        for (const k of [-1, 1]) {
+          cards.stroke(c.tx + Math.cos(ang) * 1.2, 1.15, c.tz + Math.sin(ang) * 1.2, ang + k * 0.22, 3.4, 0.12, 0xf0eaff, 0.22);
+          cards.stroke(c.tx + Math.cos(ang) * 1.2, 1.15, c.tz + Math.sin(ang) * 1.2, ang + k * 0.22, 4.2, 0.3, 0x7a5ac8, 0.3);
+        }
+        if (c.fx !== undefined) smokeBurst(c.fx, c.fz, 14, 0.6, 0.9);   // where he lunged from
       }
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }

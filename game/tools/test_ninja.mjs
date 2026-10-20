@@ -324,4 +324,44 @@ const newGame = () => {
   assert.ok(ku < ot, `fewer jobs on the clan just hit (${ku} vs ${ot})`);
   console.log('fair board ok');
 }
+// Tim 2026-10-20: snuff a clicked lantern from up to snuffReach away (with a smoke-flash cast);
+// Shadow Step onto an enemy lands by it with a sure crit and auto attacks it
+{
+  const g = newGame(), S = g.settings.units.rules.stealth;
+  const l = g.stealth.lights.find(l => g.nav.free(l.x + 6, l.z));
+  const boss = g.state.entities[g.spawn('hero', 'ninja_leader', l.x + 6, l.z, { owner: 'player' })];
+  g.step([{ type: 'time', night: true }]);
+  g.step([{ id: boss.id, type: 'snuff', prop: l.prop }]);
+  assert.ok(boss.snuffing?.prop === l.prop, 'snuffing from 6 away');
+  assert.ok(g.state.casts.some(c => c.kind === 'snuff'), 'smoke flash');
+  for (let i = 0; i < 20 * S.snuffSeconds + 2; i++) g.step();
+  assert.ok(g.state.lightsOut.includes(l.prop), 'that lantern out');
+  const far = g.state.entities[g.spawn('hero', 'ninja_leader', l.x + S.snuffReach + 2, l.z + 30, { owner: 'player' })];
+  g.step([{ id: far.id, type: 'snuff', prop: g.stealth.lights[1].prop }]);
+  assert.ok(!far.snuffing || Math.hypot(g.stealth.lights[1].x - far.x, g.stealth.lights[1].z - far.z) < S.snuffReach, 'not from too far');
+  // Shadow Step on a thug
+  const A = g.settings.units.models.ninja_leader.abilities.Q;
+  const spot = (() => { for (let x = -60; x < 60; x += 2) for (let z = -20; z < 60; z += 2) if (g.nav.free(x, z) && g.nav.free(x + 5, z) && g.nav.free(x + 2.5, z)) return [x, z]; })();
+  const n = g.state.entities[g.spawn('hero', 'ninja_leader', spot[0], spot[1], { owner: 'player' })];
+  const thug = g.state.entities[g.spawn('thug', 'thug', spot[0] + 5, spot[1], { owner: 'kuroda', order: { kind: 'stop' } })];
+  for (let i = 0; i < 3; i++) g.step();
+  const hp0 = thug.hp;
+  g.step([{ id: n.id, type: 'ability', slot: 'Q', x: thug.x, z: thug.z }]);
+  assert.ok(Math.hypot(n.x - thug.x, n.z - thug.z) < (A.landGap ?? 0.9) + 0.4, `landed by the thug (${Math.hypot(n.x - thug.x, n.z - thug.z).toFixed(2)})`);
+  assert.ok(g.state.hits.some(h => h.a === n.id && h.t === thug.id && h.crit) || thug.hp < hp0, 'sure crit');
+  assert.equal(n.attackTarget, thug.id, 'auto attacking it');
+  assert.ok(g.state.casts.some(c => c.kind === 'shadowstep' && c.crit), 'crit slash cast');
+  // Assassinate from 4 away (reach 3 + his own): he lunges in and the thug goes down
+  const F = g.settings.units.models.ninja_leader.abilities.F;
+  const dark = (() => { for (let x = -60; x < 60; x += 2) for (let z = -20; z < 60; z += 2) if (!g.stealth.lit(x, z) && !g.stealth.lit(x + 4, z) && g.nav.free(x, z) && g.nav.free(x + 4, z) && g.nav.free(x + 2, z)) return [x, z]; })();
+  const k = g.state.entities[g.spawn('hero', 'ninja_leader', dark[0], dark[1], { owner: 'player' })];
+  const t2 = g.state.entities[g.spawn('thug', 'thug', dark[0] + 4, dark[1], { owner: 'kuroda', order: { kind: 'stop' } })];
+  for (let i = 0; i < 20 * F.hiddenSeconds + 2; i++) g.step();
+  if (k.hidden) {
+    g.step([{ id: k.id, type: 'ability', slot: 'F', x: t2.x, z: t2.z }]);
+    assert.ok(t2.downed || t2.dead, 'assassinated from 4 away');
+    assert.ok(Math.hypot(k.x - t2.x, k.z - t2.z) < 1.5, 'lunged in');
+  } else console.log('  (thug spotted him at 4: skipped the long assassinate check)');
+  console.log('snuff from afar + shadow step crit ok');
+}
 console.log('ninja tests passed');

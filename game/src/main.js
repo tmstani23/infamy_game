@@ -154,6 +154,20 @@ async function start() {
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
   addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
+  // Shinobi (Tim 2026-10-20): a lit lantern under the mouse, within snuffReach of the boss at night,
+  // says "Snuff"; a left-click on it snuffs it (before the crew clicks see it)
+  let hoverLamp = null;
+  function lampAt() {
+    const h = game.state.entities[heroId], st = game.stealth;
+    if (!st || !h || game.state.clans[h.owner]?.kind !== 'ninja' || !game.state.night || h.place !== 'street') return null;
+    const off = new Set(game.state.lightsOut), near = l => { const q = view.unitToScreen(l.x, l.z, 1.4); return Math.hypot(q.x - mouse.x, q.y - mouse.y); };
+    return st.lights.filter(l => !off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 40).sort((a, b) => near(a) - near(b))[0] || null;
+  }
+  addEventListener('mousedown', e => {
+    if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud')) return;
+    pending.push({ id: heroId, type: 'snuff', prop: hoverLamp.prop });
+    e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
   for (const slot of ['Q', 'E', 'R', 'F']) onKey(`Key${slot}`, () => {
     const p = view.screenToGround(mouse.x, mouse.y);
     pending.push({ id: heroId, type: 'ability', slot, ...(p ? { x: p.x, z: p.z } : {}) });
@@ -363,7 +377,8 @@ async function start() {
         el.hidden = !on;
         // hidden long enough for Assassinate (F, 3 s; smoke doesn't count): "HIDDEN · F ready", else a countdown
         const need = units.models?.ninja_leader?.abilities?.F?.hiddenSeconds || 3, held = h?.hiddenAt == null ? 0 : (game.state.tick - h.hiddenAt) / 20;
-        if (on) { const t = !h.hidden ? 'SEEN' : held >= need ? 'HIDDEN · F ready' : h.hiddenAt == null ? 'HIDDEN' : `HIDDEN · F in ${Math.ceil(need - held)}`; if (el.textContent !== t) { el.textContent = t; el.className = h.hidden ? 'hid' : 'seen'; } } }
+        const snuffs = game.state.night ? ` · snuffs ${game.stealth.snuffsLeft(h.owner)}/${game.stealth.rules.snuffPerNight}` : '';   // lanterns left to put out tonight
+        if (on) { const t = (!h.hidden ? 'SEEN' : held >= need ? 'HIDDEN · F ready' : h.hiddenAt == null ? 'HIDDEN' : `HIDDEN · F in ${Math.ceil(need - held)}`) + snuffs; if (el.textContent !== t) { el.textContent = t; el.className = h.hidden ? 'hid' : 'seen'; } } }
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();
@@ -394,6 +409,10 @@ async function start() {
     fog.update(dt);
     view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId);
     crewInput.drawMarkers($('lock'));
+    { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];
+      el.hidden = !hoverLamp;
+      if (hoverLamp) { const n = game.stealth.snuffsLeft(h.owner), t = n ? `Snuff (${n} left tonight)` : 'No snuffs left tonight';
+        if (el.textContent !== t) el.textContent = t; el.style.left = `${mouse.x + 16}px`; el.style.top = `${mouse.y - 8}px`; } }
     minimap.update();
     gameMap.update();
     bar.update(game.state.tick - 1 + acc / tick);

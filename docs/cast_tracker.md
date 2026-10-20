@@ -77,3 +77,7 @@ Katana fix 2026-10-17 (Tim playtest): curve reversed (tip curves up, edge down);
 Run sword fix 2026-10-19: the katana trails behind the hand while running (`runBack` in `tools/export_sprites.mjs` and `look_tests/sprite_render_test.html`, 12° tip drop). ronin, swordsman, rival_yakuza run and run glow sheets re-exported; old ones in `assets/sprites_archive/2026-10-19_run_sword/`.
 
 Police jitte and weapon glow (2026-10-18): the police sheets were re-exported holding a procedural jitte (old sheets in `assets/sprites_archive/2026-10-18_police_jitte/`). All six armed models (police, ronin, swordsman, rival_yakuza, thug, brute) have `_glow` sheets for the weapon glow (`tools/export_sprites.mjs --glow-only`).
+
+## Ninja look (2026-10-20, Tim OK'd)
+
+Ninja blades 40% bigger, held in the left hand in idle/walk/pointing, tip back and 45° up; thin dark purple glow (`weapon_glow.json` `ninjato`); hidden opacity 0.8 plus a slight purple shimmer. Old sheets: `assets/sprites_archive/2026-10-20_ninja_small_blade`.

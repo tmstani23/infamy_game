@@ -3,11 +3,11 @@
 // litRange in lantern light or by day, indoorRange in a room, times runFactor while running.
 // Once seen, or when it hits or is hit, a unit is revealed for revealSeconds. Hidden units cannot
 // be seen or targeted by anyone else (sim/vision.js canSee, sim/game.js sees). Townsfolk never spot.
-// Snuffing a lantern: the ninja boss at night, next to a lit lantern, Space for snuffSeconds
+// Snuffing a lantern: the ninja boss at night, within snuffReach of a lit lantern (click it or Space), for snuffSeconds
 // (moving cancels): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
 // at most snuffPerNight a night. Numbers: units.json rules.stealth.
 const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 4, runFactor: 2, revealSeconds: 5, lightRadius: 5,
-  snuffPerNight: 3, snuffSeconds: 1, snuffReach: 1.8, every: 1 };
+  snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, every: 1 };
 
 export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
   const R = { ...DEFAULTS, ...rules };
@@ -60,21 +60,22 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     }
   }
 
-  // the lantern a ninja boss could snuff from where he stands, or null
-  function snuffable(e) {
+  // the lantern a ninja boss could snuff from where he stands (that one, given its prop), or null
+  function snuffable(e, prop) {
     if (!e || e.type !== 'hero' || !ninja(e) || e.place !== 'street' || !state.night) return null;
     const off = out();
     let best = null, bd = R.snuffReach;
-    for (const l of lights) { const d = Math.hypot(l.x - e.x, l.z - e.z); if (d < bd && !off.has(l.prop)) { bd = d; best = l; } }
+    for (const l of lights) { const d = Math.hypot(l.x - e.x, l.z - e.z); if (d < bd && !off.has(l.prop) && (prop === undefined || l.prop === prop)) { bd = d; best = l; } }
     return best;
   }
   const snuffsLeft = clanId => Math.max(0, R.snuffPerNight - (state.clans?.[clanId]?.snuffs || 0));
-  // [{ id, type: 'snuff' }] from a Shinobi boss next to a lantern at night
-  function snuff(e) {
-    const l = snuffable(e), clan = state.clans?.[e?.owner];
+  // [{ id, type: 'snuff', prop? }] from a Shinobi boss near a lantern at night (prop: the one clicked)
+  function snuff(e, prop) {
+    const l = snuffable(e, prop), clan = state.clans?.[e?.owner];
     if (!l || !clan || e.dead || e.downed || e.jailed) return;
     if (snuffsLeft(clan.id) <= 0) { say(clan, `You can snuff ${R.snuffPerNight} lanterns a night`); return; }
     e.snuffing = { prop: l.prop, x: e.x, z: e.z, until: state.tick + secs(R.snuffSeconds) };
+    state.casts?.push({ kind: 'snuff', a: e.id, x: e.x, z: e.z, tx: l.x, tz: l.z });   // the smoke flash (render/abilityfx.js)
   }
 
   return { tick, lit, reveal, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };

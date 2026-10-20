@@ -746,10 +746,29 @@ export function createGame(options) {
         if (!grid.free(px, pz)) break;
         x = px; z = pz;
       }
-      if (Math.hypot(x - e.x, z - e.z) < 0.5) return;
+      // onto a unit (Tim 2026-10-20): aimed at an enemy or townsperson he can see within range, he
+      // lands next to it with a sure crit, then auto attacks it
+      const t = aim && Object.values(state.entities).filter(u => fair(e, u) && sees(e, u) && Math.hypot(u.x - aim[0], u.z - aim[1]) <= (a.targetRadius ?? 1.2)
+        && Math.hypot(u.x - e.x, u.z - e.z) <= a.range + 1).sort((p, q) => Math.hypot(p.x - aim[0], p.z - aim[1]) - Math.hypot(q.x - aim[0], q.z - aim[1]))[0];
+      if (t) {
+        const tl = Math.hypot(t.x - e.x, t.z - e.z) || 1, stop = Math.max(0, tl - (a.landGap ?? 0.9));
+        x = e.x; z = e.z;
+        for (let i = 1, m = Math.ceil(stop / 0.25); i <= m; i++) {
+          const px = e.x + (t.x - e.x) / tl * stop * i / m, pz = e.z + (t.z - e.z) / tl * stop * i / m;
+          if (!grid.free(px, pz)) break;
+          x = px; z = pz;
+        }
+      }
+      if (!t && Math.hypot(x - e.x, z - e.z) < 0.5) return;
       extra = { fx: e.x, fz: e.z };
-      e.x = x; e.z = z; e.dir = dirIndex(dx, dz);
+      e.x = x; e.z = z; e.dir = t ? dirIndex(t.x - x, t.z - z) : dirIndex(dx, dz);
       delete paths[e.id];
+      if (t && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
+        const u = statsOf(e);
+        hit(e, t, Math.round(u.damage * damageScale(e) * (u.critMultiplier || 2)), true);
+        extra = { ...extra, tx: t.x, tz: t.z, target: t.id, crit: true };   // the big slash (render/abilityfx.js)
+        if (!t.dead && !t.downed) { e.attackTarget = t.id; delete e.execute; delete e.holdFire; }
+      }
     } else if (a.kind === 'distract') {
       // Distract (Shinobi E): a pebble thrown at the mouse (up to range); house guards, police and
       // bandits within radius of where it lands who aren't fighting go and look there for seconds
@@ -795,8 +814,16 @@ export function createGame(options) {
       }
       if (!t) return tell('Assassinate: nobody in reach at the mouse');
       const dmg = t.type === 'hero' ? Math.max(Math.round(t.hp - t.maxHp * a.bossShare), Math.round(t.maxHp * a.bossMin)) : t.hp;
+      // a quick lunge onto him first (Tim 2026-10-20: longer reach, so he strikes before he is spotted)
+      const fx = e.x, fz = e.z, tl = Math.hypot(t.x - e.x, t.z - e.z), stop = Math.max(0, tl - (a.landGap ?? 0.9)), grid = navOf(e.place);
+      for (let i = 1, m = Math.ceil(stop / 0.25); grid && i <= m; i++) {
+        const px = fx + (t.x - fx) / (tl || 1) * stop * i / m, pz = fz + (t.z - fz) / (tl || 1) * stop * i / m;
+        if (!grid.free(px, pz)) break;
+        e.x = px; e.z = pz;
+      }
+      delete paths[e.id];
       e.dir = dirIndex(t.x - e.x, t.z - e.z);
-      extra = { tx: t.x, tz: t.z, target: t.id };
+      extra = { tx: t.x, tz: t.z, target: t.id, fx, fz };
       hit(e, t, dmg, true, 'assassinate');
     } else return;
     delete e.swing;
@@ -1113,7 +1140,7 @@ export function createGame(options) {
       // lock / unlock some of the hero's own crew (L, or the padlock on the crew bar): { units, on }
       if (c.type === 'lock' && e.type === 'hero' && Array.isArray(c.units)) for (const id of c.units) { const u = state.entities[id]; if (u && u.owner === e.owner && u.type !== 'hero') { if (c.on) u.locked = true; else delete u.locked; } }
       if (c.type === 'ability') useAbility(e, c);
-      if (c.type === 'snuff') stealth.snuff(e);   // a Shinobi boss puts out a lantern (sim/stealth.js)
+      if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) { delete e.holdFire; startExecute(e, c); }
       if (c.type === 'loot') startLoot(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; delete e.holdFire; }
