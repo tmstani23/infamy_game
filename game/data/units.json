@@ -13,6 +13,8 @@
     "executeRyoSpread": 0.25,
     "botAggression": 0.5,
     "carryAfterSeconds": 5,
+    "clinicUnhitSeconds": 5,
+    "downedMinSeconds": 10,
     "carryRadius": 8,
     "recoverCostShare": 0.25,
     "healPerSecond": 8,
@@ -31,7 +33,7 @@
     "attack": { "startSeconds": 5, "waves": 3, "wavesPerTier": 1, "perWave": 2, "bigWave": 3, "bigWavesFrom": 0.5, "waveGapSeconds": 5, "officerHp": 1, "hitHeat": 0, "holdSeconds": 30, "holdRadius": 2.5, "heatAfterWin": 15, "heatAfterLoss": 15, "leaveSeconds": 10 },
     "_raid": "raiding a rival-owned business (sim/businesses.js): needs a War Lantern (lanternPrice ryo at the moneylender's door, carry at most lanternCarry), night only, hero at the door ring; the lantern is planted by the door and used up; raiders can't go in for warmupSeconds, then up to maxCrewInside crew (plus the hero) go in and hold the back room for holdSeconds (paused while a defender stands in it); no police; the boss down or nobody inside for leaveSeconds after the doors open = lost",
     "raid": { "lanternPrice": 2400, "lanternCarry": 1, "warmupSeconds": 60, "holdSeconds": 30, "holdRadius": 2.5, "maxCrewInside": 6, "leaveSeconds": 10 },
-    "businesses": { "teahouse": { "price": 400, "payout": 100, "attackWaves": 3 }, "warehouse": { "price": 700, "payout": 175, "attackWaves": 4 }, "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6 } }
+    "businesses": { "teahouse": { "price": 400, "payout": 100, "attackWaves": 3, "score": 1 }, "warehouse": { "price": 700, "payout": 175, "attackWaves": 4, "score": 2 }, "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "score": 3 } }
   },
   "types": {
     "hero":      { "sprite": "ronin",     "hp": 800, "damage": 30, "attackRange": 2.5, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire",

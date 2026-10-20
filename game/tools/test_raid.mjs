@@ -57,6 +57,20 @@ g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, den.room, 'in after the warm-up');
 assert.ok(crew.every(id => g.state.entities[id].place === den.room), 'crew came along');
 console.log('warm-up keeps raiders out ok');
+// inside a raided business everyone fights on their own (Tim 2026-10-20): the raiding crew go for a
+// defender who never touched them
+{
+  const [x, z] = [a.hold.x, a.hold.z];
+  const d = g.spawn('thug', 'thug', x, z, { owner: 'kuroda', place: a.room, hp: 1e6, maxHp: 1e6, order: { kind: 'stop' } });
+  for (const id of crew) Object.assign(g.state.entities[id], { x: x + 1, z, hp: 1e6, maxHp: 1e6 });
+  let hit = false;
+  for (let i = 0; i < 20 * 4 && !hit; i++) { g.step(); hit = g.state.hits.some(h => h.t === d && crew.includes(h.a)); }
+  assert.ok(hit, 'raiders attack a defender in the room unprompted');
+  delete g.state.entities[d];
+  for (const id of crew) Object.assign(g.state.entities[id], { x: h.x, z: h.z });   // back by the door, off the back-room spot
+  g.step();
+  console.log('raid room: everyone fights ok');
+}
 
 // defenders in the back room hold the timer; with them gone it runs down and the den changes hands
 const guards = () => Object.values(g.state.entities).filter(e => e.guard === den.id && !e.dead);

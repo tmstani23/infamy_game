@@ -31,6 +31,7 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Police, heat tiers, arrests, bribes | `docs/police_spec.md` |
 | Business ownership, payouts, raids, War Lantern | `docs/business_raids_plan.md` |
 | Rival bot clan, difficulties, home hideouts | `docs/rival_bot_plan.md` |
+| Territory areas, game map, season score and end | `docs/territory.md` |
 | Test URL parameters | `docs/test_params.md` |
 | 3D interior rules, look rules, room data format | `docs/interiors_spec.md` |
 | Room generator | `docs/room_generator_plan.md` |

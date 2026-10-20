@@ -83,8 +83,13 @@ export function createClans(state, units, opts = {}) {
     return true;
   }
   // a hurt crew member at the clinic door checks in; false when the clan cannot pay
+  // seconds before a unit may use the clinic: none until it has gone clinicUnhitSeconds without a hit (Tim 2026-10-20)
+  function hitWait(e) {
+    return Math.max(0, (rules.clinicUnhitSeconds ?? 5) - (state.tick - (e?.hitAt ?? -Infinity)) / 20);
+  }
   function checkIn(e) {
     const clan = state.clans[e.owner];
+    if (hitWait(e) > 0) return false;
     const missing = e.maxHp - e.hp, cost = Math.ceil(missing * (rules.healCostPerHp ?? 0.2) * scale(e.owner));
     if (!clan || missing <= 0) return false;
     if (clan.ryo < cost) { say(clan, `Not enough ryo to heal (${cost} needed)`); return false; }
@@ -103,12 +108,13 @@ export function createClans(state, units, opts = {}) {
   function healCost(hero) {
     const b = clinicOf(), r = rules.clinicHealRadius ?? 8, [dx, dz] = b?.door || [hero.x, hero.z];
     const who = Object.values(state.entities).filter(e => e.owner === hero.owner && !e.dead && !e.downed && e.place === 'street'
-      && e.maxHp && e.hp < e.maxHp && (e === hero || Math.hypot(e.x - dx, e.z - dz) < r));
+      && e.maxHp && e.hp < e.maxHp && (e === hero || Math.hypot(e.x - dx, e.z - dz) < r) && hitWait(e) <= 0);   // nobody still in a fight
     return { who, cost: Math.ceil(who.reduce((n, e) => n + (e.maxHp - e.hp), 0) * (rules.healCostPerHp ?? 0.2) * scale(hero.owner)) };
   }
   function clinicMenu(hero, c, door, spawn) {
     const clan = state.clans[hero.owner], b = clinicOf();
     if (!clan || hero.type !== 'hero' || hero.dead || door?.menu !== 'clinic' || !b) return null;
+    if (hitWait(hero) > 0) return say(clan, `You were hit: wait ${Math.ceil(hitWait(hero))} s`);
     if (c.action === 'revive') {
       const p = clan.clinic[c.patient];
       if (!p || p.kind !== 'recover') return null;
@@ -165,5 +171,5 @@ export function createClans(state, units, opts = {}) {
     }
   }
 
-  return { addClan, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf, clinicMenu, reviveCost, healCost };
+  return { addClan, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf, clinicMenu, reviveCost, healCost, hitWait };
 }

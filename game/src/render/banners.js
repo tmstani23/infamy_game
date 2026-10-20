@@ -102,6 +102,7 @@ export function createBanners({ scene }) {
   const HOLD_GEO = new THREE.RingGeometry(0.93, 1, 64);
 
   const lanterns = new Map();        // business id -> { mesh, glow, pool, ring, thing }
+  const knocks = new Map();          // business id -> the knock-down progress ring
   let lanternTex = null, glowTex = null;
   const POOL_GEO = new THREE.CircleGeometry(1, 48), LRING_GEO = new THREE.RingGeometry(0.97, 1, 64);
 
@@ -216,6 +217,22 @@ export function createBanners({ scene }) {
       l.pool.scale.setScalar(r); l.ring.scale.setScalar(r);
       l.pool.material.opacity = 0.08 + 0.08 * beat;
       l.ring.material.opacity = 0.25 + 0.35 * beat;
+    }
+    // someone knocking a War Lantern down (Tim 2026-10-20): a red ring at his feet fills over the channel
+    for (const [id, m] of knocks) if (!state.attacks?.[id]?.knock) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); knocks.delete(id); }
+    for (const a of Object.values(state.attacks || {})) {
+      const k = a.knock;
+      if (!k) continue;
+      let m = knocks.get(a.business);
+      if (!m) {
+        m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.74, 48, 1, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff3c28, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+        m.rotation.x = -Math.PI / 2; m.renderOrder = 3;
+        scene.add(m); knocks.set(a.business, m);
+      }
+      const u = state.entities[k.by] || k;
+      m.position.set(u.x, 0.05, u.z);
+      m.geometry.setDrawRange(0, Math.ceil(Math.min(1, (state.tick - k.start) / (k.ticks || 80)) * 48) * 6);
+      m.material.opacity = 0.65 + 0.3 * Math.sin(time * 10);
     }
     return claimed;
   }

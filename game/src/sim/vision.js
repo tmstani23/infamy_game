@@ -7,7 +7,8 @@
 
 const EVERY = 5;   // ticks between rebuilds of what is in sight (4 a second)
 
-export function createVision(state, bounds, rules = {}) {
+// territory (sim/territory.js, optional): inside a clan's own territory it sees every unit but hidden ninja
+export function createVision(state, bounds, rules = {}, territory = null) {
   const range = rules.range ?? 18, businessRange = rules.businessRange ?? 10;
   const minX = Math.floor(bounds.minX), minZ = Math.floor(bounds.minZ);
   const w = Math.ceil(bounds.maxX) - minX, h = Math.ceil(bounds.maxZ) - minZ;
@@ -39,7 +40,12 @@ export function createVision(state, bounds, rules = {}) {
       const g = grid(clan);
       g.visible.fill(0);
       for (const e of Object.values(state.entities)) if (eyes(e, clan)) stamp(g, e.x, e.z, range);
-      for (const b of Object.values(state.businesses)) if (b.owner === clan) stamp(g, b.x, b.z, businessRange);
+      for (const b of Object.values(state.businesses)) if (b.owner === clan && !territory?.areas().some(a => a.business === b.id)) stamp(g, b.x, b.z, businessRange);
+      if (territory) {
+        const t = territory.cellGrid();
+        // the territory grid has the same cells (same bounds)
+        for (let n = 0; n < t.cells.length; n++) if (t.cells[n] && t.areas[t.cells[n] - 1].clan === clan) { g.visible[n] = 1; g.explored[n] = 1; }
+      }
     }
   }
 
@@ -53,8 +59,9 @@ export function createVision(state, bounds, rules = {}) {
     if (e.place !== 'street') return Object.values(state.entities).some(u => u.owner === clan && !u.dead && u.place === e.place);
     // checked exactly rather than on the grid, so it is never a few ticks late
     const near = (x, z, r) => (x - e.x) ** 2 + (z - e.z) ** 2 <= r * r;
+    if (territory && !e.hidden && territory.ownerAt(e.x, e.z) === clan) return true;   // your own streets (hidden ninja: the normal rules)
     return Object.values(state.entities).some(u => eyes(u, clan) && near(u.x, u.z, range))
-      || Object.values(state.businesses).some(b => b.owner === clan && near(b.x, b.z, businessRange));
+      || Object.values(state.businesses).some(b => b.owner === clan && !territory?.areas().some(a => a.business === b.id) && near(b.x, b.z, businessRange));
   }
 
   return { tick, update, canSee, cellOf, grid, range, businessRange };

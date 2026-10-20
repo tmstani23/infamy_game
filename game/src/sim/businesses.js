@@ -10,7 +10,7 @@ import { POLICE } from './police.js';
 // (data/settings.json "businesses" lays over them).
 // guardSpots(b) = where its guards stand ([{ x, z, place }]); spawn = the game's spawn
 export function createBusinesses({ state, units, clans, payoutShare = () => 1, tierOf = () => 0, spawn = null, guardSpots = () => [], patrolSpots = () => [],
-  roomOf = () => null, remove = null, addHeatGain = () => {} }) {
+  roomOf = () => null, remove = null, addHeatGain = () => {}, payoutBonus = () => 1 }) {
   const R = units?.rules?.businesses || {}, reach = units?.rules?.buyReach ?? 2.5;
   const G = units?.rules?.houseGuards || {}, guardCount = G.count ?? 0, guardWait = Math.round((G.replaceSeconds ?? 120) * 20);
   const [pauseMin, pauseMax] = G.patrolPauseSeconds || [3, 8], legTicks = 20 * 20;
@@ -89,6 +89,9 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
 
   // Doors: raiders wait out the warm-up outside; once open, at most maxCrewInside of their crew inside
   function mayEnter(e, place) {
+    // a clan's home hideout is closed to every other clan (Tim 2026-10-20); the police can still follow in
+    const home = Object.values(state.businesses).find(b => b.room === place && b.hideout);
+    if (home && state.clans?.[e.owner] && home.hideout !== e.owner) { const c = state.clans[e.owner]; say(c, `That is the ${state.clans[home.hideout]?.name || "rival"} hideout: no way in`); return false; }
     const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.room === place && a.clan === e.owner);
     if (!a || a.phase !== 'warmup') return true;
     const clan = state.clans?.[e.owner];
@@ -115,7 +118,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (c.action === 'knock') {
       const can = canKnock(e.id, b.id);
       if (!can.ok) return say(clan, can.why);
-      state.attacks[b.id].knock = { by: e.id, start: state.tick, hp: e.hp, x: e.x, z: e.z };
+      state.attacks[b.id].knock = { by: e.id, start: state.tick, ticks: secs(RD.knockSeconds), hp: e.hp, x: e.x, z: e.z };   // ticks: for the bars
       delete e.swing; delete e.attackTarget;   // hands on the lantern: no swinging while channelling
     }
     if (c.action === 'raid') {
@@ -316,7 +319,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     }
   }
 
-  // At dawn every owned business pays its clan (nothing during a police Manhunt)
+  // At dawn every owned business pays its clan (nothing during a police Manhunt; more when the clan holds its whole quarter)
   function tick() {
     guardTick();
     attackTick();
@@ -324,7 +327,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     for (const b of Object.values(state.businesses)) {
       const pay = R[b.kind]?.payout, clan = state.clans?.[b.owner];
       if (!pay || !clan) continue;
-      const amount = Math.round(pay * payoutShare(clan.id));
+      const amount = Math.round(pay * payoutShare(clan.id) * (payoutShare(clan.id) > 0 ? payoutBonus(b) : 1));   // whole quarter held: sim/territory.js
       if (amount <= 0) { say(clan, `No payout from the ${name(b)}: the police are cracking down`); continue; }
       clan.ryo += amount;
       state.ryoGains.push({ clan: clan.id, amount, reason: `${name(b)} payout` });

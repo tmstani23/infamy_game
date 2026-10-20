@@ -38,6 +38,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;
+    if (e.target.closest('.lock')) { crewInput.toggleLock(id); return; }   // the padlock: lock / unlock (Tim 2026-10-20)
     const sel = crewInput.selected();
     crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);   // toggles: the selection sticks (Tim 2026-10-19)
   });
@@ -102,20 +103,21 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
     // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out
     // (jailed ones can be picked: the selection panel says they are in jail)
-    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp);
+    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp).sort((a, b) => !!a.locked - !!b.locked);   // locked crew last
     const clinic = game.state.clans?.[h.owner]?.clinic || [];
     const jail = game.state.clans?.[h.owner]?.jail || [];
     const n = crewList.length + clinic.length + jail.length;
-    while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); }
+    while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); el('b', 'lock', m, '🔒').title = 'Locked: C, drag boxes and T leave them be (click to unlock, or L)'; }
     while (crew.children.length > n) crew.lastChild.remove();
     crewList.forEach((e, i) => {
       const m = crew.children[i], f = e.hp / e.maxHp, name = unitName(units, e.type);
       if (m.firstChild.textContent !== name) m.firstChild.textContent = name;
-      m.lastChild.style.setProperty('--hp', `${f * 100}%`);
+      m.children[1].style.setProperty('--hp', `${f * 100}%`);
       m.classList.toggle('hurt', f < 0.5);
       m.classList.toggle('down', !!e.downed);
       m.classList.remove('away', 'jailed');
       m.classList.toggle('passive', e.order?.kind === 'stop');   // Z: stopped and passive
+      m.classList.toggle('locked', !!e.locked);
       m.dataset.id = e.id;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
       m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}`;
@@ -123,8 +125,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     clinic.forEach((c, i) => {
       const m = crew.children[crewList.length + i];
       m.firstChild.textContent = unitName(units, c.unit);
-      m.lastChild.style.setProperty('--hp', '100%');
-      m.classList.remove('hurt', 'down', 'jailed', 'passive');
+      m.children[1].style.setProperty('--hp', '100%');
+      m.classList.remove('hurt', 'down', 'jailed', 'passive', 'locked');
       m.classList.add('away');
       m.classList.remove('picked');
       delete m.dataset.id;
@@ -133,8 +135,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     jail.forEach((p, i) => {
       const m = crew.children[crewList.length + clinic.length + i], name = unitName(units, p.unit);
       if (m.firstChild.textContent !== name) m.firstChild.textContent = name;
-      m.lastChild.style.setProperty('--hp', '100%');
-      m.classList.remove('hurt', 'down', 'passive');
+      m.children[1].style.setProperty('--hp', '100%');
+      m.classList.remove('hurt', 'down', 'passive', 'locked');
       m.classList.add('away', 'jailed');
       m.dataset.id = p.id;
       m.classList.toggle('picked', crewInput?.selected().includes(p.id) || false);

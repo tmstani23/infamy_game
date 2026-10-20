@@ -144,7 +144,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.ok(hits > 0 && S[id].downed, 'crew chase and down a townsperson');
   assert.ok(C.player.heat > 0);
   S[t].x = -40;
-  run(g, R.carryAfterSeconds + 1);
+  run(g, Math.max(R.carryAfterSeconds, R.downedMinSeconds) + 1);
   assert.equal(S[id], undefined, 'helped home');
   console.log('crew vs townsfolk ok');
 }
@@ -157,7 +157,9 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   const foe = g.spawn('thug', 'thug', 2, 1, { owner: 'kuroda' });
   const civ = g.civilians.add('merchant', 4, 1);
   for (const id of [mine, foe, civ]) Object.assign(S[id], { hp: 0, downed: true, downedAt: 0 });
-  run(g, R.carryAfterSeconds + 1);
+  run(g, R.downedMinSeconds - 1);
+  assert.ok(S[mine] && S[foe] && S[civ], 'everyone stays on the ground downedMinSeconds (Tim 2026-10-20)');
+  run(g, 2);
   assert.ok(!S[mine] && !S[foe] && !S[civ], 'all three carried away');
   assert.equal(C.player.clinic.length, 1, 'our crew member is in the clinic');
   assert.equal(C.kuroda.clinic.length, 1, 'and theirs, on their own list');

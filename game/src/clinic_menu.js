@@ -29,15 +29,18 @@ export function createClinicMenu({ panel, game, heroId, send }) {
     panel.hidden = !open;
     if (!open || !c || !h) return;
     const { who, cost } = game.clans.healCost(h);
-    const heal = `<div class="row"><span>1. Heal${who.length ? ` ${who.length} hurt` : ''}<br><small>you and crew near the door, to full</small></span>` +
-      `<button data-pick="0" ${who.length && c.ryo >= cost ? '' : 'disabled'}>${who.length ? `${cost} ryo` : 'nobody hurt'}</button></div>`;
+    // hit in the last few seconds: the clinic waits until the fight is over (Tim 2026-10-20)
+    const hitW = Math.ceil(game.clans.hitWait?.(h) || 0), off = hitW > 0 ? 'disabled' : '';
+    const heal = (hitW > 0 ? `<div class="notice">You were hit: the clinic opens in ${hitW} s</div>` : '') +
+      `<div class="row"><span>1. Heal${who.length ? ` ${who.length} hurt` : ''}<br><small>you and crew near the door, to full (not anyone hit in the last 5 s)</small></span>` +
+      `<button data-pick="0" ${who.length && c.ryo >= cost && !off ? '' : 'disabled'}>${who.length ? `${cost} ryo` : 'nobody hurt'}</button></div>`;
     let n = 0;
     const rows = c.clinic.map(p => {
       if (p.kind !== 'recover') return `<div class="row"><span>${title(p.unit)}<br><small>healing, out in ${Math.ceil(p.left)}s</small></span></div>`;
       n++;
       const now = game.clans.reviveCost(p, c.id), wait = p.left > 0 ? `${p.cost} ryo in ${Math.ceil(p.left)}s` : 'recovered, waiting for you';
       return `<div class="row"><span>${n + 1}. ${title(p.unit)}<br><small>downed · ${wait}</small></span>` +
-        `<button data-pick="${n}" ${c.ryo >= now ? '' : 'disabled'}>Revive ${now}</button></div>`;
+        `<button data-pick="${n}" ${c.ryo >= now && !off ? '' : 'disabled'}>Revive ${now}</button></div>`;
     }).join('');
     const none = c.clinic.length ? '' : '<div class="waiting">No crew in the clinic</div>';
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';

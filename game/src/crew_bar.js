@@ -8,7 +8,8 @@ const CMDS = [
   { key: 'Z', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
   { key: 'X', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
   { key: 'G', name: 'Clinic', tip: 'Selected crew walk to the clinic to heal (for ryo).', act: c => c.healSelected(), need: 'sel' },
-  { key: 'C', name: 'All', tip: 'Select all your crew.', act: c => c.selectAll(), need: 'crew' },
+  { key: 'C', name: 'All', tip: 'Select all your crew (not locked ones).', act: c => c.selectAll(), need: 'crew' },
+  { key: 'L', name: 'Lock', tip: 'Lock the selected crew (all locked already: unlock them). Locked crew are left out of C, drag boxes and T; crew you send into your businesses lock by themselves.', act: c => c.lockSelected(), need: 'sel' },
 ];
 
 const CSS = `

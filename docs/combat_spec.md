@@ -7,6 +7,7 @@ Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero cha
 - **Style:** RTS / Dota hybrid. Hero = Dota-style character on WASD; crew = RTS army (select, right-click).
 - **Enemies:** units of different clans in the same place.
 - **Crew:** auto-attack within 6 steps, leashed 10 steps to their hero / station / move point. A plain move ignores enemies until it arrives. Right-click enemy = focus. X + click = attack-move.
+- **Who fights (2026-10-19/20):** no clan's hero or crew picks fights. They fight on an attack order or T, attack-move, while stationed, when hit (hit back at whoever hit them in the last 5 s), and as **backup**: crew within 6 steps join in on whoever hit their boss or a clanmate in the last 5 s (all clans; crew stopped with Z or on a move order don't). Inside a raided or attacked business everyone fights on their own.
 - **Hero:** hits the nearest enemy in reach while standing still; moving stops attacks. Lock-on (2026-10-18): right-click or Tab locks a target (left-click only marks it); the hero swings when within 2.5 steps and does not chase; the lock drops beyond 14 steps or when the target is down. At 0 HP knocked out, back up at the clinic after 20 s.
 - **Hits:** `damage` every `attackSpeed` seconds once within `attackRange`. Damage lands 40% through the swing (build order 1).
 - **Death (2026-10-17):** crew at 0 HP go down first; executed crew play the death animation and are removed (dead, rehire), the rest are carried to the clinic. See section H.
@@ -137,13 +138,14 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 
 - **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
 - **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
-- **Carried off:** a downed unit nobody finishes, with no enemy within 8 steps for 5 s, is carried to the hospital. There is only this timer, no bleed-out.
+- **Carried off:** everyone knocked down (crew of every clan, townsfolk, a police-downed boss) stays on the ground at least 10 s (`downedMinSeconds`, 2026-10-20). After that, a downed unit nobody finishes is carried to the hospital (or helped home) once no enemy is within 8 steps (`carryRadius`) for 5 s (`carryAfterSeconds`). Knocked-out officers also lie 10 s before they are taken away. Bosses knocked out by clans are unchanged (20 s respawn). Bandits and house guards die outright. There is no bleed-out.
 - **Hospital:** the bonesetter's clinic. Recovery timer (30 s thug, 45 s brute/swordsman); since 2026-10-19 crew stay until their boss pays at the clinic menu (25% of the hire price once recovered, 50% before). See `crew_recruiting_plan.md`.
 - **Who can be executed (2026-10-19):** only downed rival heroes and crew. Bandits die outright and are looted (section I).
 - **Execute ryo (2026-10-18):** executing an enemy pays `executeRyo` from `units.json`: thug 20, swordsman 30, brute 40, ±25%. Townsfolk pay nothing.
 - **Fog of war (2026-10-18):** you only fight what your clan can see (`sim/vision.js`); bots follow the same rule.
 - **Heal order:** hurt crew can be sent to the clinic for a little ryo.
 - **Clinic menu (2026-10-17):** heal nearby crew at 0.2 ryo per HP, or revive a recovering crew member now for 50% of the hire price.
+- **Not while in a fight (2026-10-20):** the clinic only serves someone not hit for 5 s (`clinicUnhitSeconds`, units.json): the boss's clinic menu (heal + revive) waits, the menu heal skips anyone hit lately, and crew sent with G wait at the door. Same for bots.
 - **Hero:** knocked out, up again at the clinic after 20 s.
 - **Townsfolk:** can be fought too; see `civilians_plan.md`.
 - **Heat (2026-10-17):** per clan, +2 for a hit, +10 for a down, +30 for a kill; cools 1 every 30 s. Shown in the heat badge with notices.

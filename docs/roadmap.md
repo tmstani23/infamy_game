@@ -28,6 +28,15 @@ Each layer is playable on its own before the next one starts.
 4. Recruiting and commanding crew: hiring, orders and combat done (2026-10-16); downed and hospital done, plus townsfolk and night bandits (2026-10-17); playtest left (`crew_recruiting_plan.md`).
 5. Interiors for the three buildings: done (2026-10-16), 3D plus a room generator.
 6. Built 2026-10-19: the 2x hand-made port-town map, the game settings file, and businesses and raids (buying, attacking, War Lantern raids, defending; `business_raids_plan.md`). The rival bot clan is built too (2026-10-19, `rival_bot_plan.md`).
-7. Then: inventory, stash, fence, documents.
-8. Before any public release: close the test URL parameters (`test_params.md`) or put them behind a dev-only switch or sign-in (Tim 2026-10-19).
-9. Later (after the core game): combat variety (Tim 2026-10-19, planned, not built), so fights aren't one big auto-attack huddle. Ideas: per-enemy special attacks (knockdowns, stuns, charged shots); police types such as ranged officers who back off and fire a charged shot, and a captain; AI that spreads out and flanks instead of piling in.
+7. Built 2026-10-20: season score and season end, territory areas and the M game map (`territory.md`).
+
+Tim's order from here (2026-10-20): a fully playable single-player game first, small tweaks later.
+
+8. Ninja (Shinobi) clan fully playable: contracts only (no property), village board, stealth, assassin leader. Plan to come in `ninja_clan_plan.md`.
+9. Start menu: new game, load, saves, and clan select (Yakuza or Shinobi).
+10. Inventory, stash, fence and world loot; business upgrades.
+11. Rival bot medium and hard tuning.
+12. Before any public release: close the test switches (`test_params.md`) or put them behind sign-in (Tim 2026-10-19).
+13. Later (after the core game): combat variety (Tim 2026-10-19, planned, not built), so fights aren't one big auto-attack huddle. Ideas: per-enemy special attacks (knockdowns, stuns, charged shots); police types such as ranged officers who back off and fire a charged shot, and a captain; AI that spreads out and flanks instead of piling in.
+
+On hold: real estate (market, selling, lots, development) until the map can grow (Tim 2026-10-20).

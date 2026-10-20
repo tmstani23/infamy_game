@@ -1,7 +1,7 @@
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
 import { createView } from './render/view.js';
-import { onKey, moveCommand, panAxes } from './input.js';
+import { onKey, moveCommand, panAxes, edgeAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
@@ -20,6 +20,7 @@ import { createFog } from './render/fog.js';
 import { createBot } from './sim/bot.js';
 import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
+import { createGameMap } from './game_map.js';
 import { createHudLayout } from './hud_layout.js';
 
 const $ = id => document.getElementById(id);
@@ -162,13 +163,18 @@ async function start() {
   onKey('KeyX', () => crewInput.armAttackMove());
   onKey('KeyZ', () => crewInput.stopSelected());   // stop + passive until the next order (Tim 2026-10-18)
   onKey('Tab', () => crewInput.tab());
+  $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onKey('KeyT', () => crewInput.crewAttack());
+  onKey('KeyL', () => crewInput.lockSelected());   // lock / unlock the selected crew (Tim 2026-10-20)
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); crewInput.clear(); $('controls').hidden = true; });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); crewInput.clear(); $('controls').hidden = true; gameMap.close(); });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']
     .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : policeMenu.isOpen() ? policeMenu.pick(i) : hireMenu.pick(i)));
   const sound = createSound();
-  onKey('KeyM', () => sound.toggleMute());
+  // mute: K or the button (M opens the game map, Tim 2026-10-20)
+  const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };
+  onKey('KeyK', mute);
+  $('mutebtn').addEventListener('click', e => { mute(); e.currentTarget.blur(); });
   const fps = createFps();
   onKey('KeyP', () => fps.toggle());
   // Controls panel: the button or ? opens it, Esc closes it
@@ -190,6 +196,29 @@ async function start() {
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, where, jump });   // own + target frames, top middle
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c) });
   const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
+  const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  onKey('KeyM', () => gameMap.toggle());
+  $('mapbtn').addEventListener('click', e => { gameMap.toggle(); e.currentTarget.blur(); });
+  // the season score in the top bar (sim/territory.js): day of the season, then every clan's points
+  const scoreText = () => {
+    const s = game.state.season, t = game.territory;
+    if (!s || !t) return '';
+    const parts = t.standings().map(r => `${r.clan === 'player' ? 'You' : (game.state.clans[r.clan]?.name || r.clan).replace(/ clan$/, '')} <b>${r.score}</b>`);
+    return `Day ${Math.min(s.day, s.cycles)}/${s.cycles} · ${parts.join(' · ')}`;
+  };
+  // the season is over: the results, then a new game (reload) or keep playing
+  function showResults() {
+    const s = game.state.season, el = $('seasonend');
+    if (!s?.final) return;
+    const me = 'player', win = s.winner === me;
+    el.querySelector('h2').textContent = win ? 'You win the season!' : s.winner ? `${game.state.clans[s.winner]?.name || 'A rival'} wins the season` : 'The season ends in a draw';
+    el.querySelector('.sub').textContent = `${s.cycles} days and nights · the clan with the most points wins (teahouse 1, warehouse 2, den 3)`;
+    el.querySelector('.list').innerHTML = s.final.map(r => `<div class="row"><i style="background:${game.state.clans[r.clan]?.color}"></i><span>${r.clan === me ? 'You' : game.state.clans[r.clan]?.name}</span><b>${r.score}</b></div>`).join('');
+    el.hidden = false;
+  }
+  $('seasonend').querySelector('.again').addEventListener('click', () => location.reload());
+  $('seasonend').querySelector('.keep').addEventListener('click', e => { $('seasonend').hidden = true; e.currentTarget.blur(); });
   // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
   // Positions and sizes live in data/ui_layout.json (written through server.mjs)
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
@@ -242,9 +271,21 @@ async function start() {
           if (el.querySelector('b').textContent !== b) el.querySelector('b').textContent = b;
           if (el.querySelector('span').textContent !== t) el.querySelector('span').textContent = t;
         }
-        const k = a?.knock?.by === heroId ? a.knock : null, kb = $('knockbar');
+        // ...or a rival knocking down your own War Lantern (Tim 2026-10-20): the same bar in red, a bell
+        // when it starts, and a click on it targets him
+        const mine = Object.values(game.state.attacks || {}).find(r => r.clan === game.state.entities[heroId]?.owner && r.knock);
+        const foe = mine?.knock || null, k = a?.knock?.by === heroId ? a.knock : foe, kb = $('knockbar');
         kb.hidden = !k;
-        if (k) kb.querySelector('i').style.width = `${Math.min(100, (game.state.tick - k.start) / ((game.businesses.raidRules.knockSeconds || 4) * TICK_RATE) * 100)}%`;
+        kb.classList.toggle('foe', !!k && k === foe);
+        if (k) {
+          kb.querySelector('i').style.width = `${Math.min(100, (game.state.tick - k.start) / (k.ticks || (game.businesses.raidRules.knockSeconds || 4) * TICK_RATE) * 100)}%`;
+          const u = game.state.entities[k.by], who = `${game.state.clans[u?.owner]?.name || 'A rival'}${u?.type === 'hero' ? ' boss' : ''}`;
+          const txt = k === foe ? `${who} is knocking down your War Lantern · click to target` : 'Knocking down the War Lantern';
+          if (kb.querySelector('span').textContent !== txt) kb.querySelector('span').textContent = txt;
+          kb.dataset.by = k.by;
+          const key = `knock:${mine?.business}:${mine?.opensAt}`;
+          if (k === foe && !alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); }
+        }
       }
       { const n = game.state.clans.player?.lanterns || 0, el = $('lanterns'); el.hidden = !n; el.textContent = `War Lantern ${n}`; }
       // the hunters lost your boss (sim/police.js): a short notice at the top
@@ -263,13 +304,21 @@ async function start() {
         if (n.kind === 'backRoom' && n.state === 'taking' && n.defender === me) callout('Your back room is being taken!', 'loss');
         if (n.kind === 'backRoom' && n.state === 'contested' && (n.defender === me || n.raider === me)) callout('Back room contested!', 'news');
         if (n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
+        // territory (sim/territory.js): rivals walking into your streets, quarters held whole, the season's end
+        if (n.kind === 'intruder' && n.clan === me) { callout('Rivals in your territory!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'quarter' && n.clan === me) callout(`You hold the ${n.name.replace(/^The /, '')}!`, 'win');
+        if (n.kind === 'quarterLost' && n.clan === me) callout(`You lost the ${n.name.replace(/^The /, '')}`, 'loss');
+        if (n.kind === 'quarter' && n.clan !== me && game.territory.quarters.find(q => q.id === n.quarter)?.businesses.every(id => game.vision.grid(me).explored[game.vision.cellOf(game.state.businesses[id].x, game.state.businesses[id].z)] === 1))
+          callout(`${game.state.clans[n.clan]?.name || 'A rival'} holds the ${n.name.replace(/^The /, '')}`, 'news');
+        if (n.kind === 'seasonEnd') showResults();
       }
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
       acc -= tick;
       const door = game.doorNear(heroId), knockable = raidOnMe(true);
-      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : door ? `Space  ${door.label}` : '';
+      const shut = door && Object.values(game.state.businesses).find(b => b.room === door.place && b.hideout && b.hideout !== game.state.entities[heroId]?.owner);   // a rival's hideout: closed
+      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut ? `${game.state.clans[shut.hideout]?.name || 'Rival'} hideout: no way in` : door ? `Space  ${door.label}` : '';
       $('prompt').hidden = !door && !knockable;
       hireMenu.update();
       clinicMenu.update();
@@ -280,18 +329,28 @@ async function start() {
       if (jailed) { const t = `IN JAIL<small>out in ${Math.max(0, Math.ceil((jailed.until - game.state.tick) / TICK_RATE))}s</small>`; if (jailEl.innerHTML !== t) jailEl.innerHTML = t; }
       heatBadge.update();
       ryoBadge.update();
+      if (game.state.tick % 10 === 0) {
+        const t = scoreText(); if ($('score').innerHTML !== t) $('score').innerHTML = t;
+        // hover: where each clan's points come from (sim/territory.js breakdown)
+        const why = game.territory ? game.territory.standings().map(r => `${r.clan === 'player' ? 'You' : game.state.clans[r.clan]?.name}: ${game.territory.breakdown(r.clan).map(x => `${x.label} ${x.points}`).join(' + ') || 'no businesses'} = ${r.score}`).join('\n') : '';
+        if ($('score').title !== why) $('score').title = why;
+      }
       crewInput.update();
       selPanel.update();
       unitFrames.update();
       bldPanel.update();
     }
     const pan = panAxes();
-    view.pan(pan.right, pan.up, dt);
+    // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
+    // (not in hero follow; Home goes back to it), and not with the game map open
+    const edge = !gameMap.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
+    view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);
     view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId);
     crewInput.drawMarkers($('lock'));
     minimap.update();
+    gameMap.update();
     bar.update(game.state.tick - 1 + acc / tick);
     crewBar.update();
     hudLayout.update();

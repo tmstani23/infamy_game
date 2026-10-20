@@ -80,6 +80,8 @@ Two ways, both from the **building panel** (left-click the building; already bui
 - **Knock down the lantern (built):** the owner's hero stands within 1.6 of it and presses Space: a **4 s** channel (`raid.knockSeconds`, `knockReach`) that moving or any hit cancels; he doesn't auto-attack meanwhile (the channel clears his swing and locked target). Lantern down = the raid is lost for the raider. So you must clear or KO the attackers near the door first.
 - **Send crew in:** right-click your own business and the selected crew go to its door, go in and hold near the entrance (station order).
 - Offline or too far away: house guards and stationed crew fight on their own, and defenders in the back room pause the hold timer (built in checkpoint 4).
+- **Fighting inside (2026-10-20):** everyone inside a raided or attacked business fights on their own, raiders and defenders alike.
+- **Seeing a knock-down (2026-10-20):** when an enemy boss is knocking down your War Lantern, raiders see a red bar (click it to target him; any hit stops his channel), hear a bell, and a red ring fills at his feet. Tab picks him first.
 
 ## 6. Controls to add (Controls panel, ? key)
 
@@ -109,6 +111,7 @@ Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner,
 - Holding every business in one quarter (Bund, pleasure quarter and so on) controls that quarter: a small extra payout and a map tint.
 - Once a business is revealed (explored in the fog), the minimap (and a full map later) shows it in its owner's colour.
 - A War Lantern is always needed to take a rival-owned business, however the rival got it (bought or seized). See section 4.
+- Full plan for territory areas, the M game map, home-turf bonuses and the season score: `territory.md`.
 
 ## Open (small, can decide during build)
 

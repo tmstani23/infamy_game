@@ -1,6 +1,6 @@
 # Game controls
 
-What works in the game now (updated 2026-10-17). Keep this file up to date whenever a control is added or changed.
+What works in the game now (updated 2026-10-20). Keep this file up to date whenever a control is added or changed.
 
 ## Hero
 
@@ -13,8 +13,10 @@ What works in the game now (updated 2026-10-17). Keep this file up to date whene
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
 | Space by a raider's War Lantern | Knock it down (4 s channel; moving or a hit cancels). Raid warm-up is 60 s |
 | Double-click the red raid alarm | Camera to the raided business |
+| Click the red lantern bar | A rival is knocking down your War Lantern (4 s): target him (any hit stops his channel) |
+| Hideouts | Your inn and the rival's izakaya (H on the minimap) are locked to other clans ("<clan> hideout: no way in"); police can still go in |
 | Right-click a unit | Hero auto attack: locks on and swings whenever it is within 2.5 steps (no chasing); on a downed target he executes them |
-| Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips townsfolk, crew and downed units) |
+| Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips townsfolk, crew and downed units). Whoever is knocking down your War Lantern comes first |
 | Left-click an enemy | Target it (blue) and show it in the target frame (top middle). Left-click or drag anywhere else drops the target and stops the auto attack |
 | (no target) | The hero doesn't pick fights (2026-10-19): he swings only at his locked target (Tab or right-click), or hits back at whoever hit him in the last 5 s if in reach. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
@@ -39,8 +41,10 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 | Input | What it does |
 |---|---|
 | Left-click a crew member | Add or remove them from the selection (sticky; clicking a building or the ground keeps it) |
-| Left-drag a box | Add every crew member in the box |
-| C | Select all your crew (on the street this includes crew inside buildings; indoors: the crew in this room) |
+| Left-drag a box | Select exactly the crew inside it (the rest are dropped; an empty box changes nothing; locked crew are skipped, unless the box also takes unlocked ones: then they join the group unlocked). The selection stays whatever else you click (only Esc clears it) |
+| C | Select all your crew except locked crew (on the street this includes crew inside buildings; indoors: the crew in this room) |
+| L | Lock the selected crew (L again when all are locked: unlock). Locked crew (padlock, at the end of the crew bar) are left out of C, drag boxes and T, and only move when picked and ordered. Crew sent into your business lock by themselves |
+| Click a padlock on the crew bar | Unlock that crew member |
 | Esc | Clear the whole selection |
 | Right-click the ground | Send the selected crew there |
 | Right-click your own business | Selected crew go in and hold near the entrance |
@@ -48,7 +52,7 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 | Right-click your hero, or V | Selected crew follow you again |
 | Ctrl + right-click a unit | Selected crew attack it, or execute it if it is downed |
 | Ctrl + right-click a bandit's body | The nearest selected crew member loots it |
-| T | All crew attack the marked unit (left-clicked, in the target frame), or the hero's target if nothing is marked; afterwards they go back to their old order. T again while they are on a T attack calls it off |
+| T | All crew (not locked ones) attack the marked unit (left-clicked enemy or townsperson, in the target frame), or the hero's target if nothing is marked; afterwards they go back to their old order. T again while they are on a T attack calls it off |
 | Z | Selected crew stop and stay passive (even when hit) until any new order; the crew panel shows "Passive (stopped)" |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
 | Left-click a townsperson | Show them in the target frame |
@@ -56,9 +60,9 @@ The top-left line shows your crew count / crew cap; ryo has its own badge. New c
 
 The crew command strip above the crew pips has buttons that do the same as their keys: V follow, T attack, Z stop, X attack-move, G clinic, C select all; each greys out when it would do nothing. Selected crew have a green ring under them. New crew follow you automatically. Selected crew go into buildings with you and come back out with you; unselected crew wait outside. Mouse crew orders work indoors too (2026-10-18). A door ring flashes teal while your crew are inside.
 
-Crew don't pick fights (2026-10-19): they fight on an attack order or T, an attack-move (X), or while stationed in a business; otherwise they only hit back at whoever hit them in the last 5 s. Orders given from the street to crew inside a building walk them out first, and the building flashes when crew go in or come out. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
+Crew don't pick fights (2026-10-19): they fight on an attack order or T, an attack-move (X), or while stationed in a business; otherwise they only hit back at whoever hit them in the last 5 s, or back up (crew within 6 steps join in on whoever hit you or a clanmate in the last 5 s; not crew stopped with Z or on a move order). Inside a raided or attacked business everyone fights. Orders given from the street to crew inside a building walk them out first, and the building flashes when crew go in or come out. Health bars show over enemies (red) and over your hurt units (green). Damage numbers pop up on every hit: white on enemies, red on yours, big gold with "!" for critical hits (10% chance, double damage). 
 
-Crew at 0 health go down (red ring under them). An enemy can execute them (dead, rehire them). If nobody does it within 5 s with no enemy close by, they are carried to the bonesetter's clinic. They stay there until you pay at the clinic menu: 25% of the hire price once recovered (30 s thug, 45 s brute/swordsman), 50% before that (2026-10-19). The crew pip tooltip says recovering or recovered. A beaten hero is knocked out and gets back up at the clinic after 20 seconds.
+Crew at 0 health go down (red ring under them). An enemy can execute them (dead, rehire them). They lie at least 10 s, then are carried to the bonesetter's clinic once no enemy is close by for 5 s. They stay there until you pay at the clinic menu: 25% of the hire price once recovered (30 s thug, 45 s brute/swordsman), 50% before that (2026-10-19). The crew pip tooltip says recovering or recovered. A beaten hero is knocked out and wakes at your hideout after 20 seconds (unless arrested). The clinic only serves someone not hit for 5 s: the clinic menu waits, and crew sent with G wait at the door.
 
 For testing, see `test_params.md` (`?test=bot`).
 
@@ -74,7 +78,9 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Home, or the "Back to hero" button (bottom right, shown while panned) | Snap the camera back to your hero |
 | Mouse wheel, or = and - | Zoom in and out |
 | N (dev only) | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
-| M | Mute or unmute sounds |
+| M, or the Map button | Open or close the full game map (Esc closes it too): territory, businesses, police, units, quarters, season score. The game keeps running. Click a spot to move the camera there |
+| K, or the Mute button | Mute or unmute sounds |
+| Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
 | ? or the Controls button | Open the controls panel (Esc closes it) |

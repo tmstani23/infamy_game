@@ -18,6 +18,19 @@ const axis = (neg, pos) => (pos.some(k => keys.has(k)) ? 1 : 0) - (neg.some(k =>
 // Arrow keys pan the camera: -1..1 right and up on screen
 export const panAxes = () => ({ right: axis(['ArrowLeft'], ['ArrowRight']), up: axis(['ArrowDown'], ['ArrowUp']) });
 
+// Edge scrolling (Tim 2026-10-20): the mouse at the edge of the window pans the camera like the
+// arrow keys, -1..1 right and up on screen; nothing while it is outside the window
+let mouse = null;
+addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
+document.addEventListener('mouseleave', () => { mouse = null; });
+addEventListener('blur', () => { mouse = null; });
+const EDGE = 12;
+export function edgeAxes() {
+  if (!mouse) return { right: 0, up: 0 };
+  const right = mouse.x <= EDGE ? -1 : mouse.x >= innerWidth - 1 - EDGE ? 1 : 0;
+  const up = mouse.y <= EDGE ? 1 : mouse.y >= innerHeight - 1 - EDGE ? -1 : 0;
+  return { right, up };
+}
 // Screen-relative WASD for unit `id`; Shift walks
 export function moveCommand(id) {
   return {

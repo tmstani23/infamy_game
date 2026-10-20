@@ -62,6 +62,11 @@
     [-80,60,78,72],
     [63,-58,78,72]
   ],
+  "_quarters": "quarters for territory (sim/territory.js, Tim 2026-10-20): box = [minX, minZ, maxX, maxZ]; a clan holding every scoring business inside gets the quarter payout bonus and the map tint",
+  "quarters": [
+    {"id":"pleasure","name":"Pleasure Quarter","box":[6.5,13.5,50.5,45.5]},
+    {"id":"bund","name":"The Bund","box":[-58,-33,-26,-9]}
+  ],
   "buildings": [
     {"art":"warehouse","x":-42,"z":-16,"business":"warehouse","interior":{"type":"warehouse","seed":2},"door":[-42,-12.2]},
     {"art":"police_box","x":11,"z":-0.5,"business":"police_box","door":[11,3.5]},

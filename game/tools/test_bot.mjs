@@ -27,6 +27,14 @@ const bots = data('data/bots.json');
   assert.equal(g.businesses.canBuy(h, iz.id).ok, false);
   g.step([{ type: 'time', night: true }]);
   assert.equal(g.businesses.canAttack(h, iz.id).ok, false);
+  // a rival's hideout is shut to you, and yours to them (Tim 2026-10-20)
+  Object.assign(H, { x: iz.ring[0], z: iz.ring[1] });
+  g.step([{ id: h, type: 'use', units: [] }]);
+  assert.equal(H.place, 'street', "can't walk into the rival's hideout");
+  const k = g.state.entities[g.spawn('hero', 'rival_yakuza', inn.ring[0], inn.ring[1], { owner: 'kuroda' })];
+  g.step([{ id: k.id, type: 'use', units: [] }]);
+  assert.equal(k.place, 'street', "and they can't walk into yours");
+  Object.assign(H, { x: inn.ring[0], z: inn.ring[1] });
   // hire at home: slower
   g.step([{ id: h, type: 'use', units: [] }]);
   assert.equal(H.place, inn.room, 'in the inn');
@@ -181,6 +189,8 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   h.S[foes[1]].hp = 20;
   h.run(0.05);
   assert.ok(h.ids.every(id => h.S[id].order?.kind === 'attack' && h.S[id].order.target === foes[1]), 'focus fire on the weakest');
+  // executes on their own when safe: how often follows the difficulty (Tim 2026-10-20)
+  assert.deepEqual(['easy', 'medium', 'hard'].map(l => setup({ level: l }).g.state.clans.kuroda.aggression), [0.25, 0.5, 0.8]);
   console.log('B5 difficulty knobs ok');
 }
 

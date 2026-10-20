@@ -293,3 +293,18 @@ console.log('T call-off ok');
   assert.ok(S[foe].hp < T.thug.hp, 'attack-move picks the fight');
   console.log('attack-move ok');
 }
+
+// Tim 2026-10-20: crew back each other up (a mate or the boss hit within BACKUP_RANGE), the same for every clan
+{
+  const g = newGame(), S = g.state.entities;
+  const boss = g.spawn('hero', 'ronin', -1, 1, { owner: 'kuroda', hp: 1e6 });
+  const mates = [0, 1].map(i => g.spawn('thug', 'thug', -2 - i * 0.8, 2, { owner: 'kuroda', hp: 1e6, order: { kind: 'follow', target: boss } }));
+  const you = g.spawn('hero', 'ronin', 0.5, 1, { owner: 'player', hp: 1e6 });
+  g.step([{ id: you, type: 'attack', target: mates[0] }]);
+  secs(g, 3);
+  assert.ok(S[you].hp < 1e6, 'you got hit back');
+  let both = new Set();
+  for (let i = 0; i < 20 * 3; i++) { g.step(); for (const h of g.state.hits) if (h.t === you) both.add(h.a); }
+  assert.ok(mates.every(id => both.has(id)), 'the mate you did not touch joins in too');
+  console.log('crew back each other up ok');
+}

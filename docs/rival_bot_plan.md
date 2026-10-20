@@ -73,6 +73,9 @@ Home hideouts agreed: bot izakaya, player inn.
 | retreatHp | 0 | 0.3 | 0.35 |
 | fleeHp / restUntilHp / fleeInRaid | 0.3 / 0.8 / yes | 0.3 / 0.8 / no | 0.3 / 0.8 / no |
 | abilities | R | Q E R F | Q E R F |
+| aggression (crew execute chance with no enemy near) | 0.25 | 0.5 | 0.8 |
 
-- **Hideouts:** inn (you) and izakaya (Kuroda) in `port_town.json`, business `hideout`, teahouse-style rooms. `clans.addClan` claims it; never for sale, can't be attacked or raided, no guards. `units.json` `rules.hideout` / `settings.json` `hideout`: hiring 2x slower, heat cools 2x with the boss inside, everyone inside heals 0.01 of max HP a second, a KO'd hero wakes there. Minimap letter H.
+- **Hideouts:** inn (you) and izakaya (Kuroda) in `port_town.json`, business `hideout`, teahouse-style rooms. `clans.addClan` claims it; never for sale, can't be attacked or raided, no guards. Locked to other clans (2026-10-20, `businesses.mayEnter`): their units can't go in ("<clan> hideout: no way in"); police still can. `units.json` `rules.hideout` / `settings.json` `hideout`: hiring 2x slower, heat cools 2x with the boss inside, everyone inside heals 0.01 of max HP a second, a KO'd hero wakes there. Minimap letter H.
+- **Backup (2026-10-20):** bot crew follow the same backup rule as everyone (`combat_spec.md`): crew within 6 join in on whoever hit their boss or a clanmate in the last 5 s.
+- **Defend, knock-down:** if the boss is hit while knocking down a War Lantern, he fights back at whoever hit him (5 s window), then goes back to the lantern.
 - **Tests:** `game/tools/test_bot.mjs` (incl. revenge and flee) and `test_bot_game.mjs` (15 simulated minutes).

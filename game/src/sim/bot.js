@@ -28,6 +28,8 @@ export const BOT_DEFAULTS = {
 export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const B = { ...BOT_DEFAULTS, ...rules };
   const state = game.state, secs = s => Math.round(s * 20);
+  // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
+  if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
   const U = game.settings.units.rules, reach = (U.buyReach ?? 2.5) - 0.6;
   const RD = game.businesses.raidRules;
   let goal = null, path = null, nextThink = 0, nextReact = 0, last = null, still = 0, raidPlan = false;
@@ -210,6 +212,10 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
           goal.sent = a.phase;
         } else if (goal.sent !== a.phase) goal.sent = false;   // the doors opened: send them in
         if (a.phase === 'hold') { if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: [] }); return false; }
+        // hit while knocking it down (Tim 2026-10-20): fight back first, the lantern again once whoever
+        // hit him is down or has stopped hitting for a few seconds (no more standing there re-channelling)
+        const by = h.hitBy && state.tick - h.hitBy.tick < secs(5) && state.entities[h.hitBy.id];
+        if (by && standing(by) && by.place === h.place && rivalClan(by.owner)) { out.push({ id: hero, type: 'attack', target: by.id }); return false; }
         if (!walk(out, a.lantern.x, a.lantern.z, RD.knockReach - 0.4)) return false;
         if (!a.knock && game.businesses.canKnock(hero, b.id).ok) out.push({ id: hero, type: 'business', action: 'knock', business: b.id });
         return false;
