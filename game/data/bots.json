@@ -1,6 +1,8 @@
 {
   "_about": "Rival bot clan (src/sim/bot.js, docs/rival_bot_plan.md). difficulty picks a level (Tim 2026-10-19: easy for now). Any knob left out of a level uses BOT_DEFAULTS in bot.js. thinkSeconds: how often it picks a goal; reactSeconds: how often it handles fights; reserve: ryo kept back when hiring; escort: crew kept following the boss (the rest are stationed, one per business: stationPerBusiness); patrolChance: chance it walks to one of its places when idle; attackChance / attackMinCrew / attackMaxHeat: night attacks on unclaimed businesses; huntBandits / huntRange: hunt night bandits for ryo; bribeAtHeat: bribe the police from this heat; raidChance / raidMinCrew / raidReserve: War Lantern raids (scouts the target first); raidWhenWeak: only raid when the owner's boss is far away or the police are on them; memorySeconds: how long scouted info counts; ambush / ambushRange: jump lone rival crew near its own places; heroPriority: crew go for the rival boss first; focusFire: all crew hit the weakest enemy; executeDowned: finish off downed rival crew when safe; retreatHp: send crew below this share of HP to the clinic (0 = never); abilities: which of its boss's Q E R F it uses.",
   "clan": { "id": "kuroda", "name": "Kuroda clan", "boss": "rival_yakuza" },
+  "_yakuza": "3 clans (Tim 2026-10-20): Shinobi, Yakuza, Kuroda; the two you do not play are bots. Playing Shinobi (?test=ninja), the inn (your hideout as Yakuza) goes to this Yakuza bot clan, same brain and difficulty as Kuroda. A Shinobi bot for Yakuza games is not built yet.",
+  "yakuza": { "id": "yakuza", "name": "Yakuza clan", "boss": "ronin" },
   "difficulty": "easy",
   "levels": {
     "easy": {

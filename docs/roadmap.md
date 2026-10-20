@@ -32,7 +32,7 @@ Each layer is playable on its own before the next one starts.
 
 Tim's order from here (2026-10-20): a fully playable single-player game first, small tweaks later.
 
-8. Ninja (Shinobi) clan fully playable: contracts only (no property), village board, stealth, assassin leader. Plan to come in `ninja_clan_plan.md`.
+8. Ninja (Shinobi) clan fully playable: contracts only (no property), village board, stealth, assassin leader. Plan: `ninja_clan_plan.md` (being built, 2026-10-20).
 9. Start menu: new game, load, saves, and clan select (Yakuza or Shinobi).
 10. Inventory, stash, fence and world loot; business upgrades.
 11. Rival bot medium and hard tuning.

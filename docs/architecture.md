@@ -49,6 +49,7 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 | Police | [police_spec.md](police_spec.md) | `sim/police.js`, `data/police.json`, `police_menu.js`, `game/tools/test_police.mjs` |
 | Building panel | [buildings.md](buildings.md) | `building_panel.js`, `data/buildings.json` |
 | Businesses and attacks | [business_raids_plan.md](business_raids_plan.md) | `sim/businesses.js` (`canBuy`, dawn payouts via `police.payoutShare`, house guards with `e.guard` = business id, attacks in `state.attacks`, mode `'raid'` with warmup/hold and `a.lantern`; `mayEnter`, `crewSlots`, `canKnock`; lantern knock-down `attack.knock {by, start, hp, x, z}`), `clan.lanterns`, crew order kind `enter` `{room, k, n}` (turned into station by `enterStep`), `render/sound.js` `bell()`, `business` command, `sim/clans.js` (`crewOf`, `clan.color`), `render/banners.js` (banners and War Lanterns), `building_panel.js`, `settings.json` `businesses`, `game/tools/test_businesses.mjs`, `test_attack.mjs` |
+| Ninja clan | [ninja_clan_plan.md](ninja_clan_plan.md) | `sim/stealth.js`, `sim/contracts.js`, `contract_menu.js`, `units.json` `models.ninja_leader`, `rules.stealth`, `rules.contracts`, village in `data/port_town.json`, `?test=ninja` |
 | Territory and season | [territory.md](territory.md) | `sim/territory.js`, `game_map.js`, `settings.json` `territory` / `season`, `quarters` in `data/port_town.json`, `game/tools/test_territory.mjs` |
 | Rival bot clan | [rival_bot_plan.md](rival_bot_plan.md) | `sim/bot.js` (`createBot`, `BOT_DEFAULTS`), `data/bots.json`, hideouts in `data/port_town.json` + `rules.hideout`, `game/tools/test_bot.mjs`, `test_bot_game.mjs` |
 | Alerts | [business_raids_plan.md](business_raids_plan.md) | `state.news` (sim; kinds `bossDown`, `bossArrested`, `lanternDown`, `crewOut`, `backRoom`), `main.js` `callout()`, `#callout` in `index.html` |
@@ -83,6 +84,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `vision.js` | Fog of war: each clan's explored and visible areas, `canSee`; sight 18 for units, 10 for owned businesses. |
 | `civilians.js` | Townsfolk: trips between map spots, day/night schedule, fear and fleeing, witnesses. |
 | `territory.js` | Territory and the season: areas around owned businesses (`ownerAt`, `inOwn`), home-turf bonuses, quarters held, intruder alerts, season score and end (`territory.md`). |
+| `stealth.js` | Hidden status for ninja: detection ranges (dark, lit, indoors, running), reveal, lantern snuffs, back windows. |
+| `contracts.js` | Shinobi contract board: jobs each dawn, fair draw, progress, pay and Renown. |
 | `bandits.js` | Night bandits: walk in from the map edges, wander, fight back when hit, leave a lootable body with ryo. |
 
 **Render** (`game/src/render`, three.js, reads state, never changes it)
@@ -121,6 +124,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `heat_badge.js` | Heat badge and heat notices. |
 | `ryo_badge.js` | Ryo and ryo gains (`state.ryoGains`); the top-left line now shows crew only. |
 | `minimap.js` | Minimap: move the view, send or station crew. |
+| `contract_menu.js` | Contract board menu (`#contracts`) at the village shrine. |
 | `game_map.js` | Full game map (M): territory, businesses, police, units, quarters and the season score; the game keeps running. |
 | `fps.js` | FPS readout (P). |
 
@@ -128,7 +132,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 - `game/index.html`: page, HUD elements, the controls panel (? key), three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`); also saves the HUD layout on PUT.
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, `test_businesses`, `test_attack`, `test_building_panel`, `test_raid`, `test_defend`, `test_unit_frames`, `test_bot`, `test_bot_game`, `test_territory`, `test_clinic_unhit`, `test_crew_lock`, `test_knock_target`, all `.mjs`; 28 in all) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, `test_businesses`, `test_attack`, `test_building_panel`, `test_raid`, `test_defend`, `test_unit_frames`, `test_bot`, `test_bot_game`, `test_territory`, `test_clinic_unhit`, `test_crew_lock`, `test_knock_target`, `test_ninja`, all `.mjs`; 29 in all) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 

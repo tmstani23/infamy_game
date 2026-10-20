@@ -7,6 +7,7 @@ Single source: `game/src/test_params.js` (Tim 2026-10-19: one param, nothing hid
 | Param | What it does |
 |---|---|
 | `?test=bot` | See the whole rival clan fast: the bot clan starts with 5000 ryo (buys, hires, then a War Lantern raid on you); you start with the teahouse and 3000 ryo. |
+| `?test=ninja` | Play the Shinobi clan (ninja leader + 2 ninja crew), starting at the village (`spawns.ninja`), until clan select exists. |
 
 ## Dev-only keys and hooks (off when `DEV = false`)
 

@@ -25,10 +25,15 @@ const AURAS = {
   lantern: { color: 0xff3a1e, size: 0.625, geo: DISC_GEO, opacity: 0.45 },
   intimidated: { color: 0x7a3cff, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },
   rally: { color: 0xffc850, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
+  shroud: { color: 0x5a3c96, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
+  snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },   // caltrops (Distract): slowed   // healing in a Smoke Bomb (same width as Rally's)
   downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
 
 const STEEL = [0.8, 0.9, 1], WHITE = [1, 1, 1], GOLD = [1, 0.8, 0.35], PURPLE = [0.6, 0.3, 1];
+// the Shinobi kit (Tim 2026-10-20): black smoke, purples and blues only as dark, muted highlights
+const SOOT = [[0.04, 0.035, 0.06], [0.06, 0.05, 0.08], [0.03, 0.025, 0.04]], SOOT_TINT = [[0.13, 0.08, 0.2], [0.09, 0.1, 0.18]];
+const DUSK = [[0.36, 0.24, 0.6], [0.22, 0.3, 0.52], [0.46, 0.36, 0.66]], MIST_BLUE = [0.5, 0.58, 0.76];
 const PETALS = [[1, 0.62, 0.8], [1, 0.75, 0.88], [1, 0.5, 0.7], [1, 0.85, 0.92]];
 const FIRE = [[1, 0.35, 0.1], [1, 0.55, 0.15], [1, 0.8, 0.3], [1, 0.2, 0.08]];
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -40,7 +45,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const screenAngle = (dx, dz) => Math.atan2(dx * CAM_UP.x + dz * CAM_UP.z, dx * CAM_RIGHT.x + dz * CAM_RIGHT.z);
 
 // glowing outline around a unit's sprite while a buff is on, one colour per buff
-const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff };
+const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff, shroud: 0x6a4ab0 };
 const OUTLINE_GEO = new THREE.PlaneGeometry(1, 1);
 const OUTLINE_RGB = Object.fromEntries(Object.entries(OUTLINE).map(([k, v]) => [k, new THREE.Color(v)]));
 const OUTLINE_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
@@ -97,6 +102,28 @@ const SEAL_TEX = () => sealTex ||= (() => {
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen }) {
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
   const glow = createParticles(scene), cards = createCards(scene);
+  const soot = createParticles(scene, { max: 2500, additive: false });   // black smoke: drawn normally so it darkens
+  const smokeRings = new Map();   // "x,z,until" of a Smoke Bomb -> its thin ground ring
+  let flashEl = null, flashT = 0;  // Assassinate's violet-white screen flash
+  const marks = new Map();       // unit id -> the ? over a guard looking at a Distract pebble
+  // one black smoke puff: rises a little and swells as it fades; tint: some dark purple or blue ones
+  function puff(x, y, z, { vx = 0, vy = 0.3, vz = 0, size = 1.1, life = 1.6, tint = 0.25, alpha = 0.85 } = {}) {
+    soot.emit({ x, y, z, vx, vy, vz, drag: 1.6, sway: 0.25, life: life * rand(0.75, 1.25), size: size * rand(0.7, 1.3), grow: 0.9,
+      color: pick(Math.random() < tint ? SOOT_TINT : SOOT), alpha: alpha * rand(0.75, 1), shape: SHAPE.dot, spin: rand(-0.6, 0.6) });
+  }
+  // a burst of smoke at a point: n puffs thrown out round it
+  function smokeBurst(x, z, n, radius = 1.2, size = 1.2) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = rand(0.5, 1) * radius * 2.2;
+      puff(x + Math.cos(a) * 0.3, rand(0.2, 1.6), z + Math.sin(a) * 0.3, { vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.2, 0.9), size });
+    }
+  }
+  // dim violet and blue motes drifting up
+  function motes(x, z, n, spread = 0.8, y = 1) {
+    for (let i = 0; i < n; i++)
+      glow.emit({ x: x + rand(-spread, spread), y: y + rand(-0.6, 0.8), z: z + rand(-spread, spread), vy: rand(0.3, 1.2), drag: 1.5, sway: 0.5,
+        life: rand(0.6, 1.2), size: rand(0.1, 0.22), color: pick(DUSK), alpha: 0.75, shape: SHAPE.sparkle, twinkle: 0.7, spin: 2 });
+  }
   const rallyCasts = new Map();   // hero id -> when they last cast Rally (the buff itself is crew-only)
   const outlines = new Map();   // "id:buff" -> glowing outline mesh
   const lanterns = new Map();   // unit id -> the lanterns circling a unit with Red Lantern on
@@ -182,6 +209,57 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
             shape: SHAPE.petal, spin: rand(-2.5, 2.5) });
         }
       }
+      if (c.kind === 'shadowstep') {
+        // gone in black smoke, a fading violet ghost where he stood, a smoke trail, out of a smoke swirl
+        if (s0) cards.ghost(s0, [0.36, 0.24, 0.6], 0.7, 0.6);
+        smokeBurst(c.fx, c.fz, 34, 1, 1.2); motes(c.fx, c.fz, 14);
+        const dx = c.x - c.fx, dz = c.z - c.fz;
+        for (let i = 1; i < 10; i++) puff(c.fx + dx * i / 10, rand(0.4, 1.3), c.fz + dz * i / 10, { size: 0.8, life: 1.1, vy: 0.2 });
+        for (let i = 0; i < 26; i++) {   // the swirl: puffs going round him
+          const a = Math.random() * Math.PI * 2, r = rand(0.6, 1.3);
+          puff(c.x + Math.cos(a) * r, rand(0.1, 1.2), c.z + Math.sin(a) * r, { vx: -Math.sin(a) * 2.2, vz: Math.cos(a) * 2.2, vy: rand(0.3, 0.8), size: 0.9, life: 1.2 });
+        }
+        motes(c.x, c.z, 16, 0.6);
+        wave(c.x, c.z, 1.6, 0x5c3c8c, 0.55, 0, THIN_WAVE_GEO);
+        if (s0) s0.flash = 1;
+      }
+      if (c.kind === 'distract') {
+        // a pebble lands: small dim-blue ripples and a little dust (the guards get a ? while they look)
+        wave(c.tx, c.tz, 0.6, 0x8496be, 0.4, 0, THIN_WAVE_GEO); wave(c.tx, c.tz, 1.1, 0x5a6c9a, 0.5, 0.1, THIN_WAVE_GEO); wave(c.tx, c.tz, 1.6, 0x3c4a74, 0.6, 0.2, THIN_WAVE_GEO);
+        for (let i = 0; i < 6; i++) puff(c.tx + rand(-0.3, 0.3), 0.15, c.tz + rand(-0.3, 0.3), { size: 0.45, life: 0.7, vy: 0.4, alpha: 0.5 });
+        for (let i = 0; i < 8; i++) glow.emit({ x: c.tx, y: 0.2, z: c.tz, vx: rand(-1, 1), vz: rand(-1, 1), vy: rand(1, 2), gravity: 5,
+          life: rand(0.3, 0.5), size: rand(0.08, 0.14), color: MIST_BLUE, shape: SHAPE.sparkle, twinkle: 0.6 });
+        // the caltrops scattering over the snare ring: steel glints bouncing out and lying there a moment
+        for (let i = 0; i < 22; i++) {
+          const a = Math.random() * Math.PI * 2, v = rand(1, 3.4);
+          glow.emit({ x: c.tx, y: 0.3, z: c.tz, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(1.5, 3), gravity: 9, drag: 2.5,
+            life: rand(0.9, 1.5), size: rand(0.08, 0.13), color: [0.62, 0.68, 0.82], shape: SHAPE.sparkle, twinkle: 0.4, spin: 4 });
+        }
+        wave(c.tx, c.tz, 2, 0x3c4a8a, 0.6, 0.05, THIN_WAVE_GEO);
+      }
+      if (c.kind === 'smoke') {
+        // the bomb goes off: a big black burst (the cloud itself keeps billowing in update) and a thin ring
+        smokeBurst(c.x, c.z, 70, c.radius * 0.6, 1.5);
+        motes(c.x, c.z, 30, c.radius * 0.6);
+        wave(c.x, c.z, c.radius, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO);
+        cards.ink(c.x, c.z, c.radius * 0.9, 0.9);
+      }
+      if (c.kind === 'assassinate') {
+        // a vicious strike: black smoke bursts, a violet crescent with a white-hot edge, a blinding flash, the 影 (shadow) seal
+        smokeBurst(c.tx, c.tz, 46, 1.1, 1.2);
+        const ang = Math.atan2(c.tz - c.z, c.tx - c.x);
+        cards.stroke(c.tx, 1.2, c.tz, ang + 0.5, 4.4, 0.7, 0x6a4ab0, 0.42);
+        cards.stroke(c.tx, 1.2, c.tz, ang + 0.5, 3.6, 0.22, 0xf0eaff, 0.3);
+        cards.stroke(c.tx, 1.1, c.tz, ang - 0.6, 3.0, 0.4, 0x3c4a8a, 0.36);
+        cards.glint(c.tx, 1.3, c.tz, 4.2, 0xe8e0ff, 0.35);
+        cards.glint(c.tx, 1.3, c.tz, 2.4, 0x9a80d0, 0.5);
+        cards.seal(c.tx, c.tz, 2.2, '影', 0x6a4aa0, 1.4, { spin: 0.5 });
+        wave(c.tx, c.tz, 1.8, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO); wave(c.tx, c.tz, 1.1, 0x3c4a8a, 0.45, 0.06, THIN_WAVE_GEO);
+        sparkles(c.tx, 1.1, c.tz, 26, [0.85, 0.8, 1], 5);
+        motes(c.tx, c.tz, 18, 0.5);
+        flashT = 0.22;
+        if (s0) s0.flash = 1.6;
+      }
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') {
@@ -258,7 +336,46 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
 
     update(dt, state) {
       glow.update(dt);
+      soot.update(dt);
       cards.update(dt);
+      // Smoke Bomb clouds: black smoke keeps billowing in the radius while it lasts, dim glints inside,
+      // a thin dark-violet ring on the ground (state.smokes, sim/game.js)
+      const live = new Set();
+      for (const s of state.smokes || []) {
+        const key = `${s.x},${s.z},${s.until}`;
+        live.add(key);
+        for (let n = count(90, dt); n > 0; n--) {
+          const a = Math.random() * Math.PI * 2, r = s.r * Math.sqrt(Math.random()) * 0.92;
+          puff(s.x + Math.cos(a) * r, rand(0.1, 2.2), s.z + Math.sin(a) * r, { vx: Math.cos(a) * 0.3, vz: Math.sin(a) * 0.3, vy: rand(0.1, 0.5), size: rand(1.2, 1.9), life: 1.8, alpha: 0.9 });
+        }
+        if (Math.random() < dt * 14) motes(s.x + rand(-s.r, s.r) * 0.6, s.z + rand(-s.r, s.r) * 0.6, 1, 0.4, rand(0.5, 2));
+        let ring = smokeRings.get(key);
+        if (!ring) { ring = flat(THIN_WAVE_GEO, 0x5c3c8c, 0.6); ring.position.set(s.x, 0.04, s.z); ring.scale.set(s.r, s.r, 1); scene.add(ring); smokeRings.set(key, ring); }
+      }
+      for (const [key, ring] of smokeRings) if (!live.has(key)) {
+        ring.material.opacity -= dt * 1.5;
+        if (ring.material.opacity <= 0) { scene.remove(ring); ring.material.dispose(); smokeRings.delete(key); }
+      }
+      // units drawn to a Distract pebble: a small dim-blue ? over their heads while they look
+      const puzzled = new Set();
+      for (const e of Object.values(state.entities)) {
+        if (!e.distracted || e.distracted.until <= state.tick || e.dead || e.downed || !overlay) continue;
+        const p = posOf(e.id), sp = spriteOf(e.id);
+        if (!p || !sp?.thing.mesh.visible) continue;
+        puzzled.add(e.id);
+        let el = marks.get(e.id);
+        if (!el) { el = document.createElement('div'); el.textContent = '?'; el.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;font:bold 22px serif;color:#8496be;text-shadow:0 0 6px #1a2240,0 0 2px #000'; overlay.appendChild(el); marks.set(e.id, el); }
+        const q = unitToScreen(p.x, p.z, 3.1 + 0.08 * Math.sin(performance.now() / 250));
+        el.style.transform = `translate(${q.x}px, ${q.y}px) translate(-50%, -50%)`;
+      }
+      for (const [id, el] of marks) if (!puzzled.has(id)) { el.remove(); marks.delete(id); }
+      // Assassinate: a hard violet-white flash over the whole screen
+      if (flashT > 0 && overlay) {
+        if (!flashEl) { flashEl = document.createElement('div'); flashEl.style.cssText = 'position:absolute;inset:0;background:radial-gradient(circle,#efe8ff 0%,#8a70c8 55%,#1a1030 100%);pointer-events:none;opacity:0;mix-blend-mode:screen'; overlay.prepend(flashEl); }
+        flashT = Math.max(0, flashT - dt);
+        const k = 1 - flashT / 0.22;
+        flashEl.style.opacity = String(0.7 * (k < 0.1 ? k / 0.1 : (1 - k) ** 2));
+      }
       const now = performance.now() / 1000;
 
       // Intimidate: the screen darkens for a moment

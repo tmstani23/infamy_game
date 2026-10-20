@@ -67,7 +67,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 - **Cost: 2,400 ryo** (2x the den). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
 - The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 60 s** (warm-up; `rules.raid.warmupSeconds`, 2026-10-19). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
-- **Lost** if the hero goes down, nobody of yours is inside for 10 s, or the business changes owner.
+- **Lost** (changed 2026-10-20): the raiding boss going down doesn't end it. During the warm-up only a knocked-down War Lantern does; once the doors are open, nobody of yours inside for 10 s in a row loses it (the screen counts it down). Also lost if the business changes owner.
 - **Joining late:** any of your crew who walk in count, up to **6 crew inside** at once (plus the hero).
 - **Used up** whether the raid wins or loses.
 - No police come to a rival raid (yakuza don't call the police on each other). Normal heat rules for hitting townsfolk still apply.

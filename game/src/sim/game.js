@@ -10,9 +10,11 @@ import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
 import { createVision } from './vision.js';
 import { createTerritory } from './territory.js';
+import { createStealth } from './stealth.js';
 import { createPolice, POLICE } from './police.js';
 import { applySettings } from './settings.js';
 import { createBusinesses } from './businesses.js';
+import { createContracts } from './contracts.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -65,6 +67,8 @@ export function createGame(options) {
     if (b.business === 'clinic' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'clinic', business: `b${i}`, place: 'street', label: 'Open the clinic' });
     // the police box (bribes) and the police HQ (bail), sim/police.js
     if (b.business === 'police_box' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_box', business: `b${i}`, place: 'street', label: 'Talk to the police box' });
+    // the Shinobi village shrine: the contract board (sim/contracts.js)
+    if (b.business === 'contract_board' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'contracts', business: `b${i}`, place: 'street', label: 'Read the contract board' });
     if (b.business === 'police_hq' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_hq', business: `b${i}`, place: 'street', label: 'Open the police HQ' });
   });
 
@@ -94,7 +98,7 @@ export function createGame(options) {
     if (state.clock) state.clock.left = halfTicks(night);
   };
   district.buildings.forEach((b, i) => {
-    if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, ring: b.door ? ringAt(b) : null, room: roomOf[i] || null, owner: null, ...(b.hideout ? { hideout: b.hideout } : {}) };
+    if (b.business) state.businesses[`b${i}`] = { id: `b${i}`, kind: b.business, x: b.x, z: b.z, door: b.door || null, ring: b.door ? ringAt(b) : null, room: roomOf[i] || null, owner: null, ...(b.hideout ? { hideout: b.hideout } : {}), ...(b.territory ? { area: b.territory } : {}) };
   });
   // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1 }) : null;
@@ -102,20 +106,38 @@ export function createGame(options) {
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory);
+  // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
+  const stealth = createStealth({ state, scenery, rules: units?.rules?.stealth, say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
   const intents = {};     // latest move command per entity (server-side only)
   const nav = createNav(blockers, district.bounds);
   // a walk grid per room too, so units path round the furniture indoors instead of snagging on it
   const roomNavs = Object.fromEntries(rooms.map(r => [r.name, createNav(r.blockers, { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, ROOM_NAV)]));
   const navOf = place => place === 'street' ? nav : roomNavs[place];
+
+  // Back windows (ninja build phase 3, Tim 2026-10-20): every business with a room gets a second way
+  // in on the far side from its door, for the Shinobi clan only; it lands near the back of the room
+  district.buildings.forEach((b, i) => {
+    const room = rooms.find(r => r.name === roomOf[i]), foot = scenery.find(s => s.building === i)?.foot;
+    if (!b.business || !b.door || !room || !foot) return;
+    const ux0 = b.door[0] - b.x, uz0 = b.door[1] - b.z, len = Math.hypot(ux0, uz0) || 1, ux = ux0 / len, uz = uz0 / len;
+    const half = Math.abs(ux) * (foot.maxX - foot.minX) / 2 + Math.abs(uz) * (foot.maxZ - foot.minZ) / 2;
+    const out = nav.nearestFree(b.x - ux * (half + 1.2), b.z - uz * (half + 1.2));
+    const mx = room.origin.x + room.size[0] / 2, mz = room.origin.z + room.size[1] / 2;
+    const inside = roomNavs[room.name]?.nearestFree(2 * mx - room.spawn.x, 2 * mz - room.spawn.z);
+    if (!out || !inside) return;
+    doors.push({ x: out[0], z: out[1], to: { x: inside[0], z: inside[1] }, place: room.name, label: 'Climb in the back window', ninja: true });
+    doors.push({ x: inside[0], z: inside[1], to: { x: out[0], z: out[1] }, place: 'street', label: 'Climb out the back window', ninja: true });
+  });
   const paths = {};       // crew walking routes (server-side only, rebuilt when needed)
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
     const id = String(nextId++);
     state.entities[id] = { id, type, model, x, z, dir: 0, anim: 'idle', place: 'street', ...extra };
-    const e = state.entities[id], hp = units?.types[type]?.hp;
+    const e = state.entities[id], hp = units?.models?.[model]?.hp ?? units?.types[type]?.hp;
     if (hp && e.hp === undefined) e.hp = hp;
     if (e.hp !== undefined) e.maxHp ??= e.hp;
+    if (stealth.canHide(e)) e.hidden = true;   // Shinobi units start hidden (sim/stealth.js)
     const o = e.order;
     if (o?.kind === 'follow' && o.slot === undefined) o.slot = freeSlot(o.target, id);
     return id;
@@ -161,6 +183,7 @@ export function createGame(options) {
     crew.forEach((u, k) => {
       delete paths[u.id];
       delete u.execute;
+      delete u.holdFire;                                 // any new order ends a Smoke Bomb's hold
       if (fight[u.id]) delete fight[u.id].target;
       // stop (Z, Tim 2026-10-18): stand still and stay passive, no auto attack even when hit,
       // until the next order of any kind replaces this one
@@ -213,6 +236,9 @@ export function createGame(options) {
   function crewGoal(e) {
     const o = e.order;
     if (!o || o.kind === 'stop') return null;
+    // a ninja's pebble (Distract): house guards go and look where it fell
+    const dz = e.distracted;
+    if (dz && state.tick < dz.until) return { x: dz.x, z: dz.z, near: 0.8, walk: true };
     if (o.kind === 'follow') {
       const h = state.entities[o.target];
       if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
@@ -244,7 +270,8 @@ export function createGame(options) {
     e.dir = dirIndex(dx, dz);
     // crew know their own streets: crewSpeed times as fast in their clan's territory (sim/territory.js)
     const fast = e.type !== 'hero' && state.clans?.[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
-    const d = Math.min(unit[e.anim] * fast * DT, len) / len;
+    const slow = e.buffs?.snared?.speed ?? 1;   // caltrops (Distract): slowed
+    const d = Math.min(unit[e.anim] * fast * slow * DT, len) / len;
     tryMove(e, unit.radius, dx * d, 0);
     tryMove(e, unit.radius, 0, dz * d);
     return true;
@@ -261,17 +288,22 @@ export function createGame(options) {
   const cop = t => t?.owner === POLICE;
   const angryAt = (w, o) => (w.angry?.[o.owner] ?? -1) > state.tick;
   // a jailed hero (sim/police.js) stands greyed out at the HQ: nobody can touch him
+  // Smoke Bomb (Shinobi R, state.smokes): inside a cloud nobody but its clan picks or keeps a
+  // target, and nobody outside sees in
+  const inSmoke = (s, e) => s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r;
+  const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b)));
   const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
-    && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a));
+    && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
-  const fair = (a, b) => hostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place);
+  const fair = (a, b) => hostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b));
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
   // (night bandits) are not limited.
-  const sees = (a, b) => !state.clans?.[a.owner] || vision.canSee(a.owner, b);
-  const reachOf = (a, b) => (statsOf(a.type).attackRange || 1) + statsOf(b.type).radius;
+  // a hidden ninja (sim/stealth.js) is seen by nobody but its own side
+  const sees = (a, b) => !(b?.hidden && b.owner !== a.owner) && !(b && blind(a, b)) && (!state.clans?.[a.owner] || vision.canSee(a.owner, b));
+  const reachOf = (a, b) => (statsOf(a).attackRange || 1) + statsOf(b).radius;
 
   // Officers are never picked on their own: hitting police (+heat) is always the player's
   // (or bot's) own order, so standing still next to a squad doesn't spiral the heat.
@@ -312,6 +344,7 @@ export function createGame(options) {
   function crewTarget(e) {
     const o = e.order || {};
     if (o.kind === 'stop') return null;                  // passive (Z): never picks a fight
+    if (e.holdFire) return null;                         // after a Smoke Bomb: no attacking until the next order
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
       if (fair(e, t)) return t;
@@ -448,6 +481,7 @@ export function createGame(options) {
   }
 
   function hit(a, t, damage, crit = false, kind = null) {
+    stealth.reveal(a); stealth.reveal(t);   // hitting or being hit shows a hidden ninja (sim/stealth.js)
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
     t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
@@ -674,10 +708,11 @@ export function createGame(options) {
   function addBuff(e, name, seconds, extra = {}) { (e.buffs ||= {})[name] = { until: state.tick + secs(seconds), ...extra }; }
 
   function useAbility(e, c) {
-    const a = statsOf(e.type).abilities?.[c.slot];
+    const a = statsOf(e).abilities?.[c.slot];
     if (!a || e.type !== 'hero' || e.dead || e.dash) return;
     if ((e.cooldowns?.[c.slot] ?? 0) > state.tick) return;
     const aim = Number.isFinite(c.x) && Number.isFinite(c.z) ? [c.x, c.z] : null;
+    let extra = {};   // more for the renderer's cast entry
     if (a.kind === 'dash') {
       let dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
       if (len < 0.2) {   // no aim: dash the way the hero faces
@@ -699,10 +734,74 @@ export function createGame(options) {
       }
     } else if (a.kind === 'lantern') {
       addBuff(e, 'lantern', a.seconds, { damage: a.damage, lifesteal: a.lifesteal });
+    } else if (a.kind === 'shadowstep') {
+      // Shadow Step (Shinobi Q): gone in a puff, out again up to range toward the mouse; stops at
+      // the first wall or water on the way, and he stays hidden
+      const grid = navOf(e.place), dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
+      if (!grid || len < 0.5) return;
+      const dist = Math.min(a.range, len), n = Math.ceil(dist / 0.25);
+      let x = e.x, z = e.z;
+      for (let i = 1; i <= n; i++) {
+        const px = e.x + dx / len * dist * i / n, pz = e.z + dz / len * dist * i / n;
+        if (!grid.free(px, pz)) break;
+        x = px; z = pz;
+      }
+      if (Math.hypot(x - e.x, z - e.z) < 0.5) return;
+      extra = { fx: e.x, fz: e.z };
+      e.x = x; e.z = z; e.dir = dirIndex(dx, dz);
+      delete paths[e.id];
+    } else if (a.kind === 'distract') {
+      // Distract (Shinobi E): a pebble thrown at the mouse (up to range); house guards, police and
+      // bandits within radius of where it lands who aren't fighting go and look there for seconds
+      if (!aim) return;
+      const len = Math.hypot(aim[0] - e.x, aim[1] - e.z), k = len > a.range ? a.range / len : 1;
+      const x = e.x + (aim[0] - e.x) * k, z = e.z + (aim[1] - e.z) * k;
+      for (const t of Object.values(state.entities)) {
+        if (!(t.guard || cop(t) || wild(t)) || t.owner === e.owner || t.place !== e.place || t.dead || t.downed || t.jailed) continue;
+        if (Math.hypot(t.x - x, t.z - z) > a.radius || t.swing || t.execute || t.wave || Object.keys(t.angry || {}).length) continue;
+        const [sx, sz] = navOf(t.place)?.nearestFree(x, z) || [x, z];
+        t.distracted = { x: sx, z: sz, until: state.tick + secs(a.seconds) };
+        delete paths[t.id];
+      }
+      // ...and it is a scatter of caltrops (Tim 2026-10-20): every enemy close to it is slowed, bosses too
+      if (a.snareRadius) for (const t of Object.values(state.entities))
+        if (t.owner !== e.owner && !civ(t) && t.place === e.place && !t.dead && !t.downed && !t.jailed && Math.hypot(t.x - x, t.z - z) <= a.snareRadius)
+          addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed });
+      extra = { tx: x, tz: z };
+    } else if (a.kind === 'smoke') {
+      // Smoke Bomb (Shinobi R): a cloud round him (radius, seconds); see blind() for what it does.
+      // Every unit of his clan holds its attacks, hitting back too, until given a new order
+      // (Tim 2026-10-20), so nobody breaks stealth on his own
+      (state.smokes ||= []).push({ x: e.x, z: e.z, r: a.radius, place: e.place, clan: e.owner, until: state.tick + secs(a.seconds), heal: a.heal || 0 });
+      for (const u of Object.values(state.entities)) {
+        if (u.owner !== e.owner) continue;
+        u.holdFire = true;
+        delete u.swing; delete u.execute; delete u.attackTarget;
+        if (fight[u.id]) delete fight[u.id].target;
+        if (u.type !== 'hero' && u.order?.kind === 'attack') endAttack(u);
+      }
+      extra = { seconds: a.seconds };
+    } else if (a.kind === 'assassinate') {
+      // Assassinate (Shinobi F): only after hiddenSeconds hidden (smoke doesn't count), on the enemy
+      // at the mouse within reach; crew and the like go down at once, a boss drops to bossShare of
+      // his health (at least bossMin of it); the hit shows him (sim/stealth.js reveal)
+      const clan = state.clans?.[e.owner], tell = text => { if (clan) clan.notice = { tick: state.tick, text }; };
+      if (!e.hidden || e.hiddenAt == null || state.tick - e.hiddenAt < secs(a.hiddenSeconds)) return tell(`Assassinate: stay hidden ${a.hiddenSeconds} s first`);
+      let t = null, bd = 2;
+      for (const u of Object.values(state.entities)) {
+        if (!aim || civ(u) || !fair(e, u) || Math.hypot(u.x - e.x, u.z - e.z) > reachOf(e, u) + a.reach) continue;
+        const d = Math.hypot(u.x - aim[0], u.z - aim[1]);
+        if (d < bd) { bd = d; t = u; }
+      }
+      if (!t) return tell('Assassinate: nobody in reach at the mouse');
+      const dmg = t.type === 'hero' ? Math.max(Math.round(t.hp - t.maxHp * a.bossShare), Math.round(t.maxHp * a.bossMin)) : t.hp;
+      e.dir = dirIndex(t.x - e.x, t.z - e.z);
+      extra = { tx: t.x, tz: t.z, target: t.id };
+      hit(e, t, dmg, true, 'assassinate');
     } else return;
     delete e.swing;
     (e.cooldowns ||= {})[c.slot] = state.tick + secs(a.cooldown);
-    state.casts.push({ a: e.id, slot: c.slot, kind: a.kind, x: e.x, z: e.z, ...(a.radius ? { radius: a.radius } : {}) });
+    state.casts.push({ a: e.id, slot: c.slot, kind: a.kind, x: e.x, z: e.z, ...(a.radius ? { radius: a.radius } : {}), ...extra });
   }
 
   // One tick of a dash: slide toward the aim, cut every enemy passed (once each)
@@ -712,7 +811,7 @@ export function createGame(options) {
     tryMove(e, unit.radius, d.vx, 0);
     tryMove(e, unit.radius, 0, d.vz);
     for (const t of Object.values(state.entities)) {
-      if (!(hostile(e, t) || (wild(t) && fair(e, t))) || d.hit.includes(t.id) || Math.hypot(t.x - e.x, t.z - e.z) > statsOf(t.type).radius + 0.9) continue;
+      if (!(hostile(e, t) || (wild(t) && fair(e, t))) || d.hit.includes(t.id) || Math.hypot(t.x - e.x, t.z - e.z) > statsOf(t).radius + 0.9) continue;
       d.hit.push(t.id);
       hit(e, t, Math.round(unit.damage * (a?.damageMultiplier || 1) * damageScale(e)), false, 'dash');
     }
@@ -815,11 +914,11 @@ export function createGame(options) {
     const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead && !e.downed);
     for (let i = 0; i < crew.length; i++) for (let j = i + 1; j < crew.length; j++) {
       const a = crew[i], b = crew[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
-      const min = (statsOf(a.type).radius + statsOf(b.type).radius) * 1.1;
+      const min = (statsOf(a).radius + statsOf(b).radius) * 1.1;
       if (d >= min) continue;
       const [ux, uz] = d > 1e-4 ? [dx / d, dz / d] : [1, 0], push = Math.min(0.06, (min - d) / 2);
       for (const [u, s] of [[a, -1], [b, 1]]) {
-        const r = statsOf(u.type).radius;
+        const r = statsOf(u).radius;
         tryMove(u, r, ux * push * s, 0);
         tryMove(u, r, 0, uz * push * s);
       }
@@ -875,11 +974,13 @@ export function createGame(options) {
   // The door a unit is standing at, if any
   function doorNear(id) {
     const e = state.entities[id];
-    return e ? doors.find(d => Math.hypot(d.x - e.x, d.z - e.z) < DOOR_RADIUS) || null : null;
+    // back windows (d.ninja) are only a way in for the Shinobi clan (sim/stealth.js)
+    return e ? doors.find(d => (!d.ninja || state.clans?.[e.owner]?.kind === 'ninja') && Math.hypot(d.x - e.x, d.z - e.z) < DOOR_RADIUS) || null : null;
   }
 
   // Speeds and size: the hero and townsfolk from UNITS, crew from units.json
-  const statsOf = type => ({ ...units?.types[type], ...UNITS[type] });
+  // statsOf(type), or statsOf(unit): a unit's own sprite can override its type's numbers (units.json "models", the Shinobi boss)
+  const statsOf = t => typeof t === 'object' && t ? { ...units?.types[t.type], ...UNITS[t.type], ...units?.models?.[t.model] } : { ...units?.types[t], ...UNITS[t] };
 
   const civilians = createCivilians({
     state, data: civData, pois: district.pois, nav, spawn, moveTo, statsOf,
@@ -889,7 +990,7 @@ export function createGame(options) {
   // A bandit's fighting, one tick: finish a swing, or go for the nearest clan it is angry at
   // within range; false when there is nobody to fight
   function fightStep(e, range) {
-    const unit = statsOf(e.type);
+    const unit = statsOf(e);
     if (swingStep(e, unit)) return true;
     const t = e.angry && nearestEnemy(e, e.x, e.z, range);
     if (t) { engage(e, unit, t); return true; }
@@ -913,10 +1014,10 @@ export function createGame(options) {
     state, data: policeData, units, district, nav, doors, spawn, spawnOutside, moveTo, statsOf, remove: removeUnit,
     stopPath: e => { delete paths[e.id]; },
     act: {
-      swing: e => swingStep(e, statsOf(e.type)),
-      arresting: e => !!e.execute && executeStep(e, statsOf(e.type)),
+      swing: e => swingStep(e, statsOf(e)),
+      arresting: e => !!e.execute && executeStep(e, statsOf(e)),
       arrest: (e, t) => startExecute(e, { target: t.id }),
-      engage: (e, t) => engage(e, statsOf(e.type), t),
+      engage: (e, t) => engage(e, statsOf(e), t),
       hostile,
     },
     seed: (options.seed ?? 12345) ^ 0xc095,
@@ -957,6 +1058,14 @@ export function createGame(options) {
   const roomOfBusiness = b => rooms.find(r => r.name === b.room) || null;
   const businesses = clans ? createBusinesses({ state, units, clans, payoutShare: id => police?.payoutShare(id) ?? 1, tierOf: id => police?.tierOf(id) ?? 0,
     spawn, guardSpots, patrolSpots, roomOf: roomOfBusiness, remove: removeUnit, payoutBonus: territory.payoutBonus, addHeatGain: (clan, amount, reason) => state.heatGains.push({ clan, amount, reason }) }) : null;
+  // Shinobi contracts (sim/contracts.js): the back room is the floor spot furthest from the way in, as for raids
+  const backRoomOf = b => {
+    const room = b && roomOfBusiness(b);
+    if (!room) return null;
+    const far = patrolSpots(b).slice().sort((p, q) => Math.hypot(q.x - room.spawn.x, q.z - room.spawn.z) - Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z))[0];
+    return far ? { x: far.x, z: far.z } : { x: room.spawn.x, z: room.spawn.z };
+  };
+  const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, backRoom: backRoomOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null }) : null;
 
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
@@ -991,7 +1100,8 @@ export function createGame(options) {
       if (c.type === 'use') {
         const d = doorNear(c.id);
         // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
-        if (d?.to && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
+        // a Shinobi Steal contract: in through the hideout's back window (sim/contracts.js)
+        if (d?.to && (!businesses || businesses.mayEnter(e, d.place) || (d.ninja && contracts?.mayClimb(e, d.place)))) {   // menu doors (the clinic) have no room
           const from = e.place;
           e.x = d.to.x; e.z = d.to.z; e.place = d.place;
           if (e.type === 'hero') bringCrew(e, from, d, c.units);
@@ -1003,18 +1113,20 @@ export function createGame(options) {
       // lock / unlock some of the hero's own crew (L, or the padlock on the crew bar): { units, on }
       if (c.type === 'lock' && e.type === 'hero' && Array.isArray(c.units)) for (const id of c.units) { const u = state.entities[id]; if (u && u.owner === e.owner && u.type !== 'hero') { if (c.on) u.locked = true; else delete u.locked; } }
       if (c.type === 'ability') useAbility(e, c);
-      if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
+      if (c.type === 'snuff') stealth.snuff(e);   // a Shinobi boss puts out a lantern (sim/stealth.js)
+      if (c.type === 'execute' && e.type === 'hero' && !e.dead) { delete e.holdFire; startExecute(e, c); }
       if (c.type === 'loot') startLoot(e, c);
-      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; }
+      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; delete e.holdFire; }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
       if (c.type === 'stopattack' && e.type === 'hero') { if (e.swing?.target === e.attackTarget) delete e.swing; delete e.attackTarget; }
       if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
       if (c.type === 'police' && police) police.menu(e, c, doorNear(c.id));
+      if (c.type === 'contract' && contracts) contracts.command(e, c, doorNear(c.id));
     }
     clans?.tick(DT, spawnOutside);
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
-      const unit = statsOf(e.type);
+      const unit = statsOf(e);
       if (e.type === 'civilian' || e.wild || e.cop) continue;   // townsfolk, bandits and police move in their own ticks below
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
@@ -1041,7 +1153,7 @@ export function createGame(options) {
         // otherwise standing still: swing back at whoever hit him lately, if in reach (Tim 2026-10-19:
         // no picking fights with any enemy who happens to stand close; that takes a target)
         const by = e.hitBy && state.tick - e.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[e.hitBy.id];
-        const t = unit.damage && by && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - e.x, by.z - e.z) <= reachOf(e, by) + 0.6 ? by : null;
+        const t = !e.holdFire && unit.damage && by && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - e.x, by.z - e.z) <= reachOf(e, by) + 0.6 ? by : null;
         if (t) engage(e, unit, t, false); else e.anim = 'idle';
         continue;
       }
@@ -1051,7 +1163,7 @@ export function createGame(options) {
       delete e.lootTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
-      const d = unit[e.anim] * DT / len;
+      const d = unit[e.anim] * (e.buffs?.snared?.speed ?? 1) * DT / len;   // caltrops (Distract): slowed
       tryMove(e, unit.radius, dx * d, 0);
       tryMove(e, unit.radius, 0, dz * d);
     }
@@ -1059,7 +1171,13 @@ export function createGame(options) {
     bandits.tick();
     police?.tick();
     businesses?.tick();
+    contracts?.tick();
     territory.tick();
+    if (state.smokes) { state.smokes = state.smokes.filter(s => s.until > state.tick); if (!state.smokes.length) delete state.smokes; }
+    // inside their own Smoke Bomb the clan's units heal s.heal of their health a second (Tim 2026-10-20; buff 'shroud' for the look)
+    if (state.smokes && state.tick % secs(1) === 0) for (const s of state.smokes) for (const u of Object.values(state.entities))
+      if (u.owner === s.clan && s.heal && !u.dead && !u.downed && u.maxHp && inSmoke(s, u)) { u.hp = Math.min(u.maxHp, u.hp + u.maxHp * s.heal); addBuff(u, 'shroud', 1.1); }
+    stealth.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -1071,10 +1189,25 @@ export function createGame(options) {
     state.tick++;
   }
 
+  // tryMove only looks at the walls near a unit (the wider map has many trees): blockers are
+  // bucketed on a coarse grid once; very big ones (the map edges) are always checked
+  const BUCKET = 8, buckets = new Map(), bigBlockers = [];
+  for (const b of blockers) {
+    const i0 = Math.floor(b.minX / BUCKET), i1 = Math.floor(b.maxX / BUCKET), j0 = Math.floor(b.minZ / BUCKET), j1 = Math.floor(b.maxZ / BUCKET);
+    if ((i1 - i0 + 1) * (j1 - j0 + 1) > 64) { bigBlockers.push(b); continue; }
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const k = `${i},${j}`; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(b); }
+  }
+  function blockersNear(x0, z0, x1, z1) {
+    const out = [...bigBlockers];
+    for (let i = Math.floor(x0 / BUCKET); i <= Math.floor(x1 / BUCKET); i++)
+      for (let j = Math.floor(z0 / BUCKET); j <= Math.floor(z1 / BUCKET); j++) { const l = buckets.get(`${i},${j}`); if (l) out.push(...l); }
+    return out;
+  }
+
   // Move along one axis, stopping flush against the first thing in the way
   function tryMove(e, r, dx, dz) {
     let x = e.x + dx, z = e.z + dz;
-    for (const b of blockers) {
+    for (const b of blockersNear(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
       if (!(x + r > b.minX && x - r < b.maxX && z + r > b.minZ && z - r < b.maxZ)) continue;
       if (dx > 0) x = Math.min(x, b.minX - r - 1e-4);
       else if (dx < 0) x = Math.max(x, b.maxX + r + 1e-4);
@@ -1085,5 +1218,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, businesses, vision, territory };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth };
 }

@@ -6,7 +6,7 @@
 import { createMinimap } from './minimap.js';
 
 const NAMES = { warehouse: 'Warehouse', teahouse: 'Teahouse', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
-  police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout' };
+  police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
 export function createGameMap({ root, game, district, view, fog, heroId, clan = 'player', units, selected, send }) {

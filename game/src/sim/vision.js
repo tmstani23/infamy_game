@@ -56,6 +56,7 @@ export function createVision(state, bounds, rules = {}, territory = null) {
   function canSee(clan, e) {
     if (!e || !clan) return false;
     if (e.owner === clan) return true;
+    if (e.hidden) return false;   // a hidden ninja (sim/stealth.js)
     if (e.place !== 'street') return Object.values(state.entities).some(u => u.owner === clan && !u.dead && u.place === e.place);
     // checked exactly rather than on the grid, so it is never a few ticks late
     const near = (x, z, r) => (x - e.x) ** 2 + (z - e.z) ** 2 <= r * r;

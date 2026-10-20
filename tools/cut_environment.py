@@ -68,6 +68,16 @@ SINGLES = {
     'buildings/moneylender_house': 'buildings/town/moneylender_house.png',
     'buildings/lighthouse': 'buildings/waterfront/lighthouse.png',
     'buildings/telegraph_office': 'buildings/town/telegraph_office.png',
+    # the Shinobi village (ninja build phase 2)
+    'buildings/village_gate': 'ninja_village/village_gate.png',
+    'buildings/dojo': 'ninja_village/dojo.png',
+    'buildings/longhouse': 'ninja_village/longhouse.png',
+    'buildings/ninja_shrine': 'ninja_village/shrine.png',
+    'buildings/storehouse': 'ninja_village/storehouse.png',
+    'buildings/thatched_hut': 'ninja_village/thatched_hut.png',
+    'buildings/training_yard': 'ninja_village/training_yard.png',
+    'buildings/watchtower': 'ninja_village/watchtower.png',
+    'buildings/rope_bridge': 'ninja_village/rope_bridge.png',
 }
 
 GROUND = {

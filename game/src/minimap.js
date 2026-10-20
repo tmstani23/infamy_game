@@ -1,5 +1,5 @@
 // Minimap, top right: the district turned to match the screen, with the same fog of war,
-// a letter on each business (W warehouse, T teahouse, D den, C clinic, P police; on its owner's colour once seen),
+// a letter on each business (W warehouse, T teahouse, D den, C clinic, P police, H hideout, J the Shinobi dojo; on its owner's colour once seen),
 // dots for units your clan can see, your businesses outlined and a box for the camera's view.
 // Left-click (or drag) moves the camera there; right-click sends the selected crew there
 // (Ctrl: hold there), like right-clicking the ground. Only reads the state and sends commands.
@@ -14,7 +14,7 @@ const GROUND = {
   water: [40, 66, 84], planks: [110, 82, 56], gravel: [128, 124, 116], paving: [146, 138, 124],
 };
 const BUILDING = [62, 50, 46];
-const MARK = { warehouse: 'W', teahouse: 'T', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H' };
+const MARK = { warehouse: 'W', teahouse: 'T', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
 
 export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send, big = false,

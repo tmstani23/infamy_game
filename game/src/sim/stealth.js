@@ -1,0 +1,81 @@
+// Stealth for the Shinobi clan (ninja build phase 3, Tim 2026-10-20): its units (the ninja leader
+// and ninja crew) are hidden unless an enemy stands within detection range: darkRange in the dark,
+// litRange in lantern light or by day, indoorRange in a room, times runFactor while running.
+// Once seen, or when it hits or is hit, a unit is revealed for revealSeconds. Hidden units cannot
+// be seen or targeted by anyone else (sim/vision.js canSee, sim/game.js sees). Townsfolk never spot.
+// Snuffing a lantern: the ninja boss at night, next to a lit lantern, Space for snuffSeconds
+// (moving cancels): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
+// at most snuffPerNight a night. Numbers: units.json rules.stealth.
+const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 4, runFactor: 2, revealSeconds: 5, lightRadius: 5,
+  snuffPerNight: 3, snuffSeconds: 1, snuffReach: 1.8, every: 1 };
+
+export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
+  const R = { ...DEFAULTS, ...rules };
+  const secs = s => Math.round(s * 20);
+  // the lanterns the sim knows about: lit props (lantern posts, stone lanterns, braziers...)
+  const lights = scenery.filter(s => s.prop !== undefined && s.item?.lights?.length).map(s => ({ prop: s.prop, x: s.x, z: s.z }));
+  state.lightsOut ||= [];
+  const out = () => new Set(state.lightsOut);
+  // is this street spot lit: by day everywhere, at night within lightRadius of a lantern still burning
+  function lit(x, z) {
+    if (!state.night) return true;
+    const off = out(), r2 = R.lightRadius ** 2;
+    return lights.some(l => !off.has(l.prop) && (l.x - x) ** 2 + (l.z - z) ** 2 <= r2);
+  }
+  const ninja = e => state.clans?.[e?.owner]?.kind === 'ninja';
+  const canHide = e => ninja(e) && !e.dead && !e.downed && !e.jailed;
+  // who can spot a hidden unit: any armed unit not on its side (other clans, police, house guards, bandits)
+  const spotter = (u, e) => u.owner !== e.owner && u.type !== 'civilian' && !u.dead && !u.downed && !u.jailed && u.place === e.place;
+  function range(e) {
+    const base = e.place !== 'street' ? R.indoorRange : lit(e.x, e.z) ? R.litRange : R.darkRange;
+    return base * (e.anim === 'run' ? R.runFactor : 1);
+  }
+  // hiddenAt: when it last went hidden (Assassinate needs a few seconds of it); seen = from scratch
+  function reveal(e) { if (e && canHide(e)) { e.revealUntil = state.tick + secs(R.revealSeconds); e.hidden = false; e.hiddenAt = null; } }
+
+  function tick() {
+    // a snuff in progress: done after snuffSeconds, cancelled by moving
+    for (const e of Object.values(state.entities)) {
+      const s = e.snuffing;
+      if (!s) continue;
+      if (e.dead || e.downed || Math.hypot(e.x - s.x, e.z - s.z) > 0.15) { delete e.snuffing; continue; }
+      if (state.tick >= s.until) {
+        delete e.snuffing;
+        const clan = state.clans[e.owner];
+        if (!state.lightsOut.includes(s.prop)) { state.lightsOut.push(s.prop); clan.snuffs = (clan.snuffs || 0) + 1; state.news.push({ kind: 'snuffed', clan: clan.id, prop: s.prop }); }
+      }
+    }
+    if (state.dawn) state.lightsOut = [];
+    if (state.dusk) for (const c of Object.values(state.clans || {})) c.snuffs = 0;
+    if (state.tick % R.every) return;
+    const all = Object.values(state.entities);
+    for (const e of all) {
+      if (!canHide(e)) { if (e.hidden) e.hidden = false; continue; }
+      // inside its own clan's Smoke Bomb: hidden whatever happens, but that doesn't count as hidden time
+      if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = true; continue; }
+      if ((e.revealUntil ?? -1) > state.tick) { e.hidden = false; continue; }
+      const r = range(e), r2 = r * r;
+      const seen = all.some(u => spotter(u, e) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r2);
+      if (seen) reveal(e); else { e.hiddenAt ??= state.tick; e.hidden = true; }
+    }
+  }
+
+  // the lantern a ninja boss could snuff from where he stands, or null
+  function snuffable(e) {
+    if (!e || e.type !== 'hero' || !ninja(e) || e.place !== 'street' || !state.night) return null;
+    const off = out();
+    let best = null, bd = R.snuffReach;
+    for (const l of lights) { const d = Math.hypot(l.x - e.x, l.z - e.z); if (d < bd && !off.has(l.prop)) { bd = d; best = l; } }
+    return best;
+  }
+  const snuffsLeft = clanId => Math.max(0, R.snuffPerNight - (state.clans?.[clanId]?.snuffs || 0));
+  // [{ id, type: 'snuff' }] from a Shinobi boss next to a lantern at night
+  function snuff(e) {
+    const l = snuffable(e), clan = state.clans?.[e?.owner];
+    if (!l || !clan || e.dead || e.downed || e.jailed) return;
+    if (snuffsLeft(clan.id) <= 0) { say(clan, `You can snuff ${R.snuffPerNight} lanterns a night`); return; }
+    e.snuffing = { prop: l.prop, x: e.x, z: e.z, until: state.tick + secs(R.snuffSeconds) };
+  }
+
+  return { tick, lit, reveal, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };
+}

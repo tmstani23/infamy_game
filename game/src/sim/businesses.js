@@ -204,7 +204,8 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       else say(clan, `Raid on the ${name(b)} failed: ${why}`);
     };
     if (b.owner !== a.defender) return end(false, 'it changed hands');
-    if (!standing(state.entities[a.hero])) return end(false, 'your boss went down');
+    // the raiding boss going down doesn't end it (Tim 2026-10-20): during the warm-up only knocking
+    // the War Lantern down does
     if (a.knock) {
       const k = a.knock, u = state.entities[k.by], def = state.clans[a.defender];
       if (!standing(u) || u.place !== 'street' || u.hp < k.hp || Math.hypot(u.x - k.x, u.z - k.z) > 0.3) {
@@ -218,10 +219,15 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     }
     // the doors open: the War Lantern burns out and the fight moves to the back room, where everyone is
     // (Tim 2026-10-19: nobody inside can see a lantern out on the street); a.spot keeps where it stood
-    if (a.phase === 'warmup') { if (state.tick >= a.opensAt) { a.phase = 'hold'; a.spot = a.lantern; a.lantern = null; delete a.knock; } return; }
+    if (a.phase === 'warmup') {
+      if (state.tick >= a.opensAt) { a.phase = 'hold'; a.spot = a.lantern; a.lantern = null; delete a.knock; a.away = 0; state.news.push({ kind: 'doorsOpen', business: b.id, raider: a.clan }); }
+      return;
+    }
+    // once the doors are open: nobody of yours inside for leaveSeconds in a row = lost (the screen
+    // counts it down: get inside, Tim 2026-10-20)
     const ours = Object.values(state.entities).filter(u => u.owner === a.clan && u.place === a.room && standing(u));
     a.away = ours.length ? 0 : a.away + 1;
-    if (a.away > secs(RD.leaveSeconds)) return end(false, 'you left the building');
+    if (a.away > secs(RD.leaveSeconds)) return end(false, 'nobody got inside');
     const theirs = Object.values(state.entities).filter(u => u.owner === a.defender && u.place === a.room && standing(u));
     const inZone = list => list.some(u => Math.hypot(u.x - a.hold.x, u.z - a.hold.z) <= a.hold.r);
     a.holding = inZone(ours) && !inZone(theirs);
@@ -327,6 +333,8 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     for (const b of Object.values(state.businesses)) {
       const pay = R[b.kind]?.payout, clan = state.clans?.[b.owner];
       if (!pay || !clan) continue;
+      // a Shinobi Sabotage contract held its mark here (sim/contracts.js): no payout this dawn
+      if (b.sabotaged) { delete b.sabotaged; say(clan, `No payout from the ${name(b)}: sabotaged`); state.news.push({ kind: 'sabotaged', clan: clan.id, business: b.id }); continue; }
       const amount = Math.round(pay * payoutShare(clan.id) * (payoutShare(clan.id) > 0 ? payoutBonus(b) : 1));   // whole quarter held: sim/territory.js
       if (amount <= 0) { say(clan, `No payout from the ${name(b)}: the police are cracking down`); continue; }
       clan.ryo += amount;

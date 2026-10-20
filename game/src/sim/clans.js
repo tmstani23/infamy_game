@@ -10,13 +10,21 @@ export function createClans(state, units, opts = {}) {
 
   // clan colours (banners, badge): the first clan teal, then red, purple, amber... (picked at the start later)
   const COLORS = ['#24978c', '#b02424', '#7a3fb0', '#c08a1e', '#2f5fb0'];
-  function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5, color = COLORS[Object.keys(state.clans).length % COLORS.length] } = {}) {
+  // kind: 'yakuza' (businesses) or 'ninja' (the Shinobi clan: contracts and Renown, no businesses; Tim 2026-10-20)
+  function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5, color = COLORS[Object.keys(state.clans).length % COLORS.length], kind = 'yakuza' } = {}) {
     // queue: hires paid for and waiting, first one counting down; notice: last hire message;
     // aggression (bots): share of downed enemies they choose to finish off, 0 to 1
     // clinic: crew in hospital ({ unit, model, kind: 'recover' | 'heal', left, cost, hp })
     // heat: trouble caused in the street (sim/game.js addHeat), cools slowly
-    state.clans[id] = { id, name, color, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, ...(bot ? { aggression } : {}) };
-    // the clan's home hideout (port_town.json "hideout": clan id) is its own from the start, for good
+    state.clans[id] = { id, name, color, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, kind, ...(kind === 'ninja' ? { renown: 0 } : {}), ...(bot ? { aggression } : {}) };
+    // the clan's home hideout (port_town.json "hideout": clan id) is its own from the start, for good.
+    // The Shinobi clan lives in the forest village instead ("hideout": "ninja", the longhouse), so a
+    // hideout kept for its id in town (the inn, when you play Shinobi) is just a building then.
+    if (kind === 'ninja') {
+      for (const b of Object.values(state.businesses)) if (b.hideout === id) delete state.businesses[b.id];
+      const village = Object.values(state.businesses).find(b => b.hideout === 'ninja');
+      if (village) village.hideout = id;
+    }
     for (const b of Object.values(state.businesses)) if (b.hideout === id) b.owner = id;
     return state.clans[id];
   }
@@ -28,6 +36,8 @@ export function createClans(state, units, opts = {}) {
 
   // Hero + baseCap crew, plus slots for every business the clan holds
   function crewCap(id) {
+    // the Shinobi clan holds no businesses: its crew grows with Renown (renownPerCrew a head)
+    if (state.clans[id]?.kind === 'ninja') return rules.baseCap + Math.floor((state.clans[id].renown || 0) / (rules.renownPerCrew || 100));
     return rules.baseCap + Object.values(state.businesses)
       .filter(b => b.owner === id)
       .reduce((n, b) => n + (rules.capPerBusiness[b.kind] || 0), 0);
@@ -37,6 +47,7 @@ export function createClans(state, units, opts = {}) {
   function hirePrice(id, type) {
     const t = types[type];
     if (!t || t.later || !t.price) return null;
+    if ((t.clan || 'yakuza') !== (state.clans[id]?.kind || 'yakuza')) return null;   // ninja crew for the Shinobi clan only, and the other way round
     const have = crewCount(id) + (state.clans[id]?.queue.length || 0);
     return Math.round(t.price * (1 + rules.priceStepPerCrew * have));
   }
@@ -47,15 +58,17 @@ export function createClans(state, units, opts = {}) {
   }
 
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
+  // where a clan hires (besides its own hideout): teahouses, or the dojo for the Shinobi clan
+  const hallOf = id => state.clans[id]?.kind === 'ninja' ? 'dojo' : 'teahouse';
 
   // Hire command from a hero standing inside a teahouse. Pays now; the recruit
   // arrives at the teahouse door when the timer runs out. Returns the message shown.
   function hire(hero, businessId, type) {
     const clan = state.clans[hero.owner], b = state.businesses[businessId];
     if (!clan || hero.type !== 'hero') return null;
-    // in a teahouse, or (slower) in your own hideout
+    // in a teahouse (the Shinobi clan: the village dojo), or (slower) in your own hideout
     const home = b?.kind === 'hideout' && b.owner === clan.id;
-    if (!b || (b.kind !== 'teahouse' && !home) || hero.place !== b.room) return say(clan, 'Hire crew inside a teahouse or your hideout');
+    if (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
     const price = hirePrice(clan.id, type);
     if (price === null) return say(clan, 'Nobody here for that job yet');
     if (crewCount(clan.id) + clan.queue.length >= crewCap(clan.id)) return say(clan, 'Crew is full: hold more buildings for more crew');
@@ -171,5 +184,5 @@ export function createClans(state, units, opts = {}) {
     }
   }
 
-  return { addClan, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf, clinicMenu, reviveCost, healCost, hitWait };
+  return { addClan, hallOf, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf, clinicMenu, reviveCost, healCost, hitWait };
 }

@@ -10,11 +10,15 @@
     "geisha_house": "Geisha house", "customs_house": "Customs house", "boatbuilder": "Boatbuilder's shed",
     "tenements": "Nagaya tenements", "police_box": "Police box", "police_hq": "Police HQ",
     "kabuki_theatre": "Kabuki theatre", "temple": "Temple", "rickshaw_station": "Rickshaw station", "food_stalls": "Food stalls",
-    "moneylender_house": "Moneylender's house", "lighthouse": "Lighthouse", "telegraph_office": "Telegraph office"
+    "moneylender_house": "Moneylender's house", "lighthouse": "Lighthouse", "telegraph_office": "Telegraph office",
+    "longhouse": "Shinobi longhouse", "dojo": "Village dojo", "ninja_shrine": "Village shrine", "training_yard": "Training yard",
+    "watchtower": "Watchtower", "storehouse": "Storehouse", "village_gate": "Gatehouse", "thatched_hut": "Thatched hut", "rope_bridge": "Rope bridge"
   },
   "roles": {
     "moneylender": "Sells War Lanterns (building panel at the door)",
     "teahouse": "Hire crew (H inside)",
+    "dojo": "Shinobi clan: hire ninja (H inside)",
+    "contract_board": "Shinobi clan: contracts (Space at the shrine)",
     "hideout": "Home hideout: hire (H inside, slower), rest and lay low; can't be taken",
     "gambling_den": "Most money, most heat",
     "warehouse": "Storage and smuggling",

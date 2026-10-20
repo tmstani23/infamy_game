@@ -387,12 +387,12 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     const f = k || (fight ? lf : back ? { x: (e.x + hx) / 2, z: (e.z + hz) / 2 } : { x: e.x, z: e.z }), a = rng() * Math.PI * 2;
     const r = k ? rng() * R.searchRadius : fight ? 2 + rng() * 6 : R.patrolRadius * (0.5 + rng() * 0.5);
     const [x, z] = nav.nearestFree(f.x + Math.cos(a) * r, f.z + Math.sin(a) * r) || [f.x, f.z];
-    Object.assign(m, { x, z, until: null, deadline: state.tick + secs(Math.hypot(x - e.x, z - e.z) / statsOf(e.type).walk * 2.5 + 6) });
+    Object.assign(m, { x, z, until: null, deadline: state.tick + secs(Math.hypot(x - e.x, z - e.z) / statsOf(e).walk * 2.5 + 6) });
     return [x, z, !k];
   }
 
   function step(e) {
-    const m = mind[e.id] ||= {}, unit = statsOf(e.type);
+    const m = mind[e.id] ||= {}, unit = statsOf(e);
     if (e.dead || e.downed) return;
     // anger runs out, or ends when nobody of that clan is within giveUpDistance
     if (e.angry) {
@@ -436,6 +436,9 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     }
     // nothing to do indoors (he was arrested, or got out): back out to the street to patrol
     if (e.place !== 'street') { if (!goThrough(e, 'street', unit)) remove(e.id); return; }
+    // a ninja's pebble (Distract, sim/game.js): walk over and look round there for a while
+    const dz = e.distracted;
+    if (dz && state.tick < dz.until) { if (Math.hypot(dz.x - e.x, dz.z - e.z) < 0.8 || !moveTo(e, unit, dz.x, dz.z, true)) { e.anim = 'idle'; stopPath(e); } return; }
     const goal = patrolSpot(e, m);
     if (!goal || !moveTo(e, unit, goal[0], goal[1], goal[2])) { e.anim = 'idle'; stopPath(e); }
   }

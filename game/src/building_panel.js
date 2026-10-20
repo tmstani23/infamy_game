@@ -22,7 +22,7 @@ export function buildingInfo({ state, district, info = {}, units }, i, clan) {
   if (deal && guards && biz.owner) rows.push(['Guards', `${Object.values(state.entities).filter(e => e.guard === biz.id && !e.dead).length} of ${guards}`]);
   const slots = units?.rules?.capPerBusiness?.[biz.kind];
   if (slots) rows.push([biz.owner === clan ? 'Gives' : 'If held', `+${slots} crew slots`]);
-  if (biz.kind === 'teahouse' && c) {
+  if ((biz.kind === 'teahouse' || biz.kind === 'dojo') && c) {
     const q = c.queue.filter(h => h.business === biz.id);
     rows.push(['Hiring', q.length ? `${q.length} waiting, ${Math.ceil(Math.max(0, q[0].left))} s left` : 'Nobody waiting']);
   }

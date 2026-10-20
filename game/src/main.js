@@ -5,6 +5,7 @@ import { onKey, moveCommand, panAxes, edgeAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
+import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { createRyoBadge } from './ryo_badge.js';
@@ -42,9 +43,15 @@ async function start() {
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
   const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings });
   const units = game.settings.units;   // hire prices etc. as the settings made them
-  game.clans.addClan('player', { name: 'Your clan' });
-  const [hx, hz] = district.spawns.hero;
-  const heroId = game.spawn('hero', 'ronin', hx, hz, { owner: 'player', home: district.spawns.hero, dir: 0 });
+  // ?test=ninja (test_params.js): you play the Shinobi clan, the ninja leader as boss (clan select comes later)
+  // 3 clans (Tim 2026-10-20): Shinobi, Yakuza and Kuroda, the two you don't play are bots. With you as
+  // Shinobi the inn (your hideout as Yakuza) goes to the Yakuza bot clan (bots.json yakuza)
+  const extra = TEST.ninja && bots.yakuza;
+  if (extra) for (const b of Object.values(game.state.businesses)) if (b.hideout === 'player') b.hideout = extra.id;
+  game.clans.addClan('player', TEST.ninja ? { name: 'Shinobi clan', kind: 'ninja' } : { name: 'Your clan' });
+  const [hx, hz] = TEST.ninja && district.spawns.ninja || district.spawns.hero;   // the Shinobi start in their forest village
+  const heroId = game.spawn('hero', TEST.ninja ? 'ninja_leader' : 'ronin', hx, hz, { owner: 'player', home: [hx, hz], dir: 0 });
+  if (TEST.ninja) for (let k = 0; k < 2; k++) game.spawn('ninja', 'ninja_grunt', hx + 1 + k, hz + 1, { owner: 'player', order: { kind: 'follow', target: heroId } });
   // ?test=bot (test_params.js): you start richer and with a business the bot can raid
   if (TEST.playerRyo !== undefined) game.state.clans.player.ryo = TEST.playerRyo;
   const startBiz = TEST.playerOwns && Object.values(game.state.businesses).find(b => b.kind === TEST.playerOwns);
@@ -55,22 +62,24 @@ async function start() {
 
   // The rival bot clan (docs/rival_bot_plan.md): its boss starts at its hideout (the izakaya) and
   // plays through the same commands as you (sim/bot.js); ?test=bot gives it 5000 ryo
-  let bot = null;
-  {
-    const bc = bots.clan;
+  // ...and with you as Shinobi the Yakuza bot clan at the inn too; each bot clan has its own brain
+  const botList = [];
+  for (const [k, bc] of [bots.clan, extra].filter(Boolean).entries()) {
     if (!game.state.clans[bc.id]) game.clans.addClan(bc.id, { name: bc.name, bot: true });
     if (TEST.botRyo !== undefined) game.state.clans[bc.id].ryo = TEST.botRyo;
     const home = Object.values(game.state.businesses).find(b => b.hideout === bc.id);
     if (home) {
       const boss = game.spawn('hero', bc.boss, home.ring[0], home.ring[1], { owner: bc.id, home: home.ring });
-      bot = createBot(game, { clan: bc.id, hero: boss, rules: bots.levels[bots.difficulty] });
+      botList.push(createBot(game, { clan: bc.id, hero: boss, rules: bots.levels[bots.difficulty], seed: 4242 + k * 977 }));
     }
   }
+  const bot = botList.length ? { tick: () => botList.flatMap(b => b.tick()) } : null;
 
   let view;
   try {
     view = await createView({
-      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, doors: game.doors,
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms,
+      doors: game.doors.filter(d => !d.ninja || game.state.clans.player.kind === 'ninja'),   // back windows: Shinobi only
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');
@@ -101,9 +110,13 @@ async function start() {
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
     const lantern = raidOnMe(true);
     if (lantern) { pending.push({ id: heroId, type: 'business', action: 'knock', business: lantern.business }); return; }
-    const menu = game.doorNear(heroId)?.menu;
+    const door0 = game.doorNear(heroId);
+    // a Shinobi boss by a lantern at night, no door here: snuff it (sim/stealth.js)
+    if (!door0 && game.stealth.snuffable(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'snuff' }); return; }
+    const menu = door0?.menu;
     if (menu === 'clinic') clinicMenu.toggle();
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle();
+    else if (menu === 'contracts') contractMenu.toggle();
     else pending.push({ id: heroId, type: 'use', units: crewInput.selected() });   // selected crew come in too
   });
   // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
@@ -146,6 +159,7 @@ async function start() {
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, send: c => pending.push(c) });
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, send: c => pending.push(c) });
+  const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
   // your clan's crest and name in the top bar (picked at the start later, Tim 2026-10-19)
@@ -167,9 +181,9 @@ async function start() {
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyL', () => crewInput.lockSelected());   // lock / unlock the selected crew (Tim 2026-10-20)
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); crewInput.clear(); $('controls').hidden = true; gameMap.close(); });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); crewInput.clear(); $('controls').hidden = true; gameMap.close(); });
   ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']
-    .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : policeMenu.isOpen() ? policeMenu.pick(i) : hireMenu.pick(i)));
+    .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : policeMenu.isOpen() ? policeMenu.pick(i) : contractMenu.isOpen() ? contractMenu.pick(i) : hireMenu.pick(i)));
   const sound = createSound();
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
   const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };
@@ -253,7 +267,9 @@ async function start() {
           const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE), opens = Math.ceil((a.opensAt - game.state.tick) / TICK_RATE);
           bar.textContent = a.phase === 'warmup' ? `Raid on the ${where}: the doors open in ${opens} s`
             : wait > 0 ? `Attacking the ${where}: police arrive in ${wait} s, get inside` : a.phase === 'hold'
-            ? `Hold the back room of the ${where}: ${Math.ceil(a.holdLeft / TICK_RATE)} s${a.holding ? '' : ' (stand in the gold ring)'}`
+            ? a.mode === 'raid' && a.away > 0   // nobody of yours inside: get in before the raid fails (Tim 2026-10-20)
+              ? `Get inside the ${where}: ${Math.max(0, Math.ceil(((game.businesses.raidRules.leaveSeconds || 10) * TICK_RATE - a.away) / TICK_RATE))} s or the raid fails`
+              : `Hold the back room of the ${where}: ${Math.ceil(a.holdLeft / TICK_RATE)} s${a.holding ? '' : ' (stand in the gold ring)'}`
             : `Attacking the ${where}: police wave ${a.wave} of ${a.waves}`;
         }
       }
@@ -288,6 +304,7 @@ async function start() {
         }
       }
       { const n = game.state.clans.player?.lanterns || 0, el = $('lanterns'); el.hidden = !n; el.textContent = `War Lantern ${n}`; }
+      { const c = game.state.clans.player, el = $('renown'), t = `Renown ${c?.renown || 0}`; el.hidden = c?.kind !== 'ninja'; if (el.textContent !== t) el.textContent = t; }
       // the hunters lost your boss (sim/police.js): a short notice at the top
       if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
         const el = $('lostcops');
@@ -301,6 +318,7 @@ async function start() {
         if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
         if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');
         if (n.kind === 'lanternDown' && n.raider === me) callout('Your War Lantern was destroyed', 'loss');
+        if (n.kind === 'doorsOpen' && n.raider === me) callout('The doors are open: get inside!', 'news');
         if (n.kind === 'backRoom' && n.state === 'taking' && n.defender === me) callout('Your back room is being taken!', 'loss');
         if (n.kind === 'backRoom' && n.state === 'contested' && (n.defender === me || n.raider === me)) callout('Back room contested!', 'news');
         if (n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
@@ -311,6 +329,13 @@ async function start() {
         if (n.kind === 'quarter' && n.clan !== me && game.territory.quarters.find(q => q.id === n.quarter)?.businesses.every(id => game.vision.grid(me).explored[game.vision.cellOf(game.state.businesses[id].x, game.state.businesses[id].z)] === 1))
           callout(`${game.state.clans[n.clan]?.name || 'A rival'} holds the ${n.name.replace(/^The /, '')}`, 'news');
         if (n.kind === 'seasonEnd') showResults();
+        // Shinobi contracts (sim/contracts.js): taken, done, failed; and warnings when one is aimed at you
+        if (n.kind === 'contractTaken' && n.clan === me && n.x != null) { minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'contractDone' && n.clan === me) callout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win');
+        if (n.kind === 'contractFailed' && n.clan === me) callout(`Contract failed: ${n.why}`, 'loss');
+        if (n.kind === 'contractWarn' && n.clan === me) callout('Word is the Shinobi took a job on you', 'news');
+        if (n.kind === 'markAlert' && n.clan === me) { callout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'sabotaged' && n.clan === me) callout('Sabotaged: a business paid nothing at dawn', 'loss');
       }
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
@@ -318,11 +343,20 @@ async function start() {
       acc -= tick;
       const door = game.doorNear(heroId), knockable = raidOnMe(true);
       const shut = door && Object.values(game.state.businesses).find(b => b.room === door.place && b.hideout && b.hideout !== game.state.entities[heroId]?.owner);   // a rival's hideout: closed
-      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut ? `${game.state.clans[shut.hideout]?.name || 'Rival'} hideout: no way in` : door ? `Space  ${door.label}` : '';
-      $('prompt').hidden = !door && !knockable;
+      const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
+      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut ? `${game.state.clans[shut.hideout]?.name || 'Rival'} hideout: no way in` : door ? `Space  ${door.label}`
+        : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
+      $('prompt').hidden = !door && !knockable && !lamp;
+      // Shinobi: is your boss hidden (sim/stealth.js)
+      { const h = game.state.entities[heroId], el = $('stealth'), on = game.state.clans.player.kind === 'ninja' && h && !h.dead && !h.jailed;
+        el.hidden = !on;
+        // hidden long enough for Assassinate (F, 3 s; smoke doesn't count): "HIDDEN · F ready", else a countdown
+        const need = units.models?.ninja_leader?.abilities?.F?.hiddenSeconds || 3, held = h?.hiddenAt == null ? 0 : (game.state.tick - h.hiddenAt) / 20;
+        if (on) { const t = !h.hidden ? 'SEEN' : held >= need ? 'HIDDEN · F ready' : h.hiddenAt == null ? 'HIDDEN' : `HIDDEN · F in ${Math.ceil(need - held)}`; if (el.textContent !== t) { el.textContent = t; el.className = h.hidden ? 'hid' : 'seen'; } } }
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();
+      contractMenu.update();
       // in jail (sim/police.js): big red banner with the time left
       const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');
       jailEl.hidden = !jailed;

@@ -55,7 +55,7 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
 
   function goTo(e, m, p) {
     Object.assign(m, { spot: p.id, x: p.x, z: p.z, until: null });
-    m.deadline = state.tick + secs(Math.hypot(p.x - e.x, p.z - e.z) / statsOf(e.type).walk * 2.5 + 8);
+    m.deadline = state.tick + secs(Math.hypot(p.x - e.x, p.z - e.z) / statsOf(e).walk * 2.5 + 8);
   }
 
   // Hit by someone of a clan: it and the bandits near it fight that clan (e.angry: clan -> tick it ends)
@@ -88,7 +88,7 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
       if (!Object.keys(e.angry).length) delete e.angry;
     }
     if (fightStep(e, R.giveUpDistance ?? 15)) { m.spot = null; m.until = null; return; }
-    const unit = statsOf(e.type);
+    const unit = statsOf(e);
     // dawn: walk to the nearest way out and go
     if (!state.night) {
       if (!m.leaving) {
@@ -101,6 +101,9 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
       return;
     }
     if (m.leaving) { m.leaving = false; m.spot = null; m.until = null; }   // night again before it got out
+    // a ninja's pebble (Distract, sim/game.js): walk over and look round there for a while
+    const dz = e.distracted;
+    if (dz && state.tick < dz.until) { m.spot = null; m.until = null; if (Math.hypot(dz.x - e.x, dz.z - e.z) < 0.8 || !moveTo(e, unit, dz.x, dz.z, true)) { e.anim = 'idle'; stopPath(e); } return; }
     // staying at a spot
     if (m.until != null) {
       e.anim = 'idle';

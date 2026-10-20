@@ -5,7 +5,7 @@
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 
-const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated' };
+const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Caltrops (slowed)', shroud: 'Smoke (healing)' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -24,7 +24,7 @@ function tooltip(a, key, stats) {
 
 export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {} }) {
   const hero = () => game.state.entities[heroId];
-  const stats = units.types[hero()?.type] || {};
+  const stats = { ...units.types[hero()?.type], ...units.models?.[hero()?.model] };   // the Shinobi boss has his own (units.json models)
   const kit = stats.abilities || {};
   const tip = document.createElement('div');
   tip.className = 'tip';

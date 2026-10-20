@@ -63,6 +63,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const things = await buildScenery(scenery, renderer);
   for (const t of things) scene.add(t.mesh, ...t.extras);
   const lights = [...things.flatMap(t => t.lights), ...roomLights];
+  // lanterns by prop index, so a snuffed one (state.lightsOut, sim/stealth.js) can go dark
+  const propLights = new Map();
+  for (const t of things) if (t.prop !== null && t.lights.length) propLights.set(t.prop, t.lights);
+  let lightsOutKey = '';
+  function syncLightsOut(state) {
+    const key = (state.lightsOut || []).join(',');
+    if (key === lightsOutKey) return;
+    lightsOutKey = key;
+    const out = new Set(state.lightsOut || []);
+    for (const [prop, ls] of propLights) for (const l of ls) { l.off = out.has(prop); if (l.glow) l.glow.visible = !l.off; }
+  }
   const lines = footprintLines(scenery);
   lines.visible = debug;
   scene.add(lines);
@@ -116,7 +127,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   function updateLights(time) {
-    const near = lights
+    const near = lights.filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
       .sort((a, b) => a.d - b.d).slice(0, MAX_LIGHTS);
     near.forEach(({ l }, i) => {
@@ -165,6 +176,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     scene.background = DAY_SKY.clone().lerp(NIGHT_SKY, shared.uNight.value);
 
     syncSprites(state);
+    syncLightsOut(state);
     if (state.tick !== healTick) { healTick = state.tick; showHeals(state, prev); }
     // hitstop: on a big impact the screen holds still for a few frames (animation and
     // effects only; the rules keep running, so this never touches the game)
@@ -184,6 +196,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (e.jailed) s.setBar((e.jailed.until - state.tick - alpha) / e.jailed.len, [0.6, 0.6, 0.65]);
       const grey = !!e.jailed, gu = s.material.uniforms;
       if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); gu.uOpacity.value = grey ? 0.55 : 1; s.grey = grey; }
+      // your hidden ninja (sim/stealth.js) are drawn a little see-through (Tim 2026-10-20: half as see-through as before); nobody else is shown them at all
+      const ghost = !!e.hidden && !grey;
+      if (ghost !== !!s.ghost) { gu.uOpacity.value = ghost ? 0.72 : 1; s.ghost = ghost; }
       updateTeamRing(s, e, state.entities[followId]);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
@@ -252,7 +267,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  function addCasts(casts) { for (const c of casts) { abilityFx.cast(c); if (c.ryo) abilityFx.coins(c.x, c.z); } }   // c.ryo: an execute that paid ryo
+  function addCasts(casts) {
+    for (const c of casts) {
+      abilityFx.cast(c);
+      if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo
+      if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
+    }
+  }
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
   // health gained since the last tick: real heals sparkle at once, regeneration
   // sparkles each time it adds up to 4% of a unit's health
@@ -265,7 +286,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const gain = (e.hp - p.hp) / e.maxHp, steal = !!e.buffs?.lantern && gain > 0.002;   // more than regen gives in a tick
       // a real heal: Rally's ticks rain green (Tim 2026-10-19); lifesteal keeps its red-gold dazzle (the rain
       // was lost in the lanterns' glow, Tim), the clinic's heal its green one
-      if (gain >= 0.015 || steal) { if (e.buffs?.rally && !steal) { abilityFx.rain(s.pos.x, s.pos.z); hitFx.heal(s.pos.x, s.pos.z, Math.round(e.hp - p.hp)); } else abilityFx.heal(s.pos.x, s.pos.z, true, steal); trickle.set(e.id, 0); continue; }
+      if (gain >= 0.015 || steal) { if ((e.buffs?.rally || e.buffs?.shroud) && !steal) { abilityFx.rain(s.pos.x, s.pos.z); hitFx.heal(s.pos.x, s.pos.z, Math.round(e.hp - p.hp)); } else abilityFx.heal(s.pos.x, s.pos.z, true, steal); trickle.set(e.id, 0); continue; }
       const t = (trickle.get(e.id) || 0) + gain;
       if (t >= 0.04) { abilityFx.heal(s.pos.x, s.pos.z, false, false); trickle.set(e.id, 0); } else trickle.set(e.id, t);
     }

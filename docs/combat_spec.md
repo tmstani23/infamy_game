@@ -77,6 +77,17 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 | R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 15% of your health over 6 s in 6 ticks (hero included; 2026-10-19). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
+### Ninja leader kit (built 2026-10-20, `units.json` `models.ninja_leader.abilities`)
+
+| Key | Ability | What it does | Cooldown |
+|---|---|---|---|
+| Q | Shadow Step | Teleports up to 8 toward the mouse, stopping at walls and water; stays hidden. | 10 s |
+| E | Caltrops | Thrown at the mouse: enemies within 2 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
+| R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). The whole clan gets holdFire (no attacks or hit-backs) until a new order or attack. | 40 s |
+| F | Assassinate | Needs 3 s hidden (`e.hiddenAt`; smoke doesn't count). Hits the enemy at the mouse within reach +1.5: crew go down outright, a boss drops to 60% (at least 25% damage). Reveals the ninja. Screen flash and shake. | 90 s |
+
+Effects in `render/abilityfx.js` (mock OK'd by Tim): black non-additive smoke with muted purple and blue highlights, thin rings like the ronin's.
+
 **Keys (done, F2):** doors moved to **Space** (it shows on the door prompt), and E is Intimidate. Hire menu keys 1 to 3 stay as they are (only inside a teahouse).
 
 **Action bar (WoW-style), bottom centre of the screen:**

@@ -79,12 +79,16 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Mouse wheel, or = and - | Zoom in and out |
 | N (dev only) | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
 | M, or the Map button | Open or close the full game map (Esc closes it too): territory, businesses, police, units, quarters, season score. The game keeps running. Click a spot to move the camera there |
+| Shinobi: H in the village dojo or longhouse | Hire ninja crew (J on the minimap is the dojo) |
+| Shinobi: Space at a lit lantern | Snuff it (3 per night; they relight at dawn) |
+| Shinobi: Space at the village shrine | Open the contract board |
+| Shinobi: Q E R F | Shadow Step, Caltrops, Smoke Bomb, Assassinate (see `combat_spec.md`) |
 | K, or the Mute button | Mute or unmute sounds |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
-| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout. A business letter fills with its owner's colour once explored (your own always) |
+| Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout, J dojo. A business letter fills with its owner's colour once explored (your own always) |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
 
 ## Planned (not built yet)

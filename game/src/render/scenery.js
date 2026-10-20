@@ -188,6 +188,7 @@ function cutoutThing(s, tex) {
   const isBuilding = item.kind === 'buildings';
   const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2);
   thing.building = s.building ?? null;   // index in the district's buildings (street buildings only)
+  thing.prop = s.prop ?? null;           // index in the district's props (a snuffed lantern goes dark, sim/stealth.js)
   if (thing.big) thing.mask = alphaMask(tex.image, flip);
 
   // lamps: a world position for the light, and a glow drawn on the sprite
@@ -197,7 +198,8 @@ function cutoutThing(s, tex) {
       ? (1.4 - Q.y) / VIEW_DIR.y      // lamps and windows on the facade, about head height
       : ((C.x - Q.x) * VIEW_DIR.x + (C.z - Q.z) * VIEW_DIR.z) / (VIEW_DIR.x ** 2 + VIEW_DIR.z ** 2);
     const pos = Q.clone().addScaledVector(VIEW_DIR, t);
-    thing.lights.push({ pos, radius, color: colorOf(color), fire, seed: Math.random() * 10 });
+    const light = { pos, radius, color: colorOf(color), fire, seed: Math.random() * 10 };
+    thing.lights.push(light);
     const glow = new THREE.Mesh(quad, glowMaterial(colorOf(color), Math.random() * 10, indoor));
     glow.quaternion.copy(CAM_QUAT);
     const g = Math.min(radius * 0.32, 2.4);
@@ -205,6 +207,7 @@ function cutoutThing(s, tex) {
     glow.position.copy(Q);
     glow.frustumCulled = false;
     thing.extras.push(glow);
+    light.glow = glow;
   };
   for (const [x, y, r, color] of item.lights) lamp(x, y, r, color, item.flames.length > 0);
   if (item.glows) {

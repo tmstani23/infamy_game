@@ -21,7 +21,8 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
   // cell -> index into areas + 1 (0 = nobody's)
   const cells = new Uint16Array(w * h);
   let areas = [], key = null;
-  const radiusOf = b => T.radius[b.kind] || 0;
+  // b.area = [x, z, r]: port_town.json "territory", a circle of its own (the Shinobi village round the longhouse)
+  const radiusOf = b => b.area?.[2] || T.radius[b.kind] || 0;
 
   // rebuilt only when owners change (checked once a tick, in tick())
   function refresh() {
@@ -29,7 +30,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
     const k = owned.map(b => `${b.id}:${b.owner}`).join(',');
     if (k === key) return;
     key = k;
-    areas = owned.map(b => ({ business: b.id, clan: b.owner, x: b.x, z: b.z, r: radiusOf(b) }));
+    areas = owned.map(b => ({ business: b.id, clan: b.owner, x: b.area?.[0] ?? b.x, z: b.area?.[1] ?? b.z, r: radiusOf(b) }));
     cells.fill(0);
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
       const x = i + minX + 0.5, z = j + minZ + 0.5;

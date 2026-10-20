@@ -2029,5 +2029,195 @@
     66
    ]
   ]
+ },
+ "buildings/village_gate": {
+  "w": 437,
+  "h": 325,
+  "left": 1,
+  "right": 434,
+  "bottomX": 328,
+  "bottomY": 323,
+  "glows": [
+   [
+    166,
+    149,
+    89
+   ],
+   [
+    293,
+    193,
+    85
+   ]
+  ]
+ },
+ "buildings/dojo": {
+  "w": 518,
+  "h": 361,
+  "left": 2,
+  "right": 516,
+  "bottomX": 229,
+  "bottomY": 358,
+  "glows": [
+   [
+    217,
+    276,
+    111
+   ],
+   [
+    418,
+    203,
+    90
+   ],
+   [
+    102,
+    223,
+    72
+   ]
+  ]
+ },
+ "buildings/longhouse": {
+  "w": 510,
+  "h": 355,
+  "left": 2,
+  "right": 508,
+  "bottomX": 215,
+  "bottomY": 352,
+  "glows": [
+   [
+    363,
+    225,
+    66
+   ]
+  ]
+ },
+ "buildings/ninja_shrine": {
+  "w": 367,
+  "h": 324,
+  "left": 1,
+  "right": 365,
+  "bottomX": 200,
+  "bottomY": 321,
+  "glows": [
+   [
+    309,
+    195,
+    34
+   ],
+   [
+    181,
+    230,
+    29
+   ]
+  ]
+ },
+ "buildings/storehouse": {
+  "w": 374,
+  "h": 327,
+  "left": 1,
+  "right": 372,
+  "bottomX": 180,
+  "bottomY": 325,
+  "glows": [
+   [
+    224,
+    117,
+    70
+   ]
+  ]
+ },
+ "buildings/thatched_hut": {
+  "w": 389,
+  "h": 315,
+  "left": 1,
+  "right": 387,
+  "bottomX": 180,
+  "bottomY": 313,
+  "glows": [
+   [
+    207,
+    182,
+    178
+   ]
+  ]
+ },
+ "buildings/training_yard": {
+  "w": 492,
+  "h": 335,
+  "left": 1,
+  "right": 489,
+  "bottomX": 241,
+  "bottomY": 332,
+  "glows": [
+   [
+    227,
+    283,
+    77
+   ],
+   [
+    242,
+    272,
+    66
+   ],
+   [
+    226,
+    197,
+    63
+   ],
+   [
+    239,
+    121,
+    59
+   ],
+   [
+    298,
+    115,
+    48
+   ],
+   [
+    199,
+    151,
+    45
+   ]
+  ]
+ },
+ "buildings/watchtower": {
+  "w": 279,
+  "h": 318,
+  "left": 2,
+  "right": 277,
+  "bottomX": 126,
+  "bottomY": 316,
+  "glows": [
+   [
+    234,
+    232,
+    74
+   ],
+   [
+    126,
+    86,
+    34
+   ]
+  ]
+ },
+ "buildings/rope_bridge": {
+  "w": 494,
+  "h": 321,
+  "left": 1,
+  "right": 492,
+  "bottomX": 362,
+  "bottomY": 319,
+  "glows": [
+   [
+    443,
+    134,
+    32
+   ],
+   [
+    101,
+    47,
+    28
+   ]
+  ]
  }
 }

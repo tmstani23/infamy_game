@@ -49,8 +49,16 @@ assert.match(g.state.clans.kuroda.notice.text, /being raided/);
 // the doors stay shut during the warm-up
 g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, 'street', 'no way in during the warm-up');
+// the boss knocked out in the warm-up doesn't end the raid (Tim 2026-10-20); only the lantern knocked down does
+Object.assign(h, { hp: 0, dead: true, diedAt: g.state.tick });
+g.step();
+assert.ok(g.state.attacks[den.id], 'raid goes on with the boss down');
 for (let i = 0; i < RD.warmupSeconds * 20; i++) g.step();
 assert.equal(a.phase, 'hold');
+assert.ok(!h.dead, 'he is back up');
+h.place = 'street';
+g.step();
+assert.ok(a.away > 0 && g.state.attacks[den.id], 'doors open, nobody inside yet: the get-inside countdown runs');
 assert.ok(!a.lantern && a.spot, 'the lantern burns out when the doors open');
 Object.assign(h, { x: den.ring[0], z: den.ring[1] });
 g.step([{ id: hero, type: 'use', units: crew }]);

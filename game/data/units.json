@@ -4,6 +4,18 @@
     "startRyo": 300,
     "vision": { "range": 18, "businessRange": 10 },
     "baseCap": 3,
+    "renownPerCrew": 100,
+    "_contracts": "Shinobi contracts (sim/contracts.js, Tim 2026-10-20): the village shrine posts perDawn jobs each dawn, one taken at a time, running until the next dawn; done = ryo + renown, failed = nothing. scout: hidden inside a rival business seconds; mark: at night stand on its back-room spot plantSeconds, then keep a ninja inside holdSeconds (none inside leaveSeconds = failed; owner alerted at once if seen planting, else after alertDelay; owner units on the mark clearSeconds scrub it off), done = no payout there next dawn; steal: on a rival hideout's back-room stash seconds = share of its ryo (max); boss: knock out the rival boss; bandits: count bandits before dawn. Fair board (Tim 2026-10-20): at most perClan jobs on one clan; a clan hit by a done contract in the last recentDays dawns is drawn 1/(1+hits) as often, the season leader leaderWeight x; taking a job swaps the other jobs on that clan for jobs on other clans or the town (or drops them)",
+    "contracts": {
+      "perDawn": [3, 5],
+      "perClan": 2, "recentDays": 2, "leaderWeight": 2,
+      "scout": { "ryo": 150, "renown": 15, "seconds": 10 },
+      "mark": { "ryo": 300, "renown": 30, "plantSeconds": 3, "holdSeconds": 60, "leaveSeconds": 10, "alertDelay": 15, "clearSeconds": 4, "reach": 1.5 },
+      "steal": { "share": 0.2, "max": 500, "renown": 25, "seconds": 5, "reach": 1.5 },
+      "boss": { "ryo": 400, "renown": 40 },
+      "bandits": { "ryo": 200, "renown": 20, "count": 5 }
+    },
+    "stealth": { "_note": "Shinobi stealth (sim/stealth.js, Tim 2026-10-20): hidden unless an enemy is within darkRange (night, no lantern), litRange (lantern light or day) or indoorRange (rooms), x runFactor running; seen, hitting or hit = revealed revealSeconds; lanterns light lightRadius; snuff snuffPerNight a night, snuffSeconds standing within snuffReach", "darkRange": 2, "litRange": 5, "indoorRange": 4, "runFactor": 2, "revealSeconds": 5, "lightRadius": 5, "snuffPerNight": 3, "snuffSeconds": 1, "snuffReach": 1.8 },
     "capPerBusiness": { "teahouse": 3, "warehouse": 1, "gambling_den": 2 },
     "priceStepPerCrew": 0.15,
     "maxQueue": 5,
@@ -35,6 +47,16 @@
     "raid": { "lanternPrice": 2400, "lanternCarry": 1, "warmupSeconds": 60, "holdSeconds": 30, "holdRadius": 2.5, "maxCrewInside": 6, "leaveSeconds": 10 },
     "businesses": { "teahouse": { "price": 400, "payout": 100, "attackWaves": 3, "score": 1 }, "warehouse": { "price": 700, "payout": 175, "attackWaves": 4, "score": 2 }, "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "score": 3 } }
   },
+  "_models": "per-sprite overrides for a unit type (sim/game.js statsOf): the Shinobi boss is a hero like the ronin, with his own numbers (Tim 2026-10-20: an assassin, faster, same damage, a bit less health); abilities Q Shadow Step, E Distract, R Smoke Bomb, F Assassinate (ninja build phase 4, Tim 2026-10-20)",
+  "models": {
+    "ninja_leader": { "hp": 700, "walk": 1.9, "run": 6.6, "critChance": 0.15,
+      "abilities": {
+        "Q": { "name": "Shadow Step", "kind": "shadowstep", "cooldown": 10, "range": 8, "about": "Vanish and reappear up to 8 steps toward the mouse (not through walls or water); you stay hidden" },
+        "E": { "name": "Distract", "kind": "distract", "cooldown": 15, "range": 12, "radius": 6, "seconds": 6, "snareRadius": 2, "snareSeconds": 3, "snareSpeed": 0.5, "about": "Throw caltrops at the mouse (up to 12 steps): every enemy within 2 of them is slowed 50% for 3 s, and house guards, police and bandits within 6 who aren't fighting go and look there for 6 s" },
+        "R": { "name": "Smoke Bomb", "kind": "smoke", "cooldown": 40, "radius": 4, "seconds": 6, "heal": 0.03, "about": "Smoke round you (4 steps, 6 s): enemies inside lose their target, nobody outside sees in, your ninja inside stay hidden and heal 3% a second. All your ninja stop attacking (even hitting back) until you give a new order" },
+        "F": { "name": "Assassinate", "kind": "assassinate", "cooldown": 90, "hiddenSeconds": 3, "reach": 1.5, "bossShare": 0.6, "bossMin": 0.25, "about": "Only after 3 s hidden (smoke doesn't count): strike the enemy at the mouse next to you. Crew go down at once, a boss drops to 60% health. Shows you" }
+      } }
+  },
   "types": {
     "hero":      { "sprite": "ronin",     "hp": 800, "damage": 30, "attackRange": 2.5, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire",
       "abilities": {
@@ -50,6 +72,7 @@
     "bandit":      { "sprite": "bandit", "name": "Bandit", "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "_note": "night bandit (data/bandits.json), not for hire" },
     "night_brute": { "sprite": "brute",  "name": "Night brute", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "_note": "night bandit (data/bandits.json), not for hire" },
     "junsa":       { "sprite": "police", "name": "Junsa", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.1, "critChance": 0.05, "critMultiplier": 2, "walk": 1.6, "run": 4.8, "radius": 0.35, "_note": "police officer (sim/police.js, data/police.json), not for hire" },
+    "ninja":     { "sprite": "ninja_grunt", "name": "Ninja", "clan": "ninja", "hp": 180, "damage": 12, "attackRange": 1.4, "attackSpeed": 0.9, "critChance": 0.15, "critMultiplier": 2, "walk": 1.8, "run": 6.2, "radius": 0.35, "price": 90, "hireSeconds": 6, "recoverSeconds": 30, "executeRyo": 30, "_note": "Shinobi clan crew (Tim 2026-10-20): fast and light; only the Shinobi clan hires them (clan), at its village dojo" },
     "rifleman":  { "sprite": "mercenary", "later": "needs projectiles" },
     "archer":    { "sprite": "archer",    "later": "needs projectiles" }
   }

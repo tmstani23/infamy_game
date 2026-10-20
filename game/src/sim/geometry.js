@@ -78,7 +78,7 @@ export function placeScenery(district, catalog, cutouts) {
   return [
     ...district.buildings.map((b, i) => ({ name: b.art, x: b.x, z: b.z, flip: !!b.flip, business: b.business || null, building: i })),
     // a prop is [name, x, z] or [name, x, z, { flip: true }] (mirrored, so a wall runs along z instead of x)
-    ...district.props.map(([name, x, z, o]) => ({ name, x, z, flip: !!o?.flip })),
+    ...district.props.map(([name, x, z, o], i) => ({ name, x, z, flip: !!o?.flip, prop: i })),   // prop: its index (lanterns snuffed out, sim/stealth.js)
   ].map(e => placePiece(e, catalog, cutouts)).filter(Boolean);
 }
 

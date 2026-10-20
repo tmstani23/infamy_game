@@ -3,13 +3,15 @@
 const title = s => s[0].toUpperCase() + s.slice(1);
 
 export function createHireMenu({ panel, money, game, units, heroId, send }) {
-  const hireable = Object.entries(units.types).filter(([, t]) => t.price && !t.later).map(([k]) => k);
+  // what your clan may hire (units.json "clan": ninja crew for the Shinobi clan only)
+  const kindOf = () => game.state.entities[heroId] && game.state.clans[game.state.entities[heroId].owner]?.kind || 'yakuza';
+  const hireable = Object.entries(units.types).filter(([, t]) => t.price && !t.later && (t.clan || 'yakuza') === kindOf()).map(([k]) => k);
   let open = false, shown = '';
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
-  // the teahouse the hero is standing in, if any
+  // the teahouse (Shinobi: the village dojo) the hero is standing in, if any
   // (or your own hideout: slower hiring)
-  const teahouse = () => Object.values(game.state.businesses).find(b => (b.kind === 'teahouse' || (b.kind === 'hideout' && b.owner === hero()?.owner)) && b.room && b.room === hero()?.place);
+  const teahouse = () => Object.values(game.state.businesses).find(b => (b.kind === game.clans.hallOf(hero()?.owner) || (b.kind === 'hideout' && b.owner === hero()?.owner)) && b.room && b.room === hero()?.place);
 
   function pick(i) {
     const b = teahouse();

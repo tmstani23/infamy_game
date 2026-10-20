@@ -40,7 +40,9 @@ Index of every building image (2026-10-18). Use the # to name a building in chat
 
 ## Ninja village
 
-Not used by the game code yet.
+On the map since 2026-10-20 (ninja build): the Shinobi village in the west forest, at the end of the `port_town.json` buildings. The longhouse is the ninja hideout (`"hideout":"ninja"`, claimed by a ninja clan instead of the inn; territory circle at -97, 48, radius 26). The dojo is a new business kind with a warehouse room; the Shinobi hire only in the dojo or longhouse (`clans.hallOf`); J on the minimap. The shrine is the contract board (`ninja_shrine`, `"business":"contract_board"`). Scenery: training yard, watchtower, storehouse, gatehouse, 2 huts. Art cut via `SINGLES` in `tools/cut_environment.py`, listed in `art.json` and `buildings.json`. The rows below still show the original sheet status.
+
+Map growth (2026-10-20): bounds x -112..100, z -56..94, forest all round except the sea side. A forest stream runs along the old west edge with two plank bridges (west trail at z 48, southeast trail to the west road at z -7); the canal runs north into the stream. Bandit way-in edges moved to the new edges; `noPoliceAreas` cover the new forest.
 
 | # | Name | Code id | Image | Source sheet, cell | On the map | Game role | Sorted copy |
 |---|---|---|---|---|---|---|---|
