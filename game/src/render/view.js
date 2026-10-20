@@ -198,7 +198,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); gu.uOpacity.value = grey ? 0.55 : 1; s.grey = grey; }
       // your hidden ninja (sim/stealth.js) are drawn a little see-through (Tim 2026-10-20: half as see-through as before); nobody else is shown them at all
       const ghost = !!e.hidden && !grey;
-      if (ghost !== !!s.ghost) { gu.uOpacity.value = ghost ? 0.72 : 1; s.ghost = ghost; }
+      if (ghost !== !!s.ghost) { gu.uOpacity.value = ghost ? 0.8 : 1; s.ghost = ghost; }
       updateTeamRing(s, e, state.entities[followId]);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
@@ -214,6 +214,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         u.uSelfLight.value.setRGB(0.2, 0.18, 0.16);
       }
       s.lanternTint = lit;
+      // hidden ninja: a very slight purple shimmer rippling over them (Tim 2026-10-20)
+      const shim = ghost && !lit;
+      if (shim) {
+        const k = 0.5 + 0.5 * Math.sin(time * 2.4 + s.pos.x * 1.3 + s.pos.z * 0.9);
+        u.uTint.value.setRGB(0.95 + 0.03 * k, 0.9, 1.05 + 0.07 * k);
+        u.uSelfLight.value.setRGB(0.21 + 0.05 * k, 0.15, 0.26 + 0.09 * k);
+      } else if (s.shimmer && !lit) {
+        u.uTint.value.setRGB(1, 1, 1);
+        u.uSelfLight.value.setRGB(0.2, 0.18, 0.16);
+      }
+      s.shimmer = shim;
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);

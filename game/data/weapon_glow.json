@@ -3,11 +3,13 @@
   "models": {
     "ronin": "katana", "swordsman": "katana", "rival_yakuza": "katana",
     "thug": "club", "brute": "club",
-    "police": "jitte"
+    "police": "jitte",
+    "ninja_leader": "ninjato", "ninja_grunt": "ninjato"
   },
   "weapons": {
     "katana": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35 },
     "club": { "color": [1.0, 0.56, 0.22], "strength": 0.3, "attack": 0.3 },
-    "jitte": { "color": [0.38, 0.58, 1.0], "strength": 0.4, "attack": 0.3 }
+    "jitte": { "color": [0.38, 0.58, 1.0], "strength": 0.4, "attack": 0.3 },
+    "ninjato": { "color": [0.42, 0.2, 0.72], "strength": 0.45, "attack": 0.35, "_note": "thin dark purple (Tim 2026-10-20)" }
   }
 }

@@ -438,6 +438,8 @@ const palmOf = (bone, out) => bone.localToWorld(out.set(0, PALM_Y, 0));
 let itemHang = false;
 let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), roll (deg)} or null
 let runPose = false;     // true while a run clip is being drawn
+let itemIdleBack = null; // one-hand blades (ninja, Tim 2026-10-20): in idles and walks held in the palm (hand: 'left' = the other hand), tip back behind at drop degrees below level (negative = up)
+let idlePose = false;    // true while an idle or walk clip is being drawn
    // swords hang when the hands part; rifles stay between the hands
 function updateItem() {
   if (!item || !root) return;
@@ -473,7 +475,7 @@ function updateItem() {
     }
     item.lookAt(_b);   // +Z of the item points from the right hand to the left
   } else {
-    const bone = mode === 'left' ? left : right;
+    const bone = itemIdleBack && idlePose && itemIdleBack.hand === 'left' ? left : mode === 'left' ? left : right;
     if (!bone) return;
     if (item.parent !== bone) bone.add(item);
     bone.getWorldScale(_s);
@@ -485,7 +487,17 @@ function updateItem() {
       item.rotateZ(THREE.MathUtils.degToRad(num('itemRoll')));
       return;
     }
-    item.position.set(0, 0, 0);
+    if (itemIdleBack && idlePose) {
+      item.position.set(0, PALM_Y, 0);
+      root.updateMatrixWorld(true);
+      palmOf(bone, _a);
+      const yaw = root.rotation.y, d = THREE.MathUtils.degToRad(itemIdleBack.drop);
+      _c.set(-Math.sin(yaw) * Math.cos(d), -Math.sin(d), -Math.cos(yaw) * Math.cos(d));   // behind the character, tip down
+      item.lookAt(_b.copy(_a).add(_c));
+      return;
+    }
+    // in the palm, not at the wrist (Tim 2026-10-20: the ninja blade floated off the hand)
+    item.position.set(0, itemIdleBack ? PALM_Y : 0, 0);
     // Mixamo hand bones point +Y along the fingers; -Z comes out of the thumb
     // side of a closed fist, which is where a gripped blade or haft points
     item.rotation.set(THREE.MathUtils.degToRad(num('itemRx') + 180), THREE.MathUtils.degToRad(num('itemRy')), 0);
@@ -499,6 +511,7 @@ function setItemOptions(o = {}) {
   if (o.flip != null) $('itemFlip').checked = !!o.flip;
   itemHang = !!o.hang;
   itemRunBack = o.runBack || null;
+  itemIdleBack = o.idleBack || null;
   itemDir = o.dir ? new THREE.Vector3(...o.dir).normalize() : null;
 }
 
@@ -601,6 +614,7 @@ function renderSheet(i, withGlow = false) {
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
   runPose = /run/i.test(entry.name);
+  idlePose = /idle|walk|pointing/i.test(entry.name);
   const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
   const frames = Math.max(1, Math.min(Number($('maxf').value), Math.round(clip.duration * fps)));
 
@@ -654,7 +668,7 @@ function renderSheet(i, withGlow = false) {
     }
   });
 
-  runPose = false;
+  runPose = false; idlePose = false;
   exMixer.stopAllAction();
   exMixer.uncacheRoot(obj);
   off.dispose();
