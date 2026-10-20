@@ -3,6 +3,13 @@
   "clan": { "id": "kuroda", "name": "Kuroda clan", "boss": "rival_yakuza" },
   "_yakuza": "3 clans (Tim 2026-10-20): Shinobi, Yakuza, Kuroda; the two you do not play are bots. Playing Shinobi (?test=ninja), the inn (your hideout as Yakuza) goes to this Yakuza bot clan, same brain and difficulty as Kuroda. A Shinobi bot for Yakuza games is not built yet.",
   "yakuza": { "id": "yakuza", "name": "Yakuza clan", "boss": "ronin" },
+  "_shinobi": "Playing Yakuza, the Shinobi bot clan (src/sim/ninja_bot.js) lives in the village longhouse: hires ninja at the dojo, takes contracts at the shrine (jobs = the kinds it likes, first first), sneaks in by back windows, hunts bosses and bandits; shinobiLevels knobs per difficulty (any left out use NINJA_BOT_DEFAULTS).",
+  "shinobi": { "id": "shinobi", "name": "Shinobi clan", "boss": "ninja_leader" },
+  "shinobiLevels": {
+    "easy": { "thinkSeconds": 4, "reactSeconds": 2, "jobs": ["bandits", "scout", "steal"], "abilities": ["R", "E"] },
+    "medium": { "thinkSeconds": 2, "reactSeconds": 1, "jobs": ["scout", "steal", "bandits", "mark", "boss"], "abilities": ["Q", "E", "R", "F"] },
+    "hard": { "thinkSeconds": 1, "reactSeconds": 0.5, "jobs": ["mark", "boss", "steal", "scout", "bandits"], "abilities": ["Q", "E", "R", "F"] }
+  },
   "difficulty": "easy",
   "levels": {
     "easy": {

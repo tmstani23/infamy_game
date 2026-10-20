@@ -19,6 +19,7 @@ import { createBuildingPanel } from './building_panel.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
 import { createBot } from './sim/bot.js';
+import { createNinjaBot } from './sim/ninja_bot.js';
 import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
 import { createGameMap } from './game_map.js';
@@ -71,6 +72,16 @@ async function start() {
     if (home) {
       const boss = game.spawn('hero', bc.boss, home.ring[0], home.ring[1], { owner: bc.id, home: home.ring });
       botList.push(createBot(game, { clan: bc.id, hero: boss, rules: bots.levels[bots.difficulty], seed: 4242 + k * 977 }));
+    }
+  }
+  // with you as Yakuza, the Shinobi bot clan in the forest village (sim/ninja_bot.js)
+  if (!TEST.ninja && bots.shinobi) {
+    const sc = bots.shinobi;
+    game.clans.addClan(sc.id, { name: sc.name, bot: true, kind: 'ninja' });
+    const lh = Object.values(game.state.businesses).find(b => b.hideout === sc.id);
+    if (lh) {
+      const boss = game.spawn('hero', sc.boss, lh.ring[0], lh.ring[1], { owner: sc.id, home: lh.ring });
+      botList.push(createNinjaBot(game, { clan: sc.id, hero: boss, rules: bots.shinobiLevels?.[bots.difficulty] }));
     }
   }
   const bot = botList.length ? { tick: () => botList.flatMap(b => b.tick()) } : null;

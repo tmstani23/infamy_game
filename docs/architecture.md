@@ -132,7 +132,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 - `game/index.html`: page, HUD elements, the controls panel (? key), three.js import map (pinned version from a CDN).
 - `game/server.mjs`: tiny static web server (run by `start_game.bat`); also saves the HUD layout on PUT.
-- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, `test_businesses`, `test_attack`, `test_building_panel`, `test_raid`, `test_defend`, `test_unit_frames`, `test_bot`, `test_bot_game`, `test_territory`, `test_clinic_unhit`, `test_crew_lock`, `test_knock_target`, `test_ninja`, all `.mjs`; 29 in all) and the room preview page `rooms.html`.
+- `game/tools/`: Node checks (`test_crew`, `test_combat`, `test_rooms`, `test_abilities`, `test_health_bars`, `test_downed`, `test_civilians`, `test_selection_panel`, `test_clinic_townsfolk`, `test_picking`, `test_bandits`, `test_vision`, `test_police`, `test_indoor_orders`, `test_port_town`, `test_settings`, `test_businesses`, `test_attack`, `test_building_panel`, `test_raid`, `test_defend`, `test_unit_frames`, `test_bot`, `test_bot_game`, `test_territory`, `test_clinic_unhit`, `test_crew_lock`, `test_knock_target`, `test_ninja`, `test_ninja_bot`, all `.mjs`; 30 in all) and the room preview page `rooms.html`.
 
 ## Data files (`game/data`)
 
