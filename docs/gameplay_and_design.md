@@ -35,15 +35,17 @@ Chosen at the start of each season; switch next season. All paths compete on the
 - **Gaijin gunrunner** (later): starts at the foreign docks. Mercenary hero, cheap riflemen and explosives.
 - Non-ninja players can hire ninjas by earning the ninja village's favour through jobs.
 
+Normal starts (Phase 1, Tim, 2026-10-21): each clan has **300 ryo**, **one matching recruit** (one thug for Yakuza/Kuroda; one ninja for Shinobi), and **only its HQ owned**. The opening crew display is **1/3**; base capacity stays three. Separate test setups: [test switches](test_params.md).
+
 Ideas not taken up yet: Bakuto gambling gangs, a merchant house, a specific Western nation for the gunrunner (British, American, French or Dutch).
 
 ## The city (Settled)
 
 - About **6 districts** of about **8 blocks** each. Districts contain blocks, blocks contain businesses.
 - Buildings are enterable, in the spirit of Project Zomboid. Interiors come from **type templates**, so a large city does not need every room hand-built.
-- **Businesses**: teahouse (recruits crew), warehouse (storage and smuggling), gambling den (most money, most heat).
+- **Businesses**: current purchasable roster and balance in [businesses and raids](business_raids_plan.md#1-owning-a-business).
 - Own every business in a block for a **block bonus** and your clan banner; own a whole district for a bigger bonus.
-- **Real estate**: houses, shops, storehouses, shrines and abandoned lots are bought with money, not raided.
+- **Real estate**: houses, storehouses, shrines and abandoned lots are bought with money, not raided.
   - They pay rent and can each be searched once for random loot.
   - They can be converted into a safehouse, storage or a crew hideout.
   - Property in a rival's block gives a foothold and counts toward block control.
@@ -92,7 +94,7 @@ Noise versus power is a choice on every raid.
 - You control one hero with **4 abilities**, roaming the city GTA-style, and command a crew RTS-style. Each crew member has **1 to 2 abilities**.
 - Crew types: **Thug, Swordsman, Rifleman, Brute, Lookout, Archer, Demolitions, Ninja**. Knives come as a perk.
 - **Ninja**: invisible until it strikes, climbs walls, smoke bombs, shuriken. Expensive and rare except for the Ninja clan.
-- Crew are RTS units, not named characters, hired at teahouses with no upkeep (decided 2026-10-16). Details: `docs/crew_recruiting_plan.md`.
+- Crew are RTS units, not named characters, with no upkeep (decided 2026-10-16). Hiring venues and rules: [crew recruiting](crew_recruiting_plan.md#hiring-venues-phase-1-tim-2026-10-21).
 
 ## Hero abilities
 

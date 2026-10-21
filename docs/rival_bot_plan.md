@@ -33,7 +33,7 @@ Knobs in a data file (tune in playtests): think interval, ambush on/off and rang
 ## Hiring and teahouse camping (Tim agreed 2026-10-19)
 
 - Stationed crew attack enemy units inside the business they guard (so a bot hero hiring at your teahouse gets jumped).
-- So camping can't starve a clan of crew: every clan has a **home hideout** that can't be taken in the tiny version (bot: izakaya; player: the **inn**, on the main road west of centre). You can always hire at home, but slower; the teahouse is the fast, cheap place to hire.
+- So camping can't starve a clan of crew: every clan has a **home hideout** that can't be taken in the tiny version (bot: izakaya; player: the **inn**, on the main road west of centre). Current venue prices and timers: [crew recruiting](crew_recruiting_plan.md#hiring-venues-phase-1-tim-2026-10-21).
 
 ## Home hideout extras (Tim agreed 2026-10-19; both clans)
 

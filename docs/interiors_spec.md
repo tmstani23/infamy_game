@@ -1,6 +1,8 @@
 # Interiors spec
 
-Status (2026-10-18): every room is built this way, and all three rooms come from the room generator (`docs/room_generator_plan.md`). The hand-made teahouse is kept, unused, in `game/data/interiors.json`. Rooms are about 2.5x larger with about 2x the props (2026-10-18), and each room has its own walk grid. The older painted wall-piece rooms are gone.
+Status (2026-10-18): every room is built this way, and rooms come from the room generator (`docs/room_generator_plan.md`). The hand-made teahouse is kept, unused, in `game/data/interiors.json`. Rooms are about 2.5x larger with about 2x the props (2026-10-18), and each room has its own walk grid. The older painted wall-piece rooms are gone.
+
+Phase 1 (Tim, 2026-10-21): the new Shop and Tenements interiors reuse existing props and textures.
 
 ## Why 3D
 

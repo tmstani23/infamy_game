@@ -1,6 +1,6 @@
 # Businesses and raids plan
 
-Status: agreed with Tim 2026-10-18 (map, build order and phases added the same day); still evolving. Built so far (2026-10-19): the 2x map, the settings file and checkpoints 1-3 (section 8). Numbers are starting points to tune in playtests.
+Status: agreed with Tim 2026-10-18 (map, build order and phases added the same day); still evolving. Built so far (2026-10-19): the 2x map, the settings file and checkpoints 1-3 (section 8). Phase 1 expansion and balance approved and visually playtested by Tim 2026-10-21; targeted Node checks passed. Later camps/rewards, targeting changes and unfinished UI tweaks are outside this Phase 1 record.
 
 Goal: finish the tiny version loop. You take businesses, they pay you, and you (and later the rival bot clan) fight over them.
 
@@ -33,15 +33,24 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 ## 1. Owning a business
 
-- Three businesses for now: **teahouse**, **warehouse**, **gambling den**. They start unowned.
+- Five purchasable businesses start unowned: **teahouse**, **shop**, **warehouse**, **gambling den**, **tenements**. Shop and Tenements were existing scenery; both are now enterable, purchasable and raid-capable, with normal guards, dawn payouts and territory (Phase 1, Tim, 2026-10-21).
 - Once you own one, it stays yours until someone takes it. You don't have to leave crew there.
 - Every owned business comes with **2 house guards** (free, no upkeep). Crew you station there defend automatically too.
-- Owning a business still gives +3 crew cap (already built) and 10-unit vision (already built).
+- Each business adds the crew capacity below; capacity does not grant free crew. Hiring venues: [crew recruiting](crew_recruiting_plan.md).
 
 ## 2. Payouts
 
 - Each owned business pays ryo **once per day/night cycle, at dawn** (default; Tim to confirm).
-- Starting numbers: teahouse **100**, warehouse **175**, den **300**.
+- Approved Phase 1 balance (Tim, 2026-10-21); prices and dawn income are ryo:
+
+| Business | Buy price | Dawn income | Added crew capacity |
+|---|---|---|---|
+| Teahouse | 400 | 100 | +1 |
+| Shop | 400 | 100 | +1 |
+| Warehouse | 700 | 175 | +2 |
+| Gambling den | 1200 | 300 | +2 |
+| Tenements | 1600 | 400 | +3 |
+
 - The police payout cut already hooked in (Manhunt tier, see `police_spec.md`) applies.
 - A gold ryo notice shows the payout (reuse the bandit ryo notice).
 
@@ -50,7 +59,7 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 Two ways, both from the **building panel** (left-click the building; already built):
 
 **Buy** (day or night)
-- Price is about 4 nights of payout: teahouse **400**, warehouse **700**, den **1,200**.
+- Prices: see the balance table in section 2.
 - Hero must be at the door ring.
 
 **Attack** (night only, no lantern needed)
@@ -95,11 +104,11 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 ## 8. Build checkpoints (each: game runs, Node tests pass)
 
-1. [x] Ownership + payouts at dawn + Buy button (built 2026-10-19). Payout at every dawn (a manual N into day counts as a dawn). Prices and payouts in `settings.json` `businesses`: teahouse 400 / 100, warehouse 700 / 175, den 1200 / 300. A rival-owned business can't be bought; payouts are 0 during a Manhunt (`police.payoutShare`).
+1. [x] Ownership + payouts at dawn + Buy button (built 2026-10-19). Payout at every dawn (a manual N into day counts as a dawn). Current prices and payouts: section 2 (`settings.json` `businesses`). A rival-owned business can't be bought; payouts are 0 during a Manhunt (`police.payoutShare`).
 2. [x] House guards (built 2026-10-19): 2 per owned business, unit type `guard` (thug sprite, 260 HP, hit 10). They patrol the building's rooms at a walk, pausing 3-8 s per spot, and defend on their own. They die outright; the same owner gets a replacement after 120 s (`units.json` `rules.houseGuards`). Not crew: no cap, no orders, not on the action bar. The building panel shows "Guards N of 2".
 3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door in waves: teahouse 3, warehouse 4, den 6, plus 1 per heat tier (`settings.json` `businesses[kind].attackWaves`; count fixed at the start). Waves bring 2 officers, 3 from halfway (`attack.bigWave`, `bigWavesFrom`), 5 s apart, at full street HP, with no heat for fighting them (retuned 2026-10-19). Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
    - Visuals: clan banner (a nobori in the clan colour, about 2.4 tall, soft glow and faint ring at its foot, swaps on owner change; `render/banners.js`), a gold claim burst, and the clan badge (crest + name) in the top bar.
-4. [x] War Lantern raids (built 2026-10-19, as section 4). Crew slots by business type (`settings.json` `businesses[kind].crewSlots`): teahouse +3, den +2, warehouse +1; no hard cap (base 3 plus the sum). Test param `?rival=den|teahouse|warehouse` gives a rival clan that business. Art: `game/art/props/war_lantern.png` (a recoloured lantern_post) with a soft 1.6 s pulsing red glow and a ground ring.
+4. [x] War Lantern raids (built 2026-10-19, as section 4). Crew slots by business type: section 2 (`settings.json` `businesses[kind].crewSlots`); no hard cap (base plus the sum; see [crew recruiting](crew_recruiting_plan.md)). Test param `?rival=den|teahouse|warehouse` gives a rival clan that business. Art: `game/art/props/war_lantern.png` (a recoloured lantern_post) with a soft 1.6 s pulsing red glow and a ground ring.
 5. [x] Defending (built 2026-10-19, as section 5). Test with `?raidme=den` (see `test_params.md`).
 6. Controls panel entries + doc notes to the coordinator.
 

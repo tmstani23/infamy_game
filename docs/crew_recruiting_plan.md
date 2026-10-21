@@ -9,11 +9,17 @@ Follows the multiplayer rules: all rules in `game/src/sim` (Node, no graphics), 
 - **Crew are RTS units**, not named characters. You hire a Thug, not a person. Types and upgrades make them better.
 - **Teahouse = barracks.** Queue a hire, pay ryo once, the recruit arrives after a short timer.
 - **No upkeep or wages.** Each extra crew member costs a bit more than the last.
-- **Crew cap from property** (RTS supply): hero + 3 at the start (`settings.json` `crew.baseCap`); each held business adds its `crewSlots` (2026-10-19: teahouse +3, den +2, warehouse +1); no hard cap; about 20 to 30 across your zones in the endgame.
+- **Crew cap from property** (RTS supply): base capacity stays 3 (`settings.json` `crew.baseCap`); each held business adds its `crewSlots` (current balance: [businesses and raids](business_raids_plan.md#2-payouts)); no hard cap; about 20 to 30 across your zones in the endgame.
 - **Most crew are stationed** in your zones as defenders. A raid still takes at most about 6, so size means holding more ground, not winning fights by numbers.
 - **Downed, then dead or hospital.** Crew at 0 HP go down; if an enemy finishes them with a 3 s execute they are dead (rehire), otherwise they are carried to the hospital (see `combat_spec.md` H). Survivors heal only slowly (see `combat_spec.md`, Health) until sent to a **hospital** (bonesetter's clinic). The hero is knocked out, not killed, and gets back up at a safehouse.
 - **Ryo is spent on:** hiring and replacing crew, hospital healing, unit-type upgrades (RTS research, e.g. "Thugs get clubs"), property, and police bribes.
 - **Anti-snowball:** the property cap, rising hire cost, heat (bigger clans draw more), and the existing underdog bonus.
+
+## Hiring venues (Phase 1, Tim, 2026-10-21)
+
+- Hire at HQs and the teahouse; Shinobi hire at their HQ/dojo.
+- Crew prices are equal across hiring venues. HQ hiring takes twice as long.
+- Shop and Tenements do not recruit. Property capacity grants no free crew; see [business balance](business_raids_plan.md#2-payouts).
 
 ## Combat style (Tim, 2026-10-16)
 
@@ -21,7 +27,7 @@ RTS / Dota hybrid. Rules and feel are in `combat_spec.md`; keys in `controls.md`
 
 ## Numbers to start with (tune in playtests)
 
-- Starting ryo: 400 (`settings.json` `costs.startRyo`, 2026-10-19, so the teahouse can be bought for testing). Hire price = base price x (1 + 0.15 x crew you already have).
+- Normal clan starts: see [starting paths](gameplay_and_design.md#starting-paths-settled). Hire price = base price x (1 + 0.15 x crew you already have).
 - Base prices: Thug 60, Brute 100, Swordsman 120. Hire timer: 5 to 10 seconds.
 - Hospital: heals 1 HP a second per bed, costs a little ryo per HP.
 - Layer 1 cap: 3 crew. Ranged units (Rifleman, Archer) wait for projectiles; Lookout, Demolitions, Ninja come later.
