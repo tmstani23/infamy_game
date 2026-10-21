@@ -14,7 +14,7 @@ import { createCrewInput } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
 import { createCrewBar } from './crew_bar.js';
 import { createSelectionPanel, unitWhere } from './selection_panel.js';
-import { createUnitFrames } from './unit_frames.js';
+import { createUnitFrames, frameTarget } from './unit_frames.js';
 import { createBuildingPanel } from './building_panel.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
@@ -137,16 +137,17 @@ async function start() {
   // big callouts at the top of the screen, queued so two at once don't overwrite each other
   const callouts = [];
   let calloutBusy = false;
-  function callout(text, kind) {
-    callouts.push({ text, kind });
+  function callout(text, kind, ms = 2700) {   // ms: how long it stays (contract results linger 5 s, Tim 2026-10-21)
+    callouts.push({ text, kind, ms });
     if (calloutBusy) return;
     const next = () => {
       const c = callouts.shift(), el = $('callout');
       if (!c) { calloutBusy = false; return; }
       calloutBusy = true;
       el.textContent = c.text; el.className = c.kind; el.hidden = false;
+      el.style.animationDuration = `${(c.ms - 100) / 1000}s`;
       void el.offsetWidth; el.classList.add('show');
-      setTimeout(next, 2700);
+      setTimeout(next, c.ms);
     };
     next();
   }
@@ -160,8 +161,9 @@ async function start() {
   function lampAt() {
     const h = game.state.entities[heroId], st = game.stealth;
     if (!st || !h || game.state.clans[h.owner]?.kind !== 'ninja' || !game.state.night || h.place !== 'street') return null;
-    const off = new Set(game.state.lightsOut), near = l => { const q = view.unitToScreen(l.x, l.z, 1.4); return Math.hypot(q.x - mouse.x, q.y - mouse.y); };
-    return st.lights.filter(l => !off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 40).sort((a, b) => near(a) - near(b))[0] || null;
+    // measured from where the lantern glows on screen, not its foot (Tim 2026-10-21: it picked the wrong one)
+    const off = new Set(game.state.lightsOut), near = l => Math.min(Infinity, ...view.lampScreen(l.prop).map(q => Math.hypot(q.x - mouse.x, q.y - mouse.y)));
+    return st.lights.filter(l => !off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 45).sort((a, b) => near(a) - near(b))[0] || null;
   }
   addEventListener('mousedown', e => {
     if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud')) return;
@@ -170,7 +172,9 @@ async function start() {
   }, true);
   for (const slot of ['Q', 'E', 'R', 'F']) onKey(`Key${slot}`, () => {
     const p = view.screenToGround(mouse.x, mouse.y);
-    pending.push({ id: heroId, type: 'ability', slot, ...(p ? { x: p.x, z: p.z } : {}) });
+    // Shinobi Q / F go for the unit in the target frame when there is one (Tim 2026-10-21)
+    const h = game.state.entities[heroId], target = h && frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e));
+    pending.push({ id: heroId, type: 'ability', slot, ...(p ? { x: p.x, z: p.z } : {}), ...(target ? { target } : {}) });
   });
   // Camera: arrow keys pan, Home or the button snaps back to the hero
   onKey('Home', () => view.snapBack());
@@ -356,9 +360,11 @@ async function start() {
         if (n.kind === 'seasonEnd') showResults();
         // Shinobi contracts (sim/contracts.js): taken, done, failed; and warnings when one is aimed at you
         if (n.kind === 'contractTaken' && n.clan === me && n.x != null) { minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'contractDone' && n.clan === me) callout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win');
-        if (n.kind === 'contractFailed' && n.clan === me) callout(`Contract failed: ${n.why}`, 'loss');
+        if (n.kind === 'contractDone' && n.clan === me) callout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win', 5000);
+        if (n.kind === 'contractFailed' && n.clan === me) callout(`Contract failed: ${n.why}`, 'loss', 5000);
         if (n.kind === 'contractWarn' && n.clan === me) callout('Word is the Shinobi took a job on you', 'news');
+        if (n.kind === 'stealAlert' && n.by === me) callout('Spotted! The alarm is up, keep taking the ryo', 'loss', 4000);   // the thief's side (Tim 2026-10-21)
+        if (n.kind === 'stealAlert' && n.clan === me) { callout('A Shinobi is in your hideout!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'markAlert' && n.clan === me) { callout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'sabotaged' && n.clan === me) callout('Sabotaged: a business paid nothing at dawn', 'loss');
       }

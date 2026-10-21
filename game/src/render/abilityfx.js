@@ -212,11 +212,14 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       if (c.kind === 'shadowstep') {
         // landed on a target with the sure crit (Tim 2026-10-20): a massive violet slash across him
         if (c.crit) {
-          const ang = Math.atan2(c.tz - c.z, c.tx - c.x);
-          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 6.2, 1.0, 0x6a4ab0, 0.45);
-          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 5.2, 0.3, 0xf0eaff, 0.32);
-          cards.stroke(c.tx, 1.0, c.tz, ang + 0.7, 4.0, 0.5, 0x3c4a8a, 0.38);
-          cards.glint(c.tx, 1.3, c.tz, 3.4, 0xe8e0ff, 0.3);
+          // bigger, brighter and longer (Tim 2026-10-21: it wasn't noticeable): a white-hot slash with a wide
+          // violet edge and a second cut across it, on screen for most of a second
+          const ang = screenAngle(c.tx - c.x, c.tz - c.z);
+          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 8, 1.6, 0x7a5ac8, 0.9);
+          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 7, 0.5, 0xffffff, 0.8);
+          cards.stroke(c.tx, 1.1, c.tz, ang + 0.8, 5.2, 1.0, 0x5a4aa0, 0.75);
+          cards.stroke(c.tx, 1.1, c.tz, ang + 0.8, 4.6, 0.28, 0xf6f2ff, 0.65);
+          cards.glint(c.tx, 1.3, c.tz, 4.6, 0xffffff, 0.45);
           sparkles(c.tx, 1.1, c.tz, 22, [0.85, 0.8, 1], 5);
         }
         // gone in black smoke, a fading violet ghost where he stood, a smoke trail, out of a smoke swirl
@@ -250,7 +253,9 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         // a Shinobi snuffing a lantern from afar (Tim 2026-10-20): a small blackish-purple smoke flash off him, a wisp at the lantern
         smokeBurst(c.x, c.z, 16, 0.5, 0.8); motes(c.x, c.z, 10, 0.5);
         wave(c.x, c.z, 1.2, 0x5c3c8c, 0.35, 0, THIN_WAVE_GEO);
-        smokeBurst(c.tx, c.tz, 6, 0.3, 0.6);
+        // and a puff big enough to wrap the whole lantern (Tim 2026-10-21)
+        smokeBurst(c.tx, c.tz, 30, 1.4, 1.1); motes(c.tx, c.tz, 12, 1);
+        wave(c.tx, c.tz, 2.5, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO);
       }
       if (c.kind === 'smoke') {
         // the bomb goes off: a big black burst (the cloud itself keeps billowing in update) and a thin ring
@@ -262,7 +267,25 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       if (c.kind === 'assassinate') {
         // a vicious strike: black smoke bursts, a violet crescent with a white-hot edge, a blinding flash, the 影 (shadow) seal
         smokeBurst(c.tx, c.tz, 46, 1.1, 1.2);
-        const ang = Math.atan2(c.tz - c.z, c.tx - c.x);
+        const ang = screenAngle(c.tx - (c.fx ?? c.x), c.tz - (c.fz ?? c.z));
+        // the lunge (Tim 2026-10-21: make it clear): a bright speed streak from where he set off to the enemy
+        if (c.fx !== undefined) {
+          const L = Math.hypot(c.tx - c.fx, c.tz - c.fz), mx = (c.fx + c.tx) / 2, mz = (c.fz + c.tz) / 2;
+          if (L > 0.6) {
+            cards.stroke(mx, 1.1, mz, ang, L * 1.15, 0.7, 0x8a6ad8, 0.6);
+            cards.stroke(mx, 1.1, mz, ang, L * 1.05, 0.2, 0xffffff, 0.55);
+            for (const k of [-1, 1]) cards.stroke(mx, 1.1 + k * 0.4, mz, ang, L * 0.8, 0.07, 0xffffff, 0.4);
+          }
+        }
+        // a bright white V stabbing into him, the two blades meeting where he stands, held most of a second
+        {
+          const ux = c.tx - (c.fx ?? c.x), uz = c.tz - (c.fz ?? c.z), ul = Math.hypot(ux, uz) || 1;
+          for (const k of [-1, 1]) {
+            const r = k * 0.32, rx = (ux * Math.cos(r) - uz * Math.sin(r)) / ul, rz = (ux * Math.sin(r) + uz * Math.cos(r)) / ul, a2 = screenAngle(rx, rz);
+            cards.stroke(c.tx - rx * 1.3, 1.15, c.tz - rz * 1.3, a2, 3, 0.9, 0x8a6ad8, 0.85);
+            cards.stroke(c.tx - rx * 1.3, 1.15, c.tz - rz * 1.3, a2, 2.8, 0.26, 0xffffff, 0.8);
+          }
+        }
         cards.stroke(c.tx, 1.2, c.tz, ang + 0.5, 4.4, 0.7, 0x6a4ab0, 0.42);
         cards.stroke(c.tx, 1.2, c.tz, ang + 0.5, 3.6, 0.22, 0xf0eaff, 0.3);
         cards.stroke(c.tx, 1.1, c.tz, ang - 0.6, 3.0, 0.4, 0x3c4a8a, 0.36);
@@ -274,11 +297,6 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         motes(c.tx, c.tz, 18, 0.5);
         flashT = 0.22;
         if (s0) s0.flash = 1.6;
-        // the stab (Tim 2026-10-20): a thin V of light shooting out through him, away from the ninja
-        for (const k of [-1, 1]) {
-          cards.stroke(c.tx + Math.cos(ang) * 1.2, 1.15, c.tz + Math.sin(ang) * 1.2, ang + k * 0.22, 3.4, 0.12, 0xf0eaff, 0.22);
-          cards.stroke(c.tx + Math.cos(ang) * 1.2, 1.15, c.tz + Math.sin(ang) * 1.2, ang + k * 0.22, 4.2, 0.3, 0x7a5ac8, 0.3);
-        }
         if (c.fx !== undefined) smokeBurst(c.fx, c.fz, 14, 0.6, 0.9);   // where he lunged from
       }
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }

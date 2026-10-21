@@ -278,20 +278,24 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   // replaced after replaceSeconds while the same clan still owns the place.
   // b.guards = { owner, due: [ticks when replacements arrive] }
   function guardTick() {
-    if (!spawn || !guardCount) return;
+    if (!spawn || (!guardCount && !G.hideoutCount)) return;
     const all = Object.values(state.entities).filter(e => e.guard);
     for (const b of Object.values(state.businesses)) {
-      if (!R[b.kind]) continue;
+      // hideouts get their own guards too, patrolling the room (Tim 2026-10-20 harder steal):
+      // clan.hideoutGuards (bot difficulty) or houseGuards.hideoutCount
+      if (!R[b.kind] && !b.hideout) continue;
+      const n = b.hideout ? (state.clans?.[b.owner]?.hideoutGuards ?? G.hideoutCount ?? 0) : guardCount;
+      if (!n) continue;
       const mine = all.filter(e => e.guard === b.id);
       if (b.guards?.owner !== (b.owner || null)) {
         for (const e of mine) remove(e.id);
         mine.length = 0;
-        b.guards = b.owner ? { owner: b.owner, due: Array(guardCount).fill(state.tick) } : null;
+        b.guards = b.owner ? { owner: b.owner, due: Array(n).fill(state.tick) } : null;
         if (!b.guards) delete b.guards;
       }
       if (!b.guards) continue;
       const alive = mine.filter(e => !e.dead);
-      while (alive.length + b.guards.due.length < guardCount) b.guards.due.push(state.tick + guardWait);
+      while (alive.length + b.guards.due.length < n) b.guards.due.push(state.tick + guardWait);
       patrol(b, alive);
       const spots = guardSpots(b);
       b.guards.due = b.guards.due.filter(t => {

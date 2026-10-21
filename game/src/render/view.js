@@ -80,22 +80,44 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   let nightTarget = night ? 1 : 0;
   shared.uNight.value = nightTarget;
-  // tiny glowing mushrooms along the village bridges (port_town.json glowShrooms, Tim 2026-10-20):
-  // soft light-blue dots that show at night and pulse a little; only drawn, they light nothing
+  // tiny glowing mushrooms on the plank edges of the village bridges (port_town.json glowShrooms
+  // [x, z, shape], Tim 2026-10-20/21): little stem-and-cap sprites in three shapes (round, tall cone,
+  // flat wide), pale by day, the caps glowing soft light-blue at night; only drawn, they light nothing
   const shrooms = (() => {
     const list = district.glowShrooms || [];
     if (!list.length) return null;
-    const cv = document.createElement('canvas'); cv.width = cv.height = 32;
-    const g = cv.getContext('2d'), grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
-    grad.addColorStop(0, 'rgba(225,250,255,1)'); grad.addColorStop(0.25, 'rgba(140,220,255,0.9)'); grad.addColorStop(1, 'rgba(60,150,220,0)');
-    g.fillStyle = grad; g.fillRect(0, 0, 32, 32);
-    const pos = new Float32Array(list.length * 3);
-    list.forEach(([x, z], i) => { pos[i * 3] = x; pos[i * 3 + 1] = 0.12; pos[i * 3 + 2] = z; });
-    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({ map: new THREE.CanvasTexture(cv), color: 0x9fe4ff, size: 9, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-    const pts = new THREE.Points(geo, mat);
-    scene.add(pts);
-    return mat;
+    const mats = [];
+    for (let shape = 0; shape < 3; shape++) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+      const g = cv.getContext('2d');
+      // [cap width, cap height, stem height, cap pointiness] per shape
+      const [cw, ch, sh, pt] = [[13, 9, 12, 0], [8, 14, 15, 1], [17, 6, 9, 0]][shape];
+      const top = 52 - sh;
+      g.fillStyle = 'rgba(205,215,220,1)';   // stem
+      g.beginPath(); g.moveTo(32 - 2.5, 54); g.lineTo(32 + 2.5, 54); g.lineTo(32 + 1.8, top); g.lineTo(32 - 1.8, top); g.closePath(); g.fill();
+      const glow = g.createRadialGradient(32, top - ch * 0.4, 0, 32, top - ch * 0.4, cw * 1.6);   // soft halo, kept small
+      glow.addColorStop(0, 'rgba(150,225,255,0.35)'); glow.addColorStop(1, 'rgba(80,160,230,0)');
+      g.fillStyle = glow; g.fillRect(0, 0, 64, 64);
+      const cap = g.createLinearGradient(0, top - ch, 0, top + 1);
+      cap.addColorStop(0, 'rgba(215,248,255,1)'); cap.addColorStop(1, 'rgba(90,185,240,1)');
+      g.fillStyle = cap; g.beginPath();
+      if (pt) { g.moveTo(32 - cw / 2, top + 1); g.quadraticCurveTo(32 - cw * 0.35, top - ch * 0.6, 32, top - ch); g.quadraticCurveTo(32 + cw * 0.35, top - ch * 0.6, 32 + cw / 2, top + 1); }
+      else g.ellipse(32, top + 1, cw / 2, ch, 0, Math.PI, 0);
+      g.closePath(); g.fill();
+      g.fillStyle = 'rgba(240,252,255,0.8)';   // two pale spots on the cap
+      g.beginPath(); g.arc(32 - cw * 0.18, top - ch * 0.45, 1.2, 0, Math.PI * 2); g.arc(32 + cw * 0.15, top - ch * 0.3, 1, 0, Math.PI * 2); g.fill();
+      const mine = list.filter(p => (p[2] ?? 0) === shape);
+      if (!mine.length) continue;
+      const pos = new Float32Array(mine.length * 3);
+      mine.forEach(([x, z], i) => { pos[i * 3] = x; pos[i * 3 + 1] = 0.2; pos[i * 3 + 2] = z; });
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({ map: new THREE.CanvasTexture(cv), size: 22, sizeAttenuation: false, transparent: true, opacity: 0.5, depthWrite: false });
+      const pts = new THREE.Points(geo, mat);
+      pts.renderOrder = 2;
+      scene.add(pts);
+      mats.push(mat);
+    }
+    return { set opacity(v) { for (const m of mats) m.opacity = v; } };
   })();
 
   // thin ring under every character, coloured by who they are to you, over a faint dark
@@ -191,7 +213,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     shared.uTime.value = time;
     shared.uNight.value = THREE.MathUtils.clamp(shared.uNight.value + Math.sign(nightTarget - shared.uNight.value) * dt / 1.2, 0, 1);
     scene.background = DAY_SKY.clone().lerp(NIGHT_SKY, shared.uNight.value);
-    if (shrooms) shrooms.opacity = shared.uNight.value * (0.75 + 0.25 * Math.sin(time * 1.7));
+    if (shrooms) shrooms.opacity = 0.45 + shared.uNight.value * (0.35 + 0.1 * Math.sin(time * 1.7));   // seen by day, a gentle glow at night
 
     syncSprites(state);
     syncLightsOut(state);
@@ -271,7 +293,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       .addScaledVector(VIEW_DIR, 200);
 
     // clan banners at owned businesses; a gold burst where one just changed hands
-    for (const b of banners.update(state, time)) abilityFx.claim(...banners.spot(b));
+    for (const b of banners.update(state, time, state.entities[followId]?.owner)) abilityFx.claim(...banners.spot(b));
     hitFx.update(fdt);
     abilityFx.update(fdt, state);
     shakeT = Math.max(0, shakeT - dt);
@@ -301,7 +323,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       abilityFx.cast(c);
       if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
-      if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.18; shakeAmp = 0.14; }   // Shadow Step's crit slash
+      if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.24; shakeAmp = 0.18; freezeT = Math.max(freezeT, 0.08); }   // a tiny pause so it lands hard (Shadow Step crit slash)
     }
   }
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
@@ -381,6 +403,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     unitToScreen(x, z) {
       v.set(x, 0.9, z).project(camera);
       return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
+    },
+    // where a lantern prop's lights actually glow, as page pixels [{ x, y }] (for hovering it to snuff, Tim 2026-10-21)
+    lampScreen(prop) {
+      return (propLights.get(prop) || []).map(l => { v.set(l.pos.x, l.pos.y, l.pos.z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; });
     },
     isNight: () => nightTarget === 1,
     toggleNight() { nightTarget = nightTarget ? 0 : 1; return nightTarget === 1; },

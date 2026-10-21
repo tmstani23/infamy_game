@@ -30,6 +30,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const state = game.state, secs = s => Math.round(s * 20);
   // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
   if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
+  if (B.hideoutGuards !== undefined && state.clans[clan]) state.clans[clan].hideoutGuards = B.hideoutGuards;
   const U = game.settings.units.rules, reach = (U.buyReach ?? 2.5) - 0.6;
   const RD = game.businesses.raidRules;
   let goal = null, path = null, nextThink = 0, nextReact = 0, last = null, still = 0, raidPlan = false;
@@ -338,6 +339,11 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       if (t === h && a?.type === 'hero' && rivalClan(a.owner)) for (let k = 0; k < B.revengeDowns; k++) downs.push({ by: a.id, tick: state.tick });
     }
     while (downs.length && state.tick - downs[0].tick > secs(B.revengeSeconds)) downs.shift();
+    // a thief seen in its hideout: medium/hard send a couple of crew home (Tim 2026-10-20)
+    for (const n of state.news || []) if (n.kind === 'stealAlert' && n.clan === clan && B.defendHome) {
+      const b = state.businesses[n.business], sent = crew().filter(u => u.place !== b?.room && !u.downed && !u.dead).slice(0, B.defendHome === true ? 2 : B.defendHome);
+      if (b && sent.length) out.push(...order(sent, 'enter', { business: b.id }));
+    }
     if (state.tick >= nextReact) { react(out); nextReact = state.tick + secs(B.reactSeconds); }
     // badly hurt: run home to the hideout and rest there (its crew stay and cover), Tim 2026-10-19
     const hq = home();

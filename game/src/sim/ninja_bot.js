@@ -196,7 +196,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       }
       // inside: the scout stands still in the dark; the mark and the steal stand on the back-room spot
       if (j.kind === 'scout') return false;
-      const p = game.contracts.backRoom(b);
+      const p = j.kind === 'steal' ? game.contracts.stash(b) : game.contracts.backRoom(b);
       if (p) walk(out, p.x, p.z, (game.contracts.rules[j.kind]?.reach ?? 1.5) * 0.6);
       return false;
     }
@@ -250,12 +250,12 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     // Assassinate: hidden long enough, a target right next to it
     const held = h.hidden && h.hiddenAt != null ? (state.tick - h.hiddenAt) / 20 : 0;
     const t = close[0];
-    if (held >= (F.hiddenSeconds ?? 3) && dist(h, t) <= (F.reach ?? 1.5) + 0.6 && (!sneaking || t.type === 'hero') && cast('F', { x: t.x, z: t.z })) return;
+    if (held >= (F.hiddenSeconds ?? 3) && dist(h, t) <= (F.reach ?? 1.5) + 0.6 && (!sneaking || t.type === 'hero') && cast('F', { x: t.x, z: t.z, target: t.id })) return;
     // the boss it hunts runs off: caltrops on him; two foes close: caltrops too
     const hunted = job()?.kind === 'boss' && state.entities[job().hero];
     if (hunted && sees(hunted) && dist(h, hunted) > 3 && dist(h, hunted) < 10) { if (cast('E', { x: hunted.x, z: hunted.z })) return; }
     if (close.filter(e => dist(h, e) <= 3).length >= 2 && cast('E', { x: t.x, z: t.z })) return;
-    if (!sneaking && dist(h, t) > 2.5 && dist(h, t) < 8 && (t.type === 'hero' || t === hunted)) cast('Q', { x: t.x, z: t.z });
+    if (!sneaking && dist(h, t) > 2.5 && dist(h, t) < 8 && (t.type === 'hero' || t === hunted)) cast('Q', { x: t.x, z: t.z, target: t.id });
   }
 
   function tick() {

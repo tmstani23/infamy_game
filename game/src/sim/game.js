@@ -171,7 +171,10 @@ export function createGame(options) {
   function giveOrder(hero, c) {
     if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop', 'enter', 'resume'].includes(c.kind)) return;
     // enter (right-click your own business, checkpoint 5): walk to its door, go in and hold the room
-    const door = c.kind === 'enter' && state.businesses[c.business]?.owner === hero.owner && doors.find(d => d.to && d.place === state.businesses[c.business].room);
+    // or (Tim 2026-10-21) right-click the hideout your Shinobi have a Steal job on: in by its back window
+    const eb = c.kind === 'enter' && state.businesses[c.business];
+    const door = eb && (eb.owner === hero.owner ? doors.find(d => d.to && d.place === eb.room)
+      : contracts?.mayClimb(hero, eb.room) && doors.find(d => d.to && d.ninja && d.place === eb.room));
     if (c.kind === 'enter' && !door) return;
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
     if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
@@ -203,7 +206,7 @@ export function createGame(options) {
       if (c.kind === 'enter') {
         if (u.place !== 'street') return;
         const [x, z] = nav.nearestFree(door.x, door.z) || [door.x, door.z];
-        u.order = { kind: 'enter', room: door.place, x, z, k, n: crew.length };
+        u.order = { kind: 'enter', room: door.place, x, z, k, n: crew.length, ...(door.ninja ? { window: true } : {}) };
         return;
       }
       const [ox, oz] = blockOffset(k, crew.length);
@@ -737,8 +740,12 @@ export function createGame(options) {
     } else if (a.kind === 'shadowstep') {
       // Shadow Step (Shinobi Q): gone in a puff, out again up to range toward the mouse; stops at
       // the first wall or water on the way, and he stays hidden
+      // with a target (c.target: the one in the target frame) he can see within range, he steps onto it instead
+      // (Tim 2026-10-21: not the mouse), lands next to it with a sure crit, then auto attacks it
+      const ct = state.entities[c.target];
+      const t = ct && fair(e, ct) && sees(e, ct) && Math.hypot(ct.x - e.x, ct.z - e.z) <= a.range + 1 ? ct : null;
       const grid = navOf(e.place), dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
-      if (!grid || len < 0.5) return;
+      if (!grid || (!t && len < 0.5)) return;
       const dist = Math.min(a.range, len), n = Math.ceil(dist / 0.25);
       let x = e.x, z = e.z;
       for (let i = 1; i <= n; i++) {
@@ -746,10 +753,6 @@ export function createGame(options) {
         if (!grid.free(px, pz)) break;
         x = px; z = pz;
       }
-      // onto a unit (Tim 2026-10-20): aimed at an enemy or townsperson he can see within range, he
-      // lands next to it with a sure crit, then auto attacks it
-      const t = aim && Object.values(state.entities).filter(u => fair(e, u) && sees(e, u) && Math.hypot(u.x - aim[0], u.z - aim[1]) <= (a.targetRadius ?? 1.2)
-        && Math.hypot(u.x - e.x, u.z - e.z) <= a.range + 1).sort((p, q) => Math.hypot(p.x - aim[0], p.z - aim[1]) - Math.hypot(q.x - aim[0], q.z - aim[1]))[0];
       if (t) {
         const tl = Math.hypot(t.x - e.x, t.z - e.z) || 1, stop = Math.max(0, tl - (a.landGap ?? 0.9));
         x = e.x; z = e.z;
@@ -806,9 +809,12 @@ export function createGame(options) {
       // his health (at least bossMin of it); the hit shows him (sim/stealth.js reveal)
       const clan = state.clans?.[e.owner], tell = text => { if (clan) clan.notice = { tick: state.tick, text }; };
       if (!e.hidden || e.hiddenAt == null || state.tick - e.hiddenAt < secs(a.hiddenSeconds)) return tell(`Assassinate: stay hidden ${a.hiddenSeconds} s first`);
-      let t = null, bd = 2;
+      // the target in the target frame first, else whoever is at the mouse; townsfolk and police too (Tim 2026-10-21)
+      const inReach = u => u && fair(e, u) && Math.hypot(u.x - e.x, u.z - e.z) <= reachOf(e, u) + a.reach;
+      const picked = inReach(state.entities[c.target]) ? state.entities[c.target] : null;
+      let t = picked, bd = 2;
       for (const u of Object.values(state.entities)) {
-        if (!aim || civ(u) || !fair(e, u) || Math.hypot(u.x - e.x, u.z - e.z) > reachOf(e, u) + a.reach) continue;
+        if (picked || !aim || !inReach(u)) continue;
         const d = Math.hypot(u.x - aim[0], u.z - aim[1]);
         if (d < bd) { bd = d; t = u; }
       }
@@ -924,9 +930,9 @@ export function createGame(options) {
   // At the door of the business they were sent into: step inside and hold a spot near the way in
   // (a station order: they fight whoever comes in, then go back to it)
   function enterStep(e) {
-    const o = e.order, d = doors.find(d => d.to && d.place === o.room);
+    const o = e.order, d = doors.find(d => d.to && d.place === o.room && !d.ninja === !o.window);
     if (!d) { e.order = { kind: 'move', x: e.x, z: e.z }; return false; }
-    if (Math.hypot(d.x - e.x, d.z - e.z) >= DOOR_RADIUS || (businesses && !businesses.mayEnter(e, d.place))) return false;
+    if (Math.hypot(d.x - e.x, d.z - e.z) >= DOOR_RADIUS || (businesses && !businesses.mayEnter(e, d.place) && !(o.window && contracts?.mayClimb(e, d.place)))) return false;
     const [ox, oz] = blockOffset(o.k, o.n);
     const [x, z] = navOf(d.place)?.nearestFree(d.to.x + ox, d.to.z + oz) || [d.to.x, d.to.z];
     Object.assign(e, { x, z, place: d.place, anim: 'idle' });
@@ -980,7 +986,7 @@ export function createGame(options) {
     const out = d.place === 'street';
     const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && u.place === from
       && (ids || []).includes(u.id) && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS))
-      .slice(0, out ? Infinity : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // a raid takes at most maxCrewInside crew in
+      .slice(0, out ? Infinity : d.ninja ? 6 : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // selected ninja crew climb in through a back window too (Tim 2026-10-21)   // a raid takes at most maxCrewInside crew in
     const r0 = 0.3;
     const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
     crew.forEach((u, k) => {
@@ -1092,7 +1098,16 @@ export function createGame(options) {
     const far = patrolSpots(b).slice().sort((p, q) => Math.hypot(q.x - room.spawn.x, q.z - room.spawn.z) - Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z))[0];
     return far ? { x: far.x, z: far.z } : { x: room.spawn.x, z: room.spawn.z };
   };
-  const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, backRoom: backRoomOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null }) : null;
+  // the Steal stash (Tim 2026-10-21: not by the back window, so the thief has to sneak past the guards):
+  // the floor spot furthest from where the back window lets you in, kept 3 away from the front door
+  const stashOf = b => {
+    const room = b && roomOfBusiness(b), win = room && doors.find(d => d.ninja && d.place === room.name);
+    if (!room || !win?.to) return backRoomOf(b);
+    const far = patrolSpots(b).filter(p => Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z) >= 3)
+      .sort((p, q) => Math.hypot(q.x - win.to.x, q.z - win.to.z) - Math.hypot(p.x - win.to.x, p.z - win.to.z))[0];
+    return far ? { x: far.x, z: far.z } : backRoomOf(b);
+  };
+  const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null }) : null;
 
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,

@@ -144,7 +144,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (unitAt(e.clientX, e.clientY, [hero()])) { send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); return; }
       // right-click your own business: they walk to its door, go in and hold it (checkpoint 5)
       const i = !e.ctrlKey && outdoors() ? view.buildingAt(e.clientX, e.clientY) : null, biz = i !== null && game.state.businesses[`b${i}`];
-      if (biz && biz.room && biz.owner === hero()?.owner) { if (mine().length) view.flashBuilding(i); send({ id: heroId, type: 'order', units: mine(), kind: 'enter', business: biz.id }); return; }
+      // also the hideout your Shinobi have a Steal job on: the crew climb in by its back window (Tim 2026-10-21)
+      if (biz && biz.room && (biz.owner === hero()?.owner || game.contracts?.mayClimb(hero(), biz.room))) { if (mine().length) view.flashBuilding(i); send({ id: heroId, type: 'order', units: mine(), kind: 'enter', business: biz.id }); return; }
       const p = view.screenToGround(e.clientX, e.clientY);
       if (p) send({ id: heroId, type: 'order', units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }

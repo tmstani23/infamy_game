@@ -20,7 +20,7 @@ const DEFAULTS = {
   perClan: 2, recentDays: 2, leaderWeight: 2,
   scout: { ryo: 150, renown: 15, seconds: 10 },
   mark: { ryo: 300, renown: 30, plantSeconds: 3, holdSeconds: 60, leaveSeconds: 10, alertDelay: 15, clearSeconds: 4, reach: 1.5 },
-  steal: { share: 0.2, max: 500, renown: 25, seconds: 5, reach: 1.5 },
+  steal: { share: 0.2, max: 500, renown: 25, seconds: 10, reach: 1.5 },
   boss: { ryo: 400, renown: 40 },
   bandits: { ryo: 200, renown: 20, count: 5 },
 };
@@ -28,7 +28,7 @@ const KIND_NAME = { teahouse: 'Teahouse', warehouse: 'Warehouse', gambling_den: 
 
 // backRoom(b) = { x, z } of a business's back-room spot (in its room); WILD = the bandits' owner id
 // leader() = the clan leading the season score (or null)
-export function createContracts({ state, rules = {}, backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
+export function createContracts({ state, rules = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
   const secs = s => Math.round(s * 20);
   let rs = seed;
@@ -148,6 +148,7 @@ export function createContracts({ state, rules = {}, backRoom, WILD = 'wild', se
       if (!job.mark) {
         const spot = backRoom(b);
         const on = state.night && spot && mine.find(e => e.place === b.room && Math.hypot(e.x - spot.x, e.z - spot.z) <= r.reach);
+        job.spot = spot && { x: spot.x, z: spot.z, r: r.reach, on: !!on };   // the ring to plant it in (render/banners.js)
         job.progress = on ? job.progress + 1 : 0;
         job.need = secs(r.plantSeconds);
         if (on && job.progress >= job.need) {
@@ -158,6 +159,7 @@ export function createContracts({ state, rules = {}, backRoom, WILD = 'wild', se
         return;
       }
       const m = job.mark;
+      delete job.spot;
       if (!m.alerted && tick >= m.alertAt) { m.alerted = true; state.news.push({ kind: 'markAlert', clan: job.target, business: b.id, x: b.x, z: b.z }); }
       const inside = mine.some(e => e.place === m.place);
       m.away = inside ? 0 : m.away + 1;
@@ -169,10 +171,17 @@ export function createContracts({ state, rules = {}, backRoom, WILD = 'wild', se
       if (inside) job.progress++;
       if (job.progress >= job.need) { b.sabotaged = true; finish(clanId, true); }
     } else if (job.kind === 'steal') {
-      const spot = backRoom(b), r = R.steal;
+      const spot = stash(b), r = R.steal;
       const on = spot && mine.some(e => e.place === b.room && Math.hypot(e.x - spot.x, e.z - spot.z) <= r.reach);
-      job.progress = on ? job.progress + 1 : 0;
+      job.spot = spot && { x: spot.x, z: spot.z, r: r.reach, on };   // the ring to stand in (render/banners.js)
+      // stepping off pauses the count instead of resetting it (Tim 2026-10-20)
+      if (on) job.progress++;
       job.need = secs(r.seconds);
+      // seen inside: the owners get one alarm (guards fight as usual; medium/hard bots send crew home)
+      if (!job.alerted && mine.some(e => e.place === b.room && !e.hidden)) {
+        job.alerted = true;
+        state.news.push({ kind: 'stealAlert', clan: job.target, by: clanId, business: b.id, x: b.x, z: b.z });
+      }
       if (job.progress >= job.need) {
         const victim = state.clans[job.target], amount = Math.min(r.max, Math.floor((victim?.ryo || 0) * r.share));
         if (victim) victim.ryo -= amount;
@@ -202,5 +211,5 @@ export function createContracts({ state, rules = {}, backRoom, WILD = 'wild', se
   // a Shinobi unit may climb in through a hideout's back window while its clan holds a Steal job on it
   const mayClimb = (e, place) => Object.values(C.active).some(j => j.clan === e.owner && j.kind === 'steal' && state.businesses[j.business]?.room === place);
 
-  return { tick, command, post, mayClimb, where, reward, backRoom, rules: R };
+  return { tick, command, post, mayClimb, where, reward, backRoom, stash, rules: R };
 }

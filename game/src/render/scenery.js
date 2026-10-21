@@ -3,7 +3,7 @@
 // Also keeps all sprites in the right draw order.
 import * as THREE from 'three';
 import { CAM_RIGHT, CAM_UP, CAM_QUAT, VIEW_DIR, toScreen } from './iso.js';
-import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial, crewDoorMaterial } from './shading.js';
+import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial, crewDoorMaterial, windowDoorMaterial } from './shading.js';
 import { shapeDistance, shapeBox, groundZone } from '../sim/geometry.js';
 
 const loader = new THREE.TextureLoader();
@@ -254,10 +254,10 @@ export async function buildScenery(scenery, renderer) {
 
 export function doorRings(doors) {
   return doors.map(d => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), doorMaterial);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), d.ninja ? windowDoorMaterial : doorMaterial);
     m.rotation.x = -Math.PI / 2;
     m.position.set(d.x, 0.02, d.z);
-    m.renderOrder = 1;
+    m.renderOrder = d.ninja ? 99800 : 1;   // a back window ring shows through the wall in front of it
     m.userData.door = d;
     return m;
   });
@@ -269,7 +269,7 @@ export function markCrewDoors(rings, state, owner) {
   for (const e of Object.values(state.entities)) if (e.owner === owner && e.type !== 'hero' && !e.dead && e.place !== 'street') held.add(e.place);
   for (const m of rings) {
     const d = m.userData.door, crew = !!d.to && d.place !== 'street' && held.has(d.place);
-    m.material = crew ? crewDoorMaterial : doorMaterial;
+    m.material = crew ? crewDoorMaterial : d.ninja ? windowDoorMaterial : doorMaterial;
     m.scale.setScalar(crew ? 1.4 : 1);   // a bigger ring, so it is easy to spot
   }
 }

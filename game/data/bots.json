@@ -14,15 +14,15 @@
   "levels": {
     "easy": {
       "thinkSeconds": 5, "reactSeconds": 2, "attackChance": 0.2, "raidChance": 0.15, "raidWhenWeak": false, "memorySeconds": 30,
-      "ambush": false, "heroPriority": false, "focusFire": false, "executeDowned": false, "retreatHp": 0, "fleeInRaid": true, "aggression": 0.25, "abilities": ["R"]
+      "ambush": false, "heroPriority": false, "focusFire": false, "executeDowned": false, "retreatHp": 0, "fleeInRaid": true, "aggression": 0.25, "hideoutGuards": 1, "defendHome": false, "abilities": ["R"]
     },
     "medium": {
       "thinkSeconds": 2, "reactSeconds": 1, "attackChance": 0.5, "raidChance": 0.5, "raidWhenWeak": false, "memorySeconds": 60,
-      "ambush": true, "ambushRange": 10, "heroPriority": false, "focusFire": false, "executeDowned": false, "retreatHp": 0.3, "fleeInRaid": false, "aggression": 0.5, "abilities": ["Q", "E", "R", "F"]
+      "ambush": true, "ambushRange": 10, "heroPriority": false, "focusFire": false, "executeDowned": false, "retreatHp": 0.3, "fleeInRaid": false, "aggression": 0.5, "hideoutGuards": 2, "defendHome": true, "abilities": ["Q", "E", "R", "F"]
     },
     "hard": {
       "thinkSeconds": 1, "reactSeconds": 0.5, "attackChance": 0.8, "raidChance": 0.8, "raidWhenWeak": true, "memorySeconds": 180,
-      "ambush": true, "ambushRange": 14, "heroPriority": true, "focusFire": true, "executeDowned": true, "retreatHp": 0.35, "fleeInRaid": false, "aggression": 0.8, "abilities": ["Q", "E", "R", "F"]
+      "ambush": true, "ambushRange": 14, "heroPriority": true, "focusFire": true, "executeDowned": true, "retreatHp": 0.35, "fleeInRaid": false, "aggression": 0.8, "hideoutGuards": 2, "defendHome": true, "abilities": ["Q", "E", "R", "F"]
     }
   }
 }

@@ -4,10 +4,10 @@
 // Once seen, or when it hits or is hit, a unit is revealed for revealSeconds. Hidden units cannot
 // be seen or targeted by anyone else (sim/vision.js canSee, sim/game.js sees). Townsfolk never spot.
 // Snuffing a lantern: the ninja boss at night, within snuffReach of a lit lantern (click it or Space), for snuffSeconds
-// (moving cancels): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
+// (only being downed cancels it): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
 // at most snuffPerNight a night. Numbers: units.json rules.stealth.
 const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 4, runFactor: 2, revealSeconds: 5, lightRadius: 5,
-  snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, every: 1 };
+  snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
 
 export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
   const R = { ...DEFAULTS, ...rules };
@@ -34,15 +34,19 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
   function reveal(e) { if (e && canHide(e)) { e.revealUntil = state.tick + secs(R.revealSeconds); e.hidden = false; e.hiddenAt = null; } }
 
   function tick() {
-    // a snuff in progress: done after snuffSeconds, cancelled by moving
+    // a snuff in progress: done after snuffSeconds; walking on doesn't cancel it (Tim 2026-10-21:
+    // the puff went off while moving and the lantern stayed lit), only being knocked down
     for (const e of Object.values(state.entities)) {
       const s = e.snuffing;
       if (!s) continue;
-      if (e.dead || e.downed || Math.hypot(e.x - s.x, e.z - s.z) > 0.15) { delete e.snuffing; continue; }
+      if (e.dead || e.downed) { delete e.snuffing; continue; }
       if (state.tick >= s.until) {
         delete e.snuffing;
         const clan = state.clans[e.owner];
-        if (!state.lightsOut.includes(s.prop)) { state.lightsOut.push(s.prop); clan.snuffs = (clan.snuffs || 0) + 1; state.news.push({ kind: 'snuffed', clan: clan.id, prop: s.prop }); }
+        // the whole lantern area goes dark, not just the light nearest the click (Tim 2026-10-21): every
+        // lantern within snuffArea of it, for one snuff
+        const near = lights.filter(l => l.prop === s.prop || Math.hypot(l.x - s.lx, l.z - s.lz) <= R.snuffArea).map(l => l.prop).filter(p => !state.lightsOut.includes(p));
+        if (near.length) { state.lightsOut.push(...new Set(near)); clan.snuffs = (clan.snuffs || 0) + 1; state.news.push({ kind: 'snuffed', clan: clan.id, prop: s.prop }); }
       }
     }
     if (state.dawn) state.lightsOut = [];
@@ -74,7 +78,7 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     const l = snuffable(e, prop), clan = state.clans?.[e?.owner];
     if (!l || !clan || e.dead || e.downed || e.jailed) return;
     if (snuffsLeft(clan.id) <= 0) { say(clan, `You can snuff ${R.snuffPerNight} lanterns a night`); return; }
-    e.snuffing = { prop: l.prop, x: e.x, z: e.z, until: state.tick + secs(R.snuffSeconds) };
+    e.snuffing = { prop: l.prop, lx: l.x, lz: l.z, x: e.x, z: e.z, until: state.tick + secs(R.snuffSeconds) };
     state.casts?.push({ kind: 'snuff', a: e.id, x: e.x, z: e.z, tx: l.x, tz: l.z });   // the smoke flash (render/abilityfx.js)
   }
 

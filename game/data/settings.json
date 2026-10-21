@@ -51,9 +51,9 @@
     "intruderAlertSeconds": 30
   },
   "season": {
-    "_note": "the season ends after this many day/night cycles (dawns); the clan with the highest score wins (business scores above; ninja Renown later: renownPerPoint Renown = 1 point)",
+    "_note": "the season ends after this many day/night cycles (dawns); the clan with the highest score wins (business scores above; Shinobi Renown: renownPerPoint Renown = 1 point; Tim 2026-10-21: 50, so a good Shinobi season is about 5 points)",
     "cycles": 10,
-    "renownPerPoint": 100
+    "renownPerPoint": 50
   },
   "warLantern": {
     "_note": "a War Lantern: needed to raid a rival-owned business; bought at the moneylender's door",

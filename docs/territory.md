@@ -41,7 +41,7 @@ Related docs:
 
 - One score for all clans, most points wins.
   - Yakuza: points for businesses held, weighted teahouse 1, warehouse 2, den 3.
-  - Ninja: Renown / 100 (about 100 Renown = 1 business), built with the ninja contracts (`ninja_clan_plan.md`).
+  - Ninja: 1 point per 50 Renown (2026-10-21; `season.renownPerPoint`), built with the ninja contracts (`ninja_clan_plan.md`).
 - Score in the top bar ("Day 3/10 · You 2 · Kuroda 3") and on the M map. Scores are counted at dawn.
 - Single-player season length: 10 day/night cycles (a setting).
 - At season end: a results screen (score per clan, winner) with New game (reloads) or Keep playing. The start menu step adds Continue / Save.

@@ -177,7 +177,17 @@ export function createBanners({ scene }) {
   }
 
   // every frame: banners follow ownership; returns the businesses that just changed hands to a clan
-  function update(state, time) {
+  let jobRing = null;   // your Shinobi steal / sabotage spot (state.contracts.active[you].spot), Tim 2026-10-21
+  function update(state, time, me) {
+    const job = me && state.contracts?.active?.[me], spot = job?.spot;
+    if (spot && !jobRing) {
+      jobRing = new THREE.Mesh(HOLD_GEO, new THREE.MeshBasicMaterial({ color: 0xa080ff, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
+      jobRing.rotation.x = -Math.PI / 2; jobRing.renderOrder = 99800; scene.add(jobRing);
+    }
+    if (jobRing) {
+      jobRing.visible = !!spot;
+      if (spot) { jobRing.position.set(spot.x, 0.05, spot.z); jobRing.scale.setScalar(spot.r); jobRing.material.opacity = spot.on ? 0.7 + 0.25 * Math.sin(time * 6) : 0.4 + 0.15 * Math.sin(time * 2.5); }
+    }
     const claimed = [];
     for (const b of Object.values(state.businesses)) {
       const s = shown.get(b.id);

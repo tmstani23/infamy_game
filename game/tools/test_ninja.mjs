@@ -39,7 +39,7 @@ const newGame = () => {
   // crew cap from Renown, not businesses
   const base = g.clans.crewCap('player');
   g.state.clans.player.renown = 250;
-  assert.equal(g.clans.crewCap('player'), base + 2, 'cap grows with Renown');
+  assert.equal(g.clans.crewCap('player'), base + Math.floor(250 / g.settings.units.rules.renownPerCrew), 'cap grows with Renown');
   console.log('ninja units ok');
 }
 
@@ -271,16 +271,42 @@ const newGame = () => {
   assert.ok(g.state.clans.kuroda.ryo - k0 < g.settings.units.rules.businesses.teahouse.payout, 'no teahouse payout');
   // Steal: in through the hideout's back window, then the stash
   g.state.clans.kuroda.ryo = 1000;
+  g.state.clans.kuroda.hideoutGuards = 1;   // a bot clan's difficulty sets this (bots.json)
   crew.place = 'street';
   job = want('steal');
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const win = g.doors.find(d => d.ninja && d.place === izakaya.room);
+  // right-click the hideout with crew selected: they climb in by the back window too (Tim 2026-10-21)
+  Object.assign(crew, { x: win.x + 0.5, z: win.z, place: 'street', order: { kind: 'stop' } });
+  g.step([{ id: boss.id, type: 'order', units: [crew.id], kind: 'enter', business: izakaya.id }]);
+  for (let i = 0; i < 20 * 3 && crew.place !== izakaya.room; i++) g.step();
+  assert.equal(crew.place, izakaya.room, 'crew climbed in by the back window');
+  Object.assign(crew, { place: 'street', x: win.x + 0.5, z: win.z, order: { kind: 'stop' } });   // out of the way of the stash checks
   Object.assign(boss, { x: win.x, z: win.z, place: 'street' });
   g.step([{ id: boss.id, type: 'use' }]);
   assert.equal(boss.place, izakaya.room, 'climbed into the hideout');
-  const stash = g.contracts.backRoom(izakaya), r1 = clan.ryo;
+  // harder steal (Tim 2026-10-20): the hideout has a guard patrolling it; send it off for this check
+  const hg = Object.values(g.state.entities).filter(e => e.guard === izakaya.id);
+  assert.ok(hg.length >= 1, `hideout has a guard (${izakaya.owner}, ${JSON.stringify(izakaya.guards)})`);
+  for (const e of hg) delete g.state.entities[e.id];
+  const stash = g.contracts.stash(izakaya), r1 = clan.ryo;
   Object.assign(boss, { x: stash.x, z: stash.z });
-  run(20 * (K.steal.seconds + 1));
+  run(20 * 4);
+  const p1 = C.active.player.progress;
+  assert.ok(C.active.player.spot?.on && Math.hypot(C.active.player.spot.x - stash.x, C.active.player.spot.z - stash.z) < 0.01, 'the stash ring is on the stash, lit while on it');
+  Object.assign(boss, { x: stash.x + 3, z: stash.z }); run(20 * 2);
+  assert.equal(C.active.player.progress, p1, 'stepping off pauses the steal, keeps the count');
+  // seen inside: one alarm to the owners, and the count still runs while seen (Tim 2026-10-21)
+  const watcher = g.state.entities[g.spawn('thug', 'thug', boss.x + 1, boss.z, { owner: 'kuroda', place: izakaya.room, order: { kind: 'stop' }, hp: 1e6, maxHp: 1e6 })];
+  boss.hp = boss.maxHp = 1e6;
+  Object.assign(boss, { x: stash.x, z: stash.z });
+  let alarm = 0, p2 = C.active.player.progress;
+  for (let i = 0; i < 20 && C.active.player; i++) { g.step(); alarm += g.state.news.filter(n => n.kind === 'stealAlert' && n.clan === 'kuroda' && n.by === 'player').length; }
+  assert.equal(alarm, 1, 'one alarm when seen inside');
+  assert.ok(C.active.player.progress > p2, 'the count runs while seen');
+  delete g.state.entities[watcher.id];
+  Object.assign(boss, { x: stash.x, z: stash.z });
+  run(20 * (K.steal.seconds - 3));
   assert.equal(clan.ryo - r1, Math.min(K.steal.max, 1000 * K.steal.share), 'stole their ryo');
   assert.equal(g.state.clans.kuroda.ryo, 1000 - (clan.ryo - r1));
   // a job not done by dawn fails and pays nothing
@@ -346,7 +372,7 @@ const newGame = () => {
   const thug = g.state.entities[g.spawn('thug', 'thug', spot[0] + 5, spot[1], { owner: 'kuroda', order: { kind: 'stop' } })];
   for (let i = 0; i < 3; i++) g.step();
   const hp0 = thug.hp;
-  g.step([{ id: n.id, type: 'ability', slot: 'Q', x: thug.x, z: thug.z }]);
+  g.step([{ id: n.id, type: 'ability', slot: 'Q', x: thug.x + 3, z: thug.z, target: thug.id }]);
   assert.ok(Math.hypot(n.x - thug.x, n.z - thug.z) < (A.landGap ?? 0.9) + 0.4, `landed by the thug (${Math.hypot(n.x - thug.x, n.z - thug.z).toFixed(2)})`);
   assert.ok(g.state.hits.some(h => h.a === n.id && h.t === thug.id && h.crit) || thug.hp < hp0, 'sure crit');
   assert.equal(n.attackTarget, thug.id, 'auto attacking it');

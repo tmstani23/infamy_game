@@ -383,6 +383,9 @@ const doorRingMaterial = ({ pale, gold, ember, pulse, gain = '1.0' }) => new THR
 });
 export const doorMaterial = doorRingMaterial({ pale: '1.0, 0.92, 0.7', gold: '1.0, 0.78, 0.38', ember: '1.0, 0.45, 0.2', pulse: '0.85 + 0.15 * sin(t * 2.5)' });
 // crew ring: brighter and flashing (Tim 2026-10-18: the soft pulse was hard to notice)
+// Shinobi back window ring: violet, and drawn over the buildings (Tim 2026-10-21: walls hid it)
+export const windowDoorMaterial = doorRingMaterial({ pale: '0.85, 0.75, 1.0', gold: '0.62, 0.45, 1.0', ember: '0.45, 0.3, 0.85', pulse: '0.7 + 0.3 * sin(t * 3.0)', gain: '1.4' });
+windowDoorMaterial.depthTest = false;
 export const crewDoorMaterial = doorRingMaterial({ pale: '0.75, 1.0, 1.0', gold: '0.3, 0.9, 1.0', ember: '0.2, 0.75, 0.95', pulse: '0.4 + 0.9 * pow(0.5 + 0.5 * sin(t * 4.5), 2.0)', gain: '1.8' });
 
 export const shadowMaterial = new THREE.ShaderMaterial({

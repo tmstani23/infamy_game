@@ -84,8 +84,9 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
   function breakdown(clan) {
     const out = [];
     for (const b of Object.values(state.businesses)) if (b.owner === clan && scores[b.kind]) out.push({ label: b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()), points: scores[b.kind] });
+    // Renown shows how close the next point is (Tim 2026-10-21: it just said 0), also before the first one
     const r = state.clans?.[clan]?.renown || 0;
-    if (r) out.push({ label: `${r} Renown`, points: Math.floor(r / renownPerPoint) });
+    if (r || state.clans?.[clan]?.kind === 'ninja') out.push({ label: `${r} Renown (${renownPerPoint - r % renownPerPoint} to next)`, points: Math.floor(r / renownPerPoint) });
     return out;
   }
   const standings = () => Object.keys(state.clans || {}).map(id => ({ clan: id, score: score(id) })).sort((a, b) => b.score - a.score);
