@@ -9,7 +9,7 @@
 // The grid lives here, not in the state (it is worked out from b.owner), so the state stays plain JSON.
 
 const DEFAULTS = {
-  radius: { teahouse: 10, warehouse: 12, gambling_den: 16, hideout: 12 },
+  radius: { teahouse: 10, shop: 10, warehouse: 12, gambling_den: 16, tenements: 16, hideout: 12 },
   healFactor: 2, heatCoolSeconds: 20, crewSpeed: 1.1, quarterBonus: 0.25, intruderAlertSeconds: 30,
 };
 

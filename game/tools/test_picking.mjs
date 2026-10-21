@@ -43,7 +43,7 @@ console.log('picking tests passed');
   assert.equal(tabTarget(g.state, hero, undefined, e => e.id !== near), next, 'skips one hidden in the fog');
   g.step([{ id: hero, type: 'attack', target: tabTarget(g.state, hero) }]);
   assert.equal(S[hero].attackTarget, near, 'it locks the hero on');
-  // markers: blue for the Tab target, red once the hero attacks it, small red for crew targets
+  // Marker roles: hero/Tab red, independent crew blue, shared attacks purple.
   const mate = Object.values(S).find(e => e.owner === 'player' && e.type === 'thug').id;
   S[hero].attackTarget = undefined;
   assert.deepEqual(targetMarkers(g.state, hero, next), [{ id: next, kind: 'tab' }]);
@@ -52,6 +52,6 @@ console.log('picking tests passed');
   S[hero].attackTarget = next;
   assert.deepEqual(targetMarkers(g.state, hero, next), [{ id: next, kind: 'hero' }, { id: near, kind: 'crew' }], 'tabbed turns red once attacked');
   S[hero].attackTarget = near;
-  assert.deepEqual(targetMarkers(g.state, hero, null), [{ id: near, kind: 'hero' }], 'crew marker hidden on the hero target');
+  assert.deepEqual(targetMarkers(g.state, hero, null), [{ id: near, kind: 'shared' }], 'shared crew/hero target is purple');
   console.log('tab targeting ok');
 }

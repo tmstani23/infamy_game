@@ -1,5 +1,6 @@
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
+import { startClan } from './sim/start_clan.js';
 import { createView } from './render/view.js';
 import { onKey, moveCommand, panAxes, edgeAxes } from './input.js';
 import { createHireMenu } from './hire_menu.js';
@@ -49,12 +50,10 @@ async function start() {
   // Shinobi the inn (your hideout as Yakuza) goes to the Yakuza bot clan (bots.json yakuza)
   const extra = TEST.ninja && bots.yakuza;
   if (extra) for (const b of Object.values(game.state.businesses)) if (b.hideout === 'player') b.hideout = extra.id;
-  game.clans.addClan('player', TEST.ninja ? { name: 'Shinobi clan', kind: 'ninja' } : { name: 'Your clan' });
   const [hx, hz] = TEST.ninja && district.spawns.ninja || district.spawns.hero;   // the Shinobi start in their forest village
-  const heroId = game.spawn('hero', TEST.ninja ? 'ninja_leader' : 'ronin', hx, hz, { owner: 'player', home: [hx, hz], dir: 0 });
-  if (TEST.ninja) for (let k = 0; k < 2; k++) game.spawn('ninja', 'ninja_grunt', hx + 1 + k, hz + 1, { owner: 'player', order: { kind: 'follow', target: heroId } });
+  const heroId = startClan(game, { id: 'player', name: TEST.ninja ? 'Shinobi clan' : 'Your clan',
+    kind: TEST.ninja ? 'ninja' : 'yakuza', position: [hx, hz], crew: TEST.ninja ? 2 : 1, ryo: TEST.playerRyo });
   // ?test=bot (test_params.js): you start richer and with a business the bot can raid
-  if (TEST.playerRyo !== undefined) game.state.clans.player.ryo = TEST.playerRyo;
   const startBiz = TEST.playerOwns && Object.values(game.state.businesses).find(b => b.kind === TEST.playerOwns);
   if (startBiz) game.clans.setOwner(startBiz.id, 'player');
 
@@ -66,21 +65,18 @@ async function start() {
   // ...and with you as Shinobi the Yakuza bot clan at the inn too; each bot clan has its own brain
   const botList = [];
   for (const [k, bc] of [bots.clan, extra].filter(Boolean).entries()) {
-    if (!game.state.clans[bc.id]) game.clans.addClan(bc.id, { name: bc.name, bot: true });
-    if (TEST.botRyo !== undefined) game.state.clans[bc.id].ryo = TEST.botRyo;
     const home = Object.values(game.state.businesses).find(b => b.hideout === bc.id);
     if (home) {
-      const boss = game.spawn('hero', bc.boss, home.ring[0], home.ring[1], { owner: bc.id, home: home.ring });
+      const boss = startClan(game, { id: bc.id, name: bc.name, bot: true, model: bc.boss, ryo: TEST.botRyo });
       botList.push(createBot(game, { clan: bc.id, hero: boss, rules: bots.levels[bots.difficulty], seed: 4242 + k * 977 }));
     }
   }
   // with you as Yakuza, the Shinobi bot clan in the forest village (sim/ninja_bot.js)
   if (!TEST.ninja && bots.shinobi) {
     const sc = bots.shinobi;
-    game.clans.addClan(sc.id, { name: sc.name, bot: true, kind: 'ninja' });
-    const lh = Object.values(game.state.businesses).find(b => b.hideout === sc.id);
+    const lh = Object.values(game.state.businesses).find(b => b.hideout === 'ninja');
     if (lh) {
-      const boss = game.spawn('hero', sc.boss, lh.ring[0], lh.ring[1], { owner: sc.id, home: lh.ring });
+      const boss = startClan(game, { id: sc.id, name: sc.name, bot: true, kind: 'ninja', model: sc.boss });
       botList.push(createNinjaBot(game, { clan: sc.id, hero: boss, rules: bots.shinobiLevels?.[bots.difficulty] }));
     }
   }
@@ -151,6 +147,7 @@ async function start() {
     };
     next();
   }
+  const contractCallout = (text, kind = 'news') => callout(text, `${kind} contract`, 5000);
   $('raidalarm').addEventListener('dblclick', () => { const a = raidOnMe(); if (a) { const p = a.lantern || a.spot; view.jumpTo(p.x, p.z); } });
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
@@ -256,7 +253,8 @@ async function start() {
     if (!s?.final) return;
     const me = 'player', win = s.winner === me;
     el.querySelector('h2').textContent = win ? 'You win the season!' : s.winner ? `${game.state.clans[s.winner]?.name || 'A rival'} wins the season` : 'The season ends in a draw';
-    el.querySelector('.sub').textContent = `${s.cycles} days and nights · the clan with the most points wins (teahouse 1, warehouse 2, den 3)`;
+    const points = Object.entries(units.rules.businesses).map(([kind, rule]) => `${kind.replace(/_/g, ' ')} ${rule.score || 0}`).join(', ');
+    el.querySelector('.sub').textContent = `${s.cycles} days and nights · the clan with the most points wins (${points})`;
     el.querySelector('.list').innerHTML = s.final.map(r => `<div class="row"><i style="background:${game.state.clans[r.clan]?.color}"></i><span>${r.clan === me ? 'You' : game.state.clans[r.clan]?.name}</span><b>${r.score}</b></div>`).join('');
     el.hidden = false;
   }
@@ -360,13 +358,13 @@ async function start() {
         if (n.kind === 'seasonEnd') showResults();
         // Shinobi contracts (sim/contracts.js): taken, done, failed; and warnings when one is aimed at you
         if (n.kind === 'contractTaken' && n.clan === me && n.x != null) { minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'contractDone' && n.clan === me) callout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win', 5000);
-        if (n.kind === 'contractFailed' && n.clan === me) callout(`Contract failed: ${n.why}`, 'loss', 5000);
-        if (n.kind === 'contractWarn' && n.clan === me) callout('Word is the Shinobi took a job on you', 'news');
-        if (n.kind === 'stealAlert' && n.by === me) callout('Spotted! The alarm is up, keep taking the ryo', 'loss', 4000);   // the thief's side (Tim 2026-10-21)
-        if (n.kind === 'stealAlert' && n.clan === me) { callout('A Shinobi is in your hideout!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'markAlert' && n.clan === me) { callout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'sabotaged' && n.clan === me) callout('Sabotaged: a business paid nothing at dawn', 'loss');
+        if (n.kind === 'contractDone' && n.clan === me) contractCallout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win');
+        if (n.kind === 'contractFailed' && n.clan === me) contractCallout(`Contract failed: ${n.why}`, 'loss');
+        if (n.kind === 'contractWarn' && n.clan === me) contractCallout('Word is the Shinobi took a job on you');
+        if (n.kind === 'stealAlert' && n.by === me) contractCallout('Spotted! The alarm is up, keep taking the ryo', 'loss');
+        if (n.kind === 'stealAlert' && n.clan === me) { contractCallout('A Shinobi is in your hideout!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'markAlert' && n.clan === me) { contractCallout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
       }
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);

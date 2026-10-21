@@ -5,7 +5,7 @@
 // Drawn by src/minimap.js in its big mode. Only reads the state.
 import { createMinimap } from './minimap.js';
 
-const NAMES = { warehouse: 'Warehouse', teahouse: 'Teahouse', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
+const NAMES = { warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
@@ -31,6 +31,14 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     const R = units?.rules?.businesses?.[b.kind], q = game.territory?.quarters.find(q => q.businesses.includes(b.id));
     const owner = !b.owner ? (R ? 'Unclaimed' : '') : seen ? (b.owner === clan ? 'Yours' : st.clans[b.owner]?.name || 'A rival clan') : 'Owner unknown';
     const lines = [`<b>${NAMES[b.kind] || b.kind}</b>`];
+    if (b.kind === 'bandit_camp') {
+      const cell = game.vision.cellOf(b.x, b.z), visible = !fog.isOn() || (cell >= 0 && vg.visible[cell]);
+      const loot = b.members.reduce((n, kind) => n + (game.settings.bandits?.types?.[kind]?.ryo || 0), 0);
+      lines[0] = `<b>${b.name}</b>`;
+      lines.push(`${b.members.length} bandits · ${loot} ryo to loot`);
+      lines.push(visible ? `${b.units.filter(id => st.entities[id] && !st.entities[id].dead).length} remaining` : 'Not in sight');
+      lines.push('Cleared camps return at dawn');
+    }
     if (b.hideout) lines.push(b.owner === clan ? 'Your hideout' : `${st.clans[b.owner]?.name || 'Rival'} hideout`);
     else if (owner) lines.push(owner);
     if (R?.payout) lines.push(`Pays ${R.payout} ryo at dawn · ${R.score || 0} season point${R.score === 1 ? '' : 's'}`);
@@ -71,7 +79,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
       return `<div class="row q"><span>${q.name}</span><em>${!o ? 'nobody holds it all' : o === clan ? 'yours (+payout)' : `held by ${st.clans[o]?.name}`}</em></div>`;
     }).join('');
     // a short key (Tim 2026-10-20: just these three)
-    const legend = `<h4>Key</h4><div class="key"><i class="k-turf"></i>Territory</div>`
+    const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
     const html = `<h4>Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}</h4>${rows}<h4>Quarters</h4>${quarters}${legend}`;

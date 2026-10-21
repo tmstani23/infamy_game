@@ -8,6 +8,7 @@ import { createClans } from './clans.js';
 import { createNav, ROOM_NAV } from './nav.js';
 import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
+import { createRewards } from './rewards.js';
 import { createVision } from './vision.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
@@ -92,7 +93,7 @@ export function createGame(options) {
   const halfTicks = night => Math.round((night ? dayNight.nightSeconds : dayNight.daySeconds) * TICK_RATE);
   if (dayNight?.auto) state.clock = { day: 1, left: halfTicks(state.night) };
   const setNight = night => {
-    if (state.night && !night) { state.dawn = true; if (state.clock) state.clock.day++; }
+    if (state.night && !night) { state.dawn = true; rewards.tick(); if (state.clock) state.clock.day++; }
     if (!state.night && night) state.dusk = true;
     state.night = night;
     if (state.clock) state.clock.left = halfTicks(night);
@@ -102,6 +103,7 @@ export function createGame(options) {
   });
   // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1 }) : null;
+  const rewards = createRewards(state, units?.rules);
   // territory: the street around each owned business, quarters and the season score (sim/territory.js)
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
@@ -195,7 +197,10 @@ export function createGame(options) {
       if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
       // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
-      if (c.kind === 'attack') { u.order = { kind: 'attack', target: c.target, ...(c.resume ? { prev: resumable(u) } : {}) }; return; }
+      if (c.kind === 'attack') {
+        if (u.swing?.target !== c.target) delete u.swing;
+        u.order = { kind: 'attack', target: c.target, ...(c.resume ? { prev: resumable(u) } : {}) }; return;
+      }
       if (c.kind === 'heal') {
         const b = clans?.clinicOf();
         if (!b || u.hp >= u.maxHp) return;
@@ -341,6 +346,35 @@ export function createGame(options) {
     const p = u.order?.prev;
     if (p?.kind === 'follow') p.slot = freeSlot(p.target, u.id);
     u.order = p || { kind: 'move', x: u.x, z: u.z };
+  }
+
+  // Right-click/Tab assistance follows the leader's changing target. Manual attack
+  // orders (T or Ctrl-right-click), locked units and deliberate duties stay independent.
+  function syncCrewAttacks() {
+    const heroes = Object.values(state.entities).filter(e => e.type === 'hero');
+    for (const u of Object.values(state.entities)) if (u.order?.assist) {
+      const h = state.entities[u.order.assist], t = h && state.entities[h.attackTarget];
+      if (!h?.assistCrew || h.dead || h.downed || h.jailed || !fair(h, t) || !sees(h, t)
+        || u.place !== h.place || u.locked || Math.hypot(t.x - h.x, t.z - h.z) > LOCK_RANGE) {
+        delete u.swing; endAttack(u);
+      }
+    }
+    for (const h of heroes) {
+      const t = state.entities[h.attackTarget];
+      if (!h.assistCrew || h.dead || h.downed || h.jailed || !fair(h, t) || !sees(h, t)
+        || Math.hypot(t.x - h.x, t.z - h.z) > LOCK_RANGE) continue;
+      for (const u of Object.values(state.entities)) {
+        if (u.owner !== h.owner || u.type === 'hero' || u.guard || u.dead || u.downed || u.jailed || u.locked || u.place !== h.place) continue;
+        const o = u.order;
+        if (o?.kind === 'attack' && o.assist !== h.id) continue;
+        if (['station', 'stop', 'heal', 'enter', 'loot'].includes(o?.kind) || u.execute) continue;
+        if (o?.assist === h.id && o.target === t.id) continue;
+        const prev = resumable(u);
+        delete u.swing; delete u.holdFire; delete paths[u.id];
+        if (fight[u.id]) delete fight[u.id].target;
+        u.order = { kind: 'attack', target: t.id, assist: h.id, prev };
+      }
+    }
   }
 
   // Who this crew member should be fighting right now, if anyone
@@ -512,7 +546,7 @@ export function createGame(options) {
     delete paths[t.id];
     delete fight[t.id];
     t.anim = 'death';
-    // bandits die outright and pay the killer's clan
+    // Bandits leave their money on the body for whoever loots it.
     if (wild(t)) { t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
     // an officer knocked out is taken away (the HQ sends another)
     if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
@@ -523,6 +557,7 @@ export function createGame(options) {
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
     state.news.push({ kind: 'bossDown', clan: t.owner, hero: t.id, by: a.owner || null, x: t.x, z: t.z });
     if (cop(a) && police) { t.downed = true; t.downedAt = state.tick; return; }
+    rewards.leaderDown(a, t);
     t.dead = true;
     t.anim = 'death';
     t.diedAt = state.tick;
@@ -621,7 +656,7 @@ export function createGame(options) {
   // (state.ryoGains for the badge notice; cast.ryo tells the view to burst coins)
   function payExecute(e, t, cast) {
     const clan = state.clans?.[e.owner], base = units?.types?.[t.type]?.executeRyo || 0;
-    if (!clan || !base) return;
+    if (!clan || !base || !state.clans?.[t.owner] || t.owner === e.owner) return;
     const k = units.rules.executeRyoSpread ?? 0, amount = Math.round(base * (1 - k + rng() * 2 * k));
     clan.ryo += amount;
     cast.ryo = amount;
@@ -1031,7 +1066,7 @@ export function createGame(options) {
     return false;
   }
   const bandits = createBandits({
-    state, data: banditData, units, pois: district.pois, edges: district.edges, nav, spawn, moveTo, fightStep, statsOf,
+    state, data: banditData, units, camps: district.banditCamps, pois: district.pois, edges: district.edges, nav, spawn, moveTo, fightStep, statsOf,
     stopPath: e => { delete paths[e.id]; },
     remove: id => { delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id]; },
     seed: (options.seed ?? 12345) ^ 0xba7d,
@@ -1158,14 +1193,18 @@ export function createGame(options) {
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
       if (c.type === 'execute' && e.type === 'hero' && !e.dead) { delete e.holdFire; startExecute(e, c); }
       if (c.type === 'loot') startLoot(e, c);
-      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) { e.attackTarget = c.target; delete e.execute; delete e.holdFire; }
+      if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) {
+        if (e.swing?.target !== c.target) delete e.swing;
+        e.attackTarget = c.target; e.assistCrew = !!c.assist; delete e.execute; delete e.holdFire;
+      }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
-      if (c.type === 'stopattack' && e.type === 'hero') { if (e.swing?.target === e.attackTarget) delete e.swing; delete e.attackTarget; }
+      if (c.type === 'stopattack' && e.type === 'hero') { if (e.swing?.target === e.attackTarget) delete e.swing; delete e.attackTarget; delete e.assistCrew; }
       if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
       if (c.type === 'police' && police) police.menu(e, c, doorNear(c.id));
       if (c.type === 'contract' && contracts) contracts.command(e, c, doorNear(c.id));
     }
     clans?.tick(DT, spawnOutside);
+    syncCrewAttacks();
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e);

@@ -13,8 +13,11 @@
   },
   "bandits": {
     "maxOut": 9,
-    "perNight": 18
+    "perNight": 18,
+    "ryoSpread": 0,
+    "ryo": { "bandit": 25, "night_brute": 50 }
   },
+  "rewards": { "crewExecution": 50, "leaderKnockout": 250 },
   "police": {
     "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",
     "officersPerTier": [0, 2, 4, 6, 6],
@@ -29,7 +32,7 @@
     "coolSeconds": 30
   },
   "costs": {
-    "startRyo": 400,
+    "startRyo": 300,
     "hire": { "thug": 60, "brute": 100, "swordsman": 120 },
     "priceStepPerCrew": 0.15,
     "recoverShare": 0.25,
@@ -37,13 +40,15 @@
   },
   "businesses": {
     "_note": "price = buy an unclaimed one (about 4 payouts); payout = ryo at every dawn, none during a police Manhunt; attackWaves = police waves when you attack it unclaimed (plus 1 per heat tier); crewSlots = crew it adds to your cap (Tim 2026-10-19: by type, no hard cap); score = season points while you own it (Tim 2026-10-20: weighted by size)",
-    "teahouse":     { "price": 400,  "payout": 100, "attackWaves": 3, "crewSlots": 3, "score": 1 },
-    "warehouse":    { "price": 700,  "payout": 175, "attackWaves": 4, "crewSlots": 1, "score": 2 },
-    "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "crewSlots": 2, "score": 3 }
+    "teahouse":     { "price": 400,  "payout": 100, "attackWaves": 3, "crewSlots": 1, "score": 1 },
+    "shop":         { "price": 400,  "payout": 100, "attackWaves": 3, "crewSlots": 1, "score": 1 },
+    "warehouse":    { "price": 700,  "payout": 175, "attackWaves": 4, "crewSlots": 2, "score": 2 },
+    "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "crewSlots": 2, "score": 3 },
+    "tenements":    { "price": 1600, "payout": 400, "attackWaves": 8, "crewSlots": 3, "score": 4 }
   },
   "territory": {
     "_note": "territory (sim/territory.js, Tim 2026-10-20): radius = street around each owned business that is your clan's (nearest business wins where they overlap); in your own territory you see every unit but hidden ninja, healFactor x faster slow healing, heat cools 1 every heatCoolSeconds, crew move crewSpeed x faster; quarterBonus = extra share of payout for holding every business in a quarter; a rival clan walking in alerts you at most once every intruderAlertSeconds per business",
-    "radius": { "teahouse": 10, "warehouse": 12, "gambling_den": 16, "hideout": 12 },
+    "radius": { "teahouse": 10, "shop": 10, "warehouse": 12, "gambling_den": 16, "tenements": 16, "hideout": 12 },
     "healFactor": 2,
     "heatCoolSeconds": 20,
     "crewSpeed": 1.1,

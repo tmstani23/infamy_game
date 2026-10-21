@@ -14,7 +14,7 @@ const GROUND = {
   water: [40, 66, 84], planks: [110, 82, 56], gravel: [128, 124, 116], paving: [146, 138, 124],
 };
 const BUILDING = [62, 50, 46];
-const MARK = { warehouse: 'W', teahouse: 'T', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
+const MARK = { warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
 
 export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send, big = false,
@@ -159,6 +159,15 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.fillStyle = ownerColor ? '#fff4dc' : b.kind.startsWith('police') ? '#8fb4ff' : b.kind === 'clinic' ? '#8fe08f' : '#ffe2a0';
       ctx.fillText(letter, u, v + 0.5);
     }
+    // Camp locations are public; remaining bandits are shown only while in sight.
+    if (layers.businesses) for (const camp of game.state.banditCamps || []) {
+      const [u, v] = toMap(camp.x, camp.z);
+      const scale = camp.members.length > 2 ? 1.5 : 1, boxSize = bs * scale;
+      ctx.save(); ctx.font = `bold ${Math.round(fs * scale)}px sans-serif`;
+      ctx.fillStyle = '#56331d'; ctx.fillRect(u - boxSize / 2, v - boxSize / 2, boxSize, boxSize);
+      ctx.fillStyle = '#ffb46e'; ctx.fillText('B', u, v + 0.5);
+      ctx.restore();
+    }
     // your businesses
     ctx.strokeStyle = '#ffcd50'; ctx.lineWidth = 1.2;
     if (layers.businesses) for (const b of Object.values(game.state.businesses)) {
@@ -213,11 +222,12 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   const pxAt = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * size / r.width, (e.clientY - r.top) * size / r.height]; };
   const businessAt = e => {
     const [u, v] = pxAt(e);
-    let best = null, bd = (10 * Math.sqrt(zoom)) ** 2;
-    for (const b of Object.values(game.state.businesses)) {
-      if (!MARK[b.kind]) continue;
+    let best = null, bd = Infinity;
+    for (const b of [...Object.values(game.state.businesses), ...(game.state.banditCamps || [])]) {
+      if (b.kind === 'bandit_camp' ? !layers.businesses : !MARK[b.kind] || (b.kind.startsWith('police') ? !layers.police : !layers.businesses)) continue;
       const [bu, bv] = toMap(b.x, b.z), d = (bu - u) ** 2 + (bv - v) ** 2;
-      if (d < bd) { bd = d; best = b; }
+      const radius = 10 * Math.sqrt(zoom) * (b.kind === 'bandit_camp' && b.members.length > 2 ? 1.5 : 1);
+      if (d < radius * radius && d < bd) { bd = d; best = b; }
     }
     return best;
   };

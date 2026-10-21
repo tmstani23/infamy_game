@@ -16,13 +16,14 @@
       "bandits": { "ryo": 200, "renown": 20, "count": 5 }
     },
     "stealth": { "_note": "Shinobi stealth (sim/stealth.js, Tim 2026-10-20): hidden unless an enemy is within darkRange (night, no lantern), litRange (lantern light or day) or indoorRange (rooms), x runFactor running; seen, hitting or hit = revealed revealSeconds; lanterns light lightRadius; snuff snuffPerNight a night, snuffSeconds standing still within snuffReach of the lantern (Tim 2026-10-20: 7, so you are not seen doing it; hover a lantern + click or Space; Tim 2026-10-21: walking on does not cancel it, and every lantern within snuffArea of it goes out too)", "darkRange": 2, "litRange": 5, "indoorRange": 4, "runFactor": 2, "revealSeconds": 5, "lightRadius": 5, "snuffPerNight": 3, "snuffSeconds": 1, "snuffReach": 7, "snuffArea": 2.5 },
-    "capPerBusiness": { "teahouse": 3, "warehouse": 1, "gambling_den": 2 },
+    "capPerBusiness": { "teahouse": 1, "shop": 1, "warehouse": 2, "gambling_den": 2, "tenements": 3 },
     "priceStepPerCrew": 0.15,
     "maxQueue": 5,
     "regenPerSecond": 0.0025,
     "regenAfterSeconds": 6,
     "executeSeconds": 3,
-    "executeRyoSpread": 0.25,
+    "executeRyoSpread": 0,
+    "leaderBounty": 250,
     "botAggression": 0.5,
     "carryAfterSeconds": 5,
     "clinicUnhitSeconds": 5,
@@ -45,7 +46,7 @@
     "attack": { "startSeconds": 5, "waves": 3, "wavesPerTier": 1, "perWave": 2, "bigWave": 3, "bigWavesFrom": 0.5, "waveGapSeconds": 5, "officerHp": 1, "hitHeat": 0, "holdSeconds": 30, "holdRadius": 2.5, "heatAfterWin": 15, "heatAfterLoss": 15, "leaveSeconds": 10 },
     "_raid": "raiding a rival-owned business (sim/businesses.js): needs a War Lantern (lanternPrice ryo at the moneylender's door, carry at most lanternCarry), night only, hero at the door ring; the lantern is planted by the door and used up; raiders can't go in for warmupSeconds, then up to maxCrewInside crew (plus the hero) go in and hold the back room for holdSeconds (paused while a defender stands in it); no police; the boss down or nobody inside for leaveSeconds after the doors open = lost",
     "raid": { "lanternPrice": 2400, "lanternCarry": 1, "warmupSeconds": 60, "holdSeconds": 30, "holdRadius": 2.5, "maxCrewInside": 6, "leaveSeconds": 10 },
-    "businesses": { "teahouse": { "price": 400, "payout": 100, "attackWaves": 3, "score": 1 }, "warehouse": { "price": 700, "payout": 175, "attackWaves": 4, "score": 2 }, "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "score": 3 } }
+    "businesses": { "teahouse": { "price": 400, "payout": 100, "attackWaves": 3, "score": 1 }, "shop": { "price": 400, "payout": 100, "attackWaves": 3, "score": 1 }, "warehouse": { "price": 700, "payout": 175, "attackWaves": 4, "score": 2 }, "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "score": 3 }, "tenements": { "price": 1600, "payout": 400, "attackWaves": 8, "score": 4 } }
   },
   "_models": "per-sprite overrides for a unit type (sim/game.js statsOf): the Shinobi boss is a hero like the ronin, with his own numbers (Tim 2026-10-20: an assassin, faster, same damage, a bit less health); abilities Q Shadow Step, E Distract, R Smoke Bomb, F Assassinate (ninja build phase 4, Tim 2026-10-20)",
   "models": {
@@ -65,14 +66,14 @@
         "R": { "name": "Rally",       "kind": "rally",      "cooldown": 20, "radius": 8, "seconds": 6, "attackSpeed": 1.3, "heal": 0.15, "healTicks": 6, "about": "You and your crew within 8 steps attack 30% faster and heal 15% over 6 s" },
         "F": { "name": "Red Lantern", "kind": "lantern",    "cooldown": 60, "seconds": 8, "damage": 1.5, "lifesteal": 0.2, "about": "8 s of 50% more damage, healing 20% of damage dealt" }
       } },
-    "thug":      { "sprite": "thug",      "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "price": 60,  "hireSeconds": 5, "recoverSeconds": 30, "executeRyo": 20 },
-    "brute":     { "sprite": "brute",     "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "price": 100, "hireSeconds": 8, "recoverSeconds": 45, "executeRyo": 40 },
-    "swordsman": { "sprite": "swordsman", "hp": 240, "damage": 16, "attackRange": 1.6, "attackSpeed": 1.2, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.6, "radius": 0.35, "price": 120, "hireSeconds": 8, "recoverSeconds": 45, "executeRyo": 30 },
+    "thug":      { "sprite": "thug",      "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "price": 60,  "hireSeconds": 5, "recoverSeconds": 30, "executeRyo": 50 },
+    "brute":     { "sprite": "brute",     "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "price": 100, "hireSeconds": 8, "recoverSeconds": 45, "executeRyo": 50 },
+    "swordsman": { "sprite": "swordsman", "hp": 240, "damage": 16, "attackRange": 1.6, "attackSpeed": 1.2, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.6, "radius": 0.35, "price": 120, "hireSeconds": 8, "recoverSeconds": 45, "executeRyo": 50 },
     "guard":     { "sprite": "thug", "name": "House guard", "hp": 260, "damage": 10, "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "_note": "house guard of an owned business (sim/businesses.js), not for hire" },
     "bandit":      { "sprite": "bandit", "name": "Bandit", "hp": 200, "damage": 8,  "attackRange": 1.2, "attackSpeed": 1.0, "critChance": 0.1, "critMultiplier": 2, "walk": 1.6, "run": 5.4, "radius": 0.35, "_note": "night bandit (data/bandits.json), not for hire" },
     "night_brute": { "sprite": "brute",  "name": "Night brute", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 2, "walk": 1.4, "run": 4.6, "radius": 0.45, "_note": "night bandit (data/bandits.json), not for hire" },
     "junsa":       { "sprite": "police", "name": "Junsa", "hp": 360, "damage": 14, "attackRange": 1.3, "attackSpeed": 1.1, "critChance": 0.05, "critMultiplier": 2, "walk": 1.6, "run": 4.8, "radius": 0.35, "_note": "police officer (sim/police.js, data/police.json), not for hire" },
-    "ninja":     { "sprite": "ninja_grunt", "name": "Ninja", "clan": "ninja", "hp": 180, "damage": 12, "attackRange": 1.4, "attackSpeed": 0.9, "critChance": 0.15, "critMultiplier": 2, "walk": 1.8, "run": 6.2, "radius": 0.35, "price": 90, "hireSeconds": 6, "recoverSeconds": 30, "executeRyo": 30, "_note": "Shinobi clan crew (Tim 2026-10-20): fast and light; only the Shinobi clan hires them (clan), at its village dojo" },
+    "ninja":     { "sprite": "ninja_grunt", "name": "Ninja", "clan": "ninja", "hp": 180, "damage": 12, "attackRange": 1.4, "attackSpeed": 0.9, "critChance": 0.15, "critMultiplier": 2, "walk": 1.8, "run": 6.2, "radius": 0.35, "price": 90, "hireSeconds": 6, "recoverSeconds": 30, "executeRyo": 50, "_note": "Shinobi clan crew (Tim 2026-10-20): fast and light; only the Shinobi clan hires them (clan), at its village dojo" },
     "rifleman":  { "sprite": "mercenary", "later": "needs projectiles" },
     "archer":    { "sprite": "archer",    "later": "needs projectiles" }
   }

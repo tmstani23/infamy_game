@@ -11,6 +11,9 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   set(ur, 'priceStepPerCrew', c.priceStepPerCrew);
   set(ur, 'recoverCostShare', c.recoverShare);
   set(ur, 'reviveNowCostShare', c.reviveNowShare);
+  set(ur, 'leaderBounty', s.rewards?.leaderKnockout);
+  if (s.rewards?.crewExecution !== undefined) for (const type of Object.values(units?.types || {}))
+    if (type.executeRyo !== undefined) type.executeRyo = s.rewards.crewExecution;
   for (const [type, price] of Object.entries(c.hire || {})) set(units?.types?.[type], 'price', price);
   set(ur, 'baseCap', crew.baseCap);
   set(ur, 'heroRespawnSeconds', crew.heroRespawnSeconds);
@@ -46,6 +49,8 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
 
   set(bandits?.rules, 'maxOut', s.bandits?.maxOut);
   set(bandits?.rules, 'perNight', s.bandits?.perNight);
+  set(bandits?.rules, 'ryoSpread', s.bandits?.ryoSpread);
+  for (const [type, ryo] of Object.entries(s.bandits?.ryo || {})) set(bandits?.types?.[type], 'ryo', ryo);
 
   const pr = police?.rules, p = s.police || {};
   if (pr?.tiers && p.officersPerTier) pr.tiers.forEach((t, i) => set(t, 'officers', p.officersPerTier[i]));

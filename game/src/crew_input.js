@@ -1,9 +1,8 @@
 // Mouse control of crew, RTS-style: left-click or drag a box to select your crew,
 // right-click the ground to send them there, right-click your hero to have them follow,
-// right-click an enemy to attack it, X then left-click for attack-move. The hero's auto
-// attack is Ctrl + right-click on a unit (Tim 2026-10-17: the one hero attack input; side and
-// middle buttons and Shift do not reach the page reliably in Firefox): he chases it and keeps
-// hitting it until it is down or he gets another order, and on a downed one he finishes it off.
+// right-click an enemy for the hero and available crew to attack it, X then left-click
+// for attack-move. Ctrl + right-click assigns selected crew independently. The hero
+// locks on without chasing; right-clicking a downed unit executes it instead.
 // Townsfolk can be clicked to look at them (selection panel) and attacked like enemies (heat!).
 // Left-click a building (where nothing else is) to look at it (building_panel.js), unless the fog
 // has never shown it.
@@ -38,7 +37,7 @@ export function tabTarget(state, heroId, current, seen = () => true) {
   const h = state.entities[heroId];
   if (!h || h.dead) return null;
   const list = Object.values(state.entities)
-    .filter(e => e.owner && e.owner !== h.owner && !e.dead && !e.downed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE && seen(e))
+    .filter(e => e.owner && e.owner !== h.owner && !e.dead && !e.downed && !e.jailed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE && seen(e))
     .sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z) || (a.id < b.id ? -1 : 1));
   if (!list.length) return null;
   const knocker = list.find(e => Object.values(state.attacks || {}).some(a => a.clan === h.owner && a.knock?.by === e.id));
@@ -47,19 +46,17 @@ export function tabTarget(state, heroId, current, seen = () => true) {
   return list[(i + 1) % list.length].id;
 }
 
-// Which units get a marker over their head: [{ id, kind: 'tab' | 'hero' | 'crew' }]. Red ('hero')
-// once the hero is attacking a unit (locked on or swinging at it), blue ('tab') for the Tab target
-// otherwise, and small red ('crew') for whatever the hero's crew are attacking, unless it is the
-// hero's target already.
+// Red: hero/Tab target. Blue: an independent crew target. Purple: crew sharing
+// the hero's target, regardless of whether they joined automatically or by an order.
 export function targetMarkers(state, heroId, tabbed) {
   const h = state.entities[heroId], S = state.entities;
   if (!h) return [];
-  const live = id => S[id] && !S[id].dead && S[id].place === h.place;
-  const heroT = [h.attackTarget, h.swing?.target].find(live);
-  const out = heroT ? [{ id: heroT, kind: 'hero' }] : [];
-  if (live(tabbed) && tabbed !== heroT && !S[tabbed].downed) out.push({ id: tabbed, kind: 'tab' });
-  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed)
-    .map(u => u.swing?.target || (u.order?.kind === 'attack' ? u.order.target : u.execute?.target)).filter(live));
+  const live = id => S[id] && !S[id].dead && !S[id].jailed && S[id].place === h.place;
+  const heroT = !h.dead && !h.downed && !h.jailed ? [h.attackTarget, h.swing?.target].find(live) : null;
+  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed && u.place === h.place)
+    .map(u => u.order?.kind === 'attack' ? u.order.target : u.execute?.target || u.swing?.target).filter(live));
+  const out = heroT ? [{ id: heroT, kind: crewT.has(heroT) ? 'shared' : 'hero' }] : [];
+  if (live(tabbed) && tabbed !== heroT && !S[tabbed].downed) out.push({ id: tabbed, kind: crewT.has(tabbed) ? 'crew' : 'tab' });
   for (const id of crewT) if (id !== heroT && id !== tabbed) out.push({ id, kind: 'crew' });
   return out;
 }
@@ -68,7 +65,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   let selected = [];
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
-  let tabbed = null;          // the Tab (or left-click) target: shown blue until the hero attacks it
+  let tabbed = null;          // the Tab (or left-click) target: red, purple when sharing the hero's attack
   let looked = null;          // a townsperson (or other non-enemy) left-clicked to look at in the target frame
   let building = null;        // the selected building (index in the district's buildings), or null
   const hero = () => game.state.entities[heroId];
@@ -113,8 +110,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   // the hero goes for the unit at a page pixel: attack it, or finish it off if it is down
   function heroAt(px, py) {
     const foe = unitAt(px, py, enemies()) || unitAt(px, py, townsfolk(), CIV_PX);
+    if (foe) { tabbed = foe.downed ? null : foe.id; looked = null; }
     if (foe?.downed) send({ id: heroId, type: 'execute', target: foe.id });
-    else if (foe) send({ id: heroId, type: 'attack', target: foe.id });
+    else if (foe) send({ id: heroId, type: 'attack', target: foe.id, assist: true });
   }
   addEventListener('mousedown', e => {
     if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
@@ -200,17 +198,17 @@ export function createCrewInput({ game, view, heroId, send, box }) {
 
   return {
     // Tab: the next enemy becomes the hero's target and he starts his auto attack on it at once
-    // (Tim 2026-10-18; left-click still only targets, blue)
+    // Left-click still only selects a target; Tab attacks with available crew.
     tab() {
       tabbed = tabTarget(game.state, heroId, tabbed, seen) || null;
-      if (tabbed) send({ id: heroId, type: 'attack', target: tabbed });
+      if (tabbed) send({ id: heroId, type: 'attack', target: tabbed, assist: true });
     },
     // a given unit becomes the hero's target and he attacks it (a click on the lantern channel bar)
     target(id) {
       const t = game.state.entities[id];
       if (!t || t.dead || t.place !== hero()?.place || !seen(t)) return;
       tabbed = id;
-      send({ id: heroId, type: 'attack', target: id });
+      send({ id: heroId, type: 'attack', target: id, assist: true });
     },
     // T: all the hero's crew (selected or not) attack the marked unit (left-click, its card showing),
     // else the hero's current target; a downed one they finish off (Tim 2026-10-19)
@@ -219,13 +217,13 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const t = [...selected, h?.attackTarget, h?.swing?.target, looked, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
       const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && !e.locked && e.place === h.place).map(e => e.id);
       // a second T while they are on a T attack calls it off: back to what they were doing (Tim 2026-10-19)
-      if (units.some(id => S[id].order?.kind === 'attack' && 'prev' in S[id].order)) { send({ id: heroId, type: 'order', units, kind: 'resume' }); return; }
+      const assigned = units.filter(id => S[id].order?.kind === 'attack' && !S[id].order.assist && 'prev' in S[id].order);
+      if (assigned.length) { send({ id: heroId, type: 'order', units: assigned, kind: 'resume' }); return; }
       if (!t || !units.length) return;
       if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units });
       else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true });   // then back to their old order
     },
-    // markers over units, for drawMarkers: blue = Tab target, red = the hero's target,
-    // small red = what the crew are attacking (unless it is the hero's target too)
+    // Shared attacks take purple priority; separate crew assignments stay blue.
     markers() { return targetMarkers(game.state, heroId, tabbed); },
     tabbed() { return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { return looked; },

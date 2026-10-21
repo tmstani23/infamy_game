@@ -165,10 +165,10 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
 {
   const t = setup({ ryo: 3000, crew: 6, rules: { raidChance: 1, attackChance: 0, patrolChance: 0, huntBandits: false } });
   const den = t.biz('gambling_den');
-  for (const k of ['gambling_den', 'teahouse', 'warehouse']) t.g.clans.setOwner(t.biz(k).id, 'player');   // nothing left to buy
+  const mine = Object.values(t.g.state.businesses).filter(b => t.g.businesses.rules[b.kind]);
+  for (const b of mine) t.g.clans.setOwner(b.id, 'player');   // nothing left to buy, including new business kinds
   for (const id of t.ids) Object.assign(t.S[id], { hp: 1e6, maxHp: 1e6 });
   assert.ok(t.run(150, () => t.g.state.clans.kuroda.lanterns === 1), 'bought a War Lantern');
-  const mine = ['gambling_den', 'teahouse', 'warehouse'].map(t.biz);
   assert.ok(t.run(150, () => mine.every(b => t.bot.seen[b.id])), 'scouted your businesses');
   t.g.step([{ type: 'time', night: true }]);
   let raid = null;

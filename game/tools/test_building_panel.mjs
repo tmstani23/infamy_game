@@ -29,7 +29,7 @@ assert.equal(d.name, 'Teahouse');
 assert.equal(d.owner, 'Unclaimed');
 assert.equal(row(d, 'Role'), 'Hire crew (H inside)');
 assert.equal(row(d, 'Enter'), 'Yes, Space at the door');
-assert.equal(row(d, 'If held'), '+3 crew slots');
+assert.equal(row(d, 'If held'), '+1 crew slots');
 assert.equal(row(d, 'Hiring'), 'Nobody waiting');
 assert.equal(row(d, 'Inside'), 'None of yours');
 
@@ -40,7 +40,7 @@ g.clans.setOwner(biz.id, 'player');
 g.state.clans.player.queue.push({ unit: 'thug', business: biz.id, left: 7.2 });
 d = at(tea);
 assert.equal(d.owner, 'Yours');
-assert.equal(row(d, 'Gives'), '+3 crew slots');
+assert.equal(row(d, 'Gives'), '+1 crew slots');
 assert.equal(row(d, 'Hiring'), '1 waiting, 8 s left');
 assert.equal(row(d, 'Inside'), '1 of your units');
 g.clans.setOwner(biz.id, 'kuroda');

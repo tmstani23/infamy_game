@@ -8,13 +8,15 @@ export const WILD = 'bandits';     // the owner every bandit has (not a clan: no
 
 // state: the game state; data: bandits.json; units: units.json; pois / edges: the district's
 // spots and its way-in spots; spawn / moveTo / stopPath / remove / fightStep / statsOf come from the game rules
-export function createBandits({ state, data, units, pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, seed = 4242 }) {
+export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, seed = 4242 }) {
   const R = data?.rules || {}, types = data?.types || {};
   const secs = s => Math.round(s / DT);
   const snap = ([x, z]) => nav.nearestFree(x, z) || [x, z];
   const spots = pois.map(p => { const [x, z] = snap([p.x, p.z]); return { id: p.id, x, z }; });
   const ways = edges.map(snap);
   const mind = {};       // per bandit: { spot, x, z, until, deadline, leaving } (server-side only)
+  const campList = state.banditCamps = camps.map(c => ({ ...c, kind: 'bandit_camp', units: [], initialized: false, clearedAt: null }));
+  const campOf = Object.fromEntries(campList.map(c => [c.id, c]));
   // this night: is it night, how many came, when the next one comes
   const night = { on: false, came: 0, next: 0 };
   let s = seed >>> 0;
@@ -27,7 +29,43 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
   }
   const pick = list => list[Math.floor(rng() * list.length)];
   const range = ([a, b]) => a + rng() * (b - a);
-  const out = () => Object.values(state.entities).filter(e => e.owner === WILD && !e.dead);
+  const out = () => Object.values(state.entities).filter(e => e.owner === WILD && !e.camp && !e.dead);
+
+  // Residents do not count against the night-roamer cap. Partial losses persist;
+  // only a fully cleared camp repopulates, at a later dawn.
+  function fillCamp(c) {
+    c.units = c.members.map((kind, k) => {
+      const angle = k * Math.PI * 2 / c.members.length;
+      const point = nav.nearestFree(c.x + Math.cos(angle) * 2.2, c.z + Math.sin(angle) * 2.2);
+      if (!point || !nav.findPath(c.x, c.z, ...point)) throw new Error(`No resident path for camp ${c.id}`);
+      const id = spawn(kind, statsOf(kind).sprite || kind, ...point, { owner: WILD, wild: true, camp: c.id });
+      mind[id] = { camp: c.id, spot: null };
+      return id;
+    });
+    c.initialized = true; c.clearedAt = null;
+  }
+  function campsTick() {
+    for (const c of campList) {
+      if (!c.initialized) { fillCamp(c); continue; }
+      if (c.units.some(id => state.entities[id] && !state.entities[id].dead)) continue;
+      c.clearedAt ??= state.tick;
+      if (state.dawn && c.clearedAt < state.tick) fillCamp(c);
+    }
+  }
+
+  function patrolCamp(e, m, c) {
+    if (m.until != null && state.tick < m.until) { e.anim = 'idle'; return; }
+    if (!m.spot) {
+      const angle = rng() * Math.PI * 2, radius = 1.5 + rng() * 2;
+      const point = nav.nearestFree(c.x + Math.cos(angle) * radius, c.z + Math.sin(angle) * radius);
+      if (!point) return;
+      goTo(e, m, { id: 'camp', x: point[0], z: point[1] });
+    }
+    if (Math.hypot(m.x - e.x, m.z - e.z) < 0.6 || state.tick > m.deadline || !moveTo(e, statsOf(e), m.x, m.z, true)) {
+      stopPath(e); e.anim = 'idle'; m.spot = null;
+      m.until = state.tick + secs(range(R.staySeconds || [6, 15]));
+    }
+  }
 
   // A random type by weight
   function pickType() {
@@ -87,8 +125,24 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
       }
       if (!Object.keys(e.angry).length) delete e.angry;
     }
+    const camp = campOf[m.camp];
+    if (camp && Math.hypot(e.x - camp.x, e.z - camp.z) > (camp.leash ?? 10)) {
+      delete e.angry; delete e.swing; m.spot = null; m.until = null;
+      moveTo(e, statsOf(e), camp.x, camp.z, true);
+      return;
+    }
     if (fightStep(e, R.giveUpDistance ?? 15)) { m.spot = null; m.until = null; return; }
     const unit = statsOf(e);
+    if (camp) {
+      const distraction = e.distracted;
+      if (distraction && state.tick < distraction.until && Math.hypot(distraction.x - camp.x, distraction.z - camp.z) <= (camp.leash ?? 10)) {
+        m.spot = null; m.until = null;
+        if (Math.hypot(distraction.x - e.x, distraction.z - e.z) < 0.8 || !moveTo(e, unit, distraction.x, distraction.z, true)) { e.anim = 'idle'; stopPath(e); }
+        return;
+      }
+      patrolCamp(e, m, camp);
+      return;
+    }
     // dawn: walk to the nearest way out and go
     if (!state.night) {
       if (!m.leaving) {
@@ -127,6 +181,7 @@ export function createBandits({ state, data, units, pois = [], edges = [], nav, 
 
   // Called once per tick after the units moved
   function tick() {
+    campsTick();
     // nightfall: a new night's count; firstWave come at once, then one every everySeconds
     if (state.night && !night.on) Object.assign(night, { came: 0, next: state.tick });
     night.on = state.night;

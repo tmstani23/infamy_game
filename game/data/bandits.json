@@ -10,11 +10,11 @@
     "joinRadius": 8,
     "angrySeconds": 10,
     "giveUpDistance": 15,
-    "ryoSpread": 0.25,
+    "ryoSpread": 0,
     "lootSeconds": 60
   },
   "types": {
-    "bandit":      { "weight": 2, "ryo": 20 },
-    "night_brute": { "weight": 1, "ryo": 40 }
+    "bandit":      { "weight": 2, "ryo": 25 },
+    "night_brute": { "weight": 1, "ryo": 50 }
   }
 }
