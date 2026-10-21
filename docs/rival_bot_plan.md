@@ -4,6 +4,12 @@ Status: built 2026-10-19 (B1-B5 in one go, Tim playtested). Code `game/src/sim/b
 
 Already decided: the bot clan starts at the izakaya; it acts only through the same sim commands as a player, with the same fog of war; territory = businesses held, most at season end wins; a War Lantern is always needed to take a rival-owned business.
 
+## Phase 3 adaptive AI (2026-10-21)
+
+Both brains share street/room navigation, public camp knowledge updated by observation, visible-threat combat and looting. Rivals adapt investment, hiring, raid savings and recovery. Shinobi score jobs by reward, travel time, risk and remaining deadline; hunt camps, pursue melee targets and abandon failed jobs.
+
+Easy / Medium / Hard tune response time, optional-fight risk, recovery HP and failed-goal retry delay; no money, income or damage bonuses. Profiles: `game/data/bots.json`; shared support: `game/src/sim/ai_support.js`. Players and bots keep the same commands and visibility rules.
+
 ## How the bot thinks (first version)
 
 A simple rule list, checked every ~2 s, top rule first. No cheating: it only knows what its units see, plus what it remembers seeing.

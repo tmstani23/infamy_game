@@ -1,26 +1,30 @@
 {
-  "_about": "Rival bot clan (src/sim/bot.js, docs/rival_bot_plan.md). difficulty picks a level (Tim 2026-10-19: easy for now). Any knob left out of a level uses BOT_DEFAULTS in bot.js. thinkSeconds: how often it picks a goal; reactSeconds: how often it handles fights; reserve: ryo kept back when hiring; escort: crew kept following the boss (the rest are stationed, one per business: stationPerBusiness); patrolChance: chance it walks to one of its places when idle; attackChance / attackMinCrew / attackMaxHeat: night attacks on unclaimed businesses; huntBandits / huntRange: hunt night bandits for ryo; bribeAtHeat: bribe the police from this heat; raidChance / raidMinCrew / raidReserve: War Lantern raids (scouts the target first); raidWhenWeak: only raid when the owner's boss is far away or the police are on them; memorySeconds: how long scouted info counts; ambush / ambushRange: jump lone rival crew near its own places; heroPriority: crew go for the rival boss first; focusFire: all crew hit the weakest enemy; executeDowned: finish off downed rival crew when safe; retreatHp: send crew below this share of HP to the clinic (0 = never); abilities: which of its boss's Q E R F it uses.",
+  "_about": "Rival bot clan (src/sim/bot.js, docs/rival_bot_plan.md). difficulty picks a level (Tim 2026-10-19: easy for now). Any knob left out of a level uses BOT_DEFAULTS in bot.js. thinkSeconds: how often it picks a goal; reactSeconds: how often it handles fights; reserve: ryo kept back when hiring; escort: crew kept following the boss (the rest are stationed, one per business: stationPerBusiness); patrolChance: chance it walks to one of its places when idle; attackChance / attackMinCrew / attackMaxHeat: night attacks on unclaimed businesses; huntBandits / huntRange: hunt public camps and visible bandits for ryo; bribeAtHeat: bribe the police from this heat; raidChance / raidMinCrew / raidReserve: War Lantern raids (scouts the target first); raidWhenWeak: avoid a visible boss defending the target; memorySeconds: how long scouted info counts; ambush / ambushRange: jump lone rival crew near its own places; heroPriority: crew go for the rival boss first; focusFire: all crew hit the weakest enemy; executeDowned: finish off downed rival crew when safe; retreatHp: send crew below this share of HP to the clinic (0 = never); abilities: which of its boss's Q E R F it uses.",
   "clan": { "id": "kuroda", "name": "Kuroda clan", "boss": "rival_yakuza" },
-  "_yakuza": "3 clans (Tim 2026-10-20): Shinobi, Yakuza, Kuroda; the two you do not play are bots. Playing Shinobi (?test=ninja), the inn (your hideout as Yakuza) goes to this Yakuza bot clan, same brain and difficulty as Kuroda. A Shinobi bot for Yakuza games is not built yet.",
+  "_yakuza": "Shinobi, Yakuza and Kuroda: the two clans you do not play are bots. Yakuza and Kuroda share the rival brain and difficulty levels.",
+  "_adaptive": "Phase 3 (2026-10-21): both brains use public camps and visible threats. riskRatio is the enemy/own combat-strength limit for starting optional fights (lower = more cautious); huntRetreatHp is the boss HP share to end a hunt and recover; restUntilHp is the recovery target at HQ; goalCooldownSeconds delays retrying failed destinations. Difficulty changes decisions and response time, never starting money, income or damage. Shinobi jobSeconds is its active-job time budget, plus legitimate waiting for night on mark jobs. jobs is a preference within reward/time/risk scoring.",
   "yakuza": { "id": "yakuza", "name": "Yakuza clan", "boss": "ronin" },
-  "_shinobi": "Playing Yakuza, the Shinobi bot clan (src/sim/ninja_bot.js) lives in the village longhouse: hires ninja at the dojo, takes contracts at the shrine (jobs = the kinds it likes, first first), sneaks in by back windows, hunts bosses and bandits; shinobiLevels knobs per difficulty (any left out use NINJA_BOT_DEFAULTS).",
+  "_shinobi": "Playing Yakuza, the Shinobi bot clan (src/sim/ninja_bot.js) lives in the village longhouse: hires ninja at the dojo, takes contracts at the shrine (jobs = preference order within reward/time/risk scoring), sneaks in by back windows, hunts bosses and bandits; shinobiLevels knobs per difficulty (any left out use NINJA_BOT_DEFAULTS).",
   "shinobi": { "id": "shinobi", "name": "Shinobi clan", "boss": "ninja_leader" },
   "shinobiLevels": {
-    "easy": { "thinkSeconds": 4, "reactSeconds": 2, "jobs": ["bandits", "scout", "steal"], "abilities": ["R", "E"] },
-    "medium": { "thinkSeconds": 2, "reactSeconds": 1, "jobs": ["scout", "steal", "bandits", "mark", "boss"], "abilities": ["Q", "E", "R", "F"] },
-    "hard": { "thinkSeconds": 1, "reactSeconds": 0.5, "jobs": ["mark", "boss", "steal", "scout", "bandits"], "abilities": ["Q", "E", "R", "F"] }
+    "easy": { "thinkSeconds": 4, "reactSeconds": 2, "riskRatio": 0.7, "huntRetreatHp": 0.6, "restUntilHp": 0.9, "goalCooldownSeconds": 90, "jobs": ["bandits", "scout", "steal"], "abilities": ["R", "E"] },
+    "medium": { "thinkSeconds": 2, "reactSeconds": 1, "riskRatio": 0.8, "huntRetreatHp": 0.5, "restUntilHp": 0.85, "goalCooldownSeconds": 60, "jobs": ["scout", "steal", "bandits", "mark", "boss"], "abilities": ["Q", "E", "R", "F"] },
+    "hard": { "thinkSeconds": 1, "reactSeconds": 0.5, "riskRatio": 0.9, "huntRetreatHp": 0.45, "restUntilHp": 0.8, "goalCooldownSeconds": 40, "jobs": ["mark", "boss", "steal", "scout", "bandits"], "abilities": ["Q", "E", "R", "F"] }
   },
   "difficulty": "easy",
   "levels": {
     "easy": {
+      "riskRatio": 0.7, "huntRetreatHp": 0.6, "restUntilHp": 0.9, "goalCooldownSeconds": 90,
       "thinkSeconds": 5, "reactSeconds": 2, "attackChance": 0.2, "raidChance": 0.15, "raidWhenWeak": false, "memorySeconds": 30,
       "ambush": false, "heroPriority": false, "focusFire": false, "executeDowned": false, "retreatHp": 0, "fleeInRaid": true, "aggression": 0.25, "hideoutGuards": 1, "defendHome": false, "abilities": ["R"]
     },
     "medium": {
+      "riskRatio": 0.8, "huntRetreatHp": 0.5, "restUntilHp": 0.85, "goalCooldownSeconds": 60,
       "thinkSeconds": 2, "reactSeconds": 1, "attackChance": 0.5, "raidChance": 0.5, "raidWhenWeak": false, "memorySeconds": 60,
       "ambush": true, "ambushRange": 10, "heroPriority": false, "focusFire": false, "executeDowned": false, "retreatHp": 0.3, "fleeInRaid": false, "aggression": 0.5, "hideoutGuards": 2, "defendHome": true, "abilities": ["Q", "E", "R", "F"]
     },
     "hard": {
+      "riskRatio": 0.9, "huntRetreatHp": 0.45, "restUntilHp": 0.8, "goalCooldownSeconds": 40,
       "thinkSeconds": 1, "reactSeconds": 0.5, "attackChance": 0.8, "raidChance": 0.8, "raidWhenWeak": true, "memorySeconds": 180,
       "ambush": true, "ambushRange": 14, "heroPriority": true, "focusFire": true, "executeDowned": true, "retreatHp": 0.35, "fleeInRaid": false, "aggression": 0.8, "hideoutGuards": 2, "defendHome": true, "abilities": ["Q", "E", "R", "F"]
     }

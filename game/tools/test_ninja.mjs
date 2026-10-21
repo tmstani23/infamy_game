@@ -191,6 +191,12 @@ const newGame = () => {
   boss.cooldowns.F = 0; boss.hidden = true; boss.hiddenAt = g.state.tick - 20 * 5; boss.revealUntil = 0;
   g.step([{ id: boss.id, type: 'ability', slot: 'F', x: rival.x, z: rival.z }]);
   assert.equal(rival.hp, Math.round(rival.maxHp * A.F.bossShare), 'boss to 60%');
+  for (const share of [0.8, 0.4]) {
+    rival.hp = rival.maxHp * share;
+    boss.cooldowns.F = 0; boss.hidden = true; boss.hiddenAt = g.state.tick - 20 * 5; boss.revealUntil = 0;
+    g.step([{ id: boss.id, type: 'ability', slot: 'F', target: rival.id }]);
+    assert.equal(rival.hp, Math.min(rival.maxHp * share, Math.round(rival.maxHp * A.F.bossShare)), 'wounded hero is capped at 60% without minimum damage or healing');
+  }
   // R: everyone of the clan holds fire; the rival can't target into the cloud
   boss.hp = boss.maxHp * 0.5;
   g.step([{ id: boss.id, type: 'ability', slot: 'R', x: boss.x, z: boss.z }]);
@@ -214,6 +220,8 @@ const newGame = () => {
   boss.cooldowns.E = 0;
   g.step([{ id: boss.id, type: 'ability', slot: 'E', x: bx, z: boss.z }]);
   assert.ok(b.distracted, 'bandit distracted');
+  for (let i = 0; i < 60; i++) g.step();
+  assert.ok(Math.hypot(b.x - b.distracted.x, b.z - b.distracted.z) < 1.5, 'walked to the pebble before another clan entered sight');
   // caltrops: a rival boss right where they land is slowed
   const r2 = g.state.entities[g.spawn('hero', 'ronin', bx + 0.5, boss.z, { owner: 'kuroda' })];
   boss.cooldowns.E = 0;
@@ -224,7 +232,6 @@ const newGame = () => {
   const slowGo = Math.hypot(r2.x - sx, 0);
   assert.ok(slowGo > 0.5 && slowGo < 2.2, `moves at half speed (${slowGo.toFixed(2)} in 0.5 s)`);
   for (let i = 0; i < 40; i++) g.step();
-  assert.ok(Math.hypot(b.x - b.distracted.x, b.z - b.distracted.z) < 1.5, 'walked to the pebble');
   console.log('leader abilities ok');
 }
 // phase 5: contracts from the village shrine

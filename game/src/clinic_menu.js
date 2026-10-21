@@ -2,20 +2,22 @@
 // 'clinic' commands only; the rules in sim/clans.js (clinicMenu) decide what happens.
 const title = s => s[0].toUpperCase() + s.slice(1);
 
-export function createClinicMenu({ panel, game, heroId, send }) {
+export function createClinicMenu({ panel, game, heroId, send, selected = () => [] }) {
   let open = false, shown = '';
 
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
-  const atDoor = () => game.doorNear(heroId)?.menu === 'clinic';
+  const access = () => game.serviceAt ? game.serviceAt(heroId, 'clinic', selected()) : game.doorNear(heroId)?.menu === 'clinic' ? { actor: hero() } : null;
+  const atDoor = () => !!access();
 
   // 1 = heal, 2 and up = revive the patients in the list (in order)
   function pick(i) {
     const c = clan();
-    if (!open || !c) return;
-    if (i === 0) { send({ id: heroId, type: 'clinic', action: 'heal' }); return; }
+    const h = access()?.actor;
+    if (!open || !c || !h) return;
+    if (i === 0) { send({ id: h.id, type: 'clinic', action: 'heal' }); return; }
     const patients = c.clinic.map((p, k) => ({ p, k })).filter(({ p }) => p.kind === 'recover');
-    if (patients[i - 1]) send({ id: heroId, type: 'clinic', action: 'revive', patient: patients[i - 1].k });
+    if (patients[i - 1]) send({ id: h.id, type: 'clinic', action: 'revive', patient: patients[i - 1].k });
   }
 
   panel.addEventListener('click', e => {
@@ -24,7 +26,7 @@ export function createClinicMenu({ panel, game, heroId, send }) {
   });
 
   function update() {
-    const c = clan(), h = hero();
+    const c = clan(), h = access()?.actor;
     if (!atDoor()) open = false;
     panel.hidden = !open;
     if (!open || !c || !h) return;
@@ -32,7 +34,7 @@ export function createClinicMenu({ panel, game, heroId, send }) {
     // hit in the last few seconds: the clinic waits until the fight is over (Tim 2026-10-20)
     const hitW = Math.ceil(game.clans.hitWait?.(h) || 0), off = hitW > 0 ? 'disabled' : '';
     const heal = (hitW > 0 ? `<div class="notice">You were hit: the clinic opens in ${hitW} s</div>` : '') +
-      `<div class="row"><span>1. Heal${who.length ? ` ${who.length} hurt` : ''}<br><small>you and crew near the door, to full (not anyone hit in the last 5 s)</small></span>` +
+      `<div class="row"><span>1. Heal${who.length ? ` ${who.length} hurt` : ''}<br><small>clan members near the door, to full (not anyone hit in the last 5 s)</small></span>` +
       `<button data-pick="0" ${who.length && c.ryo >= cost && !off ? '' : 'disabled'}>${who.length ? `${cost} ryo` : 'nobody hurt'}</button></div>`;
     let n = 0;
     const rows = c.clinic.map(p => {

@@ -1,0 +1,22 @@
+{
+  "scope": "Phase 3: Part 1 core AI and Part 2 difficulty tuning, approved 2026-10-21",
+  "checklist": [
+    { "task": "Shared room/street navigation, observed camp knowledge, combat and loot", "status": "complete" },
+    { "task": "Adaptive rival investment, recruitment, raid savings and recovery", "status": "complete" },
+    { "task": "Shinobi job selection, camp hunts, melee pursuit and failed-job handling", "status": "complete" },
+    { "task": "Node acceptance and gameplay regression checks", "status": "complete" },
+    { "task": "Switch to Medium and obtain Part 2 approval", "status": "complete" },
+    { "task": "Tune risk/recovery profiles and contract deadline decisions", "status": "complete" },
+    { "task": "Validate all three difficulties with Node simulations", "status": "complete" },
+    { "task": "User visual playtest feedback", "status": "received" },
+    { "task": "Follow-up: four-unit bandit sight, tougher roamers and 50-ryo roaming loot", "status": "complete" },
+    { "task": "Follow-up: execution notice names clan/type and plain moves finish under fire", "status": "complete" },
+    { "task": "Follow-up: simulation regression and recruitment comparison", "status": "complete" },
+    { "task": "Balance: hero damage -25%, hero HP -30%, recruit damage +25%, Assassinate exception", "status": "complete" },
+    { "task": "World: roughly 40% more night roamers, camp top-ups at dawn and dusk", "status": "complete" },
+    { "task": "Combat: hidden targets drop locks/indicators; Intimidate matches Distract snare", "status": "complete" },
+    { "task": "Validate balance, camp refresh, stealth targeting and snare", "status": "core checks passed; Easy Shinobi contract completion regression after hero nerf requires follow-up" },
+    { "task": "Crew presence: service and business menus/commands, recruiting hero-only inside", "status": "complete" },
+    { "task": "20-second executable/arrestable ground window, allowing active channels to finish", "status": "complete" }
+  ]
+}

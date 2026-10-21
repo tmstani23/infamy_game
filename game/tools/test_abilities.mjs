@@ -45,6 +45,11 @@ const cast = (g, id, slot, x, z) => g.step([{ id, type: 'ability', slot, x, z }]
   const near = g.spawn('thug', 'thug', -5, 1, { owner: 'kuroda', order: { kind: 'attack', target: hero } }), far = g.spawn('thug', 'thug', 6, 1, { owner: 'kuroda' });
   cast(g, hero, 'E');
   assert.ok(S[near].buffs?.intimidated && !S[far].buffs);
+  const distract = units.models.ninja_leader.abilities.E;
+  assert.equal(A.E.snareSpeed, distract.snareSpeed);
+  assert.equal(A.E.snareSeconds, distract.snareSeconds);
+  assert.equal(S[near].buffs?.snared?.speed, distract.snareSpeed, 'Intimidate also applies the matching snare');
+  assert.ok(!S[far].buffs?.snared, 'outside the radius is not snared');
   S[hero].hp = 1e6; S[near].hp = 1e6;
   S[near].x = -5.2;
   let seen = [];

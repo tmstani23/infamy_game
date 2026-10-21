@@ -3,19 +3,23 @@
 // sim/police.js (menu) decide what happens.
 const title = s => s[0].toUpperCase() + s.slice(1);
 
-export function createPoliceMenu({ panel, game, heroId, send }) {
-  let open = false, shown = '';
+export function createPoliceMenu({ panel, game, heroId, send, selected = () => [] }) {
+  let open = false, shown = '', location = null;
 
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
-  const where = () => { const m = game.doorNear(heroId)?.menu; return m === 'police_box' || m === 'police_hq' ? m : null; };
+  const access = () => game.serviceAt ? location ? game.serviceAt(heroId, location, selected())
+    : game.serviceAt(heroId, 'police_box', selected()) || game.serviceAt(heroId, 'police_hq', selected())
+    : { actor: hero(), door: game.doorNear(heroId) };
+  const where = () => { const m = access()?.door?.menu; return m === 'police_box' || m === 'police_hq' ? m : null; };
 
   // box: 1 = bribe; HQ: 1 and up = bail the jailed crew in the list (in order)
   function pick(i) {
     const c = clan(), w = where();
-    if (!open || !c || !w) return;
-    if (w === 'police_box' && i === 0) send({ id: heroId, type: 'police', action: 'bribe' });
-    if (w === 'police_hq' && c.jail?.[i]) send({ id: heroId, type: 'police', action: 'bail', prisoner: i });
+    const h = access()?.actor;
+    if (!open || !c || !w || !h) return;
+    if (w === 'police_box' && i === 0) send({ id: h.id, type: 'police', action: 'bribe' });
+    if (w === 'police_hq' && c.jail?.[i]) send({ id: h.id, type: 'police', action: 'bail', prisoner: i });
   }
 
   panel.addEventListener('click', e => {
@@ -24,7 +28,7 @@ export function createPoliceMenu({ panel, game, heroId, send }) {
   });
 
   function update() {
-    const c = clan(), h = hero(), w = where(), P = game.police;
+    const c = clan(), h = access()?.actor, w = where(), P = game.police;
     if (!w) open = false;
     panel.hidden = !open;
     if (!open || !c || !h || !P) return;
@@ -48,7 +52,7 @@ export function createPoliceMenu({ panel, game, heroId, send }) {
   return {
     update, pick,
     isOpen: () => open,
-    toggle() { open = !open && !!where(); update(); },
-    close() { open = false; update(); },
+    toggle(menu = null) { if (menu) location = menu; open = !open && !!where(); update(); },
+    close() { open = false; location = null; update(); },
   };
 }

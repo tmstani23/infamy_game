@@ -156,7 +156,7 @@ console.log('bot tests passed');
   run(g, R.carryAfterSeconds + 1);
   assert.ok(S[t], 'not carried while an enemy stands close');
   delete S[foe];
-  run(g, R.carryAfterSeconds + 0.2);
+  run(g, R.downedMinSeconds - (R.carryAfterSeconds + 1) + 0.2);
   assert.equal(S[t], undefined, 'carried off');
   assert.equal(C.player.clinic.length, 1);
   assert.equal(g.clans.crewCount('player'), 1, 'still counts for the cap');
@@ -198,3 +198,29 @@ console.log('bot tests passed');
   console.log('heal ok');
 }
 console.log('clinic tests passed');
+
+// A late execution may finish after the 20-second ground window.
+{
+  const g = newGame(), S = g.state.entities;
+  const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
+  const target = g.spawn('thug', 'thug', -5, 1, { owner: 'kuroda' });
+  Object.assign(S[target], { hp: 0, downed: true, downedAt: 0 });
+  run(g, R.downedMinSeconds - 1);
+  assert.ok(S[target]?.downed, 'still executable after 19 seconds');
+  g.step([{ id: hero, type: 'execute', target }]);
+  run(g, 1.2);
+  assert.ok(S[target]?.downed, 'active execution prevents cleanup at 20 seconds');
+  run(g, R.executeSeconds);
+  assert.ok(S[target]?.dead || !S[target], 'late execution completes');
+  assert.equal(g.state.clans.kuroda.clinic.length, 0, 'execution victim was not carried to clinic');
+}
+{
+  const g = newGame(), S = g.state.entities;
+  const target = g.spawn('thug', 'thug', -5, 1, { owner: 'player' });
+  Object.assign(S[target], { hp: 0, downed: true, downedAt: 0 });
+  run(g, R.downedMinSeconds - 0.05);
+  assert.ok(S[target]?.downed, 'body remains through the full ground window');
+  g.step(); g.step();
+  assert.equal(S[target], undefined, 'unclaimed body is carried away at the 20-second tick');
+}
+console.log('20-second boundary and late execution ok');

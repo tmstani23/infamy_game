@@ -5,6 +5,7 @@
 // (bought at the moneylender's): planted at the door, a warm-up, then hold the back room.
 // state.attacks[businessId] is the attack or raid (mode: 'raid') in progress.
 import { POLICE } from './police.js';
+import { canInteract, interactionActor } from './interactions.js';
 // Players and bots alike send [{ id, type: 'business', action: 'buy', business }] from a hero
 // standing at the business's door ring. Prices and payouts: units.json rules.businesses
 // (data/settings.json "businesses" lays over them).
@@ -24,11 +25,11 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
 
   // Can this hero buy that business now? { ok, why, price }; why = what the screen shows when not
   function canBuy(heroId, businessId) {
-    const e = state.entities[heroId], b = state.businesses[businessId], clan = state.clans?.[e?.owner];
+    const b = state.businesses[businessId], e = actorFor(heroId, b), clan = state.clans?.[e?.owner];
     const price = R[b?.kind]?.price;
     if (!b || !price) return { ok: false, why: 'Not for sale', price: null };
     if (b.owner) return { ok: false, why: b.owner === e?.owner ? 'Already yours' : 'Owned by another clan', price };
-    if (!e || !clan || e.type !== 'hero' || e.dead || e.downed || e.jailed) return { ok: false, why: 'Your boss cannot buy now', price };
+    if (!canInteract(e) || !clan) return { ok: false, why: 'No available clan member can buy now', price };
     if (!b.ring || e.place !== 'street' || Math.hypot(e.x - b.ring[0], e.z - b.ring[1]) > reach) return { ok: false, why: 'Walk to its door to buy', price };
     if ((clan.ryo || 0) < price) return { ok: false, why: `Need ${price} ryo`, price };
     return { ok: true, why: '', price };
@@ -36,12 +37,12 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
 
   // Can this hero attack that business now? { ok, why }
   function canAttack(heroId, businessId) {
-    const e = state.entities[heroId], b = state.businesses[businessId], clan = state.clans?.[e?.owner];
+    const b = state.businesses[businessId], e = actorFor(heroId, b), clan = state.clans?.[e?.owner];
     if (!b || !R[b.kind] || !b.room) return { ok: false, why: 'Nothing to attack' };
     if (b.owner) return { ok: false, why: b.owner === e?.owner ? 'Already yours' : 'Rival-owned: raid it with a War Lantern' };
     if (state.attacks[b.id]) return { ok: false, why: 'Under attack already' };
     if (!state.night) return { ok: false, why: 'Attack at night' };
-    if (!e || !clan || e.type !== 'hero' || e.dead || e.downed || e.jailed) return { ok: false, why: 'Your boss cannot attack now' };
+    if (!canInteract(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot attack now' };
     if (Object.values(state.attacks).some(a => a.clan === clan.id)) return { ok: false, why: 'Already attacking another place' };
     if (!b.ring || e.place !== 'street' || Math.hypot(e.x - b.ring[0], e.z - b.ring[1]) > reach) return { ok: false, why: 'Walk to its door to attack' };
     return { ok: true, why: '' };
@@ -49,11 +50,13 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
 
   // the hero standing at a business's door ring, on the street
   const atDoor = (e, b) => b.ring && e.place === 'street' && Math.hypot(e.x - b.ring[0], e.z - b.ring[1]) <= reach;
-  const able = e => e && e.type === 'hero' && !e.dead && !e.downed && !e.jailed;
+  const able = canInteract;
+  const actorFor = (id, b) => interactionActor(state, id, e => !!b && atDoor(e, b)) || state.entities[id];
+  const leader = clan => Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero');
 
   // War Lantern at the moneylender's: { ok, why, price }
   function canBuyLantern(heroId, businessId) {
-    const e = state.entities[heroId], b = state.businesses[businessId], clan = state.clans?.[e?.owner], price = RD.lanternPrice;
+    const b = state.businesses[businessId], e = actorFor(heroId, b), clan = state.clans?.[e?.owner], price = RD.lanternPrice;
     if (!b || b.kind !== 'moneylender') return { ok: false, why: 'Not sold here', price };
     if (!able(e) || !clan) return { ok: false, why: 'Your boss cannot buy now', price };
     if ((clan.lanterns || 0) >= RD.lanternCarry) return { ok: false, why: `You can carry ${RD.lanternCarry}`, price };
@@ -64,12 +67,12 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
 
   // Raid a rival-owned business: { ok, why }
   function canRaid(heroId, businessId) {
-    const e = state.entities[heroId], b = state.businesses[businessId], clan = state.clans?.[e?.owner];
+    const b = state.businesses[businessId], e = actorFor(heroId, b), clan = state.clans?.[e?.owner];
     if (!b || !R[b.kind] || !b.room) return { ok: false, why: 'Nothing to raid' };
     if (!b.owner || b.owner === e?.owner) return { ok: false, why: b.owner ? 'Already yours' : 'Unclaimed: buy or attack it' };
     if (state.attacks[b.id]) return { ok: false, why: 'Under attack already' };
     if (!state.night) return { ok: false, why: 'Raid at night' };
-    if (!able(e) || !clan) return { ok: false, why: 'Your boss cannot raid now' };
+    if (!able(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot raid now' };
     if (!(clan.lanterns > 0)) return { ok: false, why: 'Needs a War Lantern (moneylender)' };
     if (Object.values(state.attacks).some(a => a.clan === clan.id)) return { ok: false, why: 'Already attacking another place' };
     if (!atDoor(e, b)) return { ok: false, why: 'Walk to its door to raid' };
@@ -79,7 +82,8 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   // Defending (checkpoint 5): the owner's hero, standing by a raider's War Lantern, can knock it
   // down with a knockSeconds channel; moving or taking any hit cancels it. Ends the raid. { ok, why }
   function canKnock(heroId, businessId) {
-    const e = state.entities[heroId], a = state.attacks[businessId];
+    const a = state.attacks[businessId];
+    const e = interactionActor(state, heroId, u => u.place === 'street' && a?.lantern && Math.hypot(u.x - a.lantern.x, u.z - a.lantern.z) <= RD.knockReach) || state.entities[heroId];
     if (!a || a.mode !== 'raid' || !a.lantern) return { ok: false, why: 'No War Lantern here' };
     if (a.defender !== e?.owner) return { ok: false, why: 'Not your business' };
     if (!able(e) || e.place !== 'street') return { ok: false, why: 'Your boss cannot do that now' };
@@ -106,8 +110,10 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   }
 
   function command(e, c) {
-    const clan = state.clans?.[e.owner], b = state.businesses[c.business];
-    if (!clan || !b) return;
+    const b = state.businesses[c.business], a = state.attacks[c.business];
+    e = c.action === 'knock' ? interactionActor(state, e.id, u => u.place === 'street' && a?.lantern && Math.hypot(u.x - a.lantern.x, u.z - a.lantern.z) <= RD.knockReach) || e : actorFor(e.id, b);
+    const clan = state.clans?.[e?.owner];
+    if (!clan || !b || !canInteract(e)) return;
     if (c.action === 'lantern') {
       const can = canBuyLantern(e.id, b.id);
       if (!can.ok) return say(clan, can.why);
@@ -130,7 +136,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         || { x: room.spawn.x, z: room.spawn.z };
       // the lantern stands beside the door ring, on the other side from the owner's banner
       const ox = b.ring[0] - b.x, oz = b.ring[1] - b.z, len = Math.hypot(ox, oz) || 1;
-      state.attacks[b.id] = { mode: 'raid', business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: e.id,
+      state.attacks[b.id] = { mode: 'raid', business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
         phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };
       say(clan, `War Lantern planted: the doors open in ${RD.warmupSeconds} s`);
@@ -152,7 +158,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       // the back room: the floor spot furthest from the way in
       const far = patrolSpots(b).slice().sort((p, q) => Math.hypot(q.x - room.spawn.x, q.z - room.spawn.z) - Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z))[0]
         || { x: room.spawn.x, z: room.spawn.z };
-      state.attacks[b.id] = { business: b.id, kind: b.kind, room: room.name, clan: clan.id, hero: e.id, waves, wave: 0, phase: 'waves',
+      state.attacks[b.id] = { business: b.id, kind: b.kind, room: room.name, clan: clan.id, hero: leader(clan.id).id, waves, wave: 0, phase: 'waves',
         startsAt: state.tick + secs(A.startSeconds), clearedAt: null, away: 0, heatBefore: clan.heat || 0,
         hold: { x: far.x, z: far.z, r: A.holdRadius }, holdLeft: secs(A.holdSeconds), holdTotal: secs(A.holdSeconds), holding: false };
       say(clan, `The ${name(b)} called the police: get inside, ${waves} waves are coming`);

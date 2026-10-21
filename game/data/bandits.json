@@ -1,12 +1,14 @@
 {
-  "_note": "Night bandits (Tim OK'd 2026-10-17). Caps raised 1.5x for the 2x map 2026-10-19 (Tim). They walk in from the map's edge spots (district 'edges') at night, roam between its pois, and walk back out at dawn. Neutral until hit: then they and every bandit within joinRadius fight that clan until angrySeconds pass without being hit or nobody of it is within giveUpDistance. They die at 0 HP (no downing) and leave a body with ryo (+/- ryoSpread) on it: right-click it to loot (Tim 2026-10-19), anyone's clan can; unlooted bodies fade after lootSeconds. No heat. Stats live in units.json types. Seconds and world units; tune in playtests.",
+  "_note": "Bandits (2026-10-21): roamers enter at night and leave at dawn; camps persist. Both spot visible clan units within sightRange, respecting walls and stealth. Being hit also angers bandits within joinRadius. Anger expires after angrySeconds without renewed sight/hits or when the clan escapes giveUpDistance; camps also keep their leash. Roamers use roamerStats over units.json and leave roamerLoot; camps keep base unit stats and type ryo. Loot stays on bodies until collected and fades after lootSeconds. No heat. Distances in world units, times in seconds.",
   "rules": {
-    "maxOut": 9,
-    "perNight": 18,
-    "firstWave": 2,
-    "everySeconds": 20,
+    "maxOut": 13,
+    "perNight": 25,
+    "firstWave": 3,
+    "everySeconds": 14,
     "minDistance": 25,
     "staySeconds": [6, 15],
+    "sightRange": 4,
+    "roamerLoot": 50,
     "joinRadius": 8,
     "angrySeconds": 10,
     "giveUpDistance": 15,
@@ -14,7 +16,7 @@
     "lootSeconds": 60
   },
   "types": {
-    "bandit":      { "weight": 2, "ryo": 25 },
-    "night_brute": { "weight": 1, "ryo": 50 }
+    "bandit":      { "weight": 2, "ryo": 25, "roamerStats": { "hp": 240, "damage": 9 } },
+    "night_brute": { "weight": 1, "ryo": 50, "roamerStats": { "hp": 432, "damage": 16 } }
   }
 }

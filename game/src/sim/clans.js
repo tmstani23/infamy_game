@@ -1,3 +1,4 @@
+import { canInteract } from './interactions.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
 // game state, so players and bot clans follow exactly the same rules.
 // Numbers come from game/data/units.json (docs/crew_recruiting_plan.md).
@@ -126,7 +127,7 @@ export function createClans(state, units, opts = {}) {
   }
   function clinicMenu(hero, c, door, spawn) {
     const clan = state.clans[hero.owner], b = clinicOf();
-    if (!clan || hero.type !== 'hero' || hero.dead || door?.menu !== 'clinic' || !b) return null;
+    if (!clan || !canInteract(hero) || door?.menu !== 'clinic' || !b) return null;
     if (hitWait(hero) > 0) return say(clan, `You were hit: wait ${Math.ceil(hitWait(hero))} s`);
     if (c.action === 'revive') {
       const p = clan.clinic[c.patient];
@@ -135,7 +136,8 @@ export function createClans(state, units, opts = {}) {
       if (clan.ryo < cost) return say(clan, `Not enough ryo (${cost} needed)`);
       clan.ryo -= cost;
       clan.clinic.splice(c.patient, 1);
-      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, order: { kind: 'follow', target: hero.id } });
+      const leader = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
+      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, ...(leader ? { order: { kind: 'follow', target: leader.id } } : {}) });
       return say(clan, `Your ${p.unit} is back on their feet (${cost} ryo)`);
     }
     if (c.action === 'heal') {

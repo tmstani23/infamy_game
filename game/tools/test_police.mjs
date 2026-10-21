@@ -190,7 +190,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   for (const o of Object.values(g.state.entities)) if (o.owner === 'police') delete g.state.entities[o.id];
   clan(g).heat = 0;
   g.state.entities[t].order = { kind: 'move', x: 0, z: 0 };
-  run(g, 11);   // on the ground downedMinSeconds first (Tim 2026-10-20)
+  run(g, U.rules.downedMinSeconds + 1);
   assert.ok(h.dead && !h.downed, 'knocked out as usual');
   run(g, 21);
   const clinic = g.doors.find(d => d.menu === 'clinic');

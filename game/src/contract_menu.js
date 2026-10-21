@@ -3,12 +3,13 @@
 // rules in sim/contracts.js decide what happens. Also writes the tracker line for the job you hold.
 const KIND = { scout: 'Scout', mark: 'Sabotage', steal: 'Steal', boss: 'Boss', bandits: 'Town' };
 
-export function createContractMenu({ panel, tracker, game, heroId, send }) {
+export function createContractMenu({ panel, tracker, game, heroId, send, selected = () => [] }) {
   let open = false, shown = '', shownT = '';
 
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
-  const atBoard = () => game.doorNear(heroId)?.menu === 'contracts';
+  const access = () => game.serviceAt ? game.serviceAt(heroId, 'contracts', selected()) : game.doorNear(heroId)?.menu === 'contracts' ? { actor: hero() } : null;
+  const atBoard = () => !!access();
   const C = () => game.state.contracts || { board: [], active: {} };
   const clientName = id => id === 'town' ? 'the town' : game.state.clans[id]?.name || 'a clan';
   const reward = j => `${j.kind === 'steal' ? game.contracts.reward(j) : `${j.ryo} ryo`} + ${j.renown} Renown`;
@@ -16,10 +17,11 @@ export function createContractMenu({ panel, tracker, game, heroId, send }) {
   // with a job running: 1 = call it off; else 1 and up = take that job
   function pick(i) {
     const c = clan();
-    if (!open || !c) return;
-    if (C().active[c.id]) { if (i === 0) send({ id: heroId, type: 'contract', action: 'drop' }); return; }
+    const h = access()?.actor;
+    if (!open || !c || !h) return;
+    if (C().active[c.id]) { if (i === 0) send({ id: h.id, type: 'contract', action: 'drop' }); return; }
     const j = C().board[i];
-    if (j) send({ id: heroId, type: 'contract', action: 'take', job: j.id });
+    if (j) send({ id: h.id, type: 'contract', action: 'take', job: j.id });
   }
 
   panel.addEventListener('click', e => {

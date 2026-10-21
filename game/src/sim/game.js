@@ -16,6 +16,7 @@ import { createPolice, POLICE } from './police.js';
 import { applySettings } from './settings.js';
 import { createBusinesses } from './businesses.js';
 import { createContracts } from './contracts.js';
+import { interactionActor } from './interactions.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -136,7 +137,7 @@ export function createGame(options) {
   function spawn(type, model, x, z, extra = {}) {
     const id = String(nextId++);
     state.entities[id] = { id, type, model, x, z, dir: 0, anim: 'idle', place: 'street', ...extra };
-    const e = state.entities[id], hp = units?.models?.[model]?.hp ?? units?.types[type]?.hp;
+    const e = state.entities[id], hp = statsOf(e).hp;
     if (hp && e.hp === undefined) e.hp = hp;
     if (e.hp !== undefined) e.maxHp ??= e.hp;
     if (stealth.canHide(e)) e.hidden = true;   // Shinobi units start hidden (sim/stealth.js)
@@ -195,6 +196,7 @@ export function createGame(options) {
       // resume (a second T, Tim 2026-10-19): call off the T attack, back to the order before it
       if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u); } return; }
       if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
+      if (c.kind === 'move') delete u.swing;              // a move cancels an unfinished attack immediately
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); return; }
       // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
       if (c.kind === 'attack') {
@@ -290,7 +292,7 @@ export function createGame(options) {
   // their own within AGGRO, but never wander more than LEASH from where they belong.
   const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, LOCK_RANGE = 14, RETALIATE_SECONDS = 5, BACKUP_RANGE = 6;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
-  // Night bandits (sim/bandits.js) are only enemies of a clan that has made them angry
+  // Bandits become hostile after spotting a clan nearby or being attacked.
   const wild = t => t?.owner === WILD;
   // Police officers (sim/police.js) are only enemies of a clan they are after (o.angry, like bandits)
   const cop = t => t?.owner === POLICE;
@@ -366,6 +368,7 @@ export function createGame(options) {
       for (const u of Object.values(state.entities)) {
         if (u.owner !== h.owner || u.type === 'hero' || u.guard || u.dead || u.downed || u.jailed || u.locked || u.place !== h.place) continue;
         const o = u.order;
+        if (o?.kind === 'move' && !o.arrived) continue; // finish a deliberate move before joining the hero
         if (o?.kind === 'attack' && o.assist !== h.id) continue;
         if (['station', 'stop', 'heal', 'enter', 'loot'].includes(o?.kind) || u.execute) continue;
         if (o?.assist === h.id && o.target === t.id) continue;
@@ -384,12 +387,13 @@ export function createGame(options) {
     if (e.holdFire) return null;                         // after a Smoke Bomb: no attacking until the next order
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
-      if (fair(e, t)) return t;
+      if (fair(e, t) && sees(e, t)) return t;
       endAttack(e);                                    // target gone: back to the old order, or stand there
       return null;
     }
     // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
-    if ((o.kind === 'move' || o.kind === 'heal' || o.kind === 'enter') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
+    if (o.kind === 'move' && !o.arrived) return null;
+    if ((o.kind === 'heal' || o.kind === 'enter') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
     // first stop anyone finishing off one of our downed crew nearby
     const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t) && !cop(t)
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
@@ -467,7 +471,7 @@ export function createGame(options) {
     if (!w) return false;
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
-      if (fair(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
+      if (fair(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
         const crit = rng() < (unit.critChance || 0);
         hit(e, t, Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1)), crit);
       }
@@ -565,20 +569,15 @@ export function createGame(options) {
     delete fight[t.id];
   }
 
-  // Downed crew left alone (no standing enemy within carryRadius for carryAfterSeconds)
-  // are carried to the clinic. e.threatAt = the last tick an enemy was close.
+  // Downed units remain executable/arrestable for the configured window. An
+  // already-started execution or arrest may finish before the body is carried.
   function carryOffDowned() {
-    const r = units?.rules || {}, wait = secs(r.carryAfterSeconds ?? 5), radius = r.carryRadius ?? 8;
+    const r = units?.rules || {};
     for (const e of Object.values(state.entities)) {
       if (!e.downed || e.dead) continue;
-      e.threatAt ??= e.downedAt;
-      // townsfolk fear anyone in a clan; crew only their enemies
-      const threat = civ(e) ? o => o.owner && !o.dead && o.place === e.place
-        : o => hostile(o, { ...e, downed: false }) || (cop(o) && !o.dead && police?.tierOf(e.owner) > 0);   // police come to arrest
-      if (Object.values(state.entities).some(o => threat(o) && !o.downed && Math.hypot(o.x - e.x, o.z - e.z) < radius)) e.threatAt = state.tick;
-      // everyone knocked down stays on the ground at least downedMinSeconds (Tim 2026-10-20)
-      if (state.tick - e.downedAt < secs(r.downedMinSeconds ?? 10)) continue;
-      if (state.tick - e.threatAt < wait || Object.values(state.entities).some(o => o.execute?.target === e.id)) continue;
+      e.downedAt ??= state.tick;
+      if (state.tick - e.downedAt < secs(r.downedMinSeconds ?? 20)) continue;
+      if (Object.values(state.entities).some(o => o.execute?.target === e.id && Number.isFinite(o.execute.start))) continue;
       // a hero the police knocked down but nobody arrested: knocked out as usual (up at the clinic)
       if (e.type === 'hero') { delete e.downed; e.dead = true; e.diedAt = state.tick; continue; }
       if (!civ(e) && !clans?.carryOff(e)) continue;      // townsfolk are helped home (sim/civilians.js sends a new one out later)
@@ -661,7 +660,8 @@ export function createGame(options) {
     clan.ryo += amount;
     cast.ryo = amount;
     const name = units.types[t.type].name || t.type[0].toUpperCase() + t.type.slice(1);
-    state.ryoGains.push({ clan: clan.id, amount, reason: `${name} executed` });
+    const victimClan = state.clans[t.owner].name || t.owner;
+    state.ryoGains.push({ clan: clan.id, amount, reason: `${victimClan} ${name.toLowerCase()} executed` });
   }
   // One tick of an execute; false when there is nothing (left) to do
   function executeStep(e, unit) {
@@ -762,7 +762,10 @@ export function createGame(options) {
       e.dir = dirIndex(dx, dz);
     } else if (a.kind === 'intimidate') {
       for (const t of Object.values(state.entities))
-        if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= a.radius) addBuff(t, 'intimidated', a.seconds, { damage: a.enemyDamage });
+        if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= a.radius) {
+          addBuff(t, 'intimidated', a.seconds, { damage: a.enemyDamage });
+          if (a.snareSeconds && a.snareSpeed) addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed });
+        }
     } else if (a.kind === 'rally') {
       for (const u of Object.values(state.entities)) {
         if (u.dead || u.owner !== e.owner || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
@@ -840,8 +843,8 @@ export function createGame(options) {
       extra = { seconds: a.seconds };
     } else if (a.kind === 'assassinate') {
       // Assassinate (Shinobi F): only after hiddenSeconds hidden (smoke doesn't count), on the enemy
-      // at the mouse within reach; crew and the like go down at once, a boss drops to bossShare of
-      // his health (at least bossMin of it); the hit shows him (sim/stealth.js reveal)
+      // at the mouse within reach; non-heroes go down at once. A boss above
+      // bossShare drops to that share of max HP; lower-health bosses are not healed.
       const clan = state.clans?.[e.owner], tell = text => { if (clan) clan.notice = { tick: state.tick, text }; };
       if (!e.hidden || e.hiddenAt == null || state.tick - e.hiddenAt < secs(a.hiddenSeconds)) return tell(`Assassinate: stay hidden ${a.hiddenSeconds} s first`);
       // the target in the target frame first, else whoever is at the mouse; townsfolk and police too (Tim 2026-10-21)
@@ -854,7 +857,7 @@ export function createGame(options) {
         if (d < bd) { bd = d; t = u; }
       }
       if (!t) return tell('Assassinate: nobody in reach at the mouse');
-      const dmg = t.type === 'hero' ? Math.max(Math.round(t.hp - t.maxHp * a.bossShare), Math.round(t.maxHp * a.bossMin)) : t.hp;
+      const dmg = t.type === 'hero' ? Math.max(0, t.hp - Math.round(t.maxHp * a.bossShare)) : t.hp;
       // a quick lunge onto him first (Tim 2026-10-20: longer reach, so he strikes before he is spotted)
       const fx = e.x, fz = e.z, tl = Math.hypot(t.x - e.x, t.z - e.z), stop = Math.max(0, tl - (a.landGap ?? 0.9)), grid = navOf(e.place);
       for (let i = 1, m = Math.ceil(stop / 0.25); grid && i <= m; i++) {
@@ -935,6 +938,21 @@ export function createGame(options) {
 
   function crewStep(e, unit) {
     if (e.dead || e.downed) return;
+    // A plain move is a commitment to reach the spot, even under fire. Process
+    // it before swings, retaliation, automatic executions or hero assistance.
+    if (e.order?.kind === 'move' && !e.order.arrived) {
+      delete e.swing; delete e.execute;
+      if (fight[e.id]) delete fight[e.id].target;
+      if (crewOut(e, unit)) return;
+      const goal = crewGoal(e);
+      if (goal && Math.hypot(goal.x - e.x, goal.z - e.z) >= goal.near) {
+        if (!moveTo(e, unit, goal.x, goal.z, goal.walk)) e.anim = 'idle';
+        return;
+      }
+      e.order.arrived = true;
+      e.anim = 'idle'; delete paths[e.id];
+      return;
+    }
     if (e.execute && executeStep(e, unit)) return;
     if (swingStep(e, unit)) return;
     if (e.order?.kind === 'loot') {   // Ctrl + right-click on a body: walk there and take its ryo
@@ -1046,9 +1064,23 @@ export function createGame(options) {
     return e ? doors.find(d => (!d.ninja || state.clans?.[e.owner]?.kind === 'ninja') && Math.hypot(d.x - e.x, d.z - e.z) < DOOR_RADIUS) || null : null;
   }
 
+  function serviceAt(id, menu = null, preferred = []) {
+    const menus = ['clinic', 'police_box', 'police_hq', 'contracts'];
+    const actor = interactionActor(state, id, e => {
+      const d = doorNear(e.id);
+      return e.place === 'street' && menus.includes(d?.menu) && (!menu || d.menu === menu)
+        && (d.menu !== 'contracts' || state.clans[e.owner]?.kind === 'ninja');
+    }, preferred);
+    return actor ? { actor, door: doorNear(actor.id) } : null;
+  }
+
   // Speeds and size: the hero and townsfolk from UNITS, crew from units.json
   // statsOf(type), or statsOf(unit): a unit's own sprite can override its type's numbers (units.json "models", the Shinobi boss)
-  const statsOf = t => typeof t === 'object' && t ? { ...units?.types[t.type], ...UNITS[t.type], ...units?.models?.[t.model] } : { ...units?.types[t], ...UNITS[t] };
+  function statsOf(t) {
+    if (typeof t !== 'object' || !t) return { ...units?.types[t], ...UNITS[t] };
+    return { ...units?.types[t.type], ...UNITS[t.type], ...units?.models?.[t.model],
+      ...(t.wild && !t.camp ? banditData?.types?.[t.type]?.roamerStats : {}) };
+  }
 
   const civilians = createCivilians({
     state, data: civData, pois: district.pois, nav, spawn, moveTo, statsOf,
@@ -1067,6 +1099,7 @@ export function createGame(options) {
   }
   const bandits = createBandits({
     state, data: banditData, units, camps: district.banditCamps, pois: district.pois, edges: district.edges, nav, spawn, moveTo, fightStep, statsOf,
+    canSee: (e, t) => sees(e, t) && nav.clearLine(e.x, e.z, t.x, t.z),
     stopPath: e => { delete paths[e.id]; },
     remove: id => { delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id]; },
     seed: (options.seed ?? 12345) ^ 0xba7d,
@@ -1172,7 +1205,7 @@ export function createGame(options) {
       const e = state.entities[c.id];
       if (!e) continue;
       // a hero lying down or in jail can still order his crew, nothing else
-      if ((e.downed || e.jailed) && c.type !== 'order' && c.type !== 'move') continue;
+      if ((e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract'].includes(c.type)) continue;
       if (c.type === 'move') intents[c.id] = c;
       if (c.type === 'use') {
         const d = doorNear(c.id);
@@ -1185,7 +1218,7 @@ export function createGame(options) {
         }
       }
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
-      if (c.type === 'business' && businesses && e.type === 'hero') businesses.command(e, c);
+      if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') giveOrder(e, c);
       // lock / unlock some of the hero's own crew (L, or the padlock on the crew bar): { units, on }
       if (c.type === 'lock' && e.type === 'hero' && Array.isArray(c.units)) for (const id of c.units) { const u = state.entities[id]; if (u && u.owner === e.owner && u.type !== 'hero') { if (c.on) u.locked = true; else delete u.locked; } }
@@ -1199,9 +1232,18 @@ export function createGame(options) {
       }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
       if (c.type === 'stopattack' && e.type === 'hero') { if (e.swing?.target === e.attackTarget) delete e.swing; delete e.attackTarget; delete e.assistCrew; }
-      if (c.type === 'clinic' && clans) clans.clinicMenu(e, c, doorNear(c.id), spawnOutside);
-      if (c.type === 'police' && police) police.menu(e, c, doorNear(c.id));
-      if (c.type === 'contract' && contracts) contracts.command(e, c, doorNear(c.id));
+      if (c.type === 'clinic' && clans) {
+        const access = serviceAt(e.id, 'clinic');
+        if (access) clans.clinicMenu(access.actor, c, access.door, spawnOutside);
+      }
+      if (c.type === 'police' && police) {
+        const access = serviceAt(e.id, c.action === 'bribe' ? 'police_box' : 'police_hq');
+        if (access) police.menu(access.actor, c, access.door);
+      }
+      if (c.type === 'contract' && contracts) {
+        const access = serviceAt(e.id, 'contracts');
+        contracts.command(access?.actor || e, c, access?.door || doorNear(e.id));
+      }
     }
     clans?.tick(DT, spawnOutside);
     syncCrewAttacks();
@@ -1229,7 +1271,7 @@ export function createGame(options) {
         // whenever it is in reach and the player keeps him there with WASD; the lock drops when
         // the target is down or gone, or more than LOCK_RANGE away
         const target = state.entities[e.attackTarget];
-        if (!fair(e, target) || Math.hypot(target.x - e.x, target.z - e.z) > LOCK_RANGE) delete e.attackTarget;
+        if (!fair(e, target) || !sees(e, target) || Math.hypot(target.x - e.x, target.z - e.z) > LOCK_RANGE) delete e.attackTarget;
         else if (Math.hypot(target.x - e.x, target.z - e.z) <= reachOf(e, target)) { engage(e, unit, target, false); continue; }
         // otherwise standing still: swing back at whoever hit him lately, if in reach (Tim 2026-10-19:
         // no picking fights with any enemy who happens to stand close; that takes a target)
@@ -1259,6 +1301,16 @@ export function createGame(options) {
     if (state.smokes && state.tick % secs(1) === 0) for (const s of state.smokes) for (const u of Object.values(state.entities))
       if (u.owner === s.clan && s.heal && !u.dead && !u.downed && u.maxHp && inSmoke(s, u)) { u.hp = Math.min(u.maxHp, u.hp + u.maxHp * s.heal); addBuff(u, 'shroud', 1.1); }
     stealth.tick();
+    // Losing sight drops the lock, queued swing and crew assignment immediately,
+    // including while a hero is moving. Revealing the target does not reacquire it.
+    for (const e of Object.values(state.entities)) {
+      const unseen = id => id && !sees(e, state.entities[id]);
+      if (unseen(e.attackTarget)) { delete e.attackTarget; delete e.assistCrew; }
+      if (unseen(e.swing?.target)) delete e.swing;
+      if (e.order?.kind === 'attack' && unseen(e.order.target)) { endAttack(e); delete paths[e.id]; }
+      if (unseen(e.execute?.target)) delete e.execute;
+      if (unseen(fight[e.id]?.target)) delete fight[e.id].target;
+    }
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -1299,5 +1351,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth };
 }

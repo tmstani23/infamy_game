@@ -2,17 +2,12 @@
 // reads the state, sees only what its clan sees (sim/vision.js), and sends the same commands as
 // a player (walk intents, 'use' at doors, 'hire', 'business', 'order', 'attack', 'ability',
 // 'police', 'loot', 'execute'). No hidden bonuses.
-// Every thinkSeconds it picks a goal, top rule first: defend > bribe > buy > hire > raid >
-// night attack > station crew > patrol. Every reactSeconds it handles the fighting: bandit
-// hunts, ambushes, focus fire, going for your boss, finishing off downed crew, sending hurt crew
-// to the clinic, abilities. Between thoughts it walks its boss toward the goal along the street grid.
+// Strategic goals balance property value/travel, hiring, raid savings and camp income.
+// Defense and recovery preempt routine work; stale and unreachable goals are reconsidered.
+// ai_support supplies fog-safe camp observations and navigation on streets and in rooms.
 // Knobs per difficulty: data/bots.json (Tim 2026-10-19: easy for now, built for all three).
 // tick() returns this tick's commands for game.step.
-import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
-
-const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
-// a world direction as a WASD-style intent (right / down on screen), like input.js sends
-const intentFor = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
+import { createAISupport } from './ai_support.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
@@ -22,18 +17,20 @@ export const BOT_DEFAULTS = {
   raidChance: 0.5, raidMinCrew: 6, raidReserve: 200, raidWhenWeak: false, memorySeconds: 60,
   ambush: false, ambushRange: 10, heroPriority: false, focusFire: false, executeDowned: false,
   retreatHp: 0, abilities: ['R'],
+  riskRatio: 0.8, huntRetreatHp: 0.5, goalCooldownSeconds: 60,
   revengeDowns: 2, revengeSeconds: 30, revengeRange: 14, fleeHp: 0.3, restUntilHp: 0.8, fleeInRaid: true,
 };
 
 export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const B = { ...BOT_DEFAULTS, ...rules };
   const state = game.state, secs = s => Math.round(s * 20);
+  const ai = createAISupport(game, clan, hero, B);
   // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
   if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
   if (B.hideoutGuards !== undefined && state.clans[clan]) state.clans[clan].hideoutGuards = B.hideoutGuards;
   const U = game.settings.units.rules, reach = (U.buyReach ?? 2.5) - 0.6;
   const RD = game.businesses.raidRules;
-  let goal = null, path = null, nextThink = 0, nextReact = 0, last = null, still = 0, raidPlan = false;
+  let goal = null, nextThink = 0, nextReact = 0, last = null, still = 0, raidPlan = false;
   const downs = [];   // rival bosses cutting its crew down: { by, tick } (revenge, Tim 2026-10-19)
   const seen = {};   // memory: business id -> { defenders, tick } (what it last saw there)
   let r = seed;
@@ -42,7 +39,6 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   // --- what it knows ------------------------------------------------------------------
   const me = () => state.entities[hero];
   const myClan = () => state.clans[clan];
-  const roomOf = name => game.rooms.find(rm => rm.name === name);
   const all = () => Object.values(state.entities);
   const biz = () => Object.values(state.businesses);
   const home = () => biz().find(b => b.hideout === clan && b.owner === clan);
@@ -59,7 +55,13 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const canHireNow = () => {
     const price = game.clans.hirePrice(clan, B.hireType);
-    return crewRoom() && price !== null && myClan().ryo - price >= B.reserve && myClan().queue.length < (U.maxQueue ?? 5);
+    const count = game.clans.crewCount(clan) + myClan().queue.length;
+    const owned = biz().filter(b => b.owner === clan && !b.hideout).length;
+    // One opening recruit is enough to earn the first property. Later keep an
+    // escort and garrisons, with six available once raiding is the next expansion.
+    const open = biz().some(b => (!ai.known(b) || !b.owner) && priceOf(b));
+    const desired = owned ? Math.max(B.escort + owned * B.stationPerBusiness, open ? 0 : B.raidMinCrew) : 1;
+    return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
 
   // remember how many defenders it saw at rival businesses (scouting)
@@ -85,39 +87,56 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (raid) return { kind: 'defend', business: raid.business };
     // bribe the police at Wanted
     const box = game.doors.find(d => d.menu === 'police_box');
-    if (box && c.heat >= B.bribeAtHeat && c.ryo >= (game.police?.bribeCost(clan) ?? Infinity)) return { kind: 'bribe' };
+    if (box && !ai.blocked('bribe:') && c.heat >= B.bribeAtHeat && c.ryo >= (game.police?.bribeCost(clan) ?? Infinity)) return { kind: 'bribe' };
     // fetch its downed crew from the clinic once they have recovered (cheapest then; Tim 2026-10-19)
-    if (readyPatient(c) >= 0) return { kind: 'revive' };
-    // 3 expand: the dearest unclaimed business it can pay for (nearest first among equals)
-    const buy = biz().filter(b => !b.owner && b.ring && priceOf(b) && priceOf(b) <= c.ryo)
-      .sort((a, b) => priceOf(b) - priceOf(a) || dist(a, h) - dist(b, h))[0];
+    if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
+    const income = biz().filter(b => b.owner === clan && !b.hideout).reduce((n, b) => n + (game.businesses.rules[b.kind]?.payout || 0), 0);
+    if (home() && income > 0 && crew().length < Math.min(3, B.escort) && canHireNow() && !ai.blocked(`hire:${home().id}`)) return { kind: 'hire', business: home().id };
+    // Healthy squads invest by income/capacity per cost and actual travel time.
+    // Unexplored public buildings are visits, not secret ownership knowledge.
+    const expansion = biz().filter(b => (!ai.known(b) || !b.owner) && b.ring && priceOf(b) && !ai.blocked(`buy:${b.id}`));
+    const buyScore = b => {
+      const rule = game.businesses.rules[b.kind];
+      const slots = U.capPerBusiness?.[b.kind] ?? rule.crewSlots ?? 1;
+      const threat = enemies().filter(e => e.place === 'street' && near(e, ...b.ring, 8));
+      if (threat.length && !ai.safe(threat)) return 0;
+      return (rule.payout + slots * 30 + (rule.score || 1) * 10) / priceOf(b) / (12 + ai.route(...b.ring));
+    };
+    const rivalProperty = biz().some(b => ai.known(b) && rivalClan(b.owner) && !b.hideout && priceOf(b));
+    const warBudget = B.raidChance > 0 && rivalProperty && income >= 300 && !(c.lanterns > 0) ? RD.lanternPrice + B.raidReserve : 0;
+    const buy = expansion.filter(b => priceOf(b) <= c.ryo - warBudget && buyScore(b) > 0)
+      .sort((a, b) => buyScore(b) - buyScore(a))[0];
     if (buy) return { kind: 'buy', business: buy.id };
     // 2 hire at home up to the crew cap, keeping a little ryo back
-    if (home() && canHireNow()) return { kind: 'hire', business: home().id };
+    if (home() && canHireNow() && !ai.blocked(`hire:${home().id}`)) return { kind: 'hire', business: home().id };
     // 4 raid a rival's business with a War Lantern (needs a full raiding crew). Once it has made up
     // its mind (raidChance) it sticks to the plan: lantern, scout by day, raid at night
-    const targets = biz().filter(b => rivalClan(b.owner) && !b.hideout && b.room && !state.attacks?.[b.id]);
+    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && !b.hideout && b.room && !state.attacks?.[b.id] && !ai.blocked(`raid:${b.id}`));
     const able = targets.length && crew().length >= B.raidMinCrew && ((c.lanterns || 0) > 0 || c.ryo >= RD.lanternPrice + B.raidReserve);
     if (!able) raidPlan = false;
     else if (!raidPlan && rnd() < B.raidChance) raidPlan = true;
     if (raidPlan) {
-      const stale = targets.find(b => !seen[b.id] || (!state.night && !fresh(b)));
+      const stale = targets.find(b => !ai.blocked(`scout:${b.id}`) && (!seen[b.id] || (!state.night && !fresh(b))));
       if (!(c.lanterns > 0)) return { kind: 'raid', business: targets[0].id };      // buys the lantern first
       if (stale) return { kind: 'scout', business: stale.id };
-      const t = targets.slice().sort((a, b) => seen[a.id].defenders - seen[b.id].defenders)[0];
-      // hard: only when the owner looks weak (its boss far from the place, or the police on it)
-      const owner = all().find(e => e.owner === t.owner && e.type === 'hero');
-      const weak = !B.raidWhenWeak || !owner || !sees(owner) || dist(owner, t) > 25 || (state.clans[t.owner]?.heat || 0) >= 60;
-      if (weak && state.night) return { kind: 'raid', business: t.id };
+      const t = targets.filter(b => seen[b.id]).sort((a, b) => seen[a.id].defenders - seen[b.id].defenders)[0];
+      // Hard avoids a visible defending boss; private police heat is not knowledge.
+      const owner = t && enemies().find(e => e.owner === t.owner && e.type === 'hero');
+      const weak = !B.raidWhenWeak || !owner || dist(owner, t) > 25;
+      if (t && weak && state.night) return { kind: 'raid', business: t.id };
     }
     // 3b at night, with a crew and the police not after it: attack an unclaimed business
-    const open = biz().filter(b => !b.owner && b.room && priceOf(b) && !state.attacks?.[b.id]).sort((a, b) => dist(a, h) - dist(b, h))[0];
+    const open = expansion.filter(b => b.room && !state.attacks?.[b.id] && !ai.blocked(`attack:${b.id}`)).sort((a, b) => ai.route(...a.ring) - ai.route(...b.ring))[0];
     if (open && state.night && crew().length >= B.attackMinCrew && (c.heat || 0) < B.attackMaxHeat && rnd() < B.attackChance
       && !Object.values(state.attacks || {}).some(a => a.clan === clan)) return { kind: 'attack', business: open.id };
     // keep busy: station a crew member in each of its businesses, then walk its streets
     const out = station();
     if (out.length) return { kind: 'now', out };
-    const mine = biz().filter(b => b.owner === clan && b.ring);
+    if (B.huntBandits) {
+      const hunt = ai.pickHunt();
+      if (hunt) return hunt;
+    }
+    const mine = biz().filter(b => b.owner === clan && b.ring && !ai.blocked(`patrol:${b.id}`));
     if (mine.length && rnd() < B.patrolChance) return { kind: 'patrol', business: mine[Math.floor(rnd() * mine.length)].id };
     return null;
   }
@@ -135,26 +154,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
 
   // --- walking ------------------------------------------------------------------------------
   // one tick toward (x, z); true when there
-  function walk(out, x, z, near) {
-    const h = me(), d = Math.hypot(x - h.x, z - h.z);
-    if (d <= near) { path = null; return true; }
-    let wx = x, wz = z;
-    if (h.place === 'street') {
-      if (!path || Math.hypot(path.gx - x, path.gz - z) > 0.5) path = { pts: game.nav.findPath(h.x, h.z, x, z) || [], gx: x, gz: z };
-      while (path.pts.length > 1 && Math.hypot(path.pts[0][0] - h.x, path.pts[0][1] - h.z) < 0.4) path.pts.shift();
-      if (path.pts.length > 1) [wx, wz] = path.pts[0];
-    }
-    out.push({ id: hero, type: 'move', ...intentFor(wx - h.x, wz - h.z) });
-    return false;
-  }
+  const walk = ai.walk;
   // out of whatever room the boss is in; true once on the street
-  function toStreet(out, units = []) {
-    const h = me();
-    if (h.place === 'street') return true;
-    const rm = roomOf(h.place);
-    if (rm && walk(out, rm.exit.x, rm.exit.z, 0.6)) out.push({ id: hero, type: 'use', units });
-    return false;
-  }
+  const toStreet = ai.toStreet;
   const crewIds = () => crew().filter(u => u.place === me().place).map(u => u.id);
 
   // --- doing: true when the goal is over ----------------------------------------------------
@@ -162,8 +164,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     const h = me(), b = state.businesses[goal.business], c = myClan();
     switch (goal.kind) {
       case 'now': out.push(...goal.out); return true;
+      case 'hunt': return ai.hunt(out, goal);
       case 'buy':
-        if (b.owner) return true;                           // someone was quicker
+        if (!b || (ai.known(b) && b.owner) || priceOf(b) > c.ryo) return true;
         if (!toStreet(out)) return false;
         if (!walk(out, b.ring[0], b.ring[1], reach)) return false;
         out.push({ id: hero, type: 'business', action: 'buy', business: b.id });
@@ -233,14 +236,19 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
           out.push(...order([pick], 'move', { x: b.ring[0], z: b.ring[1] }));
           goal.until = state.tick + secs(40);
         }
-        if (state.tick > goal.until) { if (s) out.push(...order([s], 'follow')); return true; }
+        if (state.tick > goal.until) { if (s) out.push(...order([s], 'follow')); ai.avoid(`scout:${b.id}`); return true; }
         return false;
       }
       case 'raid': case 'attack': return assault(out, b);
       case 'flee':
         if (h.place === b.room) return true;
+        if (!goal.called) {
+          ai.recall(out);
+          out.push(...order(crew().filter(u => u.order?.kind !== 'heal'), 'enter', { business: b.id }));
+          goal.called = true;
+        }
         if (!toStreet(out)) return false;
-        if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: [] });
+        if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: crewIds() });
         return false;
     }
     return true;
@@ -262,7 +270,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       walk(out, a.phase === 'hold' ? a.hold.x : h.x, a.phase === 'hold' ? a.hold.z : h.z, 0.8);   // waves: fight where it stands
       return false;
     }
-    if (raid ? b.owner === clan || !rivalClan(b.owner) : b.owner) return true;
+    if (!b || (ai.known(b) && (raid ? b.owner === clan || !rivalClan(b.owner) : b.owner))) return true;
     if (!toStreet(out)) return false;
     if (raid && !(c.lanterns > 0)) {
       const ml = biz().find(m => m.kind === 'moneylender');
@@ -286,14 +294,17 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     const close = (e, d) => mine.some(u => dist(u, e) <= d) || dist(h, e) <= d;
     // hurt crew to the clinic (medium / hard)
     if (B.retreatHp > 0 && h.place === 'street') {
-      const hurt = mine.filter(u => u.hp < u.maxHp * B.retreatHp && u.order?.kind !== 'heal');
+      const hurt = mine.filter(u => u.hp < u.maxHp * B.retreatHp && u.order?.kind !== 'heal'
+        && myClan().ryo >= Math.ceil((u.maxHp - u.hp) * (U.healCostPerHp ?? 0.2)));
       out.push(...order(hurt, 'heal'));
     }
     const fighters = mine.filter(u => u.order?.kind !== 'heal' && u.order?.kind !== 'enter');
     const fighting = foes.filter(e => close(e, 6));
     // focus fire (hard) or go for the rival boss (hard). Revenge, any level (Tim 2026-10-19): a rival
     // boss who cuts down revengeDowns of its crew near its own boss within revengeSeconds gets everyone on him
-    const angry = fighting.find(e => e.type === 'hero' && downs.filter(d => d.by === e.id && state.tick - d.tick < secs(B.revengeSeconds)).length >= B.revengeDowns);
+    const by = h.hitBy && state.tick - h.hitBy.tick < secs(5) && state.entities[h.hitBy.id];
+    const angry = (standing(by) && rivalClan(by.owner) && sees(by) && by.place === h.place && dist(h, by) < 6 ? by : null)
+      || fighting.find(e => e.type === 'hero' && downs.filter(d => d.by === e.id && state.tick - d.tick < secs(B.revengeSeconds)).length >= B.revengeDowns);
     if (angry) { if (goal?.kind !== 'flee') out.push({ id: hero, type: 'attack', target: angry.id }); out.push(...order(mine.filter(u => u.order?.kind !== 'heal'), 'attack', { target: angry.id, resume: true })); }
     const boss = angry || (B.heroPriority && fighting.find(e => e.type === 'hero'));
     const focus = boss || (B.focusFire && fighting.slice().sort((a, b) => a.hp - b.hp)[0]);
@@ -307,18 +318,12 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (B.ambush && !fighting.length && h.place === 'street') {
       const turf = biz().filter(b => b.owner === clan && b.ring);
       const lone = foes.find(e => e.type !== 'hero' && e.place === 'street' && turf.some(b => near(e, b.ring[0], b.ring[1], B.ambushRange))
-        && !all().some(o => o !== e && o.owner === e.owner && standing(o) && o.place === 'street' && dist(o, e) < 6));
+        && !all().some(o => o !== e && o.owner === e.owner && standing(o) && sees(o) && o.place === 'street' && dist(o, e) < 6));
       if (lone) out.push(...order(fighters, 'attack', { target: lone.id, resume: true }));
     }
-    // night bandits: hunt them for their ryo, then loot the bodies
-    if (B.huntBandits && state.night && h.place === 'street' && !fighting.length) {
-      const bandit = all().find(e => e.wild && standing(e) && sees(e) && dist(h, e) <= B.huntRange);
-      if (bandit && mine.length >= 2) { out.push(...order(fighters, 'attack', { target: bandit.id, resume: true })); out.push({ id: hero, type: 'attack', target: bandit.id }); }
-      const body = all().find(e => e.dead && e.loot > 0 && e.place === 'street' && sees(e) && dist(h, e) <= B.huntRange);
-      if (body && !bandit) out.push({ id: hero, type: 'loot', target: body.id, ...(mine.length ? { units: mine.map(u => u.id) } : {}) });
-    }
     // abilities, when there is a fight close by
-    const ab = new Set(B.abilities || []), f = fighting.filter(e => dist(h, e) <= 6).sort((a, b) => dist(h, a) - dist(h, b));
+    const activeWild = ai.wild().filter(e => e.id === h.attackTarget || e.hitBy?.id === hero || (e.angry?.[clan] ?? 0) > state.tick);
+    const ab = new Set(B.abilities || []), f = [...fighting, ...activeWild].filter(e => dist(h, e) <= 6).sort((a, b) => dist(h, a) - dist(h, b));
     if (f.length) {
       const cast = (slot, extra = {}) => { if (ab.has(slot) && !((h.cooldowns?.[slot] ?? 0) > state.tick)) out.push({ id: hero, type: 'ability', slot, ...extra }); };
       if (f.length >= 2 || mine.length >= 2) cast('R');
@@ -330,7 +335,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
 
   function tick() {
     const out = [], h = me();
-    if (!h || h.dead || h.downed || h.jailed) { goal = null; path = null; return out; }
+    if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
     if (state.tick % 10 === 0) look();
     for (const hit of state.hits) {
       const a = state.entities[hit.a], t = state.entities[hit.t];
@@ -349,23 +354,48 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     const hq = home();
     // medium/hard never run off in the middle of their own raid; easy still does (Tim 2026-10-19)
     const raiding = !B.fleeInRaid && (goal?.kind === 'raid' || Object.values(state.attacks || {}).some(a => a.mode === 'raid' && a.clan === clan));
-    if (hq && B.fleeHp > 0 && !raiding && h.hp < h.maxHp * B.fleeHp && goal?.kind !== 'flee' && h.place !== hq.room) { goal = { kind: 'flee', business: hq.id }; path = null; }
-    if (hq && h.place === hq.room && h.hp < h.maxHp * B.restUntilHp && goal?.kind !== 'hire') {
+    const tired = goal?.kind === 'hunt' && h.hp < h.maxHp * B.huntRetreatHp;
+    if (hq && B.fleeHp > 0 && !raiding && (h.hp < h.maxHp * B.fleeHp || tired) && goal?.kind !== 'flee' && h.place !== hq.room) {
+      if (goal) ai.avoid(ai.key(goal), 45);
+      goal = { kind: 'flee', business: hq.id }; ai.reset();
+      out.push({ id: hero, type: 'stopattack' });
+    }
+    if (hq && h.place === hq.room && (h.hp < h.maxHp * B.restUntilHp || crew().some(u => u.place === hq.room && u.hp < u.maxHp * 0.65)) && goal?.kind !== 'hire') {
       goal = null;
+      const recovered = crew().filter(u => u.place === hq.room && u.locked && u.order?.kind === 'follow');
+      if (recovered.length) out.push({ id: hero, type: 'lock', units: recovered.map(u => u.id), on: false });
       out.push({ id: hero, type: 'move', right: 0, down: 0 });
       return out;
     }
     // a raid on one of its places beats whatever it was doing
     if (goal?.kind !== 'defend' && goal?.kind !== 'flee' && Object.values(state.attacks || {}).some(a => a.mode === 'raid' && a.defender === clan)) { goal = null; nextThink = 0; }
-    if (!goal && state.tick >= nextThink) { goal = think(); nextThink = state.tick + secs(B.thinkSeconds); }
+    if (goal && state.tick >= nextThink) {
+      const b = state.businesses[goal.business];
+      if ((goal.kind === 'buy' && (!b || (ai.known(b) && b.owner) || priceOf(b) > myClan().ryo))
+        || (goal.kind === 'patrol' && B.huntBandits && ai.pickHunt())
+        || (!goal.started && goal.untilGoal && state.tick > goal.untilGoal)) {
+        if (goal.untilGoal && state.tick > goal.untilGoal) ai.avoid(ai.key(goal));
+        goal = null; ai.reset();
+      }
+      nextThink = state.tick + secs(B.thinkSeconds);
+      if (!goal) nextThink = 0;
+    }
+    if (!goal && state.tick >= nextThink) {
+      goal = think(); if (goal) goal.untilGoal = state.tick + secs(goal.kind === 'hunt' ? 120 : 180);
+      nextThink = state.tick + secs(B.thinkSeconds);
+    }
     if (goal) {
-      if (act(out)) { goal = null; path = null; }
+      const target = state.entities[out.findLast(c => c.type === 'attack')?.target ?? h.attackTarget];
+      const fighting = goal.kind !== 'flee' && !goal.started && goal.kind !== 'defend'
+        && standing(target) && rivalClan(target.owner) && sees(target) && target.place === h.place && dist(h, target) < 6;
+      if (fighting) ai.engage(out, target);
+      else if (act(out)) { goal = null; ai.reset(); }
       // stuck (blocked, no way through): give the goal up and think again; waiting goals don't count
-      const waiting = goal && (goal.started || goal.kind === 'scout' || goal.kind === 'defend' || (goal.kind === 'hire' && h.place !== 'street'));
+      const waiting = goal && (fighting || h.swing || h.lootTarget || goal.started || goal.kind === 'scout' || goal.kind === 'defend' || (goal.kind === 'hire' && h.place !== 'street'));
       const moved = !last || Math.hypot(h.x - last.x, h.z - last.z) > 0.02 || h.place !== last.place;
       still = moved || waiting ? 0 : still + 1;
       last = { x: h.x, z: h.z, place: h.place };
-      if (still > secs(B.stuckSeconds)) { goal = null; path = null; still = 0; }
+      if (goal && (ai.failed() || still > secs(B.stuckSeconds))) { ai.avoid(ai.key(goal)); goal = null; ai.reset(); still = 0; nextThink = 0; }
     }
     if (!out.some(c => c.type === 'move')) out.push({ id: hero, type: 'move', right: 0, down: 0 });
     return out;

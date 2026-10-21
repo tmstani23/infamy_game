@@ -53,6 +53,7 @@ const defeat = (g, hero, victim) => {
 
 for (const type of ['thug', 'brute', 'swordsman', 'ninja']) {
   const { g, hero, clan } = make();
+  g.state.clans.rival.name = 'Kuroda clan';
   const victim = g.spawn(type, g.settings.units.types[type].sprite, -6, 1, { owner: 'rival', hp: 1, order: { kind: 'stop' } });
   const before = clan.ryo;
   g.step([{ id: hero, type: 'attack', target: victim }]);
@@ -61,6 +62,7 @@ for (const type of ['thug', 'brute', 'swordsman', 'ninja']) {
   g.step([{ id: hero, type: 'execute', target: victim }]);
   until(g, () => g.state.entities[victim]?.dead);
   assert.equal(clan.ryo - before, 50, `${type} execution pays exactly 50`);
+  assert.equal(g.state.ryoGains.find(n => n.clan === 'player')?.reason, `Kuroda clan ${type} executed`, 'execution notice includes the victim clan and unit type');
   g.step([{ id: hero, type: 'execute', target: victim }]);
   assert.equal(clan.ryo - before, 50, 'cannot execute twice for another reward');
 }

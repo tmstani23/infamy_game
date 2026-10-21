@@ -1,4 +1,4 @@
-// Persistent camps, opening income, map access and dawn-only repopulation.
+// Persistent camps, opening income, map access and dawn/dusk replenishment.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createGame } from '../src/sim/game.js';
@@ -37,6 +37,7 @@ const run = (g, seconds) => { for (let i = 0; i < seconds * 20; i++) g.step(); }
   }
   assert.ok(Math.max(...travel) / Math.min(...travel) < 1.4, `comparable opening travel: ${travel}`);
   for (const c of camps) for (const e of living(g, c)) {
+    assert.equal(e.maxHp, g.settings.units.types[e.type].hp, 'camp HP is not buffed with roaming stats');
     assert.ok(g.nav.free(e.x, e.z), `resident ${e.id} is not in scenery`);
     assert.ok(g.nav.findPath(c.x, c.z, e.x, e.z));
   }
@@ -44,7 +45,7 @@ const run = (g, seconds) => { for (let i = 0; i < seconds * 20; i++) g.step(); }
   assert.equal(camps.reduce((n, c) => n + living(g, c).length, 0), 20, 'residents stay during daylight');
   assert.ok(camps.every(c => living(g, c).every(e => Math.hypot(e.x - c.x, e.z - c.z) < 11)), 'local patrols stay at their camps');
   g.step([{ type: 'time', night: true }]);
-  assert.equal(Object.values(g.state.entities).filter(e => e.wild && !e.camp && !e.dead).length, 2, 'night roamers have a separate cap');
+  assert.equal(Object.values(g.state.entities).filter(e => e.wild && !e.camp && !e.dead).length, g.settings.bandits.rules.firstWave, 'night roamers have a separate cap');
 
   const cleared = camps[0], partial = camps[1];
   for (const e of living(g, cleared)) Object.assign(e, { dead: true, diedAt: g.state.tick, loot: 25 });
@@ -57,11 +58,39 @@ const run = (g, seconds) => { for (let i = 0; i < seconds * 20; i++) g.step(); }
   assert.equal(living(g, cleared).length, 2, 'cleared camp returns at dawn');
   assert.ok(cleared.units.every(id => !bodies.includes(id)), 'new residents, not revived corpses');
   assert.ok(bodies.every(id => g.state.entities[id]?.loot === 25), 'respawning does not remove unlooted bodies');
-  assert.deepEqual(living(g, partial).map(e => e.id), [survivor.id], 'partial losses are not replaced');
+  assert.equal(living(g, partial).length, 2, 'partial losses are replaced at dawn');
+  assert.ok(living(g, partial).some(e => e.id === survivor.id), 'survivor is preserved');
   for (const e of living(g, cleared)) Object.assign(e, { dead: true, diedAt: g.state.tick });
   run(g, 2);
   assert.equal(living(g, cleared).length, 0, 'cannot repeatedly refill during the same day');
-  console.log('camp placement, patrols, separate roamer caps and dawn lifecycle ok');
+  g.step([{ type: 'time', night: true }]);
+  assert.equal(living(g, cleared).length, 2, 'cleared camp also returns at dusk');
+  const duskUnits = [...cleared.units];
+  run(g, 2);
+  assert.deepEqual(cleared.units, duskUnits, 'no duplicate refill after dusk');
+  console.log('camp placement, patrols, separate roamer caps and dawn/dusk lifecycle ok');
+}
+
+// Residents spot nearby players without a first hit, then return when leashed.
+{
+  const g = make(), heroId = startClan(g, { id: 'player' });
+  g.step();
+  const camp = g.state.banditCamps.find(c => c.id === 'west_trail');
+  const b = living(g, camp)[0], hero = g.state.entities[heroId];
+  const p = g.nav.nearestFree(b.x - .8, b.z);
+  Object.assign(hero, { x: p[0], z: p[1] });
+  g.step();
+  assert.ok(b.angry?.player, 'camp resident acquires player on sight');
+  assert.ok(!hero.attackTarget, 'player has not ordered an attack');
+  const outside = g.nav.nearestFree(camp.x + 20, camp.z);
+  Object.assign(hero, { x: outside[0], z: outside[1] });
+  const beyond = g.nav.nearestFree(camp.x + (camp.leash ?? 10) + 2, camp.z);
+  Object.assign(b, { x: beyond[0], z: beyond[1] });
+  g.step();
+  assert.ok(!b.angry, 'crossing camp leash drops aggression');
+  run(g, 12);
+  assert.ok(Math.hypot(b.x - camp.x, b.z - camp.z) <= (camp.leash ?? 10), 'resident returns to camp');
+  console.log('camp sight aggression and pursuit leash ok');
 }
 
 // A real hero and its one free recruit can clear and loot two starter camps.

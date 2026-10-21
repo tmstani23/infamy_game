@@ -26,14 +26,16 @@ const boss = g.spawn('hero', sc.boss, lh.ring[0], lh.ring[1], { owner: sc.id, ho
 g.state.clans[sc.id].ryo = 600;
 const bot = createNinjaBot(g, { clan: sc.id, hero: boss, rules: bots.shinobiLevels[bots.difficulty] });
 const kinds = new Set();
-let hired = false, took = false;
+let hired = false, took = false, completed = 0;
 for (let i = 0; i < 20 * 240; i++) {
   if (i === 20 * 60) g.step([{ type: 'time', night: true }]);
   g.step(bot.tick());
+  completed += g.state.news.filter(n => n.kind === 'contractDone' && n.clan === sc.id).length;
   if (Object.values(g.state.entities).some(e => e.owner === sc.id && e.type !== 'hero')) hired = true;
   const j = g.state.contracts.active[sc.id];
   if (j) { took = true; kinds.add(j.kind); }
 }
 assert.ok(hired, 'hired ninja at the dojo');
 assert.ok(took, `took a contract (${[...kinds].join(', ')})`);
+assert.ok(completed > 0 && g.state.clans[sc.id].renown > 0, 'completed contracts through normal movement and combat');
 console.log(`ninja bot ok (jobs: ${[...kinds].join(', ')}, renown ${g.state.clans[sc.id].renown})`);

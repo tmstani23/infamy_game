@@ -12,8 +12,12 @@
     "total": 30
   },
   "bandits": {
-    "maxOut": 9,
-    "perNight": 18,
+    "sightRange": 4,
+    "roamerLoot": 50,
+    "maxOut": 13,
+    "perNight": 25,
+    "firstWave": 3,
+    "everySeconds": 14,
     "ryoSpread": 0,
     "ryo": { "bandit": 25, "night_brute": 50 }
   },

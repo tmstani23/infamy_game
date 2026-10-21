@@ -1,14 +1,14 @@
 // Night bandits (data/bandits.json). At night bandits and night brutes walk in from the
 // edge of the map, a few at a time, and roam between the district's spots like the
-// townsfolk. They leave everyone alone until someone hits one: then it and the bandits
-// near it fight that clan for a while. Killed, they leave a body with ryo on it to loot.
+// townsfolk. Roamers and camp residents attack clans they spot within sightRange.
+// Hitting one also angers nearby bandits. Bodies hold ryo until somebody loots them.
 // At dawn the ones left walk back out. Plain sim code, no three.js.
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const WILD = 'bandits';     // the owner every bandit has (not a clan: nobody hires or runs it)
 
 // state: the game state; data: bandits.json; units: units.json; pois / edges: the district's
 // spots and its way-in spots; spawn / moveTo / stopPath / remove / fightStep / statsOf come from the game rules
-export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, seed = 4242 }) {
+export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, seed = 4242 }) {
   const R = data?.rules || {}, types = data?.types || {};
   const secs = s => Math.round(s / DT);
   const snap = ([x, z]) => nav.nearestFree(x, z) || [x, z];
@@ -31,10 +31,12 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
   const range = ([a, b]) => a + rng() * (b - a);
   const out = () => Object.values(state.entities).filter(e => e.owner === WILD && !e.camp && !e.dead);
 
-  // Residents do not count against the night-roamer cap. Partial losses persist;
-  // only a fully cleared camp repopulates, at a later dawn.
+  // Residents do not count against the night-roamer cap. At dawn/dusk, replace
+  // missing residents while preserving survivors and unlooted bodies.
   function fillCamp(c) {
     c.units = c.members.map((kind, k) => {
+      const previous = state.entities[c.units[k]];
+      if (previous && !previous.dead) return previous.id;
       const angle = k * Math.PI * 2 / c.members.length;
       const point = nav.nearestFree(c.x + Math.cos(angle) * 2.2, c.z + Math.sin(angle) * 2.2);
       if (!point || !nav.findPath(c.x, c.z, ...point)) throw new Error(`No resident path for camp ${c.id}`);
@@ -47,9 +49,9 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
   function campsTick() {
     for (const c of campList) {
       if (!c.initialized) { fillCamp(c); continue; }
+      if (state.dawn || state.dusk) { fillCamp(c); continue; }
       if (c.units.some(id => state.entities[id] && !state.entities[id].dead)) continue;
       c.clearedAt ??= state.tick;
-      if (state.dawn && c.clearedAt < state.tick) fillCamp(c);
     }
   }
 
@@ -107,7 +109,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
   // Killed: the ryo stays on the body (t.loot) for whoever loots it with a right-click, not the
   // killer (Tim 2026-10-19); the body lies there lootSeconds, then fades (sim/game.js loot)
   function killed(a, t) {
-    const base = types[t.type]?.ryo || 0;
+    const base = (t.camp ? types[t.type]?.ryo : R.roamerLoot ?? types[t.type]?.ryo) || 0;
     if (!base) return;
     const k = R.ryoSpread ?? 0;
     t.loot = Math.round(base * (1 - k + rng() * 2 * k));
@@ -130,6 +132,14 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
       delete e.angry; delete e.swing; m.spot = null; m.until = null;
       moveTo(e, statsOf(e), camp.x, camp.z, true);
       return;
+    }
+    // Sight alone angers this bandit, rather than granting an entire nearby
+    // group an eight-unit detection range. Stealth and walls still hide targets.
+    for (const t of Object.values(state.entities)) {
+      if (!state.clans?.[t.owner] || t.owner === WILD || t.type === 'civilian' || t.dead || t.downed || t.jailed || t.place !== e.place) continue;
+      if (Math.hypot(t.x - e.x, t.z - e.z) > (R.sightRange ?? 4)) continue;
+      if (camp && Math.hypot(t.x - camp.x, t.z - camp.z) > (camp.leash ?? 10)) continue;
+      if (canSee(e, t)) (e.angry ||= {})[t.owner] = state.tick + secs(R.angrySeconds ?? 10);
     }
     if (fightStep(e, R.giveUpDistance ?? 15)) { m.spot = null; m.until = null; return; }
     const unit = statsOf(e);

@@ -37,7 +37,7 @@ export function tabTarget(state, heroId, current, seen = () => true) {
   const h = state.entities[heroId];
   if (!h || h.dead) return null;
   const list = Object.values(state.entities)
-    .filter(e => e.owner && e.owner !== h.owner && !e.dead && !e.downed && !e.jailed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE && seen(e))
+    .filter(e => e.owner && e.owner !== h.owner && !e.hidden && !e.dead && !e.downed && !e.jailed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE && seen(e))
     .sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z) || (a.id < b.id ? -1 : 1));
   if (!list.length) return null;
   const knocker = list.find(e => Object.values(state.attacks || {}).some(a => a.clan === h.owner && a.knock?.by === e.id));
@@ -48,10 +48,10 @@ export function tabTarget(state, heroId, current, seen = () => true) {
 
 // Red: hero/Tab target. Blue: an independent crew target. Purple: crew sharing
 // the hero's target, regardless of whether they joined automatically or by an order.
-export function targetMarkers(state, heroId, tabbed) {
+export function targetMarkers(state, heroId, tabbed, seen = () => true) {
   const h = state.entities[heroId], S = state.entities;
   if (!h) return [];
-  const live = id => S[id] && !S[id].dead && !S[id].jailed && S[id].place === h.place;
+  const live = id => S[id] && !S[id].dead && !S[id].jailed && (!S[id].hidden || S[id].owner === h.owner) && S[id].place === h.place && seen(S[id]);
   const heroT = !h.dead && !h.downed && !h.jailed ? [h.attackTarget, h.swing?.target].find(live) : null;
   const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed && u.place === h.place)
     .map(u => u.order?.kind === 'attack' ? u.order.target : u.execute?.target || u.swing?.target).filter(live));
@@ -73,7 +73,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && e.place === hero()?.place);   // indoors too, so C works there
   const outdoors = () => hero()?.place === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
-  const seen = e => !game.vision || game.vision.canSee(hero()?.owner, e);
+  const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner) && (!game.vision || game.vision.canSee(hero()?.owner, e));
+  function pruneTargets() {
+    if (tabbed && !seen(game.state.entities[tabbed])) tabbed = null;
+    if (looked && !seen(game.state.entities[looked])) looked = null;
+  }
   const enemies = () => Object.values(game.state.entities)
     .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === hero()?.place && seen(e));
   const townsfolk = () => Object.values(game.state.entities)
@@ -224,11 +228,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true });   // then back to their old order
     },
     // Shared attacks take purple priority; separate crew assignments stay blue.
-    markers() { return targetMarkers(game.state, heroId, tabbed); },
-    tabbed() { return tabbed; },   // for the target frame (src/unit_frames.js)
-    looked() { return looked; },
+    markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen); },
+    tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
+    looked() { pruneTargets(); return looked; },
     drawMarkers(root) {
-      const list = targetMarkers(game.state, heroId, tabbed);
+      pruneTargets();
+      const list = targetMarkers(game.state, heroId, tabbed, seen);
       while (root.children.length < list.length) root.appendChild(document.createElement('i'));
       [...root.children].forEach((el, k) => {
         const m = list[k], t = m && game.state.entities[m.id];

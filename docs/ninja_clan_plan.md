@@ -1,6 +1,6 @@
 # Ninja (Shinobi) clan plan
 
-Status: phases 1-5 built 2026-10-20 (units, stealth, village and map, leader kit, contracts); see "As built". Bots don't take contracts yet; clan select comes with the start menu.
+Status: phases 1-5 built 2026-10-20 (units, stealth, village and map, leader kit, contracts); see "As built". Adaptive bot contracts and difficulty profiles built 2026-10-21; see [rival AI](rival_bot_plan.md#phase-3-adaptive-ai-2026-10-21). Clan select comes with the start menu.
 
 Source: `next_steps/feature_ideas_2026-10-20.md` in the project files (section 2 and the DECIDED notes).
 
@@ -32,6 +32,8 @@ Related docs: `territory.md` (one season score for all clans; the ninja village 
 - Back window entry into buildings, ninja only.
 - Hidden ninja don't show even in a rival's own territory until revealed (lantern light, detection, attacking and so on; see `territory.md`).
 
+Stealth targeting update (2026-10-21): [combat rules](combat_spec.md#now-built).
+
 ## 5. Leader kit (a strong assassin, not a weak hero)
 
 | Key | Ability | What it does |
@@ -39,7 +41,7 @@ Related docs: `territory.md` (one season score for all clans; the ninja village 
 | Q | Shadow Step | Teleport up to 8 toward the mouse, stays hidden |
 | E | Caltrops (replaced Distract) | Slows enemies within 2 by 50% for 3 s; guards, police and bandits within 6 come to look |
 | R | Smoke Bomb | Cloud of radius ~4 for 6 s, 40 s cooldown. Enemies inside lose their target and can't pick one; nobody outside sees in (uses "can't target what you can't see"); ninja inside stay hidden. On drop, the leader and all ninja crew stop attacking (hit-back included) until given a new attack order, so stealth isn't broken automatically |
-| F | Assassinate | Only from stealth: hidden 3+ s (smoke doesn't count). 90 s cooldown. Crew are downed outright; a boss drops to 60%. Reveals the ninja |
+| F | Assassinate | Only from stealth: hidden 3+ s (smoke doesn't count). 90 s cooldown. Damage rules: [combat spec](combat_spec.md#f-hero-abilities-and-action-bar-approved-by-tim-2026-10-16-built). Reveals the ninja |
 
 No miss/dodge yet: that comes with combat variety (`roadmap.md`).
 

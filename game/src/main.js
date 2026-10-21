@@ -115,14 +115,14 @@ async function start() {
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
-    const lantern = raidOnMe(true);
+    const door0 = interactionDoor();
+    const lantern = !door0?.menu && raidOnMe(true);
     if (lantern) { pending.push({ id: heroId, type: 'business', action: 'knock', business: lantern.business }); return; }
-    const door0 = game.doorNear(heroId);
     // a Shinobi boss by a lantern at night, no door here: snuff it (sim/stealth.js)
     if (!door0 && game.stealth.snuffable(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'snuff' }); return; }
     const menu = door0?.menu;
     if (menu === 'clinic') clinicMenu.toggle();
-    else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle();
+    else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle(menu);
     else if (menu === 'contracts') contractMenu.toggle();
     else pending.push({ id: heroId, type: 'use', units: crewInput.selected() });   // selected crew come in too
   });
@@ -183,9 +183,9 @@ async function start() {
   // Hire menu: only reads the state and sends 'hire' commands, like a bot would
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
-  const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, send: c => pending.push(c) });
-  const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, send: c => pending.push(c) });
-  const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, send: c => pending.push(c) });
+  const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
   // your clan's crest and name in the top bar (picked at the start later, Tim 2026-10-19)
@@ -198,6 +198,10 @@ async function start() {
   }
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
+  function interactionDoor() {
+    const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
+    return access && selected.includes(access.actor.id) ? access.door : game.doorNear(heroId) || access?.door;
+  }
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
   onKey('KeyX', () => crewInput.armAttackMove());
@@ -234,7 +238,11 @@ async function start() {
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone });
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, where, jump });   // own + target frames, top middle
-  const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c) });
+  const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
+    if (menu === 'clinic' && !clinicMenu.isOpen()) clinicMenu.toggle();
+    else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
+    else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
+  } });
   const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
   const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -370,7 +378,7 @@ async function start() {
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
       acc -= tick;
-      const door = game.doorNear(heroId), knockable = raidOnMe(true);
+      const door = interactionDoor(), knockable = raidOnMe(true);
       const shut = door && Object.values(game.state.businesses).find(b => b.room === door.place && b.hideout && b.hideout !== game.state.entities[heroId]?.owner);   // a rival's hideout: closed
       const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
       $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut ? `${game.state.clans[shut.hideout]?.name || 'Rival'} hideout: no way in` : door ? `Space  ${door.label}`

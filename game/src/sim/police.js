@@ -6,6 +6,7 @@
 // (until bailed out at the HQ); an arrested hero waits out his time greyed out at the HQ and walks out with less heat.
 // Officers walk out of the police HQ (or in from the map edge when the map has none) and
 // walk back when the clan's heat drops. Plain sim code, no three.js.
+import { canInteract } from './interactions.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -155,7 +156,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   const bribeBlocked = hero => state.tick - (hero?.copHitAt ?? -Infinity) < secs(R.bribeBlockSeconds);
   function menu(hero, c, door) {
     const clan = state.clans?.[hero.owner];
-    if (!clan || hero.type !== 'hero' || hero.dead) return null;
+    if (!clan || !canInteract(hero)) return null;
     if (c.action === 'bribe' && door?.menu === 'police_box') {
       if (!(clan.heat > 0)) return say(clan, 'Nothing to pay off');
       if (bribeBlocked(hero)) return say(clan, 'Not while the police are beating you');
@@ -173,7 +174,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       if (clan.ryo < p.bail) return say(clan, `Not enough ryo (${p.bail} needed)`);
       clan.ryo -= p.bail;
       clan.jail.splice(c.prisoner, 1);
-      release(clan, p, hero);
+      release(clan, p);
       return say(clan, `Your ${p.unit} is out on bail (${p.bail} ryo)`);
     }
     return null;

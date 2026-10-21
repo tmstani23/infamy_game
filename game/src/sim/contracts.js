@@ -28,6 +28,7 @@ const KIND_NAME = { teahouse: 'Teahouse', warehouse: 'Warehouse', gambling_den: 
 
 // backRoom(b) = { x, z } of a business's back-room spot (in its room); WILD = the bandits' owner id
 // leader() = the clan leading the season score (or null)
+import { canInteract } from './interactions.js';
 export function createContracts({ state, rules = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
   const secs = s => Math.round(s * 20);
@@ -108,7 +109,7 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
   // [{ id, type: 'contract', action: 'take', job } | { action: 'drop' }] from a Shinobi boss at the shrine (door: the menu door he stands at)
   function command(e, c, door) {
     const clan = state.clans?.[e?.owner];
-    if (!clan || e.type !== 'hero' || !ninja(clan.id)) return;
+    if (!clan || !canInteract(e) || !ninja(clan.id)) return;
     if (c.action === 'drop') { if (C.active[clan.id]) finish(clan.id, false, 'called off'); return; }
     if (c.action !== 'take') return;
     if (door?.menu !== 'contracts') return say(clan, 'Take contracts at the village shrine');

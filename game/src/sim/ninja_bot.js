@@ -2,39 +2,36 @@
 // sim/bot.js: it reads the state, sees only what its clan sees (sim/vision.js) and sends the same
 // commands as a Shinobi player ('move', 'use', 'hire', 'contract', 'attack', 'order', 'ability',
 // 'snuff', 'clinic', 'loot'). No hidden bonuses.
-// Every thinkSeconds it picks a goal, top first: flee home when hurt > revive crew at the clinic >
-// hire ninja at the dojo up to its Renown cap > take a job at the shrine > do its job > rest at the
-// longhouse. Jobs (sim/contracts.js): scout / mark / steal go in by the back window alone (the crew
+// Goals balance recovery, squad cost and jobs by reward, travel, risk and preference.
+// Failed jobs cool down; public camps supply income and bandit-contract targets.
+// Jobs (sim/contracts.js): scout / mark / steal go in by the back window alone (the crew
 // wait outside), the boss hunt and the bandit hunt bring the crew. At night it snuffs a lantern
 // near where it is going in. Every reactSeconds it fights: R Smoke Bomb when hurt, E Caltrops on a
 // target running off or two foes close, Q Shadow Step to close in, F Assassinate when hidden long enough.
 // Knobs per difficulty: bots.json shinobiLevels. tick() returns this tick's commands for game.step.
-import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
-
-const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
-const intentFor = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
+import { createAISupport } from './ai_support.js';
 
 export const NINJA_BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4,
-  // jobs it likes, first = most wanted (it takes the first one on the board it can do)
+  // Allowed jobs in preference order; reward, time and risk also affect the choice.
   jobs: ['bandits', 'scout', 'boss', 'steal', 'mark'],
   huntRange: 12, fleeHp: 0.3, restUntilHp: 0.8, smokeHp: 0.5, snuff: true,
+  riskRatio: 0.8, huntRetreatHp: 0.5, goalCooldownSeconds: 60, jobSeconds: 240,
   abilities: ['Q', 'E', 'R', 'F'],
 };
 
 export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const B = { ...NINJA_BOT_DEFAULTS, ...rules };
   const state = game.state, secs = s => Math.round(s * 20);
+  const ai = createAISupport(game, clan, hero, B);
   const U = game.settings.units.rules;
   const F = game.settings.units.models?.ninja_leader?.abilities?.F || {};
-  let goal = null, path = null, nextThink = 0, nextReact = 0, last = null, still = 0, spot = 0;
-  let r = seed;
-  const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+  let goal = null, nextThink = 0, nextReact = 0, last = null, still = 0, spot = 0;
+  let workingJob = null, jobUntil = 0;
 
   // --- what it knows ------------------------------------------------------------------
   const me = () => state.entities[hero];
   const myClan = () => state.clans[clan];
-  const roomOf = name => game.rooms.find(rm => rm.name === name);
   const all = () => Object.values(state.entities);
   const biz = () => Object.values(state.businesses);
   const home = () => biz().find(b => b.hideout === clan);
@@ -44,66 +41,74 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u));
   const sees = e => game.vision.canSee(clan, e);
   const rivalClan = id => id && id !== clan && !!state.clans[id];
-  const foe = e => standing(e) && sees(e) && (rivalClan(e.owner) || e.wild || e.guard || e.police) && !e.civilian;
+  const foe = e => standing(e) && sees(e) && !e.civilian && (e.id === me().attackTarget
+    || e.id === me().hitBy?.id || (rivalClan(e.owner) && e.attackTarget === hero));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const job = () => state.contracts?.active?.[clan] || null;
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
   const canHireNow = () => {
     const price = game.clans.hirePrice(clan, B.hireType);
-    return crewRoom() && price !== null && myClan().ryo - price >= B.reserve && myClan().queue.length < (U.maxQueue ?? 5);
+    const count = game.clans.crewCount(clan) + myClan().queue.length;
+    const desired = myClan().ryo >= 500 ? Math.min(3, game.clans.crewCap(clan)) : 1;
+    return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
   const readyPatient = c => c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && c.ryo >= game.clans.reviveCost(p, clan));
   // the back window of a business (outside end), for the sneaking jobs
   const windowOf = b => game.doors.find(d => d.ninja && d.place === b.room);
   // can it do this job now? (a mark needs the night, but can be taken by day and done after dark)
   const doable = j => {
-    if (j.kind === 'boss') return !!state.entities[j.hero] && crew().length >= 1;
-    if (j.kind === 'bandits') return state.night || j.night === false;
+    if (ai.blocked(`job:${j.id}`)) return false;
+    if (state.clock && state.night && state.clock.left < secs(jobSeconds(j) + 10)) return false;
+    if (j.kind === 'boss') {
+      const t = state.entities[j.hero];
+      if (!t || !crew().length) return false;
+      const visible = sees(t) ? all().filter(e => e.owner === t.owner && standing(e) && sees(e) && e.place === t.place && dist(e, t) < 10) : [];
+      return !visible.length || ai.safe(visible);
+    }
+    if (j.kind === 'bandits') return !!ai.pickHunt();
     const b = state.businesses[j.business];
     return !!(b && windowOf(b));
   };
 
+  function jobSeconds(j) {
+    const s = shrine(), b = state.businesses[j.business];
+    if (!s) return Infinity;
+    const travel = ai.route(s.x, s.z) + (b ? Math.hypot(b.x - s.x, b.z - s.z) : j.kind === 'boss' ? 70 : 35);
+    const wait = state.night ? 0 : state.clock ? state.clock.left / 20 : 120;
+    const duration = j.kind === 'mark' ? 70 + wait : j.kind === 'boss' ? 80 : j.kind === 'bandits' ? 55 : 15;
+    return duration + travel / 4;
+  }
+  function jobScore(j) {
+    // Steal uses a public estimate, never the rival's private treasury.
+    const reward = j.ryo ?? (j.kind === 'steal' ? 100 : game.contracts.rules[j.kind]?.ryo ?? 100);
+    const preference = 1 + (B.jobs.length - B.jobs.indexOf(j.kind)) * 0.12;
+    return (reward + (j.renown || 0) * 3) * preference / jobSeconds(j);
+  }
+
   // --- deciding ----------------------------------------------------------------------
   function think() {
     const c = myClan(), h = me();
-    if (readyPatient(c) >= 0) return { kind: 'revive' };
-    if (dojo() && canHireNow() && !job()) return { kind: 'hire', business: dojo().id };
+    if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
+    if (dojo() && canHireNow() && !job() && !ai.blocked(`hire:${dojo().id}`)) return { kind: 'hire', business: dojo().id };
     const j = job();
     if (j) return { kind: 'job' };
+    const hunt = ai.pickHunt();
+    if (hunt?.body) return hunt; // Collect earned loot before leaving for another job.
     // take the best job on the board it can do
     const board = state.contracts?.board || [];
-    const pick = B.jobs.map(k => board.find(x => x.kind === k && doable(x))).find(Boolean);
+    const pick = board.filter(j => B.jobs.includes(j.kind) && doable(j)).sort((a, b) => jobScore(b) - jobScore(a))[0];
     if (pick && shrine()) return { kind: 'take', job: pick.id };
+    if (hunt) return hunt;
     // nothing to do: rest in the longhouse
-    if (home() && h.place !== home().room) return { kind: 'rest', business: home().id };
+    if (home() && h.place !== home().room && !ai.blocked(`rest:${home().id}`)) return { kind: 'rest', business: home().id };
     return null;
   }
 
   // --- walking ------------------------------------------------------------------------------
-  function walk(out, x, z, near) {
-    const h = me(), d = Math.hypot(x - h.x, z - h.z);
-    if (d <= near) { path = null; return true; }
-    let wx = x, wz = z;
-    if (h.place === 'street') {
-      if (!path || Math.hypot(path.gx - x, path.gz - z) > 0.5) path = { pts: game.nav.findPath(h.x, h.z, x, z) || [], gx: x, gz: z };
-      while (path.pts.length > 1 && Math.hypot(path.pts[0][0] - h.x, path.pts[0][1] - h.z) < 0.4) path.pts.shift();
-      if (path.pts.length > 1) [wx, wz] = path.pts[0];
-    }
-    out.push({ id: hero, type: 'move', ...intentFor(wx - h.x, wz - h.z) });
-    return false;
-  }
-  // out of whatever room the boss is in, by the nearer of its door and its back window; true on the street
-  function toStreet(out) {
-    const h = me();
-    if (h.place === 'street') return true;
-    const rm = roomOf(h.place);
-    if (!rm) return false;
-    const win = game.doors.find(d => d.ninja && d.place === 'street' && Math.hypot(d.x - rm.exit.x, d.z - rm.exit.z) < 30);
-    const t = win && Math.hypot(win.x - h.x, win.z - h.z) < Math.hypot(rm.exit.x - h.x, rm.exit.z - h.z) ? win : rm.exit;
-    if (walk(out, t.x, t.z, 0.6)) out.push({ id: hero, type: 'use', units: [] });
-    return false;
-  }
+  const walk = ai.walk;
+  // Use the room's front exit so waiting crew can accompany the boss out.
+  const toStreet = ai.toStreet;
   // in through a door ring (front or back window); true once inside the room
   function goIn(out, door, room, units = []) {
     const h = me();
@@ -119,13 +124,14 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     out.push({ id: hero, type: 'snuff' });
     return true;
   }
-  const crewWait = (x, z) => order(crew().filter(u => u.place === 'street'), 'hold', { x, z });
-  const crewFollow = () => order(crew().filter(u => u.order?.kind !== 'follow' && u.order?.kind !== 'heal'), 'follow');
+  const crewWait = (x, z) => order(crew().filter(u => u.place === 'street'), 'station', { x, z });
+  const crewFollow = () => { const out = []; ai.recall(out); return out; };
 
   // --- doing: true when the goal is over ----------------------------------------------------
   function act(out) {
     const h = me(), c = myClan();
     switch (goal.kind) {
+      case 'hunt': return ai.hunt(out, goal);
       case 'revive': {
         const door = game.doors.find(d => d.menu === 'clinic'), k = readyPatient(c);
         if (!door || k < 0) return true;
@@ -150,7 +156,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       }
       case 'take': {
         const s = shrine();
-        if (job() || !s || !state.contracts.board.some(j => j.id === goal.job)) return true;
+        if (job() || !s || !state.contracts.board.some(j => j.id === goal.job && doable(j))) return true;
         if (!toStreet(out)) return false;
         if (!walk(out, s.x, s.z, 0.8)) return false;
         out.push({ id: hero, type: 'contract', action: 'take', job: goal.job });
@@ -166,8 +172,13 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       case 'flee': {
         const b = state.businesses[goal.business];
         if (h.place === b.room) return true;
+        if (!goal.called) {
+          ai.recall(out);
+          out.push(...order(crew().filter(u => u.order?.kind !== 'heal'), 'enter', { business: b.id }));
+          goal.called = true;
+        }
         if (!toStreet(out)) return false;
-        if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: [] });
+        if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: crew().filter(u => u.place === 'street').map(u => u.id) });
         return false;
       }
       case 'job': return doJob(out);
@@ -180,6 +191,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     if (!j) { out.push(...crewFollow()); return true; }
     const b = state.businesses[j.business];
     if (j.kind === 'scout' || j.kind === 'mark' || j.kind === 'steal') {
+      if (!b || !windowOf(b)) return abandon(out, j);
       if (j.kind === 'mark' && !state.night && h.place !== b.room) {   // a mark waits for the dark, near the window
         const w = windowOf(b);
         if (!toStreet(out)) return false;
@@ -206,32 +218,29 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       if (!toStreet(out)) return false;
       if (!goal.called) { out.push(...crewFollow()); goal.called = true; }
       if (sees(t) && t.place === 'street') {
-        if (dist(h, t) < 10) { out.push({ id: hero, type: 'attack', target: t.id }); out.push(...order(crew().filter(u => u.place === 'street'), 'attack', { target: t.id, resume: true })); }
-        else walk(out, t.x, t.z, 1.2);
+        const defenders = all().filter(e => e.owner === t.owner && standing(e) && sees(e) && e.place === t.place && dist(e, t) < 10);
+        if (!ai.safe(defenders)) return abandon(out, j);
+        ai.engage(out, t);
         return false;
       }
       // not in sight: look for him at his clan's places (hideout last)
-      const places = biz().filter(x => x.owner === t.owner && x.ring).sort((a, b2) => !!a.hideout - !!b2.hideout);
+      const places = biz().filter(x => ai.known(x) && x.owner === t.owner && x.ring).sort((a, b2) => !!a.hideout - !!b2.hideout);
       const p = places[spot % Math.max(1, places.length)];
       if (p && walk(out, p.ring[0], p.ring[1], 3)) spot++;
       return false;
     }
     if (j.kind === 'bandits') {
-      if (!toStreet(out)) return false;
-      if (!goal.called) { out.push(...crewFollow()); goal.called = true; }
-      const bandit = all().filter(e => e.wild && standing(e) && sees(e) && e.place === 'street').sort((a, b2) => dist(h, a) - dist(h, b2))[0];
-      if (bandit && dist(h, bandit) <= B.huntRange) {
-        out.push({ id: hero, type: 'attack', target: bandit.id });
-        out.push(...order(crew().filter(u => u.place === 'street'), 'attack', { target: bandit.id, resume: true }));
-        return false;
-      }
-      if (bandit) { walk(out, bandit.x, bandit.z, 2); return false; }
-      // roam the town looking for them (from one business door to another)
-      const rings = biz().filter(x => x.ring && x.room);
-      const p = rings[spot % Math.max(1, rings.length)];
-      if (p && walk(out, p.ring[0], p.ring[1], 3)) spot = Math.floor(rnd() * rings.length);
+      if (!goal.hunt) goal.hunt = ai.pickHunt();
+      if (!goal.hunt) return abandon(out, j);
+      if (ai.hunt(out, goal.hunt)) { goal.hunt = null; ai.reset(); }
       return false;
     }
+    return true;
+  }
+
+  function abandon(out, j = job()) {
+    if (j) { ai.avoid(`job:${j.id}`, 180); out.push({ id: hero, type: 'contract', action: 'drop' }); }
+    out.push(...crewFollow());
     return true;
   }
 
@@ -260,25 +269,48 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
 
   function tick() {
     const out = [], h = me();
-    if (!h || h.dead || h.downed || h.jailed) { goal = null; path = null; return out; }
+    if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
+    if ((job()?.id ?? null) !== workingJob) {
+      workingJob = job()?.id ?? null;
+      // Waiting for night is valid work, not a stalled mark job.
+      const wait = job()?.kind === 'mark' && !state.night ? state.clock?.left ?? secs(120) : 0;
+      jobUntil = state.tick + secs(B.jobSeconds) + wait;
+      ai.recall(out); goal = null; ai.reset(); nextThink = 0;
+    }
+    if (job() && state.tick > jobUntil) { abandon(out); goal = null; ai.reset(); }
     if (state.tick >= nextReact) { react(out); nextReact = state.tick + secs(B.reactSeconds); }
     // badly hurt: home to the longhouse and rest there
     const hq = home();
-    if (hq && B.fleeHp > 0 && h.hp < h.maxHp * B.fleeHp && goal?.kind !== 'flee' && h.place !== hq.room) { goal = { kind: 'flee', business: hq.id }; path = null; }
-    if (hq && h.place === hq.room && h.hp < h.maxHp * B.restUntilHp && goal?.kind !== 'hire') {
+    const tired = (goal?.kind === 'hunt' || job()?.kind === 'bandits') && h.hp < h.maxHp * B.huntRetreatHp;
+    if (hq && B.fleeHp > 0 && (h.hp < h.maxHp * B.fleeHp || tired) && goal?.kind !== 'flee' && h.place !== hq.room) {
+      if (goal?.hunt) ai.avoid(ai.key(goal.hunt), 45);
+      goal = { kind: 'flee', business: hq.id }; ai.reset(); out.push({ id: hero, type: 'stopattack' });
+    }
+    if (hq && h.place === hq.room && (h.hp < h.maxHp * B.restUntilHp || crew().some(u => u.place === hq.room && u.hp < u.maxHp * 0.65)) && goal?.kind !== 'hire') {
       goal = null;
+      const recovered = crew().filter(u => u.place === hq.room && u.locked && u.order?.kind === 'follow');
+      if (recovered.length) out.push({ id: hero, type: 'lock', units: recovered.map(u => u.id), on: false });
       out.push({ id: hero, type: 'move', right: 0, down: 0 });
       return out;
     }
     if (!goal && state.tick >= nextThink) { goal = think(); nextThink = state.tick + secs(B.thinkSeconds); }
     if (goal) {
-      if (act(out)) { goal = null; path = null; }
+      const target = state.entities[out.findLast(c => c.type === 'attack')?.target ?? h.attackTarget];
+      const fighting = goal.kind !== 'flee' && !['scout', 'mark', 'steal'].includes(job()?.kind)
+        && standing(target) && rivalClan(target.owner) && sees(target) && target.place === h.place && dist(h, target) < 6;
+      if (fighting) ai.engage(out, target);
+      else if (act(out)) { goal = null; ai.reset(); }
       // stuck: give the goal up and think again; standing still on a job inside doesn't count
-      const waiting = goal && ((goal.kind === 'job' && h.place !== 'street') || h.snuffing || (goal.kind === 'hire' && h.place !== 'street') || (goal.kind === 'job' && job()?.kind === 'mark' && !state.night));
+      const waiting = goal && (fighting || h.swing || h.lootTarget || (goal.kind === 'job' && h.place !== 'street' && !out.some(c => c.type === 'move')) || h.snuffing || (goal.kind === 'hire' && h.place !== 'street') || (goal.kind === 'job' && job()?.kind === 'mark' && !state.night));
       const moved = !last || Math.hypot(h.x - last.x, h.z - last.z) > 0.02 || h.place !== last.place;
       still = moved || waiting ? 0 : still + 1;
       last = { x: h.x, z: h.z, place: h.place };
-      if (still > secs(B.stuckSeconds)) { goal = null; path = null; still = 0; spot++; }
+      if (goal && (ai.failed() || still > secs(B.stuckSeconds))) {
+        if (goal.kind === 'job' || goal.kind === 'take') {
+          if (job()) abandon(out); else ai.avoid(`job:${goal.job}`, 180);
+        } else ai.avoid(ai.key(goal));
+        goal = null; ai.reset(); still = 0; spot++; nextThink = 0;
+      }
     }
     if (!out.some(c => c.type === 'move')) out.push({ id: hero, type: 'move', right: 0, down: 0 });
     return out;

@@ -11,8 +11,10 @@ Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero cha
 - **Hero:** hits the nearest enemy in reach while standing still; moving stops attacks. Lock-on (2026-10-18): right-click or Tab locks a target (left-click only marks it); the hero swings when within 2.5 steps and does not chase; the lock drops beyond 14 steps or when the target is down. At 0 HP knocked out, back up at the clinic after 20 s.
 - **Hits:** `damage` every `attackSpeed` seconds once within `attackRange`. Damage lands 40% through the swing (build order 1).
 - **Death (2026-10-17):** crew at 0 HP go down first; executed crew play the death animation and are removed (dead, rehire), the rest are carried to the clinic. See section H.
-- **Health (2026-10-16, Tim):** all HP doubled (hero 800, thug 200, brute 360, swordsman 240). Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
+- **Health (Tim, 2026-10-21):** ronin 560, ninja leader 490, thug 200, brute 360, swordsman 240 HP. Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
 - **Bars:** red over enemies, green over your units when hurt.
+
+Balance and targeting (Tim, 2026-10-21): hero base damage 22.5 (-25%); hero HP -30%. Recruit damage +25%: thug 10, brute 17.5, swordsman 20, ninja 15. Plain crew moves finish before retaliation. Hidden Shinobi clear hero/crew target locks, windups and indicators; revealing does not restore locks automatically.
 
 ## Why it feels clunky (research)
 
@@ -73,7 +75,7 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 | Key | Ability | What it does | Cooldown |
 |---|---|---|---|
 | Q | Iaido Dash | Dash up to 6.5 steps over 0.3 s toward the mouse (stops at walls), hitting every enemy passed for 150% damage (2026-10-17, was 5). | 8 s |
-| E | Intimidate | Enemies within 4 steps deal 30% less damage for 5 s (a dark aura shows on them). | 14 s |
+| E | Intimidate | Enemies within 4 steps deal 30% less damage for 5 s (a dark aura shows on them), plus a 50% snare for 3 s (2026-10-21). | 14 s |
 | R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 15% of your health over 6 s in 6 ticks (hero included; 2026-10-19). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
@@ -84,7 +86,7 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 | Q | Shadow Step | Teleports up to 8 toward the mouse, stopping at walls and water; stays hidden. | 10 s |
 | E | Caltrops | Thrown at the mouse: enemies within 2 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
 | R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). The whole clan gets holdFire (no attacks or hit-backs) until a new order or attack. | 40 s |
-| F | Assassinate | Needs 3 s hidden (`e.hiddenAt`; smoke doesn't count). Hits the enemy at the mouse within reach +1.5: crew go down outright, a boss drops to 60% (at least 25% damage). Reveals the ninja. Screen flash and shake. | 90 s |
+| F | Assassinate | Needs 3 s hidden (`e.hiddenAt`; smoke doesn't count). Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes above 60% max HP drop to 60%, while heroes at or below 60% take no damage and receive no healing (2026-10-21). Reveals the ninja. Screen flash and shake. | 90 s |
 
 Effects in `render/abilityfx.js` (mock OK'd by Tim): black non-additive smoke with muted purple and blue highlights, thin rings like the ronin's.
 
@@ -149,9 +151,10 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 
 - **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
 - **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
-- **Carried off:** everyone knocked down (crew of every clan, townsfolk, a police-downed boss) stays on the ground at least 10 s (`downedMinSeconds`, 2026-10-20). After that, a downed unit nobody finishes is carried to the hospital (or helped home) once no enemy is within 8 steps (`carryRadius`) for 5 s (`carryAfterSeconds`). Knocked-out officers also lie 10 s before they are taken away. Bosses knocked out by clans are unchanged (20 s respawn). Bandits and house guards die outright. There is no bleed-out.
+- **Carried off (2026-10-21):** executable/arrestable downed units remain on the ground for 20 s. A channel started within that window may finish afterwards, then cleanup occurs. Crew go to the clinic; other units follow their normal removal or respawn rules. Bandits and house guards die outright.
 - **Hospital:** the bonesetter's clinic. Recovery timer (30 s thug, 45 s brute/swordsman); since 2026-10-19 crew stay until their boss pays at the clinic menu (25% of the hire price once recovered, 50% before). See `crew_recruiting_plan.md`.
 - **Who can be executed (2026-10-19):** only downed rival heroes and crew. Bandits die outright and are looted (section I).
+- **Execution notice (2026-10-21):** names the clan and unit type.
 - **Execute ryo (2026-10-18):** executing an enemy pays `executeRyo` from `units.json`: thug 20, swordsman 30, brute 40, ±25%. Townsfolk pay nothing.
 - **Fog of war (2026-10-18):** you only fight what your clan can see (`sim/vision.js`); bots follow the same rule.
 - **Heal order:** hurt crew can be sent to the clinic for a little ryo.
@@ -174,7 +177,7 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 
 Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandits.js`; test `game/tools/test_bandits.mjs`.
 
-- Types: bandit (thug stats, about 20 ryo, weight 2) and night brute (brute stats, about 40 ryo, weight 1). Ryo varies by 25%.
-- At night: 2 walk in first, then one every 20 s, up to 9 at once and 18 a night (raised for the 2x map, 2026-10-19), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
-- Neutral until hit; then they and every bandit within 8 steps fight that clan, giving up after 10 s without being hit or with nobody of it within 15 steps.
+- Roamers (2026-10-21): bandit 240 HP / 9 damage (weight 2), night brute 432 HP / 16 damage (weight 1); each leaves 50 ryo. Camp bandits retain base stats and 25-ryo loot.
+- At night: 3 walk in first, then one every 14 s, up to 13 at once and 25 a night (2026-10-21), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
+- Sight aggro within 4 steps, respecting walls and stealth (2026-10-21). Being hit also angers bandits within 8 steps; anger expires after 10 s without renewed sight/hits or when the clan escapes 15 steps. Camps keep their leash and top up missing residents at dawn and dusk, preserving survivors.
 - No downing (they die at 0 HP) and no heat. Kills pay nothing (2026-10-19): the body carries the ryo, glints gold and any clan can loot it (hero: right-click; crew: Ctrl + right-click). Unlooted bodies fade after 60 s (`lootSeconds`).

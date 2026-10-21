@@ -15,6 +15,10 @@ Follows the multiplayer rules: all rules in `game/src/sim` (Node, no graphics), 
 - **Ryo is spent on:** hiring and replacing crew, hospital healing, unit-type upgrades (RTS research, e.g. "Thugs get clubs"), property, and police bribes.
 - **Anti-snowball:** the property cap, rising hire cost, heat (bigger clans draw more), and the existing underdog bonus.
 
+## Service presence (Tim, 2026-10-21)
+
+Own eligible crew can provide presence for business and service actions: [menu controls](controls.md). Recruiting still requires the hero physically inside.
+
 ## Hiring venues (Phase 1, Tim, 2026-10-21)
 
 - Hire at HQs and the teahouse; Shinobi hire at their HQ/dojo.

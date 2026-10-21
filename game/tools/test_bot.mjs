@@ -57,7 +57,7 @@ const bots = data('data/bots.json');
   console.log('hideouts ok');
 }
 
-// the bot: hires at home, then buys the dearest business it can afford
+// The bot invests in a nearby efficient property, then hires at home.
 {
   const g = newGame();
   g.clans.addClan('player', { name: 'Your clan' });
@@ -72,7 +72,7 @@ const bots = data('data/bots.json');
     bought = Object.values(g.state.businesses).find(b => b.owner === 'kuroda' && !b.hideout);
   }
   assert.ok(bought, 'bought a business');
-  assert.equal(bought.kind, 'gambling_den', 'the dearest it could afford (1200)');
+  assert.ok(['teahouse', 'shop'].includes(bought.kind), 'chooses an efficient starter instead of spending nearly everything on the den');
   for (let i = 0; i < 20 * 120 && g.clans.crewCount('kuroda') < 1; i++) g.step(bot.tick());
   assert.ok(g.clans.crewCount('kuroda') + c.queue.length >= 1, 'hired crew at home');
   console.log('bot buys and hires ok', bought.kind, 'crew', g.clans.crewCount('kuroda'), 'ryo', c.ryo);
@@ -174,13 +174,13 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   let raid = null;
   assert.ok(t.run(150, () => (raid = Object.values(t.g.state.attacks).find(a => a.mode === 'raid' && a.clan === 'kuroda'))), 'raid started');
   const target = t.g.state.businesses[raid.business];
-  assert.ok(t.run(150, () => target.owner === 'kuroda'), 'raid won (nobody defending)');
+  assert.ok(t.run(150, () => target.owner === 'kuroda'), `raid won (nobody defending): ${JSON.stringify({ kind: target.kind, goal: t.bot.goal(), boss: [t.B.place, t.B.x, t.B.z], attack: t.g.state.attacks[target.id] })}`);
   console.log('B4 raid ok', target.kind);
 }
 
 // B5 knobs: medium sends hurt crew to the clinic; hard has every crew member hit the weakest enemy
 {
-  const t = setup({ crew: 3, level: 'medium', rules: { patrolChance: 0 } });
+  const t = setup({ ryo: 100, crew: 3, level: 'medium', rules: { patrolChance: 0 } });
   const u = t.S[t.ids[0]]; u.hp = u.maxHp * 0.2;
   t.run(3);
   assert.equal(u.order.kind, 'heal', 'hurt crew off to the clinic');
@@ -214,6 +214,9 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   const you = t.g.spawn('hero', 'ronin', t.B.x + 1, t.B.z, { owner: 'player' });
   Object.assign(t.S[you], { hp: 1e6, maxHp: 1e6 });
   t.g.step([{ id: you, type: 'attack', target: t.boss }]);
+  // Let the strike land before the now-active bot starts walking elsewhere.
+  for (let i = 0; i < 20; i++) t.g.step();
+  assert.ok(t.B.hitBy?.id === you, 'the boss was actually hit');
   assert.ok(t.run(5, () => t.B.attackTarget === you), 'fights back when hit');
   t.B.hp = 200;
   assert.ok(t.run(30, () => t.B.place === iz.room), 'ran home when low');

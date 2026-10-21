@@ -49,7 +49,11 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
 
   set(bandits?.rules, 'maxOut', s.bandits?.maxOut);
   set(bandits?.rules, 'perNight', s.bandits?.perNight);
+  set(bandits?.rules, 'firstWave', s.bandits?.firstWave);
+  set(bandits?.rules, 'everySeconds', s.bandits?.everySeconds);
   set(bandits?.rules, 'ryoSpread', s.bandits?.ryoSpread);
+  set(bandits?.rules, 'sightRange', s.bandits?.sightRange);
+  set(bandits?.rules, 'roamerLoot', s.bandits?.roamerLoot);
   for (const [type, ryo] of Object.entries(s.bandits?.ryo || {})) set(bandits?.types?.[type], 'ryo', ryo);
 
   const pr = police?.rules, p = s.police || {};
