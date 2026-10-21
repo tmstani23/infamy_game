@@ -1,5 +1,4 @@
-// Crew lock (Tim 2026-10-20): crew sent into one of your businesses lock by themselves, and the
-// 'lock' command locks / unlocks your own crew only. Run: node tools/test_crew_lock.mjs
+// Legacy lock regression: entering a business no longer locks crew or prevents orders.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createGame } from '../src/sim/game.js';
@@ -20,9 +19,13 @@ const hero = g.spawn('hero', 'ronin', tea.ring[0], tea.ring[1], { owner: 'player
 const [a, b] = [0, 1].map(i => g.spawn('thug', 'thug', tea.ring[0] + i * 0.6, tea.ring[1] + 0.6, { owner: 'player' }));
 const foe = g.spawn('thug', 'thug', tea.ring[0] + 3, tea.ring[1], { owner: 'kuroda' });
 g.step([{ id: hero, type: 'order', units: [a], kind: 'enter', business: tea.id }]);
-assert.ok(S[a].locked && !S[b].locked, 'sent into the business: locked');
+assert.ok(!S[a].locked && !S[b].locked, 'entering a business never locks crew');
 g.step([{ id: hero, type: 'lock', units: [b, foe], on: true }]);
-assert.ok(S[b].locked && !S[foe].locked, 'L locks your own crew only');
-g.step([{ id: hero, type: 'lock', units: [a, b], on: false }]);
-assert.ok(!S[a].locked && !S[b].locked, 'and unlocks them');
-console.log('crew lock ok');
+assert.ok(!S[b].locked && !S[foe].locked, 'retired lock commands have no effect');
+for (let i = 0; i < 600 && S[a].place !== tea.room; i++) g.step();
+assert.equal(S[a].place, tea.room, 'crew enters the business');
+const room = g.rooms.find(r => r.name === tea.room);
+Object.assign(S[hero], { place: room.name, x: room.spawn.x, z: room.spawn.z });
+g.step([{ id: hero, type: 'order', units: [a], kind: 'move', x: room.spawn.x + 1, z: room.spawn.z }]);
+assert.equal(S[a].order.kind, 'move', 'crew remains commandable when hero enters afterwards');
+console.log('retired locks and indoor crew commands ok');

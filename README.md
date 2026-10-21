@@ -18,7 +18,7 @@ As of 2026-10-17:
 - Also working (2026-10-19): the game settings file with an automatic day/night clock, buying businesses (dawn payouts, house guards) and attacking unowned ones at night.
 - Also working (2026-10-19): War Lantern raids on rival businesses, defending your own, and the unit frames.
 - Also working (2026-10-19): the rival bot clan (3 difficulties, home hideouts).
-- Next: playtest and tune; see `docs/roadmap.md`.
+- Next: playtest and tune; see [the roadmap](docs/roadmap.md). After the current phases and playtest: [architecture and maintenance pass](docs/roadmap.md#architecture-and-maintenance-pass-tim-2026-10-21) (Tim, 2026-10-21).
 - The sprite pipeline works end to end for the whole cast.
 
 See [START_HERE.md](START_HERE.md) for details and links.

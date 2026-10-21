@@ -1,7 +1,8 @@
 // The hero's action bar (WoW-style), bottom centre: portrait and health, the basic attack
 // and the Q E R F abilities with cooldown sweeps, active buffs above, crew health pips
 // with their names on the left (click one to select it, Shift-click to add or drop it,
-// double-click to jump the camera to it).
+// double-click to select it alone and jump the camera to it). Control-group numbers
+// appear under assigned crew; changing selection never changes their orders.
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 
@@ -14,7 +15,7 @@ function tooltip(a, key, stats) {
   if (!a) return { name: 'Auto attack', key: 'Right-click', lines: [
     ['Damage', `${dmg} per hit`], ['Attack speed', `every ${stats.attackSpeed} s`], ['Range', `${stats.attackRange} steps`],
     ['Critical hit', `${pct(stats.critChance || 0)} chance, ${stats.critMultiplier || 2}x damage`]],
-    about: 'Right-click an enemy or townsperson to lock on: the hero hits it whenever it is in range (no chasing, keep close with WASD); on a downed one he finishes it off. Tab locks him onto the nearest enemy (Tab again: the next one); a left-click only marks it in blue, and a left-click anywhere else drops his target and stops the auto attack. Ctrl + right-click sends your selected crew instead; T sends all your crew at the hero\'s target. Standing still, the hero hits the nearest enemy in reach.' };
+    about: 'Right-click or Tab attacks with the hero and selected available crew; independent T/Ctrl assignments keep their targets. Ctrl + right-click orders selected crew only. T sends outdoor crew; indoor crew stay at their duties. During execution, attacks order selected crew while the hero keeps executing. Hero movement, Escape or an enemy hit interrupts execution.' };
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     rally: [['Effect', `you and your crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of your and each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
@@ -38,12 +39,13 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;
-    if (e.target.closest('.lock')) { crewInput.toggleLock(id); return; }   // the padlock: lock / unlock (Tim 2026-10-20)
     const sel = crewInput.selected();
     crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);   // toggles: the selection sticks (Tim 2026-10-19)
   });
   crew.addEventListener('dblclick', e => {
+    if (e.button !== 0) return;
     const id = e.target.closest('.mate')?.dataset.id, u = game.state.entities[id];
+    if (id) crewInput?.select([id]);
     if (u) jump(u);
     else if (id && game.police?.hq?.door) jump({ place: 'street', x: game.police.hq.door[0], z: game.police.hq.door[1] });   // jailed: the HQ
   });
@@ -103,11 +105,11 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
     // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out
     // (jailed ones can be picked: the selection panel says they are in jail)
-    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp).sort((a, b) => !!a.locked - !!b.locked);   // locked crew last
+    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp);
     const clinic = game.state.clans?.[h.owner]?.clinic || [];
     const jail = game.state.clans?.[h.owner]?.jail || [];
     const n = crewList.length + clinic.length + jail.length;
-    while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); el('b', 'lock', m, '🔒').title = 'Locked: C, drag boxes and T leave them be (click to unlock, or L)'; }
+    while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); el('b', 'group', m); }
     while (crew.children.length > n) crew.lastChild.remove();
     crewList.forEach((e, i) => {
       const m = crew.children[i], f = e.hp / e.maxHp, name = unitName(units, e.type);
@@ -117,16 +119,19 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.classList.toggle('down', !!e.downed);
       m.classList.remove('away', 'jailed');
       m.classList.toggle('passive', e.order?.kind === 'stop');   // Z: stopped and passive
-      m.classList.toggle('locked', !!e.locked);
+      const group = crewInput?.groupOf(e.id);
+      m.children[2].textContent = group ? `${group}` : '';
+      m.children[2].title = group ? `Group ${group}: press ${group} to select; Ctrl+${group} with this group selected dissolves it` : '';
       m.dataset.id = e.id;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
-      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}`;
+      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${group ? ` (group ${group})` : ''}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}; double-click to select only this crew member`;
     });
     clinic.forEach((c, i) => {
       const m = crew.children[crewList.length + i];
       m.firstChild.textContent = unitName(units, c.unit);
       m.children[1].style.setProperty('--hp', '100%');
-      m.classList.remove('hurt', 'down', 'jailed', 'passive', 'locked');
+      m.classList.remove('hurt', 'down', 'jailed', 'passive');
+      m.children[2].textContent = ''; m.children[2].title = '';
       m.classList.add('away');
       m.classList.remove('picked');
       delete m.dataset.id;
@@ -136,7 +141,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       const m = crew.children[crewList.length + clinic.length + i], name = unitName(units, p.unit);
       if (m.firstChild.textContent !== name) m.firstChild.textContent = name;
       m.children[1].style.setProperty('--hp', '100%');
-      m.classList.remove('hurt', 'down', 'passive', 'locked');
+      m.classList.remove('hurt', 'down', 'passive');
+      m.children[2].textContent = ''; m.children[2].title = '';
       m.classList.add('away', 'jailed');
       m.dataset.id = p.id;
       m.classList.toggle('picked', crewInput?.selected().includes(p.id) || false);

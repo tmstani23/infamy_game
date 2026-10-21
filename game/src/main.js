@@ -21,6 +21,7 @@ import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
 import { createBot } from './sim/bot.js';
 import { createNinjaBot } from './sim/ninja_bot.js';
+import { bindCrewNumberKeys } from './crew_hotkeys.js';
 import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
 import { createGameMap } from './game_map.js';
@@ -209,11 +210,9 @@ async function start() {
   onKey('Tab', () => crewInput.tab());
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onKey('KeyT', () => crewInput.crewAttack());
-  onKey('KeyL', () => crewInput.lockSelected());   // lock / unlock the selected crew (Tim 2026-10-20)
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); crewInput.clear(); $('controls').hidden = true; gameMap.close(); });
-  ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']
-    .forEach((k, i) => onKey(k, () => clinicMenu.isOpen() ? clinicMenu.pick(i) : policeMenu.isOpen() ? policeMenu.pick(i) : contractMenu.isOpen() ? contractMenu.pick(i) : hireMenu.pick(i)));
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; gameMap.close(); });
+  bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
   const sound = createSound();
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
   const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };

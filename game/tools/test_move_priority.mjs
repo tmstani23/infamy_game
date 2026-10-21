@@ -19,7 +19,7 @@ function setup() {
   assert.ok(u.swing, 'crew are actually in an attack wind-up before the move');
   let received = 0;
   g.step([{ id: hero, type: 'order', units: [id], kind: 'move', x: -12, z: 1 },
-    { id: hero, type: 'attack', target: foe, assist: true }]);
+    { id: hero, type: 'attack', target: foe, assist: true, units: [id] }]);
   const target = [u.order.x, u.order.z];
   for (let i = 0; i < 120 && !u.order.arrived; i++) {
     assert.equal(u.order.kind, 'move', 'hero target cannot replace a pending move');

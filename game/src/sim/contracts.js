@@ -24,7 +24,7 @@ const DEFAULTS = {
   boss: { ryo: 400, renown: 40 },
   bandits: { ryo: 200, renown: 20, count: 5 },
 };
-const KIND_NAME = { teahouse: 'Teahouse', warehouse: 'Warehouse', gambling_den: 'Gambling den', hideout: 'hideout' };
+const KIND_NAME = { shop: 'Shop', tenements: 'Tenements', pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', teahouse: 'Teahouse', warehouse: 'Warehouse', gambling_den: 'Gambling den', hideout: 'hideout' };
 
 // backRoom(b) = { x, z } of a business's back-room spot (in its room); WILD = the bandits' owner id
 // leader() = the clan leading the season score (or null)

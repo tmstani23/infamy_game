@@ -116,7 +116,11 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (!able) raidPlan = false;
     else if (!raidPlan && rnd() < B.raidChance) raidPlan = true;
     if (raidPlan) {
-      const stale = targets.find(b => !ai.blocked(`scout:${b.id}`) && (!seen[b.id] || (!state.night && !fresh(b))));
+      const scoutable = targets.filter(b => !ai.blocked(`scout:${b.id}`));
+      // Visit new targets before refreshing old reports: with more businesses,
+      // early reports can expire before the scout has reached the last property.
+      const stale = scoutable.find(b => !seen[b.id])
+        || (!state.night && scoutable.find(b => !fresh(b)));
       if (!(c.lanterns > 0)) return { kind: 'raid', business: targets[0].id };      // buys the lantern first
       if (stale) return { kind: 'scout', business: stale.id };
       const t = targets.filter(b => seen[b.id]).sort((a, b) => seen[a.id].defenders - seen[b.id].defenders)[0];
@@ -362,8 +366,6 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     }
     if (hq && h.place === hq.room && (h.hp < h.maxHp * B.restUntilHp || crew().some(u => u.place === hq.room && u.hp < u.maxHp * 0.65)) && goal?.kind !== 'hire') {
       goal = null;
-      const recovered = crew().filter(u => u.place === hq.room && u.locked && u.order?.kind === 'follow');
-      if (recovered.length) out.push({ id: hero, type: 'lock', units: recovered.map(u => u.id), on: false });
       out.push({ id: hero, type: 'move', right: 0, down: 0 });
       return out;
     }

@@ -24,20 +24,32 @@ const waitingBandit = (g, x, z, type = 'bandit') => {
   return g.state.entities[id];
 };
 
-// Sight starts fights at four units, not at the old eight-unit assistance radius.
+// Sight starts fights at six units, with individual target acquisition.
 {
   const g = newGame(), b = waitingBandit(g, -8, 1), friend = waitingBandit(g, -4, 1);
-  const h = g.state.entities[g.spawn('hero', 'ronin', -12.25, 1, { owner: 'player' })];
+  const h = g.state.entities[g.spawn('hero', 'ronin', -14.25, 1, { owner: 'player' })];
   g.step(); assert.ok(!b.angry, 'outside sight range stays calm');
-  h.x = -11.75; g.step();
-  assert.ok(b.angry?.player, 'sight alone starts a fight inside four units');
-  assert.ok(!friend.angry, 'sighting does not give friends an eight-unit vision radius');
+  h.x = -13.75; g.step();
+  assert.ok(b.angry?.player, 'sight alone starts a fight inside six units');
+  assert.ok(!friend.angry, 'friends outside their own sight range stay calm');
   const hp = h.hp;
   run(g, 2);
   assert.ok(h.hp < hp, 'bandit approaches and attacks without player input');
-  h.x = -40; h.z = 1; run(g, 2);
-  assert.ok(!b.angry, 'pursuit ends after the target escapes');
-  console.log('four-unit sight, local acquisition, actual damage and escape ok');
+  h.x = b.x - 6.25; h.z = b.z; g.step();
+  assert.ok(!b.angry && !b.swing, 'pursuit ends just beyond six without immediately reacquiring');
+  for (let i = 0; i < 40; i++) { h.x -= 6 / 20; g.step(); assert.ok(!b.angry, 'ordinary running keeps the chase disengaged'); }
+  console.log('six-unit sight, local acquisition, actual damage and escape ok');
+}
+
+// Every wild type shares the same pursuit boundary, including ninja-type wild units.
+for (const type of ['bandit', 'night_brute', 'ninja']) {
+  const g = newGame(), b = waitingBandit(g, -8, 1, type);
+  const h = g.state.entities[g.spawn('hero', 'ronin', -10, 1, { owner: 'player' })];
+  g.step(); assert.ok(b.angry?.player);
+  h.x = b.x - 5.75; h.z = b.z; g.step();
+  assert.ok(b.angry?.player, `${type} remains engaged within six`);
+  h.x = b.x - 6.25; h.z = b.z; g.step();
+  assert.ok(!b.angry && !b.swing, `${type} drops pursuit outside six`);
 }
 
 // Vision must respect walls, hidden ninja, smoke, and invalid combat targets.
@@ -198,7 +210,7 @@ for (const type of ['bandit', 'night_brute']) {
     for (const b of bandits(g)) { seen.add(b.id); if (i % 200 === 0) b.hp = 0, b.dead = true, b.diedAt = g.state.tick; }
   }
   assert.equal(seen.size, B.rules.perNight, `perNight come when killed (${seen.size})`);
-  const t = g.spawn('night_brute', 'brute', -1, 4, { owner: 'bandits', wild: true }); g.bandits.mind[t] = { spot: 'stay', until: 1e9 };
+  const t = g.spawn('night_brute', 'brute', 3, 1, { owner: 'bandits', wild: true }); g.bandits.mind[t] = { spot: 'stay', until: 1e9 };
   const crew = g.spawn('thug', 'thug', -7, 3, { owner: 'player', order: { kind: 'follow', target: hero } });
   run(g, 2);
   assert.ok(!g.state.entities[crew].swing, 'crew ignore calm bandits');

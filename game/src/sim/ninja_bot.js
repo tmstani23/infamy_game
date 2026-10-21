@@ -288,8 +288,6 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     }
     if (hq && h.place === hq.room && (h.hp < h.maxHp * B.restUntilHp || crew().some(u => u.place === hq.room && u.hp < u.maxHp * 0.65)) && goal?.kind !== 'hire') {
       goal = null;
-      const recovered = crew().filter(u => u.place === hq.room && u.locked && u.order?.kind === 'follow');
-      if (recovered.length) out.push({ id: hero, type: 'lock', units: recovered.map(u => u.id), on: false });
       out.push({ id: hero, type: 'move', right: 0, down: 0 });
       return out;
     }

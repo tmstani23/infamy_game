@@ -3,13 +3,12 @@
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
 // Only reads the state; orders go out as the same commands the keys send.
 const CMDS = [
-  { key: 'V', name: 'Follow', tip: 'Selected crew follow the hero.', act: c => c.followMe(), need: 'sel' },
-  { key: 'T', name: 'Attack', tip: 'All your crew (selected or not) attack the unit you marked with a left-click, or else the hero\'s target; a downed one they finish off. Afterwards they go back to what they were doing (follow, hold, stop).', act: c => c.crewAttack(), need: 'crew' },
+  { key: 'V', name: 'Follow', tip: 'Selected crew in your current location follow the hero. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
+  { key: 'T', name: 'Attack', tip: 'Your outdoor crew (selected or not) attack the marked unit or hero\'s target; downed: execute. Indoor crew stay at their duties. Press T again to resume previous orders. Use selected crew commands indoors.', act: c => c.crewAttack(), need: 'outdoor' },
   { key: 'Z', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
   { key: 'X', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
-  { key: 'G', name: 'Clinic', tip: 'Selected crew walk to the clinic to heal (for ryo).', act: c => c.healSelected(), need: 'sel' },
-  { key: 'C', name: 'All', tip: 'Select all your crew (not locked ones).', act: c => c.selectAll(), need: 'crew' },
-  { key: 'L', name: 'Lock', tip: 'Lock the selected crew (all locked already: unlock them). Locked crew are left out of C, drag boxes and T; crew you send into your businesses lock by themselves.', act: c => c.lockSelected(), need: 'sel' },
+  { key: 'G', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
+  { key: 'C', name: 'All', tip: 'Select all your crew, keeping control groups. Ctrl+1–4 assigns a group; 1–4 selects it. Repeat the same assignment to dissolve it.', act: c => c.selectAll(), need: 'crew' },
 ];
 
 const CSS = `
@@ -62,8 +61,12 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
     const S = game.state.entities, h = S[heroId];
     const usable = e => e && e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead;
     const crew = Object.values(S).some(usable);
+    const outdoor = h?.place === 'street' && Object.values(S).some(e => usable(e) && e.place === 'street' && !e.downed && !e.jailed);
     const sel = crewInput.selected().some(id => usable(S[id]));
-    for (const { b, cmd } of buttons) b.classList.toggle('off', !(cmd.need === 'sel' ? sel : crew));
+    const follow = crewInput.selected().some(id => usable(S[id]) && S[id].place === h?.place);
+    const street = crewInput.selected().some(id => usable(S[id]) && S[id].place === 'street');
+    const available = { sel, follow, street, outdoor, crew };
+    for (const { b, cmd } of buttons) b.classList.toggle('off', !available[cmd.need]);
   }
   return { update };
 }

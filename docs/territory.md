@@ -22,7 +22,7 @@ Related docs:
 ## 2. Game map (M)
 
 - Full-screen map over the game. The game keeps running (no pause, so it works in multiplayer). M or Esc closes it.
-- Phase 1 map markers (Tim, 2026-10-21): Shop **S**, Tenements **N**. Both use normal business territory and owner colours.
+- Business markers (Phase 3E, Tim, 2026-10-21): Shop **S**, Tenements **N**, Pawnshop **Q**, Bathhouse **A**, Sake Brewery **K**, Manor **R**, Customs House **U**. All use normal territory and owner colours; the full map includes a key.
 - Layers with toggles: Territory, Businesses (letters + owner colour), Police (HQ, boxes, officers you can see), Units you can see. All on by default. There is no fog toggle: the map always uses your fog.
 - Quarters are drawn as white dotted outlines with their names centred; the outline turns the holder's colour when one clan holds every business in it.
 - Hover a business: owner. Hover a quarter: its holder (+25% payout). Hover the score: the breakdown. Click: the camera jumps there and the map closes.
@@ -41,7 +41,7 @@ Related docs:
 ## 4. Season score and season end
 
 - One score for all clans, most points wins.
-  - Yakuza: points for businesses held, weighted teahouse 1, shop 1, warehouse 2, gambling den 3, tenements 4 (Phase 1, Tim, 2026-10-21).
+  - Yakuza: points for businesses held, weighted teahouse/shop/pawnshop 1 each; warehouse/bathhouse/sake brewery 2 each; gambling den 3; tenements/manor/customs house 4 each (Phase 3E, Tim, 2026-10-21).
   - Ninja: 1 point per 50 Renown (2026-10-21; `season.renownPerPoint`), built with the ninja contracts (`ninja_clan_plan.md`).
 - Score in the top bar ("Day 3/10 · You 2 · Kuroda 3") and on the M map. Scores are counted at dawn.
 - Single-player season length: 10 day/night cycles (a setting).
@@ -58,6 +58,6 @@ Related docs:
 
 - Code: `game/src/sim/territory.js` (`createTerritory`: `ownerAt`, `inOwn`, `areaAt`, `standings`, `quarters`; the grid is worked out from business owners, not kept in the state), `game/src/game_map.js` (the M map, reusing `minimap.js` big), the score line and results screen in `main.js`.
 - Numbers: `settings.json` `territory` (radius per kind, `healFactor` 2, `heatCoolSeconds` 20, `crewSpeed` 1.1, `quarterBonus` 0.25, `intruderAlertSeconds` 30) and `season` (`cycles` 10, `renownPerPoint` 100); business scores in `businesses[kind].score` (current weights: section 4).
-- Quarters are boxes in `port_town.json` `quarters`: Pleasure Quarter (teahouse + den), The Bund (warehouse, box [-58, -33, -26, -9]).
+- Quarters (`port_town.json`, Phase 3E, 2026-10-21): Bund = Warehouse + Tenements; West Ward = Shop + Bathhouse + Manor; East Ward = Pawnshop + Sake Brewery + Customs House; Pleasure Quarter = Teahouse + Gambling Den. Hold every scoring business in a quarter for its 25% income bonus.
 - News (`state.news`): `intruder` ("Rivals in your territory!" + minimap ping), `quarter` / `quarterLost`, `seasonEnd`.
 - Test: `game/tools/test_territory.mjs`.

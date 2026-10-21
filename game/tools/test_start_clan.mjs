@@ -6,6 +6,8 @@ import { createGame } from '../src/sim/game.js';
 import { startClan } from '../src/sim/start_clan.js';
 import { generateRoom } from '../src/sim/generate.js';
 import { buildingInfo } from '../src/building_panel.js';
+import { createBot } from '../src/sim/bot.js';
+import { createNav, ROOM_NAV } from '../src/sim/nav.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const settings = data('data/settings.json'), district = data('data/port_town.json');
@@ -24,7 +26,7 @@ for (const ninja of [false, true]) {
   startClan(g, { ...data('data/bots.json').clan, bot: true, model: 'rival_yakuza' });
   startClan(g, ninja ? { id: 'yakuza', bot: true } : { id: 'shinobi', kind: 'ninja', bot: true });
   for (const c of Object.values(g.state.clans)) {
-    assert.equal(c.ryo, 300, `${c.id} starts with the same treasury`);
+    assert.equal(c.ryo, 200, `${c.id} starts with the same treasury`);
     assert.equal(c.queue.length, 0, 'the initial recruit is free, not queued');
     const crew = g.clans.crewOf(c.id), hero = Object.values(g.state.entities).find(e => e.owner === c.id && e.type === 'hero');
     assert.equal(crew.length, 1, `${c.id} starts with one recruit`);
@@ -43,7 +45,7 @@ for (const ninja of [false, true]) {
   assert.ok(Object.values(g.state.businesses).filter(b => g.businesses.rules[b.kind]).every(b => !b.owner));
   assert.ok(g.state.entities[player]);
 }
-console.log('both normal clan setups: 300 ryo, one matching recruit, HQ only');
+console.log('both normal clan setups: 200 ryo, one matching recruit, HQ only');
 
 // The separate ninja squad test and rich bot test retain explicit overrides.
 {
@@ -53,14 +55,15 @@ console.log('both normal clan setups: 300 ryo, one matching recruit, HQ only');
   startClan(g, { id: 'kuroda', bot: true, model: 'rival_yakuza', ryo: 5000 });
   startClan(g, { id: 'yakuza', bot: true, ryo: 3000 });
   assert.equal(g.clans.crewCount('player'), 2);
-  assert.equal(g.state.clans.player.ryo, 300);
+  assert.equal(g.state.clans.player.ryo, 200);
   assert.equal(g.state.clans.kuroda.ryo, 5000);
   assert.equal(g.state.clans.yakuza.ryo, 3000);
 }
 console.log('explicit testing overrides preserved');
 
 const expected = { teahouse: [400, 100, 1], shop: [400, 100, 1], warehouse: [700, 175, 2],
-  gambling_den: [1200, 300, 2], tenements: [1600, 400, 3] };
+  gambling_den: [1200, 300, 2], tenements: [1600, 400, 3], pawnshop: [400, 100, 1],
+  bathhouse: [700, 175, 2], sake_brewery: [700, 175, 2], manor: [1600, 400, 3], customs_house: [1600, 400, 3] };
 const base = data('data/units.json').rules;
 const g = make();
 const heroId = startClan(g, { id: 'player', position: district.spawns.hero });
@@ -77,13 +80,17 @@ for (const [kind, [price, payout, slots]] of Object.entries(expected)) {
 }
 
 // Real door commands, purchases, guards, payouts, territory, capacity and raid eligibility.
-for (const kind of ['shop', 'tenements']) {
+for (const kind of ['shop', 'tenements', 'pawnshop', 'bathhouse', 'sake_brewery', 'manor', 'customs_house']) {
   const b = Object.values(g.state.businesses).find(b => b.kind === kind);
   const i = Number(b.id.slice(1)), [price, payout, slots] = expected[kind];
   const room = g.rooms.find(r => r.name === b.room);
   const generated = generateRoom(kind, district.buildings[i].interior.seed, recipes, parts);
   assert.deepEqual(generated.problems, [], `${kind} interior has clear walkways`);
   assert.ok(g.nav.free(...b.ring) && g.nav.findPath(...district.spawns.hero, ...b.ring));
+  if (kind === 'manor') {
+    const foot = g.scenery.find(s => s.building === i).foot;
+    assert.ok(b.ring[0] - 1.2 > foot.maxX, 'Manor entrance ring clears the courtyard wall on the gate side');
+  }
   Object.assign(hero, { x: b.ring[0], z: b.ring[1], place: 'street' });
   g.step([{ id: heroId, type: 'use', units: [] }]);
   assert.equal(hero.place, room.name, `enter ${kind}`);
@@ -104,7 +111,7 @@ for (const kind of ['shop', 'tenements']) {
   assert.equal(rows['Pays you'], `${payout} ryo at dawn`);
   g.step([{ type: 'time', night: true }]);
   g.step([{ type: 'time', night: false }]);
-  const totalPay = Object.values(g.state.businesses).filter(b => b.owner === 'player').reduce((n, b) => n + (g.businesses.rules[b.kind]?.payout || 0), 0);
+  const totalPay = Object.values(g.state.businesses).filter(b => b.owner === 'player').reduce((n, b) => n + Math.round((g.businesses.rules[b.kind]?.payout || 0) * g.territory.payoutBonus(b)), 0);
   assert.equal(clan.ryo, totalPay);
   g.clans.addClan('rival', { ryo: 0 });
   const rival = g.spawn('hero', 'rival_yakuza', ...b.ring, { owner: 'rival' });
@@ -113,5 +120,83 @@ for (const kind of ['shop', 'tenements']) {
   assert.equal(g.businesses.canRaid(rival, b.id).ok, true, `${kind} can be raided`);
   delete g.state.entities[rival];
 }
-console.log('business prices/caps, Shop and Tenements entrances, purchases, guards, payouts and raids ok');
-assert.equal(g.territory.score('player'), 5, 'Shop and Tenements contribute to season scoring');
+console.log('business prices/caps, seven converted building entrances, purchases, guards, payouts and raids ok');
+assert.equal(g.territory.score('player'), 18, 'all purchased businesses contribute to season scoring');
+
+// Every scoring business belongs to exactly one intended quarter. A partial
+// holding earns no bonus, and losing any member removes it from the whole quarter.
+const composition = { bund: ['warehouse', 'tenements'], west: ['shop', 'bathhouse', 'manor'],
+  east: ['pawnshop', 'sake_brewery', 'customs_house'], pleasure: ['teahouse', 'gambling_den'] };
+const businesses = Object.values(g.state.businesses).filter(b => g.businesses.rules[b.kind]);
+assert.equal(businesses.length, 10);
+for (const b of businesses) b.owner = null;
+for (const q of g.territory.quarters) {
+  assert.deepEqual(q.businesses.map(id => g.state.businesses[id].kind).sort(), [...composition[q.id]].sort());
+  const members = q.businesses.map(id => g.state.businesses[id]);
+  members[0].owner = 'player';
+  assert.equal(g.territory.payoutBonus(members[0]), 1, 'single-property holdings have no quarter bonus');
+  for (const b of members) b.owner = 'player';
+  assert.ok(members.every(b => g.territory.payoutBonus(b) === 1.25));
+  members.at(-1).owner = 'rival';
+  assert.ok(members.every(b => g.territory.payoutBonus(b) === 1));
+  members.at(-1).owner = 'player';
+}
+assert.equal(new Set(g.territory.quarters.flatMap(q => q.businesses)).size, 10);
+assert.equal(g.clans.crewCap('player'), 23, 'all ten businesses grow capacity without a separate hard cap');
+assert.equal(g.territory.score('player'), 24);
+console.log('all four quarter memberships, partial/full/lost bonuses and expanded crew capacity ok');
+
+// New types must be real investment alternatives, not merely player-only doors.
+// Keep one unclaimed option at a time and let the ordinary bot choose and buy it.
+for (const kind of ['pawnshop', 'bathhouse', 'sake_brewery', 'manor', 'customs_house']) {
+  const game = make();
+  const id = startClan(game, { id: 'kuroda', bot: true, ryo: expected[kind][0] });
+  const target = Object.values(game.state.businesses).find(b => b.kind === kind);
+  for (const b of Object.values(game.state.businesses)) {
+    if (game.businesses.rules[b.kind] && b !== target) game.clans.setOwner(b.id, 'kuroda');
+  }
+  Object.assign(game.state.entities[id], { x: target.ring[0], z: target.ring[1] });
+  const bot = createBot(game, { clan: 'kuroda', hero: id, rules: {
+    escort: 0, stationPerBusiness: 0, reserve: 0, huntBandits: false,
+    patrolChance: 0, raidChance: 0, attackChance: 0,
+  } });
+  for (let i = 0; i < 20 * 15 && !target.owner; i++) game.step(bot.tick());
+  assert.equal(target.owner, 'kuroda', `rival AI invests in ${kind}`);
+  assert.equal(game.state.clans.kuroda.ryo, 0, 'AI pays the same purchase price');
+}
+console.log('rival AI can choose and purchase each new business type');
+
+// All ownable interiors expose Shinobi back-window entry/exit and reachable
+// contract spots. Sabotage generates a marker only while that job is active;
+// Scout needs no interior circle, and business Steal jobs are a later pass.
+{
+  const game = make();
+  game.clans.addClan('rival');
+  const id = startClan(game, { id: 'shinobi', kind: 'ninja', position: district.spawns.ninja });
+  const ninja = game.state.entities[id];
+  for (const b of Object.values(game.state.businesses).filter(b => game.businesses.rules[b.kind])) {
+    game.clans.setOwner(b.id, 'rival');
+    const win = game.doors.find(d => d.ninja && d.place === b.room);
+    assert.ok(win?.to, `${b.kind} has a Shinobi entrance ring`);
+    assert.ok(game.nav.free(win.x, win.z) && game.nav.findPath(...district.spawns.ninja, win.x, win.z));
+    Object.assign(ninja, { x: win.x, z: win.z, place: 'street' });
+    game.step([{ id, type: 'use', units: [] }]);
+    assert.equal(ninja.place, b.room, `${b.kind} back window enters its own interior`);
+    const room = game.rooms.find(r => r.name === b.room);
+    const nav = createNav(room.blockers, { minX: room.origin.x, minZ: room.origin.z,
+      maxX: room.origin.x + room.size[0], maxZ: room.origin.z + room.size[1] }, ROOM_NAV);
+    const mark = game.contracts.backRoom(b), stash = game.contracts.stash(b);
+    for (const spot of [mark, stash]) {
+      assert.ok(spot && nav.free(spot.x, spot.z) && nav.findPath(win.to.x, win.to.z, spot.x, spot.z), `${b.kind} contract location is reachable from the window`);
+    }
+    const job = { kind: 'mark', business: b.id, target: 'rival', clan: 'shinobi', progress: 0 };
+    game.state.contracts.active.shinobi = job;
+    game.step();
+    assert.deepEqual([job.spot.x, job.spot.z], [mark.x, mark.z], `${b.kind} active sabotage exposes the interior ring`);
+    delete game.state.contracts.active.shinobi;
+    Object.assign(ninja, { x: win.to.x, z: win.to.z });
+    game.step([{ id, type: 'use', units: [] }]);
+    assert.equal(ninja.place, 'street', `${b.kind} has a working Shinobi exit ring`);
+  }
+}
+console.log('all ten businesses: Shinobi back-window entry/exit and reachable interior contract markers ok');

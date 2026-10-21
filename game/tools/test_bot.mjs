@@ -72,7 +72,7 @@ const bots = data('data/bots.json');
     bought = Object.values(g.state.businesses).find(b => b.owner === 'kuroda' && !b.hideout);
   }
   assert.ok(bought, 'bought a business');
-  assert.ok(['teahouse', 'shop'].includes(bought.kind), 'chooses an efficient starter instead of spending nearly everything on the den');
+  assert.ok(g.businesses.rules[bought.kind].price <= 700, 'chooses a nearby low/mid-tier property instead of spending nearly everything on the den');
   for (let i = 0; i < 20 * 120 && g.clans.crewCount('kuroda') < 1; i++) g.step(bot.tick());
   assert.ok(g.clans.crewCount('kuroda') + c.queue.length >= 1, 'hired crew at home');
   console.log('bot buys and hires ok', bought.kind, 'crew', g.clans.crewCount('kuroda'), 'ryo', c.ryo);
@@ -169,7 +169,7 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   for (const b of mine) t.g.clans.setOwner(b.id, 'player');   // nothing left to buy, including new business kinds
   for (const id of t.ids) Object.assign(t.S[id], { hp: 1e6, maxHp: 1e6 });
   assert.ok(t.run(150, () => t.g.state.clans.kuroda.lanterns === 1), 'bought a War Lantern');
-  assert.ok(t.run(150, () => mine.every(b => t.bot.seen[b.id])), 'scouted your businesses');
+  assert.ok(t.run(30 * mine.length, () => mine.every(b => t.bot.seen[b.id])), 'scouted every business without repeatedly refreshing early targets');
   t.g.step([{ type: 'time', night: true }]);
   let raid = null;
   assert.ok(t.run(150, () => (raid = Object.values(t.g.state.attacks).find(a => a.mode === 'raid' && a.clan === 'kuroda'))), 'raid started');

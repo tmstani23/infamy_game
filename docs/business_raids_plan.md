@@ -33,7 +33,8 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 ## 1. Owning a business
 
-- Five purchasable businesses start unowned: **teahouse**, **shop**, **warehouse**, **gambling den**, **tenements**. Shop and Tenements were existing scenery; both are now enterable, purchasable and raid-capable, with normal guards, dawn payouts and territory (Phase 1, Tim, 2026-10-21).
+- Ten purchasable businesses start unowned (table below). Phase 3E (Tim, 2026-10-21) adds Pawnshop, Bathhouse, Sake Brewery, Manor and Customs House from existing scenery. All support normal purchase, guards, attacks/raids, territory and AI investment. No building perks.
+- Manor entrance ring is outside its courtyard fence beside the front gate (2026-10-21).
 - Once you own one, it stays yours until someone takes it. You don't have to leave crew there.
 - Every owned business comes with **2 house guards** (free, no upkeep). Crew you station there defend automatically too.
 - Each business adds the crew capacity below; capacity does not grant free crew. Hiring venues: [crew recruiting](crew_recruiting_plan.md).
@@ -41,7 +42,7 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 ## 2. Payouts
 
 - Each owned business pays ryo **once per day/night cycle, at dawn** (default; Tim to confirm).
-- Approved Phase 1 balance (Tim, 2026-10-21); prices and dawn income are ryo:
+- Approved Phase 3E balance (Tim, 2026-10-21); prices and dawn income are ryo:
 
 | Business | Buy price | Dawn income | Added crew capacity |
 |---|---|---|---|
@@ -50,6 +51,11 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 | Warehouse | 700 | 175 | +2 |
 | Gambling den | 1200 | 300 | +2 |
 | Tenements | 1600 | 400 | +3 |
+| Pawnshop | 400 | 100 | +1 |
+| Bathhouse | 700 | 175 | +2 |
+| Sake Brewery | 700 | 175 | +2 |
+| Manor | 1600 | 400 | +3 |
+| Customs House | 1600 | 400 | +3 |
 
 - The police payout cut already hooked in (Manhunt tier, see `police_spec.md`) applies.
 - A gold ryo notice shows the payout (reuse the bandit ryo notice).
@@ -72,8 +78,8 @@ Two ways, both from the **building panel** (left-click the building; already bui
 ## 4. Raiding a rival's business (War Lantern)
 
 - A rival-owned business (bought or seized) can only be taken by a raid, and a raid always needs a **War Lantern** (Tim 2026-10-19): a tall red lantern on a pole with your clan crest, with a red aura.
-- **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, b16 on the map, M on the minimap), from its building panel at the door ring. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
-- **Cost: 2,400 ryo** (2x the den). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
+- **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, b16 on the map, M on the minimap), from its building panel at the door ring. Moneylender only; no Shop discount. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
+- **Cost: 1,200 ryo** (Phase 3D, Tim, 2026-10-21). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
 - The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 60 s** (warm-up; `rules.raid.warmupSeconds`, 2026-10-19). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
 - **Lost** (changed 2026-10-20): the raiding boss going down doesn't end it. During the warm-up only a knocked-down War Lantern does; once the doors are open, nobody of yours inside for 10 s in a row loses it (the screen counts it down). Also lost if the business changes owner.

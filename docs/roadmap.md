@@ -40,3 +40,13 @@ Tim's order from here (2026-10-20): a fully playable single-player game first, s
 13. Later (after the core game): combat variety (Tim 2026-10-19, planned, not built), so fights aren't one big auto-attack huddle. Ideas: per-enemy special attacks (knockdowns, stuns, charged shots); police types such as ranged officers who back off and fire a charged shot, and a captain; AI that spreads out and flanks instead of piling in.
 
 On hold: real estate (market, selling, lots, development) until the map can grow (Tim 2026-10-20).
+
+## Architecture and maintenance pass (Tim, 2026-10-21)
+
+After the current phases and their playtest, do a focused architecture pass before starting the next feature batch:
+
+- [ ] Audit module boundaries and make a short, prioritized refactoring checklist.
+- [ ] Organize growing sim/game logic and shared AI helpers; consolidate repeated interaction, targeting and lifecycle rules.
+- [ ] Add regression coverage for cross-system behavior: stealth, downed units, services, contracts and raids.
+- [ ] Refactor in small, tested steps, keeping gameplay behavior unchanged.
+- [ ] Update [architecture.md](architecture.md) to match the code.

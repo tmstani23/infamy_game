@@ -75,3 +75,12 @@ No miss/dodge yet: that comes with combat variety (`roadmap.md`).
   - Shadow Step: a target-frame target within range+1 comes first (step on, crit, auto-attack), else toward the mouse. Assassinate: frame target first, else the unit at the mouse; both can hit townsfolk and police. Assassinate cooldown 45 s.
   - FX: bigger white crit slash and Assassinate (~0.8 s), lunge streak + white V, short hit-pause on the crit. Bridge mushrooms: 42, 3 shapes, soft glow.
   - Renown: 1 season point per 50 (`settings.json` `season.renownPerPoint`), 1 crew slot per 75 (`units.json` `renownPerCrew`). Map shows "N Renown (M to next)". Shinobi appear on the results screen and can win.
+
+Phase 3E access (Tim, 2026-10-21): all ten ownable businesses have Shinobi back-window entry/exit and reachable sabotage objectives. The interior sabotage ring appears during an active contract; Scout needs no interior circle. Business-target Steal remains deferred.
+
+## Deferred Shinobi pass (Tim, 2026-10-21; not built)
+
+- Prohibit entry into rival main home bases, including contract windows. Move Steal contracts from HQs to owned businesses; design details later.
+- When a contract against a clan fails, notify that clan with the contract type. Keep the initial warning generic.
+- Scale contract ryo/Renown with target business strength and review Shinobi crew/season progression. Approved Steal formula: 20% of treasury, capped at 500 + 100 × target owned business score; not implemented.
+- Current reveal-triggered hideout alert stays unchanged.

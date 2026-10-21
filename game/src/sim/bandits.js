@@ -122,10 +122,10 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     // anger ends after angrySeconds, or when nobody of that clan is within giveUpDistance
     if (e.angry) {
       for (const [clan, until] of Object.entries(e.angry)) {
-        const near = Object.values(state.entities).some(o => o.owner === clan && !o.dead && !o.downed && o.place === e.place && Math.hypot(o.x - e.x, o.z - e.z) <= (R.giveUpDistance ?? 15));
+        const near = Object.values(state.entities).some(o => o.owner === clan && !o.dead && !o.downed && !o.jailed && o.place === e.place && Math.hypot(o.x - e.x, o.z - e.z) <= (R.giveUpDistance ?? 6));
         if (state.tick >= until || !near) delete e.angry[clan];
       }
-      if (!Object.keys(e.angry).length) delete e.angry;
+      if (!Object.keys(e.angry).length) { delete e.angry; delete e.swing; stopPath(e); }
     }
     const camp = campOf[m.camp];
     if (camp && Math.hypot(e.x - camp.x, e.z - camp.z) > (camp.leash ?? 10)) {
@@ -133,15 +133,14 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
       moveTo(e, statsOf(e), camp.x, camp.z, true);
       return;
     }
-    // Sight alone angers this bandit, rather than granting an entire nearby
-    // group an eight-unit detection range. Stealth and walls still hide targets.
+    // Each bandit acquires its own visible targets; stealth and walls still hide them.
     for (const t of Object.values(state.entities)) {
       if (!state.clans?.[t.owner] || t.owner === WILD || t.type === 'civilian' || t.dead || t.downed || t.jailed || t.place !== e.place) continue;
-      if (Math.hypot(t.x - e.x, t.z - e.z) > (R.sightRange ?? 4)) continue;
+      if (Math.hypot(t.x - e.x, t.z - e.z) > (R.sightRange ?? 6)) continue;
       if (camp && Math.hypot(t.x - camp.x, t.z - camp.z) > (camp.leash ?? 10)) continue;
       if (canSee(e, t)) (e.angry ||= {})[t.owner] = state.tick + secs(R.angrySeconds ?? 10);
     }
-    if (fightStep(e, R.giveUpDistance ?? 15)) { m.spot = null; m.until = null; return; }
+    if (fightStep(e, R.giveUpDistance ?? 6)) { m.spot = null; m.until = null; return; }
     const unit = statsOf(e);
     if (camp) {
       const distraction = e.distracted;

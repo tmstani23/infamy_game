@@ -141,7 +141,7 @@ const T = settings.territory;
   assert.equal(g.territory.score('player'), 4);
   assert.equal(g.territory.score('kuroda'), 2, 'hideouts score nothing');
   assert.deepEqual(g.territory.breakdown('player').map(x => x.points).sort(), [1, 3], 'score breakdown');
-  assert.ok(g.territory.quarters.find(q => q.id === 'bund')?.businesses.length === 1, 'the Bund has the warehouse');
+  assert.ok(g.territory.quarters.find(q => q.id === 'bund')?.businesses.length === 2, 'the Bund requires warehouse and tenements');
   for (let d = 0; d < 2; d++) { g.step([{ type: 'time', night: true }]); g.step([{ type: 'time', night: false }]); }
   assert.equal(g.state.season.over, false);
   g.step([{ type: 'time', night: true }]);

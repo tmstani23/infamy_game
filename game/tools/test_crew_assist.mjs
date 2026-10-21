@@ -17,44 +17,43 @@ const make = () => {
 
 {
   const { g, hero, recruit, foes, S } = make();
-  const free = recruit(), tAssigned = recruit(), ctrlAssigned = recruit(), stationed = recruit(), locked = recruit(), passive = recruit(), healing = recruit();
+  const free = recruit(), tAssigned = recruit(), ctrlAssigned = recruit(), stationed = recruit(), passive = recruit(), healing = recruit();
+  const selected = [free, tAssigned, ctrlAssigned, stationed, passive, healing];
   S[tAssigned].order = { kind: 'attack', target: foes[1], prev: { kind: 'follow', target: hero, slot: 1 } };
   S[ctrlAssigned].order = { kind: 'attack', target: foes[1] };
   S[stationed].order = { kind: 'station', x: -9, z: 1 };
-  S[locked].locked = true;
   S[passive].order = { kind: 'stop' };
   S[healing].hp = 100;
   S[healing].order = { kind: 'heal', x: -20, z: 20 };
-  g.step([{ id: hero, type: 'attack', target: foes[0], assist: true }]);
+  g.step([{ id: hero, type: 'attack', target: foes[0], assist: true, units: selected }]);
   assert.equal(S[free].order.target, foes[0]);
   assert.equal(S[free].order.assist, hero);
   assert.equal(S[tAssigned].order.target, foes[1]);
   assert.equal(S[ctrlAssigned].order.target, foes[1]);
   assert.equal(S[stationed].order.kind, 'station');
-  assert.equal(S[locked].order.kind, 'follow');
   assert.equal(S[passive].order.kind, 'stop');
   assert.equal(S[healing].order.kind, 'heal');
   assert.deepEqual(targetMarkers(g.state, hero, foes[0]), [{ id: foes[0], kind: 'shared' }, { id: foes[1], kind: 'crew' }]);
 
-  g.step([{ id: hero, type: 'attack', target: foes[1], assist: true }]);
+  g.step([{ id: hero, type: 'attack', target: foes[1], assist: true, units: selected }]);
   assert.equal(S[free].order.target, foes[1], 'automatic squad follows target changes');
   assert.equal(S[tAssigned].order.target, foes[1], 'T assignment stays put');
   assert.equal(S[ctrlAssigned].order.target, foes[1], 'Ctrl assignment stays put');
   const fresh = recruit();
   g.step();
-  assert.equal(S[fresh].order.assist, hero, 'a newly available recruit joins the current attack');
+  assert.equal(S[fresh].order.assist, undefined, 'a new unselected recruit never joins the current attack');
   g.step([{ id: hero, type: 'stopattack' }]);
   assert.equal(S[free].order.kind, 'follow', 'automatic squad resumes its former orders');
   assert.equal(S[fresh].order.kind, 'follow');
   assert.equal(S[tAssigned].order.kind, 'attack', 'stopping the hero preserves manual assignments');
   assert.equal(S[ctrlAssigned].order.kind, 'attack');
 
-  g.step([{ id: hero, type: 'attack', target: foes[0], assist: true }]);
+  g.step([{ id: hero, type: 'attack', target: foes[0], assist: true, units: selected }]);
   g.step([{ id: hero, type: 'order', units: [free], kind: 'attack', target: foes[1] }]);
-  g.step([{ id: hero, type: 'attack', target: foes[0], assist: true }]);
+  g.step([{ id: hero, type: 'attack', target: foes[0], assist: true, units: selected }]);
   assert.equal(S[free].order.target, foes[1], 'a manual assignment replaces automatic assistance');
   assert.equal(S[free].order.assist, undefined);
-  console.log('automatic assistance preserves T, Ctrl, station, lock, stop and heal orders');
+  console.log('automatic assistance preserves T, Ctrl, station, stop and heal orders');
 }
 
 // Exercise the actual input handlers with a minimal event surface, without a browser.
@@ -70,8 +69,9 @@ const make = () => {
   try {
     const input = createCrewInput({ game: g, view, heroId: hero, send: c => queue.push(c), box: { style: {} } });
     const flush = () => { g.step(queue.splice(0)); };
+    input.select([mate]);
     input.tab();
-    assert.deepEqual(queue[0], { id: hero, type: 'attack', target: foes[0], assist: true });
+    assert.deepEqual(queue[0], { id: hero, type: 'attack', target: foes[0], assist: true, units: [mate] });
     flush();
     assert.equal(S[hero].attackTarget, foes[0]);
     assert.equal(S[hero].swing?.target, foes[0], 'Tab starts the hero auto attack');
@@ -105,8 +105,9 @@ const make = () => {
     const other = view.unitToScreen(S[foes[0]].x, S[foes[0]].z);
     for (const fn of handlers.mousedown) fn({ ...event, clientX: other.x, clientY: other.y });
     flush();
-    assert.equal(S[free].order.target, foes[0], 'right-click assists even when no crew is selected');
+    assert.equal(S[free].order.kind, 'follow', 'right-click never recruits unselected crew');
     assert.equal(S[mate].order.target, foes[1], 'right-click preserves the Ctrl assignment');
+    input.select([free]); input.target(foes[0]); flush();
     g.state.clans.rival.kind = 'ninja';
     const hidden = S[foes[0]];
     g.state.smokes = [{ clan: 'rival', place: hidden.place, x: hidden.x, z: hidden.z, r: 3, until: g.state.tick + 200 }];

@@ -15,7 +15,7 @@ Status key: **Settled** = agreed. **Idea** = suggested, not agreed. **Open** = s
 - **2-week seasons**: everything resets at the end of a season except cosmetics.
 - Aimed at **20 to 40 minutes a day**; playing longer is allowed but pays off less.
 - Anti-grind rules:
-  - Raids need a **War Lantern** (2,400 ryo, carry 1; see `docs/business_raids_plan.md`, 2026-10-18).
+  - Raids need a **War Lantern**; cost and carry limit: [businesses and raids](business_raids_plan.md#4-raiding-a-rivals-business-war-lantern).
   - Diminishing returns on infamy and money after a daily share.
   - Crew caps come from property held, and each extra crew member costs more to hire.
   - Raids only in a fixed night window.
@@ -35,7 +35,7 @@ Chosen at the start of each season; switch next season. All paths compete on the
 - **Gaijin gunrunner** (later): starts at the foreign docks. Mercenary hero, cheap riflemen and explosives.
 - Non-ninja players can hire ninjas by earning the ninja village's favour through jobs.
 
-Normal starts (Phase 1, Tim, 2026-10-21): each clan has **300 ryo**, **one matching recruit** (one thug for Yakuza/Kuroda; one ninja for Shinobi), and **only its HQ owned**. The opening crew display is **1/3**; base capacity stays three. Separate test setups: [test switches](test_params.md).
+Normal starts (Phase 3D, Tim, 2026-10-21): each clan has **200 ryo**, **one matching recruit** (one thug for Yakuza/Kuroda; one ninja for Shinobi), and **only its HQ owned**. The opening crew display is **1/3**; base capacity stays three. Separate test setups: [test switches](test_params.md).
 
 Ideas not taken up yet: Bakuto gambling gangs, a merchant house, a specific Western nation for the gunrunner (British, American, French or Dutch).
 

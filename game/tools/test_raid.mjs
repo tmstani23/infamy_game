@@ -13,6 +13,7 @@ const g = createGame({
   settings: { ...data('data/settings.json'), dayNight: { auto: false } },
 });
 const RD = g.settings.units.rules.raid;
+assert.equal(RD.lanternPrice, 1200);
 g.clans.addClan('player', { name: 'Your clan' });
 g.clans.addClan('kuroda', { name: 'Kuroda clan', bot: true });
 const clan = g.state.clans.player;

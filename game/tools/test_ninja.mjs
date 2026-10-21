@@ -349,12 +349,16 @@ const newGame = () => {
   assert.equal(C.active.player?.id, job.id, 'taken');
   assert.ok(!C.board.some(j => j.target === job.target), 'no other jobs left on that clan');
   assert.ok(C.board.length >= n0 - 2, 'swapped for jobs elsewhere');
-  // a clan hit recently is drawn less: count jobs on each over many boards after hits on kuroda
+  // Recent hits reduce this clan's own frequency. Comparing two different clans
+  // conflates that penalty with business scores, leadership and eligible job kinds.
   delete C.active.player;
+  C.hits = [];
+  let baseline = 0;
+  for (let k = 0; k < 200; k++) { g.contracts.post(); baseline += C.board.filter(j => j.target === 'kuroda').length; }
   C.hits = [{ target: 'kuroda', day: C.day }, { target: 'kuroda', day: C.day }];
-  let ku = 0, ot = 0;
-  for (let k = 0; k < 200; k++) { g.contracts.post(); ku += C.board.filter(j => j.target === 'kuroda').length; ot += C.board.filter(j => j.target === 'ota').length; }
-  assert.ok(ku < ot, `fewer jobs on the clan just hit (${ku} vs ${ot})`);
+  let ku = 0;
+  for (let k = 0; k < 200; k++) { g.contracts.post(); ku += C.board.filter(j => j.target === 'kuroda').length; }
+  assert.ok(ku < baseline, `recent hits reduce that clan's jobs (${ku} vs baseline ${baseline})`);
   console.log('fair board ok');
 }
 // Tim 2026-10-20: snuff a clicked lantern from up to snuffReach away (with a smoke-flash cast);

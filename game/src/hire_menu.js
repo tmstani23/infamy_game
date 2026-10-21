@@ -48,7 +48,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
   }
 
   return {
-    update, pick,
+    update, pick, isOpen: () => open,
     toggle() { open = !open && !!teahouse(); update(); },
     close() { open = false; update(); },
   };

@@ -15,6 +15,7 @@ export function createAISupport(game, clan, hero, rules = {}) {
   const crew = () => all().filter(e => e.owner === clan && e.type !== 'hero' && !e.guard && standing(e));
   const sees = e => game.vision.canSee(clan, e);
   const rooms = new Map(), routes = new Map(), cooldowns = new Map(), camps = new Map();
+  const exiting = new Set();
   const cycle = () => (S.contracts?.day ?? 0) * 2 + Number(S.night);
   let path = null, failed = false, campCycle = cycle();
   const blocked = key => (cooldowns.get(key) ?? 0) > S.tick;
@@ -73,19 +74,37 @@ export function createAISupport(game, clan, hero, rules = {}) {
   }
   function recall(out, mobileOnly = false) {
     const units = crew().filter(u => !['follow', 'heal'].includes(u.order?.kind)
-      && (!mobileOnly || (!u.locked && u.order?.kind !== 'enter')));
+      && (!mobileOnly || (u.place === 'street' && u.order?.kind !== 'enter')));
     if (units.length) {
-      out.push({ id: hero, type: 'lock', units: units.map(u => u.id), on: false });
-      out.push({ id: hero, type: 'order', units: units.map(u => u.id), kind: 'follow' });
+      const nearby = units.filter(u => u.place === me().place);
+      if (nearby.length) out.push({ id: hero, type: 'order', units: nearby.map(u => u.id), kind: 'follow' });
+      if (me().place === 'street') moveCrewOut(out, units.filter(u => u.place !== 'street'), me());
+    }
+  }
+  function moveCrewOut(out, units, destination) {
+    const ids = units.filter(u => !exiting.has(u.id)).map(u => u.id);
+    if (ids.length) {
+      out.push({ id: hero, type: 'order', units: ids, kind: 'move', x: destination.x, z: destination.z });
+      ids.forEach(id => exiting.add(id));
     }
   }
   function toStreet(out, units) {
     const h = me();
-    if (h.place === 'street') return true;
+    if (h.place === 'street') {
+      const arrived = [...exiting].map(id => S.entities[id]).filter(u => standing(u) && u.place === 'street');
+      const follow = arrived.filter(u => u.order?.kind === 'move' && u.order.place === 'street');
+      if (follow.length) out.push({ id: hero, type: 'order', units: follow.map(u => u.id), kind: 'follow' });
+      for (const id of exiting) if (!standing(S.entities[id]) || S.entities[id].place === 'street') exiting.delete(id);
+      return true;
+    }
     const rm = game.rooms.find(r => r.name === h.place);
     if (!rm) { failed = true; return false; }
     const ids = units ?? crew().filter(u => u.place === h.place && u.order?.kind !== 'heal').map(u => u.id);
-    if (walk(out, rm.exit.x, rm.exit.z, 0.6)) out.push({ id: hero, type: 'use', units: ids });
+    if (walk(out, rm.exit.x, rm.exit.z, 0.6)) {
+      const door = game.doors.find(d => d.place === 'street' && d.x === rm.exit.x && d.z === rm.exit.z);
+      out.push({ id: hero, type: 'use', units: [] });
+      if (door?.to) moveCrewOut(out, ids.map(id => S.entities[id]).filter(u => standing(u) && u.place === h.place), door.to);
+    }
     return false;
   }
   const stats = e => ({ ...game.settings.units.types[e.type], ...game.settings.units.models?.[e.model],
@@ -133,7 +152,6 @@ export function createAISupport(game, clan, hero, rules = {}) {
     const units = crew().filter(u => u.place === h.place && u.order?.kind !== 'heal'
       && !(u.order?.kind === 'attack' && u.order.target === target.id));
     if (units.length) {
-      out.push({ id: hero, type: 'lock', units: units.map(u => u.id), on: false });
       out.push({ id: hero, type: 'order', units: units.map(u => u.id), kind: 'attack', target: target.id, resume: true });
     }
     if (h.attackTarget !== target.id) out.push({ id: hero, type: 'attack', target: target.id });

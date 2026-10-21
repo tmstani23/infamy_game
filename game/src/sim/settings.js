@@ -53,6 +53,7 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   set(bandits?.rules, 'everySeconds', s.bandits?.everySeconds);
   set(bandits?.rules, 'ryoSpread', s.bandits?.ryoSpread);
   set(bandits?.rules, 'sightRange', s.bandits?.sightRange);
+  set(bandits?.rules, 'giveUpDistance', s.bandits?.giveUpDistance);
   set(bandits?.rules, 'roamerLoot', s.bandits?.roamerLoot);
   for (const [type, ryo] of Object.entries(s.bandits?.ryo || {})) set(bandits?.types?.[type], 'ryo', ryo);
 

@@ -45,11 +45,28 @@ RTS / Dota hybrid. Rules and feel are in `combat_spec.md`; keys in `controls.md`
 - [x] 5. Fighting and death (done 2026-10-16: rules in `sim/game.js` combat section. Enemies = different clans in the same place. Crew auto-attack within AGGRO 6, leashed 10 to their hero / station / move point; a plain move ignores enemies until it arrives; `attack` order focuses one target, `attackmove` fights on the way then holds. Hits every `attackSpeed` seconds for `damage` once within `attackRange`. Dead crew play the death animation and are removed after 3 s; the hero (stats in units.json `hero`, 400 hp) is knocked out and gets up at `home` after 5 s with full hp. Hero auto-attacks the nearest enemy in reach while standing still. Browser: HP bars (red enemies, green own when hurt), death plays once and holds, right-click enemy = attack, X then left-click = attack-move. Three stand-in rival thugs stationed outside the den (`?enemies=0` turns off). Attack/death sheets in `data/art.json`: thug/brute punching (club versions come from the sprite thread under the same file names), swordsman and ronin great-sword slash. Tests: `node game/tools/test_combat.mjs`, `node game/tools/test_crew.mjs`. Not checked in a browser (Tim playtests). Attack timing and hero chase were added afterwards, see `combat_spec.md`.)
 - Orders (2026-10-19): an `attack` order can carry `resume: true`; the crew keep their previous follow, hold, station or stop order in `order.prev` and go back to it when the target is dead, down, removed or out of sight. Resume also covers attack-move, going into a business (`enter`) and heading to the clinic. T uses it; bots can too. T again calls a T attack off (order kind `resume`: back to the previous order).
 - Targeting (2026-10-19): crew of every clan only start a fight on an attack order or T, an attack-move or while stationed; otherwise they hit back at whoever hit them in the last 5 s (`e.hitBy`, `RETALIATE_SECONDS` in `game.js`) or stop an executor on a downed friend. Only house guards attack anyone nearby. Police are never auto-attacked except attack-wave officers.
-- Calling crew out (2026-10-19): with the hero on the street, C and crew-bar names include crew inside buildings; street orders walk them out first (`crewOut()`, orders carry `place`); the building flashes when crew go in or out (`view.flashBuilding`).
+- Calling crew out (2026-10-21): [indoor patrol and exit rules](#phase-3c-indoor-patrols-tim-2026-10-21).
 - Selection is sticky (2026-10-19): left-click toggles, drag adds, crew-bar names toggle, Esc clears; clicking a building or the ground keeps it.
-- Clinic (2026-10-19, manual revive): downed crew of every clan (bots too) are carried to the clinic and stay until their boss pays at the clinic menu: `recoverCostShare` 25% once recovered, `reviveNowCostShare` 50% before. The G heal order is unchanged (they walk out themselves).
+- Clinic (2026-10-19, manual revive): downed crew of every clan (bots too) are carried to the clinic and stay until their boss pays at the clinic menu: `recoverCostShare` 25% once recovered, `reviveNowCostShare` 50% before. Move indoor crew outside before using G; see the indoor patrol rules below.
 - [x] 6. Downed, execute and hospital (done 2026-10-17 via `combat_spec.md` section H, steps H1 to H4; Tim's playtest is H5).
 - [ ] 7. Playtest pass with Tim: tune prices, timers, cap and speeds. Then on to the rival bot clan.
+
+## Phase 3A (Tim, 2026-10-21)
+
+Built and approved: exclusive control groups replace crew locking; indoor crew selection and pip double-click selection updated. Rules and keys: [crew controls](controls.md#crew).
+
+## Phase 3B (Tim, 2026-10-21)
+
+Built and approved: selected-crew attack assistance, independent squad targets, outdoor T broadcasts and protected hero execution. Rules: [controls](controls.md#crew) and [execution](combat_spec.md#h-downed-execute-and-hospital-approved-by-tim-2026-10-17).
+
+## Phase 3C: indoor patrols (Tim, 2026-10-21)
+
+- Crew sent into buildings patrol reachable indoor spots with pauses, defend against intruders and resume patrol after combat. Player and bot clans use the same rules.
+- A hero visit or selection alone does not interrupt patrol. A normal command to selected crew returns them to normal control; crew left inside resume patrol after their active task finishes. Selection status shows Patrolling.
+- Outdoor Follow cannot recall indoor crew. To leave together, issue Follow while the hero and selected crew are together inside, then keep those followers selected as the hero exits. Selection alone does not bring patrolling crew out; deselected followers left inside resume guarding.
+- Otherwise, explicitly move selected crew to the street. Outdoor attack and clinic commands do not bring them out; move them outside first.
+
+Phase 3E capacity (Tim, 2026-10-21): all ten businesses provide 23 total crew capacity, plus the hero; business/Renown progression has no additional hard maximum. Raids still allow six attacking crew plus hero.
 
 ## Open questions (later, not blocking)
 

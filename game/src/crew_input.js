@@ -1,6 +1,6 @@
 // Mouse control of crew, RTS-style: left-click or drag a box to select your crew,
 // right-click the ground to send them there, right-click your hero to have them follow,
-// right-click an enemy for the hero and available crew to attack it, X then left-click
+// right-click an enemy for the hero and selected crew to attack it, X then left-click
 // for attack-move. Ctrl + right-click assigns selected crew independently. The hero
 // locks on without chasing; right-clicking a downed unit executes it instead.
 // Townsfolk can be clicked to look at them (selection panel) and attacked like enemies (heat!).
@@ -63,6 +63,7 @@ export function targetMarkers(state, heroId, tabbed, seen = () => true) {
 
 export function createCrewInput({ game, view, heroId, send, box }) {
   let selected = [];
+  const groups = new Map(); // Local selection shortcuts; assignment never changes orders.
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
   let tabbed = null;          // the Tab (or left-click) target: red, purple when sharing the hero's attack
@@ -95,9 +96,20 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   };
   // the selected units orders go to (a selected townsperson takes none)
   const mine = () => selected.filter(id => game.state.entities[id]?.owner === hero()?.owner);
+  const groupable = id => {
+    const u = game.state.entities[id];
+    return u && u.owner === hero()?.owner && u.type !== 'hero' && u.type !== 'civilian' && !u.guard && !u.wild && !u.cop && !u.dead;
+  };
+  function pruneGroups() {
+    for (const [number, ids] of groups) {
+      const live = ids.filter(groupable);
+      if (live.length) groups.set(number, live);
+      else groups.delete(number);
+    }
+  }
   function setSelected(ids) {
-    selected = ids;
-    view.setSelected(ids);
+    selected = [...new Set(ids)];
+    view.setSelected(selected);
   }
   // the unit under a page pixel (closest within PICK_PX), from a list
   function unitAt(px, py, list, range = PICK_PX) {
@@ -116,7 +128,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const foe = unitAt(px, py, enemies()) || unitAt(px, py, townsfolk(), CIV_PX);
     if (foe) { tabbed = foe.downed ? null : foe.id; looked = null; }
     if (foe?.downed) send({ id: heroId, type: 'execute', target: foe.id });
-    else if (foe) send({ id: heroId, type: 'attack', target: foe.id, assist: true });
+    else if (foe) send({ id: heroId, type: 'attack', target: foe.id, assist: true, units: mine() });
   }
   addEventListener('mousedown', e => {
     if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
@@ -126,7 +138,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (e.button === 2 && !e.ctrlKey && target()) { heroAt(e.clientX, e.clientY); return; }
     // right-click a bandit's body: the hero walks over and loots it; Ctrl + right-click: the nearest selected crew member does
     const body = e.button === 2 && !target() && unitAt(e.clientX, e.clientY, bodies());
-    if (body) { send({ id: heroId, type: 'loot', target: body.id, ...(e.ctrlKey && mine().length ? { units: mine() } : {}) }); return; }
+    if (body) { send({ id: heroId, type: 'loot', target: body.id, ...(e.ctrlKey ? { units: mine() } : {}) }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -184,10 +196,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
       const boxed = myCrew().filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
-      // locked crew are left out, unless the box also takes unlocked ones: then they join the group unlocked (Tim 2026-10-20)
-      const freed = boxed.some(u => !u.locked) ? boxed.filter(u => u.locked).map(u => u.id) : [];
-      if (freed.length) send({ id: heroId, type: 'lock', units: freed, on: false });
-      picked = boxed.filter(u => !u.locked || freed.includes(u.id)).map(u => u.id);
+      picked = boxed.filter(u => !u.dead).map(u => u.id);
       building = null;
       if (picked.length) setSelected(picked);   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection
     }
@@ -195,37 +204,38 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // attack (Tim 2026-10-18); clicking the target itself keeps it
     const locked = hero()?.attackTarget;
     if (locked && !(picked.length === 1 && picked[0] === locked)) {
-      send({ id: heroId, type: 'stopattack' });
+      send({ id: heroId, type: 'stopattack', units: mine() });
       if (tabbed === locked) tabbed = null;
     }
   });
 
   return {
     // Tab: the next enemy becomes the hero's target and he starts his auto attack on it at once
-    // Left-click still only selects a target; Tab attacks with available crew.
+    // Left-click still only selects a target; Tab attacks with selected crew.
     tab() {
       tabbed = tabTarget(game.state, heroId, tabbed, seen) || null;
-      if (tabbed) send({ id: heroId, type: 'attack', target: tabbed, assist: true });
+      if (tabbed) send({ id: heroId, type: 'attack', target: tabbed, assist: true, units: mine() });
     },
     // a given unit becomes the hero's target and he attacks it (a click on the lantern channel bar)
     target(id) {
       const t = game.state.entities[id];
       if (!t || t.dead || t.place !== hero()?.place || !seen(t)) return;
       tabbed = id;
-      send({ id: heroId, type: 'attack', target: id, assist: true });
+      send({ id: heroId, type: 'attack', target: id, assist: true, units: mine() });
     },
-    // T: all the hero's crew (selected or not) attack the marked unit (left-click, its card showing),
+    // T: outdoor crew (selected or not) attack the marked unit (left-click, its card showing),
     // else the hero's current target; a downed one they finish off (Tim 2026-10-19)
     crewAttack() {
       const S = game.state.entities, h = hero();
+      if (!outdoors()) return;
       const t = [...selected, h?.attackTarget, h?.swing?.target, looked, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
-      const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && !e.locked && e.place === h.place).map(e => e.id);
+      const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && !e.jailed && e.place === 'street').map(e => e.id);
       // a second T while they are on a T attack calls it off: back to what they were doing (Tim 2026-10-19)
-      const assigned = units.filter(id => S[id].order?.kind === 'attack' && !S[id].order.assist && 'prev' in S[id].order);
-      if (assigned.length) { send({ id: heroId, type: 'order', units: assigned, kind: 'resume' }); return; }
+      const assigned = units.filter(id => S[id].order?.kind === 'attack' && S[id].order.broadcast);
+      if (assigned.length) { send({ id: heroId, type: 'order', units: assigned, kind: 'resume', broadcast: true }); return; }
       if (!t || !units.length) return;
-      if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units });
-      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true });   // then back to their old order
+      if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units, broadcast: true });
+      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true, broadcast: true });
     },
     // Shared attacks take purple priority; separate crew assignments stay blue.
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen); },
@@ -244,17 +254,30 @@ export function createCrewInput({ game, view, heroId, send, box }) {
         el.style.transform = `translate(${head.x}px, ${head.y}px)`;
       });
     },
-    // outdoors, C also picks crew inside buildings: a street order walks them out (Tim 2026-10-19)
-    selectAll() { setSelected((outdoors() ? Object.values(game.state.entities).filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && !e.dead) : myCrew()).filter(u => !u.locked).map(u => u.id)); },   // not locked crew (Tim 2026-10-20)
-    // L: lock the selected crew (or unlock them, when they all are); locked crew are left out of
-    // C, drag boxes and T, and only move when picked and ordered themselves
-    lockSelected() { const ids = mine(); if (ids.length) send({ id: heroId, type: 'lock', units: ids, on: !ids.every(id => game.state.entities[id]?.locked) }); },
-    toggleLock(id) { const u = game.state.entities[id]; if (u) send({ id: heroId, type: 'lock', units: [id], on: !u.locked }); },
+    selectAll() { setSelected(Object.keys(game.state.entities).filter(groupable)); },
+    assignGroup(number) {
+      if (![1, 2, 3, 4].includes(number)) return;
+      pruneGroups();
+      const ids = selected.filter(groupable), old = groups.get(number) || [];
+      if (!ids.length) return;
+      if (ids.length === old.length && ids.every(id => old.includes(id))) { groups.delete(number); return; }
+      // Membership is exclusive: assigning another number transfers these crew.
+      for (const [key, members] of groups) groups.set(key, members.filter(id => !ids.includes(id)));
+      groups.set(number, ids);
+      pruneGroups();
+    },
+    selectGroup(number) {
+      pruneGroups();
+      const ids = groups.get(number);
+      if (ids?.length) { setSelected(ids); building = null; }
+    },
+    groupOf(id) { pruneGroups(); return [...groups].find(([, ids]) => ids.includes(id))?.[0] || null; },
     clear() { setSelected([]); looked = null; building = null; attackMove = false; document.body.style.cursor = ''; },
+    cancelAction() { send({ id: heroId, type: 'cancel', units: mine() }); },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
     // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')
     stopSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'stop' }); },
-    followMe() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); },
+    followMe() { const units = mine().filter(id => game.state.entities[id]?.place === hero()?.place); if (units.length) send({ id: heroId, type: 'order', units, kind: 'follow' }); },
     // hurt selected crew walk to the clinic to heal (for ryo)
     healSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'heal' }); },
     select(ids) { setSelected(ids); building = null; },
@@ -263,6 +286,6 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // drop units that are gone (killed, or carried to the clinic) from the selection; downed
     // ones stay so the selection panel can show them (the rules ignore orders to them), and so do
     // jailed crew picked on the action bar (prisoner ids, only shown, never sent orders)
-    update() { if (!outdoors()) building = null; const alive = selected.filter(id => game.state.entities[id] ? !game.state.entities[id].dead : !!prisonerOf(game.state, id)); if (alive.length !== selected.length) setSelected(alive); },
+    update() { pruneGroups(); if (!outdoors()) building = null; const alive = selected.filter(id => game.state.entities[id] ? !game.state.entities[id].dead : !!prisonerOf(game.state, id)); if (alive.length !== selected.length) setSelected(alive); },
   };
 }

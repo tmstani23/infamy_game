@@ -77,10 +77,13 @@ const run = (g, seconds) => { for (let i = 0; i < seconds * 20; i++) g.step(); }
   g.step();
   const camp = g.state.banditCamps.find(c => c.id === 'west_trail');
   const b = living(g, camp)[0], hero = g.state.entities[heroId];
-  const p = g.nav.nearestFree(b.x - .8, b.z);
+  const p = [[5, 0], [-5, 0], [0, 5], [0, -5]].map(([dx, dz]) => g.nav.nearestFree(b.x + dx, b.z + dz))
+    .find(p => p && Math.hypot(p[0] - b.x, p[1] - b.z) > 4 && Math.hypot(p[0] - b.x, p[1] - b.z) < 6
+      && Math.hypot(p[0] - camp.x, p[1] - camp.z) <= (camp.leash ?? 10) && g.nav.clearLine(b.x, b.z, ...p));
+  assert.ok(p, 'camp fixture has a visible target beyond the former four-unit range');
   Object.assign(hero, { x: p[0], z: p[1] });
   g.step();
-  assert.ok(b.angry?.player, 'camp resident acquires player on sight');
+  assert.ok(b.angry?.player, 'camp resident acquires player within six units');
   assert.ok(!hero.attackTarget, 'player has not ordered an attack');
   const outside = g.nav.nearestFree(camp.x + 20, camp.z);
   Object.assign(hero, { x: outside[0], z: outside[1] });
@@ -121,7 +124,7 @@ for (const region of ['yakuza', 'kuroda', 'shinobi']) {
       assert.ok(!g.state.entities[id]?.loot, 'loot collected');
     }
   }
-  assert.equal(g.state.clans[clanId].ryo, 400, 'two camps bridge the opening 100-ryo gap');
+  assert.equal(g.state.clans[clanId].ryo, 300, 'two small camps earn 100 from the 200-ryo start');
   assert.equal(g.state.clans[clanId].heat, 0, 'bandit fights give no heat');
-  console.log(`${region} opening: 300 to 400 ryo with one starting recruit`);
+  console.log(`${region} opening: 200 to 300 ryo with one starting recruit`);
 }

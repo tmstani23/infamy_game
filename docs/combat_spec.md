@@ -150,7 +150,8 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 ## H. Downed, execute and hospital (approved by Tim 2026-10-17)
 
 - **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
-- **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Taking a hit, moving or a new order cancels it. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
+- **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Crew channels cancel on a hit, movement or a new order. Hero execution protection: see below. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
+- **Hero execution protection (Tim, 2026-10-21):** selection, targeting, Tab, crew attack/move/follow commands and repeated execute clicks do not cancel or restart the channel. Right-click attacks command selected crew only, without a hero attack queued afterwards. Abilities, doors and hero looting cannot replace it. Hero movement, Escape, enemy hits and invalid targets still interrupt it.
 - **Carried off (2026-10-21):** executable/arrestable downed units remain on the ground for 20 s. A channel started within that window may finish afterwards, then cleanup occurs. Crew go to the clinic; other units follow their normal removal or respawn rules. Bandits and house guards die outright.
 - **Hospital:** the bonesetter's clinic. Recovery timer (30 s thug, 45 s brute/swordsman); since 2026-10-19 crew stay until their boss pays at the clinic menu (25% of the hire price once recovered, 50% before). See `crew_recruiting_plan.md`.
 - **Who can be executed (2026-10-19):** only downed rival heroes and crew. Bandits die outright and are looted (section I).
@@ -179,5 +180,5 @@ Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandi
 
 - Roamers (2026-10-21): bandit 240 HP / 9 damage (weight 2), night brute 432 HP / 16 damage (weight 1); each leaves 50 ryo. Camp bandits retain base stats and 25-ryo loot.
 - At night: 3 walk in first, then one every 14 s, up to 13 at once and 25 a night (2026-10-21), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
-- Sight aggro within 4 steps, respecting walls and stealth (2026-10-21). Being hit also angers bandits within 8 steps; anger expires after 10 s without renewed sight/hits or when the clan escapes 15 steps. Camps keep their leash and top up missing residents at dawn and dusk, preserving survivors.
+- All wild/camp and roaming variants have sight, engagement and disengage distance 6, respecting walls, stealth and camp leash (Tim, 2026-10-21). Police pursuit and movement speeds are unchanged. Being hit also angers nearby bandits; anger expires after 10 s without renewed sight/hits. Camps top up missing residents at dawn and dusk, preserving survivors.
 - No downing (they die at 0 HP) and no heat. Kills pay nothing (2026-10-19): the body carries the ryo, glints gold and any clan can loot it (hero: right-click; crew: Ctrl + right-click). Unlooted bodies fade after 60 s (`lootSeconds`).

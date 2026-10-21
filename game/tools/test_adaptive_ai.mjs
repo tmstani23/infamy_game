@@ -130,13 +130,13 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'decisions') {
     const home = Object.values(g.state.businesses).find(b => b.hideout === clan);
     const spot = g.nav.nearestFree(home.ring[0] + 8, home.ring[1] + 2);
     Object.assign(H, { x: spot[0], z: spot[1], hp: H.maxHp * .2 });
-    Object.assign(unit, { x: spot[0] + 2, z: spot[1] + 1, hp: unit.maxHp * .2, order: { kind: 'stop' }, locked: true });
+    Object.assign(unit, { x: spot[0] + 2, z: spot[1] + 1, hp: unit.maxHp * .2, order: { kind: 'stop' } });
     const brain = ninja ? createNinjaBot(g, { clan, hero: h }) : createBot(g, { clan, hero: h });
     assert.ok(run(g, [brain], 35, () => H.place === home.room && unit.place === home.room), `${clan} brings the whole mobile squad home`);
     const hp = unit.hp;
     run(g, [brain], 10);
     assert.ok(unit.hp > hp, 'crew recover at home');
-    assert.ok(!unit.locked, 'retreat unlocks recalled crew');
+    assert.equal(unit.order.kind, 'follow', 'recalled crew remain in the mobile squad');
   }
   // An impossible active job is dropped and cannot be taken straight back.
   {
@@ -174,7 +174,7 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'tuning') {
     assert.equal(goal?.kind, 'hunt');
     assert.ok(camp, `${level} selects a public camp`);
     camps.push(camp.members.length);
-    assert.equal(g.state.clans.kuroda.ryo, 300);
+    assert.equal(g.state.clans.kuroda.ryo, 200);
     assert.equal(g.state.entities[h].maxHp, 560);
     assert.equal(g.clans.crewCount('kuroda'), 2);
   }

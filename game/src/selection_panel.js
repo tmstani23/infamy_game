@@ -24,6 +24,7 @@ export function unitStatus(e, state) {
   }
   const k = e.order?.kind, moving = e.anim === 'walk' || e.anim === 'run';
   if (k === 'stop') return 'Passive (stopped)';
+  if (e.order?.garrison) return 'Patrolling';
   if (k === 'follow') return 'Following';
   if (k === 'attack') return 'Attacking';
   if (k === 'attackmove') return 'Attack-moving';

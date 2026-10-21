@@ -18,7 +18,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   let seed = 97;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const A = { startSeconds: 5, waves: 3, wavesPerTier: 1, perWave: 2, bigWave: 3, bigWavesFrom: 0.5, waveGapSeconds: 5, officerHp: 1, hitHeat: 0, holdSeconds: 30, holdRadius: 2.5, heatAfterWin: 15, heatAfterLoss: 15, leaveSeconds: 10, ...units?.rules?.attack };
-  const RD = { lanternPrice: 2400, lanternCarry: 1, warmupSeconds: 30, holdSeconds: 30, holdRadius: 2.5, maxCrewInside: 6, leaveSeconds: 10, knockSeconds: 4, knockReach: 1.6, ...units?.rules?.raid };
+  const RD = { lanternPrice: 1200, lanternCarry: 1, warmupSeconds: 30, holdSeconds: 30, holdRadius: 2.5, maxCrewInside: 6, leaveSeconds: 10, knockSeconds: 4, knockReach: 1.6, ...units?.rules?.raid };
   state.attacks ||= {};
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
   const name = b => b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
@@ -330,9 +330,14 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         const sp = spots[e.patrol.next % spots.length];
         e.patrol.next = (e.patrol.next + 1 + Math.floor(rnd() * (spots.length - 1))) % spots.length;
         e.patrol.arrived = false; e.patrol.leg = state.tick;
-        e.order = { kind: 'station', x: sp.x, z: sp.z, patrol: true };
+        e.order = { ...e.order, kind: 'station', x: sp.x, z: sp.z, patrol: true };
       }
     }
+  }
+
+  // Reuse the guards' reachable indoor routes and pause/retry timing for crew.
+  function patrolCrew(e) {
+    if (!e.guard && e.order?.garrison && e.place !== 'street') patrol({ room: e.place }, [e]);
   }
 
   // At dawn every owned business pays its clan (nothing during a police Manhunt; more when the clan holds its whole quarter)
@@ -352,5 +357,5 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     }
   }
 
-  return { canBuy, canAttack, canBuyLantern, canRaid, canKnock, mayEnter, crewSlots, command, tick, rules: R, attackRules: A, raidRules: RD };
+  return { canBuy, canAttack, canBuyLantern, canRaid, canKnock, mayEnter, crewSlots, command, tick, patrolCrew, rules: R, attackRules: A, raidRules: RD };
 }

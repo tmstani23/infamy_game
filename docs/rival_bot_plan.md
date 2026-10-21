@@ -17,7 +17,7 @@ A simple rule list, checked every ~2 s, top rule first. No cheating: it only kno
 1. **Defend.** One of its businesses is raided or attacked: everyone nearby goes there, the bot hero too.
 2. **Hire.** Crew below cap and enough ryo (keeping a small reserve): hire at the teahouse.
 3. **Expand.** An unowned business it can afford: buy it. At night, with 4+ crew and heat below Wanted: attack an unowned one (police waves) instead of waiting for the money.
-4. **Raid.** 2,400 ryo plus a reserve and 6 crew: buy a War Lantern, send one crew member to scout first, then raid the player's business it thinks is weakest (fewest defenders last seen).
+4. **Raid.** Enough ryo for a [War Lantern](business_raids_plan.md#4-raiding-a-rivals-business-war-lantern) plus a reserve and 6 crew: buy a War Lantern, send one crew member to scout first, then raid the player's business it thinks is weakest (fewest defenders last seen).
 5. **Keep busy.** Station crew at its businesses, patrol its streets, hunt night bandits for ryo, bribe the police when heat reaches Wanted (60).
 
 Bot crew still use the existing combat rules (auto-attack, execute aggression roll, police never auto-targeted).
@@ -64,7 +64,7 @@ Home hideouts agreed: bot izakaya, player inn.
 ## As built (2026-10-19)
 
 - **Brain:** a client that sends the same commands as a player and sees only what its clan sees; it gives a goal up when stuck. Every `thinkSeconds` it picks one goal, in order: defend (raid on its business: boss runs to knock the lantern down, crew attack-move there or go in when the doors open), bribe at `bribeAtHeat`, revive recovered crew at the clinic, buy the dearest business it can afford, hire at home, raid, night attack on an unclaimed business, station spare crew (beyond an escort of 3, one per business), patrol.
-- **Raids:** once decided the plan sticks: buy a War Lantern at the moneylender, scout by day with 1 crew (remembers defenders), raid the weakest at night, go in when the doors open, hold the back room.
+- **Raids:** once decided the plan sticks: buy a War Lantern at the moneylender, scout by day with 1 crew (remembers defenders; previously unscouted targets come before refreshing old reports, 2026-10-21), raid the weakest at night, go in when the doors open, hold the back room.
 - **Every `reactSeconds`:** night bandit hunting and looting, ambush of lone rival crew near its turf (medium/hard), focus fire, going for the rival boss (hard: `heroPriority`), executing downed crew when safe, hurt crew to the clinic, abilities. Its crew only fight through these explicit orders (no auto-aggro).
 - **Revenge (every level):** if your boss hits its boss, or downs `revengeDowns` (2) of its crew within `revengeRange` (14) of its boss inside `revengeSeconds` (30), its boss and crew go for your boss.
 - **Flee:** below `fleeHp` (0.3) its boss runs home to the hideout and rests until `restUntilHp` (0.8); crew stay. `fleeInRaid`: easy true (flees mid-raid too), medium and hard false.

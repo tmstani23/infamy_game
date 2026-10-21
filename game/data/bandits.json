@@ -7,11 +7,11 @@
     "everySeconds": 14,
     "minDistance": 25,
     "staySeconds": [6, 15],
-    "sightRange": 4,
+    "sightRange": 6,
     "roamerLoot": 50,
     "joinRadius": 8,
     "angrySeconds": 10,
-    "giveUpDistance": 15,
+    "giveUpDistance": 6,
     "ryoSpread": 0,
     "lootSeconds": 60
   },
