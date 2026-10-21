@@ -33,6 +33,7 @@
     "bribeBlockSeconds": 5,
     "replaceSeconds": 60,
     "patrolFightSeconds": 30,
+    "dayPatrol": { "hq": 4, "box": 2 },
     "patrolRadius": 12
   }
 }

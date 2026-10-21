@@ -307,6 +307,28 @@ async function start() {
             : `Attacking the ${where}: police wave ${a.wave} of ${a.waves}`;
         }
       }
+      // HQ camping: a small persistent notice accompanies the ground boundary.
+      {
+        const playerClan = game.state.entities[heroId]?.owner;
+        const visits = (game.state.hqCamping?.visits || []).filter(v => v.clan === playerClan);
+        const visit = visits.find(v => v.active && v.inside) || visits.find(v => v.inside) || visits[0];
+        const el = $('campingnotice');
+        el.hidden = !visit;
+        if (visit) {
+          const name = game.state.clans[visit.owner]?.name || 'Rival clan';
+          el.classList.toggle('penalty', visit.active);
+          el.querySelector('.label').textContent = visit.active ? visit.inside ? `Leave ${name}'s HQ area · camping adds infamy`
+            : `Stay clear of ${name}'s HQ · reset in ${Math.ceil(visit.remaining)}s`
+            : `Leave ${name}'s HQ area · camping penalty in ${Math.max(0, Math.ceil(game.hqCamping.rules.activateSeconds - visit.seconds))}s`;
+          const decay = el.querySelector('.decay');
+          decay.hidden = !visit.active;
+          if (visit.active) {
+            decay.querySelector('.fill').style.width = `${100 * Math.max(0, Math.min(1, visit.remaining / visit.clearSeconds))}%`;
+            el.querySelector('.decaylabel').textContent = visit.inside ? `${visit.clearSeconds}s outside needed to reset`
+              : `${Math.ceil(visit.remaining)}s remaining outside · re-entry restarts decay`;
+          }
+        }
+      }
       // your business is being raided: bell once, red banner, a channel bar while knocking the lantern down
       {
         const a = raidOnMe(), el = $('raidalarm');

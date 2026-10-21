@@ -29,6 +29,11 @@ assert.equal(live.units.rules.raid.lanternPrice, 1200);
 assert.equal(live.bandits.rules.sightRange, 6);
 assert.equal(live.bandits.rules.giveUpDistance, 6);
 assert.equal(live.police.rules.giveUpDistance, files.police.rules.giveUpDistance, 'wild enemy tuning leaves police pursuit unchanged');
+const patrolSettings = applySettings(files, { hqCamping: { radius: 9, penaltyHeat: 3 }, police: { dayPatrol: { hq: 2, box: 1 } } });
+assert.equal(patrolSettings.units.rules.hqCamping.radius, 9);
+assert.equal(patrolSettings.units.rules.hqCamping.penaltyHeat, 3);
+assert.deepEqual(patrolSettings.police.rules.dayPatrol, { hq: 2, box: 1 });
+assert.equal(files.units.rules.hqCamping.radius, 12, 'custom camping settings do not mutate base rules');
 assert.equal(applySettings(files, settings).civilians.types.monk2.count > 0, true);
 console.log('settings laid over the data files ok');
 

@@ -122,9 +122,10 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   console.log('B2 defend (knock the lantern down) ok');
 }
 
-// B3 bribe: at Wanted heat it walks to a police box and pays
+// B3 bribe: without the new daytime routine patrols, the bot can still pay off
+// the ordinary Wanted response. A bribe remains blocked while police hit it.
 {
-  const t = setup({ ryo: 500, rules: { patrolChance: 0 } });
+  const t = setup({ ryo: 500, night: true, rules: { patrolChance: 0 } });
   const c = t.g.state.clans.kuroda;
   c.heat = 70;
   assert.ok(t.run(90, () => c.heat < 60), 'bribed the police');
@@ -150,6 +151,8 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   assert.ok(t.run(120, () => Object.values(t.g.state.attacks).some(a => a.clan === 'kuroda')), 'started an attack');
   const a = Object.values(t.g.state.attacks).find(a => a.clan === 'kuroda');
   assert.ok(t.run(30, () => t.B.place === a.room), 'went in');
+  t.g.settings.units.types.thug.damage = 400;
+  assert.ok(t.run(180, () => a.phase === 'hold'), 'bot crew automatically fight through every no-infamy police wave');
   console.log('B3 night attack ok', a.kind);
 }
 

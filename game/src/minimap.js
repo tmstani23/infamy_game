@@ -17,6 +17,11 @@ const BUILDING = [62, 50, 46];
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
 
+export function policeMapColor(officer, clan, state) {
+  const target = state.entities[officer.swing?.target || officer.execute?.target || officer.attackTarget];
+  return (officer.angry?.[clan] ?? -1) > state.tick || target?.owner === clan ? '#ff4632' : '#72aaff';
+}
+
 export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send, big = false,
   layers = { territory: true, businesses: true, police: true, units: true }, onHover = null, onPick = null }) {
   const g = game.vision.grid(clan);
@@ -112,6 +117,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     if (e.id === heroId) return ['#ffcd50', 3.4];
     if (e.owner === me) return ['#50d2c8', 2.4];
     if (e.type === 'civilian') return ['#ebe8dc', 1.5];
+    if (e.cop || e.owner === 'police') return [policeMapColor(e, me, game.state), 2.4];
     if (e.wild) return (e.angry?.[me] ?? -1) > game.state.tick ? ['#ff4632', 2.4] : ['#ff9a46', 2.2];
     return ['#ff4632', 2.6];
   }

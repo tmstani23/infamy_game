@@ -6,7 +6,7 @@ Status: **Built** (settled by Tim and built 2026-10-18). Numbers live in `game/d
 
 | Heat | Tier | What happens |
 |---|---|---|
-| 0-29 | Quiet | Nothing. |
+| 0-29 | Quiet | Routine daytime patrols respond to witnessed civilian assaults/executions and police attacks. |
 | 30-59 | Watched | 2 junsa patrol near the clan's last fight and attack its units when they see them fighting. |
 | 60-89 | Wanted | A 4-man squad hunts the hero. Clinic prices double. |
 | 90-119 | Manhunt | 6 officers hunt the hero and crew. Business payouts are cut until heat drops below 90 (a hook only so far). |
@@ -17,8 +17,20 @@ Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infa
 ## Officers
 
 - Junsa: 360 HP, hit for 14, run 4.8 (the hero runs 6.0). They carry a jitte.
-- They fight whoever hits them first. The hero and crew never auto-target police, except officers defending a business you attack.
+- Regular patrol/reinforcement police require explicit hero/crew attacks: no automatic acquisition or retaliation. Exception: unclaimed-business attack-wave officers retain automatic combat; their hits add no infamy. Business attacks still add 15 heat on success or failure (Tim, 2026-10-21).
 - A knocked-out officer is replaced after 60 s, coming out of the HQ or any police box.
+
+## Routine daytime patrols (Tim, 2026-10-21)
+
+Eight officers emerge at dawn or initial daytime: four from police HQ and two from each police box. They patrol and return to their own station at dusk after active pursuits/arrests finish. Replacement delay remains; shifts do not duplicate. Heat-based squads are additional and still operate at night.
+
+## Rival HQ camping (Tim, 2026-10-21)
+
+- Living street heroes/crew count once per visiting clan within 12 world units of a rival HQ's main entrance/exit ring. Indoor units do not count; this area is separate from territory. Enemy clans use the same rules.
+- Warn after 20 accumulated seconds; activate after 30 within a rolling 60 seconds. Warning flashes amber; active penalty has a subtle red outline/pulse and a small notice.
+- While active, every five occupied seconds adds exactly 12 heat and 12 lifetime infamy. Camping alone bypasses top-infamy heat scaling; other sources are unchanged.
+- Clear an active alarm by keeping the entire visiting clan outside for 30 uninterrupted seconds. Re-entry immediately resumes penalties and resets the full decay. The alert bar drains outside and stays full inside.
+- No special camping-avoidance AI for now; revisit if playtests reveal problems.
 
 ## New officers
 
@@ -47,11 +59,16 @@ At either police box (Space): each bribe removes 20 heat and costs 10 ryo x tier
 
 ## Rules
 
-- Police are a sim-side clan using the same commands as bots. They target only by heat and never favour a player, so it stays fair in multiplayer.
-- No police in the forest outskirts or during the night raid window (`noPoliceAreas` and the raid window are empty until those exist). Known gap: the 120+ hunt ignores no-police areas; fix when the forest is added.
-- Underdog rule: the clan with the most infamy gains 25% more heat from everything.
+- Police are a sim-side clan using the same commands as bots. They respond to witnessed crimes and heat without favouring a player, so it stays fair in multiplayer.
+- Routine patrols return at dusk; heat-based responses remain available at night.
+- Underdog rule: the clan with the most infamy gains 25% more heat from ordinary sources; HQ camping is the fixed-charge exception above.
+
+## Deferred police pass (not built; Tim, 2026-10-21)
+
+Consider low-chance Quiet intervention in rival-clan fighting: one roll per incident, no infamy merely for intervention; escape returns officers to patrol, while hitting an officer uses ordinary infamy.
 
 ## Map
 
 - The police box replaces the watch post. The 2x map has two boxes (2026-10-19): b1 on the main road and b33 in the west back alleys (`boxes` in `sim/police.js`).
 - The police HQ (with its jail wing) replaces the western office.
+- Police dots on both maps are blue, turning red only when hostile to the viewing clan. Officers fighting another clan remain blue to you (2026-10-21).

@@ -178,7 +178,26 @@ export function createBanners({ scene }) {
 
   // every frame: banners follow ownership; returns the businesses that just changed hands to a clan
   let jobRing = null;   // your Shinobi steal / sabotage spot (state.contracts.active[you].spot), Tim 2026-10-21
+  const campingRings = new Map();
+  const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
   function update(state, time, me) {
+    const visits = (state.hqCamping?.visits || []).filter(v => v.clan === me && (v.inside || v.active));
+    for (const [id, ring] of campingRings) if (!visits.some(v => v.business === id)) {
+      scene.remove(ring); ring.material.dispose(); campingRings.delete(id);
+    }
+    for (const v of visits) {
+      let ring = campingRings.get(v.business);
+      if (!ring) {
+        ring = new THREE.Mesh(campingGeo, new THREE.MeshBasicMaterial({ transparent: true,
+          depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
+        ring.rotation.x = -Math.PI / 2; ring.renderOrder = 99810;
+        scene.add(ring); campingRings.set(v.business, ring);
+      }
+      ring.position.set(v.x, 0.04, v.z); ring.scale.setScalar(v.radius);
+      ring.material.color.setHex(v.active ? 0xff6045 : 0xffcb63);
+      ring.material.opacity = v.active ? 0.17 + 0.07 * Math.sin(time * 3)
+        : 0.22 + 0.15 * Math.sin(time * 5);
+    }
     const job = me && state.contracts?.active?.[me], spot = job?.spot;
     if (spot && !jobRing) {
       jobRing = new THREE.Mesh(HOLD_GEO, new THREE.MeshBasicMaterial({ color: 0xa080ff, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));

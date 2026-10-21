@@ -9,7 +9,9 @@ const newGame = () => {
   const g = createGame({
     district: data('data/waterfront.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
     interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
-    units: U, civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
+    // Isolate heat-response squads; routine dawn/dusk patrols have their own integration checks.
+    units: U, civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
+    police: { ...data('data/police.json'), rules: { ...P, dayPatrol: { hq: 0, box: 0 } } },
   });
   g.clans.addClan('player');
   return g;

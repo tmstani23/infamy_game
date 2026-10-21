@@ -61,3 +61,7 @@ Related docs:
 - Quarters (`port_town.json`, Phase 3E, 2026-10-21): Bund = Warehouse + Tenements; West Ward = Shop + Bathhouse + Manor; East Ward = Pawnshop + Sake Brewery + Customs House; Pleasure Quarter = Teahouse + Gambling Den. Hold every scoring business in a quarter for its 25% income bonus.
 - News (`state.news`): `intruder` ("Rivals in your territory!" + minimap ping), `quarter` / `quarterLost`, `seasonEnd`.
 - Test: `game/tools/test_territory.mjs`.
+
+## Phase 3F access (Tim, 2026-10-21)
+
+Pleasure Quarter has three entrances: the original plus two openings in its opposite NW/SE stone walls across the Townhouse area (x=6 and x=51, around z=32; two segments removed per side). No added paths, paving or Townhouse connection. HQ camping areas are separate from territory: [police rules](police_spec.md#rival-hq-camping-tim-2026-10-21).

@@ -39,6 +39,7 @@
     "heroRespawnSeconds": 20,
     "_businesses": "price = buy an unclaimed one from its building panel at the door ring (within buyReach); payout = ryo at every dawn (docs/business_raids_plan.md); data/settings.json lays over these",
     "buyReach": 2.5,
+    "hqCamping": {"enabled": true, "radius": 12, "windowSeconds": 60, "warningSeconds": 20, "activateSeconds": 30, "penaltySeconds": 5, "penaltyHeat": 12, "clearSeconds": 30},
     "hideout": { "_note": "home hideouts (inn: you, izakaya: the rival clan): never taken; hiring takes hireTimeFactor x as long; heat cools heatCoolFactor x as fast while the boss is inside; hurt crew and boss inside heal restPerSecond of max HP a second", "hireTimeFactor": 2, "heatCoolFactor": 2, "restPerSecond": 0.01 },
     "_houseGuards": "hideouts get hideoutCount guards patrolling the room (0; bot clans set their own: hideoutGuards in bots.json, 1 easy / 2 medium+hard; harder steal, Tim 2026-10-20); every owned business comes with count house guards (type below, drawn as model), free; they stroll round inside (a few seconds at each spot) and defend, die outright, and a dead one is replaced after replaceSeconds while the clan still owns it; not part of your crew (no cap, no orders)",
     "houseGuards": { "count": 2, "hideoutCount": 0, "type": "guard", "model": "thug", "replaceSeconds": 120, "patrolPauseSeconds": [3, 8] },

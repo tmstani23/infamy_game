@@ -1,5 +1,5 @@
 // Attacking an unclaimed business at night (sim/businesses.js, plan checkpoint 3): police waves
-// through the door, crew fight them on their own, the back-room hold, heat after a win, losing.
+// through the door, crew fight them automatically, back-room hold, heat after a win, losing.
 // Run: node tools/test_attack.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -35,7 +35,7 @@ const a = g.state.attacks[tea.id];
 assert.ok(a, 'attack started');
 const BZ = data('data/settings.json').businesses;
 assert.equal(a.waves, BZ.teahouse.attackWaves, 'Quiet: the business\'s waves only');
-// a strong crew goes in with the boss and fights the officers on their own
+// a strong crew goes in with the boss and automatically fights the no-infamy officers
 const room = g.rooms.find(r => r.name === tea.room);
 g.settings.units.types.thug.damage = 400;
 for (let i = 0; i < 3; i++) g.spawn('thug', 'thug', room.spawn.x + i - 1, room.spawn.z + 1.5, { owner: 'player', place: room.name, order: { kind: 'station', x: room.spawn.x + i - 1, z: room.spawn.z + 1.5 } });

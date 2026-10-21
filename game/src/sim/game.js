@@ -17,6 +17,7 @@ import { applySettings } from './settings.js';
 import { createBusinesses } from './businesses.js';
 import { createContracts } from './contracts.js';
 import { interactionActor } from './interactions.js';
+import { createHQCamping } from './hq_camping.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -317,11 +318,11 @@ export function createGame(options) {
 
   // Officers are never picked on their own: hitting police (+heat) is always the player's
   // (or bot's) own order, so standing still next to a squad doesn't spiral the heat.
-  // Except officers defending a business your clan is attacking (e.wave, sim/businesses.js)
+  // Business attack-wave officers add no infamy per hit and remain automatic targets.
   function nearestEnemy(e, x, z, range) {
     let best = null, bd = range;
     for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;   // police defending a business you attack: fair game
+      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;
       const d = Math.hypot(t.x - x, t.z - z);
       if (d < bd) { bd = d; best = t; }
     }
@@ -508,11 +509,11 @@ export function createGame(options) {
   const heatFor = k => units?.rules?.civilianHeat?.[k] || 0;
   // state.heatGains = this tick's rises ({ clan, amount, reason }), for the heat pop-ups
   // c.infamy = lifetime heat (stand-in until the infamy board); the top-infamy clan gains more (police.heatScale)
-  function addHeat(owner, n, reason) {
+  function addHeat(owner, n, reason, scale = true) {
     const c = state.clans?.[owner];
     if (!c || !n) return;
     c.infamy = (c.infamy || 0) + n;
-    n = Math.round(n * (police?.heatScale(owner) ?? 1));
+    n = Math.round(n * (scale ? police?.heatScale(owner) ?? 1 : 1));
     c.heat = (c.heat || 0) + n;
     state.heatGains.push({ clan: owner, amount: n, reason });
   }
@@ -546,6 +547,7 @@ export function createGame(options) {
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
     if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
     if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
+    if (civ(t)) police?.witnessAssault(a, t);
     if (wild(t)) bandits.provoke(t, a.owner);
     if (cop(a)) t.copHitAt = state.tick;     // the police box won't take a bribe right after (sim/police.js)
     // who fought where, for the police (a patrol goes to a clan's last fight, and for units seen fighting)
@@ -701,7 +703,7 @@ export function createGame(options) {
     t.dead = true;
     t.diedAt = state.tick;
     state.casts.push({ a: e.id, kind: 'execute', target: t.id, x: t.x, z: t.z });
-    if (civ(t)) addHeat(e.owner, heatFor('kill'), 'Townsperson killed');
+    if (civ(t)) { addHeat(e.owner, heatFor('kill'), 'Townsperson killed'); police?.witnessAssault(e, t); }
     else payExecute(e, t, state.casts[state.casts.length - 1]);
     delete e.execute;
     return true;
@@ -1214,6 +1216,7 @@ export function createGame(options) {
     return far ? { x: far.x, z: far.z } : backRoomOf(b);
   };
   const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null }) : null;
+  const hqCamping = clans ? createHQCamping({ state, rules: units?.rules?.hqCamping, addHeat }) : null;
 
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
@@ -1337,6 +1340,7 @@ export function createGame(options) {
     }
     civilians.tick();
     bandits.tick();
+    hqCamping?.tick();
     police?.tick();
     businesses?.tick();
     contracts?.tick();
@@ -1396,5 +1400,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping };
 }

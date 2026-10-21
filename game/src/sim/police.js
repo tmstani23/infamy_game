@@ -27,6 +27,7 @@ const DEFAULTS = {
   bribeHeat: 20, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: 3,
   topInfamyHeatBonus: 0.25, noPoliceAreas: [], lostSeconds: 8, searchSeconds: 20, searchRadius: 5, bribeBlockSeconds: 5, replaceSeconds: 60,
   patrolFightSeconds: 30, patrolRadius: 12,
+  dayPatrol: { hq: 4, box: 2 },
   tiers: [
     { name: 'Quiet', min: 0, officers: 0 },
     { name: 'Watched', min: 30, officers: 2, hunt: 'fighting' },
@@ -92,6 +93,8 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   const hunted = {};     // per clan: did they know where the hero was last tick (for the 'lost' news)
   const nextOut = {};    // per clan: tick the next officer may come out
   const owed = {};       // per clan: ticks at which knocked-out officers may be replaced (Tim 2026-10-18)
+  const stations = [hq, ...boxes].filter(b => b?.door);
+  const nextPatrol = {}, patrolOwed = {};
 
   // --- Notices ---------------------------------------------------------------------
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
@@ -148,6 +151,18 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     }
   }
 
+  // Quiet patrols respond to a witnessed assault without treating ordinary clan
+  // fighting as a crime. Heat-based squads retain their existing tier rules.
+  function witnessAssault(attacker, victim) {
+    if (!state.clans?.[attacker.owner] || quiet()) return;
+    for (const o of officers()) {
+      if (o.wave || o.place !== attacker.place || dist(o, attacker) > R.sight || dist(o, victim) > R.sight) continue;
+      (o.angry ||= {})[attacker.owner] = state.tick + secs(R.angrySeconds);
+      const m = mind[o.id] ||= {}; m.leaving = false;
+      if (o.routine) { o.clan = attacker.owner; m.fresh = false; }
+    }
+  }
+
   // --- Menus at the box and the HQ (the 'police' command) -------------------------
   // bribe: at the police box, takes bribeHeat off for bribePerTier ryo x (tier + 1)
   // bail: at the HQ, a jailed crew member walks out now for its bail
@@ -198,7 +213,11 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     const kind = R.officer, model = statsOf(kind).sprite || kind, extra = { owner: POLICE, cop: true, clan: clanId };
     const from = [hq, ...boxes].filter(b => b?.door);
     let id;
-    if (from.length) id = spawnOutside(kind, model, from[Math.floor(rng() * from.length)], extra);
+    if (from.length) {
+      const station = from[Math.floor(rng() * from.length)];
+      extra.station = station.id;
+      id = spawnOutside(kind, model, station, extra);
+    }
     else {
       // no HQ on the map: in from the map edge nearest the clan's last fight
       const f = state.clans[clanId].lastFight || { x: 0, z: 0 };
@@ -210,6 +229,10 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   }
   // An officer was knocked out: its clan's squad is one short for replaceSeconds
   function knockedOut(o) {
+    if (o.routine) {
+      (patrolOwed[o.station] ||= []).push(state.tick + secs(R.replaceSeconds));
+      return;
+    }
     if (o.clan && !mind[o.id]?.leaving) (owed[o.clan] ||= []).push(state.tick + secs(R.replaceSeconds));
   }
 
@@ -217,7 +240,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   function staff() {
     for (const clan of Object.values(state.clans || {})) {
       const want = quiet() ? 0 : R.tiers[tierOf(clan.id)].officers || 0;
-      const mine = officers().filter(o => o.clan === clan.id && !mind[o.id]?.leaving);
+      const mine = officers().filter(o => !o.routine && o.clan === clan.id && !mind[o.id]?.leaving);
       // knocked-out officers still count until their replaceSeconds are up
       const list = owed[clan.id] || [];
       owed[clan.id] = want ? list.filter(t => t > state.tick) : [];
@@ -230,11 +253,47 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     }
   }
 
+  function staffPatrols() {
+    for (const station of stations) {
+      const want = !state.night && !quiet() ? (station === hq ? R.dayPatrol.hq : R.dayPatrol.box) || 0 : 0;
+      const mine = officers().filter(o => o.routine && o.station === station.id);
+      patrolOwed[station.id] = (patrolOwed[station.id] || []).filter(t => t > state.tick);
+      if (want && mine.length + patrolOwed[station.id].length < want && state.tick >= (nextPatrol[station.id] || 0)) {
+        const kind = R.officer, model = statsOf(kind).sprite || kind;
+        const id = spawnOutside(kind, model, station, { owner: POLICE, cop: true, routine: true, station: station.id });
+        mind[id] = { fresh: true };
+        nextPatrol[station.id] = state.tick + secs(R.spawnEverySeconds);
+      }
+      if (want) for (const o of mine) (mind[o.id] ||= {}).leaving = false;
+    }
+  }
+
   const dist = (e, u) => Math.hypot(u.x - e.x, u.z - e.z);
   const nearest = (e, list) => list.slice().sort((a, b) => dist(e, a) - dist(e, b))[0] || null;
   const heroOf = clanId => Object.values(state.entities).find(u => u.owner === clanId && u.type === 'hero' && !u.dead && !u.jailed);
   const tierFor = clanId => (state.clans?.[clanId] ? R.tiers[tierOf(clanId)] : null);
   const hunting = t => t?.hunt === 'hero' || t?.hunt === 'all';
+
+  // Routine officers can join any nearby incident. They keep that assignment
+  // through the normal pursuit/search, then resume their station's patrol.
+  function assignPatrols() {
+    for (const o of officers().filter(o => o.routine)) {
+      const m = mind[o.id] ||= {};
+      if (!quiet() && o.clan && ((o.angry?.[o.clan] || 0) > state.tick || o.swing || o.execute || knownFor(o) || searchFor(o))) continue;
+      const candidates = !quiet() ? Object.values(state.entities).filter(u => {
+        if (!state.clans?.[u.owner] || !fair(u, u.owner) || u.place !== o.place || dist(o, u) > R.sight) return false;
+        const t = tierFor(u.owner);
+        return (o.angry?.[u.owner] || 0) > state.tick || (hunting(t) && (u.type === 'hero' || t.hunt === 'all'))
+          || (t?.hunt === 'fighting' && state.tick - (u.foughtAt ?? -Infinity) <= secs(R.seenFightingSeconds));
+      }) : [];
+      const target = nearest(o, candidates);
+      if (target) { m.leaving = false; delete m.deadline; }
+      if (target?.owner !== o.clan) {
+        if (target) o.clan = target.owner; else delete o.clan;
+        delete m.saw; m.x = null; m.until = null; m.fresh = !target;
+      }
+    }
+  }
 
   // Once a tick: which officers see each hunted clan's hero? (Tim 2026-10-18: no radios) Each officer
   // keeps its own sighting (mind.saw = { x, z, seenAt }): it sees the hero itself within sight, or it
@@ -381,13 +440,24 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     // patrol: round the clan's last fight while it is fresh, not one they already searched past and the hero isn't hiding indoors,
     // otherwise wander the streets on from where the officer is (Tim 2026-10-18: no more waiting
     // outside the door the hero went into), drifting back toward the HQ when far from it
-    const lf = clan?.lastFight;
+    const lf = [clan?.lastFight, clan?.lastDisturbance].filter(Boolean).sort((a, b) => b.tick - a.tick)[0];
     const fight = !k && lf && !heroInside(e.clan) && state.tick - lf.tick <= secs(R.patrolFightSeconds) && !(m.searchedAt >= lf.tick);
-    const [hx, hz] = home() || [e.x, e.z];
+    const station = stations.find(b => b.id === e.station);
+    const [hx, hz] = station?.door || home() || [e.x, e.z];
     const back = Math.hypot(hx - e.x, hz - e.z) > R.patrolRadius * 3 && rng() < 0.5;
     const f = k || (fight ? lf : back ? { x: (e.x + hx) / 2, z: (e.z + hz) / 2 } : { x: e.x, z: e.z }), a = rng() * Math.PI * 2;
     const r = k ? rng() * R.searchRadius : fight ? 2 + rng() * 6 : R.patrolRadius * (0.5 + rng() * 0.5);
-    const [x, z] = nav.nearestFree(f.x + Math.cos(a) * r, f.z + Math.sin(a) * r) || [f.x, f.z];
+    let [x, z] = nav.nearestFree(f.x + Math.cos(a) * r, f.z + Math.sin(a) * r) || [f.x, f.z];
+    if (e.routine && !k && !fight) {
+      // Keep ordinary patrols around town and their own station rather than
+      // drifting into the forest or toward a different police building.
+      for (let n = 0; n < 16 && (noPolice(x, z) || Math.hypot(x - hx, z - hz) > R.patrolRadius * 2
+        || !nav.findPath(e.x, e.z, x, z)); n++) {
+        const angle = rng() * Math.PI * 2, radius = R.patrolRadius * (0.5 + rng());
+        [x, z] = nav.nearestFree(hx + Math.cos(angle) * radius, hz + Math.sin(angle) * radius) || [hx, hz];
+      }
+      if (noPolice(x, z) || !nav.findPath(e.x, e.z, x, z)) return null;
+    }
     Object.assign(m, { x, z, until: null, deadline: state.tick + secs(Math.hypot(x - e.x, z - e.z) / statsOf(e).walk * 2.5 + 6) });
     return [x, z, !k];
   }
@@ -395,6 +465,14 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   function step(e) {
     const m = mind[e.id] ||= {}, unit = statsOf(e);
     if (e.dead || e.downed) return;
+    if (e.routine) {
+      const busy = !quiet() && (e.swing || e.execute || knownFor(e) || searchFor(e)
+        || Object.entries(e.angry || {}).some(([c, until]) => until > state.tick && Object.values(state.entities)
+          .some(u => u.owner === c && !u.dead && u.place === e.place && dist(e, u) <= R.giveUpDistance)));
+      if ((state.night || quiet()) && !busy) {
+        if (!m.leaving) { m.leaving = true; delete m.deadline; }
+      }
+    }
     // anger runs out, or ends when nobody of that clan is within giveUpDistance
     if (e.angry) {
       for (const [c, until] of Object.entries(e.angry)) {
@@ -428,8 +506,14 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     // called in to defend a business (sim/businesses.js): wait in the room for the attackers
     if (e.wave) { e.anim = 'idle'; stopPath(e); return; }
     if (m.leaving) {
-      if (e.place !== 'street') { remove(e.id); return; }          // indoors: they just go
-      const [hx, hz] = hq ? nav.nearestFree(...home()) || home()
+      if (e.place !== 'street') {
+        if (e.routine) { if (!goThrough(e, 'street', unit)) e.anim = 'idle'; }
+        else remove(e.id);
+        return;
+      }
+      const station = stations.find(b => b.id === e.station);
+      const destination = station?.door || home();
+      const [hx, hz] = destination ? nav.nearestFree(...destination) || destination
         : edges.slice().sort((a, b) => Math.hypot(a[0] - e.x, a[1] - e.z) - Math.hypot(b[0] - e.x, b[1] - e.z))[0] || [e.x, e.z];
       m.deadline ??= state.tick + secs(Math.hypot(hx - e.x, hz - e.z) / unit.walk * 2.5 + 8);
       if (Math.hypot(hx - e.x, hz - e.z) < 1 || state.tick > m.deadline || !moveTo(e, unit, hx, hz, true)) remove(e.id);
@@ -448,11 +532,13 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   function tick() {
     releaseHeroes();
     staff();
+    staffPatrols();
+    assignPatrols();
     updateTracks();
     for (const e of officers()) step(e);
     for (const id of Object.keys(mind)) if (!state.entities[id]) delete mind[id];
   }
 
-  return { tick, provoke, knockedOut, jail, jailHero, menu, bribeCost, bribeBlocked, tierOf, tierIndex,
+  return { tick, provoke, witnessAssault, knockedOut, jail, jailHero, menu, bribeCost, bribeBlocked, tierOf, tierIndex,
     clinicScale, payoutShare, heatScale, knownHero, searchSpot, track, hq, box, mind, rules: R };
 }

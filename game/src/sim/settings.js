@@ -21,6 +21,7 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   if (ur && heat.townsfolk) ur.civilianHeat = { ...ur.civilianHeat, ...heat.townsfolk };
   set(ur, 'heatCoolSeconds', heat.coolSeconds);
   if (ur && s.hideout) { const { _note, ...h } = s.hideout; ur.hideout = { ...ur.hideout, ...h }; }
+  if (ur && s.hqCamping) ur.hqCamping = { ...ur.hqCamping, ...s.hqCamping };
   // territory and the season (sim/territory.js)
   if (ur && s.territory) { const { _note, ...t } = s.territory; ur.territory = { ...ur.territory, ...t, radius: { ...ur.territory?.radius, ...t.radius } }; }
   if (ur && s.season) { const { _note, ...t } = s.season; ur.season = { ...ur.season, ...t }; }
@@ -63,6 +64,7 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   set(pr, 'bribeHeat', p.bribeHeat);
   set(pr, 'bribePerTier', p.bribePerTier);
   set(pr, 'bailShare', p.bailShare);
+  if (pr && p.dayPatrol) pr.dayPatrol = { ...pr.dayPatrol, ...p.dayPatrol };
   set(pr, 'hitPoliceHeat', heat.hitPolice);
 
   return { units, civilians, bandits, police, dayNight: s.dayNight || null };

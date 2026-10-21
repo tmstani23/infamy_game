@@ -26,6 +26,7 @@
   "police": {
     "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",
     "officersPerTier": [0, 2, 4, 6, 6],
+    "dayPatrol": { "hq": 4, "box": 2 },
     "heroJailSeconds": 60,
     "bribeHeat": 20,
     "bribePerTier": 10,
@@ -74,6 +75,7 @@
     "_note": "a War Lantern: needed to raid a rival-owned business; bought at the moneylender's door",
     "price": 1200
   },
+  "hqCamping": {"enabled": true, "radius": 12, "windowSeconds": 60, "warningSeconds": 20, "activateSeconds": 30, "penaltySeconds": 5, "penaltyHeat": 12, "clearSeconds": 30},
   "hideout": {
     "_note": "home hideouts (inn: you, izakaya: the rival clan): never taken; hire there hireTimeFactor x slower; heat cools heatCoolFactor x faster with the boss inside; rest heals restPerSecond of max HP a second",
     "hireTimeFactor": 2,

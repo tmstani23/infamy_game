@@ -80,6 +80,7 @@ Phase 3E access (Tim, 2026-10-21): all ten ownable businesses have Shinobi back-
 
 ## Deferred Shinobi pass (Tim, 2026-10-21; not built)
 
+- Proposed third southern river bridge into the village; exact placement and approaches deferred.
 - Prohibit entry into rival main home bases, including contract windows. Move Steal contracts from HQs to owned businesses; design details later.
 - When a contract against a clan fails, notify that clan with the contract type. Keep the initial warning generic.
 - Scale contract ryo/Renown with target business strength and review Shinobi crew/season progression. Approved Steal formula: 20% of treasury, capped at 500 + 100 × target owned business score; not implemented.

@@ -211,6 +211,17 @@
     font: 900 24px/1 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #fff1d6;
     text-shadow: 0 0 8px #e0a030, 0 0 20px rgba(230,160,50,.8), 0 2px 3px #000; }
   #callout[hidden] { display: none; }
+  #campingnotice { position: fixed; top: 158px; left: 50%; transform: translateX(-50%); z-index: 19;
+    max-width: 80vw; padding: 5px 12px; border-radius: 5px; pointer-events: none; text-align: center;
+    color: #f5ce80; background: rgba(24,18,12,.42); font: 600 12px/1.4 system-ui,sans-serif;
+    text-shadow: 0 1px 3px #000; }
+  #campingnotice.penalty { color: #ffad99; background: rgba(45,16,12,.42); }
+  #campingnotice[hidden] { display: none; }
+  #campingnotice .decay { margin-top: 5px; }
+  #campingnotice .decay[hidden] { display: none; }
+  #campingnotice .track { height: 4px; border-radius: 3px; background: rgba(255,255,255,.13); overflow: hidden; }
+  #campingnotice .fill { height: 100%; background: #e99981; transition: width .1s linear; }
+  #campingnotice .decaylabel { margin-top: 3px; font-size: 10px; opacity: .85; }
   #callout.news { color: #f0ece4; text-shadow: 0 0 8px #b0a890, 0 0 18px rgba(180,170,140,.6), 0 2px 3px #000; }
   #callout.loss { color: #ffe0d6; text-shadow: 0 0 8px #e04020, 0 0 20px rgba(230,60,30,.8), 0 2px 3px #000; }
   #callout.show { animation: lostcops 2.6s ease-out forwards; }
@@ -354,6 +365,7 @@
 <div id="jail" hidden></div>
 <div id="lostcops" hidden>LOST THE POLICE</div>
 <div id="callout" hidden></div>
+<div id="campingnotice" hidden><div class="label"></div><div class="decay" hidden><div class="track"><div class="fill"></div></div><div class="decaylabel"></div></div></div>
 <div id="attackbar" hidden></div>
 <div id="raidalarm" hidden title="Double-click to jump there"><div class="bell">&#128276;</div><div><b></b><span></span><small>double-click to jump there</small></div></div>
 <div id="knockbar" hidden><span>Knocking down the War Lantern</span><div><i></i></div></div>
