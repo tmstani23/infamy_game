@@ -130,7 +130,7 @@ const newGame = () => {
   // into town: over a bridge, never through the stream
   const stream = district.blockShapes.find(b => b.line?.[0][1] === 96);
   const bridges = district.walkShapes.filter(([x0]) => x0 < -77);
-  assert.equal(bridges.length, 2, 'two stream bridges');
+  assert.equal(bridges.length, 4, 'four stream crossings, including the screenshot-bank bridge and retained southern crossing');
   for (const [tx, tz] of [[6, 8], [-60, -7]]) {
     const path = g.nav.findPath(vx, vz, tx, tz);
     assert.ok(path, `village to ${tx},${tz}`);
@@ -186,16 +186,16 @@ const newGame = () => {
   assert.ok(thug.downed || thug.dead, 'crew down at once');
   assert.ok(boss.cooldowns?.F > g.state.tick, 'on cooldown');
   assert.equal(boss.hidden, false, 'assassinate shows him');
-  // a boss only drops to bossShare of his health
+  // a boss retains bossShare of current HP, including when already wounded
   const rival = g.state.entities[g.spawn('hero', 'ronin', boss.x + 2, boss.z, { owner: 'kuroda' })];
   boss.cooldowns.F = 0; boss.hidden = true; boss.hiddenAt = g.state.tick - 20 * 5; boss.revealUntil = 0;
   g.step([{ id: boss.id, type: 'ability', slot: 'F', x: rival.x, z: rival.z }]);
   assert.equal(rival.hp, Math.round(rival.maxHp * A.F.bossShare), 'boss to 60%');
-  for (const share of [0.8, 0.4]) {
-    rival.hp = rival.maxHp * share;
+  for (const hp of [rival.maxHp * 0.8, rival.maxHp * 0.4, 300, 301, 1, 0.5]) {
+    rival.hp = hp;
     boss.cooldowns.F = 0; boss.hidden = true; boss.hiddenAt = g.state.tick - 20 * 5; boss.revealUntil = 0;
     g.step([{ id: boss.id, type: 'ability', slot: 'F', target: rival.id }]);
-    assert.equal(rival.hp, Math.min(rival.maxHp * share, Math.round(rival.maxHp * A.F.bossShare)), 'wounded hero is capped at 60% without minimum damage or healing');
+    assert.equal(rival.hp, Math.min(hp, Math.max(1, Math.round(hp * A.F.bossShare))), 'hero retains 60% of current HP without healing or a finishing blow');
   }
   // R: nearby clan units hold fire; the rival can't target into the cloud
   boss.hp = boss.maxHp * 0.5;

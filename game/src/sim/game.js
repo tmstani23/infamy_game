@@ -880,8 +880,8 @@ export function createGame(options) {
       extra = { seconds: a.seconds };
     } else if (a.kind === 'assassinate') {
       // Assassinate (Shinobi F): only after hiddenSeconds hidden (smoke doesn't count), on the enemy
-      // at the mouse within reach; non-heroes go down at once. A boss above
-      // bossShare drops to that share of max HP; lower-health bosses are not healed.
+      // at the mouse within reach; non-heroes go down at once. Heroes retain
+      // bossShare of their current HP, rounded to whole HP without a finishing blow.
       const clan = state.clans?.[e.owner], tell = text => { if (clan) clan.notice = { tick: state.tick, text }; };
       if (!e.hidden || (!stealth.veiled(e) && (e.hiddenAt == null || state.tick - e.hiddenAt < secs(a.hiddenSeconds)))) return tell(`Assassinate: stay hidden ${a.hiddenSeconds} s first`);
       // the target in the target frame first, else whoever is at the mouse; townsfolk and police too (Tim 2026-10-21)
@@ -894,7 +894,8 @@ export function createGame(options) {
         if (d < bd) { bd = d; t = u; }
       }
       if (!t) return tell('Assassinate: nobody in reach at the mouse');
-      const dmg = t.type === 'hero' ? Math.max(0, t.hp - Math.round(t.maxHp * a.bossShare)) : t.hp;
+      const remaining = Math.min(t.hp, Math.max(1, Math.round(t.hp * a.bossShare)));
+      const dmg = t.type === 'hero' ? t.hp - remaining : t.hp;
       // a quick lunge onto him first (Tim 2026-10-20: longer reach, so he strikes before he is spotted)
       const fx = e.x, fz = e.z, tl = Math.hypot(t.x - e.x, t.z - e.z), stop = Math.max(0, tl - (a.landGap ?? 0.9)), grid = navOf(e.place);
       for (let i = 1, m = Math.ceil(stop / 0.25); grid && i <= m; i++) {

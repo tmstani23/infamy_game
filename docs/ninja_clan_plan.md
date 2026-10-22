@@ -86,7 +86,8 @@ Phase 3E access (Tim, 2026-10-21): all ten ownable businesses have Shinobi back-
 
 Contract board follow-up (2026-10-21): the first successful bandit contract per dawn unlocks one replacement, with at most two taken that dawn; dropping or failing does not refill it. Newly eligible owned-business jobs fill spare board slots during the day within existing board/per-clan limits. Active terms remain locked.
 
-## Next and deferred (Tim, 2026-10-21; not built)
+## Village routes and deferred work (Tim, 2026-10-22)
 
-- Next: third southwest river bridge near the far-west bandit camp; exact placement and approaches pending.
+Village now has four stream crossings (2026-10-22): [bridge locations and approaches](buildings.md#village-crossings-tim-2026-10-22).
+
 - Later combat/inventory pass: hero/selected-unit stats pane, fuller recruit-window stats and configurable overhead combat/buff duration text. Current overhead duration text is Vanish only.

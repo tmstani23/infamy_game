@@ -71,3 +71,7 @@ From `buildings5.png`, which is not an even grid, so each building was cut along
 | 43 | Moneylender's house | `buildings/moneylender_house`; `b16` | `game/art/buildings/moneylender_house.png` | buildings5.png, building 7 (cut along outlines) | yes (b16) | | `assets/environment/buildings/town/moneylender_house.png` |
 | 44 | Lighthouse | `buildings/lighthouse`; `b30` | `game/art/buildings/lighthouse.png` | buildings5.png, building 8 (cut along outlines) | yes (b30) | | `assets/environment/buildings/waterfront/lighthouse.png` |
 | 45 | Telegraph office | `buildings/telegraph_office`; `b26` | `game/art/buildings/telegraph_office.png` | buildings5.png, building 9 (cut along outlines) | yes (b26) | | `assets/environment/buildings/town/telegraph_office.png` |
+
+## Village crossings (Tim, 2026-10-22)
+
+Four stream crossings serve the Shinobi village: the original two, the retained third near (-81,-22), and the fourth near (-83,78) beside the village gate/watchtower and small `north_village` camp. Coordinates are world coordinates; camera rotation changes apparent direction. The fourth plank/walk opening is [-87.5,76.2,-78.5,79.8], edged by 12 decorative mushrooms. Clear trails connect village gravel road, small camp and far-bank forest trail (-72,47), then the existing town route.

@@ -65,6 +65,18 @@ function assassinate(g, hero, target) {
   assert.ok(hero.buffs.ambush.until > firstEnd);
   advance(g, 161); assert.ok(!hero.buffs?.ambush && !crew.buffs?.ambush, 'crit buff expires');
 }
+// Assassinate scales from current HP for either hero model, including repeated
+// hits below the old max-health threshold. Non-hero executions stay covered above.
+for (const model of ['ronin', 'ninja_leader']) {
+  const { g, hero, spawn } = make();
+  const target = spawn('hero', -7, 1, { owner: 'rival', model });
+  for (const [before, after] of [[300,180],[180,108],[100,60],[301,181],[1,1],[.5,.5]]) {
+    target.hp = before;
+    assassinate(g, hero, target);
+    assert.equal(target.hp, after, `${model}: ${before} current HP becomes ${after}`);
+    assert.ok(!target.dead && !target.downed);
+  }
+}
 // Actual combat rolls gain additive critical chance for both hero and crew.
 for (const type of ['hero', 'ninja']) {
   const { g, hero, spawn } = make();
