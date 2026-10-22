@@ -1,7 +1,7 @@
 // The one test switch (Tim 2026-10-19: one param, nothing hidden anywhere else): ?test=<setup>
 //   ?test=bot    see the whole rival clan fast: it starts with 5000 ryo (buys, hires, then a War
 //                Lantern raid on you); you start with the teahouse and 3000 ryo (enough for a lantern)
-//   ?test=ninja  play the Shinobi clan (the ninja build, until clan select in the start menu):
+//   ?test=ninja  skip the start menu and play the Shinobi clan for gameplay testing:
 //                the ninja leader and one ninja crew, normal 200-ryo opening in the forest village
 //                (longhouse hideout, dojo hiring); Kuroda is the rival bot as usual
 // DEV = false turns it off, along with the dev-only keys in main.js: N / the day-night button

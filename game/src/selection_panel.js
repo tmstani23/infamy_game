@@ -5,7 +5,7 @@ import { healthBar } from './render/health.js';
 import { portrait } from './portraits.js';
 import { prisonerOf } from './sim/police.js';
 
-export const unitName = (units, type) => units.types[type]?.name || (type.charAt(0).toUpperCase() + type.slice(1)).replace(/_/g, ' ');
+export const unitName = (units, type) => units.types[type]?.name || units.models?.[type]?.name || (type.charAt(0).toUpperCase() + type.slice(1)).replace(/_/g, ' ');
 
 // What a unit is doing, in a word or two, from the state alone (no DOM, so Node can check it)
 export function unitStatus(e, state) {
@@ -14,6 +14,10 @@ export function unitStatus(e, state) {
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
   if (e.execute) return e.execute.arrest ? 'Arresting' : 'Finishing off';
+  if ((e.buffs?.stunned?.until ?? 0) > state.tick) return 'Stunned';
+  if (e.brace) return 'Bracing (Reprisal)';
+  if (e.spearSweep) return 'Sweeping Cut';
+  if (e.spearCombo) return 'Threefold Thrust';
   if (e.swing) return 'Fighting';
   if (e.type === 'civilian') {
     if (e.scared) return 'Scared';

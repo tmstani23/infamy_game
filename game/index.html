@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Infamy</title>
+<link rel="stylesheet" href="src/start_screen.css">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #06080c; color: #d8d2c4;
     font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -346,7 +347,8 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/" } }
 </script>
 </head>
-<body>
+<body class="prematch">
+<section id="startscreen" aria-label="Start a new game" hidden></section>
 <canvas id="view"></canvas>
 <div id="vignette"></div>
 <div id="hud">

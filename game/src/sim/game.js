@@ -18,6 +18,7 @@ import { createBusinesses } from './businesses.js';
 import { createContracts } from './contracts.js';
 import { interactionActor } from './interactions.js';
 import { createHQCamping } from './hq_camping.js';
+import { createKuroda, KURODA_KINDS, stunned } from './kuroda.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -266,6 +267,7 @@ export function createGame(options) {
 
   // Walk one tick toward (gx, gz) along a street path; false when there is no way
   function moveTo(e, unit, gx, gz, walk) {
+    if (stunned(e, state.tick)) { e.anim = 'idle'; return true; }
     const grid = navOf(e.place);
     if (!grid) paths[e.id] = { pts: [[gx, gz]], gx, gz };   // a place with no walk grid: walk straight
     let p = paths[e.id];
@@ -453,6 +455,7 @@ export function createGame(options) {
   const STRIKE = 0.4;
   const swingTicks = unit => Math.max(4, Math.round(Math.min(unit.attackSpeed * 0.85, unit.swingSeconds || 0.7) / DT));
   function engage(e, unit, t, chase = true) {
+    if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     const f = fight[e.id] ||= { cd: 0 };
     f.target = t.id;
     if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
@@ -491,6 +494,7 @@ export function createGame(options) {
 
   // Swings in progress: land the hit on the strike tick (if the target is still in reach), end the swing
   function swingStep(e, unit) {
+    if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return true; }
     const w = e.swing;
     if (!w) return false;
     if (state.tick === w.strike) {
@@ -503,7 +507,9 @@ export function createGame(options) {
         } else {
           const bonus = Object.values(e.buffs || {}).reduce((sum, b) => sum + (b.until > state.tick ? b.critChance || 0 : 0), 0);
           const crit = rng() < Math.min(1, Math.max(0, (unit.critChance || 0) + bonus));
-          hit(e, t, Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1)), crit);
+          const damage = Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1));
+          hit(e, t, damage, crit);
+          kuroda.weaponHit(e, t, damage);
         }
       }
     }
@@ -553,10 +559,13 @@ export function createGame(options) {
   }
 
   function hit(a, t, damage, crit = false, kind = null) {
+    // Assassinate's explicit current-health rule stays exact inside a formation.
+    if (kind !== 'assassinate') damage = Math.round(damage * kuroda.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
     t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
+    if (damage > 0) kuroda.damaged(t);
     delete t.execute;                // a hit breaks an execute channel
     // this tick's hits, for damage numbers and effects (cleared every tick)
     state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
@@ -579,6 +588,7 @@ export function createGame(options) {
     delete t.swing;
     delete t.dash;
     delete t.buffs;
+    kuroda.cancel(t);
     delete paths[t.id];
     delete fight[t.id];
     t.anim = 'death';
@@ -781,13 +791,21 @@ export function createGame(options) {
   }
   function addBuff(e, name, seconds, extra = {}) { (e.buffs ||= {})[name] = { until: state.tick + secs(seconds), ...extra }; }
 
+  const kuroda = createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff, damageScale, civilian: civ, cop,
+    clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
+    clearCombat: e => { delete e.swing; delete e.execute; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
+
   function useAbility(e, c) {
     const a = statsOf(e).abilities?.[c.slot];
-    if (!a || e.type !== 'hero' || e.dead || e.dash) return;
+    if (!a || e.type !== 'hero' || e.dead || e.downed || e.jailed || e.dash || e.brace || e.spearCombo || e.spearSweep || stunned(e, state.tick)) return;
     if ((e.cooldowns?.[c.slot] ?? 0) > state.tick) return;
     const aim = Number.isFinite(c.x) && Number.isFinite(c.z) ? [c.x, c.z] : null;
     let extra = {};   // more for the renderer's cast entry
-    if (a.kind === 'dash') {
+    if (KURODA_KINDS.has(a.kind)) {
+      const result = kuroda.cast(e, a, c);
+      if (!result) return;
+      extra = result;
+    } else if (a.kind === 'dash') {
       let dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
       if (len < 0.2) {   // no aim: dash the way the hero faces
         const th = e.dir * Math.PI / 4, sx = -Math.sin(th), sy = Math.cos(th);
@@ -982,6 +1000,7 @@ export function createGame(options) {
 
   function crewStep(e, unit) {
     if (e.dead || e.downed || e.jailed) return;
+    if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     const finished = e.order?.kind === 'attack' && state.entities[e.order.target];
     if (finished && (finished.dead || finished.downed || finished.jailed)) { delete e.swing; endAttack(e); }
     indoorDuty(e);
@@ -1289,8 +1308,12 @@ export function createGame(options) {
       if ((e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract'].includes(c.type)) continue;
       // Selection and crew commands cannot replace the hero's current execution.
       if (e.type === 'hero' && e.execute && ['ability', 'snuff', 'use'].includes(c.type)) continue;
-      if (c.type === 'move') intents[c.id] = c;
+      if (c.type === 'move') {
+        intents[c.id] = c;
+        if (Math.hypot(c.right, c.down) >= 0.1) { kuroda.cancel(e, true); delete e.swing; }
+      }
       if (c.type === 'use') {
+        if (stunned(e, state.tick) || e.brace || e.spearCombo) continue;
         const d = doorNear(c.id);
         // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
         if (d?.to && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
@@ -1318,7 +1341,7 @@ export function createGame(options) {
         if (Array.isArray(c.units)) setAssistCrew(e, c.units);
         if (e.swing?.target === e.attackTarget) delete e.swing;
         delete e.attackTarget; delete e.assistCrew;
-        if (c.type === 'cancel') { delete e.execute; delete e.swing; delete e.lootTarget; delete paths[e.id]; }
+        if (c.type === 'cancel') { delete e.execute; delete e.swing; delete e.lootTarget; delete paths[e.id]; kuroda.cancel(e); }
       }
       if (c.type === 'clinic' && clans) {
         const access = serviceAt(e.id, 'clinic');
@@ -1333,6 +1356,7 @@ export function createGame(options) {
         contracts.command(access?.actor || e, c, access?.door || doorNear(e.id));
       }
     }
+    kuroda.tick();
     clans?.tick(DT, spawnOutside);
     syncCrewAttacks();
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
@@ -1341,6 +1365,8 @@ export function createGame(options) {
       if (e.type === 'civilian' || e.wild || e.cop) continue;   // townsfolk, bandits and police move in their own ticks below
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
+      if (stunned(e, state.tick)) { e.anim = 'idle'; continue; }
+      if (kuroda.stepActor(e, intents[e.id])) continue;
       if (e.dash) { dashStep(e, unit); continue; }
       const c = intents[e.id];
       let dx = 0, dz = 0;
@@ -1374,7 +1400,8 @@ export function createGame(options) {
       delete e.lootTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
-      const d = unit[e.anim] * (e.buffs?.snared?.speed ?? 1) * DT / len;   // caltrops (Distract): slowed
+      const pursuit = e.anim === 'run' && (e.buffs?.pursuit?.until ?? 0) > state.tick ? e.buffs.pursuit.runSpeed : 1;
+      const d = unit[e.anim] * pursuit * (e.buffs?.snared?.speed ?? 1) * DT / len;
       tryMove(e, unit.radius, dx * d, 0);
       tryMove(e, unit.radius, 0, dz * d);
     }
@@ -1450,6 +1477,7 @@ export function createGame(options) {
 
   // Move along one axis, stopping flush against the first thing in the way
   function tryMove(e, r, dx, dz) {
+    if (stunned(e, state.tick)) return;
     let x = e.x + dx, z = e.z + dz;
     for (const b of blockersNear(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
       if (!(x + r > b.minX && x - r < b.maxX && z + r > b.minZ && z - r < b.maxZ)) continue;

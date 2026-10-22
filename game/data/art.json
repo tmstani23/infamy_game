@@ -1,5 +1,6 @@
 {
   "buildingScale": 1.3,
+  "characterFraming": {"rival_yakuza": {"cellWorld": 4.8, "feetUp": 0.9}, "kuroda_spearman": {"cellWorld": 4.8, "feetUp": 0.9}},
   "characters": {"ronin":{"idle":{"file":"ronin_breathing_idle","speed":0.5},"walk":"ronin_walk","run":"ronin_run","attack":"ronin_great_sword_slash","death":"ronin_two_handed_sword_death"},
     "bandit":{"idle":"bandit_fighting_idle","walk":"bandit_walking","run":"bandit_running","attack":"bandit_punching","death":"bandit_dying"},
     "police":{"idle":"police_fighting_idle","walk":"police_walking","run":"police_running","attack":"police_punching","death":"police_dying"},
@@ -9,7 +10,8 @@
     "ninja_leader": {"idle": {"file": "ninja_leader_fighting_idle", "speed": 0.5}, "walk": "ninja_leader_sneak_walk", "run": "ninja_leader_fast_run", "attack": "ninja_leader_sword_and_shield_slash", "death": "ninja_leader_standing_death_forward_02"},
     "ninja_grunt": {"idle": {"file": "ninja_grunt_fighting_idle", "speed": 0.5}, "walk": "ninja_grunt_sneak_walk", "run": "ninja_grunt_fast_run", "attack": "ninja_grunt_sword_and_shield_slash", "death": "ninja_grunt_standing_death_forward_02"},
     "ninja_tanto": {"idle": {"file": "ninja_tanto_fighting_idle", "speed": 0.5}, "walk": "ninja_tanto_sneak_walk", "run": "ninja_tanto_fast_run", "attack": "ninja_tanto_sword_and_shield_slash", "death": "ninja_tanto_standing_death_forward_02"},
-    "rival_yakuza":{"idle":{"file":"rival_yakuza_breathing_idle","speed":0.5},"walk":"rival_yakuza_walking","run":"rival_yakuza_run","attack":"rival_yakuza_great_sword_slash","death":"rival_yakuza_two_handed_sword_death"},
+    "rival_yakuza":{"idle":{"file":"rival_yakuza_great_sword_idle","speed":0.5},"guard":"rival_yakuza_great_sword_idle","walk":"rival_yakuza_walking","run":"rival_yakuza_run","attack":"rival_yakuza_upward_thrust","sweep":"rival_yakuza_great_sword_slash","death":"rival_yakuza_two_handed_sword_death"},
+    "kuroda_spearman":{"idle":{"file":"kuroda_spearman_great_sword_idle","speed":0.5},"walk":"kuroda_spearman_walking","run":"kuroda_spearman_run","attack":"kuroda_spearman_bayonet_stab","death":"kuroda_spearman_two_handed_sword_death"},
     "monk":{"idle":"monk_standing_idle","walk":"monk_catwalk_walk_forward","run":{"file":"monk_catwalk_walk_forward","speed":2.2},"scared":"monk_scared","bow":"monk_quick_formal_bow","talk":"monk_gentle_reaction","death":"monk_standing_death_forward_01"},
     "monk2":{"idle":"monk2_standing_idle","walk":"monk2_catwalk_walk_forward","run":{"file":"monk2_catwalk_walk_forward","speed":2.2},"scared":"monk2_scared","bow":"monk2_quick_formal_bow","talk":"monk2_gentle_reaction","death":"monk2_standing_death_forward_01"},
     "old_woman":{"idle":"old_woman_standing_idle","walk":"old_woman_catwalk_walk_forward","run":{"file":"old_woman_catwalk_walk_forward","speed":2.2},"scared":"old_woman_scared","bow":"old_woman_quick_formal_bow","talk":"old_woman_gentle_reaction","death":"old_woman_standing_death_forward_01"},

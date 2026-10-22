@@ -33,7 +33,7 @@ Each layer is playable on its own before the next one starts.
 Tim's order from here (2026-10-20): a fully playable single-player game first, small tweaks later.
 
 8. Ninja (Shinobi) clan fully playable: contracts only (no property), village board, stealth, assassin leader. Plan: `ninja_clan_plan.md` (being built, 2026-10-20).
-9. Start menu: new game, load, saves, and clan select (Yakuza or Shinobi).
+9. Start menu built 2026-10-22: [clan/difficulty selection](gameplay_and_design.md#starting-paths-settled). Load/save remains future work.
 10. Inventory, stash, fence and world loot; business upgrades.
 11. Rival bot medium and hard tuning.
 12. Before any public release: close the test switches (`test_params.md`) or put them behind sign-in (Tim 2026-10-19).
@@ -43,7 +43,7 @@ On hold: real estate (market, selling, lots, development) until the map can grow
 
 ## Architecture and maintenance pass (Tim, 2026-10-21)
 
-After the current phases and their playtest, do a focused architecture pass before starting the next feature batch:
+After the start-menu phase and playtest, begin with a read-only architecture audit. Approve a concrete checklist before refactoring; then complete the maintenance pass before the next feature batch:
 
 - [ ] Audit module boundaries and make a short, prioritized refactoring checklist.
 - [ ] Organize growing sim/game logic and shared AI helpers; consolidate repeated interaction, targeting and lifecycle rules.

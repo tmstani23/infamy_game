@@ -6,7 +6,7 @@
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 
-const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Caltrops (slowed)', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish' };
+const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -19,7 +19,11 @@ function tooltip(a, key, stats) {
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     rally: [['Effect', `you and your crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of your and each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
-    lantern: [['Damage', `+${pct(a.damage - 1)} (${Math.round(dmg * a.damage)} per hit)`], ['Lifesteal', `${pct(a.lifesteal)} of damage dealt`], ['Duration', `${a.seconds} s`]] }[a.kind] || [];
+    lantern: [['Damage', `+${pct(a.damage - 1)} (${Math.round(dmg * a.damage)} per hit)`], ['Lifesteal', `${pct(a.lifesteal)} of damage dealt`], ['Duration', `${a.seconds} s`]],
+    sweep: [['Damage', `${Math.round(dmg * a.damageMultiplier)} (${pct(a.damageMultiplier)})`], ['Area', `${a.radius} steps`], ['Slow', `${pct(1-a.snareSpeed)} for ${a.snareSeconds} s`]],
+    reprisal: [['Brace', `up to ${a.channelSeconds} s; taking damage activates`], ['Counter', `next normal hit stuns ${a.stunSeconds} s`], ['Cleave', `${pct(a.splash)} splash for ${a.seconds} s`], ['Move to break', `+${pct(a.escapeSpeed-1)} run speed for ${a.escapeSeconds} s instead`]],
+    threefold: [['Damage', `${a.strikes} × ${Math.round(dmg * a.damageMultiplier)} (${pct(a.damageMultiplier)} each)`], ['Duration', `${a.seconds} s; movement cancels`]],
+    formation: [['Protection', `${pct(1-a.damageTaken)} less damage inside`], ['Area', `${a.radius} steps; fixed on the ground`], ['Duration', `${a.seconds} s`]] }[a.kind] || [];
   return { name: a.name + (key === 'F' ? ' (ultimate)' : ''), key, lines: [['Cost', a.cost ? `${a.cost} ryo` : 'None'], ['Cooldown', `${a.cooldown} s`], ...lines], about: a.about };
 }
 
@@ -91,11 +95,13 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       const cooling = left > 0;
       sl.sweep.style.background = cooling ? `conic-gradient(transparent ${(1 - left / sl.a.cooldown) * 360}deg, rgba(4,5,8,.72) 0)` : 'none';
       const vanish = sl.a.kind === 'smoke' && !h.dead && !h.downed && !h.jailed ? Math.max(0, ((h.buffs?.veil?.until ?? 0) - t) / tickRate) : 0;
-      sl.secs.textContent = vanish > 0 ? `Vanish\n${Math.ceil(vanish)}s` : cooling ? (left < 1 ? left.toFixed(1) : Math.ceil(left)) : '';
+      const counter = sl.a.kind === 'reprisal' && h.buffs?.reprisal ? Math.max(0, (h.buffs.reprisal.until-t)/tickRate) : 0;
+      const pursuit = sl.a.kind === 'reprisal' && h.buffs?.pursuit ? Math.max(0, (h.buffs.pursuit.until-t)/tickRate) : 0;
+      sl.secs.textContent = h.brace && sl.a.kind === 'reprisal' ? 'Brace' : pursuit > 0 ? `Speed\n${Math.ceil(pursuit)}s` : counter > 0 ? `Cleave\n${Math.ceil(counter)}s` : vanish > 0 ? `Vanish\n${Math.ceil(vanish)}s` : cooling ? (left < 1 ? left.toFixed(1) : Math.ceil(left)) : '';
       sl.s.classList.toggle('vanish', vanish > 0);
       if (!cooling && !sl.wasReady) { sl.s.classList.remove('flash'); void sl.s.offsetWidth; sl.s.classList.add('flash'); }
       sl.wasReady = !cooling;
-      sl.s.classList.toggle('active', vanish > 0 || !!(sl.a.kind === 'lantern' && h.buffs?.lantern) || !!(sl.a.kind === 'dash' && h.dash));
+      sl.s.classList.toggle('active', vanish > 0 || counter > 0 || pursuit > 0 || !!(sl.a.kind === 'reprisal' && h.brace) || !!(sl.a.kind === 'threefold' && h.spearCombo) || !!(sl.a.kind === 'lantern' && h.buffs?.lantern) || !!(sl.a.kind === 'dash' && h.dash));
     }
 
     // buffs on the hero (and Rally on any of its crew)

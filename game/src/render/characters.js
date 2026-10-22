@@ -29,6 +29,7 @@ export async function loadSheets(catalog, model) {
   if (sheetCache[model]) return sheetCache[model];
   const names = catalog.characters[model];
   const sheets = {};
+  Object.defineProperty(sheets, 'framing', { value: catalog.characterFraming?.[model] || {} });
   const cfg = await loadGlowConfig();
   const weapon = cfg?.weapons?.[cfg.models?.[model]];
   // the glow settings ride along on the sheet set, hidden from anything that lists the animations
@@ -52,10 +53,12 @@ export async function loadSheets(catalog, model) {
 export class CharacterSprite {
   constructor(sheets) {
     this.sheets = sheets;
+    this.cellWorld = sheets.framing?.cellWorld || CELL_WORLD;
+    this.feetUp = sheets.framing?.feetUp ?? FEET_UP;
     this.material = spriteMaterial(sheets.idle.tex, { uSelfLight: { value: new THREE.Color(0.2, 0.18, 0.16) } });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
     mesh.quaternion.copy(CAM_QUAT);
-    mesh.scale.set(CELL_WORLD, CELL_WORLD, 1);
+    mesh.scale.set(this.cellWorld, this.cellWorld, 1);
     mesh.frustumCulled = false;
     // in 3D rooms the sprite is hidden by furniture in front of it; a faint outline shows where it is
     this.material.depthTest = true;
@@ -101,7 +104,7 @@ export class CharacterSprite {
         mesh.add(this.voidHalo);
         this.thing.extras.push(this.voidHalo);
       }
-      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: !!weapon.void }));
+      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: !!weapon.void, coreColor: weapon.coreColor, coreStrength: weapon.coreStrength ?? 0 }));
       this.glow.frustumCulled = false;
       mesh.add(this.glow);
       this.thing.extras.push(this.glow);
@@ -118,7 +121,7 @@ export class CharacterSprite {
     // a fall plays once and stays down; an attack follows the swing; everything else loops
     const f = Math.floor(this.time * FPS * sheet.speed);
     const frame = anim === 'death' ? Math.min(f, sheet.frames - 1)
-      : anim === 'attack' && swingT !== null ? Math.min(sheet.frames - 1, Math.floor(swingT * sheet.frames))
+      : (anim === 'attack' || anim === 'sweep') && swingT !== null ? Math.min(sheet.frames - 1, Math.floor(swingT * sheet.frames))
       : f % sheet.frames;
     // hit flash fades out; the lean eases back
     this.flash = Math.max(0, (this.flash || 0) - dt / 0.12);
@@ -134,9 +137,10 @@ export class CharacterSprite {
       const w = this.weapon, g = this.glow.material.uniforms;
       this.glow.visible = !!sheet.glow;
       if (sheet.glow) g.uMap.value = sheet.glow;
-      const swing = anim === 'attack' && swingT !== null ? Math.sin(Math.PI * swingT) * (w.attack || 0) : 0;
+      const swing = (anim === 'attack' || anim === 'sweep') && swingT !== null ? Math.sin(Math.PI * swingT) * (w.attack || 0) : 0;
       const fall = anim === 'death' ? Math.max(0, 1 - this.time / 0.8) : 1;
-      g.uStrength.value = w.strength * (0.9 + 0.1 * Math.sin(this.time * 2.2)) * (1 + swing) * fall;
+      const pulse = w.pulse ?? .1;
+      g.uStrength.value = w.strength * (1 - pulse + pulse * Math.sin(this.time * (w.pulseRate ?? 2.2))) * (1 + swing) * fall;
       if (this.voidHalo) {
         this.voidHalo.visible = this.glow.visible;
         const dark = this.voidHalo.material.uniforms;
@@ -149,12 +153,12 @@ export class CharacterSprite {
     const r = 0.2;
     if (size !== this.size) {
       this.size = size;
-      this.thing.mesh.scale.set(CELL_WORLD * size, CELL_WORLD * size, 1);
+      this.thing.mesh.scale.set(this.cellWorld * size, this.cellWorld * size, 1);
       this.hidden.scale.copy(this.thing.mesh.scale);
       this.shadow.scale.setScalar(size);
       this.ring.scale.setScalar(size);
     }
-    this.thing.mesh.position.set(x, FEET_UP * size, z);
+    this.thing.mesh.position.set(x, this.feetUp * size, z);
     this.hidden.position.set(x, FEET_UP * size, z);
     u.uDepthAt.value.set(x, 0, z, 0.45);
     this.thing.foot = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r };

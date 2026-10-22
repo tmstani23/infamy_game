@@ -81,6 +81,21 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 | R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 15% of your health over 6 s in 6 ticks (hero included; 2026-10-19). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
+### Kuroda leader kit (Tim, 2026-10-22)
+
+Spear-and-shield leader; human and bot abilities use the same sim rules.
+
+| Key | Ability | Effect | Cooldown |
+|---|---|---|---|
+| Q | Sweeping Cut | Visible enemies within 4 take 60% weapon damage and a 50% slow for 3 s; no automatic street-police/civilian aggression | 14 s |
+| E | Reprisal | Brace up to 1 s. A damaging hit grants 6 s of 35% cleave within 2; next landed normal attack stuns 0.75 s. Moving before a hit instead grants +30% run speed for 4 s, including casting while moving. Timeout/Escape/stun/death give neither; no stacking or snare removal | 20 s |
+| R | Threefold Thrust | Three melee strikes at 45% weapon damage each over 0.9 s; every strike checks reach. Movement/Escape cancels. Cleave applies without consuming Reprisal's normal-hit stun | 12 s |
+| F | Iron Formation | Fixed radius-6 circle for 8 s: allies inside take 25% less damage; their weapon hits slow 30% for 1 s. No healing or crew-order changes | 60 s |
+
+Approved visuals use procedural geometry, particles, cards and bloom: broad sweep crescent, assembling/shattering shield crest, pursuit ribbons, spectral spearheads and rotating formation symbols with allied wards/outlines. No new custom effect textures. Future previews use actual game sprites, camera and effects.
+
+Planned, not built (2026-10-22): compact hero buff/debuff icon strip near the action bar for all clans, with duration timers and hover descriptions. Agree layout before implementation.
+
 ### Ninja leader kit (built 2026-10-20, `units.json` `models.ninja_leader.abilities`)
 
 | Key | Ability | What it does | Cooldown |

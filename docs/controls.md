@@ -4,6 +4,8 @@ Service access (Tim, 2026-10-21): eligible own crew provide presence for clinic 
 
 What works in the game now (updated 2026-10-21). Keep this file up to date whenever a control is added or changed.
 
+Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](gameplay_and_design.md#starting-paths-settled). Kuroda Q/E/R/F use [its own kit](combat_spec.md#kuroda-leader-kit-tim-2026-10-22); the hero table below describes Ronin abilities.
+
 ## Hero
 
 | Key | What it does |

@@ -1,0 +1,12 @@
+{
+  "phase": "Start-game menu, approved 2026-10-22",
+  "architecture_pass": "Deferred until after this phase at Tim's request; preserve gameplay and interior-assets thread work.",
+  "checklist": [
+    {"task":"Choose Yakuza, Kuroda or Shinobi, with correct hero, physical HQ and two rival clans", "status":"implemented; all nine clan/difficulty setups passed Node checks"},
+    {"task":"Choose Easy/Medium/Hard and apply existing business-clan and Shinobi bot profiles without starting-resource bonuses", "status":"implemented; both live AI brains launch on every selected profile; fair-opening checks passed"},
+    {"task":"Wait for Start before initializing the sim; remember menu choices for New game; preserve ?test=ninja and ?test=bot direct boot", "status":"implemented; test presets passed; menu input and startup wiring inspected; user visual/input playtest pending"},
+    {"task":"Generated harbor background from established concept-prompt style; INFAMY title, animated rain/mist/lantern light, responsive menu and reduced-motion support", "status":"implemented; user visual check pending"},
+    {"task":"Node checks for all nine matches, fair openings, HQ remapping, live bot profiles and test presets", "status":"passed; existing start-clan/business/quarters, Shinobi bot and settings checks also passed"},
+    {"task":"User playtest, concise owner-doc handoff to Docs keeper and local commit", "status":"pending user playtest/approval"}
+  ]
+}

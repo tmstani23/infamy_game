@@ -85,3 +85,7 @@ Ninja blades 40% bigger, held in the left hand in idle/walk/pointing, tip back a
 ## Ninja (tanto) (Tim, 2026-10-21)
 
 One additional recruit using the existing ninja_grunt rig; ninja1 concept excluded. Nine animation/glow pairs (18 production `ninja_tanto_*.png` sheets), leaving old ninja sheets intact. Palm-fitted tanto: forward/up 45° idle; reverse grip trailing nearly level (5° drop) while running; attack rotations retained. Charcoal halo with tight pale-silver weapon-only additive edge, brighter on swings. Exporter supports rig aliases and per-item palm/idle/run settings. No duplicated model.
+
+## Kuroda spear kit (Tim, 2026-10-22)
+
+Existing female leader uses one-handed yari and compact shield; exclusive spearman uses the related recruit rig. Approved production export: 24 colour/glow sheets, including Upward Thrust and Bayonet Stab clips; old sheets retained in `assets/sprites_archive/2026-10-22_kuroda_spear/`. Hero spear has a warm gold halo/crimson core; recruit glow is subdued deep red. Ability effects: [combat spec](combat_spec.md#kuroda-leader-kit-tim-2026-10-22).

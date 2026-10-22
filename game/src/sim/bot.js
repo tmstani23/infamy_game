@@ -24,6 +24,9 @@ export const BOT_DEFAULTS = {
 export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const B = { ...BOT_DEFAULTS, ...rules };
   const state = game.state, secs = s => Math.round(s * 20);
+  // Faction is independent of the local player/bot id. Kuroda trades the
+  // standard swordsman slot for aggressive spear recruits.
+  if (state.clans[clan]?.faction === 'kuroda') B.hireType = 'spearman';
   const ai = createAISupport(game, clan, hero, B);
   // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
   if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
@@ -330,10 +333,22 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     const ab = new Set(B.abilities || []), f = [...fighting, ...activeWild].filter(e => dist(h, e) <= 6).sort((a, b) => dist(h, a) - dist(h, b));
     if (f.length) {
       const cast = (slot, extra = {}) => { if (ab.has(slot) && !((h.cooldowns?.[slot] ?? 0) > state.tick)) out.push({ id: hero, type: 'ability', slot, ...extra }); };
-      if (f.length >= 2 || mine.length >= 2) cast('R');
-      if (f.filter(e => dist(h, e) <= 4).length >= 2) cast('E');
-      if (dist(h, f[0]) > 2) cast('Q', { x: f[0].x, z: f[0].z });
-      if (f[0].type === 'hero') cast('F');
+      if (h.model === 'rival_yakuza') {
+        if (h.brace || h.spearCombo || (h.buffs?.stunned?.until ?? 0) > state.tick) return;
+        const ready = key => ab.has(key) && (h.cooldowns?.[key] ?? 0) <= state.tick;
+        const target = f.find(e => dist(h, e) <= 2.7 + (game.settings.units.types[e.type]?.radius ?? .35));
+        const incoming = f.some(e => e.swing?.target === hero && e.swing.strike >= state.tick && e.swing.strike - state.tick < 20);
+        if (ready('E') && incoming) cast('E');
+        else if (h.buffs?.reprisal?.stunPending && target) out.push({ id: hero, type: 'attack', target: target.id });
+        else if (ready('R') && target) cast('R', { target: target.id });
+        else if (ready('Q') && f.some(e => dist(h, e) <= 4)) cast('Q');
+        else if (ready('F') && (f.length >= 2 || h.hp < h.maxHp * .65 || f[0].type === 'hero')) cast('F');
+      } else {
+        if (f.length >= 2 || mine.length >= 2) cast('R');
+        if (f.filter(e => dist(h, e) <= 4).length >= 2) cast('E');
+        if (dist(h, f[0]) > 2) cast('Q', { x: f[0].x, z: f[0].z });
+        if (f[0].type === 'hero') cast('F');
+      }
     }
   }
 
@@ -354,6 +369,11 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       if (b && sent.length) out.push(...order(sent, 'enter', { business: b.id }));
     }
     if (state.tick >= nextReact) { react(out); nextReact = state.tick + secs(B.reactSeconds); }
+    if (h.brace || h.spearCombo || out.some(c => c.type === 'ability' && h.model === 'rival_yakuza' && ['E', 'R'].includes(c.slot))) {
+      // Stop the prior walking intent as well as withholding new path commands.
+      out.push({ id: hero, type: 'move', right: 0, down: 0 });
+      return out;
+    }
     // badly hurt: run home to the hideout and rest there (its crew stay and cover), Tim 2026-10-19
     const hq = home();
     // medium/hard never run off in the middle of their own raid; easy still does (Tim 2026-10-19)

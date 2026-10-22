@@ -1,8 +1,9 @@
 // Shared match setup for players and bots. Test setups can override the starting
 // squad or treasury; normal clans get one recruit and rules.startRyo.
 export function startClan(game, { id, name = id, kind = 'yakuza', bot = false,
-  model = kind === 'ninja' ? 'ninja_leader' : 'ronin', position, crew = 1, ryo } = {}) {
-  game.clans.addClan(id, { name, kind, bot, ryo });
+  model = kind === 'ninja' ? 'ninja_leader' : 'ronin', position, crew = 1, ryo, color,
+  faction = kind === 'ninja' ? 'shinobi' : model === 'rival_yakuza' ? 'kuroda' : 'yakuza' } = {}) {
+  game.clans.addClan(id, { name, kind, bot, ryo, color, faction });
   const home = Object.values(game.state.businesses).find(b => b.hideout === id);
   const [x, z] = position || home.ring;
   const hero = game.spawn('hero', model, x, z, { owner: id, home: [x, z], dir: 0 });

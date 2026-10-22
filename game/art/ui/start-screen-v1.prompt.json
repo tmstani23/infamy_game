@@ -1,0 +1,7 @@
+{
+  "generator": "Built-in image_gen",
+  "date": "2026-10-22",
+  "asset": "game/art/ui/start-screen-v1.png",
+  "style_sources": ["docs/art_direction.md", "assets/image_prompts.md"],
+  "prompt": "Use case: stylized-concept. Asset type: full-screen landscape background for the main menu of INFAMY, a dark clan-strategy game set in 1870s Meiji Japan. Create one wide cinematic painted scene, 16:9 composition: rain-slick cobblestone street beside a narrow harbor canal, weathered Japanese timber shops and tiled roofs, red paper lanterns and warm amber window light reflected in puddles, blue-black mist rolling between distant rooftops, pine and bamboo silhouettes, subtle distant harbor masts. Semi-realistic painterly game concept art with restrained anime influence, detailed tactile weathering, sleek sharp silhouettes, muted indigo/teal shadows and small deep-red accents; dramatic warm/cool lighting, soft rim light, no heavy ink outlines, not cartoony, not photorealistic, no modern objects or neon. Foreground lantern and richly detailed buildings toward the far right; a leading street disappears into mist. Keep the left and central 65% relatively dark, quiet and low-detail so real title and menu controls can overlay legibly. Mood: beautiful, dangerous, secretive, rain at night. Not an isometric asset sheet; an immersive establishing painting matching a painterly isometric game's art direction. No readable writing, no title, no logos, no UI, no watermark, no frames. Background only; title and animated lighting will be added in code."
+}

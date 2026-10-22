@@ -1,0 +1,50 @@
+{
+  "approved": "2026-10-22",
+  "status": "ready_for_playtest",
+  "geometryPolish": {
+    "approved": "2026-10-22",
+    "status": "ready_for_playtest",
+    "phases": [
+      { "name": "Broad tapered sweep ribbons, assembling shield crest and shattering counter, streaming pursuit ribbons, spectral spearheads and stronger final thrust", "done": true },
+      { "name": "Drawing formation crest, staggered rising symbols, opposite rotating outer wards and protected ally outlines/wards", "done": true },
+      { "name": "Clearly separate warm gold hero spear halo from subdued deep crimson recruit halo", "done": true },
+      { "name": "Syntax, sprite reference and Kuroda/mobility regression checks", "done": true }
+    ],
+    "approach": "Existing procedural geometry, particles, cards and bloom; no new custom effect texture assets",
+    "futurePreviews": "Use actual game sprites, camera and effect code; Tim reviews the live appearance"
+  },
+  "polish": {
+    "approved": "2026-10-22",
+    "status": "ready_for_playtest",
+    "phases": [
+      { "name": "Movement break grants +30% hero run speed for 4 seconds; counter remains the alternative outcome", "done": true },
+      { "name": "Distinct hero/recruit spear glows and brighter layered Kuroda ability effects", "done": true },
+      { "name": "Mobility, Kuroda, legacy combat, crew, assets and match setup checks", "done": true }
+    ],
+    "preview": "look_tests/kuroda_kit_concepts_v1/kuroda-vfx-polish-v1.png",
+    "checks": ["test_reprisal_mobility.mjs", "test_kuroda.mjs", "test_kuroda_assets.mjs", "test_abilities.mjs", "test_shinobi_combat.mjs", "test_dodge.mjs", "test_crew_recall.mjs", "test_match_setup.mjs", "syntax and whitespace checks"],
+    "visualReview": "Tim checks the in-game effects; no browser tests run"
+  },
+  "spriteReview": { "approved": true, "date": "2026-10-22", "draft": "look_tests/kuroda_sprite_preview/v3", "clips": ["Upward Thrust.fbx", "Bayonet Stab.fbx"], "production": "24 colour/glow sheets; old sheets preserved in assets/sprites_archive/2026-10-22_kuroda_spear" },
+  "phases": [
+    { "id": "A", "name": "Draft hero spear/shield and aggressive spearman sheets", "done": true },
+    { "id": "B", "name": "Shared sim abilities, faction-specific hiring, AI and focused Node tests", "done": true },
+    { "id": "C", "name": "Crimson/gold effects and rotating floating Iron Formation symbols", "done": true },
+    { "id": "D", "name": "Tim approves both draft sheets before production sprite export", "done": true, "requiresUserReview": true },
+    { "id": "E", "name": "Production export, art integration and final checks", "done": true }
+  ],
+  "kit": {
+    "hero": "Existing female Kuroda leader, one-handed yari and compact shield",
+    "crew": "Kuroda-only spearman replaces swordsman; damage 24, HP 204, reach 2.2, sword-tier price/speed",
+    "Q": "Sweeping Cut: radius 4, 50% slow for 3s, modest damage",
+    "E": "Reprisal: brace up to 1s; a damaging hit triggers 6s cleave and next normal hit stuns 0.75s. Moving before a hit instead grants +30% run speed for 4s, including casting while already moving. Timeout/Escape/stun/death grant no bonus; no stacking or snare removal; cooldown remains 20s",
+    "R": "Threefold Thrust: 3 melee strikes, 45% normal damage each over 0.9s; movement cancels; each checks reach; Reprisal cleave applies but does not consume its normal-attack stun",
+    "F": "Iron Formation: fixed protective circle, allied damage reduction and brief slow on melee hits, rotating hovering translucent crimson/gold ward symbols"
+  },
+  "checks": ["test_kuroda.mjs", "test_kuroda_assets.mjs", "all nine test_match_setup.mjs combinations", "test_start_clan.mjs", "Ronin abilities, Shinobi combat and dodge regressions", "crew recall, assistance and group regressions", "adaptive AI, bot and settings regressions", "selection panel and unit frames", "production sprite margin check: zero opaque edge contacts", "syntax and git diff whitespace checks"],
+  "futureUpgrades": [
+    { "name": "Buff/debuff UI icons", "status": "planned_not_built", "scope": "All clans: show active ability buffs and debuffs affecting the hero in a compact UI strip near the action bar, with remaining-duration timers and hover descriptions; final layout to be agreed before implementation" }
+  ],
+  "pending": ["Docs keeper handoff; Tim approved the latest ability visuals in playtest"],
+  "constraints": ["No production sprite export before Tim reviews draft sheets", "All rules in sim; players and bots use same commands", "Preserve other clan kits and selected-crew orders", "Quick Node tests; Tim reviews gameplay visuals", "Docs keeper owns documentation and commits"]
+}

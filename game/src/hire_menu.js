@@ -4,8 +4,8 @@ const title = s => s[0].toUpperCase() + s.slice(1);
 
 export function createHireMenu({ panel, money, game, units, heroId, send }) {
   // what your clan may hire (units.json "clan": ninja crew for the Shinobi clan only)
-  const kindOf = () => game.state.entities[heroId] && game.state.clans[game.state.entities[heroId].owner]?.kind || 'yakuza';
-  const hireable = Object.entries(units.types).filter(([, t]) => t.price && !t.later && (t.clan || 'yakuza') === kindOf()).map(([k]) => k);
+  const owner = game.state.entities[heroId]?.owner;
+  const hireable = Object.keys(units.types).filter(type => game.clans.hirePrice(owner, type) !== null);
   let open = false, shown = '';
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];

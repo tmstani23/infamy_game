@@ -14,9 +14,13 @@ export function portrait(catalog, model, onReady, crop = CROP) {
   const img = new Image();
   img.onload = () => {
     const cell = img.naturalHeight / 8;
+    // Wider spear cells preserve the same character scale in the world; crop
+    // the equivalent original area so portrait heads keep their normal size.
+    const ratio = 3 / (catalog.characterFraming?.[model]?.cellWorld || 3);
+    const framed = { x: .5 + (crop.x-.5)*ratio, y: .5 + (crop.y-.5)*ratio, w: crop.w*ratio };
     const c = document.createElement('canvas');
     c.width = c.height = SIZE;
-    c.getContext('2d').drawImage(img, cell * crop.x, cell * crop.y, cell * crop.w, cell * crop.w, 0, 0, SIZE, SIZE);
+    c.getContext('2d').drawImage(img, cell * framed.x, cell * framed.y, cell * framed.w, cell * framed.w, 0, 0, SIZE, SIZE);
     cache[key].url = c.toDataURL();
     onReady?.();
   };

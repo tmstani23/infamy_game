@@ -28,9 +28,10 @@ Status key: **Settled** = agreed. **Idea** = suggested, not agreed. **Open** = s
 
 ## Starting paths (Settled)
 
-Chosen at the start of each season; switch next season. All paths compete on the same infamy board.
+The start menu selects Yakuza (inn), Kuroda (izakaya) or Shinobi (village) and Easy/Medium/Hard before the simulation starts (built 2026-10-22). The other two clans become rivals, using the chosen difficulty without resource bonuses. Choices persist for New game within the browser session; test presets bypass the menu. Switch clans next season. All paths compete on the same infamy board.
 
 - **Yakuza**: starts in town. Ronin hero, thugs and brutes. Strong at holding territory and income.
+- **Kuroda** (built 2026-10-22): izakaya HQ, spear-and-shield leader and exclusive spearmen. [Hero kit](combat_spec.md#kuroda-leader-kit-tim-2026-10-22); [recruit rules](crew_recruiting_plan.md#kuroda-spearman-tim-2026-10-22).
 - **Ninja clan**: starts in the ninja village in the forest. Ninja hero, cheap ninja crew. Strong stealth raids and assassinations, harder to hold big territory.
 - **Gaijin gunrunner** (later): starts at the foreign docks. Mercenary hero, cheap riflemen and explosives.
 - Non-ninja players can hire ninjas by earning the ninja village's favour through jobs.

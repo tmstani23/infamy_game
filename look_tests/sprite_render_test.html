@@ -70,6 +70,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { buildSpear, buildShield, poseSpear } from './kuroda_sprite_items.js';
 
 // Rows of the spritesheet, top to bottom
 const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
@@ -424,7 +425,7 @@ function buildJitte() {
   const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
   return g;
 }
-const PROC_ITEMS = { club: buildClub, katana: buildKatana, jitte: buildJitte };
+const PROC_ITEMS = { club: buildClub, katana: buildKatana, jitte: buildJitte, spear: () => buildSpear(std) };
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
 // Hand distance (in character heights / 2) below which both hands hold the
@@ -441,6 +442,8 @@ let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), 
 let runPose = false;     // true while a run clip is being drawn
 let itemIdleBack = null; // one-hand blades (ninja, Tim 2026-10-20): in idles and walks held in the palm (hand: 'left' = the other hand), tip back behind at drop degrees below level (negative = up)
 let idlePose = false;    // true while an idle or walk clip is being drawn
+let itemSpear = false, shield = null;
+let spearClip = '', spearPhase = 0;
    // swords hang when the hands part; rifles stay between the hands
 function updateItem() {
   if (!item || !root) return;
@@ -451,6 +454,31 @@ function updateItem() {
   itemBox.position.set(0, 0, (0.5 - grip) * (flip ? -1 : 1));
   itemBox.rotation.set(0, flip, THREE.MathUtils.degToRad(num('itemRoll')), 'ZYX');
   const right = findBone(/RightHand$/), left = findBone(/LeftHand$/);
+  const spearDirection = itemSpear ? poseSpear(root, findBone, { both: mode === 'both', shield: !!shield, clip: spearClip, phase: spearPhase }) : null;
+  if (shield && left) {
+    const arm = findBone(/LeftForeArm$/) || left;
+    arm.getWorldPosition(_a); left.getWorldPosition(_b);
+    shield.position.lerpVectors(_a, _b, 0.7);
+    const yaw = root.rotation.y;
+    _c.set(Math.sin(yaw), 0, Math.cos(yaw));
+    shield.position.addScaledVector(_c, 0.09 * root.scale.x);
+    shield.lookAt(_b.copy(shield.position).add(_c));
+    shield.scale.setScalar(root.scale.x);
+  }
+  if (itemSpear && right) {
+    if (item.parent !== scene) scene.add(item);
+    palmOf(right, _a);
+    item.position.copy(_a); item.scale.setScalar(len * root.scale.x);
+    const yaw = root.rotation.y;
+    if (spearDirection) {
+      _c.copy(spearDirection);
+    } else {
+      const lift = THREE.MathUtils.degToRad(runPose ? 12 : idlePose ? 22 : 0);
+      _c.set(Math.sin(yaw) * Math.cos(lift), Math.sin(lift), Math.cos(yaw) * Math.cos(lift));
+    }
+    item.lookAt(_b.copy(_a).add(_c));
+    return;
+  }
   if (mode === 'both' && right && left) {
     if (item.parent !== scene) scene.add(item);
     palmOf(right, _a); palmOf(left, _b);
@@ -517,6 +545,9 @@ function updateItem() {
 }
 
 function setItemOptions(o = {}) {
+  itemSpear = !!o.spear;
+  if (shield) { shield.parent?.remove(shield); shield = null; }
+  if (o.shield) { shield = buildShield(std); scene.add(shield); }
   itemPalmY = Number.isFinite(o.palmOffset) ? o.palmOffset : PALM_Y;
   if (o.mode) $('itemMode').value = o.mode;
   for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
@@ -616,7 +647,8 @@ function glowSwap(on, saved) {
     item.traverse(o => o.isMesh && inItem.add(o));
     const swap = (o, mat, order) => { saved.push([o, o.material, o.renderOrder]); o.material = mat; o.renderOrder = order; };
     root.traverse(o => o.isMesh && !inItem.has(o) && swap(o, GLOW_BODY, -1));   // body first, so its depth is there before the item draws
-    inItem.forEach(o => swap(o, GLOW_ITEM, 1));
+    inItem.forEach(o => swap(o, o.userData.noWeaponGlow ? GLOW_BODY : GLOW_ITEM, o.userData.noWeaponGlow ? -1 : 1));
+    shield?.traverse(o => o.isMesh && swap(o, GLOW_BODY, -1));
   } else for (const [o, m, r] of saved.splice(0)) { o.material = m; o.renderOrder = r; }
 }
 
@@ -626,6 +658,7 @@ function renderSheet(i, withGlow = false) {
   const size = Number($('size').value);
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
+  spearClip = entry.name;
   runPose = /run/i.test(entry.name);
   idlePose = /idle|walk|pointing/i.test(entry.name);
   const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
@@ -661,6 +694,7 @@ function renderSheet(i, withGlow = false) {
     root.rotation.y = yawFor(d);
     for (let f = 0; f < frames; f++) {
       exMixer.setTime((f / frames) * clip.duration);
+      spearPhase = f / frames;
       updateItem();
       off.render(scene, cam);
       ctx.drawImage(off.domElement, f * size, row * size);
@@ -720,6 +754,7 @@ window.spriteTest = {
     for (const n of ['RightHand','RightHandThumb1','RightHandPinky1','RightHandIndex1','RightHandMiddle1','RightHandMiddle3']) { const b=g(n); if(b) o[n]=w(b).applyMatrix4(inv).toArray().map(v=>+v.toFixed(3)); } o.scale=R.getWorldScale(new THREE.Vector3()).x; o.rootScale=root.scale.x; return o; },
   setProcItem: k => setItemObject(PROC_ITEMS[k]()),
   setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
+  setFraming: f => { $('size').value = f.size; $('zoom').value = 3 / f.cellWorld; },
 };
 
 log('Waiting for files.');

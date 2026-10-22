@@ -1,7 +1,7 @@
 // Combat sounds (Kenney packs, CC0; list in assets/sounds/CREDITS.md), played from the
 // sim's per-tick hits and casts and from swings starting. Quieter with distance from the
 // hero, a little random pitch so repeats don't sound the same. M mutes. Purely output.
-const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'ninja_leader', 'ninja_grunt']);
+const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
@@ -81,6 +81,9 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
         if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);
         if (c.kind === 'rally') play('katana_clash_1', 0.5 * v);
+        if (c.kind === 'sweep' || c.kind === 'thrust') play('sword_slash_1', .4*v);
+        if (c.kind === 'counter') play('katana_clash_1', .6*v, .85);
+        if (c.kind === 'formation') play('katana_draw_2', .45*v, .65);
         if (c.kind === 'execute') { play(['crit_hit_1', 'crit_hit_2'], 0.7 * v, 0.8); play(['death_thud_1', 'death_thud_2'], 0.6 * v); }
       }
     },

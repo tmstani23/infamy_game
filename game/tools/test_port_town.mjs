@@ -43,8 +43,8 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   for (const [x, z] of district.edges) { const f = g.nav.nearestFree(x, z); if (!f || !g.nav.findPath(hx, hz, ...f)) miss.push(`edge ${x},${z}`); }
   assert.deepEqual(miss, [], miss.join('\n'));
   const kinds = Object.values(g.state.businesses).map(b => b.kind).sort();
-  assert.deepEqual(kinds, ['clinic', 'contract_board', 'dojo', 'gambling_den', 'hideout', 'hideout', 'hideout', 'moneylender', 'police_box', 'police_box', 'police_hq', 'shop', 'teahouse', 'tenements', 'warehouse']);
-  assert.equal(g.rooms.length, 9, 'five purchasable businesses, three hideouts and the Shinobi dojo');
+  assert.deepEqual(kinds, ['bathhouse', 'clinic', 'contract_board', 'customs_house', 'dojo', 'gambling_den', 'hideout', 'hideout', 'hideout', 'manor', 'moneylender', 'pawnshop', 'police_box', 'police_box', 'police_hq', 'sake_brewery', 'shop', 'teahouse', 'tenements', 'warehouse']);
+  assert.equal(g.rooms.length, 14, 'ten public interiors, three hideouts and the Shinobi dojo');
   console.log('doors, spots and edges ok');
 }
 

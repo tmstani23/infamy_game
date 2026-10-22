@@ -201,7 +201,7 @@ export function hiddenMaterial(uniforms) {
 
 // Faint weapon glow over a character: the exporter's _glow sheet (weapon alone, white halo)
 // tinted per weapon type and added on top; shares the sprite's frame, depth and opacity uniforms
-export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false } = {}) {
+export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false, coreColor = color, coreStrength = 0 } = {}) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uMap: { value: map },
@@ -210,6 +210,8 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
       uOpacity: spriteUniforms.uOpacity,
       uColor: { value: new THREE.Color(...color) },
       uStrength: { value: strength },
+      uCoreColor: { value: new THREE.Color(...coreColor) },
+      uCoreStrength: { value: coreStrength },
       uVoid: { value: isVoid ? 1 : 0 },
       uDark: { value: dark ? 1 : 0 },
     },
@@ -219,6 +221,8 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
       uniform float uOpacity;
       uniform vec3 uColor;
       uniform float uStrength;
+      uniform vec3 uCoreColor;
+      uniform float uCoreStrength;
       uniform float uVoid;
       uniform float uDark;
       varying vec2 vUv;
@@ -236,7 +240,8 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
         }
         float g = mask * uStrength * uOpacity;
         if (g < 0.01) discard;
-        gl_FragColor = vec4(uColor * g, 1.0);
+        float core = pow(mask, 3.0) * uCoreStrength * uStrength * uOpacity;
+        gl_FragColor = vec4(uColor * g + uCoreColor * core, 1.0);
       }`,
     transparent: true, depthTest: true, depthWrite: false,
     blending: dark ? THREE.NormalBlending : THREE.AdditiveBlending,

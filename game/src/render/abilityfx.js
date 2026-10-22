@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { CAM_QUAT as CAM_Q, CAM_RIGHT, CAM_UP, VIEW_DIR } from './iso.js';
 import { onFxLayer } from './bloom.js';
 import { createParticles, createCards, SHAPE, getLantern } from './vfx.js';
+import { createKurodaFx } from './kurodafx.js';
 
 const flat = (geo, color, opacity) => {
   const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
@@ -30,6 +31,7 @@ const AURAS = {
   ambush: { color: 0xb38aff, size: 1.1, geo: AMBUSH_AURA_GEO, opacity: 0.72 },
   veil: { color: 0x233d70, size: 1, geo: BUFF_AURA_GEO, opacity: 0.18 },
   snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },   // caltrops (Distract): slowed   // healing in a Smoke Bomb (same width as Rally's)
+  formation: { color: 0xffc779, size: .9, geo: BUFF_AURA_GEO, opacity: .3 },
   downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
 
@@ -48,7 +50,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const screenAngle = (dx, dz) => Math.atan2(dx * CAM_UP.x + dz * CAM_UP.z, dx * CAM_RIGHT.x + dz * CAM_RIGHT.z);
 
 // glowing outline around a unit's sprite while a buff is on, one colour per buff
-const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff, shroud: 0x6a4ab0, ambush: 0xa078ed };
+const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff, shroud: 0x6a4ab0, ambush: 0xa078ed, formation: 0xffc779 };
 const OUTLINE_GEO = new THREE.PlaneGeometry(1, 1);
 const OUTLINE_RGB = Object.fromEntries(Object.entries(OUTLINE).map(([k, v]) => [k, new THREE.Color(v)]));
 const OUTLINE_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
@@ -103,6 +105,7 @@ const SEAL_TEX = () => sealTex ||= (() => {
 })();
 
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen }) {
+  const kurodaFx = createKurodaFx({ scene, spriteOf, posOf });
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
   const glow = createParticles(scene), cards = createCards(scene);
   const soot = createParticles(scene, { max: 2500, additive: false });   // black smoke: drawn normally so it darkens
@@ -177,6 +180,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     },
     // c: one entry of state.casts
     cast(c) {
+      kurodaFx.cast(c);
       const s0 = spriteOf(c.a);
       if (c.kind === 'dash') {
         const m = flat(STREAK_GEO, 0xcfe0ff, 0.8);
@@ -387,6 +391,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     },
 
     update(dt, state, heroId) {
+      kurodaFx.update(dt, state, heroId);
       glow.update(dt);
       soot.update(dt);
       cards.update(dt);
@@ -626,6 +631,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
           }
           let m = auras.get(key);
           if (!m) { m = flat(a.geo, a.color, a.opacity); m.userData.born = performance.now(); scene.add(m); auras.set(key, m); }
+          if (name === 'snared') m.material.color.set(e.buffs?.snared?.style === 'kuroda' ? 0xde3048 : a.color);
           if (name === 'ambush') m.material.opacity = a.opacity * (0.9 + 0.1 * Math.sin(now * 4));
           let shrink = 1;
           if (a.fade) {

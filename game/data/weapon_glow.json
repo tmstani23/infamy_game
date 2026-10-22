@@ -1,13 +1,16 @@
 {
   "_note": "Faint glow on held weapons (render/characters.js). models: which weapon each character holds. weapons: colour (r, g, b 0..1), strength (0..1, keep it faint), attack = extra brightness while swinging. Needs the <sheet>_glow.png files from tools/export_sprites.mjs; a sheet without one just has no glow.",
   "models": {
-    "ronin": "katana", "swordsman": "katana", "rival_yakuza": "katana",
+    "ronin": "katana", "swordsman": "katana", "rival_yakuza": "spear_hero", "kuroda_spearman": "spear_recruit",
     "thug": "club", "brute": "club",
     "police": "jitte",
     "ninja_leader": "ninjato", "ninja_grunt": "ninjato", "ninja_tanto": "tanto"
   },
   "weapons": {
     "katana": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35 },
+    "spear": { "color": [0.85, 0.12, 0.24], "strength": 0.65, "attack": 0.45, "_note": "Crimson spearhead halo with a fine warm-gold physical cutting edge; shaft and shield excluded from the glow mask" },
+    "spear_hero": { "color": [1, 0.64, 0.16], "strength": 0.95, "attack": 0.5, "coreColor": [1, 0.12, 0.19], "coreStrength": 0.48, "pulse": 0.16, "pulseRate": 2.6 },
+    "spear_recruit": { "color": [0.72, 0.025, 0.09], "strength": 0.66, "attack": 0.35, "coreColor": [0.8, 0.31, 0.36], "coreStrength": 0.16, "pulse": 0.055, "pulseRate": 1.8 },
     "club": { "color": [1.0, 0.56, 0.22], "strength": 0.3, "attack": 0.3 },
     "jitte": { "color": [0.38, 0.58, 1.0], "strength": 0.4, "attack": 0.3 },
     "ninjato": { "color": [0.42, 0.2, 0.72], "strength": 0.45, "attack": 0.35, "_note": "thin dark purple (Tim 2026-10-20)" },

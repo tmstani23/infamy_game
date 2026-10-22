@@ -25,6 +25,10 @@ Own eligible crew can provide presence for business and service actions: [menu c
 - Crew prices are equal across hiring venues. HQ hiring takes twice as long.
 - Shop and Tenements do not recruit. Property capacity grants no free crew; see [business balance](business_raids_plan.md#2-payouts).
 
+## Kuroda spearman (Tim, 2026-10-22)
+
+Kuroda-only Spearman replaces Swordsman in hiring: 204 HP, 24 damage, reach 2.2; base price 120, hire 8 s, attack interval 1.2 s, walk 1.6/run 5.6. Normal price scaling and venue timing apply.
+
 ## Combat style (Tim, 2026-10-16)
 
 RTS / Dota hybrid. Rules and feel are in `combat_spec.md`; keys in `controls.md`.

@@ -1,8 +1,11 @@
 // Keyboard -> commands for the game rules, plus view shortcuts.
 const keys = new Set();
 const handlers = {};
+let gameplayInput = true;
+export function setGameplayInput(enabled) { gameplayInput = enabled; keys.clear(); }
 
 addEventListener('keydown', e => {
+  if (!gameplayInput || e.target?.closest?.('input, select, textarea')) return;
   if (['F3', 'Space', 'Tab', 'Slash', 'Quote', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(e.code)) e.preventDefault();
   if (!e.repeat) handlers[e.code]?.(e);
   keys.add(e.code);

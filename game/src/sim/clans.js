@@ -12,12 +12,12 @@ export function createClans(state, units, opts = {}) {
   // clan colours (banners, badge): the first clan teal, then red, purple, amber... (picked at the start later)
   const COLORS = ['#24978c', '#b02424', '#7a3fb0', '#c08a1e', '#2f5fb0'];
   // kind: 'yakuza' (businesses) or 'ninja' (the Shinobi clan: contracts and Renown, no businesses; Tim 2026-10-20)
-  function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5, color = COLORS[Object.keys(state.clans).length % COLORS.length], kind = 'yakuza' } = {}) {
+  function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5, color = COLORS[Object.keys(state.clans).length % COLORS.length], kind = 'yakuza', faction = kind === 'ninja' ? 'shinobi' : 'yakuza' } = {}) {
     // queue: hires paid for and waiting, first one counting down; notice: last hire message;
     // aggression (bots): share of downed enemies they choose to finish off, 0 to 1
     // clinic: crew in hospital ({ unit, model, kind: 'recover' | 'heal', left, cost, hp })
     // heat: trouble caused in the street (sim/game.js addHeat), cools slowly
-    state.clans[id] = { id, name, color, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, kind, ...(kind === 'ninja' ? { renown: 0 } : {}), ...(bot ? { aggression } : {}) };
+    state.clans[id] = { id, name, color, bot, ryo, heat: 0, queue: [], clinic: [], notice: null, kind, faction, ...(kind === 'ninja' ? { renown: 0 } : {}), ...(bot ? { aggression } : {}) };
     // the clan's home hideout (port_town.json "hideout": clan id) is its own from the start, for good.
     // The Shinobi clan lives in the forest village instead ("hideout": "ninja", the longhouse), so a
     // hideout kept for its id in town (the inn, when you play Shinobi) is just a building then.
@@ -49,6 +49,8 @@ export function createClans(state, units, opts = {}) {
     const t = types[type];
     if (!t || t.later || !t.price) return null;
     if ((t.clan || 'yakuza') !== (state.clans[id]?.kind || 'yakuza')) return null;   // ninja crew for the Shinobi clan only, and the other way round
+    const faction = state.clans[id]?.faction;
+    if ((t.faction && t.faction !== faction) || t.excludeFactions?.includes(faction)) return null;
     const have = crewCount(id) + (state.clans[id]?.queue.length || 0);
     return Math.round(t.price * (1 + rules.priceStepPerCrew * have));
   }

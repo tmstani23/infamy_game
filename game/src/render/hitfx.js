@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
 import { onFxLayer } from './bloom.js';
 
-const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'ninja_leader', 'ninja_grunt']);
+const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
 const MAX_NUMBERS = 40, NUMBER_LIFE = 0.85, TRAIL_LIFE = 0.16, SPARK_LIFE = 0.32, MAX_SPARKS = 400;
 
 export function createHitFx({ scene, overlay, unitToScreen }) {

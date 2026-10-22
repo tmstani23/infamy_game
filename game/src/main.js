@@ -1,8 +1,9 @@
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
-import { startClan } from './sim/start_clan.js';
+import { setupMatch } from './sim/setup_match.js';
+import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
-import { onKey, moveCommand, panAxes, edgeAxes } from './input.js';
+import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
@@ -26,6 +27,7 @@ import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
 import { createGameMap } from './game_map.js';
 import { createHudLayout } from './hud_layout.js';
+import { hqCampingNoticeVisit } from './hq_camping_notice.js';
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('loading').textContent = msg; };
@@ -36,51 +38,29 @@ const getJSON = async url => {
 };
 
 async function start() {
+  setGameplayInput(false);
   status('Loading the district…');
   const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots] = await Promise.all([
     getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
     getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json')]);
 
+  // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
+  const selected = ['ninja', 'bot'].includes(TEST.setup)
+    ? { clan: TEST.ninja ? 'shinobi' : 'yakuza', difficulty: bots.difficulty }
+    : await chooseMatch({ root: $('startscreen'), loading: $('loading'), difficulty: bots.difficulty,
+      startRyo: settings.costs?.startRyo ?? unitsFile.rules.startRyo, cycles: settings.season?.cycles ?? 10, drawCrest });
+  status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
   const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings });
   const units = game.settings.units;   // hire prices etc. as the settings made them
-  // ?test=ninja (test_params.js): you play the Shinobi clan, the ninja leader as boss (clan select comes later)
-  // 3 clans (Tim 2026-10-20): Shinobi, Yakuza and Kuroda, the two you don't play are bots. With you as
-  // Shinobi the inn (your hideout as Yakuza) goes to the Yakuza bot clan (bots.json yakuza)
-  const extra = TEST.ninja && bots.yakuza;
-  if (extra) for (const b of Object.values(game.state.businesses)) if (b.hideout === 'player') b.hideout = extra.id;
-  const [hx, hz] = TEST.ninja && district.spawns.ninja || district.spawns.hero;   // the Shinobi start in their forest village
-  const heroId = startClan(game, { id: 'player', name: TEST.ninja ? 'Shinobi clan' : 'Your clan',
-    kind: TEST.ninja ? 'ninja' : 'yakuza', position: [hx, hz], crew: 1, ryo: TEST.playerRyo });
-  // ?test=bot (test_params.js): you start richer and with a business the bot can raid
-  const startBiz = TEST.playerOwns && Object.values(game.state.businesses).find(b => b.kind === TEST.playerOwns);
-  if (startBiz) game.clans.setOwner(startBiz.id, 'player');
+  const { heroId, rivals } = setupMatch(game, { ...selected, bots, spawns: district.spawns, test: TEST });
 
   // Townsfolk walking the streets
   game.civilians.populate();
 
-  // The rival bot clan (docs/rival_bot_plan.md): its boss starts at its hideout (the izakaya) and
-  // plays through the same commands as you (sim/bot.js); ?test=bot gives it 5000 ryo
-  // ...and with you as Shinobi the Yakuza bot clan at the inn too; each bot clan has its own brain
-  const botList = [];
-  for (const [k, bc] of [bots.clan, extra].filter(Boolean).entries()) {
-    const home = Object.values(game.state.businesses).find(b => b.hideout === bc.id);
-    if (home) {
-      const boss = startClan(game, { id: bc.id, name: bc.name, bot: true, model: bc.boss, ryo: TEST.botRyo });
-      botList.push(createBot(game, { clan: bc.id, hero: boss, rules: bots.levels[bots.difficulty], seed: 4242 + k * 977 }));
-    }
-  }
-  // with you as Yakuza, the Shinobi bot clan in the forest village (sim/ninja_bot.js)
-  if (!TEST.ninja && bots.shinobi) {
-    const sc = bots.shinobi;
-    const lh = Object.values(game.state.businesses).find(b => b.hideout === 'ninja');
-    if (lh) {
-      const boss = startClan(game, { id: sc.id, name: sc.name, bot: true, kind: 'ninja', model: sc.boss });
-      botList.push(createNinjaBot(game, { clan: sc.id, hero: boss, rules: bots.shinobiLevels?.[bots.difficulty] }));
-    }
-  }
+  const botList = rivals.map(r => (r.kind === 'ninja' ? createNinjaBot : createBot)(game, r));
   const bot = botList.length ? { tick: () => botList.flatMap(b => b.tick()) } : null;
 
   let view;
@@ -196,6 +176,7 @@ async function start() {
     g.strokeStyle = '#d4aa5a'; g.lineWidth = 2; g.stroke();
     drawCrest(g, 28, 28, 15);
     $('clan').querySelector('em').textContent = clan.name;
+    $('clan').title = `${selected.difficulty[0].toUpperCase() + selected.difficulty.slice(1)} difficulty`;
   }
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
@@ -274,6 +255,9 @@ async function start() {
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
   $('loading').remove();
+  $('startscreen').remove();
+  document.body.classList.remove('prematch');
+  setGameplayInput(true);
 
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
   // draws as often as it can and slides units between the last two ticks.
@@ -309,9 +293,7 @@ async function start() {
       }
       // HQ camping: a small persistent notice accompanies the ground boundary.
       {
-        const playerClan = game.state.entities[heroId]?.owner;
-        const visits = (game.state.hqCamping?.visits || []).filter(v => v.clan === playerClan);
-        const visit = visits.find(v => v.active && v.inside) || visits.find(v => v.inside) || visits[0];
+        const visit = hqCampingNoticeVisit(game.state, heroId);
         const el = $('campingnotice');
         el.hidden = !visit;
         if (visit) {
