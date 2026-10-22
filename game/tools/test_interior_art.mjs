@@ -137,6 +137,7 @@ for (const name of ['soaking_tub', 'bath_bucket_stool', 'towel_shelf']) {
   assert.deepEqual(piece.artAnchor, parts.props[name].painted.anchor);
   assert.deepEqual(placePiece(piece, art, cutouts).center, parts.props[name].painted.anchor);
 }
+assert.equal(bath.pieces.find(p => p.name === 'towel_shelf').shear, 0.16);
 const alignedRun = (room, names, gap = 0) => {
   const row = room.props.filter(p => names.includes(p.type)).sort((a, b) => a.rect.x0 - b.rect.x0);
   assert.equal(row.length, names.length);

@@ -9,21 +9,39 @@ import { shapeDistance, shapeBox, groundZone } from '../sim/geometry.js';
 const loader = new THREE.TextureLoader();
 export const loadTex = url => new Promise((ok, fail) => loader.load(url, ok, undefined, () => fail(new Error(`Could not load ${url}`))));
 export const quad = new THREE.PlaneGeometry(1, 1);
+const shearedQuads = new Map();
+
+// Adjust a painted horizontal axis without tilting vertical posts. Keep the
+// mesh shared between identical cutouts; neither footprint nor blocker moves.
+function spriteQuad(w, h, shear) {
+  if (!shear) return quad;
+  const key = `${w}:${h}:${shear}`;
+  if (!shearedQuads.has(key)) {
+    const geometry = quad.clone(), position = geometry.attributes.position;
+    for (let i = 0; i < position.count; i++)
+      position.setY(i, position.getY(i) + shear * w / h * position.getX(i));
+    position.needsUpdate = true;
+    shearedQuads.set(key, geometry);
+  }
+  return shearedQuads.get(key);
+}
 
 // Anything drawn as a sprite and sorted by its footprint
 export class Thing {
-  constructor(mesh, foot, big = false) {
+  constructor(mesh, foot, big = false, shear = 0) {
     this.mesh = mesh;
     this.foot = foot;          // { minX, maxX, minZ, maxZ }
     this.extras = [];          // flames and glows drawn right after the sprite
     this.lights = [];
     this.big = big;            // turns see-through when the hero walks behind it
+    this.shear = shear;
     this.cut = 0;
     this.mask = null;
     this.updateScreen();
   }
   updateScreen() {
-    const c = toScreen(this.mesh.position), hw = this.mesh.scale.x / 2, hh = this.mesh.scale.y / 2;
+    const c = toScreen(this.mesh.position), hw = this.mesh.scale.x / 2;
+    const hh = (this.mesh.scale.y + Math.abs(this.shear) * this.mesh.scale.x) / 2;
     this.screen = { x0: c.x - hw, x1: c.x + hw, y0: c.y - hh, y1: c.y + hh };
     this.depth = (this.foot.minX + this.foot.maxX + this.foot.minZ + this.foot.maxZ) / 2;
   }
@@ -31,7 +49,8 @@ export class Thing {
   covers(p) {
     if (!this.mask) return true;
     const d = p.clone().sub(this.mesh.position);
-    const u = d.dot(CAM_RIGHT) / this.mesh.scale.x + 0.5, v = 0.5 - d.dot(CAM_UP) / this.mesh.scale.y;
+    const x = d.dot(CAM_RIGHT), y = d.dot(CAM_UP);
+    const u = x / this.mesh.scale.x + 0.5, v = 0.5 - (y - this.shear * x) / this.mesh.scale.y;
     if (u < 0 || u >= 1 || v < 0 || v >= 1) return false;
     const { w, h, data } = this.mask;
     return data[Math.floor(v * h) * w + Math.floor(u * w)] > 0;
@@ -181,7 +200,7 @@ function cutoutThing(s, tex) {
     mat.uniforms.uClip.value.set(s.x, 0, s.z, s.cut);
     mat.uniforms.uClipSlope.value = D.dot(CAM_UP) / D.dot(CAM_RIGHT);
   }
-  const mesh = new THREE.Mesh(quad, mat);
+  const mesh = new THREE.Mesh(spriteQuad(meta.w, meta.h, s.shear || 0), mat);
   mesh.quaternion.copy(CAM_QUAT);
   if (s.angle) mesh.rotateZ(THREE.MathUtils.degToRad(s.angle));
   mesh.scale.set(meta.w * k, meta.h * k, 1);
@@ -189,7 +208,7 @@ function cutoutThing(s, tex) {
   mesh.frustumCulled = false;
 
   const isBuilding = item.kind === 'buildings';
-  const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2);
+  const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2, s.shear || 0);
   thing.building = s.building ?? null;   // index in the district's buildings (street buildings only)
   thing.prop = s.prop ?? null;           // index in the district's props (a snuffed lantern goes dark, sim/stealth.js)
   if (thing.big) thing.mask = alphaMask(tex.image, flip);

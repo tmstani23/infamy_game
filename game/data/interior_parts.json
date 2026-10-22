@@ -86,7 +86,7 @@
     "pawn_display": { "size": [3, 1], "rule": "floor", "solid": [2.1, 0.8], "cutout": "pawn_display", "rotations": [0] },
     "soaking_tub": { "size": [3, 3], "rule": "floor", "solid": [2.6, 2.6], "cutout": "soaking_tub", "rotations": [0], "painted": { "anchor": [150, 176] } },
     "bath_bucket_stool": { "size": [2, 2], "rule": "floor", "solid": [1.2, 1.2], "cutout": "bath_bucket_stool", "rotations": [0], "painted": { "anchor": [150, 226] } },
-    "towel_shelf": { "size": [2, 1], "rule": "wall", "solid": [1.8, 0.8], "cutout": "towel_shelf", "rotations": [0], "painted": { "anchor": [104, 238] } },
+    "towel_shelf": { "size": [2, 1], "rule": "wall", "solid": [1.8, 0.8], "cutout": "towel_shelf", "rotations": [0], "painted": { "anchor": [104, 238], "shear": 0.16 } },
     "weapon_rack": { "size": [3, 1], "rule": "floor", "solid": [2.8, 0.8], "cutout": "weapon_rack", "rotations": [0] },
     "practice_dummy": { "size": [2, 2], "rule": "floor", "solid": [1.4, 1.4], "cutout": "practice_dummy", "rotations": [0] },
     "brewing_vat": { "size": [3, 3], "rule": "floor", "solid": [2.6, 2.6], "cutout": "brewing_vat", "rotations": [0] },
