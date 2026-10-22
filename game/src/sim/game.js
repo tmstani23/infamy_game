@@ -91,7 +91,7 @@ export function createGame(options) {
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
   // clock: the day/night cycle when settings turn it on (auto); left = ticks to the next flip, day = count of days so far;
   // dawn / dusk = true on the tick night turns to day / day to night, from the clock or the 'time' command alike (payouts at dawn)
-  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {}, hits: [], casts: [], heatGains: [], ryoGains: [], policeNews: [], news: [] };
+  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {}, hits: [], dodges: [], casts: [], heatGains: [], ryoGains: [], policeNews: [], news: [] };
   const halfTicks = night => Math.round((night ? dayNight.nightSeconds : dayNight.daySeconds) * TICK_RATE);
   if (dayNight?.auto) state.clock = { day: 1, left: halfTicks(state.night) };
   const setNight = night => {
@@ -186,25 +186,29 @@ export function createGame(options) {
       .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street')
         && (u.place === hero.place || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind)))
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind)));
-    if (c.kind === 'follow' && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
+    const recalling = c.kind === 'move' || c.kind === 'follow';
+    if (recalling && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
     crew.forEach((u, k) => {
       delete paths[u.id];
       delete u.patrol;
       if (u.indoorDuty) u.indoorDuty.resume = false;
       delete u.execute;
-      delete u.holdFire;                                 // any new order ends a Smoke Bomb's hold
+      const attacking = c.kind === 'attack' || c.kind === 'attackmove';
+      if (!u.smokePassive || attacking) delete u.holdFire;
+      if (attacking) delete u.smokePassive;
       if (fight[u.id]) delete fight[u.id].target;
       // stop (Z, Tim 2026-10-18): stand still and stay passive, no auto attack even when hit,
       // until the next order of any kind replaces this one
       // resume (a second T, Tim 2026-10-19): call off the T attack, back to the order before it
-      if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u); } return; }
+      if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u, true); } return; }
       if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
-      if (c.kind === 'move') delete u.swing;              // a move cancels an unfinished attack immediately
-      if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id, ...(hero.place !== 'street' ? { exitWithHero: true } : {}) }; u.order.slot = freeSlot(hero.id, u.id); return; }
+      if (recalling) delete u.swing;
+      if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id, regrouping: true, ...(hero.place !== 'street' ? { exitWithHero: true } : {}) }; u.order.slot = freeSlot(hero.id, u.id); return; }
       // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
       if (c.kind === 'attack') {
         if (u.swing?.target !== c.target) delete u.swing;
-        u.order = { kind: 'attack', target: c.target, ...(c.resume ? { prev: resumable(u) } : {}), ...(c.broadcast ? { broadcast: true } : {}) }; return;
+        const follow = c.followOnDefeat === true || c.assist || (Array.isArray(c.followOnDefeat) && c.followOnDefeat.includes(u.id));
+        u.order = { kind: 'attack', target: c.target, ...(follow ? { followLeader: hero.id } : {}), ...(c.resume ? { prev: resumable(u) } : {}), ...(c.broadcast ? { broadcast: true } : {}) }; return;
       }
       if (c.kind === 'heal') {
         const b = clans?.clinicOf();
@@ -345,7 +349,14 @@ export function createGame(options) {
   }
   // an attack order is over (target gone, down or out of reach): back to the order before a T,
   // else stand where it is
-  function endAttack(u) {
+  function endAttack(u, cancelled = false) {
+    const target = state.entities[u.order?.target], leader = state.entities[u.order?.followLeader];
+    if (!cancelled && target && (target.dead || target.downed || target.jailed) && leader && !leader.dead && !leader.downed && !leader.jailed && leader.owner === u.owner) {
+      u.order = { kind: 'follow', target: leader.id, slot: freeSlot(leader.id, u.id) };
+      delete paths[u.id]; delete u.patrol;
+      if (u.indoorDuty) u.indoorDuty.resume = false;
+      return;
+    }
     const p = u.order?.prev;
     if (p?.kind === 'follow') p.slot = freeSlot(p.target, u.id);
     u.order = p || { kind: 'move', x: u.x, z: u.z };
@@ -375,7 +386,7 @@ export function createGame(options) {
       if (!h.assistCrew?.length || h.dead || h.downed || h.jailed || !fair(h, t) || !sees(h, t)
         || Math.hypot(t.x - h.x, t.z - h.z) > LOCK_RANGE) continue;
       for (const u of Object.values(state.entities)) {
-        if (!h.assistCrew.includes(u.id) || u.owner !== h.owner || u.type === 'hero' || u.guard || u.dead || u.downed || u.jailed || u.place !== h.place) continue;
+        if (!h.assistCrew.includes(u.id) || u.owner !== h.owner || u.type === 'hero' || u.guard || u.dead || u.downed || u.jailed || u.smokePassive || u.place !== h.place) continue;
         const o = u.order;
         if (o?.kind === 'move' && !o.arrived) continue; // finish a deliberate move before joining the hero
         if (o?.kind === 'attack' && o.assist !== h.id) continue;
@@ -388,7 +399,7 @@ export function createGame(options) {
         }
         delete u.swing; delete u.holdFire; delete paths[u.id];
         if (fight[u.id]) delete fight[u.id].target;
-        u.order = { kind: 'attack', target: t.id, assist: h.id, prev };
+        u.order = { kind: 'attack', target: t.id, assist: h.id, prev, followLeader: h.id };
       }
     }
   }
@@ -397,7 +408,7 @@ export function createGame(options) {
   function crewTarget(e) {
     const o = e.order || {};
     if (o.kind === 'stop') return null;                  // passive (Z): never picks a fight
-    if (e.holdFire) return null;                         // after a Smoke Bomb: no attacking until the next order
+    if (e.holdFire) return null;                         // smoke escort stays passive until an explicit combat order
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
       if (fair(e, t) && sees(e, t)) return t;
@@ -419,7 +430,7 @@ export function createGame(options) {
     if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom) {
       const attacker = u => {
         const by = u.hitBy && state.tick - u.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[u.hitBy.id];
-        return by && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
+        return by && u.hitBy.tick > (o.recalledAt ?? -1) && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
       };
       const own = attacker(e);
       if (own) return own;
@@ -485,9 +496,15 @@ export function createGame(options) {
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
       if (fair(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
-        const bonus = Object.values(e.buffs || {}).reduce((sum, b) => sum + (b.until > state.tick ? b.critChance || 0 : 0), 0);
-        const crit = rng() < Math.min(1, Math.max(0, (unit.critChance || 0) + bonus));
-        hit(e, t, Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1)), crit);
+        const dodge = Math.min(1, Math.max(0, statsOf(t).dodgeChance || 0));
+        if (dodge && rng() < dodge) {
+          stealth.reveal(e, true); // attempting an attack still consumes the attacker's veil
+          state.dodges.push({ a: e.id, t: t.id, x: t.x, z: t.z });
+        } else {
+          const bonus = Object.values(e.buffs || {}).reduce((sum, b) => sum + (b.until > state.tick ? b.critChance || 0 : 0), 0);
+          const crit = rng() < Math.min(1, Math.max(0, (unit.critChance || 0) + bonus));
+          hit(e, t, Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1)), crit);
+        }
       }
     }
     if (state.tick >= w.start + w.len) { delete e.swing; return false; }
@@ -660,6 +677,7 @@ export function createGame(options) {
         .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
     }
     if (!ex || ex.dead || ex.downed || (ex === e && e.type === 'hero' && e.execute) || !downedFoe(ex, state.entities[c.target]) || !sees(ex, state.entities[c.target])) return;
+    delete ex.smokePassive; delete ex.holdFire;
     delete ex.swing;
     delete ex.attackTarget;
     delete paths[ex.id];
@@ -722,7 +740,7 @@ export function createGame(options) {
   const SAFE = 5;
   function botExecute(e) {
     const clan = state.clans?.[e.owner];
-    if (!clan?.bot || (state.tick + Number(e.id)) % TICK_RATE) return false;
+    if (!clan?.bot || e.holdFire || (state.tick + Number(e.id)) % TICK_RATE) return false;
     const [ax, az] = anchorOf(e), reach = units?.rules?.carryRadius ?? 8;
     const price = t => units?.types[t.type]?.price || 0;
     const options = Object.values(state.entities).filter(t => downedFoe(e, t) && !civ(t)
@@ -850,9 +868,10 @@ export function createGame(options) {
       // Smoke Bomb (Shinobi R): a cloud round him (radius, seconds); see blind() for what it does.
       // Every unit of his clan holds its attacks, hitting back too, until given a new order
       // (Tim 2026-10-20), so nobody breaks stealth on his own
-      (state.smokes ||= []).push({ x: e.x, z: e.z, r: a.radius, place: e.place, clan: e.owner, until: state.tick + secs(a.seconds), heal: a.heal || 0, fadeSeconds: a.fadeSeconds || 0 });
+      const cloud = { x: e.x, z: e.z, r: a.radius, place: e.place, clan: e.owner, until: state.tick + secs(a.seconds), heal: a.heal || 0, fadeSeconds: a.fadeSeconds || 0 };
+      (state.smokes ||= []).push(cloud);
       for (const u of Object.values(state.entities)) {
-        if (u.owner !== e.owner) continue;
+        if (u.owner !== e.owner || !inSmoke(cloud, u)) continue;
         u.holdFire = true;
         delete u.swing; delete u.execute; delete u.attackTarget;
         if (fight[u.id]) delete fight[u.id].target;
@@ -887,6 +906,7 @@ export function createGame(options) {
       e.dir = dirIndex(t.x - e.x, t.z - e.z);
       extra = { tx: t.x, tz: t.z, target: t.id, fx, fz, critRadius: a.critRadius };
       hit(e, t, dmg, true, 'assassinate');
+      delete e.holdFire; // a successful offensive ability is an explicit attack
       for (const u of Object.values(state.entities)) {
         if (u.owner !== e.owner || u.guard || u.dead || u.downed || u.jailed || u.place !== e.place
           || Math.hypot(u.x - e.x, u.z - e.z) > a.critRadius) continue;
@@ -961,10 +981,13 @@ export function createGame(options) {
 
   function crewStep(e, unit) {
     if (e.dead || e.downed || e.jailed) return;
+    const finished = e.order?.kind === 'attack' && state.entities[e.order.target];
+    if (finished && (finished.dead || finished.downed || finished.jailed)) { delete e.swing; endAttack(e); }
     indoorDuty(e);
-    // A plain move is a commitment to reach the spot, even under fire. Process
+    // Move and an explicit Follow recall reach their goal even under fire. Process
     // it before swings, retaliation, automatic executions or hero assistance.
-    if (e.order?.kind === 'move' && !e.order.arrived) {
+    const recalling = e.order?.kind === 'follow' && e.order.regrouping;
+    if ((e.order?.kind === 'move' && !e.order.arrived) || recalling) {
       delete e.swing; delete e.execute;
       if (fight[e.id]) delete fight[e.id].target;
       if (crewOut(e, unit)) return;
@@ -973,7 +996,11 @@ export function createGame(options) {
         if (!moveTo(e, unit, goal.x, goal.z, goal.walk)) e.anim = 'idle';
         return;
       }
-      e.order.arrived = true;
+      if (recalling) delete e.order.regrouping;
+      else e.order.arrived = true;
+      // Hits during retreat are stale once we get back. A fresh assault after
+      // arrival can still provoke normal defense unless Smoke granted passivity.
+      e.order.recalledAt = state.tick;
       e.anim = 'idle'; delete paths[e.id];
       return;
     }
@@ -1245,6 +1272,7 @@ export function createGame(options) {
   // and [{ id, type: 'order', units: [ids], kind: 'attack', target }] sent by a hero
   function step(commands = []) {
     state.hits = [];      // this tick's hits and ability uses, for the renderer
+    state.dodges = [];
     state.casts = [];
     state.heatGains = [];
     state.ryoGains = [];
@@ -1275,12 +1303,13 @@ export function createGame(options) {
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
-      if (c.type === 'execute' && e.type === 'hero' && !e.dead) { delete e.holdFire; startExecute(e, c); }
+      if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
       if (c.type === 'loot') startLoot(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) {
         if (e.execute) { giveOrder(e, { ...c, type: 'order', kind: 'attack' }); continue; }
         if (e.swing?.target !== c.target) delete e.swing;
         setAssistCrew(e, c.assist ? c.units : []);
+        for (const id of e.assistCrew || []) { const u = state.entities[id]; delete u.smokePassive; delete u.holdFire; }
         e.attackTarget = c.target; delete e.holdFire;
       }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
@@ -1357,8 +1386,23 @@ export function createGame(options) {
     territory.tick();
     if (state.smokes) {
       for (const s of state.smokes) if (s.until <= state.tick && s.fadeSeconds) {
-        for (const u of Object.values(state.entities))
-          if (u.owner === s.clan && !u.guard && stealth.canHide(u) && inSmoke(s, u)) addBuff(u, 'veil', s.fadeSeconds);
+        const leader = Object.values(state.entities).find(e => e.owner === s.clan && e.type === 'hero' && !e.dead && !e.downed && !e.jailed);
+        for (const u of Object.values(state.entities)) {
+          if (u.owner !== s.clan || u.guard || !stealth.canHide(u) || !inSmoke(s, u)) continue;
+          addBuff(u, 'veil', s.fadeSeconds);
+          // Vanish starts a new passive window, even if an old attack was
+          // explicitly ordered during the smoke. Preserve hero execute channels.
+          u.holdFire = true;
+          delete u.swing; delete u.attackTarget;
+          if (fight[u.id]) delete fight[u.id].target;
+          if (u.type === 'hero') { delete u.assistCrew; continue; }
+          u.smokePassive = true; u.holdFire = true;
+          delete u.swing; delete u.execute; delete u.attackTarget; delete u.patrol; delete paths[u.id];
+          if (fight[u.id]) delete fight[u.id].target;
+          if (u.indoorDuty) u.indoorDuty.resume = false;
+          u.order = leader ? { kind: 'follow', target: leader.id, slot: freeSlot(leader.id, u.id) } : { kind: 'stop' };
+          if (leader?.assistCrew) leader.assistCrew = leader.assistCrew.filter(id => id !== u.id);
+        }
       }
       state.smokes = state.smokes.filter(s => s.until > state.tick);
       if (!state.smokes.length) delete state.smokes;

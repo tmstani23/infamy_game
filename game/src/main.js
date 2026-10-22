@@ -397,6 +397,7 @@ async function start() {
         if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
       }
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
+      if (game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
       acc -= tick;

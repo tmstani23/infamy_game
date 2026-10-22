@@ -84,6 +84,8 @@ Phase 3E access (Tim, 2026-10-21): all ten ownable businesses have Shinobi back-
 - Ninja (tanto) is one additional recruit beside Ninja; both share stats, prices and timers: 180 HP, 15 damage, 15% crit, base price 90, base hire 6 s. Normal price scaling and doubled HQ hire time apply. Both recruit at dojo/longhouse; bots can mix them. Stealth, capacity, clinic and rewards support both.
 - Purple Renown appears above matching gold ryo in one rising badge, combining combat/contract bonuses; Renown-only gains still display. No duplicate central combat Renown alert.
 
+Contract board follow-up (2026-10-21): the first successful bandit contract per dawn unlocks one replacement, with at most two taken that dawn; dropping or failing does not refill it. Newly eligible owned-business jobs fill spare board slots during the day within existing board/per-clan limits. Active terms remain locked.
+
 ## Next and deferred (Tim, 2026-10-21; not built)
 
 - Next: third southwest river bridge near the far-west bandit camp; exact placement and approaches pending.

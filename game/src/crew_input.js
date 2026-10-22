@@ -154,7 +154,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (!mine().length) return;
       const foe = target();
       if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine() }); return; }
-      if (foe) { send({ id: heroId, type: 'order', units: mine(), kind: 'attack', target: foe.id }); return; }
+      if (foe) { send({ id: heroId, type: 'order', units: mine(), kind: 'attack', target: foe.id, followOnDefeat: true }); return; }
       if (unitAt(e.clientX, e.clientY, [hero()])) { send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); return; }
       // right-click your own business: they walk to its door, go in and hold it (checkpoint 5)
       const i = !e.ctrlKey && outdoors() ? view.buildingAt(e.clientX, e.clientY) : null, biz = i !== null && game.state.businesses[`b${i}`];
@@ -235,7 +235,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (assigned.length) { send({ id: heroId, type: 'order', units: assigned, kind: 'resume', broadcast: true }); return; }
       if (!t || !units.length) return;
       if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units, broadcast: true });
-      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true, broadcast: true });
+      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true, broadcast: true, followOnDefeat: mine() });
     },
     // Shared attacks take purple priority; separate crew assignments stay blue.
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen); },

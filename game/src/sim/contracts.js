@@ -15,6 +15,8 @@
 // last recentDays days draws fewer jobs, the season leader more; taking a job swaps the other
 // jobs on that clan for jobs on other clans or the town.
 // Numbers: units.json rules.contracts. Everything is plain data in state.contracts.
+// Completing the first bandit job unlocks one extra before dawn. Newly owned
+// businesses can fill spare board slots during the day, without replacing active jobs.
 const DEFAULTS = {
   perDawn: [3, 5],
   perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
@@ -70,6 +72,11 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     return out;
   }
   const same = (a, b) => a.kind === b.kind && a.business === b.business && a.hero === b.hero;
+  const businessOwners = () => Object.fromEntries(pool().filter(j => j.business).map(j => [j.business, j.target]));
+  C.banditsTaken ??= Object.values(C.active).filter(j => j.kind === 'bandits').length;
+  C.banditBudget ??= 1;
+  C.businessOwners ??= businessOwners();
+  C.pendingBusinesses ??= [];
   // how likely a job on this clan is: fewer after recent hits on it, more on the season leader
   const weight = target => {
     if (!target) return 1;
@@ -80,7 +87,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   // on the board yet first; null when nothing fits
   function draw(board, skip = () => false) {
     const per = id => board.filter(j => j.target === id).length;
-    const ok = pool().filter(j => !board.some(b => same(b, j)) && !skip(j) && (!j.target || per(j.target) < R.perClan));
+    const ok = pool().filter(j => !board.some(b => same(b, j)) && !skip(j) && (!j.target || per(j.target) < R.perClan)
+      && (j.kind !== 'bandits' || (C.banditsTaken < C.banditBudget && !Object.values(C.active).some(a => a.kind === 'bandits'))));
     if (!ok.length) return null;
     const fresh = ok.filter(j => !board.some(b => b.kind === j.kind)), from = fresh.length ? fresh : ok;
     let r = rnd() * from.reduce((s, j) => s + weight(j.target), 0);
@@ -93,8 +101,36 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   function post() {
     const [lo, hi] = R.perDawn, n = lo + Math.floor(rnd() * (hi - lo + 1));
     C.board = [];
+    C.banditsTaken = Object.values(C.active).filter(j => j.kind === 'bandits').length;
+    C.banditBudget = 1;
+    C.businessOwners = businessOwners(); C.pendingBusinesses = [];
     for (let i = 0; i < n; i++) { const j = draw(C.board); if (!j) break; C.board.push(j); }
     C.posted = true;
+  }
+
+  // New ownership creates a finite set of business jobs during the day. Fill
+  // spare board slots (up to the usual maximum), without reissuing old jobs or
+  // undoing the same-clan swaps when a contract is accepted.
+  function refresh() {
+    const owners = businessOwners();
+    C.pendingBusinesses = C.pendingBusinesses.filter(j => owners[j.business] === j.target);
+    for (const j of pool()) if (j.business && C.businessOwners[j.business] !== j.target
+      && !C.pendingBusinesses.some(p => same(p, j) && p.target === j.target)) C.pendingBusinesses.push(j);
+    C.businessOwners = owners;
+    C.board = C.board.filter(j => !j.business || owners[j.business] === j.target);
+    const max = R.perDawn[1];
+    // A completed first bandit job unlocks one replacement, shared by the board.
+    if (C.banditBudget > 1 && C.board.length < max) {
+      const j = draw(C.board, j => j.kind !== 'bandits');
+      if (j) C.board.push(j);
+    }
+    while (C.board.length < max) {
+      const j = draw(C.board, j => !C.pendingBusinesses.some(p => same(p, j) && p.target === j.target)
+        || Object.values(C.active).some(a => a.target === j.target));
+      if (!j) break;
+      C.pendingBusinesses = C.pendingBusinesses.filter(p => !same(p, j) || p.target !== j.target);
+      C.board.push(j);
+    }
   }
 
   const reward = job => { const q = quote(job); return job.kind === 'steal'
@@ -111,6 +147,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       if (pay) state.ryoGains.push({ clan: clanId, amount: pay, target: job.hero ?? job.business, reason: 'Contract' });
       state.news.push({ kind: 'contractDone', clan: clanId, label: job.label, ryo: pay, renown: job.renown });
       say(clan, `Contract done: +${pay} ryo, +${job.renown} Renown`);
+      if (job.kind === 'bandits' && C.banditsTaken === 1) C.banditBudget = 2;
     } else {
       state.news.push({ kind: 'contractFailed', clan: clanId, label: job.label, why });
       if (state.clans[job.target]) state.news.push({ kind: 'contractFailedOnYou', clan: job.target, by: clanId,
@@ -132,11 +169,13 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     const [job] = C.board.splice(i, 1);
     if (!pool().some(j => same(j, job) && j.target === job.target)) return say(clan, 'That contract target is no longer available');
     const priced = quote(job);
+    if (job.kind === 'bandits') C.banditsTaken++;
     // the board spreads out: other jobs on the same clan swap for jobs elsewhere (or go)
     if (job.target) {
       const keep = C.board.filter(j => j.target !== job.target), swaps = C.board.length - keep.length;
       for (let k = 0; k < swaps; k++) { const j = draw(keep, x => x.target === job.target); if (j) keep.push(j); }
       C.board = keep;
+      C.pendingBusinesses = C.pendingBusinesses.filter(j => j.target !== job.target);
     }
     C.active[clan.id] = { ...job, ...priced, rewardLocked: true, clan: clan.id, takenAt: state.tick, progress: 0 };
     if (job.target) state.news.push({ kind: 'contractWarn', clan: job.target, label: job.label });   // the target gets a warning
@@ -224,6 +263,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     if (state.dawn) { C.day++; C.hits = C.hits.filter(h => C.day - h.day < R.recentDays); }
     if (state.dawn || !C.posted) post();
     for (const [id, job] of Object.entries(C.active)) step(id, job);
+    refresh();
   }
 
   // Crew sent into an active infiltration job use its business window. Rival

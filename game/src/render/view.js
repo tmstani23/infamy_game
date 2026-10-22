@@ -371,6 +371,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null;
   return {
     render, renderer, scene, addHits, addCasts,
+    addDodges(dodges) { for (const d of dodges) hitFx.dodge(d); },
     // arrow-key panning (right, up from -1 to 1 on screen); the camera stays there until snapBack
     pan(right, up, dt) {
       if (!right && !up) return;

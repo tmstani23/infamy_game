@@ -197,8 +197,9 @@ const newGame = () => {
     g.step([{ id: boss.id, type: 'ability', slot: 'F', target: rival.id }]);
     assert.equal(rival.hp, Math.min(rival.maxHp * share, Math.round(rival.maxHp * A.F.bossShare)), 'wounded hero is capped at 60% without minimum damage or healing');
   }
-  // R: everyone of the clan holds fire; the rival can't target into the cloud
+  // R: nearby clan units hold fire; the rival can't target into the cloud
   boss.hp = boss.maxHp * 0.5;
+  Object.assign(crew, { x: boss.x - 1, z: boss.z });
   g.step([{ id: boss.id, type: 'ability', slot: 'R', x: boss.x, z: boss.z }]);
   assert.equal(g.state.smokes?.length, 1, 'smoke up');
   assert.ok(boss.holdFire && crew.holdFire, 'all ninja hold their attacks');
@@ -212,7 +213,7 @@ const newGame = () => {
   assert.ok(!g.state.smokes, 'smoke gone');
   assert.ok(crew.holdFire, 'still holding until a new order');
   g.step([{ id: boss.id, type: 'order', kind: 'follow', units: [crew.id] }]);
-  assert.ok(!crew.holdFire, 'a new order ends the hold');
+  assert.ok(crew.holdFire && crew.smokePassive, 'Follow preserves passive escort after smoke expiry');
   // E: a bandit near where the pebble lands walks over
   const bx = boss.x + 8;
   const b = g.state.entities[g.bandits.add()];

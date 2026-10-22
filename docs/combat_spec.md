@@ -16,6 +16,8 @@ Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero cha
 
 Balance and targeting (Tim, 2026-10-21): hero base damage 22.5 (-25%); hero HP -30%. Recruit damage +25%: thug 10, brute 17.5, swordsman 20, ninja 15. Plain crew moves finish before retaliation. Hidden Shinobi clear hero/crew target locks, windups and indicators; revealing does not restore locks automatically.
 
+Shinobi dodge (Tim, 2026-10-21): leader and both ninja recruits have 15% innate dodge against weapon swings; a successful dodge shows small DODGE combat text.
+
 ## Why it feels clunky (research)
 
 Common causes in RTS/MOBA melee, checked against our code:
@@ -85,10 +87,10 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 |---|---|---|---|
 | Q | Shadow Step | Teleports up to 8 toward the mouse, stopping at walls and water; stays hidden. | 10 s |
 | E | Caltrops | Thrown at the mouse: enemies within 4 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
-| R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). The whole clan gets holdFire (no attacks or hit-backs) until a new order or attack. | 40 s |
+| R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). Units inside hold fire; lasting expiry passivity and regrouping require presence at expiry (see below). | 40 s |
 | F | Assassinate | Needs 3 s hidden, or is immediately usable during Vanish. Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes above 60% max HP drop to 60%, while heroes at or below 60% take no damage and receive no healing (2026-10-21). Consumes the attacker's veil. Hero and living non-guard crew within 8 in the same place gain +20 percentage points crit for 8 s (ninja 15% → 35%); refreshes without stacking. Violet recipient auras and an 8-unit cast pulse. | 45 s |
 
-Phase 3G Vanish (2026-10-21): at the six-second Smoke Bomb's mechanical expiry, the hero and crew still inside gain four seconds of undetectability. Incoming damage can hurt/down them but cannot reveal them; outgoing attacks or Assassinate consume only that attacker's veil. Dark-blue transparent silhouettes/shimmer and blue wisps show the effect; cloud graphics/fade are unchanged. The player hero alone shows VANISH 4/3/2/1s overhead. The Vanish pill and R button show its duration while the real 40 s cooldown continues underneath, then returns to view.
+Phase 3G Vanish (2026-10-21): at the six-second Smoke Bomb's mechanical expiry, the hero and crew still inside gain four seconds of undetectability. Incoming damage can hurt/down them but cannot reveal them; outgoing attacks or Assassinate consume only that attacker's veil. At expiry, recipients become passive; affected crew regroup to their leader and stay passive until explicitly ordered. Crew outside the cloud at expiry do not gain this lasting passivity. Dark-blue transparent silhouettes/shimmer and blue wisps show the effect; cloud graphics/fade are unchanged. The player hero alone shows VANISH 4/3/2/1s overhead. The Vanish pill and R button show its duration while the real 40 s cooldown continues underneath, then returns to view.
 
 Effects in `render/abilityfx.js` (mock OK'd by Tim): black non-additive smoke with muted purple and blue highlights, thin rings like the ronin's.
 

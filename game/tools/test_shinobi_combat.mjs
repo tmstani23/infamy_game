@@ -140,3 +140,81 @@ function smokeFixture() {
   assert.ok(g.stealth.veiled(hero) && hero.hidden, 'crew attacking does not reveal hero');
 }
 console.log('Shinobi combat: Renown, executions, crit recipients/rolls/expiry, snare radius, smoke veil/expiry/damage and immediate Assassinate ok');
+{
+  const { g, hero, crew, far, rival } = smokeFixture();
+  assert.equal(crew.order.kind, 'follow'); assert.equal(crew.order.target, hero.id);
+  assert.ok(crew.smokePassive && crew.holdFire);
+  assert.equal(far.order.kind, 'stop', 'outside crew keep their orders');
+  for (const kind of ['follow', 'move']) {
+    g.step([{ id: hero.id, type: 'order', kind, units: [crew.id], x: -10, z: 1 }]);
+    assert.ok(crew.smokePassive && crew.holdFire, `${kind} preserves passive escort`);
+  }
+  g.step([{ id: hero.id, type: 'order', kind: 'follow', units: [crew.id] }]);
+  advance(g, 85);
+  Object.assign(rival, { x: crew.x + .6, z: crew.z, attackTarget: crew.id });
+  let foughtBack = false;
+  for (let i = 0; i < 45; i++) { g.step(); foughtBack ||= g.state.hits.some(h => h.a === crew.id); }
+  assert.ok(!foughtBack && crew.holdFire, 'passivity survives Vanish expiry and incoming attacks');
+  g.step([{ id: hero.id, type: 'attack', target: rival.id, assist: true, units: [crew.id] }]);
+  assert.ok(!crew.smokePassive && !crew.holdFire, 'explicit hero attack releases selected assistance');
+}
+{
+  const { g, hero, crew } = smokeFixture();
+  g.step([{ id: hero.id, type: 'order', kind: 'attackmove', units: [crew.id], x: -6, z: 1 }]);
+  assert.ok(!crew.smokePassive && !crew.holdFire, 'attack-move releases passive escort');
+}
+{
+  const { g, hero, spawn } = make();
+  const enemy = spawn('hero', -20, 1, { owner: 'rival', model: 'ronin' });
+  const far = spawn('ninja', -21, 1, { holdFire: false, order: { kind: 'attack', target: enemy.id } });
+  g.step([{ id: hero.id, type: 'ability', slot: 'R' }]);
+  assert.equal(far.order.kind, 'attack'); assert.ok(!far.holdFire, 'casting only holds units inside the cloud');
+}
+{
+  const { g, hero, crew, rival, spawn } = smokeFixture();
+  g.state.clans.player.bot = true; g.state.clans.player.aggression = 1;
+  rival.x = -40;
+  const downed = spawn('thug', crew.x + .5, crew.z, { owner: 'rival', downed: true, downedAt: g.state.tick });
+  advance(g, 120);
+  assert.ok(!downed.dead && !crew.execute, 'passive bot crew never auto-execute');
+}
+{
+  const { g, hero, spawn } = make(), room = g.rooms[0];
+  Object.assign(hero, { place: room.name, x: room.exit.x, z: room.exit.z });
+  const crew = spawn('ninja', hero.x + .2, hero.z, { place: room.name });
+  g.step([{ id: hero.id, type: 'ability', slot: 'R' }]);
+  g.step([{ id: hero.id, type: 'use', units: [] }]);
+  assert.equal(hero.place, 'street');
+  advance(g, 140);
+  assert.equal(crew.place, room.name, 'automatic escort cannot pull indoor crew outside');
+  assert.ok(crew.smokePassive && !crew.order.exitWithHero);
+}
+console.log('Smoke escort: scoped regroup, passive movement/retaliation, explicit attack release and indoor/bot safeguards ok');
+{
+  const { g, hero, spawn } = make();
+  const target = spawn('hero', -6, 1, { owner: 'rival', model: 'ronin', hp: 10000, maxHp: 10000 });
+  g.step([{ id: hero.id, type: 'ability', slot: 'R' }]);
+  const expiry = g.state.smokes[0].until;
+  while (g.state.tick < expiry) g.step();
+  hero.holdFire = false; hero.attackTarget = target.id;
+  hero.swing = { start: g.state.tick, strike: g.state.tick + 3, len: 10, target: target.id };
+  g.step();
+  assert.ok(hero.holdFire && !hero.attackTarget && !hero.swing, 'Vanish cancels old hero auto-attacks and windups');
+  target.attackTarget = hero.id;
+  let heroHits = 0;
+  for (let i = 0; i < 100; i++) { g.step(); heroHits += g.state.hits.filter(h => h.a === hero.id).length; }
+  assert.equal(heroHits, 0, 'hero stays passive through Vanish expiry and incoming attacks');
+  g.step([{ id: hero.id, type: 'attack', target: target.id }]);
+  assert.ok(!hero.holdFire && hero.attackTarget === target.id, 'new specific attack resumes hero auto-attacks');
+}
+{
+  const { g, hero, spawn } = make();
+  g.step([{ id: hero.id, type: 'ability', slot: 'R' }]);
+  advance(g, 95);
+  const target = spawn('thug', hero.x + .5, hero.z, { owner: 'rival', downed: true, downedAt: g.state.tick });
+  g.step([{ id: hero.id, type: 'execute', target: target.id }]);
+  const expiry = g.state.smokes[0].until;
+  while (g.state.tick <= expiry) g.step();
+  assert.ok(hero.execute?.target === target.id, 'automatic Vanish never cancels the hero execute channel');
+}
+console.log('Vanish: hero old targets/windups and retaliation held until a fresh attack; existing execution remains protected');

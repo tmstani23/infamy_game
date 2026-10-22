@@ -68,6 +68,12 @@ Built and approved: selected-crew attack assistance, independent squad targets, 
 
 Phase 3E capacity (Tim, 2026-10-21): all ten businesses provide 23 total crew capacity, plus the hero; business/Renown progression has no additional hard maximum. Raids still allow six attacking crew plus hero.
 
+## Recall and attack completion (Tim, 2026-10-21)
+
+- Selected attackers return to Follow after their target is defeated.
+- Explicit Move/Follow recall works for every clan: commanded crew cancel windups and old hero assistance, ignore combat during return and ignore stale retreat hits after arrival. Fresh post-arrival assaults allow normal defense. Indoor exit restrictions above still apply.
+- Smoke-expiry passive regrouping: [combat rules](combat_spec.md#f-hero-abilities-and-action-bar-approved-by-tim-2026-10-16-built).
+
 ## Open questions (later, not blocking)
 
 - Upgrade list per unit type and what they cost.

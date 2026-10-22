@@ -29,6 +29,13 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     numbers.push({ el, x, z, age: 0, drift: -6 - Math.random() * 8, big: 1, ox: -34, low: true });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
+  function addDodge(h) {
+    const el = document.createElement('div');
+    el.className = 'dmg dodge'; el.textContent = 'DODGE';
+    overlay.appendChild(el);
+    numbers.push({ el, x: h.x, z: h.z, age: 0, drift: (Math.random() - 0.5) * 18, big: 0.85, subtle: true });
+    while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
+  }
   function updateNumbers(dt) {
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i];
@@ -37,10 +44,10 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       if (k >= 1) { n.el.remove(); numbers.splice(i, 1); continue; }
       const s = unitToScreen(n.x, n.z);
       // pop in big, settle, then rise and fade
-      const pop = n.age < 0.12 ? 1.7 - 0.7 * (n.age / 0.12) : 1;
+      const pop = !n.subtle && n.age < 0.12 ? 1.7 - 0.7 * (n.age / 0.12) : 1;
       const rise = n.low ? 6 + 30 * k : 38 + 70 * (1 - (1 - k) * (1 - k));
       n.el.style.transform = `translate(${s.x + (n.ox || 0) + n.drift * k}px, ${s.y - rise}px) translate(-50%, -50%) scale(${pop * n.big})`;
-      n.el.style.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
+      n.el.style.opacity = (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4) * (n.subtle ? 0.85 : 1);
     }
   }
 
@@ -116,6 +123,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
 
   return {
     heal: addHeal,
+    dodge: addDodge,
     // h: one entry of state.hits; attacker: its entity (for facing), mine: the victim is on my side
     hit(h, attacker, mine) {
       const blade = BLADES.has(h.weapon);
