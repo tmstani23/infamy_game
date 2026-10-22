@@ -20,11 +20,17 @@
   h1 { margin: 0; font-size: 15px; letter-spacing: 0.08em; color: var(--accent); }
   .tabs button { background: none; border: 1px solid var(--line); color: var(--text); padding: 5px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
   .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  .guides-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
   #picks { color: var(--muted); }
   main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; padding: 16px; }
   figure { margin: 0; background: var(--panel); border: 2px solid var(--line); border-radius: 8px; overflow: hidden; cursor: pointer; }
   figure.picked { border-color: var(--accent); }
-  figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #0b0c10; }
+  .preview { position: relative; background: #0b0c10; }
+  figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
+  .guides { display: none; position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  body.show-guides .guides { display: block; }
+  .guide-key { display: none; color: var(--muted); font-size: 12px; }
+  body.show-guides .guide-key { display: inline; }
   figcaption { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; }
   figcaption a { color: var(--accent); }
   .bad { color: #e07a6a; }
@@ -34,6 +40,8 @@
 <header>
   <h1>INFAMY ROOMS</h1>
   <div class="tabs" id="tabs"></div>
+  <label class="guides-toggle"><input id="show-guides" type="checkbox">Painted prop footprints</label>
+  <span class="guide-key">gold: layout · blue: art base · cyan: recipe centre · pink: painted centre</span>
   <span id="picks">Click rooms to pick them.</span>
 </header>
 <main id="grid"></main>
@@ -41,16 +49,22 @@
 import * as THREE from 'three';
 import { generateRoom } from './src/sim/generate.js';
 import { buildRoom3d } from './src/render/interior3d.js';
+import { buildScenery, sortThings } from './src/render/scenery.js';
+import { placePiece } from './src/sim/geometry.js';
 import { shared, MAX_LIGHTS } from './src/render/shading.js';
 import { CAM_QUAT, VIEW_DIR, toScreen, PPU } from './src/render/iso.js';
 
-// Shows seeds 1 to 12 of each building type, drawn with the game's own camera and lights.
+// Shows all building types or seeds 1 to 12 of one type, with the game's own
+// camera, lights, and painted cutouts. Footprint guides are optional.
 const SEEDS = 12, W = 640, H = 480;
 const get = f => fetch(f).then(r => r.json());
-const [recipes, parts] = await Promise.all([get('data/room_recipes.json'), get('data/interior_parts.json')]);
+const [recipes, parts, catalog, cutouts] = await Promise.all([
+  get('data/room_recipes.json'), get('data/interior_parts.json'), get('data/art.json'), get('art/cutouts.json'),
+]);
 const types = Object.keys(recipes).filter(k => !k.startsWith('_'));
 const params = new URLSearchParams(location.search);
-let type = params.get('type') || types[0];
+let type = params.get('type') || 'all';
+if (type !== 'all' && !types.includes(type)) type = 'all';
 const picks = {};
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -64,6 +78,10 @@ async function draw(room) {
   scene.background = new THREE.Color('#0b0c10');
   const built = await buildRoom3d(room, parts, renderer);
   scene.add(built.group, ...built.glows);
+  const placed = room.pieces.map(p => placePiece(p, catalog, cutouts)).filter(Boolean);
+  const things = await buildScenery(placed, renderer);
+  for (const thing of things) scene.add(thing.mesh, ...thing.extras);
+  sortThings(things);
   built.lights.slice(0, MAX_LIGHTS).forEach((l, i) => {
     shared.uLightPos.value[i].set(l.pos.x, l.pos.y, l.pos.z, l.radius);
     shared.uLightCol.value[i].set(l.color.r, l.color.g, l.color.b, 1.25);
@@ -78,9 +96,63 @@ async function draw(room) {
   camera.updateProjectionMatrix();
   const centre = new THREE.Vector3(X / 2, parts.wall.height / 2, Z / 2);
   camera.position.copy(centre).addScaledVector(VIEW_DIR, 200);
+  camera.updateMatrixWorld();
+  const screen = (x, z) => {
+    const p = new THREE.Vector3(x, 0.03, z).project(camera);
+    return `${((p.x + 1) * W / 2).toFixed(1)},${((1 - p.y) * H / 2).toFixed(1)}`;
+  };
+  const guides = room.props.filter(p => p.cutout).map((p, i) => {
+    const r = p.rect;
+    const corners = [[r.x0, r.z0], [r.x1, r.z0], [r.x1, r.z1], [r.x0, r.z1]];
+    const points = corners.map(([x, z]) => screen(x, z)).join(' ');
+    const anchor = screen(p.cx, p.cz);
+    const art = placed[i];
+    if (!art) return '';
+    const f = art.foot;
+    const artPoints = [[f.minX, f.minZ], [f.maxX, f.minZ], [f.maxX, f.maxZ], [f.minX, f.maxZ]]
+      .map(([x, z]) => screen(x, z)).join(' ');
+    const paintedAnchor = screen(art.x, art.z);
+    return `<polygon points="${points}" fill="rgba(224,184,102,.08)" stroke="#e0b866" stroke-width="1.6"/>`
+      + `<polygon points="${artPoints}" fill="none" stroke="#65aefa" stroke-width="1.6"/>`
+      + `<line x1="${anchor.split(',')[0]}" y1="${anchor.split(',')[1]}" x2="${paintedAnchor.split(',')[0]}" y2="${paintedAnchor.split(',')[1]}" stroke="#e97caf" stroke-width="1.3"/>`
+      + `<circle cx="${anchor.split(',')[0]}" cy="${anchor.split(',')[1]}" r="2.5" fill="#55e0dc"/>`
+      + `<circle cx="${paintedAnchor.split(',')[0]}" cy="${paintedAnchor.split(',')[1]}" r="2" fill="#e97caf"/>`;
+  }).join('');
   renderer.render(scene, camera);
   built.group.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
-  return renderer.domElement.toDataURL('image/png');
+  const image = renderer.domElement.toDataURL('image/png');
+  const textures = new Set(things.map(t => t.mesh.material.uniforms.uMap.value));
+  for (const t of things) { t.mesh.material.dispose(); for (const e of t.extras) e.material.dispose(); }
+  for (const texture of textures) texture.dispose();
+  return { image, guides };
+}
+
+function card(grid, t, seed, g, overview) {
+  const fig = document.createElement('figure');
+  fig.classList.toggle('picked', !!picks[t]?.has(seed));
+  const preview = document.createElement('div');
+  preview.className = 'preview';
+  const img = new Image();
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('guides');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  preview.append(img, svg);
+  fig.append(preview);
+  const cap = document.createElement('figcaption');
+  const note = g.problems.length ? `<span class="bad">${g.problems.length} problem(s)</span>` : `${g.template.size[0]} x ${g.template.size[1]}`;
+  cap.innerHTML = `<b>${overview ? t.replaceAll('_', ' ') : `Seed ${seed}`}</b><span>${overview ? `Seed ${seed}` : note}</span><a href="index.html?room=${t}&seed=${seed}" target="_blank">walk in</a>`;
+  if (g.problems.length) cap.title = g.problems.join('\n');
+  fig.append(cap);
+  fig.addEventListener('click', e => {
+    if (e.target.tagName === 'A') return;
+    if (overview) { show(t); return; }
+    const s = (picks[t] ||= new Set());
+    s.has(seed) ? s.delete(seed) : s.add(seed);
+    fig.classList.toggle('picked', s.has(seed));
+    showPicks();
+  });
+  grid.append(fig);
+  return { img, svg };
 }
 
 function showPicks() {
@@ -95,28 +167,37 @@ async function show(t) {
   grid.innerHTML = '';
   for (let seed = 1; seed <= SEEDS; seed++) {
     const g = generateRoom(t, seed, recipes, parts);
-    const fig = document.createElement('figure');
-    fig.classList.toggle('picked', !!picks[t]?.has(seed));
-    const img = new Image();
-    fig.append(img);
-    const cap = document.createElement('figcaption');
-    const note = g.problems.length ? `<span class="bad">${g.problems.length} problem(s)</span>` : `${g.template.size[0]} x ${g.template.size[1]}`;
-    cap.innerHTML = `<b>Seed ${seed}</b><span>${note}</span><a href="index.html?room=${t}&seed=${seed}" target="_blank">walk in</a>`;
-    if (g.problems.length) cap.title = g.problems.join('\n');
-    fig.append(cap);
-    fig.addEventListener('click', e => {
-      if (e.target.tagName === 'A') return;
-      const s = (picks[t] ||= new Set());
-      s.has(seed) ? s.delete(seed) : s.add(seed);
-      fig.classList.toggle('picked', s.has(seed));
-      showPicks();
-    });
-    grid.append(fig);
+    const { img, svg } = card(grid, t, seed, g, false);
     if (type !== t) return;
-    img.src = await draw(g.room);
+    const rendered = await draw(g.room);
+    img.src = rendered.image;
+    svg.innerHTML = rendered.guides;
   }
+  window.roomsReady = true;
 }
 
+async function showAll() {
+  type = 'all';
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.type === 'all'));
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (const t of types) {
+    const seed = recipes[t].picked?.[0] || 1;
+    const g = generateRoom(t, seed, recipes, parts);
+    const { img, svg } = card(grid, t, seed, g, true);
+    if (type !== 'all') return;
+    const rendered = await draw(g.room);
+    img.src = rendered.image;
+    svg.innerHTML = rendered.guides;
+  }
+  window.roomsReady = true;
+}
+
+const allButton = document.createElement('button');
+allButton.textContent = 'All types';
+allButton.dataset.type = 'all';
+allButton.onclick = showAll;
+document.getElementById('tabs').append(allButton);
 for (const t of types) {
   const b = document.createElement('button');
   b.textContent = t.replace('_', ' ');
@@ -124,8 +205,8 @@ for (const t of types) {
   b.onclick = () => show(t);
   document.getElementById('tabs').append(b);
 }
-await show(type);
-window.roomsReady = true;
+document.getElementById('show-guides').addEventListener('change', e => document.body.classList.toggle('show-guides', e.target.checked));
+await (type === 'all' ? showAll() : show(type));
 </script>
 </body>
 </html>

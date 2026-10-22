@@ -243,8 +243,12 @@ function layout(recipe, parts, rng) {
       ? Array.from({ length: Math.floor((zone.x1 - zone.x0 - width) * 2) + 1 }, (_, i) => zone.x0 + i * 0.5)
         .sort((a, b) => Math.abs(a - centeredX) - Math.abs(b - centeredX))
       : [item.run_align === 'center' ? centeredX : zone.x0];
-    for (let t = 0; t < TRIES; t++) {
-      const z = zone.z0 + 1 + 0.5 * rng.int(0, Math.floor((zone.z1 - zone.z0 - def.size[1] - 2) * 2));
+    const zSteps = Math.floor((zone.z1 - zone.z0 - def.size[1] - 2) * 2);
+    if (zSteps < 0) return false;
+    const zOptions = item.run_depth === 'near'
+      ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + 1 + i * 0.5)
+      : Array.from({ length: TRIES }, () => zone.z0 + 1 + 0.5 * rng.int(0, zSteps));
+    for (const z of zOptions) {
       for (const x of xOptions) {
         const candidates = Array.from({ length: count }, (_, i) => {
           const type = variants[i % variants.length], variant = parts.props[type];

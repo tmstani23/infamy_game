@@ -133,7 +133,7 @@
       {"type": "tansu", "count": [1, 2]},
       {"type": "towel_shelf", "count": [1, 2], "area": "front", "wall": ["north"]},
       {"type": "soaking_tub", "count": [1, 2], "area": "tubs"},
-      {"type": "bath_bucket_stool", "count": [2, 3], "area": "washing", "place": "display_run", "run_align": "center", "run_gap": 1},
+      {"type": "bath_bucket_stool", "count": [2, 3], "area": "washing", "place": "display_run", "run_align": "center", "run_gap": 1, "run_depth": "near"},
       {"type": "tea_table", "count": 1, "top": "tea_set", "area": "front"},
       {"type": "hibachi", "count": 1, "area": "front"},
       {"type": "cash_box", "count": 1, "area": "front"},
@@ -267,7 +267,7 @@
     "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [2, 3], "window": "lattice_window"},
     "door": ["cargo_door"],
     "door_side": "north",
-    "areas": {"inspection": [0.32, 0.5, 0.7, 0.93], "records_line": [0.08, 0.28, 0.62, 0.52], "holding": [0.72, 0.38, 0.96, 0.92], "notice": [0.04, 0, 0.96, 0.32]},
+    "areas": {"inspection": [0.32, 0.5, 0.7, 0.93], "clerk": [0.66, 0, 0.96, 0.38], "records_line": [0.08, 0.28, 0.62, 0.52], "holding": [0.72, 0.38, 0.96, 0.92], "notice": [0.04, 0, 0.96, 0.32]},
     "back_room": {
       "depth": [6, 6], "fill": "planks",
       "props": [
@@ -276,13 +276,12 @@
       ]
     },
     "props": [
-      {"type": "counter", "count": 1, "wall": ["north"]},
+      {"type": "inspection_table", "count": 1, "top": "ledger_stack", "area": "clerk", "anchor": "east"},
       {"type": "inspection_table", "count": 1, "top": "ledger_stack", "area": "inspection"},
       {"type": "records_shelf", "count": [2, 3], "area": "records_line", "place": "display_run", "run_align": "center"},
       {"type": "customs_notice_board", "count": 1, "area": "notice", "wall": ["north"]},
       {"type": "crates", "count": [1, 2], "area": "holding"},
       {"type": "rice_sacks", "count": 1, "area": "holding"},
-      {"type": "tansu", "count": [1, 2]},
       {"type": "andon", "count": [3, 4], "place": "corners"}
     ]
   }

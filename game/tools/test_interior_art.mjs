@@ -88,6 +88,10 @@ for (const type of ['tenements', 'bathhouse']) for (let seed = 1; seed <= 100; s
     assert.equal(screens[0].rect.x0, 0);
     for (let i = 1; i < screens.length; i++) assert.equal(screens[i].rect.x0, screens[i - 1].rect.x1);
     assert.ok(room.size[0] - screens.at(-1).rect.x1 >= 3);
+    const washing = room.props.filter(p => p.type === 'bath_bucket_stool');
+    assert.ok(washing.length >= 2 && washing.length <= 3);
+    assert.equal(new Set(washing.map(p => p.rect.z0)).size, 1);
+    assert.ok(washing.every(p => p.rect.z0 - screens[0].rect.z1 >= 1 && p.rect.z0 - screens[0].rect.z1 <= 4));
   }
 }
 
@@ -144,6 +148,9 @@ assert.equal(manor.props.filter(p => p.type === 'zabuton').length, 4);
 const customs = generateRoom('customs_house', 1, recipes, parts).room;
 for (const name of ['inspection_table', 'ledger_stack', 'records_shelf', 'customs_notice_board'])
   assert.ok(customs.props.some(p => p.type === name), `customs house missing ${name}`);
+assert.equal(customs.props.filter(p => p.type === 'inspection_table').length, 2);
+assert.ok(!customs.props.some(p => p.type === 'counter'));
+assert.ok(customs.props.filter(p => p.type === 'tansu').every(p => p.rect.z0 >= customs.size[1] - 6));
 assert.ok(customs.props.filter(p => ['crates', 'rice_sacks', 'barrels'].includes(p.type)).length <= 3);
 const dojo = generateRoom('dojo', 13, recipes, parts).room;
 for (const name of ['weapon_rack', 'practice_dummy']) assert.ok(dojo.props.some(p => p.type === name));
