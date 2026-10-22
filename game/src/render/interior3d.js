@@ -52,7 +52,7 @@ function wallFrame(side, X, Z) {
   return g;
 }
 
-function buildWall(wall, parts, mats, X, Z) {
+function buildWall(wall, parts, mats, X, Z, finish) {
   const W = parts.wall, g = wallFrame(wall.side, X, Z);
   const L = wall.length, t = W.thickness, H = wall.height, post = W.post;
   // timber frame: grain runs up the posts and along the beams
@@ -63,7 +63,7 @@ function buildWall(wall, parts, mats, X, Z) {
 
   if (wall.low) {
     // near walls: cut down so the room shows, with a wooden cap along the cut
-    add(box(mats[parts.bays[wall.bays[0]].fill]({ shadeLow: 0.9 }), wall.side === 'south' ? -t : 0, 0, -t, u1, H, 0));
+    add(box(mats[finish || parts.bays[wall.bays[0]].fill]({ shadeLow: 0.9 }), wall.side === 'south' ? -t : 0, 0, -t, u1, H, 0));
     add(box(dark, wall.side === 'south' ? -t - 0.03 : -0.03, H, -t - 0.03, u1 + 0.03, H + 0.07, 0.03));
     for (let i = 0; i <= wall.bays.length; i++) add(box(wood, i * W.bay - post / 2, 0, -t, i * W.bay + post / 2, H + 0.04, 0.05));
     return g;
@@ -71,7 +71,7 @@ function buildWall(wall, parts, mats, X, Z) {
 
   wall.bays.forEach((type, i) => {
     const bay = parts.bays[type], a = i * W.bay, b = a + W.bay;
-    const fill = mats[bay.fill || 'plaster']({ shadeLow: 0.85 });
+    const fill = mats[finish || bay.fill || 'plaster']({ shadeLow: 0.85 });
     const panel = (v0, v1) => add(box(fill, a, v0, -t, b, v1, -0.03));
     if (bay.door) {
       panel(W.lintel, H);
@@ -97,11 +97,12 @@ function buildWall(wall, parts, mats, X, Z) {
     } else if (bay.window) {
       const [w0, w1] = bay.window;
       panel(0, w0); panel(w1, H);
-      add(box(mats[bay.pane]({ uvRect: [0, 0.5, 1, 1] }), a, w0, -t + 0.02, b, w1, -0.07));
+      add(box(mats[bay.pane]({ uvRect: bay.paneRect || [0, 0.5, 1, 1] }), a, w0, -t + 0.02, b, w1, -0.07));
       add(box(beam, a, w0 - 0.06, -t, b, w0, 0.04));                     // sill
       add(box(beam, a, w1, -t, b, w1 + 0.06, 0.02));                     // head
     } else {
       panel(0, H);
+      if (bay.art) add(box(mats[bay.art](), a + post, 0.3, -0.028, b - post, W.lintel - 0.12, -0.018));
     }
   });
   // frame: posts at every bay edge, base board, the door-height beam and the top beam
@@ -117,10 +118,10 @@ function buildWall(wall, parts, mats, X, Z) {
 
 // Inner walls: cut low like the front walls, with a wooden cap, posts at the bay edges
 // and a low threshold in the open doorway bay.
-function buildInnerWall(w, parts, mats) {
+function buildInnerWall(w, parts, mats, finish) {
   const W = parts.wall, g = new THREE.Group(), t = W.thickness / 2, H = W.low;
   const wood = mats.timber(), dark = mats.timber({ swap: true, tint: '#b89c80' });
-  const fill = mats[parts.bays[w.fill]?.fill || w.fill] || mats.plaster;
+  const fill = mats[finish || parts.bays[w.fill]?.fill || w.fill] || mats.plaster;
   // (u along the wall, v up, w across it) -> room cells
   const b = (m, u0, v0, w0, u1, v1, w1) => g.add(w.along === 'x'
     ? box(m, u0, v0, w.at + w0, u1, v1, w.at + w1)
@@ -186,7 +187,7 @@ const MODELS = {
     g.add(box(mats.cushion(), -0.36, 0, -0.36, 0.36, 0.1, 0.36, new RoundedBoxGeometry(1, 1, 1, 3, 0.35)));
     return g;
   },
-  tokonoma(mats) {
+  tokonoma(mats, room, parts) {
     // a raised alcove against the wall with a hanging scroll
     const g = new THREE.Group(), wood = mats.timber(), beam = mats.timber({ swap: true }), warm = mats.wood_warm({ tint: '#8a6a50' });
     g.add(box(mats.plaster(), -1.95, 0.16, -0.5, 1.95, 2.05, -0.42));              // back panel inside the alcove
@@ -197,8 +198,13 @@ const MODELS = {
       g.add(box(wood, s * 2 - 0.07, 0, 0.34, s * 2 + 0.07, 2.2, 0.46));            // front posts
     }
     g.add(box(beam, -2, 1.98, 0.32, 2, 2.2, 0.46));                                  // lintel
-    g.add(box(mats.scroll(), -0.3, 0.55, -0.42, 0.3, 1.85, -0.4));
-    g.add(box(mats.wood({ tint: '#3a3028' }), -0.34, 1.83, -0.42, 0.34, 1.88, -0.38));  // scroll rod
+    const backing = parts.props.tokonoma.backing;
+    if (backing) {
+      g.add(box(mats[backing](), -0.6, 0.25, -0.419, 0.6, 1.95, -0.4));
+    } else {
+      g.add(box(mats.scroll(), -0.3, 0.55, -0.42, 0.3, 1.85, -0.4));
+      g.add(box(mats.wood({ tint: '#3a3028' }), -0.34, 1.83, -0.42, 0.34, 1.88, -0.38));
+    }
     return g;
   },
   byobu(mats) {
@@ -218,6 +224,17 @@ const MODELS = {
       x += dx; z += dz;
     }
     g.position.z = 0.1;
+    return g;
+  },
+  shoji_partition(mats) {
+    const g = new THREE.Group(), upright = mats.timber(), beam = mats.timber({ swap: true });
+    g.add(box(mats.painted_shoji({ side: THREE.DoubleSide }), -1.42, 0.35, -0.025, 1.42, 1.65, 0.025));
+    for (const x of [-1.46, 1.46]) {
+      g.add(box(upright, x - 0.04, 0, -0.05, x + 0.04, 1.75, 0.05));
+      g.add(box(beam, x - 0.09, 0, -0.2, x + 0.09, 0.08, 0.2));
+    }
+    for (const y of [0.12, 1.67]) g.add(box(beam, -1.5, y, -0.05, 1.5, y + 0.08, 0.05));
+    g.add(box(mats.painted_wood(), -1.42, 0.2, -0.035, 1.42, 0.35, 0.035));
     return g;
   },
   andon(mats) {
@@ -418,18 +435,20 @@ export async function buildRoom3d(room, parts, renderer) {
   floor.renderOrder = 0;
   group.add(floor);
 
-  for (const wall of room.walls) group.add(buildWall(wall, parts, mats, X, Z));
-  for (const w of room.inner || []) group.add(buildInnerWall(w, parts, mats));
+  // One wall surface per building type, including window/door surrounds and low walls.
+  const finish = parts.roomFinishes?.[room.template.generated?.type || room.name];
+  for (const wall of room.walls) group.add(buildWall(wall, parts, mats, X, Z, finish));
+  for (const w of room.inner || []) group.add(buildInnerWall(w, parts, mats, finish));
 
   const lights = [], glows = [];
   for (const p of room.props) {
     const make = MODELS[p.type];
-    if (make) {
+    if (make && !p.cutout) {
       const m = make(mats, room, parts);
       m.position.set(p.cx, p.y, p.cz);
       m.rotation.y = THREE.MathUtils.degToRad(p.rot);
       group.add(m);
-    } else if (!p.def.cutout) console.warn(`No 3D model for "${p.type}"`);
+    } else if (!p.cutout) console.warn(`No 3D model for "${p.type}"`);
     const L = p.def.light;
     if (L) {
       const pos = new THREE.Vector3(room.origin.x + p.cx, p.def.rule === 'ceiling' ? p.y : p.y + L.y, room.origin.z + p.cz);

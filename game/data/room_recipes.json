@@ -5,10 +5,10 @@
     "picked": [2, 6, 11],
     "size": { "min": [16, 12], "max": [22, 18] },
     "floor": "tatami",
-    "walls": { "fill": ["plaster"], "windows": [2, 4] },
+    "walls": { "fill": ["plaster", "aged_plaster"], "windows": [2, 4] },
     "door": ["shoji_door"],
     "props": [
-      { "type": "tokonoma", "count": [1, 1] },
+      { "type": "tokonoma", "count": [1, 1], "top": "vase" },
       { "type": "tea_table", "count": [5, 8], "top": "tea_set" },
       { "type": "byobu", "count": [1, 2] },
       { "type": "hibachi", "count": [1, 2] },
@@ -21,7 +21,7 @@
     "picked": [4, 8, 12],
     "size": { "min": [20, 18], "max": [26, 22] },
     "floor": "tatami",
-    "walls": { "fill": ["red", "red", "plaster"], "windows": [1, 2] },
+    "walls": { "fill": ["red", "red_art", "plaster"], "windows": [1, 2] },
     "door": ["doorway"],
     "back_room": {
       "depth": [6, 6], "fill": "red",
@@ -48,16 +48,15 @@
     "picked": [1],
     "size": { "min": [16, 12], "max": [20, 16] },
     "floor": "floorboards",
-    "walls": { "fill": ["plaster"], "windows": [1, 3] },
+    "walls": { "fill": ["aged_plaster"], "windows": [1, 3], "window": "lattice_window" },
     "door": ["doorway"],
+    "areas": {"display_line": [0.12, 0.68, 0.88, 0.92]},
     "props": [
       { "type": "counter", "count": 1 },
-      { "type": "warehouse_shelves", "count": [2, 3] },
-      { "type": "rice_sacks", "count": [2, 3] },
-      { "type": "crates", "count": [2, 3] },
-      { "type": "cash_box", "count": 1 },
+      { "type": "merchandise_shelf", "variants": ["merchandise_shelf", "shop_dry_goods_shelf", "shop_textile_shelf"], "count": 3, "area": "display_line", "place": "display_run", "run_align": "center" },
+      { "type": "tansu", "count": 1 },
       { "type": "andon", "count": [2, 3], "place": "corners" },
-      { "type": "red_lantern", "count": [2, 3], "place": "over", "over": ["counter", "crates"] }
+      { "type": "red_lantern", "count": [2, 3], "place": "over", "over": ["counter", "merchandise_shelf", "shop_dry_goods_shelf", "shop_textile_shelf"] }
     ]
   },
 
@@ -65,14 +64,16 @@
     "picked": [1],
     "size": { "min": [20, 16], "max": [24, 20] },
     "floor": "tatami",
-    "walls": { "fill": ["plaster", "planks"], "windows": [2, 4] },
+    "walls": { "fill": ["aged_plaster", "aged_planks"], "windows": [2, 4] },
     "door": ["shoji_door"],
+    "door_side": "north",
+    "sleeping_bays": true,
+    "areas": {"commons": [0.28, 0.3, 0.72, 0.95]},
     "props": [
-      { "type": "byobu", "count": [3, 4] },
-      { "type": "tansu", "count": [3, 4] },
-      { "type": "tea_table", "count": [3, 4], "top": "tea_set" },
-      { "type": "hibachi", "count": [1, 2] },
-      { "type": "cash_box", "count": 1 },
+      { "type": "tansu", "count": [2, 3], "wall": ["north"] },
+      { "type": "tea_table", "count": [2, 3], "top": "tea_set", "area": "commons" },
+      { "type": "zabuton", "count": [2, 3], "area": "commons" },
+      { "type": "hibachi", "count": 1, "area": "commons" },
       { "type": "andon", "count": [3, 4], "place": "corners" }
     ]
   },
@@ -81,7 +82,7 @@
     "picked": [2, 5, 12],
     "size": { "min": [20, 18], "max": [26, 22] },
     "floor": "floorboards",
-    "walls": { "fill": ["planks"], "windows": [0, 0] },
+    "walls": { "fill": ["planks", "aged_planks"], "windows": [0, 0] },
     "door": ["cargo_door"],
     "back_room": {
       "depth": [6, 6], "fill": "planks",
@@ -106,14 +107,14 @@
     "picked": [1],
     "size": {"min": [16, 12], "max": [20, 16]},
     "floor": "floorboards",
-    "walls": {"fill": ["plaster"], "windows": [1, 3]},
+    "walls": {"fill": ["aged_plaster"], "windows": [1, 3], "window": "lattice_window"},
     "door": ["doorway"],
+    "areas": {"display_line": [0, 0.68, 1, 0.92], "records": [0.68, 0.18, 0.96, 0.5]},
     "props": [
       {"type": "counter", "count": 1},
       {"type": "tansu", "count": [2, 3]},
-      {"type": "warehouse_shelves", "count": [2, 3]},
-      {"type": "crates", "count": [2, 3]},
-      {"type": "cash_box", "count": 1},
+      {"type": "pawn_display", "variants": ["pawn_display", "pawn_valuables_display", "pawn_display", "merchandise_shelf"], "count": 4, "area": "display_line", "place": "display_run", "run_align": "center", "run_gap": 0.5},
+      {"type": "records_shelf", "count": 1, "area": "records", "anchor": "east"},
       {"type": "andon", "count": [2, 3], "place": "corners"}
     ]
   },
@@ -122,16 +123,20 @@
     "picked": [1],
     "size": {"min": [20, 18], "max": [24, 20]},
     "floor": "floorboards",
-    "walls": {"fill": ["plaster", "planks"], "windows": [2, 4]},
+    "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [2, 4]},
     "door": ["shoji_door"],
+    "door_side": "north",
+    "areas": {"divider": [0, 0.38, 1, 0.55], "washing": [0.05, 0.55, 0.62, 0.95], "tubs": [0.68, 0.55, 0.96, 0.96], "front": [0.05, 0, 0.95, 0.35]},
     "props": [
       {"type": "counter", "count": 1},
-      {"type": "byobu", "count": [3, 4]},
-      {"type": "tansu", "count": [2, 3]},
-      {"type": "tea_table", "count": [2, 3], "top": "tea_set"},
-      {"type": "barrels", "count": [2, 3]},
-      {"type": "hibachi", "count": 1},
-      {"type": "cash_box", "count": 1},
+      {"type": "shoji_partition", "count": [3, 4], "place": "screen_run", "area": "divider"},
+      {"type": "tansu", "count": [1, 2]},
+      {"type": "towel_shelf", "count": [1, 2], "area": "front", "wall": ["north"]},
+      {"type": "soaking_tub", "count": [1, 2], "area": "tubs"},
+      {"type": "bath_bucket_stool", "count": [2, 3], "area": "washing", "place": "display_run", "run_align": "center", "run_gap": 1},
+      {"type": "tea_table", "count": 1, "top": "tea_set", "area": "front"},
+      {"type": "hibachi", "count": 1, "area": "front"},
+      {"type": "cash_box", "count": 1, "area": "front"},
       {"type": "andon", "count": [3, 4], "place": "corners"}
     ]
   },
@@ -140,8 +145,9 @@
     "picked": [1],
     "size": {"min": [20, 18], "max": [26, 22]},
     "floor": "floorboards",
-    "walls": {"fill": ["planks"], "windows": [0, 0]},
+    "walls": {"fill": ["planks", "aged_planks"], "windows": [0, 0]},
     "door": ["cargo_door"],
+    "areas": {"bottle_line": [0.04, 0.04, 0.96, 0.28], "brewing": [0.12, 0.28, 0.92, 0.78], "storage": [0.72, 0.08, 0.96, 0.88]},
     "back_room": {
       "depth": [6, 6], "fill": "planks",
       "props": [
@@ -151,10 +157,11 @@
       ]
     },
     "props": [
-      {"type": "sake_shelf", "count": [3, 4]},
-      {"type": "sake_keg", "count": [5, 7]},
-      {"type": "barrels", "count": [3, 4]},
-      {"type": "counter", "count": 1},
+      {"type": "brewery_bottle_shelf", "variants": ["brewery_bottle_shelf", "brewery_ceramic_shelf"], "count": 2, "area": "bottle_line", "place": "display_run", "run_align": "center", "run_gap": 1, "run_shift": true},
+      {"type": "brewing_vat", "count": [2, 3], "area": "brewing", "place": "display_run", "run_align": "center", "run_gap": 1.5},
+      {"type": "sake_keg", "count": [5, 7], "area": "storage"},
+      {"type": "barrels", "count": [1, 2], "area": "storage"},
+      {"type": "counter", "count": 1, "wall": ["north"]},
       {"type": "andon", "count": [3, 4], "place": "corners"}
     ]
   },
@@ -163,47 +170,120 @@
     "picked": [1],
     "size": {"min": [24, 22], "max": [28, 24]},
     "floor": "tatami",
-    "walls": {"fill": ["plaster", "planks"], "windows": [2, 4]},
+    "walls": {"fill": ["aged_plaster", "planks", "red_art"], "windows": [2, 4], "window": "lattice_window"},
     "door": ["shoji_door"],
+    "areas": {"reception": [0.22, 0.34, 0.82, 0.74], "privacy": [0.04, 0.3, 0.3, 0.92], "hearth": [0.62, 0.68, 0.88, 0.92], "gallery": [0.7, 0.08, 0.96, 0.34], "cabinet": [0.08, 0.06, 0.65, 0.29]},
     "props": [
-      {"type": "tokonoma", "count": 1},
-      {"type": "byobu", "count": [3, 4]},
-      {"type": "tansu", "count": [3, 4]},
-      {"type": "tea_table", "count": [3, 4], "top": "tea_set"},
-      {"type": "hibachi", "count": [1, 2]},
-      {"type": "cash_box", "count": 1},
-      {"type": "andon", "count": [3, 4], "place": "corners"}
+      {"type": "tokonoma", "count": 1, "top": "vase"},
+      {"type": "byobu", "count": [2, 3], "area": "privacy"},
+      {"type": "tansu", "count": [2, 3]},
+      {"type": "manor_reception_table", "count": 1, "area": "reception", "place": "display_run", "run_align": "center"},
+      {"type": "zabuton", "count": 4, "area": "reception", "place": "around", "around": "manor_reception_table"},
+      {"type": "manor_armor_display", "count": 1, "area": "gallery"},
+      {"type": "manor_scroll_cabinet", "count": [1, 2], "area": "cabinet"},
+      {"type": "hibachi", "count": 1, "area": "hearth"},
+      {"type": "andon", "count": [4, 5], "place": "corners"}
     ],
     "back_room": {
       "depth": [6, 6], "fill": "plaster",
       "props": [
         {"type": "cash_box", "count": 1},
         {"type": "tansu", "count": [1, 2]},
+        {"type": "futon", "count": 1},
         {"type": "andon", "count": 1, "place": "corners"}
       ]
     }
   },
 
+  "inn": {
+    "picked": [7],
+    "size": {"min": [20, 16], "max": [22, 18]},
+    "floor": "tatami",
+    "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [2, 3]},
+    "door": ["shoji_door"], "door_side": "north", "sleeping_bays": true,
+    "areas": {"commons": [0.3, 0.3, 0.7, 0.92]},
+    "props": [
+      {"type": "counter", "count": 1, "wall": ["north"]},
+      {"type": "tansu", "count": [1, 2], "wall": ["north"]},
+      {"type": "tea_table", "count": 1, "top": "tea_set", "area": "commons"},
+      {"type": "andon", "count": [3, 4], "place": "corners"}
+    ]
+  },
+
+  "izakaya": {
+    "picked": [9],
+    "size": {"min": [18, 14], "max": [20, 16]},
+    "floor": "floorboards",
+    "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [1, 2]},
+    "door": ["doorway"],
+    "areas": {"seating": [0.25, 0.3, 0.95, 0.95]},
+    "props": [
+      {"type": "counter", "count": 1},
+      {"type": "sake_shelf", "count": [2, 3]},
+      {"type": "tea_table", "count": [3, 4], "area": "seating"},
+      {"type": "sake_keg", "count": [2, 3]},
+      {"type": "hibachi", "count": 1},
+      {"type": "cash_box", "count": 1},
+      {"type": "andon", "count": [2, 3], "place": "corners"},
+      {"type": "red_lantern", "count": [3, 4], "place": "over", "over": ["counter", "tea_table"]}
+    ]
+  },
+
+  "longhouse": {
+    "picked": [11],
+    "size": {"min": [22, 18], "max": [24, 20]},
+    "floor": "tatami",
+    "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [1, 2]},
+    "door": ["shoji_door"], "door_side": "north", "sleeping_bays": true,
+    "areas": {"equipment": [0.3, 0.05, 0.75, 0.32], "commons": [0.32, 0.4, 0.68, 0.9]},
+    "props": [
+      {"type": "weapon_rack", "count": [1, 2], "area": "equipment"},
+      {"type": "tansu", "count": [1, 2], "wall": ["north"]},
+      {"type": "tea_table", "count": 1, "area": "commons"},
+      {"type": "hibachi", "count": 1, "area": "commons"},
+      {"type": "andon", "count": [3, 4], "place": "corners"}
+    ]
+  },
+
+  "dojo": {
+    "picked": [13],
+    "size": {"min": [20, 18], "max": [24, 20]},
+    "floor": "tatami",
+    "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [2, 3]},
+    "door": ["shoji_door"],
+    "areas": {"equipment": [0.04, 0.2, 0.25, 0.92], "training": [0.68, 0.2, 0.95, 0.9]},
+    "props": [
+      {"type": "weapon_rack", "count": [2, 3], "area": "equipment", "anchor": "west"},
+      {"type": "practice_dummy", "count": [2, 3], "area": "training", "anchor": "east"},
+      {"type": "tansu", "count": 1},
+      {"type": "andon", "count": [3, 4], "place": "corners"}
+    ]
+  },
+
   "customs_house": {
     "picked": [1],
-    "size": {"min": [24, 22], "max": [28, 24]},
+    "size": {"min": [22, 20], "max": [24, 22]},
     "floor": "floorboards",
-    "walls": {"fill": ["plaster", "planks"], "windows": [2, 3]},
+    "walls": {"fill": ["aged_plaster", "aged_planks"], "windows": [2, 3], "window": "lattice_window"},
     "door": ["cargo_door"],
+    "door_side": "north",
+    "areas": {"inspection": [0.32, 0.5, 0.7, 0.93], "records_line": [0.08, 0.28, 0.62, 0.52], "holding": [0.72, 0.38, 0.96, 0.92], "notice": [0.04, 0, 0.96, 0.32]},
     "back_room": {
       "depth": [6, 6], "fill": "planks",
       "props": [
         {"type": "cash_box", "count": 1},
-        {"type": "tansu", "count": [1, 2]},
-        {"type": "crates", "count": [1, 2]}
+        {"type": "tansu", "count": [1, 2]}
       ]
     },
     "props": [
-      {"type": "counter", "count": 1},
-      {"type": "warehouse_shelves", "count": [1, 2]},
-      {"type": "crates", "count": [3, 4]},
-      {"type": "tansu", "count": [2, 3]},
-      {"type": "andon", "count": [2, 3], "place": "corners"}
+      {"type": "counter", "count": 1, "wall": ["north"]},
+      {"type": "inspection_table", "count": 1, "top": "ledger_stack", "area": "inspection"},
+      {"type": "records_shelf", "count": [2, 3], "area": "records_line", "place": "display_run", "run_align": "center"},
+      {"type": "customs_notice_board", "count": 1, "area": "notice", "wall": ["north"]},
+      {"type": "crates", "count": [1, 2], "area": "holding"},
+      {"type": "rice_sacks", "count": 1, "area": "holding"},
+      {"type": "tansu", "count": [1, 2]},
+      {"type": "andon", "count": [3, 4], "place": "corners"}
     ]
   }
 }

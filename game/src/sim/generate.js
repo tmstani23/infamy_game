@@ -32,7 +32,7 @@ const hash = (...parts) => {
 const evenIn = (rng, a, b) => 2 * rng.int(Math.ceil(a / 2), Math.floor(b / 2));
 const TRIES = 30;          // spots tried per prop before it is skipped
 const ATTEMPTS = 25;       // whole layouts tried per seed before giving up
-const NEEDS_ACCESS = new Set(['tea_table', 'gambling_mat', 'counter']);   // plus anything marked loot
+const NEEDS_ACCESS = new Set(['tea_table', 'manor_reception_table', 'gambling_mat', 'counter', 'futon']);   // plus anything marked loot
 // gap rule (Tim 2026-10-18): two solid things either nearly touch (one pile) or leave room for
 // the biggest crew body (brute, 0.9 wide) to walk between them on the room walk grid
 const GAP = { pile: 0.5, walk: 1.05 };
@@ -79,13 +79,14 @@ function layout(recipe, parts, rng) {
   const doorChoices = [];
   for (let i = 1; i < bays.north - 1; i++) doorChoices.push({ side: 'north', bay: i });
   for (let i = 1; (i + 1) * W.bay <= at - 2; i++) doorChoices.push({ side: 'west', bay: i });
-  const door = rng.next() < 0.75 ? rng.pick(doorChoices.filter(d => d.side === 'north')) : rng.pick(doorChoices);
+  const door = recipe.door_side ? rng.pick(doorChoices.filter(d => d.side === recipe.door_side))
+    : rng.next() < 0.75 ? rng.pick(doorChoices.filter(d => d.side === 'north')) : rng.pick(doorChoices);
   walls[door.side][door.bay] = rng.pick(recipe.door);
   for (const side of ['north', 'west']) {
     const n = rng.range(recipe.walls.windows || 0);
     const free = rng.shuffle(walls[side].map((_, i) => i)
       .filter(i => !(side === door.side && Math.abs(i - door.bay) <= 0) && !(side === 'west' && back && (i + 1) * W.bay > at)));
-    for (const i of free.slice(0, n)) walls[side][i] = 'window';
+    for (const i of free.slice(0, n)) walls[side][i] = recipe.walls.window || 'window';
   }
   walls.near = fill[0];
 
@@ -94,7 +95,18 @@ function layout(recipe, parts, rng) {
   // keep-clear areas: in front of the door and both sides of the inner doorway
   const along = (door.bay + 0.5) * W.bay;
   const keep = [door.side === 'north' ? { x0: along - 1, x1: along + 1, z0: 0, z1: 2.5 } : { x0: 0, x1: 2.5, z0: along - 1, z1: along + 1 }];
+  const [entryWidth, entryDepth] = ENTRY;
+  const entryClear = door.side === 'north'
+    ? { x0: along - entryWidth / 2, x1: along + entryWidth / 2, z0: 0, z1: entryDepth }
+    : { x0: 0, x1: entryDepth, z0: along - entryWidth / 2, z1: along + entryWidth / 2 };
   const zones = { main: { x0: 0, z0: 0, x1: X, z1: back ? at - 0.5 : Z } };
+  const areaOf = (item, zoneName) => {
+    const zone = zones[zoneName], bounds = recipe.areas?.[item.area];
+    if (!bounds) return zone;
+    const width = zone.x1 - zone.x0, depth = zone.z1 - zone.z0;
+    return { x0: zone.x0 + bounds[0] * width, z0: zone.z0 + bounds[1] * depth,
+      x1: zone.x0 + bounds[2] * width, z1: zone.z0 + bounds[3] * depth };
+  };
   const clearings = [];        // { rect, walls }: kept clear after the layout (see "the way in" below)
   if (back) {
     const d = rng.int(0, X / W.bay - 1);
@@ -107,7 +119,7 @@ function layout(recipe, parts, rng) {
   }
 
   // bays a wall prop must not cover: windows and the door
-  const openBay = (side, i) => (side === door.side && i === door.bay) || walls[side][i] === 'window';
+  const openBay = (side, i) => (side === door.side && i === door.bay) || !!parts.bays[walls[side][i]]?.window;
 
   const placed = [];           // standing props: { type, def, rect }
   // the walls as rects, for the gap rule (the inner wall leaves its doorway open)
@@ -126,6 +138,9 @@ function layout(recipe, parts, rng) {
     return { x0: cx - sx / 2, x1: cx + sx / 2, z0: cz - sz / 2, z1: cz + sz / 2 };
   };
   const tight = (r, self, def = self?.def) => {
+    // Sleeping bays intentionally put a screen close to each futon; their open
+    // ends and the walkway check determine whether crew can enter each bay.
+    if (self?.fixedRun) return false;
     const me = solidOf(r, def);
     return [...placed.filter(q => q !== self).map(q => solidOf(q.rect, q.def)), ...(def?.rule === 'ceiling' ? [] : wallRects)].some(o => narrow(me, o));
   };
@@ -133,12 +148,14 @@ function layout(recipe, parts, rng) {
   const place = (item, zoneName) => {
     const def = parts.props[item.type];
     if (!def) { missing.push(`recipe names unknown prop "${item.type}"`); return null; }
-    const zone = zones[zoneName];
+    const zone = areaOf(item, zoneName);
     for (let t = 0; t < TRIES; t++) {
       let p;
       if (def.rule === 'wall') {
         // against a far wall, inside this zone, not over a window or the door
-        const side = rng.pick(['north', 'west'].filter(s => s === 'west' || zone.z0 === 0));
+        const sides = (item.wall || ['north', 'west']).filter(s => s === 'west' ? zone.x0 === 0 : zone.z0 === 0);
+        if (!sides.length) continue;
+        const side = rng.pick(sides);
         const [len] = def.size;
         const lo = side === 'north' ? zone.x0 : zone.z0, hi = (side === 'north' ? zone.x1 : zone.z1) - len;
         if (hi < lo) continue;
@@ -148,18 +165,25 @@ function layout(recipe, parts, rng) {
         let blocked = false;
         for (let i = Math.floor(a / W.bay); i * W.bay < b; i++) if (openBay(side, i)) blocked = true;
         if (blocked || !fits(r, zone, def)) continue;
-        placed.push({ type: item.type, def, rect: r, p, item, zoneName });
+        // Surface decoration travels with wall furniture when the layout moves it.
+        const top = item.top && { type: item.top, at: [
+          (r.x0 + r.x1) / 2 - 0.5 + (side === 'north' ? def.size[0] / 4 : 0),
+          (r.z0 + r.z1) / 2 - 0.5 + (side === 'west' ? def.size[0] / 4 : 0),
+        ] };
+        placed.push({ type: item.type, def, rect: r, p, top, item, zoneName });
         template.props.push(p);
+        if (top) template.props.push(top);
         return r;
       }
       if (item.place === 'corners') {
         const c = rng.pick([[zone.x0, zone.z0], [zone.x1 - 1, zone.z0], [zone.x0, zone.z1 - 1], [zone.x1 - 1, zone.z1 - 1]]);
         p = { type: item.type, at: c };
       } else {
-        const rot = def.size[0] === def.size[1] ? 0 : rng.pick([0, 90]);
+        const rot = def.rotations ? rng.pick(def.rotations) : def.size[0] === def.size[1] ? 0 : rng.pick([0, 90]);
         const [ex, ez] = turned(def.size, rot);
         // keep a cell from the walls so there is room to walk round
-        const x = 1 + 0.5 * rng.int(0, Math.max(0, Math.floor((zone.x1 - zone.x0 - ex - 2) * 2)));
+        const x = item.anchor === 'west' ? 0 : item.anchor === 'east' ? zone.x1 - zone.x0 - ex
+          : 1 + 0.5 * rng.int(0, Math.max(0, Math.floor((zone.x1 - zone.x0 - ex - 2) * 2)));
         const z = 1 + 0.5 * rng.int(0, Math.max(0, Math.floor((zone.z1 - zone.z0 - ez - 2) * 2)));
         p = { type: item.type, at: [zone.x0 + x, zone.z0 + z], ...(rot ? { rot } : {}) };
       }
@@ -177,7 +201,7 @@ function layout(recipe, parts, rng) {
   // hanging lanterns: one over each listed piece of furniture, then near a wall
   const hangs = [];
   const hang = (item, zoneName) => {
-    const zone = zones[zoneName];
+    const zone = areaOf(item, zoneName);
     const over = rng.shuffle(placed.filter(q => (item.over || []).includes(q.type) && !hangs.includes(q)));
     if (over.length) {
       const q = over[0], r = q.rect;
@@ -201,10 +225,92 @@ function layout(recipe, parts, rng) {
     return false;
   };
 
+  // A straight run keeps screens or display cases aligned as one group. Screens
+  // start at the west wall; shop cases can be centred within their display area.
+  const placeLineRun = (item, zoneName, count) => {
+    const def = parts.props[item.type], zone = areaOf(item, zoneName);
+    if (!def || def.rule !== 'floor') return false;
+    const variants = item.variants ? rng.shuffle(item.variants) : [item.type];
+    if (variants.some(type => {
+      const variant = parts.props[type];
+      return !variant || variant.rule !== def.rule || variant.size[0] !== def.size[0] || variant.size[1] !== def.size[1];
+    })) return false;
+    const gap = item.run_gap || 0;
+    const width = count * def.size[0] + (count - 1) * gap;
+    if (width > zone.x1 - zone.x0 - (item.run_align === 'center' ? 2 : 3)) return false;
+    const centeredX = zone.x0 + (zone.x1 - zone.x0 - width) / 2;
+    const xOptions = item.run_shift
+      ? Array.from({ length: Math.floor((zone.x1 - zone.x0 - width) * 2) + 1 }, (_, i) => zone.x0 + i * 0.5)
+        .sort((a, b) => Math.abs(a - centeredX) - Math.abs(b - centeredX))
+      : [item.run_align === 'center' ? centeredX : zone.x0];
+    for (let t = 0; t < TRIES; t++) {
+      const z = zone.z0 + 1 + 0.5 * rng.int(0, Math.floor((zone.z1 - zone.z0 - def.size[1] - 2) * 2));
+      for (const x of xOptions) {
+        const candidates = Array.from({ length: count }, (_, i) => {
+          const type = variants[i % variants.length], variant = parts.props[type];
+          const p = { type, at: [x + i * (def.size[0] + gap), z] };
+          return { p, rect: propRect(p, variant, [X, Z]), def: variant };
+        });
+        if (candidates.some(({ rect, def: variant }) => !fits(rect, zone, variant) || overlap(rect, entryClear)
+          || clearings.some(c => overlap(rect, c.rect)))) continue;
+        for (const { p, rect, def: variant } of candidates) {
+          const top = item.top && { type: item.top, at: [(rect.x0 + rect.x1) / 2 - 0.5, (rect.z0 + rect.z1) / 2 - 0.5] };
+          placed.push({ type: p.type, def: variant, rect, p, top, item, zoneName, fixedRun: true });
+          template.props.push(p);
+          if (top) template.props.push(top);
+        }
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const placeAround = (item, zoneName, count) => {
+    const def = parts.props[item.type], zone = areaOf(item, zoneName);
+    const host = placed.find(q => q.type === item.around && q.zoneName === zoneName);
+    if (!def || !host || count !== 4) return false;
+    const r = host.rect;
+    const spots = [
+      [r.x0 + 0.7, r.z0 - 1], [r.x1 - 1.7, r.z0 - 1],
+      [r.x0 + 0.7, r.z1], [r.x1 - 1.7, r.z1],
+    ];
+    const candidates = spots.map(at => {
+      const p = { type: item.type, at };
+      return { p, rect: propRect(p, def, [X, Z]) };
+    });
+    if (candidates.some(({ rect }) => !fits(rect, zone, def) || overlap(rect, entryClear))) return false;
+    for (const { p, rect } of candidates) {
+      placed.push({ type: item.type, def, rect, p, item, zoneName, fixedRun: true });
+      template.props.push(p);
+    }
+    return true;
+  };
+
+  // Tenement beds form paired sleeping bays along the side walls. Screens separate
+  // the rows, while their open ends face a shared central aisle.
+  if (recipe.sleeping_bays) {
+    const beds = parts.props.futon, screens = parts.props.shoji_partition;
+    const starts = [4, 8.5, 13];
+    for (const side of ['west', 'east']) for (let row = 0; row < starts.length; row++) {
+      const x = side === 'west' ? 1 : X - 3;
+      const p = { type: 'futon', at: [x, starts[row]], artAngle: -3 };
+      const rect = propRect(p, beds, [X, Z]);
+      if (!fits(rect, zones.main, beds) || overlap(rect, entryClear)) missing.push('could not fit a tenement sleeping bay');
+      else { placed.push({ type: p.type, def: beds, rect, p, zoneName: 'main', item: { type: p.type }, fixedRun: true }); template.props.push(p); }
+      if (row === starts.length - 1) continue;
+      const partition = { type: 'shoji_partition', at: [side === 'west' ? 1 : X - 3, starts[row] + 3] };
+      const screenRect = propRect(partition, screens, [X, Z]);
+      if (!fits(screenRect, zones.main, screens) || overlap(screenRect, entryClear)) missing.push('could not fit a tenement divider');
+      else { placed.push({ type: partition.type, def: screens, rect: screenRect, p: partition, zoneName: 'main', item: { type: partition.type }, fixedRun: true }); template.props.push(partition); }
+    }
+  }
+
   // order: wall pieces, then furniture biggest first, then corner lamps, then lanterns
   const order = item => {
     const def = parts.props[item.type] || { size: [1, 1] };
     if (def.rule === 'wall') return 0;
+    if (item.place === 'screen_run' || item.place === 'display_run') return 0.5;
+    if (item.place === 'around') return 0.9;
     if (def.rule === 'ceiling') return 3;
     if (item.place === 'corners') return 2;
     return 1 - def.size[0] * def.size[1] / 100;
@@ -214,6 +320,14 @@ function layout(recipe, parts, rng) {
     for (const item of items) jobs.push({ item, zoneName, n: rng.range(item.count ?? 1), min: Array.isArray(item.count) ? item.count[0] : item.count ?? 1 });
   jobs.sort((a, b) => order(a.item) - order(b.item));
   for (const j of jobs) {
+    if (j.item.place === 'screen_run' || j.item.place === 'display_run') {
+      if (!placeLineRun(j.item, j.zoneName, j.n)) missing.push(`could not fit the ${j.item.type} display run in the ${j.zoneName.replace('_', ' ')}`);
+      continue;
+    }
+    if (j.item.place === 'around') {
+      if (!placeAround(j.item, j.zoneName, j.n)) missing.push(`could not fit the ${j.item.type} seating around ${j.item.around}`);
+      continue;
+    }
     let n = 0;
     for (let i = 0; i < j.n; i++) {
       const ok = parts.props[j.item.type]?.rule === 'ceiling' ? hang(j.item, j.zoneName) : place(j.item, j.zoneName);
@@ -227,11 +341,11 @@ function layout(recipe, parts, rng) {
   // walk through is moved. Both happen after the layout, so the rest of the room keeps the
   // layout its seed gave it. Pieces flat against the wall beside the street door stay, and so
   // does anything with nowhere else to go (the walkway check still makes sure there's a way past).
-  const [ew, ed] = ENTRY;
-  clearings.unshift({ rect: door.side === 'north' ? { x0: along - ew / 2, x1: along + ew / 2, z0: 0, z1: ed } : { x0: 0, x1: ed, z0: along - ew / 2, z1: along + ew / 2 } });
+  clearings.unshift({ rect: entryClear });
   keep.push(...clearings.map(c => c.rect));
   strict = true;
   const move = q => {
+    if (q.fixedRun) return false;
     const old = [q.p, q.top, q.lantern].filter(Boolean);
     placed.splice(placed.indexOf(q), 1);
     template.props = template.props.filter(t => !old.includes(t));
@@ -244,11 +358,11 @@ function layout(recipe, parts, rng) {
   // a small shift first (half a cell or a cell, so it closes up to a pile or opens a walkway),
   // else somewhere new; later pieces go first, so the big furniture placed early stays put
   const nudge = q => {
-    if (q.def.rule === 'wall') return false;
+    if (q.def.rule === 'wall' || q.fixedRun) return false;
     placed.splice(placed.indexOf(q), 1);
     for (const d of [0.5, 1]) for (const [dx, dz] of [[d, 0], [-d, 0], [0, d], [0, -d], [d, d], [d, -d], [-d, d], [-d, -d]]) {
       const r = { ...q.rect, x0: q.rect.x0 + dx, x1: q.rect.x1 + dx, z0: q.rect.z0 + dz, z1: q.rect.z1 + dz };
-      if (!fits(r, zones[q.zoneName], q.def)) continue;
+      if (!fits(r, areaOf(q.item, q.zoneName), q.def)) continue;
       q.rect = r;
       for (const t of [q.p, q.top, q.lantern]) if (t) t.at = [t.at[0] + dx, t.at[1] + dz];
       placed.push(q);

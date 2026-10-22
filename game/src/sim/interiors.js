@@ -92,7 +92,9 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
     if (stands) for (const q of props) if (q.stands && overlap(r, q.rect)) problems.push(`${p.type} at ${p.at} overlaps ${q.type}`);
     if (stands && innerSegments.some(q => overlap(r, q))) problems.push(`${p.type} at ${p.at} crosses an inner wall`);
     if (stands && inner.some(w => overlap(r, w.clear))) problems.push(`${p.type} at ${p.at} blocks an inner doorway`);
-    props.push({ type: p.type, def, rule: def.rule, rect: r, rot: r.rot, y, stands, cx, cz });
+    // Painted furniture is used only at its authored orientation; other sides keep the 3D model.
+    const cutout = def.cutout || (def.painted?.rotations.includes(r.rot) ? def.painted.cutout : null);
+    props.push({ type: p.type, def, rule: def.rule, rect: r, rot: r.rot, y, stands, cx, cz, cutout, artAngle: p.artAngle || 0 });
   }
 
   // the door: a bay in a far wall, with clear floor in front of it
@@ -127,8 +129,12 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
   for (const q of innerSegments) blockers.push({ minX: ox + q.x0, maxX: ox + q.x1, minZ: oz + q.z0, maxZ: oz + q.z1 });
 
   // props drawn as painted cut-outs instead of 3D (see "cutout" in interior_parts.json)
-  const pieces = props.filter(q => q.def.cutout)
-    .map(q => ({ name: q.def.cutout, x: ox + q.cx, z: oz + q.cz, indoor: true, lift: q.y, depth: true }));
+  const pieces = props.filter(q => q.cutout)
+    .map(q => {
+      const [dx, dz] = q.def.painted?.offset || [0, 0];
+      return { name: q.cutout, x: ox + q.cx + dx, z: oz + q.cz + dz,
+        indoor: true, lift: q.y, depth: true, roomProp: true, angle: q.artAngle };
+    });
 
   const exit = side === 'north' ? { x: ox + along, z: oz + 1.3 } : { x: ox + 1.3, z: oz + along };
   const spawn = side === 'north' ? { x: ox + along, z: oz + 2.2 } : { x: ox + 2.2, z: oz + along };

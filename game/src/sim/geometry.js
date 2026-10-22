@@ -69,7 +69,8 @@ export function placePiece(entry, catalog, cutouts) {
   return {
     flip: false, indoor: false, ...entry, item, meta, ...f,
     foot: rect(entry.x, entry.z, f.fa * shrink, f.fb * shrink),
-    solid: item.solid > 0 ? rect(entry.x, entry.z, f.fa * item.solid, f.fb * item.solid) : null,
+    // Interior parts already provide their exact blockers, including surface-mounted props.
+    solid: !entry.roomProp && item.solid > 0 ? rect(entry.x, entry.z, f.fa * item.solid, f.fb * item.solid) : null,
   };
 }
 

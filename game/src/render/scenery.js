@@ -171,7 +171,9 @@ function cutoutThing(s, tex) {
   else mat.uniforms.uFogAt.value.set(s.x, s.z, 0, 1);   // fog of war darkens it by its footprint
   if (s.depth) {   // stands in a 3D room: hidden behind its walls and furniture
     mat.depthTest = true;
-    mat.uniforms.uDepthAt.value.set(s.x, 0, s.z, 0.3);
+    // A raised tray's lowest painted corner must clear the 3D tabletop beneath it.
+    const pull = s.roomProp && s.lift > 0 ? Math.max(0.3, (s.fa + s.fb) * Math.SQRT1_2 / 2 + 0.02) : 0.3;
+    mat.uniforms.uDepthAt.value.set(s.x, 0, s.z, pull);
   }
   if (s.tint) mat.uniforms.uTint.value.set(s.tint);
   if (s.cut) {
@@ -181,6 +183,7 @@ function cutoutThing(s, tex) {
   }
   const mesh = new THREE.Mesh(quad, mat);
   mesh.quaternion.copy(CAM_QUAT);
+  if (s.angle) mesh.rotateZ(THREE.MathUtils.degToRad(s.angle));
   mesh.scale.set(meta.w * k, meta.h * k, 1);
   mesh.position.copy(px(meta.w / 2, meta.h / 2));
   mesh.frustumCulled = false;
@@ -209,8 +212,9 @@ function cutoutThing(s, tex) {
     thing.extras.push(glow);
     light.glow = glow;
   };
-  for (const [x, y, r, color] of item.lights) lamp(x, y, r, color, item.flames.length > 0);
-  if (item.glows) {
+  // Generated interiors already supply these lights and glows from the parts catalog.
+  for (const [x, y, r, color] of (s.roomProp ? [] : item.lights)) lamp(x, y, r, color, item.flames.length > 0);
+  if (item.glows && !s.roomProp) {
     for (const [x, y, area] of meta.glows.filter(g => g[2] >= 60).slice(0, 2))
       lamp(x, y, 3 + Math.min(area, 1000) / 500, '#ffa050', false);
   }

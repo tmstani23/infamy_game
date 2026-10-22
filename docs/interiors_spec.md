@@ -4,6 +4,12 @@ Status (2026-10-18): every room is built this way, and rooms come from the room 
 
 Phase 3E (Tim, 2026-10-21): Shop, Tenements, Pawnshop, Bathhouse, Sake Brewery, Manor and Customs House use separate room-generator recipes with existing props and textures.
 
+## Painted interior art (Tim, 2026-10-22)
+
+Approved painted wall panels and prop cutouts reuse the room's 3D floors, walls, depth and collision footprints. Twenty new props cover customs records/inspection, shop and pawn displays, bathing, dojo training, brewery storage/vats and manor furnishings. Sources and prompts: `assets/environment/interior_prop_previews/`; preparation: `tools/prepare_interior_prop_previews.py` and `tools/extract_interior_reuse.py`. Layout rules: [room generator](room_generator_plan.md#aligned-layouts-tim-2026-10-22).
+
+Five perspective revisions (futon, inspection table, notice board, towel shelf and bucket/stool) remain previews only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. Tim reviews revised art before replacement. Hideout custom art/layout remains deferred.
+
 ## Why 3D
 
 The camera has one fixed angle, so if every wall and piece of furniture is a real 3D shape on a grid, nothing can come out slightly rotated. Painted cut-outs each carry their own drawing angle, which is what made the old tables, mats and screen look off. Interiors are therefore simple 3D shapes (boxes and turned profiles) painted with textures cut from the art sheets, under the same camera and lamp light as the street. Characters stay sprites; they get proper depth so they pass behind tables, screens and the low front walls. When the hero is hidden, a faint silhouette shows where he is.

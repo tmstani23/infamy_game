@@ -85,3 +85,11 @@ The generator only decides layout: sizes, bay types, doors and which props go wh
 
 - Rooms are rectangles split by straight inner walls, with no L-shapes or second floors yet. Stairs can be a prop that leads nowhere until upper floors exist.
 - Variety comes from layout and prop choice, not new art. More variety later means more prop models or texture sets per building type.
+
+## Aligned layouts (Tim, 2026-10-22)
+
+Recipes support aligned rows with mixed art variants and explicit gaps, fixed sleeping bays and four cushions around a manor reception table. Shop/pawn displays, customs records, brewery vats/shelves, manor furniture, tenement sleeping/common areas and bathhouse washing/tub zones use these layouts.
+
+- Pawn display row includes merchandise shelving with a 0.5-cell visual gap; brewery bottle shelves use a 1-cell gap. Brewery painted shelves replace its old sake shelf; other rooms retain that prop.
+- Customs notice board mounts on the north wall. Bathhouse towel shelf is north-wall furniture; washing stations form a separate row from tubs. Bathhouse screens stay as approved.
+- Den, teahouse and warehouse layouts remain as approved; hideout customization is deferred. Art/revision policy: [interiors spec](interiors_spec.md#painted-interior-art-tim-2026-10-22).
