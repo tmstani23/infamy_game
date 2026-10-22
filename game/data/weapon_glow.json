@@ -4,12 +4,13 @@
     "ronin": "katana", "swordsman": "katana", "rival_yakuza": "katana",
     "thug": "club", "brute": "club",
     "police": "jitte",
-    "ninja_leader": "ninjato", "ninja_grunt": "ninjato"
+    "ninja_leader": "ninjato", "ninja_grunt": "ninjato", "ninja_tanto": "tanto"
   },
   "weapons": {
     "katana": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35 },
     "club": { "color": [1.0, 0.56, 0.22], "strength": 0.3, "attack": 0.3 },
     "jitte": { "color": [0.38, 0.58, 1.0], "strength": 0.4, "attack": 0.3 },
-    "ninjato": { "color": [0.42, 0.2, 0.72], "strength": 0.45, "attack": 0.35, "_note": "thin dark purple (Tim 2026-10-20)" }
+    "ninjato": { "color": [0.42, 0.2, 0.72], "strength": 0.45, "attack": 0.35, "_note": "thin dark purple (Tim 2026-10-20)" },
+    "tanto": { "color": [0.384, 0.412, 0.451], "strength": 1, "attack": 0.15, "void": true, "_note": "Charcoal haze and tight pale silver edge; uses the weapon-only glow mask" }
   }
 }

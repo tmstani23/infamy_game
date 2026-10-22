@@ -1,7 +1,20 @@
 // Ryo badge, left of the heat gauge (Tim OK'd the mock 2026-10-17): a gold ring with a mon
 // coin and the clan's ryo. The number counts up toward the real amount after a gain (spending
 // snaps straight down), the badge flares, and a notice like "Bandit killed +20 ryo" rises above
-// it, from state.ryoGains. Only reads the state.
+// it, from state.ryoGains. Renown for the same reward sits above it in purple.
+export function rewardPopups(state, clanId) {
+  const gains = (state.ryoGains || []).filter(g => g.clan === clanId).map(g => ({ ...g, renown: 0 }));
+  for (const n of state.news || []) {
+    if (n.clan !== clanId || !['combatRenown', 'contractDone'].includes(n.kind)) continue;
+    const amount = n.kind === 'combatRenown' ? n.amount : n.renown;
+    if (!(amount > 0)) continue;
+    const gain = gains.find(g => n.kind === 'contractDone' ? g.reason === 'Contract' : n.target != null && g.target === n.target);
+    if (gain) gain.renown += amount;
+    else gains.push({ clan: clanId, amount: 0, renown: amount, target: n.target, reason: n.reason || 'Contract' });
+  }
+  return gains;
+}
+
 export function createRyoBadge({ root, game, heroId }) {
   root.innerHTML = `<svg viewBox="-60 -60 120 120">
       <defs><linearGradient id="ryoRing" x1="0" y1="-1" x2="0" y2="1">
@@ -19,13 +32,17 @@ export function createRyoBadge({ root, game, heroId }) {
     live = live.filter(p => p.isConnected);
     const pop = document.createElement('div');
     pop.className = 'heatgain ryogain';
-    pop.innerHTML = `<span></span><b></b>`;
-    pop.firstChild.textContent = g.reason || 'Ryo';
-    pop.lastChild.textContent = `+${g.amount} ryo`;
+    pop.innerHTML = `<div class="renownline" hidden></div><div class="ryoline"><span></span><b></b></div>`;
+    const renown = pop.querySelector('.renownline');
+    renown.hidden = !g.renown;
+    renown.textContent = g.renown ? `+${g.renown} Renown` : '';
+    pop.querySelector('span').textContent = g.reason || 'Ryo';
+    pop.querySelector('b').textContent = g.amount ? `+${g.amount} ryo` : '';
     // just above the badge, wherever the movable HUD put it
     const r = root.getBoundingClientRect();
     pop.style.right = `${Math.max(0, innerWidth - r.right)}px`;
-    pop.style.bottom = `${innerHeight - r.top + 2 + live.length * 44}px`;
+    const stacked = live.reduce((height, el) => height + Math.max(44, el.offsetHeight + 8), 0);
+    pop.style.bottom = `${innerHeight - r.top + 2 + stacked}px`;
     pop.addEventListener('animationend', () => pop.remove());
     setTimeout(() => pop.remove(), 6000);   // in case the animation never ends (hidden tab)
     document.body.appendChild(pop);
@@ -35,7 +52,7 @@ export function createRyoBadge({ root, game, heroId }) {
   function update() {
     const clan = game.state.clans?.[game.state.entities[heroId]?.owner];
     if (!clan) return;
-    const gains = (game.state.ryoGains || []).filter(g => g.clan === clan.id);
+    const gains = rewardPopups(game.state, clan.id);
     for (const g of gains) notify(g);
     if (gains.length) { root.classList.remove('flare'); void root.offsetWidth; root.classList.add('flare'); }
     const ryo = Math.round(clan.ryo || 0);

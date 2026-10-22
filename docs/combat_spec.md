@@ -84,9 +84,11 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 | Key | Ability | What it does | Cooldown |
 |---|---|---|---|
 | Q | Shadow Step | Teleports up to 8 toward the mouse, stopping at walls and water; stays hidden. | 10 s |
-| E | Caltrops | Thrown at the mouse: enemies within 2 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
+| E | Caltrops | Thrown at the mouse: enemies within 4 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
 | R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). The whole clan gets holdFire (no attacks or hit-backs) until a new order or attack. | 40 s |
-| F | Assassinate | Needs 3 s hidden (`e.hiddenAt`; smoke doesn't count). Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes above 60% max HP drop to 60%, while heroes at or below 60% take no damage and receive no healing (2026-10-21). Reveals the ninja. Screen flash and shake. | 90 s |
+| F | Assassinate | Needs 3 s hidden, or is immediately usable during Vanish. Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes above 60% max HP drop to 60%, while heroes at or below 60% take no damage and receive no healing (2026-10-21). Consumes the attacker's veil. Hero and living non-guard crew within 8 in the same place gain +20 percentage points crit for 8 s (ninja 15% → 35%); refreshes without stacking. Violet recipient auras and an 8-unit cast pulse. | 45 s |
+
+Phase 3G Vanish (2026-10-21): at the six-second Smoke Bomb's mechanical expiry, the hero and crew still inside gain four seconds of undetectability. Incoming damage can hurt/down them but cannot reveal them; outgoing attacks or Assassinate consume only that attacker's veil. Dark-blue transparent silhouettes/shimmer and blue wisps show the effect; cloud graphics/fade are unchanged. The player hero alone shows VANISH 4/3/2/1s overhead. The Vanish pill and R button show its duration while the real 40 s cooldown continues underneath, then returns to view.
 
 Effects in `render/abilityfx.js` (mock OK'd by Tim): black non-additive smoke with muted purple and blue highlights, thin rings like the ronin's.
 
@@ -179,6 +181,6 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandits.js`; test `game/tools/test_bandits.mjs`.
 
 - Roamers (2026-10-21): bandit 240 HP / 9 damage (weight 2), night brute 432 HP / 16 damage (weight 1); each leaves 50 ryo. Camp bandits retain base stats and 25-ryo loot.
-- At night: 3 walk in first, then one every 14 s, up to 13 at once and 25 a night (2026-10-21), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
+- At night: 3 walk in first, then one every 14 s, up to 10 at once and 20 a night (2026-10-21), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
 - All wild/camp and roaming variants have sight, engagement and disengage distance 6, respecting walls, stealth and camp leash (Tim, 2026-10-21). Police pursuit and movement speeds are unchanged. Being hit also angers nearby bandits; anger expires after 10 s without renewed sight/hits. Camps top up missing residents at dawn and dusk, preserving survivors.
 - No downing (they die at 0 HP) and no heat. Kills pay nothing (2026-10-19): the body carries the ryo, glints gold and any clan can loot it (hero: right-click; crew: Ctrl + right-click). Unlooted bodies fade after 60 s (`lootSeconds`).

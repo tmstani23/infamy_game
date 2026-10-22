@@ -432,9 +432,10 @@ const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3
 const HANDS_TOGETHER = 0.22, HANDS_APART = 0.38;
 const _c = new THREE.Vector3();
 const PALM_Y = 0.03;   // palm centre along the hand bone (bone units, Mixamo +Y runs to the fingers)
+let itemPalmY = PALM_Y; // item-specific grip tuning; existing exports retain their original default
 const _z = new THREE.Vector3(0, 0, 1);
 let itemDir = null;    // haft direction in the hand bone's frame (one-hand grips)
-const palmOf = (bone, out) => bone.localToWorld(out.set(0, PALM_Y, 0));
+const palmOf = (bone, out) => bone.localToWorld(out.set(0, itemPalmY, 0));
 let itemHang = false;
 let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), roll (deg)} or null
 let runPose = false;     // true while a run clip is being drawn
@@ -480,24 +481,35 @@ function updateItem() {
     if (item.parent !== bone) bone.add(item);
     bone.getWorldScale(_s);
     item.scale.setScalar(len * root.scale.x / _s.x);
+    if (runPose && itemRunBack) {
+      item.position.set(0, itemPalmY, 0);
+      root.updateMatrixWorld(true);
+      palmOf(bone, _a);
+      const yaw = root.rotation.y, d = THREE.MathUtils.degToRad(itemRunBack.drop);
+      _c.set(-Math.sin(yaw) * Math.cos(d), -Math.sin(d), -Math.cos(yaw) * Math.cos(d));
+      item.lookAt(_b.copy(_a).add(_c));
+      item.rotateZ(THREE.MathUtils.degToRad(itemRunBack.roll || 0));
+      return;
+    }
     if (itemDir) {
       // Hammer grip: the haft runs across the fist along the knuckle line, head out of the thumb side
-      item.position.set(0, PALM_Y, 0);
+      item.position.set(0, itemPalmY, 0);
       item.quaternion.setFromUnitVectors(_z, itemDir);
       item.rotateZ(THREE.MathUtils.degToRad(num('itemRoll')));
       return;
     }
     if (itemIdleBack && idlePose) {
-      item.position.set(0, PALM_Y, 0);
+      item.position.set(0, itemPalmY, 0);
       root.updateMatrixWorld(true);
       palmOf(bone, _a);
       const yaw = root.rotation.y, d = THREE.MathUtils.degToRad(itemIdleBack.drop);
-      _c.set(-Math.sin(yaw) * Math.cos(d), -Math.sin(d), -Math.cos(yaw) * Math.cos(d));   // behind the character, tip down
+      const facing = itemIdleBack.forward ? 1 : -1;
+      _c.set(facing * Math.sin(yaw) * Math.cos(d), -Math.sin(d), facing * Math.cos(yaw) * Math.cos(d));
       item.lookAt(_b.copy(_a).add(_c));
       return;
     }
     // in the palm, not at the wrist (Tim 2026-10-20: the ninja blade floated off the hand)
-    item.position.set(0, itemIdleBack ? PALM_Y : 0, 0);
+    item.position.set(0, itemIdleBack ? itemPalmY : 0, 0);
     // Mixamo hand bones point +Y along the fingers; -Z comes out of the thumb
     // side of a closed fist, which is where a gripped blade or haft points
     item.rotation.set(THREE.MathUtils.degToRad(num('itemRx') + 180), THREE.MathUtils.degToRad(num('itemRy')), 0);
@@ -505,6 +517,7 @@ function updateItem() {
 }
 
 function setItemOptions(o = {}) {
+  itemPalmY = Number.isFinite(o.palmOffset) ? o.palmOffset : PALM_Y;
   if (o.mode) $('itemMode').value = o.mode;
   for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
     if (o[k] != null) $(id).value = o[k];

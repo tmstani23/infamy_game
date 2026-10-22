@@ -37,11 +37,11 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     const rows = hireable.map((k, i) => {
       const t = units.types[k], price = game.clans.hirePrice(c.id, k);
       const can = price !== null && c.ryo >= price && crew + c.queue.length < cap && c.queue.length < units.rules.maxQueue;
-      return `<div class="row"><span>${i + 1}. ${title(k)}<br><small>${t.hp} hp · ${t.damage} dmg · ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s</small></span>` +
+      return `<div class="row"><span>${i + 1}. ${t.name || title(k)}<br><small>${t.hp} hp · ${t.damage} dmg · ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s</small></span>` +
         `<button data-pick="${i}" ${can ? '' : 'disabled'}>${price} ryo</button></div>`;
     }).join('');
     const h = c.queue[0];
-    const waiting = c.queue.length ? `<div class="waiting">Coming: ${c.queue.map(q => q.unit).join(', ')} (next in ${Math.ceil(h.left)}s, at the door)</div>` : '';
+    const waiting = c.queue.length ? `<div class="waiting">Coming: ${c.queue.map(q => units.types[q.unit]?.name || q.unit).join(', ')} (next in ${Math.ceil(h.left)}s, at the door)</div>` : '';
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const html = `<h3>HIRE CREW</h3>${rows}${waiting}${notice}<div class="waiting">1-${hireable.length} or click · H / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }

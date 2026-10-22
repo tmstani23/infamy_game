@@ -241,6 +241,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen); },
     tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { pruneTargets(); return looked; },
+    hovered(px, py) {
+      const h = hero();
+      if (!h || drag) return null;
+      return unitAt(px, py, Object.values(game.state.entities)
+        .filter(e => !e.dead && e.place === h.place && seen(e)))?.id || null;
+    },
     drawMarkers(root) {
       pruneTargets();
       const list = targetMarkers(game.state, heroId, tabbed, seen);

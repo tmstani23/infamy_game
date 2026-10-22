@@ -76,7 +76,7 @@ console.log('all four crew types: 50 ryo per execution, no down or duplicate rew
   const before = clan.ryo;
   defeat(g, hero, victim);
   assert.equal(clan.ryo - before, 400, 'contract replaces the ordinary bounty');
-  assert.equal(clan.renown, 40);
+  assert.equal(clan.renown, 48, 'leader defeat Renown stacks with the contract');
   assert.equal(g.state.contracts.active.player, undefined);
   resetVictim(g, victim);
   defeat(g, hero, victim);
@@ -88,7 +88,7 @@ console.log('all four crew types: 50 ryo per execution, no down or duplicate rew
   g.step([{ type: 'time', night: false }, { id: hero, type: 'ability', slot: 'Q', x: -6, z: 1, target: victim }]);
   assert.ok(g.state.entities[victim].dead);
   assert.equal(clan.ryo - before, 650, 'dawn resets the claim before immediate ability damage');
-  console.log('Shinobi contract pays 400 plus Renown without stacking, dawn ability bounty ok');
+  console.log('Shinobi contract replaces cash bounty and stacks combat Renown, dawn ability bounty ok');
 }
 
 {
@@ -100,5 +100,5 @@ console.log('all four crew types: 50 ryo per execution, no down or duplicate rew
   const before = clan.ryo;
   g.step([{ type: 'time', night: false }, { id: hero, type: 'ability', slot: 'Q', x: -6, z: 1, target: victim }]);
   assert.equal(clan.ryo - before, 250, 'an expired contract cannot swallow the normal bounty');
-  assert.equal(clan.renown, 0);
+  assert.equal(clan.renown, 8, 'expired contract pays no Renown but leader defeat does');
 }

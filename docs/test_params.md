@@ -2,14 +2,14 @@
 
 Single source: `game/src/test_params.js` (Tim 2026-10-19: one param, nothing hidden anywhere else). `DEV = true` at its top; set it to `false` before any public release (roadmap) and the test param and dev-only keys below all turn off. Rule: any new test switch goes in that module and gets a row here in the same batch (`documentation_role.md`).
 
-Phase 1 (Tim, 2026-10-21): normal starts are documented in [starting paths](gameplay_and_design.md#starting-paths-settled). These separate testing overrides remain unchanged.
+Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). The rich bot test remains separate; Shinobi uses a fair opening (Phase 3G, 2026-10-21).
 
 ## URL param
 
 | Param | What it does |
 |---|---|
 | `?test=bot` | See the whole rival clan fast: the bot clan starts with 5000 ryo (buys, hires, then a War Lantern raid on you); you start with the teahouse and 3000 ryo. |
-| `?test=ninja` | Play the Shinobi clan (ninja leader + 2 ninja crew), starting at the village (`spawns.ninja`), until clan select exists. |
+| `?test=ninja` | Play Shinobi at the village: hero + one ninja, 200 ryo, HQ only, against two normal Yakuza rivals. No boosted squad (2026-10-21). |
 
 ## Dev-only keys and hooks (off when `DEV = false`)
 

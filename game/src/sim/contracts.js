@@ -7,7 +7,7 @@
 //           ninja inside for holdSeconds (none inside for leaveSeconds = failed); the owner hears of
 //           it at once if the planter was seen, else after alertDelay, and his units standing on
 //           the mark for clearSeconds scrub it off (failed). Done: that business pays 0 at the next dawn
-//   steal   in the rival hideout (back window), stand on its back-room stash for seconds: take
+//   steal   in a rival-owned business, stand on its back-room stash for seconds: take
 //           share of the clan's ryo (at most max)
 //   boss    knock out the named rival boss
 //   bandits knock out count night bandits before dawn
@@ -17,10 +17,10 @@
 // Numbers: units.json rules.contracts. Everything is plain data in state.contracts.
 const DEFAULTS = {
   perDawn: [3, 5],
-  perClan: 2, recentDays: 2, leaderWeight: 2,
+  perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
   scout: { ryo: 150, renown: 15, seconds: 10 },
   mark: { ryo: 300, renown: 30, plantSeconds: 3, holdSeconds: 60, leaveSeconds: 10, alertDelay: 15, clearSeconds: 4, reach: 1.5 },
-  steal: { share: 0.2, max: 500, renown: 25, seconds: 10, reach: 1.5 },
+  steal: { share: 0.2, max: 500, capPerBusinessPoint: 100, renown: 25, seconds: 10, reach: 1.5 },
   boss: { ryo: 400, renown: 40 },
   bandits: { ryo: 200, renown: 20, count: 5 },
 };
@@ -29,7 +29,7 @@ const KIND_NAME = { shop: 'Shop', tenements: 'Tenements', pawnshop: 'Pawnshop', 
 // backRoom(b) = { x, z } of a business's back-room spot (in its room); WILD = the bandits' owner id
 // leader() = the clan leading the season score (or null)
 import { canInteract } from './interactions.js';
-export function createContracts({ state, rules = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
+export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
   const secs = s => Math.round(s * 20);
   let rs = seed;
@@ -41,18 +41,28 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const unitsOf = id => Object.values(state.entities).filter(e => e.owner === id && alive(e));
+  const businessScore = clan => Object.values(state.businesses).reduce((n, b) => n + (b.owner === clan && !b.hideout ? scores[b.kind] || 0 : 0), 0);
+  // Board quotes follow public business strength. Accepted jobs retain their
+  // quoted reward and theft ceiling even if ownership changes elsewhere.
+  function quote(job) {
+    if (job.rewardLocked) return { ryo: job.ryo, renown: job.renown, businessScore: job.businessScore,
+      multiplier: job.multiplier, stealCap: job.stealCap, stealShare: job.stealShare };
+    const score = job.target ? businessScore(job.target) : 0, base = R[job.kind];
+    const multiplier = 1 + score * R.rewardPerBusinessPoint;
+    return { ryo: base.ryo == null ? null : Math.round(base.ryo * multiplier), renown: Math.round(base.renown * multiplier),
+      businessScore: score, multiplier, ...(job.kind === 'steal' ? {
+        stealCap: R.steal.max + score * R.steal.capPerBusinessPoint, stealShare: R.steal.share } : {}) };
+  }
 
   // every job that could go up now: on clans that aren't Shinobi, plus the town's bandit job
   function pool() {
     const out = [];
     for (const b of Object.values(state.businesses)) {
-      if (!b.owner || ninja(b.owner) || !b.room) continue;
+      if (!b.owner || ninja(b.owner) || !b.room || b.hideout || !(scores[b.kind] > 0)) continue;
       const place = `the ${clanName(b.owner)} ${KIND_NAME[b.kind] || b.kind.replace(/_/g, ' ')}`;
-      if (b.hideout) out.push({ kind: 'steal', business: b.id, target: b.owner, label: `Steal from ${place}` });
-      else {
-        out.push({ kind: 'scout', business: b.id, target: b.owner, label: `Scout ${place}` });
-        out.push({ kind: 'mark', business: b.id, target: b.owner, label: `Sabotage ${place}` });
-      }
+      out.push({ kind: 'steal', business: b.id, target: b.owner, label: `Steal from ${place}` });
+      out.push({ kind: 'scout', business: b.id, target: b.owner, label: `Scout ${place}` });
+      out.push({ kind: 'mark', business: b.id, target: b.owner, label: `Sabotage ${place}` });
     }
     for (const e of Object.values(state.entities)) if (e.type === 'hero' && e.owner && !ninja(e.owner) && state.clans?.[e.owner])
       out.push({ kind: 'boss', hero: e.id, target: e.owner, label: `Knock out the ${clanName(e.owner)} boss` });
@@ -87,21 +97,24 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
     C.posted = true;
   }
 
-  const reward = job => job.kind === 'steal' ? `${Math.round(R.steal.share * 100)}% of their ryo (max ${R.steal.max})` : `${job.ryo} ryo`;
+  const reward = job => { const q = quote(job); return job.kind === 'steal'
+    ? `${Math.round(q.stealShare * 100)}% of their ryo (max ${q.stealCap})` : `${q.ryo} ryo`; };
 
-  function finish(clanId, ok, why, ryo = 0) {
+  function finish(clanId, ok, why, ryo = null) {
     const job = C.active[clanId], clan = state.clans[clanId];
     delete C.active[clanId];
     if (!job || !clan) return;
     if (ok) {
-      const pay = ryo || job.ryo || 0;
+      const pay = ryo ?? job.ryo ?? 0;
       clan.ryo += pay; clan.renown = (clan.renown || 0) + job.renown;
       if (job.target) C.hits.push({ target: job.target, day: C.day });
-      if (pay) state.ryoGains.push({ clan: clanId, amount: pay, reason: 'Contract' });
+      if (pay) state.ryoGains.push({ clan: clanId, amount: pay, target: job.hero ?? job.business, reason: 'Contract' });
       state.news.push({ kind: 'contractDone', clan: clanId, label: job.label, ryo: pay, renown: job.renown });
       say(clan, `Contract done: +${pay} ryo, +${job.renown} Renown`);
     } else {
       state.news.push({ kind: 'contractFailed', clan: clanId, label: job.label, why });
+      if (state.clans[job.target]) state.news.push({ kind: 'contractFailedOnYou', clan: job.target, by: clanId,
+        contractType: { scout: 'Scout', mark: 'Sabotage', steal: 'Steal', boss: 'Boss' }[job.kind] || job.kind, why });
       say(clan, `Contract failed: ${why}`);
     }
   }
@@ -117,13 +130,15 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
     const i = C.board.findIndex(j => j.id === c.job);
     if (i < 0) return say(clan, 'That job is gone');
     const [job] = C.board.splice(i, 1);
+    if (!pool().some(j => same(j, job) && j.target === job.target)) return say(clan, 'That contract target is no longer available');
+    const priced = quote(job);
     // the board spreads out: other jobs on the same clan swap for jobs elsewhere (or go)
     if (job.target) {
       const keep = C.board.filter(j => j.target !== job.target), swaps = C.board.length - keep.length;
       for (let k = 0; k < swaps; k++) { const j = draw(keep, x => x.target === job.target); if (j) keep.push(j); }
       C.board = keep;
     }
-    C.active[clan.id] = { ...job, clan: clan.id, takenAt: state.tick, progress: 0 };
+    C.active[clan.id] = { ...job, ...priced, rewardLocked: true, clan: clan.id, takenAt: state.tick, progress: 0 };
     if (job.target) state.news.push({ kind: 'contractWarn', clan: job.target, label: job.label });   // the target gets a warning
     state.news.push({ kind: 'contractTaken', clan: clan.id, label: job.label, ...where(C.active[clan.id]) });
     say(clan, `Contract: ${job.label}`);
@@ -138,6 +153,7 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
   function step(clanId, job) {
     const tick = state.tick, mine = unitsOf(clanId);
     const b = state.businesses[job.business];
+    if (['scout', 'mark', 'steal'].includes(job.kind) && (!b || b.hideout || !(scores[b.kind] > 0))) return finish(clanId, false, 'the business is no longer available');
     if (b && b.owner !== job.target) return finish(clanId, false, 'the owner changed');
     if (job.kind === 'scout') {
       const seen = mine.some(e => e.place === b.room && e.hidden);
@@ -181,10 +197,11 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
       // seen inside: the owners get one alarm (guards fight as usual; medium/hard bots send crew home)
       if (!job.alerted && mine.some(e => e.place === b.room && !e.hidden)) {
         job.alerted = true;
-        state.news.push({ kind: 'stealAlert', clan: job.target, by: clanId, business: b.id, x: b.x, z: b.z });
+        state.news.push({ kind: 'stealAlert', clan: job.target, by: clanId, business: b.id, place: KIND_NAME[b.kind] || b.kind.replace(/_/g, ' '), x: b.x, z: b.z });
       }
       if (job.progress >= job.need) {
-        const victim = state.clans[job.target], amount = Math.min(r.max, Math.floor((victim?.ryo || 0) * r.share));
+        const victim = state.clans[job.target], q = quote(job);
+        const amount = Math.min(q.stealCap, Math.floor((victim?.ryo || 0) * q.stealShare));
         if (victim) victim.ryo -= amount;
         finish(clanId, true, '', amount);
       }
@@ -209,8 +226,10 @@ export function createContracts({ state, rules = {}, backRoom, stash = backRoom,
     for (const [id, job] of Object.entries(C.active)) step(id, job);
   }
 
-  // a Shinobi unit may climb in through a hideout's back window while its clan holds a Steal job on it
-  const mayClimb = (e, place) => Object.values(C.active).some(j => j.clan === e.owner && j.kind === 'steal' && state.businesses[j.business]?.room === place);
+  // Crew sent into an active infiltration job use its business window. Rival
+  // home bases are never a contract target or an exception to HQ access rules.
+  const mayClimb = (e, place) => ninja(e.owner) && Object.values(C.active).some(j => j.clan === e.owner
+    && ['scout', 'mark', 'steal'].includes(j.kind) && !state.businesses[j.business]?.hideout && state.businesses[j.business]?.room === place);
 
-  return { tick, command, post, mayClimb, where, reward, backRoom, stash, rules: R };
+  return { tick, command, post, mayClimb, where, reward, quote, businessScore, backRoom, stash, rules: R };
 }

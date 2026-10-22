@@ -47,10 +47,16 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const job = () => state.contracts?.active?.[clan] || null;
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
+  const hireType = () => {
+    if (B.hireType !== 'ninja' || !game.settings.units.types.ninja_tanto) return B.hireType;
+    const count = type => game.clans.crewOf(clan).filter(u => u.type === type).length + myClan().queue.filter(q => q.unit === type).length;
+    return count('ninja_tanto') < count('ninja') ? 'ninja_tanto' : 'ninja';
+  };
   const canHireNow = () => {
-    const price = game.clans.hirePrice(clan, B.hireType);
+    const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;
-    const desired = myClan().ryo >= 500 ? Math.min(3, game.clans.crewCap(clan)) : 1;
+    const established = (myClan().renown || 0) >= (U.renownPerCrew || 75);
+    const desired = established || myClan().ryo >= 500 ? game.clans.crewCap(clan) : 1;
     return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
   const readyPatient = c => c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && c.ryo >= game.clans.reviveCost(p, clan));
@@ -81,9 +87,10 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   }
   function jobScore(j) {
     // Steal uses a public estimate, never the rival's private treasury.
-    const reward = j.ryo ?? (j.kind === 'steal' ? 100 : game.contracts.rules[j.kind]?.ryo ?? 100);
+    const quote = game.contracts.quote(j);
+    const reward = quote.ryo ?? (j.kind === 'steal' ? Math.min(quote.stealCap, 100 * quote.multiplier) : 100);
     const preference = 1 + (B.jobs.length - B.jobs.indexOf(j.kind)) * 0.12;
-    return (reward + (j.renown || 0) * 3) * preference / jobSeconds(j);
+    return (reward + (quote.renown || 0) * 3) * preference / jobSeconds(j);
   }
 
   // --- deciding ----------------------------------------------------------------------
@@ -91,6 +98,9 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const c = myClan(), h = me();
     if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
     if (dojo() && canHireNow() && !job() && !ai.blocked(`hire:${dojo().id}`)) return { kind: 'hire', business: dojo().id };
+    // A leader indoors cannot count recruits waiting outside in its immediate
+    // combat strength. Assemble before judging the early camp/contract options.
+    if (!job() && h.place !== 'street' && crew().some(u => u.place === 'street' && u.order?.kind === 'follow' && u.order.target === hero)) return { kind: 'rally' };
     const j = job();
     if (j) return { kind: 'job' };
     const hunt = ai.pickHunt();
@@ -132,6 +142,11 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const h = me(), c = myClan();
     switch (goal.kind) {
       case 'hunt': return ai.hunt(out, goal);
+      case 'rally': {
+        if (!toStreet(out)) return false;
+        if (!goal.called) { out.push(...crewFollow()); goal.called = true; goal.until = state.tick + secs(8); }
+        return crew().every(u => u.place === h.place && dist(u, h) < 12) || state.tick >= goal.until;
+      }
       case 'revive': {
         const door = game.doors.find(d => d.menu === 'clinic'), k = readyPatient(c);
         if (!door || k < 0) return true;
@@ -144,7 +159,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
         const b = state.businesses[goal.business];
         if (goal.leaving) return toStreet(out);
         if (h.place === b.room) {
-          if (!goal.sent && canHireNow()) { out.push({ id: hero, type: 'hire', business: b.id, unit: B.hireType }); goal.sent = true; return false; }
+          if (!goal.sent && canHireNow()) { out.push({ id: hero, type: 'hire', business: b.id, unit: hireType() }); goal.sent = true; return false; }
           goal.sent = false;
           if (canHireNow()) return false;
           goal.leaving = true;
@@ -299,7 +314,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       if (fighting) ai.engage(out, target);
       else if (act(out)) { goal = null; ai.reset(); }
       // stuck: give the goal up and think again; standing still on a job inside doesn't count
-      const waiting = goal && (fighting || h.swing || h.lootTarget || (goal.kind === 'job' && h.place !== 'street' && !out.some(c => c.type === 'move')) || h.snuffing || (goal.kind === 'hire' && h.place !== 'street') || (goal.kind === 'job' && job()?.kind === 'mark' && !state.night));
+      const waiting = goal && (fighting || h.swing || h.lootTarget || goal.kind === 'rally' || (goal.kind === 'job' && h.place !== 'street' && !out.some(c => c.type === 'move')) || h.snuffing || (goal.kind === 'hire' && h.place !== 'street') || (goal.kind === 'job' && job()?.kind === 'mark' && !state.night));
       const moved = !last || Math.hypot(h.x - last.x, h.z - last.z) > 0.02 || h.place !== last.place;
       still = moved || waiting ? 0 : still + 1;
       last = { x: h.x, z: h.z, place: h.place };

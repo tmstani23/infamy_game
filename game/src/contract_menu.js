@@ -12,7 +12,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
   const atBoard = () => !!access();
   const C = () => game.state.contracts || { board: [], active: {} };
   const clientName = id => id === 'town' ? 'the town' : game.state.clans[id]?.name || 'a clan';
-  const reward = j => `${j.kind === 'steal' ? game.contracts.reward(j) : `${j.ryo} ryo`} + ${j.renown} Renown`;
+  const reward = j => `${game.contracts.reward(j)} + ${game.contracts.quote(j).renown} Renown`;
 
   // with a job running: 1 = call it off; else 1 and up = take that job
   function pick(i) {
@@ -47,7 +47,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     panel.hidden = !open;
     // the tracker: the job you hold, until dawn
     const job = c && C().active[c.id];
-    const t = job ? `<b>${job.label}</b><span>${progress(job)} · until dawn</span>` : '';
+    const t = job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)} · until dawn</span>` : '';
     tracker.hidden = !job;
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
     if (!open || !c || !h) return;

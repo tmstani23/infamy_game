@@ -6,7 +6,7 @@
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 
-const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Caltrops (slowed)', shroud: 'Smoke (healing)' };
+const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Caltrops (slowed)', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -90,10 +90,12 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       const ready = h.cooldowns?.[sl.key] ?? 0, left = (ready - t) / tickRate;
       const cooling = left > 0;
       sl.sweep.style.background = cooling ? `conic-gradient(transparent ${(1 - left / sl.a.cooldown) * 360}deg, rgba(4,5,8,.72) 0)` : 'none';
-      sl.secs.textContent = cooling ? (left < 1 ? left.toFixed(1) : Math.ceil(left)) : '';
+      const vanish = sl.a.kind === 'smoke' && !h.dead && !h.downed && !h.jailed ? Math.max(0, ((h.buffs?.veil?.until ?? 0) - t) / tickRate) : 0;
+      sl.secs.textContent = vanish > 0 ? `Vanish\n${Math.ceil(vanish)}s` : cooling ? (left < 1 ? left.toFixed(1) : Math.ceil(left)) : '';
+      sl.s.classList.toggle('vanish', vanish > 0);
       if (!cooling && !sl.wasReady) { sl.s.classList.remove('flash'); void sl.s.offsetWidth; sl.s.classList.add('flash'); }
       sl.wasReady = !cooling;
-      sl.s.classList.toggle('active', !!(sl.a.kind === 'lantern' && h.buffs?.lantern) || !!(sl.a.kind === 'dash' && h.dash));
+      sl.s.classList.toggle('active', vanish > 0 || !!(sl.a.kind === 'lantern' && h.buffs?.lantern) || !!(sl.a.kind === 'dash' && h.dash));
     }
 
     // buffs on the hero (and Rally on any of its crew)

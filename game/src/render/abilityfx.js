@@ -20,12 +20,15 @@ const WAVE_GEO = new THREE.RingGeometry(0.86, 1, 64), DISC_GEO = new THREE.Circl
 const THIN_WAVE_GEO = new THREE.RingGeometry(0.958, 1, 64);   // halved again (Tim 2026-10-19)
 // Rally, Intimidate and Red Lantern rings, auras and halos 50% thinner (Tim 2026-10-19: they hid the characters)
 const HALF_WAVE_GEO = new THREE.RingGeometry(0.93, 1, 64), BUFF_AURA_GEO = new THREE.RingGeometry(0.67, 0.77, 48);
+const AMBUSH_AURA_GEO = new THREE.RingGeometry(0.61, 0.79, 64);
 const STREAK_GEO = new THREE.PlaneGeometry(1, 1);
 const AURAS = {
   lantern: { color: 0xff3a1e, size: 0.625, geo: DISC_GEO, opacity: 0.45 },
   intimidated: { color: 0x7a3cff, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },
   rally: { color: 0xffc850, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
   shroud: { color: 0x5a3c96, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
+  ambush: { color: 0xb38aff, size: 1.1, geo: AMBUSH_AURA_GEO, opacity: 0.72 },
+  veil: { color: 0x233d70, size: 1, geo: BUFF_AURA_GEO, opacity: 0.18 },
   snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },   // caltrops (Distract): slowed   // healing in a Smoke Bomb (same width as Rally's)
   downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
@@ -45,7 +48,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const screenAngle = (dx, dz) => Math.atan2(dx * CAM_UP.x + dz * CAM_UP.z, dx * CAM_RIGHT.x + dz * CAM_RIGHT.z);
 
 // glowing outline around a unit's sprite while a buff is on, one colour per buff
-const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff, shroud: 0x6a4ab0 };
+const OUTLINE = { rally: 0xffc850, lantern: 0xff4020, intimidated: 0x9a50ff, shroud: 0x6a4ab0, ambush: 0xa078ed };
 const OUTLINE_GEO = new THREE.PlaneGeometry(1, 1);
 const OUTLINE_RGB = Object.fromEntries(Object.entries(OUTLINE).map(([k, v]) => [k, new THREE.Color(v)]));
 const OUTLINE_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
@@ -104,6 +107,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
   const glow = createParticles(scene), cards = createCards(scene);
   const soot = createParticles(scene, { max: 2500, additive: false });   // black smoke: drawn normally so it darkens
   const smokeRings = new Map();   // "x,z,until" of a Smoke Bomb -> its thin ground ring
+  const veilTrails = new Map();   // last rendered position, so the short wisps follow movement
+  let vanishText = null;
   let flashEl = null, flashT = 0;  // Assassinate's violet-white screen flash
   const marks = new Map();       // unit id -> the ? over a guard looking at a Distract pebble
   // one black smoke puff: rises a little and swells as it fades; tint: some dark purple or blue ones
@@ -265,6 +270,14 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         cards.ink(c.x, c.z, c.radius * 0.9, 0.9);
       }
       if (c.kind === 'assassinate') {
+        // One cast pulse marks the actual crit-buff radius; recipients keep their own aura.
+        if (c.critRadius) {
+          wave(c.x, c.z, c.critRadius, 0xb38aff, 0.7, 0, HALF_WAVE_GEO);
+          for (let i = 0; i < 22; i++) {
+            const a = Math.random() * Math.PI * 2, r = c.critRadius * Math.sqrt(Math.random());
+            motes(c.x + Math.cos(a) * r, c.z + Math.sin(a) * r, 1, 0.15, 0.3);
+          }
+        }
         // a vicious strike: black smoke bursts, a violet crescent with a white-hot edge, a blinding flash, the 影 (shadow) seal
         smokeBurst(c.tx, c.tz, 46, 1.1, 1.2);
         const ang = screenAngle(c.tx - (c.fx ?? c.x), c.tz - (c.fz ?? c.z));
@@ -373,10 +386,19 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       cards.glint(h.x, rand(1, 1.4), h.z, h.crit ? 1.8 : 1.1, 0xff9a40, 0.25);
     },
 
-    update(dt, state) {
+    update(dt, state, heroId) {
       glow.update(dt);
       soot.update(dt);
       cards.update(dt);
+      // One stable countdown above the player's hero, separate from floating damage.
+      const hero = state.entities[heroId], remaining = ((hero?.buffs?.veil?.until ?? 0) - state.tick) / 20;
+      const heroPos = hero && !hero.dead && !hero.downed && !hero.jailed && remaining > 0 && posOf(heroId);
+      if (heroPos && overlay) {
+        if (!vanishText) { vanishText = document.createElement('div'); vanishText.className = 'vanishtext'; overlay.appendChild(vanishText); }
+        vanishText.textContent = `VANISH ${Math.ceil(remaining)}s`;
+        const q = unitToScreen(heroPos.x, heroPos.z, 3.5);
+        vanishText.style.transform = `translate(${q.x}px, ${q.y}px) translate(-50%, -100%)`;
+      } else if (vanishText) { vanishText.remove(); vanishText = null; }
       // Smoke Bomb clouds: black smoke keeps billowing in the radius while it lasts, dim glints inside,
       // a thin dark-violet ring on the ground (state.smokes, sim/game.js)
       const live = new Set();
@@ -425,6 +447,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         dim.style.opacity = String(0.45 * (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85));
       }
 
+      const veiledIds = new Set();
       for (const e of Object.values(state.entities)) {
         // a bandit's body with ryo on it: a gold glint now and then, so it reads as lootable
         if (e.dead && e.loot > 0) {
@@ -436,6 +459,23 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         if (e.dead || !e.buffs) continue;
         const p = posOf(e.id);
         if (!p) continue;
+        if (e.buffs.veil && !e.downed) {
+          veiledIds.add(e.id);
+          const old = veilTrails.get(e.id) || p, distance = Math.hypot(p.x - old.x, p.z - old.z);
+          // Never draw a trail across a door transition or a teleport.
+          const moving = distance > 0.005 && distance < 3 && old.place === e.place;
+          const dx = moving ? p.x - old.x : 0, dz = moving ? p.z - old.z : 0;
+          for (let n = count(moving ? 16 : 4, dt); n > 0; n--) {
+            const k = Math.random();
+            soot.emit({ x: p.x - dx * k + rand(-0.12, 0.12), y: rand(0.15, 1.5), z: p.z - dz * k + rand(-0.12, 0.12),
+              vx: -dx / Math.max(dt, 0.001) * 0.12, vz: -dz / Math.max(dt, 0.001) * 0.12, vy: rand(0.15, 0.45),
+              drag: 1.8, sway: 0.35, life: rand(0.35, 0.65), size: rand(0.2, 0.42), grow: 0.4,
+              color: Math.random() < 0.65 ? [0.055, 0.09, 0.19] : [0.15, 0.2, 0.29], alpha: 0.28, shape: SHAPE.dot });
+          }
+          veilTrails.set(e.id, { x: p.x, z: p.z, place: e.place });
+        }
+        if (e.buffs.ambush && !e.downed) for (let n = count(4, dt); n > 0; n--)
+          motes(p.x, p.z, 1, 0.55, 0.6);
         // intimidated: purple wisps rising off them
         if (e.buffs.intimidated) for (let n = count(7, dt); n > 0; n--)
           glow.emit({ x: p.x + rand(-0.3, 0.3), y: rand(0.6, 1.6), z: p.z + rand(-0.3, 0.3), vy: rand(0.5, 1.1), sway: 0.5, life: rand(0.8, 1.3),
@@ -463,6 +503,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
               size: rand(0.5, 0.8), grow: -0.6, color: [1, 0.3, 0.08], alpha: 0.45, shape: SHAPE.dot });
         }
       }
+
+      for (const id of veilTrails.keys()) if (!veiledIds.has(id)) veilTrails.delete(id);
 
       // the lanterns: four paper lanterns circling a Red Lantern unit, bobbing and glowing
       for (const e of Object.values(state.entities)) {
@@ -568,8 +610,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
             const u = o.material.uniforms, su = sp.material.uniforms;
             u.uMap.value = su.uMap.value;
             u.uFrame.value.copy(su.uFrame.value);
-            u.uWidth.value = (0.021 + 0.012 * i) * (name === 'rally' ? 0.8 : 1) * 0.5;   // outline thickness (Tim: 25% thinner; Rally's 20% thinner again; all halved 2026-10-19)
-            u.uOpacity.value = 0.8 + 0.25 * Math.sin(now * 4 + e.id * 1.3 + i);
+            u.uWidth.value = (0.021 + 0.012 * i) * (name === 'rally' ? 0.8 : name === 'ambush' ? 1.3 : 1) * 0.5;
+            u.uOpacity.value = (name === 'ambush' ? 1 : 0.8) + 0.25 * Math.sin(now * 4 + e.id * 1.3 + i);
             o.position.copy(sp.thing.mesh.position);
             o.quaternion.copy(sp.thing.mesh.quaternion);
             o.scale.copy(sp.thing.mesh.scale);
@@ -584,6 +626,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
           }
           let m = auras.get(key);
           if (!m) { m = flat(a.geo, a.color, a.opacity); m.userData.born = performance.now(); scene.add(m); auras.set(key, m); }
+          if (name === 'ambush') m.material.opacity = a.opacity * (0.9 + 0.1 * Math.sin(now * 4));
           let shrink = 1;
           if (a.fade) {
             const left = 1 - (performance.now() - m.userData.born) / 1000 / a.fade;

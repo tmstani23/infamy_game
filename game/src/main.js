@@ -53,7 +53,7 @@ async function start() {
   if (extra) for (const b of Object.values(game.state.businesses)) if (b.hideout === 'player') b.hideout = extra.id;
   const [hx, hz] = TEST.ninja && district.spawns.ninja || district.spawns.hero;   // the Shinobi start in their forest village
   const heroId = startClan(game, { id: 'player', name: TEST.ninja ? 'Shinobi clan' : 'Your clan',
-    kind: TEST.ninja ? 'ninja' : 'yakuza', position: [hx, hz], crew: TEST.ninja ? 2 : 1, ryo: TEST.playerRyo });
+    kind: TEST.ninja ? 'ninja' : 'yakuza', position: [hx, hz], crew: 1, ryo: TEST.playerRyo });
   // ?test=bot (test_params.js): you start richer and with a business the bot can raid
   const startBiz = TEST.playerOwns && Object.values(game.state.businesses).find(b => b.kind === TEST.playerOwns);
   if (startBiz) game.clans.setOwner(startBiz.id, 'player');
@@ -389,9 +389,10 @@ async function start() {
         if (n.kind === 'contractTaken' && n.clan === me && n.x != null) { minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'contractDone' && n.clan === me) contractCallout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win');
         if (n.kind === 'contractFailed' && n.clan === me) contractCallout(`Contract failed: ${n.why}`, 'loss');
+        if (n.kind === 'contractFailedOnYou' && n.clan === me) contractCallout(`A Shinobi ${n.contractType} contract against you failed`, 'win');
         if (n.kind === 'contractWarn' && n.clan === me) contractCallout('Word is the Shinobi took a job on you');
         if (n.kind === 'stealAlert' && n.by === me) contractCallout('Spotted! The alarm is up, keep taking the ryo', 'loss');
-        if (n.kind === 'stealAlert' && n.clan === me) { contractCallout('A Shinobi is in your hideout!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'stealAlert' && n.clan === me) { contractCallout(`A Shinobi is inside your ${n.place || 'business'}!`, 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'markAlert' && n.clan === me) { contractCallout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
       }
@@ -442,6 +443,7 @@ async function start() {
     fog.update(dt);
     view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId);
     crewInput.drawMarkers($('lock'));
+    unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
     { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];
       el.hidden = !hoverLamp;
       if (hoverLamp) { const n = game.stealth.snuffsLeft(h.owner), t = n ? `Snuff (${n} left tonight)` : 'No snuffs left tonight';

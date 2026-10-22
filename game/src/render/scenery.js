@@ -269,6 +269,8 @@ export function markCrewDoors(rings, state, owner) {
   for (const e of Object.values(state.entities)) if (e.owner === owner && e.type !== 'hero' && !e.dead && e.place !== 'street') held.add(e.place);
   for (const m of rings) {
     const d = m.userData.door, crew = !!d.to && d.place !== 'street' && held.has(d.place);
+    const business = d.ninja && state.businesses[d.business];
+    m.visible = !business?.hideout || business.owner === owner;
     m.material = crew ? crewDoorMaterial : d.ninja ? windowDoorMaterial : doorMaterial;
     m.scale.setScalar(crew ? 1.4 : 1);   // a bigger ring, so it is easy to spot
   }

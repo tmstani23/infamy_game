@@ -235,10 +235,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
       if (e.jailed) s.setBar((e.jailed.until - state.tick - alpha) / e.jailed.len, [0.6, 0.6, 0.65]);
       const grey = !!e.jailed, gu = s.material.uniforms;
-      if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); gu.uOpacity.value = grey ? 0.55 : 1; s.grey = grey; }
+      if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); s.grey = grey; }
       // your hidden ninja (sim/stealth.js) are drawn a little see-through (Tim 2026-10-20: half as see-through as before); nobody else is shown them at all
       const ghost = !!e.hidden && !grey;
-      if (ghost !== !!s.ghost) { gu.uOpacity.value = ghost ? 0.8 : 1; s.ghost = ghost; }
+      const veiled = ghost && !e.dead && !e.downed && (e.buffs?.veil?.until ?? -1) > state.tick;
+      gu.uOpacity.value = grey ? 0.55 : veiled ? 0.18 : ghost ? 0.8 : 1;
+      gu.uVeil.value = veiled ? 1 : 0;
+      s.ghost = ghost;
       updateTeamRing(s, e, state.entities[followId]);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
@@ -255,15 +258,20 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
       s.lanternTint = lit;
       // hidden ninja: a very slight purple shimmer rippling over them (Tim 2026-10-20)
-      const shim = ghost && !lit;
+      const shim = ghost && !lit && !veiled;
       if (shim) {
         const k = 0.5 + 0.5 * Math.sin(time * 2.4 + s.pos.x * 1.3 + s.pos.z * 0.9);
         u.uTint.value.setRGB(0.95 + 0.03 * k, 0.9, 1.05 + 0.07 * k);
         u.uSelfLight.value.setRGB(0.21 + 0.05 * k, 0.15, 0.26 + 0.09 * k);
-      } else if (s.shimmer && !lit) {
-        u.uTint.value.setRGB(1, 1, 1);
+      } else if ((s.shimmer || s.veiled) && !lit) {
+        u.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1]));
         u.uSelfLight.value.setRGB(0.2, 0.18, 0.16);
       }
+      if (veiled) {
+        u.uTint.value.setRGB(0.65, 0.78, 1.05);
+        u.uSelfLight.value.setRGB(0.09, 0.15, 0.27);
+      }
+      s.veiled = veiled;
       s.shimmer = shim;
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
@@ -295,7 +303,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // clan banners at owned businesses; a gold burst where one just changed hands
     for (const b of banners.update(state, time, state.entities[followId]?.owner)) abilityFx.claim(...banners.spot(b));
     hitFx.update(fdt);
-    abilityFx.update(fdt, state);
+    abilityFx.update(fdt, state, followId);
     shakeT = Math.max(0, shakeT - dt);
     if (shakeT > 0) {
       const a = shakeAmp * shakeT / 0.18;

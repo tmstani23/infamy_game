@@ -46,18 +46,28 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'openings') {
 }
 
 if (!process.env.AI_CASE || process.env.AI_CASE === 'match') {
-  const g = world(), brains = [];
+  // Match acceptance uses the real clock: dusk restores camp income and starts
+  // night roamers, unlike the frozen daytime used by focused decision fixtures.
+  const g = world(data('data/settings.json').dayNight), brains = [];
   let contracts = 0;
+  const contractEvents = [];
   for (const clan of ['player', 'kuroda', 'shinobi']) {
     const ninja = clan === 'shinobi';
     const h = startClan(g, { id: clan, kind: ninja ? 'ninja' : 'yakuza', bot: true });
     brains.push(ninja ? createNinjaBot(g, { clan, hero: h, rules: bots.shinobiLevels.medium })
       : createBot(g, { clan, hero: h, rules: bots.levels.medium }));
   }
-  run(g, brains, 360, () => { contracts += g.state.news.filter(n => n.kind === 'contractDone').length; return false; });
+  // Observe through the first new dawn: business contracts enter the board only
+  // at dawn, and all normal clans begin with no businesses to infiltrate.
+  run(g, brains, 900, () => {
+    contracts += g.state.news.filter(n => n.kind === 'contractDone').length;
+    contractEvents.push(...g.state.news.filter(n => ['contractTaken', 'contractFailed'].includes(n.kind)).map(n => ({ tick: g.state.tick, ...n })));
+    return contracts > 0 && ['player', 'kuroda'].every(id => own(g, id).length > 0);
+  });
   console.log('three-clan match', ['player', 'kuroda', 'shinobi'].map(id => ({ clan: id, properties: own(g, id).map(b => b.kind), ryo: g.state.clans[id].ryo, renown: g.state.clans[id].renown || 0 })), 'contracts', contracts);
   for (const id of ['player', 'kuroda']) assert.ok(own(g, id).length > 0, `${id} expands while competing for the same starter properties`);
-  assert.ok(contracts > 0, 'Shinobi complete a contract with two live rivals');
+  assert.ok(contracts > 0, `Shinobi complete a contract with two live rivals: ${JSON.stringify({ events: contractEvents, active: g.state.contracts.active.shinobi,
+    goal: brains[2].goal(), crew: Object.values(g.state.entities).filter(e => e.owner === 'shinobi').map(e => ({ type: e.type, place: e.place, hp: e.hp, x: e.x, z: e.z, order: e.order?.kind })) })}`);
 }
 
 if (!process.env.AI_CASE || process.env.AI_CASE === 'decisions') {

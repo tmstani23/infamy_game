@@ -31,7 +31,12 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     return base * (e.anim === 'run' ? R.runFactor : 1);
   }
   // hiddenAt: when it last went hidden (Assassinate needs a few seconds of it); seen = from scratch
-  function reveal(e) { if (e && canHide(e)) { e.revealUntil = state.tick + secs(R.revealSeconds); e.hidden = false; e.hiddenAt = null; } }
+  const veiled = e => canHide(e) && (e.buffs?.veil?.until ?? -1) > state.tick;
+  function reveal(e, attacking = false) {
+    if (!e || !canHide(e) || (!attacking && veiled(e))) return;
+    if (attacking && e.buffs) delete e.buffs.veil;
+    e.revealUntil = state.tick + secs(R.revealSeconds); e.hidden = false; e.hiddenAt = null;
+  }
 
   function tick() {
     // a snuff in progress: done after snuffSeconds; walking on doesn't cancel it (Tim 2026-10-21:
@@ -55,6 +60,9 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     const all = Object.values(state.entities);
     for (const e of all) {
       if (!canHide(e)) { if (e.hidden) e.hidden = false; continue; }
+      // The cloud's parting veil ignores detection and incoming-hit reveals. An
+      // outgoing attack consumes it; it also waives Assassinate's hiding timer.
+      if (veiled(e)) { e.hidden = true; continue; }
       // inside its own clan's Smoke Bomb: hidden whatever happens, but that doesn't count as hidden time
       if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = true; continue; }
       if ((e.revealUntil ?? -1) > state.tick) { e.hidden = false; continue; }
@@ -82,5 +90,5 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     state.casts?.push({ kind: 'snuff', a: e.id, x: e.x, z: e.z, tx: l.x, tz: l.z });   // the smoke flash (render/abilityfx.js)
   }
 
-  return { tick, lit, reveal, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };
+  return { tick, lit, reveal, veiled, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };
 }

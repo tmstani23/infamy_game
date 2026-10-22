@@ -77,7 +77,7 @@ export function createClans(state, units, opts = {}) {
     if (clan.ryo < price) return say(clan, `Not enough ryo (${price} needed)`);
     clan.ryo -= price;
     clan.queue.push({ unit: type, business: b.id, left: types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1) });
-    return say(clan, `Hired a ${type} for ${price} ryo`);
+    return say(clan, `Hired a ${types[type].name || type} for ${price} ryo`);
   }
 
   // --- Hospital (bonesetter's clinic) ------------------------------------------------

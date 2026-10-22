@@ -95,7 +95,13 @@ export class CharacterSprite {
     if (weapon && Object.values(sheets).some(sh => sh.glow)) {
       this.weapon = weapon;
       const firstGlow = Object.values(sheets).find(sh => sh.glow).glow;
-      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0));
+      if (weapon.void) {
+        this.voidHalo = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: true, dark: true }));
+        this.voidHalo.frustumCulled = false;
+        mesh.add(this.voidHalo);
+        this.thing.extras.push(this.voidHalo);
+      }
+      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: !!weapon.void }));
       this.glow.frustumCulled = false;
       mesh.add(this.glow);
       this.thing.extras.push(this.glow);
@@ -131,6 +137,12 @@ export class CharacterSprite {
       const swing = anim === 'attack' && swingT !== null ? Math.sin(Math.PI * swingT) * (w.attack || 0) : 0;
       const fall = anim === 'death' ? Math.max(0, 1 - this.time / 0.8) : 1;
       g.uStrength.value = w.strength * (0.9 + 0.1 * Math.sin(this.time * 2.2)) * (1 + swing) * fall;
+      if (this.voidHalo) {
+        this.voidHalo.visible = this.glow.visible;
+        const dark = this.voidHalo.material.uniforms;
+        dark.uMap.value = g.uMap.value;
+        dark.uStrength.value = g.uStrength.value;
+      }
     }
 
     this.pos.set(x, 0, z);
@@ -177,6 +189,7 @@ export class CharacterSprite {
     this.shadow.geometry.dispose();
     for (const m of [this.material, this.hidden.material, this.fill.material]) m.dispose();
     this.glow?.material.dispose();
+    this.voidHalo?.material.dispose();
   }
 
   // got hit: flash white and lean away from the attacker (dx, dz: unit push direction)

@@ -67,6 +67,9 @@
   #bar .slot .key { position: absolute; left: 4px; top: 2px; font: 700 10px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
   #bar .slot .sweep { position: absolute; inset: 0; }
   #bar .slot .secs { position: absolute; inset: 0; display: grid; place-items: center; font: 800 17px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 0 4px #000, 0 1px 0 #000; }
+  #bar .slot.vanish .secs { white-space: pre-line; text-align: center; font-size: 12px; line-height: 1.3; color: #bcdcff; text-shadow: 0 0 7px #243d70, 0 1px 2px #000; }
+  #bar .slot.vanish { border-color: #8baee0; }
+  .vanishtext { position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap; opacity: .92; font: 700 16px/1.2 system-ui, sans-serif; color: #c0dbfa; text-shadow: 0 0 7px #233b70, 0 1px 3px #000, 1px 0 2px #000; }
   #bar .slot.active { border-color: #ffd34d; box-shadow: 0 0 10px rgba(255,190,60,.7), inset 0 0 10px rgba(255,190,60,.35); }
   #bar .slot.flash { animation: ready .45s ease-out; }
   @keyframes ready { from { box-shadow: 0 0 18px 4px rgba(255,230,150,.9); filter: brightness(1.8); } }
@@ -236,6 +239,10 @@
   .heatgain span { font: 800 15px/1 system-ui, sans-serif; letter-spacing: .04em; color: #f3dcc0; }
   .heatgain b { font: 900 34px/1 system-ui, sans-serif; color: #ffd27a; }
   .ryogain { right: 150px; text-shadow: 0 0 10px #e8b21a, 0 0 22px rgba(232,178,26,.8), 0 2px 2px #000; }
+  .ryogain { flex-direction: column; align-items: flex-end; gap: 2px; }
+  .ryogain .ryoline { display: flex; align-items: baseline; gap: 8px; }
+  .ryogain .renownline { font: 800 26px/1.1 system-ui, sans-serif; color: #c799ff; text-shadow: 0 0 9px #8240bd, 0 2px 2px #000; }
+  .ryogain .renownline[hidden] { display: none; }
   /* ryo badge (src/ryo_badge.js), left of the heat gauge */
   #ryo { position: fixed; right: 150px; bottom: 18px; width: 120px; height: 120px; pointer-events: none;
     filter: drop-shadow(0 0 10px rgba(240,190,60,.45)); }

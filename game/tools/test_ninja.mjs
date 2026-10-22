@@ -238,7 +238,7 @@ const newGame = () => {
 {
   const g = newGame(), C = g.state.contracts, K = g.contracts.rules;
   const biz = Object.values(g.state.businesses);
-  const tea = biz.find(b => b.kind === 'teahouse'), izakaya = biz.find(b => b.hideout === 'kuroda');
+  const tea = biz.find(b => b.kind === 'teahouse');
   g.clans.setOwner ? g.clans.setOwner(tea.id, 'kuroda') : (tea.owner = 'kuroda');
   tea.owner = 'kuroda';
   const noGuards = () => { for (const e of Object.values(g.state.entities)) if (e.guard) delete g.state.entities[e.id]; };
@@ -253,6 +253,7 @@ const newGame = () => {
   const clan = g.state.clans.player;
   // take a Scout job: the target is warned; stand inside hidden for its seconds
   let job = want('scout');
+  const scoutQuote = g.contracts.quote(job);
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   assert.equal(C.active.player?.id, job.id, 'scout taken');
   assert.ok(g.state.news.some(n => n.kind === 'contractWarn' && n.clan === 'kuroda'), 'kuroda warned');
@@ -261,10 +262,11 @@ const newGame = () => {
   const ryo0 = clan.ryo;
   run(20 * (K.scout.seconds + 1));
   assert.ok(!C.active.player, 'scout done');
-  assert.equal(clan.ryo, ryo0 + K.scout.ryo); assert.equal(clan.renown, K.scout.renown);
+  assert.equal(clan.ryo, ryo0 + scoutQuote.ryo); assert.equal(clan.renown, scoutQuote.renown);
   // Sabotage: plant on the back-room spot at night, hold, then no payout from it at dawn
   g.step([{ type: 'time', night: true }]);
   job = want('mark');
+  const markQuote = g.contracts.quote(job);
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const spot = g.contracts.backRoom(tea);
   Object.assign(crew, { x: spot.x, z: spot.z });
@@ -276,27 +278,26 @@ const newGame = () => {
   g.step([{ type: 'time', night: false }]);
   assert.ok(!tea.sabotaged, 'used up at dawn');
   assert.ok(g.state.clans.kuroda.ryo - k0 < g.settings.units.rules.businesses.teahouse.payout, 'no teahouse payout');
-  // Steal: in through the hideout's back window, then the stash
+  // Steal: in through the business's back window, then the stash
   g.state.clans.kuroda.ryo = 1000;
-  g.state.clans.kuroda.hideoutGuards = 1;   // a bot clan's difficulty sets this (bots.json)
   crew.place = 'street';
   job = want('steal');
+  const stealQuote = g.contracts.quote(job);
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
-  const win = g.doors.find(d => d.ninja && d.place === izakaya.room);
-  // right-click the hideout with crew selected: they climb in by the back window too (Tim 2026-10-21)
+  const win = g.doors.find(d => d.ninja && d.place === tea.room);
+  // right-click the business with crew selected: they climb in by the back window too (Tim 2026-10-21)
   Object.assign(crew, { x: win.x + 0.5, z: win.z, place: 'street', order: { kind: 'stop' } });
-  g.step([{ id: boss.id, type: 'order', units: [crew.id], kind: 'enter', business: izakaya.id }]);
-  for (let i = 0; i < 20 * 3 && crew.place !== izakaya.room; i++) g.step();
-  assert.equal(crew.place, izakaya.room, 'crew climbed in by the back window');
+  g.step([{ id: boss.id, type: 'order', units: [crew.id], kind: 'enter', business: tea.id }]);
+  for (let i = 0; i < 20 * 3 && crew.place !== tea.room; i++) g.step();
+  assert.equal(crew.place, tea.room, 'crew climbed in by the back window');
   Object.assign(crew, { place: 'street', x: win.x + 0.5, z: win.z, order: { kind: 'stop' } });   // out of the way of the stash checks
   Object.assign(boss, { x: win.x, z: win.z, place: 'street' });
   g.step([{ id: boss.id, type: 'use' }]);
-  assert.equal(boss.place, izakaya.room, 'climbed into the hideout');
-  // harder steal (Tim 2026-10-20): the hideout has a guard patrolling it; send it off for this check
-  const hg = Object.values(g.state.entities).filter(e => e.guard === izakaya.id);
-  assert.ok(hg.length >= 1, `hideout has a guard (${izakaya.owner}, ${JSON.stringify(izakaya.guards)})`);
+  assert.equal(boss.place, tea.room, 'climbed into the business');
+  // harder steal (Tim 2026-10-20): the business has a guard patrolling it; send it off for this check
+  const hg = Object.values(g.state.entities).filter(e => e.guard === tea.id);
   for (const e of hg) delete g.state.entities[e.id];
-  const stash = g.contracts.stash(izakaya), r1 = clan.ryo;
+  const stash = g.contracts.stash(tea), r1 = clan.ryo;
   Object.assign(boss, { x: stash.x, z: stash.z });
   run(20 * 4);
   const p1 = C.active.player.progress;
@@ -304,7 +305,7 @@ const newGame = () => {
   Object.assign(boss, { x: stash.x + 3, z: stash.z }); run(20 * 2);
   assert.equal(C.active.player.progress, p1, 'stepping off pauses the steal, keeps the count');
   // seen inside: one alarm to the owners, and the count still runs while seen (Tim 2026-10-21)
-  const watcher = g.state.entities[g.spawn('thug', 'thug', boss.x + 1, boss.z, { owner: 'kuroda', place: izakaya.room, order: { kind: 'stop' }, hp: 1e6, maxHp: 1e6 })];
+  const watcher = g.state.entities[g.spawn('thug', 'thug', boss.x + 1, boss.z, { owner: 'kuroda', place: tea.room, order: { kind: 'stop' }, hp: 1e6, maxHp: 1e6 })];
   boss.hp = boss.maxHp = 1e6;
   Object.assign(boss, { x: stash.x, z: stash.z });
   let alarm = 0, p2 = C.active.player.progress;
@@ -314,7 +315,7 @@ const newGame = () => {
   delete g.state.entities[watcher.id];
   Object.assign(boss, { x: stash.x, z: stash.z });
   run(20 * (K.steal.seconds - 3));
-  assert.equal(clan.ryo - r1, Math.min(K.steal.max, 1000 * K.steal.share), 'stole their ryo');
+  assert.equal(clan.ryo - r1, Math.min(stealQuote.stealCap, 1000 * stealQuote.stealShare), 'stole their ryo');
   assert.equal(g.state.clans.kuroda.ryo, 1000 - (clan.ryo - r1));
   // a job not done by dawn fails and pays nothing
   boss.place = 'street'; Object.assign(boss, { x: shrine.x, z: shrine.z });
@@ -324,7 +325,7 @@ const newGame = () => {
   const r2 = clan.ryo;
   g.step([{ type: 'time', night: false }]);
   assert.ok(!C.active.player && g.state.news.some(n => n.kind === 'contractFailed'), 'ran out at dawn');
-  assert.ok(clan.ryo >= r2 && clan.renown === K.scout.renown + K.mark.renown + K.steal.renown, 'no pay for a failed job');
+  assert.ok(clan.ryo >= r2 && clan.renown === scoutQuote.renown + markQuote.renown + stealQuote.renown, 'no pay for a failed job');
   console.log('contracts ok');
 }
 // fair board (Tim 2026-10-20): at most perClan jobs on a clan, taking one swaps the rest on that clan away

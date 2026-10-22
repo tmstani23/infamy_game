@@ -51,6 +51,7 @@ const MODEL_SETS = {
   merc: ['gunner'],
   ninja_leader: ['ninja'],
   ninja_grunt: ['ninja'],
+  ninja_tanto: ['ninja'],
   archer: ['archer'],
 };
 const DEFAULT_SETS = ['civilian'];
@@ -69,6 +70,7 @@ const ITEMS = {
   swordsman: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
   rival_yakuza: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
   ninja_grunt: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left' } },   // 40% bigger (Tim 2026-10-20)
+  ninja_tanto: { file: 'tanto', mode: 'right', length: 0.62, grip: 0.2, palmOffset: 0.08, idleBack: { drop: -45, hand: 'left', forward: true }, runBack: { drop: 5, roll: 0 } },
   archer: { file: 'bow', mode: 'left', length: 1.3, grip: 0.5 },
   // Brawlers swing clubs in the right hand (the brute's grows into a kanabo once it has a model)
   // dir = haft direction in the hand bone's frame (hammer grip: across the fist, head out of the thumb side)
@@ -106,8 +108,11 @@ const setOf = f => {
 const clipOf = f => safe(base(f)).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, '');
 const safe = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase();
 
-let models = fbx(path.join(root, 'assets', 'models'));
-if (only.length) models = models.filter(m => only.includes(safe(base(m))));
+let models = fbx(path.join(root, 'assets', 'models')).map(file => ({ file, name: safe(base(file)) }));
+// A second weapon variant reuses the same rig, with independent sheet names.
+const grunt = models.find(m => m.name === 'ninja_grunt');
+if (grunt) models.push({ file: grunt.file, name: 'ninja_tanto' });
+if (only.length) models = models.filter(m => only.includes(m.name));
 const animDir = path.join(root, 'assets', 'animations');
 const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))];
 const outDir = path.join(root, 'assets', 'sprites');
@@ -117,8 +122,7 @@ if (!models.length) { console.log('No models in assets/models'); process.exit(1)
 
 const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 let written = 0;
-for (const model of models) {
-  const name = safe(base(model));
+for (const { file: model, name } of models) {
   const sets = MODEL_SETS[name] || DEFAULT_SETS;
   const variant = VARIANTS[name];
   const allVariants = [...new Set(Object.values(VARIANTS))];

@@ -89,7 +89,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shinobi: hover a lit lantern within 7, then left-click or Space | Snuff it and every lantern within 2.5 ("Snuff (N left tonight)"; 3 per night, badge shows N/3; they relight at dawn) |
 | Shinobi: Space at the village shrine | Open the contract board |
 | Shinobi: Q E R F | Shadow Step (on a visible enemy or townsperson: lands next to them with a sure crit, then auto-attacks), Caltrops, Smoke Bomb, Assassinate (reach about 4.4, 45 s). Q and F use the target-frame target first (see `ninja_clan_plan.md`) |
-| Shinobi: right-click the hideout of your Steal job | Selected crew climb in by the back window (up to 6) |
+| Shinobi: right-click the business of your active contract | Selected crew climb in by the back window (up to 6); rival HQs are off-limits |
 | K, or the Mute button | Mute or unmute sounds |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
@@ -97,6 +97,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | ? or the Controls button | Open the controls panel (Esc closes it) |
 | Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout, J dojo. A business letter fills with its owner's colour once explored (your own always) |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
+
+Phase 3G hover labels (2026-10-21): visible units have a small translucent tooltip, suppressed for the targeted unit or while hovering UI.
 
 ## Planned (not built yet)
 

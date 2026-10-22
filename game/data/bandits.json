@@ -1,8 +1,8 @@
 {
   "_note": "Bandits (2026-10-21): roamers enter at night and leave at dawn; camps persist. Both spot visible clan units within sightRange, respecting walls and stealth. Being hit also angers bandits within joinRadius. Anger expires after angrySeconds without renewed sight/hits or when the clan escapes giveUpDistance; camps also keep their leash. Roamers use roamerStats over units.json and leave roamerLoot; camps keep base unit stats and type ryo. Loot stays on bodies until collected and fades after lootSeconds. No heat. Distances in world units, times in seconds.",
   "rules": {
-    "maxOut": 13,
-    "perNight": 25,
+    "maxOut": 10,
+    "perNight": 20,
     "firstWave": 3,
     "everySeconds": 14,
     "minDistance": 25,

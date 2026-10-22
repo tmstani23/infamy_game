@@ -53,6 +53,10 @@ const STYLE = `
 .uf i { max-width: 100%; font: 10px/1.1 system-ui, sans-serif; font-style: normal; color: #9a968c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .uf.target { cursor: pointer; }
 .uf.down { filter: grayscale(1) brightness(.75); }
+#uhover { position: fixed; z-index: 8; width: 150px; align-items: stretch; gap: 3px; padding: 5px 7px;
+  background: rgba(10,12,16,.52); border-width: 1px; box-shadow: none; pointer-events: none; user-select: none; }
+#uhover .pic { display: none; }
+#uhover em { font: normal 10px/1.1 system-ui, sans-serif; color: #ccc3b3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 const COLORS = { you: ['#e9c27a', '#6ebe5a'], crew: ['#6ebe5a', '#6ebe5a'], enemy: ['#c8463a', '#c8463a'], neutral: ['#e0b04a', '#d9a23c'] };
 
@@ -71,6 +75,10 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
       hp: c.querySelector('.hp span'), status: c.querySelector('i'), id: null, model: null };
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
+  const hover = frame('hover', 'uhover');
+  hover.c.hidden = true;
+  hover.tag = document.createElement('em');
+  hover.name.after(hover.tag);
   target.c.addEventListener('click', () => { const u = game.state.entities[target.id]; if (u) jump(u); });
 
   const set = (el, prop, v) => { if (el[prop] !== v) el[prop] = v; };
@@ -89,7 +97,8 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
     set(f.hp, 'textContent', `${hp} / ${e.maxHp}`);
     set(f.status, 'textContent', frameStatus(e, game.state, heroId));
     f.c.classList.toggle('down', !!e.downed);
-    set(f.c, 'title', `${f.name.textContent} (${r.tag}): ${frameStatus(e, game.state, heroId)}, ${where(e)}`);
+    if (f.tag) set(f.tag, 'textContent', game.state.clans?.[e.owner]?.name || r.tag);
+    else set(f.c, 'title', `${f.name.textContent} (${r.tag}): ${frameStatus(e, game.state, heroId)}, ${where(e)}`);
   }
 
   function update() {
@@ -101,5 +110,15 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
     target.c.hidden = !id;
     if (id) fill(target, S[id], h);
   }
-  return { update };
+  function updateHover(pointer, overWorld) {
+    const h = game.state.entities[heroId], id = overWorld && crewInput.hovered(pointer.x, pointer.y);
+    const targeted = h && [h.attackTarget, h.swing?.target, h.execute?.target, crewInput.tabbed?.(), crewInput.looked?.()];
+    hover.c.hidden = !h || !id || targeted.includes(id);
+    if (hover.c.hidden) return;
+    fill(hover, game.state.entities[id], h);
+    const x = pointer.x + 18, y = pointer.y + 18;
+    hover.c.style.left = `${Math.max(4, Math.min(x, innerWidth - hover.c.offsetWidth - 4))}px`;
+    hover.c.style.top = `${Math.max(4, Math.min(y, innerHeight - hover.c.offsetHeight - 4))}px`;
+  }
+  return { update, updateHover };
 }

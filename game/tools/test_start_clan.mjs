@@ -47,7 +47,7 @@ for (const ninja of [false, true]) {
 }
 console.log('both normal clan setups: 200 ryo, one matching recruit, HQ only');
 
-// The separate ninja squad test and rich bot test retain explicit overrides.
+// Explicit initializer overrides remain available; the Ninja URL uses the fair opening.
 {
   const g = make();
   Object.values(g.state.businesses).find(b => b.hideout === 'player').hideout = 'yakuza';

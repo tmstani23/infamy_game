@@ -81,3 +81,7 @@ Police jitte and weapon glow (2026-10-18): the police sheets were re-exported ho
 ## Ninja look (2026-10-20, Tim OK'd)
 
 Ninja blades 40% bigger, held in the left hand in idle/walk/pointing, tip back and 45° up; thin dark purple glow (`weapon_glow.json` `ninjato`); hidden opacity 0.8 plus a slight purple shimmer. Old sheets: `assets/sprites_archive/2026-10-20_ninja_small_blade`.
+
+## Ninja (tanto) (Tim, 2026-10-21)
+
+One additional recruit using the existing ninja_grunt rig; ninja1 concept excluded. Nine animation/glow pairs (18 production `ninja_tanto_*.png` sheets), leaving old ninja sheets intact. Palm-fitted tanto: forward/up 45° idle; reverse grip trailing nearly level (5° drop) while running; attack rotations retained. Charcoal halo with tight pale-silver weapon-only additive edge, brighter on swings. Exporter supports rig aliases and per-item palm/idle/run settings. No duplicated model.
