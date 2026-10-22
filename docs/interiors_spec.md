@@ -8,7 +8,7 @@ Phase 3E (Tim, 2026-10-21): Shop, Tenements, Pawnshop, Bathhouse, Sake Brewery, 
 
 Approved painted wall panels and prop cutouts reuse the room's 3D floors, walls, depth and collision footprints. Twenty new props cover customs records/inspection, shop and pawn displays, bathing, dojo training, brewery storage/vats and manor furnishings. Sources and prompts: `assets/environment/interior_prop_previews/`; preparation: `tools/prepare_interior_prop_previews.py` and `tools/extract_interior_reuse.py`. Layout rules: [room generator](room_generator_plan.md#aligned-layouts-tim-2026-10-22).
 
-Five perspective revisions (futon, inspection table, notice board, towel shelf and bucket/stool) remain previews only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. Tim reviews revised art before replacement. Hideout custom art/layout remains deferred.
+Angle revisions approved and integrated (Tim, 2026-10-22): inspection table, customs notice board, towel shelf and bath bucket/stool. Recipes, placement and collision footprints are unchanged. Optional futon v2 stays preview-only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. Tim reviews revised art before replacement. Hideout custom art/layout remains deferred.
 
 ## Why 3D
 
