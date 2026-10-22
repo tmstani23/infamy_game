@@ -237,17 +237,26 @@ function layout(recipe, parts, rng) {
     })) return false;
     const gap = item.run_gap || 0;
     const width = count * def.size[0] + (count - 1) * gap;
-    if (width > zone.x1 - zone.x0 - (item.run_align === 'center' ? 2 : 3)) return false;
-    const centeredX = zone.x0 + (zone.x1 - zone.x0 - width) / 2;
+    // A dependent run shares its host's horizontal span and starts a fixed
+    // distance beyond its back edge (bath washing stations behind the screens).
+    const hosts = item.run_after ? placed.filter(q => q.type === item.run_after && q.zoneName === zoneName) : [];
+    if (item.run_after && !hosts.length) return false;
+    const x0 = hosts.length ? Math.min(...hosts.map(q => q.rect.x0)) : zone.x0;
+    const x1 = hosts.length ? Math.max(...hosts.map(q => q.rect.x1)) : zone.x1;
+    const margin = hosts.length ? 0 : (item.run_align === 'center' ? 2 : 3);
+    if (width > x1 - x0 - margin) return false;
+    const centeredX = x0 + (x1 - x0 - width) / 2;
     const xOptions = item.run_shift
-      ? Array.from({ length: Math.floor((zone.x1 - zone.x0 - width) * 2) + 1 }, (_, i) => zone.x0 + i * 0.5)
+      ? Array.from({ length: Math.floor((x1 - x0 - width) * 2) + 1 }, (_, i) => x0 + i * 0.5)
         .sort((a, b) => Math.abs(a - centeredX) - Math.abs(b - centeredX))
-      : [item.run_align === 'center' ? centeredX : zone.x0];
+      : [item.run_align === 'center' ? centeredX : x0];
     const zSteps = Math.floor((zone.z1 - zone.z0 - def.size[1] - 2) * 2);
-    if (zSteps < 0) return false;
-    const zOptions = item.run_depth === 'near'
-      ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + 1 + i * 0.5)
-      : Array.from({ length: TRIES }, () => zone.z0 + 1 + 0.5 * rng.int(0, zSteps));
+    if (zSteps < 0 && !hosts.length) return false;
+    const zOptions = hosts.length
+      ? [Math.max(...hosts.map(q => q.rect.z1)) + (item.run_gap_z ?? 0)]
+      : item.run_depth === 'near'
+        ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + 1 + i * 0.5)
+        : Array.from({ length: TRIES }, () => zone.z0 + 1 + 0.5 * rng.int(0, zSteps));
     for (const z of zOptions) {
       for (const x of xOptions) {
         const candidates = Array.from({ length: count }, (_, i) => {

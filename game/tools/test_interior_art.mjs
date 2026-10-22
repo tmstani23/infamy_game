@@ -91,7 +91,10 @@ for (const type of ['tenements', 'bathhouse']) for (let seed = 1; seed <= 100; s
     const washing = room.props.filter(p => p.type === 'bath_bucket_stool');
     assert.ok(washing.length >= 2 && washing.length <= 3);
     assert.equal(new Set(washing.map(p => p.rect.z0)).size, 1);
-    assert.ok(washing.every(p => p.rect.z0 - screens[0].rect.z1 >= 1 && p.rect.z0 - screens[0].rect.z1 <= 4));
+    assert.ok(washing.every(p => Math.abs(p.rect.z0 - screens[0].rect.z1 - 0.6) < 1e-6));
+    const screenCenter = (screens[0].rect.x0 + screens.at(-1).rect.x1) / 2;
+    const washCenter = (Math.min(...washing.map(p => p.rect.x0)) + Math.max(...washing.map(p => p.rect.x1))) / 2;
+    assert.ok(Math.abs(washCenter - screenCenter) < 1e-6);
   }
 }
 
@@ -127,6 +130,13 @@ for (const name of newProps) {
 const tenements = generateRoom('tenements', 1, recipes, parts).room;
 assert.equal(tenements.props.filter(p => p.type === 'futon').length, 6);
 assert.equal(tenements.props.filter(p => p.type === 'shoji_partition').length, 4);
+const bath = generateRoom('bathhouse', 1, recipes, parts).room;
+assert.deepEqual(bath.blockers, buildRoom3d('bathhouse', bath.template, plain, 0, 0, { quiet: true }).blockers);
+for (const name of ['soaking_tub', 'bath_bucket_stool', 'towel_shelf']) {
+  const piece = bath.pieces.find(p => p.name === name);
+  assert.deepEqual(piece.artAnchor, parts.props[name].painted.anchor);
+  assert.deepEqual(placePiece(piece, art, cutouts).center, parts.props[name].painted.anchor);
+}
 const alignedRun = (room, names, gap = 0) => {
   const row = room.props.filter(p => names.includes(p.type)).sort((a, b) => a.rect.x0 - b.rect.x0);
   assert.equal(row.length, names.length);

@@ -68,6 +68,9 @@ export function placePiece(entry, catalog, cutouts) {
   const shrink = item.kind === 'buildings' ? 0.9 : 1;
   return {
     flip: false, indoor: false, ...entry, item, meta, ...f,
+    // An interior can calibrate the painted floor-contact pixel without moving
+    // its recipe footprint or gameplay blocker.
+    center: entry.artAnchor ?? f.center,
     foot: rect(entry.x, entry.z, f.fa * shrink, f.fb * shrink),
     // Interior parts already provide their exact blockers, including surface-mounted props.
     solid: !entry.roomProp && item.solid > 0 ? rect(entry.x, entry.z, f.fa * item.solid, f.fb * item.solid) : null,

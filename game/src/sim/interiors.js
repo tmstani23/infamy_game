@@ -133,7 +133,8 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
     .map(q => {
       const [dx, dz] = q.def.painted?.offset || [0, 0];
       return { name: q.cutout, x: ox + q.cx + dx, z: oz + q.cz + dz,
-        indoor: true, lift: q.y, depth: true, roomProp: true, angle: q.artAngle };
+        indoor: true, lift: q.y, depth: true, roomProp: true, angle: q.artAngle,
+        artAnchor: q.def.painted?.anchor };
     });
 
   const exit = side === 'north' ? { x: ox + along, z: oz + 1.3 } : { x: ox + 1.3, z: oz + along };
