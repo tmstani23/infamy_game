@@ -134,7 +134,8 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
       const [dx, dz] = q.def.painted?.offset || [0, 0];
       return { name: q.cutout, x: ox + q.cx + dx, z: oz + q.cz + dz,
         indoor: true, lift: q.y, depth: true, roomProp: true, angle: q.artAngle,
-        artAnchor: q.def.painted?.anchor, shear: q.def.painted?.shear || 0 };
+        artAnchor: q.def.painted?.anchor, shear: q.def.painted?.shear || 0,
+        topShear: q.def.painted?.topShear || 0 };
     });
 
   const exit = side === 'north' ? { x: ox + along, z: oz + 1.3 } : { x: ox + 1.3, z: oz + along };

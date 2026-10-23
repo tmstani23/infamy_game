@@ -11,15 +11,17 @@ export const loadTex = url => new Promise((ok, fail) => loader.load(url, ok, und
 export const quad = new THREE.PlaneGeometry(1, 1);
 const shearedQuads = new Map();
 
-// Adjust a painted horizontal axis without tilting vertical posts. Keep the
-// mesh shared between identical cutouts; neither footprint nor blocker moves.
-function spriteQuad(w, h, shear) {
-  if (!shear) return quad;
-  const key = `${w}:${h}:${shear}`;
+// Match the bottom and top painted edge slopes independently to the camera's
+// wall/floor diagonal. The quad corners move, but its footprint/blocker do not.
+function spriteQuad(w, h, shear, topShear = 0) {
+  if (!shear && !topShear) return quad;
+  const key = `${w}:${h}:${shear}:${topShear}`;
   if (!shearedQuads.has(key)) {
     const geometry = quad.clone(), position = geometry.attributes.position;
-    for (let i = 0; i < position.count; i++)
-      position.setY(i, position.getY(i) + shear * w / h * position.getX(i));
+    for (let i = 0; i < position.count; i++) {
+      const y = position.getY(i);
+      position.setY(i, y + (shear + topShear * (y + 0.5)) * w / h * position.getX(i));
+    }
     position.needsUpdate = true;
     shearedQuads.set(key, geometry);
   }
@@ -28,21 +30,22 @@ function spriteQuad(w, h, shear) {
 
 // Anything drawn as a sprite and sorted by its footprint
 export class Thing {
-  constructor(mesh, foot, big = false, shear = 0) {
+  constructor(mesh, foot, big = false, shear = 0, topShear = 0) {
     this.mesh = mesh;
     this.foot = foot;          // { minX, maxX, minZ, maxZ }
     this.extras = [];          // flames and glows drawn right after the sprite
     this.lights = [];
     this.big = big;            // turns see-through when the hero walks behind it
     this.shear = shear;
+    this.topShear = topShear;
     this.cut = 0;
     this.mask = null;
     this.updateScreen();
   }
   updateScreen() {
-    const c = toScreen(this.mesh.position), hw = this.mesh.scale.x / 2;
-    const hh = (this.mesh.scale.y + Math.abs(this.shear) * this.mesh.scale.x) / 2;
-    this.screen = { x0: c.x - hw, x1: c.x + hw, y0: c.y - hh, y1: c.y + hh };
+    const c = toScreen(this.mesh.position), hw = this.mesh.scale.x / 2, hh = this.mesh.scale.y / 2;
+    const ys = [-hw, hw].flatMap(x => [-hh, hh].map(y => y + (this.shear + this.topShear * (y / this.mesh.scale.y + 0.5)) * x));
+    this.screen = { x0: c.x - hw, x1: c.x + hw, y0: c.y + Math.min(...ys), y1: c.y + Math.max(...ys) };
     this.depth = (this.foot.minX + this.foot.maxX + this.foot.minZ + this.foot.maxZ) / 2;
   }
   // Is the art opaque where world point p lands on screen?
@@ -50,7 +53,8 @@ export class Thing {
     if (!this.mask) return true;
     const d = p.clone().sub(this.mesh.position);
     const x = d.dot(CAM_RIGHT), y = d.dot(CAM_UP);
-    const u = x / this.mesh.scale.x + 0.5, v = 0.5 - (y - this.shear * x) / this.mesh.scale.y;
+    const sourceY = (y - (this.shear + this.topShear * 0.5) * x) / (1 + this.topShear * x / this.mesh.scale.y);
+    const u = x / this.mesh.scale.x + 0.5, v = 0.5 - sourceY / this.mesh.scale.y;
     if (u < 0 || u >= 1 || v < 0 || v >= 1) return false;
     const { w, h, data } = this.mask;
     return data[Math.floor(v * h) * w + Math.floor(u * w)] > 0;
@@ -200,7 +204,7 @@ function cutoutThing(s, tex) {
     mat.uniforms.uClip.value.set(s.x, 0, s.z, s.cut);
     mat.uniforms.uClipSlope.value = D.dot(CAM_UP) / D.dot(CAM_RIGHT);
   }
-  const mesh = new THREE.Mesh(spriteQuad(meta.w, meta.h, s.shear || 0), mat);
+  const mesh = new THREE.Mesh(spriteQuad(meta.w, meta.h, s.shear || 0, s.topShear || 0), mat);
   mesh.quaternion.copy(CAM_QUAT);
   if (s.angle) mesh.rotateZ(THREE.MathUtils.degToRad(s.angle));
   mesh.scale.set(meta.w * k, meta.h * k, 1);
@@ -208,7 +212,7 @@ function cutoutThing(s, tex) {
   mesh.frustumCulled = false;
 
   const isBuilding = item.kind === 'buildings';
-  const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2, s.shear || 0);
+  const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2, s.shear || 0, s.topShear || 0);
   thing.building = s.building ?? null;   // index in the district's buildings (street buildings only)
   thing.prop = s.prop ?? null;           // index in the district's props (a snuffed lantern goes dark, sim/stealth.js)
   if (thing.big) thing.mask = alphaMask(tex.image, flip);
