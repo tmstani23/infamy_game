@@ -113,7 +113,7 @@
     "props": [
       {"type": "counter", "count": 1},
       {"type": "tansu", "count": [2, 3]},
-      {"type": "pawn_display", "variants": ["pawn_display", "pawn_valuables_display", "pawn_display", "merchandise_shelf"], "count": 4, "area": "display_line", "place": "display_run", "run_align": "center", "run_gap": 0.5},
+      {"type": "pawn_display", "variants": ["pawn_display", "pawn_valuables_display", "merchandise_shelf"], "count": 3, "area": "display_line", "place": "display_run", "run_align": "center", "run_gap": 0.5},
       {"type": "records_shelf", "count": 1, "area": "records", "anchor": "east"},
       {"type": "andon", "count": [2, 3], "place": "corners"}
     ]

@@ -149,7 +149,7 @@ const alignedRun = (room, names, gap = 0) => {
 const shop = generateRoom('shop', 1, recipes, parts).room;
 alignedRun(shop, ['merchandise_shelf', 'shop_dry_goods_shelf', 'shop_textile_shelf']);
 const pawnshop = generateRoom('pawnshop', 1, recipes, parts).room;
-alignedRun(pawnshop, ['pawn_display', 'pawn_display', 'pawn_valuables_display', 'merchandise_shelf'], 0.5);
+alignedRun(pawnshop, ['pawn_display', 'pawn_valuables_display', 'merchandise_shelf'], 0.5);
 const brewery = generateRoom('sake_brewery', 1, recipes, parts).room;
 alignedRun(brewery, ['brewery_bottle_shelf', 'brewery_ceramic_shelf'], 1);
 assert.ok(!brewery.props.some(p => p.type === 'sake_shelf'));
