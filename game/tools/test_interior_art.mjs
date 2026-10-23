@@ -146,8 +146,23 @@ const alignedRun = (room, names, gap = 0) => {
   for (let i = 1; i < row.length; i++) assert.ok(Math.abs(row[i].rect.x0 - row[i - 1].rect.x1 - gap) < 1e-6);
   return row;
 };
-const shop = generateRoom('shop', 1, recipes, parts).room;
-alignedRun(shop, ['merchandise_shelf', 'shop_dry_goods_shelf', 'shop_textile_shelf']);
+const shopShelfTypes = ['merchandise_shelf', 'shop_dry_goods_shelf', 'shop_textile_shelf'];
+for (let seed = 1; seed <= 100; seed++) {
+  const { room: shop, problems } = generateRoom('shop', seed, recipes, parts);
+  assert.deepEqual(problems, [], `shop ${seed}`);
+  const shopShelves = shop.props.filter(p => shopShelfTypes.includes(p.type));
+  assert.equal(shopShelves.length, 6, `shop ${seed}: missing shelf`);
+  const shopRows = [...new Set(shopShelves.map(p => p.rect.z0))].sort((a, b) => a - b)
+    .map(z => shopShelves.filter(p => p.rect.z0 === z).sort((a, b) => a.rect.x0 - b.rect.x0));
+  assert.equal(shopRows.length, 2, `shop ${seed}: expected two rows`);
+  for (const row of shopRows) {
+    assert.equal(row.length, 3);
+    assert.equal(new Set(row.map(p => p.type)).size, 3);
+    for (let i = 1; i < row.length; i++) assert.ok(Math.abs(row[i].rect.x0 - row[i - 1].rect.x1) < 1e-6);
+  }
+  assert.deepEqual(shopRows[0].map(p => p.rect.x0), shopRows[1].map(p => p.rect.x0));
+  assert.ok(shopRows[1][0].rect.z0 - shopRows[0][0].rect.z1 >= 2);
+}
 const pawnshop = generateRoom('pawnshop', 1, recipes, parts).room;
 alignedRun(pawnshop, ['pawn_display', 'pawn_valuables_display', 'merchandise_shelf'], 0.5);
 const brewery = generateRoom('sake_brewery', 1, recipes, parts).room;
@@ -200,4 +215,4 @@ for (const [type, seed] of [['gambling_den', 4], ['manor', 1]]) {
 for (const material of Object.values(parts.materials)) {
   assert.ok(existsSync(new URL(`../art/interior3d/${material.file}.png`, import.meta.url)), material.file);
 }
-console.log('Painted interiors: orientations, collision/loot/light preservation, art files, window clearance, and 400 furnished layouts passed.');
+console.log('Painted interiors: orientations, collision/loot/light preservation, art files, window clearance, and 500 furnished layouts passed.');

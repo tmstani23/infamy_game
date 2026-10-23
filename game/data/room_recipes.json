@@ -50,10 +50,11 @@
     "floor": "floorboards",
     "walls": { "fill": ["aged_plaster"], "windows": [1, 3], "window": "lattice_window" },
     "door": ["doorway"],
-    "areas": {"display_line": [0.12, 0.68, 0.88, 0.92]},
+    "areas": {"display_line": [0.12, 0.68, 0.88, 0.92], "inner_display_line": [0.12, 0.43, 0.88, 0.65]},
     "props": [
       { "type": "counter", "count": 1 },
       { "type": "merchandise_shelf", "variants": ["merchandise_shelf", "shop_dry_goods_shelf", "shop_textile_shelf"], "count": 3, "area": "display_line", "place": "display_run", "run_align": "center" },
+      { "type": "merchandise_shelf", "variants": ["merchandise_shelf", "shop_dry_goods_shelf", "shop_textile_shelf"], "count": 3, "area": "inner_display_line", "place": "display_run", "run_align": "center", "run_depth": "wall", "run_wall_gap": 0.5, "run_back_clearance": 0.2, "run_front_clearance": 0.2 },
       { "type": "tansu", "count": 1 },
       { "type": "andon", "count": [2, 3], "place": "corners" },
       { "type": "red_lantern", "count": [2, 3], "place": "over", "over": ["counter", "merchandise_shelf", "shop_dry_goods_shelf", "shop_textile_shelf"] }
