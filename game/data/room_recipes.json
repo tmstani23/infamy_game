@@ -180,7 +180,7 @@
       {"type": "manor_reception_table", "count": 1, "area": "reception", "place": "display_run", "run_align": "center"},
       {"type": "zabuton", "count": 4, "area": "reception", "place": "around", "around": "manor_reception_table"},
       {"type": "manor_armor_display", "count": 1, "area": "gallery"},
-      {"type": "manor_scroll_cabinet", "count": [1, 2], "area": "cabinet", "place": "display_run", "run_align": "center", "run_shift": true, "run_depth": "wall", "run_gap": 0.5},
+      {"type": "manor_scroll_cabinet", "count": [1, 2], "area": "cabinet", "place": "display_run", "run_align": "center", "run_shift": true, "run_depth": "wall", "run_wall_gap": 0.55, "run_gap": 0.5},
       {"type": "hibachi", "count": 1, "area": "hearth"},
       {"type": "andon", "count": [4, 5], "place": "corners"}
     ],
