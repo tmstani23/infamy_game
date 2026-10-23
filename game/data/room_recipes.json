@@ -148,7 +148,7 @@
     "floor": "floorboards",
     "walls": {"fill": ["planks", "aged_planks"], "windows": [0, 0]},
     "door": ["cargo_door"],
-    "areas": {"bottle_line": [0.04, 0.04, 0.96, 0.28], "brewing": [0.12, 0.28, 0.92, 0.78], "storage": [0.72, 0.08, 0.96, 0.88]},
+    "areas": {"bottle_line": [0.04, 0.04, 0.96, 0.28], "brewing": [0.12, 0.28, 0.92, 0.78], "storage": [0.72, 0.08, 0.96, 0.88], "west_keg_line": [0, 0.08, 0.12, 0.9], "east_keg_line": [0.88, 0.08, 1, 0.9]},
     "back_room": {
       "depth": [6, 6], "fill": "planks",
       "props": [
@@ -160,7 +160,8 @@
     "props": [
       {"type": "brewery_bottle_shelf", "variants": ["brewery_bottle_shelf", "brewery_ceramic_shelf"], "count": 2, "area": "bottle_line", "place": "display_run", "run_align": "center", "run_gap": 1, "run_shift": true},
       {"type": "brewing_vat", "count": [2, 3], "area": "brewing", "place": "display_run", "run_align": "center", "run_gap": 1.5},
-      {"type": "sake_keg", "count": [5, 7], "area": "storage"},
+      {"type": "sake_keg", "count": [2, 3], "area": "west_keg_line", "place": "side_run", "side": "west", "run_gap": 0.7},
+      {"type": "sake_keg", "count": [2, 3], "area": "east_keg_line", "place": "side_run", "side": "east", "run_gap": 0.7},
       {"type": "barrels", "count": [1, 2], "area": "storage"},
       {"type": "counter", "count": 1, "wall": ["north"]},
       {"type": "andon", "count": [3, 4], "place": "corners"}

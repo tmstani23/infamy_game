@@ -168,6 +168,20 @@ alignedRun(pawnshop, ['pawn_display', 'pawn_valuables_display', 'merchandise_she
 const brewery = generateRoom('sake_brewery', 1, recipes, parts).room;
 alignedRun(brewery, ['brewery_bottle_shelf', 'brewery_ceramic_shelf'], 1);
 assert.ok(!brewery.props.some(p => p.type === 'sake_shelf'));
+for (let seed = 1; seed <= 100; seed++) {
+  const { room, problems } = generateRoom('sake_brewery', seed, recipes, parts);
+  assert.deepEqual(problems, [], `sake_brewery ${seed}`);
+  const mainEnd = room.template.zones.find(z => z.name === 'main').rect[3];
+  const kegs = room.props.filter(p => p.type === 'sake_keg' && p.rect.z1 <= mainEnd);
+  const west = kegs.filter(p => p.rect.x0 < 2).sort((a, b) => a.rect.z0 - b.rect.z0);
+  const east = kegs.filter(p => p.rect.x1 > room.size[0] - 2).sort((a, b) => a.rect.z0 - b.rect.z0);
+  assert.equal(kegs.length, west.length + east.length, `sake_brewery ${seed}: loose keg`);
+  for (const row of [west, east]) {
+    assert.ok(row.length >= 2 && row.length <= 3, `sake_brewery ${seed}: incomplete side row`);
+    assert.equal(new Set(row.map(p => p.rect.x0)).size, 1);
+    for (let i = 1; i < row.length; i++) assert.ok(Math.abs(row[i].rect.z0 - row[i - 1].rect.z1 - 0.7) < 1e-6);
+  }
+}
 const manor = generateRoom('manor', 1, recipes, parts).room;
 for (const name of ['manor_reception_table', 'manor_reception_chair', 'manor_reception_chair_back', 'manor_armor_display', 'manor_scroll_cabinet'])
   assert.ok(manor.props.some(p => p.type === name), `manor missing ${name}`);
@@ -215,4 +229,4 @@ for (const [type, seed] of [['gambling_den', 4], ['manor', 1]]) {
 for (const material of Object.values(parts.materials)) {
   assert.ok(existsSync(new URL(`../art/interior3d/${material.file}.png`, import.meta.url)), material.file);
 }
-console.log('Painted interiors: orientations, collision/loot/light preservation, art files, window clearance, and 500 furnished layouts passed.');
+console.log('Painted interiors: orientations, collision/loot/light preservation, art files, window clearance, and 600 furnished layouts passed.');

@@ -282,6 +282,35 @@ function layout(recipe, parts, rng) {
     return false;
   };
 
+  // Small floor props can form a tidy row beside either side wall, leaving
+  // the middle of a workroom open. Search along the wall if its door needs space.
+  const placeSideRun = (item, zoneName, count) => {
+    const def = parts.props[item.type], zone = areaOf(item, zoneName);
+    if (!def || def.rule !== 'floor') return false;
+    const gap = item.run_gap ?? 0;
+    const length = count * def.size[1] + (count - 1) * gap;
+    const x = item.side === 'east' ? zone.x1 - def.size[0] - (item.run_wall_gap ?? 0.4)
+      : zone.x0 + (item.run_wall_gap ?? 0.4);
+    if (x < zone.x0 || x + def.size[0] > zone.x1 || length > zone.z1 - zone.z0) return false;
+    const centeredZ = zone.z0 + (zone.z1 - zone.z0 - length) / 2;
+    const zOptions = Array.from({ length: Math.floor((zone.z1 - zone.z0 - length) * 2) + 1 },
+      (_, i) => zone.z0 + i * 0.5).sort((a, b) => Math.abs(a - centeredZ) - Math.abs(b - centeredZ));
+    for (const z of zOptions) {
+      const candidates = Array.from({ length: count }, (_, i) => {
+        const p = { type: item.type, at: [x, z + i * (def.size[1] + gap)] };
+        return { p, rect: propRect(p, def, [X, Z]) };
+      });
+      if (candidates.some(({ rect }) => !fits(rect, zone, def) || overlap(rect, entryClear)
+        || clearings.some(c => overlap(rect, c.rect)))) continue;
+      for (const { p, rect } of candidates) {
+        placed.push({ type: p.type, def, rect, p, item, zoneName, fixedRun: true });
+        template.props.push(p);
+      }
+      return true;
+    }
+    return false;
+  };
+
   const placeAround = (item, zoneName, count) => {
     const def = parts.props[item.type], zone = areaOf(item, zoneName);
     const host = placed.find(q => q.type === item.around && q.zoneName === zoneName);
@@ -334,7 +363,7 @@ function layout(recipe, parts, rng) {
   const order = item => {
     const def = parts.props[item.type] || { size: [1, 1] };
     if (def.rule === 'wall') return 0;
-    if (item.place === 'screen_run' || item.place === 'display_run') return 0.5;
+    if (item.place === 'screen_run' || item.place === 'display_run' || item.place === 'side_run') return 0.5;
     if (item.place === 'around') return 0.9;
     if (def.rule === 'ceiling') return 3;
     if (item.place === 'corners') return 2;
@@ -347,6 +376,10 @@ function layout(recipe, parts, rng) {
   for (const j of jobs) {
     if (j.item.place === 'screen_run' || j.item.place === 'display_run') {
       if (!placeLineRun(j.item, j.zoneName, j.n)) missing.push(`could not fit the ${j.item.type} display run in the ${j.zoneName.replace('_', ' ')}`);
+      continue;
+    }
+    if (j.item.place === 'side_run') {
+      if (!placeSideRun(j.item, j.zoneName, j.n)) missing.push(`could not fit the ${j.item.type} side run in the ${j.zoneName.replace('_', ' ')}`);
       continue;
     }
     if (j.item.place === 'around') {
