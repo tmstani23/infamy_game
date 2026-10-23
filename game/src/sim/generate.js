@@ -250,15 +250,17 @@ function layout(recipe, parts, rng) {
       ? Array.from({ length: Math.floor((x1 - x0 - width) * 2) + 1 }, (_, i) => x0 + i * 0.5)
         .sort((a, b) => Math.abs(a - centeredX) - Math.abs(b - centeredX))
       : [item.run_align === 'center' ? centeredX : x0];
-    const zSteps = Math.floor((zone.z1 - zone.z0 - def.size[1] - 2) * 2);
+      const backClearance = item.run_back_clearance ?? 1;
+      const frontClearance = item.run_front_clearance ?? 1;
+      const zSteps = Math.floor((zone.z1 - zone.z0 - def.size[1] - backClearance - frontClearance) * 2);
     if (zSteps < 0 && !hosts.length) return false;
     const zOptions = hosts.length
       ? [Math.max(...hosts.map(q => q.rect.z1)) + (item.run_gap_z ?? 0)]
       : item.run_depth === 'wall'
         ? [zone.z0 + (item.run_wall_gap ?? 0.2)]
       : item.run_depth === 'near'
-        ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + 1 + i * 0.5)
-        : Array.from({ length: TRIES }, () => zone.z0 + 1 + 0.5 * rng.int(0, zSteps));
+          ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + backClearance + i * 0.5)
+          : Array.from({ length: TRIES }, () => zone.z0 + backClearance + 0.5 * rng.int(0, zSteps));
     for (const z of zOptions) {
       for (const x of xOptions) {
         const candidates = Array.from({ length: count }, (_, i) => {
@@ -283,19 +285,27 @@ function layout(recipe, parts, rng) {
   const placeAround = (item, zoneName, count) => {
     const def = parts.props[item.type], zone = areaOf(item, zoneName);
     const host = placed.find(q => q.type === item.around && q.zoneName === zoneName);
-    if (!def || !host || count !== 4) return false;
+    if (!def || !host || (count !== 4 && !(count === 2 && item.layout === 'opposite_pair'))) return false;
     const r = host.rect;
-    const spots = [
-      [r.x0 + 0.7, r.z0 - 1], [r.x1 - 1.7, r.z0 - 1],
-      [r.x0 + 0.7, r.z1], [r.x1 - 1.7, r.z1],
-    ];
-    const candidates = spots.map(at => {
-      const p = { type: item.type, at };
-      return { p, rect: propRect(p, def, [X, Z]) };
+    // The two painted views face each other across the table's long sides.
+    // Both share its centre line and follow the room's unrotated floor axes.
+    const spots = item.layout === 'opposite_pair'
+      ? [[r.x0 + (r.x1 - r.x0 - def.size[0]) / 2, r.z0 - def.size[1]],
+        [r.x0 + (r.x1 - r.x0 - def.size[0]) / 2, r.z1]]
+      : [[r.x0 + 0.7, r.z0 - 1], [r.x1 - 1.7, r.z0 - 1],
+        [r.x0 + 0.7, r.z1], [r.x1 - 1.7, r.z1]];
+    const candidates = spots.map((at, i) => {
+      const type = item.variants?.[i] || item.type;
+      const variant = parts.props[type];
+      if (!variant || variant.rule !== def.rule || variant.size[0] !== def.size[0] || variant.size[1] !== def.size[1]) return null;
+      const p = { type, at };
+      return { p, rect: propRect(p, variant, [X, Z]), def: variant };
     });
-    if (candidates.some(({ rect }) => !fits(rect, zone, def) || overlap(rect, entryClear))) return false;
-    for (const { p, rect } of candidates) {
-      placed.push({ type: item.type, def, rect, p, item, zoneName, fixedRun: true });
+    if (candidates.some(candidate => !candidate || !fits(candidate.rect, zone, candidate.def)
+      || overlap(candidate.rect, entryClear)
+      || (item.layout === 'opposite_pair' && placed.some(q => q !== host && overlap(candidate.rect, q.rect))))) return false;
+    for (const { p, rect, def: variant } of candidates) {
+      placed.push({ type: p.type, def: variant, rect, p, item, zoneName, fixedRun: true });
       template.props.push(p);
     }
     return true;

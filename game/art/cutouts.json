@@ -2218,6 +2218,8 @@
  "interior/brewery_bottle_shelf": {"w":291,"h":300,"left":0,"right":290,"bottomX":145,"bottomY":299,"glows":[]},
  "interior/brewery_ceramic_shelf": {"w":300,"h":268,"left":0,"right":299,"bottomX":150,"bottomY":267,"glows":[]},
  "interior/manor_reception_table": {"w":300,"h":145,"left":0,"right":299,"bottomX":150,"bottomY":144,"glows":[]},
+  "interior/manor_reception_chair": {"w":1272,"h":1237,"left":184,"right":1044,"bottomX":682,"bottomY":1197,"glows":[]},
+  "interior/manor_reception_chair_back": {"w":1272,"h":1236,"left":176,"right":1124,"bottomX":744,"bottomY":1174,"glows":[]},
  "interior/manor_armor_display": {"w":195,"h":300,"left":0,"right":194,"bottomX":97,"bottomY":299,"glows":[]},
  "interior/manor_scroll_cabinet": {"w":300,"h":198,"left":0,"right":299,"bottomX":150,"bottomY":197,"glows":[]},
  "buildings/rope_bridge": {

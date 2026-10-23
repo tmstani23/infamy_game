@@ -117,7 +117,8 @@ const newProps = ['inspection_table', 'ledger_stack', 'records_shelf', 'customs_
   'merchandise_shelf', 'pawn_display', 'soaking_tub', 'bath_bucket_stool',
   'towel_shelf', 'weapon_rack', 'practice_dummy', 'brewing_vat',
   'shop_dry_goods_shelf', 'shop_textile_shelf', 'pawn_valuables_display',
-  'brewery_bottle_shelf', 'brewery_ceramic_shelf', 'manor_reception_table',
+  'brewery_bottle_shelf', 'brewery_ceramic_shelf', 'manor_reception_table', 'manor_reception_chair',
+  'manor_reception_chair_back',
   'manor_armor_display', 'manor_scroll_cabinet'];
 for (const name of newProps) {
   assert.equal(parts.props[name].cutout, name);
@@ -153,9 +154,16 @@ const brewery = generateRoom('sake_brewery', 1, recipes, parts).room;
 alignedRun(brewery, ['brewery_bottle_shelf', 'brewery_ceramic_shelf'], 1);
 assert.ok(!brewery.props.some(p => p.type === 'sake_shelf'));
 const manor = generateRoom('manor', 1, recipes, parts).room;
-for (const name of ['manor_reception_table', 'manor_armor_display', 'manor_scroll_cabinet'])
+for (const name of ['manor_reception_table', 'manor_reception_chair', 'manor_reception_chair_back', 'manor_armor_display', 'manor_scroll_cabinet'])
   assert.ok(manor.props.some(p => p.type === name), `manor missing ${name}`);
-assert.equal(manor.props.filter(p => p.type === 'zabuton').length, 4);
+const receptionTable = manor.props.find(p => p.type === 'manor_reception_table');
+const farChair = manor.props.find(p => p.type === 'manor_reception_chair');
+const nearChair = manor.props.find(p => p.type === 'manor_reception_chair_back');
+assert.ok(Math.abs(farChair.rect.z1 - receptionTable.rect.z0) < 1e-6);
+assert.ok(Math.abs(nearChair.rect.z0 - receptionTable.rect.z1) < 1e-6);
+assert.ok(Math.abs(farChair.cx - receptionTable.cx) < 1e-6);
+assert.ok(Math.abs(nearChair.cx - receptionTable.cx) < 1e-6);
+assert.equal(manor.props.filter(p => p.type === 'zabuton').length, 0);
 const customs = generateRoom('customs_house', 1, recipes, parts).room;
 for (const name of ['inspection_table', 'ledger_stack', 'records_shelf', 'customs_notice_board'])
   assert.ok(customs.props.some(p => p.type === name), `customs house missing ${name}`);
