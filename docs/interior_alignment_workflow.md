@@ -28,6 +28,23 @@ Make each data correction once, rerender representative seeds, then run `node ga
 4. Compare a long horizontal edge on the art with the matching wall or divider. The fixed camera projects each floor axis at slope ±0.447. Measure two points on a lower painted edge and two on the matching upper edge. Apply the difference from the target slope as per-asset `painted.shear` for the lower edge and `painted.topShear` for any additional upper-edge correction. This maps the four image-plane corners while leaving gameplay collision and room placement alone. Reserve `artAngle` for flat objects. If this small correction cannot make the perspective believable, record an art exception.
 5. Recheck the same seed at close range, then inspect the other eleven seeds and representative rooms using the same asset. Confirm wall contact, upright posts, no overlaps, walkable paths, and interaction access. Run the art and 100-seed room tests above. Record the asset-level correction once rather than adding seed-specific tweaks.
 
+### Calculate the painted edge correction
+
+Use the same fixed-seed screenshot (or the source PNG at its original size) for every measurement. In image coordinates, `x` increases rightward and `y` downward. Pick two points on one **lower structural edge** of the prop, ordered left to right: `(xL, yL)` and `(xR, yR)`. Pick another two on the corresponding **upper structural edge**. Measure long, straight edges of the furniture body, not transparent PNG corners, cast shadows, ornamentation, or details on a different depth plane. If the two edges belong to different room axes, first correct the prop's facing or placement; their slopes should not be forced to match.
+
+For each edge, compute `m = (yR - yL) / (xR - xL)`. The fixed camera in `game/src/render/iso.js` gives a target screen slope of `+0.4472` for the floor axis that descends to the right (the right/back wall in the usual view), or `-0.4472` for the axis that rises to the right (the left/back wall). These are about `+24.1°` and `-24.1°`, respectively. Choose the sign by comparing the specific prop edge with the nearby wall or floor seam it is meant to parallel; do not choose it from the prop name.
+
+The renderer in `game/src/render/scenery.js` moves the sprite quad vertically while keeping its x coordinates fixed. In the downward-positive image convention, the rendered lower-edge slope is `m_lower - shear`, and the upper-edge slope is `m_upper - shear - topShear`. Therefore set:
+
+```text
+painted.shear    = m_lower - m_target
+painted.topShear = m_upper - m_lower
+```
+
+For example, if a manor cabinet's lower and upper edges measure `+0.337` and `+0.257` against a `+0.447` wall, the starting correction is `shear = -0.110` and `topShear = -0.080`. This matches the current manor scroll cabinet calibration in `game/data/interior_parts.json`. Measure the *visible structural edges after rendering* to confirm the result; the equation is a starting point when the painted art has irregular edges.
+
+This is a four-corner **image-plane trapezoid correction**, not a 3D rotation or a projective reconstruction of hidden sides. It is suitable for small slope errors while the vertical posts still look upright. If the required shear makes posts lean badly, the top and bottom edges cannot both read correctly, or the art depicts the opposite side of the object, record an art-facing exception for a later four-angle sheet. A scale change alters size but not slope. After any shear or scale change, recheck the visible floor-contact point with the footprint overlay: `painted.anchor` is a pixel coordinate in the cutout, while `painted.offset` moves its image relative to the world footprint. Do not move collision or recipe positions to compensate for the quad correction.
+
 The bathhouse towel shelf is the reference case: its contact anchor placed it correctly on the floor, but its top edge still missed the right-wall slope. A `painted.shear` of `0.16` corrected that display angle without changing the shelf art, recipe position, or blocker. The user accepted bathhouse seed 1 after this adjustment.
 
 For future *new* concept props, prepare a concise prompt plus a reference to approved art and let the user generate a sheet with all four camera-matched angles in Gemini. The user will copy the sheet into the project; then cut out, catalog, anchor, and place the views in the generator. Do not rotate an upright cutout to fake a missing view. Ask for new art only when the required facing is absent; retain the user's approved existing assets.
