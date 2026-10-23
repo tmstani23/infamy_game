@@ -1,0 +1,12 @@
+# Manor interior alignment plan
+
+Reference: the in-game manor is generated with seed 1 (`game/data/port_town.json`). Review each phase against that seed, then sample the other manor seeds. Preserve the approved wall art and existing painted furniture. Complete one phase and visually check it before moving to the next.
+
+1. **Scroll cabinets — first.** Make the one or two cabinets a straight, coherent display along the far wall rather than independently sampled floor positions. Correct the painted base contact and its too-shallow/downward-bent diagonal with per-asset display geometry where possible; do not change collision to hide an art mismatch. Check both long edges against the wall and floor grid, and make sure the row does not cover a door or window.
+2. **Privacy screens.** Replace the overlapping cluster with an aligned run tied to a wall, leaving a usable private area and a clear route to the reception table. Keep the existing screens.
+3. **Reception furniture.** Replace the four tiny cushions with a proper chair arrangement. No suitable chair art is catalogued yet: create a chair concept/preview for approval before adding it to the game. Then calibrate the chair and table as one seating group, including relative size, painted floor contact, and access.
+4. **Armor display.** Move it into a gallery corner and reduce its visual size modestly if the in-game comparison still calls for it. Its current floor contact and alignment are good; preserve those.
+5. **Drawers.** Review only the one older drawer in the back corner. The other differently coloured drawers are approved new pieces; retain them. Replace or reposition that one only if it remains visually out of place after the layout pass.
+6. **Composition and regression.** Balance reception, gallery and privacy zones without filling every open tile. Check seed 1 in game, inspect the other manor seeds, then run `node game/tools/test_interior_art.mjs` and `node game/tools/test_rooms.mjs 100`. Verify doorway access, seating access and that no furniture intersects windows or the inner wall.
+
+Current status: phase 1's cabinet row, floor-contact anchor and edge shear are implemented; automated art checks and 100 seeds per room type pass. Awaiting a close in-game look at manor seed 1 before phase 2. Tenements are considered good and are reserved for a later verification; pawnshop and brewery remain separate passes. Hideout customization remains deferred.

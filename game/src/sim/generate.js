@@ -254,6 +254,8 @@ function layout(recipe, parts, rng) {
     if (zSteps < 0 && !hosts.length) return false;
     const zOptions = hosts.length
       ? [Math.max(...hosts.map(q => q.rect.z1)) + (item.run_gap_z ?? 0)]
+      : item.run_depth === 'wall'
+        ? [zone.z0 + 0.2]
       : item.run_depth === 'near'
         ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + 1 + i * 0.5)
         : Array.from({ length: TRIES }, () => zone.z0 + 1 + 0.5 * rng.int(0, zSteps));
