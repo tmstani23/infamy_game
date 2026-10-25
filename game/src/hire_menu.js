@@ -6,7 +6,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
   // what your clan may hire (units.json "clan": ninja crew for the Shinobi clan only)
   const owner = game.state.entities[heroId]?.owner;
   const hireable = Object.keys(units.types).filter(type => game.clans.hirePrice(owner, type) !== null);
-  let open = false, shown = '';
+  let open = false, shown = '', armedDismiss = null;
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
   // the teahouse (Shinobi: the village dojo) the hero is standing in, if any
@@ -19,7 +19,17 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     send({ id: heroId, type: 'hire', business: b.id, unit: hireable[i] });
   }
 
+  function dismiss(id) {
+    const b = teahouse(), c = clan(), u = game.state.entities[id];
+    if (!open || !b || b.kind !== 'hideout' || !c || !u) return;
+    if (armedDismiss !== id) { armedDismiss = id; shown = ''; update(); return; }
+    armedDismiss = null;
+    send({ id: heroId, type: 'dismiss', unit: id, business: b.id });
+  }
+
   panel.addEventListener('click', e => {
+    const id = e.target.closest?.('[data-dismiss]')?.dataset.dismiss;
+    if (id) { dismiss(id); e.target.blur?.(); return; }
     const i = e.target.dataset?.pick;
     if (i !== undefined) { pick(Number(i)); e.target.blur(); }
   });
@@ -31,6 +41,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     money.textContent = `crew ${crew + c.queue.length}/${cap}`;
 
     const b = teahouse();
+    if (!b || b.kind !== 'hideout') armedDismiss = null;
     if (!b) open = false;
     panel.hidden = !open;
     if (!open) return;
@@ -42,8 +53,16 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     }).join('');
     const h = c.queue[0];
     const waiting = c.queue.length ? `<div class="waiting">Coming: ${c.queue.map(q => units.types[q.unit]?.name || q.unit).join(', ')} (next in ${Math.ceil(h.left)}s, at the door)</div>` : '';
+    const dismissRows = b.kind === 'hideout' ? game.clans.crewOf(c.id)
+      .filter(u => !u.guard && !u.dead && !u.downed && !u.jailed && u.maxHp && u.hp >= u.maxHp)
+      .map(u => {
+        const refund = game.clans.dismissRefund(u.type), confirm = armedDismiss === u.id;
+        return `<div class="row"><span>${units.types[u.type]?.name || title(u.type)}<br><small>healthy · release a crew slot</small></span>` +
+          `<button data-dismiss="${u.id}">${confirm ? `Confirm · ${refund} ryo` : `Dismiss · ${refund} ryo`}</button></div>`;
+      }).join('') : '';
+    const dismiss = dismissRows ? `<h3>DISMISS CREW</h3>${dismissRows}<div class="waiting">Click twice to confirm</div>` : '';
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
-    const html = `<h3>HIRE CREW</h3>${rows}${waiting}${notice}<div class="waiting">1-${hireable.length} or click · H / Esc close</div>`;
+    const html = `<h3>HIRE CREW</h3>${rows}${waiting}${dismiss}${notice}<div class="waiting">1-${hireable.length} or click · H / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }
   }
 

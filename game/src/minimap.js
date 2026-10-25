@@ -253,7 +253,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     if (e.button === 0) { dragging = true; view.lookAt(p.x, p.z); }
     if (e.button === 2) {
       const units = selected();
-      if (units.length) send({ id: heroId, type: 'order', units, kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
+      if (units.length) send({ id: heroId, type: 'order', units, kind: e.ctrlKey ? 'station' : 'move', place: 'street', x: p.x, z: p.z });
     }
   });
   addEventListener('mousemove', e => { if (dragging) { const p = at(e); view.lookAt(p.x, p.z); } });

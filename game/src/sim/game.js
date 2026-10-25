@@ -204,22 +204,29 @@ export function createGame(options) {
   // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
   function giveOrder(hero, c) {
-    if (hero.type !== 'hero' || hero.dead || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop', 'enter', 'resume'].includes(c.kind)) return;
+    if (hero.type !== 'hero' || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop', 'enter', 'resume'].includes(c.kind)) return;
     // enter (right-click your own business, checkpoint 5): walk to its door, go in and hold the room
     // or right-click the business of an active Shinobi infiltration job: use its back window
     const eb = c.kind === 'enter' && state.businesses[c.business];
     const door = eb && (eb.owner === hero.owner ? doors.find(d => d.to && d.place === eb.room)
       : contracts?.mayClimb(hero, eb.room) && doors.find(d => d.to && d.ninja && d.place === eb.room));
     if (c.kind === 'enter' && !door) return;
-    if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))) return;
+    if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))
+      && !(c.place === 'street' && state.entities[c.target]?.place === 'street' && c.units.some(id => {
+        const u = state.entities[id]; return u && u.owner === hero.owner && fair(u, state.entities[c.target]) && sees(u, state.entities[c.target]);
+      }))) return;
     if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
       .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street')
-        && (u.place === hero.place || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind)))
-        && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind)));
+        && (u.place === hero.place || (c.kind === 'follow' && u.place === 'street') || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind))
+          || (c.place === 'street' && (u.place === 'street' || (c.kind === 'move' && u.place !== 'street')))
+          || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place))
+        && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
+        && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street')));
     const recalling = c.kind === 'move' || c.kind === 'follow';
     if (recalling && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
     crew.forEach((u, k) => {
+      delete u.lootEscort;
       delete paths[u.id];
       delete u.patrol;
       if (u.indoorDuty) u.indoorDuty.resume = false;
@@ -255,8 +262,9 @@ export function createGame(options) {
         return;
       }
       const [ox, oz] = blockOffset(k, crew.length);
-      const [x, z] = navOf(hero.place)?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
-      u.order = { kind: c.kind, x, z, place: hero.place };
+      const place = c.place || hero.place;
+      const [x, z] = navOf(place)?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
+      u.order = { kind: c.kind, x, z, place };
     });
   }
 
@@ -379,19 +387,18 @@ export function createGame(options) {
     const o = u.order?.kind === 'attack' ? u.order.prev : u.order;
     return o && ['follow', 'move', 'station', 'stop', 'attackmove', 'enter', 'heal'].includes(o.kind) ? { ...o } : null;
   }
-  // an attack order is over (target gone, down or out of reach): back to the order before a T,
-  // else stand where it is
+  // A finished attack holds at the last combat position. Calling an attack off
+  // explicitly (a second T) still restores the previous order.
   function endAttack(u, cancelled = false) {
-    const target = state.entities[u.order?.target], leader = state.entities[u.order?.followLeader];
-    if (!cancelled && target && (target.dead || target.downed || target.jailed) && leader && !leader.dead && !leader.downed && !leader.jailed && leader.owner === u.owner) {
-      u.order = { kind: 'follow', target: leader.id, slot: freeSlot(leader.id, u.id) };
-      delete paths[u.id]; delete u.patrol;
-      if (u.indoorDuty) u.indoorDuty.resume = false;
-      return;
-    }
     const p = u.order?.prev;
-    if (p?.kind === 'follow') p.slot = freeSlot(p.target, u.id);
-    u.order = p || { kind: 'move', x: u.x, z: u.z };
+    const resume = cancelled || !!state.clans?.[u.owner]?.bot;
+    if (resume && p?.kind === 'follow') p.slot = freeSlot(p.target, u.id);
+    if (!cancelled && u.order?.assist) {
+      const h = state.entities[u.order.assist];
+      if (h?.assistCrew) h.assistCrew = h.assistCrew.filter(id => id !== u.id);
+    }
+    u.order = resume && p ? p : { kind: 'move', x: u.x, z: u.z, arrived: true };
+    delete paths[u.id];
   }
 
   // Right-click/Tab assistance follows the leader's changing target. Manual attack
@@ -443,7 +450,9 @@ export function createGame(options) {
     if (e.holdFire) return null;                         // smoke escort stays passive until an explicit combat order
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
-      if (fair(e, t) && sees(e, t)) return t;
+      // A deliberate order keeps tracking a visible-at-order-time enemy across fog and screens.
+      // Stealth still breaks the lock; a recall or new order replaces it.
+      if (fair(e, t) && !(t.hidden && t.owner !== e.owner)) return t;
       endAttack(e);                                    // target gone: back to the old order, or stand there
       return null;
     }
@@ -615,6 +624,13 @@ export function createGame(options) {
       if (cop(t)) { addHeat(a.owner, t.wave ? units?.rules?.attack?.hitHeat ?? 0 : police.rules.hitPoliceHeat, 'Assaulting police'); police.provoke(t, a.owner); }
     }
     if (t.hp > 0) return;
+    if (t.type === 'hero') {
+      delete t.assistCrew;
+      for (const u of Object.values(state.entities)) if (u.owner === t.owner && u.order?.kind === 'follow' && u.order.target === t.id) {
+        u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
+        delete paths[u.id];
+      }
+    }
     delete t.swing;
     delete t.dash;
     delete t.buffs;
@@ -668,24 +684,39 @@ export function createGame(options) {
   const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && a.place === t.place && (civ(t) || (t.owner && a.owner !== t.owner))
     && (t.type !== 'hero' || cop(a));
   // --- Looting (Tim 2026-10-19) -------------------------------------------------------
-  // A bandit's body carries its ryo (body.loot). Right-click: the hero walks to it and takes it;
-  // Ctrl + right-click: the nearest selected crew member does. The ryo goes to the looter's clan.
+  // A bandit's body carries its ryo (body.loot). A nearby hero takes it; otherwise
+  // the nearest selected crew member goes, with non-following selected crew escorting.
   const LOOT_REACH = 1.6;
   const lootable = (e, b) => !!b && b.dead && b.loot > 0 && b.place === e.place && sees(e, b);
   function startLoot(e, c) {
     const body = state.entities[c.target];
-    if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    if (Array.isArray(c.units)) {
-      const u = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && u.owner === e.owner && u.type !== 'hero' && !u.guard && u.place === e.place && lootable(u, body))
-        .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z))[0];
+    if (e.type !== 'hero') return;
+    const heroReady = !e.dead && !e.downed && !e.jailed && !c.crewOnly;
+    if (heroReady && c.preferHeroInRange && lootable(e, body) && Math.hypot(e.x - body.x, e.z - body.z) <= LOOT_REACH) {
+      delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id];
+      e.lootTarget = body.id;
+      return;
+    }
+    if (Array.isArray(c.units) && c.units.length) {
+      const selected = c.units.map(id => state.entities[id])
+        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && lootable(u, body))
+        .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z));
+      const u = selected[0];
       if (!u) return;
       delete paths[u.id]; delete u.execute; delete u.swing;
       if (fight[u.id]) delete fight[u.id].target;
-      u.order = { kind: 'loot', target: body.id };
+      const previous = resumable(u);
+      u.order = { kind: 'loot', target: body.id, prev: previous };
+      if (previous?.kind !== 'follow') for (const other of selected.slice(1)) {
+        const prev = resumable(other);
+        if (prev?.kind === 'follow') continue;
+        delete paths[other.id];
+        other.lootEscort = { looter: u.id, prev };
+        other.order = { kind: 'follow', target: u.id, slot: freeSlot(u.id, other.id) };
+      }
       return;
     }
-    if (e.execute || !lootable(e, body)) return;
+    if (!heroReady || e.execute || !lootable(e, body)) return;
     delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id];
     e.lootTarget = body.id;
   }
@@ -709,11 +740,13 @@ export function createGame(options) {
   }
 
   function startExecute(e, c) {
-    let ex = e;
-    if (Array.isArray(c.units)) {
-      const t = state.entities[c.target];
+    const t = state.entities[c.target];
+    const heroReady = e.type === 'hero' && !e.dead && !e.downed && !e.jailed && !c.crewOnly;
+    // Police and bots also call this directly without a selected crew list.
+    let ex = !e.dead && !e.downed && !e.jailed && !c.crewOnly ? e : null;
+    if (Array.isArray(c.units) && c.units.length && !(heroReady && c.preferHeroInRange && e.place === t?.place && Math.hypot(e.x - t?.x, e.z - t?.z) <= 1.3)) {
       ex = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street') && u.place === e.place)
+        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street') && u.place === t?.place)
         .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
     }
     if (!ex || ex.dead || ex.downed || (ex === e && e.type === 'hero' && e.execute) || !downedFoe(ex, state.entities[c.target]) || !sees(ex, state.entities[c.target])) return;
@@ -1009,7 +1042,7 @@ export function createGame(options) {
       if (e.type !== 'hero' && secs >= lie) {
         delete state.entities[e.id];
         delete intents[e.id];
-        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) { if (u.order.kind === 'attack') endAttack(u); else u.order = { kind: 'move', x: u.x, z: u.z }; }
+        for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) { if (u.order.kind === 'attack') endAttack(u); else u.order = u.order.prev || { kind: 'move', x: u.x, z: u.z }; }
       }
       // a knocked-out hero comes round inside his clan's hideout after heroRespawnSeconds (rival bot plan),
       // else at the clinic's door ring (Tim 2026-10-17), or at home when the map has no clinic
@@ -1030,6 +1063,11 @@ export function createGame(options) {
 
   function crewStep(e, unit) {
     if (e.dead || e.downed || e.jailed) return;
+    const escorted = e.lootEscort && state.entities[e.lootEscort.looter];
+    if (e.lootEscort && (!escorted || escorted.dead || escorted.downed || escorted.jailed || escorted.order?.kind !== 'loot')) {
+      e.order = e.lootEscort.prev || { kind: 'move', x: e.x, z: e.z };
+      delete e.lootEscort; delete paths[e.id];
+    }
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     const finished = e.order?.kind === 'attack' && state.entities[e.order.target];
     if (finished && (finished.dead || finished.downed || finished.jailed)) { delete e.swing; endAttack(e); }
@@ -1037,6 +1075,24 @@ export function createGame(options) {
     // Move and an explicit Follow recall reach their goal even under fire. Process
     // it before swings, retaliation, automatic executions or hero assistance.
     const recalling = e.order?.kind === 'follow' && e.order.regrouping;
+    if (e.order?.kind === 'follow' && !state.clans?.[e.owner]?.bot && !e.execute && e.place === 'street') {
+      const leader = state.entities[e.order.target];
+      const door = leader && !leader.dead && !leader.downed && !leader.jailed && leader.place !== 'street'
+        && doors.find(d => d.to && !d.ninja && d.place === leader.place);
+      if (door && (!businesses || businesses.mayEnter(e, door.place))) {
+        delete e.swing; delete e.execute;
+        if (fight[e.id]) delete fight[e.id].target;
+        if (Math.hypot(door.x - e.x, door.z - e.z) >= DOOR_RADIUS) {
+          if (!moveTo(e, unit, door.x, door.z, false)) e.anim = 'idle';
+        } else {
+          const [x, z] = navOf(door.place)?.nearestFree(door.to.x, door.to.z) || [door.to.x, door.to.z];
+          Object.assign(e, { x, z, place: door.place, anim: 'idle' });
+          e.order.exitWithHero = true;
+          delete paths[e.id];
+        }
+        return;
+      }
+    }
     if ((e.order?.kind === 'move' && !e.order.arrived) || recalling) {
       delete e.swing; delete e.execute;
       if (fight[e.id]) delete fight[e.id].target;
@@ -1058,7 +1114,7 @@ export function createGame(options) {
     if (swingStep(e, unit)) return;
     if (e.order?.kind === 'loot') {   // Ctrl + right-click on a body: walk there and take its ryo
       if (lootStep(e, unit, e.order.target)) return;
-      e.order = { kind: 'move', x: e.x, z: e.z };
+      e.order = e.order.prev || { kind: 'move', x: e.x, z: e.z };
     }
     if (e.order?.kind === 'enter' && enterStep(e)) return;
     if (crewOut(e, unit)) return;
@@ -1178,8 +1234,8 @@ export function createGame(options) {
       delete u.patrol;
       delete u.indoorDuty;
       if (fight[u.id]) delete fight[u.id].target;
-      u.order = { kind: 'follow', target: hero.id };
-      u.order.slot = freeSlot(hero.id, u.id);
+      if (!out || u.order?.kind !== 'follow' || u.order.target !== hero.id) u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
+      else u.order = { kind: 'follow', target: hero.id, slot: freeSlot(hero.id, u.id) };
     });
   }
 
@@ -1335,7 +1391,7 @@ export function createGame(options) {
       const e = state.entities[c.id];
       if (!e) continue;
       // a hero lying down or in jail can still order his crew, nothing else
-      if ((e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract'].includes(c.type)) continue;
+      if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute'].includes(c.type)) continue;
       // Selection and crew commands cannot replace the hero's current execution.
       if (e.type === 'hero' && e.execute && ['ability', 'snuff', 'use'].includes(c.type)) continue;
       if (c.type === 'move') {
@@ -1354,11 +1410,12 @@ export function createGame(options) {
       }
       if (c.type === 'interiorDoor' && !stunned(e, state.tick)) toggleInteriorDoor(e);
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
+      if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
-      if (c.type === 'execute' && e.type === 'hero' && !e.dead) startExecute(e, c);
+      if (c.type === 'execute' && e.type === 'hero') startExecute(e, c);
       if (c.type === 'loot') startLoot(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) {
         if (e.execute) { giveOrder(e, { ...c, type: 'order', kind: 'attack' }); continue; }
@@ -1445,7 +1502,6 @@ export function createGame(options) {
     territory.tick();
     if (state.smokes) {
       for (const s of state.smokes) if (s.until <= state.tick && s.fadeSeconds) {
-        const leader = Object.values(state.entities).find(e => e.owner === s.clan && e.type === 'hero' && !e.dead && !e.downed && !e.jailed);
         for (const u of Object.values(state.entities)) {
           if (u.owner !== s.clan || u.guard || !stealth.canHide(u) || !inSmoke(s, u)) continue;
           addBuff(u, 'veil', s.fadeSeconds);
@@ -1459,7 +1515,8 @@ export function createGame(options) {
           delete u.swing; delete u.execute; delete u.attackTarget; delete u.patrol; delete paths[u.id];
           if (fight[u.id]) delete fight[u.id].target;
           if (u.indoorDuty) u.indoorDuty.resume = false;
-          u.order = leader ? { kind: 'follow', target: leader.id, slot: freeSlot(leader.id, u.id) } : { kind: 'stop' };
+          u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
+          const leader = Object.values(state.entities).find(e => e.owner === s.clan && e.type === 'hero');
           if (leader?.assistCrew) leader.assistCrew = leader.assistCrew.filter(id => id !== u.id);
         }
       }
@@ -1476,7 +1533,12 @@ export function createGame(options) {
       const unseen = id => id && !sees(e, state.entities[id]);
       if (unseen(e.attackTarget)) { delete e.attackTarget; delete e.assistCrew; }
       if (unseen(e.swing?.target)) delete e.swing;
-      if (e.order?.kind === 'attack' && unseen(e.order.target)) { endAttack(e); delete paths[e.id]; }
+      if (e.order?.kind === 'attack') {
+        const target = state.entities[e.order.target];
+        if (!target || target.dead || target.downed || target.jailed || target.place !== e.place || (target.hidden && target.owner !== e.owner)) {
+          endAttack(e); delete paths[e.id];
+        }
+      }
       if (unseen(e.execute?.target)) delete e.execute;
       if (unseen(fight[e.id]?.target)) delete fight[e.id].target;
     }

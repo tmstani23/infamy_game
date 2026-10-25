@@ -7,6 +7,7 @@
 // Officers walk out of the police HQ (or in from the map edge when the map has none) and
 // walk back when the clan's heat drops. Plain sim code, no three.js.
 import { canInteract } from './interactions.js';
+import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -24,7 +25,7 @@ const DEFAULTS = {
   officer: 'junsa', sight: 18, seenFightingSeconds: 3, angrySeconds: 15, giveUpDistance: 25,
   spawnEverySeconds: 4, hitPoliceHeat: 10, arrestSeconds: 2, arrestReach: 8,
   bailShare: 0.5, heroJailSeconds: 60, heroJailHeat: 30,
-  bribeHeat: 20, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: 3,
+  bribeHeat: 40, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: 3,
   topInfamyHeatBonus: 0.25, noPoliceAreas: [], lostSeconds: 8, searchSeconds: 20, searchRadius: 5, bribeBlockSeconds: 5, replaceSeconds: 60,
   patrolFightSeconds: 30, patrolRadius: 12,
   dayPatrol: { hq: 4, box: 2 },
@@ -465,6 +466,19 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   function step(e) {
     const m = mind[e.id] ||= {}, unit = statsOf(e);
     if (e.dead || e.downed) return;
+    // Finish an arrest already in progress, and preserve business attack defenders.
+    if (!e.wave && !e.execute) {
+      const zone = retreatZone(e, m, largeFights(state));
+      if (zone) {
+        delete e.swing; delete e.attackTarget;
+        const spot = retreatSpot(e, zone, nav);
+        if (Math.hypot(e.x - zone.x, e.z - zone.z) < zone.radius + 2 && spot) {
+          if (moveTo(e, unit, ...spot, false)) return;
+        }
+        stopPath(e); e.anim = 'idle';
+        return;
+      }
+    }
     if (e.routine) {
       const busy = !quiet() && (e.swing || e.execute || knownFor(e) || searchFor(e)
         || Object.entries(e.angry || {}).some(([c, until]) => until > state.tick && Object.values(state.entities)

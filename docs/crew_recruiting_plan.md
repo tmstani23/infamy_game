@@ -74,9 +74,18 @@ Phase 3E capacity (Tim, 2026-10-21): all ten businesses provide 23 total crew ca
 
 ## Recall and attack completion (Tim, 2026-10-21)
 
-- Selected attackers return to Follow after their target is defeated.
+- Player attackers hold near a defeated target and defend normally; Follow requires an explicit command (Tim, 2026-10-25).
 - Explicit Move/Follow recall works for every clan: commanded crew cancel windups and old hero assistance, ignore combat during return and ignore stale retreat hits after arrival. Fresh post-arrival assaults allow normal defense. Indoor exit restrictions above still apply.
-- Smoke-expiry passive regrouping: [combat rules](combat_spec.md#f-hero-abilities-and-action-bar-approved-by-tim-2026-10-16-built).
+- Smoke-expiry passive holding: [combat rules](combat_spec.md#f-hero-abilities-and-action-bar-approved-by-tim-2026-10-16-built).
+
+## Player crew control (Tim, 2026-10-25)
+
+- Player recruits and clinic returns hold position. Hero KO/respawn does not summon crew; existing followers hold when the leader goes down. Follow is explicit. Bot routines keep their own orders.
+- Explicit attacks pursue until recalled; completion leaves player crew holding near the body. T cancellation can restore prior duties. Smoke passivity remains protected.
+- Crew can be selected and ordered while the hero is KO'd or in another place; use the camera to control the relevant room/street. Selected crew can loot/execute where they are without sharing the hero's location.
+- Inside your own hideout, dismiss healthy active crew for 15% of base hire price, rounded down. Clinic patients can be released permanently through the clinic menu.
+
+Explicit Follow to an indoor hero brings selected outdoor crew through the entrance; outdoor Follow still cannot pull indoor guards out. Giving Follow while together inside allows selected followers to accompany the hero out.
 
 ## Open questions (later, not blocking)
 

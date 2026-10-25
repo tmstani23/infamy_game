@@ -55,7 +55,7 @@ Every new officer (the first squad at a tier, officers added when heat rises, an
 
 ## Bribes
 
-At either police box (Space): each bribe removes 20 heat and costs 10 ryo x tier (Quiet 1, Watched 2, Wanted 3, Manhunt 4, Most Wanted 5). A bribe is refused if an officer hit the hero in the last 5 s.
+At either police box (Space): each bribe removes 40 heat (Tim, 2026-10-25) and costs 10 ryo x tier (Quiet 1, Watched 2, Wanted 3, Manhunt 4, Most Wanted 5). A bribe is refused if an officer hit the hero in the last 5 s.
 
 ## Rules
 

@@ -47,6 +47,9 @@ const a = g.state.attacks[den.id];
 assert.ok(a && a.mode === 'raid' && a.phase === 'warmup');
 assert.equal(clan.lanterns, 0, 'lantern used up');
 assert.match(g.state.clans.kuroda.notice.text, /being raided/);
+assert.deepEqual(g.state.news.filter(n => n.kind === 'businessAttack'), [
+  { kind: 'businessAttack', clan: 'kuroda', business: den.id, name: 'Gambling den', raider: 'player' },
+], 'raid start alert names the building and explicitly addresses only its owner');
 // the doors stay shut during the warm-up
 g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, 'street', 'no way in during the warm-up');

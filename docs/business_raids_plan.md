@@ -89,6 +89,8 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 ## 5. Defending
 
+Attack warning (2026-10-25): the owner receives an alert naming the building when a rival starts a War Lantern raid. Guard replacements arrive at dawn/dusk; see section 8.
+
 - **Alert (built 2026-10-19):** a bell (WebAudio, no sound file) and a red banner at the top: first the doors-open countdown, then the hold time and whether the raiders are held off. Double-click the banner to jump the camera there. A red ping pulses on the minimap.
 - **Time to get there:** 60 s warm-up + the time to beat your guards/crew + the 30 s hold. Crossing the district takes the hero about 15 s (estimate).
 - **Contested back room:** while any of your units stand in the back room, the 30 s hold timer pauses.
@@ -111,7 +113,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 ## 8. Build checkpoints (each: game runs, Node tests pass)
 
 1. [x] Ownership + payouts at dawn + Buy button (built 2026-10-19). Payout at every dawn (a manual N into day counts as a dawn). Current prices and payouts: section 2 (`settings.json` `businesses`). A rival-owned business can't be bought; payouts are 0 during a Manhunt (`police.payoutShare`).
-2. [x] House guards (built 2026-10-19): 2 per owned business, unit type `guard` (thug sprite, 260 HP, hit 10). They patrol the building's rooms at a walk, pausing 3-8 s per spot, and defend on their own. They die outright; the same owner gets a replacement after 120 s (`units.json` `rules.houseGuards`). Not crew: no cap, no orders, not on the action bar. The building panel shows "Guards N of 2".
+2. [x] House guards (built 2026-10-19): 2 per owned business, unit type `guard` (thug sprite, 260 HP, hit 10). They patrol the building's rooms at a walk, pausing 3-8 s per spot, and defend on their own. They die outright; the same owner gets replacements at the next dawn or dusk (`units.json` `rules.houseGuards`). Not crew: no cap, no orders, not on the action bar. The building panel shows "Guards N of 2".
 3. [x] Attack on an unowned business (built 2026-10-19): night only, hero at the door ring. After a 5 s countdown, police come through the room door in waves: teahouse 3, warehouse 4, den 6, plus 1 per heat tier (`settings.json` `businesses[kind].attackWaves`; count fixed at the start). Waves bring 2 officers, 3 from halfway (`attack.bigWave`, `bigWavesFrom`), 5 s apart, at full street HP, with no heat for fighting them (retuned 2026-10-19). Then hold the back room (radius 2.5) for 30 s; the timer runs only while one of yours stands in it and no defender does. Lost if the hero goes down (arrested) or nobody of yours is inside for 10 s. Win or lose, heat is set once at the end to the pre-attack value +15. A win gives the business, its guards and the clan banner. Numbers in `units.json` `rules.attack`.
    - Visuals: clan banner (a nobori in the clan colour, about 2.4 tall, soft glow and faint ring at its foot, swaps on owner change; `render/banners.js`), a gold claim burst, and the clan badge (crest + name) in the top bar.
 4. [x] War Lantern raids (built 2026-10-19, as section 4). Crew slots by business type: section 2 (`settings.json` `businesses[kind].crewSlots`); no hard cap (base plus the sum; see [crew recruiting](crew_recruiting_plan.md)). Test param `?rival=den|teahouse|warehouse` gives a rival clan that business. Art: `game/art/props/war_lantern.png` (a recoloured lantern_post) with a soft 1.6 s pulsing red glow and a ground ring.

@@ -10,10 +10,11 @@ import { createAbilityFx } from './abilityfx.js';
 import { createBloom } from './bloom.js';
 import { fxShared } from './vfx.js';
 import { createBanners } from './banners.js';
+import { unitName } from '../selection_panel.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
@@ -32,11 +33,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
   const PAN_SPEED = 16;
-  // panning reaches the whole district (a little past its edge), wherever the hero is
-  // (indoors: within 45 of the hero, as before)
+  // Indoors the camera may also travel to the street to command outdoor crew.
   const B = district.bounds, inMap = p => {
-    if (heroPlace !== 'street') { if (heroPos && p.distanceTo(heroPos) > 45) p.sub(heroPos).setLength(45).add(heroPos); return p; }
-    p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, B.maxX + 4); p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4); return p; };
+    const farX = heroPlace === 'street' ? B.maxX + 4 : Math.max(B.maxX + 4, ...rooms.map(r => r.origin.x + (r.renderLayout || r).size[0] * (r.worldScale || 1) + 4));
+    p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, farX);
+    p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4);
+    return p; };
+  const cameraPlace = h => freeCam && h?.place !== 'street' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -161,16 +164,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // one sprite per unit in the state
   const sprites = new Map();
   let selected = new Set();
+  let nameplatesOn = false;
   async function addSprite(e) {
     const s = new CharacterSprite(await loadSheets(catalog, e.model));
     sprites.set(e.id, s);
-    scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar);
+    scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate);
     s.ring.visible = selected.has(e.id);
     return s;
   }
   function syncSprites(state) {
     for (const e of Object.values(state.entities)) if (!sprites.has(e.id)) { sprites.set(e.id, null); addSprite(e); }
-    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar); if (s.team) scene.remove(s.team); s.dispose(); sprites.delete(id); trickle.delete(id); }
+    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate); if (s.team) scene.remove(s.team); s.dispose(); sprites.delete(id); trickle.delete(id); }
   }
 
   function updateLights(time) {
@@ -269,6 +273,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT,
         e.place && e.place !== 'street' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       s.setHealth(e.hp, e.maxHp);
+      s.setNameplate(e.name || unitName(units || { types: {} }, e.type), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
+        state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner]);
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
       // health bar stays a health bar: two bars used to show, Tim 2026-10-18);
       // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
@@ -315,7 +321,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
-    const inside = state.entities[followId]?.place !== 'street';
+    const inside = cameraPlace(state.entities[followId]) !== 'street';
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
 
     // camera follows the hero, snapped to whole screen pixels so the art stays crisp
@@ -433,6 +439,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     flashBuilding(i) { if (i !== null && i !== undefined) flashes.set(i, 0); },
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
+    setNameplates(on) { nameplatesOn = !!on; },
+    commandPlace(state, followId) { return cameraPlace(state.entities[followId]); },
+    audioFocus(state, followId, selected = []) {
+      const h = state.entities[followId];
+      if (!h) return null;
+      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h) };
+    },
     // page pixel -> ground point { x, z }
     screenToGround(px, py) {
       raycaster.setFromCamera({ x: px / innerWidth * 2 - 1, y: 1 - py / innerHeight * 2 }, camera);

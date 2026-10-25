@@ -4,6 +4,7 @@ import { healthBar } from './health.js';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
 import { spriteMaterial, shadowMaterial, hiddenMaterial, weaponGlowMaterial } from './shading.js';
 import { Thing, loadTex } from './scenery.js';
+import { drawCrest } from './banners.js';
 
 const CELL_WORLD = 3;       // a 160px cell covers 3 world units (see sprite_render_test.html)
 const FEET_UP = 0.9;        // the cell centre is 0.9 units above the feet
@@ -89,6 +90,16 @@ export class CharacterSprite {
     back.renderOrder = 99600;
     this.fill.renderOrder = 99601;
     this.bar.visible = false;
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 256; labelCanvas.height = 48;
+    this.labelContext = labelCanvas.getContext('2d');
+    this.labelTexture = new THREE.CanvasTexture(labelCanvas);
+    this.labelMaterial = new THREE.MeshBasicMaterial({ map: this.labelTexture, transparent: true, depthTest: false, depthWrite: false });
+    this.nameplate = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.45), this.labelMaterial);
+    this.nameplate.quaternion.copy(CAM_QUAT);
+    this.nameplate.renderOrder = 99610;
+    this.nameplate.frustumCulled = false;
+    this.nameplate.visible = false;
     this.pos = new THREE.Vector3();
     this.anim = 'idle';
     this.time = 0;
@@ -166,6 +177,26 @@ export class CharacterSprite {
     this.shadow.position.set(x, 0.01, z);
     this.ring.position.set(x, 0.02, z);
     this.bar.position.set(x, BAR_UP * size, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
+    this.nameplate.position.set(x, (BAR_UP + 0.35) * size, z);
+    this.nameplate.scale.setScalar(size);
+  }
+
+  setNameplate(name, visible, color = '#d4aa5a', clan = false) {
+    this.nameplate.visible = !!visible && !!name;
+    const key = `${name}|${color}|${clan}`;
+    if (!name || key === this.nameplateText) return;
+    this.nameplateText = key;
+    const g = this.labelContext;
+    g.clearRect(0, 0, 256, 48);
+    g.fillStyle = 'rgba(8,10,14,.78)'; g.beginPath(); g.roundRect(4, 5, 248, 38, 9); g.fill();
+    g.strokeStyle = color; g.lineWidth = 2; g.beginPath(); g.roundRect(5, 6, 246, 36, 8); g.stroke();
+    if (clan) {
+      g.fillStyle = color; g.beginPath(); g.arc(231, 24, 14, 0, Math.PI * 2); g.fill();
+      drawCrest(g, 231, 24, 10);
+    }
+    g.font = '600 25px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#f1e4c7'; g.shadowColor = '#000'; g.shadowBlur = 4; g.fillText(name, clan ? 114 : 128, 24, clan ? 204 : 232);
+    this.labelTexture.needsUpdate = true;
   }
 
   // hp bar over every unit with health, hidden once down; length = hp / maxHp,
@@ -191,7 +222,8 @@ export class CharacterSprite {
   dispose() {
     this.thing.mesh.geometry.dispose();
     this.shadow.geometry.dispose();
-    for (const m of [this.material, this.hidden.material, this.fill.material]) m.dispose();
+    for (const m of [this.material, this.hidden.material, this.fill.material, this.labelMaterial]) m.dispose();
+    this.nameplate.geometry.dispose(); this.labelTexture.dispose();
     this.glow?.material.dispose();
     this.voidHalo?.material.dispose();
   }

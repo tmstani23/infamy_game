@@ -28,7 +28,7 @@
     "officersPerTier": [0, 2, 4, 6, 6],
     "dayPatrol": { "hq": 4, "box": 2 },
     "heroJailSeconds": 60,
-    "bribeHeat": 20,
+    "bribeHeat": 40,
     "bribePerTier": 10,
     "bailShare": 0.5
   },

@@ -99,8 +99,7 @@ console.log('building panel rows ok');
   // an order from the hero does not move them
   g.step([{ id: hero, type: 'order', units: gs.map(e => e.id), kind: 'move', x: 0, z: 0 }]);
   assert.deepEqual(gs.map(e => e.order.kind), ['station', 'station']);
-  // a guard killed dies outright and comes back after replaceSeconds
-  const R = g.settings.units.rules.houseGuards;
+  // A killed guard waits through elapsed time, then returns at the next transition.
   gs[0].hp = 1;
   const k = g.spawn('thug', 'thug', gs[0].x, gs[0].z, { owner: 'kuroda', place: tea.room });
   for (let i = 0; i < 200 && !gs[0].dead; i++) g.step([{ id: k, type: 'noop' }]);
@@ -108,8 +107,15 @@ console.log('building panel rows ok');
   delete g.state.entities[k];
   for (let i = 0; i < 40; i++) g.step();
   assert.equal(guardsOf(tea).length, 1);
-  for (let i = 0; i < R.replaceSeconds * 20; i++) g.step();
-  assert.equal(guardsOf(tea).length, 2, 'replaced');
+  for (let i = 0; i < 121 * 20; i++) g.step();
+  assert.equal(guardsOf(tea).length, 1, 'elapsed time does not replace guards');
+  g.step([{ type: 'time', night: true }]);
+  assert.equal(guardsOf(tea).length, 2, 'replaced at dusk');
+  guardsOf(tea)[0].dead = true;
+  g.step();
+  assert.equal(guardsOf(tea).length, 1);
+  g.step([{ type: 'time', night: false }]);
+  assert.equal(guardsOf(tea).length, 2, 'replaced at dawn');
   // new owner: the old guards go, fresh ones for the new owner
   g.clans.setOwner(tea.id, 'kuroda');
   g.step();

@@ -11,13 +11,16 @@ import { WILD } from './sim/bandits.js';
 
 // head-and-shoulders crop of the 160px idle cell, tighter than the small card portraits
 const CROP = { x: 0.33, y: 0.17, w: 0.34 };
+const EFFECT_NAMES = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke', ambush: 'Ambush', veil: 'Vanish', reprisal: 'Reprisal', pursuit: 'Speed', formation: 'Formation', stunned: 'Stunned' };
+const DEBUFFS = new Set(['intimidated', 'snared', 'stunned']);
 
 // Which unit the target frame shows (plain state, so Node can check it): a lone left-clicked unit
 // that isn't the hero's, else the hero's attack target or swing, else the Tab target
-export function frameTarget(state, heroId, selected, tabbed, seen = () => true) {
+export function frameTarget(state, heroId, selected, tabbed, seen = () => true, place = null) {
   const S = state.entities, h = S[heroId];
   if (!h) return null;
-  const ok = id => S[id] && !S[id].dead && S[id].place === h.place && seen(S[id]);
+  place ||= h.place;
+  const ok = id => S[id] && !S[id].dead && S[id].place === place && seen(S[id]);
   const picked = selected.length === 1 && S[selected[0]]?.owner !== h.owner ? selected[0] : null;
   return [picked, h.attackTarget, h.swing?.target, tabbed].find(ok) || null;
 }
@@ -53,6 +56,10 @@ const STYLE = `
 .uf i { max-width: 100%; font: 10px/1.1 system-ui, sans-serif; font-style: normal; color: #9a968c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .uf.target { cursor: pointer; }
 .uf.down { filter: grayscale(1) brightness(.75); }
+#utarget .effects { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; width: max-content; max-width: 460px; pointer-events: none; }
+#utarget .effect { position: relative; padding: 4px 10px 8px; border: 2px solid #65a968; border-radius: 4px; background: rgba(9,16,12,.9); color: #d8f2d8; font: 600 20px/1.1 system-ui, sans-serif; white-space: nowrap; }
+#utarget .effect.debuff { border-color: #d37163; color: #ffd4ca; }
+#utarget .effect::after { content: ''; position: absolute; bottom: 0; left: 0; height: 2px; width: var(--remaining); background: currentColor; }
 #uhover { position: fixed; z-index: 8; width: 150px; align-items: stretch; gap: 3px; padding: 5px 7px;
   background: rgba(10,12,16,.52); border-width: 1px; box-shadow: none; pointer-events: none; user-select: none; }
 #uhover .pic { display: none; }
@@ -60,7 +67,7 @@ const STYLE = `
 `;
 const COLORS = { you: ['#e9c27a', '#6ebe5a'], crew: ['#6ebe5a', '#6ebe5a'], enemy: ['#c8463a', '#c8463a'], neutral: ['#e0b04a', '#d9a23c'] };
 
-export function createUnitFrames({ game, units, catalog, crewInput, heroId, where = () => '', jump = () => {} }) {
+export function createUnitFrames({ game, units, catalog, crewInput, heroId, view, where = () => '', jump = () => {} }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.appendChild(style);
@@ -75,6 +82,8 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
       hp: c.querySelector('.hp span'), status: c.querySelector('i'), id: null, model: null };
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
+  target.effects = document.createElement('div'); target.effects.className = 'effects'; target.c.appendChild(target.effects);
+  const effectStarts = new Map();
   const hover = frame('hover', 'uhover');
   hover.c.hidden = true;
   hover.tag = document.createElement('em');
@@ -96,6 +105,16 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
     f.fill.style.width = `${Math.min(100, Math.max(0, e.hp / e.maxHp * 100))}%`;
     set(f.hp, 'textContent', `${hp} / ${e.maxHp}`);
     set(f.status, 'textContent', frameStatus(e, game.state, heroId));
+    if (f === target) {
+      const now = game.state.tick, active = Object.entries(e.buffs || {}).filter(([, b]) => b.until > now);
+      const html = active.map(([name, b]) => {
+        const key = `${e.id}:${name}`, old = effectStarts.get(key);
+        if (!old || old.until !== b.until) effectStarts.set(key, { until: b.until, total: Math.max(1, b.until - now) });
+        const remaining = Math.max(0, Math.min(100, (b.until - now) / effectStarts.get(key).total * 100));
+        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%">${(EFFECT_NAMES[name] || name).slice(0, 3)}... ${Math.ceil((b.until - now) / 20)}s</span>`;
+      }).join('');
+      if (f.effects.innerHTML !== html) f.effects.innerHTML = html;
+    }
     f.c.classList.toggle('down', !!e.downed);
     if (f.tag) set(f.tag, 'textContent', game.state.clans?.[e.owner]?.name || r.tag);
     else set(f.c, 'title', `${f.name.textContent} (${r.tag}): ${frameStatus(e, game.state, heroId)}, ${where(e)}`);
@@ -106,7 +125,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, wher
     self.c.hidden = !h;
     if (!h) { target.c.hidden = true; return; }
     fill(self, h, h);
-    const id = frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e));
+    const id = frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e), view?.commandPlace(game.state, heroId));
     target.c.hidden = !id;
     if (id) fill(target, S[id], h);
   }

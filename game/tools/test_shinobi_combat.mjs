@@ -154,7 +154,7 @@ function smokeFixture() {
 console.log('Shinobi combat: Renown, executions, crit recipients/rolls/expiry, snare radius, smoke veil/expiry/damage and immediate Assassinate ok');
 {
   const { g, hero, crew, far, rival } = smokeFixture();
-  assert.equal(crew.order.kind, 'follow'); assert.equal(crew.order.target, hero.id);
+  assert.equal(crew.order.kind, 'move', 'smoke holds without auto-follow');
   assert.ok(crew.smokePassive && crew.holdFire);
   assert.equal(far.order.kind, 'stop', 'outside crew keep their orders');
   for (const kind of ['follow', 'move']) {

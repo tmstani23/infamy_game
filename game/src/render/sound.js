@@ -1,6 +1,6 @@
 // Combat sounds (Kenney packs, CC0; list in assets/sounds/CREDITS.md), played from the
 // sim's per-tick hits and casts and from swings starting. Quieter with distance from the
-// hero, a little random pitch so repeats don't sound the same. M mutes. Purely output.
+// camera, a little random pitch so repeats don't sound the same. K mutes. Purely output.
 const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
@@ -36,7 +36,7 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
     src.onended = () => voices--;
     src.start();
   }
-  // loudness for something at (x, z) heard by the hero (nothing from other places)
+  // loudness for something at (x, z) heard at the camera (nothing from other places)
   const near = (me, x, z, place) => !me || place !== me.place ? 0 : Math.max(0, 1 - Math.hypot(x - me.x, z - me.z) / HEAR);
 
   // a temple bell, made on the spot (no file): a few soft partials that ring out (raid alarm)
@@ -60,8 +60,8 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
     bell,
     toggleMute() { muted = !muted; return muted; },
     // after each tick: new swings, hits and casts
-    update(state, followId) {
-      const me = state.entities[followId];
+    update(state, focus) {
+      const me = focus;
       for (const e of Object.values(state.entities)) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         const v = near(me, e.x, e.z, e.place);

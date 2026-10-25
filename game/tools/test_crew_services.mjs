@@ -36,7 +36,7 @@ const panel = () => ({ hidden: true, innerHTML: '', addEventListener() {} });
   menu.pick(1); g.step(sent.splice(0));
   assert.equal(c.clinic.length, 0);
   const revived = Object.values(S).find(e => e.owner === 'player' && e.type === 'thug' && e.id !== unit);
-  assert.equal(revived.order.target, hero, 'revived crew follow the leader, not the courier');
+  assert.equal(revived.order, undefined, 'revived player crew holds until explicitly ordered');
   Object.assign(S[unit], { x: 0, z: 1 }); Object.assign(revived, { x: 1, z: 1 });
   menu.update(); assert.ok(!menu.isOpen(), 'menu closes when all own units leave the clinic');
   const money = c.ryo;

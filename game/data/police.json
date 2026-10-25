@@ -20,7 +20,7 @@
     "bailShare": 0.5,
     "heroJailSeconds": 60,
     "heroJailHeat": 30,
-    "bribeHeat": 20,
+    "bribeHeat": 40,
     "bribePerTier": 10,
     "clinicScale": 2,
     "clinicScaleFrom": 2,

@@ -13,7 +13,7 @@ import { canInteract, interactionActor } from './interactions.js';
 export function createBusinesses({ state, units, clans, payoutShare = () => 1, tierOf = () => 0, spawn = null, guardSpots = () => [], patrolSpots = () => [],
   roomOf = () => null, remove = null, addHeatGain = () => {}, payoutBonus = () => 1 }) {
   const R = units?.rules?.businesses || {}, reach = units?.rules?.buyReach ?? 2.5;
-  const G = units?.rules?.houseGuards || {}, guardCount = G.count ?? 0, guardWait = Math.round((G.replaceSeconds ?? 120) * 20);
+  const G = units?.rules?.houseGuards || {}, guardCount = G.count ?? 0;
   const [pauseMin, pauseMax] = G.patrolPauseSeconds || [3, 8], legTicks = 20 * 20;
   let seed = 97;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -141,7 +141,10 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };
       say(clan, `War Lantern planted: the doors open in ${RD.warmupSeconds} s`);
       const def = state.clans[b.owner];
-      if (def) say(def, `Your ${name(b)} is being raided`);
+      if (def) {
+        say(def, `Your ${name(b)} is being raided`);
+        state.news.push({ kind: 'businessAttack', clan: b.owner, business: b.id, name: name(b), raider: clan.id });
+      }
     }
     if (c.action === 'buy') {
       const can = canBuy(e.id, b.id);
@@ -281,8 +284,8 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
 
   // House guards: guardCount per owned business, standing inside it (e.guard = business id).
   // A new owner gets fresh guards at once (the old owner's walk off); a guard that dies is
-  // replaced after replaceSeconds while the same clan still owns the place.
-  // b.guards = { owner, due: [ticks when replacements arrive] }
+  // replaced at the next dawn or dusk while the same clan still owns the place.
+  // due entries are null while waiting for a transition, or a tick for immediate initial staffing.
   function guardTick() {
     if (!spawn || (!guardCount && !G.hideoutCount)) return;
     const all = Object.values(state.entities).filter(e => e.guard);
@@ -301,11 +304,13 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       }
       if (!b.guards) continue;
       const alive = mine.filter(e => !e.dead);
-      while (alive.length + b.guards.due.length < n) b.guards.due.push(state.tick + guardWait);
+      // Release existing vacancies first: a guard killed on this transition waits for the next one.
+      if (state.dawn || state.dusk) b.guards.due = b.guards.due.map(t => t === null ? state.tick : t);
+      while (alive.length + b.guards.due.length < n) b.guards.due.push(null);
       patrol(b, alive);
       const spots = guardSpots(b);
       b.guards.due = b.guards.due.filter(t => {
-        if (t > state.tick || !spots.length) return true;
+        if (t === null || t > state.tick || !spots.length) return true;
         const taken = new Set(alive.map(e => e.guardSpot));
         const k = spots.findIndex((_, i) => !taken.has(i)), sp = spots[Math.max(0, k)];
         const id = spawn(G.type || 'guard', G.model || 'thug', sp.x, sp.z, { owner: b.owner, place: sp.place, guard: b.id, guardSpot: Math.max(0, k), order: { kind: 'station', x: sp.x, z: sp.z } });

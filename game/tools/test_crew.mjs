@@ -95,9 +95,9 @@ for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
   // Locked types refused; cap counts waiting hires; money runs out
   run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'rifleman' }]);
   assert.match(clan.notice.text, /Nobody here/);
-  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'brute' }]);   // 100 * 1.15 = 115, ryo 240 -> 125
-  assert.equal(clan.ryo, 125);
-  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'swordsman' }]); // 120 * 1.3 = 156 > 125
+  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'brute' }]);   // 100 * 1.15 = 115
+  assert.equal(clan.ryo, R.startRyo - 60 - 115);
+  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'swordsman' }]); // 120 * 1.3 = 156 exceeds the balance
   assert.match(clan.notice.text, /Not enough ryo/);
   clan.ryo = 1000;
   run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'thug' }]);     // now 3 of 3 (1 here + 2 waiting)
@@ -107,9 +107,9 @@ for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
   assert.equal(crew(clanId).length, 3);
   assert.equal(clan.queue.length, 0);
 
-  // New crew follow their hero; the hero is indoors, so they wait outside
-  for (const u of crew(clanId)) assert.equal(u.order.kind, 'follow');
-  assert.deepEqual(crew(clanId).map(u => u.order.slot).sort(), [0, 1, 2]);
+  // Player hires hold until commanded; AI clans still follow their leader.
+  for (const u of crew(clanId)) assert.equal(u.order?.kind, bot ? 'follow' : undefined);
+  if (bot) assert.deepEqual(crew(clanId).map(u => u.order.slot).sort(), [0, 1, 2]);
   assert.ok(crew(clanId).every(u => u.anim === 'idle'), JSON.stringify(Object.values(g.state.entities).map(e => [e.owner, e.type, e.anim, e.x|0, e.z|0, e.place, e.order?.kind])));
   heroes[clanId] = hero;
 }
@@ -123,6 +123,7 @@ const dist = (a, x, z) => Math.hypot(a.x - x, a.z - z);
 const pHero = g.state.entities[heroes.player];
 run(1, [{ id: pHero.id, type: 'use' }]);                       // leave the teahouse
 assert.equal(pHero.place, 'street');
+run(1, [{ id: pHero.id, type: 'order', units: crew('player').map(u => u.id), kind: 'follow' }]);
 const near = () => crew('player').every(u => dist(u, pHero.x, pHero.z) < 3.5);
 
 // Walk the hero along the street (crossroads at x -16): crew keep up

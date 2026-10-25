@@ -43,7 +43,7 @@ const make = () => {
   g.step();
   assert.equal(S[fresh].order.assist, undefined, 'a new unselected recruit never joins the current attack');
   g.step([{ id: hero, type: 'stopattack' }]);
-  assert.equal(S[free].order.kind, 'follow', 'automatic squad resumes its former orders');
+  assert.equal(S[free].order.kind, 'move', 'automatic squad holds after combat');
   assert.equal(S[fresh].order.kind, 'follow');
   assert.equal(S[tAssigned].order.kind, 'attack', 'stopping the hero preserves manual assignments');
   assert.equal(S[ctrlAssigned].order.kind, 'attack');
@@ -71,7 +71,8 @@ const make = () => {
     const flush = () => { g.step(queue.splice(0)); };
     input.select([mate]);
     input.tab();
-    assert.deepEqual(queue[0], { id: hero, type: 'attack', target: foes[0], assist: true, units: [mate] });
+    assert.deepEqual(queue[0], { id: hero, type: 'attack', target: foes[0] });
+    assert.deepEqual(queue[1], { id: hero, type: 'order', place: 'street', units: [mate], kind: 'attack', target: foes[0] });
     flush();
     assert.equal(S[hero].attackTarget, foes[0]);
     assert.equal(S[hero].swing?.target, foes[0], 'Tab starts the hero auto attack');
@@ -88,7 +89,7 @@ const make = () => {
     assert.equal(S[mate].order.target, foes[1], 'Tab leaves a T target alone');
     assert.deepEqual(input.markers(), [{ id: foes[0], kind: 'hero' }, { id: foes[1], kind: 'crew' }]);
     input.crewAttack(); flush(); // second T releases its explicit assignment
-    assert.equal(S[mate].order.assist, hero);
+    assert.equal(S[mate].order.assist, undefined, 'Tab orders no longer leash crew to hero');
     const point = view.unitToScreen(S[foes[1]].x, S[foes[1]].z);
     const event = { button: 2, ctrlKey: true, clientX: point.x, clientY: point.y, target: { closest: () => null } };
     for (const fn of handlers.mousedown) fn(event);

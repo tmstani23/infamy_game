@@ -2,10 +2,12 @@ import { canInteract } from './interactions.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
 // game state, so players and bot clans follow exactly the same rules.
 // Numbers come from game/data/units.json (docs/crew_recruiting_plan.md).
+export const DISMISS_REFUND_SHARE = 0.15;
 
 // opts.clinicScale(clanId): price factor at the clinic (the police double it at Wanted and up)
 export function createClans(state, units, opts = {}) {
   const rules = units.rules, types = units.types;
+  const typeName = type => types[type]?.name || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
   const scale = id => opts.clinicScale?.(id) ?? 1;
   state.clans = {};
 
@@ -82,6 +84,20 @@ export function createClans(state, units, opts = {}) {
     return say(clan, `Hired a ${types[type].name || type} for ${price} ryo`);
   }
 
+  // Dismiss a healthy crew member at their clan's own hideout for a small refund.
+  function dismiss(hero, unitId, businessId) {
+    const clan = state.clans[hero?.owner], b = state.businesses[businessId], unit = state.entities[unitId];
+    if (!clan || clan.bot || !canInteract(hero) || hero.type !== 'hero') return null;
+    if (!b || b.kind !== 'hideout' || b.owner !== clan.id || !b.room || hero.place !== b.room)
+      return say(clan, 'Dismiss crew inside your own hideout');
+    if (!unit || unit.owner !== clan.id || unit.type === 'hero' || unit.guard || unit.dead || unit.downed || unit.jailed || !unit.maxHp || unit.hp < unit.maxHp)
+      return say(clan, 'Only healthy, active crew can be dismissed');
+    const refund = Math.floor((types[unit.type]?.price || 0) * DISMISS_REFUND_SHARE);
+    delete state.entities[unitId];
+    clan.ryo += refund;
+    return say(clan, `${typeName(unit.type)} dismissed${refund ? ` · ${refund} ryo refunded` : ''}`);
+  }
+
   // --- Hospital (bonesetter's clinic) ------------------------------------------------
   // Downed crew nobody finished are carried here: they recover over recoverSeconds and
   // walk out once the clan pays recoverCostShare of their hire price. Hurt crew sent with
@@ -131,6 +147,7 @@ export function createClans(state, units, opts = {}) {
     const clan = state.clans[hero.owner], b = clinicOf();
     if (!clan || !canInteract(hero) || door?.menu !== 'clinic' || !b) return null;
     if (hitWait(hero) > 0) return say(clan, `You were hit: wait ${Math.ceil(hitWait(hero))} s`);
+    if (c.action === 'release') return releasePatient(hero, c.patient);
     if (c.action === 'revive') {
       const p = clan.clinic[c.patient];
       if (!p || p.kind !== 'recover') return null;
@@ -139,7 +156,7 @@ export function createClans(state, units, opts = {}) {
       clan.ryo -= cost;
       clan.clinic.splice(c.patient, 1);
       const leader = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
-      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, ...(leader ? { order: { kind: 'follow', target: leader.id } } : {}) });
+      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, ...(clan.bot && leader ? { order: { kind: 'follow', target: leader.id } } : {}) });
       return say(clan, `Your ${p.unit} is back on their feet (${cost} ryo)`);
     }
     if (c.action === 'heal') {
@@ -151,6 +168,15 @@ export function createClans(state, units, opts = {}) {
       return say(clan, `Healed ${who.length} for ${cost} ryo`);
     }
     return null;
+  }
+
+  // Release a clinic patient without reviving them or taking payment, freeing the crew slot.
+  function releasePatient(hero, patientIndex) {
+    const clan = state.clans[hero?.owner];
+    if (!clan || clan.bot || !canInteract(hero) || hero.type !== 'hero') return null;
+    if (!Number.isInteger(patientIndex) || patientIndex < 0 || patientIndex >= clan.clinic.length) return null;
+    const [patient] = clan.clinic.splice(patientIndex, 1);
+    return say(clan, `${typeName(patient.unit)} released from the clinic`);
   }
 
   function clinicTick(dt, spawn) {
@@ -166,7 +192,7 @@ export function createClans(state, units, opts = {}) {
         clan.clinic.splice(clan.clinic.indexOf(c), 1);
         const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
         spawn(c.unit, c.model || types[c.unit].sprite, b,
-          { owner: clan.id, hp: types[c.unit].hp, ...(hero ? { order: { kind: 'follow', target: hero.id } } : {}) });
+          { owner: clan.id, hp: types[c.unit].hp, ...(clan.bot && hero ? { order: { kind: 'follow', target: hero.id } } : {}) });
         say(clan, `Your ${c.unit} is back from the clinic`);
       }
     }
@@ -180,13 +206,13 @@ export function createClans(state, units, opts = {}) {
       const h = clan.queue[0];
       if (!h || (h.left -= dt) > 1e-9) continue;
       clan.queue.shift();
-      // new crew follow the clan's hero by default
+      // Player recruits hold at the hiring site until explicitly ordered to Follow.
       const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(h.unit, types[h.unit].sprite, state.businesses[h.business],
-        { owner: clan.id, hp: types[h.unit].hp, ...(hero ? { order: { kind: 'follow', target: hero.id } } : {}) });
+        { owner: clan.id, hp: types[h.unit].hp, ...(clan.bot && hero ? { order: { kind: 'follow', target: hero.id } } : {}) });
       say(clan, `Your ${h.unit} is here`);
     }
   }
 
-  return { addClan, hallOf, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, tick, carryOff, checkIn, clinicOf, clinicMenu, reviveCost, healCost, hitWait };
+  return { addClan, hallOf, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, dismiss, dismissRefund: type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE), tick, carryOff, checkIn, clinicOf, clinicMenu, releasePatient, reviveCost, healCost, hitWait };
 }

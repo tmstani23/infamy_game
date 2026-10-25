@@ -68,7 +68,7 @@ async function start() {
   try {
     view = await createView({
       canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms,
-      doors: game.doors.filter(d => !d.ninja || game.state.clans.player.kind === 'ninja'),   // back windows: Shinobi only
+      doors: game.doors.filter(d => !d.ninja || game.state.clans.player.kind === 'ninja'), units,   // back windows: Shinobi only
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');
@@ -216,11 +216,13 @@ async function start() {
     if (door) view.jumpTo(door.x, door.z); else view.jumpTo(u.x, u.z);
   };
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump });
+  let nameplatesOn = false;
+  onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
   const crewBar = createCrewBar({ root: $('bar'), game, heroId, crewInput });   // crew order buttons over the crew pips
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone });
-  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, where, jump });   // own + target frames, top middle
+  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump });   // own + target frames, top middle
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
     if (menu === 'clinic' && !clinicMenu.isOpen()) clinicMenu.toggle();
@@ -365,6 +367,7 @@ async function start() {
       // and a War Lantern knocked down in a raid you are in; shown one after another at the top
       for (const n of game.state.news) {
         const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
+        if (n.kind === 'businessAttack' && n.clan === me) callout(`Your ${n.name} is under attack!`, 'loss');
         if (n.kind === 'bossDown' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss knocked out!`, n.by === me ? 'win' : 'news');
         if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
         if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');
@@ -394,7 +397,7 @@ async function start() {
       if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
-      sound.update(game.state, heroId);
+      sound.update(game.state, view.audioFocus(game.state, heroId, crewInput.selected()));
       acc -= tick;
       const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
       const shut = door && Object.values(game.state.businesses).find(b => b.room === door.place && b.hideout && b.hideout !== game.state.entities[heroId]?.owner);   // a rival's hideout: closed

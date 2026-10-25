@@ -6,7 +6,7 @@
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 
-const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned' };
+const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -39,6 +39,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
   const buffs = el('div', 'buffs', root);
   const row = el('div', 'row', root);
+  const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', row);
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
@@ -54,10 +55,12 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     else if (id && game.police?.hq?.door) jump({ place: 'street', x: game.police.hq.door[0], z: game.police.hq.door[1] });   // jailed: the HQ
   });
   const portrait = el('div', 'portrait', row);
-  el('div', 'face', portrait, 'R');
+  const face = el('div', 'face', portrait);
+  el('span', 'glyph', face, 'R');
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);
 
   const slots = [];
+  const buffTimers = new Map();
   const addSlot = (key, kind, a) => {
     const s = el('div', 'slot', row);
     const t = tooltip(a, key, stats);
@@ -85,7 +88,12 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     root.classList.toggle('ko', ko);
     const k = h.maxHp ? h.hp / h.maxHp : 0;
     hpFill.style.width = `${k * 100}%`;
+    face.style.setProperty('--hp-angle', `${Math.max(0, Math.min(1, k)) * 360}deg`);
+    face.style.setProperty('--ring', k < 0.25 ? '#ed5347' : '#64c85f');
+    face.classList.toggle('hurt', !ko && t - (h.hitAt ?? -Infinity) < tickRate * 0.85);
     const back = ko ? Math.max(0, Math.ceil((units.rules?.heroRespawnSeconds ?? 20) - (t - h.diedAt) / tickRate)) : 0;
+    koNotice.hidden = !ko;
+    if (ko) koNotice.textContent = `Knocked out · returning to the clinic in ${back}s`;
     hpText.textContent = ko ? `Knocked out · ${back}s` : `${Math.ceil(h.hp)} / ${h.maxHp}`;
     hpBar.classList.toggle('low', k < 0.25);
 
@@ -107,8 +115,18 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     // buffs on the hero (and Rally on any of its crew)
     const mine = Object.values(game.state.entities).filter(e => e.owner === h.owner && !e.dead);
     const shown = {};
-    for (const e of mine) for (const [name, b] of Object.entries(e.buffs || {})) shown[name] = Math.max(shown[name] || 0, b.until);
-    const html = Object.entries(shown).map(([n, until]) => `<span class="buff ${n}">${BUFFS[n] || n} ${Math.max(0, Math.ceil((until - t) / tickRate))}s</span>`).join('');
+    for (const e of mine) for (const [name, b] of Object.entries(e.buffs || {})) {
+      if (b.until <= t) continue;
+      const left = (b.until - t) / tickRate, timer = buffTimers.get(name);
+      if (!timer || b.until > timer.until) buffTimers.set(name, { until: b.until, total: left });
+      const active = buffTimers.get(name);
+      if (!shown[name] || b.until > shown[name].until) shown[name] = active;
+    }
+    for (const [name, timer] of buffTimers) if (timer.until <= t) buffTimers.delete(name);
+    const html = Object.entries(shown).map(([n, { until, total }]) => {
+      const left = Math.max(0, (until - t) / tickRate), pct = Math.max(0, Math.min(1, left / total));
+      return `<span class="buff ${n}" style="--remaining:${pct * 100}%"><i></i><b>${BUFFS[n] || n}</b><small>${Math.ceil(left)}s</small></span>`;
+    }).join('');
     if (buffs.innerHTML !== html) buffs.innerHTML = html;
 
     // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out

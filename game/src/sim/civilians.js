@@ -5,6 +5,7 @@
 // killing nearby scares them: they freeze, then run away, and are marked as witnesses.
 // Plain sim code, no three.js: the server runs the same townsfolk in multiplayer.
 import { dirIndex } from './geometry.js';
+import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 
@@ -139,6 +140,22 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
       if (o?.talk === e.id) { delete o.talk; if (o.anim === 'talk') o.anim = 'idle'; }
       delete e.talk; delete e.scared; delete e.flee;
       return;
+    }
+    const wasRetreating = !!m.retreat, zone = retreatZone(e, m, largeFights(state));
+    if (zone) {
+      const other = state.entities[e.talk];
+      if (other?.talk === e.id) { delete other.talk; other.anim = 'idle'; }
+      delete e.talk; delete e.scared; delete e.danger; delete e.flee;
+      const spot = retreatSpot(e, zone, nav);
+      if (Math.hypot(e.x - zone.x, e.z - zone.z) < zone.radius + 2 && spot) {
+        if (moveTo(e, unit, ...spot, false)) return;
+      }
+      stopPath(e); e.anim = 'idle';
+      return;
+    }
+    if (wasRetreating) {
+      stopPath(e);
+      Object.assign(m, { spot: null, until: state.tick + secs(R.calmSeconds ?? 4), x: e.x, z: e.z, act: null });
     }
     // frozen in fright, then run
     if (e.scared) {

@@ -7,7 +7,7 @@
 // Left-click a building (where nothing else is) to look at it (building_panel.js), unless the fog
 // has never shown it.
 // Selection lives only on this screen; orders go to the rules as 'order' commands.
-import { prisonerOf } from './sim/police.js';
+import { prisonerOf, POLICE } from './sim/police.js';
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
 
@@ -29,16 +29,18 @@ export function bodyDistance(view, e, px, py) {
   return Math.hypot(px - (f.x + vx * k), py - (f.y + vy * k));
 }
 
-// Tab targeting: the hero's next enemy (another clan's standing unit, never townsfolk or
-// downed ones) within TAB_RANGE and not hidden in the fog (`seen`), nearest first; pressing
+// Tab targeting: the hero's next enemy (another clan's standing unit, never police,
+// townsfolk or downed ones) within TAB_RANGE and not hidden in the fog (`seen`), nearest first; pressing
 // again moves on from `current`. Whoever is knocking down your War Lantern comes first (Tim 2026-10-20)
 const TAB_RANGE = 14;
-export function tabTarget(state, heroId, current, seen = () => true) {
+export function tabTarget(state, heroId, current, seen = () => true, place = null, origin = null) {
   const h = state.entities[heroId];
-  if (!h || h.dead) return null;
+  if (!h) return null;
+  place ||= h.place;
+  origin ||= h;
   const list = Object.values(state.entities)
-    .filter(e => e.owner && e.owner !== h.owner && !e.hidden && !e.dead && !e.downed && !e.jailed && e.place === h.place && Math.hypot(e.x - h.x, e.z - h.z) <= TAB_RANGE && seen(e))
-    .sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z) || (a.id < b.id ? -1 : 1));
+    .filter(e => e.owner && e.owner !== h.owner && e.owner !== POLICE && !e.hidden && !e.dead && !e.downed && !e.jailed && e.place === place && Math.hypot(e.x - origin.x, e.z - origin.z) <= TAB_RANGE && seen(e))
+    .sort((a, b) => Math.hypot(a.x - origin.x, a.z - origin.z) - Math.hypot(b.x - origin.x, b.z - origin.z) || (a.id < b.id ? -1 : 1));
   if (!list.length) return null;
   const knocker = list.find(e => Object.values(state.attacks || {}).some(a => a.clan === h.owner && a.knock?.by === e.id));
   if (knocker && current !== knocker.id) return knocker.id;
@@ -48,12 +50,13 @@ export function tabTarget(state, heroId, current, seen = () => true) {
 
 // Red: hero/Tab target. Blue: an independent crew target. Purple: crew sharing
 // the hero's target, regardless of whether they joined automatically or by an order.
-export function targetMarkers(state, heroId, tabbed, seen = () => true) {
+export function targetMarkers(state, heroId, tabbed, seen = () => true, place = null) {
   const h = state.entities[heroId], S = state.entities;
   if (!h) return [];
-  const live = id => S[id] && !S[id].dead && !S[id].jailed && (!S[id].hidden || S[id].owner === h.owner) && S[id].place === h.place && seen(S[id]);
-  const heroT = !h.dead && !h.downed && !h.jailed ? [h.attackTarget, h.swing?.target].find(live) : null;
-  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed && u.place === h.place)
+  place ||= h.place;
+  const live = id => S[id] && !S[id].dead && !S[id].jailed && (!S[id].hidden || S[id].owner === h.owner) && S[id].place === place && seen(S[id]);
+  const heroT = h.place === place && !h.dead && !h.downed && !h.jailed ? [h.attackTarget, h.swing?.target].find(live) : null;
+  const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed && u.place === place)
     .map(u => u.order?.kind === 'attack' ? u.order.target : u.execute?.target || u.swing?.target).filter(live));
   const out = heroT ? [{ id: heroT, kind: crewT.has(heroT) ? 'shared' : 'hero' }] : [];
   if (live(tabbed) && tabbed !== heroT && !S[tabbed].downed) out.push({ id: tabbed, kind: crewT.has(tabbed) ? 'crew' : 'tab' });
@@ -70,9 +73,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   let looked = null;          // a townsperson (or other non-enemy) left-clicked to look at in the target frame
   let building = null;        // the selected building (index in the district's buildings), or null
   const hero = () => game.state.entities[heroId];
+  const commandPlace = () => view.commandPlace?.(game.state, heroId) || hero()?.place;
+  const order = c => send({ id: heroId, type: 'order', place: commandPlace(), ...c });
   const myCrew = () => Object.values(game.state.entities)
-    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && e.place === hero()?.place);   // indoors too, so C works there
-  const outdoors = () => hero()?.place === 'street';
+    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && e.place === commandPlace());
+  const outdoors = () => commandPlace() === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
   const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner) && (!game.vision || game.vision.canSee(hero()?.owner, e));
   function pruneTargets() {
@@ -80,12 +85,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (looked && !seen(game.state.entities[looked])) looked = null;
   }
   const enemies = () => Object.values(game.state.entities)
-    .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === hero()?.place && seen(e));
+    .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === commandPlace() && seen(e));
   const townsfolk = () => Object.values(game.state.entities)
-    .filter(e => e.type === 'civilian' && !e.dead && e.place === hero()?.place && seen(e));
+    .filter(e => e.type === 'civilian' && !e.dead && e.place === commandPlace() && seen(e));
   // bandit bodies with ryo on them: right-click to loot (Tim 2026-10-19)
   const bodies = () => Object.values(game.state.entities)
-    .filter(e => e.dead && e.loot > 0 && e.place === hero()?.place && seen(e));
+    .filter(e => e.dead && e.loot > 0 && seen(e) && e.place === commandPlace());
 
   // has the hero's clan ever seen any of building i's footprint (centre or corners)?
   const explored = i => {
@@ -127,8 +132,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   function heroAt(px, py) {
     const foe = unitAt(px, py, enemies()) || unitAt(px, py, townsfolk(), CIV_PX);
     if (foe) { tabbed = foe.downed ? null : foe.id; looked = null; }
-    if (foe?.downed) send({ id: heroId, type: 'execute', target: foe.id });
-    else if (foe) send({ id: heroId, type: 'attack', target: foe.id, assist: true, units: mine() });
+    if (foe?.downed) send({ id: heroId, type: 'execute', target: foe.id, units: mine(), preferHeroInRange: foe.place === hero()?.place });
+    else if (foe) {
+      if (foe.place === hero()?.place) send({ id: heroId, type: 'attack', target: foe.id });
+      if (mine().length) order({ units: mine(), kind: 'attack', target: foe.id });
+    }
   }
   addEventListener('mousedown', e => {
     if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
@@ -136,14 +144,15 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
     // unit sends the selected crew instead (below). On the ground both stay crew orders.
     if (e.button === 2 && !e.ctrlKey && target()) { heroAt(e.clientX, e.clientY); return; }
-    // right-click a bandit's body: the hero walks over and loots it; Ctrl + right-click: the nearest selected crew member does
+    // Right-click: the hero loots if already in reach, otherwise the nearest selected crew does.
+    // Ctrl + right-click always assigns selected crew only.
     const body = e.button === 2 && !target() && unitAt(e.clientX, e.clientY, bodies());
-    if (body) { send({ id: heroId, type: 'loot', target: body.id, ...(e.ctrlKey ? { units: mine() } : {}) }); return; }
+    if (body) { send({ id: heroId, type: 'loot', target: body.id, units: mine(), preferHeroInRange: !e.ctrlKey, crewOnly: e.ctrlKey }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
       const p = view.screenToGround(e.clientX, e.clientY);
-      if (p && mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'attackmove', x: p.x, z: p.z });
+      if (p && mine().length) order({ units: mine(), kind: 'attackmove', x: p.x, z: p.z });
       return;
     }
     if (e.button === 0) drag = { x: e.clientX, y: e.clientY };
@@ -153,15 +162,15 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // or the hero to follow
       if (!mine().length) return;
       const foe = target();
-      if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine() }); return; }
-      if (foe) { send({ id: heroId, type: 'order', units: mine(), kind: 'attack', target: foe.id, followOnDefeat: true }); return; }
-      if (unitAt(e.clientX, e.clientY, [hero()])) { send({ id: heroId, type: 'order', units: mine(), kind: 'follow' }); return; }
+      if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine(), crewOnly: true }); return; }
+      if (foe) { order({ units: mine(), kind: 'attack', target: foe.id }); return; }
+      if (hero()?.place === commandPlace() && unitAt(e.clientX, e.clientY, [hero()])) { order({ units: mine(), kind: 'follow' }); return; }
       // right-click your own business: they walk to its door, go in and hold it (checkpoint 5)
       const i = !e.ctrlKey && outdoors() ? view.buildingAt(e.clientX, e.clientY) : null, biz = i !== null && game.state.businesses[`b${i}`];
       // also the hideout your Shinobi have a Steal job on: the crew climb in by its back window (Tim 2026-10-21)
-      if (biz && biz.room && (biz.owner === hero()?.owner || game.contracts?.mayClimb(hero(), biz.room))) { if (mine().length) view.flashBuilding(i); send({ id: heroId, type: 'order', units: mine(), kind: 'enter', business: biz.id }); return; }
+      if (biz && biz.room && (biz.owner === hero()?.owner || game.contracts?.mayClimb(hero(), biz.room))) { if (mine().length) view.flashBuilding(i); order({ units: mine(), kind: 'enter', business: biz.id }); return; }
       const p = view.screenToGround(e.clientX, e.clientY);
-      if (p) send({ id: heroId, type: 'order', units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
+      if (p) order({ units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }
   });
   addEventListener('mousemove', e => {
@@ -213,43 +222,49 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // Tab: the next enemy becomes the hero's target and he starts his auto attack on it at once
     // Left-click still only selects a target; Tab attacks with selected crew.
     tab() {
-      tabbed = tabTarget(game.state, heroId, tabbed, seen) || null;
-      if (tabbed) send({ id: heroId, type: 'attack', target: tabbed, assist: true, units: mine() });
+      const place = commandPlace(), focus = mine().map(id => game.state.entities[id]).find(e => e?.place === place) || (place === hero()?.place ? hero() : view.audioFocus(game.state, heroId));
+      tabbed = tabTarget(game.state, heroId, tabbed, seen, place, focus) || null;
+      if (tabbed) {
+        if (place === hero()?.place) send({ id: heroId, type: 'attack', target: tabbed });
+        const available = mine().filter(id => !game.state.entities[id]?.order?.broadcast);
+        if (available.length) order({ units: available, kind: 'attack', target: tabbed });
+      }
     },
     // a given unit becomes the hero's target and he attacks it (a click on the lantern channel bar)
     target(id) {
       const t = game.state.entities[id];
-      if (!t || t.dead || t.place !== hero()?.place || !seen(t)) return;
+      if (!t || t.dead || t.place !== commandPlace() || !seen(t)) return;
       tabbed = id;
-      send({ id: heroId, type: 'attack', target: id, assist: true, units: mine() });
+      if (t.place === hero()?.place) send({ id: heroId, type: 'attack', target: id });
+      if (mine().length) order({ units: mine(), kind: 'attack', target: id });
     },
     // T: outdoor crew (selected or not) attack the marked unit (left-click, its card showing),
     // else the hero's current target; a downed one they finish off (Tim 2026-10-19)
     crewAttack() {
       const S = game.state.entities, h = hero();
       if (!outdoors()) return;
-      const t = [...selected, h?.attackTarget, h?.swing?.target, looked, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && seen(t));
+      const t = [...selected, h?.attackTarget, h?.swing?.target, looked, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && t.place === 'street' && seen(t));
       const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && !e.jailed && e.place === 'street').map(e => e.id);
       // a second T while they are on a T attack calls it off: back to what they were doing (Tim 2026-10-19)
       const assigned = units.filter(id => S[id].order?.kind === 'attack' && S[id].order.broadcast);
-      if (assigned.length) { send({ id: heroId, type: 'order', units: assigned, kind: 'resume', broadcast: true }); return; }
+      if (assigned.length) { order({ units: assigned, kind: 'resume', broadcast: true }); return; }
       if (!t || !units.length) return;
       if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units, broadcast: true });
-      else send({ id: heroId, type: 'order', units, kind: 'attack', target: t.id, resume: true, broadcast: true, followOnDefeat: mine() });
+      else order({ units, kind: 'attack', target: t.id, resume: true, broadcast: true });
     },
     // Shared attacks take purple priority; separate crew assignments stay blue.
-    markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen); },
+    markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen, commandPlace()); },
     tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { pruneTargets(); return looked; },
     hovered(px, py) {
       const h = hero();
       if (!h || drag) return null;
       return unitAt(px, py, Object.values(game.state.entities)
-        .filter(e => !e.dead && e.place === h.place && seen(e)))?.id || null;
+        .filter(e => !e.dead && e.place === commandPlace() && seen(e)))?.id || null;
     },
     drawMarkers(root) {
       pruneTargets();
-      const list = targetMarkers(game.state, heroId, tabbed, seen);
+      const list = targetMarkers(game.state, heroId, tabbed, seen, commandPlace());
       while (root.children.length < list.length) root.appendChild(document.createElement('i'));
       [...root.children].forEach((el, k) => {
         const m = list[k], t = m && game.state.entities[m.id];
@@ -282,10 +297,10 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     cancelAction() { send({ id: heroId, type: 'cancel', units: mine() }); },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
     // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')
-    stopSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'stop' }); },
-    followMe() { const units = mine().filter(id => game.state.entities[id]?.place === hero()?.place); if (units.length) send({ id: heroId, type: 'order', units, kind: 'follow' }); },
+    stopSelected() { if (mine().length) order({ units: mine(), kind: 'stop' }); },
+    followMe() { const units = mine().filter(id => ['street', hero()?.place].includes(game.state.entities[id]?.place)); if (units.length) order({ units, kind: 'follow' }); },
     // hurt selected crew walk to the clinic to heal (for ryo)
-    healSelected() { if (mine().length) send({ id: heroId, type: 'order', units: mine(), kind: 'heal' }); },
+    healSelected() { if (mine().length) order({ units: mine(), kind: 'heal' }); },
     select(ids) { setSelected(ids); building = null; },
     selected: () => selected,
     building: () => building,

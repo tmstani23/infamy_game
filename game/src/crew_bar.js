@@ -3,7 +3,7 @@
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
 // Only reads the state; orders go out as the same commands the keys send.
 const CMDS = [
-  { key: 'V', name: 'Follow', tip: 'Selected crew in your current location follow the hero. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
+  { key: 'V', name: 'Follow', tip: 'Selected crew follow the hero; outdoor crew enter your building. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
   { key: 'T', name: 'Attack', tip: 'Your outdoor crew (selected or not) attack the marked unit or hero\'s target; downed: execute. Indoor crew stay at their duties. Press T again to resume previous orders. Use selected crew commands indoors.', act: c => c.crewAttack(), need: 'outdoor' },
   { key: 'Z', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
   { key: 'X', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
@@ -63,7 +63,7 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
     const crew = Object.values(S).some(usable);
     const outdoor = h?.place === 'street' && Object.values(S).some(e => usable(e) && e.place === 'street' && !e.downed && !e.jailed);
     const sel = crewInput.selected().some(id => usable(S[id]));
-    const follow = crewInput.selected().some(id => usable(S[id]) && S[id].place === h?.place);
+    const follow = crewInput.selected().some(id => usable(S[id]) && ['street', h?.place].includes(S[id].place));
     const street = crewInput.selected().some(id => usable(S[id]) && S[id].place === 'street');
     const available = { sel, follow, street, outdoor, crew };
     for (const { b, cmd } of buttons) b.classList.toggle('off', !available[cmd.need]);

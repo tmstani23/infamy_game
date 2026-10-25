@@ -17,8 +17,8 @@ for (const kind of ['yakuza', 'ninja']) {
   g.step([{ id: hero, type: 'order', units: crew, kind: 'attack', target, resume: true, broadcast: true, followOnDefeat: [crew[0]] }]);
   for (let i = 0; i < 100 && !S[target].downed; i++) g.step();
   assert.ok(S[target].downed); g.step();
-  assert.equal(S[crew[0]].order.kind, 'follow'); assert.equal(S[crew[0]].order.target, hero);
-  assert.equal(S[crew[1]].order.kind, 'station', 'unselected T unit resumes its original duty');
+  assert.equal(S[crew[0]].order.kind, 'move', 'selected T unit holds after defeat');
+  assert.equal(S[crew[1]].order.kind, 'move', 'unselected T unit also holds after defeat');
   const second = make(kind);
   second.S[second.target].hp = 10000;
   const command = { id: second.hero, type: 'order', units: [second.crew[0]], kind: 'attack', target: second.target, resume: true, broadcast: true, followOnDefeat: true };
@@ -29,13 +29,13 @@ for (const kind of ['yakuza', 'ninja']) {
   direct.g.step([{ id: direct.hero, type: 'order', units: [direct.crew[0]], kind: 'attack', target: direct.target, followOnDefeat: true }]);
   for (let i = 0; i < 100 && !direct.S[direct.target].downed; i++) direct.g.step();
   direct.g.step();
-  assert.equal(direct.S[direct.crew[0]].order.kind, 'follow', 'selected direct attack follows after defeat');
+  assert.equal(direct.S[direct.crew[0]].order.kind, 'move', 'selected direct attack holds after defeat');
   const assisted = make(kind);
   assisted.S[assisted.crew[0]].order = { kind: 'follow', target: assisted.hero, slot: 0 };
   assisted.g.step([{ id: assisted.hero, type: 'attack', target: assisted.target, assist: true, units: [assisted.crew[0]] }]);
   for (let i = 0; i < 100 && !assisted.S[assisted.target].downed; i++) assisted.g.step();
   assisted.g.step();
-  assert.equal(assisted.S[assisted.crew[0]].order.kind, 'follow', 'right-click/Tab assistance returns to Follow');
+  assert.equal(assisted.S[assisted.crew[0]].order.kind, 'move', 'right-click/Tab assistance holds after defeat');
   assert.equal(assisted.S[assisted.crew[1]].order.kind, 'station', 'unselected crew do not inherit the hero attack');
 }
-console.log('All-clan attack completion: selected direct/T units follow after defeat; unselected T and cancellation preserve old duties');
+console.log('All-clan attack completion: direct/T/assisted units hold after defeat; cancellation preserves old duties');
