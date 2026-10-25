@@ -14,7 +14,8 @@ import { createBanners } from './banners.js';
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
 export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false }) {
-  const INDOOR_ZOOM = 1.45;
+  // Use one close interior camera setting without enlarging character sprites separately.
+  const INDOOR_ZOOM = 1.1;
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
   let zoomNow = zoom;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -52,11 +53,18 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   resize();
 
   scene.add(await buildGround(district.ground, renderer, district.bounds));
-  const roomLights = [];
+  const roomLights = [], blueprintWalls = [], blueprintDoors = [];
+  const roomCharacterScales = Object.fromEntries(rooms.map(r => [r.name, r.template.characterScale || 1]));
   for (const r of rooms) {
     const built = await buildRoom3d(r, parts, renderer);
     scene.add(built.group, ...built.glows);
     roomLights.push(...built.lights);
+    const baseOpacity = r.template.scenePainting ? 0.8 : 1;
+    const scale = r.worldScale || 1;
+    for (const wall of built.partitionWalls) blueprintWalls.push({ ...wall, at: wall.at * scale, a: wall.a * scale, b: wall.b * scale,
+      room: r.name, ox: r.origin.x, oz: r.origin.z, fade: baseOpacity, baseOpacity });
+    for (const door of built.partitionDoors) blueprintDoors.push({ ...door, at: door.at * scale, a: door.a * scale, b: door.b * scale,
+      room: r.name, ox: r.origin.x, oz: r.origin.z, fade: baseOpacity, baseOpacity });
   }
   const rings = doorRings(doors);
   for (const d of rings) scene.add(d);
@@ -197,6 +205,36 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
   }
 
+  function updateBlueprintWalls(state, followId, hero, dt) {
+    const place = state.entities[followId]?.place;
+    // The fixed camera is southeast of its target. Fade a finite wall run only
+    // when that camera ray to the followed unit intersects the run.
+    const blocksView = item => {
+      if (!hero || item.room !== place) return false;
+      const x = hero.pos.x, z = hero.pos.z;
+      if (item.along === 'z') {
+        const t = (item.ox + item.at - x) / 60;
+        const hit = z + 60 * t;
+        return t > 0 && t < 1 && hit >= item.oz + item.a && hit <= item.oz + item.b;
+      }
+      const t = (item.oz + item.at - z) / 60;
+      const hit = x + 60 * t;
+      return t > 0 && t < 1 && hit >= item.ox + item.a && hit <= item.ox + item.b;
+    };
+    for (const item of [...blueprintWalls, ...blueprintDoors]) {
+      const x = hero?.pos.x, z = hero?.pos.z;
+      const near = hero && item.room === place && (item.along === 'z'
+        ? Math.hypot(x - item.ox - item.at, z - THREE.MathUtils.clamp(z, item.oz + item.a, item.oz + item.b))
+        : Math.hypot(z - item.oz - item.at, x - THREE.MathUtils.clamp(x, item.ox + item.a, item.ox + item.b))) < 2.2;
+      const target = item.baseOpacity < 1
+        ? near ? 0.4 : item.baseOpacity
+        : blocksView(item) ? 0.18 : 1;
+      item.fade += (target - item.fade) * (1 - Math.exp(-dt * 12));
+      for (const mat of item.materials) mat.uniforms.uOpacity.value = item.fade;
+    }
+    for (const door of blueprintDoors) door.leaf.visible = !state.interiorDoors?.[door.id];
+  }
+
   // a building pulses softly twice: crew were sent in, or came out (Tim 2026-10-19)
   const flashes = new Map();   // building index -> seconds since the flash started
   function updateFlashes(dt) {
@@ -228,7 +266,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
-      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT, e.place && e.place !== 'street' ? INDOOR_SIZE : 1);
+      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT,
+        e.place && e.place !== 'street' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       s.setHealth(e.hp, e.maxHp);
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
       // health bar stays a health bar: two bars used to show, Tim 2026-10-18);
@@ -291,7 +330,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       camTarget.lerp(freeCam || hero.pos, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
       heroPos = hero.pos;
     }
-    const wantZoom = inside ? Math.min(zoom * INDOOR_ZOOM, 1.1) : zoom;
+    const wantZoom = inside ? INDOOR_ZOOM : zoom;
     if (Math.abs(wantZoom - zoomNow) > 1e-3) { zoomNow += (wantZoom - zoomNow) * (1 - Math.exp(-dt * 5)); resize(); }
     const ppx = PPU * zoomNow * renderer.getPixelRatio();
     const s = toScreen(camTarget);
@@ -311,6 +350,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     updateLights(time);
     updateCutaway(hero, dt);
+    updateBlueprintWalls(state, followId, hero, dt);
     sortThings([...things, ...banners.things, ...[...sprites.values()].filter(Boolean).map(s => s.thing)]);
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);

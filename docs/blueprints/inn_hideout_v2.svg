@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1200" width="1900" height="1200">
+<rect width="1900" height="1200" fill="white"/>
+<g fill="black" font-family="Arial, Helvetica, sans-serif">
+<text x="180" y="67" font-size="35" font-weight="bold" text-anchor="start">INN / PLAYER HIDEOUT</text>
+<text x="180" y="98" font-size="17" font-weight="normal" text-anchor="start">FURNISHED BLUEPRINT · REVIEW DRAFT · TOP-DOWN · 1 CELL = 45 PX</text>
+<text x="1190" y="167" font-size="26" font-weight="bold" text-anchor="start">OBJECT SCHEDULE</text>
+<text x="1190" y="192" font-size="16" font-weight="normal" text-anchor="start">IDs on plan correspond to objects below</text>
+</g>
+<g fill="none" stroke="#dedede" stroke-width="1">
+<path d="M225 190 L225 1000"/>
+<path d="M270 190 L270 1000"/>
+<path d="M315 190 L315 1000"/>
+<path d="M360 190 L360 1000"/>
+<path d="M405 190 L405 1000"/>
+<path d="M450 190 L450 1000"/>
+<path d="M495 190 L495 1000"/>
+<path d="M540 190 L540 1000"/>
+<path d="M585 190 L585 1000"/>
+<path d="M630 190 L630 1000"/>
+<path d="M675 190 L675 1000"/>
+<path d="M720 190 L720 1000"/>
+<path d="M765 190 L765 1000"/>
+<path d="M810 190 L810 1000"/>
+<path d="M855 190 L855 1000"/>
+<path d="M900 190 L900 1000"/>
+<path d="M945 190 L945 1000"/>
+<path d="M990 190 L990 1000"/>
+<path d="M1035 190 L1035 1000"/>
+<path d="M180 235 L1080 235"/>
+<path d="M180 280 L1080 280"/>
+<path d="M180 325 L1080 325"/>
+<path d="M180 370 L1080 370"/>
+<path d="M180 415 L1080 415"/>
+<path d="M180 460 L1080 460"/>
+<path d="M180 505 L1080 505"/>
+<path d="M180 550 L1080 550"/>
+<path d="M180 595 L1080 595"/>
+<path d="M180 640 L1080 640"/>
+<path d="M180 685 L1080 685"/>
+<path d="M180 730 L1080 730"/>
+<path d="M180 775 L1080 775"/>
+<path d="M180 820 L1080 820"/>
+<path d="M180 865 L1080 865"/>
+<path d="M180 910 L1080 910"/>
+<path d="M180 955 L1080 955"/>
+</g>
+<g font-family="Arial, Helvetica, sans-serif" fill="black">
+<rect x="216" y="262" width="130.5" height="67.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="281.25" y="292.75" font-size="17" font-weight="bold" text-anchor="middle">C1</text>
+<text x="281.25" y="310.75" font-size="11" font-weight="normal" text-anchor="middle">futon 1</text>
+<rect x="216" y="442" width="130.5" height="67.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="281.25" y="472.75" font-size="17" font-weight="bold" text-anchor="middle">C2</text>
+<text x="281.25" y="490.75" font-size="11" font-weight="normal" text-anchor="middle">futon 2</text>
+<rect x="369" y="262" width="54" height="54" fill="white" stroke="black" stroke-width="2"/>
+<text x="396" y="286" font-size="17" font-weight="bold" text-anchor="middle">C3</text>
+<circle cx="382.5" cy="527.5" r="16" fill="white" stroke="black" stroke-width="2.5"/>
+<path d="M372.5 527.5 H392.5 M382.5 517.5 V537.5" stroke="black" stroke-width="1"/>
+<text x="382.5" y="556.5" font-size="13" font-weight="bold" text-anchor="middle">C4</text>
+<rect x="913.5" y="262" width="130.5" height="67.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="978.75" y="292.75" font-size="17" font-weight="bold" text-anchor="middle">G1</text>
+<text x="978.75" y="310.75" font-size="11" font-weight="normal" text-anchor="middle">futon 1</text>
+<rect x="913.5" y="442" width="130.5" height="54" fill="white" stroke="black" stroke-width="2"/>
+<text x="978.75" y="466" font-size="17" font-weight="bold" text-anchor="middle">G2</text>
+<text x="978.75" y="484" font-size="11" font-weight="normal" text-anchor="middle">futon 2</text>
+<rect x="837" y="262" width="54" height="54" fill="white" stroke="black" stroke-width="2"/>
+<text x="864" y="286" font-size="17" font-weight="bold" text-anchor="middle">G3</text>
+<circle cx="1012.5" cy="527.5" r="16" fill="white" stroke="black" stroke-width="2.5"/>
+<path d="M1002.5 527.5 H1022.5 M1012.5 517.5 V537.5" stroke="black" stroke-width="1"/>
+<text x="1012.5" y="556.5" font-size="13" font-weight="bold" text-anchor="middle">G4</text>
+<rect x="216" y="662.5" width="108" height="90" fill="white" stroke="black" stroke-width="2"/>
+<text x="270" y="704.5" font-size="17" font-weight="bold" text-anchor="middle">K1</text>
+<text x="270" y="722.5" font-size="11" font-weight="normal" text-anchor="middle">Cooking hearth</text>
+<rect x="229.5" y="784" width="108" height="58.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="283.5" y="810.25" font-size="17" font-weight="bold" text-anchor="middle">K2</text>
+<rect x="189" y="937" width="49.5" height="54" fill="white" stroke="black" stroke-width="2"/>
+<text x="213.75" y="961" font-size="17" font-weight="bold" text-anchor="middle">K3</text>
+<rect x="288" y="901" width="49.5" height="49.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="312.75" y="929.75" font-size="17" font-weight="bold" text-anchor="middle">K4</text>
+<circle cx="382.5" cy="932.5" r="16" fill="white" stroke="black" stroke-width="2.5"/>
+<path d="M372.5 932.5 H392.5 M382.5 922.5 V942.5" stroke="black" stroke-width="1"/>
+<text x="382.5" y="961.5" font-size="13" font-weight="bold" text-anchor="middle">K5</text>
+<rect x="913.5" y="649" width="108" height="67.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="967.5" y="679.75" font-size="17" font-weight="bold" text-anchor="middle">P1</text>
+<text x="967.5" y="697.75" font-size="11" font-weight="normal" text-anchor="middle">Planning table</text>
+<rect x="819" y="604" width="45" height="49.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="841.5" y="632.75" font-size="17" font-weight="bold" text-anchor="middle">P2</text>
+<rect x="819" y="667" width="45" height="49.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="841.5" y="695.75" font-size="17" font-weight="bold" text-anchor="middle">P3</text>
+<rect x="855" y="878.5" width="99" height="54" fill="white" stroke="black" stroke-width="2"/>
+<text x="904.5" y="902.5" font-size="17" font-weight="bold" text-anchor="middle">P4</text>
+<circle cx="1012.5" cy="932.5" r="16" fill="white" stroke="black" stroke-width="2.5"/>
+<path d="M1002.5 932.5 H1022.5 M1012.5 922.5 V942.5" stroke="black" stroke-width="1"/>
+<text x="1012.5" y="961.5" font-size="13" font-weight="bold" text-anchor="middle">P5</text>
+<rect x="477" y="289" width="81" height="112.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="517.5" y="342.25" font-size="17" font-weight="bold" text-anchor="middle">H1</text>
+<rect x="576" y="523" width="126" height="76.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="639" y="558.25" font-size="17" font-weight="bold" text-anchor="middle">H2</text>
+<text x="639" y="576.25" font-size="11" font-weight="normal" text-anchor="middle">dining table</text>
+<rect x="580.5" y="473.5" width="31.5" height="31.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="596.25" y="493.25" font-size="17" font-weight="bold" text-anchor="middle">H3</text>
+<rect x="666" y="473.5" width="31.5" height="31.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="681.75" y="493.25" font-size="17" font-weight="bold" text-anchor="middle">H4</text>
+<rect x="580.5" y="617.5" width="31.5" height="31.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="596.25" y="637.25" font-size="17" font-weight="bold" text-anchor="middle">H5</text>
+<rect x="666" y="617.5" width="31.5" height="31.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="681.75" y="637.25" font-size="17" font-weight="bold" text-anchor="middle">H6</text>
+<rect x="738" y="644.5" width="49.5" height="85.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="762.75" y="684.25" font-size="17" font-weight="bold" text-anchor="middle">H7</text>
+<rect x="580.5" y="811" width="117" height="58.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="639" y="837.25" font-size="17" font-weight="bold" text-anchor="middle">H8</text>
+<text x="639" y="855.25" font-size="11" font-weight="normal" text-anchor="middle">Low tea table</text>
+<rect x="621" y="766" width="36" height="31.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="639" y="785.75" font-size="17" font-weight="bold" text-anchor="middle">H9</text>
+<rect x="621" y="883" width="36" height="31.5" fill="white" stroke="black" stroke-width="2"/>
+<text x="639" y="902.75" font-size="17" font-weight="bold" text-anchor="middle">H10</text>
+<circle cx="517.5" cy="887.5" r="16" fill="white" stroke="black" stroke-width="2.5"/>
+<path d="M507.5 887.5 H527.5 M517.5 877.5 V897.5" stroke="black" stroke-width="1"/>
+<text x="517.5" y="916.5" font-size="13" font-weight="bold" text-anchor="middle">H11</text>
+</g>
+<g fill="none" stroke="black" stroke-linecap="square" stroke-linejoin="miter">
+<path d="M180 190 L630 190 M720 190 L1080 190 M180 190 L180 1000 M180 1000 L1080 1000 M1080 1000 L1080 190" stroke-width="9"/>
+<path d="M450 190 L450 370" stroke-width="7"/>
+<path d="M450 460 L450 730" stroke-width="7"/>
+<path d="M450 820 L450 1000" stroke-width="7"/>
+<path d="M443 377 V453 M457 377 V453" stroke-width="2"/>
+<path d="M443 737 V813 M457 737 V813" stroke-width="2"/>
+<path d="M832.5 190 L832.5 370" stroke-width="7"/>
+<path d="M832.5 460 L832.5 730" stroke-width="7"/>
+<path d="M832.5 820 L832.5 1000" stroke-width="7"/>
+<path d="M825.5 377 V453 M839.5 377 V453" stroke-width="2"/>
+<path d="M825.5 737 V813 M839.5 737 V813" stroke-width="2"/>
+<path d="M180 595 L450 595" stroke-width="7"/>
+<path d="M832.5 550 L1080 550" stroke-width="7"/>
+</g>
+<g fill="white">
+<rect x="270" y="184" width="90" height="12"/>
+<rect x="900" y="184" width="90" height="12"/>
+<rect x="174" y="325" width="12" height="90"/>
+<rect x="174" y="775" width="12" height="90"/>
+<rect x="1074" y="325" width="12" height="90"/>
+<rect x="1074" y="775" width="12" height="90"/>
+<rect x="270" y="994" width="90" height="12"/>
+<rect x="900" y="994" width="90" height="12"/>
+</g><g fill="none" stroke="black" stroke-width="1.8">
+<path d="M270 186 H360 M270 194 H360"/>
+<path d="M900 186 H990 M900 194 H990"/>
+<path d="M176 325 V415 M184 325 V415"/>
+<path d="M176 775 V865 M184 775 V865"/>
+<path d="M1076 325 V415 M1084 325 V415"/>
+<path d="M1076 775 V865 M1084 775 V865"/>
+<path d="M270 996 H360 M270 1004 H360"/>
+<path d="M900 996 H990 M900 1004 H990"/>
+</g>
+<g fill="black" font-family="Arial, Helvetica, sans-serif">
+<rect x="237" y="207" width="156" height="25" fill="white"/>
+<text x="315" y="226" font-size="17" font-weight="bold" text-anchor="middle">CREW QUARTERS</text>
+<rect x="880" y="207" width="130" height="25" fill="white"/>
+<text x="945" y="226" font-size="17" font-weight="bold" text-anchor="middle">GUEST ROOM</text>
+<rect x="219" y="612" width="192" height="25" fill="white"/>
+<text x="315" y="631" font-size="17" font-weight="bold" text-anchor="middle">KITCHEN + STORES</text>
+<rect x="886.5" y="612" width="180" height="25" fill="white"/>
+<text x="976.5" y="631" font-size="17" font-weight="bold" text-anchor="middle">PLANNING + GEAR</text>
+<rect x="564" y="216" width="132" height="25" fill="white"/>
+<text x="630" y="235" font-size="17" font-weight="bold" text-anchor="middle">COMMON HALL</text>
+<text x="675" y="170" font-size="14" font-weight="bold" text-anchor="middle">MAIN ENTRANCE</text>
+</g>
+<g fill="none" stroke="black" stroke-width="2">
+<path d="M180 145 H1080 M180 135 V155 M1080 135 V155 M130 190 V1000 M120 190 H140 M120 1000 H140"/>
+<path d="M1150 135 V185 M1142 147 L1150 135 L1158 147"/>
+<path d="M180 1068 H450 M180 1060 V1076 M270 1060 V1076 M360 1060 V1076 M450 1060 V1076"/>
+</g><g fill="black" font-family="Arial, Helvetica, sans-serif">
+<text x="630" y="138" font-size="17" font-weight="normal" text-anchor="middle">20 GAME UNITS</text>
+<text x="1150" y="125" font-size="18" font-weight="bold" text-anchor="middle">N</text>
+<text x="76" y="602" font-size="17" font-weight="normal" text-anchor="middle">18 GAME UNITS</text>
+<text x="180" y="1098" font-size="14" font-weight="normal" text-anchor="start">0</text>
+<text x="270" y="1098" font-size="14" font-weight="normal" text-anchor="middle">2</text>
+<text x="360" y="1098" font-size="14" font-weight="normal" text-anchor="middle">4</text>
+<text x="450" y="1098" font-size="14" font-weight="normal" text-anchor="end">6 units</text>
+</g>
+<g fill="black" font-family="Arial, Helvetica, sans-serif">
+<text x="1190" y="225" font-size="19" font-weight="bold" text-anchor="start">CREW QUARTERS</text>
+<text x="1190" y="250" font-size="16" font-weight="normal" text-anchor="start">C1   Crew futon 1</text>
+<text x="1190" y="272" font-size="16" font-weight="normal" text-anchor="start">C2   Crew futon 2</text>
+<text x="1190" y="294" font-size="16" font-weight="normal" text-anchor="start">C3   Clothing chest</text>
+<text x="1190" y="316" font-size="16" font-weight="normal" text-anchor="start">C4   Hanging lantern</text>
+<text x="1190" y="353" font-size="19" font-weight="bold" text-anchor="start">GUEST ROOM</text>
+<text x="1190" y="378" font-size="16" font-weight="normal" text-anchor="start">G1   Guest futon 1</text>
+<text x="1190" y="400" font-size="16" font-weight="normal" text-anchor="start">G2   Guest futon 2</text>
+<text x="1190" y="422" font-size="16" font-weight="normal" text-anchor="start">G3   Guest clothing chest</text>
+<text x="1190" y="444" font-size="16" font-weight="normal" text-anchor="start">G4   Hanging lantern</text>
+<text x="1190" y="481" font-size="19" font-weight="bold" text-anchor="start">KITCHEN AND STORES</text>
+<text x="1190" y="506" font-size="16" font-weight="normal" text-anchor="start">K1   Cooking hearth</text>
+<text x="1190" y="528" font-size="16" font-weight="normal" text-anchor="start">K2   Food-preparation table</text>
+<text x="1190" y="550" font-size="16" font-weight="normal" text-anchor="start">K3   Pantry rack</text>
+<text x="1190" y="572" font-size="16" font-weight="normal" text-anchor="start">K4   Water tub</text>
+<text x="1190" y="594" font-size="16" font-weight="normal" text-anchor="start">K5   Hanging lantern</text>
+<text x="1190" y="631" font-size="19" font-weight="bold" text-anchor="start">PLANNING AND GEAR</text>
+<text x="1190" y="656" font-size="16" font-weight="normal" text-anchor="start">P1   Planning table</text>
+<text x="1190" y="678" font-size="16" font-weight="normal" text-anchor="start">P2   Map and document rack</text>
+<text x="1190" y="700" font-size="16" font-weight="normal" text-anchor="start">P3   Weapon rack</text>
+<text x="1190" y="722" font-size="16" font-weight="normal" text-anchor="start">P4   Gear chest</text>
+<text x="1190" y="744" font-size="16" font-weight="normal" text-anchor="start">P5   Hanging lantern</text>
+<text x="1190" y="781" font-size="19" font-weight="bold" text-anchor="start">COMMON HALL</text>
+<text x="1190" y="806" font-size="16" font-weight="normal" text-anchor="start">H1   Reception counter</text>
+<text x="1190" y="828" font-size="16" font-weight="normal" text-anchor="start">H2   Communal dining table</text>
+<text x="1190" y="850" font-size="16" font-weight="normal" text-anchor="start">H3   North-left seat cushion</text>
+<text x="1190" y="872" font-size="16" font-weight="normal" text-anchor="start">H4   North-right seat cushion</text>
+<text x="1190" y="894" font-size="16" font-weight="normal" text-anchor="start">H5   South-left seat cushion</text>
+<text x="1190" y="916" font-size="16" font-weight="normal" text-anchor="start">H6   South-right seat cushion</text>
+<text x="1190" y="938" font-size="16" font-weight="normal" text-anchor="start">H7   Linen and service shelf</text>
+<text x="1190" y="960" font-size="16" font-weight="normal" text-anchor="start">H8   Low tea table</text>
+<text x="1190" y="982" font-size="16" font-weight="normal" text-anchor="start">H9   North tea cushion</text>
+<text x="1190" y="1004" font-size="16" font-weight="normal" text-anchor="start">H10   South tea cushion</text>
+<text x="1190" y="1026" font-size="16" font-weight="normal" text-anchor="start">H11   Hanging lantern</text>
+</g>
+<path d="M1165 205 V1070" fill="none" stroke="black" stroke-width="2"/>
+<g fill="black" font-family="Arial, Helvetica, sans-serif">
+<text x="180" y="1140" font-size="17" font-weight="normal" text-anchor="start">Placement draft. Lamp symbols match the five lights in the current inn preview.</text>
+<text x="180" y="1165" font-size="17" font-weight="normal" text-anchor="start">Furniture outlines will become the 3D blockout; wall and door geometry remains separate.</text>
+</g></svg>

@@ -27,7 +27,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   const g = game.vision.grid(clan);
   const midX = g.minX + g.w / 2, midZ = g.minZ + g.h / 2;
   const size = canvas.clientWidth || 180, zoom = Math.max(1, size / 180);   // big map: letters and dots grow a little
-  const k = size / ((g.w + g.h) * S) * 1.02;   // the turned district fills the box
+  const baseScale = size / ((g.w + g.h) * S) * 1.02;
+  let mapZoom = 1, k = baseScale;   // the turned district fills the box
   const dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = canvas.height = Math.round(size * dpr);
   const ctx = canvas.getContext('2d');
@@ -260,5 +261,5 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
 
   let frame = 0;
   const pings = [];
-  return { update() { if (frame++ % 3 === 0) draw(); }, draw, ping(x, z) { pings.push({ x, z, t: performance.now() }); }, layers, size, shownHolder: q => shownHolder(q) };
+  return { zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update() { if (frame++ % 3 === 0) draw(); }, draw, ping(x, z) { pings.push({ x, z, t: performance.now() }); }, layers, size, shownHolder: q => shownHolder(q) };
 }

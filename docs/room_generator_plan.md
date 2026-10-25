@@ -88,8 +88,11 @@ The generator only decides layout: sizes, bay types, doors and which props go wh
 
 ## Aligned layouts (Tim, 2026-10-22)
 
-Recipes support aligned rows with mixed art variants and explicit gaps, fixed sleeping bays and four cushions around a manor reception table. Shop/pawn displays, customs records, brewery vats/shelves, manor furniture, tenement sleeping/common areas and bathhouse washing/tub zones use these layouts.
+Recipes support aligned rows with mixed art variants and explicit gaps, fixed sleeping bays, two chairs facing each other across the manor reception table, and paired cushions around each tenement communal table. Shop/pawn displays, customs records, brewery vats/shelves, manor furniture, tenement sleeping/common areas and bathhouse washing/tub zones use these layouts.
 
 - Pawn display row includes merchandise shelving with a 0.5-cell visual gap; brewery bottle shelves use a 1-cell gap. Brewery painted shelves replace its old sake shelf; other rooms retain that prop.
 - Customs notice board mounts on the north wall. Bathhouse towel shelf is north-wall furniture; washing stations form a separate row from tubs. Bathhouse screens stay as approved.
-- Den, teahouse and warehouse layouts remain as approved; hideout customization is deferred. Art/revision policy: [interiors spec](interiors_spec.md#painted-interior-art-tim-2026-10-22).
+- Tenements use six paired futons with screens, two centered communal tables, four painted floor cushions, and wall storage shelves. `around_visual_offsets` adjusts cushion images relative to the approved table art without moving their logical seating footprints.
+- Den, teahouse and warehouse layouts remain as approved; the inn now follows the [approved seed-1 workflow](interior_alignment_workflow.md#approved-inn-seed-1-workflow-tim-2026-10-24); remaining hideouts are future work. Art/revision policy: [interiors spec](interiors_spec.md#painted-interior-art-tim-2026-10-22).
+
+Future option after the building art pass: use one handcrafted room blueprint per building type (possibly adapted from suitably licensed open-source game floor plans). Generate its walls and doors from that plan, then place type-appropriate props within named rooms. Keep the current alignment pass focused on the existing rooms.

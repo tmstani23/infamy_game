@@ -1,0 +1,29 @@
+{
+  "name": "Inn / player hideout",
+  "status": "draft for layout review; not yet wired into the game",
+  "units": "game world cells",
+  "size": [20, 18],
+  "entrance": { "side": "north", "span": [10, 12], "kind": "sliding door" },
+  "rooms": [
+    { "name": "Crew quarters", "rect": [0, 0, 6, 9] },
+    { "name": "Guest room", "rect": [14, 0, 20, 9] },
+    { "name": "Kitchen and stores", "rect": [0, 9, 6, 18] },
+    { "name": "Planning and gear", "rect": [14, 9, 20, 18] },
+    { "name": "Common hall", "rect": [6, 0, 14, 18] }
+  ],
+  "partitions": [
+    { "along": "z", "at": 6, "segments": [[0, 4], [6, 12], [14, 18]], "doorSpans": [[4, 6], [12, 14]] },
+    { "along": "z", "at": 14, "segments": [[0, 4], [6, 12], [14, 18]], "doorSpans": [[4, 6], [12, 14]] },
+    { "along": "x", "at": 9, "segments": [[0, 6], [14, 20]] }
+  ],
+  "proposedWindows": [
+    { "side": "north", "span": [2, 4] },
+    { "side": "north", "span": [16, 18] },
+    { "side": "west", "span": [3, 5] },
+    { "side": "west", "span": [13, 15] },
+    { "side": "east", "span": [3, 5] },
+    { "side": "east", "span": [13, 15] },
+    { "side": "south", "span": [2, 4] },
+    { "side": "south", "span": [16, 18] }
+  ]
+}

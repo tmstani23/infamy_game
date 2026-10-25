@@ -494,13 +494,14 @@ export function solidMaterial(opts) {
       uAlphaTest: { value: opts.alphaTest || 0 },
       uShadeLow: { value: opts.shadeLow ?? 1 },
       uSwap: { value: opts.swap ? 1 : 0 },
+      uOpacity: { value: opts.opacity ?? 1 },
     },
     vertexShader: SOLID_VERT,
     fragmentShader: /* glsl */`
       ${LIGHTING}
       ${SOLID_LIGHT}
       uniform sampler2D uMap; uniform vec2 uTile; uniform vec3 uTint; uniform float uDetail; uniform float uGlow;
-      uniform vec4 uUvRect; uniform float uAlphaTest; uniform float uShadeLow; uniform float uSwap;
+      uniform vec4 uUvRect; uniform float uAlphaTest; uniform float uShadeLow; uniform float uSwap; uniform float uOpacity;
       varying vec3 vWorld; varying vec3 vNormal; varying vec2 vUv;
       void main() {
         vec3 N = normalize(vNormal);
@@ -521,9 +522,11 @@ export function solidMaterial(opts) {
         vec3 base = mix(avg, t.rgb, uDetail) * uTint;
         // walls darken toward the floor (soft contact shadow)
         base *= mix(uShadeLow, 1.0, smoothstep(0.0, 0.7, vWorld.y));
-        gl_FragColor = vec4(roomGrade(base, vWorld, N, uGlow), 1.0);
+        gl_FragColor = vec4(roomGrade(base, vWorld, N, uGlow), uOpacity);
       }`,
     side: opts.side ?? THREE.FrontSide,
+    transparent: !!opts.transparent,
+    depthWrite: !opts.transparent,
   });
 }
 

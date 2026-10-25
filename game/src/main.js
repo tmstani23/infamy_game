@@ -18,6 +18,7 @@ import { createCrewBar } from './crew_bar.js';
 import { createSelectionPanel, unitWhere } from './selection_panel.js';
 import { createUnitFrames, frameTarget } from './unit_frames.js';
 import { createBuildingPanel } from './building_panel.js';
+import { createInteriorInfo } from './interior_info.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
 import { createBot } from './sim/bot.js';
@@ -97,8 +98,10 @@ async function start() {
   onKey(['Space', 'Enter'], () => {
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
     const door0 = interactionDoor();
+    const innerDoor = !door0 && game.interiorDoorNear(heroId);
     const lantern = !door0?.menu && raidOnMe(true);
     if (lantern) { pending.push({ id: heroId, type: 'business', action: 'knock', business: lantern.business }); return; }
+    if (innerDoor) { pending.push({ id: heroId, type: 'interiorDoor' }); return; }
     // a Shinobi boss by a lantern at night, no door here: snuff it (sim/stealth.js)
     if (!door0 && game.stealth.snuffable(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'snuff' }); return; }
     const menu = door0?.menu;
@@ -218,12 +221,22 @@ async function start() {
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone });
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, where, jump });   // own + target frames, top middle
+  const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
     if (menu === 'clinic' && !clinicMenu.isOpen()) clinicMenu.toggle();
     else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
     else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
   } });
-  const minimap = createMinimap({ canvas: $('minimap'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const mapZoom = factor => {
+    const level = minimap.zoomBy(factor);
+    $('minimapout').disabled = level <= 1;
+    $('minimapin').disabled = level >= 4;
+  };
+  $('minimapout').addEventListener('click', () => mapZoom(1 / 1.25));
+  $('minimapin').addEventListener('click', () => mapZoom(1.25));
+  mapZoom(1);
+
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
   const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, selected: () => crewInput.selected(), send: c => pending.push(c) });
   onKey('KeyM', () => gameMap.toggle());
@@ -383,12 +396,13 @@ async function start() {
       if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, heroId);
       acc -= tick;
-      const door = interactionDoor(), knockable = raidOnMe(true);
+      const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
       const shut = door && Object.values(game.state.businesses).find(b => b.room === door.place && b.hideout && b.hideout !== game.state.entities[heroId]?.owner);   // a rival's hideout: closed
       const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
       $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut ? `${game.state.clans[shut.hideout]?.name || 'Rival'} hideout: no way in` : door ? `Space  ${door.label}`
+        : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
-      $('prompt').hidden = !door && !knockable && !lamp;
+      $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
       // Shinobi: is your boss hidden (sim/stealth.js)
       { const h = game.state.entities[heroId], el = $('stealth'), on = game.state.clans.player.kind === 'ninja' && h && !h.dead && !h.jailed;
         el.hidden = !on;
@@ -416,6 +430,7 @@ async function start() {
       selPanel.update();
       unitFrames.update();
       bldPanel.update();
+      interiorInfo.update();
     }
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero

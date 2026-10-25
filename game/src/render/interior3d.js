@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { solidMaterial, roomFloorMaterial, glowMaterial } from './shading.js';
 import { loadTex } from './scenery.js';
-import { CAM_QUAT } from './iso.js';
+import { CAM_QUAT, CAM_RIGHT, CAM_UP } from './iso.js';
 
 const texCache = {};
 async function texture(file, renderer) {
@@ -141,6 +141,40 @@ function buildInnerWall(w, parts, mats, finish) {
   return g;
 }
 
+// Full-height, finite blueprint walls. Each run owns its materials so it can
+// ghost independently when it obscures the followed character.
+function buildPartition(w, parts, mats, finish) {
+  const W = parts.wall, t = W.thickness / 2, H = W.height;
+  const walls = [], doors = [];
+  const place = (g, material, a, y0, d0, b, y1, d1) => g.add(w.along === 'z'
+    ? box(material, w.at + d0, y0, a, w.at + d1, y1, b)
+    : box(material, a, y0, w.at + d0, b, y1, w.at + d1));
+  const materials = () => ({
+    fill: mats[finish || 'painted_plaster']({ shadeLow: 0.9, transparent: true }),
+    wood: mats.timber({ transparent: true }),
+    beam: mats.timber({ swap: true, transparent: true }),
+  });
+  for (const { span: [a, b] } of w.segments) {
+    const g = new THREE.Group(), m = materials();
+    place(g, m.fill, a, 0, -t, b, H, t);
+    for (const u of [a, b]) place(g, m.wood, u - W.post / 2, 0, -t - 0.025, u + W.post / 2, H, t + 0.025);
+    place(g, m.beam, a, H - 0.12, -t - 0.03, b, H, t + 0.03);
+    walls.push({ group: g, materials: Object.values(m), along: w.along, at: w.at, a, b });
+  }
+  for (const door of w.doors) {
+    const [a, b] = door.span, g = new THREE.Group(), m = materials();
+    const pane = mats.shoji({ transparent: true });
+    place(g, m.beam, a, W.lintel, -t, b, H, t);
+    place(g, m.wood, a, 0, -t - 0.03, a + W.post, W.lintel, t + 0.03);
+    place(g, m.wood, b - W.post, 0, -t - 0.03, b, W.lintel, t + 0.03);
+    const leaf = new THREE.Group();
+    place(leaf, pane, a + W.post, 0.06, -t / 2, b - W.post, W.lintel - 0.04, t / 2);
+    g.add(leaf);
+    doors.push({ group: g, leaf, id: door.id, materials: [...Object.values(m), pane], along: w.along, at: w.at, a, b });
+  }
+  return { walls, doors };
+}
+
 // ---------- props: each built centred on the origin, back toward -z, length along x ----------
 const lathe = (pts, segs = 24) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), segs);
 
@@ -174,13 +208,17 @@ function barrel(mats) {
 }
 
 const MODELS = {
-  tea_table(mats) {
+  tea_table(mats, room, parts, withoutSeats = false) {
     const g = new THREE.Group(), wood = mats.wood_warm(), dark = mats.wood({ tint: '#4a3a2e' });
     g.add(box(wood, -0.7, 0.36, -0.45, 0.7, 0.42, 0.45, new RoundedBoxGeometry(1, 1, 1, 2, 0.04)));
     g.add(box(dark, -0.62, 0.29, -0.37, 0.62, 0.36, 0.37));
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(box(dark, sx * 0.6 - 0.05, 0, sz * 0.35 - 0.05, sx * 0.6 + 0.05, 0.36, sz * 0.35 + 0.05));
-    for (const sz of [-1, 1]) g.add(MODELS.zabuton(mats).translateZ(sz * 1.05));
+    if (!withoutSeats) for (const sz of [-1, 1]) g.add(MODELS.zabuton(mats).translateZ(sz * 1.05));
     return g;
+  },
+  teahouse_tea_table(mats) {
+    // The teahouse seats use approved cutout art instead of the two baked-in cushions.
+    return MODELS.tea_table(mats, null, null, true);
   },
   zabuton(mats) {
     const g = new THREE.Group();
@@ -226,6 +264,7 @@ const MODELS = {
     g.position.z = 0.1;
     return g;
   },
+  teahouse_byobu(mats) { return MODELS.byobu(mats); },
   shoji_partition(mats) {
     const g = new THREE.Group(), upright = mats.timber(), beam = mats.timber({ swap: true });
     g.add(box(mats.painted_shoji({ side: THREE.DoubleSide }), -1.42, 0.35, -0.025, 1.42, 1.65, 0.025));
@@ -417,16 +456,19 @@ const MODELS = {
 // ---------- the whole room ----------
 export async function buildRoom3d(room, parts, renderer) {
   const mats = await loadMaterials(parts, renderer);
-  const [X, Z] = room.size;
+  const layout = room.renderLayout || room;
+  const scale = room.worldScale || 1;
+  const [X, Z] = layout.size;
   const group = new THREE.Group();
   group.position.set(room.origin.x, 0, room.origin.z);
+  group.scale.setScalar(scale);
 
   // floor, with soft shadows under the furniture
   const fl = parts.floors[room.template.floor] || parts.floors.tatami;
-  const shadows = room.props.filter(p => p.stands && p.def.rule !== 'ceiling').map(p => {
+  const shadows = layout.props.filter(p => p.stands && p.def.rule !== 'ceiling' && p.def.floor_shadow !== false).map(p => {
     const [sx, sz] = p.def.solid ? ((p.rot / 90) % 2 ? [p.def.solid[1], p.def.solid[0]] : p.def.solid) : [0.6, 0.6];
-    const ox = room.origin.x + p.cx, oz = room.origin.z + p.cz;
-    return [ox - sx / 2, oz - sz / 2, ox + sx / 2, oz + sz / 2, p.def.rule === 'wall' ? 0.25 : 0.4];
+    const ox = room.origin.x + p.cx * scale, oz = room.origin.z + p.cz * scale;
+    return [ox - sx * scale / 2, oz - sz * scale / 2, ox + sx * scale / 2, oz + sz * scale / 2, p.def.rule === 'wall' ? 0.25 : 0.4];
   });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(X, Z),
     roomFloorMaterial(await texture(fl.file, renderer), { origin: room.origin, size: room.size, pattern: fl.pattern, tint: new THREE.Color(fl.tint || "#ffffff").multiplyScalar(fl.gain ?? 1), shadows }));
@@ -435,27 +477,119 @@ export async function buildRoom3d(room, parts, renderer) {
   floor.renderOrder = 0;
   group.add(floor);
 
+  // The inn's approved furniture painting is registered to one fixed camera
+  // frame. Keep the room's real walls and door leaves as separate 3D meshes.
+  const painting = room.template.scenePainting;
+  const paintedLayers = [];
+  if (painting) {
+    for (const [file, half, order] of [
+      [painting.floor, painting.floorCameraHalf, 0.5],
+      [painting.props, painting.propsCameraHalf, 1.5],
+    ]) {
+      const map = await loadTex(file);
+      map.minFilter = THREE.LinearMipmapLinearFilter;
+      map.magFilter = THREE.LinearFilter;
+      map.generateMipmaps = true;
+      const height = half * 2;
+      const width = height * painting.width / painting.height;
+      const material = new THREE.MeshBasicMaterial({ map, transparent: order > 1,
+        depthTest: false, depthWrite: false, toneMapped: false });
+      if (order > 1 && painting.baseExcludeRegions?.length) {
+        // Hide painted objects that belong behind a partition, even where that
+        // partition is translucent. Foreground furniture is drawn below.
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = painting.width;
+        maskCanvas.height = painting.height;
+        const ctx = maskCanvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, painting.width, painting.height);
+        ctx.fillStyle = '#000';
+        for (const [x0, y0, x1, y1] of painting.baseExcludeRegions) {
+          ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+        }
+        material.alphaMap = new THREE.CanvasTexture(maskCanvas);
+      }
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height),
+        material);
+      mesh.quaternion.copy(CAM_QUAT);
+      mesh.position.set(X / 2, 1.25, Z / 2);
+      mesh.renderOrder = order;
+      mesh.frustumCulled = false;
+      group.add(mesh);
+      paintedLayers.push(mesh);
+      if (order > 1 && painting.aboveWallRegions?.length) {
+        // A second pass shows only selected foreground furniture over the walls.
+        // The original transparent painting remains in one piece behind them.
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = painting.width;
+        maskCanvas.height = painting.height;
+        const ctx = maskCanvas.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, painting.width, painting.height);
+        ctx.fillStyle = '#fff';
+        for (const region of painting.aboveWallRegions) {
+          if (Array.isArray(region[0])) {
+            ctx.beginPath();
+            ctx.moveTo(...region[0]);
+            for (const point of region.slice(1)) ctx.lineTo(...point);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            const [x0, y0, x1, y1] = region;
+            ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+          }
+        }
+        const mask = new THREE.CanvasTexture(maskCanvas);
+        const foreground = new THREE.Mesh(mesh.geometry,
+          new THREE.MeshBasicMaterial({ map, alphaMap: mask, transparent: true,
+            depthTest: false, depthWrite: false, toneMapped: false }));
+        foreground.quaternion.copy(CAM_QUAT);
+        foreground.position.copy(mesh.position);
+        foreground.renderOrder = 3;
+        foreground.frustumCulled = false;
+        group.add(foreground);
+        paintedLayers.push(foreground);
+      }
+    }
+  }
+
   // One wall surface per building type, including window/door surrounds and low walls.
   const finish = parts.roomFinishes?.[room.template.generated?.type || room.name];
-  for (const wall of room.walls) group.add(buildWall(wall, parts, mats, X, Z, finish));
-  for (const w of room.inner || []) group.add(buildInnerWall(w, parts, mats, finish));
+  for (const wall of layout.walls) group.add(buildWall(wall, parts, mats, X, Z, finish));
+  for (const w of layout.inner || []) group.add(buildInnerWall(w, parts, mats, finish));
+  const partitionWalls = [], partitionDoors = [];
+  for (const w of layout.partitions || []) {
+    const built = buildPartition(w, parts, mats, finish);
+    for (const item of built.walls) { group.add(item.group); partitionWalls.push(item); }
+    for (const item of built.doors) { group.add(item.group); partitionDoors.push(item); }
+  }
 
   const lights = [], glows = [];
-  for (const p of room.props) {
+  for (const p of layout.props) {
     const make = MODELS[p.type];
-    if (make && !p.cutout) {
+    if (make && !p.cutout && !painting) {
       const m = make(mats, room, parts);
       m.position.set(p.cx, p.y, p.cz);
       m.rotation.y = THREE.MathUtils.degToRad(p.rot);
       group.add(m);
-    } else if (!p.cutout) console.warn(`No 3D model for "${p.type}"`);
+    } else if (!p.cutout && !painting) console.warn(`No 3D model for "${p.type}"`);
     const L = p.def.light;
     if (L) {
       const pos = new THREE.Vector3(room.origin.x + p.cx, p.def.rule === 'ceiling' ? p.y : p.y + L.y, room.origin.z + p.cz);
-      lights.push({ pos, radius: L.radius, color: new THREE.Color(L.color), fire: !!L.fire, seed: Math.random() * 10 });
+      if (painting && p.lightPixel) {
+        const frame = new THREE.Vector3(room.origin.x + X / 2, 1.25, room.origin.z + Z / 2);
+        const pixelWorld = painting.propsCameraHalf * 2 / painting.height;
+        const relative = pos.clone().sub(frame);
+        const currentX = painting.width / 2 + relative.dot(CAM_RIGHT) / pixelWorld;
+        const currentY = painting.height / 2 - relative.dot(CAM_UP) / pixelWorld;
+        pos.addScaledVector(CAM_RIGHT, (p.lightPixel[0] - currentX) * pixelWorld);
+        pos.addScaledVector(CAM_UP, (currentY - p.lightPixel[1]) * pixelWorld);
+      }
+      pos.sub(new THREE.Vector3(room.origin.x, 0, room.origin.z)).multiplyScalar(scale).add(new THREE.Vector3(room.origin.x, 0, room.origin.z));
+      lights.push({ pos, radius: L.radius * scale, color: new THREE.Color(L.color), fire: !!L.fire, seed: Math.random() * 10 });
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glowMaterial(new THREE.Color(L.color), Math.random() * 10, true));
       glow.quaternion.copy(CAM_QUAT);
-      const s = Math.min(L.radius * 0.3, 1.8);
+      const s = Math.min(L.radius * 0.3, 1.8) * scale;
       glow.scale.set(s, s, 1);
       glow.position.copy(pos);
       glow.renderOrder = 99000;
@@ -463,6 +597,16 @@ export async function buildRoom3d(room, parts, renderer) {
       glows.push(glow);
     }
   }
-  group.traverse(o => { if (o.isMesh && o !== floor) o.renderOrder = 2; });
-  return { group, lights, glows };
+  group.traverse(o => {
+    if (!o.isMesh || o === floor || paintedLayers.includes(o)) return;
+    o.renderOrder = 2;
+    if (painting) {
+      // The room painting sits behind these translucent 3D walls.
+      o.material.transparent = true;
+      o.material.depthWrite = false;
+      if (o.material.uniforms?.uOpacity) o.material.uniforms.uOpacity.value = 0.8;
+      o.material.needsUpdate = true;
+    }
+  });
+  return { group, lights, glows, partitionWalls, partitionDoors };
 }

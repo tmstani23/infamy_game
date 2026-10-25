@@ -64,10 +64,30 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
   });
   const innerSegments = inner.flatMap(w => w.segments);
 
+  // Blueprint partitions are finite wall runs, unlike the older full-span
+  // `inner` walls. Each opening has a stable id for visual and collision state.
+  const partitions = (template.partitions || []).map((w, wi) => {
+    const length = w.along === 'z' ? Z : X;
+    if (!['x', 'z'].includes(w.along) || !(w.at > 0 && w.at < (w.along === 'z' ? X : Z)))
+      problems.push(`partition ${wi}: invalid axis or position`);
+    const spans = [...w.segments, ...(w.doorSpans || [])];
+    for (const [a, b] of spans) if (!(a >= 0 && b <= length && a < b)) problems.push(`partition ${wi}: invalid span ${a}-${b}`);
+    const rect = ([a, b]) => w.along === 'z'
+      ? { x0: w.at - W.thickness / 2, x1: w.at + W.thickness / 2, z0: a, z1: b }
+      : { x0: a, x1: b, z0: w.at - W.thickness / 2, z1: w.at + W.thickness / 2 };
+    return { ...w, segments: w.segments.map(span => ({ span, rect: rect(span) })),
+      doors: (w.doorSpans || []).map((span, di) => ({ id: `${name}:${wi}:${di}`, span, rect: rect(span),
+        x: ox + (w.along === 'z' ? w.at : (span[0] + span[1]) / 2),
+        z: oz + (w.along === 'z' ? (span[0] + span[1]) / 2 : w.at) })) };
+  });
+  const partitionSegments = partitions.flatMap(w => w.segments.map(s => s.rect));
+  const interiorDoors = partitions.flatMap(w => w.doors);
+
   // hanging props hang low enough that their cord shows, so they go where nobody walks:
   // over furniture or close to a wall
   const nearWall = (x, z) => Math.min(x, z, X - x, Z - z) <= 1
-    || inner.some(w => Math.abs((w.along === 'x' ? z : x) - w.at) <= 1);
+    || inner.some(w => Math.abs((w.along === 'x' ? z : x) - w.at) <= 1)
+    || partitions.some(w => Math.abs((w.along === 'z' ? x : z) - w.at) <= 1);
 
   // props, in template order so surfaces exist before what stands on them
   const props = [];
@@ -80,7 +100,7 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
     if (def.rule === 'ceiling') {
       y = def.light?.y ?? W.lintel;
       const over = props.some(q => q.stands && inside(q.rect, cx, cz));
-      if (!over && !nearWall(cx, cz)) problems.push(`${p.type} at ${p.at}: hang it over furniture or within a cell of a wall`);
+      if (!over && !nearWall(cx, cz) && !p.ceilingMount) problems.push(`${p.type} at ${p.at}: hang it over furniture or within a cell of a wall`);
     }
     else {
       on = props.find(q => q.def.surface && q.rule !== 'ceiling' && inside(q.rect, cx, cz)) || null;
@@ -90,11 +110,13 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
     if (r.x0 < 0 || r.z0 < 0 || r.x1 > X || r.z1 > Z) problems.push(`${p.type} at ${p.at}: outside the room`);
     const stands = def.rule !== 'ceiling' && !on;
     if (stands) for (const q of props) if (q.stands && overlap(r, q.rect)) problems.push(`${p.type} at ${p.at} overlaps ${q.type}`);
-    if (stands && innerSegments.some(q => overlap(r, q))) problems.push(`${p.type} at ${p.at} crosses an inner wall`);
-    if (stands && inner.some(w => overlap(r, w.clear))) problems.push(`${p.type} at ${p.at} blocks an inner doorway`);
+    if (stands && [...innerSegments, ...partitionSegments].some(q => overlap(r, q))) problems.push(`${p.type} at ${p.at} crosses an inner wall`);
+    if (stands && (inner.some(w => overlap(r, w.clear)) || interiorDoors.some(d => overlap(r, d.rect))))
+      problems.push(`${p.type} at ${p.at} blocks an inner doorway`);
     // Painted furniture is used only at its authored orientation; other sides keep the 3D model.
     const cutout = def.cutout || (def.painted?.rotations.includes(r.rot) ? def.painted.cutout : null);
-    props.push({ type: p.type, def, rule: def.rule, rect: r, rot: r.rot, y, stands, cx, cz, cutout, artAngle: p.artAngle || 0 });
+    props.push({ type: p.type, def, rule: def.rule, rect: r, rot: r.rot, y, stands, cx, cz, cutout,
+      artAngle: p.artAngle ?? def.painted?.angle ?? 0, artOffset: p.artOffset || [0, 0], lightPixel: p.lightPixel });
   }
 
   // the door: a bay in a far wall, with clear floor in front of it
@@ -104,7 +126,7 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
   const along = (bay + 0.5) * W.bay;
   const clear = side === 'north' ? { x0: along - 1, x1: along + 1, z0: 0, z1: 2.5 } : { x0: 0, x1: 2.5, z0: along - 1, z1: along + 1 };
   for (const q of props) if (q.stands && overlap(clear, q.rect)) problems.push(`${q.type} blocks the door`);
-  if (innerSegments.some(q => overlap(clear, q))) problems.push(`an inner wall blocks the door`);
+  if ([...innerSegments, ...partitionSegments].some(q => overlap(clear, q))) problems.push(`an inner wall blocks the door`);
 
   // zones: named areas in cells (raids, guard posts and loot read these); default is the whole room
   const zones = (template.zones || [{ name: 'main', rect: [0, 0, X, Z] }]).map(z => {
@@ -126,22 +148,45 @@ export function buildRoom3d(name, template, parts, ox, oz, { quiet = false } = {
     const [sx, sz] = turned(q.def.solid, q.rot);
     blockers.push({ minX: ox + q.cx - sx / 2, maxX: ox + q.cx + sx / 2, minZ: oz + q.cz - sz / 2, maxZ: oz + q.cz + sz / 2 });
   }
+  for (const [x0, z0, x1, z1] of template.furnishingRects || [])
+    blockers.push({ minX: ox + x0, minZ: oz + z0, maxX: ox + x1, maxZ: oz + z1 });
   for (const q of innerSegments) blockers.push({ minX: ox + q.x0, maxX: ox + q.x1, minZ: oz + q.z0, maxZ: oz + q.z1 });
+  for (const q of partitionSegments) blockers.push({ minX: ox + q.x0, maxX: ox + q.x1, minZ: oz + q.z0, maxZ: oz + q.z1 });
 
   // props drawn as painted cut-outs instead of 3D (see "cutout" in interior_parts.json)
-  const pieces = props.filter(q => q.cutout)
+  const pieces = (template.scenePainting ? [] : props.filter(q => q.cutout))
     .map(q => {
       const [dx, dz] = q.def.painted?.offset || [0, 0];
-      return { name: q.cutout, x: ox + q.cx + dx, z: oz + q.cz + dz,
+      return { name: q.cutout, x: ox + q.cx + dx + q.artOffset[0], z: oz + q.cz + dz + q.artOffset[1],
         indoor: true, lift: q.y, depth: true, roomProp: true, angle: q.artAngle,
         artAnchor: q.def.painted?.anchor, shear: q.def.painted?.shear || 0,
         topShear: q.def.painted?.topShear || 0 };
     });
+  for (const q of template.scenePainting ? [] : props) for (const decoration of q.def.decorations || []) {
+    pieces.push({ name: decoration.cutout, x: ox + q.cx + decoration.offset[0],
+      z: oz + q.cz + decoration.offset[1], indoor: true, lift: 0,
+      depth: true, roomProp: true, angle: 0 });
+  }
 
   const exit = side === 'north' ? { x: ox + along, z: oz + 1.3 } : { x: ox + 1.3, z: oz + along };
   const spawn = side === 'north' ? { x: ox + along, z: oz + 2.2 } : { x: ox + 2.2, z: oz + along };
-  return {
-    name, kind: '3d', origin: { x: ox, z: oz }, size: [X, Z], template, walls, inner, zones, props, blockers, pieces, exit, spawn, problems,
+  const room = {
+    name, kind: '3d', origin: { x: ox, z: oz }, size: [X, Z], template, walls, inner, partitions, interiorDoors, zones, props, blockers, pieces, exit, spawn, problems,
     floor: { texture: template.floor, minX: ox, maxX: ox + X, minZ: oz, maxZ: oz + Z },
+  };
+  const scale = template.worldScale || 1;
+  if (scale === 1) return room;
+  const point = p => ({ ...p, x: ox + (p.x - ox) * scale, z: oz + (p.z - oz) * scale });
+  const bounds = b => ({ ...b,
+    minX: ox + (b.minX - ox) * scale, maxX: ox + (b.maxX - ox) * scale,
+    minZ: oz + (b.minZ - oz) * scale, maxZ: oz + (b.maxZ - oz) * scale });
+  const rect = r => ({ ...r, x0: r.x0 * scale, x1: r.x1 * scale, z0: r.z0 * scale, z1: r.z1 * scale });
+  return { ...room, renderLayout: room, worldScale: scale, size: [X * scale, Z * scale],
+    blockers: blockers.map(bounds),
+    interiorDoors: interiorDoors.map(d => ({ ...d, ...point(d), rect: rect(d.rect) })),
+    zones: zones.map(z => ({ ...bounds(z), rect: z.rect.map(v => v * scale) })),
+    props: props.map(p => ({ ...p, rect: rect(p.rect), cx: p.cx * scale, cz: p.cz * scale, y: p.y * scale })),
+    pieces: pieces.map(point), exit: point(exit), spawn: point(spawn),
+    floor: { ...room.floor, maxX: ox + X * scale, maxZ: oz + Z * scale },
   };
 }

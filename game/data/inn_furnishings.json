@@ -1,0 +1,258 @@
+{
+  "C1": {
+    "image": "inn_crew_futon_1.png",
+    "sourceCrop": [
+      697,
+      178,
+      884,
+      284
+    ]
+  },
+  "C2": {
+    "image": "inn_crew_futon_2.png",
+    "sourceCrop": [
+      528,
+      257,
+      725,
+      364
+    ]
+  },
+  "C3": {
+    "image": "inn_clothing_chest.png",
+    "sourceCrop": [
+      849,
+      208,
+      958,
+      315
+    ]
+  },
+  "C4": {
+    "image": "inn_crew_lantern.png",
+    "sourceCrop": [
+      653,
+      209,
+      695,
+      307
+    ]
+  },
+  "G1": {
+    "image": "inn_guest_futon.png",
+    "sourceCrop": [
+      1329,
+      464,
+      1526,
+      578
+    ]
+  },
+  "G3": {
+    "image": "inn_guest_chest.png",
+    "sourceCrop": [
+      1270,
+      406,
+      1379,
+      501
+    ]
+  },
+  "G2": {
+    "image": "inn_guest_futon_2.png",
+    "sourceCrop": [
+      1170,
+      541,
+      1366,
+      655
+    ]
+  },
+  "G4": {
+    "image": "inn_guest_lantern.png",
+    "sourceCrop": [
+      1215,
+      468,
+      1259,
+      555
+    ]
+  },
+  "K1": {
+    "image": "inn_cooking_hearth.png",
+    "sourceCrop": [
+      313,
+      327,
+      506,
+      451
+    ]
+  },
+  "K2": {
+    "image": "inn_preparation_table.png",
+    "sourceCrop": [
+      240,
+      365,
+      405,
+      487
+    ]
+  },
+  "K3": {
+    "image": "inn_pantry_rack.png",
+    "sourceCrop": [
+      56,
+      365,
+      181,
+      514
+    ]
+  },
+  "K4": {
+    "image": "inn_water_tub.png",
+    "sourceCrop": [
+      206,
+      436,
+      285,
+      525
+    ]
+  },
+  "K5": {
+    "image": "inn_kitchen_lantern.png",
+    "sourceCrop": [
+      281,
+      374,
+      326,
+      473
+    ]
+  },
+  "P1": {
+    "image": "inn_planning_table.png",
+    "sourceCrop": [
+      978,
+      586,
+      1157,
+      726
+    ]
+  },
+  "P2": {
+    "image": "inn_map_document_rack.png",
+    "sourceCrop": [
+      958,
+      491,
+      1046,
+      622
+    ]
+  },
+  "P3": {
+    "image": "inn_weapon_rack.png",
+    "sourceCrop": [
+      902,
+      497,
+      1003,
+      661
+    ]
+  },
+  "P4": {
+    "image": "inn_gear_chest.png",
+    "sourceCrop": [
+      731,
+      673,
+      880,
+      802
+    ]
+  },
+  "P5": {
+    "image": "inn_planning_lantern.png",
+    "sourceCrop": [
+      856,
+      632,
+      900,
+      728
+    ]
+  },
+  "H1": {
+    "image": "inn_reception_counter.png",
+    "sourceCrop": [
+      868,
+      250,
+      1056,
+      398
+    ]
+  },
+  "H2": {
+    "image": "inn_communal_table.png",
+    "sourceCrop": [
+      779,
+      405,
+      975,
+      516
+    ]
+  },
+  "H3": {
+    "image": "inn_north_left_cushion.png",
+    "sourceCrop": [
+      900,
+      415,
+      951,
+      461
+    ]
+  },
+  "H4": {
+    "image": "inn_north_right_cushion.png",
+    "sourceCrop": [
+      964,
+      451,
+      1012,
+      503
+    ]
+  },
+  "H5": {
+    "image": "inn_south_left_cushion.png",
+    "sourceCrop": [
+      737,
+      477,
+      816,
+      525
+    ]
+  },
+  "H7": {
+    "image": "inn_linen_service_shelf.png",
+    "sourceCrop": [
+      807,
+      487,
+      934,
+      641
+    ]
+  },
+  "H8": {
+    "image": "inn_low_tea_table.png",
+    "sourceCrop": [
+      533,
+      541,
+      708,
+      655
+    ]
+  },
+  "H9": {
+    "image": "inn_north_tea_cushion.png",
+    "sourceCrop": [
+      648,
+      548,
+      720,
+      602
+    ]
+  },
+  "H10": {
+    "image": "inn_south_tea_cushion.png",
+    "sourceCrop": [
+      525,
+      602,
+      606,
+      660
+    ]
+  },
+  "H11": {
+    "image": "inn_hall_lantern.png",
+    "sourceCrop": [
+      447,
+      418,
+      487,
+      504
+    ]
+  },
+  "H6": {
+    "hidden": true,
+    "reason": "occluded by H7 in whole-scene painting"
+  }
+}

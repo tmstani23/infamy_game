@@ -8,7 +8,7 @@ Phase 3E (Tim, 2026-10-21): Shop, Tenements, Pawnshop, Bathhouse, Sake Brewery, 
 
 Approved painted wall panels and prop cutouts reuse the room's 3D floors, walls, depth and collision footprints. Twenty new props cover customs records/inspection, shop and pawn displays, bathing, dojo training, brewery storage/vats and manor furnishings. Sources and prompts: `assets/environment/interior_prop_previews/`; preparation: `tools/prepare_interior_prop_previews.py` and `tools/extract_interior_reuse.py`. Layout rules: [room generator](room_generator_plan.md#aligned-layouts-tim-2026-10-22).
 
-Angle revisions approved and integrated (Tim, 2026-10-22): inspection table, customs notice board, towel shelf and bath bucket/stool. Recipes, placement and collision footprints are unchanged. Optional futon v2 stays preview-only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. Tim reviews revised art before replacement. Hideout custom art/layout remains deferred.
+Angle revisions approved and integrated (Tim, 2026-10-22): inspection table, customs notice board, towel shelf and bath bucket/stool. Recipes, placement and collision footprints are unchanged. Optional futon v2 stays preview-only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. Tim reviews revised art before replacement. The inn uses its approved seed-1 whole-scene workflow; other hideouts remain future work.
 
 ## Why 3D
 
@@ -106,3 +106,5 @@ Rooms live in `game/data/interiors.json`. A 3D room has `"build": "3d"`:
 - `tools/make_interior_textures.py` cuts the textures from `textures1.png`, `interiors1.jpg`, `interiors2.jpg` and the tatami tile into `game/art/interior3d/`. To swap art, replace a PNG there or change its box in the script.
 - `materials` in `interior_parts.json` sets each surface's texture, size on the wall (`tile`), colour (`tint`), brightening (`gain`), how much texture detail shows (`detail`) and self-light for paper and coals (`glow`).
 - A new prop needs a data entry in `interior_parts.json` and a small shape function in `game/src/render/interior3d.js` (`MODELS`). A prop can instead name a painted `cutout` from `data/art.json`, as the vase does.
+
+Inn blueprint interiors (Tim, 2026-10-24): camera-aligned whole-scene floor/furniture painting with functional 3D partitions/doors, proximity transparency, selective wall masks and calibrated blockers. Reproducible process: [approved inn workflow](interior_alignment_workflow.md#approved-inn-seed-1-workflow-tim-2026-10-24).

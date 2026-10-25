@@ -1,5 +1,7 @@
 # Interior art and layout handoff — 2026-10-22
 
+Historical snapshot of the October 22 pass, not a current checklist. For later rooms use [the current alignment workflow](interior_alignment_workflow.md); the tenement futon, table, shelf, and cushion revisions were added afterward.
+
 The user approved the new interior artwork and requested logical, visually aligned layouts. The earlier interior pass was committed as `369d50f`. The four approved angle revisions below are newer, uncommitted changes in the shared working tree. Preserve unrelated changes from concurrent work.
 
 ## Integrated work

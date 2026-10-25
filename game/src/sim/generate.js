@@ -32,7 +32,7 @@ const hash = (...parts) => {
 const evenIn = (rng, a, b) => 2 * rng.int(Math.ceil(a / 2), Math.floor(b / 2));
 const TRIES = 30;          // spots tried per prop before it is skipped
 const ATTEMPTS = 25;       // whole layouts tried per seed before giving up
-const NEEDS_ACCESS = new Set(['tea_table', 'manor_reception_table', 'gambling_mat', 'counter', 'futon']);   // plus anything marked loot
+const NEEDS_ACCESS = new Set(['tea_table', 'teahouse_tea_table', 'manor_reception_table', 'gambling_mat', 'den_card_table', 'den_dice_table', 'den_side_bar', 'counter', 'futon']);   // plus anything marked loot
 // gap rule (Tim 2026-10-18): two solid things either nearly touch (one pile) or leave room for
 // the biggest crew body (brute, 0.9 wide) to walk between them on the room walk grid
 const GAP = { pile: 0.5, walk: 1.05 };
@@ -43,6 +43,12 @@ const ENTRY = [4, 4];      // clear floor inside the door, cells across x deep, 
 export function generateRoom(type, seed, recipes, parts) {
   const recipe = recipes[type];
   if (!recipe) throw new Error(`no recipe for "${type}"`);
+  if (recipe.blueprint) {
+    const template = blueprintTemplate(recipe.blueprint, parts);
+    template.generated = { type, seed };
+    const room = buildRoom3d(type, template, parts, 0, 0, { quiet: true });
+    return { template, room, problems: [...room.problems, ...walkway(room, parts)], attempt: 0 };
+  }
   let last;
   for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
     const rng = random(hash(type, seed, attempt));
@@ -54,6 +60,38 @@ export function generateRoom(type, seed, recipes, parts) {
     if (!problems.length) return last;
   }
   return last;
+}
+
+// A hand-planned structural shell can share the generator's room validation,
+// collisions and navigation. Future hideouts can use the same recipe shape.
+function blueprintTemplate(plan, parts) {
+  const margin = plan.perimeterMargin || 0;
+  const [innerX, innerZ] = plan.size;
+  const X = innerX + margin * 2, Z = innerZ + margin * 2, bay = parts.wall.bay;
+  const expanded = ([a, b], end) => [a === 0 ? 0 : a + margin, b === end ? end + margin * 2 : b + margin];
+  const walls = { near: plan.walls.fill };
+  for (const side of ['north', 'west']) {
+    const n = (side === 'north' ? X : Z) / bay;
+    walls[side] = Array(n).fill(plan.walls.fill);
+    for (const [start, end] of plan.walls.windows?.[side] || [])
+      for (let i = Math.floor((start + margin) / bay); i < Math.ceil((end + margin) / bay); i++) walls[side][i] = 'lattice_window';
+  }
+  const { side, span } = plan.entrance;
+  const door = { side, bay: (span[0] + margin) / bay };
+  walls[side][door.bay] = plan.entrance.bay;
+  return { build: '3d', size: [X, Z], floor: plan.floor, walls, door,
+    worldScale: plan.worldScale || 1, characterScale: plan.characterScale || 1,
+    partitions: plan.partitions.map(w => ({ ...w, at: w.at + margin,
+      segments: w.segments.map(s => expanded(s, w.along === 'z' ? innerZ : innerX)),
+      doorSpans: (w.doorSpans || []).map(([a, b]) => [a + margin, b + margin]) })),
+    zones: plan.rooms.map(r => {
+      const [x0, x1] = expanded([r.rect[0], r.rect[2]], innerX);
+      const [z0, z1] = expanded([r.rect[1], r.rect[3]], innerZ);
+      return { name: r.name, rect: [x0, z0, x1, z1] };
+    }),
+    props: (plan.props || []).map(p => ({ ...p, at: [p.at[0] + margin, p.at[1] + margin] })),
+    furnishingRects: (plan.furnishingRects || []).map(([x0, z0, x1, z1]) => [x0 + margin, z0 + margin, x1 + margin, z1 + margin]),
+    scenePainting: plan.scenePainting || null };
 }
 
 // ---------- steps 1 to 5: size, walls, door, back room, props ----------
@@ -77,15 +115,20 @@ function layout(recipe, parts, rng) {
   };
   // door: a north bay away from the corners, or a west bay in the main room
   const doorChoices = [];
-  for (let i = 1; i < bays.north - 1; i++) doorChoices.push({ side: 'north', bay: i });
-  for (let i = 1; (i + 1) * W.bay <= at - 2; i++) doorChoices.push({ side: 'west', bay: i });
+  const nw = recipe.reserve_nw_corner || [0, 0];
+  const westBar = recipe.reserve_west_bar;
+  for (let i = 1; i < bays.north - 1; i++) if (i * W.bay >= nw[0]) doorChoices.push({ side: 'north', bay: i });
+  for (let i = 1; (i + 1) * W.bay <= at - 2; i++) if (i * W.bay >= nw[1]) doorChoices.push({ side: 'west', bay: i });
   const door = recipe.door_side ? rng.pick(doorChoices.filter(d => d.side === recipe.door_side))
     : rng.next() < 0.75 ? rng.pick(doorChoices.filter(d => d.side === 'north')) : rng.pick(doorChoices);
   walls[door.side][door.bay] = rng.pick(recipe.door);
   for (const side of ['north', 'west']) {
     const n = rng.range(recipe.walls.windows || 0);
     const free = rng.shuffle(walls[side].map((_, i) => i)
-      .filter(i => !(side === door.side && Math.abs(i - door.bay) <= 0) && !(side === 'west' && back && (i + 1) * W.bay > at)));
+      .filter(i => !(side === door.side && Math.abs(i - door.bay) <= 0)
+        && i * W.bay >= (side === 'north' ? nw[0] : nw[1])
+        && !(side === 'west' && westBar && i * W.bay < westBar[1] && (i + 1) * W.bay > westBar[0])
+        && !(side === 'west' && back && (i + 1) * W.bay > at)));
     for (const i of free.slice(0, n)) walls[side][i] = recipe.walls.window || 'window';
   }
   walls.near = fill[0];
@@ -159,7 +202,7 @@ function layout(recipe, parts, rng) {
         const [len] = def.size;
         const lo = side === 'north' ? zone.x0 : zone.z0, hi = (side === 'north' ? zone.x1 : zone.z1) - len;
         if (hi < lo) continue;
-        p = { type: item.type, wall: side, at: lo + 0.5 * rng.int(0, Math.floor((hi - lo) * 2)) };
+        p = { type: item.type, wall: side, at: item.wall_at ?? (lo + 0.5 * rng.int(0, Math.floor((hi - lo) * 2))) };
         const r = propRect(p, def, [X, Z]);
         const a = side === 'north' ? r.x0 : r.z0, b = side === 'north' ? r.x1 : r.z1;
         let blocked = false;
@@ -170,12 +213,15 @@ function layout(recipe, parts, rng) {
           (r.x0 + r.x1) / 2 - 0.5 + (side === 'north' ? def.size[0] / 4 : 0),
           (r.z0 + r.z1) / 2 - 0.5 + (side === 'west' ? def.size[0] / 4 : 0),
         ] };
-        placed.push({ type: item.type, def, rect: r, p, top, item, zoneName });
+        placed.push({ type: item.type, def, rect: r, p, top, item, zoneName,
+          fixedRun: item.wall_at !== undefined });
         template.props.push(p);
         if (top) template.props.push(top);
         return r;
       }
-      if (item.place === 'corners') {
+      if (item.place === 'northwest_corner') {
+        p = { type: item.type, at: [zone.x0, zone.z0] };
+      } else if (item.place === 'corners') {
         const c = rng.pick([[zone.x0, zone.z0], [zone.x1 - 1, zone.z0], [zone.x0, zone.z1 - 1], [zone.x1 - 1, zone.z1 - 1]]);
         p = { type: item.type, at: c };
       } else {
@@ -190,7 +236,8 @@ function layout(recipe, parts, rng) {
       const r = propRect(p, def, [X, Z]);
       if (!fits(r, zone, def)) continue;
       const top = item.top && { type: item.top, at: [(r.x0 + r.x1) / 2 - 0.5, (r.z0 + r.z1) / 2 - 0.5] };
-      placed.push({ type: item.type, def, rect: r, p, top, item, zoneName });
+      placed.push({ type: item.type, def, rect: r, p, top, item, zoneName,
+        fixedRun: item.place === 'northwest_corner' });
       template.props.push(p);
       if (top) template.props.push(top);
       return r;
@@ -258,6 +305,8 @@ function layout(recipe, parts, rng) {
       ? [Math.max(...hosts.map(q => q.rect.z1)) + (item.run_gap_z ?? 0)]
       : item.run_depth === 'wall'
         ? [zone.z0 + (item.run_wall_gap ?? 0.2)]
+      : item.run_depth === 'center'
+        ? [zone.z0 + (zone.z1 - zone.z0 - def.size[1]) / 2]
       : item.run_depth === 'near'
           ? Array.from({ length: zSteps + 1 }, (_, i) => zone.z0 + backClearance + i * 0.5)
           : Array.from({ length: TRIES }, () => zone.z0 + backClearance + 0.5 * rng.int(0, zSteps));
@@ -313,26 +362,34 @@ function layout(recipe, parts, rng) {
 
   const placeAround = (item, zoneName, count) => {
     const def = parts.props[item.type], zone = areaOf(item, zoneName);
-    const host = placed.find(q => q.type === item.around && q.zoneName === zoneName);
-    if (!def || !host || (count !== 4 && !(count === 2 && item.layout === 'opposite_pair'))) return false;
-    const r = host.rect;
-    // The two painted views face each other across the table's long sides.
-    // Both share its centre line and follow the room's unrotated floor axes.
-    const spots = item.layout === 'opposite_pair'
-      ? [[r.x0 + (r.x1 - r.x0 - def.size[0]) / 2, r.z0 - def.size[1]],
-        [r.x0 + (r.x1 - r.x0 - def.size[0]) / 2, r.z1]]
-      : [[r.x0 + 0.7, r.z0 - 1], [r.x1 - 1.7, r.z0 - 1],
-        [r.x0 + 0.7, r.z1], [r.x1 - 1.7, r.z1]];
-    const candidates = spots.map((at, i) => {
-      const type = item.variants?.[i] || item.type;
-      const variant = parts.props[type];
-      if (!variant || variant.rule !== def.rule || variant.size[0] !== def.size[0] || variant.size[1] !== def.size[1]) return null;
-      const p = { type, at };
-      return { p, rect: propRect(p, variant, [X, Z]), def: variant };
+    const hosts = item.around_each
+      ? placed.filter(q => q.type === item.around && q.zoneName === zoneName)
+      : [placed.find(q => q.type === item.around && q.zoneName === zoneName)].filter(Boolean);
+    if (!def || !hosts.length || (count !== 4 && !(count === 2 && ['opposite_pair', 'opposite_x'].includes(item.layout)))) return false;
+    const candidates = hosts.flatMap((host, hostIndex) => {
+      const r = host.rect;
+      // Seat two sides of each table; the chosen axis follows its long edge.
+      const gap = item.around_gap ?? 0;
+      const spots = item.layout === 'opposite_pair'
+        ? [[r.x0 + (r.x1 - r.x0 - def.size[0]) / 2, r.z0 - def.size[1] - gap],
+          [r.x0 + (r.x1 - r.x0 - def.size[0]) / 2, r.z1 + gap]]
+        : item.layout === 'opposite_x'
+          ? [[r.x0 - def.size[0], r.z0 + (r.z1 - r.z0 - def.size[1]) / 2],
+            [r.x1, r.z0 + (r.z1 - r.z0 - def.size[1]) / 2]]
+          : [[r.x0 + 0.7, r.z0 - 1], [r.x1 - 1.7, r.z0 - 1],
+            [r.x0 + 0.7, r.z1], [r.x1 - 1.7, r.z1]];
+      return spots.map((at, i) => {
+        const type = item.variants?.[(hostIndex * spots.length + i) % item.variants.length] || item.type;
+        const variant = parts.props[type];
+        if (!variant || variant.rule !== def.rule || variant.size[0] !== def.size[0] || variant.size[1] !== def.size[1]) return null;
+        const p = { type, at, ...(item.around_visual_offsets ? { artOffset: item.around_visual_offsets[i] } : {}) };
+        return { p, rect: propRect(p, variant, [X, Z]), def: variant, host };
+      });
     });
     if (candidates.some(candidate => !candidate || !fits(candidate.rect, zone, candidate.def)
       || overlap(candidate.rect, entryClear)
-      || (item.layout === 'opposite_pair' && placed.some(q => q !== host && overlap(candidate.rect, q.rect))))) return false;
+      || (['opposite_pair', 'opposite_x'].includes(item.layout)
+        && placed.some(q => q !== candidate.host && overlap(candidate.rect, q.rect))))) return false;
     for (const { p, rect, def: variant } of candidates) {
       placed.push({ type: p.type, def: variant, rect, p, item, zoneName, fixedRun: true });
       template.props.push(p);
@@ -343,11 +400,13 @@ function layout(recipe, parts, rng) {
   // Tenement beds form paired sleeping bays along the side walls. Screens separate
   // the rows, while their open ends face a shared central aisle.
   if (recipe.sleeping_bays) {
-    const beds = parts.props.futon, screens = parts.props.shoji_partition;
+    const bedType = recipe.sleeping_bay_bed || 'futon';
+    const beds = parts.props[bedType], screens = parts.props.shoji_partition;
     const starts = [4, 8.5, 13];
     for (const side of ['west', 'east']) for (let row = 0; row < starts.length; row++) {
       const x = side === 'west' ? 1 : X - 3;
-      const p = { type: 'futon', at: [x, starts[row]], artAngle: -3 };
+      const p = { type: bedType, at: [x, starts[row]] };
+      if (bedType === 'futon') p.artAngle = -3;
       const rect = propRect(p, beds, [X, Z]);
       if (!fits(rect, zones.main, beds) || overlap(rect, entryClear)) missing.push('could not fit a tenement sleeping bay');
       else { placed.push({ type: p.type, def: beds, rect, p, zoneName: 'main', item: { type: p.type }, fixedRun: true }); template.props.push(p); }
@@ -362,6 +421,7 @@ function layout(recipe, parts, rng) {
   // order: wall pieces, then furniture biggest first, then corner lamps, then lanterns
   const order = item => {
     const def = parts.props[item.type] || { size: [1, 1] };
+    if (item.place === 'northwest_corner') return -1;
     if (def.rule === 'wall') return 0;
     if (item.place === 'screen_run' || item.place === 'display_run' || item.place === 'side_run') return 0.5;
     if (item.place === 'around') return 0.9;
@@ -448,8 +508,9 @@ export function narrow(a, b) {
 // Flood-fills the floor from where you come in, on the same walk grid the crew path on
 // (sim/nav.js ROOM_NAV), so a room that passes is one every crew member can walk round.
 export function walkway(room, parts) {
-  const [X, Z] = room.size, ox = room.origin.x, oz = room.origin.z, step = ROOM_NAV.cell, radius = ROOM_NAV.pad;
-  const nav = createNav(room.blockers, { minX: ox, minZ: oz, maxX: ox + X, maxZ: oz + Z }, ROOM_NAV);
+  const [X, Z] = room.size, ox = room.origin.x, oz = room.origin.z, step = ROOM_NAV.cell;
+  const radius = ROOM_NAV.pad * (room.template.characterScale || 1);
+  const nav = createNav(room.blockers, { minX: ox, minZ: oz, maxX: ox + X, maxZ: oz + Z }, { ...ROOM_NAV, pad: radius });
   const nx = Math.round(X / step), nz = Math.round(Z / step);
   const dist = (b, x, z) => Math.hypot(Math.max(b.x0 - x, 0, x - b.x1), Math.max(b.z0 - z, 0, z - b.z1));
   const free = new Uint8Array(nx * nz), seen = new Uint8Array(nx * nz);

@@ -1,5 +1,7 @@
 # Manor interior alignment plan
 
+Historical checklist from the manor calibration pass. Its status notes below describe that pass, not the current room queue; use [interior_alignment_workflow.md](interior_alignment_workflow.md) for the current process.
+
 Reference: the in-game manor is generated with seed 1 (`game/data/port_town.json`). Review the grouped alignment pass against that seed, then sample the other manor seeds. Preserve the approved wall art and existing painted furniture.
 
 1. **Scroll cabinets — first.** Make the one or two cabinets a straight, coherent display along the far wall rather than independently sampled floor positions. Correct the painted base contact and its too-shallow/downward-bent diagonal with per-asset display geometry where possible; do not change collision to hide an art mismatch. Check both long edges against the wall and floor grid, and make sure the row does not cover a door or window.

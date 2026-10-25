@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 1200" width="1320" height="1200">
+  <rect width="1320" height="1200" fill="#fff"/>
+  <g fill="#000" font-family="Arial, Helvetica, sans-serif">
+    <text x="180" y="66" font-size="34" font-weight="700" letter-spacing="3">INN / PLAYER HIDEOUT</text>
+    <text x="180" y="96" font-size="17" letter-spacing="2">ARCHITECTURAL BLUEPRINT · PILOT 01 · TOP-DOWN</text>
+    <text x="180" y="1158" font-size="16">Geometry draft only. Furniture and painted surfaces follow after layout approval.</text>
+    <text x="1160" y="165" font-size="23" text-anchor="middle" font-weight="700">N</text>
+  </g>
+
+  <!-- North arrow -->
+  <path d="M1160 225 L1160 178 M1150 191 L1160 178 L1170 191" fill="none" stroke="#000" stroke-width="4" stroke-linecap="square"/>
+
+  <!-- Overall dimensions: one cell = one game world unit. -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M180 145 H1080 M180 135 V155 M1080 135 V155 M130 190 V1000 M120 190 H140 M120 1000 H140"/>
+    <path d="M180 1045 H1080 M180 1034 V1056 M450 1034 V1056 M810 1034 V1056 M1080 1034 V1056"/>
+    <path d="M1125 190 V1000 M1114 190 H1136 M1114 595 H1136 M1114 1000 H1136"/>
+  </g>
+  <g fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle">
+    <text x="630" y="137">20 GAME UNITS</text>
+    <text x="315" y="1072">6</text><text x="630" y="1072">8</text><text x="945" y="1072">6</text>
+    <text x="1162" y="398">9</text><text x="1162" y="803">9</text>
+    <text x="76" y="602" transform="rotate(-90 76 602)">18 GAME UNITS</text>
+  </g>
+
+  <!-- Outer walls, broken at the existing north entrance (x = 10..12). -->
+  <g fill="none" stroke="#000" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M180 190 H630 M720 190 H1080 M180 190 V1000 H1080 V190"/>
+  </g>
+
+  <!-- North entrance: two-unit sliding door and inward threshold. -->
+  <g fill="none" stroke="#000" stroke-width="2.5">
+    <path d="M630 202 H720 M630 212 H720 M675 202 V212"/>
+  </g>
+  <text x="680" y="260" fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="15" text-anchor="middle" letter-spacing="1">MAIN ENTRANCE</text>
+
+  <!-- Four room partitions: 6-unit wings and an 8-unit common hall. -->
+  <g fill="none" stroke="#000" stroke-width="7" stroke-linecap="square">
+    <path d="M450 190 V370 M450 460 V730 M450 820 V1000"/>
+    <path d="M810 190 V370 M810 460 V730 M810 820 V1000"/>
+    <path d="M180 595 H450 M810 595 H1080"/>
+  </g>
+
+  <!-- Sliding panels drawn within the 2-unit room door openings. -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M463 377 V453 M472 377 V453 M788 377 V453 M797 377 V453"/>
+    <path d="M463 737 V813 M472 737 V813 M788 737 V813 M797 737 V813"/>
+  </g>
+
+  <!-- Proposed window openings, kept distinct from doors. -->
+  <g fill="#fff" stroke="none">
+    <rect x="270" y="181" width="90" height="18"/><rect x="900" y="181" width="90" height="18"/>
+    <rect x="171" y="325" width="18" height="90"/><rect x="171" y="775" width="18" height="90"/>
+    <rect x="1071" y="325" width="18" height="90"/><rect x="1071" y="775" width="18" height="90"/>
+    <rect x="270" y="991" width="90" height="18"/><rect x="900" y="991" width="90" height="18"/>
+  </g>
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M270 184 H360 M270 196 H360 M900 184 H990 M900 196 H990"/>
+    <path d="M174 325 V415 M186 325 V415 M174 775 V865 M186 775 V865"/>
+    <path d="M1074 325 V415 M1086 325 V415 M1074 775 V865 M1086 775 V865"/>
+    <path d="M270 994 H360 M270 1006 H360 M900 994 H990 M900 1006 H990"/>
+  </g>
+
+  <!-- Room labels. No props are committed in this architectural pass. -->
+  <g fill="#000" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="315" y="487" font-size="23" font-weight="700">CREW QUARTERS</text>
+    <text x="315" y="515" font-size="16">6 × 9</text>
+    <text x="945" y="487" font-size="23" font-weight="700">GUEST ROOM</text>
+    <text x="945" y="515" font-size="16">6 × 9</text>
+    <text x="315" y="877" font-size="22" font-weight="700">KITCHEN + STORES</text>
+    <text x="315" y="905" font-size="16">6 × 9</text>
+    <text x="945" y="877" font-size="22" font-weight="700">PLANNING + GEAR</text>
+    <text x="945" y="905" font-size="16">6 × 9</text>
+    <text x="630" y="573" font-size="25" font-weight="700">COMMON HALL</text>
+    <text x="630" y="603" font-size="17">8 × 18 · reception / gathering</text>
+  </g>
+
+  <!-- Scale and symbol key. -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M180 1105 H450 M180 1096 V1114 M270 1096 V1114 M360 1096 V1114 M450 1096 V1114"/>
+  </g>
+  <g fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="15">
+    <text x="180" y="1133">0</text><text x="270" y="1133" text-anchor="middle">2</text>
+    <text x="360" y="1133" text-anchor="middle">4</text><text x="450" y="1133" text-anchor="end">6 units</text>
+    <text x="775" y="1112">Double line = window · gap with parallel rails = sliding door</text>
+  </g>
+</svg>

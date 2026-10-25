@@ -1,0 +1,37 @@
+Inn cleanup — 2026-10-24
+Archived below to_delete/inn_trials_2026-10-24/; no files deleted.
+Retained runtime: inn_scene_props/floor, recipe, render code and check_inn_paths.
+Retained source: v2 blueprint, furniture graybox/plan/structure, references/labels, original painting, masked cutouts and inn_furnishings.json (still used by graybox).
+Pre-existing to_delete material left alone.
+Archived paths:
+game/tools/inn_projection_test.html
+game/tools/inn_projection_test.js
+game/tools/inn_props_paint_test.html
+game/tools/inn_props_paint_test_v1.png
+game/tools/inn_props_reference_v1.png
+game/tools/inn_wall_overlay_v1.png
+game/tools/inn_floor_only_v1.png
+game/tools/inn_graybox.html
+game/tools/inn_graybox.js
+tools/__pycache__/extract_inn_scene_cutouts.cpython-312.pyc
+docs/blueprints/inn_weapon_rack_shape_test.png
+docs/blueprints/inn_wall_overlay_v1.png
+docs/blueprints/inn_walls_preview.png
+docs/blueprints/inn_room_layers_preview_v1.png
+docs/blueprints/inn_props_with_walls_preview_v1.png
+docs/blueprints/inn_props_reference_v1.png
+docs/blueprints/inn_props_paint_test_v1.png
+docs/blueprints/inn_props_overlay_preview_v1.png
+docs/blueprints/inn_projection_test_capture.png
+docs/blueprints/inn_p3_calibration_test.png
+docs/blueprints/inn_live_render.png
+docs/blueprints/inn_lights_only.png
+docs/blueprints/inn_graybox_test.png
+docs/blueprints/inn_furnished_soft_contact_test.png
+docs/blueprints/inn_furnished_quadrant_test.png
+docs/blueprints/inn_furnished_paint_test.png
+docs/blueprints/inn_full_cutout_preview.png
+docs/blueprints/inn_expanded_walls_preview_v2.png
+docs/blueprints/inn_expanded_walls_preview_v1.png
+docs/blueprints/inn_expanded_preview_v1.png
+docs/blueprints/inn_exact_cutout_trial_final.png

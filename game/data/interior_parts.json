@@ -68,15 +68,27 @@
 
   "props": {
     "tea_table":   { "size": [2, 3], "rule": "floor", "solid": [1.4, 0.9], "surface": 0.42 },
+    "teahouse_tea_table": { "size": [2, 3], "rule": "floor", "solid": [1.4, 0.9], "surface": 0.42, "decorations": [
+      { "cutout": "floor_cushion_indigo", "offset": [0, -1.25] },
+      { "cutout": "floor_cushion_straw", "offset": [0, 1.25] }
+    ] },
+    "teahouse_tea_cabinet": { "size": [2.4, 1], "rule": "wall", "solid": [2.2, 0.8], "cutout": "teahouse_tea_cabinet", "painted": { "offset": [0.15, 0] } },
     "zabuton":     { "size": [1, 1], "rule": "floor" },
     "tokonoma":    { "size": [4, 1], "rule": "wall", "solid": [4, 1], "surface": 0.16, "backing": "painted_alcove" },
     "byobu":       { "size": [3, 1], "rule": "floor", "solid": [2.8, 0.5] },
+    "teahouse_byobu": { "size": [2.55, 1], "rule": "floor", "solid": [2.5, 0.5], "rotations": [0] },
     "andon":       { "size": [1, 1], "rule": "floor", "solid": [0.45, 0.45], "painted": { "cutout": "andon", "rotations": [0] }, "light": { "y": 0.6, "radius": 6, "color": "#ffc070" } },
     "hibachi":     { "size": [1, 1], "rule": "floor", "solid": [0.6, 0.6], "painted": { "cutout": "hibachi", "rotations": [0] }, "light": { "y": 0.5, "radius": 3.5, "color": "#ff7a30", "fire": true } },
     "red_lantern": { "size": [1, 1], "rule": "ceiling", "solid": [0.4, 0.4], "light": { "y": 1.95, "radius": 4.5, "color": "#ff7a4c" } },
     "tea_set":     { "size": [1, 1], "rule": "top", "painted": { "cutout": "tea_set", "rotations": [0] } },
     "vase":        { "size": [1, 1], "rule": "floor", "solid": [0.5, 0.5], "cutout": "vase" },
     "futon":       { "size": [2, 3], "rule": "floor", "solid": [1.3, 2.3], "rotations": [0], "cutout": "futon" },
+    "tenement_futon": { "size": [2, 3], "rule": "floor", "solid": [1.3, 2.3], "rotations": [0], "cutout": "tenement_futon" },
+    "tenement_communal_table": { "size": [2, 3], "rule": "floor", "solid": [1.4, 0.9], "cutout": "tenement_communal_table", "rotations": [0] },
+    "tenement_storage_shelf": { "size": [2, 1], "rule": "wall", "solid": [1.7, 1], "loot": true, "cutout": "tenement_storage_shelf", "rotations": [0], "painted": { "offset": [0, 0.5] } },
+    "floor_cushion_indigo": { "size": [1, 1], "rule": "floor", "cutout": "floor_cushion_indigo", "rotations": [0], "floor_shadow": false },
+    "floor_cushion_straw": { "size": [1, 1], "rule": "floor", "cutout": "floor_cushion_straw", "rotations": [0], "floor_shadow": false },
+    "floor_cushion_red": { "size": [1, 1], "rule": "floor", "cutout": "floor_cushion_red", "rotations": [0], "floor_shadow": false },
     "shoji_partition": { "size": [3, 1], "rule": "floor", "solid": [2.8, 0.4] },
     "inspection_table": { "size": [4, 3], "rule": "floor", "solid": [3.2, 2.2], "surface": 0.65, "cutout": "inspection_table", "rotations": [0] },
     "ledger_stack": { "size": [1, 1], "rule": "top", "cutout": "ledger_stack" },
@@ -102,6 +114,16 @@
     "manor_scroll_cabinet": { "size": [3, 1], "rule": "floor", "solid": [2.8, 0.8], "cutout": "manor_scroll_cabinet", "rotations": [0], "painted": { "anchor": [150, 158], "shear": -0.11, "topShear": -0.08 } },
 
     "gambling_mat":      { "size": [4, 4], "rule": "floor", "solid": [2.4, 2.4] },
+    "den_card_table":    { "size": [4, 4], "rule": "floor", "solid": [2.4, 2.4], "cutout": "den_card_table", "rotations": [0], "decorations": [
+      { "cutout": "floor_cushion_indigo", "offset": [0, -1.6] }, { "cutout": "floor_cushion_red", "offset": [1.6, 0] },
+      { "cutout": "floor_cushion_straw", "offset": [0, 1.72] }, { "cutout": "floor_cushion_indigo", "offset": [-1.6, 0] }
+    ] },
+    "den_dice_table":    { "size": [4, 4], "rule": "floor", "solid": [2.4, 2.4], "cutout": "den_dice_table", "rotations": [0], "painted": { "angle": 4, "shear": -0.03, "topShear": 0.03 }, "decorations": [
+      { "cutout": "floor_cushion_red", "offset": [0, -1.6] }, { "cutout": "floor_cushion_indigo", "offset": [1.6, 0] },
+      { "cutout": "floor_cushion_straw", "offset": [0, 1.72] }, { "cutout": "floor_cushion_red", "offset": [-1.6, 0] }
+    ] },
+    "den_side_bar":      { "size": [5, 2], "rule": "wall", "solid": [4.8, 1.8], "cutout": "den_side_bar", "rotations": [90], "painted": { "offset": [0.35, 0], "shear": -0.06, "topShear": -0.05 } },
+    "den_corner_bar":    { "size": [5, 4], "rule": "floor", "solid": [4.6, 3.6], "cutout": "den_corner_bar", "rotations": [0], "painted": { "shear": 0.09, "topShear": -0.11 } },
     "counter":           { "size": [4, 2], "rule": "wall", "solid": [4, 2], "painted": { "cutout": "counter", "rotations": [90], "offset": [0.5, 0] } },
     "sake_shelf":        { "size": [2, 1], "rule": "wall", "solid": [1.9, 1], "painted": { "cutout": "sake_shelf", "rotations": [0] } },
     "cash_box":          { "size": [1, 1], "rule": "floor", "solid": [0.8, 0.6], "loot": true, "painted": { "cutout": "cash_box", "rotations": [0] } },

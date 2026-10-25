@@ -77,10 +77,33 @@ for (const type of ['tenements', 'bathhouse']) for (let seed = 1; seed <= 100; s
   const { room, problems } = generateRoom(type, seed, recipes, parts);
   assert.deepEqual(problems, [], `${type} ${seed}`);
   if (type === 'tenements') {
-    const beds = room.props.filter(p => p.type === 'futon');
+    const beds = room.props.filter(p => p.type === 'tenement_futon');
     assert.ok(beds.length >= 3);
-    assert.ok(beds.every(p => p.rot === 0 && p.cutout === 'futon' && p.artAngle === -3));
-    assert.equal(room.pieces.filter(p => p.name === 'futon' && p.angle === -3).length, beds.length);
+    assert.ok(beds.every(p => p.rot === 0 && p.cutout === 'tenement_futon' && !p.artAngle));
+    assert.equal(room.pieces.filter(p => p.name === 'tenement_futon').length, beds.length);
+    for (const name of ['tenement_storage_shelf', 'tenement_communal_table']) {
+      const props = room.props.filter(p => p.type === name);
+      assert.ok(props.length > 0 && props.every(p => p.cutout === name));
+      assert.equal(room.pieces.filter(p => p.name === name).length, props.length);
+    }
+    assert.ok(room.props.filter(p => p.type === 'tenement_storage_shelf').every(p => p.def.loot));
+    const tables = room.props.filter(p => p.type === 'tenement_communal_table')
+      .sort((a, b) => a.rect.x0 - b.rect.x0);
+    assert.equal(tables.length, 2);
+    assert.equal(tables[0].rect.z0, tables[1].rect.z0);
+    assert.ok(Math.abs(tables[1].rect.x0 - tables[0].rect.x1 - 3) < 1e-6);
+    assert.ok(!room.props.some(p => p.type === 'zabuton'));
+    const seats = room.props.filter(p => p.type.startsWith('floor_cushion_'));
+    assert.equal(seats.length, 4);
+    assert.ok(seats.every(seat => seat.def.floor_shadow === false));
+    for (const table of tables) {
+      const beside = seats.filter(seat => Math.abs(seat.cx - table.cx) < 1e-6);
+      assert.equal(beside.length, 2);
+      assert.ok(beside.some(seat => Math.abs(table.rect.z0 - seat.rect.z1 - 0.4) < 1e-6
+        && seat.artOffset[0] === -1.3 && seat.artOffset[1] === -0.6));
+      assert.ok(beside.some(seat => Math.abs(seat.rect.z0 - table.rect.z1 - 0.4) < 1e-6
+        && seat.artOffset[0] === -0.2 && seat.artOffset[1] === -1.2));
+    }
   } else {
     const screens = room.props.filter(p => p.type === 'shoji_partition').sort((a, b) => a.rect.x0 - b.rect.x0);
     assert.ok(screens.length >= 3);
@@ -119,7 +142,10 @@ const newProps = ['inspection_table', 'ledger_stack', 'records_shelf', 'customs_
   'shop_dry_goods_shelf', 'shop_textile_shelf', 'pawn_valuables_display',
   'brewery_bottle_shelf', 'brewery_ceramic_shelf', 'manor_reception_table', 'manor_reception_chair',
   'manor_reception_chair_back',
-  'manor_armor_display', 'manor_scroll_cabinet'];
+  'manor_armor_display', 'manor_scroll_cabinet',
+  'tenement_futon', 'tenement_communal_table', 'tenement_storage_shelf',
+  'floor_cushion_indigo', 'floor_cushion_straw', 'floor_cushion_red',
+  'den_card_table', 'den_dice_table', 'den_side_bar', 'den_corner_bar'];
 for (const name of newProps) {
   assert.equal(parts.props[name].cutout, name);
   assert.ok(cutouts[`interior/${name}`], `${name}: missing cutout metadata`);
@@ -129,8 +155,62 @@ for (const name of newProps) {
 }
 
 const tenements = generateRoom('tenements', 1, recipes, parts).room;
-assert.equal(tenements.props.filter(p => p.type === 'futon').length, 6);
+for (let seed = 1; seed <= 100; seed++) {
+  const { room: teahouse, problems } = generateRoom('teahouse', seed, recipes, parts);
+  assert.deepEqual(problems, [], `teahouse ${seed}`);
+  const tables = teahouse.props.filter(p => p.type === 'teahouse_tea_table');
+  const screens = teahouse.props.filter(p => p.type === 'teahouse_byobu');
+  const cabinets = teahouse.props.filter(p => p.type === 'teahouse_tea_cabinet');
+  assert.ok(tables.length >= 5 && tables.length <= 8);
+  assert.equal(screens.length, 2);
+  assert.equal(cabinets.length, 1);
+  assert.equal(cabinets[0].rect.x0, 0);
+  assert.equal(cabinets[0].rot, 90);
+  assert.ok(teahouse.pieces.some(p => p.name === 'teahouse_tea_cabinet'));
+  assert.ok(!screens.some(p => p.rect.z0 < cabinets[0].rect.z1 && cabinets[0].rect.z0 < p.rect.z1));
+  assert.ok(screens.every(p => p.rect.x0 === 0 && p.rot === 0));
+  assert.ok(!teahouse.props.some(p => ['tea_table', 'byobu', 'zabuton'].includes(p.type)));
+  for (const table of tables) for (const [name, dz] of [['floor_cushion_indigo', -1.25], ['floor_cushion_straw', 1.25]])
+    assert.ok(teahouse.pieces.some(p => p.name === name && Math.abs(p.x - table.cx) < 1e-6
+      && Math.abs(p.z - table.cz - dz) < 1e-6));
+}
+for (let seed = 1; seed <= 100; seed++) {
+  const { room: den, problems } = generateRoom('gambling_den', seed, recipes, parts);
+  assert.deepEqual(problems, [], `gambling_den ${seed}`);
+  assert.ok(!den.props.some(p => ['gambling_mat', 'counter', 'byobu'].includes(p.type)));
+  const corner = den.props.filter(p => p.type === 'den_corner_bar');
+  const side = den.props.filter(p => p.type === 'den_side_bar');
+  assert.equal(corner.length, 1);
+  assert.equal(side.length, 1);
+  assert.equal(corner[0].rect.x0, 0);
+  assert.equal(corner[0].rect.z0, 0);
+  assert.equal(side[0].rect.z0, 8);
+  const tables = den.props.filter(p => p.type === 'den_dice_table');
+  assert.equal(tables.length, 4);
+  assert.ok(tables.every(p => p.artAngle === 4));
+  assert.equal(den.props.filter(p => p.type === 'den_card_table').length, 0);
+  const rows = [...new Set(tables.map(p => p.rect.z0))].sort((a, b) => a - b);
+  assert.equal(rows.length, 2);
+  for (const z of rows) assert.equal(tables.filter(p => p.rect.z0 === z).length, 2);
+  assert.deepEqual(tables.filter(p => p.rect.z0 === rows[0]).map(p => p.rect.x0).sort((a, b) => a - b),
+    tables.filter(p => p.rect.z0 === rows[1]).map(p => p.rect.x0).sort((a, b) => a - b));
+  assert.ok(rows[0] >= 4 && rows[1] - rows[0] >= 4.5);
+  assert.equal(den.pieces.filter(p => p.name.startsWith('floor_cushion_')).length, tables.length * 4);
+  for (const table of tables) assert.ok(den.pieces.some(p => p.name === 'floor_cushion_straw'
+    && Math.abs(p.x - table.cx) < 1e-6 && Math.abs(p.z - table.cz - 1.72) < 1e-6));
+  const north = den.walls.find(w => w.side === 'north');
+  const west = den.walls.find(w => w.side === 'west');
+  for (let i = 0; i < Math.ceil(corner[0].rect.x1 / parts.wall.bay); i++)
+    assert.ok(!parts.bays[north.bays[i]].window && !parts.bays[north.bays[i]].door);
+  const blockedWestBays = [...Array(Math.ceil(corner[0].rect.z1 / parts.wall.bay)).keys(),
+    ...Array.from({ length: Math.ceil(side[0].rect.z1 / parts.wall.bay) - Math.floor(side[0].rect.z0 / parts.wall.bay) },
+      (_, i) => i + Math.floor(side[0].rect.z0 / parts.wall.bay))];
+  for (const i of blockedWestBays)
+    assert.ok(!parts.bays[west.bays[i]].window && !parts.bays[west.bays[i]].door);
+}
+assert.equal(tenements.props.filter(p => p.type === 'tenement_futon').length, 6);
 assert.equal(tenements.props.filter(p => p.type === 'shoji_partition').length, 4);
+assert.equal(tenements.props.filter(p => p.type === 'tansu' || p.type === 'tea_table').length, 0);
 const bath = generateRoom('bathhouse', 1, recipes, parts).room;
 assert.deepEqual(bath.blockers, buildRoom3d('bathhouse', bath.template, plain, 0, 0, { quiet: true }).blockers);
 for (const name of ['soaking_tub', 'bath_bucket_stool', 'towel_shelf']) {

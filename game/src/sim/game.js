@@ -64,6 +64,11 @@ export function createGame(options) {
     doors.push({ x: dx, z: dz, to: room.spawn, place: room.name, label: `Enter the ${title(name)}` });
     doors.push({ x: room.exit.x, z: room.exit.z, to: { x: dx, z: dz }, place: 'street', label: 'Leave' });
   });
+  const interiorDoors = rooms.flatMap(r => (r.interiorDoors || []).map(d => ({
+    id: d.id, place: r.name, x: d.x, z: d.z,
+    blocker: { minX: r.origin.x + d.rect.x0, maxX: r.origin.x + d.rect.x1,
+      minZ: r.origin.z + d.rect.z0, maxZ: r.origin.z + d.rect.z1 },
+  })));
 
   // Buildings with a menu instead of a room (the clinic): a door ring that opens it.
   // Nothing happens in the rules at that door; the screen opens the menu, which sends commands.
@@ -92,7 +97,9 @@ export function createGame(options) {
   // night: the sim clock (townsfolk follow it; the 'time' command flips it)
   // clock: the day/night cycle when settings turn it on (auto); left = ticks to the next flip, day = count of days so far;
   // dawn / dusk = true on the tick night turns to day / day to night, from the clock or the 'time' command alike (payouts at dawn)
-  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {}, hits: [], dodges: [], casts: [], heatGains: [], ryoGains: [], policeNews: [], news: [] };
+  const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {},
+    interiorDoors: Object.fromEntries(interiorDoors.map(d => [d.id, true])),
+    hits: [], dodges: [], casts: [], heatGains: [], ryoGains: [], policeNews: [], news: [] };
   const halfTicks = night => Math.round((night ? dayNight.nightSeconds : dayNight.daySeconds) * TICK_RATE);
   if (dayNight?.auto) state.clock = { day: 1, left: halfTicks(state.night) };
   const setNight = night => {
@@ -116,8 +123,31 @@ export function createGame(options) {
   const intents = {};     // latest move command per entity (server-side only)
   const nav = createNav(blockers, district.bounds);
   // a walk grid per room too, so units path round the furniture indoors instead of snagging on it
-  const roomNavs = Object.fromEntries(rooms.map(r => [r.name, createNav(r.blockers, { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, ROOM_NAV)]));
+  const roomBodyScales = Object.fromEntries(rooms.map(r => [r.name, r.template.characterScale || 1]));
+  const navSettings = r => ({ ...ROOM_NAV, pad: ROOM_NAV.pad * roomBodyScales[r.name] });
+  const roomNavs = Object.fromEntries(rooms.map(r => [r.name, createNav(r.blockers, { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, navSettings(r))]));
   const navOf = place => place === 'street' ? nav : roomNavs[place];
+  function interiorDoorNear(id) {
+    const e = state.entities[id];
+    if (!e || e.place === 'street') return null;
+    return interiorDoors.filter(d => d.place === e.place && Math.hypot(d.x - e.x, d.z - e.z) <= 1.55)
+      .sort((a, b) => Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z))[0] || null;
+  }
+  function toggleInteriorDoor(e) {
+    if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
+    const door = interiorDoorNear(e.id);
+    if (!door) return;
+    const closing = state.interiorDoors[door.id];
+    if (closing && Object.values(state.entities).some(u => u.place === door.place && !u.dead
+      && u.x + 0.45 > door.blocker.minX && u.x - 0.45 < door.blocker.maxX
+      && u.z + 0.45 > door.blocker.minZ && u.z - 0.45 < door.blocker.maxZ)) return;
+    state.interiorDoors[door.id] = !closing;
+    const r = rooms.find(r => r.name === door.place);
+    const closed = interiorDoors.filter(d => d.place === door.place && !state.interiorDoors[d.id]).map(d => d.blocker);
+    roomNavs[door.place] = createNav([...r.blockers, ...closed],
+      { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, navSettings(r));
+    for (const u of Object.values(state.entities)) if (u.place === door.place) delete paths[u.id];
+  }
 
   // Back windows (ninja build phase 3, Tim 2026-10-20): every business with a room gets a second way
   // in on the far side from its door, for the Shinobi clan only; it lands near the back of the room
@@ -1322,6 +1352,7 @@ export function createGame(options) {
           if (e.type === 'hero') bringCrew(e, from, d, c.units);
         }
       }
+      if (c.type === 'interiorDoor' && !stunned(e, state.tick)) toggleInteriorDoor(e);
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') giveOrder(e, c);
@@ -1472,12 +1503,15 @@ export function createGame(options) {
     const out = [...bigBlockers];
     for (let i = Math.floor(x0 / BUCKET); i <= Math.floor(x1 / BUCKET); i++)
       for (let j = Math.floor(z0 / BUCKET); j <= Math.floor(z1 / BUCKET); j++) { const l = buckets.get(`${i},${j}`); if (l) out.push(...l); }
+    for (const door of interiorDoors) if (!state.interiorDoors[door.id] && door.blocker.minX < x1 && door.blocker.maxX > x0
+      && door.blocker.minZ < z1 && door.blocker.maxZ > z0) out.push(door.blocker);
     return out;
   }
 
   // Move along one axis, stopping flush against the first thing in the way
   function tryMove(e, r, dx, dz) {
     if (stunned(e, state.tick)) return;
+    r *= roomBodyScales[e.place] || 1;
     let x = e.x + dx, z = e.z + dz;
     for (const b of blockersNear(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
       if (!(x + r > b.minX && x - r < b.maxX && z + r > b.minZ && z - r < b.maxZ)) continue;
@@ -1490,5 +1524,5 @@ export function createGame(options) {
     if (dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping };
 }

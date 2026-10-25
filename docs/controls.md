@@ -76,6 +76,10 @@ For testing, see `test_params.md` (`?test=bot`).
 
 ## Screen layout
 
+In blueprint interiors, Space near an internal sliding door opens/closes it; a doorway occupied by a unit cannot be closed (2026-10-24).
+
+The minimap has an integrated footer that moves/resizes with it, with −/+ map zoom buttons. Indoors, the footer shows the building name. Hover or keyboard-focus the name for its owner and available live stats (income, crew capacity, guards and season score). The name/details hide on the street (2026-10-24).
+
 The unit frames (your frame and the target frame, small squares top middle under the alerts) each have a lock icon to move and resize them; click the target frame to move the camera to the target. Click the lock icon to unlock the HUD, then drag panels and resize them by the gold corner. Reset layout puts everything back. The layout is saved in `game/data/ui_layout.json`.
 
 ## Camera and view
