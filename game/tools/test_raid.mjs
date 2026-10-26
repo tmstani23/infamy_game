@@ -9,7 +9,8 @@ const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const g = createGame({
   district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
-  units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
+  // warm-up pinned at 60 s: the room fight below expects the house guards beaten by then
+  units: (u => (u.rules.raid.warmupSeconds = 60, u))(data('data/units.json')), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
   settings: { ...data('data/settings.json'), dayNight: { auto: false } },
 });
 const RD = g.settings.units.rules.raid;

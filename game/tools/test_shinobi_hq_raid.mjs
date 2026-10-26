@@ -125,7 +125,7 @@ for (const bot of [false, true]) {
   const a = g.state.attacks[b.id];
   Object.assign(d, { x: a.lantern.x, z: a.lantern.z });
   g.step([{ id: d.id, type: 'business', action: 'knock', business: b.id }]);
-  run(4 * 20);
+  run(g.businesses.raidRules.knockSeconds * 20);
   assert.equal(g.state.attacks[b.id], undefined, 'defender knocks down the lantern normally');
   assert.equal(b.owner, 'shinobi');
   assert.equal(g.state.clans.player.lanterns, 0, 'failed raid still spends the lantern');

@@ -15,9 +15,9 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
-| Space by a raider's War Lantern | Knock it down (4 s channel; moving or a hit cancels). Raid warm-up is 60 s |
+| Space by a raider's War Lantern | Knock it down (5 s channel; moving or a hit cancels). Raid warm-up is 45 s |
 | Double-click the red raid alarm | Camera to the raided business |
-| Click the red lantern bar | A rival is knocking down your War Lantern (4 s): target him (any hit stops his channel) |
+| Click the red lantern bar | A rival is knocking down your War Lantern (5 s): target him (any hit stops his channel) |
 | Hideouts | Your inn and the rival's izakaya (H on the minimap) are locked to other clans ("<clan> hideout: no way in"); police can still go in |
 | Right-click a unit | Hero locks on and swings within 2.5 steps (no chasing); available selected crew assist. On a downed target he executes. During execution, right-click attacks command selected crew only |
 | Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips police, townsfolk, crew and downed units). Whoever is knocking down your War Lantern comes first. Available selected crew assist; an active execution continues |

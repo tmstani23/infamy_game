@@ -64,7 +64,7 @@ console.log('knock-down targeting ok');
   g2.step([{ id: me, type: 'business', action: 'raid', business: den2.id }]);
   const a2 = g2.state.attacks[den2.id];
   let swung = 0, i = 0;
-  for (; i < 40 * 20 && g2.state.attacks[den2.id]; i++) {
+  for (; i < 25 * 20 && g2.state.attacks[den2.id]; i++) {   // well inside the warm-up
     const cmds = bot.tick();
     if (a2.knock && !E[me].attackTarget) { Object.assign(E[me], { x: E[kb].x + 0.8, z: E[kb].z }); cmds.push({ id: me, type: 'attack', target: kb }); }
     g2.step(cmds);

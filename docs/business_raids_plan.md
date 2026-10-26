@@ -81,7 +81,7 @@ Two ways, both from the **building panel** (left-click the building; already bui
 - **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, b16 on the map, M on the minimap), from its building panel at the door ring. Moneylender only; no Shop discount. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
 - **Cost: 1,200 ryo** (Phase 3D, Tim, 2026-10-21). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
-- The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 60 s** (warm-up; `rules.raid.warmupSeconds`, 2026-10-19). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
+- The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 45 s** (warm-up; `rules.raid.warmupSeconds`; 60 s until 2026-10-26). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
 - **Lost** (changed 2026-10-20): the raiding boss going down doesn't end it. During the warm-up only a knocked-down War Lantern does; once the doors are open, nobody of yours inside for 10 s in a row loses it (the screen counts it down). Also lost if the business changes owner.
 - **Joining late:** any of your crew who walk in count, up to **6 crew inside** at once (plus the hero).
 - **Used up** whether the raid wins or loses.
@@ -92,9 +92,9 @@ Two ways, both from the **building panel** (left-click the building; already bui
 Attack warning (2026-10-25): the owner receives an alert naming the building when a rival starts a War Lantern raid. Guard replacements arrive at dawn/dusk; see section 8.
 
 - **Alert (built 2026-10-19):** a bell (WebAudio, no sound file) and a red banner at the top: first the doors-open countdown, then the hold time and whether the raiders are held off. Double-click the banner to jump the camera there. A red ping pulses on the minimap.
-- **Time to get there:** 60 s warm-up + the time to beat your guards/crew + the 30 s hold. Crossing the district takes the hero about 15 s (estimate).
+- **Time to get there:** 45 s warm-up + the time to beat your guards/crew + the 30 s hold. Crossing the district takes the hero about 15 s (estimate).
 - **Contested back room:** while any of your units stand in the back room, the 30 s hold timer pauses.
-- **Knock down the lantern (built):** the owner's hero stands within 1.6 of it and presses Space: a **4 s** channel (`raid.knockSeconds`, `knockReach`) that moving or any hit cancels; he doesn't auto-attack meanwhile (the channel clears his swing and locked target). Lantern down = the raid is lost for the raider. So you must clear or KO the attackers near the door first.
+- **Knock down the lantern (built):** the owner's hero stands within 1.6 of it and presses Space: a **5 s** channel (4 s until 2026-10-26; `raid.knockSeconds`, `knockReach`) that moving or any hit cancels; he doesn't auto-attack meanwhile (the channel clears his swing and locked target). Lantern down = the raid is lost for the raider. So you must clear or KO the attackers near the door first.
 - **Send crew in:** right-click your own business and the selected crew go to its door, go in and hold near the entrance (station order).
 - Offline or too far away: house guards and stationed crew fight on their own, and defenders in the back room pause the hold timer (built in checkpoint 4).
 - **Fighting inside (2026-10-20):** everyone inside a raided or attacked business fights on their own, raiders and defenders alike.
@@ -103,7 +103,7 @@ Attack warning (2026-10-25): the owner receives an alert naming the building whe
 ## 6. Controls to add (Controls panel, ? key)
 
 - Building panel buttons: **Buy**, **Attack**, **Raid** (moneylender's house: **Buy War Lantern**).
-- **Space** at a lantern (defender): knock it down (4 s channel).
+- **Space** at a lantern (defender): knock it down (5 s channel).
 - Double-click raid banner = camera jump.
 
 ## 7. Multiplayer and bots
@@ -140,7 +140,7 @@ Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner,
 
 Top-of-screen callouts, one at a time: "<clan> boss knocked out!" and "<clan> boss arrested!" (only if visible), "War Lantern destroyed!" (defender), "Your War Lantern was destroyed" (raider). The sim pushes `state.news` (`bossDown`, `bossArrested`, `lanternDown`, `crewOut`) from `game.js` `hit()`, `police.js` `jailHero()` and the knock in `businesses.js`; `main.js` `callout()` queues them into `#callout`.
 
-War Lantern burns out when the doors open (2026-10-19): the fight moves to the back room, so the lantern can only be knocked down during the 60 s warm-up. `raidTick` keeps `a.spot` where it stood (the alarm double-click jumps there); the bot boss goes in to the hold spot once the hold starts.
+War Lantern burns out when the doors open (2026-10-19): the fight moves to the back room, so the lantern can only be knocked down during the warm-up (45 s since 2026-10-26). `raidTick` keeps `a.spot` where it stood (the alarm double-click jumps there); the bot boss goes in to the hold spot once the hold starts.
 
 Back-room alerts (built 2026-10-19): during the hold, `raidTick` pushes `state.news` `backRoom` (`taking` / `contested`) whenever the zone changes. The defender sees "Your back room is being taken!" when raiders step onto the hold spot; both sides see "Back room contested!" when defenders step in while raiders are on it.
 
@@ -175,6 +175,10 @@ The building panel exposes Raid, status, protection and rewards. Existing raid a
 - Every clan sees an alert "X successfully raided Y's HQ" / "...Y's business".
 - Raid fire (`render/hq_fire.js`, `shading.js`, `view.js`): Tim-approved look for the burning HQ.
 - Shinobi bot: a badly hurt leader stays inside the HQ during a raid and heals to 80% (no doorway flicker).
+- Shinobi bot sends all its crew to defend a War Lantern at its HQ (`ninja_bot.js`).
+- Fire: flame-lick particles added (`hq_fire.js`).
+- Every clan starts just outside its own HQ door (`setup_match.js`).
+- Raid tuning (`units.json`): knock-down 5 s, warm-up 45 s.
 
 ### Sequential implementation phases (2026-10-25)
 
