@@ -8,17 +8,15 @@ Hobby project, built with AI in the evenings. Built in playable layers: a tiny s
 
 ## Status
 
-As of 2026-10-17:
+As of 2026-10-26:
 
-- Playable waterfront district in `game/` (run `start_game.bat`), with day and night.
-- 3D interiors (teahouse, den, warehouse) plus a room generator.
-- Crew hiring, orders and combat work, plus the ronin's four abilities with their effects and the action bar.
-- Also working (2026-10-17): downed crew and executions, the bonesetter's clinic (menu), townsfolk walking the streets, the crew selection panel, heat, hero lock-on, crew entering buildings, night bandits, fog of war and the minimap.
-- Also working (2026-10-19): police (heat tiers, arrests, jail and bail, bribes at two police boxes), the 2x port-town map, looting bandit bodies.
-- Also working (2026-10-19): the game settings file with an automatic day/night clock, buying businesses (dawn payouts, house guards) and attacking unowned ones at night.
-- Also working (2026-10-19): War Lantern raids on rival businesses, defending your own, and the unit frames.
-- Also working (2026-10-19): the rival bot clan (3 difficulties, home hideouts).
-- Next: playtest and tune; see [the roadmap](docs/roadmap.md). After the current phases and playtest: [architecture and maintenance pass](docs/roadmap.md#architecture-and-maintenance-pass-tim-2026-10-21) (Tim, 2026-10-21).
+- Playable port-town district in `game/` (run `start_game.bat`) with a start menu: pick your clan (Yakuza or Shinobi) and difficulty. No load/save yet.
+- Three clans (Yakuza, Shinobi, Kuroda); the two you don't play are bots, with adaptive AI and balance.
+- Yakuza: crew hiring and orders (groups, indoor patrols, services, dismissal), businesses with dawn payouts, attacks and War Lantern raids, territory, quarters and a season score; the Kuroda boss kit.
+- Shinobi: contracts from the village board, stealth, the leader kit (Shadow Step, Caltrops, Smoke Bomb, Assassinate, Vanish), tanto recruits, dodge, board refills and forest crossings.
+- World: police (heat tiers, arrests, bail, bribes, day patrols, HQ camping penalties), townsfolk, night bandits, the clinic, fog of war, the M game map, 3D interiors with props, combat UI.
+- Not committed yet: the Shinobi HQ raid (awaiting playtest) and the Phase 4 plan.
+- Next: the [architecture and maintenance pass](docs/roadmap.md#architecture-and-maintenance-pass-tim-2026-10-21), then load/save, then inventory and loot. See [the roadmap](docs/roadmap.md).
 - The sprite pipeline works end to end for the whole cast.
 
 See [START_HERE.md](START_HERE.md) for details and links.
