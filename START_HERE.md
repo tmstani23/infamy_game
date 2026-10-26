@@ -5,6 +5,7 @@ Read this first. It links to the docs rather than repeating them.
 ## Working rules
 
 - Usage: follow [docs/usage.md](docs/usage.md).
+- Usage awareness (Tim, 2026-10-25): keep routine work lean. Ask Tim before work likely to consume substantial usage, including broad archive/history searches, large reviews, or extensive testing. Prefer targeted reads and checks.
 - This local folder is the main copy of the project.
 - Plan first: ask Tim before building anything new. Big builds go in phases with a checklist in the plan file.
 - Always build for multiplayer, playable single-player with bots: all game rules live in `game/src/sim` (runs in Node, no graphics), players and bots act only through the same commands, render only draws. See [docs/tech_plan.md](docs/tech_plan.md).
@@ -25,6 +26,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/tech_plan.md](docs/tech_plan.md) | Code structure and build plan |
 | [docs/controls.md](docs/controls.md) | Every working control, plus planned keys |
 | [docs/crew_recruiting_plan.md](docs/crew_recruiting_plan.md) | Crew hiring and orders, phase by phase |
+| [docs/deployment_sector_plan.md](docs/deployment_sector_plan.md) | Phase 4 deployment, sectors and Rally (planned, not built) |
 | [docs/combat_spec.md](docs/combat_spec.md) | Combat rules and feel, hero abilities, action bar, VFX plan |
 | [docs/business_raids_plan.md](docs/business_raids_plan.md) | Owning businesses, payouts, attacks, War Lantern raids, defending (plan) |
 | [docs/test_params.md](docs/test_params.md) | Every test URL parameter (`?fog=0`, `?raidme=den` ...) and what it does |

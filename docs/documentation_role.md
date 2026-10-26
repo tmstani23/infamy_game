@@ -26,6 +26,7 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Every working control and planned keys | `docs/controls.md` |
 | Game design: city, clans, raids, economy, weapons, infamy | `docs/gameplay_and_design.md` |
 | Crew hiring, orders, crew phases | `docs/crew_recruiting_plan.md` |
+| Planned hero-group deployment, sector assignments/UI and deployment Rally | `docs/deployment_sector_plan.md` |
 | Combat rules, feel, hero abilities, action bar, VFX plan, downed and hospital | `docs/combat_spec.md` |
 | Civilians walking the streets | `docs/civilians_plan.md` |
 | Police, heat tiers, arrests, bribes | `docs/police_spec.md` |

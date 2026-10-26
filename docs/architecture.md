@@ -92,6 +92,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 | File | Job |
 |---|---|
+| `draw_order.js` | Draw order for the street: cached sort of static scenery, only moving things re-sorted each frame (`game/tools/test_draw_sort.mjs`). `main.js` keeps a lean previous-tick snapshot for smoothing. |
+| `hq_fire.js` | Animated flames on a raided HQ. |
 | `view.js` | Foot ring colours per unit category. Owns the scene, camera (follows the hero; arrow keys pan it, Home snaps back; screen-only, not game state), zoom, day/night; draws the state each frame. |
 | `scenery.js` | Ground blend and the painted building/prop cut-outs on invisible footprint boxes; draw order sorting. |
 | `characters.js` | 8-direction sprite sheets for units, weapon glow quad; `dispose()` frees units that leave the map. `INDOOR_SIZE` sets the indoor draw scale (now 1). |

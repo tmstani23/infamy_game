@@ -143,3 +143,48 @@ Top-of-screen callouts, one at a time: "<clan> boss knocked out!" and "<clan> bo
 War Lantern burns out when the doors open (2026-10-19): the fight moves to the back room, so the lantern can only be knocked down during the 60 s warm-up. `raidTick` keeps `a.spot` where it stood (the alarm double-click jumps there); the bot boss goes in to the hold spot once the hold starts.
 
 Back-room alerts (built 2026-10-19): during the hold, `raidTick` pushes `state.news` `backRoom` (`taking` / `contested`) whenever the zone changes. The defender sees "Your back room is being taken!" when raiders step onto the hold spot; both sides see "Back room contested!" when defenders step in while raiders are on it.
+
+<a id="planned-shinobi-hq-raid-tim-2026-10-25-not-built"></a>
+
+## Shinobi HQ raid (built 2026-10-25; playtested 2026-10-26)
+
+A raid without permanent capture. Use normal lantern price/night rules and the existing raid sequence: enemy plants a War Lantern at HQ → alert Shinobi → normal warmup → enter and win the normal inside hold-circle contest. [Deployment Rally](deployment_sector_plan.md#deployment-rally), its defensive cooldown reset, crew separation and sectors are deferred; do not implement Rally/reset until that subsystem exists. Business capture/raid hold rules are unchanged.
+
+Only a **successful inside hold** causes all of the following:
+
+- Cancel any active Shinobi contract immediately, without completion reward. Contracts are unavailable for **three minutes**, then reopen automatically rather than waiting for dawn.
+- Show the HQ **on fire throughout those three minutes**, ending when contracts reopen. This is suppression feedback; no extra fire damage/casualties are approved.
+- Award the winning clan **two season points**, **600 ryo bounty**, plus **floor(10% of Shinobi treasury), capped at 400 ryo**. Only the theft portion leaves Shinobi treasury; no points are removed directly from Shinobi. Total cash is 600–1000 according to available treasury. Pay exactly once per victory.
+- After suppression ends, protect the HQ from raids for one configured full day/night cycle, shared across both enemy clans. At current 4-minute day + 6-minute night settings this is **ten elapsed minutes**; alternating attackers cannot bypass it.
+
+Lantern placement or failure alone grants no burning, contract cancellation/lockout, payout or points. HQ never changes owner. This provides a deterrent/comeback opportunity while accounting for lantern cost, missed business income/score and casualty/revival risk.
+
+### Implemented behavior (2026-10-25)
+
+Only Shinobi HQ is eligible; other HQs remain closed to raids. After warmup only the attacking clan may enter the enemy HQ, with six interior raiding crew maximum, including independent late arrivals. Defenders retain normal access. Formal raiders are exempt from HQ camping penalties during their raid. After victory, existing raiders can leave normally; new enemy entry closes. No teleport or forced ejection.
+
+`sim/hq_raids.js` processes `hqRaidWon` before contract progression, so cancellation wins against same-tick contract completion. Suppression blocks board and number-key acceptance for 180 seconds, with tracker/board countdown and automatic reopening mid-day. Fixed tick deadlines survive serialization and manual day flips. Shared protection ends at suppression expiry plus configured day and night durations.
+
+Persistent `clan.raidPoints` contributes to live score breakdown and final standings. Exactly-once rewards use the treasury flooring/cap above. Known, unprotected Shinobi HQs participate in business-clan bots' existing scout/budget/raid rules; Shinobi bots prioritize formal HQ defense and avoid jobs while suppressed.
+
+The building panel exposes Raid, status, protection and rewards. Existing raid alarm/minimap behavior is reused with HQ-specific alerts/entry prompts. Fog-aware animated flames use building extras only while `suppressedUntil > state.tick`; they cause no damage.
+
+### Playtest changes (2026-10-26)
+
+- Victory exit: 2.5 s after a won raid (HQ or business) the raiders are put out of the building.
+- Every clan sees an alert "X successfully raided Y's HQ" / "...Y's business".
+- Raid fire (`render/hq_fire.js`, `shading.js`, `view.js`): Tim-approved look for the burning HQ.
+- Shinobi bot: a badly hurt leader stays inside the HQ during a raid and heals to 80% (no doorway flicker).
+
+### Sequential implementation phases (2026-10-25)
+
+Completion and checks reported by Build coordinator; Tim's visual/balance review remains pending.
+
+- [x] **Phase 1 — Raid mechanics:** formal Shinobi HQ eligibility, normal warmup, interior entry/caps, inside hold-circle contest and no permanent takeover.
+- [x] **Phase 2 — Victory and recovery:** contract cancellation, 180-second lockout, exactly-once points/bounty/theft, automatic reopening and configured full-cycle shared protection starting at reopening.
+- [x] **Phase 3 — Feedback and sim verification:** raid UI/status/alerts, suppression-only HQ fire and targeted sim regressions.
+- [ ] **Tim visual/balance playtest:** roof flame size/placement, raid/contract HUD and gameplay balance.
+
+`game/tools/test_shinobi_hq_raid.mjs` passed coverage for eligibility, entry/caps, contest/failure, camping exemption, cancellation ordering, lockout/UI/reopening, rewards, protection, serialization, scoring and bot attack/defense. Existing raid, defense, bot, ninja bot, ninja, building panel, crew services, territory and contract-refill regressions passed, as did syntax/diff checks. Two older fixtures were aligned with approved KO hold and explicit street-Move recall behavior. No browser tests/screenshots or new URL parameters.
+
+Deployment Rally/reset, crew separation and sector implementation remain deferred.

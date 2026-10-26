@@ -9,6 +9,7 @@ Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). 
 | Param | What it does |
 |---|---|
 | `?test=bot` | See the whole rival clan fast: the bot clan starts with 5000 ryo (buys, hires, then a War Lantern raid on you); you start with the teahouse and 3000 ryo. |
+| `?test=lantern` | War Lantern testing: normal clan/difficulty menu (choose any clan); player starts with 3000 ryo, rivals with normal 200. No extra property, crew or lantern grants. DEV-only (2026-10-25). |
 | `?test=ninja` | Play Shinobi at the village: hero + one ninja, 200 ryo, HQ only, against two normal Yakuza rivals. No boosted squad (2026-10-21). |
 
 ## Dev-only keys and hooks (off when `DEV = false`)
