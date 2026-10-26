@@ -38,7 +38,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   g.spawn('hero', 'ronin', -8, 30, { owner: 'player', hp: 1e7 });   // too tough to arrest here
   run(g, 20);
   assert.equal(cops(g).length, 0, 'quiet: no police');
-  for (const [heat, n] of [[35, 2], [65, 4], [95, 6]]) {
+  for (const [heat, n] of [[35, 2], [65, 4], [95, 8]]) {
     clan(g).heat = heat;
     run(g, n * P.spawnEverySeconds + 2);
     assert.equal(cops(g).filter(c => !g.police.mind[c.id]?.leaving).length, n, `${n} officers at heat ${heat}`);

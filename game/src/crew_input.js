@@ -112,8 +112,15 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       else groups.delete(number);
     }
   }
-  function setSelected(ids) {
-    selected = [...new Set(ids)];
+  function setSelected(ids, returnPrevious = false) {
+    const next = [...new Set(ids)], group = id => game.state.entities[id]?.deployment?.group;
+    const oldGroups = new Set(selected.map(group).filter(Boolean)), newGroups = new Set(next.map(group).filter(Boolean));
+    const switched = returnPrevious || (newGroups.size && [...newGroups].some(g => !oldGroups.has(g)) && selected.some(id => !next.includes(id)));
+    if (switched) {
+      const units = selected.filter(id => !next.includes(id) && game.state.deployment?.clans[hero()?.owner]?.sectors[group(id)]);
+      if (units.length) send({ id: heroId, type: 'deployment', action: 'return', units, selectionChange: true });
+    }
+    selected = next;
     view.setSelected(selected);
   }
   // the unit under a page pixel (closest within PICK_PX), from a list
@@ -139,7 +146,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     }
   }
   addEventListener('mousedown', e => {
-    if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
+    if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls, #deploymentpanel, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
     const target = () => unitAt(e.clientX, e.clientY, enemies()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
     // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
     // unit sends the selected crew instead (below). On the ground both stay crew orders.
@@ -290,7 +297,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     selectGroup(number) {
       pruneGroups();
       const ids = groups.get(number);
-      if (ids?.length) { setSelected(ids); building = null; }
+      if (ids?.length) { setSelected(ids, true); building = null; }
     },
     groupOf(id) { pruneGroups(); return [...groups].find(([, ids]) => ids.includes(id))?.[0] || null; },
     clear() { setSelected([]); looked = null; building = null; attackMove = false; document.body.style.cursor = ''; },
@@ -301,7 +308,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     followMe() { const units = mine().filter(id => ['street', hero()?.place].includes(game.state.entities[id]?.place)); if (units.length) order({ units, kind: 'follow' }); },
     // hurt selected crew walk to the clinic to heal (for ryo)
     healSelected() { if (mine().length) order({ units: mine(), kind: 'heal' }); },
-    select(ids) { setSelected(ids); building = null; },
+    select(ids, options = {}) { setSelected(ids, !!options.returnPrevious); building = null; },
     selected: () => selected,
     building: () => building,
     // drop units that are gone (killed, or carried to the clinic) from the selection; downed

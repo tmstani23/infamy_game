@@ -8,6 +8,7 @@
 // src/game_map.js): big = true, with layer switches (layers), hover info (onHover) and a click
 // that looks there and closes it (onPick).
 import { shapeDistance, groundZone } from './sim/geometry.js';
+import { drawWatchMarkers } from './watch_markers.js';
 
 const GROUND = {
   grass: [78, 96, 58], dirt: [122, 104, 78], dry_grass: [130, 120, 76], mud: [84, 70, 54], sand: [176, 160, 122],
@@ -23,11 +24,11 @@ export function policeMapColor(officer, clan, state) {
 }
 
 export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send, big = false,
-  layers = { territory: true, businesses: true, police: true, units: true }, onHover = null, onPick = null }) {
+  layers = { territory: true, businesses: true, police: true, units: true }, onHover = null, onPick = null, overlay = null }) {
   const g = game.vision.grid(clan);
   const midX = g.minX + g.w / 2, midZ = g.minZ + g.h / 2;
-  const size = canvas.clientWidth || 180, zoom = Math.max(1, size / 180);   // big map: letters and dots grow a little
-  const baseScale = size / ((g.w + g.h) * S) * 1.02;
+  let size = canvas.clientWidth || 180, zoom = Math.max(1, size / 180);   // big map: letters and dots grow a little
+  let baseScale = size / ((g.w + g.h) * S) * 1.02;
   let mapZoom = 1, k = baseScale;   // the turned district fills the box
   const dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = canvas.height = Math.round(size * dpr);
@@ -124,6 +125,12 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   }
 
   function draw() {
+    if (canvas.clientWidth && canvas.clientWidth !== size) {
+      size = canvas.clientWidth; zoom = Math.max(1, size / 180);
+      baseScale = size / ((g.w + g.h) * S) * 1.02; k = baseScale * mapZoom;
+      canvas.width = canvas.height = Math.round(size * dpr);
+    }
+    const nowMs = performance.now();
     const state = fog.seen(game.state);
     paintCells();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -137,6 +144,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(cells, 0, 0);
     ctx.restore();
+    if (layers.deployment) overlay?.ground({ ctx, toMap, size, zoom, now: nowMs });
     // every business, as a letter, even under the fog so you can find them (W warehouse, T teahouse, D den, C clinic, P police)
     // quarters (sim/territory.js, Tim 2026-10-20): a white dotted outline round each, its name in the middle
     // (big map); once one clan holds every business in it (and you can tell) the outline is in its colour
@@ -183,7 +191,6 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.strokeRect(u - bs / 2 + 0.5, v - bs / 2 + 0.5, bs - 1, bs - 1);
     }
     // pings (a rival walking into your territory, src/main.js): an orange ring pulsing out
-    const nowMs = performance.now();
     for (let i = pings.length - 1; i >= 0; i--) {
       const p = pings[i], q = (nowMs - p.t) / 1600;
       if (q >= 3) { pings.splice(i, 1); continue; }
@@ -211,6 +218,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       dot(e.x, e.z, c, r);
     }
     ctx.globalAlpha = 1;
+    drawWatchMarkers({ ctx, toMap, state: game.state, clan, scale: big ? 1.25 : 1 });
+    if (layers.deployment) overlay?.markers({ ctx, toMap, size, zoom, now: nowMs });
     // what the camera sees
     const corners = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y));
     if (corners.every(Boolean) && !(game.state.entities[heroId]?.place !== 'street' && !view.isPanned())) {
@@ -241,13 +250,17 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   if (onHover) {
     // a business under the mouse, else the quarter it is in (big map hover)
     const quarterAt = e => { const p = at(e); return game.territory?.quarters.find(q => p.x >= q.box[0] && p.z >= q.box[1] && p.x <= q.box[2] && p.z <= q.box[3]) || null; };
-    canvas.addEventListener('mousemove', e => { const b = businessAt(e); onHover(b, e, b ? null : quarterAt(e)); });
-    canvas.addEventListener('mouseleave', e => onHover(null, e));
+    canvas.addEventListener('mousemove', e => {
+      if (layers.deployment && overlay?.hover(at(e), e)) return;
+      const b = businessAt(e); onHover(b, e, b ? null : quarterAt(e));
+    });
+    canvas.addEventListener('mouseleave', e => { overlay?.hover(null, e); onHover(null, e); });
   }
   canvas.addEventListener('mousedown', e => {
     e.stopPropagation();
     e.preventDefault();
     const p = at(e);
+    if (e.button === 0 && layers.deployment && overlay?.pick(p, e)) return;
     // big map: a click looks there (a business: its door) and closes the map
     if (e.button === 0 && onPick) { const b = businessAt(e); const q = b?.ring ? { x: b.ring[0], z: b.ring[1] } : b || p; view.lookAt(q.x, q.z); onPick(); return; }
     if (e.button === 0) { dragging = true; view.lookAt(p.x, p.z); }

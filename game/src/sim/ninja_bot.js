@@ -11,6 +11,7 @@
 // Knobs per difficulty: bots.json shinobiLevels. tick() returns this tick's commands for game.step.
 import { createAISupport } from './ai_support.js';
 import { contractLockoutUntil } from './hq_raids.js';
+import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 
 export const NINJA_BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4,
@@ -25,6 +26,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const B = { ...NINJA_BOT_DEFAULTS, ...rules };
   const state = game.state, secs = s => Math.round(s * 20);
   const ai = createAISupport(game, clan, hero, B);
+  const deploymentAI = createDeploymentAI(game, { clan, hero });
   const U = game.settings.units.rules;
   const F = game.settings.units.models?.ninja_leader?.abilities?.F || {};
   let goal = null, nextThink = 0, nextReact = 0, last = null, still = 0, spot = 0;
@@ -39,7 +41,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const dojo = () => biz().find(b => b.kind === 'dojo' && b.room);
   const shrine = () => game.doors.find(d => d.menu === 'contracts');
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
-  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u));
+  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u) && inHeroParty(game, u));
   const sees = e => game.vision.canSee(clan, e);
   const rivalClan = id => id && id !== clan && !!state.clans[id];
   const foe = e => standing(e) && sees(e) && !e.civilian && (e.id === me().attackTarget
@@ -49,6 +51,8 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
   const hireType = () => {
+    if (state.deployment?.restrictionsEnabled && game.clans.crewCount(clan) >= 8 && game.clans.hirePrice(clan, 'shinobi_geisha') !== null
+      && !game.clans.crewOf(clan).some(e => e.type === 'shinobi_geisha') && ![...myClan().queue, ...myClan().clinic, ...(myClan().jail || [])].some(e => e.unit === 'shinobi_geisha')) return 'shinobi_geisha';
     if (B.hireType !== 'ninja' || !game.settings.units.types.ninja_tanto) return B.hireType;
     const count = type => game.clans.crewOf(clan).filter(u => u.type === type).length + myClan().queue.filter(q => q.unit === type).length;
     return count('ninja_tanto') < count('ninja') ? 'ninja_tanto' : 'ninja';
@@ -321,7 +325,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   }
 
   function tick() {
-    const out = [], h = me();
+    const out = deploymentAI.tick(), h = me();
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
     if ((job()?.id ?? null) !== workingJob) {
       workingJob = job()?.id ?? null;

@@ -13,6 +13,7 @@ export function unitStatus(e, state) {
   if (e.dead) return 'Dead';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
+  if (e.deployment?.transfer) return e.deployment.transfer.status === 'blocked' ? 'Transfer blocked' : 'Transferring';
   if (e.execute) return e.execute.arrest ? 'Arresting' : 'Finishing off';
   if ((e.buffs?.stunned?.until ?? 0) > state.tick) return 'Stunned';
   if (e.brace) return 'Bracing (Reprisal)';

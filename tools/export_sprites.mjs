@@ -3,6 +3,7 @@
 //   node tools/export_sprites.mjs              (every model)
 //   node tools/export_sprites.mjs . thug brute (only these models)
 //   add --glow-only to write just the weapon glow sheets and keep the colour sheets
+//   add --clip=arms_hip_hop_dance to render only that named clip
 //
 // Reads   assets/models/*.fbx      (rigged characters with skin; models/source is ignored)
 //         assets/animations/**.fbx (Mixamo clips without skin)
@@ -86,7 +87,10 @@ const ITEMS = {
 const EXTRA = {
   swordsman: ['brawler/Walking.fbx'],
   rival_yakuza: ['brawler/Walking.fbx'],
+  geisha: ['Arms Hip Hop Dance.fbx'],
 };
+// Dedicated borrowed clips stay out of the root combat set.
+const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx']);
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };
 
@@ -94,6 +98,7 @@ const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPat
 const flags = process.argv.slice(3).filter(s => s.startsWith('--'));
 const only = process.argv.slice(3).filter(s => !s.startsWith('--')).map(s => s.toLowerCase());
 const glowOnly = flags.includes('--glow-only');
+const onlyClips = flags.filter(s => s.startsWith('--clip=')).map(s => s.slice(7).toLowerCase());
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
 const page_url = pathToFileURL(path.join(root, 'look_tests', 'sprite_render_test.html')).href;
@@ -119,7 +124,7 @@ const swordsman = models.find(m => m.name === 'swordsman');
 if (swordsman) models.push({ file: swordsman.file, name: 'kuroda_spearman' });
 if (only.length) models = models.filter(m => only.includes(m.name));
 const animDir = path.join(root, 'assets', 'animations');
-const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))];
+const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))].filter(a => !EXTRA_ONLY.has(path.basename(a)));
 const outDir = path.join(root, 'assets', 'sprites');
 fs.mkdirSync(outDir, { recursive: true });
 
@@ -127,6 +132,7 @@ if (!models.length) { console.log('No models in assets/models'); process.exit(1)
 
 const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--allow-file-access-from-files'] });
 let written = 0;
+try {
 for (const { file: model, name } of models) {
   const sets = MODEL_SETS[name] || DEFAULT_SETS;
   const variant = VARIANTS[name];
@@ -143,7 +149,8 @@ for (const { file: model, name } of models) {
     const f = path.join(animDir, e);
     if (fs.existsSync(f)) mine.push(f); else console.log(`  missing extra clip ${e}`);
   }
-  const builtIn = BUILT_IN[name] ?? null;
+  if (onlyClips.length) mine = mine.filter(a => onlyClips.includes(clipName(clipOf(a))));
+  const builtIn = !onlyClips.length || onlyClips.includes(BUILT_IN[name]) ? BUILT_IN[name] ?? null : null;
   if (!mine.length && !builtIn) { console.log(`${name}: no animations in set(s) ${sets.join(', ')}, skipped`); continue; }
 
   const page = await browser.newPage();
@@ -183,9 +190,10 @@ for (const { file: model, name } of models) {
   for (let i = 0; i < names.length; i++) {
     const isBuiltIn = /\(built in\)/.test(names[i]);
     if (isBuiltIn && !builtIn) continue;
-    const r = await page.evaluate(([i, g]) => window.spriteTest.render(i, g), [i, holding]);
     // <model>_<clip> with set and variant prefixes dropped, e.g. brute_walking.png from brawler/Mutant Walking.fbx
     const clip = isBuiltIn ? builtIn : clipName(safe(names[i]).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, ''));
+    if (onlyClips.length && !onlyClips.includes(clip)) continue;
+    const r = await page.evaluate(([i, g]) => window.spriteTest.render(i, g), [i, holding]);
     const fname = `${name}_${clip}.png`;
     const preserveOld = file => {
       if (!spearConfig || !fs.existsSync(path.join(outDir, file))) return;
@@ -196,7 +204,7 @@ for (const { file: model, name } of models) {
     if (!glowOnly) {
       preserveOld(fname);
       fs.writeFileSync(path.join(outDir, fname), Buffer.from(r.dataUrl.split(',')[1], 'base64'));
-      console.log(`  ${fname}  (${r.frames} frames)`);
+      console.log(`  ${fname}  (${r.frames} frames${r.duration ? `, ${r.duration.toFixed(3)} seconds, native playback speed ${(r.frames / (12 * r.duration)).toFixed(6)}` : ''})`);
       written++;
     }
     if (r.glowUrl) {
@@ -209,5 +217,5 @@ for (const { file: model, name } of models) {
   }
   await page.close();
 }
-await browser.close();
+} finally { await browser.close(); }
 console.log(`Done: ${written} spritesheet(s) in assets/sprites`);

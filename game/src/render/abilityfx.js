@@ -32,6 +32,8 @@ const AURAS = {
   veil: { color: 0x233d70, size: 1, geo: BUFF_AURA_GEO, opacity: 0.18 },
   snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },   // caltrops (Distract): slowed   // healing in a Smoke Bomb (same width as Rally's)
   formation: { color: 0xffc779, size: .9, geo: BUFF_AURA_GEO, opacity: .3 },
+  geisha: { color: 0x7e5ca6, size: .7, geo: BUFF_AURA_GEO, opacity: .16 },
+  diversion: { color: 0xa07ac2, size: 1.2, geo: THIN_WAVE_GEO, opacity: .32 },
   downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
 
@@ -316,6 +318,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         if (s0) s0.flash = 1.6;
         if (c.fx !== undefined) smokeBurst(c.fx, c.fz, 14, 0.6, 0.9);   // where he lunged from
       }
+      if (c.kind === 'diversion') { wave(c.x, c.z, c.radius || 6, 0x8c6bac, 1.5, 0, THIN_WAVE_GEO); motes(c.x, c.z, 10, .4, 1); }
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') {
@@ -599,11 +602,12 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         // (after its own buff ends, or if it went down and got up)
         const rallied = e.type === 'hero' && !e.buffs?.rally && !e.downed && rallyCasts.has(e.id)
           && (now0 - rallyCasts.get(e.id) < 1.5 || rallyOwners.has(e.owner));
-        if ((!e.buffs && !e.downed && !rallied) || e.dead) continue;
+        const geisha = e.type === 'shinobi_geisha' && !e.downed;
+        if ((!e.buffs && !e.downed && !rallied && !geisha) || e.dead) continue;
         const p = posOf(e.id);
         if (!p) continue;
         let layer = 0;   // stacked buffs: each one a little wider and higher than the last
-        for (const name of [...Object.keys(e.buffs || {}), ...(rallied ? ['rally'] : []), ...(e.downed ? ['downed'] : [])]) {
+        for (const name of [...Object.keys(e.buffs || {}), ...(rallied ? ['rally'] : []), ...(geisha ? ['geisha', ...((e.dancingUntil || 0) > state.tick ? ['diversion'] : [])] : []), ...(e.downed ? ['downed'] : [])]) {
           const a = AURAS[name];
           if (!a) continue;
           const key = `${e.id}:${name}`, i = OUTLINE[name] ? layer++ : 0;
@@ -646,8 +650,29 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
           m.scale.set(ring, ring, 1);
         }
       }
+      // downed enemies: a blood-red outline round the body, dark with bright flashes,
+      // so they're easy to find and execute (Tim 2026-10-26)
+      const me = state.entities[heroId]?.owner;
+      for (const e of Object.values(state.entities)) {
+        if (!e.downed || e.dead || e.owner === me) continue;
+        const sp = spriteOf(e.id);
+        if (!sp || !sp.thing.mesh.visible) continue;
+        const key = `${e.id}:downed`;
+        seen.add(key);
+        let o = outlines.get(key);
+        if (!o) { o = outlineMesh(0xb0100a); scene.add(o); outlines.set(key, o); }
+        const u = o.material.uniforms, su = sp.material.uniforms;
+        u.uMap.value = su.uMap.value;
+        u.uFrame.value.copy(su.uFrame.value);
+        u.uWidth.value = 0.01;
+        u.uOpacity.value = 0.35 + 1.1 * Math.pow(0.5 + 0.5 * Math.sin(now0 * 3.5 + e.id), 4);
+        o.position.copy(sp.thing.mesh.position);
+        o.quaternion.copy(sp.thing.mesh.quaternion);
+        o.scale.copy(sp.thing.mesh.scale);
+        o.renderOrder = sp.thing.mesh.renderOrder - 0.2;
+      }
       for (const [key, m] of auras) if (!seen.has(key)) { scene.remove(m); m.material.dispose(); auras.delete(key); }
-      for (const [key, o] of outlines) if (!seen.has(key) || state.entities[key.split(':')[0]]?.downed) { scene.remove(o); o.material.dispose(); outlines.delete(key); }
+      for (const [key, o] of outlines) if (!seen.has(key) || (state.entities[key.split(':')[0]]?.downed && !key.endsWith(':downed'))) { scene.remove(o); o.material.dispose(); outlines.delete(key); }
 
       // channel bars over whoever is finishing someone off (EXECUTING, red) or arresting them
       // (ARRESTING, blue): the only bar for a channel (Tim 2026-10-18)

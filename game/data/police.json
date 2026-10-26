@@ -6,8 +6,8 @@
       { "name": "Quiet",   "min": 0,  "officers": 0 },
       { "name": "Watched", "min": 30, "officers": 2, "hunt": "fighting" },
       { "name": "Wanted",  "min": 60, "officers": 4, "hunt": "hero" },
-      { "name": "Manhunt", "min": 90, "officers": 6, "hunt": "all" },
-      { "name": "Most Wanted", "min": 120, "officers": 6, "hunt": "all", "relentless": true }
+      { "name": "Manhunt", "min": 90, "officers": 8, "hunt": "all", "spawnEverySeconds": 1 },
+      { "name": "Most Wanted", "min": 120, "officers": 10, "hunt": "all", "relentless": true, "spawnEverySeconds": 1 }
     ],
     "sight": 9,
     "seenFightingSeconds": 3,

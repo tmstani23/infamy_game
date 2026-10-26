@@ -9,6 +9,7 @@
 // tick() returns this tick's commands for game.step.
 import { createAISupport } from './ai_support.js';
 import { isShinobiHQ } from './hq_raids.js';
+import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
@@ -29,6 +30,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   // standard swordsman slot for aggressive spear recruits.
   if (state.clans[clan]?.faction === 'kuroda') B.hireType = 'spearman';
   const ai = createAISupport(game, clan, hero, B);
+  const deploymentAI = createDeploymentAI(game, { clan, hero });
   // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
   if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
   if (B.hideoutGuards !== undefined && state.clans[clan]) state.clans[clan].hideoutGuards = B.hideoutGuards;
@@ -47,7 +49,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const biz = () => Object.values(state.businesses);
   const home = () => biz().find(b => b.hideout === clan && b.owner === clan);
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
-  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u));
+  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u) && inHeroParty(game, u));
   const followers = () => crew().filter(u => u.order?.kind === 'follow');
   const sees = e => game.vision.canSee(clan, e);
   const rivalClan = id => id && id !== clan && !!state.clans[id];
@@ -355,7 +357,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   }
 
   function tick() {
-    const out = [], h = me();
+    const out = deploymentAI.tick(), h = me();
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
     if (state.tick % 10 === 0) look();
     for (const hit of state.hits) {

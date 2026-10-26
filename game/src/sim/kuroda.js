@@ -5,11 +5,11 @@ import { dirIndex } from './geometry.js';
 export const stunned = (e, tick) => (e.buffs?.stunned?.until ?? 0) > tick;
 export const KURODA_KINDS = new Set(['sweep', 'reprisal', 'threefold', 'formation']);
 
-export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff, damageScale, clearCombat, clearLine, civilian, cop }) {
+export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff, damageScale, clearCombat, clearLine, civilian, cop, buffEligible = (h, e) => h?.owner === e.owner }) {
   const secs = n => Math.round(n * 20);
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
-  const within = (f, e) => f.until > state.tick && f.clan === e.owner && f.place === e.place && distance(f, e) <= f.radius;
+  const within = (f, e) => f.until > state.tick && f.clan === e.owner && f.place === e.place && distance(f, e) <= f.radius && buffEligible(state.entities[f.a], e);
   const formationOf = e => (state.formations || []).filter(f => within(f, e)).sort((a, b) => a.damageTaken - b.damageTaken)[0];
   const emit = (e, kind, extra = {}) => state.casts.push({ a: e.id, kind, x: e.x, z: e.z, dir: e.dir, place: e.place, ...extra });
   // Secondary hits never start fights with townsfolk or street police. Wave
@@ -54,7 +54,7 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
     if (!defender.brace && t.type !== 'hero' && source?.owner !== t.owner) {
       const hero = Object.values(state.entities).find(e => e.type === 'hero' && e.owner === t.owner && e.brace
         && e.brace.until > state.tick && alive(e) && e.place === t.place
-        && distance(e, t) <= (e.brace.crewRadius ?? 6));
+        && distance(e, t) <= (e.brace.crewRadius ?? 6) && buffEligible(e, t));
       if (hero) defender = hero;
     }
     const b = defender.brace;
@@ -66,7 +66,7 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
     // does not grant a buff. Crew get weaker cleave and never inherit the stun.
     for (const u of Object.values(state.entities)) {
       if (u.type === 'hero' || u.guard || u.cop || u.wild || !alive(u) || u.owner !== defender.owner
-        || u.place !== defender.place || distance(u, defender) > b.crewRadius) continue;
+        || u.place !== defender.place || distance(u, defender) > b.crewRadius || !buffEligible(defender, u)) continue;
       addBuff(u, 'reprisal', b.crewSeconds, { splash: b.crewSplash, radius: b.radius, stunPending: false });
     }
     emit(defender, 'counter', { seconds: b.seconds, triggeredBy: t.id });

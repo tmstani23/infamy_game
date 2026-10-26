@@ -2,6 +2,7 @@
 // own units and visible entities; commands still go through the normal sim rules.
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { createNav, ROOM_NAV } from './nav.js';
+import { inHeroParty } from './deployment_ai.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
 const intent = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
@@ -12,7 +13,7 @@ export function createAISupport(game, clan, hero, rules = {}) {
   const riskRatio = rules.riskRatio ?? 0.8;
   const S = game.state, me = () => S.entities[hero];
   const all = () => Object.values(S.entities);
-  const crew = () => all().filter(e => e.owner === clan && e.type !== 'hero' && !e.guard && standing(e));
+  const crew = () => all().filter(e => e.owner === clan && e.type !== 'hero' && !e.guard && standing(e) && inHeroParty(game, e));
   const sees = e => game.vision.canSee(clan, e);
   const rooms = new Map(), routes = new Map(), cooldowns = new Map(), camps = new Map();
   const exiting = new Set();

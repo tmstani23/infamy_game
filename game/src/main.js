@@ -31,6 +31,7 @@ import { createHudLayout } from './hud_layout.js';
 import { hqCampingNoticeVisit } from './hq_camping_notice.js';
 import { bindFullscreen } from './fullscreen.js';
 import { bindControlTooltips } from './control_tooltips.js';
+import { createDeploymentPanel } from './deployment_panel.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
@@ -187,6 +188,8 @@ async function start() {
   }
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
+  const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, heroId, crewInput, send: c => pending.push(c),
+    onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback) });
   function interactionDoor() {
     const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
     return access && selected.includes(access.actor.id) ? access.door : game.doorNear(heroId) || access?.door;
@@ -199,7 +202,7 @@ async function start() {
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
   const sound = createSound();
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -244,7 +247,8 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, selected: () => crewInput.selected(), send: c => pending.push(c),
+    onManageSector: id => deploymentPanel.openGroup(id) });
   onKey('KeyM', () => gameMap.toggle());
   $('mapbtn').addEventListener('click', e => { gameMap.toggle(); e.currentTarget.blur(); });
   // the season score in the top bar (sim/territory.js): day of the season, then every clan's points
@@ -393,6 +397,11 @@ async function start() {
         if (n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
         // territory (sim/territory.js): rivals walking into your streets, quarters held whole, the season's end
         if (n.kind === 'intruder' && n.clan === me) { callout('Rivals in your territory!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+        if (n.kind === 'sectorContact' && n.clan === me) {
+          const name = game.state.deployment.sectors.find(s => s.id === n.sector)?.name || n.sector;
+          callout(`${n.priority ? 'Contract target' : 'Enemy'} entered ${name}`, 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z);
+        }
+        if (n.kind === 'diversionWarning' && n.clan === me) { callout('Shinobi diversion nearby — order crew away or interrupt the dancer', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'quarter' && n.clan === me) callout(`You hold the ${n.name.replace(/^The /, '')}!`, 'win');
         if (n.kind === 'quarterLost' && n.clan === me) callout(`You lost the ${n.name.replace(/^The /, '')}`, 'loss');
         if (n.kind === 'quarter' && n.clan !== me && game.territory.quarters.find(q => q.id === n.quarter)?.businesses.every(id => game.vision.grid(me).explored[game.vision.cellOf(game.state.businesses[id].x, game.state.businesses[id].z)] === 1))
@@ -432,6 +441,7 @@ async function start() {
       clinicMenu.update();
       policeMenu.update();
       contractMenu.update();
+      deploymentPanel.update();
       // in jail (sim/police.js): big red banner with the time left
       const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');
       jailEl.hidden = !jailed;
@@ -453,7 +463,7 @@ async function start() {
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
-    const edge = !gameMap.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
+    const edge = !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);

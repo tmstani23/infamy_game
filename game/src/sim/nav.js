@@ -6,7 +6,7 @@
 // biggest crew body (brute 0.45) so a path found there is one every unit fits through
 export const ROOM_NAV = { cell: 0.125, pad: 0.45 };
 
-export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4 } = {}) {
+export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4, allowed = null } = {}) {
   const x0 = bounds.minX, z0 = bounds.minZ;
   const W = Math.ceil((bounds.maxX - x0) / cell), H = Math.ceil((bounds.maxZ - z0) / cell);
   const blocked = new Uint8Array(W * H);
@@ -19,6 +19,8 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4 } = {}) {
       if (cx > b.minX - pad && cx < b.maxX + pad && cz > b.minZ - pad && cz < b.maxZ + pad) blocked[j * W + i] = 1;
     }
   }
+  if (allowed) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++)
+    if (!allowed(x0 + (i + .5) * cell, z0 + (j + .5) * cell)) blocked[j * W + i] = 1;
   const cellOf = (x, z) => [Math.floor((x - x0) / cell), Math.floor((z - z0) / cell)];
   const inside = (i, j) => i >= 0 && j >= 0 && i < W && j < H;
   const free = (i, j) => inside(i, j) && !blocked[j * W + i];

@@ -1,4 +1,5 @@
 import { canInteract } from './interactions.js';
+import { storedDeployment, restoredDeployment } from './deployment.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
 // game state, so players and bot clans follow exactly the same rules.
 // Numbers come from game/data/units.json (docs/crew_recruiting_plan.md).
@@ -29,6 +30,7 @@ export function createClans(state, units, opts = {}) {
       if (village) village.hideout = id;
     }
     for (const b of Object.values(state.businesses)) if (b.hideout === id) b.owner = id;
+    opts.onAddClan?.(state.clans[id]);
     return state.clans[id];
   }
 
@@ -109,7 +111,7 @@ export function createClans(state, units, opts = {}) {
     if (!clan || !t) return false;
     // every clan's downed crew go to the clinic, bots too, and wait there until their boss comes
     // and pays to revive them (Tim 2026-10-19)
-    clan.clinic.push({ unit: e.type, model: e.model, kind: 'recover', left: t.recoverSeconds || 30,
+    clan.clinic.push({ unit: e.type, model: e.model, deployment: storedDeployment(e), kind: 'recover', left: t.recoverSeconds || 30,
       cost: Math.round((t.price || 0) * (rules.recoverCostShare ?? 0.25) * scale(clan.id)), hp: 0 });
     say(clan, `Your ${e.type} was carried to the clinic`);
     return true;
@@ -126,7 +128,7 @@ export function createClans(state, units, opts = {}) {
     if (!clan || missing <= 0) return false;
     if (clan.ryo < cost) { say(clan, `Not enough ryo to heal (${cost} needed)`); return false; }
     clan.ryo -= cost;
-    clan.clinic.push({ unit: e.type, model: e.model, kind: 'heal', left: missing / (rules.healPerSecond || 8), cost: 0, hp: e.hp });
+    clan.clinic.push({ unit: e.type, model: e.model, deployment: storedDeployment(e), kind: 'heal', left: missing / (rules.healPerSecond || 8), cost: 0, hp: e.hp });
     say(clan, `Your ${e.type} is healing (${cost} ryo)`);
     return true;
   }
@@ -156,7 +158,7 @@ export function createClans(state, units, opts = {}) {
       clan.ryo -= cost;
       clan.clinic.splice(c.patient, 1);
       const leader = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
-      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, ...(clan.bot && leader ? { order: { kind: 'follow', target: leader.id } } : {}) });
+      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, deployment: restoredDeployment(p), ...(clan.bot && leader && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: leader.id } } : {}) });
       return say(clan, `Your ${p.unit} is back on their feet (${cost} ryo)`);
     }
     if (c.action === 'heal') {
@@ -192,7 +194,7 @@ export function createClans(state, units, opts = {}) {
         clan.clinic.splice(clan.clinic.indexOf(c), 1);
         const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
         spawn(c.unit, c.model || types[c.unit].sprite, b,
-          { owner: clan.id, hp: types[c.unit].hp, ...(clan.bot && hero ? { order: { kind: 'follow', target: hero.id } } : {}) });
+          { owner: clan.id, hp: types[c.unit].hp, deployment: restoredDeployment(c), ...(clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
         say(clan, `Your ${c.unit} is back from the clinic`);
       }
     }
@@ -209,7 +211,7 @@ export function createClans(state, units, opts = {}) {
       // Player recruits hold at the hiring site until explicitly ordered to Follow.
       const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(h.unit, types[h.unit].sprite, state.businesses[h.business],
-        { owner: clan.id, hp: types[h.unit].hp, ...(clan.bot && hero ? { order: { kind: 'follow', target: hero.id } } : {}) });
+        { owner: clan.id, hp: types[h.unit].hp, ...(clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
       say(clan, `Your ${h.unit} is here`);
     }
   }

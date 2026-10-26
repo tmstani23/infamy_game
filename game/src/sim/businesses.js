@@ -12,7 +12,7 @@ import { isShinobiHQ } from './hq_raids.js';
 // (data/settings.json "businesses" lays over them).
 // guardSpots(b) = where its guards stand ([{ x, z, place }]); spawn = the game's spawn
 export function createBusinesses({ state, units, clans, payoutShare = () => 1, tierOf = () => 0, spawn = null, guardSpots = () => [], patrolSpots = () => [],
-  roomOf = () => null, remove = null, addHeatGain = () => {}, payoutBonus = () => 1 }) {
+  roomOf = () => null, remove = null, addHeatGain = () => {}, payoutBonus = () => 1, onRaidPlaced = () => {} }) {
   const R = units?.rules?.businesses || {}, reach = units?.rules?.buyReach ?? 2.5;
   const G = units?.rules?.houseGuards || {}, guardCount = G.count ?? 0;
   const [pauseMin, pauseMax] = G.patrolPauseSeconds || [3, 8], legTicks = 20 * 20;
@@ -155,6 +155,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       state.attacks[b.id] = { mode: 'raid', ...(isShinobiHQ(state, b) ? { hq: true } : {}), business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
         phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };
+      onRaidPlaced(b.owner);
       say(clan, `War Lantern planted: the doors open in ${RD.warmupSeconds} s`);
       const def = state.clans[b.owner];
       if (def) {

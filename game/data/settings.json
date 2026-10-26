@@ -25,7 +25,7 @@
   "rewards": { "crewExecution": 50, "leaderKnockout": 250 },
   "police": {
     "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",
-    "officersPerTier": [0, 2, 4, 6, 6],
+    "officersPerTier": [0, 2, 4, 8, 10],
     "dayPatrol": { "hq": 4, "box": 2 },
     "heroJailSeconds": 60,
     "bribeHeat": 40,

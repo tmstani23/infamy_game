@@ -723,7 +723,7 @@ function renderSheet(i, withGlow = false) {
 
   const safe = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase();
   const clipName = /\(built in\)/.test(entry.name) ? 'walk' : entry.name;
-  return { sheet, glow, frames, size, fps, fname: `${safe(modelName)}_${safe(clipName)}.png` };
+  return { sheet, glow, frames, size, fps, duration: clip.duration, fname: `${safe(modelName)}_${safe(clipName)}.png` };
 }
 
 $('export').onclick = () => {
@@ -743,7 +743,7 @@ $('export').onclick = () => {
 window.spriteTest = {
   ready: () => clips.length > 0,
   clipCount: () => clips.length,
-  render: (i, withGlow = false) => { const r = renderSheet(i, withGlow); return { fname: r.fname, frames: r.frames, dataUrl: r.sheet.toDataURL('image/png'), glowUrl: r.glow ? r.glow.toDataURL('image/png') : null }; },
+  render: (i, withGlow = false) => { const r = renderSheet(i, withGlow); return { fname: r.fname, frames: r.frames, duration: r.duration, dataUrl: r.sheet.toDataURL('image/png'), glowUrl: r.glow ? r.glow.toDataURL('image/png') : null }; },
   tracks: i => clips[i].clip.tracks.map(t => t.name),
   clipNames: () => clips.map(c => c.name),
   itemReady: () => !!item,

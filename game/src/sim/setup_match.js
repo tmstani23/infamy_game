@@ -30,5 +30,6 @@ export function setupMatch(game, { clan, difficulty, bots, spawns = {}, test = {
       rules: (choice.kind === 'ninja' ? bots.shinobiLevels : bots.levels)[options.difficulty], seed: 4242 + rivals.length * 977 });
   }
   game.state.match = { ...options };
+  game.deployment.enable();
   return { heroId, rivals, options };
 }

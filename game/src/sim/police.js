@@ -8,6 +8,7 @@
 // walk back when the clan's heat drops. Plain sim code, no three.js.
 import { canInteract } from './interactions.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
+import { storedDeployment, restoredDeployment } from './deployment.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -33,8 +34,8 @@ const DEFAULTS = {
     { name: 'Quiet', min: 0, officers: 0 },
     { name: 'Watched', min: 30, officers: 2, hunt: 'fighting' },
     { name: 'Wanted', min: 60, officers: 4, hunt: 'hero' },
-    { name: 'Manhunt', min: 90, officers: 6, hunt: 'all' },
-    { name: 'Most Wanted', min: 120, officers: 6, hunt: 'all', relentless: true },
+    { name: 'Manhunt', min: 90, officers: 8, hunt: 'all', spawnEverySeconds: 1 },
+    { name: 'Most Wanted', min: 120, officers: 10, hunt: 'all', relentless: true, spawnEverySeconds: 1 },
   ],
 };
 
@@ -110,7 +111,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     if (!clan) return;
     if (clan.bot) return;
     state.jailSeq = (state.jailSeq || 0) + 1;
-    (clan.jail ||= []).push({ id: `jail${state.jailSeq}`, unit: t.type, model: t.model, bail: Math.round((ty?.price || 0) * R.bailShare) });
+    (clan.jail ||= []).push({ id: `jail${state.jailSeq}`, unit: t.type, model: t.model, deployment: storedDeployment(t), bail: Math.round((ty?.price || 0) * R.bailShare) });
     say(clan, `Your ${t.type} was arrested: bail at the police HQ`);
   }
   // An officer finished arresting the knocked-down hero (Tim 2026-10-18): he stands greyed out
@@ -196,7 +197,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     return null;
   }
   function release(clan, p, hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero')) {
-    const extra = { owner: clan.id, hp: types[p.unit]?.hp, ...(hero ? { order: { kind: 'follow', target: hero.id } } : {}) };
+    const extra = { owner: clan.id, hp: types[p.unit]?.hp, deployment: restoredDeployment(p), ...(hero ? { order: { kind: 'follow', target: hero.id } } : {}) };
     const model = p.model || types[p.unit]?.sprite;
     if (hq) spawnOutside(p.unit, model, hq, extra);
     else { const [x, z] = edges[0] || [0, 0]; spawn(p.unit, model, x, z, extra); }
@@ -247,7 +248,8 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       owed[clan.id] = want ? list.filter(t => t > state.tick) : [];
       if (mine.length + owed[clan.id].length < want && state.tick >= (nextOut[clan.id] || 0)) {
         comeOut(clan.id);
-        nextOut[clan.id] = state.tick + secs(R.spawnEverySeconds);
+        // a tier can send its squad out faster (Tim 2026-10-26: Manhunt+ come out together)
+        nextOut[clan.id] = state.tick + secs(R.tiers[tierOf(clan.id)].spawnEverySeconds ?? R.spawnEverySeconds);
       }
       // the extra ones walk home, unless something made them angry at somebody
       for (const o of mine.slice(want)) if (quiet() || !o.angry) Object.assign(mind[o.id] ||= {}, { leaving: true, deadline: undefined });
