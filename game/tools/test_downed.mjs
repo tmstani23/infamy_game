@@ -173,7 +173,7 @@ console.log('bot tests passed');
   const back = Object.values(S).find(e => e.type === 'thug' && e.owner === 'player');
   const clinic = g.clans.clinicOf();
   assert.ok(back && back.hp === back.maxHp && Math.hypot(back.x - clinic.door[0], back.z - clinic.door[1]) < 6, 'walked out at full health');
-  assert.equal(back.order.kind, 'follow');
+  assert.equal(back.order, undefined, 'holds until ordered (Tim 2026-10-25)');
   console.log('carry off ok');
 }
 
@@ -194,7 +194,7 @@ console.log('bot tests passed');
   assert.ok(back && back.hp === back.maxHp, 'back at full health');
   // full health: heal order does nothing
   g.step([{ id: hero, type: 'order', units: [back.id], kind: 'heal' }]);
-  assert.notEqual(back.order.kind, 'heal');
+  assert.notEqual(back.order?.kind, 'heal');
   console.log('heal ok');
 }
 console.log('clinic tests passed');

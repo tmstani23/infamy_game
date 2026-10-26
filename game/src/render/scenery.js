@@ -61,40 +61,8 @@ export class Thing {
   }
 }
 
-// Should A be drawn before (behind) B? The camera looks from +x, +z.
-export function behind(A, B) {
-  const a = A.foot, b = B.foot, e = 0.01;
-  const xs = a.maxX <= b.minX + e ? -1 : b.maxX <= a.minX + e ? 1 : 0;
-  const zs = a.maxZ <= b.minZ + e ? -1 : b.maxZ <= a.minZ + e ? 1 : 0;
-  if (xs && zs && xs !== zs) return A.depth < B.depth;
-  if (xs) return xs < 0;
-  if (zs) return zs < 0;
-  return A.depth < B.depth;
-}
-
-const overlaps = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-
-// Topological sort of everything that overlaps on screen; ties go back to front
-export function sortThings(things) {
-  const n = things.length;
-  const after = Array.from({ length: n }, () => []);
-  const pending = new Array(n).fill(0);
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-    if (!overlaps(things[i].screen, things[j].screen)) continue;
-    if (behind(things[i], things[j])) { after[i].push(j); pending[j]++; } else { after[j].push(i); pending[i]++; }
-  }
-  const done = new Array(n).fill(false);
-  for (let order = 0; order < n; order++) {
-    let best = -1;
-    for (let i = 0; i < n; i++) if (!done[i] && pending[i] === 0 && (best < 0 || things[i].depth < things[best].depth)) best = i;
-    if (best < 0) for (let i = 0; i < n; i++) if (!done[i] && (best < 0 || things[i].depth < things[best].depth)) best = i; // cycle: break it
-    done[best] = true;
-    for (const j of after[best]) pending[j]--;
-    const t = things[best];
-    t.mesh.renderOrder = 10 + order * 4;
-    t.extras.forEach((m, i) => { m.renderOrder = 11 + order * 4 + i % 3; });
-  }
-}
+// Draw order (behind, sortThings) lives in render/draw_order.js so Node tests can check it
+export { behind, sortThings } from './draw_order.js';
 
 // ---------- ground ----------
 const SPLAT_RES = 4;                       // weight-map pixels per world unit

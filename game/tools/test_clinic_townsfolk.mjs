@@ -37,7 +37,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.equal(C.player.clinic.length, 0);
   assert.equal(C.player.ryo, ryo - cost, 'paid the revive price');
   const back = Object.values(S).find(e => e.type === 'thug' && e.owner === 'player')?.id;
-  assert.ok(back && S[back].hp === S[back].maxHp && S[back].order.kind === 'follow', 'out and following');
+  assert.ok(back && S[back].hp === S[back].maxHp && !S[back].order, 'out and holding until ordered (Tim 2026-10-25)');
   // broke: stays in
   C.player.clinic.push({ unit: 'thug', model: 'thug', kind: 'recover', left: 30, cost: 15, hp: 0 });
   C.player.ryo = 0;
@@ -127,7 +127,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.ok(S[foe]?.dead, 'executed');
   const got = C.player.ryo - ryo;
   assert.ok(got >= Math.round(base * (1 - k)) && got <= Math.round(base * (1 + k)), `paid ${got} ryo`);
-  assert.deepEqual(gains, [{ clan: 'player', amount: got, reason: 'Brute executed' }], 'a ryo notice');
+  assert.deepEqual(gains, [{ clan: 'player', amount: got, target: foe, reason: 'kuroda brute executed' }], 'a ryo notice');
   assert.ok(paid, 'the execute cast carries the ryo for the coin burst');
   console.log('execute pays ryo ok');
 }
@@ -189,13 +189,14 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.ok(!S[j].flee, 'a jammed runner stops');
   console.log('flinch and jam ok');
 }
-// Doors: selected crew go in with the hero, the rest stay outside; coming out, unselected crew stay inside
+// Doors: selected crew go in with the hero, unselected crew that hold stay outside; coming out, unselected crew stay inside
 {
   const g = newGame(), S = g.state.entities;
   const door = g.doors.find(d => d.label === 'Enter the Teahouse');
   const hero = g.spawn('hero', 'ronin', door.x, door.z, { owner: 'player' });
   const a = g.spawn('thug', 'thug', door.x + 1, door.z + 1, { owner: 'player', order: { kind: 'follow', target: hero } });
-  const b = g.spawn('thug', 'thug', door.x - 1, door.z + 1, { owner: 'player', order: { kind: 'follow', target: hero } });
+  // b holds (not following): outdoor followers now run in after the hero on their own (Tim 2026-10-25)
+  const b = g.spawn('thug', 'thug', door.x - 1, door.z + 1, { owner: 'player' });
   const far = g.spawn('thug', 'thug', door.x + 30, door.z, { owner: 'player' });
   const [bx, bz] = [S[b].x, S[b].z];
   g.step([{ id: hero, type: 'use', units: [a, far] }]);
@@ -213,9 +214,10 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   g.step([{ id: hero, type: 'use' }]);
   assert.equal(S[hero].place, 'street');
   assert.equal(S[a].place, door.place, 'unselected crew stay inside');
-  // back in, then out with it selected: it comes too
+  // back in, told Follow inside, then out with it selected: it comes too (Tim 2026-10-25)
   S[hero].x = door.x; S[hero].z = door.z;
   g.step([{ id: hero, type: 'use' }]);
+  g.step([{ id: hero, type: 'order', units: [a], kind: 'follow' }]);
   S[hero].x = exit.x; S[hero].z = exit.z;
   g.step([{ id: hero, type: 'use', units: [a] }]);
   assert.equal(S[hero].place, 'street');

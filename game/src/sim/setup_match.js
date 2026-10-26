@@ -17,9 +17,7 @@ export function setupMatch(game, { clan, difficulty, bots, spawns = {}, test = {
     if (identity) b.hideout = identity === selected.id ? 'player' : identity === 'yakuza' ? bots.yakuza.id : bots.clan.id;
   }
   const heroId = startClan(game, { id: 'player', name: `${selected.name} clan`, kind: selected.kind,
-    model: selected.model, color: selected.color,
-    ...(selected.id === 'yakuza' && spawns.hero ? { position: spawns.hero } : {}),
-    ...(selected.id === 'shinobi' && spawns.ninja ? { position: spawns.ninja } : {}),
+    model: selected.model, color: selected.color,   // every clan starts right outside its HQ door (Tim 2026-10-26)
     ryo: test.playerRyo });
   const startBiz = test.playerOwns && Object.values(game.state.businesses).find(b => b.kind === test.playerOwns);
   if (startBiz) game.clans.setOwner(startBiz.id, 'player');

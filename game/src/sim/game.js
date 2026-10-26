@@ -19,6 +19,7 @@ import { createContracts } from './contracts.js';
 import { interactionActor } from './interactions.js';
 import { createHQCamping } from './hq_camping.js';
 import { createKuroda, KURODA_KINDS, stunned } from './kuroda.js';
+import { createHQRaidEffects } from './hq_raids.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -346,7 +347,9 @@ export function createGame(options) {
   // Smoke Bomb (Shinobi R, state.smokes): inside a cloud nobody but its clan picks or keeps a
   // target, and nobody outside sees in
   const inSmoke = (s, e) => s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r;
-  const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b)));
+  // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
+  const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
+    && !(b && b.owner === s.clan && stealth.exposed(b)));
   const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
@@ -604,7 +607,7 @@ export function createGame(options) {
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
     t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
-    if (damage > 0) kuroda.damaged(t);
+    if (damage > 0) kuroda.damaged(t, a);
     delete t.execute;                // a hit breaks an execute channel
     // this tick's hits, for damage numbers and effects (cleared every tick)
     state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
@@ -835,7 +838,10 @@ export function createGame(options) {
       if (e.dead || e.downed || !e.maxHp || e.hp >= e.maxHp || state.tick - (e.hitAt ?? -Infinity) < wait) continue;
       // in your own territory (sim/territory.js) the slow healing runs healFactor times as fast
       const k = territory.inOwn(e) ? territory.rules.healFactor : 1;
-      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * (rate * k + (rest && atHome(e) ? rest : 0)) * DT);
+      const fieldRest = e.place === 'street' && !e.swing && !e.execute
+        && state.tick - (e.foughtAt ?? -Infinity) >= wait;
+      const clanRate = state.clans?.[e.owner]?.faction === 'kuroda' && fieldRest ? 2 : 1;
+      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * (rate * k * clanRate + (rest && atHome(e) ? rest : 0)) * DT);
     }
   }
 
@@ -1234,7 +1240,9 @@ export function createGame(options) {
       delete u.patrol;
       delete u.indoorDuty;
       if (fight[u.id]) delete fight[u.id].target;
-      if (!out || u.order?.kind !== 'follow' || u.order.target !== hero.id) u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
+      // player crew hold once through (Tim 2026-10-25); a bot's crew stay its mobile squad and can leave with it again
+      if (state.clans?.[hero.owner]?.bot) u.order = { kind: 'follow', target: hero.id, slot: freeSlot(hero.id, u.id), ...(out ? {} : { exitWithHero: true }) };
+      else if (!out || u.order?.kind !== 'follow' || u.order.target !== hero.id) u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
       else u.order = { kind: 'follow', target: hero.id, slot: freeSlot(hero.id, u.id) };
     });
   }
@@ -1361,6 +1369,7 @@ export function createGame(options) {
   };
   const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, scores: scoreOf, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null }) : null;
   const hqCamping = clans ? createHQCamping({ state, rules: units?.rules?.hqCamping, addHeat }) : null;
+  const hqRaids = clans ? createHQRaidEffects({ state, rules: units?.rules?.hqRaid, dayNight: dayNight || {} }) : null;
 
   // commands: [{ id, type: 'move', right, down, walk }] with right/down from -1 to 1 on screen,
   // [{ id, type: 'use', units? }] to go through the door the unit stands at (a hero brings `units`,
@@ -1498,6 +1507,24 @@ export function createGame(options) {
     hqCamping?.tick();
     police?.tick();
     businesses?.tick();
+    hqRaids?.tick();
+    // a won Shinobi HQ raid: a few seconds after the reward the raiders are put out of the front door (Tim 2026-10-26)
+    for (const r of Object.values(state.hqRaids || {})) if (r.ejectAt === state.tick) {
+      const b = state.businesses[r.business], room = rooms.find(m => m.name === b?.room);
+      const d = room && doors.find(d => d.place === 'street' && d.to && d.x === room.exit.x && d.z === room.exit.z);
+      if (!d) continue;
+      let out = false;
+      for (const u of Object.values(state.entities)) {
+        if (u.owner !== r.raider || u.place !== b.room || u.dead) continue;
+        const [x, z] = nav.nearestFree(d.to.x, d.to.z) || [d.to.x, d.to.z];
+        Object.assign(u, { x, z, place: 'street', anim: 'idle' });
+        delete paths[u.id]; delete u.swing; delete u.attackTarget;
+        if (fight[u.id]) delete fight[u.id].target;
+        if (u.type !== 'hero' && u.order?.place && u.order.place !== 'street') u.order = { kind: 'move', x, z, place: 'street', arrived: true };
+        out = true;
+      }
+      if (out) state.news.push({ kind: 'crewOut', clan: r.raider, building: Number(Object.keys(roomOf).find(k => roomOf[k] === b.room)) });
+    }
     contracts?.tick();
     territory.tick();
     if (state.smokes) {

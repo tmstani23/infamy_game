@@ -39,7 +39,8 @@ const k = g.state.clans.kuroda;
 const owned = Object.values(g.state.businesses).filter(b => b.owner === 'kuroda' && !b.hideout).map(b => b.kind);
 console.log('owned', owned, 'crew', g.clans.crewCount('kuroda'), 'ryo', Math.round(k.ryo), 'heat', k.heat, 'raided', raided, 'teahouse owner', tea.owner);
 if (process.env.DBG) console.log(log.join('\n'));
-assert.ok(owned.includes('gambling_den') && owned.includes('warehouse'), 'bought the den and the warehouse');
+// it picks by payout per cost and travel time over the bigger business list (Tim 2026-10-22/23), so no fixed pair
+assert.ok(owned.length >= 3, 'bought several businesses');
 assert.ok(g.clans.crewCount('kuroda') >= 4, 'hired a crew');
 assert.ok(raided, 'raided your teahouse');
 console.log('bot full game ok');

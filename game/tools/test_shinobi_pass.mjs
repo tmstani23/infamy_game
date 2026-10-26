@@ -5,7 +5,7 @@ import { createGame } from '../src/sim/game.js';
 import { startClan } from '../src/sim/start_clan.js';
 import { createNinjaBot } from '../src/sim/ninja_bot.js';
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
-const units = data('data/units.json'), scores = Object.fromEntries(Object.entries(units.rules.businesses).map(([k, v]) => [k, v.score]));
+const units = data('data/units.json'), STEAL_TICKS = 20 * (units.rules.contracts.steal.seconds + 1), scores = Object.fromEntries(Object.entries(units.rules.businesses).map(([k, v]) => [k, v.score]));
 
 function fixture() {
   const state = { tick: 0, dawn: false, hits: [], news: [], ryoGains: [],
@@ -50,12 +50,12 @@ function fixture() {
   assert.match(f.contracts.reward(job), /max 1500/);
   f.state.businesses.manor.owner = 'other';
   Object.assign(f.ninja, { place: 'teahouse', x: 20, z: 20 });
-  f.tick(20 * 11);
+  f.tick(STEAL_TICKS);
   assert.equal(f.state.clans.shinobi.ryo, 1500, 'accepted ceiling survives target score changes');
   assert.equal(f.state.clans.rival.ryo, 8500, 'theft transfers the money from its actual victim');
   for (const treasury of [0, 2000]) {
     const t = fixture(); t.take('steal'); t.state.clans.rival.ryo = treasury;
-    Object.assign(t.ninja, { place: 'teahouse', x: 20, z: 20 }); t.tick(20 * 11);
+    Object.assign(t.ninja, { place: 'teahouse', x: 20, z: 20 }); t.tick(STEAL_TICKS);
     assert.equal(t.state.clans.shinobi.ryo, treasury * .2, 'actual payout uses completion-time treasury, including zero');
     assert.equal(t.state.clans.shinobi.renown, 50);
   }

@@ -41,7 +41,7 @@ float fogGlow(vec2 p) { vec2 f = fogAt(p); return mix(f.g * 0.35, 1.0, f.r); }
 `;
 // for glows, flames and door rings: the ground point under the quad's centre, along the view direction
 const v0 = VIEW_DIR;
-const FOG_QUAD = `${FOG}
+export const FOG_QUAD = `${FOG}
 const vec3 VIEW_DIR_FOG = vec3(${v0.x.toFixed(6)}, ${v0.y.toFixed(6)}, ${v0.z.toFixed(6)});
 uniform mat4 modelMatrix;
 vec2 fogGround() { vec3 q = modelMatrix[3].xyz; return q.xz - VIEW_DIR_FOG.xz * (q.y / VIEW_DIR_FOG.y); }`;

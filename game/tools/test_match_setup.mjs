@@ -47,14 +47,18 @@ for (const choice of CLAN_CHOICES) for (const difficulty of DIFFICULTY_CHOICES) 
   }
   assert.ok(orders > 0, `${choice.id}/${difficulty.id}: both AI profiles launch into live play`);
 }
-for (const test of [{setup:'ninja',ninja:true}, {setup:'bot',playerRyo:3000,botRyo:5000,playerOwns:'teahouse'}]) {
+for (const test of [{setup:'ninja',ninja:true}, {setup:'bot',playerRyo:3000,botRyo:5000,playerOwns:'teahouse'}, {setup:'lantern',playerRyo:3000}]) {
   const g = make(), { options } = setupMatch(g,{clan:'kuroda',difficulty:'easy',bots,spawns:district.spawns,test});
-  assert.equal(options.clan,test.ninja?'shinobi':'yakuza');
+  assert.equal(options.clan,test.ninja?'shinobi':test.setup==='bot'?'yakuza':'kuroda');
   assert.equal(g.state.clans.player.ryo,test.playerRyo??200);
   if (test.setup === 'bot') {
     assert.equal(g.state.clans.kuroda.ryo,5000);
     assert.equal(Object.values(g.state.businesses).find(b=>b.kind==='teahouse').owner,'player');
-  } else for (const c of Object.values(g.state.clans)) assert.equal(c.ryo,200);
+  } else for (const c of Object.values(g.state.clans)) assert.equal(c.ryo,c.id==='player'?(test.playerRyo??200):200);
+  if(test.setup==='lantern') {
+    assert.equal(g.clans.crewOf('player').length,1);
+    assert.equal(Object.values(g.state.businesses).filter(b=>b.owner==='player').length,1,'lantern preset grants HQ only');
+  }
 }
 for (const options of [{clan:'invalid',difficulty:'easy'}, {clan:'yakuza',difficulty:'invalid'}]) {
   const g = make();

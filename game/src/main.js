@@ -29,8 +29,12 @@ import { createMinimap } from './minimap.js';
 import { createGameMap } from './game_map.js';
 import { createHudLayout } from './hud_layout.js';
 import { hqCampingNoticeVisit } from './hq_camping_notice.js';
+import { bindFullscreen } from './fullscreen.js';
+import { bindControlTooltips } from './control_tooltips.js';
 
 const $ = id => document.getElementById(id);
+bindFullscreen($('fullscreenbtn'));
+const controlTips = bindControlTooltips($('controls'));
 const status = msg => { $('loading').textContent = msg; };
 const getJSON = async url => {
   const r = await fetch(url);
@@ -195,7 +199,7 @@ async function start() {
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; gameMap.close(); });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
   const sound = createSound();
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -205,7 +209,7 @@ async function start() {
   const fps = createFps();
   onKey('KeyP', () => fps.toggle());
   // Controls panel: the button or ? opens it, Esc closes it
-  const toggleControls = () => { $('controls').hidden = !$('controls').hidden; };
+  const toggleControls = () => { controlTips.hide(); $('controls').hidden = !$('controls').hidden; };
   onKey('Slash', toggleControls);
   $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
   const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse · Waterfront"
@@ -277,7 +281,10 @@ async function start() {
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
   // draws as often as it can and slides units between the last two ticks.
   const tick = 1 / TICK_RATE;
-  let prev = structuredClone(game.state);
+  // last tick's units, only what the view reads from it (render/view.js: sliding between ticks, heal pops);
+  // a full copy of the state 20 times a second was wasted work (Tim 2026-10-26). Add a field here if the view needs more.
+  const snapshot = state => { const entities = {}; for (const id in state.entities) { const e = state.entities[id]; entities[id] = { x: e.x, z: e.z, hp: e.hp, downed: e.downed }; } return { tick: state.tick, entities }; };
+  let prev = snapshot(game.state);
   let acc = 0, last = performance.now() / 1000;
   view.renderer.setAnimationLoop(() => {
     fps.frame();
@@ -286,7 +293,7 @@ async function start() {
     last = now;
     acc += dt;
     while (acc >= tick) {
-      prev = structuredClone(game.state);
+      prev = snapshot(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0), ...(bot ? bot.tick() : [])]);
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
       else if (game.state.tick % TICK_RATE === 0) label();   // the clock's countdown
@@ -295,7 +302,7 @@ async function start() {
         const a = Object.values(game.state.attacks || {}).find(a => a.clan === game.state.entities[heroId]?.owner && a.phase !== 'over'), bar = $('attackbar');
         bar.hidden = !a;
         if (a) {
-          const where = a.kind.replace(/_/g, ' ');
+          const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' ');
           bar.classList.toggle('hold', a.phase === 'hold');
           const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE), opens = Math.ceil((a.opensAt - game.state.tick) / TICK_RATE);
           bar.textContent = a.phase === 'warmup' ? `Raid on the ${where}: the doors open in ${opens} s`
@@ -333,7 +340,7 @@ async function start() {
         if (a) {
           const key = `${a.business}:${a.opensAt}`;
           if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); }
-          const where = a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
+          const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
           const s = Math.ceil((a.phase === 'warmup' ? a.opensAt - game.state.tick : a.holdLeft) / TICK_RATE);
           const b = `Your ${where} is being raided!`, t = a.phase === 'warmup' ? `${who} planted a War Lantern · doors open in ${s} s`
             : `${who} ${a.holding ? 'hold' : 'fight for'} the back room · ${s} s left${a.holding ? '' : ' (held off)'}`;
@@ -368,6 +375,14 @@ async function start() {
       for (const n of game.state.news) {
         const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
         if (n.kind === 'businessAttack' && n.clan === me) callout(`Your ${n.name} is under attack!`, 'loss');
+        if (n.kind === 'hqSuppressed' && n.defender === me) callout(`HQ on fire! Contracts cancelled · reopen in ${Math.max(0, Math.ceil((n.suppressedUntil - game.state.tick) / TICK_RATE))} s`, 'loss');
+        if (n.kind === 'hqSuppressed' && n.raider === me) callout(`Shinobi HQ defeated! +${n.points} points · +${n.bounty + n.stolen} ryo`, 'win');
+        if (n.kind === 'raidWon') {   // every clan sees it (Tim 2026-10-26)
+          const clanName = id => id === me ? 'Your clan' : game.state.clans[id]?.name || 'A rival clan';
+          const whose = n.defender === me ? 'your' : `${game.state.clans[n.defender]?.name || 'a rival clan'}'s`;
+          callout(`${clanName(n.raider)} successfully raided ${whose} ${n.hq ? 'HQ' : n.name.replace(/^The /, '')}!`, n.raider === me ? 'win' : n.defender === me ? 'loss' : 'news');
+        }
+        if (n.kind === 'hqRecovered' && n.clan === me) callout('HQ fire extinguished · contracts available · HQ protected for a full day/night cycle', 'news');
         if (n.kind === 'bossDown' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss knocked out!`, n.by === me ? 'win' : 'news');
         if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
         if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');
@@ -400,9 +415,9 @@ async function start() {
       sound.update(game.state, view.audioFocus(game.state, heroId, crewInput.selected()));
       acc -= tick;
       const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
-      const shut = door && Object.values(game.state.businesses).find(b => b.room === door.place && b.hideout && b.hideout !== game.state.entities[heroId]?.owner);   // a rival's hideout: closed
+      const shut = door?.to && game.businesses.entryStatus(game.state.entities[heroId], door.place);
       const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut ? `${game.state.clans[shut.hideout]?.name || 'Rival'} hideout: no way in` : door ? `Space  ${door.label}`
+      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? `Space  ${door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;

@@ -31,6 +31,7 @@ const KIND_NAME = { shop: 'Shop', tenements: 'Tenements', pawnshop: 'Pawnshop', 
 // backRoom(b) = { x, z } of a business's back-room spot (in its room); WILD = the bandits' owner id
 // leader() = the clan leading the season score (or null)
 import { canInteract } from './interactions.js';
+import { contractLockoutUntil } from './hq_raids.js';
 export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
   const secs = s => Math.round(s * 20);
@@ -162,6 +163,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     if (!clan || !canInteract(e) || !ninja(clan.id)) return;
     if (c.action === 'drop') { if (C.active[clan.id]) finish(clan.id, false, 'called off'); return; }
     if (c.action !== 'take') return;
+    const locked = Math.ceil((contractLockoutUntil(state, clan.id) - state.tick) / 20);
+    if (locked > 0) return say(clan, `HQ burning: contracts reopen in ${locked} s`);
     if (door?.menu !== 'contracts') return say(clan, 'Take contracts at the village shrine');
     if (C.active[clan.id]) return say(clan, 'Finish or call off your contract first');
     const i = C.board.findIndex(j => j.id === c.job);
@@ -258,6 +261,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   function tick() {
     const any = Object.keys(state.clans || {}).some(ninja);
     if (!any) return;
+    for (const id of Object.keys(C.active)) if (contractLockoutUntil(state, id) > state.tick)
+      finish(id, false, 'your HQ was raided');
     // dawn: jobs still running run out, and a new board goes up (also the first time round)
     if (state.dawn) for (const [id, job] of Object.entries(C.active)) if (job.takenAt < state.tick) finish(id, false, 'dawn came');
     if (state.dawn) { C.day++; C.hits = C.hits.filter(h => C.day - h.day < R.recentDays); }

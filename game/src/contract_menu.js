@@ -2,6 +2,7 @@
 // Same look as the police menu. Reads state.contracts and sends 'contract' commands only; the
 // rules in sim/contracts.js decide what happens. Also writes the tracker line for the job you hold.
 const KIND = { scout: 'Scout', mark: 'Sabotage', steal: 'Steal', boss: 'Boss', bandits: 'Town' };
+import { contractLockoutUntil } from './sim/hq_raids.js';
 
 export function createContractMenu({ panel, tracker, game, heroId, send, selected = () => [] }) {
   let open = false, shown = '', shownT = '';
@@ -19,6 +20,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     const c = clan();
     const h = access()?.actor;
     if (!open || !c || !h) return;
+    if (contractLockoutUntil(game.state, c.id) > game.state.tick) return;
     if (C().active[c.id]) { if (i === 0) send({ id: h.id, type: 'contract', action: 'drop' }); return; }
     const j = C().board[i];
     if (j) send({ id: h.id, type: 'contract', action: 'take', job: j.id });
@@ -47,12 +49,15 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     panel.hidden = !open;
     // the tracker: the job you hold, until dawn
     const job = c && C().active[c.id];
-    const t = job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)} · until dawn</span>` : '';
-    tracker.hidden = !job;
+    const locked = c ? Math.max(0, Math.ceil((contractLockoutUntil(game.state, c.id) - game.state.tick) / 20)) : 0;
+    const t = locked ? `<b>HQ on fire</b><span>Contracts unavailable · reopen in ${locked} s</span>`
+      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)} · until dawn</span>` : '';
+    tracker.hidden = !job && !locked;
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
     if (!open || !c || !h) return;
     let body;
-    if (job) body = `<div class="row"><span>${job.label}<br><small>${progress(job)}</small></span><button data-pick="0">Call off</button></div>` +
+    if (locked) body = `<div class="waiting">Your HQ is on fire. Contracts reopen in ${locked} s. Any active contract was cancelled.</div>`;
+    else if (job) body = `<div class="row"><span>${job.label}<br><small>${progress(job)}</small></span><button data-pick="0">Call off</button></div>` +
       '<div class="waiting">One contract at a time; it runs until dawn</div>';
     else body = C().board.map((j, k) => `<div class="row"><span>${k + 1}. ${KIND[j.kind]}: ${j.label}${j.night ? ' (night)' : ''}<br><small>for ${clientName(j.client)} · ${reward(j)}</small></span>` +
       `<button data-pick="${k}">Take</button></div>`).join('') || '<div class="waiting">No jobs left today; new ones at dawn</div>';

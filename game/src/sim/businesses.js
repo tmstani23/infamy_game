@@ -6,6 +6,7 @@
 // state.attacks[businessId] is the attack or raid (mode: 'raid') in progress.
 import { POLICE } from './police.js';
 import { canInteract, interactionActor } from './interactions.js';
+import { isShinobiHQ } from './hq_raids.js';
 // Players and bots alike send [{ id, type: 'business', action: 'buy', business }] from a hero
 // standing at the business's door ring. Prices and payouts: units.json rules.businesses
 // (data/settings.json "businesses" lays over them).
@@ -21,7 +22,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   const RD = { lanternPrice: 1200, lanternCarry: 1, warmupSeconds: 30, holdSeconds: 30, holdRadius: 2.5, maxCrewInside: 6, leaveSeconds: 10, knockSeconds: 4, knockReach: 1.6, ...units?.rules?.raid };
   state.attacks ||= {};
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
-  const name = b => b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+  const name = b => isShinobiHQ(state, b) ? 'Shinobi HQ' : b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
 
   // Can this hero buy that business now? { ok, why, price }; why = what the screen shows when not
   function canBuy(heroId, businessId) {
@@ -68,9 +69,15 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   // Raid a rival-owned business: { ok, why }
   function canRaid(heroId, businessId) {
     const b = state.businesses[businessId], e = actorFor(heroId, b), clan = state.clans?.[e?.owner];
-    if (!b || !R[b.kind] || !b.room) return { ok: false, why: 'Nothing to raid' };
+    if (!b || (!R[b.kind] && !isShinobiHQ(state, b)) || !b.room) return { ok: false, why: 'Nothing to raid' };
     if (!b.owner || b.owner === e?.owner) return { ok: false, why: b.owner ? 'Already yours' : 'Unclaimed: buy or attack it' };
     if (state.attacks[b.id]) return { ok: false, why: 'Under attack already' };
+    const recovery = isShinobiHQ(state, b) && state.hqRaids?.[b.id];
+    if (recovery?.protectedUntil > state.tick) {
+      const burning = recovery.suppressedUntil > state.tick;
+      return { ok: false, why: burning ? `HQ burning: contracts reopen in ${Math.ceil((recovery.suppressedUntil - state.tick) / 20)} s`
+        : `HQ protected for ${Math.ceil((recovery.protectedUntil - state.tick) / 20)} s` };
+    }
     if (!state.night) return { ok: false, why: 'Raid at night' };
     if (!able(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot raid now' };
     if (!(clan.lanterns > 0)) return { ok: false, why: 'Needs a War Lantern (moneylender)' };
@@ -92,15 +99,23 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   }
 
   // Doors: raiders wait out the warm-up outside; once open, at most maxCrewInside of their crew inside
-  function mayEnter(e, place) {
+  function entryStatus(e, place) {
     // a clan's home hideout is closed to every other clan (Tim 2026-10-20); the police can still follow in
     const home = Object.values(state.businesses).find(b => b.room === place && b.hideout);
-    if (home && state.clans?.[e.owner] && home.hideout !== e.owner) { const c = state.clans[e.owner]; say(c, `That is the ${state.clans[home.hideout]?.name || "rival"} hideout: no way in`); return false; }
     const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.room === place && a.clan === e.owner);
-    if (!a || a.phase !== 'warmup') return true;
+    if (home && state.clans?.[e.owner] && home.hideout !== e.owner
+      && !(isShinobiHQ(state, home) && a?.hq && a.defender === home.owner))
+      return { ok: false, why: `That is the ${state.clans[home.hideout]?.name || 'rival'} hideout: no way in` };
+    if (a?.phase === 'warmup') return { ok: false, why: `The doors open in ${Math.ceil((a.opensAt - state.tick) / 20)} s` };
+    if (a && e.type !== 'hero' && e.place !== place && crewSlots(e.owner, place) <= 0)
+      return { ok: false, why: 'The raiding crew is full inside' };
+    return { ok: true, why: '' };
+  }
+  function mayEnter(e, place) {
+    const result = entryStatus(e, place);
     const clan = state.clans?.[e.owner];
-    if (clan) say(clan, `The doors open in ${Math.ceil((a.opensAt - state.tick) / 20)} s`);
-    return false;
+    if (!result.ok && clan) say(clan, result.why);
+    return result.ok;
   }
   function crewSlots(clanId, place) {
     const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.room === place && a.clan === clanId);
@@ -130,13 +145,14 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (c.action === 'raid') {
       const can = canRaid(e.id, b.id);
       if (!can.ok) return say(clan, can.why);
-      clan.lanterns--;
       const room = roomOf(b);
+      if (!room) return say(clan, 'No way into this building');
+      clan.lanterns--;
       const far = patrolSpots(b).slice().sort((p, q) => Math.hypot(q.x - room.spawn.x, q.z - room.spawn.z) - Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z))[0]
         || { x: room.spawn.x, z: room.spawn.z };
       // the lantern stands beside the door ring, on the other side from the owner's banner
       const ox = b.ring[0] - b.x, oz = b.ring[1] - b.z, len = Math.hypot(ox, oz) || 1;
-      state.attacks[b.id] = { mode: 'raid', business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
+      state.attacks[b.id] = { mode: 'raid', ...(isShinobiHQ(state, b) ? { hq: true } : {}), business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
         phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };
       say(clan, `War Lantern planted: the doors open in ${RD.warmupSeconds} s`);
@@ -209,8 +225,16 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     const b = state.businesses[a.business], clan = state.clans[a.clan];
     const end = (won, why) => {
       delete state.attacks[a.business];
-      if (won) { clans.setOwner(b.id, clan.id); say(clan, `The ${name(b)} is yours`); const d = state.clans[a.defender]; if (d) say(d, `You lost the ${name(b)}`); }
+      if (won && a.hq) {
+        say(clan, 'You defeated the Shinobi HQ');
+        const d = state.clans[a.defender];
+        if (d) say(d, 'Your HQ raid defense was defeated');
+        state.news.push({ kind: 'hqRaidWon', at: state.tick, business: b.id, raider: a.clan, defender: a.defender });
+      }
+      else if (won) { clans.setOwner(b.id, clan.id); say(clan, `The ${name(b)} is yours`); const d = state.clans[a.defender]; if (d) say(d, `You lost the ${name(b)}`); }
       else say(clan, `Raid on the ${name(b)} failed: ${why}`);
+      // every clan hears about a won raid (Tim 2026-10-26): "X successfully raided Y's HQ / teahouse"
+      if (won) state.news.push({ kind: 'raidWon', business: b.id, raider: a.clan, defender: a.defender, hq: !!a.hq, name: name(b) });
     };
     if (b.owner !== a.defender) return end(false, 'it changed hands');
     // the raiding boss going down doesn't end it (Tim 2026-10-20): during the warm-up only knocking
@@ -362,5 +386,5 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     }
   }
 
-  return { canBuy, canAttack, canBuyLantern, canRaid, canKnock, mayEnter, crewSlots, command, tick, patrolCrew, rules: R, attackRules: A, raidRules: RD };
+  return { canBuy, canAttack, canBuyLantern, canRaid, canKnock, entryStatus, mayEnter, crewSlots, command, tick, patrolCrew, rules: R, attackRules: A, raidRules: RD };
 }

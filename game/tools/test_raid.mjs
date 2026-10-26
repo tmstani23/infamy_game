@@ -55,6 +55,9 @@ g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, 'street', 'no way in during the warm-up');
 // the boss knocked out in the warm-up doesn't end the raid (Tim 2026-10-20); only the lantern knocked down does
 Object.assign(h, { hp: 0, dead: true, diedAt: g.state.tick });
+// This fixture sets KO directly rather than going through hit(); reproduce its
+// crew-hold side effect so they do not follow the respawned hero into his HQ.
+for (const id of crew) g.state.entities[id].order = { kind: 'stop' };
 g.step();
 assert.ok(g.state.attacks[den.id], 'raid goes on with the boss down');
 for (let i = 0; i < RD.warmupSeconds * 20; i++) g.step();

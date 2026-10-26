@@ -227,8 +227,8 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
 }
 console.log('combat tests passed');
 
-// T (resume, Tim 2026-10-19): after the attack ends each crew member goes back to its old order
-// (follow, hold, passive stop); a plain attack order still just stands there afterwards
+// T (resume, Tim 2026-10-19): a finished attack leaves player crew holding near the body, with or
+// without resume (Tim 2026-10-25, crew_recruiting_plan.md); only a second T restores the old order
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -10, 1, { owner: 'player' });
@@ -243,11 +243,7 @@ console.log('combat tests passed');
   assert.equal(S[a].order.kind, 'attack');
   for (let i = 0; i < 20 * 30 && !(S[t].dead || S[t].downed || !S[t]); i++) g.step([]);
   for (let i = 0; i < 20; i++) g.step([]);
-  assert.equal(S[a].order.kind, 'follow', 'back to following');
-  assert.equal(S[a].order.target, hero);
-  assert.deepEqual([S[b].order.kind, S[b].order.x, S[b].order.z], ['station', -8, 2], 'back to its post');
-  assert.equal(S[c].order.kind, 'stop', 'back to passive');
-  assert.equal(S[d].order.kind, 'move', 'no resume: stands there');
+  for (const u of [a, b, c, d]) assert.ok(S[u].order.kind === 'move' && S[u].order.arrived, 'holds where the fight ended');
 }
 console.log('T resume ok');
 

@@ -17,6 +17,22 @@ function make() {
   return {g,spawn,hero:spawn('hero',-8,1)};
 }
 const advance=(g,n)=>{for(let i=0;i<n;i++)g.step();};
+// Kuroda is a faction, including when its player-facing clan id is "player".
+// Its field bonus stacks with home turf, while indoor HQ rest keeps its own rate.
+for(const where of ['field','own turf','HQ','recent outgoing combat','recent incoming combat']) {
+  const {g,hero}=make();
+  const tea=Object.values(g.state.businesses).find(b=>b.kind==='teahouse');
+  if(where==='own turf'||where==='HQ') g.clans.setOwner(tea.id,'player');
+  if(where==='own turf') {hero.x=tea.ring[0];hero.z=tea.ring[1];}
+  if(where==='HQ') {tea.hideout='player';hero.place=tea.room;}
+  hero.hp=hero.maxHp/2;
+  if(where==='recent outgoing combat') hero.foughtAt=g.state.tick;
+  if(where==='recent incoming combat') hero.hitAt=g.state.tick;
+  const hp=hero.hp;
+  g.step();
+  const rate=where==='recent incoming combat'?0:where==='HQ'?.015:where==='own turf'?.01:where==='recent outgoing combat'?.0025:.005;
+  assert.ok(Math.abs(hero.hp-hp-hero.maxHp*rate/20)<1e-8,`${where}: expected ${rate*100}% max HP per second`);
+}
 const use=(g,h,slot,extra={})=>g.step([{id:h.id,type:'ability',slot,...extra}]);
 function strike(g,a,t,commands=[]) {
   a.swing={start:g.state.tick,strike:g.state.tick,len:8,target:t.id};g.step(commands);
@@ -72,6 +88,27 @@ for(const type of ['move','cancel']) {
 }
 // Hit during brace: damage is unchanged, proc immediate, only next normal hit
 // stuns, and splash never hits allies, hidden enemies or neutral officers.
+for (const scenario of ['nearby crew', 'distant crew', 'other room', 'no damage']) {
+  const {g,hero,spawn}=make();
+  const x=hero.x+(scenario==='distant crew'?7:5);
+  const place=scenario==='other room'?g.rooms[0].name:'street';
+  const ally=spawn('thug',x,hero.z,{place});
+  const enemy=spawn('hero',x+.8,hero.z,{owner:'rival',model:'ronin',place});
+  if(scenario==='no damage') g.settings.units.types.thug.dodgeChance=1;
+  use(g,hero,'E');
+  const hp=hero.hp, hit=strike(g,enemy,ally);
+  assert.equal(hero.hp,hp,'crew trigger does not require damage to the hero');
+  if(scenario==='nearby crew') {
+    assert.ok(hit?.damage>0&&hero.buffs?.reprisal?.stunPending,'nearby crew damage triggers the hero counter');
+    assert.ok(!hero.brace&&!hero.buffs.pursuit,'counter consumes brace without speed outcome');
+    assert.equal(hero.buffs.reprisal.until-g.state.tick,119,'full six-second counter duration');
+    assert.equal(ally.buffs.reprisal.splash,.2,'crew get weaker cleave');
+    assert.equal(ally.buffs.reprisal.stunPending,false,'next-hit stun stays with the hero');
+    assert.equal(ally.buffs.reprisal.until-g.state.tick,59,'crew receive three seconds of cleave');
+    assert.equal(hero.buffs.reprisal.triggeredBy,ally.id,'persistent visual identifies the triggering crew');
+    assert.ok(g.state.casts.some(c=>c.kind==='counter'&&c.a===hero.id&&c.triggeredBy===ally.id),'activation flash identifies the triggering crew');
+  } else assert.ok(hero.brace&&!hero.buffs?.reprisal,`${scenario} must not trigger counter`);
+}
 {
   const {g,hero,spawn}=make(), enemy=spawn('hero',-6,1,{owner:'rival',model:'ronin'});
   const splash=spawn('thug',-5.7,2,{owner:'rival'}), ally=spawn('thug',-6,2);
@@ -94,6 +131,26 @@ for(const type of ['move','cancel']) {
 }
 // Threefold Thrust: discrete hits, misses on escape, movement cancels; cleave
 // works without consuming the normal-attack stun.
+{
+  const {g,hero,spawn}=make();
+  const ally=spawn('thug',-7,1),far=spawn('thug',0,1),indoor=spawn('thug',-8,1,{place:g.rooms[0].name});
+  const guard=spawn('guard',-7,2,{guard:'test'});
+  const primary=spawn('hero',-6,1,{owner:'rival',model:'ronin'}),secondary=spawn('thug',-6,2,{owner:'rival'});
+  const order=structuredClone(ally.order);
+  use(g,hero,'E');strike(g,primary,hero);
+  assert.ok(ally.buffs?.reprisal,'hero-hit proc shares cleave with nearby hired crew');
+  assert.ok(!far.buffs?.reprisal&&!indoor.buffs?.reprisal&&!guard.buffs?.reprisal,'range, room and hired-crew restrictions');
+  assert.deepEqual(ally.order,order,'shared cleave does not change orders');
+  const hp=secondary.hp;
+  strike(g,ally,primary);
+  assert.equal(hp-secondary.hp,2,'crew strike deals 20% of its 10 damage as cleave');
+  assert.ok(!primary.buffs?.stunned,'crew strike does not stun');
+  assert.ok(hero.buffs.reprisal.stunPending,'crew strike cannot consume the hero stun');
+  far.x=hero.x+1;g.step();
+  assert.ok(!far.buffs?.reprisal,'walking into range after activation grants no buff');
+  advance(g,60);
+  assert.ok(!ally.buffs?.reprisal&&hero.buffs?.reprisal,'crew cleave expires before hero cleave');
+}
 {
   const {g,hero,spawn}=make(), target=spawn('hero',-6,1,{owner:'rival',model:'ronin'});
   const splash=spawn('thug',-5.5,2,{owner:'rival'});

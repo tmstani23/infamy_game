@@ -78,7 +78,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
   function score(clan) {
     let s = 0;
     for (const b of Object.values(state.businesses)) if (b.owner === clan) s += scores[b.kind] || 0;
-    return s + Math.floor((state.clans?.[clan]?.renown || 0) / renownPerPoint);
+    return s + Math.floor((state.clans?.[clan]?.renown || 0) / renownPerPoint) + (state.clans?.[clan]?.raidPoints || 0);
   }
   // where a clan's score comes from: [{ label, points }] (businesses by weight, Renown later)
   function breakdown(clan) {
@@ -87,6 +87,8 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
     // Renown shows how close the next point is (Tim 2026-10-21: it just said 0), also before the first one
     const r = state.clans?.[clan]?.renown || 0;
     if (r || state.clans?.[clan]?.kind === 'ninja') out.push({ label: `${r} Renown (${renownPerPoint - r % renownPerPoint} to next)`, points: Math.floor(r / renownPerPoint) });
+    const raidPoints = state.clans?.[clan]?.raidPoints || 0;
+    if (raidPoints) out.push({ label: 'Shinobi HQ raids', points: raidPoints });
     return out;
   }
   const standings = () => Object.keys(state.clans || {}).map(id => ({ clan: id, score: score(id) })).sort((a, b) => b.score - a.score);

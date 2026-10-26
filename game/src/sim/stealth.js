@@ -32,6 +32,10 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
   }
   // hiddenAt: when it last went hidden (Assassinate needs a few seconds of it); seen = from scratch
   const veiled = e => canHide(e) && (e.buffs?.veil?.until ?? -1) > state.tick;
+  // in plain sight whatever the cover (Tim 2026-10-26): knocking down a War Lantern always; attacking
+  // only matters inside its clan's Smoke Bomb (see tick), so cancelling the attack hides it again
+  const knocking = e => Object.values(state.attacks || {}).some(a => a.knock?.by === e.id);
+  const exposed = e => knocking(e) || !!(e.swing || e.attackTarget);
   function reveal(e, attacking = false) {
     if (!e || !canHide(e) || (!attacking && veiled(e))) return;
     if (attacking && e.buffs) delete e.buffs.veil;
@@ -62,9 +66,10 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
       if (!canHide(e)) { if (e.hidden) e.hidden = false; continue; }
       // The cloud's parting veil ignores detection and incoming-hit reveals. An
       // outgoing attack consumes it; it also waives Assassinate's hiding timer.
+      if (knocking(e)) { if (e.buffs) delete e.buffs.veil; e.hidden = false; e.hiddenAt = null; continue; }
       if (veiled(e)) { e.hidden = true; continue; }
-      // inside its own clan's Smoke Bomb: hidden whatever happens, but that doesn't count as hidden time
-      if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = true; continue; }
+      // inside its own clan's Smoke Bomb: hidden unless attacking, but that doesn't count as hidden time
+      if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = !exposed(e); if (!e.hidden) e.hiddenAt = null; continue; }
       if ((e.revealUntil ?? -1) > state.tick) { e.hidden = false; continue; }
       const r = range(e), r2 = r * r;
       const seen = all.some(u => spotter(u, e) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r2);
@@ -90,5 +95,5 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     state.casts?.push({ kind: 'snuff', a: e.id, x: e.x, z: e.z, tx: l.x, tz: l.z });   // the smoke flash (render/abilityfx.js)
   }
 
-  return { tick, lit, reveal, veiled, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };
+  return { tick, lit, reveal, veiled, exposed, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };
 }

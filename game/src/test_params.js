@@ -4,6 +4,8 @@
 //   ?test=ninja  skip the start menu and play the Shinobi clan for gameplay testing:
 //                the ninja leader and one ninja crew, normal 200-ryo opening in the forest village
 //                (longhouse hideout, dojo hiring); Kuroda is the rival bot as usual
+//   ?test=lantern keep the normal clan/difficulty menu; only your starting ryo becomes
+//                 3000, enough to buy a War Lantern. Rivals and starting property stay normal.
 // DEV = false turns it off, along with the dev-only keys in main.js: N / the day-night button
 // (any client could send that 'time' command, a cheat in multiplayer), F3 footprints, and
 // window.infamy for the browser console. Not covered: server.mjs saving the HUD layout
@@ -16,7 +18,7 @@ const test = DEV && typeof location !== 'undefined' ? new URLSearchParams(locati
 export const TEST = {
   setup: test,
   botRyo: test === 'bot' ? 5000 : undefined,
-  playerRyo: test === 'bot' ? 3000 : undefined,
+  playerRyo: ['bot', 'lantern'].includes(test) ? 3000 : undefined,
   playerOwns: test === 'bot' ? 'teahouse' : null,
   ninja: test === 'ninja',
 };

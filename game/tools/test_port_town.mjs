@@ -63,12 +63,15 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   assert.ok(crossed, 'the path crosses the canal');
   const den = g.civilians.spots.find(p => p.id === 'den');
   const path = [[hx, hz], ...g.nav.findPath(hx, hz, den.x, den.z)];
+  // the quarter wall: south side z 13 with the gate (x 25.6-30.4), west x 6 and east x 51 sides
+  // with a side opening at z 29.5-34.7 (Tim 2026-10-21, c6c8653)
   let gate = false;
   for (let i = 1; i < path.length; i++) {
     const [ax, az] = path[i - 1], [bx, bz] = path[i];
-    if ((az - 13) * (bz - 13) <= 0) { const x = ax + (bx - ax) * (13 - az) / (bz - az || 1); assert.ok(x > 25.6 && x < 30.4, `walked through the quarter wall at x ${x}`); gate = true; }
+    if ((az - 13) * (bz - 13) <= 0) { const x = ax + (bx - ax) * (13 - az) / (bz - az || 1); if (x > 6 && x < 51) { assert.ok(x > 25.6 && x < 30.4, `walked through the quarter wall at x ${x}`); gate = true; } }
+    for (const wx of [6, 51]) if ((ax - wx) * (bx - wx) <= 0) { const z = az + (bz - az) * (wx - ax) / (bx - ax || 1); if (z > 13 && z < 46) { assert.ok(z > 29.5 && z < 34.7, `walked through the quarter wall at ${wx},${z}`); gate = true; } }
   }
-  assert.ok(gate, 'the way to the den goes through the gate');
+  assert.ok(gate, 'the way to the den goes through a gate');
   console.log('bridges and gate ok');
 }
 

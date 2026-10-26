@@ -8,6 +8,7 @@
 // Knobs per difficulty: data/bots.json (Tim 2026-10-19: easy for now, built for all three).
 // tick() returns this tick's commands for game.step.
 import { createAISupport } from './ai_support.js';
+import { isShinobiHQ } from './hq_raids.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
@@ -55,6 +56,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
   const priceOf = b => game.businesses.rules[b.kind]?.price;
+  const raidTarget = b => !b.hideout || (isShinobiHQ(state, b) && !(state.hqRaids?.[b.id]?.protectedUntil > state.tick));
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const canHireNow = () => {
     const price = game.clans.hirePrice(clan, B.hireType);
@@ -70,7 +72,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   // remember how many defenders it saw at rival businesses (scouting)
   function look() {
     for (const b of biz()) {
-      if (!rivalClan(b.owner) || b.hideout) continue;
+      if (!rivalClan(b.owner) || !raidTarget(b)) continue;
       const watched = all().some(u => u.owner === clan && standing(u) && (u.place === b.room || near(u, b.ring[0], b.ring[1], 8)));
       if (!watched) continue;
       const defenders = all().filter(e => e.owner === b.owner && standing(e) && sees(e) && (e.place === b.room || near(e, b.ring[0], b.ring[1], 8))).length;
@@ -105,7 +107,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       if (threat.length && !ai.safe(threat)) return 0;
       return (rule.payout + slots * 30 + (rule.score || 1) * 10) / priceOf(b) / (12 + ai.route(...b.ring));
     };
-    const rivalProperty = biz().some(b => ai.known(b) && rivalClan(b.owner) && !b.hideout && priceOf(b));
+    const rivalProperty = biz().some(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && (priceOf(b) || isShinobiHQ(state, b)));
     const warBudget = B.raidChance > 0 && rivalProperty && income >= 300 && !(c.lanterns > 0) ? RD.lanternPrice + B.raidReserve : 0;
     const buy = expansion.filter(b => priceOf(b) <= c.ryo - warBudget && buyScore(b) > 0)
       .sort((a, b) => buyScore(b) - buyScore(a))[0];
@@ -114,7 +116,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (home() && canHireNow() && !ai.blocked(`hire:${home().id}`)) return { kind: 'hire', business: home().id };
     // 4 raid a rival's business with a War Lantern (needs a full raiding crew). Once it has made up
     // its mind (raidChance) it sticks to the plan: lantern, scout by day, raid at night
-    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && !b.hideout && b.room && !state.attacks?.[b.id] && !ai.blocked(`raid:${b.id}`));
+    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !ai.blocked(`raid:${b.id}`));
     const able = targets.length && crew().length >= B.raidMinCrew && ((c.lanterns || 0) > 0 || c.ryo >= RD.lanternPrice + B.raidReserve);
     if (!able) raidPlan = false;
     else if (!raidPlan && rnd() < B.raidChance) raidPlan = true;

@@ -49,13 +49,27 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
     cleave(a, t, damage);
   }
 
-  function damaged(t) {
-    const b = t.brace;
-    delete t.brace;
-    if (!b || b.until <= state.tick || !alive(t)) return;
-    if (t.buffs) delete t.buffs.pursuit;
-    addBuff(t, 'reprisal', b.seconds, { splash: b.splash, radius: b.radius, stunSeconds: b.stunSeconds, stunPending: true });
-    emit(t, 'counter', { seconds: b.seconds });
+  function damaged(t, source) {
+    let defender = t;
+    if (!defender.brace && t.type !== 'hero' && source?.owner !== t.owner) {
+      const hero = Object.values(state.entities).find(e => e.type === 'hero' && e.owner === t.owner && e.brace
+        && e.brace.until > state.tick && alive(e) && e.place === t.place
+        && distance(e, t) <= (e.brace.crewRadius ?? 6));
+      if (hero) defender = hero;
+    }
+    const b = defender.brace;
+    delete defender.brace;
+    if (!b || b.until <= state.tick || !alive(defender)) return;
+    if (defender.buffs) delete defender.buffs.pursuit;
+    addBuff(defender, 'reprisal', b.seconds, { splash: b.splash, radius: b.radius, stunSeconds: b.stunSeconds, stunPending: true, triggeredBy: t.id });
+    // Snapshot recipients when the counter activates; entering the area later
+    // does not grant a buff. Crew get weaker cleave and never inherit the stun.
+    for (const u of Object.values(state.entities)) {
+      if (u.type === 'hero' || u.guard || u.cop || u.wild || !alive(u) || u.owner !== defender.owner
+        || u.place !== defender.place || distance(u, defender) > b.crewRadius) continue;
+      addBuff(u, 'reprisal', b.crewSeconds, { splash: b.crewSplash, radius: b.radius, stunPending: false });
+    }
+    emit(defender, 'counter', { seconds: b.seconds, triggeredBy: t.id });
   }
 
   function cast(e, a, c) {
@@ -70,7 +84,8 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
     } else if (a.kind === 'reprisal') {
       clearCombat(e);
       e.brace = { start: state.tick, until: state.tick + secs(a.channelSeconds), seconds: a.seconds,
-        splash: a.splash, radius: a.radius, stunSeconds: a.stunSeconds, escapeSpeed: a.escapeSpeed, escapeSeconds: a.escapeSeconds };
+        splash: a.splash, radius: a.radius, crewRadius: a.crewRadius ?? 6, crewSeconds: a.crewSeconds ?? 3, crewSplash: a.crewSplash ?? .2,
+        stunSeconds: a.stunSeconds, escapeSpeed: a.escapeSpeed, escapeSeconds: a.escapeSeconds };
     } else if (a.kind === 'threefold') {
       let t = state.entities[c.target];
       const inReach = u => alive(u) && fair(e, u) && sees(e, u) && distance(e, u) <= reachOf(e, u) && clearLine(e, u);

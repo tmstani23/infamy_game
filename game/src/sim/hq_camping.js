@@ -19,6 +19,12 @@ export function createHQCamping({ state, rules = {}, addHeat, tickRate = 20 }) {
     for (const zone of zones) for (const clan of Object.keys(state.clans)) {
       if (clan === zone.owner) continue;
       const key = `${clan}:${zone.business}`; keep.add(key);
+      // A formal raid requires waiting at the HQ through its warmup.
+      const raid = state.attacks?.[zone.business];
+      if (raid?.hq && raid.mode === 'raid' && raid.clan === clan && raid.defender === zone.owner) {
+        records.delete(key);
+        continue;
+      }
       const inside = people.some(e => e.owner === clan && Math.hypot(e.x - zone.x, e.z - zone.z) <= zone.radius);
       let m = records.get(key);
       if (!m && !inside) continue;

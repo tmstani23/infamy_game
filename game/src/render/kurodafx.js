@@ -183,6 +183,10 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
         const d=facing(c.dir);shieldFlash(c.x+d.x*.4,1.3,c.z+d.z*.4,1.35);
         cards.stroke(c.x,1.25,c.z,-.55,1.9,.4,GOLD,.36);
         const s=spriteOf(c.a);if(s)s.flash=Math.max(s.flash||0,.8);
+        if(c.triggeredBy&&c.triggeredBy!==c.a){
+          const crew=spriteOf(c.triggeredBy),p=posOf(c.triggeredBy);
+          if(p&&crew?.thing.mesh.visible){shieldFlash(p.x,1.3,p.z,1.05);crew.flash=Math.max(crew.flash||0,.8);}
+        }
       }
       if (c.kind==='counterstun') shieldFlash(c.tx,1.55,c.tz,.75);
       if (c.kind==='pursuit') {
@@ -245,7 +249,8 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
       for (const e of Object.values(state.entities)) {
         const p=posOf(e.id), s=spriteOf(e.id);
         if (!p || !s?.thing.mesh.visible || e.dead || e.downed || e.jailed) continue;
-        if (e.brace || e.buffs?.reprisal?.until>state.tick) {
+        const counter=e.buffs?.reprisal;
+        if (e.brace || counter?.until>state.tick) {
           activeCounters.add(e.id);let v=counters.get(e.id);
           if (!v) {
             const g=group(),m=ring(g,.65,GOLD,.05,.65),badge=crest(1.05),coil=new THREE.Group();g.add(badge,coil);
@@ -263,7 +268,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
           v.badge.position.set(d.x*.25-d.z*.36,1.3,d.z*.25+d.x*.36);
           // Counter's ring may rotate; the shield ward keeps facing the camera.
           v.badge.quaternion.copy(v.g.quaternion).invert().multiply(CAM_QUAT);
-          v.badge.visible=!!e.brace||!!e.buffs?.reprisal?.stunPending;
+          v.badge.visible=!!e.brace||!!counter?.stunPending;
           const progress=e.brace?Math.min(1,(state.tick-e.brace.start+1)/6):1;
           v.badge.scale.setScalar(e.brace ? .7+.35*progress : .55);
           for(const [m,alpha] of v.materials)m.opacity=alpha*(e.brace?progress:.65);

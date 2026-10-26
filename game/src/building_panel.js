@@ -2,6 +2,7 @@
 // picture, name, owner and status. Only reads the state; the click that selects a building
 // is in crew_input.js. buildingInfo has no DOM, so Node can check it.
 const title = s => (s.charAt(0).toUpperCase() + s.slice(1)).replace(/_/g, ' ');
+import { isShinobiHQ } from './sim/hq_raids.js';
 
 // What the panel says about building number i of the district, seen by clan:
 // { name, owner, rows: [[label, value], ...] }
@@ -14,6 +15,13 @@ export function buildingInfo({ state, district, info = {}, units }, i, clan) {
   const c = state.clans?.[clan];
   const owner = !biz.owner ? 'Unclaimed' : biz.owner === clan ? 'Yours' : state.clans?.[biz.owner]?.name || title(biz.owner);
   const rows = [['Role', info.roles?.[biz.kind] || title(biz.kind)]];
+  if (isShinobiHQ(state, biz)) {
+    rows.push(['HQ raid', 'Suppress contracts; never captured']);
+    rows.push(['Victory reward', '2 points + 600 ryo + 10% treasury (max 400)']);
+    const r = state.hqRaids?.[biz.id];
+    if (r?.suppressedUntil > state.tick) rows.push(['On fire', `Contracts reopen in ${Math.ceil((r.suppressedUntil - state.tick) / 20)} s`]);
+    else if (r?.protectedUntil > state.tick) rows.push(['Raid protection', `${Math.ceil((r.protectedUntil - state.tick) / 20)} s remaining`]);
+  }
   rows.push(['Enter', biz.room ? 'Yes, Space at the door' : biz.kind === 'clinic' ? 'Clinic menu, Space at the ring' : biz.kind === 'police_box' ? 'Bribes, Space at the ring' : biz.kind === 'police_hq' ? 'Bail, Space at the ring' : 'No']);
   const deal = units?.rules?.businesses?.[biz.kind];
   if (deal?.payout) rows.push([biz.owner === clan ? 'Pays you' : 'Pays', `${deal.payout} ryo at dawn`]);
@@ -77,7 +85,7 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     const biz = game.state.businesses[`b${i}`];
     const service = biz && game.doors?.find(d => d.menu && Math.hypot(d.x - (biz.ring?.[0] ?? biz.x), d.z - (biz.ring?.[1] ?? biz.z)) < 4);
     d.service = service ? { menu: service.menu, ok: !!game.serviceAt?.(heroId, service.menu, crewInput.selected?.() || []) } : null;
-    const raid = biz?.owner && biz.owner !== clan && game.businesses?.rules[biz.kind] ? game.businesses.canRaid(heroId, `b${i}`) : null;
+    const raid = biz?.owner && biz.owner !== clan && (game.businesses?.rules[biz.kind] || isShinobiHQ(game.state, biz)) ? game.businesses.canRaid(heroId, `b${i}`) : null;
     d.raid = raid && { ok: raid.ok, why: raid.why };
     const ml = biz?.kind === 'moneylender' ? game.businesses?.canBuyLantern(heroId, `b${i}`) : null;
     d.lantern = ml && { ok: ml.ok, why: ml.why, price: ml.price };
