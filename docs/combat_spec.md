@@ -2,6 +2,10 @@
 
 Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero chase on 2026-10-16; they are built. Abilities and the action bar (section F) were approved and built the same day. Owned by the crew thread. Numbers live in `game/data/units.json`; rules in `game/src/sim/game.js` (combat section); drawing in `game/src/render/`.
 
+## Deployment group buffs (built 2026-10-26)
+
+Central `rally.buffEligible` permits the own hero, hired permanent hero-group crew and current deployment Rally participants; excludes free guards, civilians, police, wild units and in-flight crew. Ordinary ability range/conditions remain. Applies to Kuroda Reprisal proc/cleave recipients and dynamic Iron Formation, Ronin combat Rally heal/haste, and Shinobi Assassinate crew crit plus Smoke heal/shroud. Environmental smoke concealment remains local cloud behavior. Out-of-group short buffs clear on expiry/reassignment, preventing remote persistence. See [deployment Rally lifecycle](deployment_sector_plan.md#4b-rally-completion-checkpoint-2026-10-26).
+
 ## Now (built)
 
 - **Style:** RTS / Dota hybrid. Hero = Dota-style character on WASD; crew = RTS army (select, right-click).

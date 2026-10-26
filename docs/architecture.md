@@ -5,6 +5,7 @@ How the game is built today (2026-10-17). Short on purpose: details live in the 
 - Build plan and conventions: [tech_plan.md](tech_plan.md)
 - 3D rooms: [interiors_spec.md](interiors_spec.md), [room_generator_plan.md](room_generator_plan.md)
 - Crew, hiring, orders: [crew_recruiting_plan.md](crew_recruiting_plan.md)
+- Deployment membership, sectors and transfer commands: [deployment_sector_plan.md](deployment_sector_plan.md) (`sim/sectors.js`, `sim/deployment.js`, `sim/assignments.js`, `sim/deployment_rally.js`, `sim/shinobi_assignments.js`, `sim/diversion.js`, `sim/deployment_ai.js`, `deployment_map_geometry.js`; 1A–5B built, final grouped checks passed, visual review pending).
 - Fighting: [combat_spec.md](combat_spec.md)
 - Keys: [controls.md](controls.md)
 

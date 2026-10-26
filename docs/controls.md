@@ -40,6 +40,23 @@ The action bar at the bottom shows the hero's health, the basic attack and the f
 
 The top-left line shows your crew count / crew cap; ryo has its own badge. New crew walk out of the teahouse door after a few seconds.
 
+## Deployment and sectors (built 2026-10-26)
+
+Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is separate from selection groups; ordinary crew commands obey deployment membership and area limits, and Follow needs hero-group membership.
+
+| Input | What it does |
+|---|---|
+| Toolbar **Deployment** button (Esc closes; no hotkey) | Deployment panel: counts, reserved slots, health, transfer status |
+| Select crew + destination, **Transfer selected** | Move crew between the hero group, HQ and sectors |
+| **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 2) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
+| M map → **Deployment** layer (hex sector map) | Click a sector or nameplate (or the sidebar + **Manage sector**) to open its management; crew selection is kept. Other map clicks still move the camera |
+| Duties: task/business, objective/fallback, up to 8 route points, **Save** | Set a sector's local duty (map picks only edit the draft). **Return selected** puts crew back on their saved duty after manual control |
+| Check groups, **Call Rally** | Deployment Rally: temporary command of the called groups (no automatic Follow); panel and toolbar show time left and cooldown. On expiry non-hero-group crew walk back; **Return selected** releases early. Not the ronin's R ability |
+| Shinobi: **Secure Extraction** | Crew guard your local exit |
+| Shinobi: Ambush: pick a visible street target, **Arm** (**Cancel** / **Retreat**) | Manual ambush; works while the hero is KO'd |
+| Shinobi: Watch | Automatic: crew report sightings and contract-priority pings |
+| Shinobi: hire the geisha, **Diversion** + objective/fallback, **Start diversion** | She dances to draw guards away; Retreat, Return or a task change ends it |
+
 ## Crew
 
 | Input | What it does |

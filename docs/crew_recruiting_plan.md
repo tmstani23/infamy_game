@@ -4,6 +4,10 @@ Status: Tim OK'd 2026-10-16 (phase 1 go). Each phase gets ticked when it is done
 
 Follows the multiplayer rules: all rules in `game/src/sim` (Node, no graphics), players and bots act only through the same command messages, the sim owns all state, the browser only draws it and sends commands.
 
+## Shinobi geisha (built 2026-10-26)
+
+Shinobi-only `shinobi_geisha`: base 120 ryo with existing crew price scaling, 160 HP, five damage, one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
+
 ## Decisions (Tim, 2026-10-16)
 
 - **Crew are RTS units**, not named characters. You hire a Thug, not a person. Types and upgrades make them better.

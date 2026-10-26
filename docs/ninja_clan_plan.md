@@ -94,5 +94,5 @@ Village now has four stream crossings (2026-10-22): [bridge locations and approa
 
 ## Planned Phase 4 (Tim, 2026-10-25; not built)
 
-Sector Watch, manual Ambush, geisha Diversion, Secure Extraction, deployment/UI and open decisions: [deployment and sector plan](deployment_sector_plan.md). HQ raid, suppression, rewards and recovery protection: [businesses and raids](business_raids_plan.md#planned-shinobi-hq-raid-tim-2026-10-25-not-built). Deployment/sector features remain unbuilt. The linked HQ raid is built and sim-checked (2026-10-25), awaiting Tim's visual/balance playtest.
+Sector Watch, manual Ambush, geisha Diversion, Secure Extraction, deployment/UI and open decisions: [deployment and sector plan](deployment_sector_plan.md). HQ raid, suppression, rewards and recovery protection: [businesses and raids](business_raids_plan.md) "Shinobi HQ raid". Deployment/sector features remain unbuilt. The linked HQ raid is built and sim-checked (2026-10-25), awaiting Tim's visual/balance playtest.
 - **Stealth rules (2026-10-26):** knocking down a lantern always reveals and ends Vanish; attacking inside your own smoke reveals, stopping hides again; taking damage does not break Vanish (only attacking does). Code: `sim/stealth.js`, `sim/game.js`.
