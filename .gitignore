@@ -1,0 +1,5 @@
+# Personal HUD positions and sizes (saved locally by the game).
+/game/data/ui_layout.json
+
+# Local archives and files awaiting manual cleanup.
+/to_delete/
