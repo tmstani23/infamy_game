@@ -28,7 +28,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   function addClan(clan) {
     if (!clan || D.clans[clan.id]) return;
     D.clans[clan.id] = { reserveTarget: 2, sectors: Object.fromEntries(D.sectors.map(s => [s.id, {
-      task: clan.kind === 'ninja' ? 'watch' : 'patrol', objective: { ...s.anchor }, fallback: { ...s.anchor },
+      task: clan.kind === 'ninja' ? 'watch' : 'patrol', desired: D.sectorLimit, objective: { ...s.anchor }, fallback: { ...s.anchor },
     }])) };
   }
   const members = (clan, group = null) => Object.values(state.entities)
@@ -44,7 +44,10 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     } else e.deployment.keepAtHQ ??= false;
   }
   function sync() {
-    for (const clan of Object.values(state.clans || {})) addClan(clan);
+    for (const clan of Object.values(state.clans || {})) {
+      addClan(clan);
+      if (clan.kind !== 'ninja') for (const sector of Object.values(D.clans[clan.id].sectors)) if (sector.task === 'hold') sector.task = 'patrol';
+    }
     for (const e of Object.values(state.entities)) if (crew(e) && !e.deployment) onSpawn(e);
     for (const e of Object.values(state.entities)) if (e.deployment?.transfer && (!active(e) || e.downed)) {
       e.deployment.savedGroup = e.deployment.transfer.to;
@@ -75,8 +78,12 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     return { ok: true, why: '' };
   }
   function nextAutomaticSector(clan) {
-    const n = counts(clan), sorted = sectorIds.slice().sort((a, b) => n[a] - n[b] || sectorIds.indexOf(a) - sectorIds.indexOf(b));
-    return n[sorted[0]] < D.sectorLimit || full(n) ? sorted[0] : null;
+    const n = counts(clan), goal = id => D.clans[clan].sectors[id].desired ?? D.sectorLimit;
+    const sorted = sectorIds.filter(id => goal(id) > 0).sort((a, b) => n[a] - n[b] || sectorIds.indexOf(a) - sectorIds.indexOf(b));
+    const vacancy = sorted.find(id => n[id] < Math.min(goal(id), D.sectorLimit));
+    if (vacancy) return vacancy;
+    if (!full(n)) return null;
+    return sorted.find(id => n[id] < goal(id)) || sorted.find(id => goal(id) >= D.sectorLimit) || null;
   }
   function sectorAt(x, z, place = 'street') {
     if (place !== 'street') {
@@ -282,6 +289,13 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   function command(h, c) {
     if (h.type !== 'hero' || !D.clans[h.owner]) return;
     const ids = Array.isArray(c.units) ? [...new Set(c.units)] : [];
+    if (c.action === 'staffing') {
+      const sector = D.clans[h.owner].sectors[c.sector];
+      if (!sector || !Number.isSafeInteger(c.value) || c.value < 0) return;
+      sector.desired = c.value;
+      say(h.owner, `Staffing goal: ${c.value}. Crew deploy from eligible HQ reserves; field crew are not recalled.`);
+      return;
+    }
     if (c.action === 'reserveTarget') {
       if (!Number.isSafeInteger(c.value) || c.value < 0) return;
       D.clans[h.owner].reserveTarget = c.value;

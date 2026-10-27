@@ -6,12 +6,13 @@
 import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
+import { portrait } from './portraits.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ root, game, district, view, fog, heroId, clan = 'player', units, selected, send, onManageSector }) {
+export function createGameMap({ root, game, district, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null }) {
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: false, territory: true, businesses: true, police: true, units: true };
   const deploymentData = createDeploymentMapData({ game, clan });
@@ -20,13 +21,14 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   let selectedSector = game.state.deployment.sectors[0]?.id;
   let pointPicker = null;
   // one map (Tim 2026-10-27): managing a sector docks the Deployment menu beside the open map
+  const selectSector = id => { selectedSector = id; onSelectSector(id); drawDeployment(); map?.draw(); };
   const manage = id => { selectedSector = id; onManageSector?.(id); map?.draw(); };
   const overlay = createDeploymentMapOverlay({ game, clan, data: deploymentData,
     selectedSector: () => selectedSector, onPick: (id, p) => {
-      if (!pointPicker) return manage(id);
+      if (!pointPicker) return selectSector(id);
       if (game.deployment.sectorAt(p.x, p.z) !== pointPicker.sector) return;
       const callback = pointPicker.callback; pointPicker = null; callback(p); map?.draw();
-    }, onHover: hoverSector });
+    }, onHover: hoverSector, onContact: onSelectTarget });
   let map = null;
   for (const [k, label] of LAYERS) {
     const b = document.createElement('button');
@@ -44,11 +46,46 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     root.querySelector('h3').textContent = 'MAP';
   }
   deploymentSide.innerHTML = '<h4>YOUR SECTORS</h4><div class="sector-list"></div><div class="sector-detail" role="status"></div><button class="manage-sector" type="button">Manage sector</button><div class="deployment-key">Borders identify sectors. Divided tints show known clan presence.<br>Hollow squares: last seen (10 s). Arrows: last observed heading.<br>Dashed links: your transfer destinations.</div>';
+  const controls = document.createElement('div'); controls.className = 'sector-actions';
+  controls.innerHTML = '<label>Duty <select class="quick-task"></select></label><label>Staffing goal <input class="staffing" type="number" min="0" step="1" value="3"></label><button class="staffing-save" type="button">Set goal</button><button class="quick-return" type="button">Back to duty</button><small class="sector-notice" role="status"></small>';
+  deploymentSide.querySelector('.manage-sector').before(controls);
+  const quickTask = controls.querySelector('.quick-task'), staffing = controls.querySelector('.staffing');
+  const tray = document.createElement('div'); tray.className = 'map-crew-tray'; tray.title = 'Drag crew onto a sector badge or map sector to transfer'; controls.after(tray);
+  const portraits = new Map(); let draggingCrew = false;
+  for (const task of game.state.clans[clan].kind === 'ninja' ? ['watch', 'ambush', 'extraction'] : ['patrol', 'guard']) quickTask.add(new Option(task.replaceAll('_', ' '), task));
+  const recent = document.createElement('div'); recent.className = 'recent-targets'; controls.after(recent);
+  if (game.state.clans[clan].kind === 'ninja') {
+    const next = document.createElement('button'); next.textContent = 'Ambush next enemy'; next.type = 'button';
+    next.addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'armAmbush', sector: selectedSector })); controls.appendChild(next);
+    const cancel = document.createElement('button'); cancel.textContent = 'Cancel target'; cancel.type = 'button';
+    cancel.addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'cancelAmbush', sector: selectedSector })); controls.appendChild(cancel);
+  }
+  quickTask.addEventListener('change', () => {
+    const business = Object.values(game.state.businesses).find(b => b.owner === clan && b.room && game.deployment.sectorAt(...b.ring) === selectedSector);
+    send({ id: heroId, type: 'deployment', action: 'assignment', sector: selectedSector, task: quickTask.value, ...(quickTask.value === 'guard' ? { business: business?.id } : {}) });
+  });
+  controls.querySelector('.staffing-save').addEventListener('click', () => { if (staffing.value !== '' && staffing.checkValidity()) send({ id: heroId, type: 'deployment', action: 'staffing', sector: selectedSector, value: Number(staffing.value) }); });
+  controls.querySelector('.quick-return').addEventListener('click', () => {
+    const ids = game.deployment.members(clan, selectedSector).map(e => e.id);
+    if (onReturnToDuty) onReturnToDuty(ids);
+    else send({ id: heroId, type: 'deployment', action: 'return', units: ids });
+  });
+  function dropCrew(e, sector) {
+    e.preventDefault(); e.stopPropagation();
+    try {
+      const ids = JSON.parse(e.dataTransfer.getData('application/x-infamy-crew'));
+      if (Array.isArray(ids) && ids.length && sector) send({ id: heroId, type: 'deployment', action: 'transfer', units: ids, to: sector });
+    } catch { /* Ignore unrelated drags. The sim validates ownership and capacity. */ }
+  }
+  const allowDrop = e => { if ([...e.dataTransfer.types].includes('application/x-infamy-crew')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } };
+  canvas.addEventListener('dragover', allowDrop);
+  canvas.addEventListener('drop', e => { const p = map?.worldAt(e); dropCrew(e, p && overlay.sectorAt(p)); });
   for (const s of overlay.sectors) {
     const b = document.createElement('button'), name = document.createElement('span'), status = document.createElement('small');
     b.type = 'button'; b.className = 'sector-select'; b.style.setProperty('--sector-color', s.color); name.textContent = s.name;
     b.append(name, status); deploymentSide.querySelector('.sector-list').appendChild(b);
-    b.addEventListener('click', () => { selectedSector = s.id; drawDeployment(); map?.draw(); });
+    b.addEventListener('click', () => selectSector(s.id));
+    b.addEventListener('dragover', allowDrop); b.addEventListener('drop', e => dropCrew(e, s.id));
     sectorButtons.set(s.id, { button: b, status });
   }
   deploymentSide.querySelector('.manage-sector').addEventListener('click', () => manage(selectedSector));
@@ -56,12 +93,48 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     const snapshot = deploymentData.get();
     for (const s of snapshot.sectors) {
       const row = sectorButtons.get(s.id);
-      row.status.textContent = `${s.taskLabel} (saved) · ${s.count}/3 · ${s.status}`;
+      row.status.textContent = `${s.taskLabel} · ${s.count}/${s.desired} · ${s.status}${s.missing ? ` · needs ${s.missing}` : ''}`;
       row.button.setAttribute('aria-pressed', String(s.id === selectedSector));
       row.button.classList.toggle('sector-alert', game.state.tick - (s.alertAt ?? -Infinity) < 100);
     }
     const s = snapshot.sectors.find(s => s.id === selectedSector);
     if (!s) return;
+    if (!draggingCrew) {
+      const crew = game.deployment.members(clan).filter(e => !e.downed), ids = new Set(crew.map(e => e.id));
+      for (const [id, b] of portraits) if (!ids.has(id)) { b.remove(); portraits.delete(id); }
+      for (const e of crew) {
+        let b = portraits.get(e.id);
+        if (!b) {
+          b = document.createElement('button'); b.type = 'button'; b.draggable = true;
+          b.addEventListener('click', () => onSelectCrew(e.id));
+          b.addEventListener('dragstart', ev => { draggingCrew = true; ev.dataTransfer.setData('application/x-infamy-crew', JSON.stringify(selected().includes(e.id) ? selected() : [e.id])); ev.dataTransfer.effectAllowed = 'move'; });
+          b.addEventListener('dragend', () => { draggingCrew = false; });
+          tray.appendChild(b); portraits.set(e.id, b);
+        }
+        const image = catalog && portrait(catalog, e.model);
+        if (image) { b.style.backgroundImage = `url(${image})`; b.textContent = ''; }
+        else b.textContent = (units?.types[e.type]?.name || e.type).slice(0, 2);
+        b.title = `${units?.types[e.type]?.name || e.type} #${e.id} · ${e.deployment.group} · ${Math.ceil(e.hp)}/${e.maxHp} HP. Drag to transfer.`;
+        b.classList.toggle('selected', selected().includes(e.id));
+      }
+    }
+    quickTask.value = s.task;
+    const targets = game.shinobiIntelligence?.targets(clan) || [], hunt = game.state.deployment.clans[clan].hunt;
+    const targetKey = targets.map(t => `${t.id}:${t.live}:${Math.floor(t.age)}`).join(',') + ':' + hunt?.target;
+    if (recent.dataset.key !== targetKey) {
+      recent.dataset.key = targetKey; recent.replaceChildren();
+      for (const t of targets) {
+        const row = document.createElement('div'), inspect = document.createElement('button'), arm = document.createElement('button');
+        inspect.type = arm.type = 'button'; inspect.textContent = `${units?.types[t.type]?.name || units?.models[t.model]?.name || t.type} · ${t.tracked ? 'tracked' : t.live ? 'in sight' : `${Math.floor(t.age)}s ago`} · ${t.sector || 'town'}`;
+        inspect.addEventListener('click', () => onSelectTarget(t.id));
+        arm.textContent = hunt?.target === t.id ? 'Armed · Cancel' : 'Ambush';
+        arm.addEventListener('click', () => send({ id: heroId, type: 'deployment', action: hunt?.target === t.id ? 'cancelAmbush' : 'armAmbush', target: t.id }));
+        row.append(inspect, arm); recent.appendChild(row);
+      }
+    }
+    if (document.activeElement !== staffing) staffing.value = s.desired;
+    const notice = game.state.clans[clan]?.notice;
+    controls.querySelector('.sector-notice').textContent = notice && game.state.tick - notice.tick < 160 ? notice.text : '';
     const presence = s.presence.map(c => `${c.owner === clan ? 'Your crew' : c.name}: ${c.count}`).join(' · ');
     const lost = snapshot.contacts.filter(c => !c.live && c.sector === s.id).length;
     deploymentSide.querySelector('.sector-detail').textContent = `${s.name}\nSaved task: ${s.taskLabel}\n${s.living} available · ${s.incoming} incoming${s.assigned > s.living ? ` · ${s.assigned - s.living} downed` : ''}\n${Math.ceil(s.hp)} / ${s.maxHp} HP · ${s.status}${presence ? `\nSpotted presence: ${presence}` : ''}${lost ? `\n${lost} last-known contact${lost === 1 ? '' : 's'}` : ''}`;

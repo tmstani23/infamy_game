@@ -1,6 +1,6 @@
 import { sectorOutlines, hexCells } from './deployment_map_geometry.js';
 
-export function createDeploymentMapOverlay({ game, clan, data, selectedSector, onPick, onHover }) {
+export function createDeploymentMapOverlay({ game, clan, data, selectedSector, onPick, onHover, onContact = () => {} }) {
   const bounds = game.deployment.cellGrid().bounds;
   const sectors = sectorOutlines(game.deployment.cellGrid(), game.state.deployment.sectors);
   const byId = new Map(sectors.map(s => [s.id, s]));
@@ -77,6 +77,13 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, o
       ctx.setLineDash([]);
     }
     ctx.globalAlpha = 1;
+    for (const t of game.shinobiIntelligence?.targets(clan) || []) {
+      if (snapshot.contacts.some(c => c.id === t.id)) continue;
+      const [u, v] = toMap(t.x, t.z);
+      ctx.strokeStyle = '#b8a0d1'; ctx.globalAlpha = .5; ctx.setLineDash([1, 3]);
+      ctx.beginPath(); ctx.arc(u, v, 5, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
     for (const e of snapshot.own.filter(e => e.interior && Number.isFinite(e.x))) {
       const [u, v] = toMap(e.x, e.z); ctx.fillStyle = game.state.clans[clan].color; ctx.strokeStyle = '#f2dfaa'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(u, v - 4); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 4); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -99,7 +106,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, o
       ctx.beginPath(); ctx.moveTo(...anchor); ctx.lineTo(x + width / 2, y + 39); ctx.strokeStyle = sector.color; ctx.globalAlpha = .45; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
       ctx.fillStyle = '#0b1118ed'; ctx.fillRect(x, y, width, 39); ctx.fillStyle = sector.color; ctx.fillRect(x, y, width, sector.id === selected ? 2.5 : 1.5);
       ctx.fillStyle = '#f0e7d2'; ctx.font = '600 12px system-ui'; ctx.fillText(name, x + width / 2, y + 13);
-      ctx.fillStyle = '#b9bec6'; ctx.font = '11px system-ui'; ctx.fillText(`${s.count}/3 · ${s.status}`, x + width / 2, y + 28);
+      ctx.fillStyle = s.missing ? '#e5bc78' : '#b9bec6'; ctx.font = '11px system-ui'; ctx.fillText(`${s.count}/${s.desired ?? 3} · ${s.status}`, x + width / 2, y + 28);
     }
     const village = game.state.deployment.village;
     if (village) {
@@ -123,7 +130,13 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, o
     const id = game.deployment.sectorAt(p.x, p.z);
     return byId.has(id) ? id : null;
   }
-  return { ground, markers, sectors,
+  return { ground, markers, sectors, sectorAt,
     hover(p, e) { const id = sectorAt(p); onHover(id && data.get().sectors.find(s => s.id === id), e); return !!id; },
-    pick(p) { const id = sectorAt(p); if (id) onPick(id, p); return !!id; } };
+    pick(p) {
+      const contact = project && (game.shinobiIntelligence?.targets(clan) || []).find(t => {
+        const a = project(p.x, p.z), b = project(t.x, t.z); return Math.hypot(a[0] - b[0], a[1] - b[1]) < 8;
+      });
+      if (contact) { onContact(contact.id); return true; }
+      const id = sectorAt(p); if (id) onPick(id, p); return !!id;
+    } };
 }

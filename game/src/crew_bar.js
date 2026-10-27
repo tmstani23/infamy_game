@@ -3,6 +3,7 @@
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
 // Only reads the state; orders go out as the same commands the keys send.
 const CMDS = [
+  { key: '↩', name: 'Duty', tip: 'Return selected sector crew to their saved duty, deselect them and select your hero group. Escape also returns released manual sector crew to duty while clearing selection.', act: c => c.returnToDutyAndSelectHero(), need: 'sector' },
   { key: 'V', name: 'Follow', tip: 'Selected crew follow the hero; outdoor crew enter your building. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
   { key: 'T', name: 'Attack', tip: 'Your outdoor crew (selected or not) attack the marked unit or hero\'s target; downed: execute. Indoor crew stay at their duties. Press T again to resume previous orders. Use selected crew commands indoors.', act: c => c.crewAttack(), need: 'outdoor' },
   { key: 'Z', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
@@ -65,7 +66,8 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
     const sel = crewInput.selected().some(id => usable(S[id]));
     const follow = crewInput.selected().some(id => usable(S[id]) && ['street', h?.place].includes(S[id].place));
     const street = crewInput.selected().some(id => usable(S[id]) && S[id].place === 'street');
-    const available = { sel, follow, street, outdoor, crew };
+    const sector = crewInput.selected().some(id => { const e = S[id]; return usable(e) && !e.downed && !e.jailed && !e.deployment?.transfer && game.state.deployment?.clans[h?.owner]?.sectors[e.deployment?.group]; });
+    const available = { sel, follow, street, outdoor, crew, sector };
     for (const { b, cmd } of buttons) b.classList.toggle('off', !available[cmd.need]);
   }
   return { update };

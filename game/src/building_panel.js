@@ -54,7 +54,12 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     if (i !== shown) {
       shown = i; last = '';
       const file = scenery.find(s => s.building === i)?.item.file;
-      root.innerHTML = '<div class="pic"></div><div class="info"><b></b><i></i><dl></dl><div class="acts"><button class="service" hidden></button><button class="buy" hidden></button><button class="atk" hidden></button><button class="raid" hidden></button><button class="lantern" hidden></button><span class="why"></span></div><div class="notice" hidden></div></div>';
+      root.innerHTML = '<div class="pic"></div><div class="info"><b></b><i></i><dl></dl><div class="acts"><button class="service" hidden></button><button class="guard" hidden>Guard business</button><button class="buy" hidden></button><button class="atk" hidden></button><button class="raid" hidden></button><button class="lantern" hidden></button><span class="why"></span></div><div class="notice" hidden></div></div>';
+      root.querySelector('.guard').addEventListener('click', e => {
+        const b = game.state.businesses[`b${shown}`], sector = b?.ring && game.deployment.sectorAt(...b.ring);
+        if (sector) send({ id: heroId, type: 'deployment', action: 'assignment', sector, task: 'guard', business: b.id });
+        e.currentTarget.blur();
+      });
       root.querySelector('.service').addEventListener('click', e => {
         const b = game.state.businesses[`b${shown}`];
         const door = b && game.doors.find(d => d.menu && Math.hypot(d.x - (b.ring?.[0] ?? b.x), d.z - (b.ring?.[1] ?? b.z)) < 4);
@@ -83,6 +88,7 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     d.attack = atk && { ok: atk.ok, why: atk.why };
     // Raid (a rival's business, needs a War Lantern) and Buy War Lantern (the moneylender's)
     const biz = game.state.businesses[`b${i}`];
+    d.guard = biz?.owner === clan && !!biz.room && game.state.clans[clan]?.kind !== 'ninja' && !!game.deployment.sectorAt(...biz.ring);
     const service = biz && game.doors?.find(d => d.menu && Math.hypot(d.x - (biz.ring?.[0] ?? biz.x), d.z - (biz.ring?.[1] ?? biz.z)) < 4);
     d.service = service ? { menu: service.menu, ok: !!game.serviceAt?.(heroId, service.menu, crewInput.selected?.() || []) } : null;
     const raid = biz?.owner && biz.owner !== clan && (game.businesses?.rules[biz.kind] || isShinobiHQ(game.state, biz)) ? game.businesses.canRaid(heroId, `b${i}`) : null;
@@ -95,6 +101,7 @@ export function createBuildingPanel({ root, game, district, info, units, scenery
     if (key === last) return;
     last = key;
     root.querySelector('b').textContent = d.name;
+    root.querySelector('.guard').hidden = !d.guard;
     root.querySelector('i').textContent = d.owner;
     const dl = root.querySelector('dl');
     dl.innerHTML = '';

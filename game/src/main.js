@@ -1,3 +1,4 @@
+import { createStealthBadge } from './stealth_badge.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
 import { setupMatch } from './sim/setup_match.js';
@@ -174,7 +175,7 @@ async function start() {
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
-  const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, view, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
   // your clan's crest and name in the top bar (picked at the start later, Tim 2026-10-19)
@@ -192,6 +193,7 @@ async function start() {
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
     onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id) });
+  $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   function interactionDoor() {
     const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
     return access && selected.includes(access.actor.id) ? access.door : game.doorNear(heroId) || access?.door;
@@ -204,7 +206,7 @@ async function start() {
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); });
+  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
   const sound = createSound();
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -236,7 +238,7 @@ async function start() {
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone });
-  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump });   // own + target frames, top middle
+  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, send: c => pending.push(c) });   // own + target frames, top middle
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
     if (menu === 'clinic' && !clinicMenu.isOpen()) clinicMenu.toggle();
@@ -254,8 +256,12 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, selected: () => crewInput.selected(), send: c => pending.push(c),
-    onManageSector: id => deploymentPanel.openGroup(id) });
+  const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
+    onSelectCrew: id => { const old = crewInput.selected(); crewInput.select(old.includes(id) ? old.filter(x => x !== id) : [...old, id]); },
+    onSelectTarget: id => unitFrames.showKnown(id),
+    onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
+    onManageSector: id => deploymentPanel.openGroup(id),
+    onSelectSector: id => crewInput.select(game.deployment.members(game.state.entities[heroId].owner, id).filter(e => !e.downed && !e.deployment.transfer).map(e => e.id), { returnPrevious: true }) });
   onKey('KeyM', () => gameMap.toggle());
   $('mapbtn').addEventListener('click', e => { gameMap.toggle(); e.currentTarget.blur(); });
   // the season score in the top bar (sim/territory.js): day of the season, then every clan's points
@@ -281,6 +287,7 @@ async function start() {
   // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
   // Positions and sizes live in data/ui_layout.json (written through server.mjs)
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
+  const stealthBadge = createStealthBadge({ root: $('stealth'), game, heroId, view });
   const hudLayout = createHudLayout({ fromFile: uiFile.panels });
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
@@ -437,19 +444,16 @@ async function start() {
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
-      // Shinobi: is your boss hidden (sim/stealth.js)
-      { const h = game.state.entities[heroId], el = $('stealth'), on = game.state.clans.player.kind === 'ninja' && h && !h.dead && !h.jailed;
-        el.hidden = !on;
-        // hidden long enough for Assassinate (F, 3 s; smoke doesn't count): "HIDDEN · F ready", else a countdown
-        const need = units.models?.ninja_leader?.abilities?.F?.hiddenSeconds || 3, held = h?.hiddenAt == null ? 0 : (game.state.tick - h.hiddenAt) / 20;
-        const snuffs = game.state.night ? ` · snuffs ${game.stealth.snuffsLeft(h.owner)}/${game.stealth.rules.snuffPerNight}` : '';   // lanterns left to put out tonight
-        if (on) { const t = (!h.hidden ? 'SEEN' : held >= need ? 'HIDDEN · F ready' : h.hiddenAt == null ? 'HIDDEN' : `HIDDEN · F in ${Math.ceil(need - held)}`) + snuffs; if (el.textContent !== t) { el.textContent = t; el.className = h.hidden ? 'hid' : 'seen'; } } }
+      stealthBadge.update();
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();
+      { const r = game.rally.status(game.state.entities[heroId].owner), b = $('rallybtn');
+        b.disabled = r.active || r.cooldown > 0; b.textContent = r.active ? `Rally · ${r.seconds}s` : r.cooldown ? `Rally · ${r.cooldown}s` : 'Call Rally';
+        b.title = 'Calls your remembered groups (all groups on first use). Configure groups in Deployment.'; }
       // in jail (sim/police.js): big red banner with the time left
       const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');
       jailEl.hidden = !jailed;

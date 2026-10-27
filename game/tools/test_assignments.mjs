@@ -17,9 +17,9 @@ g.step(); assert.equal(e.deployment.duty.status, 'Patrolling');
 const start = [e.x, e.z];
 for (let i = 0; i < 80; i++) { g.step(); assert.equal(g.deployment.sectorAt(e.x, e.z), s.id); }
 assert.ok(Math.hypot(e.x - start[0], e.z - start[1]) > 1);
-send({ action: 'assignment', sector: s.id, task: 'hold', objective: s.anchor, fallback: s.anchor });
+send({ action: 'assignment', sector: s.id, task: 'patrol', objective: s.anchor, fallback: s.anchor });
 for (let i = 0; i < 80; i++) g.step();
-assert.equal(e.deployment.duty.status, 'Holding');
+assert.equal(e.deployment.duty.status, 'Patrolling');
 const point = g.deployment.navFor(e).nearestFree(e.x + 3, e.z);
 g.step([{ id: heroId, type: 'order', kind: 'move', place: 'street', units: [e.id], x: point[0], z: point[1] }]);
 assert.equal(e.deployment.duty.manual, true);
@@ -27,9 +27,9 @@ for (let i = 0; i < 50; i++) g.step();
 assert.equal(e.deployment.duty.manual, true, 'completed temporary move stays manual until group change/Return');
 send({ action: 'return', units: [e.id] });
 for (let i = 0; i < 100; i++) g.step();
-assert.equal(e.deployment.duty.manual, false); assert.equal(e.deployment.duty.status, 'Holding');
+assert.equal(e.deployment.duty.manual, false); assert.equal(e.deployment.duty.status, 'Patrolling');
 const saved = structuredClone(g.state.deployment.clans.player.sectors[s.id]);
-send({ action: 'assignment', sector: s.id, task: 'hold', objective: g.state.deployment.sectors[1].anchor });
+send({ action: 'assignment', sector: s.id, task: 'patrol', objective: g.state.deployment.sectors[1].anchor });
 assert.deepEqual(g.state.deployment.clans.player.sectors[s.id], saved, 'cross-sector objectives rejected atomically');
 
 // Guard assignment uses a real owned room, crosses its door normally and stays local.
@@ -40,10 +40,14 @@ for (let i = 0; i < 1200 && e.place !== b.room; i++) g.step();
 assert.equal(e.place, b.room); g.step(); assert.equal(e.deployment.duty.status, 'Guarding');
 assert.notEqual(e.order.kind, 'follow');
 h.downed = true;
-send({ action: 'assignment', sector: s.id, task: 'hold', objective: s.anchor });
+send({ action: 'assignment', sector: s.id, task: 'patrol', objective: s.anchor });
 for (let i = 0; i < 1200 && e.place !== 'street'; i++) g.step();
 assert.equal(e.place, 'street', 'remote task change during KO walks crew out normally');
 assert.equal(g.deployment.sectorAt(e.x, e.z), s.id);
+const legacy = g.state.deployment.clans.player.sectors[g.state.deployment.sectors[1].id];
+legacy.task = 'hold'; g.step(); assert.equal(legacy.task, 'patrol', 'legacy Hold duties migrate even in empty sectors');
+send({ action: 'assignment', sector: s.id, task: 'hold' });
+assert.equal(g.state.deployment.clans.player.sectors[s.id].task, 'patrol', 'new Hold assignments rejected');
 
 const { game: n, heroId: ninjaHero } = create('shinobi'), ns = n.state.deployment.sectors[0];
 const watcher = n.state.entities[n.spawn('ninja', 'ninja', ns.anchor.x, ns.anchor.z, { owner: 'player', deployment: { group: ns.id } })];
@@ -55,4 +59,4 @@ n.step([{ id: ninjaHero, type: 'order', units: [watcher.id], place: 'street', ki
 assert.equal(watcher.deployment.duty.manual, true, 'manual local attacks can override Watch');
 n.step([{ id: ninjaHero, type: 'deployment', action: 'return', units: [watcher.id] }]);
 assert.equal(watcher.deployment.duty.manual, false);
-console.log('Assignments: local patrol, hold, manual/return, route validation, real guard entry/exit, KO control and passive Watch passed');
+console.log('Assignments: Patrol/Guard only, legacy Hold migration, local manual/return, route validation, real guard entry/exit, KO control and passive Watch passed');

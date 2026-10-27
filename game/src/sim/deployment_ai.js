@@ -29,13 +29,14 @@ export function createDeploymentAI(game, { clan, hero }) {
       const follow = members.filter(e=>inHeroParty(game,e)&&!e.deployment.transfer&&idle(e)&&e.place===h.place).map(e=>e.id);
       if (follow.length && !raid) out.push({id:hero,type:'order',kind:'follow',units:follow});
     }
+    let targeting = !!record.hunt;
     if (st.clans[clan].kind==='ninja') for (const [id,task]of Object.entries(record.sectors)) {
       const crew=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!game.rally.participating(e));
-      if (!crew.length || task.operation) continue;
+      if (!crew.length || task.operation || task.recovery || task.task==='ambush' || targeting) continue;
       const geisha=crew.find(e=>e.type==='shinobi_geisha');
       const targets=game.shinobiAssignments.targets(clan,id).filter(t=>game.deployment.sectorAt(t.x,t.z)===id);
       const target=targets.find(t=>game.shinobiAssignments.defenders(clan,t.id)<crew.length&&crew.every(e=>e.hp>=e.maxHp*.7)&&(!geisha||crew.length>1));
-      if(target)command({action:'armAmbush',sector:id,target:target.id});
+      if(target){command({action:'armAmbush',sector:id,target:target.id});targeting=true;}
     }
     return out;
   }

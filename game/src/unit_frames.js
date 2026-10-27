@@ -55,6 +55,8 @@ const STYLE = `
 .uf .hp span { position: absolute; inset: 0; text-align: center; font: 600 9px/10px system-ui, sans-serif; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
 .uf i { max-width: 100%; font: 10px/1.1 system-ui, sans-serif; font-style: normal; color: #9a968c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .uf.target { cursor: pointer; }
+#utarget.known { z-index: 34; }
+.uf .ambush-action { font: 10px system-ui; padding: 3px 5px; color: #e5d2ff; background: #30203c; border: 1px solid #9779b0; border-radius: 4px; cursor: pointer; }
 .uf.down { filter: grayscale(1) brightness(.75); }
 #utarget .effects { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; width: max-content; max-width: 460px; pointer-events: none; }
 #utarget .effect { position: relative; padding: 4px 10px 8px; border: 2px solid #65a968; border-radius: 4px; background: rgba(9,16,12,.9); color: #d8f2d8; font: 600 20px/1.1 system-ui, sans-serif; white-space: nowrap; }
@@ -67,7 +69,7 @@ const STYLE = `
 `;
 const COLORS = { you: ['#e9c27a', '#6ebe5a'], crew: ['#6ebe5a', '#6ebe5a'], enemy: ['#c8463a', '#c8463a'], neutral: ['#e0b04a', '#d9a23c'] };
 
-export function createUnitFrames({ game, units, catalog, crewInput, heroId, view, where = () => '', jump = () => {} }) {
+export function createUnitFrames({ game, units, catalog, crewInput, heroId, view, where = () => '', jump = () => {}, send = () => {} }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.appendChild(style);
@@ -82,13 +84,24 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       hp: c.querySelector('.hp span'), status: c.querySelector('i'), id: null, model: null };
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
+  let remembered = null, rememberedAtLook = null;
+  const knownTarget = () => game.shinobiIntelligence?.targets(game.state.entities[heroId]?.owner).find(e => e.id === remembered);
+  const ambush = document.createElement('button'); ambush.type = 'button'; ambush.className = 'ambush-action'; ambush.textContent = 'Arm Ambush'; target.c.appendChild(ambush);
+  ambush.addEventListener('click', e => {
+    e.stopPropagation(); const h = game.state.entities[heroId], hunt = game.state.deployment.clans[h.owner].hunt;
+    send({ id: heroId, type: 'deployment', action: hunt?.target === target.id ? 'cancelAmbush' : 'armAmbush', target: target.id });
+  });
   target.effects = document.createElement('div'); target.effects.className = 'effects'; target.c.appendChild(target.effects);
   const effectStarts = new Map();
   const hover = frame('hover', 'uhover');
   hover.c.hidden = true;
   hover.tag = document.createElement('em');
   hover.name.after(hover.tag);
-  target.c.addEventListener('click', () => { const u = game.state.entities[target.id]; if (u) jump(u); });
+  target.c.addEventListener('click', () => {
+    const known = remembered && knownTarget();
+    if (known) view.lookAt(known.x, known.z);
+    else { const u = game.state.entities[target.id]; if (u) jump(u); }
+  });
 
   const set = (el, prop, v) => { if (el[prop] !== v) el[prop] = v; };
   function fill(f, e, hero) {
@@ -125,9 +138,22 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     self.c.hidden = !h;
     if (!h) { target.c.hidden = true; return; }
     fill(self, h, h);
+    if (remembered && crewInput.looked?.() !== rememberedAtLook) remembered = null;
     const id = frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e), view?.commandPlace(game.state, heroId));
-    target.c.hidden = !id;
-    if (id) fill(target, S[id], h);
+    const memory = remembered && knownTarget();
+    const shown = memory || (id && S[id]);
+    target.c.hidden = !shown; target.c.classList.toggle('known', !!memory);
+    if (memory) {
+      target.id = memory.id;
+      const url = portrait(catalog, memory.model, null, CROP); target.pic.style.backgroundImage = url ? `url(${url})` : '';
+      target.name.textContent = unitName(units, memory.type === 'hero' ? memory.model : memory.type);
+      target.hp.textContent = 'Last sighting'; target.fill.style.width = '0%'; target.effects.replaceChildren();
+      target.status.textContent = memory.tracked ? 'Contract tracking' : memory.live ? 'In sight' : `Seen ${Math.floor(memory.age)}s ago`;
+      target.c.style.setProperty('--c', '#9779b0'); target.c.title = `${target.name.textContent}: ${target.status.textContent}`;
+    } else if (id) fill(target, S[id], h);
+    const eligible = shown && shown.owner !== h.owner && game.state.clans[shown.owner] && !shown.guard && !shown.cop && !shown.wild && shown.type !== 'civilian';
+    ambush.hidden = game.state.clans[h.owner]?.kind !== 'ninja' || !eligible;
+    ambush.textContent = game.state.deployment.clans[h.owner]?.hunt?.target === target.id ? 'Armed · Cancel' : 'Arm Ambush';
   }
   function updateHover(pointer, overWorld) {
     const h = game.state.entities[heroId], id = overWorld && crewInput.hovered(pointer.x, pointer.y);
@@ -139,5 +165,5 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     hover.c.style.left = `${Math.max(4, Math.min(x, innerWidth - hover.c.offsetWidth - 4))}px`;
     hover.c.style.top = `${Math.max(4, Math.min(y, innerHeight - hover.c.offsetHeight - 4))}px`;
   }
-  return { update, updateHover };
+  return { update, updateHover, showKnown: id => { remembered = id; rememberedAtLook = crewInput.looked?.(); update(); }, clearKnown: () => { remembered = null; } };
 }

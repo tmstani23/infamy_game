@@ -33,8 +33,9 @@ export function createDeploymentRally({ state, deployment }) {
     }
     if (c.action !== 'rally' || h.type !== 'hero' || !state.deployment.restrictionsEnabled) return;
     const r = record(h.owner), valid = ['hero', 'home', ...state.deployment.sectors.map(s => s.id)];
-    if (!r || r.active || r.readyAt > state.tick || !Array.isArray(c.groups) || !c.groups.length || c.groups.some(g => !valid.includes(g))) return;
-    const groups = [...new Set(c.groups)];
+    const chosen = c.groups ?? (r?.groups.length ? r.groups : valid);
+    if (!r || r.active || r.readyAt > state.tick || !Array.isArray(chosen) || !chosen.length || chosen.some(g => !valid.includes(g))) return;
+    const groups = [...new Set(chosen)];
     const participants = deployment.members(h.owner).filter(e => !e.downed && groups.includes(e.deployment.transfer?.to || e.deployment.group));
     Object.assign(r, { active: true, startedAt: state.tick, endsAt: state.tick + RALLY_TICKS, readyAt: 0, groups,
       participants: participants.map(e => ({ id: e.id, group: e.deployment.transfer?.to || e.deployment.group })) });

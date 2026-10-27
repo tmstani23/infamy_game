@@ -132,7 +132,10 @@ function smokeFixture() {
   assert.ok(hero.hidden && g.stealth.veiled(hero), 'damage cannot reveal the veil');
   const until = hero.buffs.veil.until;
   while (g.state.tick <= until) g.step();
-  assert.ok(!hero.hidden && !g.stealth.veiled(hero), 'nearby enemies detect normally after four seconds');
+  assert.ok(!g.stealth.veiled(hero), 'veil expires after four seconds');
+  rival.dir = 3; rival.x = hero.x + 1; rival.z = hero.z;
+  advance(g, Math.ceil(g.stealth.rules.suspicionSeconds * 20) + 2);
+  assert.equal(hero.hidden, false, 'facing enemy detects after normal suspicion buildup');
 }
 {
   const { g, hero, crew, rival } = smokeFixture();

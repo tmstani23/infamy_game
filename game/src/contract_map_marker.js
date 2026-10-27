@@ -6,6 +6,8 @@ export function contractMapLocation(game, clan) {
   const business = state.businesses[job.business];
   if (business) return { x: business.x, z: business.z };
   if (!job.hero) return null;
+  const track = state.deployment?.clans[clan]?.bossTrack;
+  if (job.kind === 'boss' && track?.target === job.hero && track.discovered && Number.isFinite(track.x)) return { x: track.x, z: track.z };
   const target = state.entities[job.hero];
   if (target && !target.dead && !target.jailed && !target.hidden && game.vision.canSee(clan, target)) {
     if (target.place === 'street') return { x: target.x, z: target.z };

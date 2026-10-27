@@ -36,6 +36,20 @@
 #deploymentpanel .reserve-target { width: 48px; padding: 3px; background: #20232a; color: #f0e3c9; border: 1px solid #6c5c40; border-radius: 4px; }
 #deploymentpanel input { accent-color: #86b69a; }
 #deploymentpanel footer { font-size: 11px; color: #8f897c; }
+.sector-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+.sector-actions label { display: flex; align-items: center; gap: 5px; }
+.sector-actions input { width: 42px; }
+.sector-actions select, .sector-actions input { background: #1c242c; color: #ebdfc6; border: 1px solid #6c5c40; border-radius: 4px; padding: 4px; }
+.sector-actions small { flex-basis: 100%; color: #e3be79; }
+.map-crew-tray { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.map-crew-tray button { width: 38px; height: 42px; background: #17212b center / contain no-repeat; border: 1px solid #79684d; border-radius: 5px; color: #e8dbbd; cursor: grab; }
+.map-crew-tray button.selected { border-color: #83d9a0; box-shadow: 0 0 4px #83d9a077; }
+.recent-targets { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow: auto; }
+.recent-targets > div { display: flex; gap: 4px; }
+.recent-targets button { font-size: 11px; text-align: left; }
+.contract-objective-counter { position: fixed; z-index: 7; padding: 5px 9px; border: 1px solid #a78ac9; border-radius: 5px; background: #171021dd; color: #ead7ff; font: 12px system-ui; pointer-events: none; }
+.contract-objective-counter[hidden] { display: none; }
+#deploymentpanel .member[draggable="true"], #bar .mate[draggable="true"] { cursor: grab; }
 /* the map makes room for it */
 #gamemap.docked { padding-right: 390px; box-sizing: border-box; }
 #gamemap.docked .mapbox canvas { width: min(88vh, calc(100vw - 690px)); height: min(88vh, calc(100vw - 690px)); }

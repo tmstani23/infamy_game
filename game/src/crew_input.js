@@ -112,12 +112,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       else groups.delete(number);
     }
   }
-  function setSelected(ids, returnPrevious = false) {
+  function setSelected(ids, returnPrevious = false, alreadyReturned = []) {
     const next = [...new Set(ids)], group = id => game.state.entities[id]?.deployment?.group;
     const oldGroups = new Set(selected.map(group).filter(Boolean)), newGroups = new Set(next.map(group).filter(Boolean));
     const switched = returnPrevious || (newGroups.size && [...newGroups].some(g => !oldGroups.has(g)) && selected.some(id => !next.includes(id)));
     if (switched) {
-      const units = selected.filter(id => !next.includes(id) && game.state.deployment?.clans[hero()?.owner]?.sectors[group(id)]);
+      const units = selected.filter(id => !next.includes(id) && !alreadyReturned.includes(id) && game.state.deployment?.clans[hero()?.owner]?.sectors[group(id)]);
       if (units.length) send({ id: heroId, type: 'deployment', action: 'return', units, selectionChange: true });
     }
     selected = next;
@@ -300,7 +300,19 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (ids?.length) { setSelected(ids, true); building = null; }
     },
     groupOf(id) { pruneGroups(); return [...groups].find(([, ids]) => ids.includes(id))?.[0] || null; },
-    clear() { setSelected([]); looked = null; building = null; attackMove = false; document.body.style.cursor = ''; },
+    clear() { setSelected([], true); looked = null; building = null; attackMove = false; document.body.style.cursor = ''; },
+    returnToDutyAndSelectHero(ids = mine()) {
+      const S = game.state.entities, owner = hero()?.owner, sectors = game.state.deployment?.clans[owner]?.sectors || {};
+      const units = [...new Set(ids)].filter(id => {
+        const e = S[id];
+        return e?.owner === owner && sectors[e.deployment?.group] && !e.deployment.transfer && !e.dead && !e.downed && !e.jailed;
+      });
+      if (units.length) send({ id: heroId, type: 'deployment', action: 'return', units });
+      const heroCrew = Object.values(S).filter(e => e.owner === owner && groupable(e.id) && e.deployment?.group === 'hero'
+        && !e.deployment.transfer && !e.downed && !e.jailed).map(e => e.id);
+      setSelected(heroCrew, true, units);
+      looked = null; building = null; attackMove = false; document.body.style.cursor = '';
+    },
     cancelAction() { send({ id: heroId, type: 'cancel', units: mine() }); },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
     // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')

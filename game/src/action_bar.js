@@ -41,10 +41,18 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const row = el('div', 'row', root);
   const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', row);
+  let dragUnits = [];
+  crew.addEventListener('dragstart', e => {
+    const id = e.target.closest('.mate')?.dataset.id;
+    if (!id || !game.state.entities[id] || game.state.entities[id].downed) { e.preventDefault(); return; }
+    e.dataTransfer.setData('application/x-infamy-crew', JSON.stringify(dragUnits.length ? dragUnits : [id]));
+    e.dataTransfer.effectAllowed = 'move';
+  });
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;
     const sel = crewInput.selected();
+    dragUnits = sel.includes(id) ? [...sel] : [id];
     crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);   // toggles: the selection sticks (Tim 2026-10-19)
   });
   crew.addEventListener('dblclick', e => {
@@ -149,6 +157,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.children[2].textContent = group ? `${group}` : '';
       m.children[2].title = group ? `Group ${group}: press ${group} to select; Ctrl+${group} with this group selected dissolves it` : '';
       m.dataset.id = e.id;
+      m.draggable = !e.downed;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
       m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${group ? ` (group ${group})` : ''}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}; double-click to select only this crew member`;
     });
@@ -161,6 +170,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.classList.add('away');
       m.classList.remove('picked');
       delete m.dataset.id;
+      m.draggable = false;
       m.title = `${unitName(units, c.unit)} at the clinic, ${c.kind !== 'recover' ? `back in ${Math.ceil(c.left)} s` : c.left > 0 ? `recovering, ${Math.ceil(c.left)} s` : 'recovered: revive at the clinic'}`;
     });
     jail.forEach((p, i) => {

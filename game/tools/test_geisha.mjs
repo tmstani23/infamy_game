@@ -33,6 +33,7 @@ assert.ok(actor.lure.readyAt>st.tick-DIVERSION.cooldownTicks,'lure has a cooldow
 // Anyone coming at her: she runs.
 idle.dead=true;Object.assign(enemyHero,{x:sector.anchor.x+60,z:sector.anchor.z+60});
 const hunter=fresh(3,{holdFire:false,order:{kind:'attack',target:actor.id}});
+actor.hidden=false;actor.revealUntil=st.tick+100;
 const d0=Math.hypot(hunter.x-actor.x,hunter.z-actor.z);
 for(let i=0;i<10;i++)g.step();
 assert.equal(actor.geishaMode,'fleeing','threatened geisha flees');

@@ -25,6 +25,10 @@ import { createAssignments } from './assignments.js';
 import { createDeploymentRally } from './deployment_rally.js';
 import { createShinobiAssignments } from './shinobi_assignments.js';
 import { createDiversion } from './diversion.js';
+import { createSectorRecovery } from './sector_recovery.js';
+import { createShinobiIntelligence } from './shinobi_intelligence.js';
+import { clearSight } from './perception.js';
+import { distractionStep } from './distraction.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
@@ -126,7 +130,11 @@ export function createGame(options) {
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory);
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
-  const stealth = createStealth({ state, scenery, rules: units?.rules?.stealth, say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
+  const opaqueStreet = scenery.filter(s => s.solid && !s.indoor && s.item?.kind === 'buildings').map(s => s.solid);
+  const stealth = createStealth({ state, scenery, rules: units?.rules?.stealth,
+    observerKnown: (e, u) => vision.canSee(e.owner, u),
+    lineOfSight: (a, b) => clearSight(a, b, a.place === 'street' ? opaqueStreet : [...roomBlockers, ...interiorDoors.filter(d => d.place === a.place && !state.interiorDoors[d.id]).map(d => d.blocker)]),
+    say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
   const intents = {};     // latest move command per entity (server-side only)
   const nav = createNav(blockers, district.bounds);
   // a walk grid per room too, so units path round the furniture indoors instead of snagging on it
@@ -187,7 +195,13 @@ export function createGame(options) {
     clearCombat: e => { delete e.swing; delete e.execute; delete e.patrol; delete e.indoorDuty; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target;
       for (const h of Object.values(state.entities)) if (h.assistCrew) h.assistCrew = h.assistCrew.filter(id => id !== e.id); } });
   const rally = createDeploymentRally({ state, deployment });
-  const shinobiAssignments = createShinobiAssignments({ state, deployment, assignments, rally, vision, sees: (a, b) => sees(a, b),
+  const shinobiIntelligence = createShinobiIntelligence({ state, deployment, vision });
+  const sectorRecovery = createSectorRecovery({ state, deployment, rally, vision,
+    hostile: (a, b) => hostile(a, b),
+    inCombat: e => !!fight[e.id]?.target,
+    clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
+    attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); } });
+  const shinobiAssignments = createShinobiAssignments({ state, deployment, assignments, rally, vision, intelligence: shinobiIntelligence, recovery: sectorRecovery, sees: (a, b) => sees(a, b),
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, executeStep,
     finishTarget: (clan, target, ids) => { const h = Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero'); if (h) startExecute(h, { target, units: ids, crewOnly: true }, true); } });
@@ -358,7 +372,12 @@ export function createGame(options) {
     const dx = wx - e.x, dz = wz - e.z, len = Math.hypot(dx, dz);
     if (len < 1e-6) return true;
     e.anim = walk ? 'walk' : 'run';
-    e.dir = dirIndex(dx, dz);
+    const want = dirIndex(dx, dz), turn = (want - e.dir + 8) % 8;
+    const patrolling = walk && (e.perceptionPatrol || e.order?.patrol || e.distracted || (e.guard && e.order?.kind === 'station')) && !fight[e.id]?.target;
+    if (patrolling && turn) {
+      if (state.tick >= (e.patrolTurnAt ?? 0)) { e.dir = (e.dir + (turn <= 4 ? 1 : 7)) % 8; e.patrolTurnAt = state.tick + 2; }
+      if (e.dir !== want) { e.anim = 'idle'; return true; }
+    } else e.dir = want;
     // crew know their own streets: crewSpeed times as fast in their clan's territory (sim/territory.js)
     const fast = e.type !== 'hero' && state.clans?.[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const slow = e.buffs?.snared?.speed ?? 1;   // caltrops (Distract): slowed
@@ -984,7 +1003,7 @@ export function createGame(options) {
         if (!(t.guard || cop(t) || wild(t)) || t.owner === e.owner || t.place !== e.place || t.dead || t.downed || t.jailed) continue;
         if (Math.hypot(t.x - x, t.z - z) > a.radius || t.swing || t.execute || t.wave || Object.keys(t.angry || {}).length) continue;
         const [sx, sz] = navOf(t.place)?.nearestFree(x, z) || [x, z];
-        t.distracted = { x: sx, z: sz, until: state.tick + secs(a.seconds) };
+        t.distracted = { x: sx, z: sz, lookX: x, lookZ: z, investigateTicks: secs(4), travelUntil: state.tick + secs(20), until: state.tick + secs(24) };
         delete paths[t.id];
       }
       // ...and it is a scatter of caltrops (Tim 2026-10-20): every enemy close to it is slowed, bosses too
@@ -1117,6 +1136,9 @@ export function createGame(options) {
     }
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     if (deployment.travelStep(e, unit)) return;
+    if (e.distracted?.source && diversion.step(e, unit)) return;
+    if (sectorRecovery.step(e, unit)) return;
+    if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
     if (shinobiAssignments.step(e, unit)) return;
     if (!rally.participating(e) && assignments.step(e, unit)) return;
@@ -1372,13 +1394,13 @@ export function createGame(options) {
     if (!r) return b.ring ? [-1, 1].map(k => ({ x: b.ring[0] + k, z: b.ring[1], place: 'street' })) : [];
     const mx = r.origin.x + r.size[0] / 2, mz = r.origin.z + r.size[1] / 2;
     const dx = mx - r.spawn.x, dz = mz - r.spawn.z, len = Math.hypot(dx, dz) || 1, ux = dx / len, uz = dz / len;
-    const step = Math.min(2.5, len * 0.6);
+    const step = Math.min(3.5, len * 0.8);
     const grid = roomNavs[r.name];
     return [-1, 1].map(k => {
       // where a path from the way in toward that spot ends (backs off furniture in the way)
       const x = r.spawn.x + ux * step - uz * k * 1.2, z = r.spawn.z + uz * step + ux * k * 1.2;
       const way = grid?.findPath(r.spawn.x, r.spawn.z, x, z), p = way?.[way.length - 1] || [r.spawn.x, r.spawn.z];
-      return { x: p[0], z: p[1], place: r.name };
+      return { x: p[0], z: p[1], place: r.name, dir: dirIndex(mx - p[0], mz - p[1]) };
     });
   };
   // spots a house guard walks between: a spread over the building's rooms, on free floor
@@ -1512,6 +1534,7 @@ export function createGame(options) {
     kuroda.tick();
     clans?.tick(DT, spawnOutside);
     syncCrewAttacks();
+    sectorRecovery.tick();
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e);
@@ -1581,7 +1604,6 @@ export function createGame(options) {
       }
       if (out) state.news.push({ kind: 'crewOut', clan: r.raider, building: Number(Object.keys(roomOf).find(k => roomOf[k] === b.room)) });
     }
-    contracts?.tick();
     territory.tick();
     if (state.smokes) {
       for (const s of state.smokes) if (s.until <= state.tick && s.fadeSeconds) {
@@ -1611,6 +1633,8 @@ export function createGame(options) {
       if (u.owner === s.clan && s.heal && !u.dead && !u.downed && u.maxHp && inSmoke(s, u)
         && rally.buffEligible(state.entities[s.hero] || Object.values(state.entities).find(e => e.owner === s.clan && e.type === 'hero'), u)) { u.hp = Math.min(u.maxHp, u.hp + u.maxHp * s.heal); addBuff(u, 'shroud', 1.1); }
     stealth.tick();
+    contracts?.tick();
+    shinobiIntelligence.tick();
     shinobiAssignments.tick();
     diversion.tick();
     // Losing sight drops the lock, queued swing and crew assignment immediately,
@@ -1674,5 +1698,5 @@ export function createGame(options) {
     if ((dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) && deployment.canOccupy(e, x, z)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, diversion };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion };
 }

@@ -32,10 +32,12 @@ function fixture() {
   for (let i = 0; i < 100; i++) tick();
   assert.ok(!bandit(), 'spent jobs never refill every tick');
   state.dawn = true; tick();
-  assert.ok(bandit(), 'next dawn restores the initial supply');
+  assert.ok(!bandit(), 'dawn cannot reset exhausted supply');
+  state.tick = state.contracts.nextRefresh; tick();
+  assert.ok(bandit(), 'independent board refresh restores supply');
   take(bandit());
   state.dawn = true; tick();
-  assert.ok(!state.contracts.active.s && bandit(), 'expiry fails the old job and posts the new cycle');
+  assert.ok(state.contracts.active.s && !bandit(), 'dawn preserves the accepted job');
 }
 {
   const { state, c, tick, take, bandit } = fixture();
@@ -61,7 +63,7 @@ function fixture() {
   assert.ok(!C.board.some(j => j.target === 'a'), 'taking a job still clears its other clan jobs');
   state.businesses.shop.owner = 'b'; tick();
   assert.ok(C.board.some(j => j.business === 'shop'), 'another newly eligible clan appears during an active job');
-  assert.deepEqual({ ...C.active.s, need: undefined, spot: undefined }, { ...accepted, need: undefined, spot: undefined }, 'active terms and progress stay unchanged');
+  assert.deepEqual({ ...C.active.s, need: undefined, spot: undefined, counter: undefined, hiddenEligible: undefined }, { ...accepted, need: undefined, spot: undefined, counter: undefined, hiddenEligible: undefined }, 'active terms and progress stay unchanged');
   assert.ok(!C.board.some(j => j.target === 'a'), 'refresh does not undo the clan fairness swap');
   state.businesses.tea.owner = 'b'; tick();
   assert.ok(!C.active.s, 'business changing hands still fails its accepted job');
@@ -71,4 +73,4 @@ function fixture() {
   for (let i = 0; i < 40; i++) tick();
   assert.equal(C.board.filter(j => j.kind === 'bandits').length, 1, 'refresh never duplicates a replacement');
 }
-console.log('Contract refill: two earned bandit jobs per dawn, no drop exploit, live business eligibility, fairness and accepted reward locks ok');
+console.log('Contract refill: independent supply cycles, no drop exploit, live business eligibility, fairness and accepted reward locks ok');

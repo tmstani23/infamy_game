@@ -6,10 +6,12 @@
 // Snuffing a lantern: the ninja boss at night, within snuffReach of a lit lantern (click it or Space), for snuffSeconds
 // (only being downed cancels it): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
 // at most snuffPerNight a night. Numbers: units.json rules.stealth.
-const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 4, runFactor: 2, revealSeconds: 5, lightRadius: 5,
+import { inViewCone } from './perception.js';
+const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, revealSeconds: 5, lightRadius: 5,
+  viewAngle: 90, suspicionSeconds: 1.2, suspicionDecay: 2,
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
 
-export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
+export function createStealth({ state, scenery, rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false }) {
   const R = { ...DEFAULTS, ...rules };
   const secs = s => Math.round(s * 20);
   // the lanterns the sim knows about: lit props (lantern posts, stone lanterns, braziers...)
@@ -24,6 +26,7 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
   }
   const ninja = e => state.clans?.[e?.owner]?.kind === 'ninja';
   const canHide = e => ninja(e) && !e.dead && !e.downed && !e.jailed;
+  const suspicion = new Map();
   // who can spot a hidden unit: any armed unit not on its side (other clans, police, house guards, bandits)
   const spotter = (u, e) => u.owner !== e.owner && u.type !== 'civilian' && !u.dead && !u.downed && !u.jailed && u.place === e.place;
   function range(e) {
@@ -63,18 +66,30 @@ export function createStealth({ state, scenery, rules = {}, say = () => {} }) {
     if (state.tick % R.every) return;
     const all = Object.values(state.entities);
     for (const e of all) {
-      if (!canHide(e)) { if (e.hidden) e.hidden = false; continue; }
+      if (!canHide(e)) { if (e.hidden) e.hidden = false; delete e.stealthStatus; suspicion.delete(e.id); continue; }
+      const lighting = e.place !== 'street' ? 'indoors' : lit(e.x, e.z) ? 'lit' : 'dark';
+      e.stealthStatus = { lighting, movement: e.anim === 'run' ? 'running' : e.anim === 'walk' ? 'walking' : 'still', range: range(e),
+        concealment: Math.max(0, Math.min(1, 1 - range(e) / (Math.max(R.litRange, R.indoorRange) * R.runFactor))), suspicion: 0, observers: [], mode: 'normal' };
       // The cloud's parting veil ignores detection and incoming-hit reveals. An
       // outgoing attack consumes it; it also waives Assassinate's hiding timer.
       if (knocking(e)) { if (e.buffs) delete e.buffs.veil; e.hidden = false; e.hiddenAt = null; continue; }
-      if (veiled(e)) { e.hidden = true; continue; }
+      if (veiled(e)) { e.hidden = true; e.stealthStatus.mode = 'veil'; e.stealthStatus.concealment = 1; suspicion.delete(e.id); continue; }
       // inside its own clan's Smoke Bomb: hidden unless attacking, but that doesn't count as hidden time
-      if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = !exposed(e); if (!e.hidden) e.hiddenAt = null; continue; }
+      if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = !exposed(e); e.stealthStatus.mode = 'smoke'; e.stealthStatus.concealment = e.hidden ? 1 : 0; suspicion.delete(e.id); if (!e.hidden) e.hiddenAt = null; continue; }
       if ((e.revealUntil ?? -1) > state.tick) { e.hidden = false; continue; }
       const r = range(e), r2 = r * r;
-      const seen = all.some(u => spotter(u, e) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r2);
-      if (seen) reveal(e); else { e.hiddenAt ??= state.tick; e.hidden = true; }
+      const memory = suspicion.get(e.id) || new Map(), active = new Set(); let maximum = 0;
+      for (const u of all) if (spotter(u, e) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r2 && inViewCone(u, e, R.viewAngle) && lineOfSight(u, e)) {
+        active.add(u.id); const ticks = (memory.get(u.id) || 0) + R.every;
+        memory.set(u.id, ticks); maximum = Math.max(maximum, ticks);
+        if (observerKnown(e, u)) e.stealthStatus.observers.push({ id: u.id, progress: Math.min(1, ticks / Math.max(1, secs(R.suspicionSeconds))) });
+      }
+      for (const [id, ticks] of memory) if (!active.has(id)) { const left = ticks - R.every * R.suspicionDecay; if (left > 0) memory.set(id, left); else memory.delete(id); }
+      suspicion.set(e.id, memory);
+      e.stealthStatus.suspicion = Math.min(1, maximum / Math.max(1, secs(R.suspicionSeconds)));
+      if (e.stealthStatus.suspicion >= 1) reveal(e); else { e.hiddenAt ??= state.tick; e.hidden = true; }
     }
+    for (const id of suspicion.keys()) if (!state.entities[id]) suspicion.delete(id);
   }
 
   // the lantern a ninja boss could snuff from where he stands (that one, given its prop), or null

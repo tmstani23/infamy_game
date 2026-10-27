@@ -9,6 +9,7 @@
 import { canInteract } from './interactions.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
+import { distractionStep } from './distraction.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -538,10 +539,11 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     // nothing to do indoors (he was arrested, or got out): back out to the street to patrol
     if (e.place !== 'street') { if (!goThrough(e, 'street', unit)) remove(e.id); return; }
     // a ninja's pebble (Distract, sim/game.js): walk over and look round there for a while
-    const dz = e.distracted;
-    if (dz && state.tick < dz.until) { if (Math.hypot(dz.x - e.x, dz.z - e.z) < 0.8 || !moveTo(e, unit, dz.x, dz.z, true)) { e.anim = 'idle'; stopPath(e); } return; }
+    if (distractionStep(e, unit, state, moveTo, stopPath)) return;
     const goal = patrolSpot(e, m);
+    e.perceptionPatrol = !!e.routine && !knownFor(e) && !searchFor(e);
     if (!goal || !moveTo(e, unit, goal[0], goal[1], goal[2])) { e.anim = 'idle'; stopPath(e); }
+    delete e.perceptionPatrol;
   }
 
   // Called once per tick after the units moved

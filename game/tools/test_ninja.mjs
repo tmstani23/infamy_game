@@ -57,7 +57,8 @@ const newGame = () => {
   assert.ok(!g.vision.canSee('kuroda', n), 'rival cannot see him');
   // an enemy walks up close: seen, and stays seen for revealSeconds
   t.x = dark[0] + S.darkRange - 0.5;
-  for (let i = 0; i < 4; i++) g.step();
+  t.dir = 3;
+  for (let i = 0; i < 20 * S.suspicionSeconds + 2; i++) g.step();
   assert.equal(n.hidden, false, 'seen close up');
   t.x = dark[0] + 30;
   for (let i = 0; i < 20 * (S.revealSeconds - 1); i++) g.step();
@@ -263,7 +264,7 @@ const newGame = () => {
   const ryo0 = clan.ryo;
   run(20 * (K.scout.seconds + 1));
   assert.ok(!C.active.player, 'scout done');
-  assert.equal(clan.ryo, ryo0 + scoutQuote.ryo); assert.equal(clan.renown, scoutQuote.renown);
+  assert.equal(clan.ryo, ryo0 + scoutQuote.ryo); assert.equal(clan.renown, scoutQuote.renown + Math.round(scoutQuote.renown * K.hiddenBonusShare));
   // Sabotage: plant on the back-room spot at night, hold, then no payout from it at dawn
   g.step([{ type: 'time', night: true }]);
   job = want('mark');
@@ -307,10 +308,11 @@ const newGame = () => {
   assert.equal(C.active.player.progress, p1, 'stepping off pauses the steal, keeps the count');
   // seen inside: one alarm to the owners, and the count still runs while seen (Tim 2026-10-21)
   const watcher = g.state.entities[g.spawn('thug', 'thug', boss.x + 1, boss.z, { owner: 'kuroda', place: tea.room, order: { kind: 'stop' }, hp: 1e6, maxHp: 1e6 })];
+  watcher.dir = 3; watcher.x = stash.x + 1; watcher.z = stash.z;
   boss.hp = boss.maxHp = 1e6;
   Object.assign(boss, { x: stash.x, z: stash.z });
   let alarm = 0, p2 = C.active.player.progress;
-  for (let i = 0; i < 20 && C.active.player; i++) { g.step(); alarm += g.state.news.filter(n => n.kind === 'stealAlert' && n.clan === 'kuroda' && n.by === 'player').length; }
+  for (let i = 0; i < 20 * (g.stealth.rules.suspicionSeconds + 1) && C.active.player; i++) { g.step(); alarm += g.state.news.filter(n => n.kind === 'stealAlert' && n.clan === 'kuroda' && n.by === 'player').length; }
   assert.equal(alarm, 1, 'one alarm when seen inside');
   assert.ok(C.active.player.progress > p2, 'the count runs while seen');
   delete g.state.entities[watcher.id];
@@ -318,15 +320,16 @@ const newGame = () => {
   run(20 * (K.steal.seconds - 3));
   assert.equal(clan.ryo - r1, Math.min(stealQuote.stealCap, 1000 * stealQuote.stealShare), 'stole their ryo');
   assert.equal(g.state.clans.kuroda.ryo, 1000 - (clan.ryo - r1));
-  // a job not done by dawn fails and pays nothing
+  // Dawn does not cancel an accepted job or pay it prematurely.
   boss.place = 'street'; Object.assign(boss, { x: shrine.x, z: shrine.z });
   g.step([{ type: 'time', night: true }]);
   job = C.board[0];
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const r2 = clan.ryo;
+  const renownBeforeDawn = clan.renown;
   g.step([{ type: 'time', night: false }]);
-  assert.ok(!C.active.player && g.state.news.some(n => n.kind === 'contractFailed'), 'ran out at dawn');
-  assert.ok(clan.ryo >= r2 && clan.renown === scoutQuote.renown + markQuote.renown + stealQuote.renown, 'no pay for a failed job');
+  assert.equal(C.active.player?.id, job.id, 'accepted job survives dawn');
+  assert.ok(clan.ryo >= r2 && clan.renown === renownBeforeDawn, 'dawn does not pay an unfinished job');
   console.log('contracts ok');
 }
 // fair board (Tim 2026-10-20): at most perClan jobs on a clan, taking one swaps the rest on that clan away

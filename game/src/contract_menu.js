@@ -4,8 +4,10 @@
 const KIND = { scout: 'Scout', mark: 'Sabotage', steal: 'Steal', boss: 'Boss', bandits: 'Town' };
 import { contractLockoutUntil } from './sim/hq_raids.js';
 
-export function createContractMenu({ panel, tracker, game, heroId, send, selected = () => [] }) {
+export function createContractMenu({ panel, tracker, game, heroId, send, selected = () => [], view }) {
   let open = false, shown = '', shownT = '';
+  const localCounter = view ? document.createElement('div') : null;
+  if (localCounter) { localCounter.className = 'contract-objective-counter'; localCounter.hidden = true; document.body.appendChild(localCounter); }
 
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
@@ -30,14 +32,19 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     const i = e.target.dataset?.pick;
     if (i !== undefined) { pick(Number(i)); e.target.blur(); }
   });
+  tracker.addEventListener?.('click', e => {
+    if (!e.target.closest('[data-ambush-contract]')) return;
+    const c = clan(), job = c && C().active[c.id], hunt = c && game.state.deployment.clans[c.id]?.hunt;
+    if (job?.kind === 'boss') send({ id: heroId, type: 'deployment', action: hunt?.target === job.hero ? 'cancelAmbush' : 'armAmbush', target: job.hero });
+    e.stopPropagation();
+  });
 
   // what is left to do on the job, for the tracker and the menu
   function progress(j) {
     const s = t => Math.max(0, Math.ceil(t / 20));
     if (j.kind === 'bandits') return `${j.progress || 0}/${j.need || '?'} bandits`;
     if (j.kind === 'boss') return 'find him and knock him out';
-    if (j.kind === 'mark' && !j.mark) return !game.state.night ? 'wait for night, then plant the mark in the back room'
-      : j.progress ? `planting the mark… ${s(j.need - j.progress)} s` : 'plant the mark on the back-room spot';
+    if (j.kind === 'mark' && !j.mark) return j.progress ? `planting the mark… ${s(j.need - j.progress)} s` : 'plant the mark on the back-room spot';
     if (j.kind === 'mark') return `${j.mark.away ? `nobody inside: ${s(game.contracts.rules.mark.leaveSeconds * 20 - j.mark.away)} s to get back in · ` : ''}hold ${s(j.need - j.progress)} s${j.mark.alerted ? ' · they know' : ''}`;
     if (j.kind === 'steal') return j.progress ? `taking the ryo… ${s(j.need - j.progress)} s` : 'in by the back window, stand on the stash';
     return j.progress ? `watching… ${s(j.need - j.progress)} s` : 'get inside unseen and watch';   // scout
@@ -51,16 +58,23 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     const job = c && C().active[c.id];
     const locked = c ? Math.max(0, Math.ceil((contractLockoutUntil(game.state, c.id) - game.state.tick) / 20)) : 0;
     const t = locked ? `<b>HQ on fire</b><span>Contracts unavailable · reopen in ${locked} s</span>`
-      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)} · until dawn</span>` : '';
+      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)}</span>${job.kind === 'boss' ? `<button data-ambush-contract type="button">${game.state.deployment.clans[c.id]?.hunt?.target === job.hero ? 'Armed · Cancel' : 'Ambush contract target'}</button>` : ''}` : '';
     tracker.hidden = !job && !locked;
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
+    const counter = job?.counter;
+    if (localCounter) localCounter.hidden = !counter || view.commandPlace(game.state, heroId) !== counter.place;
+    if (localCounter && !localCounter.hidden) {
+      const p = view.unitToScreen(counter.x, counter.z);
+      localCounter.style.left = `${Math.max(8, Math.min(innerWidth - 160, p.x))}px`; localCounter.style.top = `${Math.max(8, Math.min(innerHeight - 60, p.y - 25))}px`;
+      localCounter.textContent = `${counter.label} · ${Math.min(counter.need, counter.progress) / 20 | 0}/${Math.ceil(counter.need / 20)}s`;
+    }
     if (!open || !c || !h) return;
     let body;
     if (locked) body = `<div class="waiting">Your HQ is on fire. Contracts reopen in ${locked} s. Any active contract was cancelled.</div>`;
     else if (job) body = `<div class="row"><span>${job.label}<br><small>${progress(job)}</small></span><button data-pick="0">Call off</button></div>` +
-      '<div class="waiting">One contract at a time; it runs until dawn</div>';
-    else body = C().board.map((j, k) => `<div class="row"><span>${k + 1}. ${KIND[j.kind]}: ${j.label}${j.night ? ' (night)' : ''}<br><small>for ${clientName(j.client)} · ${reward(j)}</small></span>` +
-      `<button data-pick="${k}">Take</button></div>`).join('') || '<div class="waiting">No jobs left today; new ones at dawn</div>';
+      '<div class="waiting">One contract at a time · complete at any hour</div>';
+    else body = C().board.map((j, k) => `<div class="row"><span>${k + 1}. ${KIND[j.kind]}: ${j.label}<br><small>for ${clientName(j.client)} · ${reward(j)}</small></span>` +
+      `<button data-pick="${k}">Take</button></div>`).join('') || `<div class="waiting">Board refresh in ${Math.max(0, Math.ceil(((C().nextRefresh || 0) - game.state.tick) / 20))}s</div>`;
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const html = `<h3>CONTRACT BOARD</h3><div class="row"><span>Renown ${c.renown || 0}</span></div>${body}${notice}<div class="waiting">number keys or click · Space / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }

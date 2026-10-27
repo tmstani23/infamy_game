@@ -67,10 +67,9 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const readyPatient = c => c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && c.ryo >= game.clans.reviveCost(p, clan));
   // the back window of a business (outside end), for the sneaking jobs
   const windowOf = b => game.doors.find(d => d.ninja && d.place === b.room);
-  // can it do this job now? (a mark needs the night, but can be taken by day and done after dark)
+  // Contract feasibility is independent of day/night.
   const doable = j => {
     if (ai.blocked(`job:${j.id}`)) return false;
-    if (state.clock && state.night && state.clock.left < secs(jobSeconds(j) + 10)) return false;
     if (j.kind === 'boss') {
       const t = state.entities[j.hero];
       if (!t || !crew().length) return false;
@@ -86,8 +85,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const s = shrine(), b = state.businesses[j.business];
     if (!s) return Infinity;
     const travel = ai.route(s.x, s.z) + (b ? Math.hypot(b.x - s.x, b.z - s.z) : j.kind === 'boss' ? 70 : 35);
-    const wait = state.night ? 0 : state.clock ? state.clock.left / 20 : 120;
-    const duration = j.kind === 'mark' ? 70 + wait : j.kind === 'boss' ? 80 : j.kind === 'bandits' ? 55 : 15;
+    const duration = j.kind === 'mark' ? 70 : j.kind === 'boss' ? 80 : j.kind === 'bandits' ? 55 : 15;
     return duration + travel / 4;
   }
   function jobScore(j) {
@@ -249,12 +247,6 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const b = state.businesses[j.business];
     if (j.kind === 'scout' || j.kind === 'mark' || j.kind === 'steal') {
       if (!b || !windowOf(b)) return abandon(out, j);
-      if (j.kind === 'mark' && !state.night && h.place !== b.room) {   // a mark waits for the dark, near the window
-        const w = windowOf(b);
-        if (!toStreet(out)) return false;
-        walk(out, w.x, w.z, 4);
-        return false;
-      }
       const w = windowOf(b);
       if (h.place !== b.room) {
         if (!goal.parked) { out.push(...crewWait(w.x, w.z)); goal.parked = true; }
@@ -329,9 +321,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
     if ((job()?.id ?? null) !== workingJob) {
       workingJob = job()?.id ?? null;
-      // Waiting for night is valid work, not a stalled mark job.
-      const wait = job()?.kind === 'mark' && !state.night ? state.clock?.left ?? secs(120) : 0;
-      jobUntil = state.tick + secs(B.jobSeconds) + wait;
+      jobUntil = state.tick + secs(B.jobSeconds);
       ai.recall(out); goal = null; ai.reset(); nextThink = 0;
     }
     if (job() && state.tick > jobUntil) { abandon(out); goal = null; ai.reset(); }
@@ -360,7 +350,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       if (fighting) ai.engage(out, target);
       else if (act(out)) { goal = null; ai.reset(); }
       // stuck: give the goal up and think again; standing still on a job inside doesn't count
-      const waiting = goal && (fighting || h.swing || h.lootTarget || goal.kind === 'rally' || (goal.kind === 'job' && h.place !== 'street' && !out.some(c => c.type === 'move')) || h.snuffing || (goal.kind === 'hire' && h.place !== 'street') || (goal.kind === 'job' && job()?.kind === 'mark' && !state.night));
+      const waiting = goal && (fighting || h.swing || h.lootTarget || goal.kind === 'rally' || (goal.kind === 'job' && h.place !== 'street' && !out.some(c => c.type === 'move')) || h.snuffing || (goal.kind === 'hire' && h.place !== 'street'));
       const moved = !last || Math.hypot(h.x - last.x, h.z - last.z) > 0.02 || h.place !== last.place;
       still = moved || waiting ? 0 : still + 1;
       last = { x: h.x, z: h.z, place: h.place };

@@ -20,6 +20,7 @@ assert.ok(team.every(e=>!inHeroParty(g,e)),'local assignment crews excluded from
 const enemy=st.entities[g.spawn('thug','thug',s.anchor.x+2,s.anchor.z,{owner:'player',deployment:{group:'hero'},order:{kind:'stop'},holdFire:true})];
 st.tick+=40;out=ai.tick();assert.ok(out.some(c=>c.action==='armAmbush'&&c.target===enemy.id));
 g.step(out);assert.equal(st.deployment.clans[clan].sectors[s.id].operation.state,'Attacking');
+st.tick+=40;out=ai.tick();assert.ok(!out.some(c=>c.action==='armAmbush'),'bot never replaces an already armed/committed coordinated order');
 delete st.deployment.clans[clan].sectors[s.id].operation;
 const geisha=st.entities[g.spawn('shinobi_geisha','shinobi_geisha',s.anchor.x,s.anchor.z,{owner:clan,deployment:{group:s.id}})];
 // the geisha acts on her own now (Tim 2026-10-27): the bot sends no geisha commands

@@ -1,16 +1,16 @@
 // Shinobi contracts (ninja build phase 5, Tim 2026-10-20): the village shrine's board posts
-// perDawn jobs every dawn, from the town and from the clans. A Shinobi clan takes one at a time
-// (Space at the shrine); it runs until the next dawn. Done: ryo + Renown; failed: nothing. The
+// a rolling board of jobs from town and rival clans. One active job per Shinobi clan
+// (Space at the shrine); objective counters are independent of day/night. Done: ryo + Renown; failed: nothing. The
 // clan it is aimed at gets a warning when it is taken.
 //   scout   stand inside a named rival business, hidden, for seconds
-//   mark    at night plant a mark on its back-room spot (plantSeconds standing there), then keep a
+//   mark    plant a mark on its back-room spot (plantSeconds standing there), then keep a
 //           ninja inside for holdSeconds (none inside for leaveSeconds = failed); the owner hears of
 //           it at once if the planter was seen, else after alertDelay, and his units standing on
 //           the mark for clearSeconds scrub it off (failed). Done: that business pays 0 at the next dawn
 //   steal   in a rival-owned business, stand on its back-room stash for seconds: take
 //           share of the clan's ryo (at most max)
 //   boss    knock out the named rival boss
-//   bandits knock out count night bandits before dawn
+//   bandits knock out count bandits
 // Fair board (Tim 2026-10-20): at most perClan jobs on one clan; a clan the Shinobi hit in the
 // last recentDays days draws fewer jobs, the season leader more; taking a job swaps the other
 // jobs on that clan for jobs on other clans or the town.
@@ -19,6 +19,8 @@
 // businesses can fill spare board slots during the day, without replacing active jobs.
 const DEFAULTS = {
   perDawn: [3, 5],
+  refreshSeconds: 120, repeatSeconds: 120, failedRepeatSeconds: 30,
+  hiddenBonusShare: .25, hiddenProgressRate: 2,
   perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
   scout: { ryo: 150, renown: 15, seconds: 10 },
   mark: { ryo: 300, renown: 30, plantSeconds: 3, holdSeconds: 60, leaveSeconds: 10, alertDelay: 15, clearSeconds: 4, reach: 1.5 },
@@ -49,11 +51,11 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   // quoted reward and theft ceiling even if ownership changes elsewhere.
   function quote(job) {
     if (job.rewardLocked) return { ryo: job.ryo, renown: job.renown, businessScore: job.businessScore,
-      multiplier: job.multiplier, stealCap: job.stealCap, stealShare: job.stealShare };
+      multiplier: job.multiplier, stealCap: job.stealCap, stealShare: job.stealShare, hiddenBonusShare: job.hiddenBonusShare ?? R.hiddenBonusShare };
     const score = job.target ? businessScore(job.target) : 0, base = R[job.kind];
     const multiplier = 1 + score * R.rewardPerBusinessPoint;
     return { ryo: base.ryo == null ? null : Math.round(base.ryo * multiplier), renown: Math.round(base.renown * multiplier),
-      businessScore: score, multiplier, ...(job.kind === 'steal' ? {
+      businessScore: score, multiplier, hiddenBonusShare: R.hiddenBonusShare, ...(job.kind === 'steal' ? {
         stealCap: R.steal.max + score * R.steal.capPerBusinessPoint, stealShare: R.steal.share } : {}) };
   }
 
@@ -69,7 +71,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     }
     for (const e of Object.values(state.entities)) if (e.type === 'hero' && e.owner && !ninja(e.owner) && state.clans?.[e.owner])
       out.push({ kind: 'boss', hero: e.id, target: e.owner, label: `Knock out the ${clanName(e.owner)} boss` });
-    out.push({ kind: 'bandits', target: null, label: `Thin out the bandits (${R.bandits.count} tonight)` });
+    out.push({ kind: 'bandits', target: null, label: `Thin out the bandits (${R.bandits.count})` });
     return out;
   }
   const same = (a, b) => a.kind === b.kind && a.business === b.business && a.hero === b.hero;
@@ -78,6 +80,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   C.banditBudget ??= 1;
   C.businessOwners ??= businessOwners();
   C.pendingBusinesses ??= [];
+  C.cooldowns ??= {};
+  const jobKey = j => `${j.kind}:${j.business ?? j.hero ?? 'town'}:${j.target ?? ''}`;
   // how likely a job on this clan is: fewer after recent hits on it, more on the season leader
   const weight = target => {
     if (!target) return 1;
@@ -88,14 +92,15 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   // on the board yet first; null when nothing fits
   function draw(board, skip = () => false) {
     const per = id => board.filter(j => j.target === id).length;
-    const ok = pool().filter(j => !board.some(b => same(b, j)) && !skip(j) && (!j.target || per(j.target) < R.perClan)
+    const ok = pool().filter(j => !board.some(b => same(b, j)) && !Object.values(C.active).some(a => same(a, j))
+      && (C.cooldowns[jobKey(j)] ?? 0) <= state.tick && !skip(j) && (!j.target || per(j.target) < R.perClan)
       && (j.kind !== 'bandits' || (C.banditsTaken < C.banditBudget && !Object.values(C.active).some(a => a.kind === 'bandits'))));
     if (!ok.length) return null;
     const fresh = ok.filter(j => !board.some(b => b.kind === j.kind)), from = fresh.length ? fresh : ok;
     let r = rnd() * from.reduce((s, j) => s + weight(j.target), 0);
     const j = from.find(j => (r -= weight(j.target)) <= 0) || from[from.length - 1], k = R[j.kind];
     const rivals = Object.keys(state.clans || {}).filter(id => !ninja(id) && id !== j.target);
-    return { ...j, id: C.next++, client: j.kind === 'bandits' || !rivals.length ? 'town' : rivals[Math.floor(rnd() * rivals.length)], ryo: k.ryo ?? null, renown: k.renown, night: j.kind === 'mark' };
+    return { ...j, id: C.next++, client: j.kind === 'bandits' || !rivals.length ? 'town' : rivals[Math.floor(rnd() * rivals.length)], ryo: k.ryo ?? null, renown: k.renown };
   }
 
   // a fresh board each dawn
@@ -107,6 +112,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     C.businessOwners = businessOwners(); C.pendingBusinesses = [];
     for (let i = 0; i < n; i++) { const j = draw(C.board); if (!j) break; C.board.push(j); }
     C.posted = true;
+    C.nextRefresh = state.tick + secs(R.refreshSeconds);
   }
 
   // New ownership creates a finite set of business jobs during the day. Fill
@@ -132,22 +138,32 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       C.pendingBusinesses = C.pendingBusinesses.filter(p => !same(p, j) || p.target !== j.target);
       C.board.push(j);
     }
+    // Rolling supply is independent of dawn; accepted-clan fairness and repeat
+    // cooldowns prevent cancel/reaccept and instant same-objective farming.
+    while (C.board.length < max) {
+      const j = draw(C.board, j => j.target && Object.values(C.active).some(a => a.target === j.target));
+      if (!j) break;
+      C.board.push(j);
+    }
   }
 
   const reward = job => { const q = quote(job); return job.kind === 'steal'
     ? `${Math.round(q.stealShare * 100)}% of their ryo (max ${q.stealCap})` : `${q.ryo} ryo`; };
 
-  function finish(clanId, ok, why, ryo = null) {
+  function finish(clanId, ok, why, ryo = null, actor = null) {
     const job = C.active[clanId], clan = state.clans[clanId];
     delete C.active[clanId];
     if (!job || !clan) return;
+    if (job.kind !== 'bandits') C.cooldowns[jobKey(job)] = state.tick + secs(ok ? R.repeatSeconds : R.failedRepeatSeconds);
     if (ok) {
       const pay = ryo ?? job.ryo ?? 0;
-      clan.ryo += pay; clan.renown = (clan.renown || 0) + job.renown;
+      const hiddenBonus = actor?.hidden && ['scout', 'mark', 'steal'].includes(job.kind) ? Math.round(job.renown * (job.hiddenBonusShare ?? R.hiddenBonusShare)) : 0;
+      const renown = job.renown + hiddenBonus;
+      clan.ryo += pay; clan.renown = (clan.renown || 0) + renown;
       if (job.target) C.hits.push({ target: job.target, day: C.day });
       if (pay) state.ryoGains.push({ clan: clanId, amount: pay, target: job.hero ?? job.business, reason: 'Contract' });
-      state.news.push({ kind: 'contractDone', clan: clanId, label: job.label, ryo: pay, renown: job.renown });
-      say(clan, `Contract done: +${pay} ryo, +${job.renown} Renown`);
+      state.news.push({ kind: 'contractDone', clan: clanId, label: job.label, ryo: pay, renown, hiddenBonus });
+      say(clan, `Contract done: +${pay} ryo, +${renown} Renown${hiddenBonus ? ` (hidden completion +${hiddenBonus})` : ''}`);
       if (job.kind === 'bandits' && C.banditsTaken === 1) C.banditBudget = 2;
     } else {
       state.news.push({ kind: 'contractFailed', clan: clanId, label: job.label, why });
@@ -198,18 +214,23 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     if (['scout', 'mark', 'steal'].includes(job.kind) && (!b || b.hideout || !(scores[b.kind] > 0))) return finish(clanId, false, 'the business is no longer available');
     if (b && b.owner !== job.target) return finish(clanId, false, 'the owner changed');
     if (job.kind === 'scout') {
-      const seen = mine.some(e => e.place === b.room && e.hidden);
-      job.progress = seen ? job.progress + 1 : 0;
+      const seen = mine.find(e => e.place === b.room && e.hidden);
+      job.hiddenEligible = !!seen;
+      job.progress = seen ? job.progress + R.hiddenProgressRate : 0;
       job.need = secs(R.scout.seconds);
-      if (job.progress >= job.need) finish(clanId, true);
+      job.counter = { ...backRoom(b), place: b.room, label: 'Scout', progress: job.progress, need: job.need };
+      if (job.progress >= job.need) finish(clanId, true, '', null, seen);
     } else if (job.kind === 'mark') {
       const r = R.mark;
       if (!job.mark) {
         const spot = backRoom(b);
-        const on = state.night && spot && mine.find(e => e.place === b.room && Math.hypot(e.x - spot.x, e.z - spot.z) <= r.reach);
+        const candidates = spot ? mine.filter(e => e.place === b.room && Math.hypot(e.x - spot.x, e.z - spot.z) <= r.reach) : [];
+        const on = candidates.find(e => e.hidden) || candidates[0];
         job.spot = spot && { x: spot.x, z: spot.z, r: r.reach, on: !!on };   // the ring to plant it in (render/banners.js)
-        job.progress = on ? job.progress + 1 : 0;
+        job.hiddenEligible = !!on?.hidden;
+        job.progress = on ? job.progress + (on.hidden ? R.hiddenProgressRate : 1) : 0;
         job.need = secs(r.plantSeconds);
+        job.counter = { ...spot, place: b.room, label: 'Plant mark', progress: job.progress, need: job.need };
         if (on && job.progress >= job.need) {
           job.mark = { x: spot.x, z: spot.z, place: b.room, at: tick, alertAt: tick + (on.hidden ? secs(r.alertDelay) : 0), held: 0, away: 0, clear: 0 };
           job.progress = 0; job.need = secs(r.holdSeconds);
@@ -220,22 +241,27 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       const m = job.mark;
       delete job.spot;
       if (!m.alerted && tick >= m.alertAt) { m.alerted = true; state.news.push({ kind: 'markAlert', clan: job.target, business: b.id, x: b.x, z: b.z }); }
-      const inside = mine.some(e => e.place === m.place);
+      const participants = mine.filter(e => e.place === m.place), inside = participants.find(e => e.hidden) || participants[0];
+      job.hiddenEligible = !!inside?.hidden;
       m.away = inside ? 0 : m.away + 1;
       if (m.away >= secs(r.leaveSeconds)) return finish(clanId, false, 'nobody stayed inside');
       // the owner's people scrub it off once they know (standing on it clearSeconds)
       const scrub = m.alerted && Object.values(state.entities).some(e => e.owner === job.target && alive(e) && e.place === m.place && Math.hypot(e.x - m.x, e.z - m.z) <= r.reach);
       m.clear = scrub ? m.clear + 1 : 0;
       if (m.clear >= secs(r.clearSeconds)) return finish(clanId, false, 'the mark was scrubbed off');
-      if (inside) job.progress++;
-      if (job.progress >= job.need) { b.sabotaged = true; finish(clanId, true); }
+      if (inside) job.progress += inside.hidden ? R.hiddenProgressRate : 1;
+      job.counter = { x: m.x, z: m.z, place: b.room, label: 'Hold mark', progress: job.progress, need: job.need };
+      if (job.progress >= job.need) { b.sabotaged = true; finish(clanId, true, '', null, inside); }
     } else if (job.kind === 'steal') {
       const spot = stash(b), r = R.steal;
-      const on = spot && mine.some(e => e.place === b.room && Math.hypot(e.x - spot.x, e.z - spot.z) <= r.reach);
-      job.spot = spot && { x: spot.x, z: spot.z, r: r.reach, on };   // the ring to stand in (render/banners.js)
+      const candidates = spot ? mine.filter(e => e.place === b.room && Math.hypot(e.x - spot.x, e.z - spot.z) <= r.reach) : [];
+      const on = candidates.find(e => e.hidden) || candidates[0];
+      job.hiddenEligible = !!on?.hidden;
+      job.spot = spot && { x: spot.x, z: spot.z, r: r.reach, on: !!on };   // the ring to stand in (render/banners.js)
       // stepping off pauses the count instead of resetting it (Tim 2026-10-20)
-      if (on) job.progress++;
+      if (on) job.progress += on.hidden ? R.hiddenProgressRate : 1;
       job.need = secs(r.seconds);
+      job.counter = { ...spot, place: b.room, label: 'Take stash', progress: job.progress, need: job.need };
       // seen inside: the owners get one alarm (guards fight as usual; medium/hard bots send crew home)
       if (!job.alerted && mine.some(e => e.place === b.room && !e.hidden)) {
         job.alerted = true;
@@ -245,7 +271,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
         const victim = state.clans[job.target], q = quote(job);
         const amount = Math.min(q.stealCap, Math.floor((victim?.ryo || 0) * q.stealShare));
         if (victim) victim.ryo -= amount;
-        finish(clanId, true, '', amount);
+        finish(clanId, true, '', amount, on);
       }
     } else if (job.kind === 'boss') {
       const h = state.entities[job.hero];
@@ -263,10 +289,10 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     if (!any) return;
     for (const id of Object.keys(C.active)) if (contractLockoutUntil(state, id) > state.tick)
       finish(id, false, 'your HQ was raided');
-    // dawn: jobs still running run out, and a new board goes up (also the first time round)
-    if (state.dawn) for (const [id, job] of Object.entries(C.active)) if (job.takenAt < state.tick) finish(id, false, 'dawn came');
-    if (state.dawn) { C.day++; C.hits = C.hits.filter(h => C.day - h.day < R.recentDays); }
-    if (state.dawn || !C.posted) post();
+    if (!C.posted || state.tick >= (C.nextRefresh ?? 0)) {
+      if (C.posted) { C.day++; C.hits = C.hits.filter(h => C.day - h.day < R.recentDays); }
+      post();
+    }
     for (const [id, job] of Object.entries(C.active)) step(id, job);
     refresh();
   }

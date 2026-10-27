@@ -142,3 +142,15 @@ for (const unavailable of ['downed', 'dead', 'jailed']) {
   assert.equal(e.deployment.transfer?.to, to);
 }
 console.log('Deployment automation: ready reserves/pins, combat queue, health/jobs, physical home returns, balanced reservations/overflow, blockage/death, pending returns and shared bot rules passed');
+{
+  const f = fixture(); f.command({ action: 'reserveTarget', value: 0 });
+  for (const sector of f.sectors) f.command({ action: 'staffing', sector, value: 0 });
+  const crew = [f.add(), f.add(), f.add()]; f.sync(0);
+  assert.ok(crew.every(e => !e.deployment.transfer), 'zero goals keep surplus at HQ');
+  f.command({ action: 'staffing', sector: f.sectors[1], value: 1 }); f.sync(20);
+  assert.equal(crew.filter(e => e.deployment.transfer?.to === f.sectors[1]).length, 1, 'staff only requested vacancy');
+  f.command({ action: 'staffing', sector: f.sectors[1], value: 0 }); f.sync(40);
+  assert.equal(crew.filter(e => e.deployment.transfer).length, 1, 'lower goals do not recall field/incoming crew');
+  f.command({ action: 'staffing', sector: f.sectors[1], value: -1 });
+  assert.equal(f.state.deployment.clans.p.sectors[f.sectors[1]].desired, 0, 'invalid goals rejected');
+}

@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import { createStealth } from '../src/sim/stealth.js';
+import { inViewCone, clearSight } from '../src/sim/perception.js';
+import { distractionStep } from '../src/sim/distraction.js';
+assert.equal(inViewCone({x:0,z:0,dir:0},{x:1,z:0}),true,'45-degree boundary included');
+assert.equal(inViewCone({x:0,z:0,dir:0},{x:1,z:-.01}),false,'outside 90-degree cone');
+assert.equal(inViewCone({x:0,z:0,dir:0},{x:-1,z:-1}),false,'behind is not detected');
+const wall=[{minX:.2,maxX:.8,minZ:.2,maxZ:.8}];
+assert.equal(clearSight({x:0,z:0},{x:1,z:1},wall),false);
+assert.equal(clearSight({x:0,z:2},{x:1,z:2},wall),true);
+const ninja={id:'n',owner:'p',type:'hero',place:'room',x:1,z:1,anim:'walk'};
+const guard={id:'g',owner:'r',type:'guard',place:'room',x:0,z:0,dir:0};
+const state={tick:0,night:true,clans:{p:{kind:'ninja'},r:{kind:'yakuza'}},entities:{n:ninja,g:guard}};
+let blocked=false;
+const stealth=createStealth({state,scenery:[],lineOfSight:()=>!blocked,observerKnown:()=>true});
+const tick=()=>{state.tick++;stealth.tick();};
+tick(); assert.equal(ninja.hidden,true); assert.ok(ninja.stealthStatus.suspicion>0,'warning before reveal');
+assert.equal(ninja.stealthStatus.observers[0].id,'g');
+for(let i=0;i<8;i++)tick();const fraction=ninja.stealthStatus.suspicion;
+state.entities.g2={...guard,id:'g2'};tick();
+assert.ok(ninja.stealthStatus.suspicion<.5,'two observers never double suspicion');
+blocked=true;tick();assert.equal(ninja.stealthStatus.suspicion,0,'wall immediately clears active warning');
+for(let i=0;i<20;i++)tick(); blocked=false;
+for(let i=0;i<24;i++)tick();assert.equal(ninja.hidden,false,'real continuous observation reveals after1.2s');
+ninja.revealUntil=0;ninja.x=-1;ninja.z=-1;for(let i=0;i<30;i++)tick();assert.equal(ninja.hidden,true,'behind guards stays hidden');
+const walking=ninja.stealthStatus.concealment;ninja.anim='run';tick();assert.ok(ninja.stealthStatus.concealment<walking);
+ninja.place='street';ninja.anim='walk';tick();const dark=ninja.stealthStatus.concealment;state.night=false;tick();assert.ok(ninja.stealthStatus.concealment<dark);
+ninja.buffs={veil:{until:state.tick+80}};tick();assert.equal(ninja.stealthStatus.mode,'veil');assert.equal(ninja.stealthStatus.concealment,1);
+const walker={id:'w',x:0,z:0,dir:0,distracted:{x:5,z:0,lookX:5,lookZ:0,travelUntil:state.tick+400,investigateTicks:80,until:state.tick+480}};
+const move=(e)=>{e.x+=.2;return true;};
+while(walker.distracted.arrivedAt==null){state.tick++;distractionStep(walker,{},state,move);}
+const arrived=state.tick;
+for(let i=0;i<79;i++){state.tick++;assert.equal(distractionStep(walker,{},state,move),true);}
+state.tick++;assert.equal(distractionStep(walker,{},state,move),false);assert.equal(state.tick-arrived,80,'full four-second stare after travel');
+assert.equal(walker.distracted,undefined,'resume saved order on completion');
+console.log('Stealth perception:90-degree facing/boundaries, opaque LOS, suspicion warning/reveal/highest observer, concealment states and Distract arrival+4s passed');

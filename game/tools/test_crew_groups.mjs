@@ -91,6 +91,31 @@ try {
   assert.equal(input.groupOf('b'), null); assert.equal(input.groupOf('c'), null);
   input.selectGroup(4); assert.deepEqual(input.selected(), ['a'], 'dead or removed crew are pruned');
   assert.deepEqual([a.order, b.order, c.order], orders, 'all local group and pip actions preserve orders');
+  // Escape releases temporary sector control; the explicit Duty action also
+  // selects only permanently assigned available hero crew, without orders.
+  game.state.deployment = { clans: { player: { sectors: { nw: {}, ne: {} } } } };
+  a.deployment = { group: 'hero' };
+  b.dead = false; b.deployment = { group: 'nw', duty: { manual: true } };
+  const d = { ...b, id: 'd', deployment: { group: 'ne', duty: { manual: true } } };
+  game.state.entities.d = d;
+  input.select(['b', 'd']); sent.length = 0;
+  input.cancelAction(); input.clear();
+  assert.deepEqual(input.selected(), []);
+  assert.deepEqual(sent.find(c => c.type === 'deployment').units, ['b', 'd'], 'Escape returns released sector crew');
+  assert.equal(sent.find(c => c.type === 'deployment').selectionChange, true, 'selection release does not cancel autonomous duties');
+  input.select(['b', 'd']); sent.length = 0;
+  input.returnToDutyAndSelectHero();
+  assert.deepEqual(input.selected(), ['a'], 'Duty button selects assigned hero crew');
+  assert.equal(sent.length, 1, 'no duplicate selection-change return');
+  assert.deepEqual(sent[0], { id: 'h', type: 'deployment', action: 'return', units: ['b', 'd'] });
+  assert.ok(!sent.some(c => c.type === 'order'), 'return/select never issues Follow or movement to hero party');
+  assert.equal(input.groupOf('a'), 4, 'Duty keeps numbered shortcuts');
+  input.select(['b', 'd']); sent.length = 0;
+  input.returnToDutyAndSelectHero(['b']);
+  assert.deepEqual(sent[0].units, ['b'], 'map sector button scopes its return to that sector');
+  assert.deepEqual(sent[1].units, ['d'], 'other released manual sector selection also returns normally');
+  assert.equal(sent[1].selectionChange, true);
+  assert.deepEqual(input.selected(), ['a']);
   console.log('groups: assign, dissolve, transfer, preserve orders, C, indoor drag, menu priority, pip double-click and cleanup ok');
 } finally {
   globalThis.addEventListener = originalEvents; globalThis.document = originalDocument;

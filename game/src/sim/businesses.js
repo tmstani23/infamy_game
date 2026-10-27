@@ -338,7 +338,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         if (t === null || t > state.tick || !spots.length) return true;
         const taken = new Set(alive.map(e => e.guardSpot));
         const k = spots.findIndex((_, i) => !taken.has(i)), sp = spots[Math.max(0, k)];
-        const id = spawn(G.type || 'guard', G.model || 'thug', sp.x, sp.z, { owner: b.owner, place: sp.place, guard: b.id, guardSpot: Math.max(0, k), order: { kind: 'station', x: sp.x, z: sp.z } });
+        const id = spawn(G.type || 'guard', G.model || 'thug', sp.x, sp.z, { owner: b.owner, place: sp.place, dir: sp.dir ?? 0, guard: b.id, guardSpot: Math.max(0, k), order: { kind: 'station', x: sp.x, z: sp.z } });
         alive.push(state.entities[id]);
         return false;
       });
@@ -352,13 +352,14 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     const spots = patrolSpots(b);
     if (spots.length < 2) return;
     for (const e of guards) {
+      if (e.distracted) continue;
       if (!e.order || e.order.kind !== 'station') continue;
       const at = Math.hypot(e.order.x - e.x, e.order.z - e.z) < 0.6;
-      e.patrol ||= { next: Math.floor(rnd() * spots.length), wait: state.tick + 20 * pauseMin, leg: state.tick };
-      if (at && !e.patrol.arrived) { e.patrol.arrived = true; e.patrol.wait = state.tick + Math.round(20 * (pauseMin + rnd() * (pauseMax - pauseMin))); }
+      e.patrol ||= { next: (Number(e.id) || 0) % spots.length, wait: state.tick + 20 * pauseMin, leg: state.tick };
+      if (at && !e.patrol.arrived) { e.patrol.arrived = true; e.patrol.wait = state.tick + Math.round(20 * Math.min(pauseMax, pauseMin + ((Number(e.id) || 0) % 3) * .5)); }
       if ((at && state.tick >= e.patrol.wait) || state.tick - e.patrol.leg > legTicks) {
         const sp = spots[e.patrol.next % spots.length];
-        e.patrol.next = (e.patrol.next + 1 + Math.floor(rnd() * (spots.length - 1))) % spots.length;
+        e.patrol.next = (e.patrol.next + 1) % spots.length;
         e.patrol.arrived = false; e.patrol.leg = state.tick;
         e.order = { ...e.order, kind: 'station', x: sp.x, z: sp.z, patrol: true };
       }

@@ -1,7 +1,7 @@
 // Presentation data for this clan only. Contacts copy observed positions and
 // never read rival assignments, objectives, transfers or hidden movement.
 export const LAST_KNOWN_TICKS = 200;
-export const TASK_LABELS = { patrol: 'Patrol sector', watch: 'Watch', guard: 'Guard business', hold: 'Hold position', diversion: 'Diversion', extraction: 'Secure extraction' };
+export const TASK_LABELS = { patrol: 'Patrol sector', watch: 'Watch', ambush: 'Ambush', guard: 'Guard business', extraction: 'Secure extraction' };
 
 export function createDeploymentMapData({ game, clan }) {
   const contacts = new Map();
@@ -31,7 +31,7 @@ export function createDeploymentMapData({ game, clan }) {
     const own = d.members(clan), counts = d.counts(clan);
     const transfers = own.filter(e => e.deployment.transfer && !e.downed).flatMap(e => {
       const p = location(e), t = e.deployment.transfer;
-      const goal = location({ ...t.target, place: t.target.place });
+      const goal = t.target && location({ ...t.target, place: t.target.place });
       return p && goal ? [{ id: e.id, from: p, to: goal, blocked: t.status === 'blocked' }] : [];
     });
     const sectors = st.deployment.sectors.map(s => {
@@ -39,7 +39,7 @@ export function createDeploymentMapData({ game, clan }) {
       const incoming = own.filter(e => e.deployment.transfer?.to === s.id);
       const standing = assigned.filter(e => !e.downed), blocked = incoming.filter(e => e.deployment.transfer.status === 'blocked').length;
       const task = st.deployment.clans[clan].sectors[s.id];
-      const status = task.operation?.state || (blocked ? 'Transfer blocked' : incoming.length ? 'Transferring' : !assigned.length ? 'Empty'
+      const status = task.recovery?.state || task.operation?.state || (blocked ? 'Transfer blocked' : incoming.length ? 'Transferring' : !assigned.length ? 'Empty'
         : !standing.length ? 'Downed' : standing.some(e => e.swing || e.order?.kind === 'attack') ? 'Fighting'
         : standing.some(e => e.deployment.duty?.manual) ? 'Manual'
         : standing.find(e => e.deployment.duty?.status)?.deployment.duty.status
@@ -53,7 +53,8 @@ export function createDeploymentMapData({ game, clan }) {
       for (const c of known) if (c.live && c.sector === s.id) presence.set(c.owner, (presence.get(c.owner) || 0) + 1);
       return { ...s, count: counts[s.id], assigned: assigned.length, living: standing.length, incoming: incoming.length, blocked,
         hp: assigned.reduce((n, e) => n + Math.max(0, e.hp), 0), maxHp: assigned.reduce((n, e) => n + e.maxHp, 0),
-        task: task.task, taskLabel: TASK_LABELS[task.task] || task.task, objective: { ...task.objective }, fallback: { ...task.fallback }, status, alertAt: task.alertAt,
+        desired: task.desired ?? st.deployment.sectorLimit, missing: Math.max(0, (task.desired ?? st.deployment.sectorLimit) - standing.length - incoming.length),
+        task: task.task, taskLabel: TASK_LABELS[task.task] || task.task, objective: { ...task.objective }, fallback: { ...(task.recovery?.point || task.fallback) }, status, alertAt: task.alertAt,
         presence: [...presence].map(([owner, count]) => ({ owner, count, color: st.clans[owner]?.color || '#888888', name: st.clans[owner]?.name || owner })) };
     });
     snapshot = { sectors, contacts: known, transfers, own: own.map(e => ({ id: e.id, ...location(e), group: e.deployment.group, downed: !!e.downed, interior: e.place !== 'street' })) };

@@ -27,7 +27,7 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
     }
     if (c.action !== 'assignment') return;
     const old = state.deployment.clans[h.owner]?.sectors[c.sector], ninja = state.clans[h.owner].kind === 'ninja';
-    if (!old || !(ninja ? ['watch', 'extraction', 'diversion'] : ['patrol', 'guard', 'hold']).includes(c.task)) return;
+    if (!old || !(ninja ? ['watch', 'ambush', 'extraction'] : ['patrol', 'guard']).includes(c.task)) return;
     const objective = validPoint(h, c.sector, c.objective || old.objective), fallback = validPoint(h, c.sector, c.fallback || old.fallback);
     if (!objective || !fallback) return say(h, 'Objective and fallback must be inside that sector');
     const route = c.route == null ? [] : Array.isArray(c.route) && c.route.length <= 8 ? c.route.map(p => validPoint(h, c.sector, p)) : null;
@@ -35,6 +35,8 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
     const business = c.task === 'guard' && state.businesses[c.business];
     if (c.task === 'guard' && (!business?.room || business.owner !== h.owner || deployment.sectorAt(...business.ring) !== c.sector)) return say(h, 'Choose your own business in this sector');
     delete old.operation;
+    delete old.recovery; delete old.engagement;
+    delete old.ambushNext; delete old.patrolWaypoint;
     Object.assign(old, { task: c.task, objective: business ? { x: business.ring[0], z: business.ring[1] } : objective, fallback, route, business: business?.id || null });
     for (const e of deployment.members(h.owner, c.sector)) if (!e.deployment.transfer && !isRallyParticipant(state, e)) resume(e);
     say(h, 'Sector assignment saved');

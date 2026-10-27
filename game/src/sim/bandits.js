@@ -3,6 +3,7 @@
 // townsfolk. Roamers and camp residents attack clans they spot within sightRange.
 // Hitting one also angers nearby bandits. Bodies hold ryo until somebody loots them.
 // At dawn the ones left walk back out. Plain sim code, no three.js.
+import { distractionStep } from './distraction.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const WILD = 'bandits';     // the owner every bandit has (not a clan: nobody hires or runs it)
 
@@ -144,9 +145,8 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     const unit = statsOf(e);
     if (camp) {
       const distraction = e.distracted;
-      if (distraction && state.tick < distraction.until && Math.hypot(distraction.x - camp.x, distraction.z - camp.z) <= (camp.leash ?? 10)) {
+      if (distraction && Math.hypot(distraction.x - camp.x, distraction.z - camp.z) <= (camp.leash ?? 10) && distractionStep(e, unit, state, moveTo, stopPath)) {
         m.spot = null; m.until = null;
-        if (Math.hypot(distraction.x - e.x, distraction.z - e.z) < 0.8 || !moveTo(e, unit, distraction.x, distraction.z, true)) { e.anim = 'idle'; stopPath(e); }
         return;
       }
       patrolCamp(e, m, camp);
@@ -165,8 +165,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     }
     if (m.leaving) { m.leaving = false; m.spot = null; m.until = null; }   // night again before it got out
     // a ninja's pebble (Distract, sim/game.js): walk over and look round there for a while
-    const dz = e.distracted;
-    if (dz && state.tick < dz.until) { m.spot = null; m.until = null; if (Math.hypot(dz.x - e.x, dz.z - e.z) < 0.8 || !moveTo(e, unit, dz.x, dz.z, true)) { e.anim = 'idle'; stopPath(e); } return; }
+    if (distractionStep(e, unit, state, moveTo, stopPath)) { m.spot = null; m.until = null; return; }
     // staying at a spot
     if (m.until != null) {
       e.anim = 'idle';

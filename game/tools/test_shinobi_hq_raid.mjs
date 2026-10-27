@@ -102,8 +102,8 @@ for (const bot of [false, true]) {
   g.state.tick = recovery.suppressedUntil;
   g.step();
   assert.ok(g.state.news.some(n => n.kind === 'hqRecovered'), 'reopens automatically without waiting for dawn');
-  g.contracts.command(d, { action: 'take', job: job.id }, { menu: 'contracts' });
-  assert.ok(g.state.contracts.active.shinobi, 'new contract can be taken immediately on recovery');
+  g.contracts.command(d, { action: 'take', job: g.state.contracts.board[0].id }, { menu: 'contracts' });
+  assert.ok(g.state.contracts.active.shinobi, 'current board contract can be taken immediately on recovery');
   assert.match(g.businesses.canRaid(t.id, b.id).why, /protected/);
   g.state.tick = recovery.protectedUntil;
   Object.assign(h, { place: 'street', x: b.ring[0], z: b.ring[1] });

@@ -307,5 +307,5 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
 
   let frame = 0;
   const pings = [];
-  return { zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update() { if (frame++ % 3 === 0) draw(); }, draw, ping(x, z) { pings.push({ x, z, t: performance.now() }); }, layers, size, shownHolder: q => shownHolder(q) };
+  return { worldAt: at, zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update() { if (frame++ % 3 === 0) draw(); }, draw, ping(x, z) { pings.push({ x, z, t: performance.now() }); }, layers, size, shownHolder: q => shownHolder(q) };
 }

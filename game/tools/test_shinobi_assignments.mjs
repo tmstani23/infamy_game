@@ -40,8 +40,8 @@ assert.equal(st.deployment.clans.player.sectors[sector.id].operation.state,'Atta
 let sawEscape=false;
 for(let i=0;i<1800;i++){
   g.step();const op=st.deployment.clans.player.sectors[sector.id].operation;
-  if(op?.state==='Escaping')sawEscape=true;
-  if(sawEscape&&!op)break;
+  if(st.deployment.clans.player.sectors[sector.id].recovery)sawEscape=true;
+  if(sawEscape&&!op&&!st.deployment.clans.player.sectors[sector.id].recovery)break;
 }
 assert.ok(t.dead,'ambush uses ordinary attacks followed by normal execution');
 assert.ok(sawEscape,'target death automatically retreats without a second activation');
@@ -53,8 +53,8 @@ const wait=foe(other.anchor);Object.assign(team[0],sector.anchor);
 // A distant target must be visible to arm; an allied observer supplies normal sight.
 add(other.anchor,other.id);
 send({action:'armAmbush',sector:sector.id,target:wait.id});
-assert.equal(st.deployment.clans.player.sectors[sector.id].operation.state,'Ambush armed');
-send({action:'cancelAmbush',sector:sector.id});assert.equal(st.deployment.clans.player.sectors[sector.id].operation,undefined);
+assert.equal(st.deployment.clans.player.hunt.target,wait.id,'coordinated target order remains armed or commits in its detected sector');
+send({action:'cancelAmbush',sector:sector.id});assert.equal(st.deployment.clans.player.hunt,undefined);
 
 for(const e of team)Object.assign(e,sector.anchor,{hp:e.maxHp});
 send({action:'assignment',sector:sector.id,task:'extraction',objective:sector.anchor,fallback:sector.anchor});
@@ -65,5 +65,7 @@ Object.assign(intruder,other.anchor,{dead:false,downed:false,hp:intruder.maxHp})
 assert.ok(team.every(e=>e.deployment.duty.intercept!==intruder.id),'interception breaks when target leaves the short leash/sector');
 const unsafe=foe(sector.anchor);for(const e of team)e.hp=e.maxHp*.2;
 send({action:'armAmbush',sector:sector.id,target:unsafe.id});
-assert.equal(st.deployment.clans.player.sectors[sector.id].operation.state,'Escaping','low-health ambush aborts safely');
-console.log('Shinobi assignments: truthful coordinated priority sightings/expiry, remote KO arm/cancel, ordinary kill/execute/automatic escape, extraction intercept/leash and unsafe abort passed');
+assert.equal(st.deployment.clans.player.sectors[sector.id].operation.state,'Attacking','large force or low group average alone does not veto ambush');
+team[0].downed=true;g.step();
+assert.equal(st.deployment.clans.player.sectors[sector.id].recovery?.state,'Withdrawing','one casualty plus low surviving health withdraws');
+console.log('Shinobi assignments: truthful sightings, coordinated remote arm/cancel, ordinary execution/recovery, extraction leash and casualty-based withdrawal passed');

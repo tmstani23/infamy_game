@@ -7,12 +7,12 @@ import { TASK_LABELS } from './deployment_map_data.js';
 export function createDeploymentPanel({ root, button, game, units, heroId, crewInput, send, onPickPoint, onOpen = () => {}, onClose = () => {}, onFocus = () => {} }) {
   root.innerHTML = '<header><h3>DEPLOYMENT</h3><button type="button" class="close" title="Close (Esc)">✕</button></header>'
     + '<div class="tabs"></div>'
-    + '<div class="roster"></div>'
+    + '<details class="roster-details"><summary>Crew roster</summary><div class="roster"></div></details>'
     + '<div class="transfer"><span class="picked"></span><select class="dest" aria-label="Send selected to"></select><button type="button" class="send">Send</button><button type="button" class="return-assignment" title="Selected sector crew stop manual orders and go back to their saved duty">Back to duty</button></div>'
     + '<div class="why" role="status"></div>'
     + '<details class="duty" open><summary></summary><div class="duty-body"><label>Task <select class="task" aria-label="Sector duty"></select></label> <label class="business-label">Business <select class="guard-business" aria-label="Business to guard"></select></label>'
-    + '<div class="assignment-actions"><button type="button" data-point="objective" title="Pick the duty point on the map">Set point</button><button type="button" data-point="fallback" title="Pick where they fall back to">Set fallback</button><button type="button" data-point="route" title="Add a route point (up to 8)">+ Route</button><button type="button" class="clear-route">Clear route</button><button type="button" class="save-assignment">Save assignment</button></div><small class="assignment-points"></small>'
-    + '<div class="shinobi-ops" hidden><b>Ambush</b> <select class="ambush-target" aria-label="Visible ambush target"></select> <button type="button" class="arm-ambush">Arm</button><button type="button" class="cancel-ambush">Cancel</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview" role="status"></small></div></div></details>'
+    + '<details><summary>Optional position / route</summary><div class="assignment-actions"><button type="button" data-point="objective" title="Pick the duty point on the map">Set point</button><button type="button" data-point="route" title="Add a route point (up to 8)">+ Route</button><button type="button" class="clear-route">Clear route</button></div></details><button type="button" class="save-assignment">Save assignment</button><small class="assignment-points"></small>'
+    + '<div class="shinobi-ops" hidden><button type="button" class="arm-next">Ambush next enemy</button><button type="button" class="cancel-ambush">Cancel target</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview" role="status"></small><div class="recent-targets"></div></div></div></details>'
     + '<details class="rally-controls"><summary>Rally <span class="rally-status"></span></summary><div class="rally-groups"></div><button class="call-rally" type="button">Call Rally</button><small>Ticked groups join your hero for 3 minutes, then walk back.</small></details>'
     + '<details class="reserves"><summary>HQ reserve</summary><form><label>Keep <input class="reserve-target" type="number" min="0" step="1" aria-label="Ready crew kept at HQ"> ready crew at HQ</label> <button type="submit">Apply</button><small>New crew fill your hero group (6) first. Then spare healthy crew go out to empty sectors.</small></form></details>'
     + '<footer></footer>';
@@ -20,14 +20,14 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   const tabs = $('.tabs'), roster = $('.roster'), dest = $('.dest'), sendButton = $('.send'), why = $('.why');
   const reserveTarget = $('.reserve-target'), taskSelect = $('.task'), businessSelect = $('.guard-business');
   const isNinja = game.state.clans[game.state.entities[heroId].owner].kind === 'ninja';
-  for (const task of isNinja ? ['watch', 'extraction'] : ['patrol', 'guard', 'hold']) taskSelect.add(new Option(TASK_LABELS[task], task));
+  for (const task of isNinja ? ['watch', 'ambush', 'extraction'] : ['patrol', 'guard']) taskSelect.add(new Option(TASK_LABELS[task], task));
   const sectors = game.state.deployment.sectors;
   const groupNames = { hero: 'Hero group', home: 'HQ', ...Object.fromEntries(sectors.map(s => [s.id, s.name])) };
   const owner = () => game.state.entities[heroId]?.owner;
   const mine = () => game.deployment.members(owner());
   const chosen = () => crewInput.selected().filter(id => mine().some(e => e.id === id));
   const record = id => game.state.deployment.clans[owner()]?.sectors[id];
-  let focus = 'hero', open = false, draft = null;
+  let focus = 'hero', open = false, draft = null, dragging = false;
   const tabButtons = new Map(), heads = new Map(), rows = new Map(), rallyChecks = new Map();
   for (const [id, name] of Object.entries(groupNames)) {
     const b = document.createElement('button'); b.type = 'button';
@@ -55,6 +55,12 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     let r = rows.get(e.id);
     if (r) return r;
     const el = document.createElement('div'); el.className = 'member';
+    el.draggable = true;
+    el.addEventListener('dragstart', ev => {
+      const ids = chosen(); dragging = true;
+      ev.dataTransfer.setData('application/x-infamy-crew', JSON.stringify(ids.includes(e.id) ? ids : [e.id])); ev.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', () => { dragging = false; update(); });
     const check = document.createElement('input'); check.type = 'checkbox';
     const name = document.createElement('b'), hp = document.createElement('small'), status = document.createElement('span');
     const pinLabel = document.createElement('label'), pin = document.createElement('input'); pin.type = 'checkbox';
@@ -70,6 +76,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const rally = game.rally.status(owner());
     button.textContent = rally.active ? `Deployment · Rally ${time(rally.seconds)}` : 'Deployment';
     if (!open) return;
+    if (dragging) return;
     const list = mine(), selected = new Set(chosen()), counts = game.deployment.counts(owner());
     for (const [id, b] of tabButtons) {
       const cap = id === 'hero' ? '/6' : id === 'home' ? '' : '/3';
@@ -126,17 +133,20 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
       $('.assignment-points').textContent = `${counts[focus]}/3 crew · route ${draft.route.length}/8 points${changed ? ' · unsaved changes' : ''}`;
       $('.shinobi-ops').hidden = !isNinja;
       if (isNinja) {
-        const ts = $('.ambush-target'), enemies = game.shinobiAssignments.targets(owner(), focus), old = ts.value, key = enemies.map(e => e.id).join(',');
-        if (ts.dataset.targets !== key) {
-          ts.replaceChildren(); ts.dataset.targets = key;
-          for (const e of enemies) ts.add(new Option(`${unitName(units, e.type)} (${game.state.clans[e.owner]?.name || e.owner})`, e.id));
-          if (enemies.some(e => e.id === old)) ts.value = old;
+        const own = game.state.deployment.clans[owner()], op = sector.operation, hunt = own.hunt;
+        $('.ambush-preview').textContent = sector.recovery?.state || op?.state || (hunt ? 'Hunting selected target' : sector.ambushNext ? 'Waiting for next enemy' : 'Select a remembered target below');
+        $('.cancel-ambush').disabled = !hunt && !sector.ambushNext;
+        $('.retreat').disabled = !op;
+        const list = $('.recent-targets'), enemies = game.shinobiIntelligence.targets(owner());
+        const key = enemies.map(e => `${e.id}:${Math.floor(e.age)}:${e.live}`).join(',') + ':' + hunt?.target;
+        if (list.dataset.key !== key) {
+          list.dataset.key = key; list.replaceChildren();
+          for (const e of enemies) {
+            const row = document.createElement('button'); row.type = 'button'; row.dataset.target = e.id;
+            row.textContent = `${unitName(units, e.type === 'hero' ? e.model : e.type)} · ${e.sector || 'town'} · ${e.tracked ? 'tracked' : e.live ? 'in sight' : `seen ${Math.floor(e.age)}s ago`} · ${hunt?.target === e.id ? 'Armed' : 'Ambush'}`;
+            row.addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'armAmbush', target: e.id })); list.appendChild(row);
+          }
         }
-        const op = sector.operation, defenders = ts.value ? game.shinobiAssignments.defenders(owner(), ts.value) : 0;
-        $('.ambush-preview').textContent = op ? `${op.state}${op.reason ? ` · ${op.reason}` : ''}` : enemies.length ? `${defenders} defenders nearby` : 'No enemy in sight here';
-        $('.arm-ambush').disabled = !!op || !enemies.length || !game.deployment.members(owner(), focus).some(e => !e.downed && !e.deployment.transfer);
-        $('.cancel-ambush').disabled = op?.state !== 'Ambush armed';
-        $('.retreat').disabled = !op || op.state === 'Escaping';
       }
     }
     $('.rally-status').textContent = rally.active ? `· ${time(rally.seconds)} left · ${rally.arrived}/${rally.called} near you` : rally.cooldown ? `· ready in ${time(rally.cooldown)}` : '· ready';
@@ -155,12 +165,11 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     onPickPoint(focus, p => { if (key === 'route') saved.route.push(p); else saved[key] = p; draft = saved; update(); });
   });
   $('.save-assignment').addEventListener('click', () => { if (draft) send({ id: heroId, type: 'deployment', action: 'assignment', ...draft }); });
-  $('.ambush-target').addEventListener('change', update);
-  $('.arm-ambush').addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'armAmbush', sector: focus, target: $('.ambush-target').value }));
+  $('.arm-next').addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'armAmbush', sector: focus }));
   $('.cancel-ambush').addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'cancelAmbush', sector: focus }));
   $('.retreat').addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'retreat', sector: focus }));
   $('.call-rally').addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'rally', groups: [...rallyChecks].filter(([, c]) => c.checked).map(([id]) => id) }));
-  $('.return-assignment').addEventListener('click', () => send({ id: heroId, type: 'deployment', action: 'return', units: chosen() }));
+  $('.return-assignment').addEventListener('click', () => crewInput.returnToDutyAndSelectHero());
   $('.reserves form').addEventListener('submit', e => {
     e.preventDefault();
     if (!reserveTarget.checkValidity() || reserveTarget.value === '') return;
