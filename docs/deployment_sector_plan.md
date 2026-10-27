@@ -1,8 +1,8 @@
 # Phase 4: deployment, sectors and Rally
 
-Status: built 2026-10-26 (phases 1A-5B; grouped regressions passed). This doc owns deployment, sectors and their UI, and deployment Rally. Player controls: `controls.md` "Deployment and sectors". The Shinobi HQ raid lives in `business_raids_plan.md`. The checkpoint sections at the end are the build record.
+Status: built/sim-checked 2026-10-27 (original 1A–5B and authorized follow-on A–F, Contract and Stealth/HUD; all thirty final checks passed). Tim visual/balance/layout playtest remains pending. This doc owns deployment, sectors and their UI, and deployment Rally. Player controls: `controls.md` "Deployment and sectors". The Shinobi HQ raid lives in `business_raids_plan.md`. The checkpoint sections at the end are the build record.
 
-**Proposed follow-on (2026-10-27):** [simpler sector control, recovery and Ambush](#proposed-follow-on-build-plan-2026-10-27) is now authorized by Tim on 2026-10-27, separately from the earlier 1A–5B approval. It remains unbuilt until completion/checks are reported. Current built checkpoints and verified fixes remain the implementation record.
+**Completed follow-on (2026-10-27):** [simpler sector control, recovery and Ambush](#proposed-follow-on-build-plan-2026-10-27), all-day contracts and Stealth/HUD are implemented/sim-checked. Checkpoints preserve build history; only Tim playtest and separately unapproved redesign proposals remain open.
 
 ## Purpose
 
@@ -15,7 +15,7 @@ Keep a useful hero squad without making the full roster follow everywhere. Give 
 - Normal group-based hero buffs affect assigned hero-group crew only, retaining each ability's range and other conditions. During deployment Rally all participating crew count as one buff-eligible group, even across separate numbered selection groups.
 - Four connected, roughly quadrant-shaped town sectors are adjusted around roads/bridges; the village is a separate home area. The Deployment map below defines their presentation.
 - Each town sector normally holds three crew. New overflow placement requires the hero six and **all four town sectors' normal three** to be full; home reserve occupancy is not an unlock condition. Existing overflow stays after casualties, but further overflow must meet the fullness rule again. Never overflow the hero group outside Rally. Existing total recruitment cap applies.
-- Every sector always has one active assignment, including empty sectors. Temporary manual orders preserve its saved task, objective and fallback. Switching numbered groups, sectors or the hero group returns previously manually controlled sector crew to their saved task. **Return to Assignment** also ends manual control. Targeting an enemy does not. Manual orders remain legal anywhere inside the assigned sector.
+- Every sector always has one active assignment, including empty sectors. Temporary manual orders preserve its saved task, objective and fallback. Switching numbered groups, sectors or the hero group returns previously manually controlled sector crew to their saved task. **Return to Assignment** also ends manual control. Escape also releases manually overridden crew back to saved duty; targeting an enemy does not. All sector crew remain selectable by left-click/drag, with legal local move/attack orders throughout their sector.
 
 ## Home reserves and automatic deployment
 
@@ -53,6 +53,8 @@ Watch reports/defends without initiating attacks on passers; manual local attack
 
 ### Manual Ambush capability (5A built/sim-checked 2026-10-26)
 
+Historical 5A behavior below is superseded by [follow-on D](#follow-on-d-checkpoint-2026-10-27), including removal of the armed timeout, aggregate-HP/defender vetoes and old escape machinery.
+
 Remote control, including hero KO, is available from any Shinobi task. Choose a visible enemy street target, inspect spotted defender count and **Arm**. All available hired sector units participate. **Cancel** works while armed; **Retreat** during attack. States: Ambush armed → Attacking → Escaping → saved task. Normal swings/damage and execution attempts apply; no guaranteed kill or invisibility.
 
 Initial tuning: armed wait sixty seconds, attack maximum forty-five seconds; abort below 35% aggregate HP, below half the initial available crew rounded up, or when visible defenders within eight of the target exceed crew count plus two. Death/gone target, loss of sight/area or unsafe conditions trigger escape. Fallback uses physical local travel and ordinary stealth; after arrival, resume once hidden or after ten seconds. One attempt disarms.
@@ -77,9 +79,9 @@ Remote hero access: assign/remove individual crew, select one task and objective
 
 All rules/state live in the sim. Players, bots and multiplayer use the same commands, capacity checks and truthful clan sightings. Selection does not reveal unseen enemies. Free house guards remain distinct from hired crew and cannot join deployment Rally.
 
-## Non-Shinobi assignments (approved 2026-10-26)
+## Non-Shinobi assignments (updated 2026-10-27)
 
-Patrol Sector, Guard Own Business (interior and nearby approaches), and Hold Position/Route use the shared four-sector UI and saved-task/manual-control rules. Guard-business assignment is optional; its hired crew count toward the containing sector's capacity. Free house guards remain separate and cannot join deployment Rally.
+Current regular-clan choices are **Patrol** and **Guard Own Business** (interior/nearby approaches). Redundant Hold/Route assignment is removed; legacy Hold migrates to Patrol during shared sync, including empty sectors. Optional Patrol routes and manual station/Ctrl-right-click remain. These use the shared four-sector UI and saved-task/manual-control rules. Guard-business assignment is optional; its hired crew count toward the containing sector's capacity. Free house guards remain separate and cannot join deployment Rally.
 
 ## Deployment map (3A built/sim-checked 2026-10-26; visual playtest deferred)
 
@@ -216,9 +218,11 @@ Build coordinator reports four fixes to the current sector/geisha/map implementa
 
 Targeted Node checks passed with new regressions: `test_deployment_automation`, `test_deployment_transfers`, `test_geisha` and `test_deployment_map`. All four touched source syntax checks and scoped diff whitespace checks passed. No browser test or Tim playtest is claimed. No sector simplification plan is agreed by these corrections.
 
-## Proposed follow-on build plan (2026-10-27)
+<a id="proposed-follow-on-build-plan-2026-10-27"></a>
 
-**Build authorized by Tim, 2026-10-27.** Build sequentially and report each phase to Tim/Docs keeper before continuing; no further confirmation is needed between phases. All follow-on checklist items below are unchecked. This section records the agreed design for review, plus explicitly marked proposed integration details; it does not claim new gameplay is built. Earlier authorization covers completed 1A–5B only. Historical bugfix checks above do not validate this follow-on.
+## Follow-on build plan (completed/sim-checked 2026-10-27)
+
+**Build authorized by Tim, 2026-10-27.** Build sequentially and report each phase to Tim/Docs keeper before continuing; no further confirmation is needed between phases. All authorized implementation items below are now checked after reported passing tests; Tim playtest remains unchecked. The section preserves agreed design and initial integration choices; later checkpoints record the completed implementation. Earlier authorization covers completed 1A–5B only. Historical bugfix checks above do not validate this follow-on.
 
 ### Outcome and retained rules
 
@@ -266,7 +270,7 @@ Guard uses actual doors/routes and sector entrance mapping, never mixes room/out
 
 Standing Ambush loops Patrolling → Attacking → Withdrawing → Recovering → Patrolling; selected target displays Hunting: name. Other duties resume themselves: Patrol regroups/resumes route; Guard uses safe owned position/doors and guards again if still owned; Hold returns to hold/route; Watch stays nonaggressive; Extraction retains protection radius/leash outside retreat. Preserve manual/transfer/Rally priority; autonomous staffing never interrupts active jobs. Handle all-down groups, reinforcement arrivals, hero KO, removals, lost businesses and blocked routes.
 
-**Unsettled numerical extension — explicit confirmation required:** Tim agreed the casualty/HP triggers above for Ambush and shared fallback/recovery for every clan's sector duties. He has not selected distinct Patrol/Guard/Hold/Watch/Extraction danger triggers. Proposed initial default: use the same casualty/one-third-HP thresholds, including solo one-third rule, for all automated sector groups, retaining each duty's initiation/objective behavior and configurable tuning. This extension is a proposal, not a previously agreed numerical rule.
+**Authorized initial tuning, implemented in A (2026-10-27):** apply the Ambush casualty/one-third-HP withdrawal rules to every clan's automated sector groups, retaining assignment-specific initiation/objective behavior. These initial values remain subject to playtest.
 
 ### Active boss-contract tracking
 
@@ -274,22 +278,92 @@ Track only the actual active **boss-contract target**, not every hero belonging 
 
 Actual stealth breaks live tracking: keep last-known position until genuine reacquisition. Indoors show building only, never interior movement/occupants. Tracker can arm the known identity while temporarily unseen, but never attack solely from the marker. Store tracking authoritatively per clan, multiplayer-safe; clear through contract/visibility/stealth lifecycle. Hidden coordinates may be used only by the explicitly approved nonstealth boss-tracking state. Keep ordinary ten-second contacts, 120-second identity memory and persistent active-contract tracking separate.
 
-Related agreed design, still awaiting implementation confirmation: [all-day Shinobi contracts and site-local progress](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27). That owner section also separates unsettled refresh policy and other contract-assistance proposals.
+Related authorized design, implementation pending: [all-day Shinobi contracts and site-local progress](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27). That owner section also separates unsettled refresh policy and other contract-assistance proposals.
 
-Related agreed directions and proposed tuning: [readable stealth, Distract and hidden-completion Renown](ninja_clan_plan.md#readable-stealth-and-clean-contracts-follow-on-2026-10-27), still pending build confirmation. Watch-support/Extraction removal and sabotage redesign remain proposals.
+Related agreed directions and proposed tuning: [readable stealth, Distract and hidden-completion Renown](ninja_clan_plan.md#readable-stealth-and-clean-contracts-follow-on-2026-10-27), authorized with implementation pending. Watch-support/Extraction removal and sabotage redesign remain proposals.
 
 ### Sequential follow-on checklist — authorized 2026-10-27, not yet complete
 
 Tim authorizes A → B → C → D → E → Contract → Stealth/HUD → F in order, with checks and reports after each phase. All items stay unchecked until implementation/checks are reported; final Tim playtest stays unchecked. Adopt conservative initial defaults: shared Ambush casualty rules for every clan's automated sector groups, desired counts as goals rather than caps, one coordinated target order per clan, and +25% hidden-completion Renown for infiltration jobs. This authorization supersedes earlier confirmation-required wording for those defaults. Record concrete refresh/stealth tuning when implemented. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved redesigns.
 
-- [ ] **A:** shared all-clan withdrawal/recovery and automatic fallback; confirm proposed per-duty danger thresholds before implementing that extension.
-- [ ] **B:** staffing goals, map portrait transfers/context controls and main HUD remembered-group Rally.
-- [ ] **C:** authoritative two-minute identity memory and active boss-contract tracking, with distinct visibility/lifecycle rules.
-- [ ] **D:** standing group Ambush, coordinated pinned target claims/pre-attack handoffs and agreed aggressive casualty rules.
-- [ ] **E:** target-pane/context/contract action buttons and truthful state cues.
-- [ ] **Contract follow-on:** confirm and implement the separately owned [all-day contract plan](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27), including its refresh-policy decision and focused checks.
-- [ ] **Stealth/HUD follow-on:** confirm and implement the canonical [readable-stealth plan](ninja_clan_plan.md#readable-stealth-and-clean-contracts-follow-on-2026-10-27): cone/LOS/suspicion, predictable patrols, Distract travel plus four arrival seconds, hidden-completion Renown and global round movable/resizable badge with accepted movement/lighting feedback; settle remaining tuning and run its focused checks.
-- [ ] **F:** shared-command bot integration, focused Node regressions and integration report.
+- [x] **A — Implemented/sim-checked (2026-10-27):** shared all-clan withdrawal/recovery and automatic fallback, using authorized shared casualty/one-third-HP thresholds; Tim visual playtest pending.
+- [x] **B — Implemented/sim-checked (2026-10-27):** staffing goals, map portrait transfers/context controls and main HUD remembered-group Rally; Tim visual playtest pending.
+- [x] **C — Implemented/sim-checked (2026-10-27):** authoritative two-minute identity memory and active boss-contract tracking, with distinct visibility/lifecycle rules; Tim visual playtest pending.
+- [x] **D — Implemented/sim-checked (2026-10-27):** standing group Ambush, coordinated pinned target claims/pre-attack handoffs and agreed aggressive casualty rules; action UI follows E.
+- [x] **E — Implemented/logic-sim checked (2026-10-27):** target-pane/context/contract action buttons and truthful state cues; browser/visual interaction tests not performed.
+- [x] **Contract follow-on — Implemented/sim-checked (2026-10-27):** separately owned [all-day contract plan](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27), including rolling supply/anti-repeat policy; UI playtest pending.
+- [x] **Stealth/HUD follow-on — Implemented/sim-checked (2026-10-27):** [canonical S1–S2 record](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27); concrete badge/bonus/quiet-work tuning and checks recorded; Tim visual/layout playtest pending.
+- [x] **F — Implemented/sim-checked (2026-10-27):** shared-command bot integration and final grouped report; all thirty checks passed.
 - [ ] **Tim visual/balance playtest:** after implementation; no browser/screenshot testing is planned for this build workflow.
 
 Required checks: exact casualty/HP thresholds despite high enemy counts; safe route/replan/trap/interior doors; manual/transfer/Rally overrides; no gathering deathlock or invented healing; memory expiry versus pin and unseen-data isolation; boss stealth/indoors/contract end; one committed group/pre-attack handoff/no chase; capacity/pin/reservation/combat gates and staffing without job interruption. Existing checks remain historical until relevant follow-on regressions pass.
+
+### Follow-on A checkpoint (2026-10-27)
+
+Build coordinator reports `sim/sector_recovery.js` implemented for all clans before geisha/specialist/duty actions, with `game.js` tick/per-unit integration. Assignment changes clear stale recovery/engagement. First casualty alone continues; at least one casualty plus survivor at/below one-third HP, two casualties, or solo at/below one-third HP triggers withdrawal. Downed/dead/removed encounter-roster crew count; deliberate manual/transfer/Rally detachment does not.
+
+Deterministic fallback scores reachable in-sector candidates using visible enemies only, owned sites and friendly positions. Replan at most once per second if unsafe/blocked; use actual local travel/doors, no teleport, with melee defense when trapped. Survivors and new arrivals gather within two units; resume after six seconds out of combat with each survivor at least 70% HP. No healing is invented and casualties do not block gathering. Old specialist escape integration remains to be replaced in D.
+
+`game/tools/test_sector_recovery.mjs` passed thresholds, all three clans, reachability/physical retreat, no healing, replanning, manual/transfer/Rally priority, hidden-data isolation, trapped defense and serialization. Assignments, deployment transfers and Rally plus touched-source syntax/diff checks passed. An initial missing deployment guard was corrected before final passing checks. Tim's visual/balance playtest remains pending; B is next under existing authorization. No active-work commit requested.
+
+### Follow-on B checkpoint (2026-10-27)
+
+Build coordinator reports per-sector desired staffing goals (default three) implemented through shared `staffing` command accepting nonnegative safe integers. Zero disables automatic staffing there; lower goals never recall/cancel. Goals above three require legal overflow; default three retains prior legal automatic surplus overflow. Eligible reserves, pins, caps, reservations and hero quiet gate remain unchanged.
+
+Map badges select sector crew and offer small task/goal/Return controls; optional Manage opens a docked detailed panel with folded roster and optional objective/route controls. Manual fallback picker is removed. Cached sprite portraits remain accessible on the map; drag map-tray, roster or action-bar crew onto sector geometry/badges to send normal explicit transfer commands, with authoritative sim authorization/rejection. Normal-clan owned-business cards offer Guard business. Main HUD Call Rally reuses last groups (all on first use), without changing no-Follow/timer rules. Sector badges/data show recovery/dynamic fallback and missing/staffing-goal status.
+
+Automation checks added zero/one goals, no recall and invalid-value rejection; automation, Rally and Deployment map checks passed. Ten touched JS syntax checks and scoped diff checks passed. A null blocked-transfer target guard in map data was fixed. No browser/UI playtest claimed; C is next under existing authorization.
+
+### Follow-on C checkpoint (2026-10-27)
+
+Build coordinator reports `sim/shinobi_intelligence.js` implemented authoritative own-clan identity snapshots from actual vision, excluding guards, police, wild units and civilians. Store last location/sector/type/model, live state and age for 2400 ticks (120 seconds); current hunt/operation pins retain identity beyond expiry. Unseen crew position/HP/death never refresh the snapshot. Ordinary ten-second Watch reports remain separate and unchanged.
+
+Only the actual active boss contract establishes `bossTrack`, after first real sight. Thereafter the explicitly authorized nonstealth boss marker updates exact outdoor position/building beyond ordinary vision. Actual stealth freezes last-known position; real reacquisition is required even after stealth ends. Contract end/change clears discovery. No other crew reveal, vision grant or combat permission follows from the marker.
+
+`game/tools/test_shinobi_intelligence.mjs` passed discovery, crew isolation, memory/pins, stealth/reacquisition, interiors, lifecycle and serialization. Shinobi assignments, Deployment map and three source syntax checks passed. D connects memory to coordinated orders; E adds UI roster/actions. Tim playtest remains pending; no commit/push requested.
+
+### Follow-on D checkpoint (2026-10-27)
+
+Build coordinator reports `sim/ambush.js` and specialist integration implemented. Standing Shinobi Ambush patrols together using leader/formation and sector-local routes. Next-enemy and coordinated known-identity modes use the shared command; indefinite arming replaces the old sixty-second wait. Remembered/active boss identities may arm without live visibility, but attack requires actual local observation within normal range and sector.
+
+One coordinated hunt per clan allows a staffed nonrecovering sector personally detecting the target to claim before combat. One group commits, without cross-boundary chase, piling in or post-attack chained handoff. Larger forces never veto/abort. Initial participant snapshots use A's casualty rules: first casualty alone continues; two casualties, one casualty plus a standing participant at/below one-third HP, or solo one-third HP withdraws. Ordinary attacks/execution yield to retreat.
+
+Defeated/escaped target, cancellation or forty-five-second attack maximum leads through shared automatic fallback/recovery to saved duty; standing Ambush persists. Manual commands, transfers and Rally detach units; task changes clear operation and stale patrol. Old Escaping/aggregate-HP/defender-veto machinery is replaced.
+
+`game/tools/test_ambush.mjs` passed standing combat against nine enemies, casualty/one-third-HP behavior, remembered waiting beyond sixty seconds, observer-sector handoff/single commitment, target exit ending attempt, cancellation and serialization. Updated Shinobi assignments passed real attack/execution/recovery, cancellation, Extraction leash and casualty behavior; deployment AI and sector recovery passed. Syntax/scoped diff checks passed. E adds target/map action UI next; Tim visual playtest remains pending. No commit/push requested.
+
+### Follow-on E checkpoint (2026-10-27)
+
+Build coordinator reports sector task UI exposes Watch/Ambush/Extraction. Shared remembered-target rows replace the dropdown, showing age/sector/live/tracked state and one-click Arm/Cancel, Next enemy and Retreat. Compact map controls add Next/Cancel and remembered rows with Inspect/Ambush. Truthful stored-identity markers persist and support hit-testing; Inspect opens the movable target frame over the map.
+
+Target frame offers Arm/Armed-Cancel. Remembered inspection shows snapshot identity/age, never live HP/buffs or a hidden-entity camera jump. New world targeting/Escape clears remembered inspection. Contract tracker offers Ambush contract target/Cancel from known active boss identity, without sector selection. Tracked contract identity retains observed metadata beyond 120 seconds; coordinates use public tracked building/world point and labels distinguish tracking from actual sight. Markers never grant combat vision.
+
+Unit-frame, Deployment map, Shinobi intelligence and Ambush checks passed; six UI source syntax checks passed. No browser/visual interaction testing is claimed. All-day Contract follow-on is next, before Stealth/HUD; Tim playtest remains pending. No commit/push requested.
+
+### Contract follow-on checkpoint (2026-10-27)
+
+Build coordinator reports all-day contracts/site-local counters, dawn-persistent jobs/locks and independent supply implemented; concrete cadence/repeat rules and checks live in the [contract owner](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27). Normal payouts/sabotage next-payout effect, ordinary raids and HQ cancellation/lockout remain unchanged. HQ regression selects a current board row after refresh instead of stale ID, retaining headless UI adapter. Stealth/HUD bonus and quiet-work speed are next; no Watch-helper/Extraction or sabotage redesign added. Visual playtest pending; no commit/push requested.
+
+### Stealth/HUD S1 checkpoint (2026-10-27)
+
+Perception/patrol/Distract implementation and focused results are recorded in the [canonical S1 subcheckpoint](ninja_clan_plan.md#stealthhud-s1-subcheckpoint-2026-10-27). Full Ninja integration and S2 subsequently passed; overall Stealth/HUD is complete as recorded below. No active-work commit requested.
+
+### Stealth/HUD completion checkpoint (2026-10-27)
+
+S1–S2 implementation/sim checks are complete per Build coordinator; [canonical owner](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27) records perception, bonus, quiet speed, badge defaults and passed checks. F bot/grouped integration subsequently passed as recorded below. Tim visual/balance/layout playtest remains unchecked; no commit/push requested.
+
+### Follow-on F final integration (passed 2026-10-27)
+
+Build coordinator reports all agreed follow-on implementation complete. Deployment AI preserves armed/committed coordinated hunts, queues one target per decision pass and skips recovering/standing-Ambush groups. Recovery scores actual hostility, so peaceful police/wild units do not repel resting crew. Charm still freezes units; shared withdrawal outranks ordinary pebble investigation/autonomous casting. Quiet routine police patrols use readable turns; heat response/search/pursuit remain responsive, verified by full police arrest regression after restricting an overly broad slowdown. Hunting labels use remembered clan/boss/crew identity; obsolete sixty-second/aggregate-safety constants are removed. Existing cap/buff/raid/order safeguards remain.
+
+All thirty unique checks passed: sector recovery, deployment foundation/automation/transfers/map, assignments, deployment Rally, Shinobi intelligence, Ambush, deployment AI, geisha, all-day contracts, contract refill, stealth perception, hidden-contract bonus, unit frames, vision, territory, crew, crew services/groups, indoor orders, raid, Kuroda, police, Shinobi assignments, Ninja bot, Ninja, Shinobi combat and Shinobi HQ raid. Later Hunting-label/cleanup changes were rechecked with specialist/deployment-AI checks and syntax. Thirty changed/new source modules passed `node --check`; scoped diff check was clean.
+
+No browser, screenshot, visual or layout playtest is claimed. Tim's final visual/balance/layout item stays unchecked. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved proposals. New source/test files must be included in any later authorized commit; personal HUD layout/archives remain untouched. No commit/push requested by this handoff.
+
+### Duty simplification follow-up (implemented/checked 2026-10-27)
+
+Tim approved Patrol/Guard-only regular-clan duties and corrected the deselection key to **Escape**, not Control. Shared command/UI selectors reject new Hold; legacy Hold migrates to Patrol even in empty sectors. Manual station and optional Patrol routes remain. `CrewInput.clear` sends shared selection-change Return on Escape; only manual overrides resume, preserving autonomous Ambush/Rally selection safeguards.
+
+Crew bar **↩ Duty** and map/panel **Back to duty** use shared `returnToDutyAndSelectHero`: explicitly return eligible selected/focused local sector crew, deselect and select only available permanent hero-group crew. Other released manual sector crew receive selection-change Return without duplicate explicit IDs. Hero control remains available with no crew. No movement/Follow, membership, numbered-group shortcut or Ctrl behavior changes.
+
+Crew-group checks passed Escape return, explicit return/hero selection, no duplicate commands/Follow, numbered groups, focused map return and releasing other manual groups. Assignments passed Patrol/Guard, Hold migration/rejection, local manual/return and Guard doors; indoor-orders and Rally passed. Eight touched-source syntax and scoped diff checks passed. Invalid CP1252 bytes in recent-target panel text were normalized to UTF-8, retaining valid UTF-8. No browser/UI playtest claimed; final Tim playtest remains unchecked. No commit/push requested.

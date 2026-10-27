@@ -40,7 +40,7 @@ The action bar at the bottom shows the hero's health, the basic attack and the f
 
 The top-left line shows your crew count / crew cap; ryo has its own badge. New crew walk out of the teahouse door after a few seconds.
 
-## Deployment and sectors (built 2026-10-26)
+## Deployment and sectors (updated 2026-10-27)
 
 Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is separate from selection groups; ordinary crew commands obey deployment membership and area limits, and Follow needs hero-group membership.
 
@@ -49,13 +49,19 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 | Toolbar **Deployment** button (Esc closes; no hotkey) | Deployment panel: counts, reserved slots, health, transfer status |
 | Select crew + destination, **Transfer selected** | Move crew between the hero group, HQ and sectors |
 | **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 2) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
-| M map → **Deployment** layer (hex sector map) | Click a sector or nameplate (or the sidebar + **Manage sector**) to open its management; crew selection is kept. Other map clicks still move the camera |
-| Duties: task/business, objective/fallback, up to 8 route points, **Save** | Set a sector's local duty (map picks only edit the draft). **Return selected** puts crew back on their saved duty after manual control |
-| Check groups, **Call Rally** | Deployment Rally: temporary command of the called groups (no automatic Follow); panel and toolbar show time left and cooldown. On expiry non-hero-group crew walk back; **Return selected** releases early. Not the ronin's R ability |
+| M map → **Deployment** layer | Click sector badge to select its crew and use task/goal/Return controls; **Manage** opens optional detailed panel. Drag own map-tray, roster or action-bar portraits onto sectors/badges to request transfers |
+| Sector desired staffing goal | Default 3; 0 disables automatic staffing there. Lowering never recalls crew; above-three staffing requires legal overflow |
+| Owned-business card **Guard business** | Assign guarding for normal clans |
+| Duties: task/business, optional objective/route (up to 8 points), **Save** | Regular clans choose Patrol/Guard (optional Patrol route); map picks only edit draft. **↩ Duty** on crew bar or **Back to duty** in map/panel restores selected/focused sector duty and selects available permanent hero-group crew, without Follow |
+| Main HUD **Call Rally**; optional group setup | Reuses remembered groups (all on first use). Deployment Rally: temporary command of the called groups (no automatic Follow); panel and toolbar show time left and cooldown. On expiry non-hero-group crew walk back; **Return selected** releases early. Not the ronin's R ability |
 | Shinobi: **Secure Extraction** | Crew guard your local exit |
-| Shinobi: Ambush: pick a visible street target, **Arm** (**Cancel** / **Retreat**) | Manual ambush; works while the hero is KO'd |
+| Shinobi: task **Ambush**, **Next enemy**, remembered-target **Arm/Cancel**, **Retreat** | Standing or one-off coordinated Ambush; works while hero KO. No target/sector dropdown required |
+| Map remembered row/marker **Inspect**, target-frame **Arm/Armed-Cancel** | Snapshot identity/age only when unseen; no live HP/buffs or hidden camera jump. New targeting/Esc clears inspection |
+| Contract tracker **Ambush contract target/Cancel** | Arm known active boss identity; marker knowledge never permits an unseen attack |
 | Shinobi: Watch | Automatic: crew report sightings and contract-priority pings |
 | Shinobi: hire the geisha, **Diversion** + objective/fallback, **Start diversion** | She dances to draw guards away; Retreat, Return or a task change ends it |
+
+Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, outer ring actual suspicion and near-reveal pulse, violet concealment movement/light, and compact movement/F cues. Hover for state/snuff details. Move/resize through the existing HUD editor; saved-layout/reset/reduced-motion rules apply. [Stealth/HUD behavior](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27); visual/layout playtest pending.
 
 ## Crew
 
@@ -66,7 +72,7 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 | C | Select all your own crew, including crew inside buildings |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a group selection without changing orders; open clinic, police, contract and hiring menus take priority |
-| Esc | Clear selection and hero attack/loot actions; cancel hero execution. Menus close as before |
+| Esc | Clear selection, returning released manually controlled sector crew to saved duty; clear hero attack/loot and cancel hero execution. Menus close as before; Ctrl behavior unchanged |
 | Right-click the ground | Send the selected crew there |
 | Right-click your own business | Selected crew go in and patrol/defend; see [indoor patrol rules](crew_recruiting_plan.md#phase-3c-indoor-patrols-tim-2026-10-21) |
 | Ctrl + right-click the ground | Station the selected crew there (they hold that spot) |
@@ -112,7 +118,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | M, or the Map button | Open or close the full game map (Esc closes it too): territory, businesses, police, units, quarters, season score. The game keeps running. Click a spot to move the camera there |
 | Shinobi: H in the village dojo or longhouse | Hire ninja crew (J on the minimap is the dojo) |
 | Shinobi: hover a lit lantern within 7, then left-click or Space | Snuff it and every lantern within 2.5 ("Snuff (N left tonight)"; 3 per night, badge shows N/3; they relight at dawn) |
-| Shinobi: Space at the village shrine | Open the contract board |
+| Shinobi: Space at the village shrine | Open the contract board; accept/work/finish at any time of day. Active jobs persist across dawn; tracker and viewed objective-room counters show local progress |
 | Shinobi: Q E R F | Shadow Step (on a visible enemy or townsperson: lands next to them with a sure crit, then auto-attacks), Caltrops, Smoke Bomb, Assassinate (reach about 4.4, 45 s). Q and F use the target-frame target first (see `ninja_clan_plan.md`) |
 | Shinobi: right-click the business of your active contract | Selected crew climb in by the back window (up to 6); rival HQs are off-limits |
 | K, or the Mute button | Mute or unmute sounds |
