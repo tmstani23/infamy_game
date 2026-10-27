@@ -4,11 +4,11 @@ import { isRallyParticipant } from './deployment_rally.js';
 
 export const storedDeployment = e => e.deployment ? {
   savedGroup: e.deployment.transfer?.to || (e.deployment.group === 'home' ? e.deployment.savedGroup : null) || e.deployment.group,
-  keepAtHQ: !!e.deployment.keepAtHQ,
+  keepAtHQ: !!e.deployment.keepAtHQ, everAssigned: !!e.deployment.everAssigned,
   ...(e.deployment.diversionReadyAt ? { diversionReadyAt: e.deployment.diversionReadyAt } : {}),
 } : undefined;
 export const restoredDeployment = record => record.deployment ? {
-  group: 'home', savedGroup: record.deployment.savedGroup, keepAtHQ: !!record.deployment.keepAtHQ,
+  group: 'home', savedGroup: record.deployment.savedGroup, keepAtHQ: !!record.deployment.keepAtHQ, everAssigned: !!record.deployment.everAssigned,
   ...(record.deployment.diversionReadyAt ? { diversionReadyAt: record.deployment.diversionReadyAt } : {}),
 } : undefined;
 
@@ -39,7 +39,8 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     if (!validGroup(e.deployment?.group)) {
       const leader = state.entities[e.order?.target];
       const followsHero = e.order?.kind === 'follow' && leader?.type === 'hero' && leader.owner === e.owner;
-      e.deployment = { group: followsHero && counts(e.owner).hero < D.heroLimit ? 'hero' : 'home', keepAtHQ: false };
+      const group = followsHero && counts(e.owner).hero < D.heroLimit ? 'hero' : 'home';
+      e.deployment = { group, keepAtHQ: false, ...(group === 'hero' ? { everAssigned: true } : {}) };
     } else e.deployment.keepAtHQ ??= false;
   }
   function sync() {
@@ -206,6 +207,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       if (r?.active) r.participants = r.participants.filter(p => p.id !== e.id);
     }
     delete e.deployment.automatic;
+    if (!automatic) e.deployment.everAssigned = true;
     e.deployment.transfer = { from: e.deployment.group, to, startedAt: state.tick, target, status: 'moving', progressAt: state.tick, x: e.x, z: e.z, ...(automatic ? { automatic: true } : {}) };
     e.order = { kind: 'stop' };
   }
@@ -215,7 +217,30 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       if (!h) continue;
       const reserves = members(clan.id, 'home').filter(e => !e.deployment.transfer && !e.downed && !isRallyParticipant(state, e));
       for (const e of reserves) delete e.deployment.automatic;
-      const available = reserves.filter(ready);
+      const heroUp = !h.dead && !h.downed && !h.jailed;
+      // Revived and respawned crew go back to the group they came from; new crew fill the
+      // hero group up to six first (Tim 2026-10-27). Neither waits for the hero's combat.
+      const sent = new Set(), waiting = new Set();
+      for (const e of reserves) {
+        if (!quiet(e) || !idle(e) || e.deployment.keepAtHQ) continue;
+        const saved = e.deployment.savedGroup;
+        let to = saved && saved !== 'home' && validGroup(saved) ? saved : null;
+        if (to && (!canAssign(clan.id, [e.id], to).ok || (to === 'hero' && !heroUp))) {
+          if (to !== 'hero' || heroUp) { delete e.deployment.savedGroup; to = null; }
+          else {
+            waiting.add(e.id);
+            e.deployment.automatic = { to, status: 'queued', why: 'Hero unavailable; waiting to return to hero group' };
+            continue;
+          }
+        }
+        if (!to && !e.deployment.everAssigned && heroUp && healthy(e) && canAssign(clan.id, [e.id], 'hero').ok) to = 'hero';
+        if (!to) continue;
+        const target = destination(e, to);
+        if (!route(e, target, true)) { waiting.add(e.id); e.deployment.automatic = { to, status: 'blocked', why: 'Automatic transfer blocked; retrying' }; continue; }
+        delete e.deployment.savedGroup;
+        startTransfer(e, to, target, true); sent.add(e.id);
+      }
+      const available = reserves.filter(e => !sent.has(e.id) && !waiting.has(e.id) && ready(e));
       // Pinned ready crew count toward the requested ready reserve; choose the
       // retained crew first so reservations cannot oversubscribe a sector.
       const retained = new Set(available.filter(e => e.deployment.keepAtHQ).map(e => e.id));
@@ -224,9 +249,9 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
         retained.add(e.id);
       }
       for (const e of reserves) {
-        if (!quiet(e) || !idle(e)) continue;
+        if (sent.has(e.id) || !quiet(e) || !idle(e)) continue;
         let to;
-        if (ready(e) && !retained.has(e.id)) to = nextAutomaticSector(clan.id);
+        if (!waiting.has(e.id) && ready(e) && !retained.has(e.id)) to = nextAutomaticSector(clan.id);
         // Recruits and returnees held for recovery/reserve physically travel
         // home first; raising the target never recalls assigned field crew.
         if (!to && e.place !== home(clan.id)?.room) to = 'home';
@@ -298,6 +323,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
         clearCombat(e); t.progressAt = state.tick; t.x = e.x; t.z = e.z;
       } else {
         e.deployment.group = t.to; e.deployment.arrivedAt = state.tick;
+        if (t.to !== 'home') e.deployment.everAssigned = true;
         delete e.deployment.transfer;
         delete e.deployment.duty;
         clearCombat(e);

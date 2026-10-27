@@ -96,3 +96,75 @@ Village now has four stream crossings (2026-10-22): [bridge locations and approa
 
 Sector Watch, manual Ambush, geisha Diversion, Secure Extraction, deployment/UI and open decisions: [deployment and sector plan](deployment_sector_plan.md). HQ raid, suppression, rewards and recovery protection: [businesses and raids](business_raids_plan.md) "Shinobi HQ raid". Deployment/sector features remain unbuilt. The linked HQ raid is built and sim-checked (2026-10-25), awaiting Tim's visual/balance playtest.
 - **Stealth rules (2026-10-26):** knocking down a lantern always reveals and ends Vanish; attacking inside your own smoke reveals, stopping hides again; taking damage does not break Vanish (only attacking does). Code: `sim/stealth.js`, `sim/game.js`.
+
+## All-day contracts follow-on (agreed design 2026-10-27)
+
+**Authorization update (Tim, 2026-10-27):** all-day contracts and the readable-stealth/HUD follow-on below are authorized in the sequential [deployment follow-on build](deployment_sector_plan.md#sequential-follow-on-checklist--authorized-2026-10-27-not-yet-complete). This supersedes earlier pending-build-confirmation wording in these follow-on sections. Initial +25% hidden-completion Renown for infiltration jobs is authorized; record actual refresh/stealth tuning when implemented. No item is complete until implementation/checks are reported. Watch-helper/Extraction replacement and plant-and-leave sabotage remain unapproved.
+
+**Implementation pending Tim confirmation; not built or authorized by this design note.** Any Shinobi contract may be accepted, progressed and completed at any time of day. Remove sabotage's `state.night` planting gate, generated contract night flags, bot night waits/cutoff scoring, night/tonight/until-dawn UI instructions and automatic dawn failure. Accepted jobs and their own progress survive dusk/dawn; no replacement hard deadline is approved.
+
+Progress depends on the actual job location, conditions and actions: scouting hidden-observation seconds; sabotage planting then hold seconds (retain existing detailed mechanics until separately reworked); theft stash seconds; boss defeat; bandit kills. Show relevant local interior objective/ring progress and tracker counters. Boss/bandit jobs use actual target/camp or kill counters, not invented indoor rings. Wrong-location units and marker visibility never grant progress. Sabotage's next-business-payout effect is separate and never delays contract completion/reward until dawn.
+
+Board refresh/replenishment must also avoid forced dawn waits. **Proposed integration detail, not settled balance:** replenish on contract lifecycle/independent rolling counters with explicit repeat-job/anti-cancel-farming limits. Cadence and limits require confirmation; neither infinite repeat rewards nor a new numeric cadence is approved. Existing public camps supply all-day bandit opportunities; verify real targets are available both times without promising changes to unrelated night-spawn rules.
+
+Preserve HQ-raid cancellation/lockout, explicit cancellation, ownership invalidation, one-active-contract/reward locks, normal stealth/lighting, ordinary business payout schedules and War Lantern/HQ raid timing. Sim, bots and UI share independent objective logic.
+
+- [ ] Confirm refresh/repeat-job policy and implement shared all-day acceptance/progression/completion with site-local counters.
+- [ ] Focused tests: daytime sabotage; relevant objective progress/completion across dusk/dawn; active-job retention; actual site versus wrong location; bots without night waits; UI labels/counters; unchanged ordinary raid gate and HQ lockout.
+
+Still proposals: removing Secure Extraction and folding contract assistance into Watch (one stealth helper, no multiplied progress/reward/hero-group buffs), and plant-and-leave sabotage replacing the hold. The approved stealth/clean-reward directions below do not approve these redesigns.
+
+## Readable stealth and clean contracts follow-on (2026-10-27)
+
+**Agreed design directions; gameplay implementation still pending build confirmation.** Tim approved avoidable/readable detection, usable entrance openings, shorter quiet interactions and an additional clean-job reward. The extra reward is **Renown**, replacing the suggested extra-ryo bonus; baseline contract ryo remains. No direct extra season points: Renown uses existing season progression.
+
+### Agreed stealth and interaction behavior
+
+- Stealth spotting generally indoors/outdoors by armed observers (guards, police, bandits, clan units) requires their forward view cone, actual simulated facing and line of sight. Walls/opaque cover block it. Walking has smaller detection and a short suspicion buildup, shown over the guard, rather than instant detection.
+- Patrol starting positions/timing must offer at least one usable entrance opening, with timing the player can observe instead of guards parked over entry. Movement should be predictable without sudden random direction shifts.
+- Quiet objective completion should use faster/short interactions. No exact timers are approved. Plant-and-leave sabotage instead of hold remains a separate redesign proposal.
+- **Distract:** normal travel to the reachable landing spot, then **four seconds investigating/staring on arrival**; travel never consumes this window. Face the spot, then resume saved patrol/duty. Facing-cone threats remain perceptible; damage/confirmed combat may interrupt. This is not a stun or mind control. Preserve existing eligibility/cooldown and caltrop slow unless separately changed.
+
+Scope excludes arbitrary player attack restrictions or a global map-fog rewrite. Attacks/contact/established combat are distinct from stealth spotting. No approved omnidirectional awareness bubble may negate sneaking behind.
+
+**Chosen initial view angle (Tim, 2026-10-27): 90 degrees total, ±45 degrees from actual simulated facing**, subject to playtest tuning. Proposed supporting tuning: steady loops/pauses and readable turning outside combat, responsive combat; exact ranges, suspicion and turn rates remain pending confirmation/playtest. This design choice does not authorize gameplay implementation.
+
+### Hidden-status suspicion warning (agreed requirement 2026-10-27)
+
+The circular movable/resizable Shinobi hero badge, suspicion ring and near-reveal warning are **global stealth HUD**: indoors/outdoors, day/night, with or without an active contract. They never depend on contract acceptance, business assignment or an objective. The separate contract hidden-completion bonus reads this same normal stealth state.
+
+Replace the large Hidden pill with a compact **round icon badge**, clear hidden/seen icons/states and a circular suspicion meter. Give early warning before reveal; gently flash/pulse near the actual suspicion threshold, stopping/resetting consistently with sight break/detection and real state. **Proposed state colors:** violet hidden → amber hidden/suspicion rising → red seen only on actual detection. Threshold/flash cadence remain tuning proposals, never fake probability or altered detection timing. Preserve truthful F-ready/countdown and snuff information through a compact supplemental cue/tooltip; exact presentation is an implementation detail and must not restore the large pill. Warning is not a buff/debuff and never extends stealth/detection grace or labels a still-hidden unit as seen.
+
+Agreed feedback requirement: visibly reflect walking versus running and entering/leaving darkness so changing concealment is readable. **Accepted compact presentation direction (Tim, 2026-10-27):** center icon remains hidden/seen; violet backplate/halo strength conveys concealment (stronger with darkness/walking/stillness, weaker with light/running), with small walk/run glyph and tooltip naming dark/lit/interior and movement conditions. Keep the outer amber/red ring exclusively for actual observer suspicion/near reveal; environmental detectability alone never implies observation. Exact colors, flash cadence and minimum size remain tuning details; accepting this presentation does not authorize gameplay implementation.
+
+Drive concealment feedback from authoritative stealth modifiers/effective detection range, including indoor rules, running multiplier, day/night illumination and smoke/veil overrides. Respect distinct override states; no new regenerating stealth resource, probability or extra time to hide. Use modest transitions on condition changes, no perpetual motion or expanding geometry that obscures the map; retain compact round resizing/reduced motion. This adds no cone/lighting rule changes beyond the separately pending stealth rework and remains design-only pending implementation confirmation.
+
+Register the badge with the existing HUD layout editor so it is movable/resizable using normal persist/reload/reset mechanisms. Preserve saved layouts; do not create separate controls or overwrite personal `ui_layout.json`. Keep the circle round on resize, with a useful minimum icon/ring size, coherent icon/border scaling and viewport clamping. Respect reduced-motion preferences and keep state readable through icons as well as color.
+
+Use actual simulated facing, 90-degree cone, LOS, range and suspicion progress—not random probability or a UI-only reveal threshold. With multiple observers show the highest imminent detection progress, never an average that hides danger. Clear/decay consistently with real sim suspicion after sight breaks. No warning through walls/outside valid detection conditions. The warning must not expose unseen guard identity, position or cones beyond the information intentionally afforded by suspicion itself.
+
+Replicate source warning state to its owning clan only; never show rival-private detector data. Render only draws. Optional advance proximity/cone “at risk” hint from already visible guards remains a proposal, not required omniscient warning. No numeric suspicion timing is newly approved; this remains plan-only pending build confirmation.
+
+### Hidden-completion Renown bonus (design updated 2026-10-27)
+
+Renown bonus type and hidden-at-completion eligibility are agreed design; implementation still awaits confirmation. The **25% amount and infiltration-only job scope remain proposed tuning**, not approved numeric balance:
+
+- Add 25% of the accepted locked contract Renown, rounding once at payout. No extra ryo bonus or separate season-point award.
+- Proposed eligible jobs remain infiltration-only: scout/mark/steal, excluding boss/bandit jobs.
+- Check the actual objective-completing participant's normal hidden state at the actual objective/site at **final completion**. Earlier detection or combat/defender damage never permanently disqualifies: regaining stealth before finishing can qualify. Allowed smoke/veil hidden states apply; no never-fought rule or minimum hidden seconds. An unrelated hidden unit elsewhere cannot qualify the job.
+- For multi-stage jobs, check final actual objective completion, not an earlier plant or scouting-progress stage.
+- Visible completion earns normal base ryo/Renown only. Pay the hidden-completion bonus once on accepted locked Renown and show an honest hidden-completion eligibility cue, not a historical clean/compromised label.
+
+Illustrations using base rewards only: scout 15 → 19, steal 25 → 31, mark 30 → 38. Actual scaled accepted reward governs, not these examples.
+
+### Pending implementation checks
+
+- [ ] Confirm remaining bonus tuning/job scope, then implement forward-facing LOS/suspicion and predictable patrol/entrance behavior under separate build approval.
+- [ ] Verify the 90-degree total cone (±45 from actual facing), behind/ahead and boundary cases, walls/cover, suspicion/walking and readable patrol turns without changing established-combat response.
+- [ ] Verify HIDDEN during buildup, warning matches real progress/LOS break and highest of multiple observers, SEEN only on actual reveal, no private-detector leakage and preserved F readiness.
+- [ ] Verify no-contract street and interior warnings, round badge icons/state/ring, near-reveal pulse/reset and reduced-motion readability; move/resize with round aspect/minimum size/viewport clamp, saved-layout persistence/reload/reset and preserved F/snuff access. Tim visual check remains pending; no browser test run is claimed.
+- [ ] Verify walking/still versus running concealment cues, dark/light transitions, indoors and smoke/veil overrides; environmental feedback stays independent of the actual-suspicion danger ring. Tim visual review remains pending.
+- [ ] Verify Distract travel plus four full arrival seconds, facing, duty resumption, threat/damage interruptions and preserved cooldown/eligibility/caltrop behavior.
+- [ ] Verify spotted earlier then rehidden finish qualifies; visible finish gets base only; unrelated hidden units cannot qualify; earlier defender damage alone does not disqualify; final-stage/site participant check; allowed smoke/veil; one accepted locked-reward payout with rounding/scaling, honest eligibility cue and no extra ryo/direct points.
+
+Watch support/Extraction removal and sabotage hold replacement remain separate proposals. No gameplay changes or completed checks are claimed here.

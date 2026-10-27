@@ -1,40 +1,42 @@
-#deploymentpanel { position: fixed; z-index: 32; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(800px, calc(100vw - 48px)); max-height: calc(100vh - 56px); overflow: auto; box-sizing: border-box; padding: 18px; background: rgba(10,12,16,.97); border: 1px solid #a3834d; border-radius: 10px; color: #e7dfce; box-shadow: 0 12px 40px #000a; font: 13px/1.4 system-ui, sans-serif; }
+/* Deployment menu, docked on the right of the open game map (Tim 2026-10-27) */
+#deploymentpanel { position: fixed; z-index: 32; right: 14px; top: 14px; bottom: 14px; width: min(370px, calc(100vw - 28px)); overflow: auto; box-sizing: border-box; padding: 12px 14px; background: rgba(10,12,16,.97); border: 1px solid #a3834d; border-radius: 10px; color: #e7dfce; box-shadow: 0 12px 40px #000a; font: 12.5px/1.35 system-ui, sans-serif; display: flex; flex-direction: column; gap: 8px; }
 #deploymentpanel[hidden] { display: none; }
-#deploymentpanel header, #deploymentpanel .transfer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-#deploymentpanel header { justify-content: space-between; }
-#deploymentpanel h3 { margin: 0; color: #e9c27a; letter-spacing: .1em; }
-#deploymentpanel p, #deploymentpanel footer { color: #aaa394; }
-#deploymentpanel button, #deploymentpanel select { padding: 6px 9px; border: 1px solid #6c5c40; border-radius: 5px; background: #20232a; color: #f0e3c9; cursor: pointer; font: inherit; }
+#deploymentpanel header { display: flex; align-items: center; justify-content: space-between; }
+#deploymentpanel h3 { margin: 0; font-size: 13px; color: #e9c27a; letter-spacing: .1em; }
+#deploymentpanel button, #deploymentpanel select { padding: 4px 8px; border: 1px solid #6c5c40; border-radius: 5px; background: #20232a; color: #f0e3c9; cursor: pointer; font: inherit; }
 #deploymentpanel button:disabled { opacity: .45; cursor: default; }
 #deploymentpanel button:hover:not(:disabled) { border-color: #e9c27a; }
-#deploymentpanel .destinations { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 7px; margin: 12px 0; }
-#deploymentpanel .destinations button { text-align: left; }
-#deploymentpanel .destinations button[aria-pressed="true"] { border-color: #e9c27a; background: #343022; }
-#deploymentpanel .sector-focus { color: #d5c5a4; }
-#deploymentpanel .assignment { margin: 10px 0; padding: 10px; background: #ffffff06; border-radius: 5px; }
-#deploymentpanel .assignment[hidden], #deploymentpanel .business-label[hidden] { display: none; }
-#deploymentpanel .assignment label { margin-right: 8px; }
-#deploymentpanel .assignment-points { margin: 8px 0; color: #b9b4a8; font-size: 12px; }
-#deploymentpanel .assignment-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-#deploymentpanel .rally-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px; border: 1px solid #635134; border-radius: 5px; }
-#deploymentpanel .rally-controls small { flex-basis: 100%; color: #aaa394; }
-#deploymentpanel .rally-groups { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
-#deploymentpanel .rally-groups label { font-size: 12px; }
-#deploymentpanel .shinobi-ops { padding: 10px; margin: 9px 0; background: #40354c33; border-radius: 5px; }
-#deploymentpanel .shinobi-ops[hidden] { display: none; }
-#deploymentpanel .ambush-preview { display: block; margin: 7px 0; color: #c6b1d6; }
-#deploymentpanel .destinations .sector-alert { box-shadow: inset 3px 0 #e9b95e; }
-#deploymentpanel .why { min-height: 20px; padding: 8px 0; color: #e3be79; }
-#deploymentpanel .roster { display: grid; gap: 4px; }
-#deploymentpanel .member { display: grid; grid-template-columns: 20px minmax(110px, 1fr) 100px minmax(140px, 1.5fr); align-items: center; gap: 8px; padding: 7px; background: #ffffff06; border: 1px solid transparent; border-radius: 5px; cursor: pointer; }
+#deploymentpanel .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+#deploymentpanel .tabs button { padding: 3px 7px; font-size: 11.5px; }
+#deploymentpanel .tabs button[aria-pressed="true"] { border-color: #e9c27a; background: #343022; }
+#deploymentpanel .sector-alert { box-shadow: inset 3px 0 #e9b95e; }
+#deploymentpanel .roster { display: flex; flex-direction: column; gap: 2px; max-height: 42vh; overflow: auto; padding-right: 2px; }
+#deploymentpanel .group-head { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 4px; color: #c9b88e; border-bottom: 1px solid #3a3326; }
+#deploymentpanel .group-head b { cursor: pointer; font-weight: 600; }
+#deploymentpanel .group-head.focus { color: #f0d08e; border-bottom-color: #a3834d; }
+#deploymentpanel .member { display: grid; grid-template-columns: 18px 1fr 58px 1fr auto; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 4px; border: 1px solid transparent; }
 #deploymentpanel .member.selected { border-color: #6fae8b; background: #6fae8b16; }
 #deploymentpanel .member small { color: #a9caac; }
-#deploymentpanel .member span { color: #c2b8a4; }
-#deploymentpanel input { accent-color: #86b69a; }
-#deploymentpanel footer { margin-top: 12px; font-size: 11px; }
-#deploymentpanel .reserves { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
-#deploymentpanel .reserve-target { width: 58px; padding: 5px; background: #20232a; color: #f0e3c9; border: 1px solid #6c5c40; border-radius: 4px; }
-#deploymentpanel .reserves small { flex-basis: 100%; color: #aaa394; }
-#deploymentpanel .member { grid-template-columns: 20px minmax(100px, 1fr) 90px minmax(130px, 1.5fr) 100px; cursor: default; }
+#deploymentpanel .member span { color: #c2b8a4; font-size: 11.5px; }
 #deploymentpanel .pin { font-size: 11px; cursor: pointer; }
-@media (max-width: 560px) { #deploymentpanel .member { grid-template-columns: 20px 1fr 100px; } #deploymentpanel .member span { grid-column: 2 / -1; } }
+#deploymentpanel .pin[hidden] { display: none; }
+#deploymentpanel .transfer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 6px; border-top: 1px solid #3a3326; }
+#deploymentpanel .why { min-height: 16px; color: #e3be79; }
+#deploymentpanel details { border: 1px solid #3f3729; border-radius: 6px; padding: 6px 8px; }
+#deploymentpanel details[hidden] { display: none; }
+#deploymentpanel summary { cursor: pointer; color: #e9c27a; font-weight: 600; }
+#deploymentpanel .duty-body, #deploymentpanel details form { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+#deploymentpanel .business-label[hidden], #deploymentpanel .shinobi-ops[hidden] { display: none; }
+#deploymentpanel .assignment-actions, #deploymentpanel .shinobi-ops { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+#deploymentpanel small { color: #aaa394; }
+#deploymentpanel .shinobi-ops small { flex-basis: 100%; color: #c6b1d6; }
+#deploymentpanel .rally-groups { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0; }
+#deploymentpanel .rally-groups label { font-size: 11.5px; }
+#deploymentpanel .rally-status { font-weight: 400; color: #c2b8a4; }
+#deploymentpanel .reserve-target { width: 48px; padding: 3px; background: #20232a; color: #f0e3c9; border: 1px solid #6c5c40; border-radius: 4px; }
+#deploymentpanel input { accent-color: #86b69a; }
+#deploymentpanel footer { font-size: 11px; color: #8f897c; }
+/* the map makes room for it */
+#gamemap.docked { padding-right: 390px; box-sizing: border-box; }
+#gamemap.docked .mapbox canvas { width: min(88vh, calc(100vw - 690px)); height: min(88vh, calc(100vw - 690px)); }
+@media (max-width: 900px) { #gamemap.docked .mapcol { display: none; } #gamemap.docked .mapbox canvas { width: min(88vh, calc(100vw - 420px)); height: min(88vh, calc(100vw - 420px)); } }

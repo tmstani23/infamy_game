@@ -2,6 +2,8 @@
 
 Status: built 2026-10-26 (phases 1A-5B; grouped regressions passed). This doc owns deployment, sectors and their UI, and deployment Rally. Player controls: `controls.md` "Deployment and sectors". The Shinobi HQ raid lives in `business_raids_plan.md`. The checkpoint sections at the end are the build record.
 
+**Proposed follow-on (2026-10-27):** [simpler sector control, recovery and Ambush](#proposed-follow-on-build-plan-2026-10-27) is now authorized by Tim on 2026-10-27, separately from the earlier 1A–5B approval. It remains unbuilt until completion/checks are reported. Current built checkpoints and verified fixes remain the implementation record.
+
 ## Purpose
 
 Keep a useful hero squad without making the full roster follow everywhere. Give spare crew local duties, retain independent group control and allow occasional large battles. Shinobi need meaningful assignments despite owning no businesses. Selection groups and deployment assignments are separate concepts.
@@ -202,3 +204,92 @@ Explicit crew loot/execution/assist attacks enter temporary manual control and b
 No implementation subphase remains. Tim's final visual/balance playtest stays unchecked; the geisha dance uses the Arms Hip Hop Dance sheet (2026-10-26); only her attack keeps the formal-bow placeholder.
 
 Already implemented separately: [Shinobi HQ raid](business_raids_plan.md) "Shinobi HQ raid". Its status and pending playtest live in the raid owner doc; this plan does not reopen that implementation.
+
+### Targeted corrections (verified 2026-10-27)
+
+Build coordinator reports four fixes to the current sector/geisha/map implementation:
+
+- Pending automatic returns retain their saved destination while the hero is unavailable or the route blocked; they cannot fall through into surplus sector dispatch and may travel home while waiting.
+- Charmed geishas process entrancement before autonomous lure, flee or fight behavior.
+- Active contract markers use business world coordinates, never room-local `job.spot`; visible interior bosses project to their building. Pure presentation helper: `game/src/contract_map_marker.js`.
+- Boss markers use only visible, nonhidden current positions or watcher reports younger than 200 ticks (ten seconds), never unseen live coordinates.
+
+Targeted Node checks passed with new regressions: `test_deployment_automation`, `test_deployment_transfers`, `test_geisha` and `test_deployment_map`. All four touched source syntax checks and scoped diff whitespace checks passed. No browser test or Tim playtest is claimed. No sector simplification plan is agreed by these corrections.
+
+## Proposed follow-on build plan (2026-10-27)
+
+**Build authorized by Tim, 2026-10-27.** Build sequentially and report each phase to Tim/Docs keeper before continuing; no further confirmation is needed between phases. All follow-on checklist items below are unchecked. This section records the agreed design for review, plus explicitly marked proposed integration details; it does not claim new gameplay is built. Earlier authorization covers completed 1A–5B only. Historical bugfix checks above do not validate this follow-on.
+
+### Outcome and retained rules
+
+Reduce recurring menu use; keep detailed roster optional. Preserve current sector geometry/hex presentation, hero six, normal sector three, total recruitment cap, legal overflow unlock, pins, saved assignments, physical travel, buff rules and Rally timer/cooldown safeguards. All rules use deterministic authoritative sim and plain serializable state; humans/bots use shared commands without hidden bot intelligence.
+
+### Simple controls and staffing
+
+Set desired crew count per sector once; eligible HQ reserves automatically staff, recover and replace within existing health, pin, reservation, route and combat gates. No automatic hiring/payment. Useful default duties: regular clans Patrol, Shinobi Watch. Sector badges show counts/task/status and actionable exceptions (attacked, blocked, missing crew); routine operation stays quiet.
+
+Map is the main surface: drag own crew portraits onto sector badges to request explicit transfers; click a badge to select its crew. Retain ownership/combat/capacity/route validation and useful rejection reasons. Small contextual action strip offers Return/task/special actions; detailed roster remains optional. Owned-business context offers Guard. Main HUD Rally uses remembered selected groups, with occasional optional group setup. Calling still grants temporary permission without forced movement/Follow.
+
+**Proposed integration detail for confirmation:** desired counts are staffing goals, not new hard caps. Automatic reserve dispatch prioritizes deficits while respecting HQ reserve/pins. No silent recall of healthy field crew or interruption of transfers/manual jobs/Rally. Goals above three require legal overflow; manual membership remains possible within current caps.
+
+### Shinobi assignments and standing Ambush
+
+Tasks become Watch, Ambush and Secure Extraction. Geisha autonomous charm/flee/fight is independent support; no manual Diversion setup is required. Truthful Watch reports remain baseline across duties. Watch defends without jumping passing enemies. Hero/geisha presence is not required for Ambush.
+
+Standing Ambush patrols **together** within its sector. Without a selected target, initiate on the first personally detected enemy clan hired crew member or hero in/entering the sector. Exclude civilians, police, wild units and free house guards as automatic candidates. With a selected identity, patrol while waiting specifically for it. Actual assigned local detection is required; remembered identities/global boss markers never grant combat sight or attacks through walls. Initiate even against larger forces: remove visible-defender-count initiation/continuation vetoes. Use ordinary swings, damage and execution, with no guaranteed kill/invisibility.
+
+### Remembered identities and coordinated target orders
+
+A shared per-clan roster retains recent enemy identities for **120 seconds since actual sighting**, refreshing only on actual reacquisition. Show last sector/age and honest live versus remembered state; unseen movement, HP or deaths never update memory. Selecting Ambush pins identity until the attempt finishes/cancels, even beyond roster decay. Remove the sixty-second armed timeout; waiting for return may continue indefinitely.
+
+Visible target pane or remembered map marker offers **Arm Ambush**. Contextual recent-target rows each offer Ambush; contract tracker offers **Ambush contract target**. All directly issue the same coordinated command: no dropdown or second sector-selection step. Button shows armed/Cancel; badges show Waiting/Hunting/Attacking. **Ambush next enemy** pre-arms a local untargeted opportunity.
+
+Before attack, a coordinated target order may hand off to a staffed eligible sector that actually detects the target. Only **one sector group** commits per attempt; no cross-sector chase or piling in. Target leaving the sector after attack triggers withdrawal and ends that attempt, not chained handoffs. One-off targeting then restores saved duty. Standing Ambush resumes after recovery; chosen target clears after completion/cancel.
+
+**Proposed lifecycle detail for confirmation:** one active coordinated targeted order per clan; explicit replacement/cancel of the old order. Prevent opportunistic Ambush from racing the coordinated claim. Persistent assignment stays separate from temporary operation/target.
+
+### Agreed Ambush withdrawal thresholds
+
+Snapshot initial participants; downed or killed crew count as casualties, not just executions. First casualty alone continues. Withdraw all survivors on any of:
+
+- At least one casualty plus another standing participant at or below one-third maximum HP.
+- Two casualties, immediately.
+- A solo ambusher at or below one-third HP.
+
+Larger enemy numbers alone never veto or abort. Attempt ordinary execution on a downed target unless withdrawal is triggered. Withdrawal outranks execution, retaliation, chase and casting. Manual Retreat remains available. Escape is physical/vulnerable and never guaranteed.
+
+### Automatic fallback and recovery for every clan
+
+All sector assignments use automatic withdrawal/recovery, differing by saved duty. Normal use requires no per-sector fallback/objective/route setup. Choose a reachable in-sector withdrawal point increasing distance from attackers and avoiding currently **visible** enemies; prefer friendly crew/owned business only where actually safe. After danger clears choose a safe regroup/patrol point. Re-evaluate if approached, rather than take hits at an unsafe fixed point. If no safe route exists, try best reachable withdrawal and defend when trapped. Use deterministic tie-breaks and bounded replanning; no teleport, invulnerability, cross-sector movement or special stealth.
+
+Guard uses actual doors/routes and sector entrance mapping, never mixes room/outdoor coordinates. Preserve saved task/objective/manual override and return through normal travel. Withdrawing → Recovering once safely regrouping; resume only once standing survivors are gathered, six seconds out of combat and **each at least 70% HP**. Lawful existing regeneration/services only, no free healing. Replacement transfers may join under normal rules/capacity. Missing/downed/dead members cannot cause permanent gathering waits.
+
+Standing Ambush loops Patrolling → Attacking → Withdrawing → Recovering → Patrolling; selected target displays Hunting: name. Other duties resume themselves: Patrol regroups/resumes route; Guard uses safe owned position/doors and guards again if still owned; Hold returns to hold/route; Watch stays nonaggressive; Extraction retains protection radius/leash outside retreat. Preserve manual/transfer/Rally priority; autonomous staffing never interrupts active jobs. Handle all-down groups, reinforcement arrivals, hero KO, removals, lost businesses and blocked routes.
+
+**Unsettled numerical extension — explicit confirmation required:** Tim agreed the casualty/HP triggers above for Ambush and shared fallback/recovery for every clan's sector duties. He has not selected distinct Patrol/Guard/Hold/Watch/Extraction danger triggers. Proposed initial default: use the same casualty/one-third-HP thresholds, including solo one-third rule, for all automated sector groups, retaining each duty's initiation/objective behavior and configurable tuning. This extension is a proposal, not a previously agreed numerical rule.
+
+### Active boss-contract tracking
+
+Track only the actual active **boss-contract target**, not every hero belonging to a business-contract clan. First actual clan sighting during the active contract establishes a persistent exact outdoor boss-only map/minimap marker until contract end/failure/cancel. Crew/nearby enemies still require normal visibility. Marker is information, never combat/Ambush permission.
+
+Actual stealth breaks live tracking: keep last-known position until genuine reacquisition. Indoors show building only, never interior movement/occupants. Tracker can arm the known identity while temporarily unseen, but never attack solely from the marker. Store tracking authoritatively per clan, multiplayer-safe; clear through contract/visibility/stealth lifecycle. Hidden coordinates may be used only by the explicitly approved nonstealth boss-tracking state. Keep ordinary ten-second contacts, 120-second identity memory and persistent active-contract tracking separate.
+
+Related agreed design, still awaiting implementation confirmation: [all-day Shinobi contracts and site-local progress](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27). That owner section also separates unsettled refresh policy and other contract-assistance proposals.
+
+Related agreed directions and proposed tuning: [readable stealth, Distract and hidden-completion Renown](ninja_clan_plan.md#readable-stealth-and-clean-contracts-follow-on-2026-10-27), still pending build confirmation. Watch-support/Extraction removal and sabotage redesign remain proposals.
+
+### Sequential follow-on checklist — authorized 2026-10-27, not yet complete
+
+Tim authorizes A → B → C → D → E → Contract → Stealth/HUD → F in order, with checks and reports after each phase. All items stay unchecked until implementation/checks are reported; final Tim playtest stays unchecked. Adopt conservative initial defaults: shared Ambush casualty rules for every clan's automated sector groups, desired counts as goals rather than caps, one coordinated target order per clan, and +25% hidden-completion Renown for infiltration jobs. This authorization supersedes earlier confirmation-required wording for those defaults. Record concrete refresh/stealth tuning when implemented. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved redesigns.
+
+- [ ] **A:** shared all-clan withdrawal/recovery and automatic fallback; confirm proposed per-duty danger thresholds before implementing that extension.
+- [ ] **B:** staffing goals, map portrait transfers/context controls and main HUD remembered-group Rally.
+- [ ] **C:** authoritative two-minute identity memory and active boss-contract tracking, with distinct visibility/lifecycle rules.
+- [ ] **D:** standing group Ambush, coordinated pinned target claims/pre-attack handoffs and agreed aggressive casualty rules.
+- [ ] **E:** target-pane/context/contract action buttons and truthful state cues.
+- [ ] **Contract follow-on:** confirm and implement the separately owned [all-day contract plan](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27), including its refresh-policy decision and focused checks.
+- [ ] **Stealth/HUD follow-on:** confirm and implement the canonical [readable-stealth plan](ninja_clan_plan.md#readable-stealth-and-clean-contracts-follow-on-2026-10-27): cone/LOS/suspicion, predictable patrols, Distract travel plus four arrival seconds, hidden-completion Renown and global round movable/resizable badge with accepted movement/lighting feedback; settle remaining tuning and run its focused checks.
+- [ ] **F:** shared-command bot integration, focused Node regressions and integration report.
+- [ ] **Tim visual/balance playtest:** after implementation; no browser/screenshot testing is planned for this build workflow.
+
+Required checks: exact casualty/HP thresholds despite high enemy counts; safe route/replan/trap/interior doors; manual/transfer/Rally overrides; no gathering deathlock or invented healing; memory expiry versus pin and unseen-data isolation; boss stealth/indoors/contract end; one committed group/pre-attack handoff/no chase; capacity/pin/reservation/combat gates and staffing without job interruption. Existing checks remain historical until relevant follow-on regressions pass.

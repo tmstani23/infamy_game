@@ -22,14 +22,12 @@ st.tick+=40;out=ai.tick();assert.ok(out.some(c=>c.action==='armAmbush'&&c.target
 g.step(out);assert.equal(st.deployment.clans[clan].sectors[s.id].operation.state,'Attacking');
 delete st.deployment.clans[clan].sectors[s.id].operation;
 const geisha=st.entities[g.spawn('shinobi_geisha','shinobi_geisha',s.anchor.x,s.anchor.z,{owner:clan,deployment:{group:s.id}})];
-st.tick+=40;out=ai.tick();assert.ok(out.some(c=>c.action==='assignment'&&c.task==='diversion'));g.step(out);
-st.tick+=40;out=ai.tick();assert.ok(out.some(c=>c.action==='dance'));g.step(out);
-assert.ok(st.deployment.clans[clan].sectors[s.id].operation?.kind==='diversion');
-delete st.deployment.clans[clan].sectors[s.id].operation;delete geisha.dancingUntil;
+// the geisha acts on her own now (Tim 2026-10-27): the bot sends no geisha commands
+st.tick+=40;out=ai.tick();assert.ok(!out.some(c=>c.action==='dance'||c.task==='diversion'));g.step(out);
 const home=Object.values(st.businesses).find(b=>b.hideout===clan),attacker=st.entities[heroId];
 Object.assign(attacker,{x:home.ring[0],z:home.ring[1],place:'street'});st.clans.player.lanterns=1;st.night=true;
 g.step([{id:heroId,type:'business',action:'raid',business:home.id}]);assert.ok(st.attacks[home.id]);
 h.downed=true;st.tick+=40;out=ai.tick();assert.ok(out.some(c=>c.action==='rally'),'bot can choose defensive Rally remotely while KO');
 g.step(out);assert.equal(g.rally.status(clan).active,true);assert.ok(team.every(e=>inHeroParty(g,e)));
 assert.ok(!out.some(c=>c.kind==='follow'),'KO call never explicitly follows the body');
-console.log('Deployment AI: legal reserve promotion, explicit Follow, party isolation, observed-target Ambush, geisha task/dance and remote defensive Rally all use shared commands');
+console.log('Deployment AI: legal reserve promotion, explicit Follow, party isolation, observed-target Ambush, autonomous geisha and remote defensive Rally all use shared commands');

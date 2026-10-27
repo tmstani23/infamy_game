@@ -86,11 +86,23 @@ assert.equal(spare.place, home.room, 'HQ reserve arrives inside the home through
 assert.equal(spare.deployment.group, 'home');
 assert.notEqual(spare.order.kind, 'follow');
 
-// Remember assignment intention across a clinic trip; return to reserve without teleporting.
+// Sector crew who go down come round at their HQ instead of the clinic (Tim 2026-10-27).
 send([u.id], sector.id); finish(u);
 u.downed = true; u.downedAt = g.state.tick;
 assert.ok(g.clans.carryOff(u)); delete g.state.entities[u.id];
-assert.equal(g.state.clans.player.clinic[0].deployment.savedGroup, sector.id);
+assert.equal(g.state.clans.player.clinic.length, 0, 'sector crew skip the clinic');
+assert.equal(g.state.clans.player.respawning[0].deployment.savedGroup, sector.id);
+g.state.clans.player.respawning[0].left = 0;
+const beforeRespawn = new Set(Object.keys(g.state.entities));
+for (let i = 0; i < 21; i++) g.step([]);
+const respawned = Object.values(g.state.entities).find(e => e.owner === 'player' && e.type !== 'hero' && !beforeRespawn.has(e.id));
+assert.ok(respawned, 'came round at HQ');
+assert.equal(respawned.deployment.transfer?.to, sector.id, 'runs back to its sector');
+// Hero-group crew still go to the clinic and remember the group across the trip.
+const v = respawned; delete v.deployment.transfer; v.deployment.group = 'hero';
+v.downed = true; v.downedAt = g.state.tick;
+assert.ok(g.clans.carryOff(v)); delete g.state.entities[v.id];
+assert.equal(g.state.clans.player.clinic[0].deployment.savedGroup, 'hero');
 const clinic = Object.values(g.state.businesses).find(b => b.kind === 'clinic');
 Object.assign(h, { dead: false, hp: h.maxHp, place: 'street', x: clinic.ring[0], z: clinic.ring[1] });
 g.state.clans.player.ryo = 3000;
@@ -99,8 +111,9 @@ g.step([{ id: heroId, type: 'clinic', action: 'revive', patient: 0 }]);
 const revived = Object.values(g.state.entities).find(e => e.owner === 'player' && !old.has(e.id));
 assert.ok(revived);
 assert.equal(revived.deployment.group, 'home');
-assert.equal(revived.deployment.savedGroup, sector.id);
-assert.equal(revived.order, undefined);
+assert.ok(revived.deployment.savedGroup === 'hero' || revived.deployment.transfer?.to === 'hero', 'revived crew head back to the hero group');
+assert.notEqual(revived.order?.kind, 'follow');
+delete revived.deployment.transfer; revived.deployment.savedGroup = sector.id;
 g.police.jail(revived); delete g.state.entities[revived.id];
 assert.equal(g.state.clans.player.jail[0].deployment.savedGroup, sector.id);
 const policeHQ = Object.values(g.state.businesses).find(b => b.kind === 'police_hq');

@@ -19,7 +19,7 @@ function fixture({ bot = false } = {}) {
     } });
   d.enable();
   const add = (group = 'home', extra = {}) => {
-    const e = { id: String(++seq), owner: 'p', type: 'thug', hp: 200, maxHp: 200, x: 102, z: 102, place: 'hq', deployment: { group }, ...extra };
+    const e = { id: String(++seq), owner: 'p', type: 'thug', hp: 200, maxHp: 200, x: 102, z: 102, place: 'hq', deployment: { group, everAssigned: true }, ...extra };
     state.entities[e.id] = e; d.onSpawn(e); return e;
   };
   const command = c => d.command(h, c);
@@ -114,4 +114,31 @@ for (const bot of [false, true]) {
   e.dead = true; f.sync(40); assert.equal(f.d.counts('p')[f.sectors[0]], 0, 'death releases automatic reservation');
   assert.doesNotThrow(() => JSON.stringify(f.state));
 }
-console.log('Deployment automation: ready reserves/pins, combat queue, health/jobs, physical home returns, balanced reservations/overflow, blockage/death and shared bot rules passed');
+// New crew fill the hero group up to six before any sector or HQ reserve (Tim 2026-10-27).
+{
+  const f = fixture({ bot: false }), fresh = Array.from({ length: 8 }, () => f.add('home', { deployment: { group: 'home' } }));
+  f.sync(0);
+  assert.equal(fresh.filter(e => e.deployment.transfer?.to === 'hero').length, 6, 'six new crew run to the hero group');
+  assert.ok(fresh.every(e => e.order?.kind !== 'follow'), 'joining never issues Follow');
+}
+// Pending returns must not fall through into surplus sector deployment.
+for (const unavailable of ['downed', 'dead', 'jailed']) {
+  const f = fixture(); f.command({ action: 'reserveTarget', value: 0 });
+  f.h[unavailable] = true;
+  const e = f.add('home', { deployment: { group: 'home', savedGroup: 'hero', everAssigned: true } });
+  f.sync(0);
+  assert.equal(e.deployment.transfer, undefined, `${unavailable} hero's returnee waits at HQ`);
+  assert.equal(e.deployment.savedGroup, 'hero');
+  delete f.h[unavailable]; f.sync(20);
+  assert.equal(e.deployment.transfer?.to, 'hero', 'return resumes when hero is available');
+}
+{
+  const f = fixture(); f.command({ action: 'reserveTarget', value: 0 });
+  const to = f.sectors[2], e = f.add('home', { deployment: { group: 'home', savedGroup: to, everAssigned: true } });
+  f.block(true); f.sync(0);
+  assert.equal(e.deployment.savedGroup, to);
+  assert.equal(e.deployment.automatic?.to, to, 'blocked return retains its original destination');
+  f.block(false); f.sync(20);
+  assert.equal(e.deployment.transfer?.to, to);
+}
+console.log('Deployment automation: ready reserves/pins, combat queue, health/jobs, physical home returns, balanced reservations/overflow, blockage/death, pending returns and shared bot rules passed');

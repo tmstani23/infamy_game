@@ -37,7 +37,7 @@ export function createClans(state, units, opts = {}) {
   // Crew a clan has now (everything it owns except its hero and its house guards)
   const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && !e.guard);
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
-  const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0);
+  const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0) + (state.clans[id]?.respawning?.length || 0);
 
   // Hero + baseCap crew, plus slots for every business the clan holds
   function crewCap(id) {
@@ -109,6 +109,14 @@ export function createClans(state, units, opts = {}) {
   function carryOff(e) {
     const clan = state.clans[e.owner], t = types[e.type];
     if (!clan || !t) return false;
+    // sector and HQ crew are not carried to the clinic: they come round at their own HQ after
+    // sectorRespawnSeconds and run back to their sector; hero-group crew still go to the clinic (Tim 2026-10-27)
+    const saved = storedDeployment(e);
+    if (state.deployment?.restrictionsEnabled && saved && saved.savedGroup !== 'hero' && hideoutOf(clan.id)) {
+      (clan.respawning ||= []).push({ unit: e.type, model: e.model, deployment: saved, left: rules.sectorRespawnSeconds ?? 30 });
+      say(clan, `Your ${e.type} will come round at your HQ in ${rules.sectorRespawnSeconds ?? 30} s`);
+      return true;
+    }
     // every clan's downed crew go to the clinic, bots too, and wait there until their boss comes
     // and pays to revive them (Tim 2026-10-19)
     clan.clinic.push({ unit: e.type, model: e.model, deployment: storedDeployment(e), kind: 'recover', left: t.recoverSeconds || 30,
@@ -181,9 +189,18 @@ export function createClans(state, units, opts = {}) {
     return say(clan, `${typeName(patient.unit)} released from the clinic`);
   }
 
+  const hideoutOf = id => Object.values(state.businesses).find(b => b.hideout === id && b.owner === id);
   function clinicTick(dt, spawn) {
     const b = clinicOf();
     for (const clan of Object.values(state.clans)) {
+      for (const r of [...(clan.respawning || [])]) {
+        if ((r.left = Math.max(0, r.left - dt)) > 0) continue;
+        const home = hideoutOf(clan.id);
+        if (!home) continue;
+        clan.respawning.splice(clan.respawning.indexOf(r), 1);
+        spawn(r.unit, r.model || types[r.unit].sprite, home, { owner: clan.id, hp: types[r.unit].hp, deployment: restoredDeployment(r) });
+        say(clan, `Your ${r.unit} came round at your HQ`);
+      }
       for (const c of [...clan.clinic]) {
         // downed crew never walk out on their own: the boss revives them at the clinic menu (Tim 2026-10-19)
         if (c.kind === 'recover') { c.left = Math.max(0, c.left - dt); continue; }

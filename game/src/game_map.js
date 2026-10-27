@@ -9,7 +9,7 @@ import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
-const LAYERS = [['deployment', 'Deployment'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
+const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
 export function createGameMap({ root, game, district, view, fog, heroId, clan = 'player', units, selected, send, onManageSector }) {
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
@@ -19,12 +19,13 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   const layerButtons = new Map(), sectorButtons = new Map();
   let selectedSector = game.state.deployment.sectors[0]?.id;
   let pointPicker = null;
-  const manage = id => { selectedSector = id; close(); onManageSector?.(id); };
+  // one map (Tim 2026-10-27): managing a sector docks the Deployment menu beside the open map
+  const manage = id => { selectedSector = id; onManageSector?.(id); map?.draw(); };
   const overlay = createDeploymentMapOverlay({ game, clan, data: deploymentData,
     selectedSector: () => selectedSector, onPick: (id, p) => {
       if (!pointPicker) return manage(id);
       if (game.deployment.sectorAt(p.x, p.z) !== pointPicker.sector) return;
-      const callback = pointPicker.callback; pointPicker = null; close(); callback(p);
+      const callback = pointPicker.callback; pointPicker = null; callback(p); map?.draw();
     }, onHover: hoverSector });
   let map = null;
   for (const [k, label] of LAYERS) {
@@ -32,8 +33,6 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     b.type = 'button'; b.textContent = label;
     b.addEventListener('click', e => {
       layers[k] = !layers[k];
-      if (layers[k] && k === 'deployment') layers.territory = false;
-      if (layers[k] && k === 'territory') layers.deployment = false;
       syncLayers(); tip.hidden = true; e.currentTarget.blur(); deploymentData.update(); map?.draw(); drawSide();
     });
     bar.appendChild(b); layerButtons.set(k, b);
@@ -41,8 +40,8 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   function syncLayers() {
     for (const [id, b] of layerButtons) { b.className = layers[id] ? 'on' : ''; b.setAttribute('aria-pressed', String(layers[id])); }
     root.classList.toggle('deployment', layers.deployment);
-    deploymentSide.hidden = !layers.deployment;
-    root.querySelector('h3').textContent = layers.deployment ? 'PORT TOWN / DEPLOYMENT' : 'MAP';
+    deploymentSide.hidden = !layers.deployment || root.classList.contains('docked');
+    root.querySelector('h3').textContent = 'MAP';
   }
   deploymentSide.innerHTML = '<h4>YOUR SECTORS</h4><div class="sector-list"></div><div class="sector-detail" role="status"></div><button class="manage-sector" type="button">Manage sector</button><div class="deployment-key">Borders identify sectors. Divided tints show known clan presence.<br>Hollow squares: last seen (10 s). Arrows: last observed heading.<br>Dashed links: your transfer destinations.</div>';
   for (const s of overlay.sectors) {
@@ -131,7 +130,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
       const c = st.clans[r.clan];
       return `<div class="row" title="${why(r.clan)}"><i style="background:${c.color}"></i><span>${r.clan === clan ? 'You' : c.name}</span><b>${r.score}</b></div>`;
     }).join('');
-    const quarters = layers.deployment ? '' : '<h4>Quarters</h4>' + t.quarters.map(q => {
+    const quarters = !layers.territory ? '' : '<h4>Quarters</h4>' + t.quarters.map(q => {
       const o = t.heldBy(q);
       return `<div class="row q"><span>${q.name}</span><em>${!o ? 'nobody holds it all' : o === clan ? 'yours (+payout)' : `held by ${st.clans[o]?.name}`}</em></div>`;
     }).join('');
@@ -139,7 +138,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key">Q · Pawnshop · A · Bathhouse</div><div class="key">K · Sake brewery · R · Manor</div><div class="key">U · Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
-    const html = `<h4>Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}</h4>${rows}${quarters}${layers.deployment ? '' : legend}`;
+    const html = `<h4>Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}</h4>${rows}${quarters}${root.classList.contains('docked') ? '' : legend}`;
     if (side.innerHTML !== html) side.innerHTML = html;
   }
 
@@ -164,5 +163,14 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     map.update();
     if (frame++ % 20 === 0) drawSide();
   }
-  return { open, close, toggle, isOpen, update, pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; layers.territory = false; syncLayers(); open(); }, ping: (x, z) => map?.ping(x, z) };
+  // Deployment menu docked on the right of the map: Sectors on, the map's own sector list hidden
+  function dock(on, sector) {
+    root.classList.toggle('docked', on);
+    if (sector && overlay.sectors.some(s => s.id === sector)) selectedSector = sector;
+    if (on) { layers.deployment = true; if (!isOpen()) open(); }
+    else pointPicker = null;
+    syncLayers(); drawSide(); map?.draw();
+  }
+  return { open, close, toggle, isOpen, update, dock, focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; map?.draw(); } },
+    pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };
 }

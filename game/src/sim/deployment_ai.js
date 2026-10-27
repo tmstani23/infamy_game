@@ -33,8 +33,6 @@ export function createDeploymentAI(game, { clan, hero }) {
       const crew=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!game.rally.participating(e));
       if (!crew.length || task.operation) continue;
       const geisha=crew.find(e=>e.type==='shinobi_geisha');
-      if(geisha && task.task!=='diversion'){command({action:'assignment',sector:id,task:'diversion'});continue;}
-      if(geisha && (geisha.deployment.diversionReadyAt||0)<=st.tick && enemies.some(e=>e.place==='street'&&Math.hypot(e.x-task.objective.x,e.z-task.objective.z)<=6)) {command({action:'dance',sector:id});continue;}
       const targets=game.shinobiAssignments.targets(clan,id).filter(t=>game.deployment.sectorAt(t.x,t.z)===id);
       const target=targets.find(t=>game.shinobiAssignments.defenders(clan,t.id)<crew.length&&crew.every(e=>e.hp>=e.maxHp*.7)&&(!geisha||crew.length>1));
       if(target)command({action:'armAmbush',sector:id,target:target.id});

@@ -9,6 +9,7 @@
 // that looks there and closes it (onPick).
 import { shapeDistance, groundZone } from './sim/geometry.js';
 import { drawWatchMarkers } from './watch_markers.js';
+import { contractMapLocation } from './contract_map_marker.js';
 
 const GROUND = {
   grass: [78, 96, 58], dirt: [122, 104, 78], dry_grass: [130, 120, 76], mud: [84, 70, 54], sand: [176, 160, 122],
@@ -206,6 +207,38 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
         const q = (p + k) % 1;
         ctx.beginPath(); ctx.arc(u, v, 5 + q * 12, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(255,70,50,${(1 - q) * 0.9})`; ctx.lineWidth = 1.6; ctx.stroke();
+      }
+    }
+    // your active Shinobi contract (Tim 2026-10-27): a violet diamond on the target; when it is off
+    // the map's edge, an arrow on the edge points toward it
+    const job = game.state.contracts?.active?.[clan];
+    if (job) {
+      const p = contractMapLocation(game, clan);
+      if (p) {
+        const [u, v] = toMap(p.x, p.z), m = 9, pulse = 0.6 + 0.4 * Math.sin(nowMs / 260);
+        ctx.fillStyle = `rgba(190,140,255,${pulse})`; ctx.strokeStyle = 'rgba(20,10,30,.9)'; ctx.lineWidth = 1.2;
+        if (u >= m && u <= size - m && v >= m && v <= size - m) {
+          const r = 5 * Math.sqrt(zoom);
+          ctx.beginPath(); ctx.moveTo(u, v - r); ctx.lineTo(u + r, v); ctx.lineTo(u, v + r); ctx.lineTo(u - r, v); ctx.closePath();
+          ctx.fill(); ctx.stroke();
+        } else {
+          const c = size / 2, a = Math.atan2(v - c, u - c), d = Math.min((c - m) / Math.abs(Math.cos(a) || 1e-6), (c - m) / Math.abs(Math.sin(a) || 1e-6));
+          const x = c + Math.cos(a) * d, y = c + Math.sin(a) * d, r = 7 * Math.sqrt(zoom);
+          ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+          ctx.lineTo(x + Math.cos(a + 2.5) * r * 0.8, y + Math.sin(a + 2.5) * r * 0.8); ctx.lineTo(x + Math.cos(a - 2.5) * r * 0.8, y + Math.sin(a - 2.5) * r * 0.8);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+        // and a small arrow just off your hero's dot, pointing the way
+        const h = game.state.entities[heroId];
+        if (h && h.place === 'street' && !big) {
+          const [hu, hv] = toMap(h.x, h.z), a = Math.atan2(v - hv, u - hu), gap = 11 * Math.sqrt(zoom), r = 5 * Math.sqrt(zoom);
+          if (Math.hypot(u - hu, v - hv) > gap * 2) {
+            const x = hu + Math.cos(a) * gap, y = hv + Math.sin(a) * gap;
+            ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+            ctx.lineTo(x + Math.cos(a + 2.5) * r * 0.8, y + Math.sin(a + 2.5) * r * 0.8); ctx.lineTo(x + Math.cos(a - 2.5) * r * 0.8, y + Math.sin(a - 2.5) * r * 0.8);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+          }
+        }
       }
     }
     // units on the street that you can see (yours on top)

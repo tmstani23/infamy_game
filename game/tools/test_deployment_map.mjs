@@ -5,6 +5,33 @@ import { setupMatch } from '../src/sim/setup_match.js';
 import { sectorOutlines, hexCells } from '../src/deployment_map_geometry.js';
 import { createDeploymentMapData, LAST_KNOWN_TICKS } from '../src/deployment_map_data.js';
 import { createDeploymentMapOverlay } from '../src/deployment_map_overlay.js';
+import { contractMapLocation } from '../src/contract_map_marker.js';
+
+// Room-local objective coordinates and unseen boss movement must never reach the outdoor map.
+{
+  const target={id:'boss',x:80,z:90,place:'street'}, business={x:40,z:50,room:'shop'};
+  let visible=false;
+  const state={tick:100,contracts:{active:{player:{kind:'steal',business:'shop',spot:{x:1000,z:1000}}}},
+    businesses:{shop:business},entities:{boss:target},deployment:{clans:{player:{sightings:{}}}}};
+  const game={state,vision:{canSee:()=>visible}};
+  assert.deepEqual(contractMapLocation(game,'player'),{x:40,z:50},'theft uses the outdoor business location');
+  state.contracts.active.player.kind='mark';
+  assert.deepEqual(contractMapLocation(game,'player'),{x:40,z:50},'mark uses the outdoor business location');
+  state.contracts.active.player={kind:'boss',hero:'boss'};
+  assert.equal(contractMapLocation(game,'player'),null,'unseen boss has no live marker');
+  visible=true;
+  assert.deepEqual(contractMapLocation(game,'player'),{x:80,z:90});
+  target.place='shop';target.x=1000;target.z=1000;
+  assert.deepEqual(contractMapLocation(game,'player'),{x:40,z:50},'visible interior boss maps to the building');
+  target.hidden=true;
+  assert.equal(contractMapLocation(game,'player'),null,'hidden boss cannot leak coordinates');
+  const report={x:10,z:20,seenAt:100};state.deployment.clans.player.sightings.boss=report;
+  assert.deepEqual(contractMapLocation(game,'player'),{x:10,z:20},'hidden boss uses only the watcher report');
+  target.x=2000;
+  assert.deepEqual(contractMapLocation(game,'player'),{x:10,z:20},'unobserved movement cannot update the marker');
+  state.tick=300;
+  assert.equal(contractMapLocation(game,'player'),null,'last-known marker expires after ten seconds');
+}
 
 const read = p => JSON.parse(readFileSync(new URL(`../${p}`, import.meta.url)));
 const district = read('data/port_town.json');

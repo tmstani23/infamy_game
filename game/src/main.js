@@ -189,7 +189,9 @@ async function start() {
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
   const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, heroId, crewInput, send: c => pending.push(c),
-    onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback) });
+    onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
+    // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
+    onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id) });
   function interactionDoor() {
     const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
     return access && selected.includes(access.actor.id) ? access.door : game.doorNear(heroId) || access?.door;
@@ -209,6 +211,11 @@ async function start() {
   const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };
   onKey('KeyK', mute);
   $('mutebtn').addEventListener('click', e => { mute(); e.currentTarget.blur(); });
+  // Pause (Tim 2026-10-27, single player): the sim stops stepping, drawing and menus keep going
+  let paused = false;
+  const togglePause = () => { paused = !paused; $('pausedbanner').hidden = !paused; $('pausebtn').textContent = paused ? 'Resume (`)' : 'Pause (`)'; $('pausebtn').setAttribute('aria-pressed', String(paused)); };
+  onKey(['Backquote', 'Pause'], togglePause);
+  $('pausebtn').addEventListener('click', e => { togglePause(); e.currentTarget.blur(); });
   const fps = createFps();
   onKey('KeyP', () => fps.toggle());
   // Controls panel: the button or ? opens it, Esc closes it
@@ -295,7 +302,7 @@ async function start() {
     const now = performance.now() / 1000;
     const dt = Math.min(now - last, 0.1);
     last = now;
-    acc += dt;
+    if (!paused) acc += dt;
     while (acc >= tick) {
       prev = snapshot(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0), ...(bot ? bot.tick() : [])]);
@@ -441,6 +448,7 @@ async function start() {
       clinicMenu.update();
       policeMenu.update();
       contractMenu.update();
+      if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();
       // in jail (sim/police.js): big red banner with the time left
       const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');

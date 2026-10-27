@@ -191,7 +191,9 @@ export function createGame(options) {
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, executeStep,
     finishTarget: (clan, target, ids) => { const h = Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero'); if (h) startExecute(h, { target, units: ids, crewOnly: true }, true); } });
-  const diversion = createDiversion({ state, deployment, assignments, rally, vision, sees: (a,b) => sees(a,b), reveal: (e, attack) => stealth.reveal(e, attack),
+  const diversion = createDiversion({ state, deployment, vision, reveal: (e, attack) => stealth.reveal(e, attack),
+    hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
+    moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z) => nav.nearestFree(x, z), fightTarget: id => fight[id]?.target,
     inCombat: e => !!fight[e.id]?.target, clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
   function manualCrew(e) { diversion.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
   let nextId = 1;
