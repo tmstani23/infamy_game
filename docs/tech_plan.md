@@ -83,3 +83,19 @@ Ground is painted rectangles with soft edges, blended in the shader from tiled t
 
 ## Interiors (2026-10-15)
 Interiors are real 3D on a cell grid so every piece lines up with the camera; see `docs/interiors_spec.md`. Rooms are laid out by `sim/interiors.js` buildRoom3d and drawn by `render/interior3d.js`. The teahouse is hand-made (`data/interiors.json`); the den and warehouse are made by the room generator (`sim/generate.js`, `data/room_recipes.json`, plan in `docs/room_generator_plan.md`) from seeds Tim picked on 2026-10-16. The painted wall-piece rooms were removed.
+
+## Approved shell/audio playtest fixes (2026-10-27)
+
+Implemented/Node-adapter checked in Phase 5D (2026-10-27); [overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+
+- [x] **#1 — Implemented with capability limits:** Escape closes game UI without leaving fullscreen; verify browser capability before promising behavior.
+- [x] **#11 — Implemented with capability limits:** investigate audio loudness; locally save Master/Effects/Mute settings, with menu extensible to general settings later.
+- [x] **#18 — Implemented with capability limits:** suppress page text selection, native dragging and context menu on gameplay surfaces. Browser-owned AI/mini overlays may require browser settings and are not assumed controllable by game code.
+- [x] Focused Node capability/settings-persistence/input checks passed as recorded below.
+- [ ] Tim audio/fullscreen/interaction playtest.
+
+Phase 5D checkpoint (2026-10-27, reported by Build coordinator): `fullscreen.js` requests `navigator.keyboard.lock(['Escape'])` on fullscreen entry, unlocks on exit and retains Alt+Enter. Only Escape is captured and normal events reach game UI. Unsupported/denied capture is disclosed in tooltip; the browser's long-Escape escape hatch cannot be overridden. Browser-owned AI overlays remain outside game control. Implementation was checked against [Chrome fullscreen guidance](https://developer.chrome.com/blog/better-full-screen-mode) and [Keyboard Lock documentation](https://developer.chrome.com/docs/capabilities/web-apis/keyboard-lock); no browser capability test is claimed.
+
+`audio_settings.js`/`game_settings.js` provide Settings modal with locally saved Master/Effects/Mute and Test sound. The prior fixed 0.6 master/eighteen-range rolloff was quiet. Initial master default one, Effects bus multiplier 1.5, radius twenty-four and compressor tame combined peaks; camera/place isolation remains. K/mute uses the same settings and immediately silences existing voices. Server serves correct Ogg/WAV MIME types.
+
+`game_shell.js` suppresses context menu, text selection and native dragging on gameplay surfaces while allowing editable inputs; CSS disables game text selection. New `test_game_shell` passed supported/missing keyboard-lock adapters, exit unlock, game/editable input suppression, actual audio bus gains, preview/immediate mute and local persistence. Syntax checks passed; no browser tests. Phase 6 integration remains pending; no commit/push requested.

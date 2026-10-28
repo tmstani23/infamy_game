@@ -192,3 +192,21 @@ Build coordinator reports S1–S2 implemented/sim-checked. `hiddenProgressRate` 
 ### Final follow-on status (2026-10-27)
 
 All agreed contract/stealth/HUD implementation and final grouped sim checks passed per Build coordinator; [complete integration record](deployment_sector_plan.md#follow-on-f-final-integration-passed-2026-10-27). No browser/visual/layout testing claimed. Tim review remains pending; Watch-helper/Extraction replacement and sabotage redesign remain unapproved.
+
+## Approved contract/stealth playtest fixes (2026-10-27)
+
+Implemented/targeted-checked in Phase 5B (2026-10-27), Tim visual review pending; [overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+
+- [x] **#2 — Implemented/checked:** clearly distinguish Steal stash from Sabotage plant/hold; explicit stages and large floating objective icon after mark planted. Preserve objective mechanics.
+- [x] **#3 — Implemented/checked:** stronger walking/running and Hidden/At-risk/Seen visual differences, still truthful to actual stealth/suspicion.
+- [x] **#4 — Implemented/checked:** snuff eligible indoor lights with actual perception-lighting impact, not a visual-only change.
+- [x] Focused objective-state, movement/detection and indoor-snuff logic checks passed as recorded below.
+- [ ] Tim visual check: stages/counters/planted icon, movement/detection cues and indoor lighting.
+
+Secure Extraction removal/migration is now approved in the deployment owner; contract Watch-helper assistance and plant-and-leave sabotage remain separate unapproved redesigns.
+
+Phase 5B checkpoint (2026-10-27, reported by Build coordinator): shared `indoorLightId(room,index)` identifies sim room-prop lights. Shinobi hero can snuff eligible same-room/nearby indoor lights by day or night; street snuff stays night-only. Existing three-snuff budget/dawn relight remains. Configurable `indoorDarkRange` halves dark-room detection from lit indoor two to one before movement modifiers; render light/glow links switch off accordingly.
+
+Global badge has stronger WALK/RUN cues, running amber dashed ring and HIDDEN/AT RISK/SEEN text/eye/outline. Steal/Sabotage tracker labels actual stages/progress and hidden double-speed work. Planted sabotage retains ground circle plus large floating **MARK PLANTED** seal; mechanics unchanged.
+
+New `test_indoor_stealth` passed daytime room snuff, other-room isolation, actual half-range/dawn reset and teahouse entry connectivity. Stealth perception, Ninja and hidden-contract bonus passed; render syntax passed. A nonexistent `test_stealth_hud` invocation was a path mistake, not a passing test; actual badge coverage is in `test_hidden_contract_bonus`. No visual test claimed.

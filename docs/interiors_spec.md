@@ -108,3 +108,9 @@ Rooms live in `game/data/interiors.json`. A 3D room has `"build": "3d"`:
 - A new prop needs a data entry in `interior_parts.json` and a small shape function in `game/src/render/interior3d.js` (`MODELS`). A prop can instead name a painted `cutout` from `data/art.json`, as the vase does.
 
 Inn blueprint interiors (Tim, 2026-10-24): camera-aligned whole-scene floor/furniture painting with functional 3D partitions/doors, proximity transparency, selective wall masks and calibrated blockers. Reproducible process: [approved inn workflow](interior_alignment_workflow.md#approved-inn-seed-1-workflow-tim-2026-10-24).
+
+## Approved rear-entrance fix (2026-10-27)
+
+- [x] **#10, implemented/targeted-checked 2026-10-27:** fix reachable teahouse rear entrances and wall clearance. Check actual approach/door traversal and collision clearance; Tim playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+
+Phase 5B: `reachableEntry` selects rear approach/landing points connected through navigation to exterior/front-room spawn, avoiding nearest-wall pockets. `test_indoor_stealth` passed all current teahouse entry paths on both sides. Render syntax passed; Tim traversal/clearance visual playtest remains pending. No commit/push requested.

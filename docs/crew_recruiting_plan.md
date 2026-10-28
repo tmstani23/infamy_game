@@ -6,7 +6,7 @@ Follows the multiplayer rules: all rules in `game/src/sim` (Node, no graphics), 
 
 ## Shinobi geisha (built 2026-10-26)
 
-Shinobi-only `shinobi_geisha`: base 120 ryo with existing crew price scaling, 160 HP, fourteen damage (balance adjustment 2026-10-27), one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
+Shinobi-only `shinobi_geisha`: base 120 ryo with existing crew price scaling, 160 HP, twelve damage (latest balance adjustment 2026-10-27), one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
 
 Balance follow-up (Tim, 2026-10-27): damage reduced from 28 to 14; other stats/charm behavior unchanged. Build coordinator reports `test_geisha` passed hire/charm/immunity/duration/cooldown/flee/fight coverage; cornered-hit assertion now reads configured damage. Tim balance playtest remains pending.
 
@@ -97,3 +97,13 @@ Explicit Follow to an indoor hero brings selected outdoor crew through the entra
 
 - Upgrade list per unit type and what they cost.
 - Do teahouses offer different unit types (e.g. dockside teahouse sells Riflemen)?
+
+## Approved geisha playtest adjustment (2026-10-27)
+
+- [x] **#9, implemented/checked 2026-10-27:** damage fourteen → twelve, bringing expected sustained damage near Ninja. Charm only while stationary and not attacking. Add pink aura/hearts while dancing and **Charming** channel bar on her buff UI. Current damage is twelve; attack speed/crit/dodge/health are unchanged.
+- [x] Focused configured-damage/charm eligibility checks passed as reported below.
+- [ ] Tim visual/balance playtest. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+
+Phase 5C checkpoint (2026-10-27): damage fourteen → twelve gives approximate expected sustained damage 19.5 versus normal Ninja 19.17 before mitigation/tick effects. Automatic charm requires stationary/not attacking; explicit move/attack cancels dance/channel without refunding the ten-second cooldown. Authoritative `charming` start/until drives buff readout and labelled pink CHARMING bar. Renderer uses `e.lure.castUntil` instead of obsolete `dancingUntil`, with pink aura and pooled rising hearts (fifth particle-atlas shape) while dancing.
+
+Extended `test_geisha` passed configured damage, stationary charm, move/attack precedence, channel metadata/cooldown and existing lure/flee/freeze/hire behavior. Render syntax passed; visual/balance review remains pending. No commit/push requested.

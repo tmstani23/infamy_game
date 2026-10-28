@@ -20,16 +20,16 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Double-click the red raid alarm | Camera to the raided business |
 | Click the red lantern bar | A rival is knocking down your War Lantern (5 s): target him (any hit stops his channel) |
 | Hideouts | Your inn and the rival's izakaya (H on the minimap) are locked to other clans ("<clan> hideout: no way in"); police can still go in |
-| Right-click a unit | Hero locks on and swings within 2.5 steps (no chasing); available selected crew assist. On a downed target he executes. During execution, right-click attacks command selected crew only |
-| Tab | Target the nearest enemy and start the auto attack; Tab again cycles (skips police, townsfolk, crew and downed units). Whoever is knocking down your War Lantern comes first. Available selected crew assist; an active execution continues |
-| Left-click an enemy | Target it (blue) and show it in the target frame (top middle). Left-click or drag anywhere else drops the target and stops the auto attack |
+| Right-click an enemy body/nameplate/target portrait | Attack with current command group; Ctrl remains crew-only. Ground right-click moves; ally interactions remain |
+| Tab | Select/cycle enemy only; does not start attacks. Explicit Tab focus takes precedence over an old attack target |
+| Left-click an enemy/nameplate | Select target. Through fog, identity persists as Out of sight using last observed data; no new unseen attack or live marker |
 | (no target) | The hero doesn't pick fights (2026-10-19): he swings only at his locked target (Tab or right-click), or hits back at whoever hit him in the last 5 s if in reach. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
 | E | Intimidate: enemies within 4 steps deal 30% less damage for 5 s (14 s) |
 | R | Rally: crew within 8 steps attack 30% faster and heal 15% over 6 s (20 s) |
 | F | Red Lantern (ultimate): 8 s of 50% more damage, healing 20% of damage dealt (60 s) |
 
-The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Click a crew name there to add or remove them from the selection (no Shift needed); double-click selects only that crew member and jumps the camera to them until the hero moves or uses a door. Crew pips show their control-group number. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
+The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Pips are grouped by Hero/sectors/HQ/active Rally; click a header or normal pip to select that command group, replacing others; double-click selects only that crew member and jumps the camera to them until the hero moves or uses a door. Crew pips show their control-group number. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
 
 ## Hiring crew (inside a teahouse)
 
@@ -48,17 +48,16 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 | Input | What it does |
 |---|---|
 | Toolbar **Deployment** button (Esc closes; no hotkey) | Deployment panel: counts, reserved slots, health, transfer status |
-| Select crew + destination, **Transfer selected** | Move crew between the hero group, HQ and sectors |
+| **Transfer selected crew** | Lock selected source crew, choose labelled destination or explicit map destination, then confirm/cancel. Moves between hero/HQ/sectors; no transfer dragging |
 | **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 2) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
-| M map → **Deployment** layer | Click sector badge to select its crew and use task/goal/Return controls; **Manage** opens optional detailed panel. Drag own map-tray, roster or action-bar portraits onto sectors/badges to request transfers |
+| M map → **Deployment** layer | Click sector map/tab to select its crew, flash boundary and focus synchronized roster/duty/operation controls |
 | Sector desired staffing goal | Default 3; 0 disables automatic staffing there. Lowering never recalls crew; above-three staffing requires legal overflow |
 | Owned-business card **Guard business** | Assign guarding for normal clans |
-| Duties: task/business, optional objective/route (up to 8 points), **Save** | Regular clans choose Patrol/Guard (optional Patrol route); map picks only edit draft. **↩ Duty** on crew bar or **Back to duty** in map/panel restores selected/focused sector duty and selects available permanent hero-group crew, without Follow |
+| Duties: task/business, optional objective/route | Apply directly, without Save. Large accepted text/glow follows authoritative success; rejection is explicit. Regular clans choose Patrol/Guard. **↩ Duty** on crew bar or **Back to duty** in map/panel restores selected/focused sector duty and selects available permanent hero-group crew, without Follow |
 | Main HUD **Call Rally**; optional group setup | Reuses remembered groups (all on first use). Deployment Rally: temporary command of the called groups (no automatic Follow); panel and toolbar show time left and cooldown. On expiry non-hero-group crew walk back; **Return selected** releases early. Not the ronin's R ability |
-| Shinobi: **Secure Extraction** | Crew guard your local exit |
 | Shinobi: task **Ambush**, **Next enemy**, remembered-target **Arm/Cancel**, **Retreat** | Standing or one-off coordinated Ambush; works while hero KO. No target/sector dropdown required |
 | Map remembered row/marker **Inspect**, target-frame **Arm/Armed-Cancel** | Snapshot identity/age only when unseen; no live HP/buffs or hidden camera jump. New targeting/Esc clears inspection |
-| Contract tracker **Ambush contract target/Cancel** | Arm known active boss identity; marker knowledge never permits an unseen attack |
+| Contract tracker **Order sectors to hunt this boss / Cancel boss hunt** | Arm known active boss identity without prior manual selection; authoritative hunt state shown. Marker knowledge never permits an unseen attack |
 | Shinobi: Watch | Automatic: crew report sightings and contract-priority pings |
 | Shinobi: hire the geisha, **Diversion** + objective/fallback, **Start diversion** | She dances to draw guards away; Retreat, Return or a task change ends it |
 
@@ -68,11 +67,11 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 
 | Input | What it does |
 |---|---|
-| Left-click a crew member | Add or remove them from the selection (sticky; clicking a building or the ground keeps it) |
+| Left-click a crew member | Select its deployment command group, replacing other groups; double-click selects individual. Ordinary selection never combines deployment groups |
 | Left-drag a box | Select exactly the crew inside it (the rest are dropped; an empty box changes nothing) |
-| C | Select all your own crew, including crew inside buildings |
+| C | Select hero party, or active Rally force; replace sector selection |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
-| 1–4 | Recall a group selection without changing orders; open clinic, police, contract and hiring menus take priority |
+| 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
 | Esc | Clear selection, returning released manually controlled sector crew to saved duty; clear hero attack/loot and cancel hero execution. Menus close as before; Ctrl behavior unchanged |
 | Right-click the ground | Send the selected crew there |
 | Right-click your own business | Selected crew go in and patrol/defend; see [indoor patrol rules](crew_recruiting_plan.md#phase-3c-indoor-patrols-tim-2026-10-21) |
@@ -80,7 +79,7 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | Right-click your hero, or V | Selected crew follow you, entering if you are inside; outdoor Follow does not recall indoor crew |
 | Ctrl + right-click a unit | Selected crew only attack it, or execute it if downed; empty selection does nothing |
 | Ctrl + right-click a bandit's body | The nearest selected crew member loots it; empty selection does nothing |
-| T | With the hero outdoors, broadcast an attack to outdoor crew, selected or not; indoor crew keep their duties. T again restores the broadcast squad's previous orders. Does nothing with the hero indoors; use selected crew commands inside |
+| T | Attack current target with the selected command group; no broadcast |
 | Z | Selected crew stop and stay passive (even when hit) until any new order; the crew panel shows "Passive (stopped)" |
 | X, then left-click the ground | Attack-move: go there and fight anything on the way |
 | Left-click a townsperson | Show them in the target frame |
@@ -122,7 +121,9 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shinobi: Space at the village shrine | Open the contract board; accept/work/finish at any time of day. Active jobs persist across dawn; tracker and viewed objective-room counters show local progress |
 | Shinobi: Q E R F | Shadow Step (on a visible enemy or townsperson: lands next to them with a sure crit, then auto-attacks), Caltrops, Smoke Bomb, Assassinate (reach about 4.4, 45 s). Q and F use the target-frame target first (see `ninja_clan_plan.md`) |
 | Shinobi: right-click the business of your active contract | Selected crew climb in by the back window (up to 6); rival HQs are off-limits |
-| K, or the Mute button | Mute or unmute sounds |
+| K, or Mute | Toggle saved sound mute; silences current voices too |
+| Settings | Locally saved Master/Effects/Mute and Test sound |
+| Alt+Enter / fullscreen | Fullscreen toggle; short Escape stays with game UI only where Keyboard Lock is supported/allowed. Browser long-Escape exit remains. [Capability limits](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
@@ -135,3 +136,14 @@ Phase 3G hover labels (2026-10-21): visible units have a small translucent toolt
 ## Planned (not built yet)
 
 - Clicking action bar slots (keys only for now).
+
+## Approved playtest controls (2026-10-27)
+
+Follow-on implementation is progressing; current controls above reflect reported built phases. Phase 2 built/targeted-checked: no transfer dragging; prominent **Transfer selected crew** button with labelled destination or explicit map mode and confirmation. Phase 3 implemented/checked: group changes preserve confirmed manual move/attack until completion then duty; Escape/Return cancels immediately. [Exact approved requirements](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented). [Phased checklist](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+
+- [x] **#5/#6 — Implemented/targeted-checked:** Tab selects only. Right-click ground always moves. T or right-click enemy target portrait/icon, nameplate/body/hero attacks using current group; preserve ally interactions. Left-click nameplate targets; right-click enemy nameplate attacks.
+- [x] **#7 — Implemented/targeted-checked:** preserve selected target identity through fog with truthful stale/out-of-sight information and no vision grants.
+- [x] Focused input-intent, ally-interaction and hidden-data checks passed; final panel/target/pursuit integration passed.
+- [ ] Tim visual interaction check. Group/pip/C/Rally changes are built as recorded in the linked deployment owner.
+
+Phase 5A checks (2026-10-27, reported by Build coordinator): new `test_target_controls` passed Tab/T/nameplates/ground and frozen fog HP/position/room; unit-frame, crew-group, Shinobi combat and indoor-crew checks passed. `target_memory.js` copies public position/HP/room only on actual sight and reacquires normally. Older `test_crew_assist` and `test_phase3b` now pass updated Tab/T semantics, remembered concealed targets/reacquired markers and execution protections. Final integration and Tim visuals remain pending.

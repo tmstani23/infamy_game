@@ -226,3 +226,9 @@ Equipment, armor, weapons and inventory UI/mechanics are explicitly deferred. Op
 `game/src/sim/stats.js` is the shared gameplay resolver for base/model/roamer stats, damage factors, attack interval, crit/dodge, movement, formation protection, Lantern lifesteal and passive recovery, exposing read-only snapshots. `character_panel.js`/`.css` shows base/modifier/current columns with subtle green/red glow, source tooltips, all current hero abilities, live HP and clan sprite/theme. Existing Kuroda **Battle Hardened** and Shinobi **Shadowcraft** metadata also creates persistent action-bar passive icons/tooltips. No new balance passive.
 
 Build coordinator reports combat, Kuroda, Shinobi combat, territory, crew-groups and new `game/tools/test_character_stats.mjs` passed. New coverage includes all clan snapshots, no mutation, actual hit/movement/regen parity, expiry, percentage-point formatting and beneficial reductions. Interactive preview handed to Tim uses real snapshots/sample existing effects. No browser/screenshot checks; Tim visual/gameplay review remains unchecked. No commit/push until requested.
+
+## Approved pursuit fix (2026-10-27)
+
+- [x] **Playtest #8, implemented/targeted-checked 2026-10-27:** explicit attack pursuit follows accessible doors in/out, respecting entry permissions and sector restrictions. Check entry/exit, inaccessible doors and no area/permission bypass; Tim playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+
+Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pursue through permitted entrance/exit and obey sector/entry/raid-slot limits. Unseen pursuit uses last-known public position/door, never hidden coordinates. New `test_door_pursuit` passed real entry/exit with the same target; broader input-fixture updates/final integration remain pending. Tim visuals unchecked; no commit/push requested.

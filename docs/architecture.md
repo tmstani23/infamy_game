@@ -8,6 +8,8 @@ How the game is built today (2026-10-17). Short on purpose: details live in the 
 - Deployment membership, sectors and transfer commands: [deployment_sector_plan.md](deployment_sector_plan.md) (`sim/sectors.js`, `sim/deployment.js`, `sim/assignments.js`, `sim/deployment_rally.js`, `sim/shinobi_assignments.js`, `sim/diversion.js`, `sim/deployment_ai.js`, `deployment_map_geometry.js`; 1A–5B and 2026-10-27 follow-on built, thirty final checks passed, visual review pending).
 - Fighting: [combat_spec.md](combat_spec.md)
 - Canonical gameplay stats/read-only hero snapshots: `sim/stats.js`; character UI `character_panel.js`/`.css`, passive icons in `action_bar.js`. [Stat/page ownership](combat_spec.md#hero-character-page-authorized-2026-10-27) (built 2026-10-27, visual review pending).
+- Focused deployment UI: `deployment_panel.js` reexports `deployment_panel_ui.js`; `stable_list.js` preserves roster nodes, `grouped_crew.js` groups command pips, and `sim/deployment_feedback.js` owns authoritative result receipts. [Playtest build record](deployment_sector_plan.md#playtest-phase-6-final-integration-passed-2026-10-27).
+- Target visibility memory: `target_memory.js`; [controls](controls.md#approved-playtest-controls-2026-10-27). Shell/settings: `game_shell.js`, `fullscreen.js`, `audio_settings.js`, `game_settings.js`; [capability/audio owner](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27).
 - Keys: [controls.md](controls.md)
 
 ## The one rule
