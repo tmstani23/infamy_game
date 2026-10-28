@@ -6,7 +6,7 @@ const globals = ['document','localStorage','fetch','addEventListener','ResizeObs
 const previous = Object.fromEntries(globals.map(k=>[k,globalThis[k]]));
 class Element {
   style={}; children=[]; handlers={}; offsetWidth=100; offsetHeight=80; hidden=false;
-  classList={toggle(){}};
+  classes=new Set();classList={toggle:(name,on)=>on?this.classes.add(name):this.classes.delete(name),contains:name=>this.classes.has(name),remove:name=>this.classes.delete(name)};
   addEventListener(type,fn,options={}){(this.handlers[type]||=[]).push({fn,capture:options===true||!!options.capture});}
   append(...children){this.children.push(...children);}
   appendChild(child){this.append(child);}
@@ -50,6 +50,9 @@ try {
  dispatch(target,'mousedown');dispatch(win,'blur');const beforeBlur=target.style.left;
  dispatch(win,'mousemove',{clientX:750});assert.equal(target.style.left,beforeBlur,'losing window focus cancels dragging');
  assert.ok(writes>=3,'finished placements are saved');
+ target.classList.toggle('hud-docked',true);layout.update();assert.equal(lock.hidden,true,'docked cards have no floating HUD lock');
+ const beforeDock=target.style.left;dispatch(target,'mousedown');dispatch(win,'mousemove',{clientX:900});assert.equal(target.style.left,beforeDock,'docked cards cannot be dragged');
+ target.classList.toggle('hud-docked',false);layout.update();assert.equal(lock.hidden,false,'normal HUD controls return after undocking');
  layout.reset();assert.equal(target.style.left,'');
  console.log('HUD drag: target frame release, lock, lost release, resize, blur and reset passed');
 } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}

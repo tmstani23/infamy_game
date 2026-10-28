@@ -13,7 +13,11 @@ export function unitStatus(e, state) {
   if (e.dead) return 'Dead';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
-  if (e.deployment?.transfer) return e.deployment.transfer.status === 'blocked' ? 'Transfer blocked' : 'Transferring';
+  if (e.markScrub) return 'Removing mark';
+  if (e.deployment?.transfer) {
+    const t=e.deployment.transfer,to=t.to==='hero'?'Hero group':t.to==='home'?'HQ reserves':state.deployment?.sectors.find(s=>s.id===t.to)?.name||t.to;
+    return `${t.status==='blocked'?'Transfer blocked':'Transferring'} → ${to}`;
+  }
   if (e.execute) return e.execute.arrest ? 'Arresting' : 'Finishing off';
   if ((e.buffs?.stunned?.until ?? 0) > state.tick) return 'Stunned';
   if (e.brace) return 'Bracing (Reprisal)';
@@ -53,12 +57,12 @@ export function unitWhere(e, state, district, info = {}) {
 const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
 
 // skip(ids): hide the panel for this selection (a lone enemy or townsperson shows in the target frame instead)
-export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false }) {
+export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false, onInspect = () => {} }) {
   let shown = '';
   const cards = {};
   root.addEventListener('mousedown', e => {
     const card = e.target.closest('.card');
-    if (card) crewInput.select([card.dataset.id]);
+    if (card) {crewInput.select([card.dataset.id]);onInspect(card.dataset.id);}
   });
 
   function update() {

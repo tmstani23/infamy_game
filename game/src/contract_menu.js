@@ -46,7 +46,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     if (j.kind === 'bandits') return `${j.progress || 0}/${j.need || '?'} bandits`;
     if (j.kind === 'boss') return 'find him and knock him out';
     if (j.kind === 'mark' && !j.mark) return j.progress ? `PLANTING MARK · ${s(j.need - j.progress)} progress seconds left${j.hiddenEligible?' · hidden: 2× speed':''}` : 'PLANT MARK · stand in the violet back-room circle';
-    if (j.kind === 'mark') return `${j.mark.away ? `GET BACK INSIDE · ${s(game.contracts.rules.mark.leaveSeconds * 20 - j.mark.away)}s before failure · ` : 'MARK PLANTED · keep a ninja inside · '}hold ${s(j.need - j.progress)} progress seconds${j.hiddenEligible?' · hidden: 2× speed':''}${j.mark.alerted ? ' · defenders can erase it' : ''}`;
+    if (j.kind === 'mark') return `${j.mark.away ? `GET BACK INSIDE · ${s(game.contracts.rules.mark.leaveSeconds * 20 - j.mark.away)}s before failure · ` : 'MARK PLANTED · keep a ninja inside · '}hold ${s(j.need - j.progress)} progress seconds${j.hiddenEligible?' · hidden: 2× speed':''}${j.mark.scrubber ? ` · DEFENDER REMOVING MARK: ${s(game.contracts.rules.mark.clearSeconds*20-j.mark.clear)}s — hit or disable them to interrupt` : j.mark.alerted ? ' · defenders need an uninterrupted removal channel' : ''}`;
     if (j.kind === 'steal') return j.progress ? `TAKING STASH · ${s(j.need - j.progress)} progress seconds left · leaving the circle pauses${j.hiddenEligible?' · hidden: 2× speed':''}` : 'TAKE STASH · enter by the back window, then stand in the stash circle';
     return j.progress ? `watching… ${s(j.need - j.progress)} s` : 'get inside unseen and watch';   // scout
   }

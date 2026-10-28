@@ -31,6 +31,7 @@ import { clearSight } from './perception.js';
 import { distractionStep } from './distraction.js';
 import { createStats } from './stats.js';
 import { reachableEntry } from './rear_entry.js';
+import { createSectorCleanup } from './sector_cleanup.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -214,7 +215,7 @@ export function createGame(options) {
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z) => nav.nearestFree(x, z), fightTarget: id => fight[id]?.target,
     inCombat: e => !!fight[e.id]?.target, clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  function manualCrew(e) { diversion.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
+  function manualCrew(e) { sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
@@ -670,6 +671,7 @@ export function createGame(options) {
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
+    contracts?.interruptScrub(t);
     diversion.interrupted(t);
     t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
     if (damage > 0) kuroda.damaged(t, a);
@@ -882,6 +884,8 @@ export function createGame(options) {
   // made again every second (a once-only "no" left crew lying there for good); pricier
   // unit types are picked first.
   const SAFE = 5;
+  const sectorCleanup=createSectorCleanup({state,deployment,rally,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,downedFoe,lootable,
+    startExecute,executeStep,lootStep,inCombat:e=>!!crewTarget(e),stopPath:e=>{delete paths[e.id];}});
   function botExecute(e) {
     const clan = state.clans?.[e.owner];
     if (!clan?.bot || e.holdFire || (state.tick + Number(e.id)) % TICK_RATE) return false;
@@ -1125,6 +1129,8 @@ export function createGame(options) {
   }
 
   function crewStep(e, unit) {
+    if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
+      ||state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.recovery||state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.operation))sectorCleanup.cancel(e);
     if (e.dead || e.downed || e.jailed) return;
     const escorted = e.lootEscort && state.entities[e.lootEscort.looter];
     if (e.lootEscort && (!escorted || escorted.dead || escorted.downed || escorted.jailed || escorted.order?.kind !== 'loot')) {
@@ -1132,12 +1138,14 @@ export function createGame(options) {
       delete e.lootEscort; delete paths[e.id];
     }
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
+    if (contracts?.scrubStep(e)) return;
     if (deployment.travelStep(e, unit)) return;
     if (e.distracted?.source && diversion.step(e, unit)) return;
     if (assignments.avoidCamping(e,unit)) return;
     if (sectorRecovery.step(e, unit)) return;
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
+    if (sectorCleanup.step(e,unit)) return;
     if (shinobiAssignments.step(e, unit)) return;
     if (!rally.participating(e) && assignments.step(e, unit)) return;
     if (state.deployment.restrictionsEnabled && e.order?.kind === 'follow' && e.deployment?.group !== 'hero' && !rally.participating(e) && !e.lootEscort) {
@@ -1471,7 +1479,7 @@ export function createGame(options) {
       .sort((p, q) => Math.hypot(q.x - win.to.x, q.z - win.to.z) - Math.hypot(p.x - win.to.x, p.z - win.to.z))[0];
     return far ? { x: far.x, z: far.z } : backRoomOf(b);
   };
-  const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, scores: scoreOf, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null }) : null;
+  const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, scores: scoreOf, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null, inCombat:e=>!!fight[e.id]?.target }) : null;
   const hqCamping = clans ? createHQCamping({ state, rules: units?.rules?.hqCamping, addHeat }) : null;
   const hqRaids = clans ? createHQRaidEffects({ state, rules: units?.rules?.hqRaid, dayNight: dayNight || {} }) : null;
 
@@ -1509,6 +1517,8 @@ export function createGame(options) {
       if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment'].includes(c.type)) continue;
       // Selection and crew commands cannot replace the hero's current execution.
       if (e.type === 'hero' && e.execute && ['ability', 'snuff', 'use'].includes(c.type)) continue;
+      if (e.markScrub && ((c.type === 'move' && Math.hypot(c.right,c.down) >= .1)
+        || ['attack','ability','execute','use','interiorDoor','snuff','loot','cancel'].includes(c.type))) contracts.interruptScrub(e);
       if (c.type === 'move') {
         intents[c.id] = c;
         if (Math.hypot(c.right, c.down) >= 0.1) { kuroda.cancel(e, true); delete e.swing; }
@@ -1575,6 +1585,7 @@ export function createGame(options) {
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
       if (stunned(e, state.tick)) { e.anim = 'idle'; continue; }
+      if (contracts?.scrubStep(e)) continue;
       if (kuroda.stepActor(e, intents[e.id])) continue;
       if (e.dash) { dashStep(e, unit); continue; }
       const c = intents[e.id];

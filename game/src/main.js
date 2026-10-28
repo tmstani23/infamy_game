@@ -36,6 +36,7 @@ import { createDeploymentPanel } from './deployment_panel.js';
 import { createCharacterPanel } from './character_panel.js';
 import { createGameSettings } from './game_settings.js';
 import { bindGameShell } from './game_shell.js';
+import { createSelectionDock } from './selection_dock.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
@@ -200,7 +201,7 @@ async function start() {
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
-    onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id) });
+    onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id) });
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   function interactionDoor() {
     const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
@@ -248,7 +249,7 @@ async function start() {
   const crewBar = createCrewBar({ root: $('bar'), game, heroId, crewInput });   // crew order buttons over the crew pips
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
-  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone });
+  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, onInspect:id=>unitFrames.inspect(id) });
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, send: c => pending.push(c) });   // own + target frames, top middle
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
@@ -268,7 +269,7 @@ async function start() {
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
   const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
-    onSelectCrew: id => crewInput.selectUnit(id),
+    onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
     onManageSector: id => deploymentPanel.openGroup(id),
@@ -300,6 +301,14 @@ async function start() {
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
   const stealthBadge = createStealthBadge({ root: $('stealth'), game, heroId, view });
   const hudLayout = createHudLayout({ fromFile: uiFile.panels });
+  const deploymentCards=document.createElement('section'),mapCards=document.createElement('section');
+  deploymentCards.className=mapCards.className='selection-dock';
+  deploymentCards.setAttribute('aria-label','Selected unit and transfer details');mapCards.setAttribute('aria-label','Selected unit and transfer details');
+  deploymentCards.hidden=mapCards.hidden=true;
+  $('deploymentpanel').querySelector('.crew-selection').before(deploymentCards);
+  $('gamemap').querySelector('.mapcol').insertBefore(mapCards,$('gamemap').querySelector('.mapside'));
+  const selectionDock=createSelectionDock({panels:[$('utarget'),$('selpanel')],
+    destination:()=>deploymentPanel.isOpen()?deploymentCards:gameMap.isOpen()?mapCards:null,onRestore:()=>unitFrames.clearInspection()});
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
   $('loading').remove();
@@ -502,6 +511,7 @@ async function start() {
     gameMap.update();
     bar.update(game.state.tick - 1 + acc / tick);
     crewBar.update();
+    selectionDock.update();
     hudLayout.update();
   });
 }

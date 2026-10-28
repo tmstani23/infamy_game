@@ -311,6 +311,19 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       result(true, c.value ? 'Keep at HQ active; field crew must be transferred home manually' : 'HQ pin removed; ready surplus can automatically deploy');
       return;
     }
+    if(c.action==='cancelTransfer'){
+      const crew=ids.map(id=>state.entities[id]);
+      if(!ids.length||crew.some(e=>!active(e)||e.owner!==h.owner||e.downed||!e.deployment?.transfer||e.deployment.transfer.cancelled))return result(false,'Select your own crew with active transfers');
+      for(const e of crew){
+        let to=e.deployment.transfer.from;
+        if(!canAssign(h.owner,[e.id],to).ok||(to==='hero'&&(h.dead||h.downed||h.jailed)))to='home';
+        const target=destination(e,to);startTransfer(e,to,target);
+        Object.assign(e.deployment.transfer,{cancelled:true,returning:true});
+        if(to==='home')e.deployment.keepAtHQ=true;
+        if(!target||!route(e,target,true))Object.assign(e.deployment.transfer,{status:'blocked',retryAt:state.tick+20});
+      }
+      return result(true,'TRANSFER CANCELLED — crew returning to their original group; HQ returnees stay at HQ. If the original group is full, return to HQ.');
+    }
     if (c.action !== 'transfer') return;
     const allowed = canTransfer(h.id, ids, c.to);
     if (!allowed.ok) { result(false, allowed.why); return; }

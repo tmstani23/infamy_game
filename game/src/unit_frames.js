@@ -86,6 +86,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
   let remembered = null, rememberedAtLook = null, rememberedAtTab=null, cached=null;
+  let inspected=null, inspectedSelection=null, inspectedTab=null;
   const targetMemory=createTargetMemory();
   const knownTarget = () => game.shinobiIntelligence?.targets(game.state.entities[heroId]?.owner).find(e => e.id === remembered);
   const ambush = document.createElement('button'); ambush.type = 'button'; ambush.className = 'ambush-action'; ambush.textContent = 'Arm Ambush'; target.c.appendChild(ambush);
@@ -143,10 +144,11 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     self.c.hidden = !h;
     if (!h) { target.c.hidden = true; return; }
     fill(self, h, h);
+    if(inspected&&(crewInput.selected().join(',')!==inspectedSelection||crewInput.tabbed?.()!==inspectedTab))inspected=null;
     if (remembered && (crewInput.looked?.() !== rememberedAtLook||crewInput.tabbed?.()!==rememberedAtTab)) remembered = null;
     const id = frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e), view?.commandPlace(game.state, heroId));
     const memory = remembered && knownTarget();
-    const focus=crewInput.looked?.()||crewInput.tabbed?.()||id;
+    const focus=inspected||crewInput.looked?.()||crewInput.tabbed?.()||id;
     const live=focus&&S[focus],visible=live&&(!live.hidden||live.owner===h.owner)&&(!game.vision||game.vision.canSee(h.owner,live));
     cached=targetMemory.read(focus,live,visible,game.state.tick);
     const shown = memory || cached?.entity;
@@ -173,5 +175,9 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     hover.c.style.left = `${Math.max(4, Math.min(x, innerWidth - hover.c.offsetWidth - 4))}px`;
     hover.c.style.top = `${Math.max(4, Math.min(y, innerHeight - hover.c.offsetHeight - 4))}px`;
   }
-  return { update, updateHover, showKnown: id => { remembered = id; rememberedAtLook = crewInput.looked?.();rememberedAtTab=crewInput.tabbed?.(); update(); }, clearKnown: () => { remembered = null;cached=null;targetMemory.read(null,null,false); } };
+  return { update, updateHover,
+    inspect: id => {remembered=null;inspected=id;inspectedSelection=crewInput.selected().join(',');inspectedTab=crewInput.tabbed?.();update();},
+    clearInspection:()=>{inspected=null;update();},
+    showKnown: id => { inspected=null;remembered = id; rememberedAtLook = crewInput.looked?.();rememberedAtTab=crewInput.tabbed?.(); update(); },
+    clearKnown: () => { inspected=null;remembered = null;cached=null;targetMemory.read(null,null,false); } };
 }

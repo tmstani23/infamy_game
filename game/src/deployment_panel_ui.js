@@ -5,10 +5,12 @@ import { syncChildren } from './stable_list.js';
 // One focused command group. Transfer destination picking never changes the
 // source selection. All success feedback comes back from the simulation.
 export function createDeploymentPanel({ root, button, game, units, heroId, crewInput, send,
-  onPickPoint, onPickDestination, onCancelPick = () => {}, onOpen = () => {}, onClose = () => {}, onFocus = () => {} }) {
+  onPickPoint, onPickDestination, onCancelPick = () => {}, onOpen = () => {}, onClose = () => {}, onFocus = () => {}, onInspect = () => {} }) {
   root.innerHTML = '<header><h3>DEPLOYMENT</h3><button type="button" class="close" aria-label="Close deployment">✕</button></header><div class="tabs"></div>'
     + '<section class="group-summary"><h4></h4><strong></strong><span></span></section><div class="acceptance" role="status" aria-live="polite" hidden></div>'
-    + '<section class="crew-selection"><div class="roster-heading"><b>Crew selected</b><button type="button" class="select-group">Select group</button></div><div class="roster"></div><button type="button" class="transfer-start">Transfer selected crew</button><button type="button" class="return-assignment">Return to duty</button></section>'
+    + '<section class="crew-selection"><div class="roster-heading"><b>Crew selected</b><button type="button" class="select-group">Select group</button></div><div class="roster"></div><button type="button" class="transfer-start">Transfer selected crew</button><button type="button" class="assign-here">Assign crew here</button><button type="button" class="return-assignment">Return to duty</button></section>'
+    + '<section class="assign-mode" hidden><h4>Assign crew here</h4><p class="assign-destination"></p><label>From group <select class="assign-source" aria-label="Source group for assignment"></select></label><div class="assign-roster"></div><strong class="assign-preview"></strong><p class="assign-why"></p><button type="button" class="confirm-assignment">Assign selected crew</button><button type="button" class="cancel-assignment">Cancel</button></section>'
+    + '<section class="active-transfers" hidden><h4>Traveling crew</h4><div class="travel-roster"></div></section>'
     + '<section class="transfer-mode" hidden><h4>Choose transfer destination</h4><p class="transfer-source"></p><div class="destinations"></div><button type="button" class="pick-destination">Choose sector on map</button><strong class="transfer-preview"></strong><p class="transfer-why"></p><button type="button" class="confirm-transfer">Confirm transfer</button><button type="button" class="cancel-transfer">Cancel</button></section>'
     + '<section class="duty" hidden><h4>Sector duty</h4><label>Active duty <select class="task" aria-label="Active sector duty"></select></label><label class="business-label">Business <select class="guard-business"></select></label><form class="staffing-goal"><label>Staffing goal <input class="staffing-target" type="number" min="0" step="1"></label><button type="submit">Set goal</button></form><small class="assignment-points"></small><details><summary>Patrol route / duty point</summary><button type="button" data-point="objective">Choose duty point</button><button type="button" data-point="route">Add route point</button><button type="button" class="clear-route">Clear route</button></details><div class="shinobi-ops" hidden><b class="hunt-target"></b><button type="button" class="arm-next">Ambush next enemy</button><button type="button" class="cancel-ambush">Cancel hunt</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview"></small><div class="recent-targets"></div></div></section>'
     + '<details class="rally-controls"><summary>Rally <span class="rally-status"></span></summary><div class="rally-groups"></div><button type="button" class="call-rally">Call Rally</button><small>3 minutes including travel.</small></details>'
@@ -19,23 +21,24 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   const members = id => game.deployment.members(owner(), id);
   const available = e => !e.dead && !e.downed && !e.jailed && !e.deployment.transfer;
   const chosen = () => crewInput.selected().filter(id => members().some(e => e.id === id));
-  const ninja = game.state.clans[owner()].kind === 'ninja', rows=new Map(), tabs=new Map(), destinations=new Map(), rallyChecks=new Map(), targetRows=new Map();
-  let focus='hero', open=false, transfer=null, request=0, lastRefresh=null, feedbackSequence=config().feedback?.sequence || 0;
+  const ninja = game.state.clans[owner()].kind === 'ninja', rows=new Map(), tabs=new Map(), destinations=new Map(), rallyChecks=new Map(), targetRows=new Map(), incomingRows=new Map(), travelRows=new Map();
+  let focus='hero', open=false, transfer=null, incoming=null, latestTransfer=[], request=0, lastRefresh=null, feedbackSequence=config().feedback?.sequence || 0;
   const issue = c => {
     send({id:heroId,type:'deployment',...c,request:`panel-${++request}`});
     $('.acceptance').hidden=false; $('.acceptance').className='acceptance pending'; $('.acceptance').textContent='ORDER PENDING…';
   };
   function selectGroup(id) {
-    crewInput.select(members(id).filter(available).map(e=>e.id));
+    const ids=members(id).filter(available).map(e=>e.id);crewInput.select(ids);onInspect(ids[0]||null);
   }
   function setFocus(id, select=true) {
     if (!Object.hasOwn(names,id)) return;
-    focus=id; transfer=null; onCancelPick();
+    focus=id; transfer=null; incoming=null; onCancelPick();
     if(select)selectGroup(id);
     if(record(id))onFocus(id);
     lastRefresh=null; update(true);
   }
   for(const [id,name] of Object.entries(names)) {
+    $('.assign-source').add(new Option(name,id));
     const tab=document.createElement('button'); tab.type='button'; tab.addEventListener('click',()=>setFocus(id)); $('.tabs').appendChild(tab);tabs.set(id,tab);
     const destination=document.createElement('button'); destination.type='button'; destination.addEventListener('click',()=>chooseDestination(id)); $('.destinations').appendChild(destination);destinations.set(id,destination);
     const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=true;label.append(check,document.createTextNode(name));$('.rally-groups').appendChild(label);rallyChecks.set(id,check);
@@ -48,9 +51,9 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const name=document.createElement('button');name.type='button';name.className='crew-name';
     const hp=document.createElement('small'),status=document.createElement('span');
     const pinLabel=document.createElement('label'),pin=document.createElement('input');pin.type='checkbox';pinLabel.className='pin';pinLabel.append(pin,document.createTextNode('Keep at HQ'));pin.addEventListener('change',()=>issue({action:'keepAtHQ',units:[e.id],value:pin.checked}));
-    check.addEventListener('change',()=>{const selected=chosen().filter(id=>game.state.entities[id]?.deployment.group===focus);crewInput.select(check.checked?[...new Set([...selected,e.id])]:selected.filter(id=>id!==e.id));update(true);});
-    name.addEventListener('click',()=>{selectGroup(focus);update(true);});
-    name.addEventListener('dblclick',()=>{if(available(e)){crewInput.select([e.id]);update(true);}});
+    check.addEventListener('change',()=>{const selected=chosen().filter(id=>game.state.entities[id]?.deployment.group===focus);crewInput.select(check.checked?[...new Set([...selected,e.id])]:selected.filter(id=>id!==e.id));if(check.checked)onInspect(e.id);update(true);});
+    name.addEventListener('click',()=>{selectGroup(focus);onInspect(e.id);update(true);});
+    name.addEventListener('dblclick',()=>{if(available(e)){crewInput.select([e.id]);onInspect(e.id);update(true);}});
     el.append(check,name,hp,status,pinLabel);r={el,check,name,hp,status,pin,pinLabel};rows.set(e.id,r);return r;
   }
   const assignment = changes => {
@@ -59,17 +62,34 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const business=Object.values(game.state.businesses).find(b=>b.owner===owner()&&b.room&&game.deployment.sectorAt(...b.ring)===focus);
     issue({action:'assignment',sector:focus,task,business:s.business||business?.id,objective:s.objective,fallback:s.fallback,route:s.route||[],...changes});
   };
-  function chooseDestination(id) {if(!transfer)return;transfer.to=id;update(true);}
-  function cancelTransfer(){transfer=null;onCancelPick();update(true);}
-  $('.transfer-start').addEventListener('click',()=>{const ids=chosen().filter(id=>available(game.state.entities[id]));if(!ids.length)return;transfer={ids,from:focus,to:null};onPickDestination?.(chooseDestination);update(true);});
+  const travelers=()=>members().filter(e=>e.deployment.transfer&&(e.deployment.transfer.from===focus||e.deployment.transfer.to===focus));
+  const cancelable=()=>travelers().filter(e=>!e.deployment.transfer.cancelled);
+  const primaryCancel=()=>{const all=cancelable(),selected=new Set(chosen()),picked=all.filter(e=>selected.has(e.id)),latest=all.filter(e=>latestTransfer.includes(e.id));return picked.length?picked:latest.length?latest:all;};
+  function chooseDestination(id) {if(!transfer)return;transfer.to=id;confirmTransfer();update(true);}
+  function cancelTransfer(){transfer=null;incoming=null;onCancelPick();update(true);}
+  $('.transfer-start').addEventListener('click',()=>{if(transfer){confirmTransfer();return;}const ids=chosen().filter(id=>available(game.state.entities[id]));if(!ids.length){const active=primaryCancel();if(active.length)issue({action:'cancelTransfer',units:active.map(e=>e.id)});return;}incoming=null;transfer={ids,from:focus,to:null};onPickDestination?.(chooseDestination);update(true);});
+  $('.assign-here').addEventListener('click',()=>{
+    const sources=['home',...Object.keys(names).filter(id=>id!=='home')].filter(id=>id!==focus&&members(id).some(available));
+    if(!sources.length)return;
+    transfer=null;onCancelPick();incoming={to:focus,from:sources[0],ids:[]};update(true);
+  });
+  $('.assign-source').addEventListener('change',()=>{if(incoming){incoming.from=$('.assign-source').value;incoming.ids=[];update(true);}});
+  $('.cancel-assignment').addEventListener('click',()=>{incoming=null;update(true);});
+  $('.confirm-assignment').addEventListener('click',()=>{
+    if(!incoming?.ids.length)return;
+    const {ids,to}=incoming,allowed=game.deployment.canTransfer(heroId,ids,to);
+    if(!allowed.ok){update(true);return;}
+    latestTransfer=[...ids];issue({action:'transfer',units:[...ids],to});incoming=null;update(true);
+  });
   $('.pick-destination').addEventListener('click',()=>{if(transfer)onPickDestination?.(chooseDestination);});
   $('.cancel-transfer').addEventListener('click',cancelTransfer);
-  $('.confirm-transfer').addEventListener('click',()=>{
+  function confirmTransfer(){
     if(!transfer?.to)return;
     const {ids,to}=transfer, allowed=game.deployment.canTransfer(heroId,ids,to);
     if(!allowed.ok){update(true);return;}
-    issue({action:'transfer',units:ids,to});transfer=null;onCancelPick();update(true);
-  });
+    latestTransfer=[...ids];issue({action:'transfer',units:ids,to});transfer=null;onCancelPick();update(true);
+  }
+  $('.confirm-transfer').addEventListener('click',confirmTransfer);
   $('.select-group').addEventListener('click',()=>{selectGroup(focus);update(true);});
   $('.return-assignment').addEventListener('click',()=>crewInput.returnToDutyAndSelectHero());
   $('.task').addEventListener('change',()=>assignment({task:$('.task').value}));
@@ -90,24 +110,56 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const st=game.state, selected=new Set(chosen()), signature=`${st.tick}:${focus}:${[...selected].join(',')}`;
     if(!force&&lastRefresh===signature)return;lastRefresh=signature;
     const selectedGroups=new Set([...selected].map(id=>st.entities[id]?.deployment.group));
-    if(!transfer&&selectedGroups.size===1){const id=[...selectedGroups][0];if(names[id]&&id!==focus){focus=id;if(record(id))onFocus(id);}}
+    if(!transfer&&!incoming&&selectedGroups.size===1){const id=[...selectedGroups][0];if(names[id]&&id!==focus){focus=id;if(record(id))onFocus(id);}}
     const counts=game.deployment.counts(owner()),list=members(focus),task=record(focus),rally=game.rally.status(owner());
     for(const [id,b]of tabs){b.textContent=`${names[id]} ${counts[id]}${id==='hero'?'/6':''}`;b.setAttribute('aria-pressed',String(id===focus));}
     $('.group-summary h4').textContent=names[focus];
     $('.group-summary strong').textContent=`${selected.size} crew selected`;
     $('.group-summary span').textContent=task?`${TASK_LABELS[task.task]} · ${task.recovery?.state||task.operation?.state||list.find(e=>e.deployment.duty?.status)?.deployment.duty.status||'On duty'}`:'Command your selected crew';
     const allIds=new Set(members().map(e=>e.id));for(const [id,r]of rows)if(!allIds.has(id)){r.el.remove();rows.delete(id);}
+    for(const [id,r]of incomingRows)if(!allIds.has(id)){r.el.remove();incomingRows.delete(id);}
     const ordered=list.map(e=>{
       const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);r.name.textContent=`${unitName(units,e.type)} #${e.id}`;r.hp.textContent=`${Math.ceil(e.hp)}/${e.maxHp}`;
       r.status.textContent=e.downed?'Downed':e.deployment.transfer?'Transferring':e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready';
       r.el.classList.toggle('selected',selected.has(e.id));return r.el;
     });syncChildren($('.roster'),ordered);
     for(const e of list){const r=rows.get(e.id);r.pinLabel.hidden=focus!=='home';r.pin.checked=!!e.deployment.keepAtHQ;}
-    $('.transfer-start').disabled=![...selected].some(id=>available(st.entities[id]));
+    const ready=[...selected].some(id=>available(st.entities[id])),traveling=travelers(),cancel=primaryCancel();
+    $('.transfer-start').disabled=transfer?!transfer.to||!game.deployment.canTransfer(heroId,transfer.ids,transfer.to).ok:!ready&&!cancel.length;
+    $('.transfer-start').textContent=transfer?'Choose destination below or on map':!ready&&cancel.length?`Cancel transfer${cancel.length>1?`s (${cancel.length})`:''}`:'Transfer selected crew';
+    $('.active-transfers').hidden=!traveling.length;
+    const travelIds=new Set(traveling.map(e=>e.id));for(const[id,r]of travelRows)if(!travelIds.has(id)){r.el.remove();travelRows.delete(id);}
+    syncChildren($('.travel-roster'),traveling.map(e=>{
+      let r=travelRows.get(e.id);if(!r){const el=document.createElement('div'),text=document.createElement('span'),cancel=document.createElement('button');el.className='travel-member';cancel.type='button';el.append(text,cancel);cancel.addEventListener('click',()=>issue({action:'cancelTransfer',units:[e.id]}));r={el,text,cancel};travelRows.set(e.id,r);}
+      const t=e.deployment.transfer;r.text.textContent=`${unitName(units,e.type)} #${e.id} → ${names[t.to]}${t.cancelled?' · Returning':''}`;
+      r.cancel.textContent=t.cancelled?'Returning':'Cancel transfer';r.cancel.disabled=!!t.cancelled;return r.el;
+    }));
+    $('.assign-here').textContent=`Assign crew to ${names[focus]}`;
+    $('.assign-here').disabled=!Object.keys(names).some(id=>id!==focus&&members(id).some(available));
+    $('.assign-mode').hidden=!incoming;
+    if(incoming){
+      const source=members(incoming.from).filter(available),validIds=new Set(source.map(e=>e.id));
+      incoming.ids=incoming.ids.filter(id=>validIds.has(id));
+      $('.assign-destination').textContent=`Destination: ${names[incoming.to]} · choose crew to bring here`;
+      $('.assign-source').value=incoming.from;
+      for(const option of $('.assign-source').children){option.textContent=`${names[option.value]} · ${counts[option.value]}`;option.disabled=option.value===incoming.to||!members(option.value).some(available);}
+      const roster=source.map(e=>{
+        let r=incomingRows.get(e.id);
+        if(!r){const el=document.createElement('label'),check=document.createElement('input'),text=document.createElement('span');
+          el.className='assign-member';check.type='checkbox';el.append(check,text);
+          check.addEventListener('change',()=>{if(!incoming)return;incoming.ids=check.checked?[...new Set([...incoming.ids,e.id])]:incoming.ids.filter(id=>id!==e.id);onInspect(e.id);update(true);});
+          r={el,check,text};incomingRows.set(e.id,r);}
+        r.check.checked=incoming.ids.includes(e.id);r.el.classList.toggle('selected',r.check.checked);
+        r.text.textContent=`${unitName(units,e.type)} #${e.id} · ${Math.ceil(e.hp)}/${e.maxHp}`;return r.el;
+      });syncChildren($('.assign-roster'),roster);
+      const can=incoming.ids.length?game.deployment.canTransfer(heroId,incoming.ids,incoming.to):{ok:false,why:source.length?'Select crew above':'No available crew in this group'};
+      $('.assign-preview').textContent=`${incoming.ids.length} crew: ${names[incoming.from]} → ${names[incoming.to]}`;
+      $('.assign-why').textContent=can.why;$('.confirm-assignment').disabled=!can.ok;
+    }
     $('.return-assignment').disabled=![...selected].some(id=>record(st.entities[id]?.deployment.group));
     $('.transfer-mode').hidden=!transfer;
     if(transfer){
-      $('.transfer-source').textContent=`${transfer.ids.length} selected from ${names[transfer.from]}`;
+      $('.transfer-source').textContent=`${transfer.ids.length} selected from ${names[transfer.from]} · choosing a destination starts travel immediately`;
       for(const [id,b]of destinations){const can=game.deployment.canTransfer(heroId,transfer.ids,id);b.textContent=`${names[id]} · ${counts[id]}`;b.disabled=!can.ok;b.title=can.why;b.setAttribute('aria-pressed',String(transfer.to===id));}
       const can=transfer.to?game.deployment.canTransfer(heroId,transfer.ids,transfer.to):{ok:false,why:'Choose a destination above or on the map'};
       $('.transfer-preview').textContent=transfer.to?`${transfer.ids.length} crew: ${names[transfer.from]} → ${names[transfer.to]}`:'Destination not selected';
@@ -136,7 +188,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const reserve=$('.reserve-target');if(document.activeElement!==reserve)reserve.value=config().reserveTarget;
     const clan=st.clans[owner()];$('footer').textContent=`Clinic ${clan.clinic.length} · Jail ${clan.jail?.length||0} · HQ recovery ${clan.respawning?.length||0}`;
   }
-  function show(on){if(open===on)return;open=on;lastRefresh=null;if(on)onOpen(record(focus)?focus:null);else{transfer=null;onCancelPick();onClose();}update(true);}
+  function show(on){if(open===on)return;open=on;lastRefresh=null;if(on)onOpen(record(focus)?focus:null);else{transfer=null;incoming=null;onCancelPick();onClose();}update(true);}
   $('.close').addEventListener('click',()=>show(false));button.addEventListener('click',()=>{if(!open)selectGroup(focus);show(!open);button.blur();});
   for(const type of ['mousedown','mouseup','click','contextmenu','pointerdown','pointerup','wheel'])root.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});
   update(true);

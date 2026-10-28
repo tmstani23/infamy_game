@@ -679,15 +679,15 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       // (ARRESTING, blue): the only bar for a channel (Tim 2026-10-18)
       const busy = new Set();
       for (const e of Object.values(state.entities)) {
-        const charm=e.buffs?.charming, x = e.execute || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null), p = posOf(e.id);
+        const charm=e.buffs?.charming, x = e.execute || (e.markScrub?{...e.markScrub,scrubbing:true}:null) || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null), p = posOf(e.id);
         if (!x || x.start === null || !p || !overlay) continue;
         busy.add(e.id);
         let el = bars.get(e.id);
-        const mode=x.charming?'charming':x.arrest?'arrest':'execute';
+        const mode=x.scrubbing?'scrubbing':x.charming?'charming':x.arrest?'arrest':'execute';
         if (el && el.channelMode !== mode) { el.remove(); el = null; }
         if (!el) {
           el = document.createElement('div'); el.className = `channel ${mode}`; el.channelMode=mode;
-          el.innerHTML = `<i></i><span>${x.charming?'CHARMING':x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
+          el.innerHTML = `<i></i><span>${x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
         }
         const k = Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
         el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;

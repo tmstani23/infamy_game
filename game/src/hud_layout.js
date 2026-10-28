@@ -32,6 +32,7 @@ export function createHudLayout({ fromFile } = {}) {
 
   // saved entry { ax: 'l'|'r', ay: 't'|'b', dx, dy, s }: distance of the scaled panel from its nearest edges
   function place(p) {
+    if(p.el.classList.contains('hud-docked'))return;
     const L = saved[p.id], st = p.el.style;
     if (!L) { st.left = st.top = st.right = st.bottom = st.transform = st.scale = ''; return; }
     const w = p.el.offsetWidth, h = p.el.offsetHeight, s = L.s;
@@ -75,14 +76,14 @@ export function createHudLayout({ fromFile } = {}) {
     function finish() { if (drag) { drag = null; store(saved); } }
     p.finish = finish;
     const begin = (e, mode) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || el.classList.contains('hud-docked')) return;
       stop(e);
       const r = el.getBoundingClientRect();
       drag = { mode, x: e.clientX, y: e.clientY, r, s: scaleOf(p) };
     };
     el.addEventListener('mousedown', e => { if (p.open) begin(e, 'move'); }, { capture: true });
-    el.addEventListener('click', e => { if (p.open) stop(e); }, { capture: true });
-    el.addEventListener('contextmenu', e => { if (p.open) stop(e); }, { capture: true });
+    el.addEventListener('click', e => { if (p.open&&!el.classList.contains('hud-docked')) stop(e); }, { capture: true });
+    el.addEventListener('contextmenu', e => { if (p.open&&!el.classList.contains('hud-docked')) stop(e); }, { capture: true });
     p.grip.addEventListener('mousedown', e => begin(e, 'size'));
     addEventListener('mousemove', e => {
       if (!drag) return;
@@ -109,6 +110,9 @@ export function createHudLayout({ fromFile } = {}) {
     // every frame: park the lock icon (and the resize handle when unlocked) on each visible panel
     update() {
       for (const p of panels) {
+        const docked=p.el.classList.contains('hud-docked');
+        if(docked){p.finish();p.lock.hidden=p.grip.hidden=true;p.el.classList.remove('hudedit');p.docked=true;continue;}
+        if(p.docked){p.docked=false;p.show();place(p);}
         const r = p.el.getBoundingClientRect(), on = r.width > 0 && !p.el.hidden;
         p.lock.hidden = !on;
         p.grip.hidden = !on || !p.open;

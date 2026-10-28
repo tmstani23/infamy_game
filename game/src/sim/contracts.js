@@ -5,8 +5,9 @@
 //   scout   stand inside a named rival business, hidden, for seconds
 //   mark    plant a mark on its back-room spot (plantSeconds standing there), then keep a
 //           ninja inside for holdSeconds (none inside for leaveSeconds = failed); the owner hears of
-//           it at once if the planter was seen, else after alertDelay, and his units standing on
-//           the mark for clearSeconds scrub it off (failed). Done: that business pays 0 at the next dawn
+//           it at once if the planter was seen, else after alertDelay. An idle defender can channel
+//           on the mark for clearSeconds to erase it; damage/movement/disables interrupt and reset.
+//           Done: that business pays 0 at the next dawn
 //   steal   in a rival-owned business, stand on its back-room stash for seconds: take
 //           share of the clan's ryo (at most max)
 //   boss    knock out the named rival boss
@@ -34,13 +35,15 @@ const KIND_NAME = { shop: 'Shop', tenements: 'Tenements', pawnshop: 'Pawnshop', 
 // leader() = the clan leading the season score (or null)
 import { canInteract } from './interactions.js';
 import { contractLockoutUntil } from './hq_raids.js';
-export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null }) {
+import { createMarkScrubbing } from './mark_scrub.js';
+export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null, inCombat = () => false }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
   const secs = s => Math.round(s * 20);
   let rs = seed;
   const rnd = () => ((rs = (rs * 16807) % 2147483647) / 2147483647);
   state.contracts ||= { board: [], active: {}, next: 1, posted: false, day: 0, hits: [] };
   const C = state.contracts;
+  const scrubbing = createMarkScrubbing({state,rules:R.mark,inCombat});
   const ninja = id => state.clans?.[id]?.kind === 'ninja';
   const clanName = id => state.clans?.[id]?.name || 'a rival clan';
   const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
@@ -152,6 +155,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
 
   function finish(clanId, ok, why, ryo = null, actor = null) {
     const job = C.active[clanId], clan = state.clans[clanId];
+    scrubbing.clear(clanId);
     delete C.active[clanId];
     if (!job || !clan) return;
     if (job.kind !== 'bandits') C.cooldowns[jobKey(job)] = state.tick + secs(ok ? R.repeatSeconds : R.failedRepeatSeconds);
@@ -245,10 +249,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       job.hiddenEligible = !!inside?.hidden;
       m.away = inside ? 0 : m.away + 1;
       if (m.away >= secs(r.leaveSeconds)) return finish(clanId, false, 'nobody stayed inside');
-      // the owner's people scrub it off once they know (standing on it clearSeconds)
-      const scrub = m.alerted && Object.values(state.entities).some(e => e.owner === job.target && alive(e) && e.place === m.place && Math.hypot(e.x - m.x, e.z - m.z) <= r.reach);
-      m.clear = scrub ? m.clear + 1 : 0;
-      if (m.clear >= secs(r.clearSeconds)) return finish(clanId, false, 'the mark was scrubbed off');
+      // The defender stops fighting/moving for an interruptible channel.
+      if (scrubbing.update(clanId,job)) return finish(clanId, false, 'the mark was scrubbed off');
       if (inside) job.progress += inside.hidden ? R.hiddenProgressRate : 1;
       job.counter = { x: m.x, z: m.z, place: b.room, label: 'Hold mark', progress: job.progress, need: job.need };
       if (job.progress >= job.need) { b.sabotaged = true; finish(clanId, true, '', null, inside); }
@@ -302,5 +304,6 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   const mayClimb = (e, place) => ninja(e.owner) && Object.values(C.active).some(j => j.clan === e.owner
     && ['scout', 'mark', 'steal'].includes(j.kind) && !state.businesses[j.business]?.hideout && state.businesses[j.business]?.room === place);
 
-  return { tick, command, post, mayClimb, where, reward, quote, businessScore, backRoom, stash, rules: R };
+  return { tick, command, post, mayClimb, where, reward, quote, businessScore, backRoom, stash, rules: R,
+    scrubStep:scrubbing.step, interruptScrub:scrubbing.interrupt };
 }
