@@ -232,3 +232,9 @@ Build coordinator reports combat, Kuroda, Shinobi combat, territory, crew-groups
 - [x] **Playtest #8, implemented/targeted-checked 2026-10-27:** explicit attack pursuit follows accessible doors in/out, respecting entry permissions and sector restrictions. Check entry/exit, inaccessible doors and no area/permission bypass; Tim playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
 
 Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pursue through permitted entrance/exit and obey sector/entry/raid-slot limits. Unseen pursuit uses last-known public position/door, never hidden coordinates. New `test_door_pursuit` passed real entry/exit with the same target; broader input-fixture updates/final integration remain pending. Tim visuals unchecked; no commit/push requested.
+
+## Smoke nameplate visibility fix (2026-10-28)
+
+Visible nameplates now render above smoke/combat particles (`characters.js` order 99860 versus smoke 99810), so existing visible enemies' clickable labels are not obscured. Vision/stealth, nameplate toggle and targeting eligibility remain unchanged; concealed enemies stay concealed. Smoke Bomb still drops attacks/holds fire as before.
+
+Build coordinator reports target-controls, Ninja and Shinobi combat checks passed, including smoke drop/hold-fire/stealth regressions; source syntax/diff checks clean. No browser visual test claimed; Tim smoke/nameplate retest pending.

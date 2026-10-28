@@ -97,7 +97,9 @@ export class CharacterSprite {
     this.labelMaterial = new THREE.MeshBasicMaterial({ map: this.labelTexture, transparent: true, depthTest: false, depthWrite: false });
     this.nameplate = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.45), this.labelMaterial);
     this.nameplate.quaternion.copy(CAM_QUAT);
-    this.nameplate.renderOrder = 99610;
+    // Keep visible units' clickable labels above smoke (99810) and combat
+    // particles. Visibility/stealth still decides whether a label exists.
+    this.nameplate.renderOrder = 99860;
     this.nameplate.frustumCulled = false;
     this.nameplate.visible = false;
     this.pos = new THREE.Vector3();
