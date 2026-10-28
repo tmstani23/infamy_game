@@ -99,3 +99,9 @@ Phase 5D checkpoint (2026-10-27, reported by Build coordinator): `fullscreen.js`
 `audio_settings.js`/`game_settings.js` provide Settings modal with locally saved Master/Effects/Mute and Test sound. The prior fixed 0.6 master/eighteen-range rolloff was quiet. Initial master default one, Effects bus multiplier 1.5, radius twenty-four and compressor tame combined peaks; camera/place isolation remains. K/mute uses the same settings and immediately silences existing voices. Server serves correct Ogg/WAV MIME types.
 
 `game_shell.js` suppresses context menu, text selection and native dragging on gameplay surfaces while allowing editable inputs; CSS disables game text selection. New `test_game_shell` passed supported/missing keyboard-lock adapters, exit unlock, game/editable input suppression, actual audio bus gains, preview/immediate mute and local persistence. Syntax checks passed; no browser tests. Phase 6 integration remains pending; no commit/push requested.
+
+## HUD drag-release correction (2026-10-28)
+
+Tim reported a target frame that kept dragging after mouse release, preventing locking. Frame handlers stopped mouseup bubbling before the old window handler; HUD now captures release before frame handlers. Drag/resize also ends on lock, window blur, missing-button move or reset. Personal layout remains untouched.
+
+New `test_hud_drag` reproduces stopped mouseup using Node capture/bubble adapters and checks release/lock/resize/blur/reset/persistence. Build coordinator reports eight scripts passed: HUD drag, indoor stealth, Ninja, indoor crew, door pursuit, unit frames, target controls and hidden-contract bonus; modified-source syntax/diff checks clean. No browser/screenshots/manual visual approval claimed. Tim drag/lock retest remains pending.

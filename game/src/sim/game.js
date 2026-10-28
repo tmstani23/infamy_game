@@ -174,11 +174,11 @@ export function createGame(options) {
     const half = Math.abs(ux) * (foot.maxX - foot.minX) / 2 + Math.abs(uz) * (foot.maxZ - foot.minZ) / 2;
     const outside=[];
     for(const gap of [2,3.5,5])for(const side of [0,2,-2,4,-4,7,-7])outside.push({x:b.x-ux*(half+gap)-uz*side,z:b.z-uz*(half+gap)+ux*side});
-    const [fx,fz]=ringAt(b),out = reachableEntry(nav,{x:fx,z:fz},outside);
+    const [fx,fz]=ringAt(b),out = reachableEntry(nav,{x:fx,z:fz},outside,{blockers,clearance:1.3});
     const mx = room.origin.x + room.size[0] / 2, mz = room.origin.z + room.size[1] / 2;
     const back={x:Math.max(room.origin.x+1.2,Math.min(room.origin.x+room.size[0]-1.2,2*mx-room.spawn.x)),z:Math.max(room.origin.z+1.2,Math.min(room.origin.z+room.size[1]-1.2,2*mz-room.spawn.z))};
     const insideCandidates=[back];for(const radius of [1,2,3,4])for(let a=0;a<8;a++)insideCandidates.push({x:back.x+Math.cos(a*Math.PI/4)*radius,z:back.z+Math.sin(a*Math.PI/4)*radius});
-    const inside = reachableEntry(roomNavs[room.name],room.spawn,insideCandidates);
+    const inside = reachableEntry(roomNavs[room.name],room.spawn,insideCandidates,{blockers:room.blockers,clearance:1.3});
     if (!out || !inside) return;
     doors.push({ x: out[0], z: out[1], to: { x: inside[0], z: inside[1] }, place: room.name, label: 'Climb in the back window', ninja: true, business: `b${i}` });
     doors.push({ x: inside[0], z: inside[1], to: { x: out[0], z: out[1] }, place: 'street', label: 'Climb out the back window', ninja: true, business: `b${i}` });

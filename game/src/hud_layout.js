@@ -68,10 +68,12 @@ export function createHudLayout({ fromFile } = {}) {
     p.show = show;
     show();
     p.lock.addEventListener('mousedown', e => e.stopPropagation());
-    p.lock.addEventListener('click', e => { p.open = !p.open; show(); if (!p.open) store(saved); e.currentTarget.blur(); });
+    p.lock.addEventListener('click', e => { finish(); p.open = !p.open; show(); if (!p.open) store(saved); e.currentTarget.blur(); });
 
     // unlocked: a press anywhere on the panel drags it (nothing inside it reacts meanwhile)
     let drag = null;
+    function finish() { if (drag) { drag = null; store(saved); } }
+    p.finish = finish;
     const begin = (e, mode) => {
       if (e.button !== 0) return;
       stop(e);
@@ -84,6 +86,7 @@ export function createHudLayout({ fromFile } = {}) {
     p.grip.addEventListener('mousedown', e => begin(e, 'size'));
     addEventListener('mousemove', e => {
       if (!drag) return;
+      if (typeof e.buttons === 'number' && !(e.buttons & 1)) { finish(); return; }
       const { r } = drag, dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (drag.mode === 'move') keep(p, r.left + dx, r.top + dy, drag.s);
       else {
@@ -92,7 +95,10 @@ export function createHudLayout({ fromFile } = {}) {
         keep(p, r.left, r.top, clamp(drag.s * k, MIN_SCALE, MAX_SCALE));
       }
     });
-    addEventListener('mouseup', () => { if (drag) { drag = null; store(saved); } });
+    // Frames may stop bubbling mouse events to keep clicks out of the world.
+    // Capture release before those handlers so dragging always ends.
+    addEventListener('mouseup', finish, { capture: true });
+    addEventListener('blur', finish);
     new ResizeObserver(() => place(p)).observe(el);   // keeps right / bottom anchors right when a panel grows
     place(p);
     return p;
@@ -115,7 +121,7 @@ export function createHudLayout({ fromFile } = {}) {
     reset() {
       saved = {};
       store(saved);
-      for (const p of panels) { p.open = false; p.show(); place(p); }
+      for (const p of panels) { p.finish(); p.open = false; p.show(); place(p); }
     },
   };
 }
