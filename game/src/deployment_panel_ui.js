@@ -59,9 +59,9 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const business=Object.values(game.state.businesses).find(b=>b.owner===owner()&&b.room&&game.deployment.sectorAt(...b.ring)===focus);
     issue({action:'assignment',sector:focus,task,business:s.business||business?.id,objective:s.objective,fallback:s.fallback,route:s.route||[],...changes});
   };
-  function chooseDestination(id) {if(!transfer)return;transfer.to=id;onCancelPick();update(true);}
+  function chooseDestination(id) {if(!transfer)return;transfer.to=id;update(true);}
   function cancelTransfer(){transfer=null;onCancelPick();update(true);}
-  $('.transfer-start').addEventListener('click',()=>{const ids=chosen().filter(id=>available(game.state.entities[id]));if(!ids.length)return;transfer={ids,from:focus,to:null};update(true);});
+  $('.transfer-start').addEventListener('click',()=>{const ids=chosen().filter(id=>available(game.state.entities[id]));if(!ids.length)return;transfer={ids,from:focus,to:null};onPickDestination?.(chooseDestination);update(true);});
   $('.pick-destination').addEventListener('click',()=>{if(transfer)onPickDestination?.(chooseDestination);});
   $('.cancel-transfer').addEventListener('click',cancelTransfer);
   $('.confirm-transfer').addEventListener('click',()=>{

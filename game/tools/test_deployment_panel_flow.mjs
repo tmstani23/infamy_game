@@ -36,10 +36,11 @@ try{
  };
  root.querySelectorAll=()=>[];
  const selected={ids,selected(){return this.ids;},select(ids){this.ids=ids;},returnToDutyAndSelectHero(){}},queue=[];let destinationPick=null;
- const panel=createDeploymentPanel({root,button,game:g,units:g.settings.units,heroId,crewInput:selected,send:c=>queue.push(c),onPickDestination:fn=>destinationPick=fn});
+ const panel=createDeploymentPanel({root,button,game:g,units:g.settings.units,heroId,crewInput:selected,send:c=>queue.push(c),onPickDestination:fn=>destinationPick=fn,onCancelPick:()=>destinationPick=null});
  const $=s=>elements.get(s);panel.openGroup('hero');
  const sourceIds=[...selected.ids];assert.equal($('.roster').children.length,sourceIds.length);$('.transfer-start').emit('click');assert.equal(queue.length,0,'opening transfer sends no optimistic order');
- $('.pick-destination').emit('click');destinationPick(sector.id);assert.deepEqual(selected.ids,sourceIds,'choosing destination never replaces source crew');assert.equal($('.confirm-transfer').disabled,false);
+ assert.equal(typeof destinationPick,'function','transfer mode captures map destination clicks immediately');
+ $('.pick-destination').emit('click');destinationPick(g.state.deployment.sectors[1].id);assert.equal(typeof destinationPick,'function','map destination mode persists until confirm/cancel');destinationPick(sector.id);assert.deepEqual(selected.ids,sourceIds,'repeated destination choices never replace source crew');assert.equal($('.confirm-transfer').disabled,false);
  $('.confirm-transfer').emit('click');assert.deepEqual(queue[0].units,sourceIds);assert.equal(queue[0].to,sector.id);assert.match($('.acceptance').textContent,/PENDING/);
  g.step(queue.splice(0));panel.update();assert.match($('.acceptance').textContent,/TRANSFER STARTED/);assert.match($('.acceptance').className,/accepted/);
  mutations=0;for(let i=0;i<120;i++)panel.update();assert.equal(mutations,0,'unchanged frames preserve interactive roster nodes');

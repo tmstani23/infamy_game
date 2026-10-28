@@ -22,7 +22,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   let pointPicker = null, destinationPicker = null, flashUntil = 0;
   // one map (Tim 2026-10-27): managing a sector docks the Deployment menu beside the open map
   const selectSector = id => {
-    if (destinationPicker) { const callback=destinationPicker;destinationPicker=null;callback(id);return; }
+    if (destinationPicker) { destinationPicker(id);return; }
     selectedSector = id; flashUntil=performance.now()+1200; onSelectSector(id); drawDeployment(); map?.draw();
   };
   const manage = id => { selectedSector = id; onManageSector?.(id); map?.draw(); };
