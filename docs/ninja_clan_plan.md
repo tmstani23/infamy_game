@@ -214,3 +214,7 @@ New `test_indoor_stealth` passed daytime room snuff, other-room isolation, actua
 ### Contract tracker robustness (2026-10-28)
 
 Tracker update and boss-hunt click paths now safely tolerate absent deployment data, using guarded lookups rather than accessing `state.deployment.clans` unconditionally. Build coordinator reports explicit missing-deployment regression coverage in `test_shinobi_hq_raid` passed after the fix. No contract mechanic or manual-playtest completion is claimed.
+
+## Sabotage mark removal channel (implemented/checked 2026-10-28)
+
+`sim/mark_scrub.js` makes ordinary player/bot defenders stop fighting and channel four continuous seconds to remove a planted mark. Damage, movement, stun/charm, KO/jail/exit or new orders resets the attempt; no pooled progress between defenders. A real hit on the exact completion tick interrupts before completion. REMOVING MARK status/channel bar and contract warning countdown show actual progress. Existing plant/hold/away, hidden work rates and rewards remain unchanged. Reported `test_mark_scrub` and final focused regressions passed; Tim visual retest pending.

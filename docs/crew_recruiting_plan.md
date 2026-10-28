@@ -107,3 +107,9 @@ Explicit Follow to an indoor hero brings selected outdoor crew through the entra
 Phase 5C checkpoint (2026-10-27): damage fourteen → twelve gives approximate expected sustained damage 19.5 versus normal Ninja 19.17 before mitigation/tick effects. Automatic charm requires stationary/not attacking; explicit move/attack cancels dance/channel without refunding the ten-second cooldown. Authoritative `charming` start/until drives buff readout and labelled pink CHARMING bar. Renderer uses `e.lure.castUntil` instead of obsolete `dancingUntil`, with pink aura and pooled rising hearts (fifth particle-atlas shape) while dancing.
 
 Extended `test_geisha` passed configured damage, stationary charm, move/attack precedence, channel metadata/cooldown and existing lure/flee/freeze/hire behavior. Render syntax passed; visual/balance review remains pending. No commit/push requested.
+
+## Autonomous sector cleanup (implemented/checked 2026-10-28)
+
+`sim/sector_cleanup.js` lets every clan's assigned sector crew execute nearby downed enemies and loot visible reachable drops within six units, same place/sector, then resume duty. Existing execution/loot rewards/rules apply, without hidden intelligence or duplicate claims. Never automatically execute civilians, friendlies or heroes; neutral police require existing hostility.
+
+Preserve manual orders (including switch-away completion), Ambush, transfers/Rally, Guard travel, retreat/recovery, camping withdrawal and smoke passive/hold-fire. New orders interrupt cleanup. Reported `test_sector_cleanup` covers actual all-clan execution/loot, interruption and priorities; Tim playtest pending.
