@@ -11,6 +11,7 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Key | What it does |
 |---|---|
 | W A S D | Move, relative to the screen |
+| J / **Character** button | Open live hero stats, abilities and existing passives; hover modifiers/icons for sources. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern |

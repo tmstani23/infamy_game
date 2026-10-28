@@ -209,3 +209,20 @@ Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandi
 ## Large street fights (Tim, 2026-10-25)
 
 Police and civilians retreat from a nearby fight involving at least five actively fighting units per clan on two sides (heroes count). Idle gatherings do not trigger it; attrition does not draw bystanders back while the fight continues. KO countdown and crew-control rules: [controls](controls.md).
+
+## Hero character page (authorized 2026-10-27)
+
+Implemented/sim-checked 2026-10-27; Tim visual/gameplay review pending. Themed character pages and an interactive preview use real snapshots. Detailed live stats must come from **one canonical gameplay resolver**, shared by actual movement/combat/regeneration and read-only UI snapshots. No independently maintained display math; future ability/gear modifiers use the same evaluation path.
+
+Show base value with adjacent glowing modifier and effective value; reductions have a distinct glow color. Tooltips name actual conditions/modifier sources. Include abilities and existing passive/permanent buff-bar icons with hover explanations. Display current Kuroda field recovery and Shinobi stealth; no new balance passive. Additional Yakuza passive remains undecided: Ruthless Momentum rejected as excessive healing, Unshaken only proposed.
+
+Equipment, armor, weapons and inventory UI/mechanics are explicitly deferred. Opening the page never pauses multiplayer. Controls/architecture link here for ownership.
+
+- [x] **1:** shared stat resolver wired into actual gameplay and trustworthy read-only snapshots.
+- [x] **2:** themed live character sheet, abilities/passives and compact passive icons/tooltips; base/modifier/effective presentation.
+- [x] **3:** focused sim checks and in-game-style preview handoff; no browser/screenshot tests.
+- [ ] **Tim visual review:** verify live values, tooltips and presentation.
+
+`game/src/sim/stats.js` is the shared gameplay resolver for base/model/roamer stats, damage factors, attack interval, crit/dodge, movement, formation protection, Lantern lifesteal and passive recovery, exposing read-only snapshots. `character_panel.js`/`.css` shows base/modifier/current columns with subtle green/red glow, source tooltips, all current hero abilities, live HP and clan sprite/theme. Existing Kuroda **Battle Hardened** and Shinobi **Shadowcraft** metadata also creates persistent action-bar passive icons/tooltips. No new balance passive.
+
+Build coordinator reports combat, Kuroda, Shinobi combat, territory, crew-groups and new `game/tools/test_character_stats.mjs` passed. New coverage includes all clan snapshots, no mutation, actual hit/movement/regen parity, expiry, percentage-point formatting and beneficial reductions. Interactive preview handed to Tim uses real snapshots/sample existing effects. No browser/screenshot checks; Tim visual/gameplay review remains unchecked. No commit/push until requested.

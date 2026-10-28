@@ -7,6 +7,7 @@ How the game is built today (2026-10-17). Short on purpose: details live in the 
 - Crew, hiring, orders: [crew_recruiting_plan.md](crew_recruiting_plan.md)
 - Deployment membership, sectors and transfer commands: [deployment_sector_plan.md](deployment_sector_plan.md) (`sim/sectors.js`, `sim/deployment.js`, `sim/assignments.js`, `sim/deployment_rally.js`, `sim/shinobi_assignments.js`, `sim/diversion.js`, `sim/deployment_ai.js`, `deployment_map_geometry.js`; 1A–5B and 2026-10-27 follow-on built, thirty final checks passed, visual review pending).
 - Fighting: [combat_spec.md](combat_spec.md)
+- Canonical gameplay stats/read-only hero snapshots: `sim/stats.js`; character UI `character_panel.js`/`.css`, passive icons in `action_bar.js`. [Stat/page ownership](combat_spec.md#hero-character-page-authorized-2026-10-27) (built 2026-10-27, visual review pending).
 - Keys: [controls.md](controls.md)
 
 ## The one rule

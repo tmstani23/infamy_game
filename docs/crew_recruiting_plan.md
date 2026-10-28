@@ -6,7 +6,9 @@ Follows the multiplayer rules: all rules in `game/src/sim` (Node, no graphics), 
 
 ## Shinobi geisha (built 2026-10-26)
 
-Shinobi-only `shinobi_geisha`: base 120 ryo with existing crew price scaling, 160 HP, five damage, one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
+Shinobi-only `shinobi_geisha`: base 120 ryo with existing crew price scaling, 160 HP, fourteen damage (balance adjustment 2026-10-27), one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
+
+Balance follow-up (Tim, 2026-10-27): damage reduced from 28 to 14; other stats/charm behavior unchanged. Build coordinator reports `test_geisha` passed hire/charm/immunity/duration/cooldown/flee/fight coverage; cornered-hit assertion now reads configured damage. Tim balance playtest remains pending.
 
 ## Decisions (Tim, 2026-10-16)
 
