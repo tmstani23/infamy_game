@@ -61,13 +61,21 @@ Initial tuning: armed wait sixty seconds, attack maximum forty-five seconds; abo
 
 Direct manual orders detach chosen units. Enemy targeting/ordinary group switches do not cancel autonomous Ambush; selection-change Return affects only actually manually overridden units. Task changes/explicit Return cancel or retreat appropriately, then restore the saved task.
 
-### Diversion (5B built/sim-checked 2026-10-26)
+### Geisha (autonomous, replaces manual Diversion, Tim 2026-10-27)
 
-Use the Shinobi-only [geisha hire](crew_recruiting_plan.md#shinobi-geisha-built-2026-10-26); [cast reuse/placeholders](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26) owns its art status. Choose Diversion, objective/fallback and manually **Start diversion**. States: Ready → Moving → Dancing → Escaping → Returning → saved task. Only one operation per sector.
+No manual Diversion any more. In a sector or the hero group the Shinobi geisha acts on her own (`sim/diversion.js`, numbers in `DIVERSION`):
+- Lure is her auto attack: every 10 s she charms one visible enemy crew member or house guard within 6 (first whoever hits her clan, then anyone near it, then the nearest); the target stands entranced for 4 s. Never heroes, police, bandits or townsfolk.
+- Anyone coming at her: she runs away and slips back into hiding. Cornered (a threat in reach 1.5 s, or nowhere to run): she fights, deadly up close (`units.json` `shinobi_geisha`).
+- An explicit attack order still makes her fight like any crew member. Older 5B Diversion notes below are history.
 
-Initial tuning: visible warning 1.5 seconds, attraction six seconds within radius six; thirty-second geisha cooldown starts at actual dance start. Source stays revealed/channeling. Damage, manual override, transfer, Retreat, task change or KO aborts. Fallback is physical local travel with ordinary stealth; resume saved duty once hidden or after ten seconds at fallback. Medical/jail metadata preserves cooldown; successful explicit transfer/Return clears old lure/intents.
+## Recovery and reinforcement (2026-10-27)
 
-Only idle enemy hired crew/house guards are eligible. Heroes, civilians, police, wild units, current attackers/combatants, moving active jobs, recent six-second combat, transferees and Rally participants are immune. Hired crew retain normal sector movement limits. Eligible interior guards use normal clan sight and physically leave/re-enter through their front door. No teleport or forced hero control. Target damage or explicit orders break attraction; explicit orders, break or effect end grant ten seconds of attraction immunity. Source/target warnings, map ping, question markers and cast/ring effects expose counterplay.
+- Sector and HQ crew who go down are not carried to the clinic: they come round at their own HQ after 30 s (`rules.sectorRespawnSeconds`) and run back to their sector. Hero-group crew still go to the clinic.
+- Revived and respawned crew go back to the group they came from; new crew fill the hero group up to 6 first. Neither waits for the hero's fight to end.
+
+## One map (2026-10-27)
+
+The M map is the only map: its **Sectors** layer (first toggle) shows sector borders, known clan presence, last-seen squares and transfer links, with the Deployment menu docked beside it.
 
 ### Secure Extraction (historical; removed in playtest Phase 4)
 

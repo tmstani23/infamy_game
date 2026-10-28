@@ -50,7 +50,7 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 | Toolbar **Deployment** button (Esc closes; no hotkey) | Deployment panel: counts, reserved slots, health, transfer status |
 | **Transfer selected crew** | Lock selected source crew; choosing labelled/map destination starts immediately. Button becomes Cancel transfer for traveling batch; traveler rows also cancel. No transfer dragging |
 | **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 0) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
-| M map → **Deployment** layer | Click sector map/tab to select its crew, flash boundary and focus synchronized roster/duty/operation controls |
+| M map → **Sectors** layer (Deployment menu docked) | Click sector map/tab to select its crew, flash boundary and focus synchronized roster/duty/operation controls |
 | Sector desired staffing goal | Default 3; 0 disables automatic staffing there. Lowering never recalls crew; above-three staffing requires legal overflow |
 | Owned-business card **Guard business** | Assign guarding for normal clans |
 | Duties: task/business, optional objective/route | Apply directly, without Save. Large accepted text/glow follows authoritative success; rejection is explicit. Regular clans choose Patrol/Guard. **↩ Duty** on crew bar or **Back to duty** in map/panel restores selected/focused sector duty and selects available permanent hero-group crew, without Follow |
@@ -59,7 +59,7 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 | Map remembered row/marker **Inspect**, target-frame **Arm/Armed-Cancel** | Snapshot identity/age only when unseen; no live HP/buffs or hidden camera jump. New targeting/Esc clears inspection |
 | Contract tracker **Order sectors to hunt this boss / Cancel boss hunt** | Arm known active boss identity without prior manual selection; authoritative hunt state shown. Marker knowledge never permits an unseen attack |
 | Shinobi: Watch | Automatic: crew report sightings and contract-priority pings |
-| Shinobi: hire the geisha, **Diversion** + objective/fallback, **Start diversion** | She dances to draw guards away; Retreat, Return or a task change ends it |
+| Shinobi: hire the geisha | She works on her own: charms one nearby enemy crew member or guard every 10 s, runs from attackers, fights when cornered. An attack order still works |
 
 Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, outer ring actual suspicion and near-reveal pulse, violet concealment movement/light, and compact movement/F cues. Hover for state/snuff details. Move/resize through the existing HUD editor; saved-layout/reset/reduced-motion rules apply. [Stealth/HUD behavior](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27); visual/layout playtest pending.
 
@@ -127,6 +127,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
+| ` (backquote), Pause, or the Pause button | Pause / resume (single player): the game stops, menus still work |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
 | Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout, J dojo. A business letter fills with its owner's colour once explored (your own always) |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
