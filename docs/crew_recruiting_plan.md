@@ -113,3 +113,11 @@ Extended `test_geisha` passed configured damage, stationary charm, move/attack p
 `sim/sector_cleanup.js` lets every clan's assigned sector crew execute nearby downed enemies and loot visible reachable drops within six units, same place/sector, then resume duty. Existing execution/loot rewards/rules apply, without hidden intelligence or duplicate claims. Never automatically execute civilians, friendlies or heroes; neutral police require existing hostility.
 
 Preserve manual orders (including switch-away completion), Ambush, transfers/Rally, Guard travel, retreat/recovery, camping withdrawal and smoke passive/hold-fire. New orders interrupt cleanup. Reported `test_sector_cleanup` covers actual all-clan execution/loot, interruption and priorities; Tim playtest pending.
+
+## Explicit single-worker body jobs (2026-10-28)
+
+Right-click body dispatches one nearest reachable eligible crew member from selected command group; without selection use hero-party crew in viewed place, with hero fallback only if none. `sim/crew_jobs.js` uses existing execute/loot rules and prevents duplicate claims; hero proximity cannot steal the task and no group loot escorts are created. Existing explicit commands without the new job flag retain their old behavior.
+
+Explicit job outranks group attack/move temporarily; those orders become return plans. After completion/interruption, physically rejoin current group and copy peers' latest order (including changes made while worker unselected), or resume duty. Solo-select plus new order or Stop/Cancel overrides immediately. Damage interrupts execution; Smoke drops job/holds fire; transfer/KO/stun cancels. Normal visibility/sector/group/Rally rules apply. No simultaneous mark scrubbing or automatic redeployment. Status: Collecting loot / Finishing off / Rejoining group. Automatic sector cleanup remains lower priority/unchanged. Reported crew-job/regression checks passed; Tim playtest pending.
+
+Backlog interest (Tim, 2026-10-28; not built): a special crew type per clan inspired by geisha, with no finalized new unit/balance approval. Tim enjoyed observing rival combat, ambushing a weakened Kuroda boss, smoking the counterattack and combining geisha charm with Assassinate/cleanup; this feedback does not authorize new mechanics.

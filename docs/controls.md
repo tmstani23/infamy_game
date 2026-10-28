@@ -49,7 +49,7 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 |---|---|
 | Toolbar **Deployment** button (Esc closes; no hotkey) | Deployment panel: counts, reserved slots, health, transfer status |
 | **Transfer selected crew** | Lock selected source crew; choosing labelled/map destination starts immediately. Button becomes Cancel transfer for traveling batch; traveler rows also cancel. No transfer dragging |
-| **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 2) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
+| **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 0) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
 | M map → **Deployment** layer | Click sector map/tab to select its crew, flash boundary and focus synchronized roster/duty/operation controls |
 | Sector desired staffing goal | Default 3; 0 disables automatic staffing there. Lowering never recalls crew; above-three staffing requires legal overflow |
 | Owned-business card **Guard business** | Assign guarding for normal clans |
@@ -149,3 +149,5 @@ Follow-on implementation is progressing; current controls above reflect reported
 Phase 5A checks (2026-10-27, reported by Build coordinator): new `test_target_controls` passed Tab/T/nameplates/ground and frozen fog HP/position/room; unit-frame, crew-group, Shinobi combat and indoor-crew checks passed. `target_memory.js` copies public position/HP/room only on actual sight and reacquires normally. Older `test_crew_assist` and `test_phase3b` now pass updated Tab/T semantics, remembered concealed targets/reacquired markers and execution protections. Final integration and Tim visuals remain pending.
 
 Transfer/card follow-up (2026-10-28): destination-first **Assign crew to [ward]** offers source group, available crew/HP checkboxes, preview and **Assign selected crew**. Crew-first has no extra confirmation. Cancel physically returns crew, with pinned-HQ fallback if original group unavailable/full. Live selection cards dock inside Deployment/map, including traveler inspection, and restore HUD on close. [Rules/checks](deployment_sector_plan.md#playtest-follow-up-transfercardscleanup-2026-10-28).
+
+Staffing/body jobs (2026-10-28): choose first ward when excess crew arrive; automatic staffing fills one ward's goal then the next cyclically. Right-click downed enemy/loot dispatches one nearest eligible worker; no selection uses viewed-place hero party before hero fallback. Worker rejoins latest peer order/duty after job. [Body-job rules](crew_recruiting_plan.md#explicit-single-worker-body-jobs-2026-10-28); [reserve/priority rules](deployment_sector_plan.md#reserve-priority-and-explicit-crew-job-follow-up-2026-10-28).
