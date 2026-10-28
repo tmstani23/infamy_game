@@ -79,6 +79,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // lanterns by prop index, so a snuffed one (state.lightsOut, sim/stealth.js) can go dark
   const propLights = new Map();
   for (const t of things) if (t.prop !== null && t.lights.length) propLights.set(t.prop, t.lights);
+  for(const light of roomLights)if(light.prop!=null)propLights.set(light.prop,[light]);
   let lightsOutKey = '';
   function syncLightsOut(state) {
     const key = (state.lightsOut || []).join(',');
@@ -446,6 +447,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
     setNameplates(on) { nameplatesOn = !!on; },
+    nameplateAt(px,py,eligible=[]) {
+      if(!nameplatesOn)return null;
+      const ids=new Map(eligible.map(id=>[sprites.get(id)?.nameplate,id]));
+      const plates=[...ids.keys()].filter(p=>p?.visible);
+      raycaster.setFromCamera({x:px/innerWidth*2-1,y:1-py/innerHeight*2},camera);
+      return ids.get(raycaster.intersectObjects(plates,false)[0]?.object)||null;
+    },
     commandPlace(state, followId) { return cameraPlace(state.entities[followId]); },
     audioFocus(state, followId, selected = []) {
       const h = state.entities[followId];

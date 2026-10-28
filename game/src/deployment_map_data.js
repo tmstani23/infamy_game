@@ -1,7 +1,7 @@
 // Presentation data for this clan only. Contacts copy observed positions and
 // never read rival assignments, objectives, transfers or hidden movement.
 export const LAST_KNOWN_TICKS = 200;
-export const TASK_LABELS = { patrol: 'Patrol sector', watch: 'Watch', ambush: 'Ambush', guard: 'Guard business', extraction: 'Secure extraction' };
+export const TASK_LABELS = { patrol: 'Patrol sector', watch: 'Watch', ambush: 'Ambush', guard: 'Guard business' };
 
 export function createDeploymentMapData({ game, clan }) {
   const contacts = new Map();

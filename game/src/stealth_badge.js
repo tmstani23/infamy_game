@@ -19,6 +19,12 @@ const STYLE = `
 #stealth.seen { color:#ff9983; background:#561f2dcc; }
 #stealth.seen .ring-meter { stroke:#f56d58; }
 #stealth .stealth-move { position:absolute; right:8px; bottom:8px; font:bold 10px system-ui; }
+#stealth .stealth-state { position:absolute; top:7px; left:0; right:0; text-align:center; font:bold 9px system-ui; letter-spacing:.05em; }
+#stealth .stealth-move { right:50%; bottom:-15px; transform:translateX(50%); min-width:43px; padding:3px 5px; text-align:center; border-radius:4px; font:bold 12px system-ui; background:#233f35; color:#b9efd0; box-shadow:0 0 5px #0009; }
+#stealth[data-gait="running"] .stealth-move { background:#6b4023; color:#ffe1a1; box-shadow:0 0 9px #f7b85c88; }
+#stealth[data-gait="running"] .ring-track { stroke:#f0ad63; stroke-dasharray:5 3; }
+#stealth.hid { outline:2px solid #b8a0e5; }
+#stealth.seen { outline:3px solid #ff7865; box-shadow:0 0 18px #ed6c6388; }
 #stealth .stealth-ready { position:absolute; left:9px; bottom:7px; font:bold 10px system-ui; color:#e4d2ff; }
 #stealth.warning { color:#ffe0a1; animation:stealth-warning 1s ease-in-out infinite; }
 @keyframes stealth-warning { 50% { box-shadow:inset 0 0 12px #6e421c,0 0 13px #e4ac5b99; } }
@@ -28,7 +34,7 @@ const STYLE = `
 
 export function createStealthBadge({ root, game, heroId, view }) {
   const style = document.createElement('style'); style.textContent = STYLE; document.head.appendChild(style);
-  root.innerHTML = '<svg class="stealth-ring" viewBox="0 0 64 64"><circle class="ring-track" cx="32" cy="32" r="29"/><circle class="ring-meter" cx="32" cy="32" r="29" pathLength="100"/></svg><svg class="stealth-eye eye-closed" viewBox="0 0 28 22"><path d="M2 8q12 14 24 0M6 12l-2 4m10-1v4m8-7 2 4"/></svg><svg class="stealth-eye eye-open" viewBox="0 0 28 22"><path d="M2 11Q14-3 26 11Q14 25 2 11Z"/><circle cx="14" cy="11" r="4"/></svg><span class="stealth-ready"></span><span class="stealth-move"></span>';
+  root.innerHTML = '<svg class="stealth-ring" viewBox="0 0 64 64"><circle class="ring-track" cx="32" cy="32" r="29"/><circle class="ring-meter" cx="32" cy="32" r="29" pathLength="100"/></svg><svg class="stealth-eye eye-closed" viewBox="0 0 28 22"><path d="M2 8q12 14 24 0M6 12l-2 4m10-1v4m8-7 2 4"/></svg><svg class="stealth-eye eye-open" viewBox="0 0 28 22"><path d="M2 11Q14-3 26 11Q14 25 2 11Z"/><circle cx="14" cy="11" r="4"/></svg><span class="stealth-state"></span><span class="stealth-ready"></span><span class="stealth-move"></span>';
   root.setAttribute('role', 'img'); root.tabIndex = 0;
   for (const type of ['mousedown', 'mouseup', 'click', 'contextmenu']) root.addEventListener(type, e => e.stopPropagation());
   const meter = root.querySelector('.ring-meter'), ready = root.querySelector('.stealth-ready'), move = root.querySelector('.stealth-move'), observers = new Map();
@@ -40,9 +46,10 @@ export function createStealthBadge({ root, game, heroId, view }) {
       const a = game.settings.units.models?.ninja_leader?.abilities?.F || { hiddenSeconds: 3 };
       const state = stealthBadgeState(hero, a, game.state.tick, game.stealth.veiled(hero));
       root.classList.toggle('hid', state.hidden); root.classList.toggle('seen', !state.hidden); root.classList.toggle('warning', state.warning);
+      root.dataset.gait=state.movement;root.querySelector('.stealth-state').textContent=state.hidden?state.warning?'AT RISK':'HIDDEN':'SEEN';
       root.style.setProperty('--conceal', String(.2 + state.concealment * .65));
       meter.setAttribute('stroke-dasharray', `${state.suspicion * 100} 100`);
-      ready.textContent = state.f; move.textContent = state.movement === 'running' ? '»' : state.movement === 'walking' ? '›' : '·';
+      ready.textContent = state.f; move.textContent = state.movement === 'running' ? '» RUN' : state.movement === 'walking' ? '› WALK' : 'STILL';
       const text = `${state.hidden ? state.suspicion > 0 ? 'HIDDEN · suspicion rising' : 'HIDDEN' : 'SEEN'} · ${state.movement} · ${state.lighting}${state.mode !== 'normal' ? ` · ${state.mode}` : ''} · ${state.f === 'F' ? 'F ready' : state.f ? `F in ${state.f}s` : 'F unavailable'} · snuffs ${game.stealth.snuffsLeft(hero.owner)}/${game.stealth.rules.snuffPerNight}`;
       root.title = text; root.setAttribute('aria-label', text);
       for (const observer of hero.stealthStatus?.observers || []) {

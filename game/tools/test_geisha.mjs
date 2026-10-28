@@ -62,4 +62,13 @@ assert.doesNotThrow(()=>JSON.stringify(st));
   diversion.step(a,{attackRange:1.2});
   assert.equal(b.distracted?.source,a.id,'autonomous behavior resumes after charm');
 }
-console.log('Geisha: hire, auto lure (priority, heroes immune, stand still, duration, cooldown), flee from threats and deadly last-resort fighting passed');
+{
+ const a={id:'a',type:'shinobi_geisha',owner:'p',place:'street',x:0,z:0,anim:'walk',order:{kind:'move',x:8,z:0}},b={id:'b',type:'thug',owner:'q',place:'street',x:4,z:0};
+ const state={tick:1,entities:{a,b},clans:{p:{},q:{}},casts:[]};
+ const diversion=createDiversion({state,deployment:{canOccupy:()=>true},vision:{canSee:()=>true},reveal(){},clearCombat(){},hostile:(a,b)=>a.owner!==b.owner});
+ assert.equal(diversion.step(a,{}),false);assert.equal(a.lure,undefined,'moving never auto charms');
+ a.order={kind:'attack',target:'b'};a.anim='idle';assert.equal(diversion.step(a,{}),false);assert.equal(a.lure,undefined);
+ a.order={kind:'stop'};assert.equal(diversion.step(a,{}),true);assert.equal(a.anim,'dance');assert.equal(a.buffs.charming.until,1+DIVERSION.castTicks);
+ const ready=a.lure.readyAt;diversion.manual(a);assert.equal(a.buffs.charming,undefined);assert.equal(a.lure.castUntil,state.tick);assert.equal(a.lure.readyAt,ready,'moving interrupts visual channel without resetting cooldown');
+}
+console.log('Geisha: hire, stationary-only charm/channel, move/attack priority, duration/cooldown, freeze, fleeing and configured last-resort damage passed');

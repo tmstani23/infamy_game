@@ -57,15 +57,12 @@ assert.equal(st.deployment.clans.player.hunt.target,wait.id,'coordinated target 
 send({action:'cancelAmbush',sector:sector.id});assert.equal(st.deployment.clans.player.hunt,undefined);
 
 for(const e of team)Object.assign(e,sector.anchor,{hp:e.maxHp});
-send({action:'assignment',sector:sector.id,task:'extraction',objective:sector.anchor,fallback:sector.anchor});
-const intruder=foe({x:sector.anchor.x+2,z:sector.anchor.z});let intercepted=false;
-for(let i=0;i<80;i++){g.step();if(st.hits.some(hit=>team.some(e=>hit.a===e.id)&&hit.t===intruder.id))intercepted=true;}
-assert.ok(intercepted,'Secure Extraction proactively intercepts within its radius');
-Object.assign(intruder,other.anchor,{dead:false,downed:false,hp:intruder.maxHp});g.step();
-assert.ok(team.every(e=>e.deployment.duty.intercept!==intruder.id),'interception breaks when target leaves the short leash/sector');
+st.deployment.clans.player.sectors[sector.id].task='extraction';g.step();
+assert.equal(st.deployment.clans.player.sectors[sector.id].task,'watch','legacy Extraction migrates to Watch');
+assert.ok(team.every(e=>e.deployment.group===sector.id),'migration retains assigned crew');
 const unsafe=foe(sector.anchor);for(const e of team)e.hp=e.maxHp*.2;
 send({action:'armAmbush',sector:sector.id,target:unsafe.id});
 assert.equal(st.deployment.clans.player.sectors[sector.id].operation.state,'Attacking','large force or low group average alone does not veto ambush');
 team[0].downed=true;g.step();
 assert.equal(st.deployment.clans.player.sectors[sector.id].recovery?.state,'Withdrawing','one casualty plus low surviving health withdraws');
-console.log('Shinobi assignments: truthful sightings, coordinated remote arm/cancel, ordinary execution/recovery, extraction leash and casualty-based withdrawal passed');
+console.log('Shinobi assignments: truthful sightings, coordinated remote arm/cancel, ordinary execution/recovery, Extraction migration and casualty-based withdrawal passed');

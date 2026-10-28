@@ -30,6 +30,7 @@ import { createShinobiIntelligence } from './shinobi_intelligence.js';
 import { clearSight } from './perception.js';
 import { distractionStep } from './distraction.js';
 import { createStats } from './stats.js';
+import { reachableEntry } from './rear_entry.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -131,7 +132,7 @@ export function createGame(options) {
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
   const opaqueStreet = scenery.filter(s => s.solid && !s.indoor && s.item?.kind === 'buildings').map(s => s.solid);
-  const stealth = createStealth({ state, scenery, rules: units?.rules?.stealth,
+  const stealth = createStealth({ state, scenery, rooms, rules: units?.rules?.stealth,
     observerKnown: (e, u) => vision.canSee(e.owner, u),
     lineOfSight: (a, b) => clearSight(a, b, a.place === 'street' ? opaqueStreet : [...roomBlockers, ...interiorDoors.filter(d => d.place === a.place && !state.interiorDoors[d.id]).map(d => d.blocker)]),
     say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
@@ -171,9 +172,13 @@ export function createGame(options) {
     if (!b.business || !b.door || !room || !foot) return;
     const ux0 = b.door[0] - b.x, uz0 = b.door[1] - b.z, len = Math.hypot(ux0, uz0) || 1, ux = ux0 / len, uz = uz0 / len;
     const half = Math.abs(ux) * (foot.maxX - foot.minX) / 2 + Math.abs(uz) * (foot.maxZ - foot.minZ) / 2;
-    const out = nav.nearestFree(b.x - ux * (half + 1.2), b.z - uz * (half + 1.2));
+    const outside=[];
+    for(const gap of [2,3.5,5])for(const side of [0,2,-2,4,-4,7,-7])outside.push({x:b.x-ux*(half+gap)-uz*side,z:b.z-uz*(half+gap)+ux*side});
+    const [fx,fz]=ringAt(b),out = reachableEntry(nav,{x:fx,z:fz},outside);
     const mx = room.origin.x + room.size[0] / 2, mz = room.origin.z + room.size[1] / 2;
-    const inside = roomNavs[room.name]?.nearestFree(2 * mx - room.spawn.x, 2 * mz - room.spawn.z);
+    const back={x:Math.max(room.origin.x+1.2,Math.min(room.origin.x+room.size[0]-1.2,2*mx-room.spawn.x)),z:Math.max(room.origin.z+1.2,Math.min(room.origin.z+room.size[1]-1.2,2*mz-room.spawn.z))};
+    const insideCandidates=[back];for(const radius of [1,2,3,4])for(let a=0;a<8;a++)insideCandidates.push({x:back.x+Math.cos(a*Math.PI/4)*radius,z:back.z+Math.sin(a*Math.PI/4)*radius});
+    const inside = reachableEntry(roomNavs[room.name],room.spawn,insideCandidates);
     if (!out || !inside) return;
     doors.push({ x: out[0], z: out[1], to: { x: inside[0], z: inside[1] }, place: room.name, label: 'Climb in the back window', ninja: true, business: `b${i}` });
     doors.push({ x: inside[0], z: inside[1], to: { x: out[0], z: out[1] }, place: 'street', label: 'Climb out the back window', ninja: true, business: `b${i}` });
@@ -259,7 +264,7 @@ export function createGame(options) {
       : contracts?.mayClimb(hero, eb.room) && doors.find(d => d.to && d.ninja && d.place === eb.room));
     if (c.kind === 'enter' && !door) return;
     if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))
-      && !(c.place === 'street' && state.entities[c.target]?.place === 'street' && c.units.some(id => {
+      && !(c.place === state.entities[c.target]?.place && c.units.some(id => {
         const u = state.entities[id]; return u && u.owner === hero.owner && fair(u, state.entities[c.target]) && sees(u, state.entities[c.target]);
       }))) return;
     if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
@@ -267,10 +272,15 @@ export function createGame(options) {
       .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street')
         && (u.place === hero.place || (c.kind === 'follow' && u.place === 'street') || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind))
           || (c.place === 'street' && (u.place === 'street' || (c.kind === 'move' && u.place !== 'street')))
+          || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
           || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place))
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
         && deployment.allowsOrder(u, c, hero, door));
+    if(state.deployment.restrictionsEnabled){
+      const group=u=>rally.status(hero.owner).active&&(u.deployment.group==='hero'||rally.participating(u))?'rally':u.deployment.group;
+      if(new Set(crew.map(group)).size>1)return;
+    }
     const recalling = c.kind === 'move' || c.kind === 'follow';
     if (recalling && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
     crew.forEach((u, k) => {
@@ -295,7 +305,8 @@ export function createGame(options) {
       if (c.kind === 'attack') {
         if (u.swing?.target !== c.target) delete u.swing;
         const follow = c.followOnDefeat === true || c.assist || (Array.isArray(c.followOnDefeat) && c.followOnDefeat.includes(u.id));
-        u.order = { kind: 'attack', target: c.target, ...(follow ? { followLeader: hero.id } : {}), ...(c.resume ? { prev: resumable(u) } : {}), ...(c.broadcast ? { broadcast: true } : {}) }; return;
+        const t=state.entities[c.target];
+        u.order = { kind: 'attack', target: c.target, lastSeen:{x:t.x,z:t.z,place:t.place}, ...(follow ? { followLeader: hero.id } : {}), ...(c.resume ? { prev: resumable(u) } : {}), ...(c.broadcast ? { broadcast: true } : {}) }; return;
       }
       if (c.kind === 'heal') {
         const b = clans?.clinicOf();
@@ -1123,6 +1134,7 @@ export function createGame(options) {
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     if (deployment.travelStep(e, unit)) return;
     if (e.distracted?.source && diversion.step(e, unit)) return;
+    if (assignments.avoidCamping(e,unit)) return;
     if (sectorRecovery.step(e, unit)) return;
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
@@ -1133,6 +1145,7 @@ export function createGame(options) {
     }
     const finished = e.order?.kind === 'attack' && state.entities[e.order.target];
     if (finished && (finished.dead || finished.downed || finished.jailed)) { delete e.swing; endAttack(e); }
+    if(pursueAttack(e,unit))return;
     indoorDuty(e);
     // Move and an explicit Follow recall reach their goal even under fire. Process
     // it before swings, retaliation, automatic executions or hero assistance.
@@ -1197,6 +1210,42 @@ export function createGame(options) {
       return;
     }
     if (!moveTo(e, unit, goal.x, goal.z, goal.walk && (goal.stroll || dist < 4))) e.anim = 'idle';
+  }
+
+  // Pursue only a visible target or a last-observed public doorway/position.
+  // Crossing a door never exposes the enemy's unobserved room coordinates.
+  function pursueAttack(e,unit) {
+    const o=e.order;if(o?.kind!=='attack')return false;
+    const t=state.entities[o.target];if(!t||t.dead||t.downed||t.jailed)return false;
+    const visible=sees(e,t);
+    if(visible){o.lastSeen={x:t.x,z:t.z,place:t.place};delete o.searchPlace;}
+    const last=o.lastSeen;
+    if(visible&&!deployment.canActAt(e,t.x,t.z,t.place)){endAttack(e);if(state.clans[e.owner])state.clans[e.owner].notice={tick:state.tick,text:'Pursuit stopped: target left the assigned sector'};return true;}
+    if(t.place===e.place&&visible)return false;
+    if(e.swing)delete e.swing;
+    if(o.searchPlace===e.place&&!visible){e.anim='idle';return true;}
+    let goal=null;
+    if(t.place!==e.place){
+      if(e.place==='street'){
+        const candidates=doors.filter(d=>d.to&&!d.ninja&&d.place!=='street'&&(visible?d.place===t.place:last?.place==='street'&&Math.hypot(last.x-d.x,last.z-d.z)<DOOR_RADIUS+2));
+        const d=candidates.sort((a,b)=>Math.hypot(a.x-(last?.x??e.x),a.z-(last?.z??e.z))-Math.hypot(b.x-(last?.x??e.x),b.z-(last?.z??e.z)))[0];
+        if(d)goal={x:d.to.x,z:d.to.z,place:d.place};
+      }else{
+        const room=rooms.find(r=>r.name===e.place),d=room&&doors.find(d=>!d.ninja&&d.place==='street'&&d.to&&d.x===room.exit.x&&d.z===room.exit.z);
+        if(d&&(visible||(last?.place===e.place&&Math.hypot(last.x-d.x,last.z-d.z)<DOOR_RADIUS+2)))goal={...d.to,place:'street'};
+      }
+    }else if(last?.place===e.place)goal={...last};
+    if(!goal&&last?.place===e.place)goal={...last};
+    if(!goal){e.anim='idle';return true;}
+    const allowed=goal.place==='street'?{ok:true}:businesses?.entryStatus(e,goal.place)||{ok:true};
+    const result=allowed.ok?deployment.localTravel(e,unit,goal):'blocked';
+    if(result==='blocked'){
+      endAttack(e);delete paths[e.id];e.anim='idle';
+      if(state.clans[e.owner])state.clans[e.owner].notice={tick:state.tick,text:`Pursuit stopped: ${allowed.ok?'door or sector route is blocked':allowed.why}`};
+      return true;
+    }
+    if(goal.place!==last?.place)o.searchPlace=goal.place;
+    if(result==='arrived')e.anim='idle';return true;
   }
 
   // Entered crew keep guarding even when their leader visits. Explicit orders
@@ -1628,7 +1677,7 @@ export function createGame(options) {
       if (unseen(e.swing?.target)) delete e.swing;
       if (e.order?.kind === 'attack') {
         const target = state.entities[e.order.target];
-        if (!target || target.dead || target.downed || target.jailed || target.place !== e.place || (target.hidden && target.owner !== e.owner)) {
+        if (!target || target.dead || target.downed || target.jailed) {
           endAttack(e); delete paths[e.id];
         }
       }

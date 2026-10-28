@@ -1,6 +1,7 @@
 import { createSectors } from './sectors.js';
 import { createNav } from './nav.js';
 import { isRallyParticipant } from './deployment_rally.js';
+import { deploymentFeedback } from './deployment_feedback.js';
 
 export const storedDeployment = e => e.deployment ? {
   savedGroup: e.deployment.transfer?.to || (e.deployment.group === 'home' ? e.deployment.savedGroup : null) || e.deployment.group,
@@ -47,6 +48,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     for (const clan of Object.values(state.clans || {})) {
       addClan(clan);
       if (clan.kind !== 'ninja') for (const sector of Object.values(D.clans[clan.id].sectors)) if (sector.task === 'hold') sector.task = 'patrol';
+      if(clan.kind==='ninja')for(const sector of Object.values(D.clans[clan.id].sectors))if(sector.task==='extraction'){sector.task='watch';delete sector.operation;}
     }
     for (const e of Object.values(state.entities)) if (crew(e) && !e.deployment) onSpawn(e);
     for (const e of Object.values(state.entities)) if (e.deployment?.transfer && (!active(e) || e.downed)) {
@@ -288,36 +290,37 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   function command(h, c) {
     if (h.type !== 'hero' || !D.clans[h.owner]) return;
+    const result = (ok, text) => deploymentFeedback(state, h, c, ok, text);
     const ids = Array.isArray(c.units) ? [...new Set(c.units)] : [];
     if (c.action === 'staffing') {
       const sector = D.clans[h.owner].sectors[c.sector];
-      if (!sector || !Number.isSafeInteger(c.value) || c.value < 0) return;
+      if (!sector || !Number.isSafeInteger(c.value) || c.value < 0) return result(false, 'Choose a valid sector staffing goal');
       sector.desired = c.value;
-      say(h.owner, `Staffing goal: ${c.value}. Crew deploy from eligible HQ reserves; field crew are not recalled.`);
+      result(true, `Staffing goal: ${c.value}. Crew deploy from eligible HQ reserves; field crew are not recalled.`);
       return;
     }
     if (c.action === 'reserveTarget') {
-      if (!Number.isSafeInteger(c.value) || c.value < 0) return;
+      if (!Number.isSafeInteger(c.value) || c.value < 0) return result(false, 'Choose a valid HQ reserve target');
       D.clans[h.owner].reserveTarget = c.value;
-      say(h.owner, `Keep at HQ: ${c.value} ready crew. Assigned crew will not be recalled.`);
+      result(true, `Keep at HQ: ${c.value} ready crew. Assigned crew will not be recalled.`);
       return;
     }
     if (c.action === 'keepAtHQ') {
-      if (typeof c.value !== 'boolean' || !ids.length || ids.some(id => !active(state.entities[id]) || state.entities[id].owner !== h.owner)) return;
+      if (typeof c.value !== 'boolean' || !ids.length || ids.some(id => !active(state.entities[id]) || state.entities[id].owner !== h.owner)) return result(false, 'Select your own available crew');
       for (const id of ids) state.entities[id].deployment.keepAtHQ = c.value;
-      say(h.owner, c.value ? 'Keep at HQ saved; field crew must be transferred home manually' : 'HQ pin removed; ready surplus can automatically deploy');
+      result(true, c.value ? 'Keep at HQ active; field crew must be transferred home manually' : 'HQ pin removed; ready surplus can automatically deploy');
       return;
     }
     if (c.action !== 'transfer') return;
     const allowed = canTransfer(h.id, ids, c.to);
-    if (!allowed.ok) { say(h.owner, allowed.why); return; }
+    if (!allowed.ok) { result(false, allowed.why); return; }
     const prepared = ids.map(id => {
       const e = state.entities[id], target = destination(e, c.to);
       return { e, target, path: route(e, target, true) };
     });
-    if (prepared.some(p => !p.path)) { say(h.owner, 'Transfer blocked: no reachable route to that destination'); return; }
+    if (prepared.some(p => !p.path)) { result(false, 'Transfer blocked: no reachable route to that destination'); return; }
     for (const { e, target } of prepared) startTransfer(e, c.to, target);
-    say(h.owner, `Transferring ${ids.length} crew to ${c.to === 'hero' ? 'hero group' : c.to === 'home' ? 'HQ reserves' : D.sectors.find(s => s.id === c.to).name}`);
+    result(true, `TRANSFER STARTED — ${ids.length} crew travelling to ${c.to === 'hero' ? 'hero group' : c.to === 'home' ? 'HQ reserves' : D.sectors.find(s => s.id === c.to).name}`);
   }
   function travelStep(e, unit) {
     const t = e.deployment?.transfer;
@@ -360,7 +363,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       if (!canOccupy(e, leg.door.to.x, leg.door.to.z, leg.door.place) || (leg.door.place !== 'street' && !entryAllowed(e, leg.door.place))) return 'blocked';
       Object.assign(e, leg.door.to, { place: leg.door.place, anim: 'idle' }); clearCombat(e); return 'moving';
     }
-    return moveTo(e, unit, leg.x, leg.z, false) ? 'moving' : 'blocked';
+    return moveTo(e, unit, leg.x, leg.z, !!target.walk) ? 'moving' : 'blocked';
   }
   function returnAfterRally(e, to) {
     if (!active(e) || e.downed || e.deployment.transfer || to === 'hero') return;

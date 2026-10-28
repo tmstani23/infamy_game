@@ -18,7 +18,7 @@ function canvasTex(w, h, draw) {
   return t;
 }
 // particle atlas, 4 cells in a row: soft dot, 4-point sparkle, petal, ember streak
-const ATLAS_CELLS = 4;
+const ATLAS_CELLS = 5;
 let atlas = null;
 const getAtlas = () => atlas ||= canvasTex(64 * ATLAS_CELLS, 64, (g) => {
   // soft dot
@@ -52,8 +52,9 @@ const getAtlas = () => atlas ||= canvasTex(64 * ATLAS_CELLS, 64, (g) => {
   r = g.createRadialGradient(224, 32, 0, 224, 32, 16);
   r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.3, 'rgba(255,255,255,.8)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.fillRect(192, 0, 64, 64);
+  g.save();g.translate(288,32);g.fillStyle='#fff';g.beginPath();g.moveTo(0,23);g.bezierCurveTo(-40,-1,-25,-35,0,-13);g.bezierCurveTo(25,-35,40,-1,0,23);g.fill();g.restore();
 });
-export const SHAPE = { dot: 0, sparkle: 1, petal: 2, ember: 3 };
+export const SHAPE = { dot: 0, sparkle: 1, petal: 2, ember: 3, heart:4 };
 
 // big 4-point star for glints on steel
 let starTex = null;

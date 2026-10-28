@@ -33,7 +33,7 @@ const AURAS = {
   snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },   // caltrops (Distract): slowed   // healing in a Smoke Bomb (same width as Rally's)
   formation: { color: 0xffc779, size: .9, geo: BUFF_AURA_GEO, opacity: .3 },
   geisha: { color: 0x7e5ca6, size: .7, geo: BUFF_AURA_GEO, opacity: .16 },
-  diversion: { color: 0xa07ac2, size: 1.2, geo: THIN_WAVE_GEO, opacity: .32 },
+  diversion: { color: 0xff79ba, size: 1.2, geo: THIN_WAVE_GEO, opacity: .45 },
   downed: { color: 0xc01810, size: 0.75, geo: AURA_GEO, opacity: 0.45, fade: 1.8 },   // shrinks and fades out after going down
 };
 
@@ -467,6 +467,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         if (e.dead || !e.buffs) continue;
         const p = posOf(e.id);
         if (!p) continue;
+        if(e.type==='shinobi_geisha'&&!e.dead&&!e.downed&&(e.lure?.castUntil||0)>state.tick)for(let k=0;k<count(8,dt);k++)glow.emit({x:p.x+rand(-.5,.5),y:rand(1.3,2),z:p.z+rand(-.5,.5),vy:.7,life:1.4,size:.3,color:[1,.35,.65],shape:SHAPE.heart,alpha:.85,sway:.4,spin:.2});
         if (e.buffs.veil && !e.downed) {
           veiledIds.add(e.id);
           const old = veilTrails.get(e.id) || p, distance = Math.hypot(p.x - old.x, p.z - old.z);
@@ -607,7 +608,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         const p = posOf(e.id);
         if (!p) continue;
         let layer = 0;   // stacked buffs: each one a little wider and higher than the last
-        for (const name of [...Object.keys(e.buffs || {}), ...(rallied ? ['rally'] : []), ...(geisha ? ['geisha', ...((e.dancingUntil || 0) > state.tick ? ['diversion'] : [])] : []), ...(e.downed ? ['downed'] : [])]) {
+        for (const name of [...Object.keys(e.buffs || {}), ...(rallied ? ['rally'] : []), ...(geisha ? ['geisha', ...((e.lure?.castUntil || 0) > state.tick ? ['diversion'] : [])] : []), ...(e.downed ? ['downed'] : [])]) {
           const a = AURAS[name];
           if (!a) continue;
           const key = `${e.id}:${name}`, i = OUTLINE[name] ? layer++ : 0;
@@ -678,14 +679,15 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       // (ARRESTING, blue): the only bar for a channel (Tim 2026-10-18)
       const busy = new Set();
       for (const e of Object.values(state.entities)) {
-        const x = e.execute, p = posOf(e.id);
+        const charm=e.buffs?.charming, x = e.execute || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null), p = posOf(e.id);
         if (!x || x.start === null || !p || !overlay) continue;
         busy.add(e.id);
         let el = bars.get(e.id);
-        if (el && el.arrest !== !!x.arrest) { el.remove(); el = null; }
+        const mode=x.charming?'charming':x.arrest?'arrest':'execute';
+        if (el && el.channelMode !== mode) { el.remove(); el = null; }
         if (!el) {
-          el = document.createElement('div'); el.className = x.arrest ? 'channel arrest' : 'channel'; el.arrest = !!x.arrest;
-          el.innerHTML = `<i></i><span>${x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
+          el = document.createElement('div'); el.className = `channel ${mode}`; el.channelMode=mode;
+          el.innerHTML = `<i></i><span>${x.charming?'CHARMING':x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
         }
         const k = Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
         el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;

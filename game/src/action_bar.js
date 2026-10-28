@@ -6,8 +6,9 @@
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
 import { baseStats } from './sim/stats.js';
+import { createGroupedCrew } from './grouped_crew.js';
 
-const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
+const BUFFS = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -16,7 +17,7 @@ function tooltip(a, key, stats) {
   if (!a) return { name: 'Auto attack', key: 'Right-click', lines: [
     ['Damage', `${dmg} per hit`], ['Attack speed', `every ${stats.attackSpeed} s`], ['Range', `${stats.attackRange} steps`],
     ['Critical hit', `${pct(stats.critChance || 0)} chance, ${stats.critMultiplier || 2}x damage`]],
-    about: 'Right-click or Tab attacks with the hero and selected available crew; independent T/Ctrl assignments keep their targets. Ctrl + right-click orders selected crew only. T sends outdoor crew; indoor crew stay at their duties. During execution, attacks order selected crew while the hero keeps executing. Hero movement, Escape or an enemy hit interrupts execution.' };
+    about: 'Tab selects a target. T or right-clicking an enemy body, nameplate or target portrait attacks with the current command group. Ctrl + right-click orders selected crew only. Right-click ground moves. During execution, attacks order selected crew while the hero keeps executing. Hero movement, Escape or an enemy hit interrupts execution.' };
   const lines = { dash: [['Damage', `${Math.round(dmg * a.damageMultiplier)} to each enemy passed (${pct(a.damageMultiplier)})`], ['Distance', `up to ${a.range} steps`]],
     intimidate: [['Effect', `enemies deal ${pct(1 - a.enemyDamage)} less damage`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
     rally: [['Effect', `you and your crew attack ${pct(a.attackSpeed - 1)} faster`], ['Heal', `${pct(a.heal)} of your and each crew member's health`], ['Area', `${a.radius} steps around you`], ['Duration', `${a.seconds} s`]],
@@ -42,18 +43,12 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const row = el('div', 'row', root);
   const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', row);
-  let dragUnits = [];
-  crew.addEventListener('dragstart', e => {
-    const id = e.target.closest('.mate')?.dataset.id;
-    if (!id || !game.state.entities[id] || game.state.entities[id].downed) { e.preventDefault(); return; }
-    e.dataTransfer.setData('application/x-infamy-crew', JSON.stringify(dragUnits.length ? dragUnits : [id]));
-    e.dataTransfer.effectAllowed = 'move';
-  });
+  const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput});
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;
+    if(game.state.deployment?.restrictionsEnabled){crewInput.selectUnit(id);return;}
     const sel = crewInput.selected();
-    dragUnits = sel.includes(id) ? [...sel] : [id];
     crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);   // toggles: the selection sticks (Tim 2026-10-19)
   });
   crew.addEventListener('dblclick', e => {
@@ -64,6 +59,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     else if (id && game.police?.hq?.door) jump({ place: 'street', x: game.police.hq.door[0], z: game.police.hq.door[1] });   // jailed: the HQ
   });
   const portrait = el('div', 'portrait', row);
+  portrait.addEventListener('mousedown',e=>{if(e.button===0)crewInput?.selectAll();});
   const face = el('div', 'face', portrait);
   el('span', 'glyph', face, 'R');
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);
@@ -145,6 +141,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp);
     const clinic = game.state.clans?.[h.owner]?.clinic || [];
     const jail = game.state.clans?.[h.owner]?.jail || [];
+    if(game.state.deployment?.restrictionsEnabled){grouped.update(crewList,clinic,jail);return;}
     const n = crewList.length + clinic.length + jail.length;
     while (crew.children.length < n) { const m = el('div', 'mate', crew); el('span', 'name', m); el('div', 'pip', m); el('b', 'group', m); }
     while (crew.children.length > n) crew.lastChild.remove();
@@ -160,7 +157,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.children[2].textContent = group ? `${group}` : '';
       m.children[2].title = group ? `Group ${group}: press ${group} to select; Ctrl+${group} with this group selected dissolves it` : '';
       m.dataset.id = e.id;
-      m.draggable = !e.downed;
+      m.draggable = false;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
       m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${group ? ` (group ${group})` : ''}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}; double-click to select only this crew member`;
     });

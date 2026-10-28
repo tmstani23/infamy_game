@@ -38,15 +38,16 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     if (job?.kind === 'boss') send({ id: heroId, type: 'deployment', action: hunt?.target === job.hero ? 'cancelAmbush' : 'armAmbush', target: job.hero });
     e.stopPropagation();
   });
+  for(const type of ['mousedown','mouseup','contextmenu'])tracker.addEventListener?.(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});
 
   // what is left to do on the job, for the tracker and the menu
   function progress(j) {
     const s = t => Math.max(0, Math.ceil(t / 20));
     if (j.kind === 'bandits') return `${j.progress || 0}/${j.need || '?'} bandits`;
     if (j.kind === 'boss') return 'find him and knock him out';
-    if (j.kind === 'mark' && !j.mark) return j.progress ? `planting the mark… ${s(j.need - j.progress)} s` : 'plant the mark on the back-room spot';
-    if (j.kind === 'mark') return `${j.mark.away ? `nobody inside: ${s(game.contracts.rules.mark.leaveSeconds * 20 - j.mark.away)} s to get back in · ` : ''}hold ${s(j.need - j.progress)} s${j.mark.alerted ? ' · they know' : ''}`;
-    if (j.kind === 'steal') return j.progress ? `taking the ryo… ${s(j.need - j.progress)} s` : 'in by the back window, stand on the stash';
+    if (j.kind === 'mark' && !j.mark) return j.progress ? `PLANTING MARK · ${s(j.need - j.progress)} progress seconds left${j.hiddenEligible?' · hidden: 2× speed':''}` : 'PLANT MARK · stand in the violet back-room circle';
+    if (j.kind === 'mark') return `${j.mark.away ? `GET BACK INSIDE · ${s(game.contracts.rules.mark.leaveSeconds * 20 - j.mark.away)}s before failure · ` : 'MARK PLANTED · keep a ninja inside · '}hold ${s(j.need - j.progress)} progress seconds${j.hiddenEligible?' · hidden: 2× speed':''}${j.mark.alerted ? ' · defenders can erase it' : ''}`;
+    if (j.kind === 'steal') return j.progress ? `TAKING STASH · ${s(j.need - j.progress)} progress seconds left · leaving the circle pauses${j.hiddenEligible?' · hidden: 2× speed':''}` : 'TAKE STASH · enter by the back window, then stand in the stash circle';
     return j.progress ? `watching… ${s(j.need - j.progress)} s` : 'get inside unseen and watch';   // scout
   }
 
@@ -56,9 +57,12 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     panel.hidden = !open;
     // the tracker: the job you hold, until dawn
     const job = c && C().active[c.id];
+    const hunt=c&&game.state.deployment.clans[c.id]?.hunt, committed=hunt?.committedSector&&game.state.deployment.clans[c.id].sectors[hunt.committedSector];
+    const hunting=job?.kind==='boss'&&hunt?.target===job.hero;
+    const huntStatus=hunting?(committed?`${committed.recovery?.state||committed.operation?.state||'Engaging'} · ${hunt.committedSector}`:'Hunt armed · waiting for a local sighting'):'Your sectors can hunt this boss when they spot him';
     const locked = c ? Math.max(0, Math.ceil((contractLockoutUntil(game.state, c.id) - game.state.tick) / 20)) : 0;
     const t = locked ? `<b>HQ on fire</b><span>Contracts unavailable · reopen in ${locked} s</span>`
-      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)}</span>${job.kind === 'boss' ? `<button data-ambush-contract type="button">${game.state.deployment.clans[c.id]?.hunt?.target === job.hero ? 'Armed · Cancel' : 'Ambush contract target'}</button>` : ''}` : '';
+      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)}</span>${job.kind === 'boss' ? `<small>${huntStatus}</small><button data-ambush-contract type="button">${hunting ? 'Cancel boss hunt' : 'Order sectors to hunt this boss'}</button>` : ''}` : '';
     tracker.hidden = !job && !locked;
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
     const counter = job?.counter;

@@ -114,8 +114,18 @@ try {
   input.returnToDutyAndSelectHero(['b']);
   assert.deepEqual(sent[0].units, ['b'], 'map sector button scopes its return to that sector');
   assert.deepEqual(sent[1].units, ['d'], 'other released manual sector selection also returns normally');
-  assert.equal(sent[1].selectionChange, true);
+  assert.equal(sent[1].action, 'release', 'group switching lets another manual order finish before returning');
   assert.deepEqual(input.selected(), ['a']);
+  game.state.deployment.restrictionsEnabled=true;
+  game.state.deployment.sectors=[{id:'nw',name:'North west'},{id:'ne',name:'North east'}];
+  const f={...b,id:'f',deployment:{group:'nw'}};game.state.entities.f=f;
+  input.selectAll();assert.deepEqual(input.selected(),['a'],'C selects permanent hero group only');
+  input.selectUnit('b');assert.deepEqual(input.selected(),['b','f'],'ordinary pip selection selects its group');
+  input.selectUnit('f',true);assert.deepEqual(input.selected(),['f'],'double-click can select one member');
+  input.selectUnit('a');assert.deepEqual(input.selected(),['a'],'clicking a hero-group crew member drops all other groups');
+  input.select(['b','d']);assert.deepEqual(input.selected(),['b'],'mixed-group box/number selection never creates a mini Rally');
+  game.state.deployment.clans.player.rally={active:true,endsAt:100,participants:[{id:'b'}]};
+  input.selectAll();assert.deepEqual(input.selected(),['a','b'],'C includes actual active Rally participants');
   console.log('groups: assign, dissolve, transfer, preserve orders, C, indoor drag, menu priority, pip double-click and cleanup ok');
 } finally {
   globalThis.addEventListener = originalEvents; globalThis.document = originalDocument;

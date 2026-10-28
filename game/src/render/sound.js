@@ -1,37 +1,42 @@
 // Combat sounds (Kenney packs, CC0; list in assets/sounds/CREDITS.md), played from the
 // sim's per-tick hits and casts and from swings starting. Quieter with distance from the
 // camera, a little random pitch so repeats don't sound the same. K mutes. Purely output.
+import {normalizeAudioSettings,readAudioSettings,saveAudioSettings} from '../audio_settings.js';
 const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
   'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT];
-const HEAR = 18, MAX_VOICES = 14;
+const HEAR = 24, MAX_VOICES = 14;
 
-export function createSound({ base = '../assets/sounds/' } = {}) {
-  let ctx = null, master = null, muted = false, voices = 0;
+export function createSound({ base = '../assets/sounds/',storage } = {}) {
+  let ctx = null, master = null, effects=null, voices = 0, settings=readAudioSettings(storage),ready=null;
+  const listeners=new Set();
+  function apply(){if(master)master.gain.value=settings.muted?0:settings.master;if(effects)effects.gain.value=settings.effects*1.5;}
+  function setSettings(patch){settings=normalizeAudioSettings({...settings,...patch});apply();saveAudioSettings(settings,storage);for(const fn of listeners)fn({...settings});return {...settings};}
   const buffers = {};
   // browsers only allow audio after a key press or click
   function unlock() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     ctx = new AudioContext();
     master = ctx.createGain();
-    master.gain.value = 0.6;
-    master.connect(ctx.destination);
-    for (const f of FILES) fetch(`${base}${f}.ogg`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(b => { buffers[f] = b; }).catch(() => {});
+    effects=ctx.createGain();effects.connect(master);
+    const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-6;limiter.knee.value=12;limiter.ratio.value=6;limiter.attack.value=.003;limiter.release.value=.15;
+    master.connect(limiter).connect(ctx.destination);apply();
+    ready=Promise.all(FILES.map(f=>fetch(`${base}${f}.ogg`).then(r=>{if(!r.ok)throw Error('Sound unavailable');return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)).then(b=>{buffers[f]=b;}).catch(()=>{})));
   }
   addEventListener('keydown', unlock);
   addEventListener('mousedown', unlock);
 
   function play(names, volume, pitch = 1) {
-    if (!ctx || muted || voices >= MAX_VOICES || volume <= 0.01) return;
+    if (!ctx || settings.muted || voices >= MAX_VOICES || volume <= 0.01) return;
     const name = [].concat(names)[Math.floor(Math.random() * [].concat(names).length)], buf = buffers[name];
     if (!buf) return;
     const src = ctx.createBufferSource(), g = ctx.createGain();
     src.buffer = buf;
     src.playbackRate.value = pitch * (0.92 + Math.random() * 0.16);
     g.gain.value = volume;
-    src.connect(g).connect(master);
+    src.connect(g).connect(effects);
     voices++;
     src.onended = () => voices--;
     src.start();
@@ -41,7 +46,7 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
 
   // a temple bell, made on the spot (no file): a few soft partials that ring out (raid alarm)
   function bell() {
-    if (!ctx || muted) return;
+    if (!ctx || settings.muted) return;
     const t0 = ctx.currentTime;
     for (const [f, v, len] of [[392, 0.35, 2.6], [784, 0.16, 1.8], [1046, 0.09, 1.2], [1568, 0.05, 0.8]]) {
       for (const at of [0, 0.55]) {
@@ -50,7 +55,7 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
         g.gain.setValueAtTime(0.0001, t0 + at);
         g.gain.exponentialRampToValueAtTime(v, t0 + at + 0.01);
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len);
-        o.connect(g).connect(master);
+        o.connect(g).connect(effects);
         o.start(t0 + at); o.stop(t0 + at + len);
       }
     }
@@ -58,7 +63,10 @@ export function createSound({ base = '../assets/sounds/' } = {}) {
 
   return {
     bell,
-    toggleMute() { muted = !muted; return muted; },
+    toggleMute() { return setSettings({muted:!settings.muted}).muted; },
+    setSettings,getSettings:()=>({...settings}),
+    subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
+    async preview(){unlock();await ready;if(!buffers.katana_clash_1||settings.muted||!settings.master||!settings.effects)return false;play('katana_clash_1',.55);return true;},
     // after each tick: new swings, hits and casts
     update(state, focus) {
       const me = focus;

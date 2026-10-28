@@ -177,7 +177,7 @@ export function createBanners({ scene }) {
   }
 
   // every frame: banners follow ownership; returns the businesses that just changed hands to a clan
-  let jobRing = null;   // your Shinobi steal / sabotage spot (state.contracts.active[you].spot), Tim 2026-10-21
+  let jobRing = null, jobMark = null;
   const campingRings = new Map();
   const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
   function update(state, time, me) {
@@ -198,7 +198,7 @@ export function createBanners({ scene }) {
       ring.material.opacity = v.active ? 0.17 + 0.07 * Math.sin(time * 3)
         : 0.22 + 0.15 * Math.sin(time * 5);
     }
-    const job = me && state.contracts?.active?.[me], spot = job?.spot;
+    const job = me && state.contracts?.active?.[me], spot = job?.spot || (job?.mark&&{...job.mark,r:1.5,on:true});
     if (spot && !jobRing) {
       jobRing = new THREE.Mesh(HOLD_GEO, new THREE.MeshBasicMaterial({ color: 0xa080ff, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
       jobRing.rotation.x = -Math.PI / 2; jobRing.renderOrder = 99800; scene.add(jobRing);
@@ -207,6 +207,14 @@ export function createBanners({ scene }) {
       jobRing.visible = !!spot;
       if (spot) { jobRing.position.set(spot.x, 0.05, spot.z); jobRing.scale.setScalar(spot.r); jobRing.material.opacity = spot.on ? 0.7 + 0.25 * Math.sin(time * 6) : 0.4 + 0.15 * Math.sin(time * 2.5); }
     }
+    if(job?.mark&&!jobMark){
+      const canvas=document.createElement('canvas');canvas.width=384;canvas.height=192;const g=canvas.getContext('2d');
+      g.textAlign='center';g.shadowColor='#ab79ff';g.shadowBlur=18;g.fillStyle='#d8b9ff';g.font='86px Georgia';g.fillText('✦',192,100);
+      g.shadowBlur=6;g.font='bold 26px system-ui';g.fillText('MARK PLANTED',192,155);
+      const material=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas),transparent:true,depthTest:false,depthWrite:false});
+      jobMark=new THREE.Sprite(material);jobMark.renderOrder=99820;scene.add(jobMark);
+    }
+    if(jobMark){jobMark.visible=!!job?.mark;if(job?.mark){jobMark.position.set(job.mark.x,2.7+Math.sin(time*2)*.12,job.mark.z);jobMark.scale.set(3.8,1.9,1);jobMark.material.opacity=.85+.12*Math.sin(time*2.5);}}
     const claimed = [];
     for (const b of Object.values(state.businesses)) {
       const s = shown.get(b.id);

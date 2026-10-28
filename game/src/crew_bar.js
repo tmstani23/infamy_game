@@ -5,11 +5,11 @@
 const CMDS = [
   { key: '↩', name: 'Duty', tip: 'Return selected sector crew to their saved duty, deselect them and select your hero group. Escape also returns released manual sector crew to duty while clearing selection.', act: c => c.returnToDutyAndSelectHero(), need: 'sector' },
   { key: 'V', name: 'Follow', tip: 'Selected crew follow the hero; outdoor crew enter your building. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
-  { key: 'T', name: 'Attack', tip: 'Your outdoor crew (selected or not) attack the marked unit or hero\'s target; downed: execute. Indoor crew stay at their duties. Press T again to resume previous orders. Use selected crew commands indoors.', act: c => c.crewAttack(), need: 'outdoor' },
+  { key: 'T', name: 'Attack', tip: 'Attack the selected target with the current command group. Tab selects only. Right-click a target portrait, enemy nameplate or enemy body also attacks.', act: c => c.crewAttack(), need: 'sel' },
   { key: 'Z', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
   { key: 'X', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
   { key: 'G', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
-  { key: 'C', name: 'All', tip: 'Select all your crew, keeping control groups. Ctrl+1–4 assigns a group; 1–4 selects it. Repeat the same assignment to dissolve it.', act: c => c.selectAll(), need: 'crew' },
+  { key: 'C', name: 'Hero', tip: 'Select your hero group, replacing the current selection. During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
 ];
 
 const CSS = `

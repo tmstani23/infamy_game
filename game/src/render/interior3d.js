@@ -7,6 +7,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { solidMaterial, roomFloorMaterial, glowMaterial } from './shading.js';
 import { loadTex } from './scenery.js';
 import { CAM_QUAT, CAM_RIGHT, CAM_UP } from './iso.js';
+import { indoorLightId } from '../sim/stealth.js';
 
 const texCache = {};
 async function texture(file, renderer) {
@@ -586,7 +587,7 @@ export async function buildRoom3d(room, parts, renderer) {
         pos.addScaledVector(CAM_UP, (currentY - p.lightPixel[1]) * pixelWorld);
       }
       pos.sub(new THREE.Vector3(room.origin.x, 0, room.origin.z)).multiplyScalar(scale).add(new THREE.Vector3(room.origin.x, 0, room.origin.z));
-      lights.push({ pos, radius: L.radius * scale, color: new THREE.Color(L.color), fire: !!L.fire, seed: Math.random() * 10 });
+      lights.push({ prop:indoorLightId(room.name,layout.props.indexOf(p)),pos, radius: L.radius * scale, color: new THREE.Color(L.color), fire: !!L.fire, seed: Math.random() * 10 });
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glowMaterial(new THREE.Color(L.color), Math.random() * 10, true));
       glow.quaternion.copy(CAM_QUAT);
       const s = Math.min(L.radius * 0.3, 1.8) * scale;
@@ -595,6 +596,7 @@ export async function buildRoom3d(room, parts, renderer) {
       glow.renderOrder = 99000;
       glow.frustumCulled = false;
       glows.push(glow);
+      lights.at(-1).glow=glow;
     }
   }
   group.traverse(o => {

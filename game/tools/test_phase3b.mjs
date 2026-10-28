@@ -58,14 +58,9 @@ try {
     input.select([b]); input.followMe(); flush(); assert.equal(S[b].order.target, hero);
     assert.equal(S[a].order.target, foe, 'follow command leaves unselected attack in place');
     const indoor = g.spawn('thug', 'thug', room.spawn.x, room.spawn.z, { owner: 'player', place: room.name, order: { kind: 'stop' } });
-    input.select([]); input.crewAttack();
-    if (indoors) assert.equal(queue.length, 0, 'T never issues indoor orders, including raids');
-    else {
-      assert.ok(queue[0].units.includes(a) && queue[0].units.includes(b));
-      assert.ok(!queue[0].units.includes(indoor), 'T excludes crew stationed indoors');
-      flush(); assert.equal(S[indoor].order.kind, 'stop');
-      input.crewAttack(); flush();
-    }
+    input.select([b]); input.crewAttack();
+    assert.deepEqual(queue.find(c => c.type === 'order').units, [b], 'T commands only selected crew indoors and outdoors');
+    flush(); assert.equal(S[indoor].order.kind, 'stop', 'unselected garrison is untouched');
     // A forged broadcast cannot pull indoor crew out either.
     if (!indoors) { g.step([{ id: hero, type: 'order', units: [indoor], kind: 'attack', target: foe, broadcast: true }]); assert.equal(S[indoor].order.kind, 'stop'); }
 

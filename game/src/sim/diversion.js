@@ -37,6 +37,7 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
       prevOrder: best.order ? structuredClone(best.order) : null, at: state.tick };
     best.order = { kind: 'stop' };
     e.lure = { readyAt: state.tick + DIVERSION.cooldownTicks, castUntil: state.tick + DIVERSION.castTicks, target: best.id };
+    (e.buffs||={}).charming={start:state.tick,until:e.lure.castUntil};
     reveal(e, true);
     state.casts.push({ kind: 'diversion', a: e.id, x: best.x, z: best.z, radius: 1.2 });
     return true;
@@ -66,6 +67,8 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
     }
     delete e.cornered;
     if (e.geishaMode === 'fighting' || e.geishaMode === 'fleeing') { clearCombat(e); delete e.geishaMode; }
+    const moving=(e.order?.kind==='move'&&!e.order.arrived)||['attackmove','enter','heal','loot'].includes(e.order?.kind)||['walk','run'].includes(e.anim);
+    if(moving){if(e.lure)e.lure.castUntil=Math.min(e.lure.castUntil,state.tick);if(e.buffs)delete e.buffs.charming;return false;}
     if ((e.lure?.castUntil ?? -1) > state.tick) { e.anim = 'dance'; return true; }
     if ((e.lure?.readyAt ?? 0) <= state.tick && !inCombat(e) && lure(e)) { e.anim = 'dance'; return true; }
     return false;
@@ -83,7 +86,7 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
   }
   // kept for the shared deployment command and the older manual hooks; nothing to do now
   const command = () => {};
-  const manual = e => { delete e.cornered; };
-  const interrupted = e => { if (isGeisha(e) && e.lure) e.lure.castUntil = state.tick; };
+  const manual = e => { delete e.cornered;if(isGeisha(e)){if(e.lure)e.lure.castUntil=state.tick;if(e.buffs)delete e.buffs.charming;} };
+  const interrupted = e => { if (isGeisha(e) && e.lure) {e.lure.castUntil = state.tick;if(e.buffs)delete e.buffs.charming;} };
   return { command, tick, step, manual, interrupted, release };
 }

@@ -1,6 +1,6 @@
 import { sectorOutlines, hexCells } from './deployment_map_geometry.js';
 
-export function createDeploymentMapOverlay({ game, clan, data, selectedSector, onPick, onHover, onContact = () => {} }) {
+export function createDeploymentMapOverlay({ game, clan, data, selectedSector, flashing = () => false, onPick, onHover, onContact = () => {} }) {
   const bounds = game.deployment.cellGrid().bounds;
   const sectors = sectorOutlines(game.deployment.cellGrid(), game.state.deployment.sectors);
   const byId = new Map(sectors.map(s => [s.id, s]));
@@ -40,7 +40,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, o
     for (const sector of sectors) for (const loop of sector.loops) {
       path(ctx, toMap, loop); ctx.closePath();
       ctx.lineWidth = 5.5; ctx.strokeStyle = '#0b1318'; ctx.stroke();
-      ctx.lineWidth = sector.id === selectedSector() ? 3.2 : 2.5; ctx.strokeStyle = sector.color;
+      ctx.lineWidth = sector.id === selectedSector() ? flashing() ? 5 : 3.2 : 2.5; ctx.strokeStyle = sector.color;
       ctx.globalAlpha = sector.id === selectedSector() && !motion?.matches ? .88 + .07 * Math.sin(seconds * 1.2) : .88;
       ctx.shadowColor = sector.color; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     }

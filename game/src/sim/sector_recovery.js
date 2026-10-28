@@ -1,6 +1,7 @@
 // Shared local group survival. All positions and decisions are authoritative;
 // candidate scoring uses only enemies the clan can actually see.
 export const RECOVERY = { health: .7, quietTicks: 120, replanTicks: 20, gatherRadius: 2, dangerRadius: 4 };
+import { nearRivalHQ } from './sector_patrol.js';
 export function withdrawalReason(entities, ids) {
   const lost = ids.filter(id => !entities[id] || entities[id].dead || entities[id].downed || entities[id].jailed).length;
   const standing = ids.map(id => entities[id]).filter(e => e && !e.dead && !e.downed && !e.jailed);
@@ -49,7 +50,7 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
     let best = null, bestScore = -Infinity;
     for (const p of candidates) {
       const q = p && grid.nearestFree(p.x, p.z);
-      if (!q || deployment.sectorAt(...q) !== id) continue;
+      if (!q || deployment.sectorAt(...q) !== id || nearRivalHQ(state,clan,{x:q[0],z:q[1]})) continue;
       const reachable = positions.every(from => {
         const path = grid.findPath(from.x, from.z, ...q), end = path?.at(-1);
         return end && Math.hypot(end[0] - q[0], end[1] - q[1]) < 1;

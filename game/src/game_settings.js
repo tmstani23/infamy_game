@@ -1,0 +1,14 @@
+export function createGameSettings({button,sound,onOpen=()=>{},onClose=()=>{}}){
+ const root=document.createElement('section');root.id='gamesettings';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Game settings');
+ root.innerHTML='<div class="settings-window"><header><h2>Settings</h2><button type="button" class="close">Close</button></header><h3>Audio</h3><label>Master volume <output class="master-value"></output><input class="master" type="range" min="0" max="100" step="1"></label><label>Effects volume <output class="effects-value"></output><input class="effects" type="range" min="0" max="100" step="1"></label><label class="mute-row"><input class="mute" type="checkbox"> Mute audio</label><button type="button" class="test-sound">Test sound</button><p class="sound-status" role="status"></p></div>';
+ document.body.appendChild(root);const $=s=>root.querySelector(s);let open=false,previousFocus=null;
+ function render(){const s=sound.getSettings();for(const key of ['master','effects']){$(`.${key}`).value=Math.round(s[key]*100);$(`.${key}-value`).textContent=`${Math.round(s[key]*100)}%`;}$('.mute').checked=s.muted;}
+ function show(value){if(open===value)return;open=value;root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open){previousFocus=document.activeElement;onOpen();render();$('.close').focus();}else{onClose();previousFocus?.focus?.();}}
+ for(const key of ['master','effects'])$(`.${key}`).addEventListener('input',()=>sound.setSettings({[key]:Number($(`.${key}`).value)/100}));
+ $('.mute').addEventListener('change',()=>sound.setSettings({muted:$('.mute').checked}));
+ $('.test-sound').addEventListener('click',async()=>{try{$('.sound-status').textContent=await sound.preview()?'Test sound played':'Audio is muted, at zero volume or unavailable';}catch{$('.sound-status').textContent='Audio is unavailable in this browser';}});
+ sound.subscribe(render);$('.close').addEventListener('click',()=>show(false));button.addEventListener('click',()=>show(!open));
+ root.addEventListener('keydown',e=>{e.stopPropagation();if(e.code==='Escape'){e.preventDefault();show(false);}if(e.code==='Tab'){const stops=[...root.querySelectorAll('button,input')],first=stops[0],last=stops.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+ for(const type of ['mousedown','mouseup','contextmenu','wheel'])root.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});
+ render();return {close:()=>show(false),isOpen:()=>open};
+}

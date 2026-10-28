@@ -8,6 +8,7 @@
 // has never shown it.
 // Selection lives only on this screen; orders go to the rules as 'order' commands.
 import { prisonerOf, POLICE } from './sim/police.js';
+import { isRallyParticipant } from './sim/deployment_rally.js';
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
 
@@ -81,8 +82,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
   const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner) && (!game.vision || game.vision.canSee(hero()?.owner, e));
   function pruneTargets() {
-    if (tabbed && !seen(game.state.entities[tabbed])) tabbed = null;
-    if (looked && !seen(game.state.entities[looked])) looked = null;
+    const gone=id=>!game.state.entities[id]||(seen(game.state.entities[id])&&(game.state.entities[id].dead||game.state.entities[id].jailed));
+    if (tabbed && gone(tabbed)) tabbed = null;
+    if (looked && gone(looked)) looked = null;
   }
   const enemies = () => Object.values(game.state.entities)
     .filter(e => e.owner && e.owner !== hero()?.owner && !e.dead && e.place === commandPlace() && seen(e));
@@ -113,18 +115,37 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     }
   }
   function setSelected(ids, returnPrevious = false, alreadyReturned = []) {
-    const next = [...new Set(ids)], group = id => game.state.entities[id]?.deployment?.group;
+    let next = [...new Set(ids)];
+    const group = id => commandGroup(game.state.entities[id]);
+    if (game.state.deployment?.restrictionsEnabled) {
+      const first = next.map(id=>game.state.entities[id]).find(e=>groupable(e?.id));
+      if(first)next=next.filter(id=>!groupable(id)||commandGroup(game.state.entities[id])===commandGroup(first));
+    }
     const oldGroups = new Set(selected.map(group).filter(Boolean)), newGroups = new Set(next.map(group).filter(Boolean));
     const switched = returnPrevious || (newGroups.size && [...newGroups].some(g => !oldGroups.has(g)) && selected.some(id => !next.includes(id)));
     if (switched) {
       const units = selected.filter(id => !next.includes(id) && !alreadyReturned.includes(id) && game.state.deployment?.clans[hero()?.owner]?.sectors[group(id)]);
-      if (units.length) send({ id: heroId, type: 'deployment', action: 'return', units, selectionChange: true });
+      if (units.length) send({ id: heroId, type: 'deployment', action: 'release', units });
     }
     selected = next;
     view.setSelected(selected);
   }
+  function commandGroup(e) {
+    if (!e) return null;
+    const active = game.state.deployment?.clans[e.owner]?.rally?.active;
+    return active && (e.deployment?.group === 'hero' || isRallyParticipant(game.state,e)) ? 'rally' : e.deployment?.group || 'hero';
+  }
+  function selectUnit(id, individual=false) {
+    const e=game.state.entities[id];
+    if(!e){setSelected([id]);return;}
+    if(individual || !game.state.deployment?.restrictionsEnabled){setSelected([id]);return;}
+    const group=commandGroup(e);
+    setSelected(Object.values(game.state.entities).filter(u=>groupable(u.id)&&!u.downed&&!u.jailed&&!u.deployment?.transfer&&commandGroup(u)===group).map(u=>u.id));
+  }
   // the unit under a page pixel (closest within PICK_PX), from a list
   function unitAt(px, py, list, range = PICK_PX) {
+    const plate=view.nameplateAt?.(px,py,list.map(e=>e.id));
+    if(plate)return list.find(e=>e.id===plate)||null;
     let best = null, bd = range;
     for (const e of list) {
       const d = bodyDistance(view, e, px, py);
@@ -134,16 +155,20 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   }
 
   // no browser menu on right-click (capture phase, before anything else sees it)
-  addEventListener('contextmenu', e => e.preventDefault(), { capture: true });
+  addEventListener('contextmenu', e => {if(!e.target?.closest?.('input,textarea,[contenteditable="true"]'))e.preventDefault();}, { capture: true });
   // the hero goes for the unit at a page pixel: attack it, or finish it off if it is down
   function heroAt(px, py) {
     const foe = unitAt(px, py, enemies()) || unitAt(px, py, townsfolk(), CIV_PX);
-    if (foe) { tabbed = foe.downed ? null : foe.id; looked = null; }
-    if (foe?.downed) send({ id: heroId, type: 'execute', target: foe.id, units: mine(), preferHeroInRange: foe.place === hero()?.place });
-    else if (foe) {
-      if (foe.place === hero()?.place) send({ id: heroId, type: 'attack', target: foe.id });
-      if (mine().length) order({ units: mine(), kind: 'attack', target: foe.id });
-    }
+    if(foe)attackTarget(foe.id);
+  }
+  function attackTarget(id,crewOnly=false){
+    const foe=game.state.entities[id],h=hero();if(!foe||foe.dead||foe.owner===h?.owner||foe.place!==commandPlace()||!seen(foe))return;
+    tabbed=foe.id;looked=null;
+    const units=mine(),heroGroup=!units.length||units.every(id=>['hero','rally'].includes(commandGroup(game.state.entities[id])));
+    const useHero=!crewOnly&&heroGroup&&foe.place===h?.place;
+    if(foe.downed){send({id:heroId,type:'execute',target:id,units,crewOnly:!useHero,preferHeroInRange:useHero});return;}
+    if(useHero)send({id:heroId,type:'attack',target:id});
+    if(units.length)order({units,kind:'attack',target:id});
   }
   addEventListener('mousedown', e => {
     if (e.target.closest('button, #hire, #clinic, #bar, #selpanel, #bldpanel, #controls, #deploymentpanel, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
@@ -198,16 +223,19 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     let picked = [];
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
-      const mate = unitAt(e.clientX, e.clientY, myCrew());
+      const mate = unitAt(e.clientX, e.clientY, myCrew()) || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
-      if (foe) tabbed = foe.id;
+      if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
-      looked = civ ? civ.id : null;
+      looked = civ ? civ.id : mate ? mate.id : null;
       if (mate) picked = [mate.id];
       // nothing there but a building: look at the building
       const b = mate || foe || civ || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
-      if (mate) setSelected(selected.includes(mate.id) ? selected.filter(id => id !== mate.id) : [...selected, mate.id]);
+      if (mate) {
+        if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id);
+        else setSelected(selected.includes(mate.id) ? selected.filter(id => id !== mate.id) : [...selected, mate.id]);
+      }
       if (foe) picked = [foe.id];
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
@@ -221,43 +249,26 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const locked = hero()?.attackTarget;
     if (locked && !(picked.length === 1 && picked[0] === locked)) {
       send({ id: heroId, type: 'stopattack', units: mine() });
-      if (tabbed === locked) tabbed = null;
     }
   });
 
   return {
-    // Tab: the next enemy becomes the hero's target and he starts his auto attack on it at once
-    // Left-click still only selects a target; Tab attacks with selected crew.
+    // Tab changes the selected target only; explicit attack input is separate.
     tab() {
       const place = commandPlace(), focus = mine().map(id => game.state.entities[id]).find(e => e?.place === place) || (place === hero()?.place ? hero() : view.audioFocus(game.state, heroId));
       tabbed = tabTarget(game.state, heroId, tabbed, seen, place, focus) || null;
-      if (tabbed) {
-        if (place === hero()?.place) send({ id: heroId, type: 'attack', target: tabbed });
-        const available = mine().filter(id => !game.state.entities[id]?.order?.broadcast);
-        if (available.length) order({ units: available, kind: 'attack', target: tabbed });
-      }
+      looked=null;
     },
     // a given unit becomes the hero's target and he attacks it (a click on the lantern channel bar)
     target(id) {
-      const t = game.state.entities[id];
-      if (!t || t.dead || t.place !== commandPlace() || !seen(t)) return;
-      tabbed = id;
-      if (t.place === hero()?.place) send({ id: heroId, type: 'attack', target: id });
-      if (mine().length) order({ units: mine(), kind: 'attack', target: id });
+      attackTarget(id);
     },
+    attackTarget,
     // T: outdoor crew (selected or not) attack the marked unit (left-click, its card showing),
     // else the hero's current target; a downed one they finish off (Tim 2026-10-19)
     crewAttack() {
-      const S = game.state.entities, h = hero();
-      if (!outdoors()) return;
-      const t = [...selected, h?.attackTarget, h?.swing?.target, looked, tabbed].map(id => S[id]).find(t => t && !t.dead && t.owner !== h.owner && t.place === 'street' && seen(t));
-      const units = Object.values(S).filter(e => e.owner === h?.owner && e.type !== 'hero' && !e.guard && !e.dead && !e.downed && !e.jailed && e.place === 'street').map(e => e.id);
-      // a second T while they are on a T attack calls it off: back to what they were doing (Tim 2026-10-19)
-      const assigned = units.filter(id => S[id].order?.kind === 'attack' && S[id].order.broadcast);
-      if (assigned.length) { order({ units: assigned, kind: 'resume', broadcast: true }); return; }
-      if (!t || !units.length) return;
-      if (t.downed) send({ id: heroId, type: 'execute', target: t.id, units, broadcast: true });
-      else order({ units, kind: 'attack', target: t.id, resume: true, broadcast: true });
+      const h=hero(),id=[looked,tabbed,h?.attackTarget,h?.swing?.target].find(id=>{const t=game.state.entities[id];return t&&!t.dead&&t.owner!==h?.owner;});
+      if(id)attackTarget(id);
     },
     // Shared attacks take purple priority; separate crew assignments stay blue.
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen, commandPlace()); },
@@ -282,7 +293,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
         el.style.transform = `translate(${head.x}px, ${head.y}px)`;
       });
     },
-    selectAll() { setSelected(Object.keys(game.state.entities).filter(groupable)); },
+    selectAll() {
+      if(!game.state.deployment?.restrictionsEnabled){setSelected(Object.keys(game.state.entities).filter(groupable));return;}
+      setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
+    },
+    selectUnit,
     assignGroup(number) {
       if (![1, 2, 3, 4].includes(number)) return;
       pruneGroups();
@@ -300,7 +315,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (ids?.length) { setSelected(ids, true); building = null; }
     },
     groupOf(id) { pruneGroups(); return [...groups].find(([, ids]) => ids.includes(id))?.[0] || null; },
-    clear() { setSelected([], true); looked = null; building = null; attackMove = false; document.body.style.cursor = ''; },
+    clear() {
+      const units=selected.filter(id=>game.state.deployment?.clans[hero()?.owner]?.sectors[game.state.entities[id]?.deployment?.group]);
+      if(units.length)send({id:heroId,type:'deployment',action:'return',units,selectionChange:true});
+      setSelected([]); looked = null; tabbed=null; building = null; attackMove = false; document.body.style.cursor = '';
+    },
     returnToDutyAndSelectHero(ids = mine()) {
       const S = game.state.entities, owner = hero()?.owner, sectors = game.state.deployment?.clans[owner]?.sectors || {};
       const units = [...new Set(ids)].filter(id => {

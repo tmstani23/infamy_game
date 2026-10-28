@@ -20,7 +20,7 @@ assert.equal(frameTarget(state, 'h', ['p'], null), 'p');
 assert.equal(frameTarget(state, 'h', ['c'], null), 'r');
 assert.equal(frameTarget(state, 'h', ['c', 'p'], null), 'r');
 // then the hero's target, then the Tab target; dead, other-room and unseen units are skipped
-assert.equal(frameTarget(state, 'h', [], 'b'), 'r');
+assert.equal(frameTarget(state, 'h', [], 'b'), 'b', 'explicit Tab focus beats the previous attack target');
 S.h.attackTarget = null;
 assert.equal(frameTarget(state, 'h', [], 'b'), 'b');
 assert.equal(frameTarget(state, 'h', ['d'], null), null);

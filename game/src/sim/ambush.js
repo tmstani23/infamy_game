@@ -1,4 +1,6 @@
 import { withdrawalReason } from './sector_recovery.js';
+import { deploymentFeedback } from './deployment_feedback.js';
+import { sectorPatrolRoute } from './sector_patrol.js';
 
 export function createAmbush({ state, deployment, assignments, rally, vision, sees, intelligence, recovery, clearCombat, attackStep, executeStep, finishTarget }) {
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
@@ -14,19 +16,21 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
   function command(h, c) {
     if (h.type !== 'hero' || state.clans[h.owner]?.kind !== 'ninja') return;
     const own = config(h.owner), task = own?.sectors[c.sector]; if (!own) return;
+    const result = (ok,text) => deploymentFeedback(state,h,c,ok,text);
     if (c.action === 'armAmbush') {
-      if (!c.target) { if (task) task.ambushNext = true; return; }
+      if (!c.target) { if (task) { task.ambushNext = true; result(true,'AMBUSH ARMED — waiting for a detected enemy in this sector'); } else result(false,'Choose a sector or a known target'); return; }
       const t = state.entities[c.target], job = state.contracts?.active?.[h.owner];
       const known = intelligence.known(h.owner, c.target) || (enemy(h.owner, t) && vision.canSee(h.owner, t)) || (job?.kind === 'boss' && job.hero === c.target);
-      if (!known) return;
+      if (!known) return result(false,'That target has not been spotted');
       // A committed attack must be explicitly withdrawn before replacing it.
       if (own.hunt?.committedSector) withdraw(h.owner, own.hunt.committedSector, 'Target order replaced');
       own.hunt = { target: c.target, armedAt: state.tick };
-      state.clans[h.owner].notice = { tick: state.tick, text: 'Ambush armed. A local sector group will attack when it spots this target.' };
+      result(true,'HUNT ARMED — a local sector group will attack when it spots this target');
     } else if (c.action === 'cancelAmbush') {
       if (own.hunt?.committedSector) withdraw(h.owner, own.hunt.committedSector, 'Ambush cancelled');
       delete own.hunt; if (task) task.ambushNext = false;
-    } else if (c.action === 'retreat' && task) withdraw(h.owner, c.sector, 'Retreat ordered');
+      result(true,'HUNT CANCELLED — sector crew resuming their duties');
+    } else if (c.action === 'retreat' && task) { withdraw(h.owner, c.sector, 'Retreat ordered'); result(true,'RETREAT ACCEPTED — sector crew withdrawing'); }
     else if (c.action === 'return' && !c.selectionChange && Array.isArray(c.units)) {
       for (const id of new Set(c.units.map(unit => state.entities[unit]?.deployment?.group))) if (own.sectors[id]?.operation?.kind === 'ambush') withdraw(h.owner, id, 'Return to assignment');
     }
@@ -63,7 +67,8 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
         // A selected identity waits indefinitely; never substitute another victim.
         if (own.hunt && !own.hunt.committedSector) continue;
         if (task.task !== 'ambush' && !task.ambushNext) continue;
-        const next = Object.values(state.entities).find(t => enemy(clan, t) && !claimed.has(t.id) && t.id !== own.hunt?.target && deployment.sectorAt(t.x, t.z) === id && observed(team, t));
+        const next = Object.values(state.entities).filter(t => enemy(clan, t) && !claimed.has(t.id) && t.id !== own.hunt?.target && deployment.sectorAt(t.x, t.z) === id && observed(team, t))
+          .sort((a,b)=>Math.min(...team.map(e=>Math.hypot(e.x-a.x,e.z-a.z)))-Math.min(...team.map(e=>Math.hypot(e.x-b.x,e.z-b.z))))[0];
         if (next) { begin(clan, id, next); claimed.add(next.id); }
       }
     }
@@ -72,14 +77,15 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
     const team = crew(e.owner, e.deployment.group).sort((a, b) => Number(a.id) - Number(b.id));
     const leader = team[0], grid = deployment.navFor({ ...e, place: 'street' });
     if (!leader || !grid) return false;
-    const k = task.patrolWaypoint || 0, offsets = [[0, 0], [6, 0], [0, 6], [-6, 0], [0, -6]], p = offsets[k % offsets.length];
-    const point = grid.nearestFree(task.objective.x + p[0], task.objective.z + p[1]);
+    const route=sectorPatrolRoute(state,deployment,e,task),k=task.patrolWaypoint||0,p=route[k%route.length];
+    const point = grid.nearestFree(p.x,p.z);
     if (!point) return false;
-    if (e.id === leader.id && leader.place === 'street' && Math.hypot(leader.x - point[0], leader.z - point[1]) < 1) task.patrolWaypoint = (k + 1) % offsets.length;
+    if (e.id === leader.id && leader.place === 'street' && Math.hypot(leader.x - point[0], leader.z - point[1]) < 1 && state.tick>=(task.patrolPauseUntil||0)) {task.patrolWaypoint = (k + 1) % route.length;task.patrolPauseUntil=state.tick+30;}
     const slot = team.findIndex(u => u.id === e.id), angle = slot * 2.4;
     const goal = e.id === leader.id ? point : grid.nearestFree(leader.x + Math.cos(angle) * 1.2, leader.z + Math.sin(angle) * 1.2);
     if (goal) {
-      const result = deployment.localTravel(e, unit, { x: goal[0], z: goal[1], place: 'street' });
+      if(e.id===leader.id&&state.tick<(task.patrolPauseUntil||0)){e.anim='idle';return true;}
+      const result = deployment.localTravel(e, unit, { x: goal[0], z: goal[1], place: 'street',walk:true });
       if (result !== 'moving') e.anim = 'idle';
     }
     const hunt = config(e.owner).hunt, remembered = hunt && intelligence.targets(e.owner).find(t => t.id === hunt.target);

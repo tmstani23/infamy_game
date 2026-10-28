@@ -33,5 +33,16 @@ assert.equal(own.hunt, undefined, 'leaving after commitment ends attempt instead
 assert.equal(own.sectors.right.recovery.state, 'Withdrawing');
 ambush.command(h, { action: 'armAmbush', target: target.id }); ambush.command(h, { action: 'cancelAmbush' });
 assert.equal(own.hunt, undefined);
+// Standing Ambush survives a whole attempt and recovery, selecting the nearest
+// detected target again rather than degrading into ordinary patrol.
+delete own.sectors.left.recovery;delete own.sectors.right.recovery;delete own.sectors.left.operation;
+own.sectors.left.task='ambush';target.dead=true;
+const near=state.entities.enemy7,far=state.entities.enemy0;
+for(let i=0;i<8;i++)state.entities[`enemy${i}`].dead=true;
+near.dead=false;near.x=-3.5;far.dead=false;far.x=-1;
+ambush.tick();assert.equal(own.sectors.left.operation.target,near.id,'nearest detection wins instead of insertion order');
+near.dead=true;ambush.tick();assert.ok(own.sectors.left.recovery);
+delete own.sectors.left.recovery;ambush.tick();
+assert.equal(own.sectors.left.operation.target,far.id,'general Ambush repeats after retreat/recovery');
 assert.doesNotThrow(() => JSON.stringify(state));
 console.log('Ambush: standing task, larger forces, exact casualties, indefinite known-target wait, single-group handoff/commit/no chase and cancel passed');

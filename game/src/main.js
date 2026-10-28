@@ -34,9 +34,12 @@ import { bindFullscreen } from './fullscreen.js';
 import { bindControlTooltips } from './control_tooltips.js';
 import { createDeploymentPanel } from './deployment_panel.js';
 import { createCharacterPanel } from './character_panel.js';
+import { createGameSettings } from './game_settings.js';
+import { bindGameShell } from './game_shell.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
+bindGameShell();
 const controlTips = bindControlTooltips($('controls'));
 const status = msg => { $('loading').textContent = msg; };
 const getJSON = async url => {
@@ -148,10 +151,10 @@ async function start() {
   let hoverLamp = null;
   function lampAt() {
     const h = game.state.entities[heroId], st = game.stealth;
-    if (!st || !h || game.state.clans[h.owner]?.kind !== 'ninja' || !game.state.night || h.place !== 'street') return null;
+    if (!st || !h || game.state.clans[h.owner]?.kind !== 'ninja' || (h.place==='street'&&!game.state.night)) return null;
     // measured from where the lantern glows on screen, not its foot (Tim 2026-10-21: it picked the wrong one)
     const off = new Set(game.state.lightsOut), near = l => Math.min(Infinity, ...view.lampScreen(l.prop).map(q => Math.hypot(q.x - mouse.x, q.y - mouse.y)));
-    return st.lights.filter(l => !off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 45).sort((a, b) => near(a) - near(b))[0] || null;
+    return st.lights.filter(l => l.place===h.place&&!off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 45).sort((a, b) => near(a) - near(b))[0] || null;
   }
   addEventListener('mousedown', e => {
     if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud')) return;
@@ -195,6 +198,7 @@ async function start() {
   onKey('KeyJ', () => characterPanel.toggle());
   const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, heroId, crewInput, send: c => pending.push(c),
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
+    onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
     onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id) });
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
@@ -213,6 +217,9 @@ async function start() {
   onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
   const sound = createSound();
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true)});
+  const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
+  sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
   const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };
   onKey('KeyK', mute);
@@ -261,11 +268,11 @@ async function start() {
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
   const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
-    onSelectCrew: id => { const old = crewInput.selected(); crewInput.select(old.includes(id) ? old.filter(x => x !== id) : [...old, id]); },
+    onSelectCrew: id => crewInput.selectUnit(id),
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
     onManageSector: id => deploymentPanel.openGroup(id),
-    onSelectSector: id => crewInput.select(game.deployment.members(game.state.entities[heroId].owner, id).filter(e => !e.downed && !e.deployment.transfer).map(e => e.id), { returnPrevious: true }) });
+    onSelectSector: id => deploymentPanel.openGroup(id) });
   onKey('KeyM', () => gameMap.toggle());
   $('mapbtn').addEventListener('click', e => { gameMap.toggle(); e.currentTarget.blur(); });
   // the season score in the top bar (sim/territory.js): day of the season, then every clan's points
@@ -480,7 +487,7 @@ async function start() {
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
-    const edge = !characterPanel.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
+    const edge = !gameSettings.isOpen() && !characterPanel.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);

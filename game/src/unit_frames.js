@@ -8,10 +8,11 @@ import { portrait } from './portraits.js';
 import { unitName, unitStatus } from './selection_panel.js';
 import { POLICE } from './sim/police.js';
 import { WILD } from './sim/bandits.js';
+import { createTargetMemory } from './target_memory.js';
 
 // head-and-shoulders crop of the 160px idle cell, tighter than the small card portraits
 const CROP = { x: 0.33, y: 0.17, w: 0.34 };
-const EFFECT_NAMES = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke', ambush: 'Ambush', veil: 'Vanish', reprisal: 'Reprisal', pursuit: 'Speed', formation: 'Formation', stunned: 'Stunned' };
+const EFFECT_NAMES = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke', ambush: 'Ambush', veil: 'Vanish', reprisal: 'Reprisal', pursuit: 'Speed', formation: 'Formation', stunned: 'Stunned' };
 const DEBUFFS = new Set(['intimidated', 'snared', 'stunned']);
 
 // Which unit the target frame shows (plain state, so Node can check it): a lone left-clicked unit
@@ -22,7 +23,7 @@ export function frameTarget(state, heroId, selected, tabbed, seen = () => true, 
   place ||= h.place;
   const ok = id => S[id] && !S[id].dead && S[id].place === place && seen(S[id]);
   const picked = selected.length === 1 && S[selected[0]]?.owner !== h.owner ? selected[0] : null;
-  return [picked, h.attackTarget, h.swing?.target, tabbed].find(ok) || null;
+  return [picked, tabbed, h.attackTarget, h.swing?.target].find(ok) || null;
 }
 
 // Who a unit is to the hero: { tag, kind } with kind 'you' | 'crew' | 'enemy' | 'neutral'
@@ -84,7 +85,8 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       hp: c.querySelector('.hp span'), status: c.querySelector('i'), id: null, model: null };
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
-  let remembered = null, rememberedAtLook = null;
+  let remembered = null, rememberedAtLook = null, rememberedAtTab=null, cached=null;
+  const targetMemory=createTargetMemory();
   const knownTarget = () => game.shinobiIntelligence?.targets(game.state.entities[heroId]?.owner).find(e => e.id === remembered);
   const ambush = document.createElement('button'); ambush.type = 'button'; ambush.className = 'ambush-action'; ambush.textContent = 'Arm Ambush'; target.c.appendChild(ambush);
   ambush.addEventListener('click', e => {
@@ -100,8 +102,11 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
   target.c.addEventListener('click', () => {
     const known = remembered && knownTarget();
     if (known) view.lookAt(known.x, known.z);
-    else { const u = game.state.entities[target.id]; if (u) jump(u); }
+    else { const u = cached?.entity; if (u) jump(u); }
   });
+  target.c.addEventListener('mousedown',e=>{e.stopPropagation();if(e.button===2){e.preventDefault();crewInput.attackTarget?.(target.id,e.ctrlKey);}});
+  target.c.addEventListener('mouseup',e=>e.stopPropagation());
+  target.c.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();});
 
   const set = (el, prop, v) => { if (el[prop] !== v) el[prop] = v; };
   function fill(f, e, hero) {
@@ -138,10 +143,13 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     self.c.hidden = !h;
     if (!h) { target.c.hidden = true; return; }
     fill(self, h, h);
-    if (remembered && crewInput.looked?.() !== rememberedAtLook) remembered = null;
+    if (remembered && (crewInput.looked?.() !== rememberedAtLook||crewInput.tabbed?.()!==rememberedAtTab)) remembered = null;
     const id = frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e), view?.commandPlace(game.state, heroId));
     const memory = remembered && knownTarget();
-    const shown = memory || (id && S[id]);
+    const focus=crewInput.looked?.()||crewInput.tabbed?.()||id;
+    const live=focus&&S[focus],visible=live&&(!live.hidden||live.owner===h.owner)&&(!game.vision||game.vision.canSee(h.owner,live));
+    cached=targetMemory.read(focus,live,visible,game.state.tick);
+    const shown = memory || cached?.entity;
     target.c.hidden = !shown; target.c.classList.toggle('known', !!memory);
     if (memory) {
       target.id = memory.id;
@@ -150,7 +158,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       target.hp.textContent = 'Last sighting'; target.fill.style.width = '0%'; target.effects.replaceChildren();
       target.status.textContent = memory.tracked ? 'Contract tracking' : memory.live ? 'In sight' : `Seen ${Math.floor(memory.age)}s ago`;
       target.c.style.setProperty('--c', '#9779b0'); target.c.title = `${target.name.textContent}: ${target.status.textContent}`;
-    } else if (id) fill(target, S[id], h);
+    } else if(cached){fill(target,cached.entity,h);if(!cached.visible){target.status.textContent='Out of sight · last known';target.effects.replaceChildren();target.c.title='Last observed information; right-click to attack after reacquiring sight';}}
     const eligible = shown && shown.owner !== h.owner && game.state.clans[shown.owner] && !shown.guard && !shown.cop && !shown.wild && shown.type !== 'civilian';
     ambush.hidden = game.state.clans[h.owner]?.kind !== 'ninja' || !eligible;
     ambush.textContent = game.state.deployment.clans[h.owner]?.hunt?.target === target.id ? 'Armed · Cancel' : 'Arm Ambush';
@@ -165,5 +173,5 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     hover.c.style.left = `${Math.max(4, Math.min(x, innerWidth - hover.c.offsetWidth - 4))}px`;
     hover.c.style.top = `${Math.max(4, Math.min(y, innerHeight - hover.c.offsetHeight - 4))}px`;
   }
-  return { update, updateHover, showKnown: id => { remembered = id; rememberedAtLook = crewInput.looked?.(); update(); }, clearKnown: () => { remembered = null; } };
+  return { update, updateHover, showKnown: id => { remembered = id; rememberedAtLook = crewInput.looked?.();rememberedAtTab=crewInput.tabbed?.(); update(); }, clearKnown: () => { remembered = null;cached=null;targetMemory.read(null,null,false); } };
 }

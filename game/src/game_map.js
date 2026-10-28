@@ -19,12 +19,15 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   const deploymentSide = root.querySelector('.mapdeployment');
   const layerButtons = new Map(), sectorButtons = new Map();
   let selectedSector = game.state.deployment.sectors[0]?.id;
-  let pointPicker = null;
+  let pointPicker = null, destinationPicker = null, flashUntil = 0;
   // one map (Tim 2026-10-27): managing a sector docks the Deployment menu beside the open map
-  const selectSector = id => { selectedSector = id; onSelectSector(id); drawDeployment(); map?.draw(); };
+  const selectSector = id => {
+    if (destinationPicker) { const callback=destinationPicker;destinationPicker=null;callback(id);return; }
+    selectedSector = id; flashUntil=performance.now()+1200; onSelectSector(id); drawDeployment(); map?.draw();
+  };
   const manage = id => { selectedSector = id; onManageSector?.(id); map?.draw(); };
   const overlay = createDeploymentMapOverlay({ game, clan, data: deploymentData,
-    selectedSector: () => selectedSector, onPick: (id, p) => {
+    selectedSector: () => selectedSector, flashing: () => performance.now()<flashUntil, onPick: (id, p) => {
       if (!pointPicker) return selectSector(id);
       if (game.deployment.sectorAt(p.x, p.z) !== pointPicker.sector) return;
       const callback = pointPicker.callback; pointPicker = null; callback(p); map?.draw();
@@ -50,9 +53,9 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   controls.innerHTML = '<label>Duty <select class="quick-task"></select></label><label>Staffing goal <input class="staffing" type="number" min="0" step="1" value="3"></label><button class="staffing-save" type="button">Set goal</button><button class="quick-return" type="button">Back to duty</button><small class="sector-notice" role="status"></small>';
   deploymentSide.querySelector('.manage-sector').before(controls);
   const quickTask = controls.querySelector('.quick-task'), staffing = controls.querySelector('.staffing');
-  const tray = document.createElement('div'); tray.className = 'map-crew-tray'; tray.title = 'Drag crew onto a sector badge or map sector to transfer'; controls.after(tray);
-  const portraits = new Map(); let draggingCrew = false;
-  for (const task of game.state.clans[clan].kind === 'ninja' ? ['watch', 'ambush', 'extraction'] : ['patrol', 'guard']) quickTask.add(new Option(task.replaceAll('_', ' '), task));
+  const tray = document.createElement('div'); tray.className = 'map-crew-tray'; tray.title = 'Select a command group. Use Transfer selected crew in Deployment to transfer.'; controls.after(tray);
+  const portraits = new Map();
+  for (const task of game.state.clans[clan].kind === 'ninja' ? ['watch', 'ambush'] : ['patrol', 'guard']) quickTask.add(new Option(task.replaceAll('_', ' '), task));
   const recent = document.createElement('div'); recent.className = 'recent-targets'; controls.after(recent);
   if (game.state.clans[clan].kind === 'ninja') {
     const next = document.createElement('button'); next.textContent = 'Ambush next enemy'; next.type = 'button';
@@ -70,22 +73,11 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     if (onReturnToDuty) onReturnToDuty(ids);
     else send({ id: heroId, type: 'deployment', action: 'return', units: ids });
   });
-  function dropCrew(e, sector) {
-    e.preventDefault(); e.stopPropagation();
-    try {
-      const ids = JSON.parse(e.dataTransfer.getData('application/x-infamy-crew'));
-      if (Array.isArray(ids) && ids.length && sector) send({ id: heroId, type: 'deployment', action: 'transfer', units: ids, to: sector });
-    } catch { /* Ignore unrelated drags. The sim validates ownership and capacity. */ }
-  }
-  const allowDrop = e => { if ([...e.dataTransfer.types].includes('application/x-infamy-crew')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } };
-  canvas.addEventListener('dragover', allowDrop);
-  canvas.addEventListener('drop', e => { const p = map?.worldAt(e); dropCrew(e, p && overlay.sectorAt(p)); });
   for (const s of overlay.sectors) {
     const b = document.createElement('button'), name = document.createElement('span'), status = document.createElement('small');
     b.type = 'button'; b.className = 'sector-select'; b.style.setProperty('--sector-color', s.color); name.textContent = s.name;
     b.append(name, status); deploymentSide.querySelector('.sector-list').appendChild(b);
     b.addEventListener('click', () => selectSector(s.id));
-    b.addEventListener('dragover', allowDrop); b.addEventListener('drop', e => dropCrew(e, s.id));
     sectorButtons.set(s.id, { button: b, status });
   }
   deploymentSide.querySelector('.manage-sector').addEventListener('click', () => manage(selectedSector));
@@ -99,22 +91,20 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     }
     const s = snapshot.sectors.find(s => s.id === selectedSector);
     if (!s) return;
-    if (!draggingCrew) {
+    {
       const crew = game.deployment.members(clan).filter(e => !e.downed), ids = new Set(crew.map(e => e.id));
       for (const [id, b] of portraits) if (!ids.has(id)) { b.remove(); portraits.delete(id); }
       for (const e of crew) {
         let b = portraits.get(e.id);
         if (!b) {
-          b = document.createElement('button'); b.type = 'button'; b.draggable = true;
+          b = document.createElement('button'); b.type = 'button';
           b.addEventListener('click', () => onSelectCrew(e.id));
-          b.addEventListener('dragstart', ev => { draggingCrew = true; ev.dataTransfer.setData('application/x-infamy-crew', JSON.stringify(selected().includes(e.id) ? selected() : [e.id])); ev.dataTransfer.effectAllowed = 'move'; });
-          b.addEventListener('dragend', () => { draggingCrew = false; });
           tray.appendChild(b); portraits.set(e.id, b);
         }
         const image = catalog && portrait(catalog, e.model);
         if (image) { b.style.backgroundImage = `url(${image})`; b.textContent = ''; }
         else b.textContent = (units?.types[e.type]?.name || e.type).slice(0, 2);
-        b.title = `${units?.types[e.type]?.name || e.type} #${e.id} · ${e.deployment.group} · ${Math.ceil(e.hp)}/${e.maxHp} HP. Drag to transfer.`;
+        b.title = `${units?.types[e.type]?.name || e.type} #${e.id} · ${e.deployment.group} · ${Math.ceil(e.hp)}/${e.maxHp} HP. Select group.`;
         b.classList.toggle('selected', selected().includes(e.id));
       }
     }
@@ -225,7 +215,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     }
     map.draw(); drawSide();
   }
-  function close() { root.hidden = true; tip.hidden = true; pointPicker = null; }
+  function close() { root.hidden = true; tip.hidden = true; pointPicker = null; destinationPicker=null; }
   const toggle = () => (isOpen() ? close() : open());
 
   let frame = 0;
@@ -244,6 +234,8 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     else pointPicker = null;
     syncLayers(); drawSide(); map?.draw();
   }
-  return { open, close, toggle, isOpen, update, dock, focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; map?.draw(); } },
+  return { open, close, toggle, isOpen, update, dock, focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.draw(); } },
+    pickDestination(callback) { pointPicker=null;destinationPicker=callback;layers.deployment=true;syncLayers();open(); },
+    cancelPick() {pointPicker=null;destinationPicker=null;},
     pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };
 }

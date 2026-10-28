@@ -1,5 +1,4 @@
 import { createAmbush } from './ambush.js';
-export const SHINOBI_TASKS = { extractionRadius: 5, extractionLeash: 8 };
 export function createShinobiAssignments({ state, deployment, assignments, rally, vision, sees, clearCombat, attackStep, finishTarget, executeStep, intelligence, recovery }) {
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const groups = clan => state.deployment.clans[clan]?.sectors || {};
@@ -43,23 +42,7 @@ export function createShinobiAssignments({ state, deployment, assignments, rally
     }
     ambush.tick();
   }
-  function step(e, unit) {
-    if (ambush.step(e, unit)) return true;
-    if (state.clans[e.owner]?.kind !== 'ninja' || !alive(e) || !e.deployment || e.deployment.transfer || rally.participating(e)) return false;
-    const id = e.deployment.group, task = groups(e.owner)[id]; if (!task) return false;
-    const duty = e.deployment.duty ||= { manual: false, status: 'Watching' };
-    if (task.task !== 'extraction' || duty.manual) return false;
-    const goal = task.objective;
-    let t = state.entities[duty.intercept];
-    if (!enemy(e.owner, t) || !sees(e, t) || t.place !== e.place || Math.hypot(t.x - goal.x, t.z - goal.z) > SHINOBI_TASKS.extractionLeash || !deployment.canActAt(e, t.x, t.z, t.place)) {
-      if (duty.intercept) { clearCombat(e); delete duty.intercept; e.order = { kind: 'stop' }; }
-      t = Object.values(state.entities).find(t => enemy(e.owner, t) && t.place === e.place && sees(e, t) && Math.hypot(t.x - goal.x, t.z - goal.z) <= SHINOBI_TASKS.extractionRadius && deployment.canActAt(e, t.x, t.z, t.place));
-    }
-    if (t && e.place === 'street' && Math.hypot(e.x - goal.x, e.z - goal.z) <= SHINOBI_TASKS.extractionLeash) {
-      duty.intercept = t.id; duty.status = 'Defending'; attackStep(e, unit, t); return true;
-    }
-    return false;
-  }
+  const step = (e, unit) => ambush.step(e, unit);
   const manual = e => ambush.manual(e);
   return { command, tick, step, manual, targets, defenders: (clan, target) => defenders(clan, state.entities[target]).length };
 }

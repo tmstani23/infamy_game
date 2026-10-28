@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.glb': 'model/gltf-binary', '.fbx': 'application/octet-stream', '.css': 'text/css', '.svg': 'image/svg+xml' };
+  '.glb': 'model/gltf-binary', '.fbx': 'application/octet-stream', '.css': 'text/css', '.svg': 'image/svg+xml', '.ogg':'audio/ogg','.wav':'audio/wav' };
 
 const server = createServer(async (req, res) => {
   try {

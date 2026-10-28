@@ -1,3 +1,4 @@
+import { deploymentFeedback } from './deployment_feedback.js';
 export const RALLY_TICKS = 3 * 60 * 20;
 export const RALLY_COOLDOWN_TICKS = 5 * 60 * 20;
 export const isRallyParticipant = (state, e) => {
@@ -34,12 +35,12 @@ export function createDeploymentRally({ state, deployment }) {
     if (c.action !== 'rally' || h.type !== 'hero' || !state.deployment.restrictionsEnabled) return;
     const r = record(h.owner), valid = ['hero', 'home', ...state.deployment.sectors.map(s => s.id)];
     const chosen = c.groups ?? (r?.groups.length ? r.groups : valid);
-    if (!r || r.active || r.readyAt > state.tick || !Array.isArray(chosen) || !chosen.length || chosen.some(g => !valid.includes(g))) return;
+    if (!r || r.active || r.readyAt > state.tick || !Array.isArray(chosen) || !chosen.length || chosen.some(g => !valid.includes(g))) return deploymentFeedback(state,h,c,false,'Rally unavailable: check cooldown and selected groups');
     const groups = [...new Set(chosen)];
     const participants = deployment.members(h.owner).filter(e => !e.downed && groups.includes(e.deployment.transfer?.to || e.deployment.group));
     Object.assign(r, { active: true, startedAt: state.tick, endsAt: state.tick + RALLY_TICKS, readyAt: 0, groups,
       participants: participants.map(e => ({ id: e.id, group: e.deployment.transfer?.to || e.deployment.group })) });
-    state.clans[h.owner].notice = { tick: state.tick, text: 'Rally called: 3 minutes including travel. Issue Follow or movement orders to assemble.' };
+    deploymentFeedback(state,h,c,true,'RALLY ACCEPTED — 3 minutes including travel. Issue Follow or movement orders to assemble.');
   }
   function tick() {
     for (const clan of Object.keys(state.clans || {})) {
