@@ -13,6 +13,7 @@ export function unitStatus(e, state) {
   if (e.dead) return 'Dead';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
+  if(e.crewJob)return e.crewJob.phase==='returning'?'Rejoining group':e.crewJob.kind==='loot'?'Collecting loot':'Finishing off';
   if (e.markScrub) return 'Removing mark';
   if (e.deployment?.transfer) {
     const t=e.deployment.transfer,to=t.to==='hero'?'Hero group':t.to==='home'?'HQ reserves':state.deployment?.sectors.find(s=>s.id===t.to)?.name||t.to;

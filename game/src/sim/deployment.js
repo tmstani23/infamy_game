@@ -28,7 +28,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const validGroup = id => id === 'home' || id === 'hero' || sectorIds.includes(id);
   function addClan(clan) {
     if (!clan || D.clans[clan.id]) return;
-    D.clans[clan.id] = { reserveTarget: 2, sectors: Object.fromEntries(D.sectors.map(s => [s.id, {
+    D.clans[clan.id] = { reserveTarget: 0, autoSector: null, sectors: Object.fromEntries(D.sectors.map(s => [s.id, {
       task: clan.kind === 'ninja' ? 'watch' : 'patrol', desired: D.sectorLimit, objective: { ...s.anchor }, fallback: { ...s.anchor },
     }])) };
   }
@@ -81,11 +81,13 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   function nextAutomaticSector(clan) {
     const n = counts(clan), goal = id => D.clans[clan].sectors[id].desired ?? D.sectorLimit;
-    const sorted = sectorIds.filter(id => goal(id) > 0).sort((a, b) => n[a] - n[b] || sectorIds.indexOf(a) - sectorIds.indexOf(b));
-    const vacancy = sorted.find(id => n[id] < Math.min(goal(id), D.sectorLimit));
+    const first=D.clans[clan].autoSector||sectorIds.find(id=>n[id]>0&&goal(id)>0);
+    if(!first)return null;
+    const start=sectorIds.indexOf(first),ordered=[...sectorIds.slice(start),...sectorIds.slice(0,start)].filter(id=>goal(id)>0);
+    const vacancy = ordered.find(id => n[id] < Math.min(goal(id), D.sectorLimit));
     if (vacancy) return vacancy;
     if (!full(n)) return null;
-    return sorted.find(id => n[id] < goal(id)) || sorted.find(id => goal(id) >= D.sectorLimit) || null;
+    return ordered.find(id => n[id] < goal(id)) || ordered.slice().sort((a,b)=>n[a]-n[b]).find(id=>goal(id)>=D.sectorLimit) || null;
   }
   function sectorAt(x, z, place = 'street') {
     if (place !== 'street') {
@@ -201,7 +203,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const quiet = e => state.tick - Math.max(e.hitAt ?? -Infinity, e.foughtAt ?? -Infinity) >= 120;
   function idle(e) {
     const o = e.order;
-    return !e.swing && !e.execute && !e.lootEscort && !e.attackTarget && !inCombat(e)
+    return !e.crewJob && !e.swing && !e.execute && !e.lootEscort && !e.attackTarget && !inCombat(e)
       && (!o || o.kind === 'stop' || (o.kind === 'move' && o.arrived) || (o.kind === 'station' && o.garrison));
   }
   const healthy = e => Number.isFinite(e.maxHp) && e.hp >= e.maxHp;
@@ -292,10 +294,16 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     if (h.type !== 'hero' || !D.clans[h.owner]) return;
     const result = (ok, text) => deploymentFeedback(state, h, c, ok, text);
     const ids = Array.isArray(c.units) ? [...new Set(c.units)] : [];
+    if(c.action==='autoSector'){
+      if(!sectorIds.includes(c.sector))return result(false,'Choose a valid first assignment sector');
+      D.clans[h.owner].autoSector=c.sector;
+      return result(true,`AUTOMATIC DEPLOYMENT — fill ${D.sectors.find(s=>s.id===c.sector).name} to its goal first, then the next sector`);
+    }
     if (c.action === 'staffing') {
       const sector = D.clans[h.owner].sectors[c.sector];
       if (!sector || !Number.isSafeInteger(c.value) || c.value < 0) return result(false, 'Choose a valid sector staffing goal');
       sector.desired = c.value;
+      if(c.value>0)D.clans[h.owner].autoSector=c.sector;
       result(true, `Staffing goal: ${c.value}. Crew deploy from eligible HQ reserves; field crew are not recalled.`);
       return;
     }
@@ -333,6 +341,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     });
     if (prepared.some(p => !p.path)) { result(false, 'Transfer blocked: no reachable route to that destination'); return; }
     for (const { e, target } of prepared) startTransfer(e, c.to, target);
+    if(sectorIds.includes(c.to))D.clans[h.owner].autoSector=c.to;
     result(true, `TRANSFER STARTED — ${ids.length} crew travelling to ${c.to === 'hero' ? 'hero group' : c.to === 'home' ? 'HQ reserves' : D.sectors.find(s => s.id === c.to).name}`);
   }
   function travelStep(e, unit) {
@@ -388,5 +397,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   sync();
   return { addClan, onSpawn, sync, members, counts, canAssign, nextAutomaticSector, sectorAt,
     overflowAvailable: clan => full(counts(clan)), cellGrid: geometry.cellGrid, canOccupy, canActAt, navFor, allowsOrder,
-    canTransfer, command, travelStep, localTravel, returnAfterRally, reserveStatus, enable: () => { D.restrictionsEnabled = true; } };
+    canTransfer, command, travelStep, localTravel, returnAfterRally, reserveStatus,
+    needsFirstSector:clan=>!D.clans[clan]?.autoSector&&counts(clan).hero>=D.heroLimit&&members(clan,'home').some(e=>!e.downed&&!e.deployment.transfer&&!e.deployment.keepAtHQ&&healthy(e)&&idle(e)),
+    enable: () => { D.restrictionsEnabled = true; } };
 }

@@ -7,6 +7,7 @@ import { syncChildren } from './stable_list.js';
 export function createDeploymentPanel({ root, button, game, units, heroId, crewInput, send,
   onPickPoint, onPickDestination, onCancelPick = () => {}, onOpen = () => {}, onClose = () => {}, onFocus = () => {}, onInspect = () => {} }) {
   root.innerHTML = '<header><h3>DEPLOYMENT</h3><button type="button" class="close" aria-label="Close deployment">✕</button></header><div class="tabs"></div>'
+    + '<section class="first-zone" hidden><h4>Choose your first assignment zone</h4><p>Your hero group is full. Choose where spare crew should deploy first, or transfer one there manually.</p><div class="first-zone-options"></div></section>'
     + '<section class="group-summary"><h4></h4><strong></strong><span></span></section><div class="acceptance" role="status" aria-live="polite" hidden></div>'
     + '<section class="crew-selection"><div class="roster-heading"><b>Crew selected</b><button type="button" class="select-group">Select group</button></div><div class="roster"></div><button type="button" class="transfer-start">Transfer selected crew</button><button type="button" class="assign-here">Assign crew here</button><button type="button" class="return-assignment">Return to duty</button></section>'
     + '<section class="assign-mode" hidden><h4>Assign crew here</h4><p class="assign-destination"></p><label>From group <select class="assign-source" aria-label="Source group for assignment"></select></label><div class="assign-roster"></div><strong class="assign-preview"></strong><p class="assign-why"></p><button type="button" class="confirm-assignment">Assign selected crew</button><button type="button" class="cancel-assignment">Cancel</button></section>'
@@ -23,6 +24,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   const chosen = () => crewInput.selected().filter(id => members().some(e => e.id === id));
   const ninja = game.state.clans[owner()].kind === 'ninja', rows=new Map(), tabs=new Map(), destinations=new Map(), rallyChecks=new Map(), targetRows=new Map(), incomingRows=new Map(), travelRows=new Map();
   let focus='hero', open=false, transfer=null, incoming=null, latestTransfer=[], request=0, lastRefresh=null, feedbackSequence=config().feedback?.sequence || 0;
+  let reserveDirty=false,staffingDirty=false;
   const issue = c => {
     send({id:heroId,type:'deployment',...c,request:`panel-${++request}`});
     $('.acceptance').hidden=false; $('.acceptance').className='acceptance pending'; $('.acceptance').textContent='ORDER PENDING…';
@@ -32,12 +34,14 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   }
   function setFocus(id, select=true) {
     if (!Object.hasOwn(names,id)) return;
-    focus=id; transfer=null; incoming=null; onCancelPick();
+    focus=id; transfer=null; incoming=null; staffingDirty=false; onCancelPick();
+    if(record(id)&&game.deployment.needsFirstSector?.(owner()))issue({action:'autoSector',sector:id});
     if(select)selectGroup(id);
     if(record(id))onFocus(id);
     lastRefresh=null; update(true);
   }
   for(const [id,name] of Object.entries(names)) {
+    if(record(id)){const first=document.createElement('button');first.type='button';first.textContent=name;first.addEventListener('click',()=>setFocus(id));$('.first-zone-options').appendChild(first);}
     $('.assign-source').add(new Option(name,id));
     const tab=document.createElement('button'); tab.type='button'; tab.addEventListener('click',()=>setFocus(id)); $('.tabs').appendChild(tab);tabs.set(id,tab);
     const destination=document.createElement('button'); destination.type='button'; destination.addEventListener('click',()=>chooseDestination(id)); $('.destinations').appendChild(destination);destinations.set(id,destination);
@@ -105,8 +109,13 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   $('.call-rally').addEventListener('click',()=>issue({action:'rally',groups:[...rallyChecks].filter(([,c])=>c.checked).map(([id])=>id)}));
   $('.reserves form').addEventListener('submit',e=>{e.preventDefault();const input=$('.reserve-target');if(input.value!==''&&input.checkValidity())issue({action:'reserveTarget',value:Number(input.value)});});
   $('.staffing-goal').addEventListener('submit',e=>{e.preventDefault();const input=$('.staffing-target');if(record(focus)&&input.value!==''&&input.checkValidity())issue({action:'staffing',sector:focus,value:Number(input.value)});});
+  $('.reserve-target').addEventListener('input',()=>{reserveDirty=true;});
+  $('.staffing-target').addEventListener('input',()=>{staffingDirty=true;});
   function update(force=false) {
+    const first=!!game.deployment.needsFirstSector?.(owner());
+    button.textContent=first?'Deployment · choose first zone':'Deployment';button.classList.toggle('needs-zone',first);
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
+    $('.first-zone').hidden=!first;
     const st=game.state, selected=new Set(chosen()), signature=`${st.tick}:${focus}:${[...selected].join(',')}`;
     if(!force&&lastRefresh===signature)return;lastRefresh=signature;
     const selectedGroups=new Set([...selected].map(id=>st.entities[id]?.deployment.group));
@@ -168,7 +177,8 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     $('.duty').hidden=!task;
     if(task){
       $('.task').value=task.task;
-      if(document.activeElement!==$('.staffing-target'))$('.staffing-target').value=task.desired??3;
+      if(staffingDirty&&$('.staffing-target').value!==''&&Number($('.staffing-target').value)===(task.desired??3))staffingDirty=false;
+      if(!staffingDirty&&document.activeElement!==$('.staffing-target'))$('.staffing-target').value=task.desired??3;
       const businesses=Object.values(st.businesses).filter(b=>b.owner===owner()&&b.room&&game.deployment.sectorAt(...b.ring)===focus),key=businesses.map(b=>b.id).join(',');
       const select=$('.guard-business');if(select.dataset.key!==key){select.dataset.key=key;select.replaceChildren();for(const b of businesses)select.add(new Option(b.kind.replaceAll('_',' '),b.id));}select.value=task.business||businesses[0]?.id||'';
       $('.business-label').hidden=task.task!=='guard';$('.assignment-points').textContent=`Duty applies immediately · ${task.route?.length||0}/8 route points`;
@@ -185,7 +195,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const feedback=config().feedback;
     if(feedback&&feedback.sequence!==feedbackSequence){feedbackSequence=feedback.sequence;const el=$('.acceptance');el.hidden=false;el.className=`acceptance ${feedback.ok?'accepted':'rejected'}`;el.textContent=feedback.ok?feedback.text:`ORDER NOT ACCEPTED — ${feedback.text}`;el.style.animation='none';void el.offsetWidth;el.style.animation='';}
     $('.rally-status').textContent=rally.active?`${rally.seconds}s remaining`:rally.cooldown?`${rally.cooldown}s cooldown`:'Ready';$('.call-rally').disabled=rally.active||rally.cooldown>0;
-    const reserve=$('.reserve-target');if(document.activeElement!==reserve)reserve.value=config().reserveTarget;
+    const reserve=$('.reserve-target');if(reserveDirty&&reserve.value!==''&&Number(reserve.value)===config().reserveTarget)reserveDirty=false;if(!reserveDirty&&document.activeElement!==reserve)reserve.value=config().reserveTarget;
     const clan=st.clans[owner()];$('footer').textContent=`Clinic ${clan.clinic.length} · Jail ${clan.jail?.length||0} · HQ recovery ${clan.respawning?.length||0}`;
   }
   function show(on){if(open===on)return;open=on;lastRefresh=null;if(on)onOpen(record(focus)?focus:null);else{transfer=null;incoming=null;onCancelPick();onClose();}update(true);}

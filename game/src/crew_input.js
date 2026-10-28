@@ -103,6 +103,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   };
   // the selected units orders go to (a selected townsperson takes none)
   const mine = () => selected.filter(id => game.state.entities[id]?.owner === hero()?.owner);
+  const bodyJobUnits=()=>mine().length?mine():myCrew().filter(e=>!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id);
   const groupable = id => {
     const u = game.state.entities[id];
     return u && u.owner === hero()?.owner && u.type !== 'hero' && u.type !== 'civilian' && !u.guard && !u.wild && !u.cop && !u.dead;
@@ -166,7 +167,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     tabbed=foe.id;looked=null;
     const units=mine(),heroGroup=!units.length||units.every(id=>['hero','rally'].includes(commandGroup(game.state.entities[id])));
     const useHero=!crewOnly&&heroGroup&&foe.place===h?.place;
-    if(foe.downed){send({id:heroId,type:'execute',target:id,units,crewOnly:!useHero,preferHeroInRange:useHero});return;}
+    if(foe.downed){const jobs=bodyJobUnits();send({id:heroId,type:'execute',target:id,units:jobs,crewJob:!!jobs.length,crewOnly:!!jobs.length||!useHero,preferHeroInRange:false});return;}
     if(useHero)send({id:heroId,type:'attack',target:id});
     if(units.length)order({units,kind:'attack',target:id});
   }
@@ -179,7 +180,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // Right-click: the hero loots if already in reach, otherwise the nearest selected crew does.
     // Ctrl + right-click always assigns selected crew only.
     const body = e.button === 2 && !target() && unitAt(e.clientX, e.clientY, bodies());
-    if (body) { send({ id: heroId, type: 'loot', target: body.id, units: mine(), preferHeroInRange: !e.ctrlKey, crewOnly: e.ctrlKey }); return; }
+    if (body) { const jobs=bodyJobUnits();send({ id: heroId, type: 'loot', target: body.id, units: jobs,crewJob:!!jobs.length, preferHeroInRange: false, crewOnly: !!jobs.length||e.ctrlKey }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -194,7 +195,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // or the hero to follow
       if (!mine().length) return;
       const foe = target();
-      if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine(), crewOnly: true }); return; }
+      if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine(),crewJob:true, crewOnly: true }); return; }
       if (foe) { order({ units: mine(), kind: 'attack', target: foe.id }); return; }
       if (hero()?.place === commandPlace() && unitAt(e.clientX, e.clientY, [hero()])) { order({ units: mine(), kind: 'follow' }); return; }
       // right-click your own business: they walk to its door, go in and hold it (checkpoint 5)

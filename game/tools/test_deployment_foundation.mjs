@@ -15,7 +15,7 @@ const add = (group = 'home', extra = {}) => {
   const e = { id: String(++seq), owner: 'p', type: 'thug', hp: 200, maxHp: 200, deployment: { group }, ...extra };
   state.entities[e.id] = e; deployment.onSpawn(e); return e;
 };
-assert.equal(state.deployment.clans.p.reserveTarget, 2);
+assert.equal(state.deployment.clans.p.reserveTarget, 0);
 assert.ok(Object.values(state.deployment.clans.p.sectors).every(s => s.task === 'patrol'));
 assert.ok(Object.values(state.deployment.clans.n.sectors).every(s => s.task === 'watch'));
 assert.equal(state.deployment.restrictionsEnabled, false, 'do not restrict orders before transfers/UI exist');
@@ -58,7 +58,7 @@ for (const clan of Object.values(g.state.clans)) {
   const crew = g.clans.crewOf(clan.id);
   assert.equal(crew[0].deployment.group, 'hero', 'starting escorts belong to each hero group');
   assert.equal(crew[0].order.kind, 'follow', 'membership does not replace existing starting orders');
-  assert.equal(g.state.deployment.clans[clan.id].reserveTarget, 2);
+  assert.equal(g.state.deployment.clans[clan.id].reserveTarget, 0);
 }
 const recruit = g.state.entities[g.spawn('thug', 'thug', 6, 8, { owner: 'player' })];
 assert.equal(recruit.deployment.group, 'home');

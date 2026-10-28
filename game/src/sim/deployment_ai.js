@@ -11,6 +11,11 @@ export function createDeploymentAI(game, { clan, hero }) {
     next = st.tick + 40;
     const members = game.deployment.members(clan).filter(alive), record = st.deployment.clans[clan];
     const command = c => out.push({ id: hero, type: 'deployment', ...c });
+    if(game.deployment.needsFirstSector?.(clan)){
+      const home=Object.values(st.businesses).find(b=>b.hideout===clan),point=home?.ring||[h.x,h.z];
+      const sector=st.deployment.sectors.slice().sort((a,b)=>Math.hypot(a.anchor.x-point[0],a.anchor.z-point[1])-Math.hypot(b.anchor.x-point[0],b.anchor.z-point[1]))[0];
+      if(sector)command({action:'autoSector',sector:sector.id});
+    }
     const raid = Object.values(st.attacks || {}).find(a => a.mode === 'raid' && a.defender === clan);
     const field = members.filter(e => e.deployment.group !== 'hero' && !e.deployment.transfer);
     const enemies = Object.values(st.entities).filter(e => alive(e) && e.owner !== clan && st.clans[e.owner] && !e.hidden && game.vision.canSee(clan, e));
@@ -23,7 +28,7 @@ export function createDeploymentAI(game, { clan, hero }) {
       }
     }
     if (alive(h)) {
-      const idle = e => !e.swing&&!e.execute&&(!e.order||e.order.kind==='stop'||(e.order.kind==='move'&&e.order.arrived));
+      const idle = e => !e.crewJob&&!e.swing&&!e.execute&&(!e.order||e.order.kind==='stop'||(e.order.kind==='move'&&e.order.arrived));
       const spare = members.find(e=>e.deployment.group==='home'&&!e.deployment.transfer&&!e.deployment.keepAtHQ&&e.hp>=e.maxHp&&idle(e));
       if (spare && game.deployment.counts(clan).hero < 6 && game.deployment.canTransfer(hero,[spare.id],'hero').ok) command({action:'transfer',units:[spare.id],to:'hero'});
       const follow = members.filter(e=>inHeroParty(game,e)&&!e.deployment.transfer&&idle(e)&&e.place===h.place).map(e=>e.id);

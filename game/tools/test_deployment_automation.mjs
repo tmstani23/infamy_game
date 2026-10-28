@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createDeployment, storedDeployment, restoredDeployment } from '../src/sim/deployment.js';
 import { createNav } from '../src/sim/nav.js';
 
-function fixture({ bot = false } = {}) {
+function fixture({ bot = false, reserveTarget = 2 } = {}) {
   const district = { bounds: { minX: -10, maxX: 10, minZ: -10, maxZ: 10 }, buildings: [] };
   const street = createNav([], district.bounds), room = createNav([], { minX: 100, maxX: 110, minZ: 100, maxZ: 110 });
   let blocked = false, seq = 1;
@@ -18,6 +18,8 @@ function fixture({ bot = false } = {}) {
       e.x += (x - e.x) * k; e.z += (z - e.z) * k; return true;
     } });
   d.enable();
+  if(reserveTarget!==null)d.command(h,{action:'reserveTarget',value:reserveTarget});
+  d.command(h,{action:'autoSector',sector:state.deployment.sectors[0].id});
   const add = (group = 'home', extra = {}) => {
     const e = { id: String(++seq), owner: 'p', type: 'thug', hp: 200, maxHp: 200, x: 102, z: 102, place: 'hq', deployment: { group, everAssigned: true }, ...extra };
     state.entities[e.id] = e; d.onSpawn(e); return e;
@@ -28,10 +30,11 @@ function fixture({ bot = false } = {}) {
 }
 
 for (const bot of [false, true]) {
+  const defaults=fixture({bot,reserveTarget:null});assert.equal(defaults.state.deployment.clans.p.reserveTarget,0,'new clans default to no standing HQ reserve');
   const f = fixture({ bot }), crew = Array.from({ length: 5 }, () => f.add());
   f.sync(0);
   assert.equal(crew.filter(e => e.deployment.transfer).length, 3, 'two ready reserves retained for players and bots');
-  assert.deepEqual(f.sectors.map(s => f.d.counts('p')[s]), [1, 1, 1, 0], 'inbound reservations spread normal vacancies');
+  assert.deepEqual(f.sectors.map(s => f.d.counts('p')[s]), [3, 0, 0, 0], 'inbound reservations fill the chosen sector first');
   assert.ok(crew.every(e => e.order?.kind !== 'follow'));
   f.command({ action: 'reserveTarget', value: 20 }); f.sync(20);
   assert.equal(crew.filter(e => e.deployment.transfer).length, 3, 'raising target does not recall or cancel dispatched crew');
@@ -141,7 +144,7 @@ for (const unavailable of ['downed', 'dead', 'jailed']) {
   f.block(false); f.sync(20);
   assert.equal(e.deployment.transfer?.to, to);
 }
-console.log('Deployment automation: ready reserves/pins, combat queue, health/jobs, physical home returns, balanced reservations/overflow, blockage/death, pending returns and shared bot rules passed');
+console.log('Deployment automation: configured reserves/pins, sequential filling, combat queue, health/jobs, physical returns, overflow, blockage/death and shared bot rules passed');
 {
   const f = fixture(); f.command({ action: 'reserveTarget', value: 0 });
   for (const sector of f.sectors) f.command({ action: 'staffing', sector, value: 0 });

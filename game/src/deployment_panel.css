@@ -25,6 +25,10 @@
 #deploymentpanel .assign-preview { display:block; margin:8px 0; }
 #deploymentpanel .active-transfers { padding:8px; border:1px solid #7d805d; border-radius:6px; }
 #deploymentpanel .active-transfers[hidden] { display:none; }
+#deploymentpanel .first-zone { padding:10px; border:1px solid #d8bb73; background:#342d1b; border-radius:6px; }
+#deploymentpanel .first-zone[hidden] { display:none; }
+#deploymentpanel .first-zone-options { display:flex; flex-wrap:wrap; gap:5px; }
+#deploymentbtn.needs-zone { border-color:#efd387; box-shadow:0 0 8px #d7b65a66; }
 #deploymentpanel .travel-member { display:flex; gap:8px; align-items:center; justify-content:space-between; margin:6px 0; }
 .selection-dock { display:flex; flex-direction:column; gap:8px; padding:8px; border:1px solid #615339; border-radius:6px; background:#131920; }
 .selection-dock[hidden] { display:none; }

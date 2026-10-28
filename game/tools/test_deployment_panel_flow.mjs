@@ -38,6 +38,11 @@ try{
  const selected={ids,selected(){return this.ids;},select(ids){this.ids=ids;},returnToDutyAndSelectHero(){}},queue=[];let destinationPick=null;
  const panel=createDeploymentPanel({root,button,game:g,units:g.settings.units,heroId,crewInput:selected,send:c=>queue.push(c),onPickDestination:fn=>destinationPick=fn,onCancelPick:()=>destinationPick=null});
  const $=s=>elements.get(s);panel.openGroup('hero');
+ g.state.deployment.clans[h.owner].reserveTarget=2;
+ $('.reserve-target').value='0';$('.reserve-target').emit('input');panel.update(true);
+ assert.equal($('.reserve-target').value,'0','zero draft survives blur and menu refresh before Apply');
+ $('.reserves form').emit('submit');assert.equal(queue[0].value,0);g.step(queue.splice(0));panel.update(true);
+ assert.equal(g.state.deployment.clans[h.owner].reserveTarget,0,'zero applies through the real command');
  const sourceIds=[...selected.ids];assert.equal($('.roster').children.length,sourceIds.length);$('.transfer-start').emit('click');assert.equal(queue.length,0,'opening transfer sends no optimistic order');
  assert.equal(typeof destinationPick,'function','transfer mode captures map destination clicks immediately');
  $('.cancel-transfer').emit('click');assert.equal(queue.length,0,'cancelling before choosing a destination sends no command');

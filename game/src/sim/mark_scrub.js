@@ -7,7 +7,7 @@ export function createMarkScrubbing({ state, rules, inCombat = () => false }) {
     return !!e && !e.dead && !e.downed && !e.jailed && e.type !== 'civilian'
       && e.owner === job.target && e.place === m.place && Math.hypot(e.x-m.x,e.z-m.z) <= rules.reach
       && e.markScrubInterruptedAt !== state.tick && e.hitAt !== state.tick
-      && !e.swing && !e.execute && !e.attackTarget && !e.snuffing && !e.dash
+      && !e.crewJob && !e.swing && !e.execute && !e.attackTarget && !e.snuffing && !e.dash
       && !e.brace && !e.spearCombo && !e.spearSweep && !inCombat(e)
       && !(e.buffs?.stunned?.until > state.tick) && !(e.buffs?.charming?.until > state.tick)
       && !(e.distracted && (e.distracted.until == null || e.distracted.until > state.tick))

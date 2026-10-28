@@ -32,6 +32,7 @@ import { distractionStep } from './distraction.js';
 import { createStats } from './stats.js';
 import { reachableEntry } from './rear_entry.js';
 import { createSectorCleanup } from './sector_cleanup.js';
+import { createCrewJobs } from './crew_jobs.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -138,6 +139,7 @@ export function createGame(options) {
     lineOfSight: (a, b) => clearSight(a, b, a.place === 'street' ? opaqueStreet : [...roomBlockers, ...interiorDoors.filter(d => d.place === a.place && !state.interiorDoors[d.id]).map(d => d.blocker)]),
     say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
   const intents = {};     // latest move command per entity (server-side only)
+  let crewJobs=null;
   const nav = createNav(blockers, district.bounds);
   // a walk grid per room too, so units path round the furniture indoors instead of snagging on it
   const roomBodyScales = Object.fromEntries(rooms.map(r => [r.name, r.template.characterScale || 1]));
@@ -215,7 +217,7 @@ export function createGame(options) {
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z) => nav.nearestFree(x, z), fightTarget: id => fight[id]?.target,
     inCombat: e => !!fight[e.id]?.target, clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  function manualCrew(e) { sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
+  function manualCrew(e) { crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
@@ -285,6 +287,7 @@ export function createGame(options) {
     const recalling = c.kind === 'move' || c.kind === 'follow';
     if (recalling && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
     crew.forEach((u, k) => {
+      if(crewJobs?.intercept(u,c))return;
       manualCrew(u);
       delete u.lootEscort;
       delete paths[u.id];
@@ -886,6 +889,8 @@ export function createGame(options) {
   const SAFE = 5;
   const sectorCleanup=createSectorCleanup({state,deployment,rally,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,downedFoe,lootable,
     startExecute,executeStep,lootStep,inCombat:e=>!!crewTarget(e),stopPath:e=>{delete paths[e.id];}});
+  crewJobs=createCrewJobs({state,deployment,rally,manual:manualCrew,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty:assignments.resume,freeSlot,
+    clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete e.lootTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;}});
   function botExecute(e) {
     const clan = state.clans?.[e.owner];
     if (!clan?.bot || e.holdFire || (state.tick + Number(e.id)) % TICK_RATE) return false;
@@ -1129,6 +1134,7 @@ export function createGame(options) {
   }
 
   function crewStep(e, unit) {
+    if(e.crewJob&&(e.dead||e.downed||e.jailed||e.deployment?.transfer||stunned(e,state.tick)))crewJobs.cancel(e);
     if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
       ||state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.recovery||state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.operation))sectorCleanup.cancel(e);
     if (e.dead || e.downed || e.jailed) return;
@@ -1140,6 +1146,7 @@ export function createGame(options) {
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     if (contracts?.scrubStep(e)) return;
     if (deployment.travelStep(e, unit)) return;
+    if(crewJobs.step(e,unit))return;
     if (e.distracted?.source && diversion.step(e, unit)) return;
     if (assignments.avoidCamping(e,unit)) return;
     if (sectorRecovery.step(e, unit)) return;
@@ -1541,12 +1548,13 @@ export function createGame(options) {
       if (c.type === 'deployment') { deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
+      if((c.type==='execute'||c.type==='loot')&&c.crewJob&&e.type==='hero'){crewJobs.command(e,c);continue;}
       if (c.type === 'execute' && e.type === 'hero') startExecute(e, c);
       if (c.type === 'loot') startLoot(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) {
         if (c.assist && Array.isArray(c.units)) for (const id of c.units) {
           const u = state.entities[id], t = state.entities[c.target];
-          if (u?.owner === e.owner && u.type !== 'hero' && !u.guard && deployment.canActAt(u, t.x, t.z, t.place)) manualCrew(u);
+          if (u?.owner === e.owner && u.type !== 'hero' && !u.guard && !u.crewJob && deployment.canActAt(u, t.x, t.z, t.place)) manualCrew(u);
         }
         if (e.execute) { giveOrder(e, { ...c, type: 'order', kind: 'attack' }); continue; }
         if (e.swing?.target !== c.target) delete e.swing;
@@ -1559,7 +1567,7 @@ export function createGame(options) {
         if (Array.isArray(c.units)) setAssistCrew(e, c.units);
         if (e.swing?.target === e.attackTarget) delete e.swing;
         delete e.attackTarget; delete e.assistCrew;
-        if (c.type === 'cancel') { delete e.execute; delete e.swing; delete e.lootTarget; delete paths[e.id]; kuroda.cancel(e); }
+        if (c.type === 'cancel') { for(const id of c.units||[]){const u=state.entities[id];if(u?.owner===e.owner)crewJobs.cancel(u);}delete e.execute; delete e.swing; delete e.lootTarget; delete paths[e.id]; kuroda.cancel(e); }
       }
       if (c.type === 'clinic' && clans) {
         const access = serviceAt(e.id, 'clinic');
