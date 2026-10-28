@@ -33,6 +33,7 @@ import { hqCampingNoticeVisit } from './hq_camping_notice.js';
 import { bindFullscreen } from './fullscreen.js';
 import { bindControlTooltips } from './control_tooltips.js';
 import { createDeploymentPanel } from './deployment_panel.js';
+import { createCharacterPanel } from './character_panel.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
@@ -189,6 +190,9 @@ async function start() {
   }
   // Crew: click / drag to select, right-click to move (Ctrl = station), right-click the hero to follow
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
+  const characterPanel = createCharacterPanel({ game, heroId, catalog, button: $('characterbtn'),
+    onOpen: () => setGameplayInput(false), onClose: () => setGameplayInput(true) });
+  onKey('KeyJ', () => characterPanel.toggle());
   const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, heroId, crewInput, send: c => pending.push(c),
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
@@ -445,6 +449,7 @@ async function start() {
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
       stealthBadge.update();
+      characterPanel.update();
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();
@@ -475,7 +480,7 @@ async function start() {
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
-    const edge = !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
+    const edge = !characterPanel.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);

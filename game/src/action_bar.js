@@ -5,6 +5,7 @@
 // appear under assigned crew; changing selection never changes their orders.
 // Only reads the state; abilities go to the rules as 'ability' commands.
 import { unitName } from './selection_panel.js';
+import { baseStats } from './sim/stats.js';
 
 const BUFFS = { rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
 
@@ -29,7 +30,7 @@ function tooltip(a, key, stats) {
 
 export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {} }) {
   const hero = () => game.state.entities[heroId];
-  const stats = { ...units.types[hero()?.type], ...units.models?.[hero()?.model] };   // the Shinobi boss has his own (units.json models)
+  const stats = game.stats?.base(hero()) || baseStats(units, hero());
   const kit = stats.abilities || {};
   const tip = document.createElement('div');
   tip.className = 'tip';
@@ -71,9 +72,10 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const buffTimers = new Map();
   const addSlot = (key, kind, a) => {
     const s = el('div', 'slot', row);
-    const t = tooltip(a, key, stats);
     el('div', 'icon', s, a ? a.name : 'Auto attack');
     s.addEventListener('mouseenter', () => {
+      const current = game.stats?.effective(hero()) || stats;
+      const t = tooltip(a, key, a ? stats : { ...current, damage: Math.round(current.damage || 0) });
       tip.innerHTML = `<b>${t.name}</b><i>${t.key}</i>` + t.lines.map(([k, v]) => `<div><span>${k}</span>${v}</div>`).join('') + `<p>${t.about}</p>`;
       tip.hidden = false;
       const r = s.getBoundingClientRect();
@@ -131,7 +133,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       if (!shown[name] || b.until > shown[name].until) shown[name] = active;
     }
     for (const [name, timer] of buffTimers) if (timer.until <= t) buffTimers.delete(name);
-    const html = Object.entries(shown).map(([n, { until, total }]) => {
+    const passiveHtml = (game.stats?.passives(h) || []).map(p => `<span class="clan-passive ${p.active ? 'active' : ''}" tabindex="0" role="img" aria-label="${p.name}" title="${p.name}: ${p.status}. ${p.description}">${p.icon === 'shield' ? '⛨' : '◉'}</span>`).join('');
+    const html = passiveHtml + Object.entries(shown).map(([n, { until, total }]) => {
       const left = Math.max(0, (until - t) / tickRate), pct = Math.max(0, Math.min(1, left / total));
       return `<span class="buff ${n}" style="--remaining:${pct * 100}%"><i></i><b>${BUFFS[n] || n}</b><small>${Math.ceil(left)}s</small></span>`;
     }).join('');

@@ -29,15 +29,13 @@ import { createSectorRecovery } from './sector_recovery.js';
 import { createShinobiIntelligence } from './shinobi_intelligence.js';
 import { clearSight } from './perception.js';
 import { distractionStep } from './distraction.js';
+import { createStats } from './stats.js';
+export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
 export const DT = 1 / TICK_RATE;
 
 // Unit types: size and speeds in world units per second (the ronin is 2 tall)
-export const UNITS = {
-  hero: { radius: 0.35, walk: 1.7, run: 6.0 },
-  civilian: { radius: 0.3, walk: 1.1, run: 2.6 },   // townsfolk (sim/civilians.js); run = fleeing
-};
 
 const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -129,6 +127,8 @@ export function createGame(options) {
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory);
+  const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
+    formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
   const opaqueStreet = scenery.filter(s => s.solid && !s.indoor && s.item?.kind === 'buildings').map(s => s.solid);
   const stealth = createStealth({ state, scenery, rules: units?.rules?.stealth,
@@ -379,9 +379,7 @@ export function createGame(options) {
       if (e.dir !== want) { e.anim = 'idle'; return true; }
     } else e.dir = want;
     // crew know their own streets: crewSpeed times as fast in their clan's territory (sim/territory.js)
-    const fast = e.type !== 'hero' && state.clans?.[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
-    const slow = e.buffs?.snared?.speed ?? 1;   // caltrops (Distract): slowed
-    const d = Math.min(unit[e.anim] * fast * slow * DT, len) / len;
+    const d = Math.min(stats.movement(e, e.anim) * DT, len) / len;
     tryMove(e, unit.radius, dx * d, 0);
     tryMove(e, unit.radius, 0, dz * d);
     return true;
@@ -574,7 +572,7 @@ export function createGame(options) {
     const want = dirIndex(t.x - e.x, t.z - e.z), diff = (want - e.dir + 8) % 8;
     if (diff) { e.dir = (e.dir + (diff <= 4 ? 1 : 7)) % 8; if (diff !== 1 && diff !== 7) { e.anim = 'idle'; return; } }
     if (f.cd > 0) { e.anim = 'idle'; return; }
-    const speed = e.buffs?.rally ? unit.attackSpeed / (e.buffs.rally.boost || 1) : unit.attackSpeed;
+    const speed = stats.attackInterval(e);
     const len = swingTicks({ ...unit, attackSpeed: speed });
     e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * STRIKE), target: t.id };
     e.anim = 'attack';
@@ -598,14 +596,13 @@ export function createGame(options) {
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
       if (fair(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
-        const dodge = Math.min(1, Math.max(0, statsOf(t).dodgeChance || 0));
+        const dodge = stats.dodgeChance(t);
         if (dodge && rng() < dodge) {
           stealth.reveal(e, true); // attempting an attack still consumes the attacker's veil
           state.dodges.push({ a: e.id, t: t.id, x: t.x, z: t.z });
         } else {
-          const bonus = Object.values(e.buffs || {}).reduce((sum, b) => sum + (b.until > state.tick ? b.critChance || 0 : 0), 0);
-          const crit = rng() < Math.min(1, Math.max(0, (unit.critChance || 0) + bonus));
-          const damage = Math.round(unit.damage * damageScale(e) * (crit ? unit.critMultiplier || 2 : 1));
+          const crit = rng() < stats.criticalChance(e);
+          const damage = Math.round(stats.damage(e) * (crit ? unit.critMultiplier || 2 : 1));
           hit(e, t, damage, crit);
           kuroda.weaponHit(e, t, damage);
         }
@@ -658,7 +655,7 @@ export function createGame(options) {
 
   function hit(a, t, damage, crit = false, kind = null) {
     // Assassinate's explicit current-health rule stays exact inside a formation.
-    if (kind !== 'assassinate') damage = Math.round(damage * kuroda.damageTaken(t));
+    if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
     t.hp = Math.max(0, t.hp - damage);
     t.hitAt = state.tick;
@@ -669,7 +666,7 @@ export function createGame(options) {
     // this tick's hits, for damage numbers and effects (cleared every tick)
     state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
     // Red Lantern: heal part of the damage dealt
-    const steal = a.buffs?.lantern?.lifesteal;
+    const steal = stats.lifesteal(a);
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
     if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
     if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
@@ -891,17 +888,9 @@ export function createGame(options) {
 
   // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
   function regen() {
-    const r = units?.rules, rate = r?.regenPerSecond || 0, wait = (r?.regenAfterSeconds || 0) / DT;
-    if (!rate && !r?.hideout?.restPerSecond) return;
-    const rest = r?.hideout?.restPerSecond || 0;   // resting in your own hideout: faster, free
     for (const e of Object.values(state.entities)) {
-      if (e.dead || e.downed || !e.maxHp || e.hp >= e.maxHp || state.tick - (e.hitAt ?? -Infinity) < wait) continue;
-      // in your own territory (sim/territory.js) the slow healing runs healFactor times as fast
-      const k = territory.inOwn(e) ? territory.rules.healFactor : 1;
-      const fieldRest = e.place === 'street' && !e.swing && !e.execute
-        && state.tick - (e.foughtAt ?? -Infinity) >= wait;
-      const clanRate = state.clans?.[e.owner]?.faction === 'kuroda' && fieldRest ? 2 : 1;
-      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * (rate * k * clanRate + (rest && atHome(e) ? rest : 0)) * DT);
+      if (e.dead || e.downed || !e.maxHp || e.hp >= e.maxHp) continue;
+      e.hp = Math.min(e.maxHp, e.hp + stats.regeneration(e).current * DT);
     }
   }
 
@@ -913,10 +902,7 @@ export function createGame(options) {
   // draw them. Buffs and the dash are cleared when a unit goes down.
   const secs = s => Math.round(s / DT);
   function damageScale(a) {
-    let k = 1;
-    if (a.buffs?.lantern) k *= a.buffs.lantern.damage || 1;
-    if (a.buffs?.intimidated) k *= a.buffs.intimidated.damage || 1;
-    return k;
+    return stats.damageMultiplier(a);
   }
   function addBuff(e, name, seconds, extra = {}) { (e.buffs ||= {})[name] = { until: state.tick + secs(seconds), ...extra }; }
 
@@ -1340,9 +1326,7 @@ export function createGame(options) {
   // Speeds and size: the hero and townsfolk from UNITS, crew from units.json
   // statsOf(type), or statsOf(unit): a unit's own sprite can override its type's numbers (units.json "models", the Shinobi boss)
   function statsOf(t) {
-    if (typeof t !== 'object' || !t) return { ...units?.types[t], ...UNITS[t] };
-    return { ...units?.types[t.type], ...UNITS[t.type], ...units?.models?.[t.model],
-      ...(t.wild && !t.camp ? banditData?.types?.[t.type]?.roamerStats : {}) };
+    return stats.base(t);
   }
 
   const civilians = createCivilians({
@@ -1576,8 +1560,7 @@ export function createGame(options) {
       delete e.lootTarget;
       e.anim = c.walk ? 'walk' : 'run';
       e.dir = dirIndex(dx, dz);
-      const pursuit = e.anim === 'run' && (e.buffs?.pursuit?.until ?? 0) > state.tick ? e.buffs.pursuit.runSpeed : 1;
-      const d = unit[e.anim] * pursuit * (e.buffs?.snared?.speed ?? 1) * DT / len;
+      const d = stats.movement(e, e.anim) * DT / len;
       tryMove(e, unit.radius, dx * d, 0);
       tryMove(e, unit.radius, 0, dz * d);
     }
@@ -1698,5 +1681,5 @@ export function createGame(options) {
     if ((dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) && deployment.canOccupy(e, x, z)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, stats };
 }

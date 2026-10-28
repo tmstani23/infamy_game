@@ -1,0 +1,52 @@
+#characterpage { position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:24px; background:rgba(4,7,10,.7); color:#e6dfcf; font:13px/1.45 system-ui,sans-serif; }
+#characterpage[hidden] { display:none; }
+#characterpage { --hero-accent:#d8b56c; --hero-halo:#9b762b33; }
+#characterpage[data-clan="kuroda"] { --hero-accent:#d69477; --hero-halo:#9a463433; }
+#characterpage[data-clan="shinobi"] { --hero-accent:#b69ae5; --hero-halo:#75559e44; }
+#characterpage .character-window { width:min(860px,calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:auto; background:#10151a; border:1px solid #514a3d; border-top:2px solid var(--hero-accent); border-radius:10px; box-shadow:0 24px 80px #000a; }
+#characterpage header { display:flex; justify-content:space-between; align-items:center; padding:16px 22px; border-bottom:1px solid #303238; background:#151b21; }
+#characterpage .character-eyebrow { color:var(--hero-accent); letter-spacing:.16em; font-size:10px; }
+#characterpage h2 { margin:2px 0 0; font-size:22px; font-weight:500; }
+#characterpage button { border:1px solid #61543e; border-radius:4px; background:#20262d; color:#eadfc6; padding:6px 10px; cursor:pointer; }
+#characterpage .character-layout { display:grid; grid-template-columns:240px minmax(0,1fr); }
+#characterpage aside { padding:20px; border-right:1px solid #303238; background:linear-gradient(180deg,var(--hero-halo),#11171d 65%); }
+#characterpage .hero-art { aspect-ratio:1; display:grid; place-items:center; background:radial-gradient(ellipse,var(--hero-halo),transparent 70%); }
+#characterpage .hero-sprite { width:100%; aspect-ratio:1; background-repeat:no-repeat; background-position:0 57.142857%; }
+#characterpage .hero-clan { display:block; margin-top:10px; color:var(--hero-accent); font-size:11px; text-transform:uppercase; letter-spacing:.15em; }
+#characterpage .hero-name { margin:5px 0 15px; font-size:20px; font-weight:500; }
+#characterpage .character-health { height:5px; background:#2b3339; border-radius:4px; overflow:hidden; }
+#characterpage .character-health div { height:100%; background:#88b18b; }
+#characterpage .character-hp { display:block; margin:7px 0 20px; color:#b9c2be; font-variant-numeric:tabular-nums; }
+#characterpage main { min-width:0; padding:20px 22px; }
+#characterpage h3 { font-size:14px; font-weight:500; }
+#characterpage .stat-heading,#characterpage .character-stat { display:grid; grid-template-columns:minmax(125px,1fr) 80px 80px 90px; gap:8px; align-items:center; }
+#characterpage .stat-heading { color:#9b9c98; font-size:10px; text-align:right; border-bottom:1px solid #3c3b36; padding-bottom:8px; }
+#characterpage .stat-heading h3 { margin:0; text-align:left; color:#e8dfc9; }
+#characterpage .character-stat { padding:9px 0; border-bottom:1px solid #252c31; font-variant-numeric:tabular-nums; }
+#characterpage .character-stat > :not(:first-child) { text-align:right; }
+#characterpage .character-stat > span:first-child { color:#c6c6bd; }
+#characterpage .character-stat strong { font-weight:500; }
+#characterpage .stat-modifier { color:#737f85; font-size:12px; }
+#characterpage .positive { color:#a5d8a4; }
+#characterpage .negative { color:#edab96; }
+#characterpage .stat-modifier.positive,#characterpage .modified.positive { text-shadow:0 0 10px #8bcf7d55; }
+#characterpage .stat-modifier.negative,#characterpage .modified.negative { text-shadow:0 0 10px #ed927555; }
+#characterpage .character-passive { border-top:1px solid #3c3b36; padding-top:12px; margin-top:14px; }
+#characterpage .character-passive b { display:block; font-weight:500; color:var(--hero-accent); }
+#characterpage .character-passive small { color:#9bafa0; }
+#characterpage .character-passive p { color:#a6afb3; font-size:12px; margin:7px 0; }
+#characterpage .character-passive.active b { text-shadow:0 0 10px var(--hero-accent); }
+#characterpage .character-abilities { margin-top:20px; }
+#characterpage .character-abilities h3 { margin:0 0 10px; }
+#characterpage details { padding:9px 0; border-top:1px solid #303238; }
+#characterpage summary { display:flex; align-items:center; gap:9px; cursor:pointer; }
+#characterpage kbd { display:grid; place-items:center; width:24px; height:24px; border:1px solid #665944; border-radius:4px; color:var(--hero-accent); }
+#characterpage summary b { font-weight:500; flex:1; }
+#characterpage summary span { font-size:11px; color:#a3a9ab; }
+#characterpage details p { margin:10px 0 2px 33px; color:#adb6ba; font-size:12px; }
+#characterpage footer { padding:12px 22px; border-top:1px solid #303238; color:#939d9f; font-size:11px; }
+@media(max-width:720px) { #characterpage { padding:10px; } #characterpage .character-window { width:calc(100vw - 20px); max-height:calc(100vh - 20px); } #characterpage .character-layout { grid-template-columns:1fr; } #characterpage aside { display:grid; grid-template-columns:90px 1fr; column-gap:16px; border-right:0; border-bottom:1px solid #303238; } #characterpage .hero-art { grid-row:span 4; } #characterpage .hero-name { margin:2px 0 8px; } #characterpage .character-passives { grid-column:1/-1; } #characterpage .character-hp { margin-bottom:0; } #characterpage .stat-heading,#characterpage .character-stat { grid-template-columns:minmax(100px,1fr) 65px 60px 80px; gap:5px; } #characterpage main { padding:15px; } }
+@media(prefers-reduced-motion:reduce) { #characterpage * { animation:none; transition:none; } }
+#bar .clan-passive { display:inline-grid; place-items:center; width:30px; height:30px; border:1px solid #827153; border-radius:50%; color:#d9c395; background:#141a20; font:22px/1 Georgia,serif; }
+#bar .clan-passive.active { border-color:#a4d599; color:#bce4aa; box-shadow:0 0 9px #8ac77b55; }
+@media(max-width:420px) { #characterpage .stat-heading,#characterpage .character-stat { grid-template-columns:minmax(80px,1fr) 50px 52px 65px; gap:3px; font-size:11px; } #characterpage .stat-modifier { font-size:11px; } }

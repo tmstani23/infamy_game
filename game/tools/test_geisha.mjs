@@ -41,7 +41,7 @@ assert.equal(actor.geishaMode,'fleeing','threatened geisha flees');
 hunter.dead=true;const catcher=fresh(.9,{holdFire:true,order:{kind:'stop'}});const hp0=catcher.hp;
 for(let i=0;i<60;i++){actor.cornered=st.tick-DIVERSION.cornerTicks;Object.assign(catcher,{x:actor.x+.9,z:actor.z});g.step();}
 assert.equal(actor.geishaMode,'fighting','cornered geisha fights back');
-assert.ok(catcher.hp<=hp0-28,'her strikes are deadly');
+assert.ok(catcher.hp<=hp0-units.types.shinobi_geisha.damage,'cornered geisha lands damage at her configured strength');
 assert.doesNotThrow(()=>JSON.stringify(st));
 // A charmed geisha must stand still even when she could charm, flee or fight.
 {
