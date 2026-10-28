@@ -210,3 +210,7 @@ Phase 5B checkpoint (2026-10-27, reported by Build coordinator): shared `indoorL
 Global badge has stronger WALK/RUN cues, running amber dashed ring and HIDDEN/AT RISK/SEEN text/eye/outline. Steal/Sabotage tracker labels actual stages/progress and hidden double-speed work. Planted sabotage retains ground circle plus large floating **MARK PLANTED** seal; mechanics unchanged.
 
 New `test_indoor_stealth` passed daytime room snuff, other-room isolation, actual half-range/dawn relight and teahouse entry connectivity. Stealth perception, Ninja and hidden-contract bonus passed; render syntax passed. A nonexistent `test_stealth_hud` invocation was a path mistake, not a passing test; actual badge coverage is in `test_hidden_contract_bonus`. No visual test claimed.
+
+### Contract tracker robustness (2026-10-28)
+
+Tracker update and boss-hunt click paths now safely tolerate absent deployment data, using guarded lookups rather than accessing `state.deployment.clans` unconditionally. Build coordinator reports explicit missing-deployment regression coverage in `test_shinobi_hq_raid` passed after the fix. No contract mechanic or manual-playtest completion is claimed.

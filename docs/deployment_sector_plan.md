@@ -485,3 +485,11 @@ All checks below are **unperformed**. Start a fresh match; use regular clan for 
 ### Issue report
 
 Test number; clan; setup/location; expected → actual; reproducibility (always/sometimes, steps); optional screenshot/video or console error. State whether a fresh match/reload changes it. Leave failed or untested checkboxes unchecked.
+
+## Pre-playtest simulation validation (2026-10-28)
+
+Build coordinator reports new bounded `game/tools/test_playtest_sim.mjs` passed 260 seconds each for Yakuza, Kuroda and Shinobi (thirteen simulated minutes total), with medium rival bots, actual town/civilians/police/bandits and four staffed sectors. Coverage includes legal transfers, full three-minute Rally expiry, automatic night transition, finite position/health, hero-group cap, no non-Rally transfer attacks, supported duties and serialization.
+
+Fourteen focused scripts passed: deployment panel flow, transfers, manual release, sector playtest, Ambush, recovery, target controls, door pursuit, indoor stealth, geisha, Rally, Shinobi HQ raid, automation and deployment AI. HQ raid rerun passed after explicit missing-deployment tracker/click regressions; [contract owner note](ninja_clan_plan.md#contract-tracker-robustness-2026-10-28). Syntax/scoped diff checks passed.
+
+These are bounded sim/logic results, not browser, visual, manual-playtest or full-match balance approval. All manual checklist boxes above remain unchecked.

@@ -34,7 +34,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
   });
   tracker.addEventListener?.('click', e => {
     if (!e.target.closest('[data-ambush-contract]')) return;
-    const c = clan(), job = c && C().active[c.id], hunt = c && game.state.deployment.clans[c.id]?.hunt;
+    const c = clan(), job = c && C().active[c.id], hunt = c && game.state.deployment?.clans?.[c.id]?.hunt;
     if (job?.kind === 'boss') send({ id: heroId, type: 'deployment', action: hunt?.target === job.hero ? 'cancelAmbush' : 'armAmbush', target: job.hero });
     e.stopPropagation();
   });
@@ -57,7 +57,8 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     panel.hidden = !open;
     // the tracker: the job you hold, until dawn
     const job = c && C().active[c.id];
-    const hunt=c&&game.state.deployment.clans[c.id]?.hunt, committed=hunt?.committedSector&&game.state.deployment.clans[c.id].sectors[hunt.committedSector];
+    const deployment=c&&game.state.deployment?.clans?.[c.id];
+    const hunt=deployment?.hunt, committed=hunt?.committedSector&&deployment.sectors?.[hunt.committedSector];
     const hunting=job?.kind==='boss'&&hunt?.target===job.hero;
     const huntStatus=hunting?(committed?`${committed.recovery?.state||committed.operation?.state||'Engaging'} · ${hunt.committedSector}`:'Hunt armed · waiting for a local sighting'):'Your sectors can hunt this boss when they spot him';
     const locked = c ? Math.max(0, Math.ceil((contractLockoutUntil(game.state, c.id) - game.state.tick) / 20)) : 0;

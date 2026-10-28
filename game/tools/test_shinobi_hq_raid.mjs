@@ -181,7 +181,7 @@ for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
 
 {
   const panel = { addEventListener() {}, innerHTML: '', hidden: true };
-  const tracker = { innerHTML: '', hidden: true }, sent = [];
+  const tracker = { innerHTML: '', hidden: true, handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } }, sent = [];
   const h = { id: 'h', owner: 's' }, clan = { id: 's', renown: 0 };
   const game = { state: { tick: 0, entities: { h }, clans: { s: clan },
     hqRaids: { hq: { defender: 's', suppressedUntil: 3600, protectedUntil: 15600 } },
@@ -199,6 +199,10 @@ for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
   assert.equal(tracker.hidden, true);
   assert.ok(panel.innerHTML.includes('>Take<'), 'board reopens at the recovery tick');
   assert.equal(sent[0].job, 1);
+  game.state.contracts.active.s = { kind: 'boss', hero: 'rival', label: 'Boss job' };
+  assert.doesNotThrow(() => menu.update(), 'contract tracker tolerates absent deployment state');
+  tracker.handlers.click({ target: { closest: () => true }, stopPropagation() {} });
+  assert.equal(sent.at(-1).action, 'armAmbush', 'boss hunt click also tolerates absent deployment state');
 }
 console.log('Shinobi HQ: eligibility, warmup, entry isolation/caps, contested hold, no takeover, camping exemption and defense passed');
 
