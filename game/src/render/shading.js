@@ -261,6 +261,28 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
   });
 }
 
+// Narrow pale-hot channels surrounded by crimson emission. Ribbon UVs run
+// across each branch, so the core stays thin instead of becoming a red outline.
+export function weaponLightningMaterial(spriteUniforms) {
+  return new THREE.ShaderMaterial({
+    uniforms:{uFrame:spriteUniforms.uFrame,uDepthAt:spriteUniforms.uDepthAt,uOpacity:spriteUniforms.uOpacity,uPower:{value:0}},
+    vertexShader:SPRITE_VERT,
+    fragmentShader:/* glsl */`
+      uniform vec4 uFrame;
+      uniform float uOpacity;
+      uniform float uPower;
+      varying vec2 vUv;
+      void main(){
+        float side=2.0*(vUv.x-uFrame.x)/uFrame.z-1.0;
+        float halo=exp(-side*side*4.5);
+        float core=exp(-side*side*100.0);
+        vec3 color=vec3(1.0,0.006,0.045)*halo*0.75+vec3(1.0,0.68,0.65)*core*1.9;
+        gl_FragColor=vec4(color*uPower*uOpacity,1.0);
+      }`,
+    transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  });
+}
+
 export function spriteMaterial(map, extra = {}) {
   return new THREE.ShaderMaterial({
     uniforms: {

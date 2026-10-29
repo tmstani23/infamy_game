@@ -97,3 +97,11 @@ Existing female leader uses one-handed yari and compact shield; exclusive spearm
 ## Brute looks (2026-10-29)
 
 The hireable Brute uses the demolitions look; the night brutes use the lookout look.
+
+## Kuroda hero blade/lightning (2026-10-28)
+
+Hero `rival_yakuza` only: twelve production color/glow sheets re-exported across six clips using `spear_hero`, length 2.05/grip 0.36, broader leaf head (normalized 0.66–1, about 88% longer blade), crimson ridge/gold edge. Recruit spearman geometry/config is unchanged. Previous twelve hero sheets preserved in `assets/sprites_archive/2026-10-28_hero_blade/` (about 10 MB).
+
+`weapon_lightning.js`/`weapon_lightning_pattern.js` replace this hero's shimmer/trail with quiet crimson base and pale-hot branching red discharges: uneven leader steps, thinner rooted forks, rapid pulses and stronger thrusts. Blade-mask axis is read once per sheet; reusable mesh/buffers disposed with sprite. Respect opacity/depth; suppress on death/missing mask. Rules/stats unchanged.
+
+Build coordinator reports lightning/assets checks passed, offline margin check found zero clipped poses, syntax/diff checks clean. User-requested offline actual-CharacterSprite animation preview ran without renderer errors; this is not browser/full-gameplay testing. Generated preview outputs remain local review artifacts, not production assets.

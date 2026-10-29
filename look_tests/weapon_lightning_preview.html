@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8"><base href="../game/">
+<title>Kuroda spear — actual game renderer</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js"}}</script>
+<style>body{margin:0;background:#151b26}canvas{display:block}</style>
+<script type="module">
+import * as THREE from 'three';
+import {CharacterSprite,loadSheets} from './src/render/characters.js';
+import {VIEW_DIR} from './src/render/iso.js';
+import {shared} from './src/render/shading.js';
+const catalog=await fetch('data/art.json').then(r=>r.json());
+const sprite=new CharacterSprite(await loadSheets(catalog,'rival_yakuza'));
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(512,512);renderer.setClearColor(0x202735);document.body.append(renderer.domElement);
+const scene=new THREE.Scene();scene.add(sprite.thing.mesh);
+sprite.thing.mesh.renderOrder=1;
+sprite.thing.extras.forEach((m,i)=>m.renderOrder=2+i);
+const camera=new THREE.OrthographicCamera(-2.4,2.4,2.4,-2.4,.1,60);
+const target=new THREE.Vector3(0,.9,0);camera.position.copy(target).addScaledVector(VIEW_DIR,15);camera.lookAt(target);
+shared.uNight.value=.2;
+let previous=0;
+window.weaponPreview={
+  ready:true,
+  frame(t){
+    const dt=Math.max(0,t-previous);previous=t;
+    const phase=t%3,attacking=phase>=1.35&&phase<2.35;
+    sprite.update(dt,0,0,2,attacking?'attack':'idle',attacking?(phase-1.35):null);
+    sprite.material.uniforms.uDepthAt.value.w=0;
+    renderer.render(scene,camera);
+    return renderer.domElement.toDataURL('image/png');
+  },
+};
+let time=0;function tick(){time+=1/60;window.weaponPreview.frame(time);requestAnimationFrame(tick);}
+if(!new URLSearchParams(location.search).has('capture'))tick();
+</script>

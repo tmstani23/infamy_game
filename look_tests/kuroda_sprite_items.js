@@ -2,7 +2,7 @@
 // with a blade-only glow mask; character bodies and source clips are preserved.
 import * as THREE from 'three';
 
-export function buildSpear(std) {
+export function buildSpear(std, hero = false) {
   const g = new THREE.Group();
   const wood = std({ color: 0x38241e, roughness: 0.78, metalness: 0.05 }, [0x91736a, 0.25]);
   const iron = std({ color: 0x363139, roughness: 0.38, metalness: 0.7 }, [0xffc078, 0.35]);
@@ -13,24 +13,28 @@ export function buildSpear(std) {
     m.rotation.x = Math.PI / 2; m.position.z = (from + to) / 2;
     m.userData.noWeaponGlow = true; g.add(m); return m;
   };
-  cylinder(0.012, 0.015, 0.80, wood);
+  const neck = hero ? 0.66 : 0.80;
+  cylinder(0.012, 0.015, neck, wood);
   cylinder(0.016, 0, 0.025, iron);
   cylinder(0.016, 0.20, 0.42, cord);
   for (let z = 0.21; z < 0.42; z += 0.018) cylinder(0.017, z, z + 0.005, iron);
-  cylinder(0.019, 0.77, 0.815, gold);
+  cylinder(0.019, neck - 0.03, neck + 0.015, gold);
   const blade = new THREE.Shape();
-  blade.moveTo(0, 0.80); blade.lineTo(-0.035, 0.84); blade.lineTo(-0.027, 0.91);
-  blade.lineTo(0, 1); blade.lineTo(0.027, 0.91); blade.lineTo(0.035, 0.84); blade.closePath();
+  const outline = hero
+    ? [[0,neck],[-0.027,0.69],[-0.052,0.72],[-0.039,0.80],[-0.022,0.91],[0,1],[0.022,0.91],[0.039,0.80],[0.052,0.72],[0.027,0.69]]
+    : [[0,neck],[-0.035,0.84],[-0.027,0.91],[0,1],[0.027,0.91],[0.035,0.84]];
+  outline.forEach(([x,z], i) => i ? blade.lineTo(x,z) : blade.moveTo(x,z)); blade.closePath();
   const geo = new THREE.ExtrudeGeometry(blade, { depth: 0.009, bevelEnabled: true, bevelSize: 0.003, bevelThickness: 0.003, bevelSegments: 1, steps: 1 });
   // Shape xy -> spear xz, with a small physical thickness.
   geo.rotateX(Math.PI / 2);
   const leaf = new THREE.Mesh(geo, std({ color: 0x71656b, metalness: 0.7, roughness: 0.25, emissive: 0x57101b, emissiveIntensity: 0.65 }, [0xffa76a, 0.8]));
   g.add(leaf);
-  const edgePoints = [[0,0.802],[-0.035,0.84],[-0.027,0.91],[0,1],[0.027,0.91],[0.035,0.84],[0,0.802]];
+  const edgePoints = [...outline, outline[0]];
   const curve = new THREE.CatmullRomCurve3(edgePoints.map(([x,z]) => new THREE.Vector3(x,-0.009,z)), false, 'centripetal');
   g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 36, 0.0018, 4, false), gold));
-  const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.13), new THREE.MeshStandardMaterial({ color: 0xb22939, emissive: 0xc41c35, emissiveIntensity: 0.8 }));
-  ridge.position.set(0,-0.009,0.88); g.add(ridge);
+  const ridgeLength = hero ? 0.255 : 0.13;
+  const ridge = new THREE.Mesh(new THREE.BoxGeometry(hero ? 0.006 : 0.004, 0.008, ridgeLength), new THREE.MeshStandardMaterial({ color: 0xb22939, emissive: 0xc41c35, emissiveIntensity: 0.8 }));
+  ridge.position.set(0,-0.009,hero ? 0.815 : 0.88); g.add(ridge);
   return g;
 }
 

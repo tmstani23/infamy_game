@@ -425,7 +425,7 @@ function buildJitte() {
   const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
   return g;
 }
-const PROC_ITEMS = { club: buildClub, katana: buildKatana, jitte: buildJitte, spear: () => buildSpear(std) };
+const PROC_ITEMS = { club: buildClub, katana: buildKatana, jitte: buildJitte, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true) };
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
 // Hand distance (in character heights / 2) below which both hands hold the
