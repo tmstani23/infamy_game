@@ -39,6 +39,8 @@ import { createGameSettings } from './game_settings.js';
 import { createGameMusic } from './game_music.js';
 import { bindGameShell } from './game_shell.js';
 import { createSelectionDock } from './selection_dock.js';
+import { createNewsCallouts } from './news_callouts.js';
+import { createTopBar } from './top_bar.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
@@ -352,6 +354,8 @@ async function start() {
     resume(){document.body.classList.remove('map-active');prev=snapshot(game.state);view.setPresentationActive(true);fog.update(100);}
   });
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),worldResources:{...view.renderer.info.memory}});
+  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults });
+  const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, scoreText });
   let acc = 0, last = performance.now() / 1000;
   view.renderer.setAnimationLoop(() => {
     fps.frame();
@@ -441,54 +445,7 @@ async function start() {
       }
       // big moments (Tim 2026-10-19): a rival boss knocked out or arrested where you can see him,
       // and a War Lantern knocked down in a raid you are in; shown one after another at the top
-      for (const n of game.state.news) {
-        const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
-        if(n.kind==='shakedownAlert'&&n.defender===me){callout(`Shakedown at your ${n.name}! Defend the front room!`,'loss',4000);minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}
-        if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);
-        if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);
-        if(n.kind==='shakedownPaid'&&n.clan===me)callout(`Shakedown paid: +${n.ryo} ryo`,'win');
-        if (n.kind === 'leaderBounty' && n.clan === me) callout(`${n.reason} · +${n.amount} ryo`, 'win');
-        if (n.kind === 'unstuck' && n.clan === me) { console.info('[stuck spot]', n.place, n.x.toFixed(1), n.z.toFixed(1)); callout('Back inside your HQ', 'win'); }
-        if (n.kind === 'businessAttack' && n.clan === me) callout(`Your ${n.name} is under attack!`, 'loss');
-        if (n.kind === 'hqSuppressed' && n.defender === me) callout(`HQ on fire! Contracts cancelled · reopen in ${Math.max(0, Math.ceil((n.suppressedUntil - game.state.tick) / TICK_RATE))} s`, 'loss');
-        if (n.kind === 'hqSuppressed' && n.raider === me) callout(`Shinobi HQ defeated! +${n.points} points · +${n.bounty + n.stolen} ryo`, 'win');
-        if (n.kind === 'raidWon') {   // every clan sees it (Tim 2026-10-26)
-          const clanName = id => id === me ? 'Your clan' : game.state.clans[id]?.name || 'A rival clan';
-          const whose = n.defender === me ? 'your' : `${game.state.clans[n.defender]?.name || 'a rival clan'}'s`;
-          callout(`${clanName(n.raider)} successfully raided ${whose} ${n.hq ? 'HQ' : n.name.replace(/^The /, '')}!`, n.raider === me ? 'win' : n.defender === me ? 'loss' : 'news');
-        }
-        if (n.kind === 'hqRecovered' && n.clan === me) callout('HQ fire extinguished · contracts available · HQ protected for a full day/night cycle', 'news');
-        if (n.kind === 'bossDown' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss knocked out!`, n.by === me ? 'win' : 'news');
-        if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
-        if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');
-        if (n.kind === 'lanternDown' && n.raider === me) callout('Your War Lantern was destroyed', 'loss');
-        if (n.kind === 'doorsOpen' && n.raider === me) callout('The doors are open: get inside!', 'news');
-        if (n.kind === 'backRoom' && n.state === 'taking' && n.defender === me) callout('Your back room is being taken!', 'loss');
-        if (n.kind === 'backRoom' && n.state === 'contested' && (n.defender === me || n.raider === me)) callout('Back room contested!', 'news');
-        if (!presentation.map && n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
-        // territory (sim/territory.js): rivals walking into your streets, quarters held whole, the season's end
-        if (n.kind === 'intruder' && n.clan === me) { callout('Rivals in your territory!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'sectorContact' && n.clan === me) {
-          const name = game.state.deployment.sectors.find(s => s.id === n.sector)?.name || n.sector;
-          callout(`${n.priority ? 'Contract target' : 'Enemy'} entered ${name}`, 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z);
-        }
-        if (n.kind === 'diversionWarning' && n.clan === me) { callout('Shinobi diversion nearby — order crew away or interrupt the dancer', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'quarter' && n.clan === me) callout(`You hold the ${n.name.replace(/^The /, '')}!`, 'win');
-        if (n.kind === 'quarterLost' && n.clan === me) callout(`You lost the ${n.name.replace(/^The /, '')}`, 'loss');
-        if (n.kind === 'quarter' && n.clan !== me && game.territory.quarters.find(q => q.id === n.quarter)?.businesses.every(id => game.vision.grid(me).explored[game.vision.cellOf(game.state.businesses[id].x, game.state.businesses[id].z)] === 1))
-          callout(`${game.state.clans[n.clan]?.name || 'A rival'} holds the ${n.name.replace(/^The /, '')}`, 'news');
-        if (n.kind === 'seasonEnd') showResults();
-        // Shinobi contracts (sim/contracts.js): taken, done, failed; and warnings when one is aimed at you
-        if (n.kind === 'contractTaken' && n.clan === me && n.x != null) { minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'contractDone' && n.clan === me) contractCallout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win');
-        if (n.kind === 'contractFailed' && n.clan === me) contractCallout(`Contract failed: ${n.why}`, 'loss');
-        if (n.kind === 'contractFailedOnYou' && n.clan === me) contractCallout(`A Shinobi ${n.contractType} contract against you failed`, 'win');
-        if (n.kind === 'contractWarn' && n.clan === me) contractCallout('Word is the Shinobi took a job on you');
-        if (n.kind === 'stealAlert' && n.by === me) contractCallout('Spotted! The alarm is up, keep taking the ryo', 'loss');
-        if (n.kind === 'stealAlert' && n.clan === me) { contractCallout(`A Shinobi is inside your ${n.place || 'business'}!`, 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'markAlert' && n.clan === me) { contractCallout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-        if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
-      }
+      newsCallouts.update();
       if (!presentation.map && game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
       if (!presentation.map && game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
       if (!presentation.map && game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
@@ -509,25 +466,7 @@ async function start() {
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();
-      { const r = game.rally.status(game.state.entities[heroId].owner), b = $('rallybtn');
-        b.disabled = r.active || r.cooldown > 0; b.textContent = r.active ? `Rally · ${r.seconds}s` : r.cooldown ? `Rally · ${r.cooldown}s` : 'Call Rally';
-        b.title = 'Calls your remembered groups (all groups on first use). Configure groups in Deployment.'; }
-      { const s = game.unstuck.status(game.state.entities[heroId]), b = $('unstuckbtn');
-        const t = s.channel ? `Unstuck · ${s.channel}s` : s.cooldown ? `Unstuck · ${Math.floor(s.cooldown / 60)}:${String(s.cooldown % 60).padStart(2, '0')}` : 'Unstuck (U)';
-        if (b.textContent !== t) b.textContent = t;
-        b.title = s.channel ? 'Hold still: going back to your HQ (U again cancels)' : s.why || 'Stand still 3 s to go back inside your HQ (once per 5 min)'; }
-      // in jail (sim/police.js): big red banner with the time left
-      const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');
-      jailEl.hidden = !jailed;
-      if (jailed) { const t = `IN JAIL<small>out in ${Math.max(0, Math.ceil((jailed.until - game.state.tick) / TICK_RATE))}s</small>`; if (jailEl.innerHTML !== t) jailEl.innerHTML = t; }
-      heatBadge.update();
-      ryoBadge.update();
-      if (game.state.tick % 10 === 0) {
-        const t = scoreText(); if ($('score').innerHTML !== t) $('score').innerHTML = t;
-        // hover: where each clan's points come from (sim/territory.js breakdown)
-        const why = game.territory ? game.territory.standings().map(r => `${r.clan === 'player' ? 'You' : game.state.clans[r.clan]?.name}: ${game.territory.breakdown(r.clan).map(x => `${x.label} ${x.points}`).join(' + ') || 'no businesses'} = ${r.score}`).join('\n') : '';
-        if ($('score').title !== why) $('score').title = why;
-      }
+      topBar.update();
       crewInput.update();
       selPanel.update();
       unitFrames.update();

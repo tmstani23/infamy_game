@@ -124,6 +124,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | File | Job |
 |---|---|
 | `main.js` | Wires everything together and runs the loop above. |
+| `news_callouts.js` | `createNewsCallouts`: per-tick `state.news` callouts and pings (split from main.js 2026-10-29). |
+| `top_bar.js` | `createTopBar`: Rally and Unstuck buttons, jail banner, heat/ryo badges, season score (split from main.js). Both are created before the loop; `.update()` runs each frame. |
 | `input.js` | Keyboard to commands (WASD hero move) and view keys. |
 | `crew_input.js` | RTS mouse control: select, right-click move/attack/follow, attack-move. Selection is screen-only. |
 | `hire_menu.js` | Teahouse hire panel and the crew HUD line; sends `hire` commands. |
