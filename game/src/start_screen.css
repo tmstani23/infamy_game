@@ -47,6 +47,11 @@ body.prematch > :not(#startscreen):not(#loading):not(script) { visibility: hidde
 #startscreen .start-play span { margin-left: 20px; }
 #startscreen .start-play:hover { background: linear-gradient(140deg, #f3d9aa, #caa064); }
 #startscreen .start-play:disabled { opacity: .6; cursor: wait; }
+#startscreen .start-music { display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px;color:#9eaaaF;font-size:11px; }
+#startscreen .start-music-toggle { background:rgba(10,16,23,.7);border-color:rgba(222,200,163,.2);font-size:11px;padding:6px 10px; }
+#startscreen .start-music-title { color:#bfab86; }
+#startscreen .start-music label { display:flex;align-items:center;gap:8px; }
+#startscreen .start-music-volume { width:100px;accent-color:#caa064; }
 @keyframes harbor-drift { from { transform: scale(1); } to { transform: scale(1.04) translateX(-.7%); } }
 @keyframes harbor-light { 0%, 100% { opacity: .5; } 38% { opacity: .85; } 72% { opacity: .65; } }
 @keyframes harbor-rain { from { background-position: 0 0; } to { background-position: -70px 390px; } }

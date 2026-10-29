@@ -1,4 +1,5 @@
 import { CLAN_CHOICES, DIFFICULTY_CHOICES, matchOptions } from './sim/match_options.js';
+import { createMenuMusic } from './menu_music.js';
 
 const STORAGE = 'infamy.start-options';
 export function savedMatchOptions(defaultDifficulty = 'easy') {
@@ -23,7 +24,17 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       <p class="start-difficulty-note" aria-live="polite"></p></fieldset>
     <div class="start-footer"><div><p class="start-loadout" aria-live="polite"></p><p class="start-season">${cycles}-day season · two rival clans</p></div>
       <button class="start-play" type="submit">Start game <span aria-hidden="true">→</span></button></div>
-    </form></div>`;
+    </form><div class="start-music"><button class="start-music-toggle" type="button">Play music</button>
+    <span class="start-music-title"></span><label>Music volume <input class="start-music-volume" aria-label="Intro music volume" type="range" min="0" max="100" step="1"></label></div></div>`;
+  const musicButton=root.querySelector('.start-music-toggle'),musicVolume=root.querySelector('.start-music-volume');
+  function renderMusic(s){
+    musicButton.textContent=s.unavailable?'Music unavailable':s.playing?'Pause music':'Play music';
+    musicButton.disabled=s.unavailable;musicButton.setAttribute('aria-pressed',String(s.playing));
+    root.querySelector('.start-music-title').textContent=s.track.title;musicVolume.value=Math.round(s.volume*100);
+  }
+  const music=createMenuMusic({onChange:renderMusic});renderMusic(music.status());
+  musicButton.addEventListener('click',()=>music.toggle());
+  musicVolume.addEventListener('input',()=>music.setVolume(Number(musicVolume.value)/100));
   for (const c of CLAN_CHOICES) {
     const ctx = root.querySelector(`[data-crest="${c.id}"]`).getContext('2d');
     ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(36,36,33,0,Math.PI*2); ctx.fill();
@@ -47,6 +58,7 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       form.querySelector('button').disabled = true;
       try { sessionStorage.setItem(STORAGE, JSON.stringify(options)); } catch {}
       root.hidden = true; loading.hidden = false;
+      music.stop();
       resolve(options);
     }, { once: true });
   });
