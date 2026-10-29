@@ -1,3 +1,4 @@
+import { charmProtected } from './charm_rules.js';
 // Shinobi bot clan brain (Tim 2026-10-20: 3 clans, the two you don't play are bots). A client like
 // sim/bot.js: it reads the state, sees only what its clan sees (sim/vision.js) and sends the same
 // commands as a Shinobi player ('move', 'use', 'hire', 'contract', 'attack', 'order', 'ability',
@@ -42,7 +43,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const shrine = () => game.doors.find(d => d.menu === 'contracts');
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
   const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u) && inHeroParty(game, u));
-  const sees = e => game.vision.canSee(clan, e);
+  const sees = e => game.vision.canSee(clan, e)&&!charmProtected({owner:clan},e,state);
   const rivalClan = id => id && id !== clan && !!state.clans[id];
   const foe = e => standing(e) && sees(e) && !e.civilian && (e.id === me().attackTarget
     || e.id === me().hitBy?.id || (rivalClan(e.owner) && e.attackTarget === hero));
@@ -365,5 +366,5 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     return out;
   }
 
-  return { tick, goal: () => goal };
+  return { tick:()=>tick().filter(c=>!((c.type==='attack'||c.type==='order'&&c.kind==='attack')&&charmProtected({owner:clan},state.entities[c.target],state))), goal: () => goal };
 }

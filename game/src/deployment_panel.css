@@ -205,3 +205,7 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 
 #deploymentpanel .crew-focus-actions {display:flex;flex-direction:column;gap:5px;}
 #deploymentpanel .view-crew {border-color:#80a7b4;background:#243c45;color:#d5eef6;}
+
+#bar .crew.grouped .mate {width:68px;min-width:68px;box-sizing:border-box;}
+#bar .crew.grouped .mate .name {max-width:64px;}
+#bar .crew.grouped .mate .crew-status {max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 9px/12px system-ui;color:#bdd5cc;}

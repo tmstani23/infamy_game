@@ -4,11 +4,12 @@ import {readFileSync} from 'node:fs';
 import {createGame} from '../src/sim/game.js';
 import {setupMatch} from '../src/sim/setup_match.js';
 import {createDeploymentPanel} from '../src/deployment_panel.js';
+import {createGroupedCrew} from '../src/grouped_crew.js';
 let mutations=0;const nodes=[];
 class Element{
  children=[];handlers={};dataset={};style={};classes=new Set();value='';hidden=false;disabled=false;innerHTML='';textContent='';
  classList={add:(...xs)=>xs.forEach(x=>this.classes.add(x)),remove:(...xs)=>xs.forEach(x=>this.classes.delete(x)),toggle:(x,v)=>v?this.classes.add(x):this.classes.delete(x)};
- constructor(){nodes.push(this);}
+ constructor(){nodes.push(this);this.style.setProperty=(key,value)=>this.style[key]=value;}
  append(...xs){for(const x of xs)this.appendChild(x);}
  appendChild(n){if(n.parent)n.remove();this.children.push(n);n.parent=this;mutations++;return n;}
  insertBefore(n,before){if(n.parent)n.remove();this.children.splice(before?this.children.indexOf(before):this.children.length,0,n);n.parent=this;mutations++;}
@@ -93,5 +94,11 @@ try{
  $('.show-duty').emit('click');assert.equal(root.dataset.page,'duty');assert.deepEqual(selected.ids,selectionBefore,'section navigation preserves command selection');
  assert.equal(queue.length,0,'paging and section navigation issue no simulation orders');
  panel.openGroup(destination);assert.match($('.staffing-summary').textContent,/assigned \+ \d+ incoming \/ goal/);
+ const pipRoot=new Element(),pipCrew=createGroupedCrew({root:pipRoot,game:g,heroId,units:g.settings.units,crewInput:{selected:()=>[],select(){},groupOf:()=>null}});
+ const sample={id:'status-sample',type:'ninja',owner:h.owner,hp:100,maxHp:100,place:'street',deployment:{group:destination,duty:{manual:false,status:'Patrolling'}},order:{kind:'stop'}};
+ const task=g.state.deployment.clans[h.owner].sectors[destination],oldRecovery=task.recovery;task.recovery={state:'Recovering'};
+ pipCrew.update([sample],[],[]);const pip=pipRoot.children[0].children[1].children[0];assert.equal(pip.children.at(-1).textContent,'Recovering');
+ delete task.recovery;pipCrew.update([sample],[],[]);assert.equal(pipRoot.children[0].children[1].children[0],pip);assert.equal(pip.children.at(-1).textContent,'Patrolling','pip status updates from shared live duty state');
+ if(oldRecovery)task.recovery=oldRecovery;
  console.log('Deployment panel: unchanged transfer/duty rules, authoritative receipts, stable controls, paged unique crew, staffing counts and section navigation passed');
 }finally{globalThis.document=original.document;globalThis.Option=original.Option;}

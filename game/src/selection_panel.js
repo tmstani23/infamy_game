@@ -13,6 +13,7 @@ export function unitStatus(e, state) {
   if (e.dead) return 'Dead';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
+  if(e.distracted?.source&&e.distracted.until>state.tick)return 'Charmed';
   if(e.crewJob)return e.crewJob.phase==='returning'?'Rejoining group':e.crewJob.kind==='loot'?'Collecting loot':'Finishing off';
   if (e.markScrub) return 'Removing mark';
   if (e.deployment?.scattered) return 'Scattered: '+e.deployment.scattered.phase.toLowerCase();
@@ -20,6 +21,7 @@ export function unitStatus(e, state) {
     const t=e.deployment.transfer,to=t.to==='hero'?'Hero group':t.to==='home'?'HQ reserves':state.deployment?.sectors.find(s=>s.id===t.to)?.name||t.to;
     return `${t.status==='blocked'?'Transfer blocked':'Transferring'} → ${to}`;
   }
+  if(e.buffs?.charming?.until>state.tick)return 'Charming';
   if (e.execute) return e.execute.arrest ? 'Arresting' : 'Finishing off';
   if ((e.buffs?.stunned?.until ?? 0) > state.tick) return 'Stunned';
   if (e.brace) return 'Bracing (Reprisal)';
@@ -33,6 +35,8 @@ export function unitStatus(e, state) {
     if (e.anim === 'bow') return 'Praying';
     return e.anim === 'walk' || e.anim === 'run' ? 'Walking' : 'Idle';
   }
+  const task=state.deployment?.clans[e.owner]?.sectors[e.deployment?.group];
+  if(!e.deployment?.duty?.manual){if(task?.recovery)return task.recovery.state;if(task?.operation?.units?.includes(e.id))return task.operation.kind.replaceAll('_',' ')+' · '+task.operation.state;if(e.deployment?.duty?.status)return e.deployment.duty.status;}
   const k = e.order?.kind, moving = e.anim === 'walk' || e.anim === 'run';
   if (k === 'stop') return 'Passive (stopped)';
   if (e.order?.garrison) return 'Patrolling';

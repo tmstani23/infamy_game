@@ -1,3 +1,4 @@
+import { charmProtected } from './charm_rules.js';
 // Rival bot clan brain (docs/rival_bot_plan.md, B1-B5). A client like the player's screen: it
 // reads the state, sees only what its clan sees (sim/vision.js), and sends the same commands as
 // a player (walk intents, 'use' at doors, 'hire', 'business', 'order', 'attack', 'ability',
@@ -52,7 +53,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
   const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u) && inHeroParty(game, u));
   const followers = () => crew().filter(u => u.order?.kind === 'follow');
-  const sees = e => game.vision.canSee(clan, e);
+  const sees = e => game.vision.canSee(clan, e)&&!charmProtected({owner:clan},e,state);
   const rivalClan = id => id && id !== clan && !!state.clans[id];
   const enemies = () => all().filter(e => rivalClan(e.owner) && standing(e) && sees(e));
   const near = (a, x, z, d) => a.place === 'street' && Math.hypot(a.x - x, a.z - z) <= d;
@@ -434,5 +435,5 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     return out;
   }
 
-  return { tick, goal: () => goal, seen };
+  return { tick:()=>tick().filter(c=>!((c.type==='attack'||c.type==='order'&&c.kind==='attack')&&charmProtected({owner:clan},state.entities[c.target],state))), goal: () => goal, seen };
 }

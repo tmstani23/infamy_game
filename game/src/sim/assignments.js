@@ -10,7 +10,6 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
   function resume(e) {
     if (!eligible(e)) return;
     clearCombat(e); delete e.holdFire; delete e.smokePassive;
-    if (e.distracted?.source) { delete e.distracted; e.diversionImmuneUntil = state.tick + 200; }
     delete e.diversionReturn; delete e.dancingUntil;
     e.deployment.duty = { manual: false, status: 'Returning' }; e.order = { kind: 'stop' };
   }

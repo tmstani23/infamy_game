@@ -27,6 +27,7 @@ import { createShinobiAssignments } from './shinobi_assignments.js';
 import { createShakedown } from './shakedown.js';
 import { createSweep } from './sweep.js';
 import { createDiversion } from './diversion.js';
+import { charmProtected,allowCharmAttack } from './charm_rules.js';
 import { createRifleman } from './rifleman.js';
 import { createTaunt } from './taunt.js';
 import { createSectorRecovery } from './sector_recovery.js';
@@ -218,12 +219,14 @@ export function createGame(options) {
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, executeStep,
     finishTarget: (clan, target, ids) => { const h = Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero'); if (h) startExecute(h, { target, units: ids, crewOnly: true }, true); } });
   const diversion = createDiversion({ state, deployment, vision, reveal: (e, attack) => stealth.reveal(e, attack),
-    hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
+    attackStep:(e,unit,t)=>{if(!swingStep(e,unit))engage(e,unit,t);},
+    hostile: (a, b) => hostile(a, b) && sees(a, b),
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), fightTarget: id => fight[id]?.target,
     clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
-    inCombat: e => !!fight[e.id]?.target, clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
+    onCharmed:(target,clan)=>{for(const a of Object.values(state.entities))if(a.owner===clan){if(a.charmAttack?.target===target.id)delete a.charmAttack;if(a.order?.kind==='attack'&&a.order.target===target.id)endAttack(a,true);if(a.attackTarget===target.id)delete a.attackTarget;if(a.swing?.target===target.id)delete a.swing;if(fight[a.id]?.target===target.id)delete fight[a.id].target;if(a.rifle?.aim?.target===target.id)rifleman.interrupted(a);}},
+    clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
   const rifleman = createRifleman({ state, vision, hit: (a, t, d, crit, kind) => hit(a, t, d, crit, kind),
-    canAttack: (a, b) => fair(a, b) && sees(a, b),
+    canAttack: (a, b) => attackAllowed(a, b) && sees(a, b),
     stun: (t, ticks) => { delete t.swing; addBuff(t, 'stunned', ticks / TICK_RATE); }, clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), canOccupy: (e, x, z, p) => deployment.canOccupy(e, x, z, p),
@@ -232,7 +235,7 @@ export function createGame(options) {
   const taunt = createTaunt({ state, vision, hostile: (a, b) => hostile(a, b) && sees(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, fightTarget: id => fight[id]?.target, rules: units?.types?.yakuza_enforcer?.taunt,
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  function manualCrew(e) { crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); sweep.manual(e); assignments.manual(e); }
+  function manualCrew(e) { delete e.charmAttack; crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); sweep.manual(e); assignments.manual(e); }
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
@@ -305,6 +308,7 @@ export function createGame(options) {
     crew.forEach((u, k) => {
       if(crewJobs?.intercept(u,c))return;
       manualCrew(u);
+      if(c.kind==='attack')allowCharmAttack(u,state.entities[c.target],state);
       delete u.lootEscort;
       delete paths[u.id];
       delete u.patrol;
@@ -433,15 +437,17 @@ export function createGame(options) {
   // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
-  const hostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+  const baseHostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
+  const hostile=(a,b)=>baseHostile(a,b)&&!charmProtected(a,b,state);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
-  const fair = (a, b) => (hostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
+  const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
+  const attackAllowed=(a,b)=>fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
   // (night bandits) are not limited.
   // a hidden ninja (sim/stealth.js) is seen by nobody but its own side
@@ -540,7 +546,7 @@ export function createGame(options) {
       const t = state.entities[o.target];
       // A deliberate order keeps tracking a visible-at-order-time enemy across fog and screens.
       // Stealth still breaks the lock; a recall or new order replaces it.
-      if (fair(e, t) && !(t.hidden && t.owner !== e.owner)) return t;
+      if (attackAllowed(e, t) && !(t.hidden && t.owner !== e.owner)) return t;
       endAttack(e);                                    // target gone: back to the old order, or stand there
       return null;
     }
@@ -582,6 +588,7 @@ export function createGame(options) {
   const STRIKE = 0.4;
   const swingTicks = unit => Math.max(4, Math.round(Math.min(unit.attackSpeed * 0.85, unit.swingSeconds || 0.7) / DT));
   function engage(e, unit, t, chase = true) {
+    if(!attackAllowed(e,t)){delete e.swing;if(fight[e.id])delete fight[e.id].target;return;}
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     const f = fight[e.id] ||= { cd: 0 };
     // never chase into another place (Tim 2026-10-28: ambush ninja kept running into a building's wall after a target who went inside)
@@ -628,7 +635,7 @@ export function createGame(options) {
     if (!w) return false;
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
-      if (fair(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
+      if (attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
         const dodge = stats.dodgeChance(t);
         if (dodge && rng() < dodge) {
           stealth.reveal(e, true); // attempting an attack still consumes the attacker's veil
@@ -687,6 +694,7 @@ export function createGame(options) {
   }
 
   function hit(a, t, damage, crit = false, kind = null) {
+    if(charmProtected(a,t,state))return;
     // Assassinate's explicit current-health rule stays exact inside a formation.
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
@@ -1163,11 +1171,11 @@ export function createGame(options) {
       delete e.lootEscort; delete paths[e.id];
     }
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
+    if (e.distracted?.source && diversion.step(e, unit)) return;
     if (contracts?.scrubStep(e)) return;
     if (sweep.scatterStep(e, unit)) return;
     if (deployment.travelStep(e, unit)) return;
     if(crewJobs.step(e,unit))return;
-    if (e.distracted?.source && diversion.step(e, unit)) return;
     if (e.taunted && taunt.step(e, unit)) return;
     if (shakedown.step(e, unit) || sweep.step(e, unit)) return;
     if (assignments.avoidCamping(e,unit)) return;
@@ -1590,17 +1598,18 @@ export function createGame(options) {
           const u = state.entities[id], t = state.entities[c.target];
           if (u?.owner === e.owner && u.type !== 'hero' && !u.guard && !u.crewJob && deployment.canActAt(u, t.x, t.z, t.place)) manualCrew(u);
         }
+        allowCharmAttack(e,state.entities[c.target],state);
         if (e.execute) { giveOrder(e, { ...c, type: 'order', kind: 'attack' }); continue; }
         if (e.swing?.target !== c.target) delete e.swing;
         setAssistCrew(e, c.assist ? c.units : []);
-        for (const id of e.assistCrew || []) { const u = state.entities[id]; delete u.smokePassive; delete u.holdFire; }
+        for (const id of e.assistCrew || []) { const u = state.entities[id]; delete u.smokePassive; delete u.holdFire; allowCharmAttack(u,state.entities[c.target],state); }
         e.attackTarget = c.target; delete e.holdFire;
       }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
       if ((c.type === 'stopattack' || c.type === 'cancel') && e.type === 'hero') {
         if (Array.isArray(c.units)) setAssistCrew(e, c.units);
         if (e.swing?.target === e.attackTarget) delete e.swing;
-        delete e.attackTarget; delete e.assistCrew;
+        delete e.attackTarget; delete e.assistCrew; delete e.charmAttack;
         if (c.type === 'cancel') { for(const id of c.units||[]){const u=state.entities[id];if(u?.owner===e.owner)crewJobs.cancel(u);}delete e.execute; delete e.swing; delete e.lootTarget; delete paths[e.id]; kuroda.cancel(e); }
       }
       if (c.type === 'clinic' && clans) {

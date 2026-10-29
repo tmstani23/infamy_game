@@ -277,3 +277,17 @@ Geisha: four-second cooldown, real one-second Charm cast; target moves at 25% sp
 Enforcer now has 600 HP/15 damage and four-second primary Taunt. Expired taunt records no longer block exact-cooldown recasts; expired forced orders stop. Explicit movement/regroup, passive/stop/smoke, execution/jobs, transfer/scatter and stun retain priority; autonomous duty movement may Taunt. The previously failing recast regression is resolved.
 
 Geisha retains one-second valid channel, 75% snare/pink effect and four-second Charm/cooldown. Central cast validation and tick cleanup clear channel/snare on caster/target death, KO/jail, caster stun/taunt, explicit movement/attack/regroup, hold-fire/smoke/transfer, target hits, room/visibility/range changes, including when the actor skips crew-step handling. Coordinator reports passing enforcer, geisha (target-under-fire, cast leash and fifteen interruption cases), character-stats and Shakedown checks; syntax/diff checks passed. Manual visual/balance testing and broad regressions remain pending.
+
+### Ninja hero visual polish proposal (2026-10-29)
+
+Future visual work only; no implementation or gameplay/stat changes. Preserve the approved blade shape and distinct purple effect style.
+
+- [ ] Idle purple effects drift/spread outward and down toward the ground.
+- [ ] Running produces a subtle but noticeable purple trail from the weapon, streaming backward behind the body opposite movement; it dissipates outward/downward as it fades. Avoid an oversized body aura.
+- [ ] Make purple attack effects slightly more visible.
+
+### Revised Geisha specification (implemented 2026-10-29)
+
+Supersedes the checkpoint’s four-second Charm/four-second cooldown: **six-second Charm, ten-second cooldown**. When ready, choose an enemy attacking her/current group only if no other ally is actively hitting/focusing it. Priority: her attacker, hero’s attacker, then closest group attacker. Charm takes priority over her own melee and interrupts her own autoattack. Between casts use normal melee autoattacks rather than default fleeing.
+
+Charmed enemies stop attacks and wander only 1–3 metres from the original charm point, never accumulating drift beyond three metres; use normal walking/navigation and sector collision rules. Bounded deterministic wandering uses seeded goals around that original point. Allies avoid automatic attacks against them and drop pre-existing targets when Charm lands; a fresh explicit attack click may override that protection. Retain existing cast/pink snare, six-unit range, exclusions and physical-zone rules unless explicitly changed. Implemented/Node-checked checkpoint: `diversion.js` replaces default fleeing with normal melee between Charms; normal orders queue during Charm and restore at expiry. `charm_rules.js` scopes ally autoattack protection and fresh explicit overrides to the casting clan and specific Charm instance; existing allied targets/swings are dropped. Shared sim/bot paths honor protection; Return to duty cannot clear Charm. Coordinator reports Geisha checks passed for priority, own-melee interruption, six/ten timing, ally focus, bounded wandering, automatic protection, fresh explicit override, replacement and expiry. Panel-flow/selection-panel, enforcer/rifleman/crew-group and both bot regressions also passed; syntax/diff checks passed. No browser checks or manual Geisha approval yet. [Current work and final-pass process](playtest_followup_plan.md#8-final-playtest-fix-pass).

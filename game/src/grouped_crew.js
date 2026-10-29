@@ -1,4 +1,4 @@
-import { unitName } from './selection_panel.js';
+import { unitName,unitStatus } from './selection_panel.js';
 import { isRallyParticipant } from './sim/deployment_rally.js';
 import { syncChildren } from './stable_list.js';
 
@@ -43,17 +43,18 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       const s=createSection(id,label);s.head.textContent=`${label} · ${members.length}`;s.head.setAttribute('aria-pressed',String(members.some(e=>selected.has(e.id))));
       s.el.classList.toggle('selected',members.some(e=>selected.has(e.id)));
       const nodes=members.map(e=>{
-        let p=pips.get(e.id);if(!p){const el=document.createElement('div'),name=document.createElement('span'),hp=document.createElement('div'),group=document.createElement('b');el.className='mate';el.draggable=true;name.className='name';hp.className='pip';group.className='group';el.append(name,hp,group);p={el,name,hp,group};pips.set(e.id,p);}
+        let p=pips.get(e.id);if(!p){const el=document.createElement('div'),name=document.createElement('span'),hp=document.createElement('div'),group=document.createElement('b'),status=document.createElement('small');el.className='mate';el.draggable=true;name.className='name';hp.className='pip';group.className='group';status.className='crew-status';el.append(name,hp,group,status);p={el,name,hp,group,status};pips.set(e.id,p);}
         p.el.dataset.id=e.id;p.name.textContent=unitName(units,e.type);p.hp.style.setProperty('--hp',`${Math.max(0,e.hp/e.maxHp*100)}%`);
+        const status=unitStatus(e,game.state);if(p.status.textContent!==status)p.status.textContent=status;
         p.group.textContent=crewInput.groupOf(e.id)||'';p.el.classList.toggle('picked',selected.has(e.id));p.el.classList.toggle('down',!!e.downed);p.el.classList.toggle('hurt',e.hp/e.maxHp<.5);
-        p.el.title=`${p.name.textContent} · ${Math.ceil(e.hp)}/${e.maxHp} HP · ${label}. Click selects; double-click selects and follows with the camera; drag onto another group to transfer.`;return p.el;
+        p.el.title=`${p.name.textContent} · ${Math.ceil(e.hp)}/${e.maxHp} HP · ${label} · ${status}. Click selects; double-click selects and follows with the camera; drag onto another group to transfer.`;return p.el;
       });syncChildren(s.list,nodes);ordered.push(s.el);
     }
     if(clinic.length||jail.length){
       const s=createSection('medical','Unavailable');s.head.textContent=`Clinic ${clinic.length} · Jail ${jail.length}`;s.head.disabled=true;
       const records=[...clinic.map((c,i)=>({key:`clinic-${i}`,name:unitName(units,c.unit),title:`At clinic · ${Math.ceil(c.left)}s`,id:null})),...jail.map(p=>({key:`jail-${p.id}`,name:unitName(units,p.unit),title:`In jail · bail ${p.bail} ryo`,id:p.id}))];
-      const keys=new Set(records.map(r=>r.key));for(const [id,el]of medical)if(!keys.has(id)){el.remove();medical.delete(id);}
-      const cards=records.map(r=>{let el=medical.get(r.key);if(!el){el=document.createElement('div');medical.set(r.key,el);}el.className=`mate away${r.id?' jailed':''}`;el.textContent=r.name;el.title=r.title;if(r.id)el.dataset.id=r.id;else delete el.dataset.id;return el;});syncChildren(s.list,cards);ordered.push(s.el);
+      const keys=new Set(records.map(r=>r.key));for(const [id,p]of medical)if(!keys.has(id)){p.el.remove();medical.delete(id);}
+      const cards=records.map(r=>{let p=medical.get(r.key);if(!p){const el=document.createElement('div'),name=document.createElement('span'),status=document.createElement('small');name.className='name';status.className='crew-status';el.append(name,status);p={el,name,status};medical.set(r.key,p);}p.el.className='mate away'+(r.id?' jailed':'');p.name.textContent=r.name;p.status.textContent=r.title;p.el.title=r.title;if(r.id)p.el.dataset.id=r.id;else delete p.el.dataset.id;return p.el;});syncChildren(s.list,cards);ordered.push(s.el);
     }
     syncChildren(root,ordered);
   }

@@ -57,7 +57,15 @@ Owner: [combat](combat_spec.md). Some channel/cooldown work already exists in ch
 
 Coordinator reports passing enforcer, geisha (under-fire/leash/fifteen interruptions), character-stats and Shakedown checks. Audio checks: game-music, menu-music and game-shell passed, including streaming/shuffle/persistence/autoplay/visibility/failure cleanup. [Crew details](combat_spec.md#phase-3-crew-completion-checkpoint-2026-10-29); [music controls](controls.md#in-game-background-music-2026-10-29). Manual sound/visual/balance checks remain pending; no browser or broad-regression claim. Phase 2 workflow consolidation and future Sweep/menu proposals remain queued.
 
+Manual confirmation (Tim, 2026-10-29): View crew, phase 3 special crew and in-game music are working in his playtest. This is a practical playtest confirmation, not exhaustive regression, sound/visual or balance testing.
+
+Future visual-polish checklist, no code now: [Ninja hero purple effects](combat_spec.md#ninja-hero-visual-polish-proposal-2026-10-29). Preserve approved blade/effect style and gameplay stats.
+
+Follow-up checkpoint (2026-10-29), **implemented / Node-checked, manual Geisha playtest pending**: completed the [revised Geisha specification](combat_spec.md#revised-geisha-specification-implemented-2026-10-29), superseding four-second Charm/CD with six-second Charm/ten-second CD, and added live per-crew duty/status text (Patrolling, Recovering, etc.) to pip group portraits using existing state. Tim reports other current phase parts working well. Then continue scheduled phases 4–7 in order; put newly reported playtest fixes in the final-pass queue rather than interrupting those phases. No broad side fixes now.
+
 ## 4. Shinobi economy bug audit
+
+Status (2026-10-29): Tim authorized the next phase; coordinator is starting the money/contract audit. No findings or fixes claimed yet. New playtest bugs go to phase 8.
 
 Owners: [Shinobi](ninja_clan_plan.md), [economy](business_raids_plan.md).
 
@@ -90,3 +98,13 @@ Owners: [architecture](architecture.md), [roadmap](roadmap.md).
 - [ ] Run focused regressions, update the relevant owner docs and make checkpoint commits after phases. Tim’s visual/balance checks remain required before calling those aspects complete.
 
 Separate docs cleanup: older Sweep-unbuilt paragraphs remain historical alongside the newer implementation checkpoint; reconcile them in a small later pass rather than a broad documentation sweep now.
+
+## 8. Final playtest fix pass
+
+Added at Tim’s request (2026-10-29). After the current Geisha/status-label follow-up, preserve phases 4–7 in their existing order. New playtest reports go here for later action, not immediate scope expansion.
+
+- [ ] Record each new report with reproduction/expected behavior and affected owner doc; do not imply implementation approval or completion.
+- [ ] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
+- [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
+
+New-report queue: no individual new fixes recorded yet. Previously listed Sweep waypoints, visual polish and menu proposals retain their existing status; this queue does not automatically authorize them.
