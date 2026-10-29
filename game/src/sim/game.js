@@ -221,6 +221,7 @@ export function createGame(options) {
     clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     inCombat: e => !!fight[e.id]?.target, clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
   const rifleman = createRifleman({ state, vision, hit: (a, t, d, crit, kind) => hit(a, t, d, crit, kind), addHeat: (owner, n, reason) => addHeat(owner, n, reason),
+    canAttack: (a, b) => fair(a, b) && sees(a, b),
     stun: (t, ticks) => { delete t.swing; addBuff(t, 'stunned', ticks / TICK_RATE); }, clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), canOccupy: (e, x, z, p) => deployment.canOccupy(e, x, z, p),
@@ -238,6 +239,7 @@ export function createGame(options) {
     const e = state.entities[id], hp = statsOf(e).hp;
     if (hp && e.hp === undefined) e.hp = hp;
     if (e.hp !== undefined) e.maxHp ??= e.hp;
+    if (type === 'kuroda_rifleman') e.rifle ??= { readyAt: state.tick }; // hires/revivals arrive loaded; aiming still takes its normal second
     if (stealth.canHide(e)) e.hidden = true;   // Shinobi units start hidden (sim/stealth.js)
     const o = e.order;
     if (o?.kind === 'follow' && o.slot === undefined) o.slot = freeSlot(o.target, id);

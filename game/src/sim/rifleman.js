@@ -12,15 +12,17 @@ import { createFlee } from './flee.js';
 
 export const RIFLE = { range: 8, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30, heat: 3,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
-export function createRifleman({ state, vision, hit, addHeat, stun, clearLine, clearCombat, hostile = () => false, inCombat = () => false,
+export function createRifleman({ state, vision, hit, addHeat, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
   attackStep = () => {}, moveTo = () => false, inRally = () => false, nearestFree = (x, z) => [x, z], canOccupy = () => true, fightTarget = () => null, rules = {} }) {
   const R = { ...RIFLE, ...rules };
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const isRifleman = e => e?.type === 'kuroda_rifleman';
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const targets = (t, id) => fightTarget(t.id) === id || t.attackTarget === id || (t.order?.kind === 'attack' && t.order.target === id) || t.swing?.target === id;
-  const shootable = (e, t) => alive(t) && t.owner !== e.owner && state.clans?.[t.owner] && t.type !== 'civilian' && !t.cop && !t.wild
-    && t.place === e.place && !t.deployment?.transfer && hostile(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= R.range && clearLine(e, t);
+  const shootable = (e, t) => alive(t) && t.owner !== e.owner && t.place === e.place && !t.deployment?.transfer
+    && (e.order?.kind === 'attack' && e.order.target === t.id ? canAttack(e, t)
+      : state.clans?.[t.owner] && t.type !== 'civilian' && !t.cop && !t.wild && hostile(e, t))
+    && vision.canSee(e.owner, t) && dist(e, t) <= R.range && clearLine(e, t);
   function pick(e) {
     const ordered = e.order?.kind === 'attack' && state.entities[e.order.target];
     if (ordered) return shootable(e, ordered) ? ordered : null;
@@ -71,13 +73,14 @@ export function createRifleman({ state, vision, hit, addHeat, stun, clearLine, c
     if (!alive(e) || e.deployment?.transfer) return false;
     const r = e.rifle ||= { readyAt: 0 };
     // in the hero group he moves like any other crew member; your move-type orders always come first
-    const moving = (e.order?.kind === 'move' && !e.order.arrived) || ['attackmove', 'enter', 'heal', 'loot'].includes(e.order?.kind);
+    const moving = (e.order?.kind === 'move' && !e.order.arrived) || ['enter', 'heal', 'loot'].includes(e.order?.kind);
     if (moving) { spoil(e); return false; }
     if (onDuty(e) && skirmish(e, unit, r)) return true;
-    // an attack order: shoot first; melee only once the target is within meleeRange (Tim 2026-10-29)
+    // A loaded attack opens with the gun even at close range. Melee is available
+    // while reloading; attack-move may stop to fire just like an explicit attack.
     const ordered = e.order?.kind === 'attack' && state.entities[e.order.target];
     const od = ordered && alive(ordered) && ordered.place === e.place ? dist(e, ordered) : Infinity;
-    if (od <= R.meleeRange) { spoil(e); return false; }
+    if (od <= R.meleeRange && r.readyAt > state.tick && !r.aim) return false;
     if (r.aim) {
       const t = state.entities[r.aim.target];
       if (!shootable(e, t)) { spoil(e); return false; }

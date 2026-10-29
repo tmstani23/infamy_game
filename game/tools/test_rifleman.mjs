@@ -46,4 +46,22 @@ assert.doesNotThrow(()=>JSON.stringify(st));
   const e={x:0,z:0,place:'street'},from={x:-2,z:0};
   for(let i=0;i<10;i++){st2.tick=i;e.x+=0.2;flee(e,{},from);}
   assert.ok(goals.every(g=>g[0]===goals[0][0]&&g[1]===goals[0][1]),'flee goal is stable');assert.ok(goals[0][1]>=0,'flee prefers a clear line'); }
-console.log('Rifleman: Kuroda-only hire, auto aim, shot damage/stagger/heat, move orders first, stable flee helper passed');
+// Real player commands: a fresh hero-party rifleman opens with his loaded gun,
+// even at close range or on attack-move. Explicit bandit orders also use the gun.
+for (const [kind, distance, type] of [['attack',1.8,'thug'],['attack',6,'thug'],['attackmove',6,'thug'],['attack',6,'bandit']]) {
+  for (const e of Object.values(st.entities)) if (e.id !== heroId) e.dead = true;
+  const h = st.entities[heroId]; Object.assign(h,{x:ax,z:az+2,place:'street',holdFire:true});
+  const u=st.entities[g.spawn('kuroda_rifleman','mercenary',ax,az,{owner:me,deployment:{group:'hero'},order:{kind:'follow',target:heroId}})];
+  assert.ok(u.rifle?.readyAt <= st.tick,'new rifleman starts loaded immediately, including a late hire');
+  assert.equal(u.rifle.firedAt,undefined,'new rifleman has no prior shot/reload');
+  const t=st.entities[g.spawn(type,type==='bandit'?'bandit':'thug',ax+distance,az,{owner:type==='bandit'?'wild':rival,deployment:{group:'hero'},order:{kind:'stop'},holdFire:true})];
+  const shots=[],hits=[];
+  for(let i=0;i<R.aimTicks+3;i++) {
+    g.step(i===0?[{id:heroId,type:'order',units:[u.id],kind,target:t.id,x:ax+7,z:az,place:'street'}]:[]);
+    shots.push(...st.casts.filter(c=>c.kind==='rifleshot'&&c.a===u.id));
+    hits.push(...st.hits.filter(hit=>hit.a===u.id));
+  }
+  assert.equal(shots[0]?.t,t.id,`${kind} at ${distance}: first attack is a shot at the ordered/detected target`);
+  assert.equal(hits[0]?.kind,'rifle',`${kind} at ${distance}: no melee hit before the loaded shot`);
+}
+console.log('Rifleman: loaded spawns, close/ranged attack orders, attack-move, bandit targeting, auto aim, damage/stagger/heat, move priority and skirmish passed');
