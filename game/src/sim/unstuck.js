@@ -4,11 +4,11 @@
 // hitting or being hit, while his HQ is raided, or while he is in the room of his Sabotage/Steal job.
 // Every use is logged in state.stuckSpots (where it was used) so map snags can be fixed.
 // Command: [{ id, type: 'unstuck' }] from the hero, players and bots alike. Numbers: units.json rules.unstuck.
+import { secs } from './util.js';
 const DEFAULTS = { channelSeconds: 3, cooldownSeconds: 300, combatSeconds: 5, logMax: 50 };
 
 export function createUnstuck({ state, rules = {}, destination, moving = () => false, holding = () => false, cleanup = () => {} }) {
   const R = { ...DEFAULTS, ...rules };
-  const secs = s => Math.round(s * 20);
   state.stuckSpots ||= [];
   const say = (e, text) => { const clan = state.clans?.[e?.owner]; if (clan) clan.notice = { tick: state.tick, text }; };
   const recent = at => at != null && state.tick - at < secs(R.combatSeconds);

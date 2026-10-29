@@ -38,9 +38,9 @@ import { canInteract } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { contractLockoutUntil } from './hq_raids.js';
 import { createMarkScrubbing } from './mark_scrub.js';
+import { alive, noticeFor, secs } from './util.js';
 export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null, inCombat = () => false }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
-  const secs = s => Math.round(s * 20);
   let rs = seed;
   const rnd = () => ((rs = (rs * 16807) % 2147483647) / 2147483647);
   state.contracts ||= { board: [], active: {}, next: 1, posted: false, day: 0, hits: [] };
@@ -50,8 +50,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   const scrubbing = createMarkScrubbing({state,rules:R.mark,inCombat});
   const ninja = id => state.clans?.[id]?.kind === 'ninja';
   const clanName = id => state.clans?.[id]?.name || 'a rival clan';
-  const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
+  const say = noticeFor(state);
   const unitsOf = id => Object.values(state.entities).filter(e => e.owner === id && alive(e));
   const businessScore = clan => Object.values(state.businesses).reduce((n, b) => n + (b.owner === clan && !b.hideout ? scores[b.kind] || 0 : 0), 0);
   // Board quotes follow public business strength. Accepted jobs retain their

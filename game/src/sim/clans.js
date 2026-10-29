@@ -1,6 +1,7 @@
 import { canInteract } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
+import { noticeFor } from './util.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
 // game state, so players and bot clans follow exactly the same rules.
 // Numbers come from game/data/units.json (docs/crew_recruiting_plan.md).
@@ -66,7 +67,7 @@ export function createClans(state, units, opts = {}) {
     if (b) b.owner = clanId;
   }
 
-  const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
+  const say = noticeFor(state);
   // where a clan hires (besides its own hideout): teahouses, or the dojo for the Shinobi clan
   const hallOf = id => state.clans[id]?.kind === 'ninja' ? 'dojo' : 'teahouse';
 

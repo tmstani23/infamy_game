@@ -77,6 +77,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 | File | Job |
 |---|---|
+| `util.js` | Shared sim helpers (`alive`, `dist`, `secs`, `noticeFor`) used across the sim (phase 7, 2026-10-29). |
 | `settings.js` | `applySettings` lays `data/settings.json` over the detail data files in `createGame`. |
 | `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts, looting (`loot` command `{id, type: 'loot', target, units?}`, `startLoot`/`lootStep`; ryo to the looter's clan), Rally heal ticks (buff `heal`/`ticksLeft`/`nextHeal`, `healBuffs()`). `TICK_RATE = 20`. Day/night clock `state.clock` `{day, left}`; `state.dawn` / `state.dusk` fire on automatic flips and on N (Node tests run without settings, so no clock). Test rival thugs at the den only with `?enemies=N` (`main.js`). |
 | `clans.js` | Clan money, businesses held, crew cap, hire queue and prices (numbers from `units.json`). |

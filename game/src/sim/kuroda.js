@@ -1,13 +1,13 @@
 // Kuroda's counter, spear sequence and fixed formation. Plain state only;
 // damage, visibility and orders use the same game hooks for humans and bots.
 import { dirIndex } from './geometry.js';
+import { alive } from './util.js';
 
 export const stunned = (e, tick) => (e.buffs?.stunned?.until ?? 0) > tick;
 export const KURODA_KINDS = new Set(['sweep', 'reprisal', 'threefold', 'formation']);
 
 export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff, damageScale, clearCombat, clearLine, civilian, cop, buffEligible = (h, e) => h?.owner === e.owner }) {
   const secs = n => Math.round(n * 20);
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const within = (f, e) => f.until > state.tick && f.clan === e.owner && f.place === e.place && distance(f, e) <= f.radius && buffEligible(state.entities[f.a], e);
   const formationOf = e => (state.formations || []).filter(f => within(f, e)).sort((a, b) => a.damageTaken - b.damageTaken)[0];

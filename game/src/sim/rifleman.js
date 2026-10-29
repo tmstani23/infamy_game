@@ -10,15 +10,14 @@
 import { dirIndex } from './geometry.js';
 import { createFlee } from './flee.js';
 import { WILD } from './bandits.js';
+import { alive, dist } from './util.js';
 
 export const RIFLE = { range: 8, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
 export function createRifleman({ state, vision, hit, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
   attackStep = () => {}, moveTo = () => false, inRally = () => false, nearestFree = (x, z) => [x, z], canOccupy = () => true, fightTarget = () => null, rules = {} }) {
   const R = { ...RIFLE, ...rules };
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const isRifleman = e => e?.type === 'kuroda_rifleman';
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const targets = (t, id) => fightTarget(t.id) === id || t.attackTarget === id || (t.order?.kind === 'attack' && t.order.target === id) || t.swing?.target === id;
   const shootable = (e, t) => alive(t) && t.owner !== e.owner && t.place === e.place && !t.deployment?.transfer
     && (e.order?.kind === 'attack' && e.order.target === t.id ? canAttack(e, t)

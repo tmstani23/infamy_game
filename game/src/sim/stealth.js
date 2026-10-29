@@ -8,6 +8,7 @@
 // (only being downed cancels it): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
 // at most snuffPerNight a night. Numbers: units.json rules.stealth.
 import { inViewCone } from './perception.js';
+import { secs } from './util.js';
 const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, revealSeconds: 5, lightRadius: 5,
   viewAngle: 90, closeRange: 1.2, suspicionSeconds: 1.2, suspicionDecay: 2,
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
@@ -15,7 +16,6 @@ const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, reve
 export const indoorLightId = (room,index) => `room:${room}:${index}`;
 export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false }) {
   const R = { ...DEFAULTS, ...rules };
-  const secs = s => Math.round(s * 20);
   // the lanterns the sim knows about: lit props (lantern posts, stone lanterns, braziers...)
   const lights = scenery.filter(s => !s.indoor && s.prop !== undefined && s.item?.lights?.length).map(s => ({ prop: s.prop, x: s.x, z: s.z,place:'street',radius:R.lightRadius }));
   for(const room of rooms)room.props.forEach((p,index)=>{if(p.def.light)lights.push({prop:indoorLightId(room.name,index),place:room.name,x:room.origin.x+p.cx,z:room.origin.z+p.cz,radius:p.def.light.radius*(room.worldScale||1)});});

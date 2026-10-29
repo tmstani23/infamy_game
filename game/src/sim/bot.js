@@ -11,6 +11,7 @@ import { charmProtected } from './charm_rules.js';
 import { createAISupport } from './ai_support.js';
 import { isShinobiHQ } from './hq_raids.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
+import { dist } from './util.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
@@ -57,7 +58,6 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const rivalClan = id => id && id !== clan && !!state.clans[id];
   const enemies = () => all().filter(e => rivalClan(e.owner) && standing(e) && sees(e));
   const near = (a, x, z, d) => a.place === 'street' && Math.hypot(a.x - x, a.z - z) <= d;
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
   const priceOf = b => game.businesses.rules[b.kind]?.price;
   const raidTarget = b => !b.hideout || (isShinobiHQ(state, b) && !(state.hqRaids?.[b.id]?.protectedUntil > state.tick));

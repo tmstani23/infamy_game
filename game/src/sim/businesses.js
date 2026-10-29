@@ -8,6 +8,7 @@ import { POLICE } from './police.js';
 import { canInteract, interactionActor } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { isShinobiHQ } from './hq_raids.js';
+import { noticeFor, secs } from './util.js';
 // Players and bots alike send [{ id, type: 'business', action: 'buy', business }] from a hero
 // standing at the business's door ring. Prices and payouts: units.json rules.businesses
 // (data/settings.json "businesses" lays over them).
@@ -17,12 +18,10 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   const R = units?.rules?.businesses || {}, reach = units?.rules?.buyReach ?? 2.5;
   const G = units?.rules?.houseGuards || {}, guardCount = G.count ?? 0;
   const [pauseMin, pauseMax] = G.patrolPauseSeconds || [3, 8], legTicks = 20 * 20;
-  let seed = 97;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const A = { startSeconds: 5, waves: 3, wavesPerTier: 1, perWave: 2, bigWave: 3, bigWavesFrom: 0.5, waveGapSeconds: 5, officerHp: 1, hitHeat: 0, holdSeconds: 30, holdRadius: 2.5, heatAfterWin: 15, heatAfterLoss: 15, leaveSeconds: 10, ...units?.rules?.attack };
   const RD = { lanternPrice: 1200, lanternCarry: 1, warmupSeconds: 30, holdSeconds: 30, holdRadius: 2.5, maxCrewInside: 6, leaveSeconds: 10, knockSeconds: 4, knockReach: 1.6, ...units?.rules?.raid };
   state.attacks ||= {};
-  const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
+  const say = noticeFor(state);
   const name = b => isShinobiHQ(state, b) ? 'Shinobi HQ' : b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
 
   // Can this hero buy that business now? { ok, why, price }; why = what the screen shows when not
@@ -188,7 +187,6 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   }
 
   // --- Attacks on unclaimed businesses ---------------------------------------------
-  const secs = s => Math.round(s * 20);
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
   function spawnWave(a) {
     const room = roomOf(state.businesses[a.business]), kind = units?.rules?.attack?.officer || 'junsa';

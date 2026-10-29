@@ -1,9 +1,9 @@
 import { withdrawalReason } from './sector_recovery.js';
 import { deploymentFeedback } from './deployment_feedback.js';
 import { sectorPatrolRoute } from './sector_patrol.js';
+import { alive } from './util.js';
 
 export function createAmbush({ state, deployment, assignments, rally, vision, sees, intelligence, recovery, clearCombat, attackStep, executeStep, finishTarget }) {
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const config = clan => state.deployment.clans[clan];
   const crew = (clan, id) => deployment.members(clan, id).filter(e => alive(e) && !e.deployment.transfer && !e.deployment.duty?.manual && !rally.participating(e));
   const enemy = (clan, e) => alive(e) && e.owner !== clan && state.clans[e.owner] && !e.guard && !e.cop && !e.wild && e.type !== 'civilian' && !e.hidden;

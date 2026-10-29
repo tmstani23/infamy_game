@@ -11,6 +11,7 @@ import { debitRyo } from './treasury.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
 import { distractionStep } from './distraction.js';
+import { noticeFor } from './util.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -101,7 +102,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   const nextPatrol = {}, patrolOwed = {};
 
   // --- Notices ---------------------------------------------------------------------
-  const say = (clan, text) => { clan.notice = { tick: state.tick, text }; return text; };
+  const say = noticeFor(state);
 
   // --- Arrests ---------------------------------------------------------------------
   // Called by the game when an officer finishes an arrest on a downed unit. Crew go to jail

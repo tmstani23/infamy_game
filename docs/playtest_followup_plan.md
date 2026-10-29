@@ -95,12 +95,13 @@ Owners: [crew](crew_recruiting_plan.md), [bots](rival_bot_plan.md), [economy](bu
 
 Owners: [architecture](architecture.md), [roadmap](roadmap.md).
 
-- [ ] Select hotspots from profiling; replace duplicated selection/render/transfer helpers and remove superseded code. Prefer net-negative diffs for replacement refactors; no arbitrary blanket “minus 150 lines” incentive.
-- [ ] Trial JavaScript-aware dead-code analysis accounting for browser, test, JSON and dynamic entrypoints. Baseline legacy findings and block newly introduced confirmed orphans; do not add a major toolchain without asking.
-- [ ] Verify references through LSP if available, `rg` and entrypoint inspection before removal. Zero text references alone does not establish unreachability.
-- [ ] Run focused regressions, update the relevant owner docs and make checkpoint commits after phases. Tim’s visual/balance checks remain required before calling those aspects complete.
+- [x] Select hotspots from profiling; replace duplicated selection/render/transfer helpers and remove superseded code. Prefer net-negative diffs for replacement refactors; no arbitrary blanket “minus 150 lines” incentive.
+- [x] Trial JavaScript-aware dead-code analysis accounting for browser, test, JSON and dynamic entrypoints. Baseline legacy findings and block newly introduced confirmed orphans; do not add a major toolchain without asking.
+- [x] Verify references through LSP if available, `rg` and entrypoint inspection before removal. Zero text references alone does not establish unreachability.
+- [x] Run focused regressions, update the relevant owner docs and make checkpoint commits after phases. Tim’s visual/balance checks remain required before calling those aspects complete.
 
 Separate docs cleanup: older Sweep-unbuilt paragraphs remain historical alongside the newer implementation checkpoint; reconcile them in a small later pass rather than a broad documentation sweep now.
+- Result (2026-10-29): shared sim helpers (`alive`, `dist`, `secs`, `noticeFor`) moved to `sim/util.js`, used by 17 files; 3 dead helpers removed; dead-code baseline clean; profile 2.5 ms per tick (5% of the budget). File splits (game.js, main.js, abilityfx.js) follow as their own checkpoint commits.
 
 ## 8. Final playtest fix pass
 

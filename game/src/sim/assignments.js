@@ -5,7 +5,6 @@ import { sectorPatrolRoute, rivalHQZones, nearRivalHQ } from './sector_patrol.js
 export function createAssignments({ state, deployment, doors, clearCombat, inCombat = () => false }) {
   const sector = e => state.deployment.clans[e.owner]?.sectors[e.deployment?.group];
   const eligible = e => e && !e.dead && !e.downed && !e.jailed && !e.guard && e.type !== 'hero' && sector(e) && !e.deployment.transfer;
-  const say = (h, text) => { state.clans[h.owner].notice = { tick: state.tick, text }; };
   function manual(e) { if (eligible(e)) {delete e.deployment.campingEscape;e.deployment.duty = { manual: true, status: 'Manual' };} }
   function resume(e) {
     if (!eligible(e)) return;

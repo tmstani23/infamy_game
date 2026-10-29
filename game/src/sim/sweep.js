@@ -1,8 +1,8 @@
 import { deploymentFeedback } from './deployment_feedback.js';
 import { withdrawalReason } from './sector_recovery.js';
+import { alive } from './util.js';
 export const SWEEP = { holdTicks:400, holdRadius:6, groupRadius:3, scatterTicks:600, timeoutTicks:3600 };
 export function createSweep({ state, deployment, rally, clearCombat, hostile, sees, attackStep, rewards, onScatter = () => {}, recover = () => {} }) {
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const taskOf = (clan, sector) => state.deployment.clans[clan]?.sectors[sector];
   const adjacent = new Set(), { cells, w } = deployment.cellGrid();
   const ids = state.deployment.sectors.map(s => s.id);

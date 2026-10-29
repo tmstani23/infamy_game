@@ -1,10 +1,10 @@
 // Bot-client choices only: every action goes through the same player commands.
+import { alive } from './util.js';
 export const inHeroParty = (game, e) => !game.state.deployment?.restrictionsEnabled
   || (!e.deployment?.transfer && (e.deployment?.group === 'hero' || game.rally.participating(e)));
 
 export function createDeploymentAI(game, { clan, hero }) {
   let next = 0;
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
   function tick() {
     const st = game.state, h = st.entities[hero], out = [];
     if (!st.deployment?.restrictionsEnabled || !h || st.tick < next) return out;

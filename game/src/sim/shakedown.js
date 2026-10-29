@@ -1,6 +1,7 @@
 import { deploymentFeedback } from './deployment_feedback.js';
 import { withdrawalReason } from './sector_recovery.js';
 import { dirIndex } from './geometry.js';
+import { alive } from './util.js';
 
 // One-shot sector operation. Membership and the saved Patrol/Guard duty never change.
 // All timers, projectiles, hazards, hostages and payout claims are plain server state.
@@ -8,7 +9,6 @@ export const SHAKEDOWN = { holdSeconds:20, radius:4, fuseSeconds:1.25, flightSec
   blastDamage:60, blastRadius:2.2, fireSeconds:8, fireRadius:.7, fireDamage:6,
   emergencyDamage:110, emergencyRadius:3, retrySeconds:60, timeoutSeconds:120,
   defenderRadius:9, blockedSeconds:1.25, friendlyFire:true };
-const alive = e => e && !e.dead && !e.downed && !e.jailed;
 const distance = (a,b) => Math.hypot(a.x-b.x,a.z-b.z);
 export function createShakedown({ state, deployment, rally, vision, sees, rooms, doors, navOf,
   spawn, remove, clearCombat, attackStep, hit, addHeat, rules = {} }) {

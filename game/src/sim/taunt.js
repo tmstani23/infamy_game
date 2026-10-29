@@ -5,12 +5,11 @@
 //    the nearest). The taunted unit must attack him for durationTicks. Never heroes, police, bandits or
 //    townsfolk. While a taunt holds he takes damageTaken x damage (bulwark buff, sim/stats.js).
 //  - Otherwise he moves and fights like any other crew member.
+import { alive, dist } from './util.js';
 export const TAUNT = { radius: 5, durationTicks: 80, cooldownTicks: 80, damageTaken: 0.85 };
 export function createTaunt({ state, vision, hostile = () => false, clearCombat = () => {}, attackStep = () => {}, addBuff = () => {}, fightTarget = () => null, rules = {} }) {
   const R = { ...TAUNT, ...rules };
-  const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const isEnforcer = e => e?.type === 'yakuza_enforcer';
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const hitting = (t, id) => fightTarget(t.id) === id || t.attackTarget === id || (t.order?.kind === 'attack' && t.order.target === id) || t.swing?.target === id;
   function bellow(e) {
     const mine = Object.values(state.entities).filter(u => u.owner === e.owner && u !== e && alive(u) && u.place === e.place);

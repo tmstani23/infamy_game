@@ -13,6 +13,7 @@ import { charmProtected } from './charm_rules.js';
 import { createAISupport } from './ai_support.js';
 import { contractLockoutUntil } from './hq_raids.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
+import { dist } from './util.js';
 
 export const NINJA_BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4, fillShare: 0.9,
@@ -47,7 +48,6 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const rivalClan = id => id && id !== clan && !!state.clans[id];
   const foe = e => standing(e) && sees(e) && !e.civilian && (e.id === me().attackTarget
     || e.id === me().hitBy?.id || (rivalClan(e.owner) && e.attackTarget === hero));
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const job = () => state.contracts?.active?.[clan] || null;
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
