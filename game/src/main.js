@@ -202,7 +202,8 @@ async function start() {
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
-    onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id) });
+    onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
+    onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   function interactionDoor() {
     const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
@@ -250,9 +251,9 @@ async function start() {
     view.watch(() => { const e = game.state.entities[u.id]; return usable(e) ? lookPoint(e) : null; });
   };
   // double-click a group header: follow the middle of the group's biggest cluster
-  const watchGroup = group => view.watch(() => {
+  const watchGroup = (group,ids=null) => view.watch(() => {
     const S = game.state.entities, me = S[heroId]?.owner;
-    const crew = Object.values(S).filter(e => e.owner === me && e.type !== 'hero' && usable(e) && !e.guard && (e.deployment?.group || 'home') === group).map(lookPoint);
+    const crew = Object.values(S).filter(e => e.owner === me && e.type !== 'hero' && usable(e) && !e.guard && (ids?ids.includes(e.id):(e.deployment?.group || 'home') === group)).map(lookPoint);
     if (!crew.length) return null;
     const near = p => crew.filter(q => Math.hypot(q.x - p.x, q.z - p.z) < 8);
     const best = crew.map(near).reduce((a, b) => b.length > a.length ? b : a);

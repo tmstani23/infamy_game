@@ -35,9 +35,13 @@ try{
    if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);
  };
  root.querySelectorAll=()=>[];
- const selected={ids,selected(){return this.ids;},select(ids){this.ids=ids;},returnToDutyAndSelectHero(){}},queue=[];let destinationPick=null;
- const panel=createDeploymentPanel({root,button,game:g,units:g.settings.units,heroId,crewInput:selected,send:c=>queue.push(c),onPickDestination:fn=>destinationPick=fn,onCancelPick:()=>destinationPick=null});
+ const selected={ids,selected(){return this.ids;},select(ids){this.ids=ids;},returnToDutyAndSelectHero(){}},queue=[];let destinationPick=null,viewed=null;
+ const panel=createDeploymentPanel({root,button,game:g,units:g.settings.units,heroId,crewInput:selected,send:c=>queue.push(c),onPickDestination:fn=>destinationPick=fn,onCancelPick:()=>destinationPick=null,onViewCrew:ids=>viewed=ids});
  const $=s=>elements.get(s);panel.openGroup('hero');
+ const beforeView=JSON.stringify(g.state),viewSelection=[...selected.ids];
+ $('.view-crew').emit('click');assert.deepEqual(viewed,viewSelection);assert.equal(panel.isOpen(),false);
+ assert.deepEqual(selected.ids,viewSelection,'viewing crew preserves selection');assert.equal(JSON.stringify(g.state),beforeView,'viewing crew changes no orders or assignments');
+ assert.equal(queue.length,0);panel.openGroup('hero');
  g.state.deployment.clans[h.owner].reserveTarget=2;
  $('.reserve-target').value='0';$('.reserve-target').emit('input');panel.update(true);
  assert.equal($('.reserve-target').value,'0','zero draft survives blur and menu refresh before Apply');

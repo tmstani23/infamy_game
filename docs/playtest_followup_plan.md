@@ -25,7 +25,7 @@ Owners: [architecture/lifecycle and diagnostics](architecture.md#map-presentatio
 
 ## 2. Fullscreen deployment simplification
 
-**Partial implementation / Node-checked (2026-10-29):** Tim’s requested left key, map with wider attached right deployment panel, stronger Duties/operation/Rally emphasis and duplicate-own-unit presentation fix are implemented. Panel sections use paging rather than stacked scrolling; saved selection and existing gameplay rules remain. [Current controls](controls.md#deployment-layout-follow-up-2026-10-29). This does not complete every phase 2 task: transfer-workflow consolidation and any retained pip-drag shortcut remain unchecked below. Visual fit at Tim’s monitor is pending; no browser/screenshot test run.
+**Partial implementation / Node-checked (2026-10-29):** Tim’s requested left key, map with wider attached right deployment panel, stronger Duties/operation/Rally emphasis and duplicate-own-unit presentation fix are implemented. Panel sections use paging rather than stacked scrolling; saved selection and existing gameplay rules remain. [Current controls](controls.md#deployment-layout-follow-up-2026-10-29). This does not complete every phase 2 task: transfer-workflow consolidation and any retained pip-drag shortcut remain unchecked below. Tim manually approved the current deployment layout/staffing fixes as good for now (2026-10-29). This is usability approval, not a full browser memory/FPS audit; no automated browser/screenshot test run.
 
 Coordinator reports passing panel-flow (existing real-sim transfer/autoaccept/cancel plus paged unique roster/sections/counts), selection-dock (own-card suppression, enemy availability, world-HUD restoration), deployment-map and map-performance checks, changed-JS syntax and diff checks. No new tests run for this docs/commit handoff.
 
@@ -36,6 +36,12 @@ Owners: [deployment](deployment_sector_plan.md), [controls](controls.md).
 - [ ] Consolidate “Transfer selected crew” and “Assign crew here” into one workflow supporting source-first and destination-first use of the same authoritative transfer command. Show destination, travel/cancel/status and accepted/rejected receipt. Selecting the destination dispatches without extra confirmation.
 - [ ] Preserve capacities, physical travel, HQ pins/goals, saved assignments, groups and overflow rules.
 - [ ] If action-bar pip dragging remains a supported shortcut, repair mapped-zone drops through that same command/receipt; show valid/rejected destinations. It must be optional, with no decorative nonfunctional drag affordances.
+
+Future UI proposal (2026-10-29), not implemented: merge Map and Deployment into one button, with M always opening the integrated map/deployment. Label remains undecided; “Command Map (M)” is a recommendation only.
+
+Later UI phase proposal (Tim, 2026-10-29): a main-menu UI with icons and hover descriptions, prominent **Call Rally** and **Resume** buttons, and a clear Rally active-duration/cooldown timer; Resume appears when paused. Exact placement/design remains undecided; no implementation now. Tim reports current Duties/Rally are much clearer. The proposed Command Map button merger above also remains unimplemented.
+
+Future Sweep proposal: visit a few waypoints around the destination sector before its final hold; waypoint count, route and timing remain undecided. Existing hold stays twenty seconds. [Owner note](deployment_sector_plan.md#sweep-route-playtest-proposal-2026-10-29).
 
 ## 3. Special crew
 

@@ -202,3 +202,6 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 
 #deploymentpanel .pane-crew:has(.active-transfers[open]) .crew-selection {display:none;}
 #deploymentpanel .active-transfers summary {font-size:14px;padding:5px;}
+
+#deploymentpanel .crew-focus-actions {display:flex;flex-direction:column;gap:5px;}
+#deploymentpanel .view-crew {border-color:#80a7b4;background:#243c45;color:#d5eef6;}

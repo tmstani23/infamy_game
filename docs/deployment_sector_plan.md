@@ -577,3 +577,7 @@ Local implementation checkpoint; full integration/playtesting is not complete. E
 Implementation thread reports `test_sweep`, `test_sector_clear`, `test_shakedown` passed, covering hold/contest, visibility/exclusions, nonstacking, scatter/recovery/saved slots and public AI commands. Docs checkpoint independently confirmed `test_match_setup` passes including all three assignment presets. `test_enforcer` reproduced failing “automatically renews taunt when a valid enemy remains”; eligibility/timing needs focused investigation. No browser checks run.
 
 Quick manual checklist: choose rival/adjacent sector; dispatch/recall/return; contest and hold progress; grouped protection; defender HQ/recovery/return; shared 500-total reward and cooldown; march/victory readability. `?test=assignments` keeps clan menu and grants 5000 ryo: Yakuza stages/dispatches real Shakedown, Kuroda real Sweep, Shinobi gets money only. No map redesign implemented by this checkpoint.
+
+### Sweep route playtest proposal (2026-10-29)
+
+Tim says Sweep currently feels like walking to one location and holding. Future proposal only: visit a few waypoints around the destination sector before the final hold point. Waypoint count, route and timing remain unsettled; no code change is authorized by this note. Actual configured hold remains twenty seconds. Tim approved current deployment layout/staffing usability as good for now; this does not establish a full memory audit.
