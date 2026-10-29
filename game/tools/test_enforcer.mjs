@@ -15,6 +15,7 @@ assert.equal(g.clans.hirePrice(rival,'yakuza_enforcer'),null,'Kuroda cannot');
 for(const e of Object.values(st.entities)){e.holdFire=true;if(e.type!=='hero')e.order={kind:'stop'};if(e.type==='hero')e.x+=80;}
 const sector=st.deployment.sectors[0],ax=sector.anchor.x,az=sector.anchor.z;
 const big=st.entities[g.spawn('yakuza_enforcer','enforcer',ax,az,{owner:me,deployment:{group:sector.id},order:{kind:'stop'}})];
+assert.equal(big.maxHp,600);assert.equal(g.stats.base(big).damage,15);
 const mate=st.entities[g.spawn('thug','thug',ax+1,az+1,{owner:me,deployment:{group:sector.id},order:{kind:'stop'},holdFire:true})];
 const foe=st.entities[g.spawn('spearman','kuroda_spearman',ax+3,az+1,{owner:rival,deployment:{group:'hero'},order:{kind:'attack',target:mate.id}})];
 for(let i=0;i<3&&!foe.taunted;i++)g.step();
@@ -24,7 +25,7 @@ const seen=[];for(let i=0;i<60;i++){g.step();seen.push(...st.hits.filter(h=>h.t=
 if(process.env.DBG)console.log(JSON.stringify(seen),big.hp,big.maxHp);
 assert.ok(big.hp<big.maxHp,'taunted enemy attacks the enforcer');
 const mateHp=mate.hp;for(let i=0;i<20;i++)g.step();assert.equal(mate.hp,mateHp,'and leaves the clanmate alone');
-assert.ok(foe.taunted,'automatically renews taunt when a valid enemy remains');
+assert.ok(foe.taunted,'automatically renews taunt: '+JSON.stringify({tick:st.tick,actor:{hp:big.hp,order:big.order,duty:big.deployment.duty,taunt:big.taunt},foe:{hp:foe.hp,downed:foe.downed,taunted:foe.taunted},distance:Math.hypot(big.x-foe.x,big.z-foe.z)}));
 const ready=big.taunt.readyAt;assert.equal(R.cooldownTicks,80);
 while(st.tick<=ready)g.step();
 assert.equal(big.taunt.readyAt,ready+80,'automatically taunts again on the four-second cooldown');

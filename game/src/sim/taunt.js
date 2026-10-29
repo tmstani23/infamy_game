@@ -17,7 +17,7 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
     let best = null, bestScore = Infinity;
     for (const t of Object.values(state.entities)) {
       if (!alive(t) || t.owner === e.owner || !state.clans?.[t.owner] || t.type === 'hero' || t.type === 'civilian' || t.cop || t.wild
-        || t.place !== e.place || t.taunted || t.distracted || t.deployment?.transfer || !hostile(e, t) || !hostile(t, e) || !vision.canSee(e.owner, t)) continue;
+        || t.place !== e.place || t.taunted?.until>state.tick || t.distracted || t.deployment?.transfer || !hostile(e, t) || !hostile(t, e) || !vision.canSee(e.owner, t)) continue;
       const d = dist(t, e);
       if (d > R.radius) continue;
       const onMate = mine.some(u => hitting(t, u.id)), near = mine.some(u => dist(u, t) < 4);
@@ -41,9 +41,9 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
   }
   function step(e, unit) {
     // taunted: goes for the enforcer whatever else it was doing
-    if (e.taunted) { const a = state.entities[e.taunted.source]; if (alive(a) && hostile(e, a)) { attackStep(e, unit, a); return true; } delete e.taunted; }
-    if (!isEnforcer(e) || !alive(e) || e.deployment?.transfer) return false;
-    const moving = (e.order?.kind === 'move' && !e.order.arrived) || ['enter', 'heal', 'loot'].includes(e.order?.kind);
+    if (e.taunted) { const a = state.entities[e.taunted.source]; if (e.taunted.until>state.tick && alive(a) && a.place===e.place && hostile(e, a)) { attackStep(e, unit, a); return true; } delete e.taunted; }
+    if (!isEnforcer(e) || !alive(e) || e.deployment?.transfer || e.deployment?.scattered || e.holdFire || e.smokePassive || e.execute || e.crewJob || e.buffs?.stunned?.until>state.tick) return false;
+    const moving = (e.order?.kind === 'move' && !e.order.arrived && !e.order.duty) || ['enter', 'heal', 'loot'].includes(e.order?.kind) || (e.order?.kind==='follow'&&e.order.regrouping);
     if(moving){if(e.taunt)e.taunt.castUntil=state.tick;return false;}
     if ((e.taunt?.castUntil ?? -1) > state.tick) { e.anim = 'taunt'; return true; }
     if ((e.taunt?.readyAt ?? 0) <= state.tick && bellow(e)) { e.anim = 'taunt'; return true; }

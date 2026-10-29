@@ -73,4 +73,32 @@ assert.doesNotThrow(()=>JSON.stringify(st));
  a.order={kind:'stop'};assert.equal(diversion.step(a,{}),true);assert.equal(a.anim,'dance');assert.equal(a.buffs.charming.until,1+DIVERSION.castTicks);
  const ready=a.lure.readyAt;diversion.manual(a);assert.equal(a.buffs.charming,undefined);assert.equal(a.lure.castUntil,state.tick);assert.equal(a.lure.readyAt,ready,'moving interrupts visual channel without resetting cooldown');
 }
-console.log('Geisha: hire, stationary-only charm/channel, move/attack priority, duration/cooldown, freeze, fleeing and configured last-resort damage passed');
+// Cast control must remain correct even when a stunned/dead actor skips its crew step.
+function castFixture(){
+ const a={id:'a',type:'shinobi_geisha',owner:'p',place:'street',x:0,z:0,order:{kind:'stop'}},b={id:'b',type:'thug',owner:'q',place:'street',x:4,z:0,order:{kind:'stop'}};
+ const state={tick:100,entities:{a,b},clans:{p:{},q:{}},casts:[]};let visible=true;
+ const diversion=createDiversion({state,deployment:{canOccupy:()=>true},vision:{canSee:()=>visible},reveal(){},clearCombat(){},hostile:(a,b)=>a.owner!==b.owner});
+ return {a,b,state,diversion,hide:()=>visible=false};
+}
+{
+ const {a,b,state,diversion}=castFixture();b.hitAt=100;assert.equal(diversion.step(a,{}),false,'recently hit target is skipped');
+ state.tick+=20;state.entities.friend={id:'c',owner:'p',place:'street',x:0,z:0,swing:{target:'b'}};
+ assert.equal(diversion.step(a,{}),false,'actively focused target is skipped');delete state.entities.friend.swing;
+ assert.equal(diversion.step(a,{}),true);assert.equal(b.distracted,undefined,'charm waits for cast completion');
+ assert.equal(b.buffs.charmSnare.speed,.25);assert.equal(a.lure.readyAt,state.tick+80);
+ b.x=7.3;state.tick+=20;diversion.step(a,{});assert.equal(b.distracted?.source,'a','snared target remains within cast leash');
+ assert.equal(b.buffs.charmSnare,undefined);assert.equal(b.distracted.until,state.tick+80);
+}
+for(const interrupt of [
+ f=>f.a.dead=true,f=>f.a.downed=true,f=>f.a.jailed={},f=>f.a.buffs.stunned={until:200},f=>f.a.taunted={source:'b',until:200},
+ f=>f.a.order={kind:'move'},f=>f.a.order={kind:'attack',target:'b'},f=>f.a.order={kind:'follow',regrouping:true},
+ f=>f.a.holdFire=true,f=>f.a.smokePassive=true,f=>f.a.deployment={transfer:{to:'home'}},
+ f=>f.b.hitAt=f.state.tick,f=>f.b.dead=true,f=>f.b.place='another-room',f=>f.b.x=9,f=>f.hide()
+]){
+ const f=castFixture();f.diversion.step(f.a,{});assert.equal(f.b.buffs.charmSnare.source,'a');
+ const ready=f.a.lure.readyAt;interrupt(f);f.diversion.tick();
+ assert.equal(f.b.buffs.charmSnare,undefined,'interruption immediately releases the snare');
+ assert.equal(f.a.buffs.charming,undefined);assert.equal(f.a.lure.casting,false);assert.equal(f.a.lure.readyAt,ready,'interruption does not reset cooldown');
+ assert.equal(f.b.distracted,undefined,'interrupted cast never applies charm');
+}
+console.log('Geisha: hire/combat, four-second cooldown, target-under-fire exclusion, snared channel/leash, commands, damage/death/CC/visibility/room interruptions passed');

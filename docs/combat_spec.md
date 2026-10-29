@@ -111,7 +111,7 @@ Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercen
 
 ### Yakuza Irezumi enforcer (2026-10-29)
 
-Yakuza-only crew unit: 320 HP, burning club, 140 ryo. Taunt every 4 s (range 5; updated 2026-10-29): the target must attack him for 4 s, and he takes 15% less damage while a taunt holds. The Yakuza bot hires one once it has 4 crew.
+Yakuza-only crew unit: 600 HP, 15 melee damage, burning club, 140 ryo (phase 3, 2026-10-29). Taunt every 4 s (range 5; updated 2026-10-29): the target must attack him for 4 s, and he takes 15% less damage while a taunt holds. The Yakuza bot hires one once it has 4 crew.
 
 ### Ninja leader kit (built 2026-10-20, `units.json` `models.ninja_leader.abilities`)
 
@@ -270,4 +270,10 @@ Automatic rifle targeting now includes hostile bandits through the existing visi
 
 ### Special-crew checkpoint (2026-10-29)
 
-Geisha: four-second cooldown, real one-second Charm cast; target moves at 25% speed with pink snare during casting. Recent hits/active attacks exclude targets; moving/interruption cancels the cast. Enforcer: four-second automatic Taunt cooldown (supersedes earlier five/ten-second notes); movement orders win, Taunt may interrupt his own melee. Coordinator reports geisha check passed. Enforcer integration check currently fails the automatic-renewal timing assertion; recast eligibility/timing remains unresolved. Sweep grouping/hold/scatter status lives in the [deployment checkpoint](deployment_sector_plan.md#sweep-checkpoint-tracking-2026-10-29). AIMING/TAUNT readouts and enhanced rifle muzzle/side sparks/smoke are implemented; visual sign-off pending.
+Geisha: four-second cooldown, real one-second Charm cast; target moves at 25% speed with pink snare during casting. Recent hits/active attacks exclude targets; moving/interruption cancels the cast. Enforcer: four-second automatic Taunt cooldown (supersedes earlier five/ten-second notes); movement orders win, Taunt may interrupt his own melee. Coordinator reports geisha check passed. The earlier automatic-renewal failure is resolved by phase 3 below. Sweep grouping/hold/scatter status lives in the [deployment checkpoint](deployment_sector_plan.md#sweep-checkpoint-tracking-2026-10-29). AIMING/TAUNT readouts and enhanced rifle muzzle/side sparks/smoke are implemented; visual sign-off pending.
+
+### Phase 3 crew completion checkpoint (2026-10-29)
+
+Enforcer now has 600 HP/15 damage and four-second primary Taunt. Expired taunt records no longer block exact-cooldown recasts; expired forced orders stop. Explicit movement/regroup, passive/stop/smoke, execution/jobs, transfer/scatter and stun retain priority; autonomous duty movement may Taunt. The previously failing recast regression is resolved.
+
+Geisha retains one-second valid channel, 75% snare/pink effect and four-second Charm/cooldown. Central cast validation and tick cleanup clear channel/snare on caster/target death, KO/jail, caster stun/taunt, explicit movement/attack/regroup, hold-fire/smoke/transfer, target hits, room/visibility/range changes, including when the actor skips crew-step handling. Coordinator reports passing enforcer, geisha (target-under-fire, cast leash and fifteen interruption cases), character-stats and Shakedown checks; syntax/diff checks passed. Manual visual/balance testing and broad regressions remain pending.

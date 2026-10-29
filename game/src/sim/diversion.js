@@ -18,6 +18,14 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
   const isGeisha = e => e?.type === 'shinobi_geisha';
   const targets = (t, id) => fightTarget(t.id) === id || t.attackTarget === id || (t.order?.kind === 'attack' && t.order.target === id) || t.swing?.target === id;
   const underFire = t => state.tick-(t.hitAt??-Infinity)<20 || Object.values(state.entities).some(a=>alive(a)&&a!==t&&a.place===t.place&&targets(a,t.id));
+  function validCast(e){
+    const t=state.entities[e.lure?.target];
+    return alive(e)&&alive(t)&&!e.deployment?.transfer&&!e.deployment?.scattered&&!e.distracted&&!e.holdFire&&!e.smokePassive
+      &&!(e.buffs?.stunned?.until>state.tick)&&!(e.taunted?.until>state.tick)&&e.order?.kind!=='attack'
+      &&!(e.order?.kind==='move'&&!e.order.arrived)&&!['attackmove','enter','heal','loot'].includes(e.order?.kind)&&!(e.order?.kind==='follow'&&e.order.regrouping)
+      &&t.place===e.place&&!t.distracted&&!underFire(t)&&vision.canSee(e.owner,t)
+      &&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius+DIVERSION.castLeash;
+  }
   function cancelCast(e){
     const t=state.entities[e.lure?.target];
     if(t?.buffs?.charmSnare?.source===e.id)delete t.buffs.charmSnare;
@@ -50,13 +58,12 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
     return true;
   }
   function geishaStep(e, unit) {
-    if (!alive(e) || e.deployment?.transfer || e.deployment?.scattered || e.order?.kind === 'attack') { cancelCast(e);delete e.cornered; return false; }
+    if (!alive(e) || e.deployment?.transfer || e.deployment?.scattered || e.holdFire || e.smokePassive || e.order?.kind === 'attack') { cancelCast(e);delete e.cornered; return false; }
     // a move-type order from you beats running away (Tim 2026-10-28)
-    if ((e.order?.kind === 'move' && !e.order.arrived) || ['attackmove', 'enter', 'heal', 'loot'].includes(e.order?.kind)) { cancelCast(e);delete e.cornered; if (e.geishaMode) { delete e.geishaMode; delete e.fleeGoal; } return false; }
+    if ((e.order?.kind === 'move' && !e.order.arrived) || ['attackmove', 'enter', 'heal', 'loot'].includes(e.order?.kind) || (e.order?.kind==='follow'&&e.order.regrouping)) { cancelCast(e);delete e.cornered; if (e.geishaMode) { delete e.geishaMode; delete e.fleeGoal; } return false; }
     if(e.lure?.casting){
       const t=state.entities[e.lure.target];
-      if(!alive(t)||t.place!==e.place||underFire(t)||!vision.canSee(e.owner,t)
-        ||Math.hypot(t.x-e.x,t.z-e.z)>DIVERSION.radius+DIVERSION.castLeash){cancelCast(e);return false;}
+      if(!validCast(e)){cancelCast(e);return false;}
       if(state.tick<e.lure.castUntil){e.anim='dance';return true;}
       cancelCast(e);clearCombat(t);
       t.distracted={source:e.id,x:t.x,z:t.z,place:t.place,until:state.tick+DIVERSION.durationTicks,
@@ -84,6 +91,7 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
     return false;
   }
   function tick() {
+    for(const e of Object.values(state.entities))if(e.lure?.casting&&!validCast(e))cancelCast(e);
     for (const t of Object.values(state.entities)) if (t.distracted?.source) {
       const a = state.entities[t.distracted.source];
       if (!alive(t) || !alive(a) || t.distracted.until <= state.tick) release(t);

@@ -7,7 +7,7 @@ Approval (Tim, 2026-10-29): plan approved; start phase 1 map performance/render 
 ## 0. Preserve the current checkpoint
 
 - [x] `3ae0309` contains the Sweep/crew checkpoint; preserve completed work rather than rebuild it. [Deployment status](deployment_sector_plan.md#sweep-checkpoint-tracking-2026-10-29).
-- [ ] Investigate the known failing enforcer automatic-recast assertion; integration is not fully green. [Combat owner](combat_spec.md).
+- [x] Enforcer automatic-recast failure resolved in phase 3; focused regression passed, broader integration/playtesting remains pending. [Combat owner](combat_spec.md).
 - Existing `?test=assignments` keeps the clan menu, grants 5000 ryo and stages/dispatches real Yakuza Shakedown or Kuroda Sweep; Shinobi receives money only. [Test switches](test_params.md). Manual visual/balance approval remains pending.
 
 ## 1. Map performance first
@@ -21,7 +21,7 @@ Owners: [architecture/lifecycle and diagnostics](architecture.md#map-presentatio
 - [x] Reuse scene/resources; clear transient pooled FX on open. Close resynchronizes snapshots/fog to current state, without replaying skipped world hit/cast/dodge FX or delayed ownership celebrations.
 - [x] Cache terrain buffers/dirty cells and a single honeycomb/border canvas; slow ripple at 8 Hz, immediate invalidation on size/zoom/selection/presence. Markers retain map rate; roster snapshots are lazy, honest enemy contacts observed each sim tick even closed. Deployment UI caches at 10 Hz with immediate selection/feedback changes. Hidden duplicate roster stops updating; ping queues expire/cap at 64.
 - [x] Coordinator reports passing `test_map_performance` (pixel/fog/tint parity, shared buffers, 1000 lifecycle cycles, closed-map contacts), `test_deployment_map` (single-canvas reuse/ripple/zoom), `test_deployment_panel_flow`, `test_game_shell`, syntax checks for thirteen changed modules and diff check. No browser automation or live browser validation performed.
-- [ ] Tim manual diagnostics via `window.infamy.mapPerformance()`: worldFrames stops while sim tick advances; map selection/zoom/transfers respond; open through combat/night/interior changes then close onto latest state without FX backlog; repeated open/close/zoom plateaus resources. Check actual browser RAM/FPS separately. Node lifecycle checks do not establish stable browser memory. Existing enforcer recast assertion remains unrelated and unresolved.
+- [ ] Tim manual diagnostics via `window.infamy.mapPerformance()`: worldFrames stops while sim tick advances; map selection/zoom/transfers respond; open through combat/night/interior changes then close onto latest state without FX backlog; repeated open/close/zoom plateaus resources. Check actual browser RAM/FPS separately. Node lifecycle checks do not establish stable browser memory. The unrelated enforcer recast assertion was subsequently resolved in phase 3.
 
 ## 2. Fullscreen deployment simplification
 
@@ -45,11 +45,17 @@ Future Sweep proposal: visit a few waypoints around the destination sector befor
 
 ## 3. Special crew
 
+Approval (Tim, 2026-10-29): deployment is good for now; start phase 3 special crew, including Enforcer 600 HP/15 damage, four-second primary Taunt/recast fix and Geisha interruption/target-under-fire checks. These approved targets are now implemented/Node-checked as reported below; manual balance/visual checks remain pending. Preserve current deployment UI. Sweep route changes, combined button and icon-menu remain future work.
+
+Audio follow-up implemented/Node-checked alongside phase 3: in-game background music using the existing two songs in varied order, with music toggle/volume in Settings; add more tracks later.
+
 Owner: [combat](combat_spec.md). Some channel/cooldown work already exists in checkpoint 0; verify it before extending it.
 
-- [ ] **Proposed tuning:** Enforcer 600 HP/15 damage, primary automatic Taunt. Use **four-second cooldown** per Tim’s latest correction, superseding earlier five-second notes. Investigate existing recast eligibility failure.
-- [ ] Geisha: four-second cooldown; stationary automatic Charm only against a target not taking hits or actively focused. Real one-second channel with 75% movement slow and a small pink snare while casting; complete four-second Charm only after a valid channel.
-- [ ] Movement/attack commands, hit/death, visibility/range interruptions clear channel/snare. Retain hero/police/civilian exclusions and explicit command priority. Add focused target-under-fire/channel-interruption coverage; checkpointed tests alone do not establish all these cases.
+- [x] **Implemented / Node-checked (2026-10-29):** Enforcer 600 HP/15 damage, primary automatic Taunt. Use **four-second cooldown** per Tim’s latest correction, superseding earlier five-second notes. Exact-cooldown stale-taunt exclusion fixed; recast regression passes.
+- [x] Geisha: four-second cooldown; stationary automatic Charm only against a target not taking hits or actively focused. Real one-second channel with 75% movement slow and a small pink snare while casting; complete four-second Charm only after a valid channel.
+- [x] Movement/attack commands, hit/death, visibility/range interruptions clear channel/snare. Retain hero/police/civilian exclusions and explicit command priority. Add focused target-under-fire/channel-interruption coverage; checkpointed tests alone do not establish all these cases.
+
+Coordinator reports passing enforcer, geisha (under-fire/leash/fifteen interruptions), character-stats and Shakedown checks. Audio checks: game-music, menu-music and game-shell passed, including streaming/shuffle/persistence/autoplay/visibility/failure cleanup. [Crew details](combat_spec.md#phase-3-crew-completion-checkpoint-2026-10-29); [music controls](controls.md#in-game-background-music-2026-10-29). Manual sound/visual/balance checks remain pending; no browser or broad-regression claim. Phase 2 workflow consolidation and future Sweep/menu proposals remain queued.
 
 ## 4. Shinobi economy bug audit
 
