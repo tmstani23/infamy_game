@@ -6,6 +6,7 @@ import { CAM_QUAT as CAM_Q, CAM_RIGHT, CAM_UP, VIEW_DIR } from './iso.js';
 import { onFxLayer } from './bloom.js';
 import { createParticles, createCards, SHAPE, getLantern } from './vfx.js';
 import { createKurodaFx } from './kurodafx.js';
+import { createShakedownFx } from './shakedownfx.js';
 
 const flat = (geo, color, opacity) => {
   const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
@@ -109,6 +110,7 @@ const SEAL_TEX = () => sealTex ||= (() => {
 
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen }) {
   const kurodaFx = createKurodaFx({ scene, spriteOf, posOf });
+  const shakedownFx = createShakedownFx({ scene, overlay, unitToScreen });
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
   const glow = createParticles(scene), cards = createCards(scene);
   const soot = createParticles(scene, { max: 2500, additive: false });   // black smoke: drawn normally so it darkens
@@ -199,6 +201,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     // c: one entry of state.casts
     cast(c) {
       kurodaFx.cast(c);
+      shakedownFx.cast(c);
       const s0 = spriteOf(c.a);
       if (c.kind === 'dash') {
         const m = flat(STREAK_GEO, 0xcfe0ff, 0.8);
@@ -443,6 +446,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
 
     update(dt, state, heroId) {
       kurodaFx.update(dt, state, heroId);
+      shakedownFx.update(dt, state, heroId);
       const aiming = new Set();
       for (const e of Object.values(state.entities)) {
         // the red aim line shows only at night, faint, fading toward the target (Tim 2026-10-29)

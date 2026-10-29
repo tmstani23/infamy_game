@@ -58,7 +58,7 @@ async function start() {
     getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json')]);
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
-  const selected = ['ninja', 'bot'].includes(TEST.setup)
+  const selected = ['ninja', 'bot', 'shakedown'].includes(TEST.setup)
     ? { clan: TEST.ninja ? 'shinobi' : 'yakuza', difficulty: bots.difficulty }
     : await chooseMatch({ root: $('startscreen'), loading: $('loading'), difficulty: bots.difficulty,
       startRyo: settings.costs?.startRyo ?? unitsFile.rules.startRyo, cycles: settings.season?.cycles ?? 10, drawCrest });
@@ -67,7 +67,7 @@ async function start() {
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
   const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings });
   const units = game.settings.units;   // hire prices etc. as the settings made them
-  const { heroId, rivals } = setupMatch(game, { ...selected, bots, spawns: district.spawns, test: TEST });
+  const { heroId, rivals, previewCommands = [] } = setupMatch(game, { ...selected, bots, spawns: district.spawns, test: TEST });
 
   // Townsfolk walking the streets
   game.civilians.populate();
@@ -98,7 +98,7 @@ async function start() {
   };
   // Day and night belong to the sim (townsfolk follow it): N sends a 'time' command and
   // the screen follows the state after each tick
-  const pending = [];
+  const pending = [...previewCommands];
   const toggleNight = () => pending.push({ type: 'time' });
   // dev only (test_params.js DEV): flipping day and night by hand
   if (DEV) onKey('KeyN', toggleNight);
@@ -426,6 +426,10 @@ async function start() {
       // and a War Lantern knocked down in a raid you are in; shown one after another at the top
       for (const n of game.state.news) {
         const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
+        if(n.kind==='shakedownAlert'&&n.defender===me){callout(`Shakedown at your ${n.name}! Defend the front room!`,'loss',4000);minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}
+        if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);
+        if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);
+        if(n.kind==='shakedownPaid'&&n.clan===me)callout(`Shakedown paid: +${n.ryo} ryo`,'win');
         if (n.kind === 'businessAttack' && n.clan === me) callout(`Your ${n.name} is under attack!`, 'loss');
         if (n.kind === 'hqSuppressed' && n.defender === me) callout(`HQ on fire! Contracts cancelled · reopen in ${Math.max(0, Math.ceil((n.suppressedUntil - game.state.tick) / TICK_RATE))} s`, 'loss');
         if (n.kind === 'hqSuppressed' && n.raider === me) callout(`Shinobi HQ defeated! +${n.points} points · +${n.bounty + n.stolen} ryo`, 'win');

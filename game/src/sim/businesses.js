@@ -72,6 +72,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (!b || (!R[b.kind] && !isShinobiHQ(state, b)) || !b.room) return { ok: false, why: 'Nothing to raid' };
     if (!b.owner || b.owner === e?.owner) return { ok: false, why: b.owner ? 'Already yours' : 'Unclaimed: buy or attack it' };
     if (state.attacks[b.id]) return { ok: false, why: 'Under attack already' };
+    if (Object.values(state.deployment?.clans||{}).some(c=>Object.values(c.sectors).some(t=>t.operation?.kind==='shakedown'&&t.operation.business===b.id))) return {ok:false,why:'Shakedown already in progress'};
     const recovery = isShinobiHQ(state, b) && state.hqRaids?.[b.id];
     if (recovery?.protectedUntil > state.tick) {
       const burning = recovery.suppressedUntil > state.tick;
@@ -381,8 +382,15 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       if (!pay || !clan) continue;
       // a Shinobi Sabotage contract held its mark here (sim/contracts.js): no payout this dawn
       if (b.sabotaged) { delete b.sabotaged; say(clan, `No payout from the ${name(b)}: sabotaged`); state.news.push({ kind: 'sabotaged', clan: clan.id, business: b.id }); continue; }
-      const amount = Math.round(pay * payoutShare(clan.id) * (payoutShare(clan.id) > 0 ? payoutBonus(b) : 1));   // whole quarter held: sim/territory.js
+      let amount = Math.round(pay * payoutShare(clan.id) * (payoutShare(clan.id) > 0 ? payoutBonus(b) : 1));   // whole quarter held: sim/territory.js
       if (amount <= 0) { say(clan, `No payout from the ${name(b)}: the police are cracking down`); continue; }
+      const claim=b.shakedownClaim, receiver=claim&&state.clans[claim.clan];
+      if(claim&&claim.owner===b.owner&&receiver){
+        const stolen=Math.floor(amount*.5);amount-=stolen;receiver.ryo+=stolen;
+        state.ryoGains.push({clan:receiver.id,amount:stolen,reason:'Shakedown payout'});
+        state.news.push({kind:'shakedownPaid',clan:receiver.id,defender:b.owner,business:b.id,ryo:stolen});
+        delete b.shakedownClaim;
+      }
       clan.ryo += amount;
       state.ryoGains.push({ clan: clan.id, amount, reason: `${name(b)} payout` });
     }

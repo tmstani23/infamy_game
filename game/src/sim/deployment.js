@@ -99,9 +99,15 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const home = clan => Object.values(state.businesses).find(b => b.hideout === clan && b.owner === clan);
   const hero = clan => Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero');
   const say = (clan, text) => { if (state.clans[clan]) state.clans[clan].notice = { tick: state.tick, text }; };
+  function excursion(e) {
+    const op = D.clans[e.owner]?.sectors[e.deployment?.group]?.operation;
+    return op?.kind === 'shakedown' && op.units.includes(e.id) ? state.businesses[op.business] : null;
+  }
   function canOccupy(e, x, z, place = e.place) {
     if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
     const group = e.deployment?.group;
+    const b = excursion(e);
+    if (b && (place === b.room || (place === 'street' && [group, sectorAt(...b.ring)].includes(sectorAt(x,z))))) return true;
     if (group === 'home') {
       const h = home(e.owner), p = h?.ring || hero(e.owner)?.home;
       return !!p && (place === h?.room || (place === 'street' && Math.hypot(x - p[0], z - p[1]) <= 12));
@@ -111,13 +117,14 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const canActAt = (e, x, z, place = e.place) => !e.deployment?.transfer && canOccupy(e, x, z, place);
   function navFor(e) {
     if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
-    const group = e.deployment.group, key = group === 'home' ? `home:${e.owner}` : group;
+    const group = e.deployment.group, b = excursion(e), target = b && sectorAt(...b.ring);
+    const key = b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group;
     if (!localNavs.has(key)) {
       const { bounds, cell, w, cells } = geometry.cellGrid(), label = sectorIds.indexOf(group);
       localNavs.set(key, createNav([], bounds, { cell, pad: 0, allowed: (x, z) => {
         if (group === 'home') return nav.free(x, z) && canOccupy(e, x, z, 'street');
         const k = Math.floor((z - bounds.minZ) / cell) * w + Math.floor((x - bounds.minX) / cell);
-        return cells[k] === label;
+        return cells[k] === label || (b && cells[k] === sectorIds.indexOf(target));
       } }));
     }
     return localNavs.get(key);

@@ -6,6 +6,7 @@
 //                (longhouse hideout, dojo hiring); Kuroda is the rival bot as usual
 //   ?test=lantern keep the normal clan/difficulty menu; only your starting ryo becomes
 //                 3000, enough to buy a War Lantern. Rivals and starting property stay normal.
+//   ?test=shakedown stages three Yakuza at a rival teahouse and starts a real night Shakedown.
 // DEV = false turns it off, along with the dev-only keys in main.js: N / the day-night button
 // (any client could send that 'time' command, a cheat in multiplayer), F3 footprints, and
 // window.infamy for the browser console. Not covered: server.mjs saving the HUD layout

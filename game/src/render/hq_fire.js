@@ -11,9 +11,9 @@ import { shared, FOG_QUAD } from './shading.js';
 const PAD_W = 1.25, PAD_H = 1.9;      // quad size relative to the building art
 const SOURCES = 72;
 
-const FIRE_FRAG = /* glsl */`
+const fireFragment = (sourceCount = SOURCES) => /* glsl */`
 uniform float uTime; uniform float uNight; uniform float uAspect; uniform float uSeed;
-uniform vec4 uSrc[${SOURCES}];   // x, y in art space (0..1, y up from the art's bottom), size, seed
+uniform vec4 uSrc[${sourceCount}];   // x, y in art space (0..1, y up from the art's bottom), size, seed
 ${FOG_QUAD}
 varying vec2 vUv;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -58,7 +58,7 @@ void main() {
   float warp = fbm(q * 3.0 + vec2(0.0, -t * 1.1)) - 0.5;
   float n = fbm(vec2(q.x * 12.0 + warp * 1.6, q.y * 8.0 - t * 4.0));
   float f = 0.0, halo = 0.0;
-  for (int i = 0; i < ${SOURCES}; i++) {
+  for (int i = 0; i < ${sourceCount}; i++) {
     vec4 s = uSrc[i];
     // height swings from a stub to well over twice its usual size, each at its own pace
     float h = s.z * (0.25 + 1.5 * pow(wobble(t * (1.1 + fract(s.w * 0.37) * 2.2) + s.w * 13.0), 1.6));
@@ -112,7 +112,7 @@ function fireMaterial(aspect, sources, seed) {
       uSrc: { value: sources.map(s => new THREE.Vector4(...s)) } },
     vertexShader: `varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: FIRE_FRAG,
+    fragmentShader: fireFragment(sources.length),
     transparent: true, depthTest: false, depthWrite: false,
     blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
   });
@@ -145,6 +145,15 @@ function fireSources(aspect) {
 }
 
 const ground = new THREE.Vector3();
+// Small ground patches reuse the HQ's curling flame, smoke and ember shader.
+export function createGroundFirePatch(x,z,radius,seed=1) {
+  const sources=Array.from({length:9},(_,i)=>[.5+(i-4)*.045,.06,.2+Math.random()*.1,seed+i*7.3]);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),fireMaterial(1,sources,seed));
+  mesh.quaternion.copy(CAM_QUAT);mesh.scale.set(radius*3.4,radius*3.4*PAD_H/PAD_W,1);
+  mesh.position.set(x,0,z).addScaledVector(CAM_UP,mesh.scale.y/2);
+  mesh.frustumCulled=false;mesh.renderOrder=99805;
+  return mesh;
+}
 export function createHQFire({ scene, things, lights }) {
   const burning = new Map(), quad = new THREE.PlaneGeometry(1, 1);
   function update(state) {

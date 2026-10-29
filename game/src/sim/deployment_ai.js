@@ -35,6 +35,12 @@ export function createDeploymentAI(game, { clan, hero }) {
       if (follow.length && !raid) out.push({id:hero,type:'order',kind:'follow',units:follow});
     }
     let targeting = !!record.hunt;
+    if(st.night&&st.clans[clan].faction==='yakuza'&&game.shakedown&&!rally.active&&!raid&&st.clans[clan].heat<60)for(const [id,task]of Object.entries(record.sectors)){
+      const squad=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!e.deployment.duty?.manual&&!game.rally.participating(e));
+      if(squad.length<3||task.operation||task.recovery||squad.some(e=>e.hp<e.maxHp*.85))continue;
+      const target=Object.values(st.businesses).find(b=>game.shakedown.eligibility(clan,id,b.id).ok);
+      if(target){command({action:'shakedown',sector:id,business:target.id});break;}
+    }
     if (st.clans[clan].kind==='ninja') for (const [id,task]of Object.entries(record.sectors)) {
       const crew=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!game.rally.participating(e));
       if (!crew.length || task.operation || task.recovery || task.task==='ambush' || targeting) continue;

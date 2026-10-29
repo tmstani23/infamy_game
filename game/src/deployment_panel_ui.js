@@ -14,6 +14,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     + '<section class="active-transfers" hidden><h4>Traveling crew</h4><div class="travel-roster"></div></section>'
     + '<section class="transfer-mode" hidden><h4>Choose transfer destination</h4><p class="transfer-source"></p><div class="destinations"></div><button type="button" class="pick-destination">Choose sector on map</button><strong class="transfer-preview"></strong><p class="transfer-why"></p><button type="button" class="confirm-transfer">Confirm transfer</button><button type="button" class="cancel-transfer">Cancel</button></section>'
     + '<section class="duty" hidden><h4>Sector duty</h4><label>Active duty <select class="task" aria-label="Active sector duty"></select></label><label class="business-label">Business <select class="guard-business"></select></label><form class="staffing-goal"><label>Staffing goal <input class="staffing-target" type="number" min="0" step="1"></label><button type="submit">Set goal</button></form><small class="assignment-points"></small><details><summary>Patrol route / duty point</summary><button type="button" data-point="objective">Choose duty point</button><button type="button" data-point="route">Add route point</button><button type="button" class="clear-route">Clear route</button></details><div class="shinobi-ops" hidden><b class="hunt-target"></b><button type="button" class="arm-next">Ambush next enemy</button><button type="button" class="cancel-ambush">Cancel hunt</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview"></small><div class="recent-targets"></div></div></section>'
+    + '<section class="shakedown-ops" hidden><h4>Yakuza Shakedown</h4><label>Rival business <select class="shakedown-business" aria-label="Shakedown target business"></select></label><button type="button" class="start-shakedown">Start Shakedown</button><button type="button" class="cancel-shakedown">Recall squad</button><small class="shakedown-preview"></small></section>'
     + '<details class="rally-controls"><summary>Rally <span class="rally-status"></span></summary><div class="rally-groups"></div><button type="button" class="call-rally">Call Rally</button><small>3 minutes including travel.</small></details>'
     + '<details class="reserves"><summary>HQ reserves</summary><form><label>Keep <input class="reserve-target" type="number" min="0" step="1"> ready crew</label><button type="submit">Apply</button></form></details><footer></footer>';
   const $ = s => root.querySelector(s), owner = () => game.state.entities[heroId]?.owner;
@@ -106,6 +107,8 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   $('.arm-next').addEventListener('click',()=>issue({action:'armAmbush',sector:focus}));
   $('.cancel-ambush').addEventListener('click',()=>issue({action:'cancelAmbush',sector:focus}));
   $('.retreat').addEventListener('click',()=>issue({action:'retreat',sector:focus}));
+  $('.start-shakedown').addEventListener('click',()=>issue({action:'shakedown',sector:focus,business:$('.shakedown-business').value}));
+  $('.cancel-shakedown').addEventListener('click',()=>issue({action:'cancelShakedown',sector:focus}));
   $('.call-rally').addEventListener('click',()=>issue({action:'rally',groups:[...rallyChecks].filter(([,c])=>c.checked).map(([id])=>id)}));
   $('.reserves form').addEventListener('submit',e=>{e.preventDefault();const input=$('.reserve-target');if(input.value!==''&&input.checkValidity())issue({action:'reserveTarget',value:Number(input.value)});});
   $('.staffing-goal').addEventListener('submit',e=>{e.preventDefault();const input=$('.staffing-target');if(record(focus)&&input.value!==''&&input.checkValidity())issue({action:'staffing',sector:focus,value:Number(input.value)});});
@@ -175,6 +178,16 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
       $('.transfer-why').textContent=can.why;$('.confirm-transfer').disabled=!can.ok;
     }
     $('.duty').hidden=!task;
+    const shakedown=game.shakedown,showShakedown=!!task&&st.clans[owner()].faction==='yakuza'&&!!shakedown;
+    $('.shakedown-ops').hidden=!showShakedown;
+    if(showShakedown){
+      const targets=Object.values(st.businesses).filter(b=>b.room&&b.ring&&!b.hideout&&st.clans[b.owner]&&b.owner!==owner()&&units.rules.businesses[b.kind]?.payout&&shakedown.nearby(focus,b));
+      const select=$('.shakedown-business'),key=targets.map(b=>`${b.id}:${b.owner}`).join(',');
+      if(select.dataset.key!==key){const selected=select.value;select.dataset.key=key;select.replaceChildren();for(const b of targets)select.add(new Option(`${b.kind.replaceAll('_',' ')} · ${st.clans[b.owner].name}`,b.id));if(targets.some(b=>b.id===selected))select.value=selected;}
+      const op=task.operation?.kind==='shakedown'&&task.operation,can=shakedown.eligibility(owner(),focus,select.value);
+      $('.start-shakedown').disabled=!can.ok;$('.cancel-shakedown').disabled=!op||op.state==='Returning';
+      $('.shakedown-preview').textContent=op?`${op.state} · ${Math.floor(op.progress/20)}/20 s${op.reason?` · ${op.reason}`:''}`:can.ok?'Three opening dynamite throws · +10 heat · hold 20 s · bonus + 50% next payout':can.why;
+    }
     if(task){
       $('.task').value=task.task;
       if(staffingDirty&&$('.staffing-target').value!==''&&Number($('.staffing-target').value)===(task.desired??3))staffingDirty=false;

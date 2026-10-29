@@ -66,6 +66,7 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
   function tick() {
     if (!state.deployment.restrictionsEnabled) return;
     for (const [clan, config] of Object.entries(state.deployment.clans)) for (const [id, task] of Object.entries(config.sectors)) {
+      if (task.operation?.kind === 'shakedown') continue;
       const team = members(clan, id);
       if (!team.length) { delete task.engagement; delete task.recovery; continue; }
       if (!task.recovery) {
