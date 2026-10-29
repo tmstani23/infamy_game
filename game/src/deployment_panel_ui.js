@@ -1,24 +1,25 @@
 import { unitName } from './selection_panel.js';
 import { TASK_LABELS } from './deployment_map_data.js';
 import { syncChildren } from './stable_list.js';
+import { portrait } from './portraits.js';
 const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 
 // One focused command group. Transfer destination picking never changes the
 // source selection. All success feedback comes back from the simulation.
-export function createDeploymentPanel({ root, button, game, units, heroId, crewInput, send,
+export function createDeploymentPanel({ root, button, game, units, catalog, heroId, crewInput, send,
   onPickPoint, onPickDestination, onCancelPick = () => {}, onOpen = () => {}, onClose = () => {}, onFocus = () => {}, onInspect = () => {} }) {
   root.innerHTML = '<header><h3>DEPLOYMENT</h3><button type="button" class="close" aria-label="Close deployment">✕</button></header><div class="tabs"></div>'
     + '<section class="first-zone" hidden><h4>Choose your first assignment zone</h4><p>Your hero group is full. Choose where spare crew should deploy first, or transfer one there manually.</p><div class="first-zone-options"></div></section>'
-    + '<section class="group-summary"><h4></h4><strong></strong><span></span></section><div class="acceptance" role="status" aria-live="polite" hidden></div>'
-    + '<section class="crew-selection"><div class="roster-heading"><b>Crew selected</b><button type="button" class="select-group">Select group</button></div><div class="roster"></div><button type="button" class="transfer-start">Transfer selected crew</button><button type="button" class="assign-here">Assign crew here</button><button type="button" class="return-assignment">Return to duty</button></section>'
-    + '<section class="assign-mode" hidden><h4>Assign crew here</h4><p class="assign-destination"></p><label>From group <select class="assign-source" aria-label="Source group for assignment"></select></label><div class="assign-roster"></div><strong class="assign-preview"></strong><p class="assign-why"></p><button type="button" class="confirm-assignment">Assign selected crew</button><button type="button" class="cancel-assignment">Cancel</button></section>'
-    + '<section class="active-transfers" hidden><h4>Traveling crew</h4><div class="travel-roster"></div></section>'
+    + '<section class="group-summary"><h4></h4><strong></strong><span></span><small class="staffing-summary"></small></section><div class="acceptance" role="status" aria-live="polite" hidden></div>'
+    + '<nav class="page-tabs" aria-label="Deployment sections"><button type="button" class="show-crew">Crew &amp; staffing</button><button type="button" class="show-duty">Duties</button><button type="button" class="show-rally">Rally</button><button type="button" class="show-reserves">HQ</button></nav><div class="workspace"><section class="pane-crew"><section class="crew-selection"><div class="roster-heading"><b>Crew selected</b><button type="button" class="select-group">Select group</button></div><form class="staffing-goal"><label>Staffing goal <input class="staffing-target" type="number" min="0" step="1"></label><button type="submit">Set goal</button></form><div class="roster"></div><div class="roster-pages list-pages"><button type="button" class="roster-prev">Previous</button><span class="roster-page"></span><button type="button" class="roster-next">Next</button></div><button type="button" class="transfer-start">Transfer selected crew</button><button type="button" class="assign-here">Assign crew here</button><button type="button" class="return-assignment">Return to duty</button></section>'
+    + '<section class="assign-mode" hidden><h4>Assign crew here</h4><p class="assign-destination"></p><label>From group <select class="assign-source" aria-label="Source group for assignment"></select></label><div class="assign-roster"></div><div class="assign-pages list-pages"><button type="button" class="assign-prev">Previous</button><span class="assign-page"></span><button type="button" class="assign-next">Next</button></div><strong class="assign-preview"></strong><p class="assign-why"></p><button type="button" class="confirm-assignment">Assign selected crew</button><button type="button" class="cancel-assignment">Cancel</button></section>'
+    + '<section class="active-transfers" hidden><h4>Traveling crew</h4><div class="travel-roster"></div><div class="travel-pages list-pages"><button type="button" class="travel-prev">Previous</button><span class="travel-page"></span><button type="button" class="travel-next">Next</button></div></section>'
     + '<section class="transfer-mode" hidden><h4>Choose transfer destination</h4><p class="transfer-source"></p><div class="destinations"></div><button type="button" class="pick-destination">Choose sector on map</button><strong class="transfer-preview"></strong><p class="transfer-why"></p><button type="button" class="confirm-transfer">Confirm transfer</button><button type="button" class="cancel-transfer">Cancel</button></section>'
-    + '<section class="duty" hidden><h4>Sector duty</h4><label>Active duty <select class="task" aria-label="Active sector duty"></select></label><label class="business-label">Business <select class="guard-business"></select></label><form class="staffing-goal"><label>Staffing goal <input class="staffing-target" type="number" min="0" step="1"></label><button type="submit">Set goal</button></form><small class="assignment-points"></small><details><summary>Patrol route / duty point</summary><button type="button" data-point="objective">Choose duty point</button><button type="button" data-point="route">Add route point</button><button type="button" class="clear-route">Clear route</button></details><div class="shinobi-ops" hidden><b class="hunt-target"></b><button type="button" class="arm-next">Ambush next enemy</button><button type="button" class="cancel-ambush">Cancel hunt</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview"></small><div class="recent-targets"></div></div></section>'
+    + '</section><section class="pane-duty"><section class="duty" hidden><h4>Sector duty</h4><p class="duty-help">Choose the group’s standing assignment. Changes apply immediately.</p><label>Active duty <select class="task" aria-label="Active sector duty"></select></label><label class="business-label">Business <select class="guard-business"></select></label><small class="assignment-points"></small><details><summary>Patrol route / duty point</summary><button type="button" data-point="objective">Choose duty point</button><button type="button" data-point="route">Add route point</button><button type="button" class="clear-route">Clear route</button></details><div class="shinobi-ops" hidden><b class="hunt-target"></b><button type="button" class="arm-next">Ambush next enemy</button><button type="button" class="cancel-ambush">Cancel hunt</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview"></small><div class="recent-targets"></div><div class="target-pages list-pages"><button type="button" class="target-prev">Previous</button><span class="target-page"></span><button type="button" class="target-next">Next</button></div></div></section>'
     + '<section class="sweep-ops" hidden><h4>Kuroda Sweep</h4><label>Rival clan <select class="sweep-clan" aria-label="Sweep rival clan"></select></label><label>Adjacent sector <select class="sweep-sector" aria-label="Sweep target sector"></select></label><button type="button" class="start-sweep">Dispatch Sweep</button><button type="button" class="cancel-sweep">Recall squad</button><small class="sweep-preview"></small></section>'
     + '<section class="shakedown-ops" hidden><h4>Yakuza Shakedown</h4><label>Rival business <select class="shakedown-business" aria-label="Shakedown target business"></select></label><button type="button" class="start-shakedown">Start Shakedown</button><button type="button" class="cancel-shakedown">Recall squad</button><small class="shakedown-preview"></small></section>'
-    + '<details class="rally-controls"><summary>Rally <span class="rally-status"></span></summary><div class="rally-groups"></div><button type="button" class="call-rally">Call Rally</button><small>3 minutes including travel.</small></details>'
-    + '<details class="reserves"><summary>HQ reserves</summary><form><label>Keep <input class="reserve-target" type="number" min="0" step="1"> ready crew</label><button type="submit">Apply</button></form></details><footer></footer>';
+    + '</section><section class="pane-rally"><details class="rally-controls" open><summary>Rally <span class="rally-status"></span></summary><div class="rally-groups"></div><button type="button" class="call-rally">Call Rally</button><small>Unite your chosen groups for 3 minutes, including travel. They return to saved assignments afterward.</small></details>'
+    + '</section><section class="pane-reserves"><details class="reserves" open><summary>HQ reserves</summary><form><label>Keep <input class="reserve-target" type="number" min="0" step="1"> ready crew</label><button type="submit">Apply</button></form><p>Pinned crew stay at HQ. Ready, unpinned crew can fill sector staffing goals after your hero group is filled.</p></details></section></div><footer></footer>';
   const $ = s => root.querySelector(s), owner = () => game.state.entities[heroId]?.owner;
   const config = () => game.state.deployment.clans[owner()], record = id => config().sectors[id];
   const names = { hero:'Hero group', home:'HQ reserves', ...Object.fromEntries(game.state.deployment.sectors.map(s => [s.id,s.name])) };
@@ -28,6 +29,19 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   const ninja = game.state.clans[owner()].kind === 'ninja', rows=new Map(), tabs=new Map(), destinations=new Map(), rallyChecks=new Map(), targetRows=new Map(), incomingRows=new Map(), travelRows=new Map();
   let focus='hero', open=false, transfer=null, incoming=null, latestTransfer=[], request=0, lastRefresh=null, feedbackSequence=config().feedback?.sequence || 0;
   let reserveDirty=false,staffingDirty=false;
+  const pages=new Map();
+  const sectionNames=['crew','duty','rally','reserves'];
+  function setPage(name){root.dataset.page=name;for(const id of sectionNames)$( '.show-'+id).setAttribute('aria-pressed',String(id===name));}
+  sectionNames.forEach(name=>$('.show-'+name).addEventListener('click',()=>setPage(name)));
+  setPage('crew');
+  function paged(name,container,nodes,size){
+    let page=pages.get(name);
+    if(!page){page={index:0};pages.set(name,page);for(const [suffix,dir]of [['prev',-1],['next',1]])$('.'+name+'-'+suffix).addEventListener('click',()=>{page.index+=dir;update(true);});}
+    const count=Math.max(1,Math.ceil(nodes.length/size));page.index=Math.max(0,Math.min(count-1,page.index));
+    syncChildren($(container),nodes.slice(page.index*size,(page.index+1)*size));
+    $('.'+name+'-pages').hidden=count===1;setText($('.'+name+'-page'),(page.index+1)+' / '+count);
+    $('.'+name+'-prev').disabled=page.index===0;$('.'+name+'-next').disabled=page.index===count-1;
+  }
   const issue = c => {
     send({id:heroId,type:'deployment',...c,request:`panel-${++request}`});
     $('.acceptance').hidden=false; $('.acceptance').className='acceptance pending'; $('.acceptance').textContent='ORDER PENDING…';
@@ -37,6 +51,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   }
   function setFocus(id, select=true) {
     if (!Object.hasOwn(names,id)) return;
+    setPage(record(id)?'duty':'crew');for(const p of pages.values())p.index=0;
     focus=id; transfer=null; incoming=null; staffingDirty=false; onCancelPick();
     if(record(id)&&game.deployment.needsFirstSector?.(owner()))issue({action:'autoSector',sector:id});
     if(select)selectGroup(id);
@@ -128,28 +143,36 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     const selectedGroups=new Set([...selected].map(id=>st.entities[id]?.deployment.group));
     if(!transfer&&!incoming&&selectedGroups.size===1){const id=[...selectedGroups][0];if(names[id]&&id!==focus){focus=id;if(record(id))onFocus(id);}}
     const counts=game.deployment.counts(owner()),list=members(focus),task=record(focus),rally=game.rally.status(owner());
+    $('.show-duty').disabled=!task;$('.show-duty').title=task?'Configure sector duties and operations':'Choose a sector to configure its duties';
+    if(!task&&root.dataset.page==='duty')setPage('crew');
+    $('.staffing-goal').hidden=!task;
+    root.dataset.flow=incoming?'assign':transfer?'transfer':'normal';
+    if(incoming||transfer)setPage('crew');
+    const arriving=members().filter(e=>e.deployment.transfer?.to===focus).length;
+    setText($('.staffing-summary'),task?list.filter(e=>!e.deployment.transfer).length+' assigned + '+arriving+' incoming / goal '+task.desired+'. Goals request ready HQ crew; they do not recall field crew.':focus==='home'?'Available reserves can fill staffing goals. Keep at HQ prevents automatic deployment.':'Up to six crew follow your hero outside Rally.');
     for(const [id,b]of tabs){setText(b,`${names[id]} ${counts[id]}${id==='hero'?'/6':''}`);b.setAttribute('aria-pressed',String(id===focus));}
     setText($('.group-summary h4'),names[focus]);
     setText($('.group-summary strong'),`${selected.size} crew selected`);
     $('.group-summary span').textContent=task?`${TASK_LABELS[task.task]} · ${task.recovery?.state||task.operation?.state||list.find(e=>e.deployment.duty?.status)?.deployment.duty.status||'On duty'}`:'Command your selected crew';
     const allIds=new Set(members().map(e=>e.id));for(const [id,r]of rows)if(!allIds.has(id)){r.el.remove();rows.delete(id);}
     for(const [id,r]of incomingRows)if(!allIds.has(id)){r.el.remove();incomingRows.delete(id);}
-    const ordered=list.map(e=>{
+    const ordered=list.filter(e=>!e.deployment.transfer).map(e=>{
       const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);setText(r.name,`${unitName(units,e.type)} #${e.id}`);setText(r.hp,`${Math.ceil(e.hp)}/${e.maxHp}`);
+      if(catalog){const image=portrait(catalog,e.model);if(image&&image!==r.image){r.image=image;r.name.style.backgroundImage='url('+image+')';r.name.classList.add('has-portrait');}}
       setText(r.status,e.downed?'Downed':e.deployment.transfer?'Transferring':e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready');
       r.el.classList.toggle('selected',selected.has(e.id));return r.el;
-    });syncChildren($('.roster'),ordered);
-    for(const e of list){const r=rows.get(e.id);r.pinLabel.hidden=focus!=='home';r.pin.checked=!!e.deployment.keepAtHQ;}
+    });paged('roster','.roster',ordered,(globalThis.innerHeight||900)<800?4:6);
+    for(const e of list){const r=rows.get(e.id);if(r){r.pinLabel.hidden=focus!=='home';r.pin.checked=!!e.deployment.keepAtHQ;}}
     const ready=[...selected].some(id=>available(st.entities[id])),traveling=travelers(),cancel=primaryCancel();
     $('.transfer-start').disabled=transfer?!transfer.to||!game.deployment.canTransfer(heroId,transfer.ids,transfer.to).ok:!ready&&!cancel.length;
     $('.transfer-start').textContent=transfer?'Choose destination below or on map':!ready&&cancel.length?`Cancel transfer${cancel.length>1?`s (${cancel.length})`:''}`:'Transfer selected crew';
     $('.active-transfers').hidden=!traveling.length;
     const travelIds=new Set(traveling.map(e=>e.id));for(const[id,r]of travelRows)if(!travelIds.has(id)){r.el.remove();travelRows.delete(id);}
-    syncChildren($('.travel-roster'),traveling.map(e=>{
+    paged('travel','.travel-roster',traveling.map(e=>{
       let r=travelRows.get(e.id);if(!r){const el=document.createElement('div'),text=document.createElement('span'),cancel=document.createElement('button');el.className='travel-member';cancel.type='button';el.append(text,cancel);cancel.addEventListener('click',()=>issue({action:'cancelTransfer',units:[e.id]}));r={el,text,cancel};travelRows.set(e.id,r);}
       const t=e.deployment.transfer;r.text.textContent=`${unitName(units,e.type)} #${e.id} → ${names[t.to]}${t.cancelled?' · Returning':''}`;
       r.cancel.textContent=t.cancelled?'Returning':'Cancel transfer';r.cancel.disabled=!!t.cancelled;return r.el;
-    }));
+    }),2);
     $('.assign-here').textContent=`Assign crew to ${names[focus]}`;
     $('.assign-here').disabled=!Object.keys(names).some(id=>id!==focus&&members(id).some(available));
     $('.assign-mode').hidden=!incoming;
@@ -167,7 +190,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
           r={el,check,text};incomingRows.set(e.id,r);}
         r.check.checked=incoming.ids.includes(e.id);r.el.classList.toggle('selected',r.check.checked);
         r.text.textContent=`${unitName(units,e.type)} #${e.id} · ${Math.ceil(e.hp)}/${e.maxHp}`;return r.el;
-      });syncChildren($('.assign-roster'),roster);
+      });paged('assign','.assign-roster',roster,(globalThis.innerHeight||900)<800?4:6);
       const can=incoming.ids.length?game.deployment.canTransfer(heroId,incoming.ids,incoming.to):{ok:false,why:source.length?'Select crew above':'No available crew in this group'};
       $('.assign-preview').textContent=`${incoming.ids.length} crew: ${names[incoming.from]} → ${names[incoming.to]}`;
       $('.assign-why').textContent=can.why;$('.confirm-assignment').disabled=!can.ok;
@@ -217,7 +240,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
         $('.ambush-preview').textContent=task.recovery?.state||task.operation?.state||(hunt?'Hunt armed · waiting for a local sighting':task.task==='ambush'?'Repeated ambush · nearest detected enemy':'Watching');
         $('.cancel-ambush').disabled=!hunt&&!task.ambushNext;$('.retreat').disabled=!task.operation;
         const ids=new Set(targets.map(t=>t.id));for(const [id,b]of targetRows)if(!ids.has(id)){b.remove();targetRows.delete(id);}
-        const targetNodes=targets.map(t=>{let b=targetRows.get(t.id);if(!b){b=document.createElement('button');b.type='button';b.addEventListener('click',()=>issue({action:'armAmbush',target:t.id}));targetRows.set(t.id,b);}b.textContent=`${unitName(units,t.type==='hero'?t.model:t.type)} · ${t.live?'In sight':`Seen ${Math.floor(t.age)}s ago`}${hunt?.target===t.id?' · HUNT SELECTED':''}`;b.setAttribute('aria-pressed',String(hunt?.target===t.id));return b;});syncChildren($('.recent-targets'),targetNodes);
+        const targetNodes=targets.map(t=>{let b=targetRows.get(t.id);if(!b){b=document.createElement('button');b.type='button';b.addEventListener('click',()=>issue({action:'armAmbush',target:t.id}));targetRows.set(t.id,b);}b.textContent=`${unitName(units,t.type==='hero'?t.model:t.type)} · ${t.live?'In sight':`Seen ${Math.floor(t.age)}s ago`}${hunt?.target===t.id?' · HUNT SELECTED':''}`;b.setAttribute('aria-pressed',String(hunt?.target===t.id));return b;});paged('target','.recent-targets',targetNodes,2);
       }
     }
     const feedback=config().feedback;

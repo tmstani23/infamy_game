@@ -198,7 +198,7 @@ async function start() {
   const characterPanel = createCharacterPanel({ game, heroId, catalog, button: $('characterbtn'),
     onOpen: () => setGameplayInput(false), onClose: () => setGameplayInput(true) });
   onKey('KeyJ', () => characterPanel.toggle());
-  const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, heroId, crewInput, send: c => pending.push(c),
+  const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, catalog, heroId, crewInput, send: c => pending.push(c),
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
@@ -283,7 +283,7 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ root: $('gamemap'), game, district, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
+  const gameMap = createGameMap({ root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
@@ -320,9 +320,10 @@ async function start() {
   deploymentCards.className=mapCards.className='selection-dock';
   deploymentCards.setAttribute('aria-label','Selected unit and transfer details');mapCards.setAttribute('aria-label','Selected unit and transfer details');
   deploymentCards.hidden=mapCards.hidden=true;
-  $('deploymentpanel').querySelector('.crew-selection').before(deploymentCards);
+  $('deploymentpanel').querySelector('.workspace').before(deploymentCards);
   $('gamemap').querySelector('.mapcol').insertBefore(mapCards,$('gamemap').querySelector('.mapside'));
   const selectionDock=createSelectionDock({panels:[$('utarget'),$('selpanel')],
+    visible:el=>el.id==='utarget'&&(!deploymentPanel.isOpen()||el.dataset.owner!==game.state.entities[heroId]?.owner),
     destination:()=>deploymentPanel.isOpen()?deploymentCards:gameMap.isOpen()?mapCards:null,onRestore:()=>unitFrames.clearInspection()});
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console

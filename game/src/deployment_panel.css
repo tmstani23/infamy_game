@@ -130,3 +130,72 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #gamemap.docked { padding-right: 390px; box-sizing: border-box; }
 #gamemap.docked .mapbox canvas { width: min(88vh, calc(100vw - 690px)); height: min(88vh, calc(100vw - 690px)); }
 @media (max-width: 900px) { #gamemap.docked .mapcol { display: none; } #gamemap.docked .mapbox canvas { width: min(88vh, calc(100vw - 420px)); height: min(88vh, calc(100vw - 420px)); } }
+
+/* Fixed pages replace stacked scrolling sections. Simulation commands stay shared. */
+#deploymentpanel .page-tabs {display:grid;grid-template-columns:1.7fr 1fr 1fr .65fr;gap:5px;flex-shrink:0;}
+#deploymentpanel .page-tabs button {padding:9px 5px;font-size:13px;font-weight:700;}
+#deploymentpanel .page-tabs [aria-pressed="true"] {border-color:#e6c378;background:#3b3424;color:#fff0be;}
+#deploymentpanel .workspace {flex:1;min-height:0;overflow:hidden;}
+#deploymentpanel .workspace > section {height:100%;min-height:0;display:flex;flex-direction:column;gap:10px;}
+#deploymentpanel:not([data-page="crew"]) .pane-crew,
+#deploymentpanel:not([data-page="duty"]) .pane-duty,
+#deploymentpanel:not([data-page="rally"]) .pane-rally,
+#deploymentpanel:not([data-page="reserves"]) .pane-reserves {display:none;}
+#deploymentpanel[data-flow="assign"] .crew-selection,
+#deploymentpanel[data-flow="transfer"] .crew-selection,
+#deploymentpanel[data-flow="assign"] .active-transfers,
+#deploymentpanel[data-flow="transfer"] .active-transfers {display:none;}
+#deploymentpanel .staffing-summary {font-size:13px;line-height:1.45;color:#d5cdb7;}
+#deploymentpanel .roster,#deploymentpanel .assign-roster {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:none;overflow:hidden;padding:0;}
+#deploymentpanel .travel-roster,#deploymentpanel .recent-targets {max-height:none;overflow:hidden;}
+#deploymentpanel .member {grid-template-columns:18px minmax(0,1fr) 54px;gap:4px;padding:5px;min-width:0;background:#151e24;}
+#deploymentpanel .member small {font-size:11px;}
+#deploymentpanel .member span {font-size:12px;}
+#deploymentpanel .crew-name {min-width:0;font-size:12px;overflow-wrap:anywhere;}
+#deploymentpanel .crew-name.has-portrait {padding-left:31px;min-height:36px;background-position:left center;background-size:28px auto;background-repeat:no-repeat;}
+#deploymentpanel .list-pages {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0;}
+#deploymentpanel .list-pages[hidden] {display:none;}
+#deploymentpanel .staffing-goal[hidden] {display:none;}
+#deploymentpanel .list-pages button {padding:6px 10px;}
+#deploymentpanel .group-summary {padding:10px;gap:4px;flex-shrink:0;}
+#deploymentpanel .group-summary span {font-size:14px;}
+#deploymentpanel .acceptance {padding:10px 12px;font-size:15px;flex-shrink:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+#deploymentpanel .duty {margin:0;padding:12px;border:1px solid #8d7b4e;border-radius:6px;background:linear-gradient(125deg,#2d3023,#141d23);gap:10px;}
+#deploymentpanel .duty h4,#deploymentpanel .sweep-ops h4,#deploymentpanel .shakedown-ops h4 {font-size:20px;letter-spacing:.025em;}
+#deploymentpanel .duty-help {font-size:13px;line-height:1.4;color:#d4c6a7;margin:0;}
+#deploymentpanel .duty label {font-size:15px;color:#e6ddc8;}
+#deploymentpanel .duty select,#deploymentpanel .sweep-ops select,#deploymentpanel .shakedown-ops select {font-size:15px;padding:7px;max-width:100%;}
+#deploymentpanel .sweep-ops,#deploymentpanel .shakedown-ops {display:flex;flex-direction:column;gap:10px;padding:13px;border:1px solid #937047;border-left:4px solid #d99557;border-radius:6px;background:linear-gradient(120deg,#35261d,#151c24);}
+#deploymentpanel .sweep-ops {border-left-color:#e56469;background:linear-gradient(120deg,#362027,#151c24);}
+#deploymentpanel .sweep-ops[hidden],#deploymentpanel .shakedown-ops[hidden] {display:none;}
+#deploymentpanel .sweep-preview,#deploymentpanel .shakedown-preview,#deploymentpanel .ambush-preview {font-size:14px;line-height:1.45;color:#e2cfad;}
+#deploymentpanel .start-sweep,#deploymentpanel .start-shakedown,#deploymentpanel .arm-next,#deploymentpanel .call-rally {font-size:16px;font-weight:700;padding:11px;border-color:#c5a064;background:#4a3524;color:#fff0d1;}
+#deploymentpanel .rally-controls {padding:16px;border:1px solid #bb9e56;border-left:4px solid #eac569;background:linear-gradient(130deg,#3a3320,#172028);}
+#deploymentpanel .rally-controls summary {font-size:22px;letter-spacing:.035em;margin-bottom:14px;}
+#deploymentpanel .rally-status {display:block;font-size:15px;margin-top:5px;color:#ead6a3;}
+#deploymentpanel .rally-groups {gap:12px;margin:16px 0;}
+#deploymentpanel .rally-groups label {font-size:15px;padding:7px;background:#202a30;border-radius:4px;}
+#deploymentpanel .call-rally {display:block;width:100%;margin:12px 0;}
+#deploymentpanel .rally-controls > small {font-size:14px;line-height:1.5;}
+#deploymentpanel .reserves {padding:16px;font-size:15px;line-height:1.5;}
+#deploymentpanel .reserves summary {font-size:20px;}
+#deploymentpanel .reserves form {margin:14px 0;}
+#deploymentpanel .reserves p {color:#c3c4b8;font-size:14px;}
+#deploymentpanel .transfer-start {margin:8px 0 6px;padding:10px;}
+#deploymentpanel footer {flex-shrink:0;}
+@media(max-height:850px) {
+  #gamemap.game-map #deploymentpanel {gap:7px;padding:10px;}
+  #deploymentpanel .tabs button {font-size:11px;}
+  #deploymentpanel .page-tabs button {padding:7px 4px;font-size:12px;}
+  #deploymentpanel .group-summary {padding:7px;gap:3px;}
+  #deploymentpanel .group-summary h4 {font-size:15px;}
+  #deploymentpanel .group-summary strong {font-size:14px;}
+  #deploymentpanel .staffing-summary {font-size:12px;line-height:1.3;}
+  #deploymentpanel .duty {padding:8px;gap:7px;}
+  #deploymentpanel .duty-help {display:none;}
+  #deploymentpanel .duty h4,#deploymentpanel .sweep-ops h4,#deploymentpanel .shakedown-ops h4 {font-size:18px;}
+  #deploymentpanel .duty label {font-size:13px;}
+  #deploymentpanel .duty select,#deploymentpanel .sweep-ops select,#deploymentpanel .shakedown-ops select {padding:5px;font-size:13px;}
+  #deploymentpanel .sweep-ops,#deploymentpanel .shakedown-ops {padding:9px;gap:7px;}
+  #deploymentpanel .sweep-preview,#deploymentpanel .shakedown-preview,#deploymentpanel .ambush-preview {font-size:12px;}
+}

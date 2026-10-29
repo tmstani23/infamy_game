@@ -78,5 +78,16 @@ try{
  assert.equal(queue[0].action,'cancelTransfer');g.step(queue.splice(0));panel.update();
  assert.equal(g.state.entities[another].deployment.transfer.cancelled,true,'same button cancels the active trip');
  assert.ok(nodes.every(n=>!n.draggable&&!n.handlers.dragstart),'button-only transfer exposes no drag controls');
- console.log('Deployment panel: source/destination assignment, auto-start, active cancel, authoritative feedback, direct duty, rejection and stable controls/no dragging passed');
+ for(let i=0;i<8;i++)g.spawn('ninja','ninja_grunt',h.x,h.z,{owner:h.owner,deployment:{group:'home',keepAtHQ:true}});
+ panel.openGroup('home');panel.update(true);
+ assert.equal(root.dataset.page,'crew');assert.equal($('.roster').children.length,6,'large crew lists paginate');
+ const firstPage=$('.roster').children.slice();$('.roster-next').emit('click');
+ assert.ok($('.roster').children.length>0&&$('.roster').children.length<=6);
+ assert.ok(!$('.roster').children.some(el=>firstPage.includes(el)),'next page contains other crew, no duplicate rows');
+ $('.roster-prev').emit('click');assert.deepEqual($('.roster').children,firstPage);
+ const selectionBefore=selected.ids.slice();$('.show-rally').emit('click');assert.equal(root.dataset.page,'rally');
+ $('.show-duty').emit('click');assert.equal(root.dataset.page,'duty');assert.deepEqual(selected.ids,selectionBefore,'section navigation preserves command selection');
+ assert.equal(queue.length,0,'paging and section navigation issue no simulation orders');
+ panel.openGroup(destination);assert.match($('.staffing-summary').textContent,/assigned \+ \d+ incoming \/ goal/);
+ console.log('Deployment panel: unchanged transfer/duty rules, authoritative receipts, stable controls, paged unique crew, staffing counts and section navigation passed');
 }finally{globalThis.document=original.document;globalThis.Option=original.Option;}

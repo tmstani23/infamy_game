@@ -12,7 +12,8 @@ const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sak
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ root, game, district, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null }) {
+export function createGameMap({ root, deploymentRoot, game, district, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null }) {
+  if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: false, territory: true, businesses: true, police: true, units: true };
   const deploymentData = createDeploymentMapData({ game, clan });
@@ -202,7 +203,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key">Q · Pawnshop · A · Bathhouse</div><div class="key">K · Sake brewery · R · Manor</div><div class="key">U · Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
-    const html = `<h4>Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}</h4>${rows}${quarters}${root.classList.contains('docked') ? '' : legend}`;
+    const html = `<h4>Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}</h4>${rows}${quarters}${legend}`;
     if (side.innerHTML !== html) side.innerHTML = html;
   }
 

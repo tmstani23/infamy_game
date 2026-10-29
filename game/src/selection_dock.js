@@ -1,6 +1,6 @@
 // Move the existing live cards into the active menu. Reuse their handlers/state
 // and restore their original HUD parent when both menus close.
-export function createSelectionDock({ panels, destination, onRestore = () => {} }) {
+export function createSelectionDock({ panels, destination, onRestore = () => {}, visible = () => true }) {
   const homes=panels.map(el=>({el,parent:el.parentNode,next:el.nextSibling}));
   let current=null;
   return { update() {
@@ -16,6 +16,7 @@ export function createSelectionDock({ panels, destination, onRestore = () => {} 
       if(current&&!next)onRestore();
       current=next;
     }
-    if(current)current.hidden=panels.every(el=>el.hidden);
+    for(const el of panels)el.classList.toggle('menu-suppressed',!!current&&!visible(el));
+    if(current)current.hidden=panels.every(el=>el.hidden||!visible(el));
   }};
 }

@@ -22,3 +22,42 @@
 /* Phase 1: an opaque presentation surface; deployment layout is refined in phase 2. */
 #gamemap.game-map { background:#05070b; }
 body.map-active #view, body.map-active #minimap { visibility:hidden; }
+
+/* One attached workspace: reference key | map | deployment. */
+#gamemap.game-map {
+  --key-width:clamp(160px,13vw,220px);
+  --deployment-width:clamp(420px,28vw,540px);
+  --map-size:min(calc(100dvh - 32px),calc(100vw - var(--key-width) - 48px));
+  display:grid;grid-template-columns:var(--key-width) var(--map-size);
+  grid-template-rows:minmax(0,calc(100dvh - 32px));
+  justify-content:center;align-content:center;align-items:stretch;gap:0;padding:16px;box-sizing:border-box;
+}
+#gamemap.game-map[hidden] {display:none;}
+#gamemap.game-map.docked {
+  --map-size:min(calc(100dvh - 32px),calc(100vw - var(--key-width) - var(--deployment-width) - 32px));
+  grid-template-columns:var(--key-width) var(--map-size) var(--deployment-width);padding:16px;
+}
+#gamemap.game-map .mapcol {grid-column:1;grid-row:1;min-height:0;max-height:none;width:auto;margin-right:12px;overflow:hidden;padding:12px;gap:9px;align-self:stretch;}
+#gamemap.game-map .mapbox {grid-column:2;grid-row:1;min-width:0;display:grid;place-items:center;background:#080d12;border:1px solid #7a6848;border-radius:9px;overflow:hidden;}
+#gamemap.game-map .mapbox canvas {width:100%;height:auto;aspect-ratio:1;max-width:100%;border:0;border-radius:0;box-shadow:none;}
+#gamemap.game-map.docked .mapbox {border-radius:9px 0 0 9px;}
+#gamemap.game-map .mapside {min-height:0;font-size:12px;}
+#gamemap.game-map .mapside .key {font-size:12px;line-height:1.35;}
+#gamemap.game-map .mapclose {margin-top:auto;flex-shrink:0;}
+#gamemap #deploymentpanel {grid-column:3;grid-row:1;position:relative;inset:auto;width:auto;min-width:0;min-height:0;max-height:none;overflow:hidden;border-left:0;border-radius:0 9px 9px 0;box-shadow:none;font-size:14px;padding:14px;gap:10px;}
+#gamemap #deploymentpanel[hidden] {display:none;}
+#gamemap:not(.docked) #deploymentpanel {display:none;}
+.hud-docked.menu-suppressed {display:none!important;}
+@media(max-width:1050px) {
+  #gamemap.game-map {--key-width:150px;--deployment-width:400px;padding:10px;grid-template-rows:minmax(0,calc(100dvh - 20px));}
+  #gamemap.game-map.docked {padding:10px;--map-size:min(calc(100dvh - 20px),calc(100vw - var(--key-width) - var(--deployment-width) - 20px));}
+  #gamemap.game-map .mapcol {margin-right:6px;padding:7px;display:flex;}
+  #gamemap.game-map .mapside .q {display:none;}
+}
+@media(max-width:760px) {
+  #gamemap.game-map {--key-width:125px;}
+  #gamemap.game-map.docked {--key-width:100px;--deployment-width:min(390px,54vw);}
+  #gamemap.game-map .mapcol {font-size:11px;padding:5px;margin-right:4px;}
+  #gamemap.game-map .mapside .row span {font-size:10px;}
+  #gamemap.game-map .mapside .key {font-size:10px;}
+}

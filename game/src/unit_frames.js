@@ -111,6 +111,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
 
   const set = (el, prop, v) => { if (el[prop] !== v) el[prop] = v; };
   function fill(f, e, hero) {
+    f.c.dataset.owner=e.owner;
     if (f.model !== e.model) {
       const url = portrait(catalog, e.model, null, CROP);
       f.pic.style.backgroundImage = url ? `url(${url})` : '';
@@ -154,6 +155,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     const shown = memory || cached?.entity;
     target.c.hidden = !shown; target.c.classList.toggle('known', !!memory);
     if (memory) {
+      target.c.dataset.owner=memory.owner;
       target.id = memory.id;
       const url = portrait(catalog, memory.model, null, CROP); target.pic.style.backgroundImage = url ? `url(${url})` : '';
       target.name.textContent = unitName(units, memory.type === 'hero' ? memory.model : memory.type);

@@ -18,11 +18,20 @@ destination=deployment;dock.update();assert.deepEqual(deployment.children,[targe
 target.hidden=crew.hidden=true;dock.update();assert.equal(deployment.hidden,true);target.hidden=false;dock.update();assert.equal(deployment.hidden,false);
 destination=null;dock.update();assert.deepEqual(body.children,[target,crew,other],'normal HUD parent/order restored');assert.equal(restores,1);
 assert.deepEqual(target.style,{left:'153px',scale:'.7'},'docking never overwrites personal layout styles');assert.ok(!target.classes.has('hud-docked'));
+{
+ let showTarget=false;const single=createSelectionDock({panels:[target,crew],destination:()=>destination,visible:el=>el===target&&showTarget});
+ destination=deployment;target.hidden=crew.hidden=false;single.update();
+ assert.equal(deployment.hidden,true,'duplicate own crew cards consume no staffing space');
+ assert.ok(target.classes.has('menu-suppressed'));assert.ok(crew.classes.has('menu-suppressed'));
+ showTarget=true;single.update();assert.equal(deployment.hidden,false,'enemy inspection remains available');
+ assert.ok(!target.classes.has('menu-suppressed'));assert.ok(crew.classes.has('menu-suppressed'));
+ destination=null;single.update();assert.ok(!crew.classes.has('menu-suppressed'),'normal world HUD visibility restored');
+}
 // Inspect the clicked traveler even when command selection excludes transfers.
 const previousDocument=globalThis.document;
 try{
  class FrameElement extends Element {
-  parts=new Map();textContent='';innerHTML='';handlers={};
+  parts=new Map();textContent='';innerHTML='';handlers={};dataset={};
   constructor(){super();this.style.setProperty=(k,v)=>this.style[k]=v;}
   querySelector(key){if(!this.parts.has(key))this.parts.set(key,new FrameElement());return this.parts.get(key);}
   addEventListener(k,fn){this.handlers[k]=fn;}

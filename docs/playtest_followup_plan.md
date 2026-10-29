@@ -25,6 +25,10 @@ Owners: [architecture/lifecycle and diagnostics](architecture.md#map-presentatio
 
 ## 2. Fullscreen deployment simplification
 
+**Partial implementation / Node-checked (2026-10-29):** Tim’s requested left key, map with wider attached right deployment panel, stronger Duties/operation/Rally emphasis and duplicate-own-unit presentation fix are implemented. Panel sections use paging rather than stacked scrolling; saved selection and existing gameplay rules remain. [Current controls](controls.md#deployment-layout-follow-up-2026-10-29). This does not complete every phase 2 task: transfer-workflow consolidation and any retained pip-drag shortcut remain unchecked below. Visual fit at Tim’s monitor is pending; no browser/screenshot test run.
+
+Coordinator reports passing panel-flow (existing real-sim transfer/autoaccept/cancel plus paged unique roster/sections/counts), selection-dock (own-card suppression, enemy availability, world-HUD restoration), deployment-map and map-performance checks, changed-JS syntax and diff checks. No new tests run for this docs/commit handoff.
+
 Owners: [deployment](deployment_sector_plan.md), [controls](controls.md).
 
 - [ ] Fit dominant map plus one wide panel into one viewport. Avoid nested scrollbars/sliders; use paging, disclosure or clear +/- controls as needed.
