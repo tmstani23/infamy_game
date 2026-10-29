@@ -3,7 +3,7 @@
 //  - Aimed Shot is his "auto attack": every cooldownTicks he aims at one visible enemy within range
 //    for aimTicks (render draws a red line), then hits him for damage and staggers him for
 //    staggerTicks (heroes for half). First anyone hitting his clan, then the nearest. Moving or being
-//    hit while aiming spoils the shot (short retry). Each shot adds heat (gunfire is loud).
+//    hit while aiming spoils the shot (short retry). Gunfire itself adds no heat.
 //  - Otherwise he moves and fights like any other crew member (weak rifle-butt melee between shots;
 //    Tim 2026-10-28: no running away of his own, orders always obeyed).
 // An explicit attack order shoots that target when it can, else fights like any crew member.
@@ -11,9 +11,9 @@ import { dirIndex } from './geometry.js';
 import { createFlee } from './flee.js';
 import { WILD } from './bandits.js';
 
-export const RIFLE = { range: 8, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30, heat: 3,
+export const RIFLE = { range: 8, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
-export function createRifleman({ state, vision, hit, addHeat, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
+export function createRifleman({ state, vision, hit, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
   attackStep = () => {}, moveTo = () => false, inRally = () => false, nearestFree = (x, z) => [x, z], canOccupy = () => true, fightTarget = () => null, rules = {} }) {
   const R = { ...RIFLE, ...rules };
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
@@ -45,7 +45,6 @@ export function createRifleman({ state, vision, hit, addHeat, stun, clearLine, c
     state.casts.push({ kind: 'rifleshot', a: e.id, t: t.id, x: e.x, z: e.z, tx: t.x, tz: t.z });
     hit(e, t, R.damage, false, 'rifle');
     if (alive(t)) stun(t, t.type === 'hero' ? Math.round(R.staggerTicks / 2) : R.staggerTicks);
-    addHeat(e.owner, R.heat, 'Gunfire');
   }
   const flee = createFlee({ state, moveTo, nearestFree, canOccupy, clearLine });
   // his own ranged routine on a sector duty (not the hero group, Rally or HQ reserves; Tim 2026-10-28):

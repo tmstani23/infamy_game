@@ -26,7 +26,8 @@ assert.equal(target.hp,hp0,'no damage before the aim finishes');
 for(let i=0;i<R.aimTicks+2;i++)g.step();
 assert.ok(target.hp<=hp0-R.damage+1,'shot lands');
 assert.ok((target.buffs?.stunned?.until??0)>st.tick,'shot staggers');
-assert.ok(st.clans[me].heat>heat0,'gunfire adds heat');
+assert.equal(st.clans[me].heat,heat0,'ordinary gunfire does not add infamy');
+assert.ok(st.heatGains.every(gain=>gain.reason!=='Gunfire'),'no separate gunfire infamy event');
 const ready=rifle.rifle.readyAt;assert.ok(ready>=st.tick+R.cooldownTicks-R.aimTicks-5,'cooldown');
 // being hit while aiming spoils the shot
 target.dead=true;rifle.rifle.readyAt=0;const t2=foe(-6),hp2=t2.hp;
@@ -66,4 +67,4 @@ for (const [kind, distance, type] of [['attack',1.8,'thug'],['attack',6,'thug'],
   assert.equal(shots[0]?.t,t.id,`${kind} at ${distance}: first attack is a shot at the ordered/detected target`);
   assert.equal(hits[0]?.kind,'rifle',`${kind} at ${distance}: no melee hit before the loaded shot`);
 }
-console.log('Rifleman: loaded spawns, close/ranged attack orders, attack-move, bandit targeting, auto aim, damage/stagger/heat, move priority and skirmish passed');
+console.log('Rifleman: loaded spawns, close/ranged attack orders, attack-move, bandit targeting, auto aim, damage/stagger without gunfire infamy, move priority and skirmish passed');

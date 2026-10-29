@@ -106,7 +106,7 @@ Planned, not built (2026-10-22): compact hero buff/debuff icon strip near the ac
 
 ### Kuroda Teppo rifleman (2026-10-28)
 
-Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger, range 8 (1 s aim, 3 s reload); melee 18 per hit; +3 heat per shot; explicit movement/attack orders take priority; rifleman does not autonomously flee. The Kuroda bot hires one once it has 4 crew.
+Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger, range 8 (1 s aim, 3 s reload); melee 18 per hit; no separate gunfire infamy (2026-10-28); standard police/civilian hit infamy still applies; explicit movement/attack orders take priority; rifleman does not autonomously flee. The Kuroda bot hires one once it has 4 crew.
 
 
 ### Yakuza Irezumi enforcer (2026-10-29)
