@@ -195,10 +195,10 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
       const c = st.clans[r.clan];
       return `<div class="row" title="${why(r.clan)}"><i style="background:${c.color}"></i><span>${r.clan === clan ? 'You' : c.name}</span><b>${r.score}</b></div>`;
     }).join('');
-    const quarters = !layers.territory ? '' : '<h4>Quarters</h4>' + t.quarters.map(q => {
+    const quarters = !layers.territory ? '' : '<details class="quarter-summary"><summary>Quarter ownership</summary>' + t.quarters.map(q => {
       const o = t.heldBy(q);
       return `<div class="row q"><span>${q.name}</span><em>${!o ? 'nobody holds it all' : o === clan ? 'yours (+payout)' : `held by ${st.clans[o]?.name}`}</em></div>`;
-    }).join('');
+    }).join('')+'</details>';
     // a short key (Tim 2026-10-20: just these three)
     const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key">Q · Pawnshop · A · Bathhouse</div><div class="key">K · Sake brewery · R · Manor</div><div class="key">U · Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
