@@ -68,6 +68,8 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | Input | What it does |
 |---|---|
 | Left-click a crew member | Select its deployment command group, replacing other groups; double-click selects individual. Ordinary selection never combines deployment groups |
+| Double-click a crew name / a group header | Camera follows that crew member / that group; arrows, a map click or Home stop following |
+| Drag a crew name onto another group | Transfer them to that group |
 | Left-drag a box | Select exactly the crew inside it (the rest are dropped; an empty box changes nothing) |
 | C | Select hero party, or active Rally force; replace sector selection |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |

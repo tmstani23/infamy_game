@@ -15,7 +15,7 @@ Balance follow-up (Tim, 2026-10-27): damage reduced from 28 to 14; other stats/c
 - **Crew are RTS units**, not named characters. You hire a Thug, not a person. Types and upgrades make them better.
 - **Teahouse = barracks.** Queue a hire, pay ryo once, the recruit arrives after a short timer.
 - **No upkeep or wages.** Each extra crew member costs a bit more than the last.
-- **Crew cap from property** (RTS supply): base capacity stays 3 (`settings.json` `crew.baseCap`); each held business adds its `crewSlots` (current balance: [businesses and raids](business_raids_plan.md#2-payouts)); no hard cap; about 20 to 30 across your zones in the endgame.
+- **Crew cap** (updated 2026-10-29): `baseCap` 6 + `capPerDawn` 1 per dawn + business `crewSlots` (Shinobi: 1 per 75 Renown instead of businesses). Hire price rises 5% per crew owned. Earlier: base capacity 3; each held business adds its `crewSlots` (current balance: [businesses and raids](business_raids_plan.md#2-payouts)); no hard cap; about 20 to 30 across your zones in the endgame.
 - **Most crew are stationed** in your zones as defenders. A raid still takes at most about 6, so size means holding more ground, not winning fights by numbers.
 - **Downed, then dead or hospital.** Crew at 0 HP go down; if an enemy finishes them with a 3 s execute they are dead (rehire), otherwise they are carried to the hospital (see `combat_spec.md` H). Survivors heal only slowly (see `combat_spec.md`, Health) until sent to a **hospital** (bonesetter's clinic). The hero is knocked out, not killed, and gets back up at a safehouse.
 - **Ryo is spent on:** hiring and replacing crew, hospital healing, unit-type upgrades (RTS research, e.g. "Thugs get clubs"), property, and police bribes.
@@ -41,7 +41,7 @@ RTS / Dota hybrid. Rules and feel are in `combat_spec.md`; keys in `controls.md`
 
 ## Numbers to start with (tune in playtests)
 
-- Normal clan starts: see [starting paths](gameplay_and_design.md#starting-paths-settled). Hire price = base price x (1 + 0.15 x crew you already have).
+- Normal clan starts: see [starting paths](gameplay_and_design.md#starting-paths-settled). Hire price = base price x (1 + 0.05 x crew you already have).
 - Base prices: Thug 60, Brute 100, Swordsman 120. Hire timer: 5 to 10 seconds.
 - Hospital: heals 1 HP a second per bed, costs a little ryo per HP.
 - Layer 1 cap: 3 crew. Ranged units (Rifleman, Archer) wait for projectiles; Lookout, Demolitions, Ninja come later.

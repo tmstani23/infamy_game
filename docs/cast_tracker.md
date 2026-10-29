@@ -93,3 +93,7 @@ Existing female leader uses one-handed yari and compact shield; exclusive spearm
 ## Shinobi geisha runtime alias (2026-10-26)
 
 `shinobi_geisha` reuses the adult geisha sheets through a model alias, with a subtle violet aura and an active violet ring. Dance: `assets/sprites/geisha_arms_hip_hop_dance.png` (64 frames, first 5.33 s of Mixamo "Arms Hip Hop Dance" at 12 fps; source `assets/animations/Arms Hip Hop Dance.fbx`; `art.json` `shinobi_geisha.dance`). The dance plays while she charms (lure, 2026-10-27); attack still uses the formal-bow placeholder.
+
+## Brute looks (2026-10-29)
+
+The hireable Brute uses the demolitions look; the night brutes use the lookout look.

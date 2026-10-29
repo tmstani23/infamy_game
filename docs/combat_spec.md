@@ -100,6 +100,19 @@ Approved visuals use procedural geometry, particles, cards and bloom: broad swee
 
 Planned, not built (2026-10-22): compact hero buff/debuff icon strip near the action bar for all clans, with duration timers and hover descriptions. Agree layout before implementation.
 
+
+- Heroes get a blade shimmer and a swing trail (2026-10-29).
+- The Shinobi geisha obeys move orders (2026-10-29).
+
+### Kuroda Teppo rifleman (2026-10-28)
+
+Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger, range 9 (1 s aim, 3 s reload); melee 18 per hit; +3 heat per shot; backs off from melee. In the hero group he moves like normal crew; on sector duty he skirmishes (updated 2026-10-29). The Kuroda bot hires one once it has 4 crew.
+
+
+### Yakuza Irezumi enforcer (2026-10-29)
+
+Yakuza-only crew unit: 320 HP, burning club, 140 ryo. Taunt every 10 s (range 5): the target must attack him for 4 s, and he takes 15% less damage while a taunt holds. The Yakuza bot hires one once it has 4 crew.
+
 ### Ninja leader kit (built 2026-10-20, `units.json` `models.ninja_leader.abilities`)
 
 | Key | Ability | What it does | Cooldown |
@@ -107,7 +120,7 @@ Planned, not built (2026-10-22): compact hero buff/debuff icon strip near the ac
 | Q | Shadow Step | Teleports up to 8 toward the mouse, stopping at walls and water; stays hidden. | 10 s |
 | E | Caltrops | Thrown at the mouse: enemies within 4 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
 | R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). Units inside hold fire; lasting expiry passivity and regrouping require presence at expiry (see below). | 40 s |
-| F | Assassinate | Needs 3 s hidden, or is immediately usable during Vanish. Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes retain 60% of current HP, rounded to whole HP with minimum 1 (already below 1 stays unchanged); this cannot finish a hero (Tim, 2026-10-22). Consumes the attacker's veil. Hero and living non-guard crew within 8 in the same place gain +20 percentage points crit for 8 s (ninja 15% → 35%); refreshes without stacking. Violet recipient auras and an 8-unit cast pulse. | 45 s |
+| F | Assassinate | Needs 3 s hidden, or is immediately usable during Vanish. Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes retain 50% of current HP (60% until 2026-10-28), rounded to whole HP with minimum 1 (already below 1 stays unchanged); this cannot finish a hero (Tim, 2026-10-22). Consumes the attacker's veil. Hero and living non-guard crew within 8 in the same place gain +20 percentage points crit for 8 s (ninja 15% → 35%); refreshes without stacking. Violet recipient auras and an 8-unit cast pulse. | 45 s |
 
 Phase 3G Vanish (2026-10-21): at the six-second Smoke Bomb's mechanical expiry, the hero and crew still inside gain four seconds of undetectability. Incoming damage can hurt/down them but cannot reveal them; outgoing attacks or Assassinate consume only that attacker's veil. At expiry, recipients become passive; affected crew hold their position and stay passive until explicitly ordered (updated 2026-10-25). Crew outside the cloud at expiry do not gain this lasting passivity. Dark-blue transparent silhouettes/shimmer and blue wisps show the effect; cloud graphics/fade are unchanged. The player hero alone shows VANISH 4/3/2/1s overhead. The Vanish pill and R button show its duration while the real 40 s cooldown continues underneath, then returns to view.
 
