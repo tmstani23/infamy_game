@@ -6,6 +6,7 @@
 // state.attacks[businessId] is the attack or raid (mode: 'raid') in progress.
 import { POLICE } from './police.js';
 import { canInteract, interactionActor } from './interactions.js';
+import { debitRyo } from './treasury.js';
 import { isShinobiHQ } from './hq_raids.js';
 // Players and bots alike send [{ id, type: 'business', action: 'buy', business }] from a hero
 // standing at the business's door ring. Prices and payouts: units.json rules.businesses
@@ -133,7 +134,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (c.action === 'lantern') {
       const can = canBuyLantern(e.id, b.id);
       if (!can.ok) return say(clan, can.why);
-      clan.ryo -= can.price;
+      debitRyo(state, clan, can.price, 'War Lantern purchased');
       clan.lanterns = (clan.lanterns || 0) + 1;
       say(clan, 'You have a War Lantern: raid a rival business at night');
     }
@@ -167,7 +168,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (c.action === 'buy') {
       const can = canBuy(e.id, b.id);
       if (!can.ok) return say(clan, can.why);
-      clan.ryo -= can.price;
+      debitRyo(state, clan, can.price, 'Business purchased', { target: b.id });
       clans.setOwner(b.id, clan.id);
       say(clan, `The ${name(b)} is yours`);
     }

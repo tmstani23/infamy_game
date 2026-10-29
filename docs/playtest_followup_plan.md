@@ -65,13 +65,15 @@ Follow-up checkpoint (2026-10-29), **implemented / Node-checked, manual Geisha p
 
 ## 4. Shinobi economy bug audit
 
-Status (2026-10-29): Tim authorized the next phase; coordinator is starting the money/contract audit. No findings or fixes claimed yet. New playtest bugs go to phase 8.
+Status (2026-10-29): phase 4 implementation/targeted Node checkpoint complete; **stop for usage at Tim’s request**. Resume at phase 5, not started. Unstuck combat-use policy remains open. Original roughly 70% money-loss report and manual match balance are unconfirmed; Geisha manual playtest remains deferred. New playtest bugs go to phase 8.
 
 Owners: [Shinobi](ninja_clan_plan.md), [economy](business_raids_plan.md).
 
 - [ ] Trace reported instant roughly 70% money loss: authoritative transaction reasons, percentage basis, duplicate triggers and cooldowns. Identify the actual source before changing rates; provide useful loss feedback.
-- [ ] Review contract Renown cadence, objective length, repeatability and cooldowns. Choose initial pacing after a short match-economy comparison; bots/humans use identical rules and contracts remain available any time of day.
+- [x] Review contract Renown cadence, objective length, repeatability and cooldowns (initial implementation checkpoint; manual balance pending). Choose initial pacing after a short match-economy comparison; bots/humans use identical rules and contracts remain available any time of day.
 - [ ] Separate verified bug fixes from proposed balance changes.
+
+Completed phase 4 checkpoint: [treasury debit audit/feedback and limits](business_raids_plan.md#treasury-loss-audit-checkpoint-2026-10-29), [120-second contract start cadence, illustrative bounds and passing checks](ninja_clan_plan.md#contract-pacing-checkpoint-2026-10-29). Initial tuning is not full-match balance validation. Known stale `test_shinobi_pass` failure (38 versus 30) also occurs against pre-phase-4 HEAD; no full-suite-green claim. No more implementation before resuming.
 
 ## 5. Stealth and unstuck
 
@@ -107,4 +109,4 @@ Added at Tim’s request (2026-10-29). After the current Geisha/status-label fol
 - [ ] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
 - [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
 
-New-report queue: no individual new fixes recorded yet. Previously listed Sweep waypoints, visual polish and menu proposals retain their existing status; this queue does not automatically authorize them.
+Maintenance queue: pre-existing stale `test_shinobi_pass` hidden-bonus/dawn-expiry assertions; update focused expectations without reverting correct gameplay. Original reported money-loss reproduction remains open. No other individual new fixes recorded yet. Previously listed Sweep waypoints, visual polish and menu proposals retain their existing status; this queue does not automatically authorize them.

@@ -217,3 +217,9 @@ Shakedown claims/rewards are built; Sweep remains design-only. Success grants bo
 ### Sweep implementation checkpoint (2026-10-29)
 
 Sweep rewards are now implemented locally: 500 ryo total, including any normal sector-clear 200 awarded during the operation; shared claim sequence prevents duplicate awards, and both use the same three-minute clan/sector cooldown. Initial tuning requires two encountered rival units for reward eligibility. Prior Sweep-unbuilt notes are historical design context. [Current checkpoint, tests and pending integration](deployment_sector_plan.md#sweep-checkpoint-tracking-2026-10-29).
+
+### Treasury loss audit checkpoint (2026-10-29)
+
+`sim/treasury.js` routes existing authoritative debits for hiring, clinic services, business purchases, police bribes/bail, contract theft and HQ theft through `debitRyo`. Exact amount/before/after/reason/source/business is recorded when supplied: transient `state.ryoLosses` clears each step, saved clan `ryoHistory` caps at twenty entries. Ryo-badge hover shows six recent debits; involuntary contract/HQ theft adds a red negative popup naming the culprit. No theft share/cap or expense rate changed.
+
+Audit: Steal takes floor(20% of treasury at completion), capped at 500 plus 100 times victim business score; no duplicate completion debit reproduced. Five uncapped 20% losses compound to 67.2% lost. That is a possible explanation, **not proof** of Tim’s reported instant roughly 70% loss. Original incident remains unconfirmed. Sabotage skips a future payout; Shakedown diverts half a payout; neither directly debits treasury. [Initial contract-cadence tuning, check results and stale test caveat](ninja_clan_plan.md#contract-pacing-checkpoint-2026-10-29).

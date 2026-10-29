@@ -9,7 +9,7 @@
     "combatRenown": { "crew": 2, "leader": 8 },
     "_contracts": "Shinobi contracts: one accepted job per clan, objectives any time with local counters and no dawn expiry. Rolling board and repeat cooldowns are independent of day/night. Fair target weighting and accepted reward locks remain; normal raid/payout schedules are separate.",
     "contracts": {
-      "perDawn": [3, 5], "refreshSeconds": 120, "repeatSeconds": 120, "failedRepeatSeconds": 30, "hiddenBonusShare": 0.25, "hiddenProgressRate": 2,
+      "perDawn": [3, 5], "refreshSeconds": 120, "repeatSeconds": 120, "failedRepeatSeconds": 30, "acceptIntervalSeconds": 120, "hiddenBonusShare": 0.25, "hiddenProgressRate": 2,
       "perClan": 2, "recentDays": 2, "leaderWeight": 2, "rewardPerBusinessPoint": 0.1,
       "scout": { "ryo": 150, "renown": 15, "seconds": 10 },
       "mark": { "ryo": 300, "renown": 30, "plantSeconds": 3, "holdSeconds": 60, "leaveSeconds": 10, "alertDelay": 15, "clearSeconds": 4, "reach": 1.5 },

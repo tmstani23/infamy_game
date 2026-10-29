@@ -112,7 +112,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const hunt = ai.pickHunt();
     if (hunt?.body) return hunt; // Collect earned loot before leaving for another job.
     // take the best job on the board it can do
-    const board = contractLockoutUntil(state, clan) > state.tick ? [] : state.contracts?.board || [];
+    const board = contractLockoutUntil(state, clan) > state.tick || game.contracts.readyIn(clan) ? [] : state.contracts?.board || [];
     const pick = board.filter(j => B.jobs.includes(j.kind) && doable(j)).sort((a, b) => jobScore(b) - jobScore(a))[0];
     if (pick && shrine()) return { kind: 'take', job: pick.id };
     if (hunt) return hunt;
@@ -177,7 +177,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       }
       case 'take': {
         const s = shrine();
-        if (contractLockoutUntil(state, clan) > state.tick) return true;
+        if (contractLockoutUntil(state, clan) > state.tick || game.contracts.readyIn(clan)) return true;
         if (job() || !s || !state.contracts.board.some(j => j.id === goal.job && doable(j))) return true;
         if (!toStreet(out)) return false;
         if (!walk(out, s.x, s.z, 0.8)) return false;

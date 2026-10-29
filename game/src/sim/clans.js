@@ -1,4 +1,5 @@
 import { canInteract } from './interactions.js';
+import { debitRyo } from './treasury.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
 // game state, so players and bot clans follow exactly the same rules.
@@ -82,7 +83,7 @@ export function createClans(state, units, opts = {}) {
     if (crewCount(clan.id) + clan.queue.length >= crewCap(clan.id)) return say(clan, 'Crew is full: hold more buildings for more crew');
     if (clan.queue.length >= rules.maxQueue) return say(clan, 'Too many hires waiting');
     if (clan.ryo < price) return say(clan, `Not enough ryo (${price} needed)`);
-    clan.ryo -= price;
+    debitRyo(state, clan, price, 'Crew hired', { target: type });
     clan.queue.push({ unit: type, business: b.id, left: types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1) });
     return say(clan, `Hired a ${types[type].name || type} for ${price} ryo`);
   }
@@ -136,7 +137,7 @@ export function createClans(state, units, opts = {}) {
     const missing = e.maxHp - e.hp, cost = Math.ceil(missing * (rules.healCostPerHp ?? 0.2) * scale(e.owner));
     if (!clan || missing <= 0) return false;
     if (clan.ryo < cost) { say(clan, `Not enough ryo to heal (${cost} needed)`); return false; }
-    clan.ryo -= cost;
+    debitRyo(state, clan, cost, 'Clinic healing');
     clan.clinic.push({ unit: e.type, model: e.model, deployment: storedDeployment(e), kind: 'heal', left: missing / (rules.healPerSecond || 8), cost: 0, hp: e.hp });
     say(clan, `Your ${e.type} is healing (${cost} ryo)`);
     return true;
@@ -164,7 +165,7 @@ export function createClans(state, units, opts = {}) {
       if (!p || p.kind !== 'recover') return null;
       const cost = reviveCost(p, clan.id);
       if (clan.ryo < cost) return say(clan, `Not enough ryo (${cost} needed)`);
-      clan.ryo -= cost;
+      debitRyo(state, clan, cost, 'Crew revived', { target: p.unit });
       clan.clinic.splice(c.patient, 1);
       const leader = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, deployment: restoredDeployment(p), ...(clan.bot && leader && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: leader.id } } : {}) });
@@ -174,7 +175,7 @@ export function createClans(state, units, opts = {}) {
       const { who, cost } = healCost(hero);
       if (!who.length) return say(clan, 'Nobody nearby needs healing');
       if (clan.ryo < cost) return say(clan, `Not enough ryo to heal (${cost} needed)`);
-      clan.ryo -= cost;
+      debitRyo(state, clan, cost, 'Group healing');
       for (const e of who) e.hp = e.maxHp;
       return say(clan, `Healed ${who.length} for ${cost} ryo`);
     }
@@ -208,7 +209,7 @@ export function createClans(state, units, opts = {}) {
         if ((c.left = Math.max(0, c.left - dt)) > 0) continue;
         if (clan.ryo < c.cost) { if (!c.broke) { c.broke = true; say(clan, `Your ${c.unit} is ready: ${c.cost} ryo to leave the clinic`); } continue; }
         if (!b) continue;
-        clan.ryo -= c.cost;
+        debitRyo(state, clan, c.cost, 'Clinic discharge', { target: c.unit });
         clan.clinic.splice(clan.clinic.indexOf(c), 1);
         const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
         spawn(c.unit, c.model || types[c.unit].sprite, b,

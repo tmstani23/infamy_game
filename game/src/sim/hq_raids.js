@@ -1,3 +1,4 @@
+import { debitRyo } from './treasury.js';
 // Shared eligibility for the Shinobi HQ exception to ordinary hideout closure.
 export const isShinobiHQ = (state, b) => !!b?.hideout && b.owner === b.hideout
   && state.clans?.[b.owner]?.kind === 'ninja';
@@ -17,7 +18,7 @@ export function createHQRaidEffects({ state, rules = {}, dayNight = {} }) {
       if (n.at !== state.tick || !attacker || !defender || !isShinobiHQ(state, b) || b.owner !== n.defender
         || state.hqRaids[b.id]?.protectedUntil > state.tick) continue;
       const stolen = Math.min(R.treasuryCap, Math.floor(Math.max(0, defender.ryo || 0) * R.treasuryShare));
-      defender.ryo -= stolen;
+      debitRyo(state, defender, stolen, 'HQ raid theft', { by: n.raider, target: b.id, notify: true });
       attacker.ryo += R.bounty + stolen;
       attacker.raidPoints = (attacker.raidPoints || 0) + R.seasonPoints;
       const suppressedUntil = state.tick + ticks(R.suppressionSeconds);

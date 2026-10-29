@@ -4,7 +4,8 @@ const state = { tick: 0, night: false, dawn: false, news: [], hits: [], ryoGains
   clans: { s: { id: 's', kind: 'ninja', ryo: 0 }, r: { id: 'r', kind: 'yakuza', ryo: 1000 } },
   entities: { s: { id: 's', owner: 's', type: 'hero', place: 'room', hp: 100, x: 0, z: 0, hidden: true }, r: { id: 'r', owner: 'r', type: 'hero', hp: 100, place: 'street' } },
   businesses: { b: { id: 'b', kind: 'shop', owner: 'r', room: 'room', x: 10, z: 20 } } };
-const c = createContracts({ state, scores: { shop: 1 }, rules: { scout: { seconds: 1 }, mark: { plantSeconds: 1, holdSeconds: 2 }, steal: { seconds: 1 } }, backRoom: () => ({ x: 0, z: 0 }) });
+// Isolate local objective counters from acceptance pacing (tested separately).
+const c = createContracts({ state, scores: { shop: 1 }, rules: { acceptIntervalSeconds: 0, scout: { seconds: 1 }, mark: { plantSeconds: 1, holdSeconds: 2 }, steal: { seconds: 1 } }, backRoom: () => ({ x: 0, z: 0 }) });
 const tick = () => { state.tick++; c.tick(); state.dawn = false; state.hits = []; };
 tick(); const C = state.contracts;
 function take(kind) {

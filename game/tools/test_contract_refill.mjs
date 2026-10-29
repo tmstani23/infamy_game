@@ -11,7 +11,8 @@ function fixture() {
       shop: { id: 'shop', kind: 'shop', room: 'shop', owner: null },
       home: { id: 'home', kind: 'teahouse', room: 'home', owner: 'a', hideout: 'a' },
       clinic: { id: 'clinic', kind: 'clinic', room: 'clinic', owner: 'a' } } };
-  const c = createContracts({ state, scores: { teahouse: 1, shop: 1 }, rules: { bandits: { count: 1 } }, backRoom: () => ({ x: 0, z: 0 }) });
+  // Isolate board supply; shared acceptance pacing has its own integration test.
+  const c = createContracts({ state, scores: { teahouse: 1, shop: 1 }, rules: { acceptIntervalSeconds: 0, bandits: { count: 1 } }, backRoom: () => ({ x: 0, z: 0 }) });
   const tick = (hits = []) => { state.tick++; state.hits = hits; c.tick(); state.dawn = false; };
   const take = job => { assert.ok(job); c.command(state.entities.s, { action: 'take', job: job.id }, { menu: 'contracts' }); };
   const bandit = () => state.contracts.board.find(j => j.kind === 'bandits');

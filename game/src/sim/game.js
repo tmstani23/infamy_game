@@ -115,7 +115,7 @@ export function createGame(options) {
   // dawn / dusk = true on the tick night turns to day / day to night, from the clock or the 'time' command alike (payouts at dawn)
   const state = { tick: 0, night: !!dayNight?.startAtNight, dawn: false, dusk: false, clock: null, entities: {}, businesses: {},
     interiorDoors: Object.fromEntries(interiorDoors.map(d => [d.id, true])),
-    hits: [], dodges: [], casts: [], heatGains: [], ryoGains: [], policeNews: [], news: [] };
+    hits: [], dodges: [], casts: [], heatGains: [], ryoGains: [], ryoLosses: [], policeNews: [], news: [] };
   const halfTicks = night => Math.round((night ? dayNight.nightSeconds : dayNight.daySeconds) * TICK_RATE);
   if (dayNight?.auto) state.clock = { day: 1, left: halfTicks(state.night) };
   const setNight = night => {
@@ -1554,6 +1554,7 @@ export function createGame(options) {
     state.casts = [];
     state.heatGains = [];
     state.ryoGains = [];
+    state.ryoLosses = [];
     state.news = [];         // this tick's big moments (boss knocked out or arrested, War Lantern knocked down), for the screen
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     state.dawn = state.dusk = false;

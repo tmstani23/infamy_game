@@ -24,6 +24,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     if (!open || !c || !h) return;
     if (contractLockoutUntil(game.state, c.id) > game.state.tick) return;
     if (C().active[c.id]) { if (i === 0) send({ id: h.id, type: 'contract', action: 'drop' }); return; }
+    if (game.contracts.readyIn(c.id)) return;
     const j = C().board[i];
     if (j) send({ id: h.id, type: 'contract', action: 'take', job: j.id });
   }
@@ -62,9 +63,11 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     const hunting=job?.kind==='boss'&&hunt?.target===job.hero;
     const huntStatus=hunting?(committed?`${committed.recovery?.state||committed.operation?.state||'Engaging'} · ${hunt.committedSector}`:'Hunt armed · waiting for a local sighting'):'Your sectors can hunt this boss when they spot him';
     const locked = c ? Math.max(0, Math.ceil((contractLockoutUntil(game.state, c.id) - game.state.tick) / 20)) : 0;
+    const waiting = c ? game.contracts.readyIn(c.id) : 0;
     const t = locked ? `<b>HQ on fire</b><span>Contracts unavailable · reopen in ${locked} s</span>`
-      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)}</span>${job.kind === 'boss' ? `<small>${huntStatus}</small><button data-ambush-contract type="button">${hunting ? 'Cancel boss hunt' : 'Order sectors to hunt this boss'}</button>` : ''}` : '';
-    tracker.hidden = !job && !locked;
+      : job ? `<b>${job.label}</b><span>${progress(job)} · ${reward(job)}</span>${job.kind === 'boss' ? `<small>${huntStatus}</small><button data-ambush-contract type="button">${hunting ? 'Cancel boss hunt' : 'Order sectors to hunt this boss'}</button>` : ''}`
+      : waiting ? `<b>Contract board</b><span>Next contract in ${waiting} s · any time of day</span>` : '';
+    tracker.hidden = !job && !locked && !waiting;
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
     const counter = job?.counter;
     if (localCounter) localCounter.hidden = !counter || view.commandPlace(game.state, heroId) !== counter.place;
@@ -79,7 +82,8 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     else if (job) body = `<div class="row"><span>${job.label}<br><small>${progress(job)}</small></span><button data-pick="0">Call off</button></div>` +
       '<div class="waiting">One contract at a time · complete at any hour</div>';
     else body = C().board.map((j, k) => `<div class="row"><span>${k + 1}. ${KIND[j.kind]}: ${j.label}<br><small>for ${clientName(j.client)} · ${reward(j)}</small></span>` +
-      `<button data-pick="${k}">Take</button></div>`).join('') || `<div class="waiting">Board refresh in ${Math.max(0, Math.ceil(((C().nextRefresh || 0) - game.state.tick) / 20))}s</div>`;
+      `<button data-pick="${k}"${waiting ? ' disabled' : ''}>Take</button></div>`).join('') || `<div class="waiting">Board refresh in ${Math.max(0, Math.ceil(((C().nextRefresh || 0) - game.state.tick) / 20))}s</div>`;
+    if (!locked && !job && waiting) body = `<div class="waiting">Next contract in ${waiting} s · travel and objective time count · any time of day</div>` + body;
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const html = `<h3>CONTRACT BOARD</h3><div class="row"><span>Renown ${c.renown || 0}</span></div>${body}${notice}<div class="waiting">number keys or click · Space / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }

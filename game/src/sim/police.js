@@ -7,6 +7,7 @@
 // Officers walk out of the police HQ (or in from the map edge when the map has none) and
 // walk back when the clan's heat drops. Plain sim code, no three.js.
 import { canInteract } from './interactions.js';
+import { debitRyo } from './treasury.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
 import { distractionStep } from './distraction.js';
@@ -180,7 +181,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       if (bribeBlocked(hero)) return say(clan, 'Not while the police are beating you');
       const cost = bribeCost(clan.id);
       if (clan.ryo < cost) return say(clan, `Not enough ryo (${cost} needed)`);
-      clan.ryo -= cost;
+      debitRyo(state, clan, cost, 'Police bribe');
       const before = clan.heat;
       clan.heat = Math.max(0, clan.heat - R.bribeHeat);
       state.heatGains.push({ clan: clan.id, amount: -Math.round(before - clan.heat), reason: 'Bribe' });
@@ -190,7 +191,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
       const p = clan.jail?.[c.prisoner];
       if (!p) return null;
       if (clan.ryo < p.bail) return say(clan, `Not enough ryo (${p.bail} needed)`);
-      clan.ryo -= p.bail;
+      debitRyo(state, clan, p.bail, 'Crew bailed out', { target: p.unit });
       clan.jail.splice(c.prisoner, 1);
       release(clan, p);
       return say(clan, `Your ${p.unit} is out on bail (${p.bail} ryo)`);

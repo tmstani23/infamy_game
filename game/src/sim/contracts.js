@@ -20,7 +20,7 @@
 // businesses can fill spare board slots during the day, without replacing active jobs.
 const DEFAULTS = {
   perDawn: [3, 5],
-  refreshSeconds: 120, repeatSeconds: 120, failedRepeatSeconds: 30,
+  refreshSeconds: 120, repeatSeconds: 120, failedRepeatSeconds: 30, acceptIntervalSeconds: 120,
   hiddenBonusShare: .25, hiddenProgressRate: 2,
   defendBonus: 150,   // ryo for the owner when a Sabotage/Steal they were warned about fails (Tim 2026-10-29)
   perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
@@ -35,6 +35,7 @@ const KIND_NAME = { shop: 'Shop', tenements: 'Tenements', pawnshop: 'Pawnshop', 
 // backRoom(b) = { x, z } of a business's back-room spot (in its room); WILD = the bandits' owner id
 // leader() = the clan leading the season score (or null)
 import { canInteract } from './interactions.js';
+import { debitRyo } from './treasury.js';
 import { contractLockoutUntil } from './hq_raids.js';
 import { createMarkScrubbing } from './mark_scrub.js';
 export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null, inCombat = () => false }) {
@@ -44,6 +45,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   const rnd = () => ((rs = (rs * 16807) % 2147483647) / 2147483647);
   state.contracts ||= { board: [], active: {}, next: 1, posted: false, day: 0, hits: [] };
   const C = state.contracts;
+  C.readyAt ||= {};
+  const readyIn = clan => Math.max(0, Math.ceil(((C.readyAt[clan] || 0) - state.tick) / 20));
   const scrubbing = createMarkScrubbing({state,rules:R.mark,inCombat});
   const ninja = id => state.clans?.[id]?.kind === 'ninja';
   const clanName = id => state.clans?.[id]?.name || 'a rival clan';
@@ -196,6 +199,8 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     if (locked > 0) return say(clan, `HQ burning: contracts reopen in ${locked} s`);
     if (door?.menu !== 'contracts') return say(clan, 'Take contracts at the village shrine');
     if (C.active[clan.id]) return say(clan, 'Finish or call off your contract first');
+    const waiting = readyIn(clan.id);
+    if (waiting) return say(clan, `Next contract available in ${waiting} s; travel and objective time count toward this timer`);
     const i = C.board.findIndex(j => j.id === c.job);
     if (i < 0) return say(clan, 'That job is gone');
     const [job] = C.board.splice(i, 1);
@@ -210,6 +215,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       C.pendingBusinesses = C.pendingBusinesses.filter(j => j.target !== job.target);
     }
     C.active[clan.id] = { ...job, ...priced, rewardLocked: true, clan: clan.id, takenAt: state.tick, progress: 0 };
+    C.readyAt[clan.id] = state.tick + secs(R.acceptIntervalSeconds);
     if (job.target) state.news.push({ kind: 'contractWarn', clan: job.target, label: job.label });   // the target gets a warning
     state.news.push({ kind: 'contractTaken', clan: clan.id, label: job.label, ...where(C.active[clan.id]) });
     say(clan, `Contract: ${job.label}`);
@@ -281,7 +287,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       if (job.progress >= job.need) {
         const victim = state.clans[job.target], q = quote(job);
         const amount = Math.min(q.stealCap, Math.floor((victim?.ryo || 0) * q.stealShare));
-        if (victim) victim.ryo -= amount;
+        if (victim) debitRyo(state, victim, amount, 'Contract theft', { by: clanId, target: b.id, notify: true });
         finish(clanId, true, '', amount, on);
       }
     } else if (job.kind === 'boss') {
@@ -313,6 +319,6 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   const mayClimb = (e, place) => ninja(e.owner) && Object.values(C.active).some(j => j.clan === e.owner
     && ['scout', 'mark', 'steal'].includes(j.kind) && !state.businesses[j.business]?.hideout && state.businesses[j.business]?.room === place);
 
-  return { tick, command, post, mayClimb, where, reward, quote, businessScore, backRoom, stash, rules: R,
+  return { tick, command, post, mayClimb, where, reward, quote, readyIn, businessScore, backRoom, stash, rules: R,
     scrubStep:scrubbing.step, interruptScrub:scrubbing.interrupt };
 }

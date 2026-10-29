@@ -186,7 +186,7 @@ for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
   const game = { state: { tick: 0, entities: { h }, clans: { s: clan },
     hqRaids: { hq: { defender: 's', suppressedUntil: 3600, protectedUntil: 15600 } },
     contracts: { board: [{ id: 1, kind: 'bandits', label: 'Test job', client: 'town' }], active: {} } },
-    serviceAt: () => ({ actor: h }), contracts: { reward: () => '200 ryo', quote: () => ({ renown: 20 }) } };
+    serviceAt: () => ({ actor: h }), contracts: { reward: () => '200 ryo', quote: () => ({ renown: 20 }), readyIn: () => 0 } };
   const menu = createContractMenu({ panel, tracker, game, heroId: 'h', send: c => sent.push(c) });
   menu.toggle();
   assert.match(panel.innerHTML, /reopen in 180 s/);
@@ -199,6 +199,15 @@ for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
   assert.equal(tracker.hidden, true);
   assert.ok(panel.innerHTML.includes('>Take<'), 'board reopens at the recovery tick');
   assert.equal(sent[0].job, 1);
+  game.contracts.readyIn = () => 30;
+  menu.update(); menu.pick(0);
+  assert.equal(sent.length, 1, 'number keys cannot bypass cadence');
+  assert.match(panel.innerHTML, /Next contract in 30 s/);
+  assert.match(panel.innerHTML, /data-pick="0" disabled/);
+  assert.equal(tracker.hidden, false, 'cooldown remains visible away from board');
+  assert.match(tracker.innerHTML, /Next contract in 30 s/);
+  game.contracts.readyIn = () => 0;
+  menu.update(); assert.equal(tracker.hidden, true, 'timer clears when ready');
   game.state.contracts.active.s = { kind: 'boss', hero: 'rival', label: 'Boss job' };
   assert.doesNotThrow(() => menu.update(), 'contract tracker tolerates absent deployment state');
   tracker.handlers.click({ target: { closest: () => true }, stopPropagation() {} });
