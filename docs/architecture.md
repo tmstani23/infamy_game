@@ -113,6 +113,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `shading.js` | Shared shaders: night grade, lantern lights, see-through cutaway, interior materials. |
 | `iso.js` | The fixed isometric camera as three.js vectors. |
 | `abilityfx.js` | Ability effects (dash after-images, seals, rings, lanterns), buff auras, bandit coin burst. |
+| `abilityfx_assets.js` | Shared ability-effect geometries, palettes, outline shader and lantern textures (split from abilityfx.js 2026-10-29; Kuroda and Shakedown effects live in `kurodafx.js` / `shakedownfx.js`). |
 | `vfx.js` | Shared effect pieces: sparkles, glints, embers, petals. |
 | `bloom.js` | Bloom on effects only. |
 | `hitfx.js` | Damage numbers, hit flash, slash trails, sparks, screen shake. |
