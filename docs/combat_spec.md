@@ -263,3 +263,7 @@ Rifleman follow-up (2026-10-28): spawn/late hires start loaded. Loaded explicit 
 Sweep **march only**, not ordinary Patrol: faint forward-flowing Kuroda-colored ground chevrons, small footstep dust, steady march sound and subtle shield glint while grouped ten-percent protection applies; glint fades when spread. Exact explosive damage/radii/fuses/fire/friendly-fire and grouped-distance threshold remain unset; do not infer combat tuning from VFX.
 
 Shakedown status (2026-10-28): dynamite/fire/status feedback below the operation design is implemented via shakedownfx.js; Sweep march/victory effects remain unbuilt. Focused Shakedown sim passed; visual/balance review remains pending.
+
+### Rifleman automatic bandit targeting fix (2026-10-28)
+
+Automatic rifle targeting now includes hostile bandits through the existing visibility/range/line-of-sight gates, including attack-move and newly joined hero followers without inherited attack orders. Neutral bandits still require hostility; civilian/police restrictions remain. Coordinator reports regression failed before fix and passed after, plus passing rifleman, crew-jobs, camps (all three clan openings 200 to 300 ryo) and move-priority checks. No loot code changed: starter-camp body jobs paid 25 per corpse in diagnostic. Tim’s successful rifle/looting retest preceded this fix; it is not validation of the new change.

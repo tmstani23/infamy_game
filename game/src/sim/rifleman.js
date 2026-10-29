@@ -9,6 +9,7 @@
 // An explicit attack order shoots that target when it can, else fights like any crew member.
 import { dirIndex } from './geometry.js';
 import { createFlee } from './flee.js';
+import { WILD } from './bandits.js';
 
 export const RIFLE = { range: 8, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30, heat: 3,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
@@ -21,7 +22,7 @@ export function createRifleman({ state, vision, hit, addHeat, stun, clearLine, c
   const targets = (t, id) => fightTarget(t.id) === id || t.attackTarget === id || (t.order?.kind === 'attack' && t.order.target === id) || t.swing?.target === id;
   const shootable = (e, t) => alive(t) && t.owner !== e.owner && t.place === e.place && !t.deployment?.transfer
     && (e.order?.kind === 'attack' && e.order.target === t.id ? canAttack(e, t)
-      : state.clans?.[t.owner] && t.type !== 'civilian' && !t.cop && !t.wild && hostile(e, t))
+      : (state.clans?.[t.owner] || t.owner === WILD) && t.type !== 'civilian' && !t.cop && hostile(e, t))
     && vision.canSee(e.owner, t) && dist(e, t) <= R.range && clearLine(e, t);
   function pick(e) {
     const ordered = e.order?.kind === 'attack' && state.entities[e.order.target];

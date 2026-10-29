@@ -4,6 +4,7 @@ import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
 import { RIFLE } from '../src/sim/rifleman.js';
 import { createFlee } from '../src/sim/flee.js';
+import { WILD } from '../src/sim/bandits.js';
 const read=p=>JSON.parse(readFileSync(new URL(`../${p}`,import.meta.url))),units=read('data/units.json'),art=read('data/art.json');
 for(const t of Object.values(units.types)){t.dodgeChance=0;t.critChance=0;}
 for(const entry of Object.values(art.characters.mercenary)){const file=typeof entry==='string'?entry:entry.file;assert.ok(existsSync(new URL(`../../assets/sprites/${file}.png`,import.meta.url)),file);}
@@ -48,16 +49,17 @@ assert.doesNotThrow(()=>JSON.stringify(st));
   assert.ok(goals.every(g=>g[0]===goals[0][0]&&g[1]===goals[0][1]),'flee goal is stable');assert.ok(goals[0][1]>=0,'flee prefers a clear line'); }
 // Real player commands: a fresh hero-party rifleman opens with his loaded gun,
 // even at close range or on attack-move. Explicit bandit orders also use the gun.
-for (const [kind, distance, type] of [['attack',1.8,'thug'],['attack',6,'thug'],['attackmove',6,'thug'],['attack',6,'bandit']]) {
+for (const [kind, distance, type] of [['attack',1.8,'thug'],['attack',6,'thug'],['attackmove',6,'thug'],['attack',6,'bandit'],['attackmove',6,'bandit'],['reinforcement',6,'bandit']]) {
   for (const e of Object.values(st.entities)) if (e.id !== heroId) e.dead = true;
   const h = st.entities[heroId]; Object.assign(h,{x:ax,z:az+2,place:'street',holdFire:true});
   const u=st.entities[g.spawn('kuroda_rifleman','mercenary',ax,az,{owner:me,deployment:{group:'hero'},order:{kind:'follow',target:heroId}})];
   assert.ok(u.rifle?.readyAt <= st.tick,'new rifleman starts loaded immediately, including a late hire');
   assert.equal(u.rifle.firedAt,undefined,'new rifleman has no prior shot/reload');
-  const t=st.entities[g.spawn(type,type==='bandit'?'bandit':'thug',ax+distance,az,{owner:type==='bandit'?'wild':rival,deployment:{group:'hero'},order:{kind:'stop'},holdFire:true})];
+  const t=st.entities[g.spawn(type,type==='bandit'?'bandit':'thug',ax+distance,az,{owner:type==='bandit'?WILD:rival,wild:type==='bandit',angry:{[me]:st.tick+200},deployment:{group:'hero'},order:{kind:'stop'},holdFire:true})];
+  if(kind==='reinforcement')h.hitBy={id:t.id,tick:st.tick}; // joins after the original group attack was issued
   const shots=[],hits=[];
   for(let i=0;i<R.aimTicks+3;i++) {
-    g.step(i===0?[{id:heroId,type:'order',units:[u.id],kind,target:t.id,x:ax+7,z:az,place:'street'}]:[]);
+    g.step(i===0&&kind!=='reinforcement'?[{id:heroId,type:'order',units:[u.id],kind,target:t.id,x:ax+7,z:az,place:'street'}]:[]);
     shots.push(...st.casts.filter(c=>c.kind==='rifleshot'&&c.a===u.id));
     hits.push(...st.hits.filter(hit=>hit.a===u.id));
   }
