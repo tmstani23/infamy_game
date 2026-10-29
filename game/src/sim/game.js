@@ -20,7 +20,7 @@ import { createBusinesses } from './businesses.js';
 import { createContracts } from './contracts.js';
 import { interactionActor } from './interactions.js';
 import { createHQCamping } from './hq_camping.js';
-import { createKuroda, KURODA_KINDS, stunned } from './kuroda.js';
+import { createKuroda, stunned } from './kuroda.js';
 import { createHQRaidEffects } from './hq_raids.js';
 import { createDeployment } from './deployment.js';
 import { createAssignments } from './assignments.js';
@@ -35,11 +35,15 @@ import { createTaunt } from './taunt.js';
 import { createSectorRecovery } from './sector_recovery.js';
 import { createShinobiIntelligence } from './shinobi_intelligence.js';
 import { clearSight } from './perception.js';
-import { distractionStep } from './distraction.js';
 import { createStats } from './stats.js';
 import { reachableEntry } from './rear_entry.js';
 import { createSectorCleanup } from './sector_cleanup.js';
 import { createCrewJobs } from './crew_jobs.js';
+import { createHeroAbilities } from './hero_abilities.js';
+import { createLootExecute } from './loot_execute.js';
+import { createCrewOrders } from './crew_orders.js';
+import { createCrewStep } from './crew_step.js';
+import { createCombat } from './combat.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -47,7 +51,7 @@ export const DT = 1 / TICK_RATE;
 
 // Unit types: size and speeds in world units per second (the ronin is 2 tall)
 
-const DOOR_RADIUS = 1.5;
+export const DOOR_RADIUS = 1.5;
 const title = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export function createGame(options) {
@@ -256,172 +260,14 @@ export function createGame(options) {
   }
 
   // --- Crew orders ---------------------------------------------------------------
-  // Places around a hero for followers: rings of 6, 12 and 18 (enough for 36 crew)
-  function followOffset(k) {
-    for (const [r, n] of [[1.5, 6], [2.7, 12], [3.9, 18]]) {
-      if (k < n) { const a = k / n * 2 * Math.PI + (r > 2 ? Math.PI / n : 0); return [Math.cos(a) * r, Math.sin(a) * r]; }
-      k -= n;
-    }
-    return [0, 0];
-  }
-  // The lowest ring place nobody following this hero uses yet
-  function freeSlot(heroId, self) {
-    const used = new Set(Object.values(state.entities)
-      .filter(u => u.id !== self && u.order?.kind === 'follow' && u.order.target === heroId).map(u => u.order.slot));
-    let k = 0;
-    while (used.has(k)) k++;
-    return k;
-  }
-  // A square block of places around a clicked point, one per unit
-  function blockOffset(k, n) {
-    const side = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / side), sp = 1.1;
-    return [(k % side - (side - 1) / 2) * sp, (Math.floor(k / side) - (rows - 1) / 2) * sp];
-  }
-
-  // order command from a hero for some of its own crew in the same place (street or room):
-  // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
-  function giveOrder(hero, c) {
-    if (hero.type !== 'hero' || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop', 'enter', 'resume'].includes(c.kind)) return;
-    // enter (right-click your own business, checkpoint 5): walk to its door, go in and hold the room
-    // or right-click the business of an active Shinobi infiltration job: use its back window
-    const eb = c.kind === 'enter' && state.businesses[c.business];
-    const door = eb && (eb.owner === hero.owner ? doors.find(d => d.to && d.place === eb.room)
-      : contracts?.mayClimb(hero, eb.room) && doors.find(d => d.to && d.ninja && d.place === eb.room));
-    if (c.kind === 'enter' && !door) return;
-    if (c.kind === 'attack' && !(fair(hero, state.entities[c.target]) && sees(hero, state.entities[c.target]))
-      && !(c.place === state.entities[c.target]?.place && c.units.some(id => {
-        const u = state.entities[id]; return u && u.owner === hero.owner && fair(u, state.entities[c.target]) && sees(u, state.entities[c.target]);
-      }))) return;
-    if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
-    const crew = c.units.map(id => state.entities[id])
-      .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street')
-        && (u.place === hero.place || (c.kind === 'follow' && u.place === 'street') || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind))
-          || (c.place === 'street' && (u.place === 'street' || (c.kind === 'move' && u.place !== 'street')))
-          || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
-          || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place))
-        && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
-        && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
-        && deployment.allowsOrder(u, c, hero, door));
-    if(state.deployment.restrictionsEnabled){
-      const group=u=>rally.status(hero.owner).active&&(u.deployment.group==='hero'||rally.participating(u))?'rally':u.deployment.group;
-      if(new Set(crew.map(group)).size>1)return;
-    }
-    const recalling = c.kind === 'move' || c.kind === 'follow';
-    if (recalling && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
-    crew.forEach((u, k) => {
-      if(crewJobs?.intercept(u,c))return;
-      manualCrew(u);
-      if(c.kind==='attack')allowCharmAttack(u,state.entities[c.target],state);
-      delete u.lootEscort;
-      delete paths[u.id];
-      delete u.patrol;
-      if (u.indoorDuty) u.indoorDuty.resume = false;
-      delete u.execute;
-      const attacking = c.kind === 'attack' || c.kind === 'attackmove';
-      if (!u.smokePassive || attacking) delete u.holdFire;
-      if (attacking) delete u.smokePassive;
-      if (fight[u.id]) delete fight[u.id].target;
-      // stop (Z, Tim 2026-10-18): stand still and stay passive, no auto attack even when hit,
-      // until the next order of any kind replaces this one
-      // resume (a second T, Tim 2026-10-19): call off the T attack, back to the order before it
-      if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u, true); } return; }
-      if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
-      if (recalling) delete u.swing;
-      if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id, regrouping: true, ...(hero.place !== 'street' ? { exitWithHero: true } : {}) }; u.order.slot = freeSlot(hero.id, u.id); return; }
-      // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
-      if (c.kind === 'attack') {
-        if (u.swing?.target !== c.target) delete u.swing;
-        const follow = c.followOnDefeat === true || c.assist || (Array.isArray(c.followOnDefeat) && c.followOnDefeat.includes(u.id));
-        const t=state.entities[c.target];
-        u.order = { kind: 'attack', target: c.target, lastSeen:{x:t.x,z:t.z,place:t.place}, ...(follow ? { followLeader: hero.id } : {}), ...(c.resume ? { prev: resumable(u) } : {}), ...(c.broadcast ? { broadcast: true } : {}) }; return;
-      }
-      if (c.kind === 'heal') {
-        const b = clans?.clinicOf();
-        if (!b || u.hp >= u.maxHp) return;
-        const [x, z] = nav.nearestFree(...(b.door || [b.x, b.z])) || [b.x, b.z];
-        u.order = { kind: 'heal', x, z };
-        return;
-      }
-      if (c.kind === 'enter') {
-        if (u.place !== 'street') return;
-        const [x, z] = nav.nearestFree(door.x, door.z) || [door.x, door.z];
-        u.order = { kind: 'enter', room: door.place, x, z, k, n: crew.length, ...(door.ninja ? { window: true } : {}) };
-        return;
-      }
-      const [ox, oz] = blockOffset(k, crew.length);
-      const place = c.place || hero.place;
-      const grid = (place === 'street' ? deployment.navFor({ ...u, place }) : null) || navOf(place);
-      const [x, z] = grid?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
-      u.order = { kind: c.kind, x, z, place };
-    });
-  }
-
-  // Crew inside a building whose order is out on the street (Tim 2026-10-19): walk to the room's
-  // way out and step out of the front door, then carry on with the order. True while doing that
-  function crewOut(e, unit) {
-    if (e.place === 'street') return false;
-    const o = e.order || {};
-    if (o.kind !== 'move' || o.place !== 'street') return false;
-    const room = rooms.find(r => r.name === e.place);
-    const d = room && doors.find(d => d.place === 'street' && d.to && d.x === room.exit.x && d.z === room.exit.z);
-    if (!d) return false;
-    if (Math.hypot(d.x - e.x, d.z - e.z) > 0.6) { if (!moveTo(e, unit, d.x, d.z, false)) e.anim = 'idle'; return true; }
-    const [x, z] = nav.nearestFree(d.to.x, d.to.z) || [d.to.x, d.to.z];
-    state.news.push({ kind: 'crewOut', clan: e.owner, building: Number(Object.keys(roomOf).find(k => roomOf[k] === e.place)) });   // the screen flashes the building
-    Object.assign(e, { x, z, place: 'street', anim: 'idle' });
-    delete paths[e.id]; delete e.swing;
-    if (fight[e.id]) delete fight[e.id].target;
-    return true;
-  }
-
-  // Where a crew member wants to be right now, or null to stand still
-  function crewGoal(e) {
-    const o = e.order;
-    if (!o || o.kind === 'stop') return null;
-    // a ninja's pebble (Distract): house guards go and look where it fell
-    const dz = e.distracted;
-    if (dz && state.tick < dz.until) return { x: dz.x, z: dz.z, near: 0.8, walk: true };
-    if (o.kind === 'follow') {
-      const h = state.entities[o.target];
-      if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
-      const [ox, oz] = followOffset(o.slot);
-      return { x: h.x + ox, z: h.z + oz, near: Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
-    }
-    if (o.kind === 'attack') return null;
-    return { x: o.x, z: o.z, near: 0.25, walk: !!o.patrol, stroll: !!o.patrol };   // patrol (house guards): walk the whole way
-  }
-
-  // Walk one tick toward (gx, gz) along a street path; false when there is no way
-  function moveTo(e, unit, gx, gz, walk) {
-    if (stunned(e, state.tick)) { e.anim = 'idle'; return true; }
-    const grid = deployment.navFor(e) || navOf(e.place);
-    if (!grid) paths[e.id] = { pts: [[gx, gz]], gx, gz };   // a place with no walk grid: walk straight
-    let p = paths[e.id];
-    if (!p || Math.hypot(p.gx - gx, p.gz - gz) > 1.2 || !p.pts.length) {
-      p = paths[e.id] = { pts: grid.findPath(e.x, e.z, gx, gz) || [], gx, gz };
-      if (!p.pts.length) return false;
-    }
-    // the last leg goes straight at the live goal (keeps up with a moving hero or enemy)
-    let [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0];
-    // a waypoint counts as reached when close and the next one is in clear view (else cutting
-    // the corner snags a wide body on the furniture), or when right on it
-    const near = Math.hypot(wx - e.x, wz - e.z);
-    if (p.pts.length > 1 && (near < 0.05 || (near < 0.35 && grid?.clearLine(e.x, e.z, ...p.pts[1])))) { p.pts.shift(); [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0]; }
-    const dx = wx - e.x, dz = wz - e.z, len = Math.hypot(dx, dz);
-    if (len < 1e-6) return true;
-    e.anim = walk ? 'walk' : 'run';
-    const want = dirIndex(dx, dz), turn = (want - e.dir + 8) % 8;
-    const patrolling = walk && (e.perceptionPatrol || e.order?.patrol || e.distracted || (e.guard && e.order?.kind === 'station')) && !fight[e.id]?.target;
-    if (patrolling && turn) {
-      if (state.tick >= (e.patrolTurnAt ?? 0)) { e.dir = (e.dir + (turn <= 4 ? 1 : 7)) % 8; e.patrolTurnAt = state.tick + 2; }
-      if (e.dir !== want) { e.anim = 'idle'; return true; }
-    } else e.dir = want;
-    // crew know their own streets: crewSpeed times as fast in their clan's territory (sim/territory.js)
-    const d = Math.min(stats.movement(e, e.anim) * DT, len) / len;
-    tryMove(e, unit.radius, dx * d, 0);
-    tryMove(e, unit.radius, 0, dz * d);
-    return true;
-  }
+  // Crew orders: follow slots, giving orders, walking out of buildings and moving: sim/crew_orders.js
+  function blockOffset(...a) { return crewOrders.blockOffset(...a); }
+  function crewGoal(...a) { return crewOrders.crewGoal(...a); }
+  function crewOut(...a) { return crewOrders.crewOut(...a); }
+  function followOffset(...a) { return crewOrders.followOffset(...a); }
+  function freeSlot(...a) { return crewOrders.freeSlot(...a); }
+  function giveOrder(...a) { return crewOrders.giveOrder(...a); }
+  function moveTo(...a) { return crewOrders.moveTo(...a); }
 
   // --- Combat (RTS / Dota style) ----------------------------------------------------
   // Units of two different clans in the same place are enemies. Crew pick fights on
@@ -460,324 +306,25 @@ export function createGame(options) {
   // Officers are never picked on their own: hitting police (+heat) is always the player's
   // (or bot's) own order, so standing still next to a squad doesn't spiral the heat.
   // Business attack-wave officers add no infamy per hit and remain automatic targets.
-  function nearestEnemy(e, x, z, range) {
-    let best = null, bd = range;
-    for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;
-      const d = Math.hypot(t.x - x, t.z - z);
-      if (d < bd) { bd = d; best = t; }
-    }
-    return best;
-  }
-
-  // Where a crew member is tied to: its hero, its station, or where it is going
-  function anchorOf(e) {
-    const o = e.order || {};
-    if (o.kind === 'follow') { const h = state.entities[o.target]; return h && !h.dead && h.place === e.place ? [h.x, h.z] : [e.x, e.z]; }
-    if (o.kind === 'station' || o.kind === 'move' || o.kind === 'attackmove') return [o.x, o.z];
-    return [e.x, e.z];
-  }
-
-  // the order a T attack goes back to afterwards: follow, hold / station / move spot, passive stop,
-  // or one still on its way (attack-move, going into a business, off to the clinic)
-  function resumable(u) {
-    const o = u.order?.kind === 'attack' ? u.order.prev : u.order;
-    return o && ['follow', 'move', 'station', 'stop', 'attackmove', 'enter', 'heal'].includes(o.kind) ? { ...o } : null;
-  }
-  // A finished attack holds at the last combat position. Calling an attack off
-  // explicitly (a second T) still restores the previous order.
-  function endAttack(u, cancelled = false) {
-    const p = u.order?.prev;
-    const resume = cancelled || !!state.clans?.[u.owner]?.bot;
-    if (resume && p?.kind === 'follow') p.slot = freeSlot(p.target, u.id);
-    if (!cancelled && u.order?.assist) {
-      const h = state.entities[u.order.assist];
-      if (h?.assistCrew) h.assistCrew = h.assistCrew.filter(id => id !== u.id);
-    }
-    u.order = resume && p ? p : { kind: 'move', x: u.x, z: u.z, arrived: true };
-    delete paths[u.id];
-  }
-
-  // Right-click/Tab assistance follows the leader's changing target. Manual attack
-  // orders (T or Ctrl-right-click) and deliberate duties stay independent.
-  function setAssistCrew(hero, ids) {
-    hero.assistCrew = [...new Set(Array.isArray(ids) ? ids : [])].filter(id => {
-      const u = state.entities[id];
-      return u && u.owner === hero.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed && u.place === hero.place;
-    });
-    // A new selection must leave the previous squad doing its existing attack.
-    for (const u of Object.values(state.entities)) if (u.order?.assist === hero.id && !hero.assistCrew.includes(u.id)) delete u.order.assist;
-  }
-  function syncCrewAttacks() {
-    const heroes = Object.values(state.entities).filter(e => e.type === 'hero');
-    for (const u of Object.values(state.entities)) if (u.order?.assist) {
-      const h = state.entities[u.order.assist], t = h && state.entities[h.attackTarget];
-      if (!h?.assistCrew?.includes(u.id) || h.dead || h.downed || h.jailed || !fair(h, t) || !sees(h, t)
-        || u.place !== h.place || Math.hypot(t.x - h.x, t.z - h.z) > LOCK_RANGE) {
-        delete u.swing; endAttack(u);
-      }
-    }
-    for (const h of heroes) {
-      const t = state.entities[h.attackTarget];
-      if (!h.assistCrew?.length || h.dead || h.downed || h.jailed || !fair(h, t) || !sees(h, t)
-        || Math.hypot(t.x - h.x, t.z - h.z) > LOCK_RANGE) continue;
-      for (const u of Object.values(state.entities)) {
-        if (!h.assistCrew.includes(u.id) || u.owner !== h.owner || u.type === 'hero' || u.guard || u.dead || u.downed || u.jailed || u.smokePassive || u.place !== h.place || !fair(u, t)) continue;
-        const o = u.order;
-        if (o?.kind === 'move' && !o.arrived) continue; // finish a deliberate move before joining the hero
-        if (o?.kind === 'attack' && o.assist !== h.id) continue;
-        if ((o?.kind === 'station' && !o.garrison) || ['stop', 'heal', 'enter', 'loot'].includes(o?.kind) || u.execute) continue;
-        if (o?.assist === h.id && o.target === t.id) continue;
-        const prev = resumable(u);
-        if (prev?.garrison) {
-          delete prev.garrison; delete prev.patrol; delete u.patrol;
-          if (u.indoorDuty) u.indoorDuty.resume = false;
-        }
-        delete u.swing; delete u.holdFire; delete paths[u.id];
-        if (fight[u.id]) delete fight[u.id].target;
-        u.order = { kind: 'attack', target: t.id, assist: h.id, prev, followLeader: h.id };
-      }
-    }
-  }
-
-  // Who this crew member should be fighting right now, if anyone
-  function crewTarget(e) {
-    const o = e.order || {};
-    if (o.kind === 'stop') return null;                  // passive (Z): never picks a fight
-    if (e.holdFire) return null;                         // smoke escort stays passive until an explicit combat order
-    if (o.kind === 'attack') {
-      const t = state.entities[o.target];
-      // A deliberate order keeps tracking a visible-at-order-time enemy across fog and screens.
-      // Stealth still breaks the lock; a recall or new order replaces it.
-      if (attackAllowed(e, t) && !(t.hidden && t.owner !== e.owner)) return t;
-      endAttack(e);                                    // target gone: back to the old order, or stand there
-      return null;
-    }
-    // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
-    if (o.kind === 'move' && !o.arrived) return null;
-    if ((o.kind === 'heal' || o.kind === 'enter') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
-    // first stop anyone finishing off one of our downed crew nearby
-    const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t) && !cop(t)
-      && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
-    if (executor) return executor;
-    const [ax, az] = anchorOf(e);
-    // crew of every clan, bots too, only pick fights on an attack-move, while stationed in a business, or
-    // inside a business being raided or attacked (Tim 2026-10-19/20). Otherwise they swing back at whoever
-    // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro
-    const raidRoom = e.place !== 'street' && Object.values(state.attacks || {}).some(a => a.room === e.place && a.phase !== 'over');
-    if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom) {
-      const attacker = u => {
-        const by = u.hitBy && state.tick - u.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[u.hitBy.id];
-        return by && u.hitBy.tick > (o.recalledAt ?? -1) && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
-      };
-      const own = attacker(e);
-      if (own) return own;
-      for (const u of Object.values(state.entities)) {
-        if (u === e || u.owner !== e.owner || u.dead || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > BACKUP_RANGE) continue;
-        const by = attacker(u);
-        if (by) return by;
-      }
-      return null;
-    }
-    const f = fight[e.id];
-    const old = f && state.entities[f.target];
-    if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
-    return nearestEnemy(e, e.x, e.z, AGGRO);
-  }
-
-  // Close in on the target, then swing at it every attackSpeed seconds. A swing has a
-  // wind-up and the damage lands on the strike (STRIKE of the way through), Dota-style;
-  // e.swing is in the state so the renderer can time the animation to it.
-  const STRIKE = 0.4;
-  const swingTicks = unit => Math.max(4, Math.round(Math.min(unit.attackSpeed * 0.85, unit.swingSeconds || 0.7) / DT));
-  function engage(e, unit, t, chase = true) {
-    if(!attackAllowed(e,t)){delete e.swing;if(fight[e.id])delete fight[e.id].target;return;}
-    if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
-    const f = fight[e.id] ||= { cd: 0 };
-    // never chase into another place (Tim 2026-10-28: ambush ninja kept running into a building's wall after a target who went inside)
-    if (t.place !== e.place) { delete f.target; if (!e.swing) e.anim = 'idle'; return; }
-    f.target = t.id;
-    if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
-    const d = Math.hypot(t.x - e.x, t.z - e.z);
-    // a townsperson running away gets away during the wind-up: get right up close first
-    const running = chase && civ(t) && t.flee;
-    if (d > reachOf(e, t) * (running ? 0.5 : 1)) {
-      if (chase) {
-        // close in on a spot round the target so several attackers surround it instead of queueing
-        const [sx, sz] = running ? [t.x, t.z] : surroundSpot(e, t);
-        if (moveTo(e, unit, sx, sz, false)) return;
-      }
-      e.anim = 'idle';
-      return;
-    }
-    delete paths[e.id];
-    // turn toward the target one eighth per tick instead of snapping round
-    const want = dirIndex(t.x - e.x, t.z - e.z), diff = (want - e.dir + 8) % 8;
-    if (diff) { e.dir = (e.dir + (diff <= 4 ? 1 : 7)) % 8; if (diff !== 1 && diff !== 7) { e.anim = 'idle'; return; } }
-    if (f.cd > 0) { e.anim = 'idle'; return; }
-    const speed = stats.attackInterval(e);
-    const len = swingTicks({ ...unit, attackSpeed: speed });
-    e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * STRIKE), target: t.id };
-    e.anim = 'attack';
-    f.cd = speed;
-  }
-
-  // Where an attacker should stand round its target: spread out by how many are on it
-  function surroundSpot(e, t) {
-    const on = Object.values(state.entities).filter(u => u.type !== 'hero' && !u.dead && fight[u.id]?.target === t.id).map(u => u.id).sort();
-    const n = on.length, k = Math.max(0, on.indexOf(e.id));
-    const r = reachOf(e, t) * 0.8, a = Math.atan2(e.z - t.z, e.x - t.x) + (n > 1 ? (k - (n - 1) / 2) * 0.9 : 0);
-    const spot = [t.x + Math.cos(a) * r, t.z + Math.sin(a) * r];
-    return t.place === 'street' ? nav.nearestFree(...spot) || [t.x, t.z] : spot;
-  }
-
-  // Swings in progress: land the hit on the strike tick (if the target is still in reach), end the swing
-  function swingStep(e, unit) {
-    if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return true; }
-    const w = e.swing;
-    if (!w) return false;
-    if (state.tick === w.strike) {
-      const t = state.entities[w.target];
-      if (attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
-        const dodge = stats.dodgeChance(t);
-        if (dodge && rng() < dodge) {
-          stealth.reveal(e, true); // attempting an attack still consumes the attacker's veil
-          state.dodges.push({ a: e.id, t: t.id, x: t.x, z: t.z });
-        } else {
-          const crit = rng() < stats.criticalChance(e);
-          const damage = Math.round(stats.damage(e) * (crit ? unit.critMultiplier || 2 : 1));
-          hit(e, t, damage, crit);
-          kuroda.weaponHit(e, t, damage);
-        }
-      }
-    }
-    if (state.tick >= w.start + w.len) { delete e.swing; return false; }
-    e.anim = 'attack';
-    return true;
-  }
-
-  // Small seeded random numbers, so a game replays the same way from the same seed
-  let seed = (options.seed ?? 12345) >>> 0;
-  function rng() {
-    seed = (seed + 0x6d2b79f5) >>> 0;
-    let x = seed;
-    x = Math.imul(x ^ (x >>> 15), x | 1);
-    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-  }
-
-  // Heat: a number per clan for trouble caused in the street (townsfolk hurt or killed),
-  // cooling by 1 every heatCoolSeconds. Nothing reacts to it yet.
   const heatFor = k => units?.rules?.civilianHeat?.[k] || 0;
-  // state.heatGains = this tick's rises ({ clan, amount, reason }), for the heat pop-ups
-  // c.infamy = lifetime heat (stand-in until the infamy board); the top-infamy clan gains more (police.heatScale)
-  function addHeat(owner, n, reason, scale = true) {
-    const c = state.clans?.[owner];
-    if (!c || !n) return;
-    c.infamy = (c.infamy || 0) + n;
-    n = Math.round(n * (scale ? police?.heatScale(owner) ?? 1 : 1));
-    c.heat = (c.heat || 0) + n;
-    state.heatGains.push({ clan: owner, amount: n, reason });
-  }
   // a clan's home hideout (b.hideout = clan id; sim/clans.js gives it to the clan) and whether a unit is in it
   const hideoutOf = id => Object.values(state.businesses).find(b => b.hideout === id && b.owner === id);
   const atHome = e => !!e && e.place !== 'street' && hideoutOf(e.owner)?.room === e.place;
-  function coolHeat() {
-    const every = secs(units?.rules?.heatCoolSeconds || 10);
-    if (!state.clans) return;
-    // laying low: with the boss inside the hideout heat cools heatCoolFactor times as fast
-    const f = units?.rules?.hideout?.heatCoolFactor ?? 1, fast = Math.max(1, Math.round(every / f));
-    for (const c of Object.values(state.clans)) {
-      if (!(c.heat > 0)) continue;
-      const boss = Object.values(state.entities).find(e => e.owner === c.id && e.type === 'hero');
-      // in your own territory it cools every territory.heatCoolSeconds (sim/territory.js)
-      const turf = territory.inOwn(boss) ? Math.max(1, Math.min(every, secs(territory.rules.heatCoolSeconds))) : every;
-      if (state.tick % (atHome(boss) ? Math.min(fast, turf) : turf) === 0) c.heat = Math.max(0, c.heat - 1);
-    }
-  }
-
-  function hit(a, t, damage, crit = false, kind = null) {
-    if(charmProtected(a,t,state))return;
-    // Assassinate's explicit current-health rule stays exact inside a formation.
-    if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
-    stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
-    t.hp = Math.max(0, t.hp - damage);
-    t.hitAt = state.tick; a.struckAt = state.tick;   // struckAt: Unstuck waits after a fight (sim/unstuck.js)
-    contracts?.interruptScrub(t);
-    diversion.interrupted(t);
-    rifleman.interrupted(t);
-    t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
-    if (damage > 0) kuroda.damaged(t, a);
-    delete t.execute;                // a hit breaks an execute channel
-    // this tick's hits, for damage numbers and effects (cleared every tick)
-    state.hits.push({ a: a.id, t: t.id, damage, crit, kill: t.hp <= 0, x: t.x, z: t.z, dir: a.dir, weapon: a.model, ...(kind ? { kind } : {}) });
-    // Red Lantern: heal part of the damage dealt
-    const steal = stats.lifesteal(a);
-    if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
-    if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
-    if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
-    if (civ(t)) police?.witnessAssault(a, t);
-    if (wild(t)) bandits.provoke(t, a.owner);
-    if (cop(a)) t.copHitAt = state.tick;     // the police box won't take a bribe right after (sim/police.js)
-    // who fought where, for the police (a patrol goes to a clan's last fight, and for units seen fighting)
-    if (state.clans?.[a.owner]) {
-      a.foughtAt = state.tick;
-      if (a.place === 'street') state.clans[a.owner].lastFight = { x: a.x, z: a.z, tick: state.tick };
-      // officers defending a business you attack (e.wave) give attack.hitHeat instead: the attack already costs heat when won
-      if (cop(t)) { addHeat(a.owner, t.wave ? units?.rules?.attack?.hitHeat ?? 0 : police.rules.hitPoliceHeat, 'Assaulting police'); police.provoke(t, a.owner); }
-    }
-    if (t.hp > 0) return;
-    if (t.type === 'hero') {
-      delete t.assistCrew;
-      for (const u of Object.values(state.entities)) if (u.owner === t.owner && u.order?.kind === 'follow' && u.order.target === t.id) {
-        u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
-        delete paths[u.id];
-      }
-    }
-    delete t.swing;
-    delete t.dash;
-    delete t.buffs;
-    kuroda.cancel(t);
-    delete paths[t.id];
-    delete fight[t.id];
-    t.anim = 'death';
-    // Bandits leave their money on the body for whoever loots it.
-    if (wild(t)) { t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
-    // an officer knocked out is taken away (the HQ sends another)
-    if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
-    // house guards (sim/businesses.js) die outright; the business sends a new one later
-    if (t.guard) { t.dead = true; t.diedAt = state.tick; return; }
-    // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
-    if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; leader.downed(a, t); return; }
-    // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
-    state.news.push({ kind: 'bossDown', clan: t.owner, hero: t.id, by: a.owner || null, x: t.x, z: t.z });
-    if (cop(a) && police) { t.downed = true; t.downedAt = state.tick; return; }
-    rewards.leaderDown(a, t);
-    leader.downed(a, t);
-    t.dead = true;
-    t.anim = 'death';
-    t.diedAt = state.tick;
-    delete paths[t.id];
-    delete fight[t.id];
-  }
-
-  // Downed units remain executable/arrestable for the configured window. An
-  // already-started execution or arrest may finish before the body is carried.
-  function carryOffDowned() {
-    const r = units?.rules || {};
-    for (const e of Object.values(state.entities)) {
-      if (!e.downed || e.dead) continue;
-      e.downedAt ??= state.tick;
-      if (state.tick - e.downedAt < secs(r.downedMinSeconds ?? 20)) continue;
-      if (Object.values(state.entities).some(o => o.execute?.target === e.id && Number.isFinite(o.execute.start))) continue;
-      // a hero the police knocked down but nobody arrested: knocked out as usual (up at the clinic)
-      if (e.type === 'hero') { delete e.downed; e.dead = true; e.diedAt = state.tick; continue; }
-      if (!civ(e) && !clans?.carryOff(e)) continue;      // townsfolk are helped home (sim/civilians.js sends a new one out later)
-      delete state.entities[e.id];
-      delete intents[e.id];
-      for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') endAttack(u);
-    }
-  }
+  // Combat: targets, crew attack sync, swings, hits, heat and carrying off the downed: sim/combat.js
+  function addHeat(...a) { return combat.addHeat(...a); }
+  function anchorOf(...a) { return combat.anchorOf(...a); }
+  function carryOffDowned(...a) { return combat.carryOffDowned(...a); }
+  function coolHeat(...a) { return combat.coolHeat(...a); }
+  function crewTarget(...a) { return combat.crewTarget(...a); }
+  function endAttack(...a) { return combat.endAttack(...a); }
+  function engage(...a) { return combat.engage(...a); }
+  function hit(...a) { return combat.hit(...a); }
+  function nearestEnemy(...a) { return combat.nearestEnemy(...a); }
+  function resumable(...a) { return combat.resumable(...a); }
+  function rng(...a) { return combat.rng(...a); }
+  function setAssistCrew(...a) { return combat.setAssistCrew(...a); }
+  function swingStep(...a) { return combat.swingStep(...a); }
+  function syncCrewAttacks(...a) { return combat.syncCrewAttacks(...a); }
 
   // --- Downed crew and executes ----------------------------------------------------
   // A downed unit lies there and is skipped by attacks. Any unit of another clan can
@@ -792,150 +339,16 @@ export function createGame(options) {
   // the nearest selected crew member goes, with non-following selected crew escorting.
   const LOOT_REACH = 1.6;
   const lootable = (e, b) => !!b && b.dead && b.loot > 0 && b.place === e.place && sees(e, b) && deployment.canActAt(e, b.x, b.z, b.place);
-  function startLoot(e, c) {
-    const body = state.entities[c.target];
-    if (e.type !== 'hero') return;
-    const heroReady = !e.dead && !e.downed && !e.jailed && !c.crewOnly;
-    if (heroReady && c.preferHeroInRange && lootable(e, body) && Math.hypot(e.x - body.x, e.z - body.z) <= LOOT_REACH) {
-      delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id];
-      e.lootTarget = body.id;
-      return;
-    }
-    if (Array.isArray(c.units) && c.units.length) {
-      const selected = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && lootable(u, body))
-        .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z));
-      const u = selected[0];
-      if (!u) return;
-      manualCrew(u);
-      delete paths[u.id]; delete u.execute; delete u.swing;
-      if (fight[u.id]) delete fight[u.id].target;
-      const previous = resumable(u);
-      u.order = { kind: 'loot', target: body.id, prev: previous };
-      if (previous?.kind !== 'follow') for (const other of selected.slice(1)) {
-        const prev = resumable(other);
-        if (prev?.kind === 'follow') continue;
-        manualCrew(other);
-        delete paths[other.id];
-        other.lootEscort = { looter: u.id, prev };
-        other.order = { kind: 'follow', target: u.id, slot: freeSlot(u.id, other.id) };
-      }
-      return;
-    }
-    if (!heroReady || e.execute || !lootable(e, body)) return;
-    delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id];
-    e.lootTarget = body.id;
-  }
-  // One tick of walking to a body; true while busy with it (takes the ryo once in reach)
-  function lootStep(e, unit, id) {
-    const body = state.entities[id];
-    if (!lootable(e, body)) return false;
-    if (Math.hypot(body.x - e.x, body.z - e.z) <= LOOT_REACH) {
-      const clan = state.clans?.[e.owner];
-      if (clan) {
-        clan.ryo += body.loot;
-        state.ryoGains.push({ clan: clan.id, amount: body.loot, reason: `${body.type === 'night_brute' ? 'Night brute' : 'Bandit'} looted` });
-        state.casts.push({ kind: 'loot', a: e.id, x: body.x, z: body.z, ryo: body.loot });
-      }
-      delete body.loot;   // the body then fades like any other
-      e.anim = 'idle';
-      return false;
-    }
-    if (!moveTo(e, unit, body.x, body.z, false)) return false;
-    return true;
-  }
-
-  function startExecute(e, c, assignmentOperation = false) {
-    const t = state.entities[c.target];
-    const heroReady = e.type === 'hero' && !e.dead && !e.downed && !e.jailed && !c.crewOnly;
-    // Police and bots also call this directly without a selected crew list.
-    let ex = !e.dead && !e.downed && !e.jailed && !c.crewOnly ? e : null;
-    if (Array.isArray(c.units) && c.units.length && !(heroReady && c.preferHeroInRange && e.place === t?.place && Math.hypot(e.x - t?.x, e.z - t?.z) <= 1.3)) {
-      ex = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street') && u.place === t?.place && deployment.canActAt(u, t.x, t.z, t.place))
-        .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
-    }
-    if (!ex || ex.dead || ex.downed || (ex === e && e.type === 'hero' && e.execute) || !downedFoe(ex, state.entities[c.target]) || !sees(ex, state.entities[c.target])) return;
-    if (!assignmentOperation && e.type === 'hero' && ex.type !== 'hero') manualCrew(ex);
-    delete ex.smokePassive; delete ex.holdFire;
-    delete ex.swing;
-    delete ex.attackTarget;
-    delete paths[ex.id];
-    if (fight[ex.id]) delete fight[ex.id].target;
-    ex.execute = { target: c.target, start: null, len: secs(units?.rules?.executeSeconds || 3) };
-  }
-  // An executed enemy (not townsfolk) pays the executor's clan its type's executeRyo, ±executeRyoSpread
-  // (state.ryoGains for the badge notice; cast.ryo tells the view to burst coins)
-  function payExecute(e, t, cast) {
-    const clan = state.clans?.[e.owner], base = units?.types?.[t.type]?.executeRyo || 0;
-    if (!clan || !base || !state.clans?.[t.owner] || t.owner === e.owner) return;
-    const k = units.rules.executeRyoSpread ?? 0, amount = Math.round(base * (1 - k + rng() * 2 * k));
-    clan.ryo += amount;
-    cast.ryo = amount;
-    const name = units.types[t.type].name || t.type[0].toUpperCase() + t.type.slice(1);
-    const victimClan = state.clans[t.owner].name || t.owner;
-    state.ryoGains.push({ clan: clan.id, amount, target: t.id, reason: `${victimClan} ${name.toLowerCase()} executed` });
-  }
-  // One tick of an execute; false when there is nothing (left) to do
-  function executeStep(e, unit) {
-    const x = e.execute, t = state.entities[x.target];
-    if (!downedFoe(e, t)) { delete e.execute; return false; }
-    if (Math.hypot(t.x - e.x, t.z - e.z) > 1.3) {
-      x.start = null;
-      if (!moveTo(e, unit, t.x, t.z, false)) { delete e.execute; return false; }
-      return true;
-    }
-    delete paths[e.id];
-    e.anim = 'idle';
-    e.dir = dirIndex(t.x - e.x, t.z - e.z);
-    if (x.start === null) x.start = state.tick;
-    if (state.tick - x.start < x.len) return true;
-    // police arrest instead: the unit goes to jail (sim/police.js), nobody dies
-    if (cop(e)) {
-      state.casts.push({ a: e.id, kind: 'arrest', target: t.id, x: t.x, z: t.z });
-      if (t.type === 'hero') police.jailHero(t);
-      else { police.jail(t); removeUnit(t.id); }
-      delete e.execute;
-      return true;
-    }
-    delete t.downed;
-    t.dead = true;
-    t.diedAt = state.tick;
-    state.casts.push({ a: e.id, kind: 'execute', target: t.id, x: t.x, z: t.z });
-    if (civ(t)) { addHeat(e.owner, heatFor('kill'), 'Townsperson killed'); police?.witnessAssault(e, t); }
-    else {
-      payExecute(e, t, state.casts[state.casts.length - 1]);
-      rewards.crewExecuted(e, t);
-    }
-    delete e.execute;
-    return true;
-  }
-
-  // Bots: once a second an idle bot crew member looks for a downed enemy within AGGRO of
-  // where it belongs, or within carryRadius of itself (so nothing it keeps from being
-  // carried off is out of its reach). It only goes when that is safe (no standing enemy
-  // within SAFE of the downed unit), and then on a roll against its clan's aggression,
-  // made again every second (a once-only "no" left crew lying there for good); pricier
-  // unit types are picked first.
-  const SAFE = 5;
+  // Looting bodies and executing downed units (hero and crew): sim/loot_execute.js
+  function botExecute(...a) { return lootExecute.botExecute(...a); }
+  function executeStep(...a) { return lootExecute.executeStep(...a); }
+  function lootStep(...a) { return lootExecute.lootStep(...a); }
+  function startExecute(...a) { return lootExecute.startExecute(...a); }
+  function startLoot(...a) { return lootExecute.startLoot(...a); }
   const sectorCleanup=createSectorCleanup({state,deployment,rally,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,downedFoe,lootable,
     startExecute,executeStep,lootStep,inCombat:e=>!!crewTarget(e),stopPath:e=>{delete paths[e.id];}});
   crewJobs=createCrewJobs({state,deployment,rally,manual:manualCrew,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty:assignments.resume,freeSlot,
     clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete e.lootTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;}});
-  function botExecute(e) {
-    const clan = state.clans?.[e.owner];
-    if (!clan?.bot || e.holdFire || (state.tick + Number(e.id)) % TICK_RATE) return false;
-    const [ax, az] = anchorOf(e), reach = units?.rules?.carryRadius ?? 8;
-    const price = t => units?.types[t.type]?.price || 0;
-    const options = Object.values(state.entities).filter(t => downedFoe(e, t) && !civ(t)
-      && (Math.hypot(t.x - ax, t.z - az) < AGGRO || Math.hypot(t.x - e.x, t.z - e.z) < reach)
-      && !Object.values(state.entities).some(o => o.execute?.target === t.id)
-      && !Object.values(state.entities).some(o => hostile(e, o) && Math.hypot(o.x - t.x, o.z - t.z) < SAFE));
-    if (!options.length || rng() >= (clan.aggression ?? 0.5)) return false;
-    options.sort((a, b) => price(b) - price(a) || Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z));
-    startExecute(e, { target: options[0].id });
-    return !!e.execute;
-  }
 
   // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
   function regen() {
@@ -961,180 +374,11 @@ export function createGame(options) {
     clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     clearCombat: e => { delete e.swing; delete e.execute; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
 
-  function useAbility(e, c) {
-    const a = statsOf(e).abilities?.[c.slot];
-    if (!a || e.type !== 'hero' || e.dead || e.downed || e.jailed || e.dash || e.brace || e.spearCombo || e.spearSweep || stunned(e, state.tick)) return;
-    if ((e.cooldowns?.[c.slot] ?? 0) > state.tick) return;
-    const aim = Number.isFinite(c.x) && Number.isFinite(c.z) ? [c.x, c.z] : null;
-    let extra = {};   // more for the renderer's cast entry
-    if (KURODA_KINDS.has(a.kind)) {
-      const result = kuroda.cast(e, a, c);
-      if (!result) return;
-      extra = result;
-    } else if (a.kind === 'dash') {
-      let dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
-      if (len < 0.2) {   // no aim: dash the way the hero faces
-        const th = e.dir * Math.PI / 4, sx = -Math.sin(th), sy = Math.cos(th);
-        dx = sx * SCREEN_RIGHT.x + sy * SCREEN_DOWN.x; dz = sx * SCREEN_RIGHT.z + sy * SCREEN_DOWN.z; len = Math.hypot(dx, dz);
-      }
-      const dist = Math.min(a.range, Math.max(len, 1.5)), ticks = Math.max(1, secs(a.seconds || 0.25));
-      e.dash = { vx: dx / len * dist / ticks, vz: dz / len * dist / ticks, left: ticks, hit: [], start: state.tick, len: ticks };
-      e.dir = dirIndex(dx, dz);
-    } else if (a.kind === 'intimidate') {
-      for (const t of Object.values(state.entities))
-        if (hostile(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= a.radius) {
-          addBuff(t, 'intimidated', a.seconds, { damage: a.enemyDamage });
-          if (a.snareSeconds && a.snareSpeed) addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed });
-        }
-    } else if (a.kind === 'rally') {
-      for (const u of Object.values(state.entities)) {
-        if (u.dead || !rally.buffEligible(e, u) || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
-        // heal over time (Tim 2026-10-19): a.heal in all, in healTicks equal parts, the first at once, then one a second
-        const n = a.healTicks || 1;
-        addBuff(u, 'rally', a.seconds, { boost: a.attackSpeed, heal: a.heal / n, ticksLeft: n, nextHeal: state.tick });
-      }
-    } else if (a.kind === 'lantern') {
-      addBuff(e, 'lantern', a.seconds, { damage: a.damage, lifesteal: a.lifesteal });
-    } else if (a.kind === 'shadowstep') {
-      // Shadow Step (Shinobi Q): gone in a puff, out again up to range toward the mouse; stops at
-      // the first wall or water on the way, and he stays hidden
-      // with a target (c.target: the one in the target frame) he can see within range, he steps onto it instead
-      // (Tim 2026-10-21: not the mouse), lands next to it with a sure crit, then auto attacks it
-      const ct = state.entities[c.target];
-      const t = ct && fair(e, ct) && sees(e, ct) && Math.hypot(ct.x - e.x, ct.z - e.z) <= a.range + 1 ? ct : null;
-      const grid = navOf(e.place), dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
-      if (!grid || (!t && len < 0.5)) return;
-      const dist = Math.min(a.range, len), n = Math.ceil(dist / 0.25);
-      let x = e.x, z = e.z;
-      for (let i = 1; i <= n; i++) {
-        const px = e.x + dx / len * dist * i / n, pz = e.z + dz / len * dist * i / n;
-        if (!grid.free(px, pz)) break;
-        x = px; z = pz;
-      }
-      if (t) {
-        const tl = Math.hypot(t.x - e.x, t.z - e.z) || 1, stop = Math.max(0, tl - (a.landGap ?? 0.9));
-        x = e.x; z = e.z;
-        for (let i = 1, m = Math.ceil(stop / 0.25); i <= m; i++) {
-          const px = e.x + (t.x - e.x) / tl * stop * i / m, pz = e.z + (t.z - e.z) / tl * stop * i / m;
-          if (!grid.free(px, pz)) break;
-          x = px; z = pz;
-        }
-      }
-      if (!t && Math.hypot(x - e.x, z - e.z) < 0.5) return;
-      extra = { fx: e.x, fz: e.z };
-      e.x = x; e.z = z; e.dir = t ? dirIndex(t.x - x, t.z - z) : dirIndex(dx, dz);
-      delete paths[e.id];
-      if (t && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
-        const u = statsOf(e);
-        hit(e, t, Math.round(u.damage * damageScale(e) * (u.critMultiplier || 2)), true);
-        extra = { ...extra, tx: t.x, tz: t.z, target: t.id, crit: true };   // the big slash (render/abilityfx.js)
-        if (!t.dead && !t.downed) { e.attackTarget = t.id; delete e.execute; delete e.holdFire; }
-      }
-    } else if (a.kind === 'distract') {
-      // Distract (Shinobi E): a pebble thrown at the mouse (up to range); house guards, police and
-      // bandits within radius of where it lands who aren't fighting go and look there for seconds
-      if (!aim) return;
-      const len = Math.hypot(aim[0] - e.x, aim[1] - e.z), k = len > a.range ? a.range / len : 1;
-      const x = e.x + (aim[0] - e.x) * k, z = e.z + (aim[1] - e.z) * k;
-      for (const t of Object.values(state.entities)) {
-        if (!(t.guard || cop(t) || wild(t)) || t.owner === e.owner || t.place !== e.place || t.dead || t.downed || t.jailed) continue;
-        if (Math.hypot(t.x - x, t.z - z) > a.radius || t.swing || t.execute || t.wave || Object.keys(t.angry || {}).length) continue;
-        const [sx, sz] = navOf(t.place)?.nearestFree(x, z) || [x, z];
-        t.distracted = { x: sx, z: sz, lookX: x, lookZ: z, investigateTicks: secs(4), travelUntil: state.tick + secs(20), until: state.tick + secs(24) };
-        delete paths[t.id];
-      }
-      // ...and it is a scatter of caltrops (Tim 2026-10-20): every enemy close to it is slowed, bosses too
-      if (a.snareRadius) for (const t of Object.values(state.entities))
-        if (t.owner !== e.owner && !civ(t) && t.place === e.place && !t.dead && !t.downed && !t.jailed && Math.hypot(t.x - x, t.z - z) <= a.snareRadius)
-          addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed });
-      extra = { tx: x, tz: z };
-    } else if (a.kind === 'smoke') {
-      // Smoke Bomb (Shinobi R): a cloud round him (radius, seconds); see blind() for what it does.
-      // Every unit of his clan holds its attacks, hitting back too, until given a new order
-      // (Tim 2026-10-20), so nobody breaks stealth on his own
-      const cloud = { x: e.x, z: e.z, r: a.radius, place: e.place, clan: e.owner, hero: e.id, until: state.tick + secs(a.seconds), heal: a.heal || 0, fadeSeconds: a.fadeSeconds || 0 };
-      (state.smokes ||= []).push(cloud);
-      for (const u of Object.values(state.entities)) {
-        if (u.owner !== e.owner || !inSmoke(cloud, u)) continue;
-        u.holdFire = true;
-        delete u.swing; delete u.execute; delete u.attackTarget;
-        if (fight[u.id]) delete fight[u.id].target;
-        if (u.type !== 'hero' && u.order?.kind === 'attack') endAttack(u);
-      }
-      extra = { seconds: a.seconds };
-    } else if (a.kind === 'assassinate') {
-      // Assassinate (Shinobi F): only after hiddenSeconds hidden (smoke doesn't count), on the enemy
-      // at the mouse within reach; non-heroes go down at once. Heroes retain
-      // bossShare of their current HP, rounded to whole HP without a finishing blow.
-      const clan = state.clans?.[e.owner], tell = text => { if (clan) clan.notice = { tick: state.tick, text }; };
-      if (!e.hidden || (!stealth.veiled(e) && (e.hiddenAt == null || state.tick - e.hiddenAt < secs(a.hiddenSeconds)))) return tell(`Assassinate: stay hidden ${a.hiddenSeconds} s first`);
-      // the target in the target frame first, else whoever is at the mouse; townsfolk and police too (Tim 2026-10-21)
-      const inReach = u => u && fair(e, u) && Math.hypot(u.x - e.x, u.z - e.z) <= reachOf(e, u) + a.reach;
-      const picked = inReach(state.entities[c.target]) ? state.entities[c.target] : null;
-      let t = picked, bd = 2;
-      for (const u of Object.values(state.entities)) {
-        if (picked || !aim || !inReach(u)) continue;
-        const d = Math.hypot(u.x - aim[0], u.z - aim[1]);
-        if (d < bd) { bd = d; t = u; }
-      }
-      if (!t) return tell('Assassinate: nobody in reach at the mouse');
-      const remaining = Math.min(t.hp, Math.max(1, Math.round(t.hp * a.bossShare)));
-      const dmg = t.type === 'hero' ? t.hp - remaining : t.hp;
-      // a quick lunge onto him first (Tim 2026-10-20: longer reach, so he strikes before he is spotted)
-      const fx = e.x, fz = e.z, tl = Math.hypot(t.x - e.x, t.z - e.z), stop = Math.max(0, tl - (a.landGap ?? 0.9)), grid = navOf(e.place);
-      for (let i = 1, m = Math.ceil(stop / 0.25); grid && i <= m; i++) {
-        const px = fx + (t.x - fx) / (tl || 1) * stop * i / m, pz = fz + (t.z - fz) / (tl || 1) * stop * i / m;
-        if (!grid.free(px, pz)) break;
-        e.x = px; e.z = pz;
-      }
-      delete paths[e.id];
-      e.dir = dirIndex(t.x - e.x, t.z - e.z);
-      extra = { tx: t.x, tz: t.z, target: t.id, fx, fz, critRadius: a.critRadius };
-      hit(e, t, dmg, true, 'assassinate');
-      delete e.holdFire; // a successful offensive ability is an explicit attack
-      for (const u of Object.values(state.entities)) {
-        if (!rally.buffEligible(e, u) || u.guard || u.dead || u.downed || u.jailed || u.place !== e.place
-          || Math.hypot(u.x - e.x, u.z - e.z) > a.critRadius) continue;
-        addBuff(u, 'ambush', a.critSeconds, { critChance: a.critChance });
-      }
-    } else return;
-    delete e.swing;
-    (e.cooldowns ||= {})[c.slot] = state.tick + secs(a.cooldown);
-    state.casts.push({ a: e.id, slot: c.slot, kind: a.kind, x: e.x, z: e.z, ...(a.radius ? { radius: a.radius } : {}), ...extra });
-  }
-
-  // One tick of a dash: slide toward the aim, cut every enemy passed (once each)
-  function dashStep(e, unit) {
-    const d = e.dash, a = unit.abilities?.Q;
-    e.anim = 'run';
-    tryMove(e, unit.radius, d.vx, 0);
-    tryMove(e, unit.radius, 0, d.vz);
-    for (const t of Object.values(state.entities)) {
-      if (!(hostile(e, t) || (wild(t) && fair(e, t))) || d.hit.includes(t.id) || Math.hypot(t.x - e.x, t.z - e.z) > statsOf(t).radius + 0.9) continue;
-      d.hit.push(t.id);
-      hit(e, t, Math.round(unit.damage * (a?.damageMultiplier || 1) * damageScale(e)), false, 'dash');
-    }
-    if (--d.left <= 0) delete e.dash;
-  }
-
-  // Buffs that heal in ticks (Rally): heal share of max health each second while they last
-  function healBuffs() {
-    for (const e of Object.values(state.entities)) {
-      const b = e.buffs?.rally;
-      if (!b?.ticksLeft || state.tick < b.nextHeal || e.dead || e.downed) continue;
-      if (e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * b.heal);
-      b.ticksLeft--; b.nextHeal = state.tick + secs(1);
-    }
-  }
-
-  function expireBuffs() {
-    for (const e of Object.values(state.entities)) {
-      if (!e.buffs) continue;
-      for (const [k, b] of Object.entries(e.buffs)) if (state.tick >= b.until) delete e.buffs[k];
-      if (!Object.keys(e.buffs).length) delete e.buffs;
-    }
-  }
-
+  // Hero abilities (Q / E / R / F), the dash and buff upkeep: sim/hero_abilities.js
+  function dashStep(...a) { return heroAbilities.dashStep(...a); }
+  function expireBuffs(...a) { return heroAbilities.expireBuffs(...a); }
+  function healBuffs(...a) { return heroAbilities.healBuffs(...a); }
+  function useAbility(...a) { return heroAbilities.useAbility(...a); }
   // Dead crew are removed after their fall; a knocked-out hero gets up at home with full health
   function cleanUpDead() {
     for (const e of Object.values(state.entities)) {
@@ -1164,179 +408,8 @@ export function createGame(options) {
     }
   }
 
-  function crewStep(e, unit) {
-    if(e.crewJob&&(e.dead||e.downed||e.jailed||e.deployment?.transfer||stunned(e,state.tick)))crewJobs.cancel(e);
-    if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
-      ||state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.recovery||state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.operation))sectorCleanup.cancel(e);
-    if (e.dead || e.downed || e.jailed) return;
-    const escorted = e.lootEscort && state.entities[e.lootEscort.looter];
-    if (e.lootEscort && (!escorted || escorted.dead || escorted.downed || escorted.jailed || escorted.order?.kind !== 'loot')) {
-      e.order = e.lootEscort.prev || { kind: 'move', x: e.x, z: e.z };
-      delete e.lootEscort; delete paths[e.id];
-    }
-    if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
-    if (e.distracted?.source && diversion.step(e, unit)) return;
-    if (contracts?.scrubStep(e)) return;
-    if (sweep.scatterStep(e, unit)) return;
-    if (deployment.travelStep(e, unit)) return;
-    if(crewJobs.step(e,unit))return;
-    if (e.taunted && taunt.step(e, unit)) return;
-    if (shakedown.step(e, unit) || sweep.step(e, unit)) return;
-    if (assignments.avoidCamping(e,unit)) return;
-    if (sectorRecovery.step(e, unit)) return;
-    if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
-    if (diversion.step(e, unit)) return;
-    if (rifleman.step(e, unit)) return;
-    if (taunt.step(e, unit)) return;
-    if (sectorCleanup.step(e,unit)) return;
-    if (shinobiAssignments.step(e, unit)) return;
-    if (!rally.participating(e) && assignments.step(e, unit)) return;
-    if (state.deployment.restrictionsEnabled && e.order?.kind === 'follow' && e.deployment?.group !== 'hero' && !rally.participating(e) && !e.lootEscort) {
-      e.order = { kind: 'move', x: e.x, z: e.z, arrived: true }; delete paths[e.id];
-    }
-    const finished = e.order?.kind === 'attack' && state.entities[e.order.target];
-    if (finished && (finished.dead || finished.downed || finished.jailed)) { delete e.swing; endAttack(e); }
-    if(pursueAttack(e,unit))return;
-    indoorDuty(e);
-    // Move and an explicit Follow recall reach their goal even under fire. Process
-    // it before swings, retaliation, automatic executions or hero assistance.
-    const recalling = e.order?.kind === 'follow' && e.order.regrouping;
-    if (e.order?.kind === 'follow' && !state.clans?.[e.owner]?.bot && !e.execute && e.place === 'street') {
-      const leader = state.entities[e.order.target];
-      const door = leader && !leader.dead && !leader.downed && !leader.jailed && leader.place !== 'street'
-        && doors.find(d => d.to && !d.ninja && d.place === leader.place);
-      if (door && (!businesses || businesses.mayEnter(e, door.place))) {
-        delete e.swing; delete e.execute;
-        if (fight[e.id]) delete fight[e.id].target;
-        if (Math.hypot(door.x - e.x, door.z - e.z) >= DOOR_RADIUS) {
-          if (!moveTo(e, unit, door.x, door.z, false)) e.anim = 'idle';
-        } else {
-          const [x, z] = navOf(door.place)?.nearestFree(door.to.x, door.to.z) || [door.to.x, door.to.z];
-          Object.assign(e, { x, z, place: door.place, anim: 'idle' });
-          e.order.exitWithHero = true;
-          delete paths[e.id];
-        }
-        return;
-      }
-    }
-    if ((e.order?.kind === 'move' && !e.order.arrived) || recalling) {
-      delete e.swing; delete e.execute;
-      if (fight[e.id]) delete fight[e.id].target;
-      if (crewOut(e, unit)) return;
-      const goal = crewGoal(e);
-      if (goal && Math.hypot(goal.x - e.x, goal.z - e.z) >= goal.near) {
-        if (!moveTo(e, unit, goal.x, goal.z, goal.walk)) e.anim = 'idle';
-        return;
-      }
-      if (recalling) delete e.order.regrouping;
-      else e.order.arrived = true;
-      // Hits during retreat are stale once we get back. A fresh assault after
-      // arrival can still provoke normal defense unless Smoke granted passivity.
-      e.order.recalledAt = state.tick;
-      e.anim = 'idle'; delete paths[e.id];
-      return;
-    }
-    if (e.execute && executeStep(e, unit)) return;
-    if (swingStep(e, unit)) return;
-    if (e.order?.kind === 'loot') {   // Ctrl + right-click on a body: walk there and take its ryo
-      if (lootStep(e, unit, e.order.target)) return;
-      e.order = e.order.prev || { kind: 'move', x: e.x, z: e.z };
-    }
-    if (e.order?.kind === 'enter' && enterStep(e)) return;
-    if (crewOut(e, unit)) return;
-    const t = crewTarget(e);
-    if (t) { engage(e, unit, t); return; }
-    if (fight[e.id]) delete fight[e.id].target;
-    if (botExecute(e)) return;
-    const goal = crewGoal(e);
-    const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;
-    if (!goal || dist < goal.near) {
-      e.anim = 'idle'; delete paths[e.id];
-      if (e.order?.kind === 'attackmove') e.order = { kind: 'move', x: e.order.x, z: e.order.z };   // arrived: hold there
-      if (e.order?.kind === 'heal') {                                       // at the clinic door: go in (or wait if broke)
-        if (clans?.hitWait(e) > 0) return;                                  // hit lately: wait at the door till it's safe (Tim 2026-10-20)
-        if (clans?.checkIn(e)) { delete state.entities[e.id]; delete intents[e.id]; delete fight[e.id]; return; }
-        e.order = { kind: 'move', x: e.order.x, z: e.order.z };
-      }
-      return;
-    }
-    if (!moveTo(e, unit, goal.x, goal.z, goal.walk && (goal.stroll || dist < 4))) e.anim = 'idle';
-  }
-
-  // Pursue only a visible target or a last-observed public doorway/position.
-  // Crossing a door never exposes the enemy's unobserved room coordinates.
-  function pursueAttack(e,unit) {
-    const o=e.order;if(o?.kind!=='attack')return false;
-    const t=state.entities[o.target];if(!t||t.dead||t.downed||t.jailed)return false;
-    const visible=sees(e,t);
-    if(visible){o.lastSeen={x:t.x,z:t.z,place:t.place};delete o.searchPlace;}
-    const last=o.lastSeen;
-    if(visible&&!deployment.canActAt(e,t.x,t.z,t.place)){endAttack(e);if(state.clans[e.owner])state.clans[e.owner].notice={tick:state.tick,text:'Pursuit stopped: target left the assigned sector'};return true;}
-    if(t.place===e.place&&visible)return false;
-    if(e.swing)delete e.swing;
-    if(o.searchPlace===e.place&&!visible){e.anim='idle';return true;}
-    let goal=null;
-    if(t.place!==e.place){
-      if(e.place==='street'){
-        const candidates=doors.filter(d=>d.to&&!d.ninja&&d.place!=='street'&&(visible?d.place===t.place:last?.place==='street'&&Math.hypot(last.x-d.x,last.z-d.z)<DOOR_RADIUS+2));
-        const d=candidates.sort((a,b)=>Math.hypot(a.x-(last?.x??e.x),a.z-(last?.z??e.z))-Math.hypot(b.x-(last?.x??e.x),b.z-(last?.z??e.z)))[0];
-        if(d)goal={x:d.to.x,z:d.to.z,place:d.place};
-      }else{
-        const room=rooms.find(r=>r.name===e.place),d=room&&doors.find(d=>!d.ninja&&d.place==='street'&&d.to&&d.x===room.exit.x&&d.z===room.exit.z);
-        if(d&&(visible||(last?.place===e.place&&Math.hypot(last.x-d.x,last.z-d.z)<DOOR_RADIUS+2)))goal={...d.to,place:'street'};
-      }
-    }else if(last?.place===e.place)goal={...last};
-    if(!goal&&last?.place===e.place)goal={...last};
-    if(!goal){e.anim='idle';return true;}
-    const allowed=goal.place==='street'?{ok:true}:businesses?.entryStatus(e,goal.place)||{ok:true};
-    const result=allowed.ok?deployment.localTravel(e,unit,goal):'blocked';
-    if(result==='blocked'){
-      endAttack(e);delete paths[e.id];e.anim='idle';
-      if(state.clans[e.owner])state.clans[e.owner].notice={tick:state.tick,text:`Pursuit stopped: ${allowed.ok?'door or sector route is blocked':allowed.why}`};
-      return true;
-    }
-    if(goal.place!==last?.place)o.searchPlace=goal.place;
-    if(result==='arrived')e.anim='idle';return true;
-  }
-
-  // Entered crew keep guarding even when their leader visits. Explicit orders
-  // take control; leaving them behind again restores duty once that task ends.
-  function indoorDuty(e) {
-    if (e.guard || e.wild || e.cop) return;
-    if (e.place === 'street') { delete e.indoorDuty; delete e.patrol; return; }
-    const leader = Object.values(state.entities).find(h => h.type === 'hero' && h.owner === e.owner);
-    const present = leader && !leader.dead && !leader.jailed && leader.place === e.place;
-    const o = e.order;
-    if (e.indoorDuty?.room !== e.place) e.indoorDuty = { room: e.place, present: !!present, resume: !present && (!o || o.kind === 'follow') };
-    if (e.indoorDuty.present && !present) e.indoorDuty.resume = true;
-    e.indoorDuty.present = !!present;
-    const busy = e.execute || (o && ['attack', 'attackmove', 'heal', 'enter', 'loot'].includes(o.kind)) || (o?.kind === 'move' && !o.arrived);
-    if (e.indoorDuty.resume && !busy) {
-      e.order = { kind: 'station', x: e.x, z: e.z, garrison: true };
-      delete paths[e.id]; delete e.patrol;
-      e.indoorDuty.resume = false;
-    }
-    if (e.execute || !e.order?.garrison || e.order.kind !== 'station') return;
-    businesses?.patrolCrew(e);
-  }
-
-  // At the door of the business they were sent into: step inside and hold a spot near the way in
-  // (a station order: they fight whoever comes in, then go back to it)
-  function enterStep(e) {
-    const o = e.order, d = doors.find(d => d.to && d.place === o.room && !d.ninja === !o.window);
-    if (!d) { e.order = { kind: 'move', x: e.x, z: e.z }; return false; }
-    if (Math.hypot(d.x - e.x, d.z - e.z) >= DOOR_RADIUS || (businesses && !businesses.mayEnter(e, d.place))) return false;
-    const [ox, oz] = blockOffset(o.k, o.n);
-    const [x, z] = navOf(d.place)?.nearestFree(d.to.x + ox, d.to.z + oz) || [d.to.x, d.to.z];
-    Object.assign(e, { x, z, place: d.place, anim: 'idle' });
-    delete paths[e.id]; delete e.swing;
-    delete e.patrol;
-    if (fight[e.id]) delete fight[e.id].target;
-    e.order = { kind: 'station', x, z, garrison: true };
-    return true;
-  }
-
-  // Crew standing on each other get nudged apart a little every tick
+  // Crew each tick: duties, pursuit, indoor duty and going through doors: sim/crew_step.js
+  function crewStep(...a) { return crewSteps.crewStep(...a); }
   function separate() {
     const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead && !e.downed);
     for (let i = 0; i < crew.length; i++) for (let j = i + 1; j < crew.length; j++) {
@@ -1811,5 +884,10 @@ export function createGame(options) {
     if ((dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) && deployment.canOccupy(e, x, z)) { e.x = x; e.z = z; }
   }
 
+  const heroAbilities = createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild });
+  const lootExecute = createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
+  const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
+  const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
+  const combat = createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
 }

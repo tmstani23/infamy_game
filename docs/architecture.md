@@ -77,8 +77,14 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 | File | Job |
 |---|---|
+| `combat.js` | Targeting, engage, swings, rng, heat, `hit` and carry-off (split from game.js 2026-10-29). |
+| `crew_orders.js` | Follow offsets, `giveOrder`, `crewOut` / `crewGoal`, `moveTo`. |
+| `crew_step.js` | `crewStep`: crew duties, pursuit, indoor duty and doors each tick. |
+| `loot_execute.js` | Looting bodies, executes, `botExecute`. |
+| `hero_abilities.js` | Hero Q/E/R/F, the dash and buff upkeep. |
 | `util.js` | Shared sim helpers (`alive`, `dist`, `secs`, `noticeFor`) used across the sim (phase 7, 2026-10-29). |
 | `settings.js` | `applySettings` lays `data/settings.json` over the detail data files in `createGame`. |
+| `game.js` | **Split 2026-10-29 (1,815 to 894 lines):** keeps setup, shared predicates (`hostile` / `fair` / `sees` / `wild` / `cop` / `civ`), doors (`DOOR_RADIUS` exported), spawn, `step` and the API. Each split module exports `createX({deps})`, wired in game.js before its return; game.js keeps one-line forwarders under the old names. Older detail: |
 | `game.js` | The rules: state, `step(commands)`, movement, doors, orders, combat, knockouts, looting (`loot` command `{id, type: 'loot', target, units?}`, `startLoot`/`lootStep`; ryo to the looter's clan), Rally heal ticks (buff `heal`/`ticksLeft`/`nextHeal`, `healBuffs()`). `TICK_RATE = 20`. Day/night clock `state.clock` `{day, left}`; `state.dawn` / `state.dusk` fire on automatic flips and on N (Node tests run without settings, so no clock). Test rival thugs at the den only with `?enemies=N` (`main.js`). |
 | `clans.js` | Clan money, businesses held, crew cap, hire queue and prices (numbers from `units.json`). |
 | `nav.js` | Pathfinding for crew: walk grid from blockers, A*, then straightened paths. Each room has its own grid (`ROOM_NAV`; `navOf` in `game.js` picks the grid). |

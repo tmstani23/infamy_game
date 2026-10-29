@@ -101,7 +101,7 @@ Owners: [architecture](architecture.md), [roadmap](roadmap.md).
 - [x] Run focused regressions, update the relevant owner docs and make checkpoint commits after phases. Tim’s visual/balance checks remain required before calling those aspects complete.
 
 Separate docs cleanup: older Sweep-unbuilt paragraphs remain historical alongside the newer implementation checkpoint; reconcile them in a small later pass rather than a broad documentation sweep now.
-- Result (2026-10-29): shared sim helpers (`alive`, `dist`, `secs`, `noticeFor`) moved to `sim/util.js`, used by 17 files; 3 dead helpers removed; dead-code baseline clean; profile 2.5 ms per tick (5% of the budget). File splits (game.js, main.js, abilityfx.js) follow as their own checkpoint commits.
+- Result (2026-10-29): shared sim helpers (`alive`, `dist`, `secs`, `noticeFor`) moved to `sim/util.js`, used by 17 files; 3 dead helpers removed; dead-code baseline clean; profile 2.5 ms per tick (5% of the budget). File splits: game.js done (2026-10-29, 5 modules, see `architecture.md`); main.js and render/abilityfx.js are next, each as its own checkpoint commit.
 
 ## 8. Final playtest fix pass
 
