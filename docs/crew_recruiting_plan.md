@@ -15,7 +15,7 @@ Balance follow-up (Tim, 2026-10-27): damage reduced from 28 to 14; other stats/c
 - **Crew are RTS units**, not named characters. You hire a Thug, not a person. Types and upgrades make them better.
 - **Teahouse = barracks.** Queue a hire, pay ryo once, the recruit arrives after a short timer.
 - **No upkeep or wages.** Each extra crew member costs a bit more than the last.
-- **Crew cap** (updated 2026-10-29): `baseCap` 6 + `capPerDawn` 1 per dawn + business `crewSlots` (Shinobi: 1 per 75 Renown instead of businesses). Hire price rises 5% per crew owned. Earlier: base capacity 3; each held business adds its `crewSlots` (current balance: [businesses and raids](business_raids_plan.md#2-payouts)); no hard cap; about 20 to 30 across your zones in the endgame.
+- **Crew cap (current 2026-10-28):** base six plus one per elapsed dawn, plus business crew slots (Shinobi uses one per 75 Renown instead of business slots). Hire-price inflation is 5% per owned crew; no free recruits.
 - **Most crew are stationed** in your zones as defenders. A raid still takes at most about 6, so size means holding more ground, not winning fights by numbers.
 - **Downed, then dead or hospital.** Crew at 0 HP go down; if an enemy finishes them with a 3 s execute they are dead (rehire), otherwise they are carried to the hospital (see `combat_spec.md` H). Survivors heal only slowly (see `combat_spec.md`, Health) until sent to a **hospital** (bonesetter's clinic). The hero is knocked out, not killed, and gets back up at a safehouse.
 - **Ryo is spent on:** hiring and replacing crew, hospital healing, unit-type upgrades (RTS research, e.g. "Thugs get clubs"), property, and police bribes.
@@ -44,7 +44,7 @@ RTS / Dota hybrid. Rules and feel are in `combat_spec.md`; keys in `controls.md`
 - Normal clan starts: see [starting paths](gameplay_and_design.md#starting-paths-settled). Hire price = base price x (1 + 0.05 x crew you already have).
 - Base prices: Thug 60, Brute 100, Swordsman 120. Hire timer: 5 to 10 seconds.
 - Hospital: heals 1 HP a second per bed, costs a little ryo per HP.
-- Layer 1 cap: 3 crew. Ranged units (Rifleman, Archer) wait for projectiles; Lookout, Demolitions, Ninja come later.
+- Original Layer 1 cap/ranged deferrals are superseded: current cap rule above; Kuroda rifleman and Shinobi recruits are built, Archer remains deferred.
 
 ## Phases
 
@@ -121,3 +121,9 @@ Right-click body dispatches one nearest reachable eligible crew member from sele
 Explicit job outranks group attack/move temporarily; those orders become return plans. After completion/interruption, physically rejoin current group and copy peers' latest order (including changes made while worker unselected), or resume duty. Solo-select plus new order or Stop/Cancel overrides immediately. Damage interrupts execution; Smoke drops job/holds fire; transfer/KO/stun cancels. Normal visibility/sector/group/Rally rules apply. No simultaneous mark scrubbing or automatic redeployment. Status: Collecting loot / Finishing off / Rejoining group. Automatic sector cleanup remains lower priority/unchanged. Reported crew-job/regression checks passed; Tim playtest pending.
 
 Backlog interest (Tim, 2026-10-28; not built): a special crew type per clan inspired by geisha, with no finalized new unit/balance approval. Tim enjoyed observing rival combat, ambushing a weakened Kuroda boss, smoking the counterattack and combining geisha charm with Assassinate/cleanup; this feedback does not authorize new mechanics.
+
+## Clan-special catch-up (current code 2026-10-28)
+
+Kuroda `kuroda_rifleman` (mercenary sprite): base price 140, 160 HP, eight-second hire; Yakuza `yakuza_enforcer` (burning-club enforcer): base price 140, 320 HP, eight-second hire. [Combat effects](combat_spec.md#kuroda-teppo-rifleman-2026-10-28) own aimed-shot/Taunt rules. Existing faction hiring/cap/price scaling applies.
+
+Geisha charm/flee/fight is autonomous support. Explicit attack and move-type jobs take priority. Shared `sim/flee.js` keeps a reachable escape goal for thirty ticks rather than chasing a new goal each frame, preferring clear paths; cornered geisha fights. This catch-up adds no tests or manual-playtest claim.

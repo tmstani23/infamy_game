@@ -48,7 +48,7 @@ Rules: [deployment_sector_plan.md](deployment_sector_plan.md). Deployment is sep
 | Input | What it does |
 |---|---|
 | Toolbar **Deployment** button (Esc closes; no hotkey) | Deployment panel: counts, reserved slots, health, transfer status |
-| **Transfer selected crew** | Lock selected source crew; choosing labelled/map destination starts immediately. Button becomes Cancel transfer for traveling batch; traveler rows also cancel. No transfer dragging |
+| **Transfer selected crew** | Lock selected source crew; choosing labelled/map destination starts immediately. Button becomes Cancel transfer for traveling batch; traveler rows also cancel. Action-bar group-to-group pip dragging is also supported |
 | **Keep at HQ ready target** / **Keep at HQ** boxes | Reserve size at HQ (default 0) and per-crew keep-home. Full-health idle surplus deploys by itself; raising the target never recalls field crew |
 | M map → **Sectors** layer (Deployment menu docked) | Click sector map/tab to select its crew, flash boundary and focus synchronized roster/duty/operation controls |
 | Sector desired staffing goal | Default 3; 0 disables automatic staffing there. Lowering never recalls crew; above-three staffing requires legal overflow |
@@ -142,7 +142,7 @@ Phase 3G hover labels (2026-10-21): visible units have a small translucent toolt
 
 ## Approved playtest controls (2026-10-27)
 
-Follow-on implementation is progressing; current controls above reflect reported built phases. Phase 2 built/targeted-checked: no transfer dragging; prominent **Transfer selected crew** button with labelled destination or explicit map mode and confirmation. Phase 3 implemented/checked: group changes preserve confirmed manual move/attack until completion then duty; Escape/Return cancels immediately. [Exact approved requirements](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented). [Phased checklist](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+Follow-on implementation is progressing; current controls above reflect reported built phases. Phase 2 built/targeted-checked: no transfer dragging; prominent **Transfer selected crew** button with labelled destination or explicit map mode and immediate start. Phase 3 implemented/checked: group changes preserve confirmed manual move/attack until completion then duty; Escape/Return cancels immediately. [Exact approved requirements](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented). [Phased checklist](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
 
 - [x] **#5/#6 — Implemented/targeted-checked:** Tab selects only. Right-click ground always moves. T or right-click enemy target portrait/icon, nameplate/body/hero attacks using current group; preserve ally interactions. Left-click nameplate targets; right-click enemy nameplate attacks.
 - [x] **#7 — Implemented/targeted-checked:** preserve selected target identity through fog with truthful stale/out-of-sight information and no vision grants.
@@ -154,3 +154,5 @@ Phase 5A checks (2026-10-27, reported by Build coordinator): new `test_target_co
 Transfer/card follow-up (2026-10-28): destination-first **Assign crew to [ward]** offers source group, available crew/HP checkboxes, preview and **Assign selected crew**. Crew-first has no extra confirmation. Cancel physically returns crew, with pinned-HQ fallback if original group unavailable/full. Live selection cards dock inside Deployment/map, including traveler inspection, and restore HUD on close. [Rules/checks](deployment_sector_plan.md#playtest-follow-up-transfercardscleanup-2026-10-28).
 
 Staffing/body jobs (2026-10-28): choose first ward when excess crew arrive; automatic staffing fills one ward's goal then the next cyclically. Right-click downed enemy/loot dispatches one nearest eligible worker; no selection uses viewed-place hero party before hero fallback. Worker rejoins latest peer order/duty after job. [Body-job rules](crew_recruiting_plan.md#explicit-single-worker-body-jobs-2026-10-28); [reserve/priority rules](deployment_sector_plan.md#reserve-priority-and-explicit-crew-job-follow-up-2026-10-28).
+
+Current camera/action-bar catch-up (2026-10-28): double-click a crew pip follows that unit continuously; double-click group header follows the center of its largest nearby cluster. Pan/map click/Home ends that watch. Action-bar pips may now be dragged onto another Hero/sector/HQ group to submit the normal authoritative transfer command (Rally/medical are not drop destinations); this supersedes the earlier blanket no-transfer-drag statement for the action bar only. Deployment menu button-based flow remains.

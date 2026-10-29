@@ -46,16 +46,16 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 | Business | Buy price | Dawn income | Added crew capacity |
 |---|---|---|---|
-| Teahouse | 400 | 100 | +1 |
-| Shop | 400 | 100 | +1 |
-| Warehouse | 700 | 175 | +2 |
-| Gambling den | 1200 | 300 | +2 |
-| Tenements | 1600 | 400 | +3 |
-| Pawnshop | 400 | 100 | +1 |
-| Bathhouse | 700 | 175 | +2 |
-| Sake Brewery | 700 | 175 | +2 |
-| Manor | 1600 | 400 | +3 |
-| Customs House | 1600 | 400 | +3 |
+| Teahouse | 400 | 200 | +1 |
+| Shop | 400 | 200 | +1 |
+| Warehouse | 700 | 350 | +2 |
+| Gambling den | 1200 | 600 | +2 |
+| Tenements | 1600 | 800 | +3 |
+| Pawnshop | 400 | 200 | +1 |
+| Bathhouse | 700 | 350 | +2 |
+| Sake Brewery | 700 | 350 | +2 |
+| Manor | 1600 | 800 | +3 |
+| Customs House | 1600 | 800 | +3 |
 
 - The police payout cut already hooked in (Manhunt tier, see `police_spec.md`) applies.
 - A gold ryo notice shows the payout (reuse the bandit ryo notice).
@@ -192,3 +192,5 @@ Completion and checks reported by Build coordinator; Tim's visual/balance review
 `game/tools/test_shinobi_hq_raid.mjs` passed coverage for eligibility, entry/caps, contest/failure, camping exemption, cancellation ordering, lockout/UI/reopening, rewards, protection, serialization, scoring and bot attack/defense. Existing raid, defense, bot, ninja bot, ninja, building panel, crew services, territory and contract-refill regressions passed, as did syntax/diff checks. Two older fixtures were aligned with approved KO hold and explicit street-Move recall behavior. No browser tests/screenshots or new URL parameters.
 
 Deployment Rally/reset, crew separation and sector implementation remain deferred.
+
+Economy catch-up (2026-10-28): current dawn payouts are doubled versus the original Phase 3E table; prices/schedules unchanged. Building-defended reward is 150 ryo when an alerted owner defeats a Shinobi Sabotage/Steal attempt (job fails). Sector-cleared reward is 200 ryo when rival street presence of at least two has contested with yours and only yours remains; three-minute per-clan/sector cooldown, no passive ownership income. Source: settings rewards, contracts and sim/rewards.js. No new test run claimed.

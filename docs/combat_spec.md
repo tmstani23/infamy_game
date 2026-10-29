@@ -106,7 +106,7 @@ Planned, not built (2026-10-22): compact hero buff/debuff icon strip near the ac
 
 ### Kuroda Teppo rifleman (2026-10-28)
 
-Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger, range 9 (1 s aim, 3 s reload); melee 18 per hit; +3 heat per shot; backs off from melee. In the hero group he moves like normal crew; on sector duty he skirmishes (updated 2026-10-29). The Kuroda bot hires one once it has 4 crew.
+Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger, range 8 (1 s aim, 3 s reload); melee 18 per hit; +3 heat per shot; explicit movement/attack orders take priority; rifleman does not autonomously flee. The Kuroda bot hires one once it has 4 crew.
 
 
 ### Yakuza Irezumi enforcer (2026-10-29)
@@ -181,7 +181,7 @@ Ronin plan (effort / payoff):
 
 **Weapon glow (2026-10-18):** a faint glow on each held weapon (katana steel blue-white, club ember amber, jitte soft blue), a bit brighter mid-swing, fading on death. Tuned in `game/data/weapon_glow.json`; needs the `_glow` sheets from the exporter.
 
-Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, same gap as rifles and bows); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
+Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, bows still require projectiles; current Teppo aimed shot is implemented); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
 
 ## H. Downed, execute and hospital (approved by Tim 2026-10-17)
 
@@ -251,3 +251,5 @@ Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pu
 Visible nameplates now render above smoke/combat particles (`characters.js` order 99860 versus smoke 99810), so existing visible enemies' clickable labels are not obscured. Vision/stealth, nameplate toggle and targeting eligibility remain unchanged; concealed enemies stay concealed. Smoke Bomb still drops attacks/holds fire as before.
 
 Build coordinator reports target-controls, Ninja and Shinobi combat checks passed, including smoke drop/hold-fire/stealth regressions; source syntax/diff checks clean. No browser visual test claimed; Tim smoke/nameplate retest pending.
+
+Current-code catch-up (2026-10-28): Kuroda rifleman uses range eight; one-second aim, three-second cooldown, eighty shot damage, 1.5-second stagger (half for heroes), three heat, interrupted aim gets short retry. Yakuza enforcer Taunt uses radius five/four seconds/ten-second cooldown and 15% damage reduction while held; heroes/police/bandits/civilians excluded. Existing shared stat resolver handles protection. Assassinate hero health share is 0.5; data tooltip corrected to fifty percent, no new balance change.

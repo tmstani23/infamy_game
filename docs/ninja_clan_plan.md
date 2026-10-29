@@ -218,3 +218,5 @@ Tracker update and boss-hunt click paths now safely tolerate absent deployment d
 ## Sabotage mark removal channel (implemented/checked 2026-10-28)
 
 `sim/mark_scrub.js` makes ordinary player/bot defenders stop fighting and channel four continuous seconds to remove a planted mark. Damage, movement, stun/charm, KO/jail/exit or new orders resets the attempt; no pooled progress between defenders. A real hit on the exact completion tick interrupts before completion. REMOVING MARK status/channel bar and contract warning countdown show actual progress. Existing plant/hold/away, hidden work rates and rewards remain unchanged. Reported `test_mark_scrub` and final focused regressions passed; Tim visual retest pending.
+
+Current-code catch-up (2026-10-28): modeled indoor detection is four lit/two dark before running modifiers, superseding earlier two/one tuning. Assassinate leaves heroes fifty percent current HP (minimum one); tooltip now matches `bossShare: 0.5`. Existing concealment/eligibility rules remain.
