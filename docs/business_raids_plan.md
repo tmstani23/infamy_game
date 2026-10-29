@@ -194,3 +194,22 @@ Completion and checks reported by Build coordinator; Tim's visual/balance review
 Deployment Rally/reset, crew separation and sector implementation remain deferred.
 
 Economy catch-up (2026-10-28): current dawn payouts are doubled versus the original Phase 3E table; prices/schedules unchanged. Building-defended reward is 150 ryo when an alerted owner defeats a Shinobi Sabotage/Steal attempt (job fails). Sector-cleared reward is 200 ryo when rival street presence of at least two has contested with yours and only yours remains; three-minute per-clan/sector cooldown, no passive ownership income. Source: settings rewards, contracts and sim/rewards.js. No new test run claimed.
+
+## Shakedown and Sweep rewards (approved design 2026-10-28; not built)
+
+[Operation lifecycle/checklist](deployment_sector_plan.md#shakedown-and-sweep-plan-approved-design-2026-10-28-not-built) owns eligibility/hold/retreat. Successful Yakuza Shakedown grants immediate clan-treasury bonus and claims **50% of next actual business payout after modifiers**. No stacking attempts/claims on the same payout; zero payout leaves claim pending. Failure/abandonment grants no reward.
+
+| Business tier | Bonus now | Theft at normal payout | Nominal total |
+|---|---|---|---|
+| Teahouse/shop/pawnshop | 300 | 100 of 200 | 400 |
+| Warehouse/bathhouse/brewery | 275 | 175 of 350 | 450 |
+| Gambling den | 200 | 300 of 600 | 500 |
+| Tenements/manor/customs house | 200 | 400 of 800 | 600 |
+
+These totals describe normal payouts, not a guarantee after payout modifiers. Exact modified-payout notation/tuning, ownership changes, competing claims and formal-raid collisions require decisions. A failed-attempt sixty-second retry lock and ownership-change claim cancellation were not individually approved.
+
+Kuroda Sweep success pays **500 ryo total**, including generic sector-clear reward for the same clear, never 500 plus 200. Reusing existing per-clan/sector three-minute claim/cooldown is proposed anti-farming integration; generic sector-clear code is built, Sweep claim integration is not. Empty-sector eligibility/cooldown details remain open. All reward implementation/checks remain unchecked in the linked phased plan.
+
+### Shakedown implementation status (2026-10-28)
+
+Shakedown claims/rewards are built; Sweep remains design-only. Success grants bonus 300 for payout tier ≤200, 275 for ≤350, otherwise 200. Next positive actual payout, after modifiers, transfers floor(half) to claimant and pays remainder to owner. Zero/sabotaged payouts leave claim pending. Claim blocks another attempt; ownership change cancels it. An existing formal raid blocks Shakedown; a running Shakedown blocks raid start. Sixty-second retry lock and ownership-change cancellation are implemented initial choices, not earlier individually finalized approvals. Focused `test_shakedown` passed; visual/balance review pending. [Lifecycle/tuning](deployment_sector_plan.md#shakedown-implementation-checkpoint-2026-10-28).

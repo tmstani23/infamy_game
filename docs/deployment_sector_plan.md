@@ -521,3 +521,45 @@ New `autoSector` records first-zone priority. First crew beyond hero six waits f
 [Single-worker body jobs](crew_recruiting_plan.md#explicit-single-worker-body-jobs-2026-10-28) own execution/loot details. Eighteen focused scripts passed: crew jobs (including solo-dispatched latest-peer-order rerun), first sector, target controls, foundation, automation, deployment AI, panel flow, sector cleanup, mark scrub, downed, crew assist, crew recall, move priority, manual release, transfers, Rally, transfer cancel and selection dock. Source syntax/diff checks clean. No browser/visual claim; manual boxes remain unchecked.
 
 Current-code catch-up (2026-10-28): authoritative task choices remain Shinobi Watch/Ambush and regular Patrol/Guard. Shakedown and Kuroda March are not present in this checkout; no implementation or finalized rules inferred. Action-bar transfer dragging/camera follow are documented in controls; earlier checkpoints remain historical. No new tests run for this documentation catch-up.
+
+## Shakedown and Sweep plan (approved design 2026-10-28; not built)
+
+Status update (2026-10-28): **Shakedown is implemented with a passing focused sim check; Sweep remains unbuilt.** The original design and shared checklist below retain Sweep/open-design context. Current regular duties remain Patrol/Guard, Shinobi Watch/Ambush. All new rules/state belong in deterministic serializable sim; bots, players and multiplayer use identical authoritative commands and normal visibility. Persistent saved duty stays separate from temporary operation. [Payout/claim owner](business_raids_plan.md#shakedown-and-sweep-rewards-approved-design-2026-10-28-not-built); [combat/VFX owner](combat_spec.md#shakedownsweep-combat-and-feedback-design-2026-10-28-not-built).
+
+### Yakuza Shakedown
+
+Yakuza sector squad targets a rival business within/adjacent to its assigned sector **at night**. No War Lantern or ownership capture. Alert owner at attempt start; add ten heat once per attempt even on failure. Squad rushes entrance/front room and collectively throws a few dynamite sticks, not a barrage per crew member. Temporary small fires/explosives are real hazards; keep an entrance route usable and civilians away from opening blasts.
+
+Inside, one or two civilians are held at weapon point by one crew member while others secure/fight. This role does not require the Enforcer recruit. Hold front room twenty seconds; defenders contest/pause progress. If intimidator fights/is downed, pause until another resumes. Release civilians on success/withdrawal. Failed/abandoned attempts earn nothing; success uses the linked claim rules.
+
+A visibly larger nearby combat-ready defending **hero group** causes unfinished hold abandonment and coordinated retreat. Count visible hero plus present crew against surviving attackers; three attackers versus hero plus three crew flees. Three is an example, not a squad cap. Try retreat first; only a blocked escape permits one emergency heavy-damage AoE dynamite throw per squad/attempt. Visible throw/short fuse allows scattering, then attackers flee. No damage number settled.
+
+### Kuroda Sweep
+
+Choose rival clan and neighboring sector. Temporary adjacent-sector operation permission, never permanent reassignment. Advance together with ten-percent damage reduction while grouped; stronger Iron Formation takes precedence, no stacking. Engage only selected rival's visible combatants, not civilians/unrelated clans. Beat local street resistance then hold clearly marked street area twenty seconds; rival defenders contest/pause.
+
+Success scatters surviving rival **sector-assigned crew**: physically retreat to HQ, recover, return saved duties. Never force hero/accompanying hero group retreat or control loss. Attackers physically return to their **original sector** after success or retreat, recover if needed and resume saved duty. Reuse retreat/recovery; no teleport. Reward/cooldown integration is separately owned and not yet implemented.
+
+### Open decisions before relevant implementation
+
+Explosive damage/radius/fuse/fire duration/friendly fire/ordinary heat interaction; grouped-distance threshold; scatter recovery duration; Sweep day/night restriction; manual/selection/Rally/transfer interruptions; empty-sector/reward eligibility; competing operations/formal raid collision; modified payouts and ownership changes. Failed-Shakedown sixty-second retry lock, cancelling unpaid claims on ownership change, and one-shot versus repeating offensive duty were suggestions, **not settled**. Do not infer approvals.
+
+### Unbuilt phased checklist
+
+- [ ] **1:** shared command/state eligibility, saved-duty/cancellation lifecycle and temporary travel permission; resolve affected open decisions.
+- [ ] **2:** Shakedown hold/intimidation/explosives/visible-larger-group retreat and claims; Sweep grouped protection/hold/scatter/physical returns and integrated rewards.
+- [ ] **3:** bots through shared commands, authoritative statuses/owner alerts/receipt-based success, linked fireworks/march feedback.
+- [ ] **4:** targeted Node checks for contest, visible-larger-group-only retreat, single blocked-only emergency bomb, duplicate claims/rewards, physical return, interruptions, serialization and bot parity. No browser automation or broad tests.
+- [ ] **Tim visual/balance playtest.**
+
+## Shakedown implementation checkpoint (2026-10-28)
+
+`sim/shakedown.js` implements one-shot Yakuza sector operations; `shakedownfx.js` draws dynamite/fires/status feedback. Deployment offers rival-business selection, **Start Shakedown** and **Recall squad**, with authoritative receipts. Bots use the same eligibility/commands. Saved Patrol/Guard membership stays unchanged; crew return physically to original sector then recover. Normal manual recall, ownership/formal-raid changes, dawn, casualties or timeout can end an attempt. Sweep is not implemented.
+
+Initial implemented tuning (not previously finalized balance): three squad throws, 0.65-second flight/1.25-second fuse; blast sixty/radius 2.2, fire eight seconds/radius 0.7/six damage per second; friendly fire enabled including civilians. Twenty-second contested front-room hold within radius four requires surviving civilians and available intimidator. Visible larger defending hero group within nine triggers retreat. Only blocked retreat for 1.25 seconds permits one emergency throw (110 damage/radius three). Attempt timeout 120 seconds; business retry sixty seconds. [Actual payout/claim details](business_raids_plan.md#shakedown-implementation-status-2026-10-28).
+
+Fresh `test_shakedown.mjs` run passed faction/night eligibility, alert/heat, timed blasts/entry, contest/intimidator interruption, zero/actual payout, physical return, larger-hero retreat and single blocked-only emergency bomb. Prior chat's broader validation/handoff was interrupted by model capacity; no full regression completion or Tim balance/visual approval is claimed here. Start a fresh `?test=shakedown` match for the staged night/dynamite scenario.
+
+- [x] Shakedown sim/UI/bot/FX integration and focused sim validation.
+- [ ] Sweep implementation and its shared-claim integration.
+- [ ] Tim Shakedown visual/balance playtest: opening blast/entrance/fire clarity, civilian safety, contest/recall, larger visible hero-group retreat, blocked-only emergency bomb and bonus/actual payout notices.
