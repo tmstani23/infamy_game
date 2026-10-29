@@ -18,7 +18,7 @@ for(const supported of [true,false]){
  const handlers={},doc={addEventListener(k,fn){handlers[k]=fn;}};bindGameShell(doc);
  for(const type of ['contextmenu','selectstart','dragstart']){let prevented=false;handlers[type]({target:{closest:()=>null},preventDefault(){prevented=true;}});assert.equal(prevented,true);prevented=false;handlers[type]({target:{closest:()=>({})},preventDefault(){prevented=true;}});assert.equal(prevented,false,'editable inputs retain browser editing');}
 }
-assert.deepEqual(normalizeAudioSettings({master:2,effects:-1}),{master:1,effects:0,music:.45,muted:false});
+assert.deepEqual(normalizeAudioSettings({master:2,effects:-1}),{master:1,effects:0,music:.45,musicEnabled:true,muted:false});
 const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};values.set('infamy.audio.v1','broken');assert.equal(readAudioSettings(storage).master,1);
 const saved={addEventListener:globalThis.addEventListener,AudioContext:globalThis.AudioContext,fetch:globalThis.fetch};
 try{

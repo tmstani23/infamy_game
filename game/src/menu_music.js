@@ -11,7 +11,7 @@ export function createMenuMusic({audio=new Audio(),storage,events=globalThis,doc
   const track=INTRO_TRACKS[Math.min(INTRO_TRACKS.length-1,Math.floor(random()*INTRO_TRACKS.length))];
   let settings=readAudioSettings(storage),closed=false,userPaused=false,blocked=false,failed=false,fadeTimer=null;
   audio.src=`../assets/music/${track.file}`;audio.loop=true;audio.preload='none';
-  const level=()=>settings.muted?0:settings.master*settings.music;
+  const level=()=>settings.muted||!settings.musicEnabled?0:settings.master*settings.music;
   const status=()=>({track,volume:settings.music,playing:!audio.paused&&!failed,blocked,unavailable:failed,muted:level()===0});
   const publish=()=>{if(!closed)onChange(status());};
   async function play(){
@@ -55,7 +55,7 @@ export function createMenuMusic({audio=new Audio(),storage,events=globalThis,doc
       if(closed||failed)return;
       if(!audio.paused&&!blocked){userPaused=true;audio.pause();publish();}
       else{
-        userPaused=false;settings.muted=false;
+        userPaused=false;settings.muted=false;settings.musicEnabled=true;
         if(!settings.master)settings.master=1;if(!settings.music)settings.music=.45;
         saveAudioSettings(settings,storage);void play();
       }
