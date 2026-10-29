@@ -42,5 +42,6 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/gameplay_and_design.md](docs/gameplay_and_design.md) | Game design |
 | [docs/art_direction.md](docs/art_direction.md) | The look and the sprite pipeline |
 | [docs/roadmap.md](docs/roadmap.md) | Build layers and next steps |
+| [docs/playtest_followup_plan.md](docs/playtest_followup_plan.md) | Phased playtest follow-up: map performance first, deployment, crew/economy, stealth and later refactor; proposals and open decisions |
 | [assets/image_prompts.md](assets/image_prompts.md) | Image prompts (environment, items) |
 | [assets/character_prompts.md](assets/character_prompts.md) | Character concept prompts |
