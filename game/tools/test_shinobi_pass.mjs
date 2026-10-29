@@ -109,9 +109,9 @@ const make = () => createGame({ district: data('data/port_town.json'), catalog: 
   const g = make(), hero = startClan(g, { id: 'shinobi', kind: 'ninja', ryo: 3000, position: data('data/port_town.json').spawns.ninja });
   g.state.clans.shinobi.renown = 225;
   const bot = createNinjaBot(g, { clan: 'shinobi', hero, rules: { jobs: [] } });
-  for (let i = 0; i < 120 * 20 && g.clans.crewCount('shinobi') < 6; i++) g.step(bot.tick());
-  assert.equal(g.clans.crewCap('shinobi'), 6, 'crew still grow at one per 75 Renown');
-  assert.equal(g.clans.crewCount('shinobi'), 6, 'established bot recruits beyond three toward unlocked capacity');
+  for (let i = 0; i < 120 * 20 && g.clans.crewCount('shinobi') < 9; i++) g.step(bot.tick());
+  assert.equal(g.clans.crewCap('shinobi'), 9, 'crew still grow at one per 75 Renown');
+  assert.equal(g.clans.crewCount('shinobi'), 9, 'established bot recruits beyond three toward unlocked capacity');
   assert.ok(g.clans.crewOf('shinobi').some(u => u.type === 'ninja_tanto'), 'bot also recruits the equally capable tanto variant');
   assert.ok(g.state.clans.shinobi.ryo < 3000, 'expanded army is paid for normally');
   assert.equal(g.territory.score('shinobi'), 4, 'season conversion remains 50 Renown per point');

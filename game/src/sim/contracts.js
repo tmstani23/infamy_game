@@ -22,6 +22,7 @@ const DEFAULTS = {
   perDawn: [3, 5],
   refreshSeconds: 120, repeatSeconds: 120, failedRepeatSeconds: 30,
   hiddenBonusShare: .25, hiddenProgressRate: 2,
+  defendBonus: 150,   // ryo for the owner when a Sabotage/Steal they were warned about fails (Tim 2026-10-29)
   perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
   scout: { ryo: 150, renown: 15, seconds: 10 },
   mark: { ryo: 300, renown: 30, plantSeconds: 3, holdSeconds: 60, leaveSeconds: 10, alertDelay: 15, clearSeconds: 4, reach: 1.5 },
@@ -174,6 +175,14 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       if (state.clans[job.target]) state.news.push({ kind: 'contractFailedOnYou', clan: job.target, by: clanId,
         contractType: { scout: 'Scout', mark: 'Sabotage', steal: 'Steal', boss: 'Boss' }[job.kind] || job.kind, why });
       say(clan, `Contract failed: ${why}`);
+      // the owners saw it coming and the job still failed: they defended the building
+      const owner = state.clans[job.target];
+      if (owner && R.defendBonus > 0 && (job.alerted || job.mark?.alerted) && ['mark', 'steal'].includes(job.kind)
+        && !['the business is no longer available', 'the owner changed'].includes(why)) {
+        owner.ryo = (owner.ryo || 0) + R.defendBonus;
+        state.ryoGains.push({ clan: owner.id, amount: R.defendBonus, target: job.business, reason: 'Building defended' });
+        say(owner, `Building defended: +${R.defendBonus} ryo`);
+      }
     }
   }
 

@@ -29,7 +29,7 @@ function tooltip(a, key, stats) {
   return { name: a.name + (key === 'F' ? ' (ultimate)' : ''), key, lines: [['Cost', a.cost ? `${a.cost} ryo` : 'None'], ['Cooldown', `${a.cooldown} s`], ...lines], about: a.about };
 }
 
-export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {} }) {
+export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {}, watchGroup = () => {}, send = () => {} }) {
   const hero = () => game.state.entities[heroId];
   const stats = game.stats?.base(hero()) || baseStats(units, hero());
   const kit = stats.abilities || {};
@@ -43,7 +43,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const row = el('div', 'row', root);
   const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', row);
-  const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput});
+  const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput,send,watchGroup});
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;

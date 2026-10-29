@@ -25,6 +25,8 @@ import { createAssignments } from './assignments.js';
 import { createDeploymentRally } from './deployment_rally.js';
 import { createShinobiAssignments } from './shinobi_assignments.js';
 import { createDiversion } from './diversion.js';
+import { createRifleman } from './rifleman.js';
+import { createTaunt } from './taunt.js';
 import { createSectorRecovery } from './sector_recovery.js';
 import { createShinobiIntelligence } from './shinobi_intelligence.js';
 import { clearSight } from './perception.js';
@@ -215,9 +217,19 @@ export function createGame(options) {
     finishTarget: (clan, target, ids) => { const h = Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero'); if (h) startExecute(h, { target, units: ids, crewOnly: true }, true); } });
   const diversion = createDiversion({ state, deployment, vision, reveal: (e, attack) => stealth.reveal(e, attack),
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
-    moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z) => nav.nearestFree(x, z), fightTarget: id => fight[id]?.target,
+    moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), fightTarget: id => fight[id]?.target,
+    clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     inCombat: e => !!fight[e.id]?.target, clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  function manualCrew(e) { crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
+  const rifleman = createRifleman({ state, vision, hit: (a, t, d, crit, kind) => hit(a, t, d, crit, kind), addHeat: (owner, n, reason) => addHeat(owner, n, reason),
+    stun: (t, ticks) => { delete t.swing; addBuff(t, 'stunned', ticks / TICK_RATE); }, clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
+    hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
+    moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), canOccupy: (e, x, z, p) => deployment.canOccupy(e, x, z, p),
+    fightTarget: id => fight[id]?.target, inCombat: e => !!fight[e.id]?.target, rules: units?.types?.kuroda_rifleman?.rifle, inRally: e => rally.participating(e),
+    clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
+  const taunt = createTaunt({ state, vision, hostile: (a, b) => hostile(a, b) && sees(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
+    attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, fightTarget: id => fight[id]?.target, rules: units?.types?.yakuza_enforcer?.taunt,
+    clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
+  function manualCrew(e) { crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); assignments.manual(e); }
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
@@ -568,6 +580,8 @@ export function createGame(options) {
   function engage(e, unit, t, chase = true) {
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     const f = fight[e.id] ||= { cd: 0 };
+    // never chase into another place (Tim 2026-10-28: ambush ninja kept running into a building's wall after a target who went inside)
+    if (t.place !== e.place) { delete f.target; if (!e.swing) e.anim = 'idle'; return; }
     f.target = t.id;
     if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
     const d = Math.hypot(t.x - e.x, t.z - e.z);
@@ -676,6 +690,7 @@ export function createGame(options) {
     t.hitAt = state.tick;
     contracts?.interruptScrub(t);
     diversion.interrupted(t);
+    rifleman.interrupted(t);
     t.hitBy = { id: a.id, tick: state.tick };   // a hero only swings back at whoever hit him (below)
     if (damage > 0) kuroda.damaged(t, a);
     delete t.execute;                // a hit breaks an execute channel
@@ -1148,10 +1163,13 @@ export function createGame(options) {
     if (deployment.travelStep(e, unit)) return;
     if(crewJobs.step(e,unit))return;
     if (e.distracted?.source && diversion.step(e, unit)) return;
+    if (e.taunted && taunt.step(e, unit)) return;
     if (assignments.avoidCamping(e,unit)) return;
     if (sectorRecovery.step(e, unit)) return;
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
+    if (rifleman.step(e, unit)) return;
+    if (taunt.step(e, unit)) return;
     if (sectorCleanup.step(e,unit)) return;
     if (shinobiAssignments.step(e, unit)) return;
     if (!rally.participating(e) && assignments.step(e, unit)) return;
@@ -1685,9 +1703,11 @@ export function createGame(options) {
         && rally.buffEligible(state.entities[s.hero] || Object.values(state.entities).find(e => e.owner === s.clan && e.type === 'hero'), u)) { u.hp = Math.min(u.maxHp, u.hp + u.maxHp * s.heal); addBuff(u, 'shroud', 1.1); }
     stealth.tick();
     contracts?.tick();
+    if (state.tick % secs(1) === 0) rewards.sectorTick(deployment?.sectorAt);
     shinobiIntelligence.tick();
     shinobiAssignments.tick();
     diversion.tick();
+    taunt.tick();
     // Losing sight drops the lock, queued swing and crew assignment immediately,
     // including while a hero is moving. Revealing the target does not reacquire it.
     for (const e of Object.values(state.entities)) {

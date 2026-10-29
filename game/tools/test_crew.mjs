@@ -6,6 +6,7 @@ import { SCREEN_RIGHT as SR, SCREEN_DOWN as SD } from '../src/sim/geometry.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const units = data('data/units.json');
+units.rules.baseCap = 3;   // the hiring checks below were written for a cap of 3
 const game = createGame({
   district: data('data/waterfront.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'), units,
@@ -30,6 +31,10 @@ clans.setOwner(tea.id, 'player');
 clans.setOwner(den.id, 'kuroda');
 assert.equal(clans.crewCap('player'), R.baseCap + R.capPerBusiness.teahouse);
 assert.equal(clans.crewCap('kuroda'), R.baseCap + R.capPerBusiness.gambling_den);
+// Every dawn of the season adds capPerDawn (Tim 2026-10-28)
+state.season = { day: 4 };
+assert.equal(clans.crewCap('player'), R.baseCap + 3 * R.capPerDawn + R.capPerBusiness.teahouse);
+delete state.season;
 
 // The hero is not crew; each crew member makes the next hire dearer
 game.spawn('hero', 'ronin', 0, 0, { owner: 'player' });
@@ -95,9 +100,9 @@ for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
   // Locked types refused; cap counts waiting hires; money runs out
   run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'rifleman' }]);
   assert.match(clan.notice.text, /Nobody here/);
-  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'brute' }]);   // 100 * 1.15 = 115
-  assert.equal(clan.ryo, R.startRyo - 60 - 115);
-  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'swordsman' }]); // 120 * 1.3 = 156 exceeds the balance
+  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'brute' }]);   // 100 * 1.05 = 105
+  assert.equal(clan.ryo, R.startRyo - 60 - 105);
+  run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'swordsman' }]); // 120 * 1.1 = 132 exceeds the balance
   assert.match(clan.notice.text, /Not enough ryo/);
   clan.ryo = 1000;
   run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'thug' }]);     // now 3 of 3 (1 here + 2 waiting)

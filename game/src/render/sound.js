@@ -6,7 +6,12 @@ const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman',
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
-  'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT];
+  'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT,
+  'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1'];
+// fists (Tim 2026-10-29: a better punch): these models punch rather than swing a blade or club
+const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
+// Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
+const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'] };
 const HEAR = 24, MAX_VOICES = 14;
 
 export function createSound({ base = '../assets/sounds/',storage } = {}) {
@@ -23,11 +28,19 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     effects=ctx.createGain();effects.connect(master);
     const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-6;limiter.knee.value=12;limiter.ratio.value=6;limiter.attack.value=.003;limiter.release.value=.15;
     master.connect(limiter).connect(ctx.destination);apply();
-    ready=Promise.all(FILES.map(f=>fetch(`${base}${f}.ogg`).then(r=>{if(!r.ok)throw Error('Sound unavailable');return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)).then(b=>{buffers[f]=b;}).catch(()=>{})));
+    const load=(f,ext)=>fetch(`${base}${f}.${ext}`).then(r=>{if(!r.ok)throw Error('Sound unavailable');return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)).then(b=>{buffers[f]=b;});
+    // the rifleman's shot (Tim 2026-10-29: made with Suno, dropped in as assets/sounds/rifle_shot_1 .ogg, .mp3 or .wav; missing = silent)
+    const custom=Object.keys(CUSTOM).map(f=>load(f,'ogg').catch(()=>load(f,'mp3')).catch(()=>load(f,'wav')).catch(()=>{}));
+    ready=Promise.all([...custom,...FILES.map(f=>load(f,'ogg').catch(()=>{}))]);
   }
   addEventListener('keydown', unlock);
   addEventListener('mousedown', unlock);
 
+  // Tim's clips (name plus numbered variants, e.g. use_1/use_2/use_3 or punch_main/punch_main_2), else the fallback list
+  const pickCustom = name => {
+    const base = name.replace(/_\d+$/, ''), mine = Object.keys(CUSTOM).filter(k => buffers[k] && new RegExp(`^${base}(_\\d+)?$`).test(k));
+    return mine.length ? mine : CUSTOM[name];
+  };
   function play(names, volume, pitch = 1) {
     if (!ctx || settings.muted || voices >= MAX_VOICES || volume <= 0.01) return;
     const name = [].concat(names)[Math.floor(Math.random() * [].concat(names).length)], buf = buffers[name];
@@ -63,6 +76,8 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
 
   return {
     bell,
+    // a UI cue for the hero's own actions (Space use): Tim's clip or its fallback
+    cue(name, volume = 0.5) { play(pickCustom(name), volume); },
     toggleMute() { return setSettings({muted:!settings.muted}).muted; },
     setSettings,getSettings:()=>({...settings}),
     subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
@@ -79,7 +94,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
         if (BLADES.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
-        else if (h.weapon === 'brute') play(Math.random() < 0.5 ? SOFT : ['club_hit_1', 'club_hit_2', 'club_hit_3'], 0.55 * v, 0.85);
+        else if (FISTS.has(h.weapon)) play(pickCustom(HEAVY_FISTS.has(h.weapon) && (buffers.punch_main_heavy || !buffers.punch_main) ? 'punch_main_heavy' : 'punch_main'), 0.6 * v, HEAVY_FISTS.has(h.weapon) ? 0.9 : 1);
         else play(['club_hit_1', 'club_hit_2', 'club_hit_3'], 0.55 * v);
         if (h.crit) play(['crit_hit_1', 'crit_hit_2'], 0.6 * v);
         if (h.kill) play(t?.type === 'hero' ? 'knockdown_thud_1' : ['death_thud_1', 'death_thud_2'], 0.6 * v);
@@ -88,6 +103,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         const a = state.entities[c.a], v = near(me, c.x, c.z, a?.place);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
         if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);
+        if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
+        if (c.kind === 'taunt') play(SOFT, 0.6 * v, 0.5);
+        if (c.kind === 'loot') play(pickCustom('loot_coins_1'), 0.6 * v);
         if (c.kind === 'rally') play('katana_clash_1', 0.5 * v);
         if (c.kind === 'sweep' || c.kind === 'thrust') play('sword_slash_1', .4*v);
         if (c.kind === 'counter') play('katana_clash_1', .6*v, .85);

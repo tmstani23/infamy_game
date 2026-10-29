@@ -119,7 +119,7 @@ async function start() {
     if (menu === 'clinic') clinicMenu.toggle();
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle(menu);
     else if (menu === 'contracts') contractMenu.toggle();
-    else pending.push({ id: heroId, type: 'use', units: crewInput.selected() });   // selected crew come in too
+    else { pending.push({ id: heroId, type: 'use', units: crewInput.selected() }); sound.cue('use_1', 0.45); }   // selected crew come in too
   });
   // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
   const raidOnMe = (near = false) => Object.values(game.state.attacks || {})
@@ -237,13 +237,27 @@ async function start() {
   onKey('Slash', toggleControls);
   $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
   const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse · Waterfront"
-  // double-click a crew name: the camera jumps to him, or to the building's door if he is
-  // inside one the hero isn't in
-  const jump = u => {
+  // where the camera should look for a unit: itself, or its building's door if it is inside one the hero isn't in
+  const lookPoint = u => {
     const door = u.place !== 'street' && u.place !== game.state.entities[heroId]?.place && game.doors.find(d => d.to && d.place === u.place);
-    if (door) view.jumpTo(door.x, door.z); else view.jumpTo(u.x, u.z);
+    return door ? { x: door.x, z: door.z } : { x: u.x, z: u.z };
   };
-  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump });
+  const usable = u => u && !u.dead && !u.jailed;
+  // double-click a crew name: the camera follows him (Tim 2026-10-28) until you pan, click the map or press Home
+  const jump = u => {
+    if (!u.id) { view.jumpTo(u.x, u.z); return; }
+    view.watch(() => { const e = game.state.entities[u.id]; return usable(e) ? lookPoint(e) : null; });
+  };
+  // double-click a group header: follow the middle of the group's biggest cluster
+  const watchGroup = group => view.watch(() => {
+    const S = game.state.entities, me = S[heroId]?.owner;
+    const crew = Object.values(S).filter(e => e.owner === me && e.type !== 'hero' && usable(e) && !e.guard && (e.deployment?.group || 'home') === group).map(lookPoint);
+    if (!crew.length) return null;
+    const near = p => crew.filter(q => Math.hypot(q.x - p.x, q.z - p.z) < 8);
+    const best = crew.map(near).reduce((a, b) => b.length > a.length ? b : a);
+    return { x: best.reduce((n, p) => n + p.x, 0) / best.length, z: best.reduce((n, p) => n + p.z, 0) / best.length };
+  });
+  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, send: c => pending.push(c) });
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
   const crewBar = createCrewBar({ root: $('bar'), game, heroId, crewInput });   // crew order buttons over the crew pips

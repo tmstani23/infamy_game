@@ -21,6 +21,7 @@ function fixture() {
  while(f.state.tick<start+79)f.tick();assert.ok(f.state.contracts.active.s,'79 ticks cannot erase a mark');
  f.tick();assert.equal(f.state.contracts.active.s,undefined,'one defender channels four full seconds');
  assert.equal(f.guard.markScrub,undefined,'completed contract clears channel');
+ assert.equal(f.state.clans.r.ryo,150,'owners who scrub a warned mark get the defend bonus');
 }
 for(const action of ['attack','damage','movement','stun','charm','downed','leave']){
  const f=fixture();f.tick();for(let n=0;n<50;n++)f.tick();

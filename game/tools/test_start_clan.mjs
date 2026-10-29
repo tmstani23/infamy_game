@@ -40,7 +40,7 @@ for (const ninja of [false, true]) {
     const owned = Object.values(g.state.businesses).filter(b => b.owner === c.id);
     assert.equal(owned.length, 1, 'only the HQ is owned at the start');
     assert.equal(owned[0].hideout, c.id);
-    assert.equal(g.clans.crewCap(c.id), 3);
+    assert.equal(g.clans.crewCap(c.id), g.settings.units.rules.baseCap);
   }
   assert.ok(Object.values(g.state.businesses).filter(b => g.businesses.rules[b.kind]).every(b => !b.owner));
   assert.ok(g.state.entities[player]);
@@ -61,9 +61,9 @@ console.log('both normal clan setups: 200 ryo, one matching recruit, HQ only');
 }
 console.log('explicit testing overrides preserved');
 
-const expected = { teahouse: [400, 100, 1], shop: [400, 100, 1], warehouse: [700, 175, 2],
-  gambling_den: [1200, 300, 2], tenements: [1600, 400, 3], pawnshop: [400, 100, 1],
-  bathhouse: [700, 175, 2], sake_brewery: [700, 175, 2], manor: [1600, 400, 3], customs_house: [1600, 400, 3] };
+const expected = { teahouse: [400, 200, 1], shop: [400, 200, 1], warehouse: [700, 350, 2],
+  gambling_den: [1200, 600, 2], tenements: [1600, 800, 3], pawnshop: [400, 200, 1],
+  bathhouse: [700, 350, 2], sake_brewery: [700, 350, 2], manor: [1600, 800, 3], customs_house: [1600, 800, 3] };
 const base = data('data/units.json').rules;
 const g = make();
 const heroId = startClan(g, { id: 'player', position: district.spawns.hero });
@@ -142,7 +142,7 @@ for (const q of g.territory.quarters) {
   members.at(-1).owner = 'player';
 }
 assert.equal(new Set(g.territory.quarters.flatMap(q => q.businesses)).size, 10);
-assert.equal(g.clans.crewCap('player'), 23, 'all ten businesses grow capacity without a separate hard cap');
+assert.equal(g.clans.crewCap('player'), g.settings.units.rules.baseCap + (g.state.season.day - 1) * g.settings.units.rules.capPerDawn + 20, 'all ten businesses grow capacity without a separate hard cap');
 assert.equal(g.territory.score('player'), 24);
 console.log('all four quarter memberships, partial/full/lost bonuses and expanded crew capacity ok');
 

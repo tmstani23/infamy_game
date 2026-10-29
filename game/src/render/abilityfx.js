@@ -39,6 +39,7 @@ const AURAS = {
 
 const STEEL = [0.8, 0.9, 1], WHITE = [1, 1, 1], GOLD = [1, 0.8, 0.35], PURPLE = [0.6, 0.3, 1];
 // the Shinobi kit (Tim 2026-10-20): black smoke, purples and blues only as dark, muted highlights
+const GUNSMOKE = [[0.62, 0.61, 0.58], [0.52, 0.52, 0.5], [0.72, 0.7, 0.66]], MUZZLE = [[1, 0.92, 0.6], [1, 0.7, 0.3], [1, 0.5, 0.15]];
 const SOOT = [[0.04, 0.035, 0.06], [0.06, 0.05, 0.08], [0.03, 0.025, 0.04]], SOOT_TINT = [[0.13, 0.08, 0.2], [0.09, 0.1, 0.18]];
 const DUSK = [[0.36, 0.24, 0.6], [0.22, 0.3, 0.52], [0.46, 0.36, 0.66]], MIST_BLUE = [0.5, 0.58, 0.76];
 const PETALS = [[1, 0.62, 0.8], [1, 0.75, 0.88], [1, 0.5, 0.7], [1, 0.85, 0.92]];
@@ -165,6 +166,21 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
   }
   const bars = new Map();                             // execute channel bars: unit id -> HTML element
 
+  // Kuroda rifleman (sim/rifleman.js): a thin red aim line while he aims, a brief pale tracer on the shot
+  const rifleSmoke = new Map();   // rifleman id -> until (s): a thin wisp curls up from the muzzle after a shot
+  const rifleLines = new Map();   // "aim:id" or "shot:id:tick" -> { m, life? }
+  // fade: the line dims toward the target (additive, so a black far end fades it out; Tim 2026-10-29)
+  function rifleLine(color, fade = false) {
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    const c = new THREE.Color(color), far = fade ? new THREE.Color(0, 0, 0) : c;
+    g.setAttribute('color', new THREE.Float32BufferAttribute([c.r, c.g, c.b, far.r, far.g, far.b], 3));
+    const m = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
+    m.frustumCulled = false; onFxLayer(m); scene.add(m); return m;
+  }
+  function placeLine(m, a, b) {
+    const p = m.geometry.attributes.position;
+    p.setXYZ(0, a.x, 1.35, a.z); p.setXYZ(1, b.x, 1.2, b.z); p.needsUpdate = true;
+  }
   function wave(x, z, radius, color, life, delay = 0, geo = WAVE_GEO) {
     const m = flat(geo, color, 0.9);
     m.position.set(x, 0.04, z);
@@ -318,6 +334,38 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         if (s0) s0.flash = 1.6;
         if (c.fx !== undefined) smokeBurst(c.fx, c.fz, 14, 0.6, 0.9);   // where he lunged from
       }
+      if (c.kind === 'taunt') {
+        // Yakuza enforcer's bellow (sim/taunt.js): a short hot shockwave, embers, and a red 怒 over the taunted unit
+        wave(c.x, c.z, 1.8, 0xff5a1e, 0.4, 0, THIN_WAVE_GEO);
+        for (let i = 0; i < 18; i++) {
+          const a = Math.random() * Math.PI * 2, v = rand(1.5, 3.5);
+          glow.emit({ x: c.x, y: rand(1.0, 1.8), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.4, 1.4), drag: 4, gravity: -0.4,
+            life: rand(0.4, 0.8), size: rand(0.1, 0.2), color: pick(MUZZLE), shape: SHAPE.ember, spin: rand(-2, 2) });
+        }
+        cards.seal(c.tx, c.tz, 1.1, '怒', 0xff4020, 1.0, { follow: () => posOf(c.t) });
+        if (s0) s0.flash = 0.6;
+      }
+      if (c.kind === 'rifleshot') {
+        // black-powder shot (Tim 2026-10-28: realistic but stylised): a short flash of small flame
+        // licks (clusters, like the HQ fire), a few sparks, then a thick grey-white puff that rolls
+        // forward and spreads; the muzzle keeps smoking a few seconds after (rifleSmoke, update)
+        const d = Math.hypot(c.tx - c.x, c.tz - c.z) || 1, ux = (c.tx - c.x) / d, uz = (c.tz - c.z) / d, mx = c.x + ux * 0.75, mz = c.z + uz * 0.75;
+        for (let i = 0; i < 14; i++) {
+          const v = rand(2, 7), sx = rand(-0.6, 0.6);
+          glow.emit({ x: mx, y: 1.35, z: mz, vx: (ux + uz * sx * 0.35) * v, vy: rand(-0.2, 0.6), vz: (uz - ux * sx * 0.35) * v, drag: 9, life: rand(0.06, 0.14),
+            size: rand(0.18, 0.42), color: pick(MUZZLE), alpha: 1, shape: SHAPE.ember, spin: rand(-2, 2) });
+        }
+        glow.emit({ x: mx, y: 1.35, z: mz, life: 0.07, size: 0.9, color: [1, 0.95, 0.8], alpha: 1, shape: SHAPE.dot });
+        sparkles(mx, 1.35, mz, 5, [1, 0.7, 0.35], 2.6, 0.18);
+        for (let i = 0; i < 12; i++) {
+          const f = rand(0.3, 1.6);
+          soot.emit({ x: mx + ux * f * 0.4, y: 1.35 + rand(-0.1, 0.15), z: mz + uz * f * 0.4, vx: ux * f * 1.6 + rand(-0.25, 0.25), vy: rand(0.15, 0.45), vz: uz * f * 1.6 + rand(-0.25, 0.25),
+            drag: 2.4, sway: 0.2, life: rand(1.6, 2.8), size: rand(0.45, 0.9), grow: 1.1, color: pick(GUNSMOKE), alpha: rand(0.55, 0.8), shape: SHAPE.dot, spin: rand(-0.5, 0.5) });
+        }
+        sparkles(c.tx, 1.2, c.tz, 5, [1, 0.35, 0.2], 1.6, 0.2);
+        const m = rifleLine(0xffe0a0); placeLine(m, { x: mx, z: mz }, { x: c.tx, z: c.tz }); rifleLines.set(`shot:${c.a}:${performance.now()}`, { m, life: 0.08 });
+        rifleSmoke.set(c.a, { until: performance.now() / 1000 + rand(3, 4.5), ux, uz });
+      }
       if (c.kind === 'diversion') { wave(c.x, c.z, c.radius || 6, 0x8c6bac, 1.5, 0, THIN_WAVE_GEO); motes(c.x, c.z, 10, .4, 1); }
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
@@ -395,6 +443,37 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
 
     update(dt, state, heroId) {
       kurodaFx.update(dt, state, heroId);
+      const aiming = new Set();
+      for (const e of Object.values(state.entities)) {
+        // the red aim line shows only at night, faint, fading toward the target (Tim 2026-10-29)
+        const aim = state.night && e.rifle?.aim, a = aim && !e.dead && !e.downed && posOf(e.id), b = a && posOf(aim.target);
+        if (!b) continue;
+        const key = `aim:${e.id}`; aiming.add(key);
+        let l = rifleLines.get(key); if (!l) { l = { m: rifleLine(0xc8281c, true) }; rifleLines.set(key, l); }
+        placeLine(l.m, a, b);
+        l.m.material.opacity = 0.15 + 0.3 * Math.min(1, (state.tick - aim.at) / Math.max(1, aim.until - aim.at));
+      }
+      const tNow = performance.now() / 1000;
+      // the enforcer's burning club sheds a few embers (Tim 2026-10-28: hotter club, a few embers)
+      for (const e of Object.values(state.entities)) {
+        if (e.type !== 'yakuza_enforcer' || e.dead || e.downed) continue;
+        const p = posOf(e.id);
+        if (p) for (let n = count(3, dt); n > 0; n--)
+          glow.emit({ x: p.x + rand(-0.35, 0.35), y: rand(1.2, 1.9), z: p.z + rand(-0.35, 0.35), vx: rand(-0.15, 0.15), vy: rand(0.5, 1.1), vz: rand(-0.15, 0.15), drag: 1.5, sway: 0.4,
+            life: rand(0.5, 1.0), size: rand(0.06, 0.12), color: pick(MUZZLE), shape: SHAPE.ember, twinkle: 0.5, spin: 1 });
+      }
+      for (const [id, w] of rifleSmoke) {
+        const e = state.entities[id], p = e && !e.dead && posOf(id);
+        if (!p || tNow > w.until) { rifleSmoke.delete(id); continue; }
+        const left = (w.until - tNow) / 4;
+        for (let n = count(7 * Math.min(1, left + 0.3), dt); n > 0; n--)
+          soot.emit({ x: p.x + w.ux * 0.7, y: 1.4, z: p.z + w.uz * 0.7, vx: rand(-0.06, 0.06), vy: rand(0.25, 0.5), vz: rand(-0.06, 0.06), drag: 1.2, sway: 0.6,
+            life: rand(1.2, 2), size: rand(0.12, 0.22), grow: 1.4, color: pick(GUNSMOKE), alpha: 0.4 * Math.min(1, left + 0.2), shape: SHAPE.dot, spin: rand(-0.4, 0.4) });
+      }
+      for (const [key, l] of rifleLines) {
+        const done = l.life == null ? !aiming.has(key) : (l.life -= dt) <= 0;
+        if (done) { scene.remove(l.m); l.m.geometry.dispose(); l.m.material.dispose(); rifleLines.delete(key); }
+      }
       glow.update(dt);
       soot.update(dt);
       cards.update(dt);

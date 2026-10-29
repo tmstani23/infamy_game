@@ -6,6 +6,8 @@ import { spriteMaterial, shadowMaterial, hiddenMaterial, weaponGlowMaterial } fr
 import { Thing, loadTex } from './scenery.js';
 import { drawCrest } from './banners.js';
 
+const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
+
 const CELL_WORLD = 3;       // a 160px cell covers 3 world units (see sprite_render_test.html)
 const FEET_UP = 0.9;        // the cell centre is 0.9 units above the feet
 const FPS = 12;
@@ -117,10 +119,20 @@ export class CharacterSprite {
         mesh.add(this.voidHalo);
         this.thing.extras.push(this.voidHalo);
       }
-      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: !!weapon.void, coreColor: weapon.coreColor, coreStrength: weapon.coreStrength ?? 0 }));
+      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: !!weapon.void, coreColor: weapon.coreColor, coreStrength: weapon.coreStrength ?? 0, shimmerColor: weapon.shimmerColor }));
       this.glow.frustumCulled = false;
       mesh.add(this.glow);
       this.thing.extras.push(this.glow);
+      // hero weapons (weapon_glow.json "hero"): a light trail on swings, from the last few glow frames
+      // drawn again with fading strength (Tim 2026-10-28, option 4: shimmer idle + trail on attacks)
+      if (weapon.hero) {
+        this.trail = []; this.trailHistory = []; this.trailClock = 0;
+        for (let i = 0; i < TRAIL; i++) {
+          const own = { uFrame: { value: new THREE.Vector4() }, uDepthAt: this.material.uniforms.uDepthAt, uOpacity: this.material.uniforms.uOpacity };
+          const m = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(own, firstGlow, weapon.trailColor || weapon.color, 0, { coreColor: weapon.shimmerColor || [1, 1, 1], coreStrength: 0.6 }));
+          m.frustumCulled = false; m.visible = false; mesh.add(m); this.thing.extras.push(m); this.trail.push(m);
+        }
+      }
     }
   }
 
@@ -154,6 +166,28 @@ export class CharacterSprite {
       const fall = anim === 'death' ? Math.max(0, 1 - this.time / 0.8) : 1;
       const pulse = w.pulse ?? .1;
       g.uStrength.value = w.strength * (1 - pulse + pulse * Math.sin(this.time * (w.pulseRate ?? 2.2))) * (1 + swing) * fall;
+      if (w.hero) {
+        // shimmer: every shimmerEvery s a band of light runs up the blade over shimmerSeconds
+        const every = w.shimmerEvery ?? 2.6, run = w.shimmerSeconds ?? 1.0, t = (this.time + (this.shimmerOffset ??= Math.random() * every)) % every;
+        g.uShimmer.value = t < run && fall === 1 ? -0.15 + 1.3 * (t / run) : -1;
+        // trail: keep the last TRAIL glow frames while swinging, then let them fade out
+        const swinging = (anim === 'attack' || anim === 'sweep') && swingT !== null && sheet.glow;
+        this.trailClock += dt;
+        if (swinging && this.trailClock >= 1 / 40) {
+          this.trailClock = 0;
+          this.trailHistory.unshift({ frame: u.uFrame.value.clone(), map: sheet.glow, life: 1 });
+          this.trailHistory.length = Math.min(this.trailHistory.length, TRAIL);
+        }
+        for (const h of this.trailHistory) h.life -= dt / (swinging ? 0.45 : 0.18);
+        this.trail.forEach((m, i) => {
+          const h = this.trailHistory[i + 1];   // [0] is the current frame, already drawn by the glow
+          m.visible = !!h && h.life > 0;
+          if (!m.visible) return;
+          const tu = m.material.uniforms;
+          tu.uFrame.value.copy(h.frame); tu.uMap.value = h.map;
+          tu.uStrength.value = (w.trailStrength ?? 0.8) * h.life * (1 - i / TRAIL);
+        });
+      }
       if (this.voidHalo) {
         this.voidHalo.visible = this.glow.visible;
         const dark = this.voidHalo.material.uniforms;
@@ -227,6 +261,7 @@ export class CharacterSprite {
     for (const m of [this.material, this.hidden.material, this.fill.material, this.labelMaterial]) m.dispose();
     this.nameplate.geometry.dispose(); this.labelTexture.dispose();
     this.glow?.material.dispose();
+    for (const m of this.trail || []) m.material.dispose();
     this.voidHalo?.material.dispose();
   }
 

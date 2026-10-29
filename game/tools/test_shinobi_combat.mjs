@@ -70,7 +70,7 @@ function assassinate(g, hero, target) {
 for (const model of ['ronin', 'ninja_leader']) {
   const { g, hero, spawn } = make();
   const target = spawn('hero', -7, 1, { owner: 'rival', model });
-  for (const [before, after] of [[300,180],[180,108],[100,60],[301,181],[1,1],[.5,.5]]) {
+  for (const [before, after] of [[300,150],[180,90],[100,50],[301,151],[1,1],[.5,.5]]) {
     target.hp = before;
     assassinate(g, hero, target);
     assert.equal(target.hp, after, `${model}: ${before} current HP becomes ${after}`);

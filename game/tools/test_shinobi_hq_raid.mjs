@@ -158,7 +158,7 @@ for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
   for (let i = 0; i < 6; i++) g.spawn('thug', 'thug', ...b.ring, { owner: 'player', holdFire: true, order: { kind: 'follow', target: h.id } });
   g.step([{ type: 'time', night: true }]);
   const brain = createBot(g, { clan: 'player', hero: h.id, rules: { raidChance: 1, raidMinCrew: 6,
-    escort: 0, stationPerBusiness: 0, huntBandits: false, abilities: [], patrolChance: 0 } });
+    escort: 0, stationPerBusiness: 0, fillShare: 0, huntBandits: false, abilities: [], patrolChance: 0 } });
   for (let i = 0; i < 240 && !g.state.attacks[b.id]; i++) g.step(brain.tick());
   assert.equal(g.state.attacks[b.id]?.hq, true, `business-clan bot can scout and choose the Shinobi HQ: ${JSON.stringify(brain.goal())}`);
 }

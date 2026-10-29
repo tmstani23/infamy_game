@@ -22,7 +22,7 @@
     "ryoSpread": 0,
     "ryo": { "bandit": 25, "night_brute": 50 }
   },
-  "rewards": { "crewExecution": 50, "leaderKnockout": 250 },
+  "rewards": { "crewExecution": 50, "leaderKnockout": 250, "buildingDefended": 150, "sectorClear": 200, "_note": "buildingDefended: owner gets it when a Shinobi Sabotage/Steal they were warned about fails; sectorClear: rivals (2+ units) on a sector's streets with yours and now only yours remain, once per sector per 3 min (Tim 2026-10-29)" },
   "police": {
     "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",
     "officersPerTier": [0, 2, 4, 8, 10],
@@ -40,22 +40,22 @@
   "costs": {
     "startRyo": 200,
     "hire": { "thug": 60, "brute": 100, "swordsman": 120 },
-    "priceStepPerCrew": 0.15,
+    "priceStepPerCrew": 0.05,
     "recoverShare": 0.25,
     "reviveNowShare": 0.5
   },
   "businesses": {
     "_note": "price = buy an unclaimed one (about 4 payouts); payout = ryo at every dawn, none during a police Manhunt; attackWaves = police waves when you attack it unclaimed (plus 1 per heat tier); crewSlots = crew it adds to your cap (Tim 2026-10-19: by type, no hard cap); score = season points while you own it (Tim 2026-10-20: weighted by size)",
-    "teahouse":     { "price": 400,  "payout": 100, "attackWaves": 3, "crewSlots": 1, "score": 1 },
-    "shop":         { "price": 400,  "payout": 100, "attackWaves": 3, "crewSlots": 1, "score": 1 },
-    "warehouse":    { "price": 700,  "payout": 175, "attackWaves": 4, "crewSlots": 2, "score": 2 },
-    "gambling_den": { "price": 1200, "payout": 300, "attackWaves": 6, "crewSlots": 2, "score": 3 },
-    "tenements":    { "price": 1600, "payout": 400, "attackWaves": 8, "crewSlots": 3, "score": 4 },
-    "pawnshop": {"price": 400, "payout": 100, "attackWaves": 3, "crewSlots": 1, "score": 1},
-    "bathhouse": {"price": 700, "payout": 175, "attackWaves": 4, "crewSlots": 2, "score": 2},
-    "sake_brewery": {"price": 700, "payout": 175, "attackWaves": 4, "crewSlots": 2, "score": 2},
-    "manor": {"price": 1600, "payout": 400, "attackWaves": 8, "crewSlots": 3, "score": 4},
-    "customs_house": {"price": 1600, "payout": 400, "attackWaves": 8, "crewSlots": 3, "score": 4}
+    "teahouse":     { "price": 400,  "payout": 200, "attackWaves": 3, "crewSlots": 1, "score": 1 },
+    "shop":         { "price": 400,  "payout": 200, "attackWaves": 3, "crewSlots": 1, "score": 1 },
+    "warehouse":    { "price": 700,  "payout": 350, "attackWaves": 4, "crewSlots": 2, "score": 2 },
+    "gambling_den": { "price": 1200, "payout": 600, "attackWaves": 6, "crewSlots": 2, "score": 3 },
+    "tenements":    { "price": 1600, "payout": 800, "attackWaves": 8, "crewSlots": 3, "score": 4 },
+    "pawnshop": {"price": 400, "payout": 200, "attackWaves": 3, "crewSlots": 1, "score": 1},
+    "bathhouse": {"price": 700, "payout": 350, "attackWaves": 4, "crewSlots": 2, "score": 2},
+    "sake_brewery": {"price": 700, "payout": 350, "attackWaves": 4, "crewSlots": 2, "score": 2},
+    "manor": {"price": 1600, "payout": 800, "attackWaves": 8, "crewSlots": 3, "score": 4},
+    "customs_house": {"price": 1600, "payout": 800, "attackWaves": 8, "crewSlots": 3, "score": 4}
   },
   "territory": {
     "_note": "territory (sim/territory.js, Tim 2026-10-20): radius = street around each owned business that is your clan's (nearest business wins where they overlap); in your own territory you see every unit but hidden ninja, healFactor x faster slow healing, heat cools 1 every heatCoolSeconds, crew move crewSpeed x faster; quarterBonus = extra share of payout for holding every business in a quarter; a rival clan walking in alerts you at most once every intruderAlertSeconds per business",
@@ -83,7 +83,9 @@
     "restPerSecond": 0.01
   },
   "crew": {
-    "baseCap": 3,
+    "_note": "crew cap = baseCap + capPerDawn for each dawn so far + business slots (Shinobi: Renown); Tim 2026-10-28 aims about 6 / 10 / 15 / 20-24 at start / dawn 3 / dawn 6 / dawn 10",
+    "baseCap": 6,
+    "capPerDawn": 1,
     "heroRespawnSeconds": 20
   }
 }

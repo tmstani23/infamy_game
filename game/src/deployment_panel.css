@@ -100,6 +100,7 @@
 #bar .crew.grouped { display:flex; flex-direction:column; align-items:stretch; width:245px; max-height:200px; overflow:auto; gap:5px; }
 #bar .crew-section { border:1px solid #4a514c; border-radius:4px; padding:4px; }
 #bar .crew-section.selected { border-color:#c7d99b; box-shadow:inset 0 0 6px #b4d88933; }
+#bar .crew-section.drop-target { border-color:#ffd34d; box-shadow:inset 0 0 8px #ffd34d55; }
 #bar .crew-group-select { display:block; width:100%; text-align:left; background:#1d2526; color:#d6d8b8; border:0; font:11px system-ui; padding:4px; cursor:pointer; }
 #bar .crew-group-select[aria-pressed="true"] { color:#d9f3b0; background:#31412d; }
 #bar .crew-group-pips { display:flex; flex-wrap:wrap; gap:3px; color:#aaa; font:10px system-ui; }

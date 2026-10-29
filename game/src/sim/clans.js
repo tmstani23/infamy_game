@@ -39,11 +39,12 @@ export function createClans(state, units, opts = {}) {
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
   const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0) + (state.clans[id]?.respawning?.length || 0);
 
-  // Hero + baseCap crew, plus slots for every business the clan holds
+  // Hero + baseCap crew, +capPerDawn for every dawn of the season so far (Tim 2026-10-28), plus slots for every business the clan holds
   function crewCap(id) {
+    const base = rules.baseCap + Math.max(0, (state.season?.day || 1) - 1) * (rules.capPerDawn || 0);
     // the Shinobi clan holds no businesses: its crew grows with Renown (renownPerCrew a head)
-    if (state.clans[id]?.kind === 'ninja') return rules.baseCap + Math.floor((state.clans[id].renown || 0) / (rules.renownPerCrew || 100));
-    return rules.baseCap + Object.values(state.businesses)
+    if (state.clans[id]?.kind === 'ninja') return base + Math.floor((state.clans[id].renown || 0) / (rules.renownPerCrew || 100));
+    return base + Object.values(state.businesses)
       .filter(b => b.owner === id)
       .reduce((n, b) => n + (rules.capPerBusiness[b.kind] || 0), 0);
   }

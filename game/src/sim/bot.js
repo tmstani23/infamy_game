@@ -13,7 +13,7 @@ import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
-  escort: 3, stationPerBusiness: 1, patrolChance: 0.5,
+  escort: 3, stationPerBusiness: 1, patrolChance: 0.5, fillShare: 0.9,
   attackChance: 0.5, attackMinCrew: 4, attackMaxHeat: 60,
   huntBandits: true, huntRange: 10, bribeAtHeat: 60,
   raidChance: 0.5, raidMinCrew: 6, raidReserve: 200, raidWhenWeak: false, memorySeconds: 60,
@@ -28,7 +28,8 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const state = game.state, secs = s => Math.round(s * 20);
   // Faction is independent of the local player/bot id. Kuroda trades the
   // standard swordsman slot for aggressive spear recruits.
-  if (state.clans[clan]?.faction === 'kuroda') B.hireType = 'spearman';
+  if (state.clans[clan]?.faction === 'kuroda') { B.hireType = 'spearman'; B.special ??= 'kuroda_rifleman'; }
+  else if (state.clans[clan]?.faction === 'yakuza') B.special ??= 'yakuza_enforcer';
   const ai = createAISupport(game, clan, hero, B);
   const deploymentAI = createDeploymentAI(game, { clan, hero });
   // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
@@ -60,14 +61,20 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const priceOf = b => game.businesses.rules[b.kind]?.price;
   const raidTarget = b => !b.hideout || (isShinobiHQ(state, b) && !(state.hqRaids?.[b.id]?.protectedUntil > state.tick));
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
+  // one clan special (Kuroda rifleman, Yakuza enforcer) once the crew has 4, like the Shinobi bot's geisha (sim/ninja_bot.js)
+  const hireType = () => {
+    const sp = B.special, have = sp && [...game.clans.crewOf(clan), ...myClan().queue, ...myClan().clinic, ...(myClan().jail || [])].some(e => (e.type || e.unit) === sp);
+    return sp && !have && game.clans.crewCount(clan) >= (B.specialAt ?? 4) && game.clans.hirePrice(clan, sp) !== null ? sp : B.hireType;
+  };
   const canHireNow = () => {
-    const price = game.clans.hirePrice(clan, B.hireType);
+    const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;
     const owned = biz().filter(b => b.owner === clan && !b.hideout).length;
     // One opening recruit is enough to earn the first property. Later keep an
     // escort and garrisons, with six available once raiding is the next expansion.
     const open = biz().some(b => (!ai.known(b) || !b.owner) && priceOf(b));
-    const desired = owned ? Math.max(B.escort + owned * B.stationPerBusiness, open ? 0 : B.raidMinCrew) : 1;
+    // Once it owns property it fills fillShare of its cap (Tim 2026-10-28: easy 0.8, medium 0.9, hard 1).
+    const desired = owned ? Math.max(Math.ceil(game.clans.crewCap(clan) * (B.fillShare ?? 1)), open ? 0 : B.raidMinCrew) : 1;
     return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
 
@@ -189,7 +196,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
         if (goal.leaving) return toStreet(out);
         if (h.place === b.room) {
           // inside: put in every hire it can afford (one a tick, so the price updates), then leave
-          if (!goal.sent && canHireNow()) { out.push({ id: hero, type: 'hire', business: b.id, unit: B.hireType }); goal.sent = true; return false; }
+          if (!goal.sent && canHireNow()) { out.push({ id: hero, type: 'hire', business: b.id, unit: hireType() }); goal.sent = true; return false; }
           goal.sent = false;
           if (canHireNow()) return false;
           goal.leaving = true;

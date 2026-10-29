@@ -101,7 +101,7 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
       e.deployment.duty = { manual: false, status: 'Attacking' };
       if (e.execute) { executeStep(e, unit); return true; }
       const t = state.entities[op.target];
-      if (alive(t) && sees(e, t) && deployment.canActAt(e, t.x, t.z, t.place)) attackStep(e, unit, t); else e.anim = 'idle';
+      if (alive(t) && t.place === e.place && sees(e, t) && deployment.canActAt(e, t.x, t.z, t.place)) attackStep(e, unit, t); else { clearCombat(e); e.anim = 'idle'; }
       return true;
     }
     return task.task === 'ambush' || task.ambushNext || config(e.owner).hunt ? patrol(e, unit, task) : false;

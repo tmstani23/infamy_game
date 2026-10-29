@@ -201,7 +201,8 @@ export function hiddenMaterial(uniforms) {
 
 // Faint weapon glow over a character: the exporter's _glow sheet (weapon alone, white halo)
 // tinted per weapon type and added on top; shares the sprite's frame, depth and opacity uniforms
-export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false, coreColor = color, coreStrength = 0 } = {}) {
+// shimmerColor: hero weapons only (Tim 2026-10-28): a band of light that sweeps up the blade (uShimmer = band position, < -0.5 off)
+export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false, coreColor = color, coreStrength = 0, shimmerColor = [1, 1, 1] } = {}) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uMap: { value: map },
@@ -214,6 +215,8 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
       uCoreStrength: { value: coreStrength },
       uVoid: { value: isVoid ? 1 : 0 },
       uDark: { value: dark ? 1 : 0 },
+      uShimmer: { value: -1 },
+      uShimmerColor: { value: new THREE.Color(...shimmerColor) },
     },
     vertexShader: SPRITE_VERT,
     fragmentShader: /* glsl */`
@@ -225,6 +228,9 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
       uniform float uCoreStrength;
       uniform float uVoid;
       uniform float uDark;
+      uniform float uShimmer;
+      uniform vec3 uShimmerColor;
+      uniform vec4 uFrame;
       varying vec2 vUv;
       void main() {
         float mask = texture2D(uMap, vUv).a;
@@ -239,9 +245,16 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
           return;
         }
         float g = mask * uStrength * uOpacity;
-        if (g < 0.01) discard;
+        float shine = 0.0;
+        if (uShimmer > -0.5) {
+          vec2 local = (vUv - uFrame.xy) / uFrame.zw;
+          float s = local.y + 0.3 * local.x;   // bottom to top, slightly diagonal: hilt to tip on most poses
+          float k = (s - uShimmer) / 0.07;
+          shine = exp(-k * k) * pow(mask, 1.5) * uOpacity;
+        }
+        if (g < 0.01 && shine < 0.01) discard;
         float core = pow(mask, 3.0) * uCoreStrength * uStrength * uOpacity;
-        gl_FragColor = vec4(uColor * g + uCoreColor * core, 1.0);
+        gl_FragColor = vec4(uColor * g + uCoreColor * core + uShimmerColor * shine * 1.6, 1.0);
       }`,
     transparent: true, depthTest: true, depthWrite: false,
     blending: dark ? THREE.NormalBlending : THREE.AdditiveBlending,

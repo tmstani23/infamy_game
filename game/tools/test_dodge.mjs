@@ -17,6 +17,8 @@ function fixture(type = 'hero', chance = .15) {
   const attacker = g.state.entities[g.spawn('hero', 'ronin', -8, 1, { owner: 'rival', holdFire: true })];
   target.hp = target.maxHp = 100000;
   g.step(); // populate both clans' vision before forcing strike ticks
+  // a spawned ninja starts hidden; reveal it and let stealth update once, or the first forced strike can't see him
+  target.revealUntil = g.state.tick + 200; g.step();
   const strike = () => {
     target.revealUntil = g.state.tick + 200;
     attacker.swing = { start: g.state.tick, strike: g.state.tick, len: 8, target: target.id };

@@ -33,7 +33,7 @@ for (const choice of CLAN_CHOICES) for (const difficulty of DIFFICULTY_CHOICES) 
     const crew = g.clans.crewOf(id);
     assert.equal(crew.length, 1);
     assert.equal(crew[0].type, identity.kind === 'ninja' ? 'ninja' : 'thug');
-    assert.equal(g.clans.crewCap(id), 3);
+    assert.equal(g.clans.crewCap(id), g.settings.units.rules.baseCap);
     assert.ok(g.nav.free(crew[0].x,crew[0].z));
     const hero = Object.values(S.entities).find(e => e.owner === id && e.type === 'hero');
     assert.equal(hero.model, identity.model);

@@ -34,6 +34,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const camTarget = new THREE.Vector3();
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
+  let watchFn = null;      // camera follow target (double-click a crew name or group header): () => { x, z } or null
   const PAN_SPEED = 16;
   // Indoors the camera may also travel to the street to command outdoor crew.
   const B = district.bounds, inMap = p => {
@@ -273,7 +274,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
-      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, e.anim, swingT,
+      // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
+      const anim = e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
+      s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       s.setHealth(e.hp, e.maxHp);
       s.setNameplate(e.name || unitName(units || { types: {} }, e.type), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
@@ -332,8 +335,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // went through a door (or first frame): jump there and follow again
       // a crew jump (jumpTo) lasts until the hero moves or goes through a door
       const place = state.entities[followId]?.place;
-      if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
-      if (place !== heroPlace) freeCam = null;   // through a door: look at the hero again
+      // watching a unit or group (double-click, Tim 2026-10-28): follow it until a pan, a map click or Home
+      const w = watchFn && watchFn();
+      if (watchFn && !w) watchFn = null;
+      if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, hero.pos.y, w.z); }
+      else {
+        if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
+        if (place !== heroPlace) freeCam = null;   // through a door: look at the hero again
+      }
       heroPlace = place;
       if (!camReady || camTarget.distanceTo(hero.pos) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
       camTarget.lerp(freeCam || hero.pos, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
@@ -428,20 +437,23 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // arrow-key panning (right, up from -1 to 1 on screen); the camera stays there until snapBack
     pan(right, up, dt) {
       if (!right && !up) return;
+      watchFn = null;
       freeCam ||= camTarget.clone();
       const k = PAN_SPEED * dt / zoomNow;
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
       inMap(freeCam);
     },
-    snapBack() { freeCam = null; farCam = false; },
+    snapBack() { freeCam = null; farCam = false; watchFn = null; },
+    // keep the camera on fn() = { x, z } every frame (null ends it); pans, map clicks and Home stop it
+    watch(fn) { watchFn = fn; },
     // look at a ground point (minimap click); stays there until snapBack, like panning
     lookAt(x, z) {
-      farCam = false;
+      farCam = false; watchFn = null;
       freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z);
       inMap(freeCam);
     },
     // jump to any point however far from the hero (double-click a crew name); stays there until the hero moves, uses a door or Home
-    jumpTo(x, z) { farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
+    jumpTo(x, z) { watchFn = null; farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
     isPanned: () => !!freeCam,
     flashBuilding(i) { if (i !== null && i !== undefined) flashes.set(i, 0); },
     // selection rings under these unit ids (selection is screen-only, not game state)

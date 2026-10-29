@@ -12,10 +12,13 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   set(ur, 'recoverCostShare', c.recoverShare);
   set(ur, 'reviveNowCostShare', c.reviveNowShare);
   set(ur, 'leaderBounty', s.rewards?.leaderKnockout);
+  set(ur, 'sectorClearBonus', s.rewards?.sectorClear);
+  if (ur && s.rewards?.buildingDefended !== undefined) ur.contracts = { ...ur.contracts, defendBonus: s.rewards.buildingDefended };
   if (s.rewards?.crewExecution !== undefined) for (const type of Object.values(units?.types || {}))
     if (type.executeRyo !== undefined) type.executeRyo = s.rewards.crewExecution;
   for (const [type, price] of Object.entries(c.hire || {})) set(units?.types?.[type], 'price', price);
   set(ur, 'baseCap', crew.baseCap);
+  set(ur, 'capPerDawn', crew.capPerDawn);
   set(ur, 'heroRespawnSeconds', crew.heroRespawnSeconds);
   if (ur?.capPerBusiness && crew.capPerBusiness !== undefined) for (const k in ur.capPerBusiness) ur.capPerBusiness[k] = crew.capPerBusiness;
   if (ur && heat.townsfolk) ur.civilianHeat = { ...ur.civilianHeat, ...heat.townsfolk };

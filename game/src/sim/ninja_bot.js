@@ -14,7 +14,7 @@ import { contractLockoutUntil } from './hq_raids.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 
 export const NINJA_BOT_DEFAULTS = {
-  thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4,
+  thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4, fillShare: 0.9,
   // Allowed jobs in preference order; reward, time and risk also affect the choice.
   jobs: ['bandits', 'scout', 'boss', 'steal', 'mark'],
   huntRange: 12, fleeHp: 0.3, restUntilHp: 0.8, smokeHp: 0.5, snuff: true,
@@ -61,7 +61,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;
     const established = (myClan().renown || 0) >= (U.renownPerCrew || 75);
-    const desired = established || myClan().ryo >= 500 ? game.clans.crewCap(clan) : 1;
+    const desired = established || myClan().ryo >= 500 ? Math.ceil(game.clans.crewCap(clan) * (B.fillShare ?? 1)) : 1;
     return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
   const readyPatient = c => c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && c.ryo >= game.clans.reviveCost(p, clan));

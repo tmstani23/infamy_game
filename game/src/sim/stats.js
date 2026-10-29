@@ -24,7 +24,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     return clamp((base(e).critChance || 0) + bonus);
   }
   const dodgeChance = e => clamp(base(e).dodgeChance || 0);
-  const damageTaken = e => formationMultiplier(e);
+  const damageTaken = e => formationMultiplier(e) * (buff(e, 'bulwark')?.taken || 1);   // bulwark: enforcer while his taunt holds (sim/taunt.js)
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;

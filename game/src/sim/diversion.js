@@ -8,9 +8,12 @@
 //  - Caught anyway (a threat stays in reach for cornerTicks, or there is nowhere to run): she
 //    fights, and her stats (units.json shinobi_geisha) make her deadly up close.
 // An explicit attack order from the player still makes her fight like any crew member.
+import { createFlee } from './flee.js';
+
 export const DIVERSION = { radius: 6, durationTicks: 80, cooldownTicks: 200, threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, castTicks: 20 };
 export function createDiversion({ state, deployment, vision, reveal, clearCombat, inCombat = () => false,
-  hostile = () => false, attackStep = () => {}, moveTo = () => false, nearestFree = (x, z) => [x, z], fightTarget = () => null }) {
+  hostile = () => false, attackStep = () => {}, moveTo = () => false, nearestFree = (x, z) => [x, z], fightTarget = () => null, clearLine = () => true }) {
+  const flee = createFlee({ state, moveTo, nearestFree, clearLine, canOccupy: (e, x, z, place) => deployment.canOccupy(e, x, z, place) });
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
   const isGeisha = e => e?.type === 'shinobi_geisha';
   const targets = (t, id) => fightTarget(t.id) === id || t.attackTarget === id || (t.order?.kind === 'attack' && t.order.target === id) || t.swing?.target === id;
@@ -42,17 +45,10 @@ export function createDiversion({ state, deployment, vision, reveal, clearCombat
     state.casts.push({ kind: 'diversion', a: e.id, x: best.x, z: best.z, radius: 1.2 });
     return true;
   }
-  function flee(e, unit, from) {
-    const away = Math.atan2(e.z - from.z, e.x - from.x);
-    for (const turn of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) {
-      const a = away + turn, p = nearestFree(e.x + Math.cos(a) * 5, e.z + Math.sin(a) * 5);
-      if (!p || !deployment.canOccupy(e, p[0], p[1], e.place)) continue;
-      if (moveTo(e, unit, p[0], p[1], false)) return true;
-    }
-    return false;
-  }
   function geishaStep(e, unit) {
     if (!alive(e) || e.deployment?.transfer || e.order?.kind === 'attack') { delete e.cornered; return false; }
+    // a move-type order from you beats running away (Tim 2026-10-28)
+    if ((e.order?.kind === 'move' && !e.order.arrived) || ['attackmove', 'enter', 'heal', 'loot'].includes(e.order?.kind)) { delete e.cornered; if (e.geishaMode) { delete e.geishaMode; delete e.fleeGoal; } return false; }
     const threats = Object.values(state.entities).filter(t => alive(t) && t.place === e.place && t.distracted?.source !== e.id && hostile(t, e)
       && Math.hypot(t.x - e.x, t.z - e.z) < (targets(t, e.id) ? DIVERSION.threatRadius : DIVERSION.closeRadius));
     if (threats.length) {

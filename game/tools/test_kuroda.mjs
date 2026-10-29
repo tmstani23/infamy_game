@@ -47,9 +47,9 @@ for(const player of ['yakuza','kuroda','shinobi']) {
   const k=player==='kuroda'?'player':'kuroda', y=player==='yakuza'?'player':'yakuza';
   assert.equal(g.state.clans[k].faction,'kuroda');
   assert.equal(g.clans.hirePrice(k,'swordsman'),null);
-  assert.equal(g.clans.hirePrice(k,'spearman'),138);
+  assert.equal(g.clans.hirePrice(k,'spearman'),126);
   assert.equal(g.clans.hirePrice(y,'spearman'),null);
-  assert.equal(g.clans.hirePrice(y,'swordsman'),138);
+  assert.equal(g.clans.hirePrice(y,'swordsman'),126);
   assert.equal(g.clans.hirePrice(player==='shinobi'?'player':'shinobi','spearman'),null);
 }
 {
