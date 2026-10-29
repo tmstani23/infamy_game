@@ -99,7 +99,7 @@ Sector Watch, manual Ambush, geisha Diversion, Secure Extraction, deployment/UI 
 
 ## All-day contracts follow-on (agreed design 2026-10-27)
 
-**Authorization update (Tim, 2026-10-27):** all-day contracts and the readable-stealth/HUD follow-on below are authorized in the sequential [deployment follow-on build](deployment_sector_plan.md#sequential-follow-on-checklist--authorized-2026-10-27-not-yet-complete). This supersedes earlier pending-build-confirmation wording in these follow-on sections. Initial +25% hidden-completion Renown for infiltration jobs is authorized; record actual refresh/stealth tuning when implemented. No item is complete until implementation/checks are reported. Watch-helper/Extraction replacement and plant-and-leave sabotage remain unapproved.
+Implementation/check history: [deployment follow-on record](deployment_sector_plan.md#follow-on-f-final-integration-passed-2026-10-27). Watch-helper assistance and plant-and-leave sabotage remain unapproved; Secure Extraction was subsequently removed in the playtest follow-up.
 
 **Implemented/sim-checked 2026-10-27; UI visual playtest pending.** Any Shinobi contract may be accepted, progressed and completed at any time of day. Sabotage planting, generated flags/tonight labels, bot waits/cutoff scoring and active-job expiry no longer depend on night/dawn. Accepted jobs and their own progress survive dusk/dawn; no replacement hard deadline is approved.
 
@@ -122,6 +122,7 @@ Still proposals: removing Secure Extraction and folding contract assistance into
 ### Agreed stealth and interaction behavior
 
 - Stealth spotting generally indoors/outdoors by armed observers (guards, police, bandits, clan units) requires their forward view cone, actual simulated facing and line of sight. Walls/opaque cover block it. Walking has smaller detection and a short suspicion buildup, shown over the guard, rather than instant detection.
+- Close range (2026-10-29): within `rules.stealth.closeRange` 1.2 enemies sense a ninja regardless of facing; LOS, rooms, smoke and veil still apply. The badge tooltip says "too close".
 - Patrol starting positions/timing must offer at least one usable entrance opening, with timing the player can observe instead of guards parked over entry. Movement should be predictable without sudden random direction shifts.
 - Quiet objective completion should use faster/short interactions. No exact timers are approved. Plant-and-leave sabotage instead of hold remains a separate redesign proposal.
 - **Distract:** normal travel to the reachable landing spot, then **four seconds investigating/staring on arrival**; travel never consumes this window. Face the spot, then resume saved patrol/duty. Facing-cone threats remain perceptible; damage/confirmed combat may interrupt. This is not a stun or mind control. Preserve existing eligibility/cooldown and caltrop slow unless separately changed.

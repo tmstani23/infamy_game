@@ -50,7 +50,7 @@ export function createStealthBadge({ root, game, heroId, view }) {
       root.style.setProperty('--conceal', String(.2 + state.concealment * .65));
       meter.setAttribute('stroke-dasharray', `${state.suspicion * 100} 100`);
       ready.textContent = state.f; move.textContent = state.movement === 'running' ? '» RUN' : state.movement === 'walking' ? '› WALK' : 'STILL';
-      const text = `${state.hidden ? state.suspicion > 0 ? 'HIDDEN · suspicion rising' : 'HIDDEN' : 'SEEN'} · ${state.movement} · ${state.lighting}${state.mode !== 'normal' ? ` · ${state.mode}` : ''} · ${state.f === 'F' ? 'F ready' : state.f ? `F in ${state.f}s` : 'F unavailable'} · snuffs ${game.stealth.snuffsLeft(hero.owner)}/${game.stealth.rules.snuffPerNight}`;
+      const text = `${state.hidden ? state.suspicion > 0 ? hero.stealthStatus?.close ? 'HIDDEN · too close, sensed from any side' : 'HIDDEN · suspicion rising' : 'HIDDEN' : 'SEEN'} · ${state.movement} · ${state.lighting}${state.mode !== 'normal' ? ` · ${state.mode}` : ''} · ${state.f === 'F' ? 'F ready' : state.f ? `F in ${state.f}s` : 'F unavailable'} · snuffs ${game.stealth.snuffsLeft(hero.owner)}/${game.stealth.rules.snuffPerNight}`;
       root.title = text; root.setAttribute('aria-label', text);
       for (const observer of hero.stealthStatus?.observers || []) {
         const e = game.state.entities[observer.id];

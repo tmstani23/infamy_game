@@ -1,6 +1,7 @@
 // Stealth for the Shinobi clan (ninja build phase 3, Tim 2026-10-20): its units (the ninja leader
 // and ninja crew) are hidden unless an enemy stands within detection range: darkRange in the dark,
-// litRange in lantern light or by day, indoorRange in a room, times runFactor while running.
+// litRange in lantern light or by day, indoorRange in a room, times runFactor while running; only
+// enemies facing it (viewAngle cone) count, except within closeRange, where facing doesn't matter.
 // Once seen, or when it hits or is hit, a unit is revealed for revealSeconds. Hidden units cannot
 // be seen or targeted by anyone else (sim/vision.js canSee, sim/game.js sees). Townsfolk never spot.
 // Snuffing a lantern: the ninja boss at night, within snuffReach of a lit lantern (click it or Space), for snuffSeconds
@@ -8,7 +9,7 @@
 // at most snuffPerNight a night. Numbers: units.json rules.stealth.
 import { inViewCone } from './perception.js';
 const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, revealSeconds: 5, lightRadius: 5,
-  viewAngle: 90, suspicionSeconds: 1.2, suspicionDecay: 2,
+  viewAngle: 90, closeRange: 1.2, suspicionSeconds: 1.2, suspicionDecay: 2,
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
 
 export const indoorLightId = (room,index) => `room:${room}:${index}`;
@@ -82,10 +83,14 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
       if ((e.revealUntil ?? -1) > state.tick) { e.hidden = false; continue; }
       const r = range(e), r2 = r * r;
       const memory = suspicion.get(e.id) || new Map(), active = new Set(); let maximum = 0;
-      for (const u of all) if (spotter(u, e) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r2 && inViewCone(u, e, R.viewAngle) && lineOfSight(u, e)) {
+      // close detection (phase 5, 2026-10-29): within closeRange an enemy senses you whatever way it faces
+      const c2 = Math.min(r, R.closeRange) ** 2;
+      for (const u of all) { const d2 = (u.x - e.x) ** 2 + (u.z - e.z) ** 2;
+        if (!spotter(u, e) || d2 > r2 || !(d2 <= c2 || inViewCone(u, e, R.viewAngle)) || !lineOfSight(u, e)) continue;
         active.add(u.id); const ticks = (memory.get(u.id) || 0) + R.every;
         memory.set(u.id, ticks); maximum = Math.max(maximum, ticks);
-        if (observerKnown(e, u)) e.stealthStatus.observers.push({ id: u.id, progress: Math.min(1, ticks / Math.max(1, secs(R.suspicionSeconds))) });
+        if (d2 <= c2) e.stealthStatus.close = true;
+        if (observerKnown(e, u)) e.stealthStatus.observers.push({ id: u.id, close: d2 <= c2, progress: Math.min(1, ticks / Math.max(1, secs(R.suspicionSeconds))) });
       }
       for (const [id, ticks] of memory) if (!active.has(id)) { const left = ticks - R.every * R.suspicionDecay; if (left > 0) memory.set(id, left); else memory.delete(id); }
       suspicion.set(e.id, memory);

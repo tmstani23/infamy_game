@@ -1,8 +1,8 @@
-import { INTRO_TRACKS } from './menu_music.js';
+import { GAME_TRACKS } from './menu_music.js';
 import { normalizeAudioSettings,readAudioSettings } from './audio_settings.js';
 
 // One streamed element for the whole match; no full-song WebAudio buffers.
-export function createGameMusic({audio=new Audio(),settings=readAudioSettings(),tracks=INTRO_TRACKS,
+export function createGameMusic({audio=new Audio(),settings=readAudioSettings(),tracks=GAME_TRACKS,
   random=Math.random,events=globalThis,doc=globalThis.document,onChange=()=>{}}={}){
   let prefs=normalizeAudioSettings(settings),bag=[],current=-1,closed=false,blocked=false,version=0;
   const failed=new Set();

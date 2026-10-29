@@ -206,6 +206,10 @@ async function start() {
     onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
+  // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
+  const unstuck = () => { const h = game.state.entities[heroId], no = h?.unstuck ? null : game.unstuck.why(h); if (no) callout(no, 'loss'); else pending.push({ id: heroId, type: 'unstuck' }); };
+  onKey('KeyU', unstuck);
+  $('unstuckbtn').addEventListener('click', e => { unstuck(); e.currentTarget.blur(); });
   function interactionDoor() {
     const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
     return access && selected.includes(access.actor.id) ? access.door : game.doorNear(heroId) || access?.door;
@@ -443,6 +447,7 @@ async function start() {
         if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);
         if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);
         if(n.kind==='shakedownPaid'&&n.clan===me)callout(`Shakedown paid: +${n.ryo} ryo`,'win');
+        if (n.kind === 'unstuck' && n.clan === me) { console.info('[stuck spot]', n.place, n.x.toFixed(1), n.z.toFixed(1)); callout('Back inside your HQ', 'win'); }
         if (n.kind === 'businessAttack' && n.clan === me) callout(`Your ${n.name} is under attack!`, 'loss');
         if (n.kind === 'hqSuppressed' && n.defender === me) callout(`HQ on fire! Contracts cancelled · reopen in ${Math.max(0, Math.ceil((n.suppressedUntil - game.state.tick) / TICK_RATE))} s`, 'loss');
         if (n.kind === 'hqSuppressed' && n.raider === me) callout(`Shinobi HQ defeated! +${n.points} points · +${n.bounty + n.stolen} ryo`, 'win');
@@ -506,6 +511,10 @@ async function start() {
       { const r = game.rally.status(game.state.entities[heroId].owner), b = $('rallybtn');
         b.disabled = r.active || r.cooldown > 0; b.textContent = r.active ? `Rally · ${r.seconds}s` : r.cooldown ? `Rally · ${r.cooldown}s` : 'Call Rally';
         b.title = 'Calls your remembered groups (all groups on first use). Configure groups in Deployment.'; }
+      { const s = game.unstuck.status(game.state.entities[heroId]), b = $('unstuckbtn');
+        const t = s.channel ? `Unstuck · ${s.channel}s` : s.cooldown ? `Unstuck · ${Math.floor(s.cooldown / 60)}:${String(s.cooldown % 60).padStart(2, '0')}` : 'Unstuck (U)';
+        if (b.textContent !== t) b.textContent = t;
+        b.title = s.channel ? 'Hold still: going back to your HQ (U again cancels)' : s.why || 'Stand still 3 s to go back inside your HQ (once per 5 min)'; }
       // in jail (sim/police.js): big red banner with the time left
       const jailed = game.state.entities[heroId]?.jailed, jailEl = $('jail');
       jailEl.hidden = !jailed;

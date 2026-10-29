@@ -5,6 +5,12 @@ export const INTRO_TRACKS=[
   {file:'intro_rain_night.mp3',title:'雨夜の菜单'},
 ];
 
+// In-game shuffle: the intro tracks plus gameplay-only songs (prompts in assets/music_prompts.md).
+export const GAME_TRACKS=[...INTRO_TRACKS,
+  {file:'harbor_morning.mp3',title:'港の朝'},
+  {file:'lanternlit_alley.mp3',title:'Lanternlit Alley'},
+];
+
 // Stream just one intro track; no full-song WebAudio decoding or combat voices.
 export function createMenuMusic({audio=new Audio(),storage,events=globalThis,doc=globalThis.document,
   random=Math.random,onChange=()=>{},timers=globalThis,now=()=>performance.now()}={}) {

@@ -26,7 +26,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/tech_plan.md](docs/tech_plan.md) | Code structure and build plan |
 | [docs/controls.md](docs/controls.md) | Every working control, plus planned keys |
 | [docs/crew_recruiting_plan.md](docs/crew_recruiting_plan.md) | Crew hiring and orders, phase by phase |
-| [docs/deployment_sector_plan.md](docs/deployment_sector_plan.md) | Phase 4 deployment, sectors and Rally (planned, not built) |
+| [docs/deployment_sector_plan.md](docs/deployment_sector_plan.md) | Deployment, sectors and Rally: built rules, checkpoints and manual playtest list |
 | [docs/combat_spec.md](docs/combat_spec.md) | Combat rules and feel, hero abilities, action bar, VFX plan |
 | [docs/business_raids_plan.md](docs/business_raids_plan.md) | Owning businesses, payouts, attacks, War Lantern raids, defending (plan) |
 | [docs/test_params.md](docs/test_params.md) | Every test URL parameter (`?fog=0`, `?raidme=den` ...) and what it does |
@@ -45,3 +45,4 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/playtest_followup_plan.md](docs/playtest_followup_plan.md) | Phased playtest follow-up: map performance first, deployment, crew/economy, stealth and later refactor; proposals and open decisions |
 | [assets/image_prompts.md](assets/image_prompts.md) | Image prompts (environment, items) |
 | [assets/character_prompts.md](assets/character_prompts.md) | Character concept prompts |
+| [assets/music_prompts.md](assets/music_prompts.md) | Suno music prompts and where tracks go |

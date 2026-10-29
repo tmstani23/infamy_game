@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { createGameMusic } from '../src/game_music.js';
+import { GAME_TRACKS } from '../src/menu_music.js';
+import { existsSync } from 'node:fs';
 import { readAudioSettings,saveAudioSettings } from '../src/audio_settings.js';
 class Media extends EventTarget{
   paused=true;volume=1;currentTime=0;plays=0;loads=0;blocked=false;
@@ -10,7 +12,7 @@ class Media extends EventTarget{
 const settle=async()=>{await Promise.resolve();await Promise.resolve();};
 function fixture(settings={},blocked=false){
   const audio=new Media(),events=new EventTarget(),doc=new EventTarget();doc.hidden=false;audio.blocked=blocked;
-  const music=createGameMusic({audio,events,doc,settings,random:()=>.3});return {audio,events,doc,music};
+  const music=createGameMusic({audio,events,doc,settings,random:()=>.3,tracks:[{file:'a.mp3'},{file:'b.mp3'}]});return {audio,events,doc,music};
 }
 {
   const {audio,music}=fixture();await settle();assert.equal(audio.paused,false);assert.equal(audio.loop,false);
@@ -45,4 +47,5 @@ function fixture(settings={},blocked=false){
   audio.dispatchEvent(new Event('error'));assert.equal(music.status().unavailable,true);const loads=audio.loads;
   events.dispatchEvent(new Event('pointerdown'));audio.dispatchEvent(new Event('ended'));await settle();assert.equal(audio.loads,loads,'failed playlist never spins');music.stop();
 }
-console.log('In-game music: two-track shuffle/nonrepeat, streaming, persistent off/volume, master mute, autoplay, visibility, failure and cleanup passed');
+for(const t of GAME_TRACKS)assert.ok(existsSync(new URL('../../assets/music/'+t.file,import.meta.url)),'missing '+t.file);
+console.log('In-game music: '+GAME_TRACKS.length+' tracks present; two-track shuffle/nonrepeat, streaming, persistent off/volume, master mute, autoplay, visibility, failure and cleanup passed');

@@ -22,6 +22,7 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Hideouts | Your inn and the rival's izakaya (H on the minimap) are locked to other clans ("<clan> hideout: no way in"); police can still go in |
 | Right-click an enemy body/nameplate/target portrait | Attack with current command group; Ctrl remains crew-only. Ground right-click moves; ally interactions remain |
 | Tab | Select/cycle enemy only; does not start attacks. Explicit Tab focus takes precedence over an old attack target |
+| U, or the Unstuck button | Hero only: 3 s channel back inside your own hideout (5 min cooldown; not within 5 s of a fight, during an HQ raid or in a contract objective room) |
 | Left-click an enemy/nameplate | Select target. Through fog, identity persists as Out of sight using last observed data; no new unseen attack or live marker |
 | (no target) | The hero doesn't pick fights (2026-10-19): he swings only at his locked target (Tab or right-click), or hits back at whoever hit him in the last 5 s if in reach. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
@@ -142,14 +143,7 @@ Phase 3G hover labels (2026-10-21): visible units have a small translucent toolt
 
 ## Approved playtest controls (2026-10-27)
 
-Follow-on implementation is progressing; current controls above reflect reported built phases. Phase 2 built/targeted-checked: no transfer dragging; prominent **Transfer selected crew** button with labelled destination or explicit map mode and immediate start. Phase 3 implemented/checked: group changes preserve confirmed manual move/attack until completion then duty; Escape/Return cancels immediately. [Exact approved requirements](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented). [Phased checklist](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
-
-- [x] **#5/#6 — Implemented/targeted-checked:** Tab selects only. Right-click ground always moves. T or right-click enemy target portrait/icon, nameplate/body/hero attacks using current group; preserve ally interactions. Left-click nameplate targets; right-click enemy nameplate attacks.
-- [x] **#7 — Implemented/targeted-checked:** preserve selected target identity through fog with truthful stale/out-of-sight information and no vision grants.
-- [x] Focused input-intent, ally-interaction and hidden-data checks passed; final panel/target/pursuit integration passed.
-- [ ] Tim visual interaction check. Group/pip/C/Rally changes are built as recorded in the linked deployment owner.
-
-Phase 5A checks (2026-10-27, reported by Build coordinator): new `test_target_controls` passed Tab/T/nameplates/ground and frozen fog HP/position/room; unit-frame, crew-group, Shinobi combat and indoor-crew checks passed. `target_memory.js` copies public position/HP/room only on actual sight and reacquires normally. Older `test_crew_assist` and `test_phase3b` now pass updated Tab/T semantics, remembered concealed targets/reacquired markers and execution protections. Final integration and Tim visuals remain pending.
+Implemented controls are listed above. Validation/build history lives in the [deployment owner](deployment_sector_plan.md#playtest-phase-6-final-integration-passed-2026-10-27); use the [manual playtest list](deployment_sector_plan.md#tim-manual-playtest-checklist-2026-10-27) for pending visual checks.
 
 Transfer/card follow-up (2026-10-28): destination-first **Assign crew to [ward]** offers source group, available crew/HP checkboxes, preview and **Assign selected crew**. Crew-first has no extra confirmation. Cancel physically returns crew, with pinned-HQ fallback if original group unavailable/full. Live selection cards dock inside Deployment/map, including traveler inspection, and restore HUD on close. [Rules/checks](deployment_sector_plan.md#playtest-follow-up-transfercardscleanup-2026-10-28).
 
@@ -158,6 +152,8 @@ Staffing/body jobs (2026-10-28): choose first ward when excess crew arrive; auto
 Current camera/action-bar catch-up (2026-10-28): double-click a crew pip follows that unit continuously; double-click group header follows the center of its largest nearby cluster. Pan/map click/Home ends that watch. Action-bar pips may now be dragged onto another Hero/sector/HQ group to submit the normal authoritative transfer command (Rally/medical are not drop destinations); this supersedes the earlier blanket no-transfer-drag statement for the action bar only. Deployment menu button-based flow remains.
 
 Shakedown (2026-10-28): as Yakuza, focus a staffed sector in Deployment, choose an eligible rival business and **Start Shakedown** at night. **Recall squad** withdraws; operation state/hold progress and authoritative rejection are shown. [Rules](deployment_sector_plan.md#shakedown-implementation-checkpoint-2026-10-28). Sweep is unbuilt.
+
+Intro music manual observation (2026-10-28): Tim reports the intro music and volume slider work well. This observation does not verify every autoplay/visibility/fade lifecycle case.
 
 Intro music (2026-10-29): start screen streams/loops one of two tracks per load, with play/pause and saved music volume respecting master/mute. Autoplay retries on first gesture; hidden tabs pause, Start fades/relinquishes audio over 600 ms. Test presets bypassing match selection skip intro music. Coordinator reports menu-music and game-shell checks passed. Tim reports music and volume slider work well; other lifecycle cases have no manual sign-off. Originals preserved in sounds/new_sounds; runtime copies in assets/music.
 

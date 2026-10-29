@@ -65,7 +65,7 @@ Follow-up checkpoint (2026-10-29), **implemented / Node-checked, manual Geisha p
 
 ## 4. Shinobi economy bug audit
 
-Status (2026-10-29): phase 4 implementation/targeted Node checkpoint complete; **stop for usage at Tim’s request**. Resume at phase 5, not started. Unstuck combat-use policy remains open. Original roughly 70% money-loss report and manual match balance are unconfirmed; Geisha manual playtest remains deferred. New playtest bugs go to phase 8.
+Status (2026-10-29): phase 4 implementation/targeted Node checkpoint complete; **stop for usage at Tim’s request**. Phase 5 built 2026-10-29 (close detection, Unstuck). Original roughly 70% money-loss report and manual match balance are unconfirmed; Geisha manual playtest remains deferred. New playtest bugs go to phase 8.
 
 Owners: [Shinobi](ninja_clan_plan.md), [economy](business_raids_plan.md).
 
@@ -79,8 +79,8 @@ Completed phase 4 checkpoint: [treasury debit audit/feedback and limits](busines
 
 Owners: [Shinobi](ninja_clan_plan.md), [controls](controls.md), [combat](combat_spec.md).
 
-- [ ] Proposed close detection: valid nearby enemy observers detect within two units independent of facing; respect rooms/solid walls and check Smoke/ability interactions. Preserve 90-degree cone, lighting and walk/run rules at longer range, with an honest warning badge.
-- [ ] Proposed own-HQ Unstuck button: once per five minutes with visible cooldown; authoritative safe destination and door/order/path/camera cleanup. **Combat-use policy remains an open decision before implementation.**
+- [x] Close detection (built 2026-10-29): enemies within `rules.stealth.closeRange` 1.2 sense a ninja whatever their facing; LOS, rooms, smoke and veil still apply. Badge tooltip says "too close".
+- [x] Unstuck (built 2026-10-29, `sim/unstuck.js`, `rules.unstuck`): hero only, 3 s channel, 5 min cooldown; blocked 5 s after a fight, during an HQ raid and in a contract objective room; lands inside your own hideout. Uses are logged to `state.stuckSpots` and the console as "[stuck spot]". Test `game/tools/test_unstuck.mjs`.
 
 ## 6. Crew growth and match balance
 

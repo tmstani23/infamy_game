@@ -13,6 +13,7 @@ Central `rally.buffEligible` permits the own hero, hired permanent hero-group cr
 - **Crew:** auto-attack within 6 steps, leashed 10 steps to their hero / station / move point. A plain move ignores enemies until it arrives. Right-click enemy = focus. X + click = attack-move.
 - **Who fights (2026-10-19/20):** no clan's hero or crew picks fights. They fight on an attack order or T, attack-move, while stationed, when hit (hit back at whoever hit them in the last 5 s), and as **backup**: crew within 6 steps join in on whoever hit their boss or a clanmate in the last 5 s (all clans; crew stopped with Z or on a move order don't). Inside a raided or attacked business everyone fights on their own.
 - **Hero:** hits the nearest enemy in reach while standing still; moving stops attacks. Lock-on (2026-10-18): right-click or Tab locks a target (left-click only marks it); the hero swings when within 2.5 steps and does not chase; the lock drops beyond 14 steps or when the target is down. At 0 HP knocked out, back up at the clinic after 20 s.
+- **Unstuck (2026-10-29):** `sim/unstuck.js`, `units.json` `rules.unstuck`: hero-only 3 s channel to your own hideout, 5 min cooldown, blocked 5 s after a fight, during an HQ raid and in a contract objective room.
 - **Hits:** `damage` every `attackSpeed` seconds once within `attackRange`. Damage lands 40% through the swing (build order 1).
 - **Death (2026-10-17):** crew at 0 HP go down first; executed crew play the death animation and are removed (dead, rehire), the rest are carried to the clinic. See section H.
 - **Health (Tim, 2026-10-21):** ronin 560, ninja leader 490, thug 200, brute 360, swordsman 240 HP. Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
@@ -106,7 +107,7 @@ Planned, not built (2026-10-22): compact hero buff/debuff icon strip near the ac
 
 ### Kuroda Teppo rifleman (2026-10-28)
 
-Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger, range 8 (1 s aim, 3 s reload); melee 18 per hit; no separate gunfire infamy (2026-10-28); standard police/civilian hit infamy still applies; explicit movement/attack orders take priority; rifleman does not autonomously flee. The Kuroda bot hires one once it has 4 crew.
+Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercenary sprite): 160 HP; an aimed shot for 80 damage plus a 1.5 s stagger (half for heroes), range 8 (1 s aim, 3 s reload); melee 18 per hit; no separate gunfire infamy (2026-10-28); standard police/civilian hit infamy still applies; explicit movement/attack orders take priority; rifleman does not autonomously flee. The Kuroda bot hires one once it has 4 crew.
 
 
 ### Yakuza Irezumi enforcer (2026-10-29)
@@ -244,15 +245,13 @@ Build coordinator reports combat, Kuroda, Shinobi combat, territory, crew-groups
 
 - [x] **Playtest #8, implemented/targeted-checked 2026-10-27:** explicit attack pursuit follows accessible doors in/out, respecting entry permissions and sector restrictions. Check entry/exit, inaccessible doors and no area/permission bypass; Tim playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
 
-Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pursue through permitted entrance/exit and obey sector/entry/raid-slot limits. Unseen pursuit uses last-known public position/door, never hidden coordinates. New `test_door_pursuit` passed real entry/exit with the same target; broader input-fixture updates/final integration remain pending. Tim visuals unchecked; no commit/push requested.
+Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pursue through permitted entrance/exit and obey sector/entry/raid-slot limits. Unseen pursuit uses last-known public position/door, never hidden coordinates. New `test_door_pursuit` passed real entry/exit with the same target; input fixtures and final integration subsequently passed (deployment owner record). Tim visuals unchecked; no commit/push requested.
 
 ## Smoke nameplate visibility fix (2026-10-28)
 
 Visible nameplates now render above smoke/combat particles (`characters.js` order 99860 versus smoke 99810), so existing visible enemies' clickable labels are not obscured. Vision/stealth, nameplate toggle and targeting eligibility remain unchanged; concealed enemies stay concealed. Smoke Bomb still drops attacks/holds fire as before.
 
 Build coordinator reports target-controls, Ninja and Shinobi combat checks passed, including smoke drop/hold-fire/stealth regressions; source syntax/diff checks clean. No browser visual test claimed; Tim smoke/nameplate retest pending.
-
-Current-code catch-up (2026-10-28): Kuroda rifleman uses range eight; one-second aim, three-second cooldown, eighty shot damage, 1.5-second stagger (half for heroes), three heat, interrupted aim gets short retry. Yakuza enforcer Taunt uses radius five/four seconds/ten-second cooldown and 15% damage reduction while held; heroes/police/bandits/civilians excluded. Existing shared stat resolver handles protection. Assassinate hero health share is 0.5; data tooltip corrected to fifty percent, no new balance change.
 
 Rifleman follow-up (2026-10-28): spawn/late hires start loaded. Loaded explicit attacks open with the aimed shot even at melee distance; melee remains available during reload. Attack-move stops to shoot. Explicitly ordered bandit/police/civilian targets use shared fair targeting plus visibility; autonomous restrictions stay unchanged. Existing one-second aim/three-second reload/damage remain. Build coordinator reports rifleman close/ranged/attack-move/bandit/loaded-spawn, enforcer, target-controls and move-priority checks passed. No new test run or visual approval claimed.
 
@@ -261,6 +260,10 @@ Rifleman follow-up (2026-10-28): spawn/late hires start loaded. Loaded explicit 
 [Operation owner/checklist](deployment_sector_plan.md#shakedown-and-sweep-plan-approved-design-2026-10-28-not-built) owns lifecycle/protection/retreat; [reward owner](business_raids_plan.md#shakedown-and-sweep-rewards-approved-design-2026-10-28-not-built) owns payouts. Procedural readable feedback: brief winning-clan-color overhead fireworks, victory sound and success text. Shakedown gold **SHAKEN DOWN** stamp separates immediate bonus from **50% next payout claimed**, with theft notice when actually paid. Sweep uses Kuroda crest and **SECTOR SWEPT +500 RYO**, then physical homeward travel.
 
 Sweep **march only**, not ordinary Patrol: faint forward-flowing Kuroda-colored ground chevrons, small footstep dust, steady march sound and subtle shield glint while grouped ten-percent protection applies; glint fades when spread. Exact explosive damage/radii/fuses/fire/friendly-fire and grouped-distance threshold remain unset; do not infer combat tuning from VFX.
+
+### Separate completed readout/muzzle visuals (2026-10-28)
+
+This handoff reports `abilityfx.js`/`index.html` AIMING/TAUNT overhead readouts, two-second TAUNT anger seal/label, 0.8-second wave and slightly longer embers; rifle muzzle forward sparks, smaller lock/breech side sparks and stronger barrel smoke/wisps. Gameplay unchanged. Reported source syntax/scoped diff checks passed; no visual approval or operation implementation claimed.
 
 Shakedown status (2026-10-28): dynamite/fire/status feedback below the operation design is implemented via shakedownfx.js; Sweep march/victory effects remain unbuilt. Focused Shakedown sim passed; visual/balance review remains pending.
 

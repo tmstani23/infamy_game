@@ -12,6 +12,7 @@ import { createRewards } from './rewards.js';
 import { createVision } from './vision.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
+import { createUnstuck } from './unstuck.js';
 import { createPolice, POLICE } from './police.js';
 import { applySettings } from './settings.js';
 import { createBusinesses } from './businesses.js';
@@ -699,7 +700,7 @@ export function createGame(options) {
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
     t.hp = Math.max(0, t.hp - damage);
-    t.hitAt = state.tick;
+    t.hitAt = state.tick; a.struckAt = state.tick;   // struckAt: Unstuck waits after a fight (sim/unstuck.js)
     contracts?.interruptScrub(t);
     diversion.interrupted(t);
     rifleman.interrupted(t);
@@ -1518,6 +1519,11 @@ export function createGame(options) {
       .sort((p, q) => Math.hypot(q.x - win.to.x, q.z - win.to.z) - Math.hypot(p.x - win.to.x, p.z - win.to.z))[0];
     return far ? { x: far.x, z: far.z } : backRoomOf(b);
   };
+  const unstuck = createUnstuck({ state, rules: units?.rules?.unstuck,
+    destination: e => { const d = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room); return d && { x: d.to.x, z: d.to.z, place: d.place }; },
+    moving: e => Math.hypot(intents[e.id]?.right || 0, intents[e.id]?.down || 0) >= 0.1 || !!e.snuffing || !!e.lootTarget,
+    holding: e => { const job = state.contracts?.active?.[e.owner]; return !!e.markScrub || !!e.lootTarget || (['mark', 'steal'].includes(job?.kind) && state.businesses[job.business]?.room === e.place); },
+    cleanup: e => { delete paths[e.id]; delete intents[e.id]; delete e.attackTarget; delete e.assistCrew; delete e.swing; delete e.lootTarget; kuroda.cancel(e); } });
   const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, scores: scoreOf, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null, inCombat:e=>!!fight[e.id]?.target }) : null;
   const shakedown = createShakedown({ state, deployment, rally, vision, rooms, doors, navOf, spawn, remove:removeUnit,
     rules:{...units?.rules?.shakedown,businesses:units?.rules?.businesses}, sees,
@@ -1590,6 +1596,7 @@ export function createGame(options) {
       if (c.type === 'order') giveOrder(e, c);
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
+      if (c.type === 'unstuck') unstuck.command(e);   // a stuck hero back to his hideout (sim/unstuck.js)
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
       if((c.type==='execute'||c.type==='loot')&&c.crewJob&&e.type==='hero'){crewJobs.command(e,c);continue;}
       if (c.type === 'execute' && e.type === 'hero') startExecute(e, c);
@@ -1627,6 +1634,7 @@ export function createGame(options) {
       }
     }
     kuroda.tick();
+    unstuck.tick();
     clans?.tick(DT, spawnOutside);
     syncCrewAttacks();
     shakedown.tick();
@@ -1798,5 +1806,5 @@ export function createGame(options) {
     if ((dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) && deployment.canOccupy(e, x, z)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
 }
