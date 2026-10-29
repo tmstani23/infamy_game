@@ -199,3 +199,6 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
   #deploymentpanel .sweep-ops,#deploymentpanel .shakedown-ops {padding:9px;gap:7px;}
   #deploymentpanel .sweep-preview,#deploymentpanel .shakedown-preview,#deploymentpanel .ambush-preview {font-size:12px;}
 }
+
+#deploymentpanel .pane-crew:has(.active-transfers[open]) .crew-selection {display:none;}
+#deploymentpanel .active-transfers summary {font-size:14px;padding:5px;}
