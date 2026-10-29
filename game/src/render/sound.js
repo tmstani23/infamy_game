@@ -2,7 +2,8 @@
 // sim's per-tick hits and casts and from swings starting. Quieter with distance from the
 // camera, a little random pitch so repeats don't sound the same. K mutes. Purely output.
 import {normalizeAudioSettings,readAudioSettings,saveAudioSettings} from '../audio_settings.js';
-const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
+const SWORDS = new Set(['ronin', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
+const BLADES = new Set([...SWORDS, 'rival_yakuza', 'kuroda_spearman']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
@@ -12,10 +13,11 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
 const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'] };
+for (let i=1;i<=4;i++) CUSTOM[`katana_slash_${i}`]=['sword_slash_1','sword_slash_2'];
 const HEAR = 24, MAX_VOICES = 14;
 
 export function createSound({ base = '../assets/sounds/',storage } = {}) {
-  let ctx = null, master = null, effects=null, voices = 0, settings=readAudioSettings(storage),ready=null;
+  let ctx = null, master = null, effects=null, voices = 0, settings=readAudioSettings(storage),ready=null,lastSlash=null;
   const listeners=new Set();
   function apply(){if(master)master.gain.value=settings.muted?0:settings.master;if(effects)effects.gain.value=settings.effects*1.5;}
   function setSettings(patch){settings=normalizeAudioSettings({...settings,...patch});apply();saveAudioSettings(settings,storage);for(const fn of listeners)fn({...settings});return {...settings};}
@@ -41,6 +43,11 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     const base = name.replace(/_\d+$/, ''), mine = Object.keys(CUSTOM).filter(k => buffers[k] && new RegExp(`^${base}(_\\d+)?$`).test(k));
     return mine.length ? mine : CUSTOM[name];
   };
+  function swordSlash(volume) {
+    const pool=pickCustom('katana_slash_1'),choices=pool.length>1?pool.filter(name=>name!==lastSlash):pool;
+    const name=choices[Math.floor(Math.random()*choices.length)];
+    lastSlash=name;play(name,volume);
+  }
   function play(names, volume, pitch = 1) {
     if (!ctx || settings.muted || voices >= MAX_VOICES || volume <= 0.01) return;
     const name = [].concat(names)[Math.floor(Math.random() * [].concat(names).length)], buf = buffers[name];
@@ -88,7 +95,8 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const e of Object.values(state.entities)) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         const v = near(me, e.x, e.z, e.place);
-        if (BLADES.has(e.model)) play(['sword_slash_1', 'sword_slash_2'], 0.35 * v);
+        if (SWORDS.has(e.model)) swordSlash(0.35*v);
+        else if (BLADES.has(e.model)) play(['sword_slash_1', 'sword_slash_2'], 0.35 * v);
         else play(['sword_slash_1', 'sword_slash_2'], 0.2 * v, 0.7);   // heavier whoosh for clubs
       }
       for (const h of state.hits) {
@@ -102,6 +110,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const c of state.casts) {
         const a = state.entities[c.a], v = near(me, c.x, c.z, a?.place);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
+        if (SWORDS.has(a?.model) && (c.kind==='dash'||c.kind==='assassinate'||(c.kind==='shadowstep'&&c.crit))) swordSlash(.4*v);
         if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);
         if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
         if (c.kind === 'taunt') play(SOFT, 0.6 * v, 0.5);
