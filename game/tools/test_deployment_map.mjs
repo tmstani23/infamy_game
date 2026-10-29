@@ -120,3 +120,15 @@ assert.equal(overlay.hover(s.anchor, {}), true); assert.equal(hovered, s.id);
 assert.equal(overlay.pick({ x: Infinity, z: Infinity }), false);
 assert.equal(JSON.stringify(st), before, 'drawing and picking remain presentation-only');
 console.log('Deployment map: real outlines, unchanged nav, hexes, truthful contact/direction/expiry, shared presence, KO/interior/reservation status and draw/pick checks passed');
+{
+  const previous=globalThis.document;let canvases=0;
+  globalThis.document={createElement(){canvases++;return {width:0,height:0,getContext:()=>ctx};}};
+  try{
+    overlay.ground({ctx,toMap,now:2000,size:700});const painted=overlay.diagnostics().groundPaints;
+    overlay.ground({ctx,toMap,now:2005,size:700});assert.equal(overlay.diagnostics().groundPaints,painted,'steady map reuses the honeycomb bitmap');
+    overlay.ground({ctx,toMap,now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted+1,'slow ripple stays animated');
+    overlay.ground({ctx,toMap:(x,z)=>[x*3,z*3],now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted+2,'zoom invalidates immediately');
+    for(let i=0;i<100;i++)overlay.ground({ctx,toMap,now:2200+i,size:700});
+    assert.equal(canvases,1,'repeated drawing retains only one canvas');
+  }finally{globalThis.document=previous;}
+}

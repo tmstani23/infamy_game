@@ -65,3 +65,7 @@ Related docs:
 ## Phase 3F access (Tim, 2026-10-21)
 
 Pleasure Quarter has three entrances: the original plus two openings in its opposite NW/SE stone walls across the Townhouse area (x=6 and x=51, around z=32; two segments removed per side). No added paths, paving or Townhouse connection. HQ camping areas are separate from territory: [police rules](police_spec.md#rival-hq-camping-tim-2026-10-21).
+
+## Map performance checkpoint (2026-10-29)
+
+Fullscreen map is now opaque and suspends hidden world presentation while simulation continues. Existing honeycomb/clan-border styling is retained with cached terrain/border drawing and separate moving-marker updates. [Lifecycle/cache ownership](architecture.md#map-presentation-lifecycle-2026-10-29); [Node checks and pending manual FPS/memory/visual checklist](playtest_followup_plan.md#1-map-performance-first). No deployment redesign or gameplay balance change is included.

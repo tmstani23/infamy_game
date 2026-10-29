@@ -82,6 +82,7 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
   }
   deploymentSide.querySelector('.manage-sector').addEventListener('click', () => manage(selectedSector));
   function drawDeployment() {
+    if(deploymentSide.hidden)return;
     const snapshot = deploymentData.get();
     for (const s of snapshot.sectors) {
       const row = sectorButtons.get(s.id);
@@ -220,11 +221,10 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
 
   let frame = 0;
   function update() {
-    // Keep only truthful observed contacts while the map is closed, too.
-    deploymentData.update();
     if (!isOpen() || !map) return;
+    deploymentData.update();
     map.update();
-    if (frame++ % 20 === 0) drawSide();
+    if (frame++ % 6 === 0) drawSide();
   }
   // Deployment menu docked on the right of the map: Sectors on, the map's own sector list hidden
   function dock(on, sector) {
@@ -234,7 +234,9 @@ export function createGameMap({ root, game, district, view, fog, heroId, clan = 
     else pointPicker = null;
     syncLayers(); drawSide(); map?.draw();
   }
-  return { open, close, toggle, isOpen, update, dock, focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.draw(); } },
+  return { open, close, toggle, isOpen, update, dock, observe:()=>deploymentData.update(false),
+    diagnostics:()=>({raster:map?.diagnostics(),overlay:overlay.diagnostics?.(),portraits:portraits.size}),
+    focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.draw(); } },
     pickDestination(callback) { pointPicker=null;destinationPicker=callback;layers.deployment=true;syncLayers();open(); },
     cancelPick() {pointPicker=null;destinationPicker=null;},
     pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };

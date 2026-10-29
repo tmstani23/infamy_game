@@ -7,15 +7,10 @@
 // its business), a whole held quarter as a box. The same code draws the full game map (M,
 // src/game_map.js): big = true, with layer switches (layers), hover info (onHover) and a click
 // that looks there and closes it (onPick).
-import { shapeDistance, groundZone } from './sim/geometry.js';
+import { mapTerrain, createMapRaster } from './map_raster.js';
 import { drawWatchMarkers } from './watch_markers.js';
 import { contractMapLocation } from './contract_map_marker.js';
 
-const GROUND = {
-  grass: [78, 96, 58], dirt: [122, 104, 78], dry_grass: [130, 120, 76], mud: [84, 70, 54], sand: [176, 160, 122],
-  water: [40, 66, 84], planks: [110, 82, 56], gravel: [128, 124, 116], paving: [146, 138, 124],
-};
-const BUILDING = [62, 50, 46];
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
 
@@ -43,36 +38,28 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   };
 
   // the map itself, one pixel per cell: ground, then buildings
-  const zones = district.ground.map(groundZone);
-  const base = new Uint8ClampedArray(g.w * g.h * 3);
-  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
-    const x = g.minX + i + 0.5, z = g.minZ + j + 0.5;
-    let c = GROUND.grass;
-    for (const zone of zones) if (shapeDistance(zone.shape, x, z) >= 0) c = GROUND[zone.type] || c;
-    for (const s of game.scenery) {
-      const r = s.item?.kind === 'buildings' && !s.indoor && s.solid;
-      if (r && x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) c = BUILDING;
-    }
-    base.set(c, (j * g.w + i) * 3);
-  }
+  const base = mapTerrain(game,district,g);
   const img = new ImageData(g.w, g.h), cells = document.createElement('canvas');
   cells.width = g.w; cells.height = g.h;
-  const cctx = cells.getContext('2d');
+  const cctx = cells.getContext('2d'), raster = createMapRaster(base,img.data);
+  const metrics={draws:0,cellPaints:0,drawMs:0,maxDrawMs:0};
 
   // the same fog as the screen: never explored near black, explored dimmed and greyed
   // territory tint per cell ([r, g, b, alpha] or null), rebuilt when owners or what you have seen change
+  const turfBuffer=new Float32Array(g.w*g.h*4);
   let turf = null, turfKey = null;
   const rgb = hex => { const v = parseInt(String(hex).replace('#', ''), 16); return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; };
   function territoryTint() {
     const t = game.territory, st = game.state;
-    if (!t || !layers.territory) { turf = null; turfKey = null; return; }
+    if (!t || !layers.territory) { const changed=turf!==null;turf=null;turfKey=null;return changed; }
     const tg = t.cellGrid(), vg = game.vision.grid(clan);
     // a rival's area shows once you have seen its business (Tim 2026-10-19 rule for owner colours)
     const shown = tg.areas.map(a => a.clan === clan || !fogOn() || vg.explored[game.vision.cellOf(a.x, a.z)] === 1);
     const key = tg.areas.map((a, i) => `${a.business}:${a.clan}:${shown[i]}`).join(',');
     if (key === turfKey) return;
     turfKey = key;
-    turf = new Array(g.w * g.h).fill(null);
+    turf = turfBuffer;
+    turf.fill(0);
     const cols = tg.areas.map(a => rgb(st.clans?.[a.clan]?.color || '#888888'));
     const at = n => { const c = tg.cells[n]; return c && shown[c - 1] ? tg.areas[c - 1].clan : null; };
     for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
@@ -81,25 +68,15 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       const own = tg.areas[c - 1].clan;
       // the edge of a clan's territory drawn stronger
       const edge = i === 0 || j === 0 || i === g.w - 1 || j === g.h - 1 || at(n - 1) !== own || at(n + 1) !== own || at(n - g.w) !== own || at(n + g.w) !== own;
-      turf[n] = [...cols[c - 1], edge ? 0.7 : 0.22];
+      const k=n*4,col=cols[c-1];turf[k]=col[0];turf[k+1]=col[1];turf[k+2]=col[2];turf[k+3]=edge?.7:.22;
     }
+    return true;
   }
   function paintCells() {
-    territoryTint();
-    const fog = fogOn(), d = img.data;
-    for (let n = 0; n < g.w * g.h; n++) {
-      const r = base[n * 3], gg = base[n * 3 + 1], b = base[n * 3 + 2];
-      const vis = fog ? g.visible[n] : 1, exp = fog ? g.explored[n] : 1;
-      let o = [r, gg, b];
-      if (!vis) {
-        const l = r * 0.299 + gg * 0.587 + b * 0.114;
-        o = exp ? [(l + (r - l) * 0.55) * 0.5 + 4, (l + (gg - l) * 0.55) * 0.5 + 5, (l + (b - l) * 0.55) * 0.5 + 10] : [7, 8, 11];
-      }
-      const t = turf && turf[n];
-      if (t) { const a = t[3]; o = [o[0] + (t[0] - o[0]) * a, o[1] + (t[1] - o[1]) * a, o[2] + (t[2] - o[2]) * a]; }
-      d[n * 4] = o[0]; d[n * 4 + 1] = o[1]; d[n * 4 + 2] = o[2]; d[n * 4 + 3] = 255;
+    const changed=territoryTint();
+    if(raster.paint(g.visible,g.explored,fogOn(),turf,changed)){
+      cctx.putImageData(img,0,0);metrics.cellPaints++;
     }
-    cctx.putImageData(img, 0, 0);
   }
   const fogOn = () => fog.isOn();
 
@@ -125,13 +102,13 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     return ['#ff4632', 2.6];
   }
 
-  function draw() {
+  function paintMap() {
     if (canvas.clientWidth && canvas.clientWidth !== size) {
       size = canvas.clientWidth; zoom = Math.max(1, size / 180);
       baseScale = size / ((g.w + g.h) * S) * 1.02; k = baseScale * mapZoom;
       canvas.width = canvas.height = Math.round(size * dpr);
     }
-    const nowMs = performance.now();
+    const nowMs = performance.now();metrics.draws++;
     const state = fog.seen(game.state);
     paintCells();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -145,7 +122,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(cells, 0, 0);
     ctx.restore();
-    if (layers.deployment) overlay?.ground({ ctx, toMap, size, zoom, now: nowMs });
+    if (layers.deployment) overlay?.ground({ ctx, toMap, size, zoom, now: nowMs, dpr });
     // every business, as a letter, even under the fog so you can find them (W warehouse, T teahouse, D den, C clinic, P police)
     // quarters (sim/territory.js, Tim 2026-10-20): a white dotted outline round each, its name in the middle
     // (big map); once one clan holds every business in it (and you can tell) the outline is in its colour
@@ -265,6 +242,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
 
   // clicks: keep them away from the crew controls underneath (they listen on the window)
   // (scaled to the minimap's size on screen, which the movable HUD can change)
+  const draw=()=>{const start=performance.now();paintMap();const ms=performance.now()-start;metrics.drawMs+=ms;metrics.maxDrawMs=Math.max(metrics.maxDrawMs,ms);};
   const at = e => { const r = canvas.getBoundingClientRect(); return toWorld((e.clientX - r.left) * size / r.width, (e.clientY - r.top) * size / r.height); };
   let dragging = false;
   // the business under a map point (for the big map's hover and click), within a few pixels
@@ -307,5 +285,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
 
   let frame = 0;
   const pings = [];
-  return { worldAt: at, zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update() { if (frame++ % 3 === 0) draw(); }, draw, ping(x, z) { pings.push({ x, z, t: performance.now() }); }, layers, size, shownHolder: q => shownHolder(q) };
+  return { worldAt: at, zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update() { if (frame++ % 3 === 0) draw(); }, draw,
+    ping(x,z){const t=performance.now();while(pings.length&&(pings.length>=64||t-pings[0].t>=4800))pings.shift();pings.push({x,z,t});},
+    diagnostics:()=>({...metrics,pings:pings.length,terrainBytes:base.byteLength,rasterBytes:img.data.byteLength}), layers, size, shownHolder: q => shownHolder(q) };
 }

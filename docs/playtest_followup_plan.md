@@ -12,13 +12,16 @@ Approval (Tim, 2026-10-29): plan approved; start phase 1 map performance/render 
 
 ## 1. Map performance first
 
-Owners: [architecture](architecture.md), [map/territory](territory.md), [deployment](deployment_sector_plan.md).
+**Implemented / Node-checked checkpoint (2026-10-29); live visual/FPS/memory validation pending.** Phase 2 deployment redesign and balance changes remain queued.
 
-- [ ] Capture a small baseline timing/allocation and repeated open/close audit before editing. Separate CPU/GPU savings from retained-memory fixes.
-- [ ] Make fullscreen map/deployment the active presentation while open. Sim, AI, combat, timers, networking and audio continue. Suspend world WebGL painting **and** background animation, particles, nameplates and other presentation updates.
-- [ ] Reuse scene/resources; close immediately onto the latest simulation state without replaying stale FX. Preserve honeycomb/clan-border styling.
-- [ ] Cache static map/hex/borders; update moving markers separately. Stop per-frame DOM/roster rebuilds, reuse resources/listeners and clean map allocations.
-- [ ] Verify responsive input and stable memory across repeated open/close. No browser automation: provide instrumented manual diagnostics for Tim and focused Node lifecycle checks where appropriate.
+Owners: [architecture/lifecycle and diagnostics](architecture.md#map-presentation-lifecycle-2026-10-29), [map/territory](territory.md#map-performance-checkpoint-2026-10-29), [deployment](deployment_sector_plan.md).
+
+- [x] Small raster CPU baseline: 100 unchanged 128×128 frames measured 164.9 ms legacy versus 3.5 ms cached in implementation-thread microbenchmark. This is not full-game FPS/RAM evidence.
+- [x] Opaque fullscreen map becomes active presentation; sim/AI/combat/timers/commands/news/audio continue. World WebGL/bloom, background sprite/nameplate/particle/camera-pan/fog-GPU updates, small minimap and hidden action-bar paints are skipped.
+- [x] Reuse scene/resources; clear transient pooled FX on open. Close resynchronizes snapshots/fog to current state, without replaying skipped world hit/cast/dodge FX or delayed ownership celebrations.
+- [x] Cache terrain buffers/dirty cells and a single honeycomb/border canvas; slow ripple at 8 Hz, immediate invalidation on size/zoom/selection/presence. Markers retain map rate; roster snapshots are lazy, honest enemy contacts observed each sim tick even closed. Deployment UI caches at 10 Hz with immediate selection/feedback changes. Hidden duplicate roster stops updating; ping queues expire/cap at 64.
+- [x] Coordinator reports passing `test_map_performance` (pixel/fog/tint parity, shared buffers, 1000 lifecycle cycles, closed-map contacts), `test_deployment_map` (single-canvas reuse/ripple/zoom), `test_deployment_panel_flow`, `test_game_shell`, syntax checks for thirteen changed modules and diff check. No browser automation or live browser validation performed.
+- [ ] Tim manual diagnostics via `window.infamy.mapPerformance()`: worldFrames stops while sim tick advances; map selection/zoom/transfers respond; open through combat/night/interior changes then close onto latest state without FX backlog; repeated open/close/zoom plateaus resources. Check actual browser RAM/FPS separately. Node lifecycle checks do not establish stable browser memory. Existing enforcer recast assertion remains unrelated and unresolved.
 
 ## 2. Fullscreen deployment simplification
 

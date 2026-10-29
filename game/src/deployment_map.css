@@ -18,3 +18,7 @@
   #gamemap.game-map .mapcol { width: min(92vw, 480px); max-height: 43vh; flex-shrink: 0; }
   #gamemap .sector-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Phase 1: an opaque presentation surface; deployment layout is refined in phase 2. */
+#gamemap.game-map { background:#05070b; }
+body.map-active #view, body.map-active #minimap { visibility:hidden; }

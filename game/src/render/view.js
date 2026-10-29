@@ -358,7 +358,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       .addScaledVector(VIEW_DIR, 200);
 
     // clan banners at owned businesses; a gold burst where one just changed hands
-    for (const b of banners.update(state, time, state.entities[followId]?.owner)) abilityFx.claim(...banners.spot(b));
+    for (const b of banners.update(state, time, state.entities[followId]?.owner)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
     hitFx.update(fdt);
     abilityFx.update(fdt, state, followId);
@@ -379,6 +379,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     fxShared.uPx.value = px;
     renderer.render(scene, camera);
     bloom.composite();
+    resumingPresentation=false;
   }
 
   // hit effects: damage numbers, trails, sparks, flash and lean, a little shake on kills near the hero
@@ -432,8 +433,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const raycaster = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const v = new THREE.Vector3();
   let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null;
+  let resumingPresentation=false;
   return {
     render, renderer, scene, addHits, addCasts,
+    setPresentationActive(active){
+      fxLayer.hidden=!active;
+      resumingPresentation=active;
+      if(!active){hitFx.update(100);abilityFx.clear();updateFlashes(100);shakeT=freezeT=0;trickle.clear();}
+    },
     addDodges(dodges) { for (const d of dodges) hitFx.dodge(d); },
     // arrow-key panning (right, up from -1 to 1 on screen); the camera stays there until snapBack
     pan(right, up, dt) {

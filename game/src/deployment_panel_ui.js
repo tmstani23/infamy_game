@@ -1,6 +1,7 @@
 import { unitName } from './selection_panel.js';
 import { TASK_LABELS } from './deployment_map_data.js';
 import { syncChildren } from './stable_list.js';
+const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 
 // One focused command group. Transfer destination picking never changes the
 // source selection. All success feedback comes back from the simulation.
@@ -23,7 +24,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   const names = { hero:'Hero group', home:'HQ reserves', ...Object.fromEntries(game.state.deployment.sectors.map(s => [s.id,s.name])) };
   const members = id => game.deployment.members(owner(), id);
   const available = e => !e.dead && !e.downed && !e.jailed && !e.deployment.transfer;
-  const chosen = () => crewInput.selected().filter(id => members().some(e => e.id === id));
+  const chosen = () => {const own=new Set(members().map(e=>e.id));return crewInput.selected().filter(id=>own.has(id));};
   const ninja = game.state.clans[owner()].kind === 'ninja', rows=new Map(), tabs=new Map(), destinations=new Map(), rallyChecks=new Map(), targetRows=new Map(), incomingRows=new Map(), travelRows=new Map();
   let focus='hero', open=false, transfer=null, incoming=null, latestTransfer=[], request=0, lastRefresh=null, feedbackSequence=config().feedback?.sequence || 0;
   let reserveDirty=false,staffingDirty=false;
@@ -122,20 +123,20 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     button.textContent=first?'Deployment · choose first zone':'Deployment';button.classList.toggle('needs-zone',first);
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
     $('.first-zone').hidden=!first;
-    const st=game.state, selected=new Set(chosen()), signature=`${st.tick}:${focus}:${[...selected].join(',')}`;
+    const st=game.state, selected=new Set(chosen()), signature=`${Math.floor(st.tick/2)}:${config().feedback?.sequence}:${focus}:${[...selected].join(',')}`;
     if(!force&&lastRefresh===signature)return;lastRefresh=signature;
     const selectedGroups=new Set([...selected].map(id=>st.entities[id]?.deployment.group));
     if(!transfer&&!incoming&&selectedGroups.size===1){const id=[...selectedGroups][0];if(names[id]&&id!==focus){focus=id;if(record(id))onFocus(id);}}
     const counts=game.deployment.counts(owner()),list=members(focus),task=record(focus),rally=game.rally.status(owner());
-    for(const [id,b]of tabs){b.textContent=`${names[id]} ${counts[id]}${id==='hero'?'/6':''}`;b.setAttribute('aria-pressed',String(id===focus));}
-    $('.group-summary h4').textContent=names[focus];
-    $('.group-summary strong').textContent=`${selected.size} crew selected`;
+    for(const [id,b]of tabs){setText(b,`${names[id]} ${counts[id]}${id==='hero'?'/6':''}`);b.setAttribute('aria-pressed',String(id===focus));}
+    setText($('.group-summary h4'),names[focus]);
+    setText($('.group-summary strong'),`${selected.size} crew selected`);
     $('.group-summary span').textContent=task?`${TASK_LABELS[task.task]} · ${task.recovery?.state||task.operation?.state||list.find(e=>e.deployment.duty?.status)?.deployment.duty.status||'On duty'}`:'Command your selected crew';
     const allIds=new Set(members().map(e=>e.id));for(const [id,r]of rows)if(!allIds.has(id)){r.el.remove();rows.delete(id);}
     for(const [id,r]of incomingRows)if(!allIds.has(id)){r.el.remove();incomingRows.delete(id);}
     const ordered=list.map(e=>{
-      const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);r.name.textContent=`${unitName(units,e.type)} #${e.id}`;r.hp.textContent=`${Math.ceil(e.hp)}/${e.maxHp}`;
-      r.status.textContent=e.downed?'Downed':e.deployment.transfer?'Transferring':e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready';
+      const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);setText(r.name,`${unitName(units,e.type)} #${e.id}`);setText(r.hp,`${Math.ceil(e.hp)}/${e.maxHp}`);
+      setText(r.status,e.downed?'Downed':e.deployment.transfer?'Transferring':e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready');
       r.el.classList.toggle('selected',selected.has(e.id));return r.el;
     });syncChildren($('.roster'),ordered);
     for(const e of list){const r=rows.get(e.id);r.pinLabel.hidden=focus!=='home';r.pin.checked=!!e.deployment.keepAtHQ;}

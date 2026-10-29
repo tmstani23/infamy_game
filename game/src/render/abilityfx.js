@@ -193,6 +193,16 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
   }
 
   return {
+    clear(){
+      kurodaFx.clear();shakedownFx.clear();glow.clear();soot.clear();cards.clear();
+      for(const v of [...waves,...streaks]){scene.remove(v.m);v.m.material.dispose();}waves.length=streaks.length=0;
+      for(const map of [auras,outlines,smokeRings]){for(const m of map.values()){scene.remove(m);m.material.dispose();}map.clear();}
+      for(const l of rifleLines.values()){scene.remove(l.m);l.m.geometry.dispose();l.m.material.dispose();}rifleLines.clear();
+      for(const l of lanterns.values())for(const m of [l.seal,...l.items.flatMap(i=>[i.body,i.halo])]){scene.remove(m);m.material.dispose();}lanterns.clear();
+      for(const map of [marks,bars]){for(const el of map.values())el.remove();map.clear();}
+      veilTrails.clear();rallyCasts.clear();rifleSmoke.clear();vanishText?.remove();vanishText=null;
+      if(flashEl)flashEl.style.opacity=0;if(dim)dim.style.opacity=0;flashT=dimT=0;
+    },
     // a business just changed hands (render/banners.js): gold glints round its banner and a thin gold ring
     claim(x, z) {
       sparkles(x, 1.4, z, 36, [1, 0.85, 0.45], 3.2, 0.36);

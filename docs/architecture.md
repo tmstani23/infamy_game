@@ -170,3 +170,11 @@ Both live in one world with the same coordinates and the same sim rules, so crew
 ## Asset pipeline (short)
 
 Concept image (Gemini) -> 3D model (Tencent Hunyuan) -> rig and animations (Mixamo) -> sprite sheets via `tools/export_sprites.mjs` (8 directions, weapons from `assets/models/items` baked in) -> `assets/sprites`, which the game loads directly. Environment sheets are cut by `tools/cut_environment.py`; interior textures by `tools/make_interior_textures.py`. Full details: [art_direction.md](art_direction.md), [cast_tracker.md](cast_tracker.md), and the README.
+
+## Map presentation lifecycle (2026-10-29)
+
+`presentation_mode.js` coordinates map/world presentation in `main.js` without pausing simulation. Map-open frames retain sim/AI/audio/news/commands but skip world rendering/bloom, animation/particles/nameplates, camera-pan/fog GPU work, small minimap and hidden action-bar paints. Transient FX are cleared through existing bounded pools; scene resources stay allocated. World events/interpolation snapshots are skipped while hidden. Close resynchronizes snapshot/fog to current sim state, avoiding stale FX replay and delayed ownership celebrations.
+
+`map_raster.js` shares terrain per game through a WeakMap, reuses typed shading/territory buffers and tracks dirty cells to skip unchanged uploads. Deployment overlay keeps one honeycomb/border canvas, rasterizes ripple at 8 Hz and invalidates on size/zoom/selection/presence; markers retain normal map rate. Contacts are observed every sim tick even with the map closed; detailed roster snapshots are lazy. UI updates cache at 10 Hz with immediate selection/feedback changes, stable text and no hidden duplicate-roster paints. Ping queues expire and cap at 64. Transfer/selection rules are unchanged.
+
+DEV diagnostic `window.infamy.mapPerformance()` exposes mode, opens/closes, world/map frame counts and times, raster draws/cell paints/times/buffer bytes/pings, overlay paints/cache bytes, portrait count and renderer geometry/texture counts. These counters distinguish presentation work/resource counts from actual browser RAM. [Reported Node checks, microbenchmark limits and pending manual checklist](playtest_followup_plan.md#1-map-performance-first). No live FPS/memory/visual sign-off is claimed.

@@ -195,6 +195,7 @@ export function createParticles(scene, { max = 1500, additive = true } = {}) {
   const list = [];
 
   return {
+    clear(){list.length=0;geo.setDrawRange(0,0);},
     // o: { x, y, z, vx, vy, vz, life, size, color: [r, g, b], shape, gravity, drag, grow, spin, twinkle, sway }
     emit(o) {
       if (list.length >= max) return;
@@ -259,6 +260,7 @@ export function createCards(scene) {
   });
 
   return {
+    clear(){for(const c of cards){scene.remove(c.mesh);c.mesh.material.dispose();}cards.length=0;},
     // fading copy of a character sprite's current frame (sprite: a CharacterSprite)
     ghost(sprite, color = [0.55, 0.7, 1], life = 0.32, opacity = 0.75) {
       const u = sprite.material.uniforms;

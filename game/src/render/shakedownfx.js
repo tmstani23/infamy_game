@@ -97,5 +97,5 @@ export function createShakedownFx({scene,overlay,unitToScreen}) {
     for(const [key,el]of labels)if(!activeLabels.has(key)){el.remove();labels.delete(key);}
     glow.update(dt);smoke.update(dt);cards.update(dt);
   }
-  return {cast,update};
+  return {cast,update,clear(){bursts.length=0;glow.clear();smoke.clear();cards.clear();}};
 }

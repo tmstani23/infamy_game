@@ -10,7 +10,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
   const path = (ctx, toMap, points) => {
     ctx.beginPath(); points.forEach(([x, z], i) => { const p = toMap(x, z); i ? ctx.lineTo(...p) : ctx.moveTo(...p); });
   };
-  function ground({ ctx, toMap, now, size }) {
+  function paintGround({ ctx, toMap, now, size }) {
     project = toMap;
     const seconds = motion?.matches ? 0 : now / 1000, snapshot = data.get();
     const status = new Map(snapshot.sectors.map(s => [s.id, s]));
@@ -52,6 +52,23 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
     ctx.restore();
     ctx.save(); ctx.font = '500 11px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillStyle = '#c5b48c';
     ctx.fillText('SECTOR NETWORK', 16, size - 14); ctx.restore();
+  }
+  let cachedCanvas=null,cacheKey=null,groundPaints=0;
+  function ground(args){
+    if(typeof document==='undefined'){paintGround(args);return;}
+    const {ctx,toMap,size,now,dpr=1}=args;
+    // One retained bitmap, bounded by the current map size. Slow ripple remains animated.
+    const snapshot=data.get(),key=[size,dpr,...toMap(bounds.minX,bounds.minZ),...toMap(bounds.maxX,bounds.maxZ),
+      selectedSector(),flashing(),motion?.matches,motion?.matches?0:Math.floor(now/125),
+      ...snapshot.sectors.map(s=>s.id+':'+s.presence.map(c=>c.owner+':'+c.color).join(','))].join('|');
+    if(!cachedCanvas)cachedCanvas=document.createElement('canvas');
+    if(key!==cacheKey){
+      const pixels=Math.round(size*dpr);
+      if(cachedCanvas.width!==pixels){cachedCanvas.width=cachedCanvas.height=pixels;}
+      const c=cachedCanvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,size,size);
+      paintGround({...args,ctx:c});cacheKey=key;groundPaints++;
+    }
+    ctx.drawImage(cachedCanvas,0,0,size,size);
   }
   function markers({ ctx, toMap, size }) {
     const snapshot = data.get(), selected = selectedSector();
@@ -130,7 +147,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
     const id = game.deployment.sectorAt(p.x, p.z);
     return byId.has(id) ? id : null;
   }
-  return { ground, markers, sectors, sectorAt,
+  return { ground, markers, sectors, sectorAt, diagnostics:()=>({groundPaints,cacheBytes:(cachedCanvas?.width||0)*(cachedCanvas?.height||0)*4}),
     hover(p, e) { const id = sectorAt(p); onHover(id && data.get().sectors.find(s => s.id === id), e); return !!id; },
     pick(p) {
       const contact = project && (game.shinobiIntelligence?.targets(clan) || []).find(t => {

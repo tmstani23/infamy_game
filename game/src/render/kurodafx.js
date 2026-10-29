@@ -170,6 +170,11 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
     if(c.landed!==false){impact(c.tx,1.15,c.tz,finish?1.5:.8);if(finish)shards(c.tx,1.15,c.tz,16,1.2);}
   }
   return {
+    clear(){
+      for(const map of [formations,counters,stuns,wards]){for(const v of map.values()){scene.remove(v.g);dispose(v.g);}map.clear();}
+      for(const v of bursts){scene.remove(v.g);dispose(v.g);}bursts.length=0;
+      motion.clear();particles.clear();cards.clear();
+    },
     cast(c) {
       if (c.kind==='sweep') {
         arc(c.x,c.z,c.radius,.62,c.dir);

@@ -6,17 +6,18 @@ export const TASK_LABELS = { patrol: 'Patrol sector', watch: 'Watch', ambush: 'A
 export function createDeploymentMapData({ game, clan }) {
   const contacts = new Map();
   let snapshot = { sectors: [], contacts: [], transfers: [], own: [] };
-  let lastTick = null;
+  let lastTick = null, detailsTick = null;
+  const live = new Set();
   const location = e => {
     if (e.place === 'street') return { x: e.x, z: e.z };
     const b = Object.values(game.state.businesses).find(b => b.room === e.place);
     return b?.ring ? { x: b.ring[0], z: b.ring[1] } : null;
   };
-  function update() {
-    const st = game.state, d = game.deployment, tick = st.tick, live = new Set();
+  function update(details = true) {
+    const st = game.state, d = game.deployment, tick = st.tick;
     if (!d || !st.deployment?.clans[clan]) return snapshot;
-    if (tick === lastTick) return snapshot;
-    lastTick = tick;
+    if (tick !== lastTick) {
+    lastTick = tick;live.clear();
     for (const e of Object.values(st.entities)) {
       if (e.owner === clan || !st.clans[e.owner] || e.type === 'civilian' || e.cop || e.wild || !game.vision.canSee(clan, e)) continue;
       if (e.dead || e.jailed) { contacts.delete(e.id); continue; }
@@ -27,6 +28,9 @@ export function createDeploymentMapData({ game, clan }) {
       live.add(e.id);
     }
     for (const [id, c] of contacts) if (tick - c.seenAt >= LAST_KNOWN_TICKS) contacts.delete(id);
+    }
+    if(!details||detailsTick===tick)return snapshot;
+    detailsTick=tick;
     const known = [...contacts.values()].map(c => ({ ...c, live: live.has(c.id), age: (tick - c.seenAt) / 20 }));
     const own = d.members(clan), counts = d.counts(clan);
     const transfers = own.filter(e => e.deployment.transfer && !e.downed).flatMap(e => {
@@ -60,5 +64,5 @@ export function createDeploymentMapData({ game, clan }) {
     snapshot = { sectors, contacts: known, transfers, own: own.map(e => ({ id: e.id, ...location(e), group: e.deployment.group, downed: !!e.downed, interior: e.place !== 'street' })) };
     return snapshot;
   }
-  return { update, get: () => snapshot };
+  return { update, get: () => update() };
 }

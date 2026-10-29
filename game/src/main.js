@@ -28,6 +28,7 @@ import { bindCrewNumberKeys } from './crew_hotkeys.js';
 import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
 import { createGameMap } from './game_map.js';
+import { createPresentationMode } from './presentation_mode.js';
 import { createHudLayout } from './hud_layout.js';
 import { hqCampingNoticeVisit } from './hq_camping_notice.js';
 import { bindFullscreen } from './fullscreen.js';
@@ -337,16 +338,23 @@ async function start() {
   // a full copy of the state 20 times a second was wasted work (Tim 2026-10-26). Add a field here if the view needs more.
   const snapshot = state => { const entities = {}; for (const id in state.entities) { const e = state.entities[id]; entities[id] = { x: e.x, z: e.z, hp: e.hp, downed: e.downed }; } return { tick: state.tick, entities }; };
   let prev = snapshot(game.state);
+  const presentation=createPresentationMode({
+    suspend(){document.body.classList.add('map-active');view.setPresentationActive(false);},
+    resume(){document.body.classList.remove('map-active');prev=snapshot(game.state);view.setPresentationActive(true);fog.update(100);}
+  });
+  if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),worldResources:{...view.renderer.info.memory}});
   let acc = 0, last = performance.now() / 1000;
   view.renderer.setAnimationLoop(() => {
     fps.frame();
+    presentation.sync(gameMap.isOpen());
     const now = performance.now() / 1000;
     const dt = Math.min(now - last, 0.1);
     last = now;
     if (!paused) acc += dt;
     while (acc >= tick) {
-      prev = snapshot(game.state);
+      if(!presentation.map)prev = snapshot(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0), ...(bot ? bot.tick() : [])]);
+      gameMap.observe();
       if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
       else if (game.state.tick % TICK_RATE === 0) label();   // the clock's countdown
       // your attack on a business (sim/businesses.js): waves left, then the hold timer
@@ -446,7 +454,7 @@ async function start() {
         if (n.kind === 'doorsOpen' && n.raider === me) callout('The doors are open: get inside!', 'news');
         if (n.kind === 'backRoom' && n.state === 'taking' && n.defender === me) callout('Your back room is being taken!', 'loss');
         if (n.kind === 'backRoom' && n.state === 'contested' && (n.defender === me || n.raider === me)) callout('Back room contested!', 'news');
-        if (n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
+        if (!presentation.map && n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out
         // territory (sim/territory.js): rivals walking into your streets, quarters held whole, the season's end
         if (n.kind === 'intruder' && n.clan === me) { callout('Rivals in your territory!', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'sectorContact' && n.clan === me) {
@@ -470,9 +478,9 @@ async function start() {
         if (n.kind === 'markAlert' && n.clan === me) { contractCallout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
         if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
       }
-      if (game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
-      if (game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
-      if (game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
+      if (!presentation.map && game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
+      if (!presentation.map && game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
+      if (!presentation.map && game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
       sound.update(game.state, view.audioFocus(game.state, heroId, crewInput.selected()));
       acc -= tick;
       const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
@@ -511,6 +519,7 @@ async function start() {
       bldPanel.update();
       interiorInfo.update();
     }
+    if(!presentation.map){
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
@@ -518,7 +527,7 @@ async function start() {
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);
-    view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId);
+    presentation.measure('world',()=>view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId));
     crewInput.drawMarkers($('lock'));
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
     { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];
@@ -526,9 +535,11 @@ async function start() {
       if (hoverLamp) { const n = game.stealth.snuffsLeft(h.owner), t = n ? `Snuff (${n} left tonight)` : 'No snuffs left tonight';
         if (el.textContent !== t) el.textContent = t; el.style.left = `${mouse.x + 16}px`; el.style.top = `${mouse.y - 8}px`; } }
     minimap.update();
-    gameMap.update();
-    bar.update(game.state.tick - 1 + acc / tick);
-    crewBar.update();
+    }else{
+      $('snuffhint').hidden=true;
+      presentation.measure('map',()=>gameMap.update());
+    }
+    if(!presentation.map){bar.update(game.state.tick - 1 + acc / tick);crewBar.update();}
     selectionDock.update();
     hudLayout.update();
   });
