@@ -83,10 +83,16 @@
     "heatCoolFactor": 2,
     "restPerSecond": 0.01
   },
+  "leader": {
+    "_note": "Ganging up on the leader (sim/leader.js, phase 6, Tim 2026-10-29): leader = top season score, leadMargin points ahead. Property clans only (not Shinobi) earn: raid on its business, Shakedown on it; if the Shinobi lead: HQ raid, boss knocked out, crew downed. Underdog (score <= underdogShare of the leader, leader >= underdogMinScore): hires cheaper, respawns faster",
+    "leadMargin": 2, "raid": 300, "shakedown": 100, "shinobiHQ": 300, "shinobiBoss": 150, "shinobiCrew": 25,
+    "underdogShare": 0.6, "underdogMinScore": 4, "underdogHireDiscount": 0.25, "underdogRespawnFaster": 0.3
+  },
   "crew": {
-    "_note": "crew cap = baseCap + capPerDawn for each dawn so far + business slots (Shinobi: Renown); Tim 2026-10-28 aims about 6 / 10 / 15 / 20-24 at start / dawn 3 / dawn 6 / dawn 10",
+    "_note": "crew cap = baseCap + capPerDawn for each dawn so far + business slots (Shinobi: Renown), never above maxCrew (phase 6, Tim 2026-10-29; optional maxBonusSlots limits the slots, off by Tim); Tim 2026-10-28 aims about 6 / 10 / 15 / 20-24 at start / dawn 3 / dawn 6 / dawn 10",
     "baseCap": 6,
     "capPerDawn": 1,
+    "maxCrew": 20,
     "heroRespawnSeconds": 20
   }
 }

@@ -195,6 +195,10 @@ Deployment Rally/reset, crew separation and sector implementation remain deferre
 
 Economy catch-up (2026-10-28): current dawn payouts are doubled versus the original Phase 3E table; prices/schedules unchanged. Building-defended reward is 150 ryo when an alerted owner defeats a Shinobi Sabotage/Steal attempt (job fails). Sector-cleared reward is 200 ryo when rival street presence of at least two has contested with yours and only yours remains; three-minute per-clan/sector cooldown, no passive ownership income. Source: settings rewards, contracts and sim/rewards.js. No new test run claimed.
 
+## Leader balance (Tim 2026-10-29)
+
+Leader bounty and underdog help: see `leader_balance.md` (important mechanic, needs balancing).
+
 ## Shakedown and Sweep rewards (approved design 2026-10-28; not built)
 
 [Operation lifecycle/checklist](deployment_sector_plan.md#shakedown-and-sweep-plan-approved-design-2026-10-28-not-built) owns eligibility/hold/retreat. Successful Yakuza Shakedown grants immediate clan-treasury bonus and claims **50% of next actual business payout after modifiers**. No stacking attempts/claims on the same payout; zero payout leaves claim pending. Failure/abandonment grants no reward.

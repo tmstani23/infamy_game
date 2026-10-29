@@ -75,7 +75,8 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // escort and garrisons, with six available once raiding is the next expansion.
     const open = biz().some(b => (!ai.known(b) || !b.owner) && priceOf(b));
     // Once it owns property it fills fillShare of its cap (Tim 2026-10-28: easy 0.8, medium 0.9, hard 1).
-    const desired = owned ? Math.max(Math.ceil(game.clans.crewCap(clan) * (B.fillShare ?? 1)), open ? 0 : B.raidMinCrew) : 1;
+    // With no property and nothing left to buy it builds a raiding crew to win one back (phase 6: it used to stop at 1 for good).
+    const desired = owned ? Math.max(Math.ceil(game.clans.crewCap(clan) * (B.fillShare ?? 1)), open ? 0 : B.raidMinCrew) : open ? 1 : B.raidMinCrew;
     return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
 
@@ -126,7 +127,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (home() && canHireNow() && !ai.blocked(`hire:${home().id}`)) return { kind: 'hire', business: home().id };
     // 4 raid a rival's business with a War Lantern (needs a full raiding crew). Once it has made up
     // its mind (raidChance) it sticks to the plan: lantern, scout by day, raid at night
-    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !ai.blocked(`raid:${b.id}`));
+    // the season leader's places first (phase 6 ganging up, sim/leader.js)
+    const lead = game.leader?.leader(), leadFirst = (a, b) => (b.owner === lead) - (a.owner === lead);
+    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !ai.blocked(`raid:${b.id}`)).sort(leadFirst);
     const able = targets.length && crew().length >= B.raidMinCrew && ((c.lanterns || 0) > 0 || c.ryo >= RD.lanternPrice + B.raidReserve);
     if (!able) raidPlan = false;
     else if (!raidPlan && rnd() < B.raidChance) raidPlan = true;
@@ -138,7 +141,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
         || (!state.night && scoutable.find(b => !fresh(b)));
       if (!(c.lanterns > 0)) return { kind: 'raid', business: targets[0].id };      // buys the lantern first
       if (stale) return { kind: 'scout', business: stale.id };
-      const t = targets.filter(b => seen[b.id]).sort((a, b) => seen[a.id].defenders - seen[b.id].defenders)[0];
+      const t = targets.filter(b => seen[b.id]).sort((a, b) => leadFirst(a, b) || seen[a.id].defenders - seen[b.id].defenders)[0];
       // Hard avoids a visible defending boss; private police heat is not knowledge.
       const owner = t && enemies().find(e => e.owner === t.owner && e.type === 'hero');
       const weak = !B.raidWhenWeak || !owner || dist(owner, t) > 25;

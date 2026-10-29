@@ -15,7 +15,7 @@ Balance follow-up (Tim, 2026-10-27): damage reduced from 28 to 14; other stats/c
 - **Crew are RTS units**, not named characters. You hire a Thug, not a person. Types and upgrades make them better.
 - **Teahouse = barracks.** Queue a hire, pay ryo once, the recruit arrives after a short timer.
 - **No upkeep or wages.** Each extra crew member costs a bit more than the last.
-- **Crew cap (current 2026-10-28):** base six plus one per elapsed dawn, plus business crew slots (Shinobi uses one per 75 Renown instead of business slots). Hire-price inflation is 5% per owned crew; no free recruits.
+- **Crew cap (Tim 2026-10-29):** min(20, 6 + (day - 1) + business or Renown slots; Shinobi get one slot per 75 Renown); details and balancing notes in `leader_balance.md`. Hire-price inflation is 5% per owned crew; no free recruits.
 - **Most crew are stationed** in your zones as defenders. A raid still takes at most about 6, so size means holding more ground, not winning fights by numbers.
 - **Downed, then dead or hospital.** Crew at 0 HP go down; if an enemy finishes them with a 3 s execute they are dead (rehire), otherwise they are carried to the hospital (see `combat_spec.md` H). Survivors heal only slowly (see `combat_spec.md`, Health) until sent to a **hospital** (bonesetter's clinic). The hero is knocked out, not killed, and gets back up at a safehouse.
 - **Ryo is spent on:** hiring and replacing crew, hospital healing, unit-type upgrades (RTS research, e.g. "Thugs get clubs"), property, and police bribes.

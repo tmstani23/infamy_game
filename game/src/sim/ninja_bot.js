@@ -94,7 +94,8 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const quote = game.contracts.quote(j);
     const reward = quote.ryo ?? (j.kind === 'steal' ? Math.min(quote.stealCap, 100 * quote.multiplier) : 100);
     const preference = 1 + (B.jobs.length - B.jobs.indexOf(j.kind)) * 0.12;
-    return (reward + (quote.renown || 0) * 3) * preference / jobSeconds(j);
+    const lead = j.target && j.target === game.leader?.leader() ? 1.5 : 1;   // gang up on the season leader (sim/leader.js)
+    return (reward + (quote.renown || 0) * 3) * preference * lead / jobSeconds(j);
   }
 
   // --- deciding ----------------------------------------------------------------------

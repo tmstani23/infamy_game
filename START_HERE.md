@@ -32,6 +32,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/test_params.md](docs/test_params.md) | Every test URL parameter (`?fog=0`, `?raidme=den` ...) and what it does |
 | [docs/rival_bot_plan.md](docs/rival_bot_plan.md) | Rival bot clan: rule-list brain, difficulties, home hideouts (built 2026-10-19) |
 | [docs/territory.md](docs/territory.md) | Territory areas, M game map, home-turf bonuses, season score and end (built 2026-10-20) |
+| [docs/leader_balance.md](docs/leader_balance.md) | **Important, needs balancing:** leader bounty, underdog help, crew cap |
 | [docs/ninja_clan_plan.md](docs/ninja_clan_plan.md) | Ninja (Shinobi) clan: contracts, mark, stealth, leader kit (plan) |
 | [docs/police_spec.md](docs/police_spec.md) | Police: heat tiers, arrests, bail, bribes |
 | [docs/civilians_plan.md](docs/civilians_plan.md) | Townsfolk walking the streets |

@@ -86,9 +86,10 @@ Owners: [Shinobi](ninja_clan_plan.md), [controls](controls.md), [combat](combat_
 
 Owners: [crew](crew_recruiting_plan.md), [bots](rival_bot_plan.md), [economy](business_raids_plan.md).
 
-- [ ] Investigate reports of 29 crew by day 5/6, Shinobi 35 by day 7, player 22 versus Kuroda 1. Compare hiring throughput, prices/income, revive/retention, bot rebuilding and faction disparities.
-- [ ] Define early/mid/late target curves before changing numbers. Preserve useful early crews while restraining runaway midmatch armies; no new caps or exact rates are approved here.
-- [ ] Use short comparable seeded scenarios, avoiding broad costly simulations.
+- [x] Investigate reports of 29 crew by day 5/6, Shinobi 35 by day 7, player 22 versus Kuroda 1. Compare hiring throughput, prices/income, revive/retention, bot rebuilding and faction disparities.
+- [x] Define early/mid/late target curves before changing numbers. Preserve useful early crews while restraining runaway midmatch armies; no new caps or exact rates are approved here.
+- [x] Use short comparable seeded scenarios, avoiding broad costly simulations.
+- Result (2026-10-29): cause was 20 business slots in town plus uncapped Renown slots (contracts alone gave about +2 a day). Rule now: cap = min(20, 6 + (day - 1) + business/Renown slots), no separate bonus cap; bot fix included.
 
 ## 7. Separate architecture/refactor pass
 

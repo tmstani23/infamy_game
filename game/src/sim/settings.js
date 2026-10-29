@@ -19,12 +19,15 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   for (const [type, price] of Object.entries(c.hire || {})) set(units?.types?.[type], 'price', price);
   set(ur, 'baseCap', crew.baseCap);
   set(ur, 'capPerDawn', crew.capPerDawn);
+  set(ur, 'maxBonusSlots', crew.maxBonusSlots);
+  set(ur, 'maxCrew', crew.maxCrew);
   set(ur, 'heroRespawnSeconds', crew.heroRespawnSeconds);
   if (ur?.capPerBusiness && crew.capPerBusiness !== undefined) for (const k in ur.capPerBusiness) ur.capPerBusiness[k] = crew.capPerBusiness;
   if (ur && heat.townsfolk) ur.civilianHeat = { ...ur.civilianHeat, ...heat.townsfolk };
   set(ur, 'heatCoolSeconds', heat.coolSeconds);
   if (ur && s.hideout) { const { _note, ...h } = s.hideout; ur.hideout = { ...ur.hideout, ...h }; }
   if (ur && s.hqCamping) ur.hqCamping = { ...ur.hqCamping, ...s.hqCamping };
+  if (ur && s.leader) { const { _note, ...l } = s.leader; ur.leader = { ...ur.leader, ...l }; }
   if (ur && s.shakedown) ur.shakedown = { ...ur.shakedown, ...s.shakedown };
   // territory and the season (sim/territory.js)
   if (ur && s.territory) { const { _note, ...t } = s.territory; ur.territory = { ...ur.territory, ...t, radius: { ...ur.territory?.radius, ...t.radius } }; }

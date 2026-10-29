@@ -38,7 +38,7 @@ export function createDeploymentAI(game, { clan, hero }) {
     if(st.night&&st.clans[clan].faction==='yakuza'&&game.shakedown&&!rally.active&&!raid&&st.clans[clan].heat<60)for(const [id,task]of Object.entries(record.sectors)){
       const squad=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!e.deployment.duty?.manual&&!game.rally.participating(e));
       if(squad.length<3||task.operation||task.recovery||squad.some(e=>e.hp<e.maxHp*.85))continue;
-      const target=Object.values(st.businesses).find(b=>game.shakedown.eligibility(clan,id,b.id).ok);
+      const lead=game.leader?.leader(),target=Object.values(st.businesses).filter(b=>game.shakedown.eligibility(clan,id,b.id).ok).sort((a,b)=>(b.owner===lead)-(a.owner===lead))[0];   // the season leader first (sim/leader.js)
       if(target){command({action:'shakedown',sector:id,business:target.id});break;}
     }
     if(st.clans[clan].faction==='kuroda'&&game.sweep&&!rally.active&&!raid)for(const [id,task]of Object.entries(record.sectors)){

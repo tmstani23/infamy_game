@@ -41,13 +41,13 @@ export function createClans(state, units, opts = {}) {
   const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0) + (state.clans[id]?.respawning?.length || 0);
 
   // Hero + baseCap crew, +capPerDawn for every dawn of the season so far (Tim 2026-10-28), plus slots for every business the clan holds
+  // (Shinobi: for Renown). Phase 6 (Tim 2026-10-29): no clan passes maxCrew (maxBonusSlots, unset, would limit the slots).
   function crewCap(id) {
     const base = rules.baseCap + Math.max(0, (state.season?.day || 1) - 1) * (rules.capPerDawn || 0);
     // the Shinobi clan holds no businesses: its crew grows with Renown (renownPerCrew a head)
-    if (state.clans[id]?.kind === 'ninja') return base + Math.floor((state.clans[id].renown || 0) / (rules.renownPerCrew || 100));
-    return base + Object.values(state.businesses)
-      .filter(b => b.owner === id)
-      .reduce((n, b) => n + (rules.capPerBusiness[b.kind] || 0), 0);
+    const bonus = state.clans[id]?.kind === 'ninja' ? Math.floor((state.clans[id].renown || 0) / (rules.renownPerCrew || 100))
+      : Object.values(state.businesses).filter(b => b.owner === id).reduce((n, b) => n + (rules.capPerBusiness[b.kind] || 0), 0);
+    return Math.min(rules.maxCrew ?? Infinity, base + Math.min(rules.maxBonusSlots ?? Infinity, bonus));
   }
 
   // One-off price; each crew member you have or are waiting on makes the next one dearer
@@ -58,7 +58,7 @@ export function createClans(state, units, opts = {}) {
     const faction = state.clans[id]?.faction;
     if ((t.faction && t.faction !== faction) || t.excludeFactions?.includes(faction)) return null;
     const have = crewCount(id) + (state.clans[id]?.queue.length || 0);
-    return Math.round(t.price * (1 + rules.priceStepPerCrew * have));
+    return Math.round(t.price * (1 + rules.priceStepPerCrew * have) * (opts.priceFactor?.(id) ?? 1));   // underdog discount (sim/leader.js)
   }
 
   function setOwner(businessId, clanId) {
@@ -80,7 +80,7 @@ export function createClans(state, units, opts = {}) {
     if (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
     const price = hirePrice(clan.id, type);
     if (price === null) return say(clan, 'Nobody here for that job yet');
-    if (crewCount(clan.id) + clan.queue.length >= crewCap(clan.id)) return say(clan, 'Crew is full: hold more buildings for more crew');
+    if (crewCount(clan.id) + clan.queue.length >= crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
     if (clan.queue.length >= rules.maxQueue) return say(clan, 'Too many hires waiting');
     if (clan.ryo < price) return say(clan, `Not enough ryo (${price} needed)`);
     debitRyo(state, clan, price, 'Crew hired', { target: type });
@@ -115,7 +115,7 @@ export function createClans(state, units, opts = {}) {
     // sectorRespawnSeconds and run back to their sector; hero-group crew still go to the clinic (Tim 2026-10-27)
     const saved = storedDeployment(e);
     if (state.deployment?.restrictionsEnabled && saved && saved.savedGroup !== 'hero' && hideoutOf(clan.id)) {
-      (clan.respawning ||= []).push({ unit: e.type, model: e.model, deployment: saved, left: rules.sectorRespawnSeconds ?? 30 });
+      (clan.respawning ||= []).push({ unit: e.type, model: e.model, deployment: saved, left: (rules.sectorRespawnSeconds ?? 30) * (opts.respawnFactor?.(e.owner) ?? 1) });
       say(clan, `Your ${e.type} will come round at your HQ in ${rules.sectorRespawnSeconds ?? 30} s`);
       return true;
     }

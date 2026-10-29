@@ -13,6 +13,7 @@ import { createVision } from './vision.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
 import { createUnstuck } from './unstuck.js';
+import { createLeader } from './leader.js';
 import { createPolice, POLICE } from './police.js';
 import { applySettings } from './settings.js';
 import { createBusinesses } from './businesses.js';
@@ -130,10 +131,11 @@ export function createGame(options) {
   });
   // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1,
-    onAddClan: clan => deployment.addClan(clan) }) : null;
+    onAddClan: clan => deployment.addClan(clan), priceFactor: id => leader.hireFactor(id), respawnFactor: id => leader.respawnFactor(id) }) : null;
   const rewards = createRewards(state, units?.rules);
   // territory: the street around each owned business, quarters and the season score (sim/territory.js)
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
+  const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory);
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
@@ -746,11 +748,12 @@ export function createGame(options) {
     // house guards (sim/businesses.js) die outright; the business sends a new one later
     if (t.guard) { t.dead = true; t.diedAt = state.tick; return; }
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
-    if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; return; }
+    if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; leader.downed(a, t); return; }
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
     state.news.push({ kind: 'bossDown', clan: t.owner, hero: t.id, by: a.owner || null, x: t.x, z: t.z });
     if (cop(a) && police) { t.downed = true; t.downedAt = state.tick; return; }
     rewards.leaderDown(a, t);
+    leader.downed(a, t);
     t.dead = true;
     t.anim = 'death';
     t.diedAt = state.tick;
@@ -1146,7 +1149,7 @@ export function createGame(options) {
       }
       // a knocked-out hero comes round inside his clan's hideout after heroRespawnSeconds (rival bot plan),
       // else at the clinic's door ring (Tim 2026-10-17), or at home when the map has no clinic
-      if (e.type === 'hero' && secs >= (units?.rules?.heroRespawnSeconds ?? 20)) {
+      if (e.type === 'hero' && secs >= (units?.rules?.heroRespawnSeconds ?? 20) * leader.respawnFactor(e.owner)) {
         const hd = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room);
         if (hd) {
           Object.assign(e, { x: hd.to.x, z: hd.to.z, place: hd.place, hp: e.maxHp, dead: false, anim: 'idle' });
@@ -1555,6 +1558,7 @@ export function createGame(options) {
   function step(commands = []) {
     rally.tick();
     rally.cleanBuffs();
+    const lastNews = state.news || [];
     state.hits = [];      // this tick's hits and ability uses, for the renderer
     state.dodges = [];
     state.casts = [];
@@ -1564,6 +1568,7 @@ export function createGame(options) {
     state.news = [];         // this tick's big moments (boss knocked out or arrested, War Lantern knocked down), for the screen
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     state.dawn = state.dusk = false;
+    leader.tick(lastNews);   // leader bounties for last tick's raids and Shakedowns
     if (state.clock && --state.clock.left <= 0) setNight(!state.night);
     for (const c of commands) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
@@ -1806,5 +1811,5 @@ export function createGame(options) {
     if ((dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) && deployment.canOccupy(e, x, z)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
 }

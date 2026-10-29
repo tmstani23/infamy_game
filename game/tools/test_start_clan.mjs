@@ -102,7 +102,7 @@ for (const kind of ['shop', 'tenements', 'pawnshop', 'bathhouse', 'sake_brewery'
   g.step([{ id: heroId, type: 'business', action: 'buy', business: b.id }]);
   assert.equal(b.owner, 'player');
   assert.equal(clan.ryo, 0, 'purchase charges the exact price');
-  assert.equal(g.clans.crewCap('player'), beforeCap + slots);
+  { const r = g.settings.units.rules; assert.equal(g.clans.crewCap('player'), Math.min(beforeCap + slots, r.maxCrew), 'business slots, up to the maxCrew ceiling (phase 6)'); }
   assert.equal(g.clans.crewCount('player'), 1, 'buying adds capacity, not free units');
   assert.equal(Object.values(g.state.entities).filter(e => e.guard === b.id && !e.dead).length, 2);
   assert.equal(g.territory.ownerAt(b.x, b.z), 'player');
@@ -142,7 +142,7 @@ for (const q of g.territory.quarters) {
   members.at(-1).owner = 'player';
 }
 assert.equal(new Set(g.territory.quarters.flatMap(q => q.businesses)).size, 10);
-assert.equal(g.clans.crewCap('player'), g.settings.units.rules.baseCap + (g.state.season.day - 1) * g.settings.units.rules.capPerDawn + 20, 'all ten businesses grow capacity without a separate hard cap');
+assert.equal(g.clans.crewCap('player'), Math.min(g.settings.units.rules.maxCrew, g.settings.units.rules.baseCap + (g.state.season.day - 1) * g.settings.units.rules.capPerDawn + 20), 'all ten businesses grow capacity up to the maxCrew ceiling (phase 6, Tim 2026-10-29)');
 assert.equal(g.territory.score('player'), 24);
 console.log('all four quarter memberships, partial/full/lost bonuses and expanded crew capacity ok');
 

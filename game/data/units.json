@@ -5,6 +5,7 @@
     "vision": { "range": 18, "businessRange": 10 },
     "baseCap": 6,
     "capPerDawn": 1,
+    "maxCrew": 20,
     "renownPerCrew": 75,
     "combatRenown": { "crew": 2, "leader": 8 },
     "_contracts": "Shinobi contracts: one accepted job per clan, objectives any time with local counters and no dawn expiry. Rolling board and repeat cooldowns are independent of day/night. Fair target weighting and accepted reward locks remain; normal raid/payout schedules are separate.",
