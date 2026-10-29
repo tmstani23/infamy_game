@@ -3,21 +3,27 @@
 // camera, a little random pitch so repeats don't sound the same. K mutes. Purely output.
 import {normalizeAudioSettings,readAudioSettings,saveAudioSettings} from '../audio_settings.js';
 const SWORDS = new Set(['ronin', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
-const BLADES = new Set([...SWORDS, 'rival_yakuza', 'kuroda_spearman']);
+const SPEARS = new Set(['rival_yakuza', 'kuroda_spearman']);
+const CLUBS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
   'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT,
   'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1'];
-// fists (Tim 2026-10-29: a better punch): these models punch rather than swing a blade or club
+// Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
 const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'] };
 for (let i=1;i<=4;i++) CUSTOM[`katana_slash_${i}`]=['sword_slash_1','sword_slash_2'];
+for (let i=1;i<=4;i++) {
+  CUSTOM[`spear_thrust_${i}`]=['sword_slash_1','sword_slash_2'];
+  CUSTOM[`club_thud_${i}`]=['club_hit_1','club_hit_2','club_hit_3'];
+}
 const HEAR = 24, MAX_VOICES = 14;
 
 export function createSound({ base = '../assets/sounds/',storage } = {}) {
-  let ctx = null, master = null, effects=null, voices = 0, settings=readAudioSettings(storage),ready=null,lastSlash=null;
+  let ctx = null, master = null, effects=null, voices = 0, settings=readAudioSettings(storage),ready=null;
+  const lastVariants=new Map();
   const listeners=new Set();
   function apply(){if(master)master.gain.value=settings.muted?0:settings.master;if(effects)effects.gain.value=settings.effects*1.5;}
   function setSettings(patch){settings=normalizeAudioSettings({...settings,...patch});apply();saveAudioSettings(settings,storage);for(const fn of listeners)fn({...settings});return {...settings};}
@@ -43,11 +49,13 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     const base = name.replace(/_\d+$/, ''), mine = Object.keys(CUSTOM).filter(k => buffers[k] && new RegExp(`^${base}(_\\d+)?$`).test(k));
     return mine.length ? mine : CUSTOM[name];
   };
-  function swordSlash(volume) {
-    const pool=pickCustom('katana_slash_1'),choices=pool.length>1?pool.filter(name=>name!==lastSlash):pool;
+  function variant(family, volume, pitch=1) {
+    if (!ctx || settings.muted || voices >= MAX_VOICES || volume <= 0.01) return;
+    const pool=pickCustom(family),choices=pool.length>1?pool.filter(name=>name!==lastVariants.get(family)):pool;
     const name=choices[Math.floor(Math.random()*choices.length)];
-    lastSlash=name;play(name,volume);
+    lastVariants.set(family,name);play(name,volume,pitch);
   }
+  const swordSlash=volume=>variant('katana_slash_1',volume);
   function play(names, volume, pitch = 1) {
     if (!ctx || settings.muted || voices >= MAX_VOICES || volume <= 0.01) return;
     const name = [].concat(names)[Math.floor(Math.random() * [].concat(names).length)], buf = buffers[name];
@@ -96,12 +104,18 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         const v = near(me, e.x, e.z, e.place);
         if (SWORDS.has(e.model)) swordSlash(0.35*v);
-        else if (BLADES.has(e.model)) play(['sword_slash_1', 'sword_slash_2'], 0.35 * v);
+        else if (SPEARS.has(e.model)) {
+          // These clips contain the complete thrust. Special attacks have their
+          // own cast events below, so their animation must not play it twice.
+          if (!e.spearCombo && !e.spearSweep) variant('spear_thrust_1',.45*v);
+        }
         else play(['sword_slash_1', 'sword_slash_2'], 0.2 * v, 0.7);   // heavier whoosh for clubs
       }
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
-        if (BLADES.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
+        if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
+        else if (SWORDS.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
+        else if (CLUBS.has(h.weapon)) variant('club_thud_1',.6*v,HEAVY_FISTS.has(h.weapon)?.9:1);
         else if (FISTS.has(h.weapon)) play(pickCustom(HEAVY_FISTS.has(h.weapon) && (buffers.punch_main_heavy || !buffers.punch_main) ? 'punch_main_heavy' : 'punch_main'), 0.6 * v, HEAVY_FISTS.has(h.weapon) ? 0.9 : 1);
         else play(['club_hit_1', 'club_hit_2', 'club_hit_3'], 0.55 * v);
         if (h.crit) play(['crit_hit_1', 'crit_hit_2'], 0.6 * v);
@@ -116,7 +130,10 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'taunt') play(SOFT, 0.6 * v, 0.5);
         if (c.kind === 'loot') play(pickCustom('loot_coins_1'), 0.6 * v);
         if (c.kind === 'rally') play('katana_clash_1', 0.5 * v);
-        if (c.kind === 'sweep' || c.kind === 'thrust') play('sword_slash_1', .4*v);
+        if (c.kind === 'sweep' || c.kind === 'thrust') {
+          if (SPEARS.has(a?.model) && c.landed!==false) variant('spear_thrust_1',.45*v);
+          else play('sword_slash_1',.4*v);
+        }
         if (c.kind === 'counter') play('katana_clash_1', .6*v, .85);
         if (c.kind === 'formation') play('katana_draw_2', .45*v, .65);
         if (c.kind === 'execute') { play(['crit_hit_1', 'crit_hit_2'], 0.7 * v, 0.8); play(['death_thud_1', 'death_thud_2'], 0.6 * v); }
