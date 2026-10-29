@@ -198,6 +198,13 @@
   .channel.scrubbing span { color: #ffe0a0; }
   .channel.arrest i { background: linear-gradient(#7aa6ff, #1f3f9c); }
   .channel.arrest span { color: #cfe2ff; text-shadow: 0 0 6px #3a78ff, 0 1px 2px #000; }
+  .channel.aiming { background: #260908; border-color: #9f3b32; }
+  .channel.aiming i { background: linear-gradient(#ff8070, #b82a20); }
+  .channel.aiming span { color: #ffaaa0; text-shadow: 0 0 5px #c8281c, 0 1px 2px #000; }
+  .channel.taunting { background: #2c1407; border-color: #bf6b28; }
+  .channel.taunting i { background: linear-gradient(#ffc071, #cf531c); }
+  .channel.taunting span { color: #ffc78c; text-shadow: 0 0 5px #c84d17, 0 1px 2px #000; }
+  .shakedown-text { position:absolute; left:0; top:0; pointer-events:none; font:900 12px/1.3 system-ui,sans-serif; letter-spacing:.08em; white-space:nowrap; text-shadow:0 2px 3px #000,0 0 8px #70220c; padding:4px 7px; border-radius:3px; background:#180b08bf; }
   /* heat gauge (src/heat_badge.js); --k = heat / 100, capped at 1 */
   #heat { --k: 0; position: fixed; right: 18px; bottom: 18px; width: 120px; height: 120px; pointer-events: none;
     border-radius: 50%; box-shadow: 0 0 calc(14px + 30px * var(--k)) calc(2px + 8px * var(--k)) rgba(255, calc(170 - 120 * var(--k)), 40, calc(.35 + .5 * var(--k))); }
@@ -372,7 +379,6 @@
   #interiorinfo dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 7px 0 0; }
   #interiorinfo dt { color: #a49a85; }
   #interiorinfo dd { margin: 0; text-align: right; }
-  .shakedown-text { position:absolute; left:0; top:0; pointer-events:none; font:900 12px/1.3 system-ui,sans-serif; letter-spacing:.08em; white-space:nowrap; text-shadow:0 2px 3px #000,0 0 8px #70220c; padding:4px 7px; border-radius:3px; background:#180b08bf; }
 </style>
 <script type="importmap">
 { "imports": {

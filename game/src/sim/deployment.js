@@ -70,7 +70,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     if (!state.clans?.[clan] || !validGroup(to) || !Array.isArray(ids) || !ids.length)
       return { ok: false, why: 'Choose crew and a valid destination' };
     const unique = [...new Set(ids)], selected = unique.map(id => state.entities[id]);
-    if (selected.some(e => !active(e) || e.owner !== clan || e.downed)) return { ok: false, why: 'Only available hired crew can transfer' };
+    if (selected.some(e => !active(e) || e.owner !== clan || e.downed || e.deployment?.scattered)) return { ok: false, why: 'Only available hired crew can transfer; scattered crew must recover first' };
     if (selected.every(e => !e.deployment?.transfer && e.deployment?.group === to)) return { ok: true, why: '' };
     const n = counts(clan, unique);
     n[to] += unique.length;
@@ -101,23 +101,26 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const say = (clan, text) => { if (state.clans[clan]) state.clans[clan].notice = { tick: state.tick, text }; };
   function excursion(e) {
     const op = D.clans[e.owner]?.sectors[e.deployment?.group]?.operation;
-    return op?.kind === 'shakedown' && op.units.includes(e.id) ? state.businesses[op.business] : null;
+    if (!op?.units?.includes(e.id)) return null;
+    if (op.kind === 'sweep') return { targetSector:op.targetSector };
+    const b = op.kind === 'shakedown' && state.businesses[op.business];
+    return b ? { targetSector:sectorAt(...b.ring), room:b.room } : null;
   }
   function canOccupy(e, x, z, place = e.place) {
-    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
+    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
     const group = e.deployment?.group;
     const b = excursion(e);
-    if (b && (place === b.room || (place === 'street' && [group, sectorAt(...b.ring)].includes(sectorAt(x,z))))) return true;
+    if (b && (place === b.room || (place === 'street' && [group, b.targetSector].includes(sectorAt(x,z))))) return true;
     if (group === 'home') {
       const h = home(e.owner), p = h?.ring || hero(e.owner)?.home;
       return !!p && (place === h?.room || (place === 'street' && Math.hypot(x - p[0], z - p[1]) <= 12));
     }
     return sectorAt(x, z, place) === group;
   }
-  const canActAt = (e, x, z, place = e.place) => !e.deployment?.transfer && canOccupy(e, x, z, place);
+  const canActAt = (e, x, z, place = e.place) => !e.deployment?.transfer && !e.deployment?.scattered && canOccupy(e, x, z, place);
   function navFor(e) {
-    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
-    const group = e.deployment.group, b = excursion(e), target = b && sectorAt(...b.ring);
+    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
+    const group = e.deployment.group, b = excursion(e), target = b?.targetSector;
     const key = b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group;
     if (!localNavs.has(key)) {
       const { bounds, cell, w, cells } = geometry.cellGrid(), label = sectorIds.indexOf(group);
@@ -131,7 +134,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   function allowsOrder(e, c, leader, door) {
     if (!D.restrictionsEnabled) return true;
-    let ok = !e.deployment?.transfer;
+    let ok = !e.deployment?.transfer && !e.deployment?.scattered;
     if (ok && c.kind === 'follow') ok = e.deployment.group === 'hero' || isRallyParticipant(state, e);
     else if (ok && c.kind === 'attack') {
       const t = state.entities[c.target]; ok = !!t && canActAt(e, t.x, t.z, t.place);
@@ -404,7 +407,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   sync();
   return { addClan, onSpawn, sync, members, counts, canAssign, nextAutomaticSector, sectorAt,
     overflowAvailable: clan => full(counts(clan)), cellGrid: geometry.cellGrid, canOccupy, canActAt, navFor, allowsOrder,
-    canTransfer, command, travelStep, localTravel, returnAfterRally, reserveStatus,
+    canTransfer, command, travelStep, localTravel, destination, returnAfterRally, reserveStatus,
     needsFirstSector:clan=>!D.clans[clan]?.autoSector&&counts(clan).hero>=D.heroLimit&&members(clan,'home').some(e=>!e.downed&&!e.deployment.transfer&&!e.deployment.keepAtHQ&&healthy(e)&&idle(e)),
     enable: () => { D.restrictionsEnabled = true; } };
 }

@@ -125,7 +125,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const c of state.casts) {
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
-        if(c.kind==='shakedownSuccess')play(pickCustom('loot_coins_1'),.65*v);
+        if(c.kind==='shakedownSuccess'||c.kind==='sweepSuccess')play(pickCustom('loot_coins_1'),.65*v);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
         if (SWORDS.has(a?.model) && (c.kind==='dash'||c.kind==='assassinate'||(c.kind==='shadowstep'&&c.crit))) swordSlash(.4*v);
         if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);

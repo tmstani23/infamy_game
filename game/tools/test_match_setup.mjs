@@ -65,4 +65,15 @@ for (const options of [{clan:'invalid',difficulty:'easy'}, {clan:'yakuza',diffic
   assert.throws(()=>setupMatch(g,{...options,bots}));
   assert.equal(Object.keys(g.state.clans).length,0,'invalid choices cannot partially initialize a match');
 }
-console.log('Start menu setup: all 9 clan/difficulty combinations, correct HQs/leaders, fair resources, both live AI brains, validation and test presets passed');
+for(const clan of ['yakuza','kuroda','shinobi']){
+  const g=make(),{previewCommands}=setupMatch(g,{clan,difficulty:'easy',bots,test:{setup:'assignments'}});
+  assert.equal(g.state.clans.player.ryo,5000,'shared assignment preset grants 5000 ryo');
+  if(clan==='shinobi')assert.equal(previewCommands.length,0,'no foreign assignment forced on Shinobi');
+  else{
+    const action=clan==='yakuza'?'shakedown':'sweep';
+    assert.ok(previewCommands.some(c=>c.action===action));g.step(previewCommands);
+    const tasks=Object.values(g.state.deployment.clans.player.sectors);
+    assert.ok(tasks.some(t=>t.operation?.kind===action),'preset starts the real selected-clan operation');
+  }
+}
+console.log('Start menu setup: clan/difficulty combinations, HQs/leaders, fair resources, both AI brains, validation and shared assignment presets passed');

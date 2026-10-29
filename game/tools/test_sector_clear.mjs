@@ -22,3 +22,17 @@ state.tick += 20 * 200; state.entities.b1.x = 5; rewards.sectorTick(at);
 state.entities.b1.x = 99; state.tick += 20; rewards.sectorTick(at);
 assert.equal(state.clans.a.ryo, 200, 'one rival unit leaving is not a clear');
 console.log('sector clear bonus ok');
+// A clear during Sweep contributes 200; completing that same attempt adds only 300.
+{
+  const s={tick:0,news:[],ryoGains:[],casts:[],clans:{a:{id:'a',ryo:0},b:{id:'b',ryo:0}},
+    entities:{a:unit('a','a',1),b:unit('b','b',2),c:unit('c','b',3)}};
+  const r=createRewards(s),baseline=r.sectorClaim('a','west').sequence;
+  r.sectorTick(at);s.entities.b.dead=s.entities.c.dead=true;s.tick=20;r.sectorTick(at);
+  assert.equal(s.clans.a.ryo,200);
+  assert.equal(r.claimSweep('a','west',baseline),300);assert.equal(s.clans.a.ryo,500);
+  assert.equal(r.claimSweep('a','west',baseline),0,'no repeated top-up');
+  assert.equal(r.claimSweep('a','west',r.sectorClaim('a','west').sequence),0,'next attempt shares cooldown');
+  s.tick+=3600;assert.equal(r.claimSweep('a','west',r.sectorClaim('a','west').sequence),500);
+  s.entities.b.dead=s.entities.c.dead=false;r.sectorTick(at);s.entities.b.dead=s.entities.c.dead=true;r.sectorTick(at);
+  assert.equal(s.clans.a.ryo,1000,'generic clear cannot add another 200 after Sweep');
+}

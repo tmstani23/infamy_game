@@ -7,6 +7,7 @@
 //   ?test=lantern keep the normal clan/difficulty menu; only your starting ryo becomes
 //                 3000, enough to buy a War Lantern. Rivals and starting property stay normal.
 //   ?test=shakedown stages three Yakuza at a rival teahouse and starts a real night Shakedown.
+//   ?test=assignments keeps clan selection, grants 5000 ryo and stages Yakuza Shakedown or Kuroda Sweep.
 // DEV = false turns it off, along with the dev-only keys in main.js: N / the day-night button
 // (any client could send that 'time' command, a cheat in multiplayer), F3 footprints, and
 // window.infamy for the browser console. Not covered: server.mjs saving the HUD layout
@@ -19,7 +20,7 @@ const test = DEV && typeof location !== 'undefined' ? new URLSearchParams(locati
 export const TEST = {
   setup: test,
   botRyo: test === 'bot' ? 5000 : undefined,
-  playerRyo: ['bot', 'lantern'].includes(test) ? 3000 : undefined,
+  playerRyo: test === 'assignments' ? 5000 : ['bot', 'lantern'].includes(test) ? 3000 : undefined,
   playerOwns: test === 'bot' ? 'teahouse' : null,
   ninja: test === 'ninja',
 };

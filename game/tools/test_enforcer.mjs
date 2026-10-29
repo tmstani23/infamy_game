@@ -24,7 +24,9 @@ const seen=[];for(let i=0;i<60;i++){g.step();seen.push(...st.hits.filter(h=>h.t=
 if(process.env.DBG)console.log(JSON.stringify(seen),big.hp,big.maxHp);
 assert.ok(big.hp<big.maxHp,'taunted enemy attacks the enforcer');
 const mateHp=mate.hp;for(let i=0;i<20;i++)g.step();assert.equal(mate.hp,mateHp,'and leaves the clanmate alone');
-for(let i=0;i<R.durationTicks;i++)g.step();assert.equal(foe.taunted,undefined,'taunt wears off');
-assert.ok(big.taunt.readyAt>st.tick-R.cooldownTicks,'cooldown');
+assert.ok(foe.taunted,'automatically renews taunt when a valid enemy remains');
+const ready=big.taunt.readyAt;assert.equal(R.cooldownTicks,80);
+while(st.tick<=ready)g.step();
+assert.equal(big.taunt.readyAt,ready+80,'automatically taunts again on the four-second cooldown');
 assert.doesNotThrow(()=>JSON.stringify(st));
 console.log('Enforcer: Yakuza-only hire, taunt priority/forced attack/bulwark/duration/cooldown, sprite sets passed');

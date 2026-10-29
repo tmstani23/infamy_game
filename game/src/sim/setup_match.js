@@ -1,6 +1,7 @@
 import { startClan } from './start_clan.js';
 import { CLAN_CHOICES, matchOptions } from './match_options.js';
 import { stageShakedownPreview } from './shakedown_preview.js';
+import { stageAssignmentPreview } from './assignment_preview.js';
 
 // Players keep the local 'player' id, while clan identity determines their
 // leader, home and rivals. Bots and humans use the same fair clan initializer.
@@ -32,6 +33,6 @@ export function setupMatch(game, { clan, difficulty, bots, spawns = {}, test = {
   }
   game.state.match = { ...options };
   game.deployment.enable();
-  const previewCommands=test.setup==='shakedown'?stageShakedownPreview(game,heroId,rivals):[];
+  const previewCommands=test.setup==='assignments'?stageAssignmentPreview(game,heroId,rivals):test.setup==='shakedown'?stageShakedownPreview(game,heroId,rivals):[];
   return { heroId, rivals, options, previewCommands };
 }

@@ -24,12 +24,12 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     return clamp((base(e).critChance || 0) + bonus);
   }
   const dodgeChance = e => clamp(base(e).dodgeChance || 0);
-  const damageTaken = e => formationMultiplier(e) * (buff(e, 'bulwark')?.taken || 1);   // bulwark: enforcer while his taunt holds (sim/taunt.js)
+  const damageTaken = e => Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const pursuit = e.type === 'hero' && gait === 'run' ? buff(e, 'pursuit')?.runSpeed || 1 : 1;
-    return (b[gait] || 0) * turf * pursuit * (buff(e, 'snared')?.speed ?? 1);
+    return (b[gait] || 0) * turf * pursuit * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);
   }
   function regeneration(e) {
     const rules = units?.rules || {}, rate = rules.regenPerSecond || 0, wait = (rules.regenAfterSeconds || 0) * 20;
@@ -79,11 +79,12 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     add('critChance', 'Critical chance', 'Offence', clamp(b.critChance || 0), v.critChance, '%', v.critChance !== clamp(b.critChance || 0) ? ['Active critical-chance bonuses'] : []);
     add('critMultiplier', 'Critical damage', 'Offence', b.critMultiplier || 2, b.critMultiplier || 2, '×');
     add('dodge', 'Dodge chance', 'Defence', clamp(b.dodgeChance || 0), v.dodgeChance, '%', [], 'Normal-attack dodge. Abilities retain their own hit rules.');
-    add('damageTaken', 'Damage received', 'Defence', 1, v.damageTaken, '%', v.damageTaken !== 1 ? ['Iron Formation'] : [], 'Incoming damage multiplier. Assassinate retains its explicit health rule.', true);
+    add('damageTaken', 'Damage received', 'Defence', 1, v.damageTaken, '%', [formationMultiplier(e) < 1 && 'Iron Formation', buff(e, 'sweep') && 'Sweep formation', buff(e, 'bulwark') && 'Bulwark'].filter(Boolean), 'Incoming damage multiplier. Assassinate retains its explicit health rule.', true);
     add('lifesteal', 'Lifesteal', 'Defence', 0, v.lifesteal, '%', v.lifesteal ? ['Red Lantern'] : [], 'Healing from actual damage dealt, capped at maximum health.');
     for (const [key, label] of [['walk', 'Walk speed'], ['run', 'Run speed']]) {
       const sources = [];
       if (buff(e, 'snared')) sources.push(`Slowed ×${buff(e, 'snared').speed}`);
+      if (buff(e, 'charmSnare')) sources.push(`Charm snare ×${buff(e, 'charmSnare').speed}`);
       if (key === 'run' && e.type === 'hero' && buff(e, 'pursuit')) sources.push(`Reprisal escape ×${buff(e, 'pursuit').runSpeed}`);
       if (e.type !== 'hero' && territory.inOwn(e)) sources.push(`Home streets ×${territory.rules.crewSpeed}`);
       add(key, label, 'Movement', b[key] || 0, v[key], 'steps/s', sources);

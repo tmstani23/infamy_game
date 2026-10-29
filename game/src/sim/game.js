@@ -25,6 +25,7 @@ import { createAssignments } from './assignments.js';
 import { createDeploymentRally } from './deployment_rally.js';
 import { createShinobiAssignments } from './shinobi_assignments.js';
 import { createShakedown } from './shakedown.js';
+import { createSweep } from './sweep.js';
 import { createDiversion } from './diversion.js';
 import { createRifleman } from './rifleman.js';
 import { createTaunt } from './taunt.js';
@@ -231,7 +232,7 @@ export function createGame(options) {
   const taunt = createTaunt({ state, vision, hostile: (a, b) => hostile(a, b) && sees(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, fightTarget: id => fight[id]?.target, rules: units?.types?.yakuza_enforcer?.taunt,
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  function manualCrew(e) { crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); assignments.manual(e); }
+  function manualCrew(e) { crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); sweep.manual(e); assignments.manual(e); }
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
@@ -1163,11 +1164,12 @@ export function createGame(options) {
     }
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     if (contracts?.scrubStep(e)) return;
+    if (sweep.scatterStep(e, unit)) return;
     if (deployment.travelStep(e, unit)) return;
     if(crewJobs.step(e,unit))return;
     if (e.distracted?.source && diversion.step(e, unit)) return;
     if (e.taunted && taunt.step(e, unit)) return;
-    if (shakedown.step(e, unit)) return;
+    if (shakedown.step(e, unit) || sweep.step(e, unit)) return;
     if (assignments.avoidCamping(e,unit)) return;
     if (sectorRecovery.step(e, unit)) return;
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
@@ -1513,6 +1515,12 @@ export function createGame(options) {
     rules:{...units?.rules?.shakedown,businesses:units?.rules?.businesses}, sees,
     addHeat, hit, clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;},
     attackStep:(e,unit,t)=>{if(taunt.step(e,unit))return;if(!swingStep(e,unit))engage(e,unit,t);} });
+  const sweep = createSweep({ state, deployment, rally, hostile, sees, rewards,
+    onScatter:manualCrew, recover:(clan,sector,reason)=>sectorRecovery.request(clan,sector,reason),
+    attackStep:(e,unit,t)=>{if(taunt.step(e,unit))return;
+      const order=e.order;e.order={kind:'attack',target:t.id};const ranged=rifleman.step(e,unit);e.order=order;
+      if(!ranged&&!swingStep(e,unit))engage(e,unit,t);},
+    clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;} });
   const hqCamping = clans ? createHQCamping({ state, rules: units?.rules?.hqCamping, addHeat }) : null;
   const hqRaids = clans ? createHQRaidEffects({ state, rules: units?.rules?.hqRaid, dayNight: dayNight || {} }) : null;
 
@@ -1571,7 +1579,7 @@ export function createGame(options) {
       if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') giveOrder(e, c);
-      if (c.type === 'deployment') { if(shakedown.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
+      if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
       if((c.type==='execute'||c.type==='loot')&&c.crewJob&&e.type==='hero'){crewJobs.command(e,c);continue;}
@@ -1612,6 +1620,7 @@ export function createGame(options) {
     clans?.tick(DT, spawnOutside);
     syncCrewAttacks();
     shakedown.tick();
+    sweep.tick();
     sectorRecovery.tick();
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
@@ -1779,5 +1788,5 @@ export function createGame(options) {
     if ((dx ? Math.sign(x - e.x) === Math.sign(dx) : Math.sign(z - e.z) === Math.sign(dz)) && deployment.canOccupy(e, x, z)) { e.x = x; e.z = z; }
   }
 
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, stats };
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, stealth, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
 }

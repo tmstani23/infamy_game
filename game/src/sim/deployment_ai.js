@@ -41,6 +41,13 @@ export function createDeploymentAI(game, { clan, hero }) {
       const target=Object.values(st.businesses).find(b=>game.shakedown.eligibility(clan,id,b.id).ok);
       if(target){command({action:'shakedown',sector:id,business:target.id});break;}
     }
+    if(st.clans[clan].faction==='kuroda'&&game.sweep&&!rally.active&&!raid)for(const [id,task]of Object.entries(record.sectors)){
+      const squad=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!e.deployment.scattered&&!e.deployment.duty?.manual&&!game.rally.participating(e));
+      if(squad.length<3||task.operation||task.recovery||squad.some(e=>e.hp<e.maxHp*.85))continue;
+      const target=enemies.find(e=>e.place==='street'&&e.type!=='civilian'&&!e.cop&&!e.wild
+        &&game.sweep.eligibility(clan,id,game.deployment.sectorAt(e.x,e.z),e.owner).ok);
+      if(target){command({action:'sweep',sector:id,targetSector:game.deployment.sectorAt(target.x,target.z),targetClan:target.owner});break;}
+    }
     if (st.clans[clan].kind==='ninja') for (const [id,task]of Object.entries(record.sectors)) {
       const crew=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!game.rally.participating(e));
       if (!crew.length || task.operation || task.recovery || task.task==='ambush' || targeting) continue;

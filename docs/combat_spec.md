@@ -111,7 +111,7 @@ Kuroda-only crew unit (`sim/rifleman.js`; `units.json` `kuroda_rifleman`, mercen
 
 ### Yakuza Irezumi enforcer (2026-10-29)
 
-Yakuza-only crew unit: 320 HP, burning club, 140 ryo. Taunt every 10 s (range 5): the target must attack him for 4 s, and he takes 15% less damage while a taunt holds. The Yakuza bot hires one once it has 4 crew.
+Yakuza-only crew unit: 320 HP, burning club, 140 ryo. Taunt every 4 s (range 5; updated 2026-10-29): the target must attack him for 4 s, and he takes 15% less damage while a taunt holds. The Yakuza bot hires one once it has 4 crew.
 
 ### Ninja leader kit (built 2026-10-20, `units.json` `models.ninja_leader.abilities`)
 
@@ -267,3 +267,7 @@ Shakedown status (2026-10-28): dynamite/fire/status feedback below the operation
 ### Rifleman automatic bandit targeting fix (2026-10-28)
 
 Automatic rifle targeting now includes hostile bandits through the existing visibility/range/line-of-sight gates, including attack-move and newly joined hero followers without inherited attack orders. Neutral bandits still require hostility; civilian/police restrictions remain. Coordinator reports regression failed before fix and passed after, plus passing rifleman, crew-jobs, camps (all three clan openings 200 to 300 ryo) and move-priority checks. No loot code changed: starter-camp body jobs paid 25 per corpse in diagnostic. Tim’s successful rifle/looting retest preceded this fix; it is not validation of the new change.
+
+### Special-crew checkpoint (2026-10-29)
+
+Geisha: four-second cooldown, real one-second Charm cast; target moves at 25% speed with pink snare during casting. Recent hits/active attacks exclude targets; moving/interruption cancels the cast. Enforcer: four-second automatic Taunt cooldown (supersedes earlier five/ten-second notes); movement orders win, Taunt may interrupt his own melee. Coordinator reports geisha check passed. Enforcer integration check currently fails the automatic-renewal timing assertion; recast eligibility/timing remains unresolved. Sweep grouping/hold/scatter status lives in the [deployment checkpoint](deployment_sector_plan.md#sweep-checkpoint-tracking-2026-10-29). AIMING/TAUNT readouts and enhanced rifle muzzle/side sparks/smoke are implemented; visual sign-off pending.

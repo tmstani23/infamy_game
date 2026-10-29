@@ -563,3 +563,17 @@ Fresh `test_shakedown.mjs` run passed faction/night eligibility, alert/heat, tim
 - [x] Shakedown sim/UI/bot/FX integration and focused sim validation.
 - [ ] Sweep implementation and its shared-claim integration.
 - [ ] Tim Shakedown visual/balance playtest: opening blast/entrance/fire clarity, civilian safety, contest/recall, larger visible hero-group retreat, blocked-only emergency bomb and bonus/actual payout notices.
+
+### Sweep checkpoint tracking (2026-10-29)
+
+Local implementation checkpoint; full integration/playtesting is not complete. Earlier “Sweep unbuilt” notes describe the original plan. `sim/sweep.js` now handles Kuroda adjacent-sector dispatch/recall with chosen rival, real combat against visible rival street combatants within seven metres, physical saved-duty return and stalled-route replanning. Civilians, police and interior/hidden targets are excluded. Saved slots persist.
+
+- [x] **1:** Adjacent dispatch/recall and physical return.
+- [x] **2:** Grouped 10% damage reduction (two or more squad members all within three metres), nonstacking with Iron Formation; twenty-second uncontested hold near target anchor. Eligible target-sector defenders, excluding hero crew, physically withdraw to HQ, recover at least thirty seconds and to 70% health, then return to saved assignment.
+- [x] **3:** Shared sector-clear/Sweep claim, 500 ryo total including normal 200 reward (top-up only), three-minute shared cooldown. Initial reward eligibility requires two encountered rivals; operation timeout 180 seconds. [Reward owner](business_raids_plan.md#sweep-implementation-checkpoint-2026-10-29).
+- [x] **4:** March/victory FX and focused sim checks implemented.
+- [ ] Manual visual/balance and broader integration sign-off. Enforcer recast test remains failing; do not call the batch fully green.
+
+Implementation thread reports `test_sweep`, `test_sector_clear`, `test_shakedown` passed, covering hold/contest, visibility/exclusions, nonstacking, scatter/recovery/saved slots and public AI commands. Docs checkpoint independently confirmed `test_match_setup` passes including all three assignment presets. `test_enforcer` reproduced failing “automatically renews taunt when a valid enemy remains”; eligibility/timing needs focused investigation. No browser checks run.
+
+Quick manual checklist: choose rival/adjacent sector; dispatch/recall/return; contest and hold progress; grouped protection; defender HQ/recovery/return; shared 500-total reward and cooldown; march/victory readability. `?test=assignments` keeps clan menu and grants 5000 ryo: Yakuza stages/dispatches real Shakedown, Kuroda real Sweep, Shinobi gets money only. No map redesign implemented by this checkpoint.

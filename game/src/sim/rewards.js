@@ -35,6 +35,26 @@ export function createRewards(state, rules = {}) {
   // Sector cleared (Tim 2026-10-29): rival clans had at least clearMinRivals units standing on a sector's streets
   // together with yours, and now only yours are left. Once a second; one claim per clan and sector per cooldown.
   state.sectorFights ||= {};
+  const fight = s => state.sectorFights[s] ||= { most:{} };
+  const sectorClaim = (clan,s) => ({ sequence: fight(s).awards?.[clan]?.sequence || 0,
+    readyAt: fight(s).claimed?.[clan] ?? 0 });
+  function award(clan,s,amount,kind) {
+    const f=fight(s); f.awards ||= {}; f.claimed ||= {};
+    f.awards[clan]={sequence:(f.awards[clan]?.sequence||0)+1,amount,kind,tick:state.tick};
+    f.claimed[clan]=state.tick+Math.round((rules.sectorClearCooldownSeconds??180)*20);
+    state.clans[clan].ryo+=amount;
+    state.ryoGains.push({clan,amount,reason:kind==='sweep'?'Sweep secured':'Sector cleared'});
+  }
+  function claimSweep(clan,s,baseline) {
+    const f=fight(s),last=f.awards?.[clan];
+    if(state.tick >= (f.claimed?.[clan]??-Infinity)){award(clan,s,500,'sweep');return 500;}
+    // A normal clear awarded during this operation contributes to its total, once.
+    if(last?.kind==='clear'&&last.sequence>baseline){
+      const topup=Math.max(0,500-last.amount);
+      award(clan,s,topup,'sweep');return topup;
+    }
+    return 0;
+  }
   function sectorTick(sectorAt) {
     const bonus = rules.sectorClearBonus ?? 200, minRivals = rules.sectorClearMinRivals ?? 2;
     if (bonus <= 0 || !sectorAt) return;
@@ -44,7 +64,7 @@ export function createRewards(state, rules = {}) {
       const s = sectorAt(e.x, e.z);
       if (s && s !== 'village') ((present[s] ||= {})[e.owner] = (present[s][e.owner] || 0) + 1);
     }
-    const F = state.sectorFights, wait = Math.round((rules.sectorClearCooldownSeconds ?? 180) * 20);
+    const F = state.sectorFights;
     for (const s of new Set([...Object.keys(present), ...Object.keys(F)])) {
       const here = present[s] || {}, ids = Object.keys(here);
       if (ids.length >= 2) {
@@ -54,14 +74,13 @@ export function createRewards(state, rules = {}) {
         const winner = state.clans[ids[0]], rivals = Object.entries(F[s].most).filter(([id]) => id !== ids[0]).reduce((n, [, c]) => n + c, 0);
         F[s].claimed ||= {};
         if (rivals >= minRivals && state.tick >= (F[s].claimed[ids[0]] ?? -Infinity)) {
-          winner.ryo += bonus;
-          state.ryoGains.push({ clan: winner.id, amount: bonus, reason: 'Sector cleared' });
+          award(winner.id,s,bonus,'clear');
           state.news.push({ kind: 'sectorCleared', clan: winner.id, sector: s, ryo: bonus });
           winner.notice = { tick: state.tick, text: `Sector cleared: +${bonus} ryo` };
-          F[s] = { most: {}, claimed: { ...F[s].claimed, [ids[0]]: state.tick + wait } };
-        } else F[s] = { most: {}, claimed: F[s].claimed };
-      } else if (F[s] && !ids.length) F[s] = { most: {}, claimed: F[s].claimed };
+          F[s].most = {};
+        } else F[s].most = {};
+      } else if (F[s] && !ids.length) F[s].most = {};
     }
   }
-  return { tick, leaderDown, crewExecuted, sectorTick };
+  return { tick, leaderDown, crewExecuted, sectorTick, sectorClaim, claimSweep };
 }

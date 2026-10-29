@@ -5,7 +5,7 @@
 //    the nearest). The taunted unit must attack him for durationTicks. Never heroes, police, bandits or
 //    townsfolk. While a taunt holds he takes damageTaken x damage (bulwark buff, sim/stats.js).
 //  - Otherwise he moves and fights like any other crew member.
-export const TAUNT = { radius: 5, durationTicks: 80, cooldownTicks: 200, damageTaken: 0.85 };
+export const TAUNT = { radius: 5, durationTicks: 80, cooldownTicks: 80, damageTaken: 0.85 };
 export function createTaunt({ state, vision, hostile = () => false, clearCombat = () => {}, attackStep = () => {}, addBuff = () => {}, fightTarget = () => null, rules = {} }) {
   const R = { ...TAUNT, ...rules };
   const alive = e => e && !e.dead && !e.downed && !e.jailed;
@@ -25,6 +25,7 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
       if (score < bestScore) { bestScore = score; best = t; }
     }
     if (!best) return false;
+    clearCombat(e);
     clearCombat(best);
     best.taunted = { source: e.id, until: state.tick + R.durationTicks };
     e.taunt = { readyAt: state.tick + R.cooldownTicks, target: best.id, castUntil: state.tick + 15 };
@@ -42,9 +43,10 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
     // taunted: goes for the enforcer whatever else it was doing
     if (e.taunted) { const a = state.entities[e.taunted.source]; if (alive(a) && hostile(e, a)) { attackStep(e, unit, a); return true; } delete e.taunted; }
     if (!isEnforcer(e) || !alive(e) || e.deployment?.transfer) return false;
-    if ((e.taunt?.castUntil ?? -1) > state.tick) { e.anim = 'taunt'; return true; }
     const moving = (e.order?.kind === 'move' && !e.order.arrived) || ['enter', 'heal', 'loot'].includes(e.order?.kind);
-    if (!moving && (e.taunt?.readyAt ?? 0) <= state.tick && !e.swing && bellow(e)) { e.anim = 'taunt'; return true; }
+    if(moving){if(e.taunt)e.taunt.castUntil=state.tick;return false;}
+    if ((e.taunt?.castUntil ?? -1) > state.tick) { e.anim = 'taunt'; return true; }
+    if ((e.taunt?.readyAt ?? 0) <= state.tick && bellow(e)) { e.anim = 'taunt'; return true; }
     return false;
   }
   return { step, tick };

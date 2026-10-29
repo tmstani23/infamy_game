@@ -31,7 +31,8 @@ const AURAS = {
   shroud: { color: 0x5a3c96, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
   ambush: { color: 0xb38aff, size: 1.1, geo: AMBUSH_AURA_GEO, opacity: 0.72 },
   veil: { color: 0x233d70, size: 1, geo: BUFF_AURA_GEO, opacity: 0.18 },
-  snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },   // caltrops (Distract): slowed   // healing in a Smoke Bomb (same width as Rally's)
+  snared: { color: 0x3c4a8a, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },
+  charmSnare: { color: 0xf087c5, size: .65, geo: BUFF_AURA_GEO, opacity: 0.55 },
   formation: { color: 0xffc779, size: .9, geo: BUFF_AURA_GEO, opacity: .3 },
   geisha: { color: 0x7e5ca6, size: .7, geo: BUFF_AURA_GEO, opacity: .16 },
   diversion: { color: 0xff79ba, size: 1.2, geo: THIN_WAVE_GEO, opacity: .45 },
@@ -339,28 +340,39 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       }
       if (c.kind === 'taunt') {
         // Yakuza enforcer's bellow (sim/taunt.js): a short hot shockwave, embers, and a red 怒 over the taunted unit
-        wave(c.x, c.z, 1.8, 0xff5a1e, 0.4, 0, THIN_WAVE_GEO);
+        wave(c.x, c.z, 1.8, 0xff5a1e, 0.8, 0, THIN_WAVE_GEO);
         for (let i = 0; i < 18; i++) {
           const a = Math.random() * Math.PI * 2, v = rand(1.5, 3.5);
           glow.emit({ x: c.x, y: rand(1.0, 1.8), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.4, 1.4), drag: 4, gravity: -0.4,
-            life: rand(0.4, 0.8), size: rand(0.1, 0.2), color: pick(MUZZLE), shape: SHAPE.ember, spin: rand(-2, 2) });
+            life: rand(0.6, 1.1), size: rand(0.1, 0.2), color: pick(MUZZLE), shape: SHAPE.ember, spin: rand(-2, 2) });
         }
-        cards.seal(c.tx, c.tz, 1.1, '怒', 0xff4020, 1.0, { follow: () => posOf(c.t) });
+        cards.seal(c.tx, c.tz, 1.1, '怒', 0xff4020, 2.0, { follow: () => posOf(c.t) });
         if (s0) s0.flash = 0.6;
       }
       if (c.kind === 'rifleshot') {
-        // black-powder shot (Tim 2026-10-28: realistic but stylised): a short flash of small flame
-        // licks (clusters, like the HQ fire), a few sparks, then a thick grey-white puff that rolls
-        // forward and spreads; the muzzle keeps smoking a few seconds after (rifleSmoke, update)
+        // Black-powder shot: muzzle flame and forward sparks, a smaller side burst at the
+        // breech, then grey-white barrel smoke and a lingering muzzle wisp.
         const d = Math.hypot(c.tx - c.x, c.tz - c.z) || 1, ux = (c.tx - c.x) / d, uz = (c.tz - c.z) / d, mx = c.x + ux * 0.75, mz = c.z + uz * 0.75;
         for (let i = 0; i < 14; i++) {
           const v = rand(2, 7), sx = rand(-0.6, 0.6);
           glow.emit({ x: mx, y: 1.35, z: mz, vx: (ux + uz * sx * 0.35) * v, vy: rand(-0.2, 0.6), vz: (uz - ux * sx * 0.35) * v, drag: 9, life: rand(0.06, 0.14),
             size: rand(0.18, 0.42), color: pick(MUZZLE), alpha: 1, shape: SHAPE.ember, spin: rand(-2, 2) });
         }
-        glow.emit({ x: mx, y: 1.35, z: mz, life: 0.07, size: 0.9, color: [1, 0.95, 0.8], alpha: 1, shape: SHAPE.dot });
+        glow.emit({ x: mx, y: 1.35, z: mz, life: 0.12, size: 0.9, color: [1, 0.95, 0.8], alpha: 1, shape: SHAPE.dot });
+        for (let i = 0; i < 10; i++) {
+          const v = rand(2.5, 5.5), side = rand(-1.2, 1.2);
+          glow.emit({ x: mx, y: 1.35, z: mz, vx: ux * v + uz * side, vz: uz * v - ux * side, vy: rand(0.1, 1.2), gravity: 3, drag: 3,
+            life: rand(0.18, 0.4), size: rand(0.08, 0.16), color: pick(MUZZLE), shape: SHAPE.sparkle, twinkle: 0.25, spin: rand(-3, 3) });
+        }
+        // The lock/breech sits closer to his hands than the barrel tip.
+        const bx = c.x + ux * 0.22 + uz * 0.12, bz = c.z + uz * 0.22 - ux * 0.12;
+        for (let i = 0; i < 7; i++) {
+          const side = rand(0.8, 2.2);
+          glow.emit({ x: bx, y: 1.28, z: bz, vx: uz * side + ux * rand(-0.3, 0.3), vz: -ux * side + uz * rand(-0.3, 0.3), vy: rand(0.3, 1), gravity: 4, drag: 3,
+            life: rand(0.2, 0.4), size: rand(0.07, 0.13), color: pick(MUZZLE), shape: SHAPE.sparkle, twinkle: 0.3, spin: rand(-3, 3) });
+        }
         sparkles(mx, 1.35, mz, 5, [1, 0.7, 0.35], 2.6, 0.18);
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 16; i++) {
           const f = rand(0.3, 1.6);
           soot.emit({ x: mx + ux * f * 0.4, y: 1.35 + rand(-0.1, 0.15), z: mz + uz * f * 0.4, vx: ux * f * 1.6 + rand(-0.25, 0.25), vy: rand(0.15, 0.45), vz: uz * f * 1.6 + rand(-0.25, 0.25),
             drag: 2.4, sway: 0.2, life: rand(1.6, 2.8), size: rand(0.45, 0.9), grow: 1.1, color: pick(GUNSMOKE), alpha: rand(0.55, 0.8), shape: SHAPE.dot, spin: rand(-0.5, 0.5) });
@@ -470,9 +482,9 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         const e = state.entities[id], p = e && !e.dead && posOf(id);
         if (!p || tNow > w.until) { rifleSmoke.delete(id); continue; }
         const left = (w.until - tNow) / 4;
-        for (let n = count(7 * Math.min(1, left + 0.3), dt); n > 0; n--)
-          soot.emit({ x: p.x + w.ux * 0.7, y: 1.4, z: p.z + w.uz * 0.7, vx: rand(-0.06, 0.06), vy: rand(0.25, 0.5), vz: rand(-0.06, 0.06), drag: 1.2, sway: 0.6,
-            life: rand(1.2, 2), size: rand(0.12, 0.22), grow: 1.4, color: pick(GUNSMOKE), alpha: 0.4 * Math.min(1, left + 0.2), shape: SHAPE.dot, spin: rand(-0.4, 0.4) });
+        for (let n = count(10 * Math.min(1, left + 0.3), dt); n > 0; n--)
+          soot.emit({ x: p.x + w.ux * 0.75, y: 1.35, z: p.z + w.uz * 0.75, vx: w.ux * 0.12 + rand(-0.06, 0.06), vy: rand(0.25, 0.5), vz: w.uz * 0.12 + rand(-0.06, 0.06), drag: 1.2, sway: 0.6,
+            life: rand(1.2, 2), size: rand(0.14, 0.26), grow: 1.4, color: pick(GUNSMOKE), alpha: 0.55 * Math.min(1, left + 0.2), shape: SHAPE.dot, spin: rand(-0.4, 0.4) });
       }
       for (const [key, l] of rifleLines) {
         const done = l.life == null ? !aiming.has(key) : (l.life -= dt) <= 0;
@@ -758,19 +770,26 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       for (const [key, m] of auras) if (!seen.has(key)) { scene.remove(m); m.material.dispose(); auras.delete(key); }
       for (const [key, o] of outlines) if (!seen.has(key) || (state.entities[key.split(':')[0]]?.downed && !key.endsWith(':downed'))) { scene.remove(o); o.material.dispose(); outlines.delete(key); }
 
-      // channel bars over whoever is finishing someone off (EXECUTING, red) or arresting them
-      // (ARRESTING, blue): the only bar for a channel (Tim 2026-10-18)
+      // One overhead channel/status per unit. Specialist labels use existing sim timestamps;
+      // the two-second Taunt readout is visual only, not a longer cast or forced attack.
       const busy = new Set();
       for (const e of Object.values(state.entities)) {
-        const charm=e.buffs?.charming, x = e.execute || (e.markScrub?{...e.markScrub,scrubbing:true}:null) || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null), p = posOf(e.id);
+        const charm=e.buffs?.charming, p = posOf(e.id);
+        let x = e.execute || (e.markScrub?{...e.markScrub,scrubbing:true}:null) || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null);
+        const visible = !e.dead && !e.downed && !e.jailed && spriteOf(e.id)?.thing.mesh.visible;
+        if (!x && visible) {
+          const aim = e.rifle?.aim, tauntStart = e.taunt?.castUntil - 15;
+          if (aim?.until > state.tick) x = { start:aim.at, len:aim.until-aim.at, aiming:true };
+          else if (tauntStart <= state.tick && state.tick < tauntStart + 40) x = { start:tauntStart, len:40, taunting:true };
+        }
         if (!x || x.start === null || !p || !overlay) continue;
         busy.add(e.id);
         let el = bars.get(e.id);
-        const mode=x.scrubbing?'scrubbing':x.charming?'charming':x.arrest?'arrest':'execute';
+        const mode=x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.taunting?'taunting':x.arrest?'arrest':'execute';
         if (el && el.channelMode !== mode) { el.remove(); el = null; }
         if (!el) {
           el = document.createElement('div'); el.className = `channel ${mode}`; el.channelMode=mode;
-          el.innerHTML = `<i></i><span>${x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
+          el.innerHTML = `<i></i><span>${x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
         }
         const k = Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
         el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;

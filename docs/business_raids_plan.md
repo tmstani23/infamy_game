@@ -213,3 +213,7 @@ Kuroda Sweep success pays **500 ryo total**, including generic sector-clear rewa
 ### Shakedown implementation status (2026-10-28)
 
 Shakedown claims/rewards are built; Sweep remains design-only. Success grants bonus 300 for payout tier ≤200, 275 for ≤350, otherwise 200. Next positive actual payout, after modifiers, transfers floor(half) to claimant and pays remainder to owner. Zero/sabotaged payouts leave claim pending. Claim blocks another attempt; ownership change cancels it. An existing formal raid blocks Shakedown; a running Shakedown blocks raid start. Sixty-second retry lock and ownership-change cancellation are implemented initial choices, not earlier individually finalized approvals. Focused `test_shakedown` passed; visual/balance review pending. [Lifecycle/tuning](deployment_sector_plan.md#shakedown-implementation-checkpoint-2026-10-28).
+
+### Sweep implementation checkpoint (2026-10-29)
+
+Sweep rewards are now implemented locally: 500 ryo total, including any normal sector-clear 200 awarded during the operation; shared claim sequence prevents duplicate awards, and both use the same three-minute clan/sector cooldown. Initial tuning requires two encountered rival units for reward eligibility. Prior Sweep-unbuilt notes are historical design context. [Current checkpoint, tests and pending integration](deployment_sector_plan.md#sweep-checkpoint-tracking-2026-10-29).

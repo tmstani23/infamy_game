@@ -22,7 +22,7 @@ const fresh=(dx,extra={})=>st.entities[g.spawn('thug','thug',sector.anchor.x+dx,
 const actor=st.entities[g.spawn('shinobi_geisha','shinobi_geisha',sector.anchor.x,sector.anchor.z,{owner:'player',deployment:{group:sector.id}})];
 // Lure is her auto attack: a visible idle enemy within reach stands entranced; heroes never.
 const idle=fresh(4);Object.assign(enemyHero,{x:sector.anchor.x-4,z:sector.anchor.z,place:'street'});
-for(let i=0;i<3&&!idle.distracted;i++)g.step();
+for(let i=0;i<DIVERSION.castTicks+5&&!idle.distracted;i++)g.step();
 assert.equal(idle.distracted?.source,actor.id,'geisha charms a nearby enemy on her own');
 assert.equal(enemyHero.distracted,undefined,'heroes are never charmed');
 const at=[idle.x,idle.z];for(let i=0;i<20;i++)g.step();
@@ -60,7 +60,9 @@ assert.doesNotThrow(()=>JSON.stringify(st));
   assert.equal(moves,0,'charm blocks fleeing'); assert.equal(attacks,0,'charm blocks fighting');
   delete a.distracted; b.x=4;
   diversion.step(a,{attackRange:1.2});
-  assert.equal(b.distracted?.source,a.id,'autonomous behavior resumes after charm');
+  assert.equal(b.buffs?.charmSnare?.source,a.id,'autonomous channel resumes after charm');
+  state.tick+=DIVERSION.castTicks;diversion.step(a,{});
+  assert.equal(b.distracted?.source,a.id,'completed channel charms');
 }
 {
  const a={id:'a',type:'shinobi_geisha',owner:'p',place:'street',x:0,z:0,anim:'walk',order:{kind:'move',x:8,z:0}},b={id:'b',type:'thug',owner:'q',place:'street',x:4,z:0};

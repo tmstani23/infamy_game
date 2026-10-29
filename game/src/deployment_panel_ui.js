@@ -14,6 +14,7 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
     + '<section class="active-transfers" hidden><h4>Traveling crew</h4><div class="travel-roster"></div></section>'
     + '<section class="transfer-mode" hidden><h4>Choose transfer destination</h4><p class="transfer-source"></p><div class="destinations"></div><button type="button" class="pick-destination">Choose sector on map</button><strong class="transfer-preview"></strong><p class="transfer-why"></p><button type="button" class="confirm-transfer">Confirm transfer</button><button type="button" class="cancel-transfer">Cancel</button></section>'
     + '<section class="duty" hidden><h4>Sector duty</h4><label>Active duty <select class="task" aria-label="Active sector duty"></select></label><label class="business-label">Business <select class="guard-business"></select></label><form class="staffing-goal"><label>Staffing goal <input class="staffing-target" type="number" min="0" step="1"></label><button type="submit">Set goal</button></form><small class="assignment-points"></small><details><summary>Patrol route / duty point</summary><button type="button" data-point="objective">Choose duty point</button><button type="button" data-point="route">Add route point</button><button type="button" class="clear-route">Clear route</button></details><div class="shinobi-ops" hidden><b class="hunt-target"></b><button type="button" class="arm-next">Ambush next enemy</button><button type="button" class="cancel-ambush">Cancel hunt</button><button type="button" class="retreat">Retreat</button><small class="ambush-preview"></small><div class="recent-targets"></div></div></section>'
+    + '<section class="sweep-ops" hidden><h4>Kuroda Sweep</h4><label>Rival clan <select class="sweep-clan" aria-label="Sweep rival clan"></select></label><label>Adjacent sector <select class="sweep-sector" aria-label="Sweep target sector"></select></label><button type="button" class="start-sweep">Dispatch Sweep</button><button type="button" class="cancel-sweep">Recall squad</button><small class="sweep-preview"></small></section>'
     + '<section class="shakedown-ops" hidden><h4>Yakuza Shakedown</h4><label>Rival business <select class="shakedown-business" aria-label="Shakedown target business"></select></label><button type="button" class="start-shakedown">Start Shakedown</button><button type="button" class="cancel-shakedown">Recall squad</button><small class="shakedown-preview"></small></section>'
     + '<details class="rally-controls"><summary>Rally <span class="rally-status"></span></summary><div class="rally-groups"></div><button type="button" class="call-rally">Call Rally</button><small>3 minutes including travel.</small></details>'
     + '<details class="reserves"><summary>HQ reserves</summary><form><label>Keep <input class="reserve-target" type="number" min="0" step="1"> ready crew</label><button type="submit">Apply</button></form></details><footer></footer>';
@@ -107,6 +108,8 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
   $('.arm-next').addEventListener('click',()=>issue({action:'armAmbush',sector:focus}));
   $('.cancel-ambush').addEventListener('click',()=>issue({action:'cancelAmbush',sector:focus}));
   $('.retreat').addEventListener('click',()=>issue({action:'retreat',sector:focus}));
+  $('.start-sweep').addEventListener('click',()=>issue({action:'sweep',sector:focus,targetSector:$('.sweep-sector').value,targetClan:$('.sweep-clan').value}));
+  $('.cancel-sweep').addEventListener('click',()=>issue({action:'cancelSweep',sector:focus}));
   $('.start-shakedown').addEventListener('click',()=>issue({action:'shakedown',sector:focus,business:$('.shakedown-business').value}));
   $('.cancel-shakedown').addEventListener('click',()=>issue({action:'cancelShakedown',sector:focus}));
   $('.call-rally').addEventListener('click',()=>issue({action:'rally',groups:[...rallyChecks].filter(([,c])=>c.checked).map(([id])=>id)}));
@@ -178,6 +181,17 @@ export function createDeploymentPanel({ root, button, game, units, heroId, crewI
       $('.transfer-why').textContent=can.why;$('.confirm-transfer').disabled=!can.ok;
     }
     $('.duty').hidden=!task;
+    const sweep=game.sweep,showSweep=!!task&&st.clans[owner()].faction==='kuroda'&&!!sweep;
+    $('.sweep-ops').hidden=!showSweep;
+    if(showSweep){
+      const targets=st.deployment.sectors.filter(s=>sweep.nearby(focus,s.id)),select=$('.sweep-sector'),key=targets.map(s=>s.id).join(',');
+      if(select.dataset.key!==key){const selected=select.value;select.dataset.key=key;select.replaceChildren();for(const s of targets)select.add(new Option(s.name,s.id));if(targets.some(s=>s.id===selected))select.value=selected;}
+      const rivals=Object.values(st.clans).filter(c=>c.id!==owner()),clans=$('.sweep-clan'),clanKey=rivals.map(c=>c.id).join(',');
+      if(clans.dataset.key!==clanKey){const chosen=clans.value;clans.dataset.key=clanKey;clans.replaceChildren();for(const c of rivals)clans.add(new Option(c.name,c.id));if(rivals.some(c=>c.id===chosen))clans.value=chosen;}
+      const op=task.operation?.kind==='sweep'&&task.operation,can=sweep.eligibility(owner(),focus,select.value,clans.value);
+      $('.start-sweep').disabled=!can.ok;$('.cancel-sweep').disabled=!op||op.state==='Returning';
+      $('.sweep-preview').textContent=op?op.state+' · '+(op.hold/20).toFixed(1)+'/20s'+(op.contested?' · CONTESTED':'')+(op.reason?' · '+op.reason:''):can.ok?'10% protection while together. Hold 20s; scatter rival sector crew. Up to 500 ryo total, shared 3-minute cooldown; requires two encountered rivals.':can.why;
+    }
     const shakedown=game.shakedown,showShakedown=!!task&&st.clans[owner()].faction==='yakuza'&&!!shakedown;
     $('.shakedown-ops').hidden=!showShakedown;
     if(showShakedown){
