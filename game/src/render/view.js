@@ -418,6 +418,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const me = state.entities[followId];
     for (const h of hits) {
       const a = state.entities[h.a], t = state.entities[h.t];
+      if (h.crit) sprites.get(h.a)?.shadowBlade?.critical();
       hitFx.hit(h, a, t?.owner === me?.owner);
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }

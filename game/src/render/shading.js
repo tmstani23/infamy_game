@@ -283,6 +283,33 @@ export function weaponLightningMaterial(spriteUniforms) {
   });
 }
 
+// Shadow blade ribbons: dark centre, narrow violet rim and soft irregular wisps.
+// Shares the character's opacity and depth; this material never reveals a unit.
+export function weaponShadowMaterial(spriteUniforms) {
+  return new THREE.ShaderMaterial({
+    uniforms:{uFrame:spriteUniforms.uFrame,uDepthAt:spriteUniforms.uDepthAt,uOpacity:spriteUniforms.uOpacity,uTime:{value:0}},
+    vertexShader:SPRITE_VERT,
+    fragmentShader:/* glsl */`
+      uniform vec4 uFrame;
+      uniform float uOpacity;
+      uniform float uTime;
+      varying vec2 vUv;
+      varying vec3 vWorld;
+      void main(){
+        float side=abs(2.0*(vUv.x-uFrame.x)/uFrame.z-1.0);
+        float fade=(vUv.y-uFrame.y)/uFrame.w;
+        float grain=sin(vWorld.x*48.0+vWorld.y*36.0-uTime*3.0)*0.09
+          +sin(vWorld.x*93.0-vWorld.y*65.0+uTime*5.0)*0.035;
+        float edge=side+grain;
+        float rim=exp(-pow((edge-0.72)/0.13,2.0));
+        float alpha=(1.0-smoothstep(0.75,1.0,edge))*fade*uOpacity;
+        vec3 color=mix(vec3(0.008,0.004,0.018),vec3(0.43,0.16,0.68),rim);
+        gl_FragColor=vec4(color,alpha);
+      }`,
+    transparent:true,depthTest:true,depthWrite:false,blending:THREE.NormalBlending,
+  });
+}
+
 export function spriteMaterial(map, extra = {}) {
   return new THREE.ShaderMaterial({
     uniforms: {

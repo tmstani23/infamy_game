@@ -16,7 +16,7 @@
     "club_burning": { "color": [1.0, 0.45, 0.15], "strength": 0.45, "attack": 0.4, "coreColor": [1, 0.8, 0.5], "coreStrength": 0.3, "pulse": 0.2, "pulseRate": 3.4, "_note": "Yakuza enforcer: hotter club, embers in render/abilityfx.js (Tim 2026-10-28)" },
     "jitte": { "color": [0.38, 0.58, 1.0], "strength": 0.4, "attack": 0.3 },
     "ninjato": { "color": [0.42, 0.2, 0.72], "strength": 0.45, "attack": 0.35, "_note": "thin dark purple (Tim 2026-10-20)" },
-    "ninjato_hero": { "color": [0.42, 0.2, 0.72], "strength": 0.45, "attack": 0.35, "hero": true, "shimmerColor": [0.62, 0.5, 0.95], "trailColor": [0.3, 0.18, 0.6], "trailStrength": 0.7 },
+    "ninjato_hero": { "color": [0.65, 0.75, 0.9], "strength": 0.55, "attack": 0.35, "hero": true, "void": true, "shadow": true, "pulse": 0.04, "_note": "Existing blade, tight silver edge, black-violet wisps and collapsing swing tears; critical hits create two delayed echoes (2026-10-28)" },
     "tanto": { "color": [0.384, 0.412, 0.451], "strength": 1, "attack": 0.15, "void": true, "_note": "Charcoal haze and tight pale silver edge; uses the weapon-only glow mask" }
   }
 }

@@ -6,6 +6,7 @@ import { spriteMaterial, shadowMaterial, hiddenMaterial, weaponGlowMaterial } fr
 import { Thing, loadTex } from './scenery.js';
 import { drawCrest } from './banners.js';
 import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
+import { createWeaponShadow } from './weapon_shadow.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -50,7 +51,7 @@ export async function loadSheets(catalog, model) {
     sheets[anim] = { tex, speed, frames: Math.round(tex.image.width / tex.image.height * 8) };
     // the weapon alone as a soft halo (tools/export_sprites.mjs), same frames at half size; missing = no glow
     if (weapon) sheets[anim].glow = await loadTex(`../assets/sprites/${file}_glow.png`).catch(() => null);
-    if (weapon?.lightning && sheets[anim].glow) sheets[anim].bladeAxes = readBladeAxes(sheets[anim].glow,sheets[anim].frames);
+    if ((weapon?.lightning || weapon?.shadow) && sheets[anim].glow) sheets[anim].bladeAxes = readBladeAxes(sheets[anim].glow,sheets[anim].frames);
   }));
   return (sheetCache[model] = sheets);
 }
@@ -131,7 +132,11 @@ export class CharacterSprite {
         this.lightning=createWeaponLightning(this.material.uniforms);
         mesh.add(this.lightning.mesh);this.thing.extras.push(this.lightning.mesh);
       }
-      if (weapon.hero && !weapon.lightning) {
+      if (weapon.shadow) {
+        this.shadowBlade=createWeaponShadow(this.material.uniforms);
+        mesh.add(this.shadowBlade.mesh);this.thing.extras.push(this.shadowBlade.mesh);
+      }
+      if (weapon.hero && !weapon.lightning && !weapon.shadow) {
         this.trail = []; this.trailHistory = []; this.trailClock = 0;
         for (let i = 0; i < TRAIL; i++) {
           const own = { uFrame: { value: new THREE.Vector4() }, uDepthAt: this.material.uniforms.uDepthAt, uOpacity: this.material.uniforms.uOpacity };
@@ -173,7 +178,9 @@ export class CharacterSprite {
       const pulse = w.pulse ?? .1;
       g.uStrength.value = w.strength * (1 - pulse + pulse * Math.sin(this.time * (w.pulseRate ?? 2.2))) * (1 + swing) * fall;
       if (w.lightning) this.lightning.update(dt,sheet.bladeAxes?.[dir*sheet.frames+frame],swing,!!sheet.glow&&anim!=='death');
-      if (w.hero && !w.lightning) {
+      if (w.shadow) this.shadowBlade.update(dt,sheet.bladeAxes?.[dir*sheet.frames+frame],
+        (anim==='attack'||anim==='sweep')?swingT:null,!!sheet.glow&&anim!=='death');
+      if (w.hero && !w.lightning && !w.shadow) {
         // shimmer: every shimmerEvery s a band of light runs up the blade over shimmerSeconds
         const every = w.shimmerEvery ?? 2.6, run = w.shimmerSeconds ?? 1.0, t = (this.time + (this.shimmerOffset ??= Math.random() * every)) % every;
         g.uShimmer.value = t < run && fall === 1 ? -0.15 + 1.3 * (t / run) : -1;
@@ -269,6 +276,7 @@ export class CharacterSprite {
     this.nameplate.geometry.dispose(); this.labelTexture.dispose();
     this.glow?.material.dispose();
     this.lightning?.dispose();
+    this.shadowBlade?.dispose();
     for (const m of this.trail || []) m.material.dispose();
     this.voidHalo?.material.dispose();
   }

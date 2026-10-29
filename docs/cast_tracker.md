@@ -105,3 +105,9 @@ Hero `rival_yakuza` only: twelve production color/glow sheets re-exported across
 `weapon_lightning.js`/`weapon_lightning_pattern.js` replace this hero's shimmer/trail with quiet crimson base and pale-hot branching red discharges: uneven leader steps, thinner rooted forks, rapid pulses and stronger thrusts. Blade-mask axis is read once per sheet; reusable mesh/buffers disposed with sprite. Respect opacity/depth; suppress on death/missing mask. Rules/stats unchanged.
 
 Build coordinator reports lightning/assets checks passed, offline margin check found zero clipped poses, syntax/diff checks clean. User-requested offline actual-CharacterSprite animation preview ran without renderer errors; this is not browser/full-gameplay testing. Generated preview outputs remain local review artifacts, not production assets.
+
+## Shinobi hero shadow blade (2026-10-28)
+
+`ninjato_hero` uses void/shadow preset: tight silver edge/dark halo, blade-clinging black-violet wisps and recent slash ribbons closing inward. Actual critical hits trigger two delayed fading echoes through `view.addHits` and `shadowBlade.critical()`. Shape/sim stats, recruit/tanto effects and Kuroda lightning unchanged.
+
+`weapon_shadow.js` uses existing blade-only frame-mask axes, bounded reusable geometry/materials, inherited opacity/depth/visibility, death/missing-mask suppression and sprite disposal. Build coordinator reports syntax/diff and shared attachment `test_weapon_lightning` checks passed; requested offline production-renderer preview regenerated without errors. Preview source is committed; generated shadow GIF remains local. No new test run/full-game browser/visual-playtest approval claimed by this note.

@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><base href="../game/">
+<title>Shinobi shadow blade — working game-renderer preview</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js"}}</script>
+<style>body{margin:0;background:#202735}canvas{display:block}</style>
+<script type="module">
+import * as THREE from 'three';
+import {CharacterSprite,loadSheets} from './src/render/characters.js';
+import {VIEW_DIR} from './src/render/iso.js';
+import {shared} from './src/render/shading.js';
+const catalog=await fetch('data/art.json').then(r=>r.json());
+const sprite=new CharacterSprite(await loadSheets(catalog,'ninja_leader')),shadow=sprite.shadowBlade;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(512,512);renderer.setClearColor(0x303b4b);
+const scene=new THREE.Scene();scene.add(sprite.thing.mesh);sprite.thing.mesh.renderOrder=1;sprite.thing.extras.forEach((m,i)=>m.renderOrder=2+i);
+const camera=new THREE.OrthographicCamera(-1.5,1.5,1.5,-1.5,.1,60),target=new THREE.Vector3(0,.9,0);camera.position.copy(target).addScaledVector(VIEW_DIR,15);camera.lookAt(target);
+shared.uNight.value=.06;
+const canvas=document.createElement('canvas');canvas.width=512;canvas.height=552;document.body.append(canvas);const ctx=canvas.getContext('2d');
+let previous=0,crit=false;
+window.weaponPreview={ready:true,frame(t){
+  const dt=Math.max(0,t-previous);previous=t;const p=t%4.5;
+  const first=p>=1.15&&p<1.9,second=p>=2.55&&p<3.3,swing=first?(p-1.15)/.75:second?(p-2.55)/.75:null,anim=swing===null?'idle':'attack';
+  sprite.update(dt,0,0,2,anim,swing);sprite.material.uniforms.uDepthAt.value.w=0;
+  if(second&&swing>=.48&&!crit){shadow.critical();crit=true;}if(!second)crit=false;
+  renderer.render(scene,camera);
+  ctx.fillStyle='#171d29';ctx.fillRect(0,0,512,552);ctx.drawImage(renderer.domElement,0,40);
+  ctx.fillStyle='#d7c6ed';ctx.font='16px sans-serif';ctx.fillText(first?'Normal slash':second?'Critical slash — delayed echoes':'Idle — shadow wisps / silver edge',14,26);
+  return canvas.toDataURL('image/png');
+}};
+let time=0;function tick(){time+=1/60;window.weaponPreview.frame(time);requestAnimationFrame(tick);}if(!new URLSearchParams(location.search).has('capture'))tick();
+</script>
