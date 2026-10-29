@@ -8,9 +8,9 @@
   },
   "weapons": {
     "katana": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35 },
-    "katana_hero": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35, "hero": true, "shimmerColor": [0.85, 0.93, 1.0], "trailColor": [0.4, 0.6, 1.0], "_note": "hero: shimmer band up the blade every shimmerEvery s + swing trail (render/characters.js; Tim 2026-10-28)" },
+    "katana_hero": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35, "hero": true, "shimmerColor": [0.85, 0.93, 1.0], "trailColor": [0.4, 0.6, 1.0], "runTrail": "sonic", "_note": "hero: shimmer band up the blade every shimmerEvery s + swing trail (render/characters.js; Tim 2026-10-28)" },
     "spear": { "color": [0.85, 0.12, 0.24], "strength": 0.65, "attack": 0.45, "_note": "Crimson spearhead halo with a fine warm-gold physical cutting edge; shaft and shield excluded from the glow mask" },
-    "spear_hero": { "color": [0.7, 0.02, 0.055], "strength": 0.38, "attack": 0.5, "coreColor": [0.9, 0.15, 0.12], "coreStrength": 0.18, "pulse": 0.06, "pulseRate": 2.6, "hero": true, "lightning": true, "_note": "Branching crimson discharges tracked to each blade frame, pale hot cores and rapid return strokes; stronger on thrusts, replacing the hero shimmer/trail (2026-10-28)" },
+    "spear_hero": { "color": [0.7, 0.02, 0.055], "strength": 0.38, "attack": 0.5, "coreColor": [0.9, 0.15, 0.12], "coreStrength": 0.18, "pulse": 0.06, "pulseRate": 2.6, "hero": true, "lightning": true, "runTrail": "static", "_note": "Branching crimson discharges tracked to each blade frame, pale hot cores and rapid return strokes; stronger on thrusts, replacing the hero shimmer/trail (2026-10-28)" },
     "spear_recruit": { "color": [0.72, 0.025, 0.09], "strength": 0.66, "attack": 0.35, "coreColor": [0.8, 0.31, 0.36], "coreStrength": 0.16, "pulse": 0.055, "pulseRate": 1.8 },
     "club": { "color": [1.0, 0.56, 0.22], "strength": 0.3, "attack": 0.3 },
     "club_burning": { "color": [1.0, 0.45, 0.15], "strength": 0.45, "attack": 0.4, "coreColor": [1, 0.8, 0.5], "coreStrength": 0.3, "pulse": 0.2, "pulseRate": 3.4, "_note": "Yakuza enforcer: hotter club, embers in render/abilityfx.js (Tim 2026-10-28)" },

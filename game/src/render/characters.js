@@ -7,6 +7,7 @@ import { Thing, loadTex } from './scenery.js';
 import { drawCrest } from './banners.js';
 import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
 import { createWeaponShadow } from './weapon_shadow.js';
+import { createRunTrail } from './run_trail.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -51,7 +52,7 @@ export async function loadSheets(catalog, model) {
     sheets[anim] = { tex, speed, frames: Math.round(tex.image.width / tex.image.height * 8) };
     // the weapon alone as a soft halo (tools/export_sprites.mjs), same frames at half size; missing = no glow
     if (weapon) sheets[anim].glow = await loadTex(`../assets/sprites/${file}_glow.png`).catch(() => null);
-    if ((weapon?.lightning || weapon?.shadow) && sheets[anim].glow) sheets[anim].bladeAxes = readBladeAxes(sheets[anim].glow,sheets[anim].frames);
+    if ((weapon?.lightning || weapon?.shadow || weapon?.runTrail) && sheets[anim].glow) sheets[anim].bladeAxes = readBladeAxes(sheets[anim].glow,sheets[anim].frames);
   }));
   return (sheetCache[model] = sheets);
 }
@@ -136,6 +137,10 @@ export class CharacterSprite {
         this.shadowBlade=createWeaponShadow(this.material.uniforms);
         mesh.add(this.shadowBlade.mesh);this.thing.extras.push(this.shadowBlade.mesh);
       }
+      if (weapon.runTrail) {   // hero running trail (+ Kuroda sparks/arc, Yakuza hum) (render/run_trail.js)
+        this.runTrail=createRunTrail(this.material.uniforms,weapon.runTrail);
+        mesh.add(this.runTrail.mesh);this.thing.extras.push(this.runTrail.mesh);
+      }
       if (weapon.hero && !weapon.lightning && !weapon.shadow) {
         this.trail = []; this.trailHistory = []; this.trailClock = 0;
         for (let i = 0; i < TRAIL; i++) {
@@ -179,7 +184,9 @@ export class CharacterSprite {
       g.uStrength.value = w.strength * (1 - pulse + pulse * Math.sin(this.time * (w.pulseRate ?? 2.2))) * (1 + swing) * fall;
       if (w.lightning) this.lightning.update(dt,sheet.bladeAxes?.[dir*sheet.frames+frame],swing,!!sheet.glow&&anim!=='death');
       if (w.shadow) this.shadowBlade.update(dt,sheet.bladeAxes?.[dir*sheet.frames+frame],
-        (anim==='attack'||anim==='sweep')?swingT:null,!!sheet.glow&&anim!=='death');
+        (anim==='attack'||anim==='sweep')?swingT:null,!!sheet.glow&&anim!=='death',{anim,dir});
+      if (this.runTrail) this.runTrail.update(dt,anim,dir,!!sheet.glow&&anim!=='death',sheet.bladeAxes?.[dir*sheet.frames+frame],
+        (anim==='attack'||anim==='sweep')?swingT:null,g.uShimmer?.value>-1);
       if (w.hero && !w.lightning && !w.shadow) {
         // shimmer: every shimmerEvery s a band of light runs up the blade over shimmerSeconds
         const every = w.shimmerEvery ?? 2.6, run = w.shimmerSeconds ?? 1.0, t = (this.time + (this.shimmerOffset ??= Math.random() * every)) % every;
@@ -277,6 +284,7 @@ export class CharacterSprite {
     this.glow?.material.dispose();
     this.lightning?.dispose();
     this.shadowBlade?.dispose();
+    this.runTrail?.dispose();
     for (const m of this.trail || []) m.material.dispose();
     this.voidHalo?.material.dispose();
   }

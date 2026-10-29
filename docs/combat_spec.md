@@ -281,13 +281,16 @@ Enforcer now has 600 HP/15 damage and four-second primary Taunt. Expired taunt r
 
 Geisha retains one-second valid channel, 75% snare/pink effect and four-second Charm/cooldown. Central cast validation and tick cleanup clear channel/snare on caster/target death, KO/jail, caster stun/taunt, explicit movement/attack/regroup, hold-fire/smoke/transfer, target hits, room/visibility/range changes, including when the actor skips crew-step handling. Coordinator reports passing enforcer, geisha (target-under-fire, cast leash and fifteen interruption cases), character-stats and Shakedown checks; syntax/diff checks passed. Manual visual/balance testing and broad regressions remain pending.
 
-### Ninja hero visual polish proposal (2026-10-29)
+### Hero visual polish (built 2026-10-29, render-only, playtest pending)
 
 Future visual work only; no implementation or gameplay/stat changes. Preserve the approved blade shape and distinct purple effect style.
 
-- [ ] Idle purple effects drift/spread outward and down toward the ground.
-- [ ] Running produces a subtle but noticeable purple trail from the weapon, streaming backward behind the body opposite movement; it dissipates outward/downward as it fades. Avoid an oversized body aura.
-- [ ] Make purple attack effects slightly more visible.
+- [x] Idle purple effects drift/spread outward and down toward the ground.
+- [x] Running produces a subtle but noticeable purple trail from the weapon, streaming backward behind the body opposite movement; it dissipates outward/downward as it fades. Avoid an oversized body aura.
+- [x] Make purple attack effects slightly more visible (about 25% stronger cut). Ninja code: `render/weapon_shadow.js`.
+- [x] Yakuza ronin: running speed lines, plus 2 faint hum rings each time the blade glint runs (glint unchanged).
+- [x] Kuroda boss: idle falling crimson sparks, jagged static streaks when running, a thin extra arc mid-swing.
+- Code: `render/run_trail.js`, `runTrailMaterial` in `shading.js`, wiring in `characters.js`; `weapon_glow.json` `runTrail` "sonic" (`katana_hero`) / "static" (`spear_hero`).
 
 ### Revised Geisha specification (implemented 2026-10-29)
 

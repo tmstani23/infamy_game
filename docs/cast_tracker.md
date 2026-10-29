@@ -111,3 +111,7 @@ Build coordinator reports lightning/assets checks passed, offline margin check f
 `ninjato_hero` uses void/shadow preset: tight silver edge/dark halo, blade-clinging black-violet wisps and recent slash ribbons closing inward. Actual critical hits trigger two delayed fading echoes through `view.addHits` and `shadowBlade.critical()`. Shape/sim stats, recruit/tanto effects and Kuroda lightning unchanged.
 
 `weapon_shadow.js` uses existing blade-only frame-mask axes, bounded reusable geometry/materials, inherited opacity/depth/visibility, death/missing-mask suppression and sprite disposal. Build coordinator reports syntax/diff and shared attachment `test_weapon_lightning` checks passed; requested offline production-renderer preview regenerated without errors. Preview source is committed; generated shadow GIF remains local. No new test run/full-game browser/visual-playtest approval claimed by this note.
+
+## Hero weapon effects (2026-10-29, render-only)
+
+Ninja: idle wisps, running trail, stronger cut (`render/weapon_shadow.js`). Ronin: "sonic" run trail and hum rings. Kuroda: "static" run streaks, crimson sparks, extra swing arc (`render/run_trail.js`, `weapon_glow.json` `runTrail`). Details: `combat_spec.md` "Hero visual polish".
