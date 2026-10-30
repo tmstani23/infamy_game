@@ -7,7 +7,7 @@
 // a fallback; reset() restores the CSS defaults. Screen only, no game state.
 const KEY = 'infamy.hudLayout.v1';
 const PANELS = [['hud', 'Top bar'], ['minimap', 'Minimap'], ['bar', 'Action bar'], ['selpanel', 'Unit card'],
-  ['bldpanel', 'Building card'], ['ryo', 'Ryo badge'], ['heat', 'Heat gauge'],
+  ['partyframes', 'Crew frames'], ['bldpanel', 'Building card'], ['ryo', 'Ryo badge'], ['heat', 'Heat gauge'],
   ['uself', 'Your frame'], ['utarget', 'Target frame'], ['stealth', 'Stealth badge']];   // src/unit_frames.js
 const MIN_SCALE = 0.5, MAX_SCALE = 2.5;
 const LOCKED = '<svg viewBox="0 0 16 16"><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/></svg>';

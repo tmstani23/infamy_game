@@ -585,3 +585,7 @@ Tim says Sweep currently feels like walking to one location and holding. That pr
 ### Sweep three-position checkpoint (2026-10-29)
 
 Three prevalidated, distinct reachable street hold points, twenty seconds each; no single sixty-second hold. Safe town/road navigation is shared with patrols; reject unavailable three-point routes. March between positions with per-position hold/contest/reset, retaining saved assignments/recovery and authoritative sim behavior. Reward/scatter occur only after final completion. UI shows Position 1/3; start/advance/completion callouts and start/advance map/minimap pings identify progress. Coordinator reports real physical travel, three-position completion/contests/final scatter and return checks passed. Manual playtest remains pending. Earlier one-point/proposed-waypoint text is historical. [Section 2 validation](playtest_followup_plan.md#2-bugs).
+
+### Sweep route visual follow-up proposal (2026-10-29)
+
+Unbuilt: wide ground chevrons follow squad along route, persist until each point is captured and update for the next leg. Arrival flashes/map pings only for viewers with sight, with no fog leak. At hold point, crimson low shield arcs/stance and progress ring visualize existing grouped protection; do not add defensive stats. [Section 3 status](playtest_followup_plan.md#3-ui).

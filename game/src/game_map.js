@@ -12,10 +12,10 @@ const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sak
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ root, deploymentRoot, game, district, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null }) {
+export function createGameMap({ root, deploymentRoot, game, district, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
-  const layers = { deployment: false, territory: true, businesses: true, police: true, units: true };
+  const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
   const deploymentData = createDeploymentMapData({ game, clan });
   const deploymentSide = root.querySelector('.mapdeployment');
   const layerButtons = new Map(), sectorButtons = new Map();
@@ -146,6 +146,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
   syncLayers();
   // clicks on the map screen never reach the crew controls underneath (they listen on the window)
   for (const type of ['mousedown', 'mouseup', 'click', 'contextmenu', 'pointerdown', 'pointerup']) root.addEventListener(type, e => { e.stopPropagation(); if (type === 'contextmenu') e.preventDefault(); });
+  root.querySelector('.mapclose').textContent='Close map ✕';
   root.querySelector('.mapclose').addEventListener('click', e => { close(); e.currentTarget.blur(); });
 
   // hover: what is known about that business (a rival's owner once you have seen it)
@@ -218,7 +219,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     }
     map.invalidate(); drawSide();
   }
-  function close() { root.hidden = true; tip.hidden = true; pointPicker = null; destinationPicker=null; }
+  function close() { if(root.hidden)return;root.hidden = true; tip.hidden = true; pointPicker = null; destinationPicker=null;onClose(); }
   const toggle = () => (isOpen() ? close() : open());
 
   let shownData = null;

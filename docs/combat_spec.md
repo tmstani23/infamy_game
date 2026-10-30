@@ -301,3 +301,5 @@ Charmed enemies stop attacks and wander only 1–3 metres from the original char
 ### Phase 8 Kuroda follow-up (2026-10-29)
 
 Threefold Thrust Reprisal splash excludes all police, including raid wave officers, and civilians; direct targeting remains unchanged. Running lightning emits every 0.14 seconds, lasts 0.4 seconds with 0.2 drift, and uses finer correlated bends fixed at particle birth instead of per-frame random flicker. Coordinator reports focused Kuroda check/syntax/diff passed; manual visual approval pending. [Section 2 checkpoint](playtest_followup_plan.md#2-bugs).
+
+Section 3 combat tuning checkpoint (2026-10-29): Reprisal cooldown is fifteen seconds. Kuroda rifle Aimed Shot range is ten; melee remains unchanged. Coordinator reports focused rifleman/Kuroda checks passed. Proposed, unapproved follow-up: Aimed Shot may trigger the existing crew Reprisal 20% impact splash for mixed-squad support; no behavior change until separately approved.

@@ -88,6 +88,7 @@ function fixture(clan = 'kuroda') {
   delete foe.cop; foe.dead = true;
   for (const e of crew) Object.assign(e,{ x:target.anchor.x, z:target.anchor.z });
   advance(); assert.equal(op.state,'Holding','clear street starts independent hold');
+  for(const e of crew){e.anim='run';const before=[e.x,e.z];g.sweep.step(e,g.settings.units.types[e.type]);assert.equal(e.anim,'idle','arrived squad stops running in place');assert.deepEqual([e.x,e.z],before,'holding squad stays in its circle');}
   for(let i=0;i<400 && op.state!=='Returning';i++)advance();
   assert.equal(op.pointIndex,1,'first twenty-second hold advances to second position');
   for(let point=1;point<3;point++){for(const e of crew)Object.assign(e,{x:op.point.x,z:op.point.z});for(let i=0;i<400;i++)advance();}

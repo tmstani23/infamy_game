@@ -98,13 +98,13 @@
 .map-crew-tray button { cursor:pointer; }
 @keyframes order-accepted { from { box-shadow:0 0 22px #9cebbb99; } to { box-shadow:0 0 0 transparent; } }
 @media(prefers-reduced-motion:reduce) { #deploymentpanel .acceptance.accepted { animation:none; } }
-#bar .crew.grouped { display:flex; flex-direction:column; align-items:stretch; width:245px; max-height:200px; overflow:auto; gap:5px; }
-#bar .crew-section { border:1px solid #4a514c; border-radius:4px; padding:4px; }
-#bar .crew-section.selected { border-color:#c7d99b; box-shadow:inset 0 0 6px #b4d88933; }
-#bar .crew-section.drop-target { border-color:#ffd34d; box-shadow:inset 0 0 8px #ffd34d55; }
-#bar .crew-group-select { display:block; width:100%; text-align:left; background:#1d2526; color:#d6d8b8; border:0; font:11px system-ui; padding:4px; cursor:pointer; }
-#bar .crew-group-select[aria-pressed="true"] { color:#d9f3b0; background:#31412d; }
-#bar .crew-group-pips { display:flex; flex-wrap:wrap; gap:3px; color:#aaa; font:10px system-ui; }
+#partyframes .crew.grouped { display:flex; flex-direction:column; align-items:stretch; width:245px; max-height:200px; overflow:auto; gap:5px; }
+#partyframes .crew-section { border:1px solid #4a514c; border-radius:4px; padding:4px; }
+#partyframes .crew-section.selected { border-color:#c7d99b; box-shadow:inset 0 0 6px #b4d88933; }
+#partyframes .crew-section.drop-target { border-color:#ffd34d; box-shadow:inset 0 0 8px #ffd34d55; }
+#partyframes .crew-group-select { display:block; width:100%; text-align:left; background:#1d2526; color:#d6d8b8; border:0; font:11px system-ui; padding:4px; cursor:pointer; }
+#partyframes .crew-group-select[aria-pressed="true"] { color:#d9f3b0; background:#31412d; }
+#partyframes .crew-group-pips { display:flex; flex-wrap:wrap; gap:3px; color:#aaa; font:10px system-ui; }
 #contract [data-ambush-contract] { pointer-events:auto; display:block; margin:6px auto 0; padding:7px 12px; color:#f0deff; background:#33223f; border:1px solid #a78bc3; border-radius:5px; cursor:pointer; }
 #contract small { display:block; color:#c8b4e6; margin-top:4px; }
 #contract { max-width:min(580px,calc(100vw - 32px)); white-space:normal; }
@@ -207,6 +207,6 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #deploymentpanel .crew-focus-actions {display:flex;flex-direction:column;gap:5px;}
 #deploymentpanel .view-crew {border-color:#80a7b4;background:#243c45;color:#d5eef6;}
 
-#bar .crew.grouped .mate {width:68px;min-width:68px;box-sizing:border-box;}
-#bar .crew.grouped .mate .name {max-width:64px;}
-#bar .crew.grouped .mate .crew-status {max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 9px/12px system-ui;color:#bdd5cc;}
+#partyframes .crew.grouped .mate {width:68px;min-width:68px;box-sizing:border-box;}
+#partyframes .crew.grouped .mate .name {max-width:64px;}
+#partyframes .crew.grouped .mate .crew-status {max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 9px/12px system-ui;color:#bdd5cc;}

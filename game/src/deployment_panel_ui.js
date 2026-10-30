@@ -8,7 +8,7 @@ const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 // source selection. All success feedback comes back from the simulation.
 export function createDeploymentPanel({ root, button, game, units, catalog, heroId, crewInput, send,
   onPickPoint, onPickDestination, onCancelPick = () => {}, onOpen = () => {}, onClose = () => {}, onFocus = () => {}, onInspect = () => {}, onViewCrew = () => {} }) {
-  root.innerHTML = '<header><h3>DEPLOYMENT</h3><button type="button" class="close" aria-label="Close deployment">✕</button></header><div class="tabs"></div>'
+  root.innerHTML = '<header><h3>DEPLOYMENT</h3><button type="button" class="close" aria-label="Close map">Close map ✕</button></header><div class="tabs"></div>'
     + '<section class="first-zone" hidden><h4>Choose your first assignment zone</h4><p>Your hero group is full. Choose where spare crew should deploy first, or transfer one there manually.</p><div class="first-zone-options"></div></section>'
     + '<section class="group-summary"><h4></h4><strong></strong><span></span><small class="staffing-summary"></small></section><div class="acceptance" role="status" aria-live="polite" hidden></div>'
     + '<nav class="page-tabs" aria-label="Deployment sections"><button type="button" class="show-crew">Crew &amp; staffing</button><button type="button" class="show-duty">Duties</button><button type="button" class="show-rally">Rally</button><button type="button" class="show-reserves">HQ</button></nav><div class="workspace"><section class="pane-crew"><section class="crew-selection"><div class="roster-heading"><b>Crew selected</b><div class="crew-focus-actions"><button type="button" class="select-group">Select group</button><button type="button" class="view-crew" title="Follow selected crew and close deployment">View crew</button></div></div><form class="staffing-goal"><label>Staffing goal <input class="staffing-target" type="number" min="0" step="1"></label><button type="submit">Set goal</button></form><div class="roster"></div><div class="roster-pages list-pages"><button type="button" class="roster-prev">Previous</button><span class="roster-page"></span><button type="button" class="roster-next">Next</button></div><button type="button" class="transfer-start">Transfer selected crew</button><button type="button" class="assign-here">Assign crew here</button><button type="button" class="return-assignment">Return to duty</button></section>'
@@ -145,7 +145,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
   $('.staffing-target').addEventListener('input',()=>{staffingDirty=true;});
   function update(force=false) {
     const first=!!game.deployment.needsFirstSector?.(owner());
-    button.textContent=first?'Deployment · choose first zone':'Deployment';button.classList.toggle('needs-zone',first);
+    button.textContent=first?'Map & deployment · choose first zone (M)':'Map & deployment (M)';button.classList.toggle('needs-zone',first);
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
     $('.first-zone').hidden=!first;
     const st=game.state, selected=new Set(chosen()), signature=`${Math.floor(st.tick/10)}:${config().feedback?.sequence}:${focus}:${[...selected].join(',')}`;
@@ -264,5 +264,5 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
   $('.close').addEventListener('click',()=>show(false));button.addEventListener('click',()=>{if(!open)selectGroup(focus);show(!open);button.blur();});
   for(const type of ['mousedown','mouseup','click','contextmenu','pointerdown','pointerup','wheel'])root.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});
   update(true);
-  return {update,openGroup:id=>{setFocus(id);show(true);},close:()=>show(false),isOpen:()=>open,cancelTransfer};
+  return {update,open:()=>show(true),openGroup:id=>{setFocus(id);show(true);},close:()=>show(false),isOpen:()=>open,cancelTransfer};
 }

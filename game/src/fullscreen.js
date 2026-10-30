@@ -2,7 +2,7 @@
 export function bindFullscreen(button, doc = document, win = window) {
   const root = doc.documentElement;
   const available = !!root.requestFullscreen && doc.fullscreenEnabled !== false;
-  let pending = false, escapeLocked=false, locking=false;
+  let pending = false, escapeLocked=false, locking=false, optionLocked=false;
   const keyboard=win.navigator?.keyboard;
   function update() {
     const active = !!doc.fullscreenElement;
@@ -25,7 +25,18 @@ export function bindFullscreen(button, doc = document, win = window) {
     let failure;
     try {
       if (doc.fullscreenElement) await doc.exitFullscreen();
-      else {await root.requestFullscreen({ navigationUI: 'hide' });await reserveEscape();}
+      else {
+        let optionRead=false;
+        try {
+          await root.requestFullscreen({ navigationUI:'hide',get keyboardLock(){optionRead=true;return 'browser';} });
+          optionLocked=optionRead&&!!doc.fullscreenElement;
+        } catch(error) {
+          if(!['NotSupportedError','TypeError'].includes(error?.name))throw error;
+          optionLocked=false;await root.requestFullscreen({navigationUI:'hide'});
+        }
+        if(optionLocked)escapeLocked=true;
+        else await reserveEscape();
+      }
     } catch (error) {
       failure = error?.message || 'The browser could not enter fullscreen';
     } finally {
@@ -34,7 +45,7 @@ export function bindFullscreen(button, doc = document, win = window) {
     }
   }
   button.addEventListener('click', () => { void toggle(); button.blur(); });
-  doc.addEventListener('fullscreenchange',()=>{if(!doc.fullscreenElement){keyboard?.unlock?.();escapeLocked=false;}else void reserveEscape();update();});
+  doc.addEventListener('fullscreenchange',()=>{if(!doc.fullscreenElement){keyboard?.unlock?.();escapeLocked=false;optionLocked=false;}else void reserveEscape();update();});
   // Capture before gameplay's Enter handler, so toggling never enters a door.
   win.addEventListener('keydown', e => {
     if(e.code==='Escape'&&doc.fullscreenElement&&escapeLocked){e.preventDefault();return;}
@@ -44,5 +55,5 @@ export function bindFullscreen(button, doc = document, win = window) {
     if (!e.repeat) void toggle();
   }, { capture: true });
   update();
-  return {toggle,status:()=>({active:!!doc.fullscreenElement,escapeLocked})};
+  return {toggle,status:()=>({active:!!doc.fullscreenElement,escapeLocked,optionLocked})};
 }

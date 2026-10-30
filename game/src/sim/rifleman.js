@@ -12,7 +12,7 @@ import { createFlee } from './flee.js';
 import { WILD } from './bandits.js';
 import { alive, dist } from './util.js';
 
-export const RIFLE = { range: 8, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30,
+export const RIFLE = { range: 10, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
 export function createRifleman({ state, vision, hit, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
   attackStep = () => {}, moveTo = () => false, inRally = () => false, nearestFree = (x, z) => [x, z], canOccupy = () => true, fightTarget = () => null, rules = {} }) {

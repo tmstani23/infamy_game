@@ -147,6 +147,7 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
       record.travel={x:e.x,z:e.z,tick:state.tick};
     }
     const result=deployment.localTravel(e,unit,point);
+    if(result==='arrived')e.anim='idle';
     if(result==='blocked'){e.anim='idle';e.deployment.duty.status+=' (route blocked; retrying)';}
     return result;
   }
@@ -178,6 +179,7 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
     if(op.targets[e.id]!==foe?.id){clearCombat(e);delete op.travel?.[e.id];}
     if(foe){op.targets[e.id]=foe.id;e.deployment.duty.status='Sweep: fighting';attackStep(e,unit,foe);return true;}
     delete op.targets[e.id];op.travel||={};
+    if(op.state==='Holding'&&e.place==='street'&&distance(e,op.point)<=SWEEP.holdRadius){e.anim='idle';return true;}
     const team=teamOf(e.owner,e.deployment.group,op),leader=team[0];
     // Followers close up before the leader advances; no teleport or speed boost.
     if(op.state==='Marching'&&e===leader&&team.some(a=>a.place===e.place&&distance(a,e)>3)){

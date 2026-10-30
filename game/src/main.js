@@ -1,3 +1,5 @@
+import { createUtilityMenu } from './utility_menu.js';
+import { createWarLanternButton } from './war_lantern_button.js';
 import { createFixedStepClock } from './fixed_step_clock.js';
 import { createStealthBadge } from './stealth_badge.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
@@ -163,7 +165,7 @@ async function start() {
     return st.lights.filter(l => l.place===h.place&&!off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 45).sort((a, b) => near(a) - near(b))[0] || null;
   }
   addEventListener('mousedown', e => {
-    if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud')) return;
+    if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud, #partyframes, #utilitymenu')) return;
     pending.push({ id: heroId, type: 'snuff', prop: hoverLamp.prop });
     e.stopImmediatePropagation(); e.preventDefault();
   }, true);
@@ -206,7 +208,7 @@ async function start() {
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
-    onOpen: id => gameMap.dock(true, id), onClose: () => gameMap.dock(false), onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
+    onOpen: id => gameMap.dock(true, id), onClose: () => { gameMap.dock(false); gameMap.close(); }, onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
@@ -269,10 +271,15 @@ async function start() {
     const best = crew.map(near).reduce((a, b) => b.length > a.length ? b : a);
     return { x: best.reduce((n, p) => n + p.x, 0) / best.length, z: best.reduce((n, p) => n + p.z, 0) / best.length };
   });
-  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, send: c => pending.push(c) });
+  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c) });
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
-  const crewBar = createCrewBar({ root: $('bar'), game, heroId, crewInput });   // crew order buttons over the crew pips
+  const actionCommands=document.createElement('div');actionCommands.className='action-commands';
+  const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
+  $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
+  const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
+  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','ctlbtn','daynight'].map($)});
+  const crewBar = createCrewBar({ root: $('partyframes'), game, heroId, crewInput });   // crew order buttons over the crew pips
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, onInspect:id=>unitFrames.inspect(id) });
@@ -299,9 +306,8 @@ async function start() {
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
     onManageSector: id => deploymentPanel.openGroup(id),
-    onSelectSector: id => deploymentPanel.openGroup(id) });
-  onKey('KeyM', () => gameMap.toggle());
-  $('mapbtn').addEventListener('click', e => { gameMap.toggle(); e.currentTarget.blur(); });
+    onSelectSector: id => deploymentPanel.openGroup(id), onClose:()=>deploymentPanel.close() });
+  onKey('KeyM', () => { if(gameMap.isOpen())gameMap.close();else deploymentPanel.open(); });
   // the season score in the top bar (sim/territory.js): day of the season, then every clan's points
   const scoreText = () => {
     const s = game.state.season, t = game.territory;
@@ -341,6 +347,7 @@ async function start() {
   $('loading').remove();
   $('startscreen').remove();
   document.body.classList.remove('prematch');
+  utilityMenu.update(true);
   setGameplayInput(true);
 
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
@@ -501,6 +508,7 @@ async function start() {
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
     hudLayout.update();
+    warLantern.update();utilityMenu.update();
   });
 }
 
