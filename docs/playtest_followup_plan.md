@@ -201,6 +201,8 @@ New follow-ups, unbuilt: wide ground-route Sweep chevrons follow squad, persist 
 - [x] **Rifle Aimed Shot nerf:** 80 to 60 damage, keeping the aim time so it can be interrupted (code still at 80).
 - [~] **Sounds (15), partial:** Tim makes 3–4 hero ability sounds in ElevenLabs (whoosh, impact, smoke puff, shout) and drops them in assets/sounds; wire them in render/sound.js. More music from Suno later.
 
+Tim playtest update (2026-10-30): everything except the new balance changes looks great; this is practical positive feedback, not exhaustive validation. Manual testing of the new balance remains pending.
+
 Section 4 done (2026-10-30, `test_phase8_balance.mjs`): payouts cut 40%; diminishing returns (4 full, then −10% each, floor 60%); property Renown 40/20/15/5; 75 s alert window; one raid per rival per night; rifle Aimed Shot 60. Sounds partial: ability cues for Shadow Step, Red Lantern, Assassinate and Threefold are in (`render/sound.js` `ABILITY_CUE`, `assets/sounds/ability_*_1.ogg`); the rest are parked because the ElevenLabs SFX were poor. Section 3: Quit to game menu done; Edit layout mode built (Settings > Edit layout, `hud_layout.js` registry, `#lock` target-marker layer excluded); target-marker fix (`lock` added to `STRUCTURAL`).
 
 #### 5. Clan roles (proposal, Tim 2026-10-30)
@@ -225,7 +227,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 - Edit layout side-handle resizing: checked by Tim; fixed-size bars and portraits are now corner-only.
 - First: playtest the stronger ninja leader effects and the new smoke trail (first pass, not browser-checked; top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
-- **Next step: stretchy action bar** (phase 8, Tim chose option b): width spreads buttons out via flex-grow, height makes buttons taller with icon and text centred.
-- **Then: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
+- **Stretchy action bar: on hold** at Tim’s request (2026-10-30); remove from immediate work. Resume only if requested.
+- **Next planned item: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
 - Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
 - Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.
