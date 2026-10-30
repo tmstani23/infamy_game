@@ -181,7 +181,7 @@ Section 3 implementation/Node-check checkpoint (2026-10-29): compact nine-icon m
 
 Additional approved tweaks: Reprisal cooldown 15 seconds; rifle Aimed Shot range ten (melee unchanged); Sweep holds idle within point radius rather than running in place. Coordinator reports `test_command_ui`, game-shell, deployment-panel-flow, HUD-drag, target-controls, realtime-loop, rifleman, Kuroda, Sweep passed; syntax/diff checks passed. No browser/screenshot automation. Firefox-version, fullscreen Escape, visual/layout and sound checks await Tim’s manual test.
 
-New follow-ups, unbuilt: wide ground-route Sweep chevrons follow squad, persist until point capture and refresh on next leg; visible arrival flashes/pings only for observers with sight, with no fog leak. At hold, crimson low shield arcs/stance plus progress ring visualize existing grouped protection; **no extra defensive buff**. Proposed/unapproved balance idea: Aimed Shot could trigger existing crew Reprisal 20% impact splash; no runtime change.
+New follow-ups, unbuilt: wide ground-route Sweep chevrons follow squad, persist until point capture and refresh on next leg; visible arrival flashes/pings only for observers with sight, with no fog leak. At hold, crimson low shield arcs/stance plus progress ring visualize existing grouped protection; **no extra defensive buff**. Ranged Reprisal is unimplemented/unapproved pending balance decision: a full 20% Aimed Shot splash is 16 damage per target and may stack heavily; 20% of normal 18-damage weapon attacks (~4) is only an alternative proposal.
 
 #### 4. Balance (Tim decided)
 
