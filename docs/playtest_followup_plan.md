@@ -111,8 +111,7 @@ Added at Tim’s request (2026-10-29). After the current Geisha/status-label fol
 - [x] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
 - [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
 
-- [x] **Ninja leader blade effects too subtle (Tim 2026-10-30):** not a missing skin. Effects strengthened: about twice as many wisps, about 60% wider and more opaque, shedding faster when idle, walking and running; silver edge glow 0.55 to 0.75. Needs Tim's playtest.
-- [ ] **Idea (Tim 2026-10-30, not built):** a smoke trail behind the ninja leader as he moves.
+- [x] **Ninja leader effects stronger (Tim 2026-10-30):** `render/weapon_shadow.js` (MAX_MOTES 44, faster shedding, width .009, fade .68) and `weapon_glow.json` `ninjato_hero` strength 0.75. New smoke trail: the leader sheds dark smoke curls while moving (steady when running, lighter when walking, none idle). First pass, not checked in the browser yet.
 
 ### Agreed fix list (Tim, 2026-10-30; section 1 implemented/Node-checked)
 
@@ -221,7 +220,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 
 ## Handoff status (2026-10-30, for ChatGPT or the next session)
 
-- First: playtest the stronger ninja leader blade effects; the leader smoke trail is an open idea (top of phase 8).
+- First: playtest the stronger ninja leader effects and the new smoke trail (first pass, not browser-checked; top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
 - **Next step: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
 - Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.

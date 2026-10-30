@@ -14,13 +14,13 @@ export function createWeaponShadow(spriteUniforms) {
   let clock=0,history=[],lastSample=-1,critAt=-10,critAxis=null,lastAxis=null;
   // loose wisps shed by the blade (Tim 2026-10-29 visual pass): idle they drift outward and down,
   // running they stream behind him, opposite the way he faces. Sprite-local units (0..1 of the quad).
-  let motes=[],shedAt=0;
+  let motes=[],shedAt=0,puffs=[],puffAt=0;
   const MAX_MOTES=44;   // more pronounced wisps (Tim 2026-10-30: too subtle)
   function critical(){critAt=clock;critAxis=lastAxis;}
   return {mesh,critical,
     update(dt,axis,swing=null,enabled=true,{anim='idle',dir=0}={}){
       clock+=dt;material.uniforms.uTime.value=clock;
-      if(!enabled||!axis){mesh.visible=false;history=[];critAxis=null;motes=[];return;}
+      if(!enabled||!axis){mesh.visible=false;history=[];critAxis=null;motes=[];puffs=[];return;}
       lastAxis=axis;
       const active=swing!==null&&swing>.08&&swing<.94;
       if(active&&clock-lastSample>.025){history.push({axis,time:clock});lastSample=clock;}
@@ -71,6 +71,17 @@ export function createWeaponShadow(spriteUniforms) {
         const sway=.012*Math.sin(clock*3+m.curl),sp=Math.hypot(m.vx,m.vy)||1,len=.03+.05*Math.min(1,sp*3);
         const tail={x:m.x-m.vx/sp*len+sway,y:m.y-m.vy/sp*len};
         ribbon({base:tail,tip:{x:m.x,y:m.y}},{bend:.18*Math.sin(m.curl),width:.009*(.4+.6*k),fade:.68*Math.sin(Math.PI*Math.min(1,age*1.4+.15))*k+.02,steps:5});
+      }
+      // Body smoke (Tim 2026-10-30): moving, soft dark curls peel off his body and drift behind him
+      if((running||walking)&&clock-puffAt>(running?.05:.1)&&puffs.length<24){
+        puffAt=clock;
+        puffs.push({x:.5+(Math.random()-.5)*.12,y:.22+Math.random()*.32,born:clock,life:running?.7:.9,curl:Math.random()*6,len:.05+Math.random()*.05});
+      }
+      puffs=puffs.filter(p=>clock-p.born<p.life);
+      for(const p of puffs){
+        const t=clock-p.born,age=t/p.life,k=1-age,back=(running?.32:.16)*t;
+        const hx=p.x-fx*back,hy=p.y-fy*back+.04*t,ln=p.len*(.5+age);
+        ribbon({base:{x:hx,y:hy},tip:{x:hx-fx*ln,y:hy-fy*ln+.01}},{bend:.35*Math.sin(p.curl+t*3),width:.016*(.5+.5*k),fade:.5*Math.sin(Math.PI*Math.min(1,age*1.3+.1))*k,drift:.6,steps:6});
       }
       // A short dark cut persists at previous blade positions, then closes
       // inward. Keep the history bounded and sample independently of FPS.
