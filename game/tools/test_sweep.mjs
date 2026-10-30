@@ -147,4 +147,17 @@ function fixture(clan = 'kuroda') {
   assert.equal(c.targetClan,rival);assert.equal(c.sector,source.id);g.step([c]);
   assert.equal(g.state.deployment.clans.player.sectors[source.id].operation?.kind,'sweep');g.vision.canSee=canSee;
 }
-console.log('Sweep: physical march/return, real combat/visibility, hold/contest, grouping/nonstacking, rival filtering, HQ recovery/return, saved slots and bot commands passed');
+{
+  const {g,task,target,crew,send}=fixture();send({action:'sweep',targetSector:target.id});
+  for(let point=0;point<3;point++){
+    g.state.news=[];
+    for(const e of crew)Object.assign(e,{x:task.operation.point.x,z:task.operation.point.z});
+    g.sweep.tick();
+    const arrivals=()=>g.state.news.filter(n=>n.kind==='sweepArrival');
+    assert.equal(arrivals().length,1,'arrival announced once per position');assert.equal(arrivals()[0].point,point+1);
+    assert.deepEqual(arrivals()[0].units,crew.map(e=>e.id));
+    g.sweep.tick();assert.equal(arrivals().length,1,'holding does not repeat arrival');
+    for(let i=2;i<400;i++)g.sweep.tick();
+  }
+}
+console.log('Sweep: physical march/return, real combat/visibility, hold/contest, grouping/nonstacking, rival filtering, HQ recovery/return, saved slots, bot commands and once-per-point arrivals passed');

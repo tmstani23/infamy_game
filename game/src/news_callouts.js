@@ -1,14 +1,20 @@
 // News callouts each sim tick: the big moments in state.news shown to this player (moved out of main.js,
 // phase 7 split, 2026-10-29). Reads the state only; never sends commands.
+import { sweepArrivalVisible } from './render/sweep_trail.js';
 export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults }) {
   function update() {
     for (const n of game.state.news) {
       const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
+      if(n.kind==='sweepArrival'&&sweepArrivalVisible(n,game.state,me,(clan,e)=>game.vision.canSee(clan,e))){
+        const zone=game.state.deployment.sectors.find(s=>s.id===n.sector)?.name||n.sector;
+        callout(`${n.clan===me?'SWEEP IN POSITION':'ENEMY SWEEP IN POSITION'} · ${zone} · ${n.point}/3 · hold 20 s`,n.clan===me?'win':'loss',5000);
+        minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);
+      }
       if(['sweepAlert','sweepPoint','sweepSuccess'].includes(n.kind)&&(n.clan===me||n.defender===me||n.rival===me)){
         const yours=n.clan===me,zone=game.state.deployment.sectors.find(s=>s.id===n.sector)?.name||n.sector;
         const text=n.kind==='sweepSuccess'?`SWEEP COMPLETE · ${zone}${yours?' secured':' scattered'}`:n.kind==='sweepPoint'?`SWEEP · ${zone} · moving to position ${n.point}/3`:`${yours?'SWEEP DISPATCHED':'ENEMY SWEEP'} · ${zone} · three positions to hold`;
         callout(text,yours?'win':'loss',5000);
-        if(Number.isFinite(n.x)){minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}
+        // Arrival pings above use current sight, never a rival's unrevealed next destination.
       }
       if(n.kind==='shakedownAlert'&&n.defender===me){callout(`Shakedown at your ${n.name}! Defend the front room!`,'loss',4000);minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}
       if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);

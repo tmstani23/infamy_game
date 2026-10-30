@@ -7,7 +7,7 @@ const FIRE=[[1,.9,.5],[1,.55,.12],[1,.25,.04]],SMOKE=[[.15,.13,.12],[.3,.27,.23]
 const rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 export function createShakedownFx({scene,overlay,unitToScreen}) {
   const glow=createParticles(scene,{max:900}),smoke=createParticles(scene,{max:600,additive:false}),cards=createCards(scene);
-  const bombs=new Map(),fires=new Map(),labels=new Map(),bursts=[],sweeps=new Map();
+  const bombs=new Map(),fires=new Map(),labels=new Map(),bursts=[];
   const stickGeo=new THREE.CylinderGeometry(.065,.065,.48,7),bandGeo=new THREE.CylinderGeometry(.07,.07,.035,7),sparkGeo=new THREE.SphereGeometry(.06,6,4),ringGeo=new THREE.RingGeometry(.96,1,48);
   let place='street';
   const basic=(color,opacity=1)=>new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthTest:false,depthWrite:false});
@@ -70,17 +70,11 @@ export function createShakedownFx({scene,overlay,unitToScreen}) {
     }
     for(const [id,mesh]of fires)if(!liveFires.has(id)){scene.remove(mesh);mesh.material.dispose();mesh.geometry.dispose();fires.delete(id);}
     const activeLabels=new Set();
-    const activeSweeps=new Set();
     if(place==='street')for(const task of Object.values(state.deployment?.clans[own]?.sectors||{})){
       const op=task.operation;if(op?.kind!=='sweep')continue;
       const key='sweep:'+op.units[0];activeLabels.add(key);
-      label(key,'SWEEP · '+op.state.toUpperCase()+' · '+(op.hold/20).toFixed(1)+'/20s'+(op.contested?' · CONTESTED':''),op.point,'#ff9292');
-      if(op.state==='Returning')continue;
-      activeSweeps.add(key);let ring=sweeps.get(key);
-      if(!ring){ring=onFxLayer(new THREE.Mesh(ringGeo,basic(0xc33745,.25)));ring.rotation.x=-Math.PI/2;ring.renderOrder=5;scene.add(ring);sweeps.set(key,ring);}
-      ring.position.set(op.point.x,.04,op.point.z);ring.scale.setScalar(6);ring.material.opacity=op.contested?.4:.18+.08*(op.hold/400);
+      label(key,'SWEEP · '+(op.pointIndex+1)+'/3 · '+op.state.toUpperCase()+' · '+(op.hold/20).toFixed(1)+'/20s'+(op.contested?' · CONTESTED':''),op.point,'#ff9292');
     }
-    for(const [key,ring]of sweeps)if(!activeSweeps.has(key)){scene.remove(ring);ring.material.dispose();sweeps.delete(key);}
     for(const c of Object.values(state.deployment?.clans||{}))for(const task of Object.values(c.sectors)){
       const op=task.operation;if(op?.kind!=='shakedown')continue;
       const unit=op.units.map(id=>state.entities[id]).find(e=>e?.owner===own),b=state.businesses[op.business];

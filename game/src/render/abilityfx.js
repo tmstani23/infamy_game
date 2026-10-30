@@ -7,12 +7,14 @@ import { onFxLayer } from './bloom.js';
 import { createParticles, createCards, SHAPE, getLantern } from './vfx.js';
 import { createKurodaFx } from './kurodafx.js';
 import { createShakedownFx } from './shakedownfx.js';
+import { createSweepFx } from './sweepfx.js';
 
 import { flat, WAVE_GEO, DISC_GEO, AURA_GEO, THIN_WAVE_GEO, HALF_WAVE_GEO, BUFF_AURA_GEO, AMBUSH_AURA_GEO, STREAK_GEO, AURAS, STEEL, WHITE, GOLD, PURPLE, GUNSMOKE, MUZZLE, SOOT, SOOT_TINT, DUSK, MIST_BLUE, PETALS, FIRE, pick, count, LANTERNS, ORBIT, rand, screenAngle, OUTLINE, OUTLINE_GEO, OUTLINE_RGB, OUTLINE_VERT, OUTLINE_FRAG, outlineMesh, LANTERN_GEO, HALO_GEO, HALO_TEX, SEAL_TEX } from './abilityfx_assets.js';
 
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen }) {
   const kurodaFx = createKurodaFx({ scene, spriteOf, posOf });
   const shakedownFx = createShakedownFx({ scene, overlay, unitToScreen });
+  const sweepFx = createSweepFx({scene,spriteOf});
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
   const glow = createParticles(scene), cards = createCards(scene);
   const soot = createParticles(scene, { max: 2500, additive: false });   // black smoke: drawn normally so it darkens
@@ -95,7 +97,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
 
   return {
     clear(){
-      kurodaFx.clear();shakedownFx.clear();glow.clear();soot.clear();cards.clear();
+      kurodaFx.clear();shakedownFx.clear();sweepFx.clear();glow.clear();soot.clear();cards.clear();
       for(const v of [...waves,...streaks]){scene.remove(v.m);v.m.material.dispose();}waves.length=streaks.length=0;
       for(const map of [auras,outlines,smokeRings]){for(const m of map.values()){scene.remove(m);m.material.dispose();}map.clear();}
       for(const l of rifleLines.values()){scene.remove(l.m);l.m.geometry.dispose();l.m.material.dispose();}rifleLines.clear();
@@ -370,6 +372,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     update(dt, state, heroId) {
       kurodaFx.update(dt, state, heroId);
       shakedownFx.update(dt, state, heroId);
+      sweepFx.update(state,heroId);
       const aiming = new Set();
       for (const e of Object.values(state.entities)) {
         // the red aim line shows only at night, faint, fading toward the target (Tim 2026-10-29)

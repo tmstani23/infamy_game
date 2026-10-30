@@ -124,7 +124,11 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
         for(const e of visible)if(!op.seen.includes(e.id))op.seen.push(e.id);
         const contest=visible.some(e=>distance(e,op.point)<=SWEEP.holdRadius);
         op.contested=contest;
-        if(gathered(team,op.point,op.targetSector))op.reached=true;
+        if(!op.reached&&gathered(team,op.point,op.targetSector)){
+          op.reached=true;
+          state.news.push({kind:'sweepArrival',clan,defender:op.targetClan,sector:op.targetSector,
+            point:op.pointIndex+1,x:op.point.x,z:op.point.z,units:team.map(e=>e.id)});
+        }
         if(visible.length)op.state='Fighting';
         else op.state=op.reached?'Holding':'Marching';
         // Neither a defender nor a chase outside the hold area advances the objective.
