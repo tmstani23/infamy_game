@@ -117,7 +117,7 @@ The revised export is complete and the Shinobi sprite is approved by Tim. Gamepl
 
 ### Kuroda chain arc (approved/exported 2026-10-30)
 
-All seven Kuroda color/glow pairs now use the authored backswing → overhead → forward/down cast. The chain is baked, not simulated at runtime; Kuroda damage timing is aligned to the forward cast. The prior 14 PNGs are preserved in `assets/sprites_archive/2026-10-30_tank_chain_arc/`. Export checks passed; Tim's in-game visual check remains pending. Preview is local.
+All seven Kuroda color/glow pairs now use the authored backswing → overhead → forward/down cast. The chain is baked, not simulated at runtime; Kuroda damage timing is aligned to the forward cast. The prior 14 PNGs are preserved in `assets/sprites_archive/2026-10-30_tank_chain_arc/`. Export checks passed; Tim approved the exported animation GIF (“that chain looks good”). In-game playtest remains pending; the preview is local.
 
 ## Western civilian checkpoint (2026-10-30)
 

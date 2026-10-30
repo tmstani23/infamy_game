@@ -223,7 +223,7 @@ Implementation checklist (initial stats/prices remain configurable and subject t
 
 Playable clan units were prioritized ahead of the Western civilians. Scope stayed to this integration: no new hero kits, growth systems or broad balance pass.
 
-Art checkpoint (2026-10-30): Kuroda forward-chain and Shinobi tonfa-pose correction exports are complete and verified; Tim approved the Shinobi sprite. Kuroda's authored backswing/overhead/front-cast chain animation is exported and atlas-checked; previous 14 PNGs are archived and Shinobi is unchanged. Contact sheet/GIF preview is ready locally. Tim's in-game visual check remains pending.
+Art checkpoint (2026-10-30): Kuroda forward-chain and Shinobi tonfa-pose correction exports are complete and verified; Tim approved the Shinobi sprite and later approved the exported Kuroda chain GIF (“that chain looks good”). Kuroda's authored backswing/overhead/front-cast animation passed atlas checks; previous 14 PNGs are archived and Shinobi is unchanged. In-game playtest remains pending; preview is local.
 
 Coordinator reports `test_new_crew` (hiring/assets/arrow flight and damage/Hamstring timing and slow/charm protection/tank cone-passive-reveal-brace/no-brace/initiating Charm/civilian config), `test_enforcer`, `test_geisha`, `test_rifleman` and `test_civilians` (30 population/movement/night homes/performance) passed, along with JS syntax and diff checks. No browser gameplay test; Tim's manual VFX/visual playtest remains pending.
 
