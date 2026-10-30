@@ -8,13 +8,13 @@ const previous = Object.fromEntries(globals.map(k=>[k,globalThis[k]]));
 class Element {
   constructor(id=''){this.id=id;}
   style={}; children=[]; handlers={}; hidden=false; dataset={}; nodeType=1;attributes={};
-  get offsetWidth(){return parseFloat(this.style.width)||100;} get offsetHeight(){return parseFloat(this.style.height)||parseFloat(this.style.minHeight)||80;}
+  get offsetWidth(){return this.hidden||this.hiddenAncestor?0:parseFloat(this.style.width)||100;} get offsetHeight(){return this.hidden||this.hiddenAncestor?0:parseFloat(this.style.height)||parseFloat(this.style.minHeight)||80;}
   classes=new Set();classList={toggle:(name,on)=>on?this.classes.add(name):this.classes.delete(name),contains:name=>this.classes.has(name),remove:name=>this.classes.delete(name)};
   addEventListener(type,fn,options={}){(this.handlers[type]||=[]).push({fn,capture:options===true||!!options.capture});}
   append(...children){this.children.push(...children);}
   appendChild(child){this.append(child);}
   setAttribute(k,v){this.attributes[k]=v;} focus(){} blur(){} querySelector(){return null;} querySelectorAll(){return [];}
-  getBoundingClientRect(){if(this.hidden)return {left:0,top:0,width:0,height:0};const left=parseFloat(this.style.left)||100,top=parseFloat(this.style.top)||100,s=Number(this.style.scale)||1,width=this.offsetWidth*s,height=this.offsetHeight*s;return {left,top,width,height,right:left+width,bottom:top+height};}
+  getBoundingClientRect(){if(this.hidden||this.hiddenAncestor)return {left:0,top:0,width:0,height:0};const s=Number(this.style.scale)||1,width=this.offsetWidth*s,height=this.offsetHeight*s,left=(parseFloat(this.style.left)||100)+(this.offsetWidth-width)/2,top=(parseFloat(this.style.top)||100)+(this.offsetHeight-height)/2;return {left,top,width,height,right:left+width,bottom:top+height};}
 }
 try {
  const win=new Element(),target=new Element('utarget'),lock=new Element('lock'),body=new Element();
@@ -115,5 +115,40 @@ try {
   layout.cancel();assert.equal(bar.style.width,'700px');assert.equal(bar.style.height,'200px','Cancel restores saved sizes after Reset');
   layout.reset();assert.equal(bar.style.width,'');assert.equal(bar.style.height,'');
   console.log('Layout filters, hidden previews, exclusive selection/stacking, stopped drags, stretchy bar persistence and reset passed');
+ } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
+}
+
+// Hidden DOM boxes measure zero: edit saved dimensions, not stale natural measurements.
+{
+ try {
+  const win=new Element(),body=new Element(),contract=new Element('contract'),controls=new Element('controls'),cols=new Element();
+  contract.hidden=controls.hidden=true;cols.hiddenAncestor=true;controls.querySelector=()=>cols;body.children.push(contract,controls);
+  let stored;
+  globalThis.document={body,getElementById:id=>({contract,controls})[id],createElement:()=>new Element()};
+  globalThis.localStorage={getItem:()=>null,setItem(k,v){stored=JSON.parse(v);}};globalThis.fetch=async()=>({ok:true});
+  globalThis.addEventListener=(...args)=>win.addEventListener(...args);globalThis.ResizeObserver=class{observe(){}};
+  globalThis.innerWidth=1200;globalThis.innerHeight=900;
+  const initial={ax:'l',ay:'t',dx:200,dy:200,s:1.5,w:240,h:100};
+  const layout=createHudLayout({fromFile:{contract:{...initial},controls:{...initial}}}),layer=body.children.at(-1),toolbar=layer.children[0],filters=toolbar.children.find(c=>c.className==='layout-filters');
+  const fire=(node,type,extra={})=>{const e={button:0,buttons:1,clientX:200,clientY:200,target:node,preventDefault(){},stopPropagation(){},...extra};for(const h of node.handlers[type]||[])h.fn(e);};
+  layout.begin();fire(filters.children.find(c=>c.dataset.filter==='windows'),'click');
+  for(const [el,label]of [[contract,'Contract status'],[controls,'Controls window']]){
+   const handle=layer.children.find(c=>c.attributes['aria-label']===`Move or resize ${label}`);
+   assert.equal(handle.style.width,'360px');assert.equal(handle.style.height,'150px');
+   const left=parseFloat(handle.style.left),top=parseFloat(handle.style.top);
+   for(const [side,delta,key,want]of [['r',{clientX:290},'width',450],['b',{clientY:260},'height',210]]){
+    fire(handle,'mousedown',{target:handle.children.find(c=>c.dataset.edge===side)});fire(win,'mousemove',delta);fire(win,'mouseup');
+    assert.equal(parseFloat(handle.style[key]),want,'hidden placeholder follows pointer at current scale');
+   }
+   assert.equal(parseFloat(handle.style.left),left);assert.equal(parseFloat(handle.style.top),top,'opposite corner stays fixed');
+   assert.equal(el.hidden,true,'editing never forces game window visible');
+  }
+  assert.equal(cols.style.width,undefined,'Controls resizes the whole window, not inner columns');
+  layout.done();assert.equal(stored.contract.w,300);assert.equal(stored.contract.h,140);assert.equal(stored.controls.w,300);
+  contract.hidden=controls.hidden=false;layout.begin();layout.update();
+  const h=layer.children.find(c=>c.attributes['aria-label']==='Move or resize Contract status');
+  assert.equal(h.style.width,'450px');assert.equal(h.style.height,'210px','populated box matches hidden preview');
+  layout.reset();layout.cancel();assert.equal(contract.style.width,'300px');assert.equal(controls.style.height,'140px');
+  console.log('Hidden contract/Controls sizing: zero measurements, scaled width/height, fixed corner, population and saved restoration passed');
  } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
 }

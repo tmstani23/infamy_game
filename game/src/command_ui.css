@@ -55,6 +55,9 @@
 #hudlayout select {min-width:190px;max-width:100%;padding:6px;background:#0e1c25;color:#f5dfb2;border:1px solid #65808b;border-radius:4px;}
 .layout-filtered,.layout-filtered * {visibility:hidden!important;pointer-events:none!important;}
 .layout-focused {z-index:190!important;}
+[data-layout-free="true"][data-layout-sized="true"] {box-sizing:border-box;min-width:0;max-width:none;max-height:none;overflow:auto;}
+#contract[data-layout-sized="true"] {white-space:normal;overflow-wrap:anywhere;}
+#controls[data-layout-sized="true"] .cols {grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));}
 /* Width/height reflow real HTML buttons; saved corner scale remains independent. */
 #bar[data-layout-sized="true"] {box-sizing:border-box;align-items:stretch;}
 #bar[data-layout-sized="true"] > .row {box-sizing:border-box;flex:1;min-height:72px;width:100%;align-items:stretch;}

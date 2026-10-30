@@ -38,7 +38,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   const on=p.id===id;p.handle.classList.toggle('selected',on);p.handle.setAttribute('aria-pressed',String(on));p.el.classList.toggle('layout-focused',editing&&on);
  }}
  const signature=el=>PROPS.map(k=>el.style[k]||'').join('|');
- function dimensions(p){const w=p.el.offsetWidth,h=p.el.offsetHeight;if(w)p.w=w;if(h)p.h=h;return [p.w||220,p.h||70];}
+ function dimensions(p){const w=p.el.offsetWidth,h=p.el.offsetHeight,L=saved[p.id];if(w)p.w=w;if(h)p.h=h;return [w||L?.w||p.w||220,h||L?.h||p.h||70];}
  function place(p){
   if(p.el.classList.contains('hud-docked'))return;
   const L=saved[p.id];
@@ -56,6 +56,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  function register(el,id=el?.id,label=el?.dataset?.layoutLabel||NAMES[id]||id){
   if(!el||!id||panels.has(id)||el===layer||el===toolbar)return;
   const p={id,el,name:label,category:el.dataset?.layoutCategory||layoutCategory(id),defaults:Object.fromEntries(PROPS.map(k=>[k,el.style[k]||'']))};panels.set(id,p);
+  el.dataset.layoutFree=String(!UNIFORM.has(id));
   const option=document.createElement('option');option.value=id;option.textContent=label;picker.appendChild(option);p.option=option;
   const handle=document.createElement('div');handle.className='layout-handle';handle.tabIndex=0;handle.setAttribute('role','button');handle.setAttribute('aria-label',`Move or resize ${label}`);
   const title=document.createElement('span');title.textContent=label;handle.appendChild(title);
@@ -77,7 +78,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  }
  HUD_PANELS.forEach(id=>register(document.getElementById(id)));
  for(const el of document.body.children)enroll(el);
- for(const [id,selector]of [['gamesettings','.settings-window'],['characterpage','.character-window'],['controls','.cols']]){const root=document.getElementById(id);if(root)register(root.querySelector(selector)||root,id,NAMES[id]);}
+ for(const [id,selector]of [['gamesettings','.settings-window'],['characterpage','.character-window'],['controls',null]]){const root=document.getElementById(id);if(root)register(selector?root.querySelector(selector)||root:root,id,NAMES[id]);}
  if(typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)enroll(n);}).observe(document.body,{childList:true});
  function update(){
   let hidden=0;
@@ -88,7 +89,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
    if(filtered)continue;
    const actual=p.el.getBoundingClientRect(),L=saved[p.id];dimensions(p);
    let rect=actual;
-   if(!actual.width||!actual.height){const [w,h]=dimensions(p),s=L?.s||1;rect={left:L?parseFloat(p.el.style.left)||0:Math.max(8,innerWidth-240*(1+Math.floor(hidden/7))),top:L?parseFloat(p.el.style.top)||0:95+(hidden%7)*80,width:w*s,height:h*s};hidden++;}
+   if(!actual.width||!actual.height){const [w,h]=dimensions(p),s=L?.s||1;rect={left:L?(parseFloat(p.el.style.left)||0)+w*(1-s)/2:Math.max(8,innerWidth-240*(1+Math.floor(hidden/7))),top:L?(parseFloat(p.el.style.top)||0)+h*(1-s)/2:95+(hidden%7)*80,width:w*s,height:h*s};hidden++;}
    p.rect={left:rect.left,top:rect.top,width:rect.width,height:rect.height};
    Object.assign(p.handle.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
   }
@@ -102,7 +103,8 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
    const horiz=edge==='l'||edge==='r',minimum=p.id==='bar'?(horiz?Math.min(560,innerWidth/s):100):40,size=clamp((horiz?r.width+(edge==='l'?-dx:dx):r.height+(edge==='t'?-dy:dy))/s,minimum,(horiz?innerWidth:innerHeight)/s);
    const x=edge==='l'?r.left+r.width-size*s:r.left,y=edge==='t'?r.top+r.height-size*s:r.top;
    if(horiz)p.el.style.width=`${size}px`;else {p.el.style.height=`${size}px`;p.el.style.minHeight=`${size}px`;}
-   keep(p,x,y,s);saved[p.id][horiz?'w':'h']=Math.round(size);place(p);update();return;
+   saved[p.id]={...saved[p.id],[horiz?'w':'h']:Math.round(size)};
+   keep(p,x,y,s);update();return;
   }keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max((r.width+dx)/r.width,(r.height+dy)/r.height):s);update();});
  addEventListener('mouseup',()=>{drag=null;},{capture:true});addEventListener('blur',()=>{drag=null;});
  addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id])place(p);update();});
