@@ -241,3 +241,16 @@ console.log('Kuroda: dodge preserves counter, stronger snares preserved, invalid
  assert.ok(target.hp<10000,'threefold hits its enemy');
  assert.equal(police.hp,10000,'threefold splash excludes even raid police');assert.equal(civilian.hp,10000);
 }
+
+for(const buffed of [false,true]){
+ const {g,hero,spawn}=make(),rifle=spawn('kuroda_rifleman',hero.x,hero.z,{holdFire:false});
+ const primary=spawn('thug',hero.x+6,hero.z,{owner:'rival',hp:10000,maxHp:10000}),secondary=spawn('thug',hero.x+6,hero.z+.6,{owner:'rival',hp:10000,maxHp:10000});
+ const police=spawn('thug',hero.x+6,hero.z-.6,{owner:POLICE,cop:true,wave:'raid',hp:10000,maxHp:10000});
+ const civilian=spawn('thug',hero.x+6,hero.z+1,{hp:10000,maxHp:10000});civilian.type='civilian';
+ rifle.order={kind:'attack',target:primary.id};
+ if(buffed)rifle.buffs={reprisal:{until:g.state.tick+1000,splash:.2,radius:2}};
+ let shot=false;for(let i=0;i<45&&!shot;i++){g.step();shot=g.state.hits.some(h=>h.a===rifle.id&&h.kind==='rifle');}
+ assert.ok(shot);assert.equal(10000-secondary.hp,buffed?4:0,'ranged Reprisal uses20% of18 weapon damage, not80 shot damage');
+ assert.equal(police.hp,10000,'ranged splash excludes police including wave officers');assert.equal(civilian.hp,10000);
+}
+console.log('Ranged Reprisal: base-weapon splash only during buff, no police/civilian collateral passed');

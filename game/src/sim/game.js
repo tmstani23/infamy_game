@@ -232,7 +232,7 @@ export function createGame(options) {
     clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     onCharmed:(target,clan)=>{for(const a of Object.values(state.entities))if(a.owner===clan){if(a.charmAttack?.target===target.id)delete a.charmAttack;if(a.order?.kind==='attack'&&a.order.target===target.id)endAttack(a,true);if(a.attackTarget===target.id)delete a.attackTarget;if(a.swing?.target===target.id)delete a.swing;if(fight[a.id]?.target===target.id)delete fight[a.id].target;if(a.rifle?.aim?.target===target.id)rifleman.interrupted(a);}},
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  const rifleman = createRifleman({ state, vision, hit: (a, t, d, crit, kind) => hit(a, t, d, crit, kind),
+  const rifleman = createRifleman({ state, vision, hit: (a, t, d, crit, kind) => {const hp=t.hp;hit(a,t,d,crit,kind);if(t.hp<hp)kuroda.rangedHit(a,t);},
     canAttack: (a, b) => attackAllowed(a, b) && sees(a, b),
     stun: (t, ticks) => { delete t.swing; addBuff(t, 'stunned', ticks / TICK_RATE); }, clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },

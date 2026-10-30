@@ -173,6 +173,7 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
   }
 
   return { cast, stepActor, weaponHit, damaged, tick,
+    rangedHit: (a,t) => cleave(a,t,statsOf(a).damage * damageScale(a),true),
     damageTaken: e => formationOf(e)?.damageTaken ?? 1,
     cancel };
 }
