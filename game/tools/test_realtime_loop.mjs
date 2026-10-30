@@ -94,11 +94,14 @@ try {
     for (let i = 0; i < 100; i++) map.update();
     assert.equal(map.diagnostics().draws, 1, 'idle big map does not repaint every third frame');
     map.update(true); assert.equal(map.diagnostics().draws, 2, 'changed snapshot paints immediately');
-    c.handlers.mousemove({ clientX: 100, clientY: 100 }); assert.equal(map.diagnostics().draws, 3, 'hover paints immediately');
-    map.zoomBy(1.2); assert.equal(map.diagnostics().draws, 4, 'zoom paints immediately');
-    map.ping(0, 0); map.update(); assert.equal(map.diagnostics().draws, 5, 'news ping invalidates independently of roster cadence');
-    c.clientWidth = 220; map.update(); assert.equal(map.diagnostics().draws, 6, 'resize paints immediately');
-    map.update(); assert.equal(map.diagnostics().draws, 6);
+    c.handlers.mousemove({ clientX: 100, clientY: 100 }); assert.equal(map.diagnostics().draws, 2, 'tooltip hover does not repaint the map');
+    map.zoomBy(1.2); assert.equal(map.diagnostics().draws, 3, 'zoom paints immediately');
+    map.ping(0, 0); map.update(); assert.equal(map.diagnostics().draws, 4, 'news ping invalidates independently of roster cadence');
+    c.clientWidth = 220; map.update(); assert.equal(map.diagnostics().draws, 5, 'resize paints immediately');
+    map.update(); assert.equal(map.diagnostics().draws, 5);
+    for(let i=0;i<100;i++)map.invalidate();
+    assert.equal(map.diagnostics().draws,5,'click callback chains do no synchronous painting');
+    map.update();assert.equal(map.diagnostics().draws,6,'all input redraw requests coalesce into one frame');
   } finally { Object.assign(globalThis, saved); }
 }
 console.log('Real-time loop: 2–60 fps timing, bounded stalls/pause, per-tick hand-off, once-per-frame UI, half-second roster/index/cache, idle/input-driven canvas and badge event retention passed');

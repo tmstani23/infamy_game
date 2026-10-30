@@ -6,9 +6,10 @@
 #deploymentpanel button, #deploymentpanel select { padding: 4px 8px; border: 1px solid #6c5c40; border-radius: 5px; background: #20232a; color: #f0e3c9; cursor: pointer; font: inherit; }
 #deploymentpanel button:disabled { opacity: .45; cursor: default; }
 #deploymentpanel button:hover:not(:disabled) { border-color: #e9c27a; }
-#deploymentpanel .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
-#deploymentpanel .tabs button { padding: 3px 7px; font-size: 11.5px; }
-#deploymentpanel .tabs button[aria-pressed="true"] { border-color: #e9c27a; background: #343022; }
+#deploymentpanel .tabs { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px; }
+#deploymentpanel .tabs button { min-height:48px;padding:10px 8px;font-size:14px;font-weight:750;line-height:1.25;border-radius:8px;background:linear-gradient(#252d34,#171e25);border:1px solid #756445;color:#e7dfcc;white-space:normal; }
+#deploymentpanel .tabs button[aria-pressed="true"] { border:2px solid #ffe09c;background:linear-gradient(#615034,#342b20);color:#fff3ca;box-shadow:0 0 12px #e9c27a45; }
+#deploymentpanel .tabs button:hover {border-color:#f2d99e;color:#fff5d8;}
 #deploymentpanel .sector-alert { box-shadow: inset 3px 0 #e9b95e; }
 #deploymentpanel .roster { display: flex; flex-direction: column; gap: 2px; max-height: 42vh; overflow: auto; padding-right: 2px; }
 #deploymentpanel .group-head { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 4px; color: #c9b88e; border-bottom: 1px solid #3a3326; }
@@ -133,7 +134,7 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 
 /* Fixed pages replace stacked scrolling sections. Simulation commands stay shared. */
 #deploymentpanel .page-tabs {display:grid;grid-template-columns:1.7fr 1fr 1fr .65fr;gap:5px;flex-shrink:0;}
-#deploymentpanel .page-tabs button {padding:9px 5px;font-size:13px;font-weight:700;}
+#deploymentpanel .page-tabs button {padding:12px 6px;font-size:15px;font-weight:750;}
 #deploymentpanel .page-tabs [aria-pressed="true"] {border-color:#e6c378;background:#3b3424;color:#fff0be;}
 #deploymentpanel .workspace {flex:1;min-height:0;overflow:hidden;}
 #deploymentpanel .workspace > section {height:100%;min-height:0;display:flex;flex-direction:column;gap:10px;}
@@ -185,8 +186,8 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #deploymentpanel footer {flex-shrink:0;}
 @media(max-height:850px) {
   #gamemap.game-map #deploymentpanel {gap:7px;padding:10px;}
-  #deploymentpanel .tabs button {font-size:11px;}
-  #deploymentpanel .page-tabs button {padding:7px 4px;font-size:12px;}
+  #deploymentpanel .tabs button {font-size:13px;min-height:42px;padding:8px 5px;}
+  #deploymentpanel .page-tabs button {padding:10px 4px;font-size:13px;}
   #deploymentpanel .group-summary {padding:7px;gap:3px;}
   #deploymentpanel .group-summary h4 {font-size:15px;}
   #deploymentpanel .group-summary strong {font-size:14px;}

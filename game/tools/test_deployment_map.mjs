@@ -110,7 +110,8 @@ assert.ok(snapshot.contacts.some(c => c.id === visibleEnemy.id && c.live));
 // checks the visual result; this verifies markers and picks do not issue orders.
 let picked = null, hovered = null, strokes = 0;
 const ctx = new Proxy({}, { get: (_, k) => k === 'measureText' ? s => ({ width: s.length * 6 }) : k === 'stroke' ? () => { strokes++; } : () => {}, set: () => true });
-const overlay = createDeploymentMapOverlay({ game, clan: 'player', data, selectedSector: () => s.id,
+let selectedSector = s.id;
+const overlay = createDeploymentMapOverlay({ game, clan: 'player', data, selectedSector: () => selectedSector,
   onPick: id => { picked = id; }, onHover: value => { hovered = value?.id; } });
 const toMap = (x, z) => [300 + x * 2, 300 + z * 2];
 overlay.ground({ ctx, toMap, now: 1000, size: 700 }); overlay.markers({ ctx, toMap, size: 700 });
@@ -126,8 +127,10 @@ console.log('Deployment map: real outlines, unchanged nav, hexes, truthful conta
   try{
     overlay.ground({ctx,toMap,now:2000,size:700});const painted=overlay.diagnostics().groundPaints;
     overlay.ground({ctx,toMap,now:2005,size:700});assert.equal(overlay.diagnostics().groundPaints,painted,'steady map reuses the honeycomb bitmap');
-    overlay.ground({ctx,toMap,now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted+1,'slow ripple stays animated');
-    overlay.ground({ctx,toMap:(x,z)=>[x*3,z*3],now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted+2,'zoom invalidates immediately');
+    overlay.ground({ctx,toMap,now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted,'pulse animation reuses the expensive bitmap');
+    selectedSector=st.deployment.sectors.find(x=>x.id!==s.id).id;
+    overlay.ground({ctx,toMap,now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted,'selecting a different sector only paints its highlight');
+    overlay.ground({ctx,toMap:(x,z)=>[x*3,z*3],now:2150,size:700});assert.equal(overlay.diagnostics().groundPaints,painted+1,'zoom invalidates immediately');
     for(let i=0;i<100;i++)overlay.ground({ctx,toMap,now:2200+i,size:700});
     assert.equal(canvases,1,'repeated drawing retains only one canvas');
   }finally{globalThis.document=previous;}

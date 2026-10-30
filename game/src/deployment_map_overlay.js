@@ -12,7 +12,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
   };
   function paintGround({ ctx, toMap, now, size }) {
     project = toMap;
-    const seconds = motion?.matches ? 0 : now / 1000, snapshot = data.get();
+    const seconds = 0, snapshot = data.get();
     const status = new Map(snapshot.sectors.map(s => [s.id, s]));
     ctx.save();
     path(ctx, toMap, [[bounds.minX, bounds.minZ], [bounds.maxX, bounds.minZ], [bounds.maxX, bounds.maxZ], [bounds.minX, bounds.maxZ]]);
@@ -25,7 +25,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
         ctx.save(); ctx.clip();
         const p = h.points.map(([x, z]) => toMap(x, z)), x = Math.min(...p.map(p => p[0])), y = Math.min(...p.map(p => p[1]));
         const width = Math.max(...p.map(p => p[0])) - x, height = Math.max(...p.map(p => p[1])) - y;
-        ctx.globalAlpha = h.sector === selectedSector() ? .16 : .1;
+        ctx.globalAlpha = .1;
         presence.forEach((c, i) => { ctx.fillStyle = c.color; ctx.fillRect(x + width * i / presence.length, y, width / presence.length + .2, height); });
         ctx.restore();
       }
@@ -40,8 +40,8 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
     for (const sector of sectors) for (const loop of sector.loops) {
       path(ctx, toMap, loop); ctx.closePath();
       ctx.lineWidth = 5.5; ctx.strokeStyle = '#0b1318'; ctx.stroke();
-      ctx.lineWidth = sector.id === selectedSector() ? flashing() ? 5 : 3.2 : 2.5; ctx.strokeStyle = sector.color;
-      ctx.globalAlpha = sector.id === selectedSector() && !motion?.matches ? .88 + .07 * Math.sin(seconds * 1.2) : .88;
+      ctx.lineWidth = 2.5; ctx.strokeStyle = sector.color;
+      ctx.globalAlpha = .88;
       ctx.shadowColor = sector.color; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     }
     const village = game.state.deployment.village;
@@ -55,11 +55,11 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
   }
   let cachedCanvas=null,cacheKey=null,groundPaints=0;
   function ground(args){
-    if(typeof document==='undefined'){paintGround(args);return;}
+    if(typeof document==='undefined'){paintGround(args);selection(args);return;}
     const {ctx,toMap,size,now,dpr=1}=args;
     // One retained bitmap, bounded by the current map size. Slow ripple remains animated.
     const snapshot=data.get(),key=[size,dpr,...toMap(bounds.minX,bounds.minZ),...toMap(bounds.maxX,bounds.maxZ),
-      selectedSector(),flashing(),motion?.matches,motion?.matches?0:Math.floor(now/125),
+      motion?.matches,
       ...snapshot.sectors.map(s=>s.id+':'+s.presence.map(c=>c.owner+':'+c.color).join(','))].join('|');
     if(!cachedCanvas)cachedCanvas=document.createElement('canvas');
     if(key!==cacheKey){
@@ -68,7 +68,20 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
       const c=cachedCanvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,size,size);
       paintGround({...args,ctx:c});cacheKey=key;groundPaints++;
     }
-    ctx.drawImage(cachedCanvas,0,0,size,size);
+    // Pulse the retained image, never rebuild hundreds of blurred hex paths
+    // for a timer, a click or the selected-sector flash.
+    ctx.save();
+    ctx.globalAlpha = motion?.matches ? 1 : .94 + .06 * Math.sin(now / 6000);
+    ctx.drawImage(cachedCanvas,0,0,size,size);ctx.restore();
+    selection(args);
+  }
+  function selection({ ctx, toMap }) {
+    const sector = byId.get(selectedSector());
+    if (!sector) return;
+    ctx.save();ctx.strokeStyle=sector.color;ctx.shadowColor=sector.color;ctx.shadowBlur=10;
+    ctx.lineWidth=flashing()?5:3.2;
+    for (const loop of sector.loops) { path(ctx,toMap,loop);ctx.closePath();ctx.stroke(); }
+    ctx.restore();
   }
   function markers({ ctx, toMap, size }) {
     const snapshot = data.get(), selected = selectedSector();

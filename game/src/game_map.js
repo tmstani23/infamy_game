@@ -24,14 +24,14 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
   // one map (Tim 2026-10-27): managing a sector docks the Deployment menu beside the open map
   const selectSector = id => {
     if (destinationPicker) { destinationPicker(id);return; }
-    selectedSector = id; flashUntil=performance.now()+1200; onSelectSector(id); drawDeployment(); map?.draw();
+    selectedSector = id; flashUntil=performance.now()+1200; onSelectSector(id); drawDeployment(); map?.invalidate();
   };
-  const manage = id => { selectedSector = id; onManageSector?.(id); map?.draw(); };
+  const manage = id => { selectedSector = id; onManageSector?.(id); map?.invalidate(); };
   const overlay = createDeploymentMapOverlay({ game, clan, data: deploymentData,
     selectedSector: () => selectedSector, flashing: () => performance.now()<flashUntil, onPick: (id, p) => {
       if (!pointPicker) return selectSector(id);
       if (game.deployment.sectorAt(p.x, p.z) !== pointPicker.sector) return;
-      const callback = pointPicker.callback; pointPicker = null; callback(p); map?.draw();
+      const callback = pointPicker.callback; pointPicker = null; callback(p); map?.invalidate();
     }, onHover: hoverSector, onContact: onSelectTarget });
   let map = null;
   for (const [k, label] of LAYERS) {
@@ -39,7 +39,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     b.type = 'button'; b.textContent = label;
     b.addEventListener('click', e => {
       layers[k] = !layers[k];
-      syncLayers(); tip.hidden = true; e.currentTarget.blur(); deploymentData.update(true, true); map?.draw(); drawSide();
+      syncLayers(); tip.hidden = true; e.currentTarget.blur(); deploymentData.update(true, true); map?.invalidate(); drawSide();
     });
     bar.appendChild(b); layerButtons.set(k, b);
   }
@@ -132,14 +132,15 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     deploymentSide.querySelector('.sector-detail').textContent = `${s.name}\nSaved task: ${s.taskLabel}\n${s.living} available · ${s.incoming} incoming${s.assigned > s.living ? ` · ${s.assigned - s.living} downed` : ''}\n${Math.ceil(s.hp)} / ${s.maxHp} HP · ${s.status}${presence ? `\nSpotted presence: ${presence}` : ''}${lost ? `\n${lost} last-known contact${lost === 1 ? '' : 's'}` : ''}`;
   }
   function positionTip(e) {
-    const r = root.querySelector('.mapbox').getBoundingClientRect();
-    tip.style.left = `${Math.max(4, Math.min(r.width - tip.offsetWidth - 8, e.clientX - r.left + 14))}px`;
-    tip.style.top = `${Math.max(4, Math.min(r.height - tip.offsetHeight - 8, e.clientY - r.top + 10))}px`;
+    const r = root.querySelector('.mapbox').getBoundingClientRect(), width=tip.offsetWidth, height=tip.offsetHeight;
+    tip.style.left = `${Math.max(4, Math.min(r.width - width - 8, e.clientX - r.left + 14))}px`;
+    tip.style.top = `${Math.max(4, Math.min(r.height - height - 8, e.clientY - r.top + 10))}px`;
   }
   function hoverSector(s, e) {
     if (!s) { tip.hidden = true; return; }
     const presence = s.presence.map(c => `${c.owner === clan ? 'Your crew' : c.name}: ${c.count}`).join(' · ');
-    tip.textContent = `${s.name}\n${s.taskLabel} (saved) · ${s.count}/3 · ${s.status}${presence ? `\n${presence}` : ''}\n${pointPicker ? 'Choose a point inside the selected sector' : 'Click to manage your crew'}`;
+    const text = `${s.name}\n${s.taskLabel} (saved) · ${s.count}/3 · ${s.status}${presence ? `\n${presence}` : ''}\n${pointPicker ? 'Choose a point inside the selected sector' : 'Click to manage your crew'}`;
+    if(tip.textContent!==text)tip.textContent=text;
     tip.hidden = false; positionTip(e);
   }
   syncLayers();
@@ -171,7 +172,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
       const guards = Object.values(st.entities).filter(g => g.guard === b.id && !g.dead).length;
       lines.push(`${guards} house guard${guards === 1 ? '' : 's'}`);
     }
-    tip.innerHTML = lines.join('<br>');
+    const html=lines.join('<br>');if(tip.innerHTML!==html)tip.innerHTML=html;
     tip.hidden = false; positionTip(e);
   }
 
@@ -180,7 +181,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     const st = game.state, t = game.territory;
     const o = map?.shownHolder(q);
     const lines = [`<b>${q.name}</b>`, o ? `Held by ${o === clan ? 'you' : st.clans[o]?.name || 'a rival'} (+${Math.round(t.rules.quarterBonus * 100)}% payout)` : 'Not held by one clan'];
-    tip.innerHTML = lines.join('<br>');
+    const html=lines.join('<br>');if(tip.innerHTML!==html)tip.innerHTML=html;
     tip.hidden = false; positionTip(e);
   }
   // a clan's score, spelled out (hover): "Teahouse 1 + Gambling den 3 = 4"
@@ -215,7 +216,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
       // made on first open, when the canvas has its size on screen
       map = createMinimap({ canvas, game, district, view, fog, heroId, clan, selected, send, big: true, layers, onHover: hover, onPick: close, overlay });
     }
-    map.draw(); drawSide();
+    map.invalidate(); drawSide();
   }
   function close() { root.hidden = true; tip.hidden = true; pointPicker = null; destinationPicker=null; }
   const toggle = () => (isOpen() ? close() : open());
@@ -234,11 +235,11 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     if (sector && overlay.sectors.some(s => s.id === sector)) selectedSector = sector;
     if (on) { layers.deployment = true; if (!isOpen()) open(); }
     else pointPicker = null;
-    syncLayers(); drawSide(); map?.draw();
+    syncLayers(); drawSide(); map?.invalidate();
   }
   return { open, close, toggle, isOpen, update, dock, observe:()=>deploymentData.update(false),
     diagnostics:()=>({raster:map?.diagnostics(),overlay:overlay.diagnostics?.(),portraits:portraits.size}),
-    focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.draw(); } },
+    focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.invalidate(); } },
     pickDestination(callback) { pointPicker=null;destinationPicker=callback;layers.deployment=true;syncLayers();open(); },
     cancelPick() {pointPicker=null;destinationPicker=null;},
     pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };

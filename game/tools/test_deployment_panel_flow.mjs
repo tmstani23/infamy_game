@@ -5,7 +5,7 @@ import {createGame} from '../src/sim/game.js';
 import {setupMatch} from '../src/sim/setup_match.js';
 import {createDeploymentPanel} from '../src/deployment_panel.js';
 import {createGroupedCrew} from '../src/grouped_crew.js';
-let mutations=0;const nodes=[];
+let mutations=0;const nodes=[],animations=[];
 class Element{
  children=[];handlers={};dataset={};style={};classes=new Set();value='';hidden=false;disabled=false;innerHTML='';textContent='';
  classList={add:(...xs)=>xs.forEach(x=>this.classes.add(x)),remove:(...xs)=>xs.forEach(x=>this.classes.delete(x)),toggle:(x,v)=>v?this.classes.add(x):this.classes.delete(x)};
@@ -20,6 +20,7 @@ class Element{
  setAttribute(k,v){(this.attributes||={})[k]=v;}
  addEventListener(k,fn){(this.handlers[k]||=[]).push(fn);}
  emit(k,e={}){for(const fn of this.handlers[k]||[])fn({preventDefault(){},stopPropagation(){},...e});}
+ animate(frames,options){const a={el:this,frames,options,cancelled:false,cancel(){this.cancelled=true;}};animations.push(a);return a;}
  blur(){}focus(){}checkValidity(){return Number.isSafeInteger(Number(this.value))&&Number(this.value)>=0;}
 }
 const original={document:globalThis.document,Option:globalThis.Option};
@@ -56,7 +57,7 @@ try{
  assert.deepEqual(queue[0].units,sourceIds);assert.equal(queue[0].to,sector.id);assert.match($('.acceptance').textContent,/PENDING/);
  g.step(queue.splice(0));panel.update();assert.match($('.acceptance').textContent,/TRANSFER STARTED/);assert.match($('.acceptance').className,/accepted/);
  mutations=0;for(let i=0;i<120;i++)panel.update();assert.equal(mutations,0,'unchanged frames preserve interactive roster nodes');
- panel.openGroup(sector.id);$('.task').value='ambush';$('.task').emit('change');assert.equal(queue.length,1,'duty selector applies directly without a Save step');
+ panel.openGroup(sector.id);assert.equal(animations.at(-1).el,$('.group-summary'),'focused zone summary flashes');assert.equal(animations.at(-1).options.duration,900);assert.equal(animations.at(-3).cancelled,true,'new selection cancels the old flash');$('.task').value='ambush';$('.task').emit('change');assert.equal(queue.length,1,'duty selector applies directly without a Save step');
  assert.match($('.acceptance').textContent,/PENDING/);g.step(queue.splice(0));panel.update();assert.match($('.acceptance').textContent,/AMBUSH ACTIVE/);
  $('.task').value='guard';$('.task').emit('change');g.step(queue.splice(0));panel.update();assert.match($('.acceptance').textContent,/NOT ACCEPTED/,'server rejection cannot display success');
  // A destination may be staffed directly without switching to its source tab.

@@ -263,10 +263,10 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     // a business under the mouse, else the quarter it is in (big map hover)
     const quarterAt = e => { const p = at(e); return game.territory?.quarters.find(q => p.x >= q.box[0] && p.z >= q.box[1] && p.x <= q.box[2] && p.z <= q.box[3]) || null; };
     canvas.addEventListener('mousemove', e => {
-      if (layers.deployment && overlay?.hover(at(e), e)) { draw(); return; }
-      const b = businessAt(e); onHover(b, e, b ? null : quarterAt(e)); draw();
+      if (layers.deployment && overlay?.hover(at(e), e)) return;
+      const b = businessAt(e); onHover(b, e, b ? null : quarterAt(e));
     });
-    canvas.addEventListener('mouseleave', e => { overlay?.hover(null, e); onHover(null, e); draw(); });
+    canvas.addEventListener('mouseleave', e => { overlay?.hover(null, e); onHover(null, e); });
   }
   canvas.addEventListener('mousedown', e => {
     e.stopPropagation();
@@ -286,7 +286,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
 
   let frame = 0;
   const pings = [];
-  return { worldAt: at, zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update(changed = false) { if (big ? changed || dirty || (canvas.clientWidth && canvas.clientWidth !== size) : frame++ % 3 === 0) draw(); }, draw,
+  return { worldAt: at, zoomBy(factor) { mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update(changed = false) { if (big ? changed || dirty || (canvas.clientWidth && canvas.clientWidth !== size) : frame++ % 3 === 0) draw(); }, draw, invalidate() { dirty=true; },
     ping(x,z){const t=performance.now();while(pings.length&&(pings.length>=64||t-pings[0].t>=4800))pings.shift();pings.push({x,z,t});dirty=true;},
     diagnostics:()=>({...metrics,pings:pings.length,terrainBytes:base.byteLength,rasterBytes:img.data.byteLength}), layers, size, shownHolder: q => shownHolder(q) };
 }

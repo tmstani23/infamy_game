@@ -49,6 +49,15 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
   function selectGroup(id) {
     const ids=members(id).filter(available).map(e=>e.id);crewInput.select(ids);onInspect(ids[0]||null);
   }
+  let focusAnimations = [];
+  function flashFocus(id) {
+    for (const animation of focusAnimations) animation.cancel();
+    focusAnimations = [tabs.get(id), $('.group-summary')].map(el => el?.animate?.([
+      { backgroundColor:'#fff2bb', color:'#161b21', boxShadow:'0 0 24px #ffdb80' },
+      { backgroundColor:'#77613b', color:'#fff7da', boxShadow:'0 0 12px #e9c27a' },
+      { boxShadow:'0 0 0 transparent' }
+    ], {duration:900,easing:'ease-out'})).filter(Boolean);
+  }
   function setFocus(id, select=true) {
     if (!Object.hasOwn(names,id)) return;
     setPage(record(id)?'duty':'crew');for(const p of pages.values())p.index=0;
@@ -56,7 +65,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     if(record(id)&&game.deployment.needsFirstSector?.(owner()))issue({action:'autoSector',sector:id});
     if(select)selectGroup(id);
     if(record(id))onFocus(id);
-    lastRefresh=null; update(true);
+    lastRefresh=null; update(true); flashFocus(id);
   }
   for(const [id,name] of Object.entries(names)) {
     if(record(id)){const first=document.createElement('button');first.type='button';first.textContent=name;first.addEventListener('click',()=>setFocus(id));$('.first-zone-options').appendChild(first);}
