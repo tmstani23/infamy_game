@@ -292,6 +292,7 @@ Future visual work only; no implementation or gameplay/stat changes. Preserve th
 - [x] Kuroda boss: idle falling crimson sparks, jagged static streaks when running, a thin extra arc mid-swing.
 - Code: `render/run_trail.js`, `runTrailMaterial` in `shading.js`, wiring in `characters.js`; `weapon_glow.json` `runTrail` "sonic" (`katana_hero`) / "static" (`spear_hero`).
 - 2026-10-30 (Tim: too subtle): Shinobi wisps stronger (about twice as many, about 60% wider and more opaque, shed faster idle/walk/run; `weapon_shadow.js` MAX_MOTES 44, width .009, fade .68; `ninjato_hero` glow 0.75), plus a new smoke trail: dark curls while moving, steady when running, lighter when walking, none idle. First pass, not browser-checked.
+- 2026-10-30, later (Tim: make idle as noticeable as the attack effect): idle blade wisps now close to the attack effect; wisps clinging to the blade about 2.5x wider and much darker, shed wisps about 50% wider and darker (`render/weapon_shadow.js`).
 
 ### Revised Geisha specification (implemented 2026-10-29)
 

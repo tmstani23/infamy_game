@@ -48,8 +48,8 @@ export function createWeaponShadow(spriteUniforms) {
       // the hero. Their tapered ends curl and breathe without a flashing halo.
       for(let i=0;i<2;i++){
         const side=i?1:-1;
-        ribbon(axis,{bend:side*(.1+.05*Math.sin(clock*1.1+i*3)),offset:side*.045,width:.0045,
-          fade:.37+.08*Math.sin(clock*1.4+i*2),drift:side});
+        ribbon(axis,{bend:side*(.1+.05*Math.sin(clock*1.1+i*3)),offset:side*.05,width:.012,
+          fade:.66+.1*Math.sin(clock*1.4+i*2),drift:side});   // idle as noticeable as the attack cut (Tim 2026-10-30)
       }
       // Shed wisps: idle a slow trickle drifting outward and down; running a steadier stream trailing
       // behind (facing from the sheet direction, same convention as sim dirIndex: screen right -sin, down cos).
@@ -70,7 +70,7 @@ export function createWeaponShadow(spriteUniforms) {
         m.x+=m.vx*dt;m.y+=m.vy*dt;m.vx*=1-dt*.8;m.vy-=dt*.05;   // slows and sinks as it fades
         const sway=.012*Math.sin(clock*3+m.curl),sp=Math.hypot(m.vx,m.vy)||1,len=.03+.05*Math.min(1,sp*3);
         const tail={x:m.x-m.vx/sp*len+sway,y:m.y-m.vy/sp*len};
-        ribbon({base:tail,tip:{x:m.x,y:m.y}},{bend:.18*Math.sin(m.curl),width:.009*(.4+.6*k),fade:.68*Math.sin(Math.PI*Math.min(1,age*1.4+.15))*k+.02,steps:5});
+        ribbon({base:tail,tip:{x:m.x,y:m.y}},{bend:.18*Math.sin(m.curl),width:.014*(.4+.6*k),fade:.75*Math.sin(Math.PI*Math.min(1,age*1.4+.15))*k+.02,steps:5});
       }
       // Body smoke (Tim 2026-10-30): moving, soft dark curls peel off his body and drift behind him
       if((running||walking)&&clock-puffAt>(running?.05:.1)&&puffs.length<24){
