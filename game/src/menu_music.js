@@ -9,6 +9,9 @@ export const INTRO_TRACKS=[
 export const GAME_TRACKS=[...INTRO_TRACKS,
   {file:'harbor_morning.mp3',title:'港の朝'},
   {file:'lanternlit_alley.mp3',title:'Lanternlit Alley'},
+  {file:'lanterns_in_rain.wav',title:'Lanterns in Rain'},
+  {file:'silent_bamboo_grove.wav',title:'Silent Bamboo Grove'},
+  {file:'ninja_grove_song1.wav',title:'Ninja Grove Song 1'},
 ];
 
 // Stream just one intro track; no full-song WebAudio decoding or combat voices.

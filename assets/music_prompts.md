@@ -2,7 +2,9 @@
 
 Suno prompts for the game's background music (Tim, 2026-10-29). Set Suno to **Instrumental** and put `vocals, singing, lyrics` in Exclude styles. Make release tracks on a paid Suno plan (free-plan tracks are not licensed for commercial use).
 
-Files go in `assets/music/` as mp3 with plain snake_case names (no spaces or Japanese characters; keep the Japanese name as the `title`). The playlist is not scanned from the folder: menu tracks go in `INTRO_TRACKS` and gameplay-only tracks in `GAME_TRACKS` in `game/src/menu_music.js` (the in-game shuffle in `game/src/game_music.js` plays `GAME_TRACKS`, which includes the intro tracks). In-game tracks so far: the two intro tracks, `harbor_morning.mp3` (港の朝, from the Daytime streets prompt) and `lanternlit_alley.mp3`.
+Runtime files go in `assets/music/` with plain snake_case names (no spaces or Japanese characters; keep the display title in the manifest). MP3 is preferred; WAV is also supported by the streamed music player. Keep source originals in `assets/sounds/new_sounds/`. The playlist is not scanned from the folder: menu tracks go in `INTRO_TRACKS` and gameplay-only tracks in `GAME_TRACKS` in `game/src/menu_music.js` (the in-game shuffle in `game/src/game_music.js` plays `GAME_TRACKS`, which includes the intro tracks). The rotation preserves both intro songs and the previous gameplay songs, and avoids adjacent repeats.
+
+Current in-game rotation: `intro_rain_city.mp3`, `intro_rain_night.mp3`, `harbor_morning.mp3`, `lanternlit_alley.mp3`, `lanterns_in_rain.wav`, `silent_bamboo_grove.wav`, and `ninja_grove_song1.wav`.
 
 House style: traditional Japanese instruments (shamisen, shakuhachi, koto, taiko) over a restrained modern beat (subtle trap hi-hats, sub-bass, dub echo), rain-soaked night mood, loop-ready ending, polished cinematic mix. Vary mood, tempo and lead instrument between tracks.
 
