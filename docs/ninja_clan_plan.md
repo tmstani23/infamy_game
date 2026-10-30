@@ -229,3 +229,7 @@ Initial tuning: `rules.contracts.acceptIntervalSeconds = 120`, enforced start-to
 Short mathematical comparison using actual data, score-one target, hidden completion, twenty-second travel, unlimited jobs and no combat: per 600 seconds, Scout 24 jobs/504 Renown becomes 5/105; Steal 17/595 becomes 5/175; Mark 11/451 becomes 5/205. These are illustrative upper bounds, not full-match simulations or established pacing targets.
 
 Coordinator reports passing contract-pacing/refill/anytime, hidden-contract-bonus, reward-popups, Shinobi-HQ-raid, crew-services, mark-scrub, ninja-bot (40 Renown), crew, businesses, police, clinic-unhit and sector-playtest checks; diff check clean. No browser run. Existing `test_shinobi_pass` line 45 fails 38 versus 30, reproduced identically against pre-phase-4 HEAD contracts: stale expectations omit pre-existing hidden bonus and later expect dawn expiry. Maintenance remains queued; no gameplay alteration to satisfy this old test. [Treasury audit and unresolved reported loss](business_raids_plan.md#treasury-loss-audit-checkpoint-2026-10-29).
+
+## Planned: Shinobi alert window (Tim 2026-10-30, phase 8, not built)
+
+Once a Steal or Sabotage job alerts the owner, at least 75-80 s must remain before it can complete. Follow-up: give the Shinobi something to do in that window (defend the mark, plant a second one) so it isn't standing around. Property clans will also earn Renown (`business_raids_plan.md`). Checklist: `playtest_followup_plan.md` phase 8.

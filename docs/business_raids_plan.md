@@ -195,6 +195,13 @@ Deployment Rally/reset, crew separation and sector implementation remain deferre
 
 Economy catch-up (2026-10-28): current dawn payouts are doubled versus the original Phase 3E table; prices/schedules unchanged. Building-defended reward is 150 ryo when an alerted owner defeats a Shinobi Sabotage/Steal attempt (job fails). Sector-cleared reward is 200 ryo when rival street presence of at least two has contested with yours and only yours remains; three-minute per-clan/sector cooldown, no passive ownership income. Source: settings rewards, contracts and sim/rewards.js. No new test run claimed.
 
+## Planned balance changes (Tim 2026-10-30, phase 8, not built)
+
+- Business revenue -40%. Diminishing returns: businesses 1-4 pay full, each later one pays 10% less than the one before, never below 60%, so many businesses still matter.
+- Property clans earn Renown: +40 raid win, +20 Shakedown, +15 stopping a Shinobi job on your business, +5 sector clear. It counts toward season points like Shinobi Renown; no crew slots for property clans.
+- Raid limit: each clan may raid each rival at most once per night.
+- Checklist: `playtest_followup_plan.md` phase 8.
+
 ## Leader balance (Tim 2026-10-29)
 
 Leader bounty and underdog help: see `leader_balance.md` (important mechanic, needs balancing).

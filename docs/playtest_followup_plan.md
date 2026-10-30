@@ -107,8 +107,56 @@ Separate docs cleanup: older Sweep-unbuilt paragraphs remain historical alongsid
 
 Added at Tim’s request (2026-10-29). After the current Geisha/status-label follow-up, preserve phases 4–7 in their existing order. New playtest reports go here for later action, not immediate scope expansion.
 
-- [ ] Record each new report with reproduction/expected behavior and affected owner doc; do not imply implementation approval or completion.
-- [ ] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
+- [x] Record each new report with reproduction/expected behavior and affected owner doc; do not imply implementation approval or completion.
+- [x] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
 - [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
+
+### Agreed fix list (Tim, 2026-10-30; not built)
+
+For whoever builds next (Claude or ChatGPT). Nothing below is built yet. Repo rules still apply: all game rules in game/src/sim; every new control goes in the Controls panel; Node tests only (copy .js to .mjs for `node --check`); Tim playtests; commit after each checkpoint.
+Causes: project file `phase8/playtest_review.md`. Balance decisions also live in `business_raids_plan.md`, `ninja_clan_plan.md` and `leader_balance.md`.
+
+#### 1. Real-time sim + map/Deployment lag (do first)
+
+Goal (Tim): screen lag must never slow the game. Timers (jail, raids, contracts) follow real time.
+
+- **Cause:** `src/main.js` loop: `dt = Math.min(now - last, 0.1)`. When the map or Deployment screen drops below ~10 fps, the sim runs slower than real time.
+- [ ] **Fix A, real-time loop:** keep the fixed 20 Hz step and allow catch-up: `dt = Math.min(now - last, 1.0)`, with at most ~10 steps per frame. If more is owed, drop the remainder (only in extreme stalls; log a counter in dev). A hidden tab is paused by the browser; the 1 s cap stops a huge catch-up when you come back.
+- [ ] **Fix B, move UI out of the tick loop:** inside `while (acc >= tick)` keep only `game.step`, `gameMap.observe`, the news, hits and casts hand-off (news must still be read every tick) and `sound.update`. Move the prompt, stealthBadge, characterPanel, hire/clinic/police/contract menus, deploymentPanel, topBar, crewInput, selPanel, unitFrames, bldPanel and interiorInfo updates to once per frame after the loop. Otherwise catch-up frames run all the UI several times and make the lag worse.
+- [ ] **Fix C, cheaper map:** `src/deployment_map_data.js update()`: build a `room -> business` Map once per tick (location() now scans all businesses per unit), and loop crew once, bucketed by sector, instead of per sector. Refresh the map and Deployment data at ~5 Hz (every 4 ticks) instead of every tick; `src/game_map.js update()` redraws units at most every other frame while open.
+- **Devil's advocate / risks:**
+  1. Catch-up costs CPU on a slow frame and can spiral. Hence the step cap, and B and C to keep frames cheap.
+  2. At 5 Hz, unit dots on the big map move in small jumps. Fine for a strategy map; interpolate later if needed.
+  3. Not measured in a browser yet. Before and after, Tim can run `infamy.mapPerformance()` in the console (dev) or a 10 s Firefox profile to confirm where the time goes.
+  4. Callouts and pings must not be throttled: they read each tick's `state.news`, which is only kept for one tick.
+  5. Multiplayer later: the server runs the sim at real time regardless; this keeps single-player the same.
+
+#### 2. Bugs
+
+- [ ] 1. **Loot a body lying under another body:** the click should prefer the lootable (gold) body under the cursor (`src/crew_input.js` target pick).
+- [ ] 2. **A loot or execute order must not cancel a running execute:** give the job to a free selected crew member from the group; if none is free, queue it after the current execute (`sim/crew_jobs.js` / `loot_execute.js`).
+- [ ] 3. **Hero standing on a body can't loot or execute:** if the hero is in reach, the hero does it (sim `startLoot` / `startExecute`, `preferHeroInRange`).
+- [ ] 4. **Patrols go into the woods and get stuck:** `sim/sector_patrol.js` makes 8 points around the sector box. Keep only points in town or on streets (nav free and not forest), along town edges and roads between bandit camps.
+- [ ] 5. **Patrols idle at full HP and don't fight back:** repro first; likely passive or holdFire left over after Z, Rally or Smoke. Patrol duty should clear it and always hit back.
+- [ ] 6. **Rallied raid group left outside:** rallied raiders should follow the hero through the raid door when they reach the ring; C+V inside should also call in group members still outside.
+- [ ] 7. **Couldn't enter after the lantern fell and the raid ended:** clear the "raiders wait outside" entry lock on every raid end (`sim/businesses.js` mayEnter).
+
+#### 3. UI
+
+- [ ] 8. One ✕ (and Esc) closes both the map and the docked Deployment panel.
+- [ ] 9. **Party frames:** crew pips move to a fixed-size raid-style frame in the top left with a header ("Crew"), styled differently from the selection panel (which stays where it is). The action bar goes back to one row.
+- [ ] 10. Big Rally and War Lantern buttons with icons next to the action bar (add to the Controls panel).
+
+#### 4. Balance (Tim decided)
+
+- [ ] **Business revenue −40%** (settings.json payouts). Diminishing returns: businesses 1–4 pay full, each one after that pays 10% less than the one before, never below 60%, so many businesses still matter.
+- [ ] **Property clans earn Renown (11a):** +40 raid win, +20 Shakedown success, +15 stopping a Shinobi job on your business, +5 sector clear. Renown counts toward season points like the Shinobi's (100 = 1 point). No crew slots from it for property clans.
+- [ ] **Shinobi alert window (13):** once a Steal or Sabotage job alerts the owner, at least 75–80 s must remain before it can complete. Design follow-up: give the Shinobi something to do in that time (e.g. defend the mark, plant a second one) so it isn't just standing around.
+- [ ] **Raid limit (14):** each clan may raid each rival at most once per night.
+- [ ] **Sounds (15):** Tim makes 3–4 hero ability sounds in ElevenLabs (whoosh, impact, smoke puff, shout) and drops them in assets/sounds; wire them in render/sound.js. More music from Suno later.
+
+#### Order
+
+1 → 2 → 3 → 4, with a checkpoint commit after each section.
 
 Maintenance queue: pre-existing stale `test_shinobi_pass` hidden-bonus/dawn-expiry assertions; update focused expectations without reverting correct gameplay. Original reported money-loss reproduction remains open. No other individual new fixes recorded yet. Previously listed Sweep waypoints, visual polish and menu proposals retain their existing status; this queue does not automatically authorize them.

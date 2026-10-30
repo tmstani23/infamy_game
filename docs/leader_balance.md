@@ -27,6 +27,14 @@ A clan at or below 60% of the leader's score (`underdogShare`), once the leader 
 
 Cap = min(`maxCrew` 20, `baseCap` 6 + `capPerDawn` 1 x (day - 1) + business slots or Renown slots). No separate bonus cap. Why (2026-10-29): 20 business slots in town and uncapped Renown slots let crews reach 29-35 by day 5-7. A bot with no property rebuilds to 6 crew to raid back.
 
+## Planned (Tim 2026-10-30, phase 8, not built)
+
+- Business revenue -40% with diminishing returns after the 4th (10% less each, floor 60%).
+- Property clans earn Renown toward season points (+40 raid win, +20 Shakedown, +15 stopping a Shinobi job, +5 sector clear).
+- Shinobi alert window: at least 75-80 s left after the owner is warned.
+- One raid per rival per night.
+- Details: `business_raids_plan.md`, `ninja_clan_plan.md`; checklist `playtest_followup_plan.md` phase 8.
+
 ## Needs balancing / watch in playtests
 
 - Does the leader still win too easily, or does the pile-on make leading pointless?
