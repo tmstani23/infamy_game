@@ -227,7 +227,16 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 - Edit layout side-handle resizing: checked by Tim; fixed-size bars and portraits are now corner-only.
 - First: playtest the stronger ninja leader effects and the new smoke trail (first pass, not browser-checked; top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
-- **Stretchy action bar: on hold** at Tim’s request (2026-10-30); remove from immediate work. Resume only if requested.
+- **Stretchy action bar: active again** under Tim’s explicit layout-editor approval (2026-10-30); see phased checklist below.
 - **Next planned item: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
 - Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
 - Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.
+
+
+## Global Edit layout rebuild (approved to build 2026-10-30)
+
+The current editor is reported as messy. Rebuild in these checkpoints; temporary category visibility applies to editor previews only. Keep unrelated gameplay behavior unchanged.
+
+- [ ] **1. Categories and picker:** Main HUD, Tooltips, Alerts and Windows categories. Add hide-category toggles for editor preview, with secondary categories hidden at entry. Use friendly labels and a panel picker to resolve overlap.
+- [ ] **2. Exclusive selection:** clicking an item raises/selects it above others. Only the selected panel shows resize/move grips; keyboard and drag affect only that item. Switching selection/category or filters ends the previous drag. Done/Cancel restore temporary visibility and stacking correctly.
+- [ ] **3. Stretchy action bar:** selected bar can resize freely in width and height; buttons reflow with the bar. Portraits/circular elements preserve corner scaling. Persist, Cancel and Reset work. Update Controls and add targeted Node checks for categories, overlap/selection, isolated transforms, temporary visibility/stacking, reflow and persistence. Tim manually checks visual behavior.
