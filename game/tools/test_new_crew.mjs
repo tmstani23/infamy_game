@@ -24,7 +24,7 @@ g.step([{id:heroId,type:'order',units:[archer.id],kind:'attack',target:foe.id}])
 for(let i=0;i<90&&!impact;i++){
   g.step();
   if(st.projectiles.length&&!launch){launch={...st.projectiles[0]};assert.equal(foe.hp,hp,'arrow causes no damage before arrival');}
-  if(st.hits.some(h=>h.a===archer.id)){impact=st.tick;assert.equal(hp-foe.hp,14,'Hamstring uses ordinary arrow damage');}
+  if(st.hits.some(h=>h.a===archer.id)){impact=st.tick;assert.equal(hp-foe.hp,17,'Hamstring uses ordinary arrow damage');}
 }
 assert.ok(launch,'explicit ranged attack launches a real sim projectile');assert.ok(impact>launch.at,'impact follows flight time');
 assert.ok(foe.buffs.snared.hamstring);assert.equal(foe.buffs.snared.speed,.65);assert.equal(foe.buffs.snared.until,impact-1+60);
@@ -44,9 +44,18 @@ const e={id:'tank',type:'kuroda_enforcer',owner:'a',x:0,z:0,hp:420,order:{kind:'
 const s={tick:10,entities:{tank:e,front,side,back,cop},clans:{a:{},b:{}},casts:[]};let reveals=0;
 const taunt=createTaunt({state:s,vision:{canSee:()=>true},hostile:(a,b)=>a.owner!==b.owner,rulesFor:a=>units.types[a.type]?.taunt,engagementTarget:a=>a.order?.kind==='attack'?front:null,reveal:()=>reveals++,addBuff:(a,name,seconds,extra)=>(a.buffs||={})[name]={until:s.tick+seconds*20,...extra}});
 assert.ok(taunt.step(e,units.types.kuroda_enforcer));assert.equal(front.taunted.source,e.id);assert.equal(side.taunted.source,e.id);assert.equal(back.taunted,undefined);assert.equal(cop.taunted,undefined);assert.equal(e.buffs.bulwark.taken,.65);assert.equal(reveals,1);
+assert.equal(e.taunt.castUntil,s.tick,'Kuroda Taunt has no cast lock');s.tick++;assert.equal(taunt.step(e,units.types.kuroda_enforcer),false,'tank resumes normal combat on the next tick');
 delete front.taunted;delete side.taunted;s.tick=500;e.type='shinobi_enforcer';delete e.taunt;delete e.buffs;e.order={kind:'stop'};
 assert.equal(taunt.step(e,units.types.shinobi_enforcer),false,'passive bodyguard never taunts');assert.equal(front.taunted,undefined);
 e.order={kind:'attack',target:'front'};assert.ok(taunt.step(e,units.types.shinobi_enforcer));assert.equal(e.buffs?.bulwark,undefined,'bodyguard gains no damage reduction');
+assert.equal(e.taunt.castUntil,s.tick,'Shinobi Taunt is instant');
+for(const t of [front,side,back])delete t.taunted;
+s.tick=1000;e.type='yakuza_enforcer';delete e.taunt;
+const far={id:'far',type:'thug',owner:'b',hp:200,x:5.01,z:0};s.entities.far=far;
+assert.ok(taunt.step(e,units.types.yakuza_enforcer));
+for(const t of [front,side,back])assert.equal(t.taunted?.source,e.id,'Yakuza radial Taunt includes front, side and rear');
+assert.equal(far.taunted,undefined);assert.equal(cop.taunted,undefined);assert.equal(e.taunt.castUntil,s.tick);
+assert.equal(s.casts.at(-1).radius,5);assert.deepEqual(new Set(s.casts.at(-1).victims.map(t=>t.id)),new Set(['front','side','back']),'effect receipt names every AoE victim');
 assert.equal(read('data/units.json').types.shinobi_enforcer.dodgeChance,.3);
 assert.ok(units.types.shinobi_enforcer.damage>units.types.kuroda_enforcer.damage&&units.types.kuroda_enforcer.damage>units.types.yakuza_enforcer.damage);
 assert.equal(units.types.shinobi_geisha.projectile.kind,'geishabolt');assert.ok(units.types.shinobi_geisha.damage<units.types.archer.damage);

@@ -1,6 +1,6 @@
 // Yakuza irezumi enforcer (Tim 2026-10-28): the Yakuza clan's special crew, on a par with the Shinobi
 // geisha (sim/diversion.js) and the Kuroda rifleman (sim/rifleman.js).
-//  - Taunt is his "auto attack": every cooldownTicks he bellows at one visible enemy crew member or
+//  - Taunt is his "auto attack": every cooldownTicks he bellows at all visible enemy crew members or
 //    house guard within radius (first anyone hitting a weaker clanmate, then anyone near his clan, then
 //    the nearest). The taunted unit must attack him for durationTicks. Never heroes, police, bandits or
 //    townsfolk. While a taunt holds he takes damageTaken x damage (bulwark buff, sim/stats.js).
@@ -28,12 +28,12 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
     clearCombat(e);
     e.dir=dirIndex(best.x-e.x,best.z-e.z);
     const angle=e.dir*Math.PI/4,fx=SCREEN_DOWN.x*Math.cos(angle)-SCREEN_RIGHT.x*Math.sin(angle),fz=SCREEN_DOWN.z*Math.cos(angle)-SCREEN_RIGHT.z*Math.sin(angle);
-    const victims=R.coneDegrees?Object.values(state.entities).filter(t=>valid(e,t,R)&&((t.x-e.x)*fx+(t.z-e.z)*fz)/Math.max(.001,dist(t,e))>=Math.cos(R.coneDegrees*Math.PI/360)):[best];
+    const victims=R.coneDegrees?Object.values(state.entities).filter(t=>valid(e,t,R)&&((t.x-e.x)*fx+(t.z-e.z)*fz)/Math.max(.001,dist(t,e))>=Math.cos(R.coneDegrees*Math.PI/360)):e.type==='yakuza_enforcer'?Object.values(state.entities).filter(t=>valid(e,t,R)):[best];
     for(const t of victims){clearCombat(t);t.taunted={source:e.id,until:state.tick+R.durationTicks};}
-    e.taunt = { readyAt: state.tick + R.cooldownTicks, target: best.id, castUntil: state.tick + 15 };
+    e.taunt = { readyAt: state.tick + R.cooldownTicks, target: best.id, startedAt: state.tick, castUntil: state.tick };
     if(R.damageTaken<1)addBuff(e, 'bulwark', R.durationTicks / 20, { taken: R.damageTaken });
     reveal(e,true);
-    state.casts.push({ kind: 'taunt',style:e.type, a: e.id, t: best.id, x: e.x, z: e.z, tx: best.x, tz: best.z,cone:R.coneDegrees||0,radius:R.radius,dir:e.dir });
+    state.casts.push({ kind: 'taunt',style:e.type, a: e.id, t: best.id, victims:victims.map(t=>({id:t.id,x:t.x,z:t.z})), x: e.x, z: e.z, tx: best.x, tz: best.z,cone:R.coneDegrees||0,radius:R.radius,dir:e.dir });
     return true;
   }
   function tick() {
@@ -50,7 +50,6 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
     if(R.engagementOnly&&(e.order?.kind==='stop'||!engagementTarget(e)))return false;
     const moving = (e.order?.kind === 'move' && !e.order.arrived && !e.order.duty) || ['enter', 'heal', 'loot'].includes(e.order?.kind) || (e.order?.kind==='follow'&&e.order.regrouping);
     if(moving){if(e.taunt)e.taunt.castUntil=state.tick;return false;}
-    if ((e.taunt?.castUntil ?? -1) > state.tick) { e.anim = 'taunt'; return true; }
     if ((e.taunt?.readyAt ?? 0) <= state.tick && bellow(e)) { e.anim = 'taunt'; return true; }
     return false;
   }

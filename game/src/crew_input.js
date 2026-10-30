@@ -8,7 +8,7 @@
 // has never shown it.
 // Selection lives only on this screen; orders go to the rules as 'order' commands.
 import { prisonerOf, POLICE } from './sim/police.js';
-import { isRallyParticipant } from './sim/deployment_rally.js';
+import { isRallyParticipant,crewCommandGroup } from './sim/deployment_rally.js';
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
 
@@ -131,11 +131,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     selected = next;
     view.setSelected(selected);
   }
-  function commandGroup(e) {
-    if (!e) return null;
-    const active = game.state.deployment?.clans[e.owner]?.rally?.active;
-    return active && (e.deployment?.group === 'hero' || isRallyParticipant(game.state,e)) ? 'rally' : e.deployment?.group || 'hero';
-  }
+  const commandGroup=e=>crewCommandGroup(game.state,e);
   function selectUnit(id, individual=false) {
     const e=game.state.entities[id];
     if(!e){setSelected([id]);return;}

@@ -347,7 +347,7 @@ export function createGame(options) {
   function startLoot(...a) { return lootExecute.startLoot(...a); }
   const sectorCleanup=createSectorCleanup({state,deployment,rally,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,downedFoe,lootable,
     startExecute,executeStep,lootStep,inCombat:e=>!!crewTarget(e),stopPath:e=>{delete paths[e.id];}});
-  crewJobs=createCrewJobs({state,deployment,rally,manual:manualCrew,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty:assignments.resume,freeSlot,
+  crewJobs=createCrewJobs({state,heroLoot:(h,c)=>{if(h.dead||h.downed||h.jailed||h.execute||!lootable(h,state.entities[c.target]))return false;startLoot(h,{...c,units:[],crewJob:false});return h.lootTarget===c.target;},deployment,rally,manual:manualCrew,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty:assignments.resume,freeSlot,
     clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete e.lootTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;}});
 
   // Slow healing for anyone not hit for a while (stand-in until the hospital exists)
@@ -460,7 +460,7 @@ export function createGame(options) {
       && (ids || []).includes(u.id) && (!out || (u.order?.kind === 'follow' && u.order.target === hero.id && u.order.exitWithHero))
       && deployment.canActAt(u, d.to.x, d.to.z, d.place)
       && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS))
-      .slice(0, out ? Infinity : d.ninja ? 6 : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // selected ninja crew climb in through a back window too (Tim 2026-10-21)   // a raid takes at most maxCrewInside crew in
+      .slice(0, out ? Infinity : d.ninja&&!rally.status(hero.owner).active ? 6 : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // selected ninja crew climb in through a back window too (Tim 2026-10-21)   // a raid takes at most maxCrewInside crew in
     const r0 = 0.3;
     const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
     crew.forEach((u, k) => {

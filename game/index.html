@@ -88,13 +88,14 @@
     order: -1; font: 800 18px/24px system-ui, sans-serif; letter-spacing: .035em; text-shadow: 0 2px 5px #000; box-shadow: 0 4px 24px rgba(0,0,0,.65), 0 0 18px rgba(220,40,30,.22); }
   #bar .ko-notice[hidden] { display: none; }
   #bar .buffs { display: flex; gap: 6px; min-height: 20px; }
-  #bar .buff { position: relative; display: flex; align-items: center; gap: 5px; overflow: hidden; padding: 2px 8px; border-radius: 10px; font: 600 11px/16px system-ui, sans-serif; background: rgba(10,12,16,.88); border: 1px solid rgba(255,255,255,.15); }
+  #bar .buff { position:relative;display:flex;align-items:center;justify-content:center;gap:5px;overflow:hidden;width:42px;height:44px;box-sizing:border-box;padding:3px;border-radius:8px;font:600 11px/16px system-ui,sans-serif;background:linear-gradient(145deg,rgba(30,42,49,.96),rgba(8,12,16,.94));border:1px solid rgba(255,255,255,.28);box-shadow:0 3px 9px #0009,inset 0 0 10px #ffffff12;cursor:help; }
   #bar .buff i { position: absolute; left: 0; bottom: 0; width: var(--remaining,100%); height: 2px; background: currentColor; opacity: .85; transition: width .15s linear; }
-  #bar .buff b, #bar .buff small { position: relative; z-index: 1; font: inherit; }
-  #bar .buff small { color: #a9a49a; }
+  #bar .buff b { position:relative;z-index:1;font:700 22px/1 system-ui,sans-serif;text-shadow:0 1px 3px #000; }
+  #bar .buff small { position:absolute;right:2px;bottom:2px;z-index:1;color:#fff;font:700 10px/1 system-ui,sans-serif;text-shadow:0 1px 3px #000,0 0 3px #000; }
   #bar .buff.lantern { color: #ff8a6b; border-color: rgba(255,90,60,.6); }
   #bar .buff.rally { color: #9fe08a; border-color: rgba(143,209,122,.6); }
   #bar .buff.intimidated { color: #b49ad6; }
+  #bar .buff.snared,#bar .buff.stunned { color:#ffb09e;border-color:#d37163;background:linear-gradient(145deg,#49251f,#150d0d); }
   #partyframes .crew { display: grid; grid-template-columns: repeat(3, 40px); gap: 3px 4px; margin-right: 4px; align-self: center; }
   #partyframes .mate { display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; padding: 1px 2px; border-radius: 3px; border: 1px solid transparent; }
   #partyframes .mate:hover { border-color: rgba(255,211,77,.5); }

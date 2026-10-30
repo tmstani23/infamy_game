@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createGame} from '../src/sim/game.js';
+import {setupMatch} from '../src/sim/setup_match.js';
+import {watchCrewGroup} from '../src/crew_watch.js';
+import {crewCommandGroup} from '../src/sim/deployment_rally.js';
+const read=p=>JSON.parse(readFileSync(new URL(`../${p}`,import.meta.url))),units=read('data/units.json');
+Object.assign(units.rules.raid,{warmupSeconds:0,holdSeconds:10});units.rules.houseGuards.hideoutCount=0;
+const g=createGame({district:read('data/port_town.json'),catalog:read('data/art.json'),cutouts:read('art/cutouts.json'),interiors:read('data/interiors.json'),parts:read('data/interior_parts.json'),recipes:read('data/room_recipes.json'),units,settings:{...read('data/settings.json'),dayNight:{auto:false}}});
+const {heroId}=setupMatch(g,{clan:'yakuza',difficulty:'easy',bots:read('data/bots.json')}),st=g.state,h=st.entities[heroId],owner=h.owner,s=st.deployment.sectors;
+for(const e of Object.values(st.entities)){e.holdFire=true;e.order={kind:'stop'};}
+const roster=Array.from({length:9},(_,i)=>st.entities[g.spawn('thug','thug',s[0].anchor.x,s[0].anchor.z,{owner,deployment:{group:i%2?s[0].id:'home'},order:{kind:'stop'},holdFire:true})]);
+const r=st.deployment.clans[owner].rally||={active:false,readyAt:0,participants:[],groups:[]};r.groups=[s[0].id];
+roster[0].deployment.transfer={to:s[1].id};
+g.step([{id:heroId,type:'deployment',action:'rally'}]);
+for(const e of roster){assert.ok(g.rally.participating(e),'default Rally includes every group despite previous subset');assert.equal(crewCommandGroup(st,e),'rally');assert.equal(e.deployment.transfer,undefined);}
+assert.equal(r.participants.find(p=>p.id===roster[0].id).group,s[1].id,'interrupted transfer destination remains saved');
+const b=Object.values(st.businesses).find(b=>st.clans[b.hideout]?.kind==='ninja');
+Object.assign(h,{place:'street',x:b.ring[0],z:b.ring[1]});st.clans[owner].lanterns=1;
+g.step([{type:'time',night:true}]);g.step([{id:heroId,type:'business',action:'raid',business:b.id}]);g.step();
+const a=st.attacks[b.id];assert.equal(a.phase,'hold');
+for(const e of roster)Object.assign(e,{x:h.x,z:h.z,place:'street'});
+g.step([{id:heroId,type:'use',units:roster.map(e=>e.id)}]);
+assert.equal(roster.filter(e=>e.place===b.room).length,9,'entire Rally enters HQ beyond normal six-crew cap');
+assert.equal(g.businesses.entryStatus(st.entities[g.spawn('thug','thug',h.x,h.z,{owner,deployment:{group:'home'}})],b.room).ok,false,'uncalled crew cannot bypass normal interior cap');
+assert.equal(watchCrewGroup(st,owner,'rally').place,b.room,'Rally header follows real interior cluster');
+h.downed=true;assert.equal(watchCrewGroup(st,owner,'rally').place,b.room,'downed/outside hero does not block crew interior view');
+for(const e of Object.values(st.entities))if(e.owner===a.defender)Object.assign(e,{place:'street',x:b.ring[0]+20,z:b.ring[1]});
+Object.assign(roster[0],{x:a.hold.x,z:a.hold.z});let left=a.holdLeft;g.step();assert.equal(a.holdLeft,left-1,'crew advance hold while enemy leader absent and own hero downed');
+const leader=Object.values(st.entities).find(e=>e.owner===a.defender&&e.type==='hero');Object.assign(leader,{place:b.room,x:a.hold.x,z:a.hold.z});left=a.holdLeft;g.step();assert.equal(a.holdLeft,left,'present defender legitimately contests');
+Object.assign(leader,{place:'street',x:b.ring[0]+20,z:b.ring[1]});left=a.holdLeft;g.step();assert.equal(a.holdLeft,left-1,'hold resumes without requiring a returning leader');
+h.downed=false;Object.assign(h,{place:b.room,x:a.hold.x,z:a.hold.z});r.endsAt=st.tick;g.step();
+for(const e of roster)Object.assign(e,{place:'street',x:s[0].anchor.x,z:s[0].anchor.z});
+const body=st.entities[g.spawn('bandit','bandit',h.x+.4,h.z,{place:b.room,dead:true,loot:42})],before=st.clans[owner].ryo;
+g.step([{id:heroId,type:'loot',target:body.id,units:roster.map(e=>e.id),crewJob:true}]);g.step();
+assert.equal(body.loot,undefined,'hero loots when released Rally crew cannot take the body job');assert.equal(st.clans[owner].ryo,before+42);
+console.log('Rally follow-up: all groups/transfer restoration, full HQ interior entry, interior camera cluster, absent-leader/KO-hero hold and post-Rally hero loot fallback passed');

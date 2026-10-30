@@ -40,6 +40,16 @@ function mini(){
  assert.equal(f.d.step(f.a,{}),true);assert.equal(f.attacks(),1,'normal melee between charms');
  assert.equal(f.state.casts.length,0);f.state.tick=200;f.d.step(f.a,{});assert.equal(f.a.lure.casting,true);
 }
+{
+ const f=mini(),t=f.enemy('opening',4);f.a.order={kind:'attack',target:t.id};
+ f.mate.x=-5;f.mate.order={kind:'attack',target:t.id};
+ assert.equal(f.d.step(f.a,{}),true);assert.equal(f.a.lure.target,t.id,'a distant ally attack order does not suppress opening Charm');
+ const incoming=mini(),victim=incoming.enemy('e',4);incoming.a.order={kind:'attack',target:victim.id};
+ incoming.state.projectiles=[{a:incoming.mate.id,t:victim.id,until:120}];
+ assert.equal(incoming.d.step(incoming.a,{}),false,'an allied projectile in flight makes the target under fire');
+ const recent=mini(),hurt=recent.enemy('e',4);recent.a.order={kind:'attack',target:hurt.id};recent.mate.order={kind:'attack',target:hurt.id};hurt.hitBy={id:recent.mate.id,tick:99};
+ assert.equal(recent.d.step(recent.a,{}),false,'continuing allied hits also block Charm between swings');
+}
 for(const interrupt of [
  f=>f.a.dead=true,f=>f.a.downed=true,f=>f.a.jailed={},f=>f.a.buffs.stunned={until:999},
  f=>f.a.taunted={until:999},f=>f.a.order={kind:'move'},f=>f.a.order={kind:'follow',regrouping:true},

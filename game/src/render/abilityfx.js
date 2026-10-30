@@ -254,14 +254,14 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         if (c.fx !== undefined) smokeBurst(c.fx, c.fz, 14, 0.6, 0.9);   // where he lunged from
       }
       if (c.kind === 'taunt'&&(!c.style||c.style==='yakuza_enforcer')) {
-        // Yakuza enforcer's bellow (sim/taunt.js): a short hot shockwave, embers, and a red 怒 over the taunted unit
-        wave(c.x, c.z, 1.8, 0xff5a1e, 0.8, 0, THIN_WAVE_GEO);
+        // Match the authoritative radial bellow and mark every affected target.
+        wave(c.x, c.z, c.radius || 5, 0xff5a1e, 0.8, 0, THIN_WAVE_GEO);
         for (let i = 0; i < 18; i++) {
           const a = Math.random() * Math.PI * 2, v = rand(1.5, 3.5);
           glow.emit({ x: c.x, y: rand(1.0, 1.8), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.4, 1.4), drag: 4, gravity: -0.4,
             life: rand(0.6, 1.1), size: rand(0.1, 0.2), color: pick(MUZZLE), shape: SHAPE.ember, spin: rand(-2, 2) });
         }
-        cards.seal(c.tx, c.tz, 1.1, '怒', 0xff4020, 2.0, { follow: () => posOf(c.t) });
+        for(const t of c.victims||[{id:c.t,x:c.tx,z:c.tz}])cards.seal(t.x, t.z, 1.1, '怒', 0xff4020, 2.0, { follow: () => posOf(t.id) });
         if (s0) s0.flash = 0.6;
       }
       if (c.kind === 'rifleshot') {
@@ -694,7 +694,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         let x = e.execute || (e.markScrub?{...e.markScrub,scrubbing:true}:null) || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null);
         const visible = !e.dead && !e.downed && !e.jailed && spriteOf(e.id)?.thing.mesh.visible;
         if (!x && visible) {
-          const aim = e.rifle?.aim, tauntStart = e.taunt?.castUntil - 15;
+          const aim = e.rifle?.aim, tauntStart = e.taunt?.startedAt ?? e.taunt?.castUntil - 15;
           if (aim?.until > state.tick) x = { start:aim.at, len:aim.until-aim.at, aiming:true };
           else if (tauntStart <= state.tick && state.tick < tauntStart + 40) x = { start:tauntStart, len:40, taunting:true };
         }

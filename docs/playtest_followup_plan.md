@@ -268,3 +268,60 @@ The current editor is reported as messy. Rebuild in these checkpoints; temporary
 - [x] **1. Categories and picker (implemented/Node-checked):** Main HUD, Tooltips, Alerts and Windows categories. Add hide-category toggles for editor preview, with secondary categories hidden at entry. Use friendly labels and a panel picker to resolve overlap.
 - [x] **2. Exclusive selection (implemented/Node-checked):** clicking an item raises/selects it above others. Only the selected panel shows resize/move grips; keyboard and drag affect only that item. Switching selection/category or filters ends the previous drag. Done/Cancel restore temporary visibility and stacking correctly.
 - [x] **3. Stretchy action bar (implemented/Node-checked):** selected bar can resize freely in width and height; buttons reflow with the bar. Portraits/circular elements preserve corner scaling. Free panels now save actual width and height. Persist, Cancel and Reset work. Update Controls and add targeted Node checks for categories, overlap/selection, isolated transforms, temporary visibility/stacking, reflow and persistence. Tim manually checks visual behavior.
+
+## Next playtest batch (A–D integrated/Node-checked; manual playtest pending, 2026-10-30)
+
+IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. Docs are updated after each integration; implementation chats report changed files and scoped tests, and the docs keeper commits after coordinator integration. No push. Phase E/F remain proposed; item 22 profiling should begin early before any worker decision. Phase G item 23 remains parked.
+
+### Phase A — easy UI/tuning (built/Node-checked)
+
+- [x] **1.** Larger/polished buff/debuff icons and duration indicators; icon-only display with full-name hover.
+- [x] **2.** Day/night timer in the score panel.
+- [x] **3.** Movable, translucent layout-editor toolbar.
+- [x] **4.** Archer base damage to 17; Hamstring uses normal arrow damage, so it also becomes 17.
+- [x] **5.** Exit game to main menu; retain browser-close fallback.
+- [x] **6.** Longer, more prominent Shinobi-in-business alerts.
+
+### Phase B — layout/controls (built/Node-checked)
+
+- [x] **7.** Optional 10 px grid snapping toggle.
+- [x] **8.** Crew panel wraps horizontally and vertically to fill resized space before paging.
+- [x] **9.** Dismiss crew from any zone at the hideout through a separate clear roster/menu.
+- [x] **10.** Fix single-crew drag targets between sector and hero groups.
+
+### Phase C — combat (built/Node-checked)
+
+- [x] **11.** Geisha Charm priority/first-attack; preserve the rule against Charming an enemy actively hitting an ally.
+- [x] **12.** Shorter-range targets close distance and retaliate against ranged attackers within standing engagement rules.
+- [x] **13.** All tanks Taunt instantly; expose the Yakuza Taunt's 5-unit radius and implement true AoE with effect feedback and hiring text.
+
+### Phase D — combined Rally/interior/raid/loot (built/Node-checked)
+
+- [x] **14.** Rally defaults to all groups rather than stale saved subsets, interrupts transfers while preserving destination assignments, and merges the UI under shared `crewCommandGroup`.
+- [x] **15.** Watch only real same-place Rally members; view own crew inside while the hero is outside or downed.
+- [x] **16.** Hero fallback looting works after Rally or at HQ when Rally crew cannot loot; explicit crew-only and busy protections remain.
+- [x] **17.** Fix Shinobi HQ raid grouping, selection and interior entry. Regression: hold timer advances with enemy leader absent/own hero KO, pauses for a real defender, and resumes when the defender leaves. The reported counter failure was not reproduced as an independent timer bug; do not require the enemy leader to return. Tim should retest the original case.
+
+### Manual in-game checklist for A–D (pending; no browser gameplay test reported)
+
+- [ ] **A:** inspect buff/debuff icon polish, durations and full-name hover; day/night score clock; move the translucent toolbar; verify archer 17 damage and Hamstring normal damage; use the actual main-menu exit and browser-close fallback; inspect longer Shinobi business alerts.
+- [ ] **B:** toggle 10 px snapping; resize the Crew panel and confirm it fills before paging; dismiss crews from different zones at the hideout; drag one crew between sector and hero groups.
+- [ ] **C:** confirm Geisha opens with Charm when valid and does not Charm an enemy actively hitting an ally; test ranged retaliation within normal engagement rules; verify instant Taunts and Yakuza 5-unit AoE feedback.
+- [ ] **D:** check Rally starts with all groups and preserves destinations after interrupted transfers; view a rallied crew inside with hero outside and downed; verify hero loot fallback and protections; retest Shinobi HQ raid grouping/entry and the original counter case. Confirm the counter advances when raid conditions are met, pauses for an actual defender, and resumes after the defender leaves.
+
+Coordinator reports A–D checks passed: `test_rally_followup`, `test_deployment_rally`, `test_shinobi_hq_raid`, `test_crew_frame_selection`, `test_hud_drag`, `test_layout_pages`, `test_target_controls`, `test_start_screen_exit`, `test_settings`, `test_dismissal`, `test_deployment_panel_flow`, `test_new_crew`, `test_ranged_retaliation`, plus builder-reported `test_geisha`, `test_enforcer`, `test_rifleman`, `test_command_ui` and `test_foundation`. JS syntax and diff checks passed. This is Node/logic validation only; manual VFX and gameplay review remains pending.
+
+### Phase E — assignments/operations (proposed; sequencing/authorization pending)
+
+- [ ] **18.** Space Sweep hold points farther apart; keep routes valid/reachable and varied.
+- [ ] **19.** When a guarded business is lost, assigned guards return to HQ; flash the HQ crew group and show a waiting message.
+- [ ] **20.** Keep patrols together; surviving patrol members return to the hideout while defending en route, wait for replacements, then resume the route.
+- [ ] **21.** Fix Shakedown stuck entering after dynamite/civilian deaths and the missing hold timer.
+
+### Phase F — performance profiling (start early; architecture choice pending)
+
+- [ ] **22.** Profile mid/late-game map lag with many units; inspect caching and worker options, then choose architecture from measurements. Do not commit to a worker approach before the profile.
+
+### Phase G — late-game scoring balance (parked; separate from A–D)
+
+- [ ] **23.** Revisit asymmetry at the **property-ownership ceiling**: property clans then rely on repeatable successful operations while Shinobi continue contract income. This is not a Shinobi crew cap or Renown cap. Read-only finding for later: `PROPERTY_RENOWN` defaults are raid 40, Shakedown 20, defend 15, sector clear 5; the map has no `sweepSuccess` entry despite that event, while `claimSweep` pays ryo. After auditing reward correctness and repeat cadence, consider Tim's proposal to grant more Renown for successful property-clan raids, Sweeps and Shakedowns. No investigation or tuning now; numeric changes are unapproved.

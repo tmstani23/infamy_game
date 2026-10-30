@@ -10,7 +10,11 @@ export function createDiversion({state,deployment,vision,reveal,clearCombat,host
     ||e.order?.kind==='move'&&!e.order.arrived||['enter','heal','loot'].includes(e.order?.kind)||e.order?.kind==='follow'&&e.order.regrouping;
   const group=e=>{const r=state.deployment?.clans[e.owner]?.rally;return r?.active&&r.endsAt>state.tick&&(e.deployment?.group==='hero'||r.participants.some(p=>p.id===e.id))?'rally':e.deployment?.group;};
   const team=e=>Object.values(state.entities).filter(a=>alive(a)&&a.owner===e.owner&&a.place===e.place&&(a.id===e.id||a.type==='hero'||a.type!=='hero'&&!a.guard&&group(a)===group(e)));
-  const focused=(e,t)=>Object.values(state.entities).some(a=>a!==e&&alive(a)&&a.owner===e.owner&&a.place===t.place&&targets(a,t.id));
+  // An assigned attack may still be walking into range. Only an actual swing,
+  // outgoing projectile or continuing recent attack makes this target under fire.
+  const focused=(e,t)=>Object.values(state.entities).some(a=>a!==e&&alive(a)&&a.owner===e.owner&&a.place===t.place
+    &&(a.swing?.target===t.id||(state.projectiles||[]).some(p=>p.a===a.id&&p.t===t.id&&p.until>state.tick)
+      ||targets(a,t.id)&&t.hitBy?.id===a.id&&state.tick-t.hitBy.tick<40));
   function valid(e,t,range=DIVERSION.radius){return alive(t)&&state.clans?.[t.owner]&&t.type!=='hero'&&t.type!=='civilian'&&!t.cop&&!t.wild
     &&t.place===e.place&&!t.distracted&&!t.deployment?.transfer&&!focused(e,t)&&hostile(e,t)&&vision.canSee(e.owner,t)
     &&Math.hypot(t.x-e.x,t.z-e.z)<=range;}

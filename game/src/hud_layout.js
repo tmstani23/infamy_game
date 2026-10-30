@@ -17,15 +17,19 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}};
 const store=s=>{try{localStorage.setItem(KEY,JSON.stringify(s));}catch{}fetch(FILE,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({panels:s},null,2)}).catch(()=>{});};
 export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
- let saved=clone(fromFile&&Object.keys(fromFile).length?fromFile:load()),before=null,editing=false,drag=null,selected=null;
+ let saved=clone(fromFile&&Object.keys(fromFile).length?fromFile:load()),before=null,editing=false,drag=null,selected=null,snapGrid=false;
+ const grid=v=>snapGrid?Math.round(v/10)*10:v;
  const hiddenCategories=new Set(['tooltips','alerts','windows']);
  const panels=new Map(),layer=document.createElement('div');layer.id='hudlayout';layer.hidden=true;
  layer.setAttribute('role','dialog');layer.setAttribute('aria-label','Edit UI layout');layer.setAttribute('aria-modal','true');document.body.appendChild(layer);
- const toolbar=document.createElement('div');toolbar.className='layout-toolbar';
+ const toolbar=document.createElement('div');toolbar.className='layout-toolbar';let toolbarDrag=null;
  const heading=document.createElement('strong');heading.textContent='EDIT LAYOUT';toolbar.appendChild(heading);
+ heading.title='Drag to move the editor toolbar';heading.addEventListener('mousedown',e=>{if(!editing||e.button!==0)return;e.preventDefault();e.stopPropagation();const r=toolbar.getBoundingClientRect();toolbarDrag={x:e.clientX,y:e.clientY,left:r.left,top:r.top};});
  const hint=document.createElement('span');hint.textContent='Select a panel, then drag or resize it. Use the picker for overlapping panels.';toolbar.appendChild(hint);
  const actions={};for(const [key,label]of [['done','Done'],['cancel','Cancel'],['reset','Reset layout']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.action=key;toolbar.appendChild(b);actions[key]=b;}layer.appendChild(toolbar);
  const filters=document.createElement('div');filters.className='layout-filters';toolbar.appendChild(filters);
+ const snapButton=document.createElement('button');snapButton.type='button';snapButton.dataset.action='grid';snapButton.textContent='Grid: Off (10px)';snapButton.setAttribute('aria-pressed','false');
+ snapButton.addEventListener('click',()=>{drag=null;toolbarDrag=null;snapGrid=!snapGrid;snapButton.textContent=`Grid: ${snapGrid?'On':'Off'} (10px)`;snapButton.setAttribute('aria-pressed',String(snapGrid));layer.classList.toggle('layout-grid',snapGrid);});toolbar.appendChild(snapButton);
  const picker=document.createElement('select');picker.setAttribute('aria-label','Select UI panel');filters.appendChild(picker);
  const empty=document.createElement('option');empty.value='';empty.textContent='Select a panel…';picker.appendChild(empty);
  for(const [category,label]of [['main','Main HUD'],['tooltips','Tooltips'],['alerts','Alerts'],['windows','Windows']]){
@@ -53,7 +57,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   Object.assign(p.el.style,{position:'fixed',left:`${x-w*(1-s)/2}px`,top:`${y-h*(1-s)/2}px`,right:'auto',bottom:'auto',transform:'none',scale:String(s)});
   p.el.dataset.layoutPinned='true';p.applied=signature(p.el);
  }
- function keep(p,x,y,s){const [w,h]=dimensions(p);s=clamp(s,.5,2.5);x=clamp(x,0,Math.max(0,innerWidth-w*s));y=clamp(y,0,Math.max(0,innerHeight-h*s));const ax=x+w*s/2<innerWidth/2?'l':'r',ay=y+h*s/2<innerHeight/2?'t':'b';const o=saved[p.id]||{};saved[p.id]={...(o.w?{w:o.w}:{}),...(o.h?{h:o.h}:{}),ax,ay,dx:Math.round(ax==='l'?x:innerWidth-x-w*s),dy:Math.round(ay==='t'?y:innerHeight-y-h*s),s:+s.toFixed(3)};place(p);}
+ function keep(p,x,y,s,snap=false){const [w,h]=dimensions(p);if(snap){x=grid(x);y=grid(y);}s=clamp(s,.5,2.5);x=clamp(x,0,Math.max(0,innerWidth-w*s));y=clamp(y,0,Math.max(0,innerHeight-h*s));const ax=x+w*s/2<innerWidth/2?'l':'r',ay=y+h*s/2<innerHeight/2?'t':'b';const o=saved[p.id]||{};saved[p.id]={...(o.w?{w:o.w}:{}),...(o.h?{h:o.h}:{}),ax,ay,dx:Math.round(ax==='l'?x:innerWidth-x-w*s),dy:Math.round(ay==='t'?y:innerHeight-y-h*s),s:+s.toFixed(3)};place(p);}
  function register(el,id=el?.id,label=el?.dataset?.layoutLabel||NAMES[id]||id){
   if(!el||!id||panels.has(id)||el===layer||el===toolbar)return;
   const p={id,el,name:label,category:el.dataset?.layoutCategory||layoutCategory(id),defaults:Object.fromEntries(PROPS.map(k=>[k,el.style[k]||'']))};panels.set(id,p);
@@ -68,7 +72,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   layer.appendChild(handle);p.handle=handle;
   handle.addEventListener('mousedown',e=>{if(!editing||e.button!==0||hiddenCategories.has(p.category))return;e.preventDefault();e.stopPropagation();select(id);drag={p,x:e.clientX,y:e.clientY,rect:{...p.rect},s:saved[id]?.s||1,resize:e.target===grip,edge:e.target?.dataset?.edge};});
   handle.addEventListener('focus',()=>{if(editing&&!hiddenCategories.has(p.category))select(id);});
-  handle.addEventListener('keydown',e=>{if(!editing||selected!==id)return;const r=p.rect,step=e.shiftKey?10:1,delta={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.code];if(delta){e.preventDefault();keep(p,r.left+delta[0],r.top+delta[1],saved[id]?.s||1);}else if(['+','=','-'].includes(e.key)){e.preventDefault();keep(p,r.left,r.top,(saved[id]?.s||1)+(e.key==='-'?-.05:.05));}update();});
+  handle.addEventListener('keydown',e=>{if(!editing||selected!==id)return;const r=p.rect,step=e.shiftKey||snapGrid?10:1,delta={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.code];if(delta){e.preventDefault();keep(p,r.left+delta[0],r.top+delta[1],saved[id]?.s||1,true);}else if(['+','=','-'].includes(e.key)){e.preventDefault();keep(p,r.left,r.top,(saved[id]?.s||1)+(e.key==='-'?-.05:.05));}update();});
   if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(saved[id])place(p);}).observe(el);
   if(saved[id])place(p);
  }
@@ -101,17 +105,17 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  }
  function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);}before=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
  function begin(){if(editing)return;before=clone(saved);editing=true;layer.hidden=false;onBegin();update();actions.done.focus();}
- function reset(){drag=null;saved={};for(const p of panels.values())place(p);if(!editing)store(saved);update();}
+ function reset(){drag=null;toolbarDrag=null;saved={};toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';for(const p of panels.values())place(p);if(!editing)store(saved);update();}
  actions.done.addEventListener('click',()=>finish(true));actions.cancel.addEventListener('click',()=>finish(false));actions.reset.addEventListener('click',reset);
- addEventListener('mousemove',e=>{if(!drag||!editing)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+ addEventListener('mousemove',e=>{if(!editing)return;if(toolbarDrag){if(typeof e.buttons==='number'&&!(e.buttons&1)){toolbarDrag=null;return;}const w=toolbar.offsetWidth,h=toolbar.offsetHeight;toolbar.style.left=`${clamp(toolbarDrag.left+e.clientX-toolbarDrag.x,0,Math.max(0,innerWidth-w))}px`;toolbar.style.top=`${clamp(toolbarDrag.top+e.clientY-toolbarDrag.y,0,Math.max(0,innerHeight-h))}px`;return;}if(!drag)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(edge){   // side handle: change width or height, the opposite side stays put
-   const horiz=edge==='l'||edge==='r',minimum=p.id==='bar'?(horiz?Math.min(560,innerWidth/s):100):40,size=clamp((horiz?r.width+(edge==='l'?-dx:dx):r.height+(edge==='t'?-dy:dy))/s,minimum,(horiz?innerWidth:innerHeight)/s);
+   const horiz=edge==='l'||edge==='r',minimum=p.id==='bar'?(horiz?Math.min(560,innerWidth/s):100):40,size=clamp(grid(horiz?r.width+(edge==='l'?-dx:dx):r.height+(edge==='t'?-dy:dy))/s,minimum,(horiz?innerWidth:innerHeight)/s);
    const x=edge==='l'?r.left+r.width-size*s:r.left,y=edge==='t'?r.top+r.height-size*s:r.top;
    if(horiz)p.el.style.width=`${size}px`;else {p.el.style.height=`${size}px`;p.el.style.minHeight=`${size}px`;}
    saved[p.id]={...saved[p.id],[horiz?'w':'h']:Math.round(size)};
    keep(p,x,y,s);update();return;
-  }keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max((r.width+dx)/r.width,(r.height+dy)/r.height):s);update();});
- addEventListener('mouseup',()=>{drag=null;},{capture:true});addEventListener('blur',()=>{drag=null;});
+  }keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max(grid(r.width+dx)/r.width,grid(r.height+dy)/r.height):s,!resize);update();});
+ addEventListener('mouseup',()=>{drag=null;toolbarDrag=null;},{capture:true});addEventListener('blur',()=>{drag=null;toolbarDrag=null;});
  addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id])place(p);update();});
  layer.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();finish(false);}if(e.code==='Tab'){const stops=[...layer.querySelectorAll('button,select,[tabindex="0"]')].filter(el=>{const h=el.closest('.layout-handle');return !el.closest('[hidden]')&&(!h||el===h||h.classList.contains('selected'));}),first=stops[0],last=stops.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
  for(const type of ['mousedown','mouseup','click','contextmenu','wheel'])layer.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});

@@ -1,3 +1,4 @@
+import {watchCrewGroup} from './crew_watch.js';
 import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
 import { createFixedStepClock } from './fixed_step_clock.js';
@@ -253,8 +254,8 @@ async function start() {
   const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse · Waterfront"
   // where the camera should look for a unit: itself, or its building's door if it is inside one the hero isn't in
   const lookPoint = u => {
-    const door = u.place !== 'street' && u.place !== game.state.entities[heroId]?.place && game.doors.find(d => d.to && d.place === u.place);
-    return door ? { x: door.x, z: door.z } : { x: u.x, z: u.z };
+    const door = u.owner !== game.state.entities[heroId]?.owner && u.place !== 'street' && u.place !== game.state.entities[heroId]?.place && game.doors.find(d => d.to && d.place === u.place);
+    return door ? { x: door.x, z: door.z,place:'street' } : { id:u.id,x: u.x, z: u.z,place:u.place };
   };
   const usable = u => u && !u.dead && !u.jailed;
   // double-click a crew name: the camera follows him (Tim 2026-10-28) until you pan, click the map or press Home
@@ -263,14 +264,7 @@ async function start() {
     view.watch(() => { const e = game.state.entities[u.id]; return usable(e) ? lookPoint(e) : null; });
   };
   // double-click a group header: follow the middle of the group's biggest cluster
-  const watchGroup = (group,ids=null) => view.watch(() => {
-    const S = game.state.entities, me = S[heroId]?.owner;
-    const crew = Object.values(S).filter(e => e.owner === me && e.type !== 'hero' && usable(e) && !e.guard && (ids?ids.includes(e.id):(e.deployment?.group || 'home') === group)).map(lookPoint);
-    if (!crew.length) return null;
-    const near = p => crew.filter(q => Math.hypot(q.x - p.x, q.z - p.z) < 8);
-    const best = crew.map(near).reduce((a, b) => b.length > a.length ? b : a);
-    return { x: best.reduce((n, p) => n + p.x, 0) / best.length, z: best.reduce((n, p) => n + p.z, 0) / best.length };
-  });
+  const watchGroup=(group,ids=null)=>view.watch(()=>watchCrewGroup(game.state,game.state.entities[heroId]?.owner,group,ids));
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c), onInspect: id => unitFrames.inspect(id), onHeroFocus: () => view.snapBack() });
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
@@ -314,7 +308,10 @@ async function start() {
     const s = game.state.season, t = game.territory;
     if (!s || !t) return '';
     const parts = t.standings().map(r => `${r.clan === 'player' ? 'You' : (game.state.clans[r.clan]?.name || r.clan).replace(/ clan$/, '')} <b>${r.score}</b>`);
-    return `Day ${Math.min(s.day, s.cycles)}/${s.cycles} · ${parts.join(' · ')}`;
+    const clock = game.state.clock;
+    const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
+    const timer = timeLeft == null ? '' : ` · ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
+    return `Day ${Math.min(s.day, s.cycles)}/${s.cycles}${timer} · ${parts.join(' · ')}`;
   };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {

@@ -1,6 +1,6 @@
 // Explicit body clicks borrow one crewman. Group orders update his return plan;
 // a solo order or Stop overrides the job. Automatic sector cleanup is separate.
-export function createCrewJobs({state,deployment,rally,manual,clearCombat,navigation,sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty,freeSlot}) {
+export function createCrewJobs({state,deployment,rally,manual,clearCombat,navigation,sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty,freeSlot,heroLoot=()=>false}) {
   const alive=e=>e&&!e.dead&&!e.downed&&!e.jailed;
   const group=e=>rally.status(e.owner).active&&(e.deployment?.group==='hero'||rally.participating(e))?'rally':e.deployment?.group||'hero';
   function cancel(e){if(e)delete e.bodyQueue;if(!e?.crewJob)return;if(e.execute?.target===e.crewJob.target)delete e.execute;delete e.crewJob;clearCombat(e);}
@@ -19,7 +19,7 @@ export function createCrewJobs({state,deployment,rally,manual,clearCombat,naviga
       const busy=candidates.find(e=>(e.execute||e.crewJob)&&reachable(e));
       if(busy){const q=busy.bodyQueue||=[];if(q.length>=8)return say('Body queue is full (8 jobs)');q.push({hero:hero.id,type:c.type,target:target.id});return say('Body job queued after the current job');}
     }
-    if(!e)return say('No available crew in this group can reach that body');
+    if(!e){if(c.type==='loot'&&!c.crewOnly&&heroLoot(hero,c))return;return say('No available crew in this group can reach that body');}
     const previous=e.crewJob,oldOrder=structuredClone(previous?.oldOrder||e.order||{kind:'stop'}),oldDuty=structuredClone(previous?.oldDuty||e.deployment?.duty||{manual:false});
     manual(e);clearCombat(e);delete e.holdFire;delete e.smokePassive;
     e.order={kind:'stop'};

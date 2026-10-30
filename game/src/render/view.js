@@ -34,6 +34,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const camTarget = new THREE.Vector3();
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
+  let watchedPlace=null,watchedId=null;
   let watchFn = null;      // camera follow target (double-click a crew name or group header): () => { x, z } or null
   const PAN_SPEED = 16;
   // Indoors the camera may also travel to the street to command outdoor crew.
@@ -42,7 +43,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, farX);
     p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4);
     return p; };
-  const cameraPlace = h => freeCam && h?.place !== 'street' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
+  const cameraPlace = h => watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -327,7 +328,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
-    const inside = cameraPlace(state.entities[followId]) !== 'street';
+    let inside = cameraPlace(state.entities[followId]) !== 'street';
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
 
     // camera follows the hero, snapped to whole screen pixels so the art stays crisp
@@ -338,6 +339,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // watching a unit or group (double-click, Tim 2026-10-28): follow it until a pan, a map click or Home
       const w = watchFn && watchFn();
       if (watchFn && !w) watchFn = null;
+      watchedPlace=w?.place??null;watchedId=w?.id??null;inside=cameraPlace(state.entities[followId])!=='street';
       if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, hero.pos.y, w.z); }
       else {
         if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
@@ -361,7 +363,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const b of banners.update(state, time, state.entities[followId]?.owner)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
     hitFx.update(fdt);
-    abilityFx.update(fdt, state, followId);
+    const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
+    abilityFx.update(fdt, state, presentationId);
     shakeT = Math.max(0, shakeT - dt);
     if (shakeT > 0) {
       const a = shakeAmp * shakeT / 0.18;
@@ -369,7 +372,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     updateLights(time);
     updateCutaway(hero, dt);
-    updateBlueprintWalls(state, followId, hero, dt);
+    updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
     sorter.sort([...things, ...banners.things], [...sprites.values()].filter(Boolean).map(s => s.thing));
     // effect particles are sized in world units: pixels per unit of each target drawn
@@ -453,7 +456,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     },
     snapBack() { freeCam = null; farCam = false; watchFn = null; },
     // keep the camera on fn() = { x, z } every frame (null ends it); pans, map clicks and Home stop it
-    watch(fn) { watchFn = fn; },
+    watch(fn) { watchFn = fn;watchedPlace=fn?.()?.place??null; },
     // look at a ground point (minimap click); stays there until snapBack, like panning
     lookAt(x, z) {
       farCam = false; watchFn = null;

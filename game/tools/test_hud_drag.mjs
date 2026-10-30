@@ -16,6 +16,34 @@ class Element {
   setAttribute(k,v){this.attributes[k]=v;} focus(){} blur(){} querySelector(){return null;} querySelectorAll(){return [];}
   getBoundingClientRect(){if(this.hidden||this.hiddenAncestor)return {left:0,top:0,width:0,height:0};const s=Number(this.style.scale)||1,width=this.offsetWidth*s,height=this.offsetHeight*s,left=(parseFloat(this.style.left)||100)+(this.offsetWidth-width)/2,top=(parseFloat(this.style.top)||100)+(this.offsetHeight-height)/2;return {left,top,width,height,right:left+width,bottom:top+height};}
 }
+// Grid snapping is opt-in and does not alter the transaction or opposite-edge rules.
+{
+ try {
+  const win=new Element(),body=new Element(),panel=new Element('contract');body.children.push(panel);
+  let stored;
+  globalThis.document={body,getElementById:id=>id==='contract'?panel:null,createElement:()=>new Element()};
+  globalThis.localStorage={getItem:()=>null,setItem(k,v){stored=JSON.parse(v);}};globalThis.fetch=async()=>({ok:true});
+  globalThis.addEventListener=(...args)=>win.addEventListener(...args);globalThis.ResizeObserver=class{observe(){}};
+  globalThis.innerWidth=1200;globalThis.innerHeight=900;
+  const layout=createHudLayout({fromFile:{}}),layer=body.children.at(-1),toolbar=layer.children[0],toggle=toolbar.children.find(n=>n.dataset.action==='grid');
+  const handle=layer.children.find(n=>n.className==='layout-handle'),right=handle.children.find(n=>n.dataset.edge==='r');
+  const fire=(node,type,extra={})=>{const e={button:0,buttons:1,clientX:120,clientY:120,target:node,preventDefault(){},stopPropagation(){},...extra};for(const h of node.handlers[type]||[])h.fn(e);};
+  layout.begin();fire(handle,'mousedown');fire(win,'mousemove',{clientX:143,clientY:147});fire(win,'mouseup');
+  assert.equal(panel.getBoundingClientRect().left,123,'default movement is unsnapped');layout.cancel();
+  layout.begin();fire(toggle,'click');assert.equal(toggle.attributes['aria-pressed'],'true');assert.ok(layer.classList.contains('layout-grid'));
+  fire(handle,'mousedown');fire(win,'mousemove',{clientX:143,clientY:147});fire(win,'mouseup');
+  assert.equal(panel.getBoundingClientRect().left,120);assert.equal(panel.getBoundingClientRect().top,130);
+  fire(handle,'keydown',{code:'ArrowRight'});assert.equal(panel.getBoundingClientRect().left,130,'keyboard advances one grid cell');
+  const left=panel.getBoundingClientRect().left;
+  fire(handle,'mousedown',{target:right});fire(win,'mousemove',{clientX:143});fire(win,'mouseup');
+  assert.equal(panel.style.width,'120px');assert.equal(panel.getBoundingClientRect().left,left,'resize retains the opposite edge');
+  layout.done();assert.equal(stored.contract.w,120,'snapped sizes persist through Done');
+  layout.begin();fire(toggle,'click');fire(handle,'mousedown');fire(win,'mousemove',{clientX:123});fire(win,'mouseup');
+  assert.equal(panel.getBoundingClientRect().left,left+3,'toggle restores free movement');
+  layout.cancel();assert.equal(panel.getBoundingClientRect().left,left,'Cancel restores the snapped checkpoint');
+  console.log('Optional layout grid: free/snapped pointer and keyboard movement, edge sizing, Done and Cancel passed');
+ }finally{for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
+}
 try {
  const win=new Element(),target=new Element('utarget'),lock=new Element('lock'),body=new Element();
  body.children.push(target,lock);

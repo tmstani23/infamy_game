@@ -14,6 +14,7 @@ import { createTargetMemory } from './target_memory.js';
 const CROP = { x: 0.33, y: 0.17, w: 0.34 };
 const EFFECT_NAMES = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke', ambush: 'Ambush', veil: 'Vanish', reprisal: 'Reprisal', pursuit: 'Speed', formation: 'Formation', stunned: 'Stunned' };
 const DEBUFFS = new Set(['intimidated', 'snared', 'stunned']);
+const EFFECT_ICONS = { charming:'✦', rally:'⚡', lantern:'☀', intimidated:'☠', snared:'⛓', shroud:'◌', ambush:'⌖', veil:'◈', reprisal:'⚔', pursuit:'➤', formation:'⬟', stunned:'✹' };
 
 // Which unit the target frame shows (plain state, so Node can check it): a lone left-clicked unit
 // that isn't the hero's, else the hero's attack target or swing, else the Tab target
@@ -59,8 +60,9 @@ const STYLE = `
 #utarget.known { z-index: 34; }
 .uf .ambush-action { font: 10px system-ui; padding: 3px 5px; color: #e5d2ff; background: #30203c; border: 1px solid #9779b0; border-radius: 4px; cursor: pointer; }
 .uf.down { filter: grayscale(1) brightness(.75); }
-#utarget .effects { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; width: max-content; max-width: 460px; pointer-events: none; }
-#utarget .effect { position: relative; padding: 4px 10px 8px; border: 2px solid #65a968; border-radius: 4px; background: rgba(9,16,12,.9); color: #d8f2d8; font: 600 20px/1.1 system-ui, sans-serif; white-space: nowrap; }
+#utarget .effects { position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);display:flex;justify-content:center;flex-wrap:wrap;gap:5px;width:max-content;max-width:460px; }
+#utarget .effect { position:relative;display:grid;place-items:center;width:38px;height:42px;box-sizing:border-box;border:2px solid #65a968;border-radius:7px;background:linear-gradient(145deg,rgba(37,63,43,.98),rgba(8,15,11,.96));color:#e6ffe5;box-shadow:0 2px 7px #000b,inset 0 0 10px #ffffff12;font:700 21px/1 system-ui,sans-serif;cursor:help; }
+#utarget .effect small { position:absolute;right:2px;bottom:2px;color:#fff;font:700 10px/1 system-ui,sans-serif;text-shadow:0 1px 3px #000,0 0 3px #000; }
 #utarget .effect.debuff { border-color: #d37163; color: #ffd4ca; }
 #utarget .effect::after { content: ''; position: absolute; bottom: 0; left: 0; height: 2px; width: var(--remaining); background: currentColor; }
 #uhover { position: fixed; z-index: 8; width: 150px; align-items: stretch; gap: 3px; padding: 5px 7px;
@@ -132,7 +134,9 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
         const key = `${e.id}:${name}`, old = effectStarts.get(key);
         if (!old || old.until !== b.until) effectStarts.set(key, { until: b.until, total: Math.max(1, b.until - now) });
         const remaining = Math.max(0, Math.min(100, (b.until - now) / effectStarts.get(key).total * 100));
-        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%">${(b.hamstring?'Hamstring':EFFECT_NAMES[name] || name).slice(0, 3)}... ${Math.ceil((b.until - now) / 20)}s</span>`;
+        const fullName = b.hamstring ? 'Hamstring' : EFFECT_NAMES[name] || name;
+        const seconds = Math.ceil((b.until - now) / 20);
+        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%" tabindex="0" role="img" aria-label="${fullName}, ${seconds} seconds remaining" title="${fullName}">${EFFECT_ICONS[name] || '✦'}<small>${seconds}s</small></span>`;
       }).join('');
       if (f.effects.innerHTML !== html) f.effects.innerHTML = html;
     }

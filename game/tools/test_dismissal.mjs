@@ -58,11 +58,23 @@ const panel = () => { const handlers = {}; return { hidden: true, innerHTML: '',
 const hirePanel = panel(), hireSent = [];
 const hire = createHireMenu({ panel: hirePanel, money: { textContent: '' }, game: g, units: data('data/units.json'), heroId: hero, send: c => hireSent.push(c) });
 hire.toggle();
+assert.match(hirePanel.innerHTML,/Instant Taunt · 5 radius · all nearby enemies/,'hiring exposes the Yakuza Taunt radius');
 const nextCrew = g.spawn('thug', 'thug', -2, 0, { owner: 'player' });
 hire.update();
+hirePanel.click({closest:()=>({dataset:{crewView:'dismiss'}})});
+assert.match(hirePanel.innerHTML,/DISMISS CREW · ALL ZONES/);
+assert.match(hirePanel.innerHTML,/HQ reserves/);
+assert.doesNotMatch(hirePanel.innerHTML,/HIRE CREW/,'dismissal has a separate roster view');
 const dismissButton = { closest: () => ({ dataset: { dismiss: nextCrew } }), blur() {} };
 hirePanel.click(dismissButton); hirePanel.click(dismissButton);
 assert.deepEqual(hireSent[0], { id: hero, type: 'dismiss', unit: nextCrew, business: home.id });
+// The hero authorizes at HQ; the selected crew need not travel back from its zone.
+for (const group of ['hero', 'home', g.state.deployment.sectors[0].id]) {
+  const remote = g.spawn('thug', 'thug', -2, 0, { owner: 'player', place: tea.room });
+  S[remote].deployment.group = group;
+  g.step([{ id: hero, type: 'dismiss', unit: remote, business: home.id }]);
+  assert.equal(S[remote], undefined, `${group} crew can be dismissed through the authoritative command from another room`);
+}
 
 const clinicDoor = g.doors.find(d => d.menu === 'clinic');
 Object.assign(S[hero], { place: 'street', x: clinicDoor.x, z: clinicDoor.z });

@@ -8,6 +8,7 @@ import { POLICE } from './police.js';
 import { canInteract, interactionActor } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { isShinobiHQ } from './hq_raids.js';
+import {isRallyParticipant} from './deployment_rally.js';
 import { noticeFor, secs } from './util.js';
 // Players and bots alike send [{ id, type: 'business', action: 'buy', business }] from a hero
 // standing at the business's door ring. Prices and payouts: units.json rules.businesses
@@ -109,7 +110,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       && !(isShinobiHQ(state, home) && a?.hq && a.defender === home.owner))
       return { ok: false, why: `That is the ${state.clans[home.hideout]?.name || 'rival'} hideout: no way in` };
     if (a?.phase === 'warmup') return { ok: false, why: `The doors open in ${Math.ceil((a.opensAt - state.tick) / 20)} s` };
-    if (a && e.type !== 'hero' && e.place !== place && crewSlots(e.owner, place) <= 0)
+    if (a && e.type !== 'hero' && e.place !== place && crewSlots(e.owner, place,e) <= 0)
       return { ok: false, why: 'The raiding crew is full inside' };
     return { ok: true, why: '' };
   }
@@ -119,7 +120,9 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (!result.ok && clan) say(clan, result.why);
     return result.ok;
   }
-  function crewSlots(clanId, place) {
+  function crewSlots(clanId, place,unit=null) {
+    const r=state.deployment?.clans[clanId]?.rally;
+    if(r?.active&&r.endsAt>state.tick&&(!unit||isRallyParticipant(state,unit)||unit.deployment?.group==='hero'))return Infinity;
     const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.phase !== 'over' && a.room === place && a.clan === clanId);
     if (!a) return Infinity;
     const inside = Object.values(state.entities).filter(u => u.owner === clanId && u.place === place && u.type !== 'hero' && !u.dead).length;

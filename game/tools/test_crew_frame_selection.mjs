@@ -35,7 +35,7 @@ try {
   const root = new Element();
   const g = createGroupedCrew({ root, game, heroId: 'h', units: { types: { thug: { name: 'Thug' } } }, crewInput, send: c => sent.push(c) });
   sel = ['a', 'b']; g.update(crew, [], []);
-  const [tabs, hero, harbor] = root.children;
+  const tabs=root.children[0],hero=root.children.find(n=>n.dataset.group==='hero'),harbor=root.children.find(n=>n.dataset.group==='nw');
   assert.equal(tabs.className, 'crew-tabs');
   assert.equal(tabs.children[0].textContent, '1'); assert.equal(tabs.children[0].children[0].textContent, 2, 'tab shows group size');
   assert.ok(tabs.children[0].classes.has('on') && tabs.children[1].classes.has('empty'));
@@ -55,6 +55,12 @@ try {
   assert.ok(harbor.classes.has('drop-target'), 'room shows gold');
   root.emit('drop', ev(harbor.children[0]));
   assert.deepEqual(sent.at(-1), { id: 'h', type: 'deployment', action: 'transfer', units: ['a', 'b'], to: 'nw' }, 'selected crew move together');
+  for(const e of crew)e.deployment.group='nw';sel=[];g.update(crew,[],[]);
+  assert.equal(hero.style.display,'none','empty group stays compact normally');
+  root.emit('dragstart',ev(pip('d')));
+  assert.equal(hero.style.display,'block','empty hero group is an available drop target');
+  root.emit('drop',ev(hero.children[0]));
+  assert.deepEqual(sent.at(-1),{id:'h',type:'deployment',action:'transfer',units:['d'],to:'hero'},'one crew can transfer into an empty hero group');
   // action bar clicks: one member + target frame, Shift toggles, a click inside a bigger selection waits for mouseup
   const inspected = [], focus = [], barRoot = new Element(), frame = new Element();
   createActionBar({ root: barRoot, game, units: { types: { hero: {}, thug: { name: 'Thug' } } }, heroId: 'h', tickRate: 20, crewInput, crewRoot: frame, onInspect: id => inspected.push(id), onHeroFocus: () => focus.push(1) });

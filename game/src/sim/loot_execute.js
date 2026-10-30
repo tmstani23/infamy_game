@@ -17,7 +17,9 @@ export function createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, c
         .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && !u.execute && !u.crewJob && lootable(u, body))
         .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z));
       const u = selected[0];
-      if (!u) return;
+      // Crew sent back to duty when Rally ends may no longer be able to act
+      // here. Fall back to the available hero rather than swallowing the order.
+      if (!u) { if(heroReady&&!e.execute&&lootable(e,body)){delete e.swing;delete e.attackTarget;delete paths[e.id];e.lootTarget=body.id;} return; }
       manualCrew(u);
       delete paths[u.id]; delete u.execute; delete u.swing;
       if (fight[u.id]) delete fight[u.id].target;

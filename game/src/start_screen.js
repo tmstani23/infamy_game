@@ -2,6 +2,11 @@ import { CLAN_CHOICES, DIFFICULTY_CHOICES, matchOptions } from './sim/match_opti
 import { createMenuMusic } from './menu_music.js';
 
 const STORAGE = 'infamy.start-options';
+export function requestGameExit({ windowRef = globalThis.window, timers = globalThis, onBlocked = () => {} } = {}) {
+  try { windowRef?.close?.(); } catch {}
+  timers.setTimeout(() => { if (windowRef && !windowRef.closed) onBlocked(); }, 250);
+}
+
 export function savedMatchOptions(defaultDifficulty = 'easy') {
   try {
     const saved = JSON.parse(sessionStorage.getItem(STORAGE));
@@ -24,7 +29,7 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       <p class="start-difficulty-note" aria-live="polite"></p></fieldset>
     <div class="start-footer"><div><p class="start-loadout" aria-live="polite"></p><p class="start-season">${cycles}-day season · two rival clans</p></div>
       <button class="start-play" type="submit">Start game <span aria-hidden="true">→</span></button></div>
-    </form><div class="start-music"><button class="start-music-toggle" type="button">Play music</button>
+    </form><div class="start-exit"><button type="button" class="start-exit-button">Exit Game</button><p class="start-exit-note" role="status" aria-live="polite"></p></div><div class="start-music"><button class="start-music-toggle" type="button">Play music</button>
     <span class="start-music-title"></span><label>Music volume <input class="start-music-volume" aria-label="Intro music volume" type="range" min="0" max="100" step="1"></label></div></div>`;
   const musicButton=root.querySelector('.start-music-toggle'),musicVolume=root.querySelector('.start-music-volume');
   function renderMusic(s){
@@ -33,6 +38,10 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
     root.querySelector('.start-music-title').textContent=s.track.title;musicVolume.value=Math.round(s.volume*100);
   }
   const music=createMenuMusic({onChange:renderMusic});renderMusic(music.status());
+  root.querySelector('.start-exit-button').addEventListener('click',()=>{
+    const note=root.querySelector('.start-exit-note');note.textContent='';
+    requestGameExit({onBlocked:()=>{note.textContent='This browser keeps the tab open. Close this tab to exit.';}});
+  });
   musicButton.addEventListener('click',()=>music.toggle());
   musicVolume.addEventListener('input',()=>music.setVolume(Number(musicVolume.value)/100));
   for (const c of CLAN_CHOICES) {

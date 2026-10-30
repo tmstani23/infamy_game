@@ -2,6 +2,7 @@
 // phase 7 split, 2026-10-29). Reads the state only; never sends commands.
 import { sweepArrivalVisible } from './render/sweep_trail.js';
 export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults }) {
+  const shinobiAlert = text => callout(text, 'loss shinobi-alert', 8000);
   function update() {
     for (const n of game.state.news) {
       const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
@@ -61,10 +62,10 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contra
       if (n.kind === 'contractDone' && n.clan === me) contractCallout(`Contract done: +${n.ryo} ryo, +${n.renown} Renown`, 'win');
       if (n.kind === 'contractFailed' && n.clan === me) contractCallout(`Contract failed: ${n.why}`, 'loss');
       if (n.kind === 'contractFailedOnYou' && n.clan === me) contractCallout(`A Shinobi ${n.contractType} contract against you failed`, 'win');
-      if (n.kind === 'contractWarn' && n.clan === me) contractCallout('Word is the Shinobi took a job on you');
+      if (n.kind === 'contractWarn' && n.clan === me) shinobiAlert('SHINOBI CONTRACT TARGETING YOU · Watch your businesses');
       if (n.kind === 'stealAlert' && n.by === me) contractCallout('Spotted! The alarm is up, keep taking the ryo', 'loss');
-      if (n.kind === 'stealAlert' && n.clan === me) { contractCallout(`A Shinobi is inside your ${n.place || 'business'}!`, 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-      if (n.kind === 'markAlert' && n.clan === me) { contractCallout('A Shinobi mark in your back room! Scrub it off', 'loss'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+      if (n.kind === 'stealAlert' && n.clan === me) { shinobiAlert(`SHINOBI INSIDE YOUR ${n.place || 'BUSINESS'} · Stop the theft`); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+      if (n.kind === 'markAlert' && n.clan === me) { shinobiAlert('SHINOBI MARK IN YOUR BACK ROOM · Interrupt the sabotage'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
       if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
     }
   }

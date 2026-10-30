@@ -5,6 +5,11 @@ export const isRallyParticipant = (state, e) => {
   const r = e && state.deployment?.clans[e.owner]?.rally;
   return !!r?.active && r.endsAt > state.tick && r.participants.some(p => p.id === e.id);
 };
+export const crewCommandGroup=(state,e)=>{
+  if(!e)return null;
+  const r=state.deployment?.clans[e.owner]?.rally;
+  return r?.active&&r.endsAt>state.tick&&(e.deployment?.group==='hero'||isRallyParticipant(state,e))?'rally':e.deployment?.group||'hero';
+};
 export function createDeploymentRally({ state, deployment }) {
   const own = clan => state.deployment.clans[clan];
   function record(clan) {
@@ -34,10 +39,13 @@ export function createDeploymentRally({ state, deployment }) {
     }
     if (c.action !== 'rally' || h.type !== 'hero' || !state.deployment.restrictionsEnabled) return;
     const r = record(h.owner), valid = ['hero', 'home', ...state.deployment.sectors.map(s => s.id)];
-    const chosen = c.groups ?? (r?.groups.length ? r.groups : valid);
+    const chosen = c.groups ?? valid;
     if (!r || r.active || r.readyAt > state.tick || !Array.isArray(chosen) || !chosen.length || chosen.some(g => !valid.includes(g))) return deploymentFeedback(state,h,c,false,'Rally unavailable: check cooldown and selected groups');
     const groups = [...new Set(chosen)];
     const participants = deployment.members(h.owner).filter(e => !e.downed && groups.includes(e.deployment.transfer?.to || e.deployment.group));
+    // Joining Rally interrupts travel, preserving its destination as the saved
+    // assignment. The unit remains at its real position and must still travel.
+    for(const e of participants)if(e.deployment.transfer){e.deployment.group=e.deployment.transfer.to;delete e.deployment.transfer;e.order={kind:'stop'};}
     Object.assign(r, { active: true, startedAt: state.tick, endsAt: state.tick + RALLY_TICKS, readyAt: 0, groups,
       participants: participants.map(e => ({ id: e.id, group: e.deployment.transfer?.to || e.deployment.group })) });
     deploymentFeedback(state,h,c,true,'RALLY ACCEPTED — 3 minutes including travel. Issue Follow or movement orders to assemble.');

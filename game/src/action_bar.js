@@ -9,6 +9,7 @@ import { baseStats } from './sim/stats.js';
 import { createGroupedCrew } from './grouped_crew.js';
 
 const BUFFS = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
+const BUFF_ICONS = { charming:'✦', rally:'⚡', lantern:'☀', intimidated:'☠', snared:'⛓', shroud:'◌', ambush:'⌖', veil:'◈', reprisal:'⚔', pursuit:'➤', formation:'⬟', stunned:'✹', downed:'✚' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -145,7 +146,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     const passiveHtml = (game.stats?.passives(h) || []).map(p => `<span class="clan-passive ${p.active ? 'active' : ''}" tabindex="0" role="img" aria-label="${p.name}" title="${p.name}: ${p.status}. ${p.description}">${p.icon === 'shield' ? '⛨' : '◉'}</span>`).join('');
     const html = passiveHtml + Object.entries(shown).map(([n, { until, total }]) => {
       const left = Math.max(0, (until - t) / tickRate), pct = Math.max(0, Math.min(1, left / total));
-      return `<span class="buff ${n}" style="--remaining:${pct * 100}%"><i></i><b>${BUFFS[n] || n}</b><small>${Math.ceil(left)}s</small></span>`;
+      const name = BUFFS[n] || n;
+      return `<span class="buff ${n}" style="--remaining:${pct * 100}%" tabindex="0" role="img" aria-label="${name}, ${Math.ceil(left)} seconds remaining" title="${name}"><i></i><b aria-hidden="true">${BUFF_ICONS[n] || '✦'}</b><small>${Math.ceil(left)}s</small></span>`;
     }).join('');
     if (buffs.innerHTML !== html) buffs.innerHTML = html;
 

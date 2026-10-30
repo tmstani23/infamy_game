@@ -109,7 +109,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
   function crewTarget(e) {
     const o = e.order || {};
     if (o.kind === 'stop') return null;                  // passive (Z): never picks a fight
-    if (e.holdFire) return null;                         // smoke escort stays passive until an explicit combat order
+    if (e.holdFire || e.smokePassive) return null;        // smoke escort stays passive until an explicit combat order
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
       // A deliberate order keeps tracking a visible-at-order-time enemy across fog and screens.
@@ -126,17 +126,19 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
     if (executor) return executor;
     const [ax, az] = anchorOf(e);
+    const attacker = u => {
+      const by = u.hitBy && state.tick - u.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[u.hitBy.id];
+      return by && u.hitBy.tick > (o.recalledAt ?? -1) && hostile(e, by) && sees(e,by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
+    };
+    // Standing duties must answer a shot from outside their acquisition radius,
+    // still within their normal leash and sector/visibility restrictions.
+    const own = attacker(e);
+    if (own) return own;
     // crew of every clan, bots too, only pick fights on an attack-move, while stationed in a business, or
     // inside a business being raided or attacked (Tim 2026-10-19/20). Otherwise they swing back at whoever
     // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro
     const raidRoom = e.place !== 'street' && Object.values(state.attacks || {}).some(a => a.room === e.place && a.phase !== 'over');
     if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom) {
-      const attacker = u => {
-        const by = u.hitBy && state.tick - u.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[u.hitBy.id];
-        return by && u.hitBy.tick > (o.recalledAt ?? -1) && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
-      };
-      const own = attacker(e);
-      if (own) return own;
       for (const u of Object.values(state.entities)) {
         if (u === e || u.owner !== e.owner || u.dead || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > BACKUP_RANGE) continue;
         const by = attacker(u);

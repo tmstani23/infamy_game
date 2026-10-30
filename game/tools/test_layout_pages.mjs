@@ -17,7 +17,10 @@ try{
  assert.equal(visited.size,20,'every crew card remains reachable');assert.equal(root.items.length,20,'paging never removes records');
  const keep=root.items.at(-1);keep.selected=true;pages.update(800,600);assert.ok(keep.selected,'reflow preserves selection state');
  root.items=root.items.slice(0,1);pages.update(800,600);assert.equal(nav.hidden,true);assert.equal(root.items[0].classes.has('layout-page-hidden'),false,'page clamps after deaths/transfers');
- root.items.push(new Node(),new Node(),new Node(),new Node());pages.update(0,330);pages.update(320,330);assert.equal(nav.hidden,false);
+ root.items.push(...Array.from({length:12},()=>new Node()));pages.update(0,330);pages.update(320,330);assert.equal(nav.hidden,false);
+ const shortCount=root.items.filter(e=>!e.classes.has('layout-page-hidden')).length;
+ pages.update(320,600);assert.ok(root.items.filter(e=>!e.classes.has('layout-page-hidden')).length>shortCount,'height adds wrapped card rows before paging');
+ pages.update(800,600);assert.equal(nav.hidden,true,'width and height are both used before paging');
  const controls=new Node();controls.items=Array.from({length:6},()=>new Node());createLayoutPages(controls,'controls').update(800,600);
  assert.equal(controls.items.filter(e=>!e.classes.has('layout-page-hidden')).length,1,'Controls sections page without a scrolling window');
  assert.equal(createLayoutPages(new Node(),'ryo'),null,'fixed-shape UI is unaffected');

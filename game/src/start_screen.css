@@ -47,6 +47,10 @@ body.prematch > :not(#startscreen):not(#loading):not(script) { visibility: hidde
 #startscreen .start-play span { margin-left: 20px; }
 #startscreen .start-play:hover { background: linear-gradient(140deg, #f3d9aa, #caa064); }
 #startscreen .start-play:disabled { opacity: .6; cursor: wait; }
+#startscreen .start-exit { display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px; }
+#startscreen .start-exit-button { padding:7px 12px;color:#c3b7a3;font:11px system-ui,sans-serif;background:rgba(10,16,23,.62);border:1px solid rgba(222,200,163,.28);border-radius:3px;cursor:pointer; }
+#startscreen .start-exit-button:hover,#startscreen .start-exit-button:focus-visible { color:#f0d3a0;border-color:#ae8c52;outline:none; }
+#startscreen .start-exit-note { margin:0;color:#e0a08a;font-size:12px; }
 #startscreen .start-music { display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px;color:#9eaaaF;font-size:11px; }
 #startscreen .start-music-toggle { background:rgba(10,16,23,.7);border-color:rgba(222,200,163,.2);font-size:11px;padding:6px 10px; }
 #startscreen .start-music-title { color:#bfab86; }

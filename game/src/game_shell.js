@@ -2,5 +2,8 @@
 // retaining normal editing inside form fields.
 export function bindGameShell(doc=document){
  const editable=e=>e.target?.closest?.('input,textarea,[contenteditable="true"]');
- for(const type of ['contextmenu','selectstart','dragstart'])doc.addEventListener(type,e=>{if(!editable(e))e.preventDefault();},{capture:true});
+ for(const type of ['contextmenu','selectstart','dragstart'])doc.addEventListener(type,e=>{
+  if(type==='dragstart'&&e.target?.closest?.('#partyframes .mate[draggable="true"]'))return;
+  if(!editable(e))e.preventDefault();
+ },{capture:true});
 }
