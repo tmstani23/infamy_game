@@ -12,8 +12,13 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contra
       }
       if(['sweepAlert','sweepPoint','sweepSuccess'].includes(n.kind)&&(n.clan===me||n.defender===me||n.rival===me)){
         const yours=n.clan===me,zone=game.state.deployment.sectors.find(s=>s.id===n.sector)?.name||n.sector;
-        const text=n.kind==='sweepSuccess'?`SWEEP COMPLETE · ${zone}${yours?' secured':' scattered'}`:n.kind==='sweepPoint'?`SWEEP · ${zone} · moving to position ${n.point}/3`:`${yours?'SWEEP DISPATCHED':'ENEMY SWEEP'} · ${zone} · three positions to hold`;
-        callout(text,yours?'win':'loss',5000);
+        const reward=n.ryo>0?`+${n.ryo} ryo`:'No additional ryo';
+        const scattered=n.scattered||0;
+        const text=n.kind==='sweepSuccess'?(yours
+          ?`SWEEP VICTORY · ${zone} · 3/3 secured\n${reward} · ${scattered} rival crew scattered to HQ · returning to duty`
+          :`ENEMY SWEEP COMPLETE · ${zone}\n${scattered} of your crew scattered to HQ`)
+          :n.kind==='sweepPoint'?`SWEEP · ${zone} · moving to position ${n.point}/3`:`${yours?'SWEEP DISPATCHED':'ENEMY SWEEP'} · ${zone} · three positions to hold`;
+        callout(text,(yours?'win':'loss')+(n.kind==='sweepSuccess'?' sweep-complete':''),n.kind==='sweepSuccess'?8000:5000);
         // Arrival pings above use current sight, never a rival's unrevealed next destination.
       }
       if(n.kind==='shakedownAlert'&&n.defender===me){callout(`Shakedown at your ${n.name}! Defend the front room!`,'loss',4000);minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}

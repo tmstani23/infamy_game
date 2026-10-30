@@ -34,3 +34,12 @@ state.news=[news];ui.update();assert.equal(calls.length,0);assert.equal(pings.le
 sight=true;ui.update();assert.match(calls[0][0],/IN POSITION.*2\/3/);assert.equal(pings.length,2,'arrival pings map and minimap');
 state.news=[{...news,kind:'sweepPoint',defender:'player'}];ui.update();assert.equal(pings.length,2,'next destination never pinged through fog');
 console.log('Sweep presentation: route corners, persistence, leg reset, bounds, recall and sight-gated arrival callouts/pings passed');
+state.news=[{kind:'sweepSuccess',clan:'player',sector:'ward',ryo:300,scattered:2}];ui.update();
+assert.match(calls.at(-1)[0],/VICTORY.*3\/3 secured\n\+300 ryo.*2 rival crew.*returning to duty/);
+assert.equal(calls.at(-1)[2],8000,'reward message lingers');
+state.news=[{kind:'sweepSuccess',clan:'player',sector:'ward',ryo:0,scattered:0}];ui.update();
+assert.match(calls.at(-1)[0],/No additional ryo.*0 rival crew/,'no fabricated payout on empty/cooldown sweep');
+state.news=[{kind:'sweepSuccess',clan:'enemy',rival:'player',sector:'ward',ryo:500,scattered:3}];ui.update();
+assert.match(calls.at(-1)[0],/ENEMY SWEEP COMPLETE.*\n3 of your crew/);
+assert.doesNotMatch(calls.at(-1)[0],/\+500/,'defender is not shown an earned reward');
+console.log('Sweep completion: actual payout/top-up, zero payout, scattering count, owner/defender wording and duration passed');

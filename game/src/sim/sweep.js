@@ -95,7 +95,7 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
     }
     state.casts.push({kind:'sweepSuccess',a:team[0].id,x:op.point.x,z:op.point.z,place:'street',
       streetX:op.point.x,streetZ:op.point.z,bonus:op.reward});
-    state.news.push({kind:'sweepSuccess',clan,sector:op.targetSector,rival:op.targetClan,ryo:op.reward});
+    state.news.push({kind:'sweepSuccess',clan,sector:op.targetSector,rival:op.targetClan,ryo:op.reward,scattered:op.scattered.length});
     state.clans[clan].notice={tick:state.tick,text:'SWEEP COMPLETE'+(op.reward?' · +'+op.reward+' ryo':' · reward unavailable')+' — returning to duty'};
     recall(clan,sector,'Area secured');
   }

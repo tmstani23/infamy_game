@@ -125,6 +125,9 @@ function fixture(clan = 'kuroda') {
   assert.equal(op.success,undefined,'full twenty seconds required');g.sweep.tick();assert.equal(op.pointIndex,1);assert.equal(op.success,undefined,'one position cannot scatter the sector');
   for(let point=1;point<3;point++){for(const e of crew)Object.assign(e,{x:op.point.x,z:op.point.z});for(let i=0;i<400;i++)g.sweep.tick();}assert.equal(op.success,true);
   assert.equal(survivor.deployment.scattered?.phase,'Withdrawing');assert.equal(heroCrew.deployment.scattered,undefined,'hero group never scattered');
+  const result=g.state.news.find(n=>n.kind==='sweepSuccess');
+  assert.equal(result.ryo,op.reward,'success alert reports actual awarded amount');
+  assert.equal(result.scattered,op.scattered.length,'success alert reports actual scattered crew');
   assert.equal(g.deployment.canAssign(rival,[survivor.id],'home').ok,false,'recovery cannot be bypassed by transfer');
   assert.equal(g.deployment.canActAt(survivor,far.x,far.z,'street'),false,'retreating crew cannot attack');
   const start={x:survivor.x,z:survivor.z};let reached=false,recoveryAt;
