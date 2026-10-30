@@ -111,7 +111,7 @@ Added at Tim’s request (2026-10-29). After the current Geisha/status-label fol
 - [x] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
 - [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
 
-- [ ] **Next: Edit layout side-handle resizing (Tim 2026-10-30, not built):** drag a panel's left or right edge to change its width, or its top edge to change its height, so panels can be any rectangle. Plan: edge handles plus a per-panel "free" or "uniform" flag. Free: text and list panels (crew frame, selection and building panels, contract, notices, tooltips). Uniform corner scale stays for the ryo circle, minimap, heat gauge and icon menu. Width and height saved with position. One checkpoint, no gameplay changes.
+- [x] **Edit layout side-handle resizing (Tim 2026-10-30; built 2026-10-30, awaiting Tim's in-browser check):** UNIFORM panels (ryo, minimap, heat, utilitymenu, stealth, raidalarm) stay corner-only; Cancel and Reset restore defaults; `hud_layout.js`, `command_ui.css`, test `test_hud_drag.mjs`. drag a panel's left or right edge to change its width, or its top edge to change its height, so panels can be any rectangle. Plan: edge handles plus a per-panel "free" or "uniform" flag. Free: text and list panels (crew frame, selection and building panels, contract, notices, tooltips). Uniform corner scale stays for the ryo circle, minimap, heat gauge and icon menu. Width and height saved with position. One checkpoint, no gameplay changes.
 - [x] **Ninja leader effects stronger (Tim 2026-10-30):** `render/weapon_shadow.js` (MAX_MOTES 44, faster shedding, width .009, fade .68) and `weapon_glow.json` `ninjato_hero` strength 0.75. New smoke trail: the leader sheds dark smoke curls while moving (steady when running, lighter when walking, none idle). First pass, not checked in the browser yet.
 
 ### Agreed fix list (Tim, 2026-10-30; section 1 implemented/Node-checked)
@@ -221,7 +221,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 
 ## Handoff status (2026-10-30, for ChatGPT or the next session)
 
-- Next build: Edit layout side-handle resizing (top of phase 8).
+- Check in the browser: Edit layout side-handle resizing (built, top of phase 8).
 - First: playtest the stronger ninja leader effects and the new smoke trail (first pass, not browser-checked; top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
 - **Next step: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.

@@ -59,3 +59,20 @@ try {
  layout.reset();assert.equal(target.style.left,'','Reset restores defaults');
  console.log('Edit layout: enrollment, drag, captured release, lost release, resize, blur, Cancel, Done and Reset passed');
 } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
+// side handles (2026-10-30): free panels get edges that set width / height; Cancel drops them
+{
+ const win=new Element(),target=new Element('utarget'),body=new Element();body.children.push(target);
+ globalThis.document={body,getElementById:id=>id==='utarget'?target:null,createElement:()=>new Element()};
+ globalThis.localStorage={getItem:()=>null,setItem(){}};globalThis.fetch=async()=>({ok:true});
+ globalThis.addEventListener=(...args)=>win.addEventListener(...args);globalThis.ResizeObserver=class{observe(){}};
+ globalThis.innerWidth=1200;globalThis.innerHeight=900;
+ const layout=createHudLayout({fromFile:{}}),layer=body.children[1];
+ const handle=layer.children.find(c=>c.className==='layout-handle'),right=handle.children.find(c=>c.dataset?.edge==='r');
+ assert.ok(right,'free panels have side handles');
+ const fire=(node,type,extra={})=>{const e={button:0,buttons:1,clientX:120,clientY:120,target:node,...extra,preventDefault(){},stopPropagation(){}};for(const h of (node.handlers[type]||[]))h.fn(e);for(const h of (win.handlers[type]||[]))h.fn(e);};
+ layout.begin();fire(handle,'mousedown',{target:right});fire(win,'mousemove',{clientX:180});
+ assert.equal(target.style.width,'160px','dragging the right edge widens the panel');
+ layout.cancel();assert.equal(target.style.width,'','Cancel drops the new width');
+ for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}
+ console.log('Edit layout side handles passed');
+}

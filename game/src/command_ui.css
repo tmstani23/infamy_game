@@ -37,4 +37,10 @@
 #hudlayout .layout-handle {position:fixed;box-sizing:border-box;outline:2px dashed #e4bc6c;background:#86bbd419;cursor:move;min-width:30px;min-height:24px;}
 #hudlayout .layout-handle span {position:absolute;top:0;left:0;padding:3px 6px;background:#122433ed;color:#ffe2a2;font:600 12px system-ui;pointer-events:none;}
 #hudlayout .layout-handle:focus-visible {outline:3px solid #fff0aa;}
+#hudlayout .layout-edge {position:absolute;background:#e9c37b55;}
+#hudlayout .layout-edge:hover {background:#e9c37bcc;}
+#hudlayout .layout-edge-l,#hudlayout .layout-edge-r {top:24px;bottom:24px;width:8px;cursor:ew-resize;}
+#hudlayout .layout-edge-l {left:-4px;} #hudlayout .layout-edge-r {right:-4px;}
+#hudlayout .layout-edge-t,#hudlayout .layout-edge-b {left:24px;right:24px;height:8px;cursor:ns-resize;}
+#hudlayout .layout-edge-t {top:-4px;} #hudlayout .layout-edge-b {bottom:-4px;}
 #hudlayout .layout-resize {position:absolute;right:0;bottom:0;width:23px;height:23px;padding:0;background:#e9c37b;color:#15202b;border:0;cursor:nwse-resize;}

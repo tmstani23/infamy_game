@@ -1,6 +1,8 @@
 // Shared UI layout registry and transactional editor. Game rules remain running.
 export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel'];
-const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position'];
+const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','minHeight'];
+// fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
+const UNIFORM=new Set(['ryo','minimap','heat','utilitymenu','stealth','raidalarm']);
 const STRUCTURAL=new Set(['view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','characterpage','controls','results']);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clone=v=>JSON.parse(JSON.stringify(v));
@@ -20,20 +22,24 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   if(p.el.classList.contains('hud-docked'))return;
   const L=saved[p.id];
   if(!L){Object.assign(p.el.style,p.defaults);p.el.dataset.layoutPinned='false';p.applied=signature(p.el);return;}
+  p.el.style.width=L.w?`${L.w}px`:p.defaults.width;p.el.style.minHeight=L.h?`${L.h}px`:p.defaults.minHeight;
   const [w,h]=dimensions(p),s=clamp(Number(L.s)||1,.5,2.5);
   const x=clamp(L.ax==='l'?L.dx:innerWidth-L.dx-w*s,0,Math.max(0,innerWidth-w*s));
   const y=clamp(L.ay==='t'?L.dy:innerHeight-L.dy-h*s,0,Math.max(0,innerHeight-h*s));
   Object.assign(p.el.style,{position:'fixed',left:`${x-w*(1-s)/2}px`,top:`${y-h*(1-s)/2}px`,right:'auto',bottom:'auto',transform:'none',scale:String(s)});
   p.el.dataset.layoutPinned='true';p.applied=signature(p.el);
  }
- function keep(p,x,y,s){const [w,h]=dimensions(p);s=clamp(s,.5,2.5);x=clamp(x,0,Math.max(0,innerWidth-w*s));y=clamp(y,0,Math.max(0,innerHeight-h*s));const ax=x+w*s/2<innerWidth/2?'l':'r',ay=y+h*s/2<innerHeight/2?'t':'b';saved[p.id]={ax,ay,dx:Math.round(ax==='l'?x:innerWidth-x-w*s),dy:Math.round(ay==='t'?y:innerHeight-y-h*s),s:+s.toFixed(3)};place(p);}
+ function keep(p,x,y,s){const [w,h]=dimensions(p);s=clamp(s,.5,2.5);x=clamp(x,0,Math.max(0,innerWidth-w*s));y=clamp(y,0,Math.max(0,innerHeight-h*s));const ax=x+w*s/2<innerWidth/2?'l':'r',ay=y+h*s/2<innerHeight/2?'t':'b';const o=saved[p.id]||{};saved[p.id]={...(o.w?{w:o.w}:{}),...(o.h?{h:o.h}:{}),ax,ay,dx:Math.round(ax==='l'?x:innerWidth-x-w*s),dy:Math.round(ay==='t'?y:innerHeight-y-h*s),s:+s.toFixed(3)};place(p);}
  function register(el,id=el?.id,label=el?.dataset?.layoutLabel||id){
   if(!el||!id||panels.has(id)||el===layer||el===toolbar)return;
   const p={id,el,name:label,defaults:Object.fromEntries(PROPS.map(k=>[k,el.style[k]||'']))};panels.set(id,p);
   const handle=document.createElement('div');handle.className='layout-handle';handle.tabIndex=0;handle.setAttribute('role','button');handle.setAttribute('aria-label',`Move or resize ${label}`);
   const title=document.createElement('span');title.textContent=label;handle.appendChild(title);
-  const grip=document.createElement('button');grip.type='button';grip.className='layout-resize';grip.textContent='◢';grip.setAttribute('aria-label',`Resize ${label}`);handle.appendChild(grip);layer.appendChild(handle);p.handle=handle;
-  handle.addEventListener('mousedown',e=>{if(!editing||e.button!==0)return;e.preventDefault();e.stopPropagation();drag={p,x:e.clientX,y:e.clientY,rect:{...p.rect},s:saved[id]?.s||1,resize:e.target===grip};});
+  const grip=document.createElement('button');grip.type='button';grip.className='layout-resize';grip.textContent='◢';grip.setAttribute('aria-label',`Resize ${label}`);handle.appendChild(grip);
+  if(UNIFORM.has(id))grip.title='Keeps its shape: drag to scale';
+  else for(const side of ['l','r','t','b']){const edge=document.createElement('div');edge.className=`layout-edge layout-edge-${side}`;edge.dataset.edge=side;handle.appendChild(edge);}
+  layer.appendChild(handle);p.handle=handle;
+  handle.addEventListener('mousedown',e=>{if(!editing||e.button!==0)return;e.preventDefault();e.stopPropagation();drag={p,x:e.clientX,y:e.clientY,rect:{...p.rect},s:saved[id]?.s||1,resize:e.target===grip,edge:e.target?.dataset?.edge};});
   handle.addEventListener('keydown',e=>{if(!editing)return;const r=p.rect,step=e.shiftKey?10:1,delta={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.code];if(delta){e.preventDefault();keep(p,r.left+delta[0],r.top+delta[1],saved[id]?.s||1);}else if(['+','=','-'].includes(e.key)){e.preventDefault();keep(p,r.left,r.top,(saved[id]?.s||1)+(e.key==='-'?-.05:.05));}update();});
   if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(saved[id])place(p);}).observe(el);
   if(saved[id])place(p);
@@ -64,7 +70,13 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  function begin(){if(editing)return;before=clone(saved);editing=true;layer.hidden=false;onBegin();update();actions.done.focus();}
  function reset(){saved={};for(const p of panels.values())place(p);if(!editing)store(saved);update();}
  actions.done.addEventListener('click',()=>finish(true));actions.cancel.addEventListener('click',()=>finish(false));actions.reset.addEventListener('click',reset);
- addEventListener('mousemove',e=>{if(!drag||!editing)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max((r.width+dx)/r.width,(r.height+dy)/r.height):s);update();});
+ addEventListener('mousemove',e=>{if(!drag||!editing)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(edge){   // side handle: change width or height, the opposite side stays put
+   const horiz=edge==='l'||edge==='r',size=clamp((horiz?r.width+(edge==='l'?-dx:dx):r.height+(edge==='t'?-dy:dy))/s,40,(horiz?innerWidth:innerHeight)/s);
+   const x=edge==='l'?r.left+r.width-size*s:r.left,y=edge==='t'?r.top+r.height-size*s:r.top;
+   if(horiz)p.el.style.width=`${size}px`;else p.el.style.minHeight=`${size}px`;
+   keep(p,x,y,s);saved[p.id][horiz?'w':'h']=Math.round(size);place(p);update();return;
+  }keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max((r.width+dx)/r.width,(r.height+dy)/r.height):s);update();});
  addEventListener('mouseup',()=>{drag=null;},{capture:true});addEventListener('blur',()=>{drag=null;});
  addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id])place(p);update();});
  layer.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();finish(false);}if(e.code==='Tab'){const stops=[...layer.querySelectorAll('button,[tabindex="0"]')],first=stops[0],last=stops.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
