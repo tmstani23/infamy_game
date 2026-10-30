@@ -32,6 +32,13 @@ export function createRyoBadge({ root, game, heroId }) {
     </svg><b class="num">0</b><i class="lvl">RYO</i>`;
   const num = root.querySelector('.num');
   let shown = null, live = [];
+  let observedTick = null, pending = [];
+  function observe() {
+    if (observedTick === game.state.tick) return;
+    observedTick = game.state.tick;
+    const clan = game.state.entities[heroId]?.owner;
+    pending.push(...rewardPopups(game.state, clan));
+  }
 
   // one notice per gain; several at once stack upward instead of overlapping
   function notify(g) {
@@ -58,7 +65,8 @@ export function createRyoBadge({ root, game, heroId }) {
   function update() {
     const clan = game.state.clans?.[game.state.entities[heroId]?.owner];
     if (!clan) return;
-    const gains = rewardPopups(game.state, clan.id);
+    observe();
+    const gains = pending; pending = [];
     for (const g of gains) notify(g);
     if (gains.some(g => g.amount > 0 || g.renown > 0)) { root.classList.remove('flare'); void root.offsetWidth; root.classList.add('flare'); }
     const title = `Treasury · recent spending and losses\n${treasuryHistory(game.state, clan) || 'No spending or losses yet'}`;
@@ -67,5 +75,5 @@ export function createRyoBadge({ root, game, heroId }) {
     shown = shown === null || ryo < shown ? ryo : Math.min(ryo, shown + Math.max(1, Math.ceil((ryo - shown) * 0.15)));
     num.textContent = shown;
   }
-  return { update };
+  return { update, observe };
 }

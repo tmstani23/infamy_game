@@ -66,22 +66,22 @@ const enemyOwner = Object.keys(st.clans).find(c => c !== 'player');
 const enemy = st.entities[game.spawn('thug', 'thug', hero.x + 3, hero.z, { owner: enemyOwner })];
 const secret = enemy.deployment;
 Object.defineProperty(enemy, 'deployment', { configurable: true, get() { throw Error('Rival deployment data must never be queried'); } });
-let snapshot = data.update();
+let snapshot = data.update(true, true);
 assert.ok(snapshot.contacts.some(c => c.id === enemy.id && c.live));
 assert.ok(!('deployment' in snapshot.contacts.find(c => c.id === enemy.id)));
-st.tick++; enemy.x += 1; snapshot = data.update();
+st.tick++; enemy.x += 1; snapshot = data.update(true, true);
 const seen = snapshot.contacts.find(c => c.id === enemy.id);
 assert.deepEqual(seen.direction, { x: 1, z: 0 });
 enemy.hidden = true; enemy.x += 40; st.tick++;
 const hidden = st.entities[game.spawn('thug', 'thug', hero.x + 2, hero.z, { owner: enemyOwner, hidden: true })];
-snapshot = data.update();
+snapshot = data.update(true, true);
 assert.ok(!snapshot.contacts.some(c => c.id === hidden.id), 'unseen hidden enemies never create contacts');
 const lost = snapshot.contacts.find(c => c.id === enemy.id);
 assert.equal(lost.live, false); assert.equal(lost.x, seen.x, 'last-known marker never follows hidden movement');
 enemy.dead = true; st.tick++;
-assert.ok(data.update().contacts.some(c => c.id === enemy.id), 'unseen death does not secretly remove the last-known marker');
+assert.ok(data.update(true, true).contacts.some(c => c.id === enemy.id), 'unseen death does not secretly remove the last-known marker');
 st.tick = seen.seenAt + LAST_KNOWN_TICKS;
-assert.ok(!data.update().contacts.some(c => c.id === enemy.id), 'last-known contact expires after ten seconds');
+assert.ok(!data.update(true, true).contacts.some(c => c.id === enemy.id), 'last-known contact expires after ten seconds');
 Object.defineProperty(enemy, 'deployment', { configurable: true, value: secret, writable: true });
 
 // Own assignments, reservations, health and interior locations remain available
@@ -94,7 +94,7 @@ incoming.deployment.transfer = { to: s.id, status: 'blocked', target: { place: r
 const visibleEnemy = st.entities[game.spawn('thug', 'thug', room.ring[0], room.ring[1], { owner: enemyOwner })];
 const eye = st.entities[game.spawn('ninja', 'ninja', room.ring[0], room.ring[1], { owner: 'player', deployment: { group: s.id } })];
 hero.downed = true; st.tick++;
-snapshot = data.update();
+snapshot = data.update(true, true);
 const sector = snapshot.sectors.find(x => x.id === s.id);
 assert.equal(sector.count, 3); assert.equal(sector.incoming, 1); assert.equal(sector.status, 'Transfer blocked');
 assert.ok(sector.hp < sector.maxHp);
@@ -102,7 +102,7 @@ assert.ok(sector.presence.some(c => c.owner === 'player') && sector.presence.som
 assert.ok(!('owner' in sector), 'geographic sectors have shared presence, never exclusive ownership');
 assert.deepEqual(snapshot.transfers[0].to, { x: room.ring[0], z: room.ring[1] }, 'interior transfer marker uses the public entrance');
 assert.equal(snapshot.own.find(e => e.id === crew.id).x, room.ring[0], 'own interior crew marker uses the entrance, not remote room coordinates');
-const before = JSON.stringify(st); data.update();
+const before = JSON.stringify(st); data.update(true, true);
 assert.equal(JSON.stringify(st), before, 'map data queries issue no commands or sim mutations');
 assert.ok(snapshot.contacts.some(c => c.id === visibleEnemy.id && c.live));
 

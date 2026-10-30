@@ -139,7 +139,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     button.textContent=first?'Deployment · choose first zone':'Deployment';button.classList.toggle('needs-zone',first);
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
     $('.first-zone').hidden=!first;
-    const st=game.state, selected=new Set(chosen()), signature=`${Math.floor(st.tick/2)}:${config().feedback?.sequence}:${focus}:${[...selected].join(',')}`;
+    const st=game.state, selected=new Set(chosen()), signature=`${Math.floor(st.tick/10)}:${config().feedback?.sequence}:${focus}:${[...selected].join(',')}`;
     if(!force&&lastRefresh===signature)return;lastRefresh=signature;
     $('.view-crew').disabled=![...selected].some(id=>{const e=st.entities[id];return e&&!e.dead&&!e.jailed;});
     const selectedGroups=new Set([...selected].map(id=>st.entities[id]?.deployment.group));

@@ -1,3 +1,4 @@
+import { createFixedStepClock } from './fixed_step_clock.js';
 import { createStealthBadge } from './stealth_badge.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
@@ -353,23 +354,40 @@ async function start() {
     suspend(){document.body.classList.add('map-active');view.setPresentationActive(false);},
     resume(){document.body.classList.remove('map-active');prev=snapshot(game.state);view.setPresentationActive(true);fog.update(100);}
   });
-  if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),worldResources:{...view.renderer.info.memory}});
+  const clock = createFixedStepClock({ tick });
+  if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
   const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults });
   const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, scoreText });
-  let acc = 0, last = performance.now() / 1000;
+  let last = performance.now() / 1000, labelTick = -Infinity, lostCops = false;
+  function observeRaidAlarms() {
+    const a = raidOnMe();
+    if (a) { const key = `${a.business}:${a.opensAt}`; if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); } }
+    const mine = Object.values(game.state.attacks || {}).find(r => r.clan === game.state.entities[heroId]?.owner && r.knock);
+    if (mine) { const key = `knock:${mine.business}:${mine.opensAt}`; if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); } }
+  }
   view.renderer.setAnimationLoop(() => {
     fps.frame();
     presentation.sync(gameMap.isOpen());
     const now = performance.now() / 1000;
-    const dt = Math.min(now - last, 0.1);
-    last = now;
-    if (!paused) acc += dt;
-    while (acc >= tick) {
+    const dt = Math.max(0, Math.min(now - last, 1.0));
+    const elapsed = now - last; last = now;
+    clock.advance(elapsed, () => {
       if(!presentation.map)prev = snapshot(game.state);
       game.step([moveCommand(heroId), ...pending.splice(0), ...(bot ? bot.tick() : [])]);
       gameMap.observe();
-      if (game.state.night !== view.isNight()) { view.toggleNight(); label(); }
-      else if (game.state.tick % TICK_RATE === 0) label();   // the clock's countdown
+      observeRaidAlarms();
+      if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) lostCops = true;
+      // big moments (Tim 2026-10-19): a rival boss knocked out or arrested where you can see him,
+      // and a War Lantern knocked down in a raid you are in; shown one after another at the top
+      newsCallouts.update();
+      if (!presentation.map && game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
+      if (!presentation.map && game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
+      if (!presentation.map && game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
+      sound.update(game.state, view.audioFocus(game.state, heroId, crewInput.selected()));
+      topBar.observe();
+    }, paused);
+    if (game.state.night !== view.isNight()) { view.toggleNight(); label(); labelTick = game.state.tick; }
+    else if (game.state.tick - labelTick >= TICK_RATE) { label(); labelTick = game.state.tick; }
       // your attack on a business (sim/businesses.js): waves left, then the hold timer
       {
         const a = Object.values(game.state.attacks || {}).find(a => a.clan === game.state.entities[heroId]?.owner && a.phase !== 'over'), bar = $('attackbar');
@@ -411,8 +429,6 @@ async function start() {
         const a = raidOnMe(), el = $('raidalarm');
         el.hidden = !a;
         if (a) {
-          const key = `${a.business}:${a.opensAt}`;
-          if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); }
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
           const s = Math.ceil((a.phase === 'warmup' ? a.opensAt - game.state.tick : a.holdLeft) / TICK_RATE);
           const b = `Your ${where} is being raided!`, t = a.phase === 'warmup' ? `${who} planted a War Lantern · doors open in ${s} s`
@@ -432,25 +448,15 @@ async function start() {
           const txt = k === foe ? `${who} is knocking down your War Lantern · click to target` : 'Knocking down the War Lantern';
           if (kb.querySelector('span').textContent !== txt) kb.querySelector('span').textContent = txt;
           kb.dataset.by = k.by;
-          const key = `knock:${mine?.business}:${mine?.opensAt}`;
-          if (k === foe && !alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); }
         }
       }
       { const n = game.state.clans.player?.lanterns || 0, el = $('lanterns'); el.hidden = !n; el.textContent = `War Lantern ${n}`; }
       { const c = game.state.clans.player, el = $('renown'), t = `Renown ${c?.renown || 0}`; el.hidden = c?.kind !== 'ninja'; if (el.textContent !== t) el.textContent = t; }
-      // the hunters lost your boss (sim/police.js): a short notice at the top
-      if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) {
-        const el = $('lostcops');
-        el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-      }
-      // big moments (Tim 2026-10-19): a rival boss knocked out or arrested where you can see him,
-      // and a War Lantern knocked down in a raid you are in; shown one after another at the top
-      newsCallouts.update();
-      if (!presentation.map && game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
-      if (!presentation.map && game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
-      if (!presentation.map && game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
-      sound.update(game.state, view.audioFocus(game.state, heroId, crewInput.selected()));
-      acc -= tick;
+    if (lostCops) {
+      lostCops = false;
+      const el = $('lostcops');
+      el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    }
       const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
       const shut = door?.to && game.businesses.entryStatus(game.state.entities[heroId], door.place);
       const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
@@ -472,7 +478,6 @@ async function start() {
       unitFrames.update();
       bldPanel.update();
       interiorInfo.update();
-    }
     if(!presentation.map){
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
@@ -481,7 +486,7 @@ async function start() {
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);
-    presentation.measure('world',()=>view.render(fog.seen(game.state), prev, acc / tick, dt, now, heroId));
+    presentation.measure('world',()=>view.render(fog.seen(game.state), prev, clock.alpha(), dt, now, heroId));
     crewInput.drawMarkers($('lock'));
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
     { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];
@@ -493,7 +498,7 @@ async function start() {
       $('snuffhint').hidden=true;
       presentation.measure('map',()=>gameMap.update());
     }
-    if(!presentation.map){bar.update(game.state.tick - 1 + acc / tick);crewBar.update();}
+    if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
     hudLayout.update();
   });

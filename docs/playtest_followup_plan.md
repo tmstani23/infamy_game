@@ -111,9 +111,9 @@ Added at Tim’s request (2026-10-29). After the current Geisha/status-label fol
 - [x] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
 - [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
 
-### Agreed fix list (Tim, 2026-10-30; not built)
+### Agreed fix list (Tim, 2026-10-30; section 1 implemented/Node-checked)
 
-For whoever builds next (Claude or ChatGPT). Nothing below is built yet. Repo rules still apply: all game rules in game/src/sim; every new control goes in the Controls panel; Node tests only (copy .js to .mjs for `node --check`); Tim playtests; commit after each checkpoint.
+For whoever builds next (Claude or ChatGPT). Section 1 is implemented/Node-checked; sections 2–4 are not started at this checkpoint. Repo rules still apply: all game rules in game/src/sim; every new control goes in the Controls panel; Node tests only (copy .js to .mjs for `node --check`); Tim playtests; commit after each checkpoint.
 Causes: project file `phase8/playtest_review.md`. Balance decisions also live in `business_raids_plan.md`, `ninja_clan_plan.md` and `leader_balance.md`.
 
 #### 1. Real-time sim + map/Deployment lag (do first)
@@ -121,15 +121,19 @@ Causes: project file `phase8/playtest_review.md`. Balance decisions also live in
 Goal (Tim): screen lag must never slow the game. Timers (jail, raids, contracts) follow real time.
 
 - **Cause:** `src/main.js` loop: `dt = Math.min(now - last, 0.1)`. When the map or Deployment screen drops below ~10 fps, the sim runs slower than real time.
-- [ ] **Fix A, real-time loop:** keep the fixed 20 Hz step and allow catch-up: `dt = Math.min(now - last, 1.0)`, with at most ~10 steps per frame. If more is owed, drop the remainder (only in extreme stalls; log a counter in dev). A hidden tab is paused by the browser; the 1 s cap stops a huge catch-up when you come back.
-- [ ] **Fix B, move UI out of the tick loop:** inside `while (acc >= tick)` keep only `game.step`, `gameMap.observe`, the news, hits and casts hand-off (news must still be read every tick) and `sound.update`. Move the prompt, stealthBadge, characterPanel, hire/clinic/police/contract menus, deploymentPanel, topBar, crewInput, selPanel, unitFrames, bldPanel and interiorInfo updates to once per frame after the loop. Otherwise catch-up frames run all the UI several times and make the lag worse.
-- [ ] **Fix C, cheaper map:** `src/deployment_map_data.js update()`: build a `room -> business` Map once per tick (location() now scans all businesses per unit), and loop crew once, bucketed by sector, instead of per sector. Tim (2026-10-30): "the map doesn't need to update very often, it should be snappy". Refresh the map unit data and the Deployment panel about twice a second (every 10 ticks). Redraw the map canvas only when that data changes, or right away on the player's own input (pan, zoom, hover, clicks, layer toggles), so the map responds instantly but sits idle otherwise.
+- [x] **Fix A, real-time loop:** keep the fixed 20 Hz step and allow catch-up: `dt = Math.min(now - last, 1.0)`, with at most ~10 steps per frame. If more is owed, drop the remainder (only in extreme stalls; log a counter in dev). A hidden tab is paused by the browser; the 1 s cap stops a huge catch-up when you come back.
+- [x] **Fix B, move UI out of the tick loop:** inside `while (acc >= tick)` keep only `game.step`, `gameMap.observe`, the news, hits and casts hand-off (news must still be read every tick) and `sound.update`. Move the prompt, stealthBadge, characterPanel, hire/clinic/police/contract menus, deploymentPanel, topBar, crewInput, selPanel, unitFrames, bldPanel and interiorInfo updates to once per frame after the loop. Otherwise catch-up frames run all the UI several times and make the lag worse.
+- [x] **Fix C, cheaper map:** `src/deployment_map_data.js update()`: build a `room -> business` Map once per tick (location() now scans all businesses per unit), and loop crew once, bucketed by sector, instead of per sector. Tim (2026-10-30): "the map doesn't need to update very often, it should be snappy". Refresh the map unit data and the Deployment panel about twice a second (every 10 ticks). Redraw the map canvas only when that data changes, or right away on the player's own input (pan, zoom, hover, clicks, layer toggles), so the map responds instantly but sits idle otherwise.
 - **Devil's advocate / risks:**
   1. Catch-up costs CPU on a slow frame and can spiral. Hence the step cap, and B and C to keep frames cheap.
   2. At about 2 Hz, unit dots on the big map move in small jumps. Fine for a strategy map; interpolate later if needed.
   3. Not measured in a browser yet. Before and after, Tim can run `infamy.mapPerformance()` in the console (dev) or a 10 s Firefox profile to confirm where the time goes.
   4. Callouts and pings must not be throttled: they read each tick's `state.news`, which is only kept for one tick.
   5. Multiplayer later: the server runs the sim at real time regardless; this keeps single-player the same.
+
+Section 1 checkpoint (2026-10-29): implemented/Node-checked. `fixed_step_clock.js` keeps 20 Hz, caps elapsed time at one second and catch-up at ten steps/frame; excess whole ticks are discarded with fractional interpolation retained, pause creates no debt, and DEV clock counters appear in `infamy.mapPerformance().clock`. Tick-level contacts/news/pings/callouts/FX/audio/police/badge events remain captured every step; UI paints run once/frame. Badge observation queues retain intermediate-tick events without replay on zero-tick frames; scores use elapsed-tick intervals. Map room index is once/tick, crew bucketed once/snapshot; snapshots and Deployment refresh at 2 Hz with immediate input/feedback invalidation. Big canvas skips idle draws and invalidates for data/input/ping/resize; small minimap cadence remains.
+
+Coordinator reports passing `test_realtime_loop` (2–60 FPS elapsed-time equivalence, bounds/stall/pause/interpolation, per-tick/frame wiring, cached scans/receipts, real canvas invalidation, retained/nonduplicated badges), `test_map_performance`, `test_deployment_map`, `test_deployment_panel_flow`, `test_game_shell`, `test_reward_popups`; nine-module syntax and scoped diff checks passed. **Manual browser smoothness/FPS/RAM validation remains pending**; no browser/screenshot automation or measured live FPS/RAM claim. Extreme-stall dropping is intentional; the bounded catch-up cannot preserve all elapsed time in extreme stalls. Section 2 not started; other section and overall manual-confirmation checkboxes remain unchecked.
 
 #### 2. Bugs
 

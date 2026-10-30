@@ -42,7 +42,9 @@ export function createHeatBadge({ root, game, heroId }) {
   function update() {
     const clan = game.state.clans?.[game.state.entities[heroId]?.owner];
     if (!clan) return;
-    for (const g of game.state.heatGains || []) if (g.clan === clan.id) notify(g);
+    observe();
+    const gains = pending; pending = [];
+    for (const g of gains) notify(g);
     const heat = Math.round(clan.heat || 0), k = Math.min(1, heat / 100);
     if (heat === last) return;
     if (last !== null && heat !== last) {
@@ -58,5 +60,12 @@ export function createHeatBadge({ root, game, heroId }) {
     root.style.setProperty('--k', k.toFixed(3));
     root.classList.toggle('infamous', level === 'INFAMOUS');
   }
-  return { update };
+  let observedTick = null, pending = [];
+  function observe() {
+    if (observedTick === game.state.tick) return;
+    observedTick = game.state.tick;
+    const clan = game.state.entities[heroId]?.owner;
+    pending.push(...(game.state.heatGains || []).filter(g => g.clan === clan));
+  }
+  return { update, observe };
 }

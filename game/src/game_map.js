@@ -39,7 +39,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     b.type = 'button'; b.textContent = label;
     b.addEventListener('click', e => {
       layers[k] = !layers[k];
-      syncLayers(); tip.hidden = true; e.currentTarget.blur(); deploymentData.update(); map?.draw(); drawSide();
+      syncLayers(); tip.hidden = true; e.currentTarget.blur(); deploymentData.update(true, true); map?.draw(); drawSide();
     });
     bar.appendChild(b); layerButtons.set(k, b);
   }
@@ -210,7 +210,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
   const isOpen = () => !root.hidden;
   function open() {
     root.hidden = false;
-    deploymentData.update();
+    deploymentData.update(true, true);
     if (!map) {
       // made on first open, when the canvas has its size on screen
       map = createMinimap({ canvas, game, district, view, fog, heroId, clan, selected, send, big: true, layers, onHover: hover, onPick: close, overlay });
@@ -220,12 +220,13 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
   function close() { root.hidden = true; tip.hidden = true; pointPicker = null; destinationPicker=null; }
   const toggle = () => (isOpen() ? close() : open());
 
-  let frame = 0;
+  let shownData = null;
   function update() {
     if (!isOpen() || !map) return;
-    deploymentData.update();
-    map.update();
-    if (frame++ % 6 === 0) drawSide();
+    const data = deploymentData.update();
+    const changed = data !== shownData;
+    map.update(changed);
+    if (changed) { shownData = data; drawSide(); }
   }
   // Deployment menu docked on the right of the map: Sectors on, the map's own sector list hidden
   function dock(on, sector) {
