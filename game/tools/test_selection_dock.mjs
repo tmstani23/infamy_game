@@ -1,3 +1,4 @@
+import {createSelectionPanel} from '../src/selection_panel.js';
 import assert from 'node:assert/strict';
 import {createSelectionDock} from '../src/selection_dock.js';
 import {createUnitFrames} from '../src/unit_frames.js';
@@ -46,5 +47,12 @@ try{
  assert.equal(card.querySelector('.hp span').textContent,'40 / 80');assert.equal(card.querySelector('i').textContent,'Transferring → West Ward','live transfer destination belongs to inspected crew');
  assert.equal(card.hidden,false,'own crew remains inspectable while traveling inside another room');
  frames.clearInspection();assert.match(card.title,/Rival clan/,'closing map restores the normal enemy target context');
+ const list=new FrameElement(),selection=createSelectionPanel({root:list,game,units:{types:{hero:{name:'Hero'},ninja:{name:'Ninja'}}},catalog:{},crewInput:input,hideOwnedBy:()=>h.owner});
+ selected=['n'];selection.update();assert.equal(list.hidden,true,'own crew no longer duplicate the Crew frame');assert.equal(list.children.length,0,'hidden cards are not built');
+ selected=['h','n'];selection.update();assert.equal(list.hidden,true,'group selection remains hidden');
+ game.state.clans.p.id='p';game.state.clans.p.jail=[{id:'j1',unit:'ninja',bail:90}];selected=['j1'];selection.update();assert.equal(list.hidden,true,'own jail records also use Crew frame details');
+ selected=['r'];selection.update();assert.equal(list.hidden,false,'enemy inspection is preserved');
+ game.state.entities.town={...r,id:'town',type:'civilian',owner:null};selected=['town'];selection.update();assert.equal(list.hidden,false,'civilian inspection is preserved');
+ console.log('Crew frame replaces own selection list, including prisoners, while enemy and civilian inspection remain available');
 }finally{globalThis.document=previousDocument;}
 console.log('Selection docking: map/deployment moves reuse live cards, stable nodes, visibility, original HUD order and saved styles passed');

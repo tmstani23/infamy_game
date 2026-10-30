@@ -43,7 +43,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const row = el('div', 'row', root);
   const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', crewRoot || row);
-  const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput,send,watchGroup});
+  const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput,send,watchGroup,where});
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
     if (!id || !crewInput || e.button !== 0) return;
