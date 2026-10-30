@@ -141,9 +141,9 @@ Startup Node sample (100 measured ticks after twenty warm-up; real district/sett
 
 Coordinator reports passing updated realtime-loop (100 invalidations → one paint, hover without repaint), deployment-map (selection/time reuse, zoom invalidation, one canvas), panel-flow (transfer paths, focus-flash cancellation/summary) and map-performance checks; four changed-JS syntax/scoped diff checks passed. **Manual browser smoothness/visual confirmation remains pending.** Other phase 8 sections remain unstarted.
 
-##### Separate subphase: authoritative simulation worker (unbuilt)
+##### Separate subphase: authoritative simulation worker (deferred exploratory idea)
 
-Plan recorded at Tim’s request (2026-10-29); **implementation is not authorized to start by this note**. Preserve completed A–C and selection follow-up. Goal: responsive map/deployment input and local highlights during heavy combat while sim/AI continue normally and map-open world rendering stays suspended. Caching alone cannot isolate main-thread simulation stalls. [Architecture boundary](architecture.md#proposed-authoritative-simulation-worker-unbuilt).
+Status revised at Tim’s request (2026-10-29): **deferred exploratory idea only; no implementation scheduled or approved**. Current active task is diagnosis only, with no further gameplay/architecture/UI changes. First identify the primary lag source. Tim’s proposed manual comparisons: map clicks versus zone tabs; repeat while paused; then disable Sectors layer and use zone tabs. Browser/layout/GPU bottleneck remains unconfirmed; earlier startup Node AI timing cannot establish the primary cause. Revisit worker scope only if profiling demonstrates main-thread simulation blocking input. Preserve completed A–C and selection follow-up. Goal: responsive map/deployment input and local highlights during heavy combat while sim/AI continue normally and map-open world rendering stays suspended. Caching alone cannot isolate main-thread simulation stalls. [Architecture boundary](architecture.md#proposed-authoritative-simulation-worker-unbuilt).
 
 - [ ] **1. Interface and baseline:** inventory UI’s direct sim-helper/state dependencies; separate a read-only presentation/query interface. Measure representative heavy-combat input latency and snapshot cost; agree measured acceptance targets, not absolute responsiveness promises on saturated hardware. Specify worker startup/runtime failure behavior explicitly before implementation.
 - [ ] **2. Authority and lifecycle:** move one authoritative fixed-20-Hz simulation and all AI to a local-play Web Worker. Handle startup/config/test parameters, pause and lifecycle. Use the same command protocol suitable for a future authoritative multiplayer server; no duplicate mutable simulations or gameplay changes.
@@ -151,7 +151,7 @@ Plan recorded at Tim’s request (2026-10-29); **implementation is not authorize
 - [ ] **4. Main-thread presentation:** retain cached UI with immediate zone/highlight/input feedback. Requests carry IDs and receive authoritative accept/reject receipts; pending never means accepted. World view consumes latest snapshots/interpolation and resumes cleanly on map close.
 - [ ] **5. Verification:** focused Node coverage for command ordering, stale snapshots/backpressure, transient-event retention, worker lifecycle/pause, deterministic sim parity and existing deployment flows. Tim manually browser-tests heavy combat plus rapid zone switching, command latency, snapshot cost and memory against agreed targets before any smoothness claim.
 
-All worker checkpoints remain unchecked/unbuilt. Sections 2–4 retain their existing scope/status; this plan adds no gameplay or runtime code.
+All worker checkpoints remain unchecked/unbuilt possible future scope, gated on profiling evidence; they are not a scheduled subphase. Sections 2–4 retain their existing scope/status; this plan adds no gameplay or runtime code.
 
 #### 2. Bugs
 
