@@ -39,7 +39,7 @@ Owners: [deployment](deployment_sector_plan.md), [controls](controls.md).
 
 Future UI proposal (2026-10-29), not implemented: merge Map and Deployment into one button, with M always opening the integrated map/deployment. Label remains undecided; “Command Map (M)” is a recommendation only.
 
-Later UI phase proposal (Tim, 2026-10-29): a main-menu UI with icons and hover descriptions, prominent **Call Rally** and **Resume** buttons, and a clear Rally active-duration/cooldown timer; Resume appears when paused. Exact placement/design remains undecided; no implementation now. Tim reports current Duties/Rally are much clearer. The proposed Command Map button merger above also remains unimplemented.
+Later UI phase proposal (Tim, 2026-10-29): a main-menu UI with icons and hover descriptions, prominent **Call Rally** and **Resume** buttons, and a clear Rally active-duration/cooldown timer; Resume appears when paused. Utility-menu placement is now settled by the section 3 requirement below; other exact designs remain undecided. No implementation now. Tim reports current Duties/Rally are much clearer. The proposed Command Map button merger above also remains unimplemented.
 
 Future Sweep proposal: visit a few waypoints around the destination sector before its final hold; waypoint count, route and timing remain undecided. Existing hold stays twenty seconds. [Owner note](deployment_sector_plan.md#sweep-route-playtest-proposal-2026-10-29).
 
@@ -171,7 +171,9 @@ Coordinator reports passing crew-jobs, target-controls, sector-playtest, assignm
 
 #### 3. UI
 
-- [ ] 8. **One combined Map/Deployment screen and one button** (not separate screens). A clearly labelled **Close map** button and Esc both close the whole combined workspace. Escape/fullscreen behavior is browser-dependent: existing fullscreen binding requests `keyboard.lock(['Escape'])` where supported/permitted; browser identification (Firefox/Chrome/Edge) is pending, so no universal fix is claimed.
+- [ ] **Compact utility icon menu:** much smaller, bottom right beside the ryo circle. Icons show action name and shortcut/control text on hover; preserve every control and accessibility (accessible names, keyboard/focus equivalent). This settles placement of the earlier generic icon-menu proposal. Combined Map/Deployment remains one action; labelled Close map/Esc closes the combined workspace. Unbuilt, next section only; no section 2 runtime edits. Separate prominent Rally/War Lantern action buttons retain their proposal status below.
+
+- [ ] 8. **One combined Map/Deployment screen and one button** (not separate screens). A clearly labelled **Close map** button and Esc both close the whole combined workspace. Tim uses Firefox. Queue a compatibility change: newer Fullscreen keyboard locking uses `requestFullscreen({keyboardLock:'browser'})` plus Escape `preventDefault`, distinct from the current `navigator.keyboard.lock(['Escape'])` path. Keep existing API support progressively, unsupported-option fallback and accurate status; preserve long-Escape/browser exit. Version support/manual validation remain pending; do not call Firefox universally unsupported or this fixed. Sources: [MDN keyboard locking](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen#keyboard_locking), [Mozilla shipping record](https://bugzilla.mozilla.org/show_bug.cgi?id=2032302). Planning only; section 2 code unchanged.
 - [ ] 9. **Party frames:** crew pips move to a fixed-size raid-style frame in the top left with a header ("Crew"), styled differently from the selection panel (which stays where it is). The action bar goes back to one row.
 - [ ] 10. Big Rally and War Lantern buttons with icons next to the action bar (add to the Controls panel).
 
