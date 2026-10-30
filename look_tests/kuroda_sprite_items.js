@@ -57,7 +57,7 @@ export function buildShield(std) {
 
 // A spear needs a deliberate thrust, rather than inheriting the borrowed
 // sword clip's wrist twirl. Keep its torso/legs and solve the arms to the grip.
-export function poseSpear(root, findBone, { both, shield, clip, phase, leftOnly=false }) {
+export function poseSpear(root, findBone, { both, shield, clip, phase, leftOnly=false, rightGrip=null }) {
   if (/death|dying/i.test(clip)) return null;
   const nativeAttack = /upward thrust|bayonet stab/i.test(clip);
   const attack = /thrust/i.test(clip), sweep = /great sword slash/i.test(clip);
@@ -68,7 +68,7 @@ export function poseSpear(root, findBone, { both, shield, clip, phase, leftOnly=
   const yaw = sweep ? phase * Math.PI*2 : 0;
   const lift = sweep || attack ? 0 : (run ? .18 : .32);
   const direction = new THREE.Vector3(Math.sin(yaw), lift, Math.cos(yaw)).normalize();
-  const rightPoint = new THREE.Vector3(-.27 + (sweep ? Math.sin(yaw)*.12 : 0), 1.1 + (run ? Math.sin(phase*Math.PI*2)*.025 : 0), .18 + thrust);
+  const rightPoint = rightGrip?new THREE.Vector3(...rightGrip):new THREE.Vector3(-.27 + (sweep ? Math.sin(yaw)*.12 : 0), 1.1 + (run ? Math.sin(phase*Math.PI*2)*.025 : 0), .18 + thrust);
   const leftPoint = both ? rightPoint.clone().addScaledVector(direction, .45)
     : new THREE.Vector3(.43, 1.22, .30 + (attack ? thrust*.15 : 0));
   const world = p => root.localToWorld(p.clone());

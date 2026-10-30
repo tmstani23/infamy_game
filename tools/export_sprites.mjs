@@ -201,7 +201,7 @@ for (const { file: model, name } of models) {
     const fname = `${name}_${clip}.png`;
     const preserveOld = file => {
       if (!spearConfig || !fs.existsSync(path.join(outDir, file))) return;
-      const archive = path.join(root, 'assets/sprites_archive/2026-10-22_kuroda_spear');
+      const archive = path.join(root, TANK_SPRITES[name]?'assets/sprites_archive/2026-10-30_tank_chain_forward':'assets/sprites_archive/2026-10-22_kuroda_spear');
       fs.mkdirSync(archive, { recursive: true });
       if (!fs.existsSync(path.join(archive, file))) fs.copyFileSync(path.join(outDir, file), path.join(archive, file));
     };

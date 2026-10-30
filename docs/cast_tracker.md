@@ -107,6 +107,14 @@ Both sprites use their new body models; the existing swordsman rig was not reuse
 
 The FBX check confirmed file/header markers only; animation/deformation and in-game appearance still need Tim's review. `tools/check_tank_sprites.mjs` passed for all 16 pairs, eight directions, catalog entries, masks and edge clearance. Rendered samples and an attack GIF were inspected outside the game; preview captures remain local. No gameplay rules or hiring integration were added.
 
+### Preview correction export verified (Tim, 2026-10-30)
+
+- Kuroda kusarigama chain swings forward (windup 0.18, extension peak 0.55, recovery); sideways sweep removed. Only its attack clip was regenerated.
+- All nine Shinobi clips were regenerated: right tonfa forward at idle/walk/run, raised 45° in guard then strikes down and recovers; left-hand pose/grip is preserved and its baton is 25% longer.
+- The earlier affected 20 sheets are preserved in `assets/sprites_archive/2026-10-30_tank_chain_forward/`. `test_tank_chain.mjs` passed forward motion across eight directions and tonfa pitch/downward/recovery. `check_tank_sprites.mjs` passed all 16 pairs; `test_weapon_lightning`, syntax and diff checks passed. Revised guard directions were inspected in the local preview.
+
+The revised export is complete; manual in-game appearance approval and gameplay integration remain pending. No sim mechanics or stats changed. Updated preview captures remain local.
+
 ## Western character concepts (art only, 2026-10-30)
 
 These are visual concepts for possible future mercenary/enemy roles; neither role nor gameplay/roster use is approved. No model or rig work is underway.

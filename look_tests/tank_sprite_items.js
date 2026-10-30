@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {chainWeightPose} from './tank_chain_motion.js';
+import {rightTonfaPitch} from './tank_tonfa_motion.js';
 
 // Physical shield with painted face, iron rim, board thickness and rear straps.
 export function buildLongShield(std,texture){
@@ -33,6 +35,7 @@ export function buildTankWeapon(std,kind){
    box(baton,.15,.035,.035,.045,0,-.06,cord);
    for(const z of [-.26,.57])box(baton,.055,.055,.025,.12,0,z,silver);
    box(baton,.007,.006,.72,.12,.025,.16,glow,true);
+   if(side==='Left')for(const mesh of baton.children){mesh.position.z*=1.25;mesh.scale.z*=1.25;}
   }
  }else{
   const sickle=new THREE.Group();sickle.name='sickle';group.add(sickle);
@@ -54,14 +57,18 @@ export function poseTankWeapon(group,root,findBone,{clip,phase,palmOf}){
  if(group.userData.tank==='tonfa'){
   for(const side of ['Right','Left']){
    const hand=findBone(new RegExp(side+'Hand$')),baton=group.getObjectByName(side);if(!hand)continue;
-   palmOf(hand,baton.position);hand.getWorldQuaternion(baton.quaternion);baton.rotateX(Math.PI/2);baton.scale.setScalar(root.scale.x);
+   palmOf(hand,baton.position);baton.scale.setScalar(root.scale.x);
+   if(side==='Right'){
+    const pitch=rightTonfaPitch(phase,/slash|thrust/i.test(clip)),direction=new THREE.Vector3(0,Math.sin(pitch),Math.cos(pitch)).applyQuaternion(root.getWorldQuaternion(new THREE.Quaternion()));
+    baton.lookAt(baton.position.clone().add(direction));
+   }else{hand.getWorldQuaternion(baton.quaternion);baton.rotateX(Math.PI/2);}
   }return;
  }
  const hand=findBone(/RightHand$/);if(!hand)return;
  const sickle=group.getObjectByName('sickle');palmOf(hand,sickle.position);hand.getWorldQuaternion(sickle.quaternion);sickle.rotateX(Math.PI/2);sickle.scale.setScalar(root.scale.x);sickle.updateMatrixWorld(true);
  const start=sickle.localToWorld(new THREE.Vector3(0,0,-.18));
- const attacking=/slash|thrust/i.test(clip),extend=attacking?Math.sin(Math.PI*phase)**2:0;
- const end=root.localToWorld(new THREE.Vector3(-.55+Math.sin(phase*Math.PI*2)*extend*1.25,.60+extend*.45,.35+extend*.95));
+ const motion=chainWeightPose(phase,/slash|thrust/i.test(clip)),extend=motion.extension;
+ const end=root.localToWorld(new THREE.Vector3(motion.x,motion.y,motion.z));
  const mid=start.clone().lerp(end,.5);mid.y-=(1-extend)*.30;
  const curve=new THREE.QuadraticBezierCurve3(start,mid,end),links=group.getObjectByName('chain'),dummy=new THREE.Object3D();
  for(let i=0;i<30;i++){const t=i/29;dummy.position.copy(curve.getPoint(t));dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),curve.getTangent(t));dummy.rotateY(i%2*Math.PI/2);dummy.scale.setScalar(root.scale.x);dummy.updateMatrix();links.setMatrixAt(i,dummy.matrix);}

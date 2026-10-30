@@ -455,6 +455,7 @@ function updateItem() {
   itemBox.position.set(0, 0, (0.5 - grip) * (flip ? -1 : 1));
   itemBox.rotation.set(0, flip, THREE.MathUtils.degToRad(num('itemRoll')), 'ZYX');
   const right = findBone(/RightHand$/), left = findBone(/LeftHand$/);
+  if(item.userData.tank==='tonfa'&&!/slash|thrust|death|dying|reaction|yelling|roll/i.test(spearClip))poseSpear(root,findBone,{both:false,shield:false,clip:'tonfa guard',phase:spearPhase,rightGrip:[-.32,1.2,.52]});
   if(item.userData.tank==='kusarigama'&&!/death|dying/i.test(spearClip))poseSpear(root,findBone,{both:false,shield:true,clip:'tank guard',phase:spearPhase,leftOnly:true});
   const spearDirection = itemSpear ? poseSpear(root, findBone, { both: mode === 'both', shield: !!shield, clip: spearClip, phase: spearPhase }) : null;
   if (shield && left) {

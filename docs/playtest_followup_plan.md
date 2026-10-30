@@ -213,7 +213,7 @@ Every clan gets a taunter and a ranged class:
 - [ ] Kuroda: add a spear guard (taunter); the existing Teppo rifleman is the ranged class.
 - [ ] Shinobi: add a shadow guard (taunter); the Geisha is the ranged control, with a new weak ranged basic attack.
 
-Art checkpoint (2026-10-30): Kuroda and Shinobi tank sprite exports are complete; preview is ready. Manual in-game visual approval and gameplay/roster integration remain pending. See [cast tracker](cast_tracker.md#phase-8-tank-recruit-sprite-checkpoint-offline-export-complete-2026-10-30).
+Art checkpoint (2026-10-30): Kuroda forward-chain and Shinobi tonfa-pose correction exports are complete and verified; revised guard directions were inspected in the local preview. Prior affected sheets are archived. Manual in-game appearance approval and gameplay/roster integration remain pending. See [cast tracker](cast_tracker.md#phase-8-tank-recruit-sprite-checkpoint-offline-export-complete-2026-10-30).
 
 #### Order
 
