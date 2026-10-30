@@ -328,7 +328,7 @@ Coordinator reports `test_assignment_followup`, `test_shakedown`, `test_sweep`, 
   - [x] Run warmup-separated startup, full-roster and combat Node profiles; inspect CPU hotspots and targeted optimization guidance.
   - [x] Cache collision radii once per pass; use deterministic nearby-pair filtering and preserve legacy pair order. Seeded collision parity checks cover dense overlaps, blocked pushes and chain reactions.
   - [x] Bound incremental A* and strategic AI route planning while preserving the 20 Hz sim, visibility rules, completed-route behavior and reactive combat.
-  - [x] Reprofile and run focused separation, bot, Ninja bot, map performance, Rally and assignment checks. Before/after populations/outcomes differ; no browser FPS or all-lag-resolved claim.
+  - [x] Reprofile and run focused separation, bot, Ninja bot, map performance, Rally and assignment checks. Adaptive AI openings, live match, decisions and bounded-planning tuning pass in reported full/scoped runs; canonical all-day contract and pacing checks pass. Before/after populations/outcomes differ; no browser FPS or all-lag-resolved claim.
   - [ ] During the final playtest, compare responsiveness paused versus running, test map movement and bot contracts, and capture a Firefox performance profile if the lag is present.
   - [ ] Use browser evidence to decide whether a Worker is warranted; no Worker is implemented.
 

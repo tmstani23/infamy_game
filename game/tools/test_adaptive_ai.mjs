@@ -178,7 +178,7 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'tuning') {
     const g = world(), h = startClan(g, { id: 'kuroda', bot: true, crew: 2 });
     g.step();
     const brain = createBot(g, { clan: 'kuroda', hero: h, rules: bots.levels[level] });
-    brain.tick();
+    assert.ok(run(g,[brain],15,()=>!!brain.goal()),'bounded camp planning completes');
     const goal = brain.goal(), camp = g.state.banditCamps.find(c => c.id === goal?.camp);
     assert.equal(goal?.kind, 'hunt');
     assert.ok(camp, `${level} selects a public camp`);
@@ -188,38 +188,6 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'tuning') {
     assert.equal(g.clans.crewCount('kuroda'), 2);
   }
   assert.deepEqual(camps, [2, 4], 'easy chooses a small camp; hard accepts a bigger opening fight');
-  // The clock permits a mark to wait over four minutes for night without
-  // being treated as stuck. Take the job using the real shrine command.
-  {
-    const g = world({ auto: true, daySeconds: 300, nightSeconds: 360 });
-    g.clans.addClan('player');
-    const tea = Object.values(g.state.businesses).find(b => b.kind === 'teahouse');
-    g.clans.setOwner(tea.id, 'player');
-    const s = g.doors.find(d => d.menu === 'contracts');
-    const h = startClan(g, { id: 'shinobi', kind: 'ninja', bot: true, position: [s.x, s.z] });
-    g.state.contracts.board = [{ id: 999, kind: 'mark', business: tea.id, target: 'player', ryo: 300, renown: 30, night: true }];
-    g.state.contracts.posted = true;
-    g.step([{ id: h, type: 'contract', action: 'take', job: 999 }]);
-    assert.equal(g.state.contracts.active.shinobi?.id, 999);
-    const brain = createNinjaBot(g, { clan: 'shinobi', hero: h, rules: bots.shinobiLevels.medium });
-    run(g, [brain], 245);
-    assert.equal(g.state.night, false);
-    assert.equal(g.state.contracts.active.shinobi?.id, 999, 'valid wait for night does not expire the AI job budget');
-  }
-  // A mark taken seconds before dawn cannot finish its mandatory hold.
-  {
-    const g = world({ auto: true, daySeconds: 240, nightSeconds: 360 });
-    g.clans.addClan('player');
-    const tea = Object.values(g.state.businesses).find(b => b.kind === 'teahouse');
-    g.clans.setOwner(tea.id, 'player');
-    const s = g.doors.find(d => d.menu === 'contracts');
-    const h = startClan(g, { id: 'shinobi', kind: 'ninja', bot: true, position: [s.x, s.z] });
-    g.state.night = true; g.state.clock.left = 40 * 20;
-    g.state.contracts.board = [{ id: 999, kind: 'mark', business: tea.id, target: 'player', ryo: 300, renown: 30, night: true }];
-    g.state.contracts.posted = true;
-    const brain = createNinjaBot(g, { clan: 'shinobi', hero: h, rules: bots.shinobiLevels.hard });
-    run(g, [brain], 5);
-    assert.equal(g.state.contracts.active.shinobi, undefined, 'rejects a contract that cannot finish before dawn');
-  }
-  console.log('difficulty risk, equal resources and contract timing ok');
+  // Contract day/night independence is covered by test_contract_anytime.mjs.
+  console.log('difficulty risk and equal resources ok');
 }
