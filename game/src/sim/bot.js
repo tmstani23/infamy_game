@@ -370,6 +370,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   }
 
   function tick() {
+    ai.plan();
     const out = deploymentAI.tick(), h = me();
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
     if (state.tick % 10 === 0) look();
@@ -420,7 +421,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       if (!goal) nextThink = 0;
     }
     if (!goal && state.tick >= nextThink) {
-      goal = think(); if (goal) goal.untilGoal = state.tick + secs(goal.kind === 'hunt' ? 120 : 180);
+      const candidate=think();if(ai.planning()){if(!out.some(c=>c.type==='move'))out.push({id:hero,type:'move',right:0,down:0});return out;}goal=candidate; if (goal) goal.untilGoal = state.tick + secs(goal.kind === 'hunt' ? 120 : 180);
       nextThink = state.tick + secs(B.thinkSeconds);
     }
     if (goal) {

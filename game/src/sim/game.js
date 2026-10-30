@@ -1,3 +1,4 @@
+import {separateUnits} from './separation.js';
 // The game rules. Holds the state and advances it one fixed tick at a time from
 // commands. No three.js and no DOM: in multiplayer a Colyseus server runs this
 // same code, and browsers only send commands and draw the state they get back.
@@ -412,17 +413,7 @@ export function createGame(options) {
   function crewStep(...a) { return crewSteps.crewStep(...a); }
   function separate() {
     const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead && !e.downed);
-    for (let i = 0; i < crew.length; i++) for (let j = i + 1; j < crew.length; j++) {
-      const a = crew[i], b = crew[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
-      const min = (statsOf(a).radius + statsOf(b).radius) * 1.1;
-      if (d >= min) continue;
-      const [ux, uz] = d > 1e-4 ? [dx / d, dz / d] : [1, 0], push = Math.min(0.06, (min - d) / 2);
-      for (const [u, s] of [[a, -1], [b, 1]]) {
-        const r = statsOf(u).radius;
-        tryMove(u, r, ux * push * s, 0);
-        tryMove(u, r, 0, uz * push * s);
-      }
-    }
+    separateUnits(crew,e=>statsOf(e).radius,tryMove);
   }
 
   // Spawn a unit just outside a building's door, on a spot that is free of walls and

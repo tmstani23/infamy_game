@@ -322,12 +322,15 @@ Manual E checks pending: review Sweep point separation and reachable varied rout
 
 Coordinator reports `test_assignment_followup`, `test_shakedown`, `test_sweep`, `test_sweep_presentation`, `test_assignments`, `test_sector_recovery`, `test_deployment_automation`, `test_deployment_transfers` and `test_crew_frame_selection` passing, with changed-JS syntax and diff checks. Node/logic only; no browser gameplay test reported.
 
-### Phase F — performance diagnosis (Node baseline complete; browser evidence and architecture choice pending)
+### Phase F — targeted performance optimization (built/Node-checked; browser evidence pending)
 
-- [ ] **22.** Diagnose mid/late-game map lag before choosing an architecture. Node baseline and hotspot analysis are complete in [performance diagnosis](performance_diagnosis.md); the controlled profile points to pairwise separation/stat rebuilding and secondary bot path-planning spikes. No worker/runtime fix is implemented.
+- [ ] **22.** Diagnose and reduce mid/late-game map lag before choosing an architecture. Node baselines, implemented optimizations and limits are in [performance diagnosis](performance_diagnosis.md). The authorized collision and AI route-planning work is built and Node-checked. A Worker remains unbuilt and deferred.
   - [x] Run warmup-separated startup, full-roster and combat Node profiles; inspect CPU hotspots and targeted optimization guidance.
-  - [ ] During the final playtest, compare responsiveness paused versus running and capture a Firefox performance profile while the lag is present.
-  - [ ] Use that evidence to scope local collision/AI optimization before deciding whether a worker is warranted. Preserve deterministic sim behavior, fog rules and current tick rate.
+  - [x] Cache collision radii once per pass; use deterministic nearby-pair filtering and preserve legacy pair order. Seeded collision parity checks cover dense overlaps, blocked pushes and chain reactions.
+  - [x] Bound incremental A* and strategic AI route planning while preserving the 20 Hz sim, visibility rules, completed-route behavior and reactive combat.
+  - [x] Reprofile and run focused separation, bot, Ninja bot, map performance, Rally and assignment checks. Before/after populations/outcomes differ; no browser FPS or all-lag-resolved claim.
+  - [ ] During the final playtest, compare responsiveness paused versus running, test map movement and bot contracts, and capture a Firefox performance profile if the lag is present.
+  - [ ] Use browser evidence to decide whether a Worker is warranted; no Worker is implemented.
 
 ### Phase G — late-game scoring balance (parked; separate from A–D)
 

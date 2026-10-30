@@ -76,7 +76,7 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'decisions') {
     const g = world(); g.clans.addClan('player');
     const h = startClan(g, { id: 'kuroda', bot: true, ryo: 400 });
     const brain = createBot(g, { clan: 'kuroda', hero: h });
-    g.step(brain.tick()); const first = brain.goal();
+    assert.ok(run(g,[brain],15,()=>!!brain.goal()),'bounded strategic planning completes');const first=brain.goal();
     assert.equal(first?.kind, 'buy');
     g.clans.setOwner(first.business, 'player');
     assert.ok(run(g, [brain], 120, () => own(g, 'kuroda').length > 0), 'buys a different property after losing the race');
@@ -86,10 +86,9 @@ if (!process.env.AI_CASE || process.env.AI_CASE === 'decisions') {
   {
     const g = world(), h = startClan(g, { id: 'kuroda', bot: true, ryo: 400 });
     const brain = createBot(g, { clan: 'kuroda', hero: h }), find = g.nav.findPath;
-    const first = brain.tick(), goal = { ...brain.goal() };
+    assert.ok(run(g,[brain],15,()=>!!brain.goal()),'bounded strategic planning completes');const goal={...brain.goal()};
     assert.equal(goal.kind, 'buy');
     const b = g.state.businesses[goal.business];
-    g.step(first);
     g.nav.findPath = (ax, az, x, z) => Math.hypot(x - b.ring[0], z - b.ring[1]) < 1 ? null : find(ax, az, x, z);
     // Invalidate the already-built route by briefly taking another place.
     const H = g.state.entities[h], home = Object.values(g.state.businesses).find(b => b.hideout === 'kuroda');

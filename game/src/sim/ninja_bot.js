@@ -180,7 +180,9 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       case 'take': {
         const s = shrine();
         if (contractLockoutUntil(state, clan) > state.tick || game.contracts.readyIn(clan)) return true;
-        if (job() || !s || !state.contracts.board.some(j => j.id === goal.job && doable(j))) return true;
+        const available=state.contracts.board.some(j=>j.id===goal.job&&doable(j));
+        if(!available&&ai.planning()){out.push({id:hero,type:'move',right:0,down:0});return false;}
+        if(job()||!s||!available)return true;
         if (!toStreet(out)) return false;
         if (!walk(out, s.x, s.z, 0.8)) return false;
         out.push({ id: hero, type: 'contract', action: 'take', job: goal.job });
@@ -283,6 +285,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     }
     if (j.kind === 'bandits') {
       if (!goal.hunt) goal.hunt = ai.pickHunt();
+      if (!goal.hunt&&ai.planning()){out.push({id:hero,type:'move',right:0,down:0});return false;}
       if (!goal.hunt) return abandon(out, j);
       if (ai.hunt(out, goal.hunt)) { goal.hunt = null; ai.reset(); }
       return false;
@@ -320,6 +323,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   }
 
   function tick() {
+    ai.plan();
     const out = deploymentAI.tick(), h = me();
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
     if ((job()?.id ?? null) !== workingJob) {
@@ -345,7 +349,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       out.push({ id: hero, type: 'move', right: 0, down: 0 });
       return out;
     }
-    if (!goal && state.tick >= nextThink) { goal = think(); nextThink = state.tick + secs(B.thinkSeconds); }
+    if (!goal && state.tick >= nextThink) {const candidate=think();if(ai.planning()){if(!out.some(c=>c.type==='move'))out.push({id:hero,type:'move',right:0,down:0});return out;}goal=candidate; nextThink = state.tick + secs(B.thinkSeconds); }
     if (goal) {
       const target = state.entities[out.findLast(c => c.type === 'attack')?.target ?? h.attackTarget];
       const fighting = goal.kind !== 'flee' && !['scout', 'mark', 'steal'].includes(job()?.kind)

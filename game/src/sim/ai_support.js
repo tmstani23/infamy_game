@@ -55,23 +55,33 @@ export function createAISupport(game, clan, hero, rules = {}) {
       ...(path.pts.length > 1 && Math.hypot(wx - h.x, wz - h.z) < 0.8 ? { walk: true } : {}) });
     return false;
   }
-  function route(x, z) {
-    const h = me(), room = game.rooms.find(r => r.name === h.place);
-    const b = Object.values(S.businesses).find(b => b.room === h.place);
-    const [sx, sz] = h.place === 'street' ? [h.x, h.z] : b?.ring || [x, z];
-    const key = `${Math.floor(sx / 6)},${Math.floor(sz / 6)}:${x},${z}`;
-    let entry = routes.get(key);
-    if (!entry || S.tick - entry.tick > 100) {
-      const pts = game.nav.findPath(sx, sz, x, z);
-      let d = Infinity;
-      if (pts?.length && Math.hypot(pts.at(-1)[0] - x, pts.at(-1)[1] - z) < 2) {
-        d = 0; let px = sx, pz = sz;
-        for (const [nx, nz] of pts) { d += Math.hypot(nx - px, nz - pz); px = nx; pz = nz; }
-      }
-      entry = { tick: S.tick, d }; routes.set(key, entry);
-      if (routes.size > 128) routes.delete(routes.keys().next().value);
+  // Street topology is immutable for this match. Cache per navigation cell,
+  // rather than expiring a partially computed batch and starving decisions.
+  const pendingRoutes=new Map();let plannedTick=-1;
+  const origin=()=>{const h=me(),b=Object.values(S.businesses).find(b=>b.room===h?.place);return h?.place==='street'?[h.x,h.z]:b?.ring;};
+  const originKey=p=>p?`${Math.floor(p[0]/.5)},${Math.floor(p[1]/.5)}`:null;
+  function plan(){
+    if(plannedTick===S.tick)return;plannedTick=S.tick;
+    let budget=1024;const current=originKey(origin());
+    for(const [key,r]of pendingRoutes){
+      if(r.origin!==current){pendingRoutes.delete(key);continue;}
+      if(budget<=0)break;
+      // A single job gets a bounded number of heap/smoothing operations. No
+      // wall-clock budget: bot decisions remain deterministic across machines.
+      if(!r.job.advance(budget))break;
+      budget-=r.job.work;
+      const pts=r.job.path;let d=Infinity;
+      if(pts?.length&&Math.hypot(pts.at(-1)[0]-r.x,pts.at(-1)[1]-r.z)<2){d=0;let [px,pz]=r.from;for(const [x,z]of pts){d+=Math.hypot(x-px,z-pz);px=x;pz=z;}}
+      routes.set(key,{tick:S.tick,d});pendingRoutes.delete(key);
+      if(routes.size>128)routes.delete(routes.keys().next().value);
     }
-    return entry.d + (room ? distance(h, room.exit) + 2 : 0);
+  }
+  function route(x,z){
+    const h=me(),room=game.rooms.find(r=>r.name===h.place),from=origin()||[x,z],start=originKey(from),key=`${start}:${x},${z}`;
+    const entry=routes.get(key);
+    if(entry)return entry.d+(room?distance(h,room.exit)+2:0);
+    if(!pendingRoutes.has(key)&&pendingRoutes.size<128)pendingRoutes.set(key,{origin:start,from,x,z,job:game.nav.beginPath(...from,x,z)});
+    return Infinity;
   }
   function recall(out, mobileOnly = false) {
     const units = crew().filter(u => !['follow', 'heal'].includes(u.order?.kind)
@@ -145,6 +155,7 @@ export function createAISupport(game, clan, hero, rules = {}) {
         const danger = c.members.reduce((n, type) => n + power({ type, hp: game.settings.units.types[type].hp }), 0) * count / c.members.length;
         return { c, score: danger < strength() * riskRatio ? count * 25 / (15 + route(c.x, c.z)) : -1 };
       }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+    if(pendingRoutes.size)return null;
     return options[0] ? { kind: 'hunt', camp: options[0].c.id } : null;
   }
   function engage(out, target) {
@@ -188,6 +199,6 @@ export function createAISupport(game, clan, hero, rules = {}) {
     return true;
   }
   const key = g => g?.camp ? `camp:${g.camp}` : g?.body ? `loot:${g.body}` : g?.target ? `wild:${g.target}` : `${g?.kind}:${g?.business ?? g?.job ?? ''}`;
-  return { walk, toStreet, route, recall, known, crew, sees, power, safe, wild, pickHunt, hunt, engage, reset,
+  return { plan, planning:()=>pendingRoutes.size>0, walk, toStreet, route, recall, known, crew, sees, power, safe, wild, pickHunt, hunt, engage, reset,
     blocked, avoid, key, failed: () => failed, camps };
 }

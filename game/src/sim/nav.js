@@ -53,7 +53,7 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4, allowed = n
   }
 
   // Waypoints [[x, z], ...] from a to b, ending at b (or the nearest free spot); null if no way
-  function findPath(ax, az, bx, bz) {
+  function* searchPath(ax, az, bx, bz) {
     // a goal inside a wall: back off toward the unit until the ground is free
     if (!free(...cellOf(bx, bz))) {
       const d = Math.hypot(ax - bx, az - bz), n = Math.ceil(d / (cell * 0.5));
@@ -79,6 +79,7 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4, allowed = n
     g[S] = 0;
     let found = false;
     while (heap.length) {
+      yield;
       const [, k] = pop();
       if (closed[k]) continue;
       if (k === G) { found = true; break; }
@@ -103,7 +104,7 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4, allowed = n
     let px = ax, pz = az, idx = 0;
     while (idx < cells.length) {
       let far = idx;
-      for (let t = cells.length - 1; t > idx; t--) if (clearLine(px, pz, cells[t][0], cells[t][1])) { far = t; break; }
+      for (let t = cells.length - 1; t > idx; t--) {yield;if (clearLine(px, pz, cells[t][0], cells[t][1])) { far = t; break; }}
       out.push(cells[far]);
       [px, pz] = cells[far];
       idx = far + 1;
@@ -111,5 +112,10 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4, allowed = n
     return out;
   }
 
-  return { findPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFree(x, z); return c && centre(...c); } };
+  function beginPath(...args){
+    const iterator=searchPath(...args);let result={done:false},work=0;
+    return {advance(budget=256){work=0;for(let i=0;i<budget&&!result.done;i++){work++;result=iterator.next();}return result.done;},get work(){return work;},get done(){return result.done;},get path(){return result.done?result.value:undefined;}};
+  }
+  function findPath(...args){const job=beginPath(...args);while(!job.advance(65536)){}return job.path;}
+  return { beginPath, findPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFree(x, z); return c && centre(...c); } };
 }
