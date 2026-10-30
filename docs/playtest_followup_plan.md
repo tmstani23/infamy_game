@@ -238,6 +238,15 @@ Hidden-panel side-resize follow-up (2026-10-30), implemented/Node-checked: zero 
 Implementation checkpoint (2026-10-30): category preview toggles affect editor only; Tooltips/Alerts/Windows begin hidden. Friendly labels and picker resolve overlaps. Exclusive selection raises one panel, shows only its grips and scopes pointer/keyboard edits to it; switching selection/filter/reset ends old drag. Done/Cancel restore temporary category visibility/stacking. Action bar reflows flex buttons in free width/height with usable minimum; portraits/circles retain corner scaling. Node checks `test_hud_drag` (categories, hidden placeholders, selection/isolation/stacking, drag cancellation, size persistence, Reset/Cancel), `test_command_ui`, crew-frame-selection, game-shell and deployment-panel-flow reported passed. Syntax/diff passed. No browser/CSS visual test; Tim manual check pending.
 
 
+### Follow-up: responsive layout and Crew command split (implemented/Node-checked 2026-10-30)
+
+- [x] Independent Crew commands layout component, separate from roster content; existing shared actions/input retained.
+- [x] Roster cards, buttons, buffs, text and building details wrap responsively; building image/text may stack.
+- [x] Replace generic editor `overflow:auto` with content-fit sizing and explicit paging for populated rosters, Controls sections, character stats and service windows. All nodes remain attached; no gameplay selection is removed.
+- [x] Shared commands, selection behavior and layout persistence preserved.
+
+Coordinator reports `test_layout_pages` (20 crew entries reachable, resizing/count changes, selection, Controls pages, seven Crew commands invoke shared inputs), `test_hud_drag`, `test_command_ui`, `test_crew_frame_selection`, `test_deployment_panel_flow`, `test_game_shell`, syntax and diff checks passed. No browser/CSS/full-viewport guarantee; Tim manual check pending for narrow/tall viewports, 20 crew/Rally, paging/dynamic assignments and separate command panel.
+
 ## Global Edit layout rebuild (approved to build 2026-10-30)
 
 The current editor is reported as messy. Rebuild in these checkpoints; temporary category visibility applies to editor previews only. Keep unrelated gameplay behavior unchanged.

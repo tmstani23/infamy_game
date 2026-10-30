@@ -148,7 +148,7 @@ try {
   contract.hidden=controls.hidden=false;layout.begin();layout.update();
   const h=layer.children.find(c=>c.attributes['aria-label']==='Move or resize Contract status');
   assert.equal(h.style.width,'450px');assert.equal(h.style.height,'210px','populated box matches hidden preview');
-  layout.reset();layout.cancel();assert.equal(contract.style.width,'300px');assert.equal(controls.style.height,'140px');
+  layout.reset();layout.cancel();assert.equal(contract.style.width,'300px');assert.equal(controls.style.minHeight,'140px');
   console.log('Hidden contract/Controls sizing: zero measurements, scaled width/height, fixed corner, population and saved restoration passed');
  } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
 }

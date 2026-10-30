@@ -52,7 +52,7 @@ assert.ok(!html.includes('id="mapbtn"'),'only one map/deployment button');
 assert.match(main,/onClose:\(\)=>deploymentPanel.close\(\)/);assert.match(main,/gameMap.dock\(false\); gameMap.close\(\)/);
 assert.match(main,/onKey\('KeyM'.*deploymentPanel.open\(\)/);
 assert.match(map,/destinationPicker=null;onClose\(\)/,'map close synchronously closes its deployment pane');
-assert.match(main,/crewRoot:\$\('partyframes'\)/);assert.match(main,/createCrewBar\(\{ root: \$\('partyframes'\)/);
+assert.match(main,/crewRoot:\$\('partyframes'\)/);assert.match(main,/createCrewBar\(\{ root: crewCommands/);
 assert.match(html,/Utility icons beside Ryo/);assert.match(html,/Rally \/ War Lantern buttons/);
 assert.equal(JSON.parse(read('data/units.json')).models.rival_yakuza.abilities.E.cooldown,15);
 console.log('Command UI: icon names/focus labels/anchor caching, shared lantern commands, fullscreen option/fallback/denial, combined map closure and separate party frame wiring passed');

@@ -172,7 +172,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if(units.length)order({units,kind:'attack',target:id});
   }
   addEventListener('mousedown', e => {
-    if (e.target.closest('button, #hire, #clinic, #partyframes, #utilitymenu, #bar, #selpanel, #bldpanel, #controls, #deploymentpanel, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
+    if (e.target.closest('button, #hire, #clinic, #partyframes, #crewcommands, #utilitymenu, #bar, #selpanel, #bldpanel, #controls, #deploymentpanel, #knockbar')) return;   // indoors too (rooms sit on the same ground plane)
     const target = () => unitAt(e.clientX, e.clientY, enemies()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
     // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
     // unit sends the selected crew instead (below). On the ground both stay crew orders.

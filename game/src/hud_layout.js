@@ -1,9 +1,10 @@
 // Shared UI layout registry and transactional editor. Game rules remain running.
-export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel'];
+import { createLayoutPages } from './layout_pages.js';
+export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','crewcommands','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel'];
 const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','height','minHeight'];
 // fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
-const UNIFORM=new Set(['ryo','minimap','heat','utilitymenu','stealth','raidalarm','uself','utarget','uhover','prompt','attackbar','knockbar']);
-const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',gamesettings:'Settings window',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip'};
+const UNIFORM=new Set(['ryo','minimap','heat','stealth','raidalarm','uself','utarget','uhover','prompt','attackbar','knockbar']);
+const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',gamesettings:'Settings window',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip'};
 export function layoutCategory(id){
  if(/tooltip|hint|uhover/.test(id))return 'tooltips';
  if(['raidalarm','attackbar','knockbar','campingnotice','lostcops','callout','pausedbanner','snap','jail'].includes(id))return 'alerts';
@@ -44,7 +45,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   const L=saved[p.id];
   if(!L){Object.assign(p.el.style,p.defaults);p.el.dataset.layoutPinned='false';p.el.dataset.layoutSized='false';p.applied=signature(p.el);return;}
   p.el.style.width=L.w?`${L.w}px`:p.defaults.width;p.el.style.minHeight=L.h?`${L.h}px`:p.defaults.minHeight;
-  p.el.style.height=L.h?`${L.h}px`:p.defaults.height;
+  p.el.style.height=L.h?(UNIFORM.has(p.id)||p.id==='bar'?`${L.h}px`:'auto'):p.defaults.height;
   p.el.dataset.layoutSized=String(!!(L.w||L.h));
   const [w,h]=dimensions(p),s=clamp(Number(L.s)||1,.5,2.5);
   const x=clamp(L.ax==='l'?L.dx:innerWidth-L.dx-w*s,0,Math.max(0,innerWidth-w*s));
@@ -57,6 +58,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   if(!el||!id||panels.has(id)||el===layer||el===toolbar)return;
   const p={id,el,name:label,category:el.dataset?.layoutCategory||layoutCategory(id),defaults:Object.fromEntries(PROPS.map(k=>[k,el.style[k]||'']))};panels.set(id,p);
   el.dataset.layoutFree=String(!UNIFORM.has(id));
+  p.pages=createLayoutPages(el,id);
   const option=document.createElement('option');option.value=id;option.textContent=label;picker.appendChild(option);p.option=option;
   const handle=document.createElement('div');handle.className='layout-handle';handle.tabIndex=0;handle.setAttribute('role','button');handle.setAttribute('aria-label',`Move or resize ${label}`);
   const title=document.createElement('span');title.textContent=label;handle.appendChild(title);
@@ -83,6 +85,9 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  function update(){
   let hidden=0;
   for(const p of panels.values()){
+   if(p.pages&&p.el.offsetWidth){const rect=p.el.getBoundingClientRect(),s=saved[p.id]?.s||1;
+    p.pages.update(p.el.offsetWidth,Math.min(saved[p.id]?.h||600,Math.max(160,(innerHeight-Math.max(0,rect.top)-24)/s)));
+   }
    if(saved[p.id]&&signature(p.el)!==p.applied)place(p);
    if(!editing)continue;
    const filtered=hiddenCategories.has(p.category);p.handle.hidden=filtered;p.option.hidden=filtered;p.el.classList.toggle('layout-filtered',filtered);

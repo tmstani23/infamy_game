@@ -165,7 +165,7 @@ async function start() {
     return st.lights.filter(l => l.place===h.place&&!off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 45).sort((a, b) => near(a) - near(b))[0] || null;
   }
   addEventListener('mousedown', e => {
-    if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud, #partyframes, #utilitymenu')) return;
+    if (e.button !== 0 || !hoverLamp || e.target.closest('button, #bar, #hud, #partyframes, #crewcommands, #utilitymenu')) return;
     pending.push({ id: heroId, type: 'snuff', prop: hoverLamp.prop });
     e.stopImmediatePropagation(); e.preventDefault();
   }, true);
@@ -279,7 +279,8 @@ async function start() {
   $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','ctlbtn','daynight'].map($)});
-  const crewBar = createCrewBar({ root: $('partyframes'), game, heroId, crewInput });   // crew order buttons over the crew pips
+  const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
+  const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput });
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id) });

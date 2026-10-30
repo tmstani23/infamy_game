@@ -1,4 +1,4 @@
-// Crew command bar: a strip of crew order buttons right above the crew pips on the action bar,
+// Independent crew command panel; wraps buttons into the chosen width,
 // styled like the ability slots with the key in the corner (Tim 2026-10-19).
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
 // Only reads the state; orders go out as the same commands the keys send.
@@ -13,15 +13,15 @@ const CMDS = [
 ];
 
 const CSS = `
-  #partyframes .crewcmds { align-self: flex-start; display: flex; gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
+  #crewcommands .crewcmds { display: grid; grid-template-columns:repeat(auto-fit,minmax(min(38px,100%),1fr)); gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
     border: 1px solid rgba(233,194,122,.28); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
-  #partyframes .ccmd { position: relative; width: 40px; height: 34px; border-radius: 5px; border: 1px solid #5c4a2c; cursor: pointer;
+  #crewcommands .ccmd { position: relative; width: auto; min-height: 38px; height: auto; border-radius: 5px; border: 1px solid #5c4a2c; cursor: pointer;
     background: radial-gradient(circle at 50% 40%, #2b2f38, #101216); box-shadow: inset 0 0 6px rgba(0,0,0,.8); }
-  #partyframes .ccmd:hover { border-color: #ffd34d; }
-  #partyframes .ccmd .key { position: absolute; left: 3px; top: 1px; font: 700 10px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
-  #partyframes .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 9px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
-  #partyframes .ccmd.off { filter: grayscale(1) brightness(.5); cursor: default; }
-  #partyframes .ccmd.press { border-color: #ffd34d; box-shadow: 0 0 8px rgba(255,190,60,.7); }`;
+  #crewcommands .ccmd:hover { border-color: #ffd34d; }
+  #crewcommands .ccmd .key { position: absolute; left: 3px; top: 1px; font: 700 10px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+  #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 9px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
+  #crewcommands .ccmd.off { filter: grayscale(1) brightness(.5); cursor: default; }
+  #crewcommands .ccmd.press { border-color: #ffd34d; box-shadow: 0 0 8px rgba(255,190,60,.7); }`;
 
 export function createCrewBar({ root, game, heroId, crewInput }) {
   const style = document.createElement('style');
@@ -29,7 +29,7 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
   document.head.appendChild(style);
   const strip = document.createElement('div');
   strip.className = 'crewcmds';
-  root.insertBefore(strip, root.querySelector('.crew'));   // between the buffs and the bar, left-aligned over the crew pips
+  root.appendChild(strip);
   const tip = document.createElement('div');
   tip.className = 'tip';
   tip.hidden = true;

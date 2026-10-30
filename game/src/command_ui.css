@@ -7,16 +7,17 @@
 #utilitymenu .utility-button::after {content:attr(aria-label);position:absolute;right:0;bottom:calc(100% + 9px);width:max-content;max-width:260px;white-space:normal;padding:9px 12px;border:1px solid #a58a57;border-radius:5px;background:#101824;color:#f0e5ce;font:13px/1.4 system-ui;pointer-events:none;opacity:0;z-index:100;}
 #utilitymenu .utility-button:hover::after,#utilitymenu .utility-button:focus-visible::after {opacity:1;}
 #utilitymenu .utility-button[aria-pressed="true"] {background:#463927;border-color:#e8c77c;}
-#partyframes {position:fixed;left:16px;top:78px;width:320px;height:350px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box;padding:10px;background:linear-gradient(135deg,#12242bea,#0a121bee);border:1px solid #50717b;border-radius:8px;box-shadow:0 6px 18px #0008;color:#d9e7e5;z-index:12;}
+#partyframes {position:fixed;left:16px;top:132px;width:320px;min-height:290px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box;padding:10px;background:linear-gradient(135deg,#12242bea,#0a121bee);border:1px solid #50717b;border-radius:8px;box-shadow:0 6px 18px #0008;color:#d9e7e5;z-index:12;}
 #partyframes h3 {margin:0;font:750 13px/1.4 system-ui;letter-spacing:.13em;text-transform:uppercase;color:#b6d6d2;}
-#partyframes .crew {min-height:0;overflow:auto;}
-#partyframes .crew.grouped {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:6px;width:auto;max-height:none;}
+#partyframes .crew {min-height:min-content;overflow:visible;}
+#partyframes .crew.grouped {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));align-content:start;gap:6px;width:auto;max-height:none;overflow:visible;}
 #partyframes .crew-section {min-width:0;background:#101f28;}
-#partyframes .crew-group-pips {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+#partyframes .crew-group-pips {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(96px,100%),1fr));gap:4px;}
 #partyframes .crew.grouped .mate {width:auto;min-width:0;align-items:stretch;padding:4px;background:#182e37;border-color:#304954;}
 #partyframes .mate .pip {width:100%;height:6px;}
-#partyframes > .crewcmds {position:static;flex-shrink:0;gap:3px;padding:3px;border-radius:4px;}
-#partyframes > .crewcmds .ccmd {width:35px;height:30px;}
+#crewcommands {position:fixed;left:16px;top:78px;width:320px;display:grid;z-index:13;box-sizing:border-box;}
+#crewcommands .crewcmds {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(38px,100%),1fr));gap:4px;box-sizing:border-box;width:100%;min-height:100%;}
+#crewcommands .ccmd {width:auto;min-height:38px;height:auto;}
 #bar .row {flex-wrap:nowrap;}
 #bar .action-commands {display:flex;gap:6px;}
 #bar .action-commands button {width:82px;height:64px;border:1px solid #b78c45;border-radius:7px;background:linear-gradient(#433523,#191815);color:#f8dc9d;font:700 11px/1.2 system-ui;cursor:pointer;white-space:normal;}
@@ -24,9 +25,9 @@
 #bar .action-commands button:disabled {opacity:.5;cursor:default;}
 #bar .action-commands button:hover,#bar .action-commands button:focus-visible {border-color:#ffe0a1;outline:1px solid #ffe0a1;}
 #deploymentpanel header .close {width:auto;padding:8px 13px;font-size:14px;color:#ffebc4;}
-.map-active #partyframes,.map-active #utilitymenu {display:none;}
-.prematch #partyframes,.prematch #utilitymenu {display:none;}
-@media(max-height:750px){#partyframes {height:290px;top:66px;}}
+.map-active #partyframes,.map-active #crewcommands,.map-active #utilitymenu {display:none;}
+.prematch #partyframes,.prematch #crewcommands,.prematch #utilitymenu {display:none;}
+@media(max-height:750px){#partyframes {min-height:240px;}}
 @media(max-width:1000px){#partyframes {width:270px;}#bar .action-commands button {width:65px;}#bar .slot {width:48px;height:54px;}}
 
 #hudlayout {position:fixed;inset:0;z-index:200;pointer-events:auto;background:#050a1270;}
@@ -55,7 +56,7 @@
 #hudlayout select {min-width:190px;max-width:100%;padding:6px;background:#0e1c25;color:#f5dfb2;border:1px solid #65808b;border-radius:4px;}
 .layout-filtered,.layout-filtered * {visibility:hidden!important;pointer-events:none!important;}
 .layout-focused {z-index:190!important;}
-[data-layout-free="true"][data-layout-sized="true"] {box-sizing:border-box;min-width:0;max-width:none;max-height:none;overflow:auto;}
+[data-layout-free="true"] {box-sizing:border-box;min-width:0;max-width:none;max-height:none;overflow:visible;overflow-wrap:anywhere;}
 #contract[data-layout-sized="true"] {white-space:normal;overflow-wrap:anywhere;}
 #controls[data-layout-sized="true"] .cols {grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));}
 /* Width/height reflow real HTML buttons; saved corner scale remains independent. */
@@ -65,3 +66,21 @@
 #bar[data-layout-sized="true"] .portrait {justify-content:center;flex-shrink:0;}
 #bar[data-layout-sized="true"] .action-commands {flex:2 1 0;min-width:116px;align-items:stretch;}
 #bar[data-layout-sized="true"] .action-commands button {flex:1 1 0;width:auto;min-width:54px;height:auto;min-height:54px;}
+.layout-page-hidden {display:none!important;}
+.layout-pages {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:auto;padding-top:8px;font:12px system-ui;color:#e9d6a8;}
+.layout-pages[hidden] {display:none;}
+.layout-pages button {padding:5px 9px;border:1px solid #756445;background:#192a34;border-radius:4px;color:#f2ddb2;cursor:pointer;}
+.layout-pages button:disabled {opacity:.4;cursor:default;}
+#partyframes .crew-section:not(:has(.mate:not(.layout-page-hidden))) {display:none;}
+#partyframes .crew.grouped .mate .crew-status {max-width:none;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;}
+#partyframes .crew.grouped .mate .name {max-width:none;white-space:normal;overflow:visible;text-overflow:clip;}
+#bar .buffs,#hud,#bldpanel .acts {flex-wrap:wrap;}
+#bldpanel {flex-wrap:wrap;}
+#bldpanel .info {flex:1 1 180px;}
+#utilitymenu[data-layout-sized="true"] {grid-template-columns:repeat(auto-fit,minmax(min(34px,100%),1fr));}
+#utilitymenu[data-layout-sized="true"] .utility-button {width:auto;height:auto;min-height:32px;}
+#controls,#control-tooltip,#characterpage .character-window,#gamesettings .settings-window {overflow:visible;max-height:none;}
+#characterpage .character-layout {grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));}
+#partyframes {min-width:220px;}
+#crewcommands {min-width:140px;}
+#controls,#characterpage .character-window,#gamesettings .settings-window {min-width:min(280px,100vw);}
