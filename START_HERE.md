@@ -23,6 +23,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/usage.md](docs/usage.md) | Usage-saving rules |
 | [docs/documentation_role.md](docs/documentation_role.md) | Which doc owns which topic, and how doc changes are approved and written |
 | [docs/architecture.md](docs/architecture.md) | High-level code architecture: modules, data flow, main loop |
+| [docs/performance_diagnosis.md](docs/performance_diagnosis.md) | Map performance measurements, diagnosed CPU hotspots and open profiling steps |
 | [docs/tech_plan.md](docs/tech_plan.md) | Code structure and build plan |
 | [docs/controls.md](docs/controls.md) | Every working control, plus planned keys |
 | [docs/crew_recruiting_plan.md](docs/crew_recruiting_plan.md) | Crew hiring and orders, phase by phase |

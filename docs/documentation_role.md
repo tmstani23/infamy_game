@@ -22,6 +22,7 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Usage-saving rules | `docs/usage.md` |
 | This role: doc owners and how docs are written | `docs/documentation_role.md` |
 | Code architecture: modules, data flow, main loop, data files | `docs/architecture.md` |
+| Runtime performance diagnosis and measured optimization candidates | `docs/performance_diagnosis.md` |
 | Stack, camera, draw order, lighting, map format, build steps | `docs/tech_plan.md` |
 | Every working control and planned keys | `docs/controls.md` |
 | Game design: city, clans, raids, economy, weapons, infamy | `docs/gameplay_and_design.md` |

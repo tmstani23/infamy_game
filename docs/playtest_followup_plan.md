@@ -322,9 +322,12 @@ Manual E checks pending: review Sweep point separation and reachable varied rout
 
 Coordinator reports `test_assignment_followup`, `test_shakedown`, `test_sweep`, `test_sweep_presentation`, `test_assignments`, `test_sector_recovery`, `test_deployment_automation`, `test_deployment_transfers` and `test_crew_frame_selection` passing, with changed-JS syntax and diff checks. Node/logic only; no browser gameplay test reported.
 
-### Phase F — performance profiling (start early; architecture choice pending)
+### Phase F — performance diagnosis (Node baseline complete; browser evidence and architecture choice pending)
 
-- [ ] **22.** Profile mid/late-game map lag with many units; inspect caching and worker options, then choose architecture from measurements. Do not commit to a worker approach before the profile.
+- [ ] **22.** Diagnose mid/late-game map lag before choosing an architecture. Node baseline and hotspot analysis are complete in [performance diagnosis](performance_diagnosis.md); the controlled profile points to pairwise separation/stat rebuilding and secondary bot path-planning spikes. No worker/runtime fix is implemented.
+  - [x] Run warmup-separated startup, full-roster and combat Node profiles; inspect CPU hotspots and targeted optimization guidance.
+  - [ ] During the final playtest, compare responsiveness paused versus running and capture a Firefox performance profile while the lag is present.
+  - [ ] Use that evidence to scope local collision/AI optimization before deciding whether a worker is warranted. Preserve deterministic sim behavior, fog rules and current tick rate.
 
 ### Phase G — late-game scoring balance (parked; separate from A–D)
 
