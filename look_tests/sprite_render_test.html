@@ -71,6 +71,7 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { buildSpear, buildShield, poseSpear } from './kuroda_sprite_items.js';
+import { buildLongShield, buildTankWeapon, poseTankWeapon } from './tank_sprite_items.js';
 
 // Rows of the spritesheet, top to bottom
 const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
@@ -442,7 +443,7 @@ let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), 
 let runPose = false;     // true while a run clip is being drawn
 let itemIdleBack = null; // one-hand blades (ninja, Tim 2026-10-20): in idles and walks held in the palm (hand: 'left' = the other hand), tip back behind at drop degrees below level (negative = up)
 let idlePose = false;    // true while an idle or walk clip is being drawn
-let itemSpear = false, shield = null;
+let itemSpear = false, shield = null, longShieldTexture = null;
 let spearClip = '', spearPhase = 0;
    // swords hang when the hands part; rifles stay between the hands
 function updateItem() {
@@ -454,6 +455,7 @@ function updateItem() {
   itemBox.position.set(0, 0, (0.5 - grip) * (flip ? -1 : 1));
   itemBox.rotation.set(0, flip, THREE.MathUtils.degToRad(num('itemRoll')), 'ZYX');
   const right = findBone(/RightHand$/), left = findBone(/LeftHand$/);
+  if(item.userData.tank==='kusarigama'&&!/death|dying/i.test(spearClip))poseSpear(root,findBone,{both:false,shield:true,clip:'tank guard',phase:spearPhase,leftOnly:true});
   const spearDirection = itemSpear ? poseSpear(root, findBone, { both: mode === 'both', shield: !!shield, clip: spearClip, phase: spearPhase }) : null;
   if (shield && left) {
     const arm = findBone(/LeftForeArm$/) || left;
@@ -465,6 +467,7 @@ function updateItem() {
     shield.lookAt(_b.copy(shield.position).add(_c));
     shield.scale.setScalar(root.scale.x);
   }
+  if(item.userData.tank){if(item.parent!==scene)scene.add(item);poseTankWeapon(item,root,findBone,{clip:spearClip,phase:spearPhase,palmOf});return;}
   if (itemSpear && right) {
     if (item.parent !== scene) scene.add(item);
     palmOf(right, _a);
@@ -547,7 +550,7 @@ function updateItem() {
 function setItemOptions(o = {}) {
   itemSpear = !!o.spear;
   if (shield) { shield.parent?.remove(shield); shield = null; }
-  if (o.shield) { shield = buildShield(std); scene.add(shield); }
+  if (o.shield) { shield = o.shield==='long'?buildLongShield(std,longShieldTexture):buildShield(std); scene.add(shield); }
   itemPalmY = Number.isFinite(o.palmOffset) ? o.palmOffset : PALM_Y;
   if (o.mode) $('itemMode').value = o.mode;
   for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
@@ -748,6 +751,8 @@ window.spriteTest = {
   clipNames: () => clips.map(c => c.name),
   itemReady: () => !!item,
   setItemOptions,
+  setTankItem: kind=>{item?.parent?.remove(item);item=buildTankWeapon(std,kind);itemBox=new THREE.Group();},
+  loadLongShieldTexture: async()=>{longShieldTexture=await new THREE.TextureLoader().loadAsync('../assets/concepts/items/kuroda_long_shield.png');longShieldTexture.colorSpace=THREE.SRGBColorSpace;},
   // A plain stick for checking alignment without a model
   testItem: () => setItemObject(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 1), new THREE.MeshStandardMaterial({ color: 0xc0c0c0 }))),
   boneInfo: () => { root.updateMatrixWorld(true); const o={}; const g=n=>findBone(new RegExp(n+'$')); const R=g('RightHand'); const w=b=>b.getWorldPosition(new THREE.Vector3()); const inv=R.matrixWorld.clone().invert();

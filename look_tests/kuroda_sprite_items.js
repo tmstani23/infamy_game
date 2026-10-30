@@ -57,7 +57,7 @@ export function buildShield(std) {
 
 // A spear needs a deliberate thrust, rather than inheriting the borrowed
 // sword clip's wrist twirl. Keep its torso/legs and solve the arms to the grip.
-export function poseSpear(root, findBone, { both, shield, clip, phase }) {
+export function poseSpear(root, findBone, { both, shield, clip, phase, leftOnly=false }) {
   if (/death|dying/i.test(clip)) return null;
   const nativeAttack = /upward thrust|bayonet stab/i.test(clip);
   const attack = /thrust/i.test(clip), sweep = /great sword slash/i.test(clip);
@@ -106,7 +106,7 @@ export function poseSpear(root, findBone, { both, shield, clip, phase }) {
     const to = both ? findBone(/LeftHand$/) : right;
     return to.getWorldPosition(new THREE.Vector3()).sub(from.getWorldPosition(new THREE.Vector3())).normalize();
   }
-  arm('Right', world(rightPoint), -1);
+  if(!leftOnly)arm('Right', world(rightPoint), -1);
   if (both || shield) arm('Left', world(leftPoint), 1);
   return direction.applyQuaternion(rootQ);
 }

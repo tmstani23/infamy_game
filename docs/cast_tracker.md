@@ -19,8 +19,8 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | thug | Crew | ✅ thugobj1.zip | ✅ thug.fbx | ✅ 7 (160px) | brawler |
 | swordsman | Crew | ✅ | ✅ (Great Sword Idle) | ✅ 10 (walk borrowed from brawler) | combat, katana |
 | archer | Crew | ✅ | ✅ archer.fbx | ✅ 6 (160px), with bow | archer |
-| Kuroda spear guard | Kuroda tank recruit (new model) | concept approved; see below | — | — | pending |
-| Shinobi masked bodyguard | Shinobi dodge tank (new model) | concept approved; see below | — | — | pending |
+| Kuroda spear guard | Kuroda tank recruit (new model) | ✅ korudaenforcerobj1.zip | `koruda_enforcer.fbx` (header checked) | ✅ 7 color/glow pairs | combat (new clips) |
+| Shinobi masked bodyguard | Shinobi dodge tank (new model) | ✅ shinobi_enforcerobj1.zip | `shinobi_enforcer.fbx` (header checked) | ✅ 9 color/glow pairs | ninja (new clips) |
 | lookout | Crew | ✅ | ✅ | ✅ 7 | brawler |
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
@@ -96,16 +96,16 @@ One additional recruit using the existing ninja_grunt rig; ninja1 concept exclud
 
 Existing female leader uses one-handed yari and compact shield; exclusive spearman uses the related recruit rig. Approved production export: 24 colour/glow sheets, including Upward Thrust and Bayonet Stab clips; old sheets retained in `assets/sprites_archive/2026-10-22_kuroda_spear/`. Hero spear has a warm gold halo/crimson core; recruit glow is subdued deep red. Ability effects: [combat spec](combat_spec.md#kuroda-leader-kit-tim-2026-10-22).
 
-## Phase 8 tank recruit concepts (Tim approved, 2026-10-30)
+## Phase 8 tank recruit sprite checkpoint (offline export complete, 2026-10-30)
 
-New models are required for both concepts: the existing swordsman rig is explicitly rejected for the Kuroda guard, and the Shinobi guard needs a fresh masked bodyguard model. Tim approved both generated concepts. Weapon/source attachments were intentionally excluded for separate attachment work.
+Both sprites use their new body models; the existing swordsman rig was not reused. Offline export produced 16 color/glow pairs (32 PNG sheets): seven Kuroda clips and nine Shinobi clips. Tim's approved equipment is Kuroda's long shield and kusarigama, and Shinobi's long twin iron tonfa.
 
-| Recruit | Approved concept | Prompt provenance | Next |
+| Recruit | Approved concept | Prompt provenance | Exported sprites and equipment |
 |---|---|---|---|
-| Kuroda spear guard | [`assets/concepts/kuroda_spear_guard.png`](../assets/concepts/kuroda_spear_guard.png): stocky armored ashigaru with long shield and one-handed spear attachments | [`kuroda_spear_guard.prompt.txt`](../assets/concepts/kuroda_spear_guard.prompt.txt) | Tencent image-to-3D, then fresh Mixamo rig |
-| Shinobi masked bodyguard | [`assets/concepts/shinobi_masked_bodyguard.png`](../assets/concepts/shinobi_masked_bodyguard.png): athletic masked, armored dodge tank | [`shinobi_masked_bodyguard.prompt.txt`](../assets/concepts/shinobi_masked_bodyguard.prompt.txt) | Tencent image-to-3D, then fresh Mixamo rig |
+| Kuroda tank recruit | [`assets/concepts/kuroda_spear_guard.png`](../assets/concepts/kuroda_spear_guard.png): stocky armored ashigaru body | [`kuroda_spear_guard.prompt.txt`](../assets/concepts/kuroda_spear_guard.prompt.txt) | Kusarigama and long shield; seven clips exported. Shield face is painted on modeled board/rim/strap geometry; chain motion is baked into attack frames. Props: [`kuroda_kusarigama`](../assets/concepts/items/kuroda_kusarigama.png), [`kuroda_long_shield`](../assets/concepts/items/kuroda_long_shield.png). |
+| Shinobi masked bodyguard | [`assets/concepts/shinobi_masked_bodyguard.png`](../assets/concepts/shinobi_masked_bodyguard.png): athletic masked, armored dodge tank | [`shinobi_masked_bodyguard.prompt.txt`](../assets/concepts/shinobi_masked_bodyguard.prompt.txt) | Long twin iron tonfa, one per hand, with narrow violet emissive grooves; nine clips exported. [`shinobi_twin_tonfa`](../assets/concepts/items/shinobi_twin_tonfa.png). |
 
-These are concept images only; neither is a rigged 3D model or an exported sprite sheet.
+The FBX check confirmed file/header markers only; animation/deformation and in-game appearance still need Tim's review. `tools/check_tank_sprites.mjs` passed for all 16 pairs, eight directions, catalog entries, masks and edge clearance. Rendered samples and an attack GIF were inspected outside the game; preview captures remain local. No gameplay rules or hiring integration were added.
 
 ## Western character concepts (art only, 2026-10-30)
 

@@ -3,10 +3,12 @@
   "models": {
     "ronin": "katana_hero", "swordsman": "katana", "rival_yakuza": "spear_hero", "kuroda_spearman": "spear_recruit",
     "thug": "club", "brute": "club", "enforcer": "club_burning",
-    "police": "jitte",
+    "police": "jitte", "koruda_enforcer": "kusarigama", "shinobi_enforcer": "tonfa",
     "ninja_leader": "ninjato_hero", "ninja_grunt": "ninjato", "ninja_tanto": "tanto"
   },
   "weapons": {
+    "tonfa": { "color": [0.57, 0.32, 0.82], "strength": 0.25, "attack": 0.2 },
+    "kusarigama": { "color": [0.75, 0.12, 0.2], "strength": 0.3, "attack": 0.2 },
     "katana": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35 },
     "katana_hero": { "color": [0.72, 0.84, 1.0], "strength": 0.5, "attack": 0.35, "hero": true, "shimmerColor": [0.85, 0.93, 1.0], "trailColor": [0.4, 0.6, 1.0], "runTrail": "sonic", "_note": "hero: shimmer band up the blade every shimmerEvery s + swing trail (render/characters.js; Tim 2026-10-28)" },
     "spear": { "color": [0.85, 0.12, 0.24], "strength": 0.65, "attack": 0.45, "_note": "Crimson spearhead halo with a fine warm-gold physical cutting edge; shaft and shield excluded from the glow mask" },

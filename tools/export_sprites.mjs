@@ -37,12 +37,15 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { KURODA_SPRITES, KURODA_FRAMING } from './kuroda_sprite_config.mjs';
+import { TANK_SPRITES } from './tank_sprite_config.mjs';
 
 const SETS = ['combat', 'brawler', 'gunner', 'civilian', 'ninja', 'archer'];
 const MODEL_SETS = {
   ronin: ['combat'],
   swordsman: ['combat'],
   kuroda_spearman: ['combat'],
+  koruda_enforcer: ['combat'],
+  shinobi_enforcer: ['ninja'],
   rival_yakuza: ['combat'],
   thug: ['brawler'],
   lookout: ['brawler'],
@@ -136,7 +139,7 @@ try {
 for (const { file: model, name } of models) {
   const sets = MODEL_SETS[name] || DEFAULT_SETS;
   const variant = VARIANTS[name];
-  const spearConfig = KURODA_SPRITES[name];
+  const spearConfig = KURODA_SPRITES[name] || TANK_SPRITES[name];
   const allVariants = [...new Set(Object.values(VARIANTS))];
   const variantOf = a => allVariants.find(v => clipOf(a).startsWith(v + '_'));
   // Rename a clip by dropping this model's variant prefix (mutant_walk -> walk)
@@ -168,11 +171,12 @@ for (const { file: model, name } of models) {
   await page.waitForFunction(() => window.spriteTest?.ready(), null, { timeout: 300000 });
   await page.evaluate(s => window.spriteTest.setScale(s), SCALE[name] ?? 1);
   if (spearConfig) await page.evaluate(f => window.spriteTest.setFraming(f), KURODA_FRAMING);
-  const it = ITEMS[name];
+  const it = ITEMS[name] || TANK_SPRITES[name]?.item;
+  if(it?.shield==='long')await page.evaluate(()=>window.spriteTest.loadLongShieldTexture());
   let holding = false;
   if (it?.proc) {
     holding = true;
-    await page.evaluate(k => window.spriteTest.setProcItem(k), it.proc);
+    await page.evaluate(k => ['tonfa','kusarigama'].includes(k)?window.spriteTest.setTankItem(k):window.spriteTest.setProcItem(k), it.proc);
     await page.evaluate(o => window.spriteTest.setItemOptions(o), it);
     console.log(`  holding stylized ${it.proc}`);
   } else if (it) {
