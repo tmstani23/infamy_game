@@ -132,7 +132,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
         const key = `${e.id}:${name}`, old = effectStarts.get(key);
         if (!old || old.until !== b.until) effectStarts.set(key, { until: b.until, total: Math.max(1, b.until - now) });
         const remaining = Math.max(0, Math.min(100, (b.until - now) / effectStarts.get(key).total * 100));
-        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%">${(EFFECT_NAMES[name] || name).slice(0, 3)}... ${Math.ceil((b.until - now) / 20)}s</span>`;
+        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%">${(b.hamstring?'Hamstring':EFFECT_NAMES[name] || name).slice(0, 3)}... ${Math.ceil((b.until - now) / 20)}s</span>`;
       }).join('');
       if (f.effects.innerHTML !== html) f.effects.innerHTML = html;
     }

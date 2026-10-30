@@ -239,7 +239,7 @@ export function createGame(options) {
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), canOccupy: (e, x, z, p) => deployment.canOccupy(e, x, z, p),
     fightTarget: id => fight[id]?.target, inCombat: e => !!fight[e.id]?.target, rules: units?.types?.kuroda_rifleman?.rifle, inRally: e => rally.participating(e),
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  const taunt = createTaunt({ state, vision, hostile: (a, b) => hostile(a, b) && sees(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
+  const taunt = createTaunt({ state, vision, rulesFor:e=>units.types[e?.type]?.taunt, engagementTarget:e=>crewTarget(e), reveal:(e,v)=>stealth.reveal(e,v),allowed:(a,b)=>attackAllowed(a,b)&&sees(a,b), hostile: (a, b) => hostile(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, fightTarget: id => fight[id]?.target, rules: units?.types?.yakuza_enforcer?.taunt,
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
   function manualCrew(e) { delete e.charmAttack; crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); sweep.manual(e); assignments.manual(e); }
@@ -836,6 +836,7 @@ export function createGame(options) {
     shinobiAssignments.tick();
     diversion.tick();
     taunt.tick();
+    combat.projectileTick();
     // Losing sight drops the lock, queued swing and crew assignment immediately,
     // including while a hero is moving. Revealing the target does not reacquire it.
     for (const e of Object.values(state.entities)) {
@@ -901,6 +902,6 @@ export function createGame(options) {
   const lootExecute = createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
-  const combat = createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const combat = createCombat({ clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats };
 }

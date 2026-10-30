@@ -24,7 +24,7 @@ export function createDiversion({state,deployment,vision,reveal,clearCombat,host
   function begin(e){
     const allies=team(e),hero=allies.find(a=>a.type==='hero');
     const candidates=Object.values(state.entities).filter(t=>valid(e,t)&&!(t.buffs?.charmSnare?.until>state.tick)
-      &&allies.some(a=>targets(t,a.id)));
+      &&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));
     const distance=t=>Math.min(...allies.map(a=>Math.hypot(a.x-t.x,a.z-t.z)));
     candidates.sort((a,b)=>{const rank=t=>targets(t,e.id)?0:hero&&targets(t,hero.id)?1:2;return rank(a)-rank(b)||distance(a)-distance(b)||(String(a.id)<String(b.id)?-1:1);});
     const t=candidates[0];if(!t)return false;
@@ -58,7 +58,7 @@ export function createDiversion({state,deployment,vision,reveal,clearCombat,host
       t.order={kind:'stop',charmed:state.tick};onCharmed(t,e.owner);return true;
     }
     if((e.lure?.readyAt??0)<=state.tick&&begin(e))return true;
-    if(e.order?.kind!=='attack'){const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&allies.some(a=>targets(t,a.id)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));if(foes[0]){attackStep(e,unit,foes[0]);return true;}}
+    if(e.order?.kind!=='attack'){const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));if(foes[0]){attackStep(e,unit,foes[0]);return true;}}
     return false;
   }
   function tick(){for(const e of Object.values(state.entities)){

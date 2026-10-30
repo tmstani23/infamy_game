@@ -11,6 +11,7 @@ Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). 
 | `?test=bot` | See the whole rival clan fast: the bot clan starts with 5000 ryo (buys, hires, then a War Lantern raid on you); you start with the teahouse and 3000 ryo. |
 | `?test=lantern` | War Lantern testing: normal clan/difficulty menu (choose any clan); player starts with 3000 ryo, rivals with normal 200. No extra property, crew or lantern grants. DEV-only (2026-10-25). |
 | `?test=assignments` | DEV-only: retains clan menu, grants 5000 ryo; stages and dispatches Yakuza Shakedown or Kuroda Sweep. Shinobi gets money only (2026-10-29). |
+| `?test=crew` | DEV-only: retains clan selection and grants 5000 ryo to hire/playtest the expanded clan roster (2026-10-30). |
 | `?test=shakedown` | DEV-only: stages three Yakuza at a rival teahouse and starts a real night Shakedown for dynamite/fire playtesting (2026-10-28). |
 | `?test=ninja` | Play Shinobi at the village: hero + one ninja, 200 ryo, HQ only, against two normal Yakuza rivals. No boosted squad (2026-10-21). |
 

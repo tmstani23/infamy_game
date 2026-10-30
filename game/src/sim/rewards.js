@@ -15,7 +15,7 @@ export function createRewards(state, rules = {}) {
       reason: kind === 'leader' ? 'Rival leader defeated' : 'Rival crew executed' });
   }
   function crewExecuted(attacker, victim) {
-    if (!['thug', 'brute', 'swordsman', 'ninja', 'ninja_tanto', 'rifleman', 'archer'].includes(victim.type)) return;
+    if (!state.clans?.[victim.owner] || victim.type==='hero' || victim.guard || victim.cop || victim.wild) return;
     combatRenown(attacker, victim, 'crew');
   }
   function leaderDown(attacker, victim) {

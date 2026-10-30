@@ -2,9 +2,9 @@
 // sim's per-tick hits and casts and from swings starting. Quieter with distance from the
 // camera, a little random pitch so repeats don't sound the same. K mutes. Purely output.
 import {normalizeAudioSettings,readAudioSettings,saveAudioSettings} from '../audio_settings.js';
-const SWORDS = new Set(['ronin', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
+const SWORDS = new Set(['ronin', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto', 'koruda_enforcer']);
 const SPEARS = new Set(['rival_yakuza', 'kuroda_spearman']);
-const CLUBS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout']);
+const CLUBS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout','shinobi_enforcer']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
@@ -108,6 +108,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const e of Object.values(state.entities)) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         const v = near(me, e.x, e.z, e.place);
+        if(e.model==='archer'||e.type==='shinobi_geisha')continue; // ranged cue is emitted at projectile release
         if (SWORDS.has(e.model)) swordSlash(0.35*v);
         else if (SPEARS.has(e.model)) {
           // These clips contain the complete thrust. Special attacks have their
@@ -119,7 +120,8 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
         if(h.kind==='dynamite'||h.kind==='fire'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
-        if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
+        if(h.kind==='arrow'||h.kind==='geishabolt'){ /* flight and ability cues supply the ranged sound */ }
+        else if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
         else if (SWORDS.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
         else if (CLUBS.has(h.weapon)) variant('club_thud_1',.6*v,HEAVY_FISTS.has(h.weapon)?.9:1);
         else if (FISTS.has(h.weapon)) play(pickCustom(HEAVY_FISTS.has(h.weapon) && (buffers.punch_main_heavy || !buffers.punch_main) ? 'punch_main_heavy' : 'punch_main'), 0.6 * v, HEAVY_FISTS.has(h.weapon) ? 0.9 : 1);
@@ -129,6 +131,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       }
       for (const c of state.casts) {
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
+        if(c.kind==='arrow')swordSlash(.16*v); // quiet existing whoosh until a dedicated arrow-flight recording is supplied
+        if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);
+        if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
         if (ABILITY_CUE[c.kind] && a?.type === 'hero') variant(ABILITY_CUE[c.kind][0], 0.55 * v, ABILITY_CUE[c.kind][1]);
         if(c.kind==='shakedownSuccess'||c.kind==='sweepSuccess')play(pickCustom('loot_coins_1'),.65*v);

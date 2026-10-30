@@ -18,13 +18,16 @@
     "homeSpeed": 1.25
   },
   "types": {
+    "foreign_visitor": {"model": "gunslinger", "count": 1, "likes": ["docks", "pier", "market", "teahouse"], "nightOut": 0, "homes": ["dock_warehouse", "customs_house"]},
+    "western_dockworker": {"model": "western_dockworker", "count": 1, "likes": ["docks", "pier", "warehouse", "street"], "nightOut": 0, "homes": ["dock_warehouse", "customs_house"]},
+
     "monk":      { "model": "monk",      "count": 1, "likes": ["shrine", "street", "market"],      "nightOut": 0.1, "homes": ["shrine", "temple"] },
     "monk2":     { "model": "monk2",     "count": 3, "likes": ["shrine", "street"],                "nightOut": 0.1, "homes": ["shrine", "temple"] },
     "old_woman": { "model": "old_woman", "count": 3, "likes": ["shrine", "market", "street"],      "nightOut": 0, "homes": ["townhouse", "abandoned_house", "tenements"] },
     "merchant":  { "model": "merchant",  "count": 5, "likes": ["market", "shop", "street", "teahouse"], "nightOut": 0.1, "homes": ["shop", "western_office", "townhouse", "inn", "pawnshop", "moneylender", "rickshaw_station"] },
     "geisha":    { "model": "geisha",    "count": 4, "likes": ["teahouse", "street", "market"],    "nightOut": 0.1, "homes": ["teahouse", "geisha_house", "kabuki"] },
     "fisherman": { "model": "fisherman", "count": 4, "likes": ["pier", "docks", "market"],         "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse", "fish_market", "boatbuilder"] },
-    "sailor":    { "model": "sailor",    "count": 4, "likes": ["docks", "pier", "den", "teahouse"], "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse", "customs_house"] },
-    "laborer":   { "model": "laborer",   "count": 6, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "brewery", "rice_storehouse", "blacksmith", "tenements"] }
+    "sailor":    { "model": "sailor",    "count": 3, "likes": ["docks", "pier", "den", "teahouse"], "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse", "customs_house"] },
+    "laborer":   { "model": "laborer",   "count": 5, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "brewery", "rice_storehouse", "blacksmith", "tenements"] }
   }
 }

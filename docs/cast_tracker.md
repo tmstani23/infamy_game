@@ -11,8 +11,8 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 |---|---|---|---|---|---|
 | hero1 (ronin) | Hero | ✅ roninheroobj1.zip | ✅ ronin.fbx | ✅ 10 (160px) | combat |
 | mercenary1 | Hero | ✅ mercobj1.zip | ✅ mercenary.fbx | ✅ 7 (160px), with rifle | gunner |
-| Western gunslinger | Unassigned concept; possible mercenary/enemy | concept art only; see below | — | — | pending |
-| Western dockside bruiser | Unassigned concept; possible mercenary/enemy | concept art only; see below | — | — | pending |
+| foreign_visitor (gunslinger model) | Civilian | ✅ western_gunslingerobj1.zip | `gunslinger.fbx` | ✅ 6 unarmed clips | civilian |
+| western_dockworker | Civilian | ✅ western_dockworkerobj1.zip | `western_dockworker.fbx` | ✅ 6 unarmed clips | civilian |
 | brute1 | Hero | ✅ bruteobj1.zip | ✅ brute.fbx | ✅ 9 (160px, 1.12x scale) | brawler (+ Mutant files) |
 | ninja_leader | Hero (ninja); cape rigged fine | ✅ ninjaleader2obj.zip (ninja_leader2 concept) | ✅ ninja_leader.fbx | ✅ 8 (160px), with ninjato (shortened) | ninja |
 | ninja1 | Spare concept, no model planned (ninja_leader is the ninja hero) |  |  |  |  |
@@ -113,11 +113,11 @@ The FBX check confirmed file/header markers only; animation/deformation and in-g
 - All nine Shinobi clips were regenerated: right tonfa forward at idle/walk/run, raised 45° in guard then strikes down and recovers; left-hand pose/grip is preserved and its baton is 25% longer.
 - The earlier affected 20 sheets are preserved in `assets/sprites_archive/2026-10-30_tank_chain_forward/`. `test_tank_chain.mjs` passed forward motion across eight directions and tonfa pitch/downward/recovery. `check_tank_sprites.mjs` passed all 16 pairs; `test_weapon_lightning`, syntax and diff checks passed. Revised guard directions were inspected in the local preview.
 
-The revised export is complete; manual in-game appearance approval and gameplay integration remain pending. No sim mechanics or stats changed. Updated preview captures remain local.
+The revised export is complete and the Shinobi sprite is approved by Tim. Gameplay integration is recorded in the Phase 8 checkpoint below; manual VFX/visual review remains pending. Updated preview captures remain local.
 
-## Western character concepts (art only, 2026-10-30)
+## Western civilian checkpoint (2026-10-30)
 
-These are visual concepts for possible future mercenary/enemy roles; neither role nor gameplay/roster use is approved. No model or rig work is underway.
+The new unarmed Foreign visitor and Western dockworker use `assets/models/gunslinger.fbx` and `assets/models/western_dockworker.fbx`; six civilian clips each are exported (12 atlases total). They replace one sailor and one laborer, keeping the civilian population at 30. Both use daytime POIs and return indoors to dock warehouse/customs house homes at night. Visuals still need Tim's in-game review.
 
 | Concept | Image | Prompt |
 |---|---|---|

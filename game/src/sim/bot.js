@@ -65,6 +65,8 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   // one clan special (Kuroda rifleman, Yakuza enforcer) once the crew has 4, like the Shinobi bot's geisha (sim/ninja_bot.js)
   const hireType = () => {
     const sp = B.special, have = sp && [...game.clans.crewOf(clan), ...myClan().queue, ...myClan().clinic, ...(myClan().jail || [])].some(e => (e.type || e.unit) === sp);
+    const extra=myClan().faction==='kuroda'?'kuroda_enforcer':'archer';
+    if(game.clans.crewCount(clan)>=6&&game.clans.hirePrice(clan,extra)!==null&&![...game.clans.crewOf(clan),...myClan().queue,...myClan().clinic,...(myClan().jail||[])].some(e=>(e.type||e.unit)===extra))return extra;
     return sp && !have && game.clans.crewCount(clan) >= (B.specialAt ?? 4) && game.clans.hirePrice(clan, sp) !== null ? sp : B.hireType;
   };
   const canHireNow = () => {

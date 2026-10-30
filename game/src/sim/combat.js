@@ -4,7 +4,27 @@ import { charmProtected } from './charm_rules.js';
 import { dirIndex } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild }) {
+export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true }) {
+  state.projectiles||=[];
+  function launch(e,t,unit){
+    const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian';
+    if(hamstring)e.hamstringReadyAt=state.tick+r.hamstring.cooldownTicks;
+    const duration=Math.max(2,Math.ceil(Math.hypot(t.x-e.x,t.z-e.z)/r.speed*20)),crit=rng()<stats.criticalChance(e);
+    const p={kind:r.kind,a:e.id,t:t.id,x:e.x,z:e.z,tx:t.x,tz:t.z,place:e.place,at:state.tick,until:state.tick+duration,damage:Math.round(stats.damage(e)*(crit?unit.critMultiplier||2:1)),crit,hamstring};
+    state.projectiles.push(p);state.casts.push({...p,kind:r.kind,flightTicks:duration});stealth.reveal(e,true);
+  }
+  function projectileTick(){
+    const due=state.projectiles.filter(p=>p.until<=state.tick);state.projectiles=state.projectiles.filter(p=>p.until>state.tick);
+    for(const p of due){const a=state.entities[p.a],t=state.entities[p.t];
+      if(!a||a.dead||a.downed||a.jailed||!t||a.place!==p.place||t.place!==p.place||!attackAllowed(a,t)||!sees(a,t)||!clearShot(a,t))continue;
+      if(rng()<stats.dodgeChance(t)){state.dodges.push({a:a.id,t:t.id,x:t.x,z:t.z});continue;}
+      const hp=t.hp;hit(a,t,p.damage,p.crit,p.kind);
+      if(p.hamstring&&t.hp<hp&&!t.dead&&!t.downed){const r=stats.base(a).projectile.hamstring,old=t.buffs?.snared;
+        (t.buffs||={}).snared={until:Math.max(old?.until||0,state.tick+r.durationTicks),speed:Math.min(old?.until>state.tick?old.speed??1:1,r.speed),hamstring:true};
+        state.casts.push({kind:'hamstringHit',a:a.id,t:t.id,x:t.x,z:t.z,place:t.place});
+      }
+    }
+  }
   function nearestEnemy(e, x, z, range) {
     let best = null, bd = range;
     for (const t of Object.values(state.entities)) {
@@ -146,10 +166,10 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     const d = Math.hypot(t.x - e.x, t.z - e.z);
     // a townsperson running away gets away during the wind-up: get right up close first
     const running = chase && civ(t) && t.flee;
-    if (d > reachOf(e, t) * (running ? 0.5 : 1)) {
+    if (d > reachOf(e, t) * (running ? 0.5 : 1)||(unit.projectile&&!clearShot(e,t))) {
       if (chase) {
         // close in on a spot round the target so several attackers surround it instead of queueing
-        const [sx, sz] = running ? [t.x, t.z] : surroundSpot(e, t);
+        const [sx, sz] = running || (unit.projectile&&!clearShot(e,t)) ? [t.x, t.z] : surroundSpot(e, t);
         if (moveTo(e, unit, sx, sz, false)) return;
       }
       e.anim = 'idle';
@@ -183,7 +203,9 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     if (!w) return false;
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
-      if (attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6) {
+      if (attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6 && (!unit.projectile||clearShot(e,t))) {
+        if(unit.projectile){launch(e,t,unit);}
+        else {
         const dodge = stats.dodgeChance(t);
         if (dodge && rng() < dodge) {
           stealth.reveal(e, true); // attempting an attack still consumes the attacker's veil
@@ -193,6 +215,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
           const damage = Math.round(stats.damage(e) * (crit ? unit.critMultiplier || 2 : 1));
           hit(e, t, damage, crit);
           kuroda.weaponHit(e, t, damage);
+        }
         }
       }
     }
@@ -319,5 +342,5 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
       for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') endAttack(u);
     }
   }
-  return { addHeat, anchorOf, carryOffDowned, coolHeat, crewTarget, endAttack, engage, hit, nearestEnemy, resumable, rng, setAssistCrew, swingStep, syncCrewAttacks };
+  return { addHeat, anchorOf, carryOffDowned, coolHeat, crewTarget, endAttack, engage, hit, nearestEnemy, resumable, rng, setAssistCrew, swingStep, syncCrewAttacks, projectileTick };
 }

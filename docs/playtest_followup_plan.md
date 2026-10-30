@@ -205,15 +205,27 @@ Tim playtest update (2026-10-30): everything except the new balance changes look
 
 Section 4 done (2026-10-30, `test_phase8_balance.mjs`): payouts cut 40%; diminishing returns (4 full, then −10% each, floor 60%); property Renown 40/20/15/5; 75 s alert window; one raid per rival per night; rifle Aimed Shot 60. Sounds partial: ability cues for Shadow Step, Red Lantern, Assassinate and Threefold are in (`render/sound.js` `ABILITY_CUE`, `assets/sounds/ability_*_1.ogg`); the rest are parked because the ElevenLabs SFX were poor. Section 3: Quit to game menu done; Edit layout mode built (Settings > Edit layout, `hud_layout.js` registry, `#lock` target-marker layer excluded); target-marker fix (`lock` added to `STRUCTURAL`).
 
-#### 5. Clan roles (proposal, Tim 2026-10-30)
+#### 5. Clan roles and Western civilians (built/Node-checked 2026-10-30; manual visual review pending)
 
 Every clan gets a taunter and a ranged class:
 
-- [ ] Yakuza: add an archer (ranged); the existing Irezumi Enforcer is the tank/taunter.
-- [ ] Kuroda: add a spear guard (taunter); the existing Teppo rifleman is the ranged class.
-- [ ] Shinobi: add a shadow guard (taunter); the Geisha is the ranged control, with a new weak ranged basic attack.
+- [x] Yakuza: hireable Yumi archer (ranged); existing Irezumi Enforcer remains tank/taunter.
+- [x] Kuroda: shield/kusarigama tank with cone Taunt and self-brace; Teppo rifleman remains ranged.
+- [x] Shinobi: masked tonfa tank with 30% dodge, highest tank damage and single-target Taunt; obeys passive/engagement orders and reveals on Taunt/attack. Geisha has weak pink ranged basic attacks.
 
-Art checkpoint (2026-10-30): Kuroda forward-chain and Shinobi tonfa-pose correction exports are complete and verified; revised guard directions were inspected in the local preview. Prior affected sheets are archived. Manual in-game appearance approval and gameplay/roster integration remain pending. See [cast tracker](cast_tracker.md#phase-8-tank-recruit-sprite-checkpoint-offline-export-complete-2026-10-30).
+Implementation checklist (initial stats/prices remain configurable and subject to tuning):
+
+1. [x] **Units and abilities:** authoritative unit stats/resolver; 160 HP/14 damage Yumi archer (8 range, 1.2 s, 120 ryo); 420/18 Kuroda shield guard (160 ryo; 90° cone, 4.5 range, 3 s Taunt, 35% brace reduction, 8 s cooldown); 300/24 Shinobi bodyguard (170 ryo; 30% dodge, no damage reduction, 3 s single Taunt, 8 s cooldown/reveal). Prices/stats are unit-configurable.
+2. [x] **Ranged combat:** real arrow flight and normal-damage Hamstring (35% slow, 3 s, 10 s cooldown); Geisha 7 damage, 5.5 range, 1.25 s attack interval. Charm retains 6 s/10 s, prioritizes including initiation, interrupts basics, and protects against ally focus with explicit-order override. Shallow projectile arc; impact/target debuff visuals. No dedicated arrow-flight clip was available; existing slash/whoosh is used quietly.
+3. [x] **Allied paths:** player/bot hiring uses shared APIs; body jobs, revival, group and sector paths integrated. Generic clan-crew execute rewards replace the stale type list.
+4. [x] **Western civilians:** six unarmed clips each for Foreign visitor and Western dockworker; replace one sailor and one laborer (30 total), use daytime POIs and return indoors to dock/customs homes at night.
+5. [x] **Verification and handoff:** focused Node tests, docs and `?test=crew` added; local checkpoint commit below. Tim's manual VFX playtest remains pending.
+
+Playable clan units were prioritized ahead of the Western civilians. Scope stayed to this integration: no new hero kits, growth systems or broad balance pass.
+
+Art checkpoint (2026-10-30): Kuroda forward-chain and Shinobi tonfa-pose correction exports are complete and verified; Tim approved the Shinobi sprite. Prior affected sheets are archived. Remaining manual VFX review is tracked below.
+
+Coordinator reports `test_new_crew` (hiring/assets/arrow flight and damage/Hamstring timing and slow/charm protection/tank cone-passive-reveal-brace/no-brace/initiating Charm/civilian config), `test_enforcer`, `test_geisha`, `test_rifleman` and `test_civilians` (30 population/movement/night homes/performance) passed, along with JS syntax and diff checks. No browser gameplay test; Tim's manual VFX/visual playtest remains pending.
 
 #### Order
 
@@ -230,7 +242,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 - First: playtest the stronger ninja leader effects and the new smoke trail (first pass, not browser-checked; top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
 - **Stretchy action bar: active again** under Tim’s explicit layout-editor approval (2026-10-30); see phased checklist below.
-- **Phase 8 section 5: clan roster roles.** Design direction is agreed; implementation and exact tuning remain pending. See [combat spec](combat_spec.md#phase-8-section-5-clan-roster-roles-design-approved-2026-10-30). Ask Tim to choose the Yakuza archer signature ability before implementation.
+- **Phase 8 section 5: clan roles and Western civilians.** Built/Node-checked; manual VFX playtest remains. Hamstring is approved at 35% slow for 3 s on a 10 s cooldown. See [combat spec](combat_spec.md#phase-8-section-5-clan-roster-roles-design-approved-implementation-authorized-2026-10-30).
 - Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
 - Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.
 
