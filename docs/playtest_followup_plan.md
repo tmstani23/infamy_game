@@ -228,7 +228,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 - First: playtest the stronger ninja leader effects and the new smoke trail (first pass, not browser-checked; top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
 - **Stretchy action bar: active again** under Tim’s explicit layout-editor approval (2026-10-30); see phased checklist below.
-- **Next planned item: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
+- **Phase 8 section 5: clan roster roles.** Design direction is agreed; implementation and exact tuning remain pending. See [combat spec](combat_spec.md#phase-8-section-5-clan-roster-roles-design-approved-2026-10-30). Ask Tim to choose the Yakuza archer signature ability before implementation.
 - Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
 - Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.
 

@@ -17,6 +17,8 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | thug | Crew | ✅ thugobj1.zip | ✅ thug.fbx | ✅ 7 (160px) | brawler |
 | swordsman | Crew | ✅ | ✅ (Great Sword Idle) | ✅ 10 (walk borrowed from brawler) | combat, katana |
 | archer | Crew | ✅ | ✅ archer.fbx | ✅ 6 (160px), with bow | archer |
+| Kuroda spear guard | Kuroda tank recruit (new model) | concept approved; see below | — | — | pending |
+| Shinobi masked bodyguard | Shinobi dodge tank (new model) | concept approved; see below | — | — | pending |
 | lookout | Crew | ✅ | ✅ | ✅ 7 | brawler |
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
@@ -89,6 +91,17 @@ One additional recruit using the existing ninja_grunt rig; ninja1 concept exclud
 ## Kuroda spear kit (Tim, 2026-10-22)
 
 Existing female leader uses one-handed yari and compact shield; exclusive spearman uses the related recruit rig. Approved production export: 24 colour/glow sheets, including Upward Thrust and Bayonet Stab clips; old sheets retained in `assets/sprites_archive/2026-10-22_kuroda_spear/`. Hero spear has a warm gold halo/crimson core; recruit glow is subdued deep red. Ability effects: [combat spec](combat_spec.md#kuroda-leader-kit-tim-2026-10-22).
+
+## Phase 8 tank recruit concepts (Tim approved, 2026-10-30)
+
+New models are required for both concepts: the existing swordsman rig is explicitly rejected for the Kuroda guard, and the Shinobi guard needs a fresh masked bodyguard model. Tim approved both generated concepts. Weapon/source attachments were intentionally excluded for separate attachment work.
+
+| Recruit | Approved concept | Prompt provenance | Next |
+|---|---|---|---|
+| Kuroda spear guard | [`assets/concepts/kuroda_spear_guard.png`](../assets/concepts/kuroda_spear_guard.png): stocky armored ashigaru with long shield and one-handed spear attachments | [`kuroda_spear_guard.prompt.txt`](../assets/concepts/kuroda_spear_guard.prompt.txt) | Tencent image-to-3D, then fresh Mixamo rig |
+| Shinobi masked bodyguard | [`assets/concepts/shinobi_masked_bodyguard.png`](../assets/concepts/shinobi_masked_bodyguard.png): athletic masked, armored dodge tank | [`shinobi_masked_bodyguard.prompt.txt`](../assets/concepts/shinobi_masked_bodyguard.prompt.txt) | Tencent image-to-3D, then fresh Mixamo rig |
+
+These are concept images only; neither is a rigged 3D model or an exported sprite sheet.
 
 ## Shinobi geisha runtime alias (2026-10-26)
 
