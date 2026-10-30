@@ -61,8 +61,8 @@ try {
 } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
 // side handles (2026-10-30): free panels get edges that set width / height; Cancel drops them
 {
- const win=new Element(),target=new Element('utarget'),body=new Element();body.children.push(target);
- globalThis.document={body,getElementById:id=>id==='utarget'?target:null,createElement:()=>new Element()};
+ const win=new Element(),target=new Element('contract'),body=new Element();body.children.push(target);
+ globalThis.document={body,getElementById:id=>id==='contract'?target:null,createElement:()=>new Element()};
  globalThis.localStorage={getItem:()=>null,setItem(){}};globalThis.fetch=async()=>({ok:true});
  globalThis.addEventListener=(...args)=>win.addEventListener(...args);globalThis.ResizeObserver=class{observe(){}};
  globalThis.innerWidth=1200;globalThis.innerHeight=900;

@@ -2,7 +2,7 @@
 export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel'];
 const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','minHeight'];
 // fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
-const UNIFORM=new Set(['ryo','minimap','heat','utilitymenu','stealth','raidalarm']);
+const UNIFORM=new Set(['ryo','minimap','heat','utilitymenu','stealth','raidalarm','bar','uself','utarget','uhover','prompt','attackbar','knockbar']);   // fixed-size buttons/frames: widening only re-centres them
 const STRUCTURAL=new Set(['view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','characterpage','controls','results']);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clone=v=>JSON.parse(JSON.stringify(v));
