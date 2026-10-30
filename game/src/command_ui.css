@@ -30,11 +30,11 @@
 
 #hudlayout {position:fixed;inset:0;z-index:200;pointer-events:auto;background:#050a1270;}
 #hudlayout[hidden] {display:none;}
-#hudlayout .layout-toolbar {position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:12px;width:min(850px,calc(100vw - 44px));padding:12px;background:#142531;border:1px solid #c6a465;border-radius:7px;box-shadow:0 6px 24px #0009;}
+#hudlayout .layout-toolbar {position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:4;display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:min(940px,calc(100vw - 44px));box-sizing:border-box;padding:10px;background:#142531;border:1px solid #c6a465;border-radius:7px;box-shadow:0 6px 24px #0009;}
 #hudlayout .layout-toolbar strong {white-space:nowrap;color:#ffe0a2;}
-#hudlayout .layout-toolbar span {font-size:12px;color:#c4d5d8;}
+#hudlayout .layout-toolbar span {flex:1;min-width:160px;font-size:12px;color:#c4d5d8;}
 #hudlayout .layout-toolbar button {padding:10px 13px;background:#334839;border:1px solid #b69f69;border-radius:5px;color:#fff0c8;cursor:pointer;white-space:nowrap;}
-#hudlayout .layout-handle {position:fixed;box-sizing:border-box;outline:2px dashed #e4bc6c;background:#86bbd419;cursor:move;min-width:30px;min-height:24px;}
+#hudlayout .layout-handle {position:fixed;z-index:1;box-sizing:border-box;outline:1px dashed #8ba6af88;background:transparent;cursor:move;min-width:30px;min-height:24px;}
 #hudlayout .layout-handle span {position:absolute;top:0;left:0;padding:3px 6px;background:#122433ed;color:#ffe2a2;font:600 12px system-ui;pointer-events:none;}
 #hudlayout .layout-handle:focus-visible {outline:3px solid #fff0aa;}
 #hudlayout .layout-edge {position:absolute;background:#e9c37b55;}
@@ -44,3 +44,20 @@
 #hudlayout .layout-edge-t,#hudlayout .layout-edge-b {left:24px;right:24px;height:8px;cursor:ns-resize;}
 #hudlayout .layout-edge-t {top:-4px;} #hudlayout .layout-edge-b {bottom:-4px;}
 #hudlayout .layout-resize {position:absolute;right:0;bottom:0;width:23px;height:23px;padding:0;background:#e9c37b;color:#15202b;border:0;cursor:nwse-resize;}
+#hudlayout .layout-handle[hidden] {display:none;}
+#hudlayout .layout-handle:not(.selected) .layout-resize,#hudlayout .layout-handle:not(.selected) .layout-edge {display:none;}
+#hudlayout .layout-handle.selected {z-index:3;outline:2px solid #ffe3a2;background:#86bbd40a;box-shadow:0 0 16px #e8bb6450;}
+#hudlayout .layout-handle:not(.selected) span {background:#122433b0;color:#bbcad0;}
+#hudlayout .layout-filters {display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%;}
+#hudlayout .layout-filters button {padding:6px 9px;font-size:12px;background:#22313c;border-color:#526875;}
+#hudlayout .layout-filters button[aria-pressed="true"] {color:#ffe1a0;background:#4a3c29;border-color:#bd9857;}
+#hudlayout select {min-width:190px;max-width:100%;padding:6px;background:#0e1c25;color:#f5dfb2;border:1px solid #65808b;border-radius:4px;}
+.layout-filtered,.layout-filtered * {visibility:hidden!important;pointer-events:none!important;}
+.layout-focused {z-index:190!important;}
+/* Width/height reflow real HTML buttons; saved corner scale remains independent. */
+#bar[data-layout-sized="true"] {box-sizing:border-box;align-items:stretch;}
+#bar[data-layout-sized="true"] > .row {box-sizing:border-box;flex:1;min-height:72px;width:100%;align-items:stretch;}
+#bar[data-layout-sized="true"] .slot {flex:1 1 0;min-width:28px;width:auto;height:auto;min-height:54px;}
+#bar[data-layout-sized="true"] .portrait {justify-content:center;flex-shrink:0;}
+#bar[data-layout-sized="true"] .action-commands {flex:2 1 0;min-width:116px;align-items:stretch;}
+#bar[data-layout-sized="true"] .action-commands button {flex:1 1 0;width:auto;min-width:54px;height:auto;min-height:54px;}

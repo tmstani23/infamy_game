@@ -7,13 +7,14 @@ const globals = ['document','localStorage','fetch','addEventListener','ResizeObs
 const previous = Object.fromEntries(globals.map(k=>[k,globalThis[k]]));
 class Element {
   constructor(id=''){this.id=id;}
-  style={}; children=[]; handlers={}; offsetWidth=100; offsetHeight=80; hidden=false; dataset={}; nodeType=1;
+  style={}; children=[]; handlers={}; hidden=false; dataset={}; nodeType=1;attributes={};
+  get offsetWidth(){return parseFloat(this.style.width)||100;} get offsetHeight(){return parseFloat(this.style.height)||parseFloat(this.style.minHeight)||80;}
   classes=new Set();classList={toggle:(name,on)=>on?this.classes.add(name):this.classes.delete(name),contains:name=>this.classes.has(name),remove:name=>this.classes.delete(name)};
   addEventListener(type,fn,options={}){(this.handlers[type]||=[]).push({fn,capture:options===true||!!options.capture});}
   append(...children){this.children.push(...children);}
   appendChild(child){this.append(child);}
-  setAttribute(){} focus(){} blur(){} querySelector(){return null;} querySelectorAll(){return [];}
-  getBoundingClientRect(){const left=parseFloat(this.style.left)||100,top=parseFloat(this.style.top)||100;return {left,top,width:100,height:80,right:left+100,bottom:top+80};}
+  setAttribute(k,v){this.attributes[k]=v;} focus(){} blur(){} querySelector(){return null;} querySelectorAll(){return [];}
+  getBoundingClientRect(){if(this.hidden)return {left:0,top:0,width:0,height:0};const left=parseFloat(this.style.left)||100,top=parseFloat(this.style.top)||100,s=Number(this.style.scale)||1,width=this.offsetWidth*s,height=this.offsetHeight*s;return {left,top,width,height,right:left+width,bottom:top+height};}
 }
 try {
  const win=new Element(),target=new Element('utarget'),lock=new Element('lock'),body=new Element();
@@ -75,4 +76,44 @@ try {
  layout.cancel();assert.equal(target.style.width,'','Cancel drops the new width');
  for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}
  console.log('Edit layout side handles passed');
+}
+// Filtering is editor-only; picker selection isolates overlaps, and action-bar dimensions persist.
+{
+ try {
+  const win=new Element(),body=new Element(),nodes=['bar','utarget','control-tooltip','callout','hire'].map(id=>new Element(id));
+  const [bar,target,tooltip,alert,window]=nodes;body.children.push(...nodes);tooltip.hidden=true;
+  let stored=null;
+  globalThis.document={body,getElementById:id=>nodes.find(n=>n.id===id),createElement:()=>new Element()};
+  globalThis.localStorage={getItem:()=>null,setItem(k,v){stored=JSON.parse(v);}};globalThis.fetch=async()=>({ok:true});
+  globalThis.addEventListener=(...args)=>win.addEventListener(...args);globalThis.ResizeObserver=class{observe(){}};
+  globalThis.innerWidth=1200;globalThis.innerHeight=900;
+  const layout=createHudLayout({fromFile:{}}),layer=body.children.at(-1),toolbar=layer.children[0],filters=toolbar.children.find(c=>c.className==='layout-filters'),picker=filters.children[0];
+  const handle=id=>layer.children.find(c=>c.attributes['aria-label']===`Move or resize ${id}`);
+  const fire=(node,type,extra={})=>{const e={button:0,buttons:1,clientX:120,clientY:120,target:node,preventDefault(){},stopPropagation(){},...extra};for(const h of node.handlers[type]||[])h.fn(e);};
+  const pick=id=>{picker.value=id;fire(picker,'change');};
+  const hbar=handle('Action bar'),htarget=handle('Target portrait'),htip=handle('Controls tooltip');
+  layout.begin();assert.equal(hbar.hidden,false);assert.equal(htip.hidden,true);
+  for(const n of [tooltip,alert,window])assert.ok(n.classList.contains('layout-filtered'));
+  assert.equal(tooltip.hidden,true,'filter does not change game visibility state');
+  const toggle=filters.children.find(c=>c.dataset.filter==='tooltips');fire(toggle,'click');assert.equal(htip.hidden,false);
+  pick('control-tooltip');assert.ok(htip.classList.contains('selected'));assert.ok(tooltip.classList.contains('layout-focused'));
+  fire(toggle,'click');assert.equal(htip.hidden,true);assert.equal(picker.value,'','hiding selected category clears selection');
+  pick('bar');assert.ok(hbar.classList.contains('selected'));assert.ok(bar.classList.contains('layout-focused'));
+  const right=hbar.children.find(c=>c.dataset.edge==='r'),bottom=hbar.children.find(c=>c.dataset.edge==='b');assert.ok(right&&bottom,'bar gets independent width and height handles');
+  fire(hbar,'mousedown',{target:right});fire(win,'mousemove',{clientX:720});fire(win,'mouseup');
+  assert.equal(bar.style.width,'700px');assert.equal(bar.dataset.layoutSized,'true');
+  fire(hbar,'mousedown',{target:bottom});fire(win,'mousemove',{clientY:240});fire(win,'mouseup');
+  assert.equal(bar.style.height,'200px');
+  fire(hbar,'mousedown');pick('utarget');fire(win,'mousemove',{clientX:1000});
+  assert.equal(bar.style.width,'700px','changing selection stops the old drag');
+  assert.equal(hbar.classList.contains('selected'),false);assert.ok(htarget.classList.contains('selected'));
+  assert.equal(bar.classList.contains('layout-focused'),false);
+  const oldLeft=bar.style.left;fire(hbar,'keydown',{code:'ArrowLeft'});assert.equal(bar.style.left,oldLeft,'unselected keyboard event cannot move a panel');
+  layout.done();assert.equal(stored.bar.w,700);assert.equal(stored.bar.h,200);
+  for(const n of nodes){assert.equal(n.classList.contains('layout-filtered'),false);assert.equal(n.classList.contains('layout-focused'),false);}
+  layout.begin();layout.reset();assert.equal(bar.style.width,'');assert.equal(bar.style.height,'');assert.equal(bar.dataset.layoutSized,'false');
+  layout.cancel();assert.equal(bar.style.width,'700px');assert.equal(bar.style.height,'200px','Cancel restores saved sizes after Reset');
+  layout.reset();assert.equal(bar.style.width,'');assert.equal(bar.style.height,'');
+  console.log('Layout filters, hidden previews, exclusive selection/stacking, stopped drags, stretchy bar persistence and reset passed');
+ } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
 }

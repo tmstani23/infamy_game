@@ -233,10 +233,13 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 - Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.
 
 
+Implementation checkpoint (2026-10-30): category preview toggles affect editor only; Tooltips/Alerts/Windows begin hidden. Friendly labels and picker resolve overlaps. Exclusive selection raises one panel, shows only its grips and scopes pointer/keyboard edits to it; switching selection/filter/reset ends old drag. Done/Cancel restore temporary category visibility/stacking. Action bar reflows flex buttons in free width/height with usable minimum; portraits/circles retain corner scaling. Node checks `test_hud_drag` (categories, hidden placeholders, selection/isolation/stacking, drag cancellation, size persistence, Reset/Cancel), `test_command_ui`, crew-frame-selection, game-shell and deployment-panel-flow reported passed. Syntax/diff passed. No browser/CSS visual test; Tim manual check pending.
+
+
 ## Global Edit layout rebuild (approved to build 2026-10-30)
 
 The current editor is reported as messy. Rebuild in these checkpoints; temporary category visibility applies to editor previews only. Keep unrelated gameplay behavior unchanged.
 
-- [ ] **1. Categories and picker:** Main HUD, Tooltips, Alerts and Windows categories. Add hide-category toggles for editor preview, with secondary categories hidden at entry. Use friendly labels and a panel picker to resolve overlap.
-- [ ] **2. Exclusive selection:** clicking an item raises/selects it above others. Only the selected panel shows resize/move grips; keyboard and drag affect only that item. Switching selection/category or filters ends the previous drag. Done/Cancel restore temporary visibility and stacking correctly.
-- [ ] **3. Stretchy action bar:** selected bar can resize freely in width and height; buttons reflow with the bar. Portraits/circular elements preserve corner scaling. Persist, Cancel and Reset work. Update Controls and add targeted Node checks for categories, overlap/selection, isolated transforms, temporary visibility/stacking, reflow and persistence. Tim manually checks visual behavior.
+- [x] **1. Categories and picker (implemented/Node-checked):** Main HUD, Tooltips, Alerts and Windows categories. Add hide-category toggles for editor preview, with secondary categories hidden at entry. Use friendly labels and a panel picker to resolve overlap.
+- [x] **2. Exclusive selection (implemented/Node-checked):** clicking an item raises/selects it above others. Only the selected panel shows resize/move grips; keyboard and drag affect only that item. Switching selection/category or filters ends the previous drag. Done/Cancel restore temporary visibility and stacking correctly.
+- [x] **3. Stretchy action bar (implemented/Node-checked):** selected bar can resize freely in width and height; buttons reflow with the bar. Portraits/circular elements preserve corner scaling. Free panels now save actual width and height. Persist, Cancel and Reset work. Update Controls and add targeted Node checks for categories, overlap/selection, isolated transforms, temporary visibility/stacking, reflow and persistence. Tim manually checks visual behavior.
