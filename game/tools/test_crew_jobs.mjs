@@ -44,3 +44,24 @@ for(const kind of ['move','attack','stop']){
  g.step([{id:worker.id,owner:'r',type:'order',kind:'stop',units:crew}]);assert.ok(worker.crewJob,'nonhero/foreign spoof cannot override jobs');
 }
 console.log('Explicit body jobs: one crewman, execute priority, latest group order/rejoin, solo override, no loot escorts, once-only loot and authority passed');
+
+{
+ const f=fixture(),{g,S,crew,body,job}=f,a=body(),b=body();
+ const av=S[a],bv=S[b];job('execute',a,[crew[0]]);const worker=S[crew[0]],execution=worker.execute;
+ job('execute',b,[crew[0]]);assert.equal(worker.execute,execution,'solo body clicks preserve the current execute');
+ assert.equal(worker.bodyQueue?.[0].target,b);
+ for(let i=0;i<500&&(!av.dead||!bv.dead);i++)g.step();
+ assert.ok(av.dead&&bv.dead,'queued body executes only after the first completes');
+}
+{
+ const f=fixture(),{g,S,crew,body,job}=f,a=body(),b=body();
+ job('execute',a);const first=crew.map(id=>S[id]).find(e=>e.execute);
+ job('execute',b);assert.equal(first.execute.target,a);assert.equal(crew.filter(id=>S[id].execute).length,2,'a free selected worker takes the second body');
+}
+for(const type of ['loot','execute']){
+ const {g,S,h,crew,body}=fixture(),target=body(type==='loot'?{dead:true,downed:false,loot:30}:{});
+ Object.assign(S[h],{x:S[target].x,z:S[target].z});
+ g.step([{id:h,type,target,units:crew,crewJob:true,preferHeroInRange:true,crewOnly:false}]);
+ assert.ok(type==='loot'?S[target].loot===undefined:S[h].execute?.target===target,'hero already in reach handles the body');
+ assert.ok(crew.every(id=>!S[id].crewJob),'no worker dispatched for hero-in-reach job');
+}

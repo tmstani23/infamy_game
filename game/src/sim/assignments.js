@@ -59,6 +59,7 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
       resume(e);
       duty=e.deployment.duty;
     }
+    if(task.task==='patrol'||task.task==='guard'){delete e.holdFire;delete e.smokePassive;if(e.order?.kind==='stop')e.order={kind:'station',x:e.x,z:e.z,duty:true};}
     if (e.swing || e.execute || inCombat(e)) { duty.status = 'Defending'; return false; }
     let target = task.objective, place = 'street', unavailable = false;
     if (task.task === 'guard') {
@@ -70,7 +71,7 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
     const route = task.task === 'patrol' ? sectorPatrolRoute(state,deployment,e,task) : task.route?.length ? task.route : null;
     if (route && task.task !== 'guard') target = route[(duty.waypoint || 0) % route.length];
     if (place === 'street' && e.place === 'street' && task.task === 'patrol') {
-      if(state.tick<(duty.pauseUntil||0)){e.anim='idle';duty.status='Patrolling';return true;}
+      if(state.tick<(duty.pauseUntil||0)){e.anim='idle';duty.status='Patrolling';return false;}
       const reached=Math.hypot(e.x-target.x,e.z-target.z)<.9;
       if(reached&&!duty.nextWaypoint){duty.pauseUntil=state.tick+30;duty.nextWaypoint=true;e.anim='idle';duty.status='Patrolling';return true;}
       if (!e.order?.duty || Math.hypot(e.x - target.x, e.z - target.z) < .9) {

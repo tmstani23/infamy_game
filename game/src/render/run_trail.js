@@ -1,7 +1,7 @@
 // Hero running trails (Tim 2026-10-29): only while the hero runs, nothing idle or attacking.
 // sonic (Yakuza ronin): thin pale speed lines peel off his body and stretch out behind him; idle, each time
 // the blade shimmer runs, two faint hum rings ripple out from the blade (Tim 2026-10-29: added to the glint).
-// static (Kuroda boss): short jagged crimson streaks snap off behind him and flicker out; also (Tim 2026-10-29)
+// static (Kuroda boss): slower coherent crimson discharges trail behind and fade; also (Tim 2026-10-29)
 // tiny crimson sparks now and then fall off the blade when idle, and one thin extra arc flickers along the blade mid-swing.
 // Sprite-local units (0..1 of the quad, y up); "behind" = opposite the sheet direction (sim dirIndex:
 // screen right -sin, screen down cos). Purely visual. Style and colour: weapon_glow.json runTrail.
@@ -10,7 +10,7 @@ import { runTrailMaterial } from './shading.js';
 
 const STYLES = {
   sonic: { color: [0.62, 0.72, 0.9], every: 0.05, life: 0.32, speed: 0.55, width: 0.0035, alpha: 0.5, max: 14 },
-  static: { color: [0.8, 0.07, 0.1], every: 0.06, life: 0.2, speed: 0.35, width: 0.004, alpha: 0.7, max: 12 },
+  static: { color: [0.8, 0.07, 0.1], every: 0.14, life: 0.4, speed: 0.2, width: 0.004, alpha: 0.7, max: 12 },
 };
 
 export function createRunTrail(spriteUniforms, style = 'sonic') {
@@ -31,9 +31,9 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
         shedAt = clock;
         const h = 0.3 + Math.random() * 0.5, side = (Math.random() - 0.5) * 0.14;
         const pts = [];
-        if (style === 'static') {   // a short zigzag, fixed when born so it reads as a crack of static
+        if (style === 'static') {   // correlated, finer bends fixed at birth so the arc holds its shape
           let x = 0, y = 0; pts.push([0, 0]);
-          for (let i = 0; i < 4; i++) { x += 0.025 + Math.random() * 0.02; y += (Math.random() - 0.5) * 0.05; pts.push([x, y]); }
+          for (let i = 0; i < 7; i++) { x += 0.016 + Math.random() * 0.008; y = y * 0.55 + (Math.random() - 0.5) * 0.014; pts.push([x, y]); }
         }
         streaks.push({ x: 0.5 + side - bx * 0.04, y: h - by * 0.02, born: clock, pts, len: 0.06 + Math.random() * 0.08 });
       }
@@ -69,7 +69,7 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
         // starts at the body and slides back while it stretches, then thins out
         const hx = s.x + bx * travel * 0.5, hy = s.y + by * travel * 0.5;
         if (style === 'static') {
-          if (Math.random() < 0.25) continue;   // flicker
+          if ((clock-s.born)<0.025) continue;   // stable discharge, no frame-random flicker
           const ux = bx, uy = by, px = -uy, py = ux;
           for (let i = 0; i + 1 < s.pts.length; i++) {
             const [a1, b1] = s.pts[i], [a2, b2] = s.pts[i + 1];

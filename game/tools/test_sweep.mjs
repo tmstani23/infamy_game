@@ -29,7 +29,7 @@ function fixture(clan = 'kuroda') {
   send({ action:'sweep', targetSector:source.id }); assert.equal(task.operation,undefined,'same sector rejected');
   send({ action:'sweep', targetSector:'missing' }); assert.equal(task.operation,undefined,'invalid target rejected');
   send({ action:'sweep', targetSector:target.id });
-  const op = task.operation; assert.equal(op?.state,'Marching');
+  const op = task.operation; assert.equal(op?.state,'Marching');assert.equal(op.points.length,3);assert.ok(op.points.every(p=>g.deployment.patrolAllowed(p.x,p.z)));assert.ok(g.state.news.some(n=>n.kind==='sweepAlert'),'dispatch produces an alert');
   assert.ok(g.deployment.canOccupy(crew[0],target.anchor.x,target.anchor.z,'street'));
   const third = g.state.deployment.sectors.find(s => s.id !== source.id && s.id !== target.id);
   assert.equal(g.deployment.canOccupy(crew[0],third.anchor.x,third.anchor.z,'street'),false,'no access to unrelated sector');
@@ -89,7 +89,9 @@ function fixture(clan = 'kuroda') {
   for (const e of crew) Object.assign(e,{ x:target.anchor.x, z:target.anchor.z });
   advance(); assert.equal(op.state,'Holding','clear street starts independent hold');
   for(let i=0;i<400 && op.state!=='Returning';i++)advance();
-  assert.equal(op.state,'Returning','twenty-second hold completes');
+  assert.equal(op.pointIndex,1,'first twenty-second hold advances to second position');
+  for(let point=1;point<3;point++){for(const e of crew)Object.assign(e,{x:op.point.x,z:op.point.z});for(let i=0;i<400;i++)advance();}
+  assert.equal(op.state,'Returning','three twenty-second holds complete');
   foe.dead = false; g.sweep.step(actor,unit);
   assert.equal(op.targets[actor.id],undefined,'returning squad does not reacquire rivals');
 }
@@ -119,7 +121,8 @@ function fixture(clan = 'kuroda') {
   const survivor=g.state.entities[g.spawn('thug','thug',far.x,far.z,{owner:rival,holdFire:true,deployment:{group:target.id},order:{kind:'stop'}})];
   const heroCrew=g.state.entities[g.spawn('thug','thug',far.x,far.z,{owner:rival,holdFire:true,deployment:{group:'hero'},order:{kind:'stop'}})];
   g.sweep.tick();assert.equal(op.hold,1);for(let i=0;i<398;i++)g.sweep.tick();
-  assert.equal(op.success,undefined,'full twenty seconds required');g.sweep.tick();assert.equal(op.success,true);
+  assert.equal(op.success,undefined,'full twenty seconds required');g.sweep.tick();assert.equal(op.pointIndex,1);assert.equal(op.success,undefined,'one position cannot scatter the sector');
+  for(let point=1;point<3;point++){for(const e of crew)Object.assign(e,{x:op.point.x,z:op.point.z});for(let i=0;i<400;i++)g.sweep.tick();}assert.equal(op.success,true);
   assert.equal(survivor.deployment.scattered?.phase,'Withdrawing');assert.equal(heroCrew.deployment.scattered,undefined,'hero group never scattered');
   assert.equal(g.deployment.canAssign(rival,[survivor.id],'home').ok,false,'recovery cannot be bypassed by transfer');
   assert.equal(g.deployment.canActAt(survivor,far.x,far.z,'street'),false,'retreating crew cannot attack');

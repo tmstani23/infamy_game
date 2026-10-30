@@ -167,7 +167,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     tabbed=foe.id;looked=null;
     const units=mine(),heroGroup=!units.length||units.every(id=>['hero','rally'].includes(commandGroup(game.state.entities[id])));
     const useHero=!crewOnly&&heroGroup&&foe.place===h?.place;
-    if(foe.downed){const jobs=bodyJobUnits();send({id:heroId,type:'execute',target:id,units:jobs,crewJob:!!jobs.length,crewOnly:!!jobs.length||!useHero,preferHeroInRange:false});return;}
+    if(foe.downed){const jobs=bodyJobUnits();send({id:heroId,type:'execute',target:id,units:jobs,crewJob:!!jobs.length,crewOnly:!useHero,preferHeroInRange:useHero});return;}
     if(useHero)send({id:heroId,type:'attack',target:id});
     if(units.length)order({units,kind:'attack',target:id});
   }
@@ -176,11 +176,13 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const target = () => unitAt(e.clientX, e.clientY, enemies()) || unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
     // right-click on a unit: the hero's auto attack (Tim 2026-10-17); Ctrl + right-click on a
     // unit sends the selected crew instead (below). On the ground both stay crew orders.
-    if (e.button === 2 && !e.ctrlKey && target()) { heroAt(e.clientX, e.clientY); return; }
-    // Right-click: the hero loots if already in reach, otherwise the nearest selected crew does.
-    // Ctrl + right-click always assigns selected crew only.
-    const body = e.button === 2 && !target() && unitAt(e.clientX, e.clientY, bodies());
-    if (body) { const jobs=bodyJobUnits();send({ id: heroId, type: 'loot', target: body.id, units: jobs,crewJob:!!jobs.length, preferHeroInRange: false, crewOnly: !!jobs.length||e.ctrlKey }); return; }
+    const pointed = e.button === 2 && target();
+    const body = e.button === 2 && (!pointed || pointed.downed) && unitAt(e.clientX, e.clientY, bodies());
+    if (body) {
+      const jobs=bodyJobUnits(),useHero=!e.ctrlKey&&(!jobs.length||jobs.every(id=>['hero','rally'].includes(commandGroup(game.state.entities[id]))));
+      send({id:heroId,type:'loot',target:body.id,units:jobs,crewJob:!!jobs.length,preferHeroInRange:useHero,crewOnly:!useHero});return;
+    }
+    if (e.button === 2 && !e.ctrlKey && pointed) { heroAt(e.clientX, e.clientY); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';

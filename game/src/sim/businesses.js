@@ -103,7 +103,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   function entryStatus(e, place) {
     // a clan's home hideout is closed to every other clan (Tim 2026-10-20); the police can still follow in
     const home = Object.values(state.businesses).find(b => b.room === place && b.hideout);
-    const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.room === place && a.clan === e.owner);
+    const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.phase !== 'over' && a.room === place && a.clan === e.owner);
     if (home && state.clans?.[e.owner] && home.hideout !== e.owner
       && !(isShinobiHQ(state, home) && a?.hq && a.defender === home.owner))
       return { ok: false, why: `That is the ${state.clans[home.hideout]?.name || 'rival'} hideout: no way in` };
@@ -119,7 +119,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     return result.ok;
   }
   function crewSlots(clanId, place) {
-    const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.room === place && a.clan === clanId);
+    const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.phase !== 'over' && a.room === place && a.clan === clanId);
     if (!a) return Infinity;
     const inside = Object.values(state.entities).filter(u => u.owner === clanId && u.place === place && u.type !== 'hero' && !u.dead).length;
     return Math.max(0, RD.maxCrewInside - inside);

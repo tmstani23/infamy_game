@@ -7,14 +7,14 @@ export function createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, c
     const body = state.entities[c.target];
     if (e.type !== 'hero') return;
     const heroReady = !e.dead && !e.downed && !e.jailed && !c.crewOnly;
-    if (heroReady && c.preferHeroInRange && lootable(e, body) && Math.hypot(e.x - body.x, e.z - body.z) <= LOOT_REACH) {
+    if (heroReady && !e.execute && c.preferHeroInRange && lootable(e, body) && Math.hypot(e.x - body.x, e.z - body.z) <= LOOT_REACH) {
       delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id];
       e.lootTarget = body.id;
       return;
     }
     if (Array.isArray(c.units) && c.units.length) {
       const selected = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && lootable(u, body))
+        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && !u.execute && !u.crewJob && lootable(u, body))
         .sort((a, b) => Math.hypot(a.x - body.x, a.z - body.z) - Math.hypot(b.x - body.x, b.z - body.z));
       const u = selected[0];
       if (!u) return;
@@ -63,7 +63,7 @@ export function createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, c
     let ex = !e.dead && !e.downed && !e.jailed && !c.crewOnly ? e : null;
     if (Array.isArray(c.units) && c.units.length && !(heroReady && c.preferHeroInRange && e.place === t?.place && Math.hypot(e.x - t?.x, e.z - t?.z) <= 1.3)) {
       ex = c.units.map(id => state.entities[id])
-        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street') && u.place === t?.place && deployment.canActAt(u, t.x, t.z, t.place))
+        .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === e.owner && u.type !== 'hero' && !u.guard && !u.execute && !u.crewJob && (!c.broadcast || u.place === 'street') && u.place === t?.place && deployment.canActAt(u, t.x, t.z, t.place))
         .sort((a, b) => t ? Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z) : 0)[0];
     }
     if (!ex || ex.dead || ex.downed || (ex === e && e.type === 'hero' && e.execute) || !downedFoe(ex, state.entities[c.target]) || !sees(ex, state.entities[c.target])) return;

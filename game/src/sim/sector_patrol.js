@@ -7,10 +7,10 @@ export const nearRivalHQ = (state,owner,p,margin=3) => rivalHQZones(state,owner)
 export function sectorPatrolRoute(state,deployment,e,task) {
   if(task.route?.length)return task.route;
   if(task.patrolPath)return task.patrolPath;
-  const grid=deployment.navFor({...e,place:'street'}),geometry=deployment.cellGrid?.();
+  const grid=deployment.navFor({...e,place:'street',patrolPlanning:true}),geometry=deployment.cellGrid?.();
   if(!grid||!geometry)return [task.objective];
   const {bounds,w,cell,cells}=geometry,label=state.deployment.sectors.findIndex(s=>s.id===e.deployment.group),points=[];
-  for(let k=0;k<cells.length;k++)if(cells[k]===label)points.push({x:bounds.minX+(k%w+.5)*cell,z:bounds.minZ+(Math.floor(k/w)+.5)*cell});
+  for(let k=0;k<cells.length;k++)if(cells[k]===label&&(!deployment.patrolAllowed||deployment.patrolAllowed(bounds.minX+(k%w+.5)*cell,bounds.minZ+(Math.floor(k/w)+.5)*cell)))points.push({x:bounds.minX+(k%w+.5)*cell,z:bounds.minZ+(Math.floor(k/w)+.5)*cell});
   if(!points.length)return [task.objective];
   const extent=points.reduce((b,p)=>({minX:Math.min(b.minX,p.x),maxX:Math.max(b.maxX,p.x),minZ:Math.min(b.minZ,p.z),maxZ:Math.max(b.maxZ,p.z)}),{minX:Infinity,maxX:-Infinity,minZ:Infinity,maxZ:-Infinity});
   const {minX,maxX,minZ,maxZ}=extent;

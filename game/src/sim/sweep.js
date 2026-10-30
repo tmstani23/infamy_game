@@ -1,3 +1,4 @@
+import { sectorPatrolRoute } from './sector_patrol.js';
 import { deploymentFeedback } from './deployment_feedback.js';
 import { withdrawalReason } from './sector_recovery.js';
 import { alive } from './util.js';
@@ -48,13 +49,26 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
     if(c.action==='sweep'){
       const check=eligibility(h.owner,c.sector,c.targetSector,c.targetClan);
       if(!check.ok){result(false,check.why);return true;}
-      task.operation={kind:'sweep',state:'Marching',targetSector:c.targetSector,targetClan:c.targetClan,
-        point:{...check.destination.anchor,place:'street'},returnPoint:{...task.objective,place:'street'},
+      const planner={...check.team[0],deployment:{group:c.targetSector}},planTask={objective:check.destination.anchor};
+      const route=sectorPatrolRoute(state,deployment,planner,planTask);
+      const points=[];
+      for(const p of [check.destination.anchor,...route]){
+        if(!deployment.patrolAllowed?.(p.x,p.z)&&deployment.patrolAllowed)continue;
+        if(points.some(q=>distance(p,q)<6))continue;
+        const grid=deployment.navFor({...planner,place:'street',patrolPlanning:true});
+        const start=points.at(-1)||check.destination.anchor,path=grid?.findPath(start.x,start.z,p.x,p.z),end=path?.at(-1);
+        if(end&&Math.hypot(end[0]-p.x,end[1]-p.z)<1)points.push({...p,place:'street'});
+        if(points.length===3)break;
+      }
+      if(points.length<3){result(false,'No safe three-point Sweep route in this sector');return true;}
+      task.operation={kind:'sweep' ,state:'Marching',targetSector:c.targetSector,targetClan:c.targetClan,
+        points,pointIndex:0,point:points[0],returnPoint:{...task.objective,place:'street'},
         units:check.team.map(e=>e.id),startedAt:state.tick,hold:0,seen:[],
         rewardSequence:rewards?.sectorClaim(h.owner,c.targetSector).sequence??0};
       delete task.engagement;
       for(const e of check.team){clearCombat(e);e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Sweep: marching'};}
-      result(true,'SWEEP DISPATCHED — secure the marked street area for 20 seconds');return true;
+      state.news.push({kind:'sweepAlert',clan:h.owner,defender:c.targetClan,sector:c.targetSector,x:points[0].x,z:points[0].z});
+      result(true,'SWEEP DISPATCHED — secure three street positions for 20 seconds each');return true;
     }
     if(c.action==='cancelSweep'&&op?.kind==='sweep'){
       recall(h.owner,c.sector,'Recall ordered');result(true,'SWEEP RECALLED — returning to saved duty');return true;
@@ -116,7 +130,11 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
         // Neither a defender nor a chase outside the hold area advances the objective.
         if(op.reached&&!contest&&gathered(team,op.point,op.targetSector)){
           op.state='Holding';op.hold++;
-          if(op.hold>=SWEEP.holdTicks)success(clan,sector,op,team);
+          if(op.hold>=SWEEP.holdTicks){
+            if(op.points&&op.pointIndex<op.points.length-1){op.pointIndex++;op.point=op.points[op.pointIndex];op.hold=0;op.reached=false;op.state='Marching';
+              state.news.push({kind:'sweepPoint',clan,defender:op.targetClan,sector:op.targetSector,point:op.pointIndex+1,x:op.point.x,z:op.point.z});
+            }else success(clan,sector,op,team);
+          }
         }
       }
       for(const e of team)if(team.length>=2&&team.every(a=>a.place===e.place&&distance(a,e)<=SWEEP.groupRadius))

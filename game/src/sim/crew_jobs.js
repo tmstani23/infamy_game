@@ -3,17 +3,22 @@
 export function createCrewJobs({state,deployment,rally,manual,clearCombat,navigation,sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty,freeSlot}) {
   const alive=e=>e&&!e.dead&&!e.downed&&!e.jailed;
   const group=e=>rally.status(e.owner).active&&(e.deployment?.group==='hero'||rally.participating(e))?'rally':e.deployment?.group||'hero';
-  function cancel(e){if(!e?.crewJob)return;if(e.execute?.target===e.crewJob.target)delete e.execute;delete e.crewJob;clearCombat(e);}
+  function cancel(e){if(e)delete e.bodyQueue;if(!e?.crewJob)return;if(e.execute?.target===e.crewJob.target)delete e.execute;delete e.crewJob;clearCombat(e);}
   function command(hero,c){
     const say=text=>{state.clans[hero.owner].notice={tick:state.tick,text};};
-    const target=state.entities[c.target],ids=[...new Set(c.units||[])],solo=ids.length===1;
+    const target=state.entities[c.target],ids=[...new Set(c.units||[])];
     const roster=ids.map(id=>state.entities[id]).filter(e=>alive(e)&&e.owner===hero.owner&&e.type!=='hero'&&!e.guard&&!e.deployment?.transfer);
     if(new Set(roster.map(group)).size>1)return say('Choose crew from one command group');
-    if(Object.values(state.entities).some(e=>(!solo||e.id!==ids[0])&&(e.execute?.target===c.target||e.crewJob?.target===c.target||e.lootTarget===c.target)))return say('A crew member is already handling that body');
+    if(Object.values(state.entities).some(e=>(e.execute?.target===c.target||e.crewJob?.target===c.target||e.lootTarget===c.target||e.bodyQueue?.some(j=>j.target===c.target))))return say('A crew member is already handling that body');
     const candidates=roster.filter(e=>e.place===target?.place&&sees(e,target)&&deployment.canActAt(e,target.x,target.z,target.place)
-      &&(solo||(!e.crewJob&&!e.execute&&e.order?.kind!=='loot'&&!state.deployment.clans[e.owner]?.sectors[e.deployment?.group]?.recovery))&&(c.type==='loot'?lootable(e,target):downedFoe(e,target)))
+      &&!state.deployment.clans[e.owner]?.sectors[e.deployment?.group]?.recovery&&(c.type==='loot'?lootable(e,target):downedFoe(e,target)))
       .sort((a,b)=>Math.hypot(a.x-target.x,a.z-target.z)-Math.hypot(b.x-target.x,b.z-target.z));
-    const e=candidates.find(e=>{const end=navigation(e)?.findPath(e.x,e.z,target.x,target.z)?.at(-1);return end&&Math.hypot(end[0]-target.x,end[1]-target.z)<.6;});
+    const reachable=e=>{if(Math.hypot(e.x-target.x,e.z-target.z)<=1.3)return true;const end=navigation(e)?.findPath(e.x,e.z,target.x,target.z)?.at(-1);return end&&Math.hypot(end[0]-target.x,end[1]-target.z)<.6;};
+    const e=candidates.find(e=>!e.execute&&(!e.crewJob||e.crewJob.phase==='returning')&&e.order?.kind!=='loot'&&reachable(e));
+    if(!e){
+      const busy=candidates.find(e=>(e.execute||e.crewJob)&&reachable(e));
+      if(busy){const q=busy.bodyQueue||=[];if(q.length>=8)return say('Body queue is full (8 jobs)');q.push({hero:hero.id,type:c.type,target:target.id});return say('Body job queued after the current job');}
+    }
     if(!e)return say('No available crew in this group can reach that body');
     const previous=e.crewJob,oldOrder=structuredClone(previous?.oldOrder||e.order||{kind:'stop'}),oldDuty=structuredClone(previous?.oldDuty||e.deployment?.duty||{manual:false});
     manual(e);clearCombat(e);delete e.holdFire;delete e.smokePassive;
@@ -28,7 +33,14 @@ export function createCrewJobs({state,deployment,rally,manual,clearCombat,naviga
     e.crewJob.pending={...c,units:[e.id]};return true;
   }
   function step(e,unit){
-    const job=e.crewJob;if(!job)return false;
+    let job=e.crewJob;
+    if(alive(e)&&!e.execute&&e.bodyQueue?.length&&(!job||job.phase==='returning')){
+      const queue=e.bodyQueue, next=queue.shift(),hero=state.entities[next.hero];
+      if(alive(hero))command(hero,{type:next.type,target:next.target,units:[e.id]});
+      if(queue.length)e.bodyQueue=queue;else delete e.bodyQueue;
+      job=e.crewJob;
+    }
+    if(!job)return false;
     const task=state.deployment.clans[e.owner]?.sectors[e.deployment?.group];
     if(!alive(e)||e.deployment?.transfer||job.group!==group(e)||e.holdFire||e.smokePassive
       ||task?.recovery||(task&&!e.deployment.duty?.manual)||(e.buffs?.stunned?.until>state.tick)||e.distracted){cancel(e);return false;}

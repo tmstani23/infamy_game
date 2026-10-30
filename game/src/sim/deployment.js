@@ -1,3 +1,4 @@
+import { groundZone, shapeDistance } from './geometry.js';
 import { createSectors } from './sectors.js';
 import { createNav } from './nav.js';
 import { isRallyParticipant } from './deployment_rally.js';
@@ -18,6 +19,8 @@ export const restoredDeployment = record => record.deployment ? {
 export function createDeployment({ state, district, nav, navOf = () => nav, doors = [], moveTo,
   clearCombat = () => {}, entryAllowed = () => true, inCombat = () => false }) {
   const geometry = createSectors(district, nav);
+  const roads=(district.ground||[]).map(groundZone).filter(z=>['paving','gravel','planks'].includes(z.type)||z.type==='dirt'&&z.shape.line);
+  const patrolAllowed=(x,z)=>!district.quarters?.length||(district.quarters.some(q=>x>=q.box[0]&&x<=q.box[2]&&z>=q.box[1]&&z<=q.box[3])||roads.some(r=>shapeDistance(r.shape,x,z)>=0));
   state.deployment ||= { version: 1, restrictionsEnabled: false, heroLimit: 6, sectorLimit: 3,
     sectors: geometry.sectors, village: geometry.village, clans: {} };
   const D = state.deployment, sectorIds = D.sectors.map(s => s.id);
@@ -102,7 +105,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   function excursion(e) {
     const op = D.clans[e.owner]?.sectors[e.deployment?.group]?.operation;
     if (!op?.units?.includes(e.id)) return null;
-    if (op.kind === 'sweep') return { targetSector:op.targetSector };
+    if (op.kind === 'sweep') return { targetSector:op.targetSector, kind:'sweep' };
     const b = op.kind === 'shakedown' && state.businesses[op.business];
     return b ? { targetSector:sectorAt(...b.ring), room:b.room } : null;
   }
@@ -121,13 +124,14 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   function navFor(e) {
     if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
     const group = e.deployment.group, b = excursion(e), target = b?.targetSector;
-    const key = b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group;
+    const patrol=!!e.order?.patrol||!!e.patrolPlanning||b?.kind==='sweep';
+    const key = (b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group)+(patrol?':patrol':'');
     if (!localNavs.has(key)) {
       const { bounds, cell, w, cells } = geometry.cellGrid(), label = sectorIds.indexOf(group);
       localNavs.set(key, createNav([], bounds, { cell, pad: 0, allowed: (x, z) => {
         if (group === 'home') return nav.free(x, z) && canOccupy(e, x, z, 'street');
         const k = Math.floor((z - bounds.minZ) / cell) * w + Math.floor((x - bounds.minX) / cell);
-        return cells[k] === label || (b && cells[k] === sectorIds.indexOf(target));
+        return (!patrol||patrolAllowed(x,z))&&(cells[k] === label || (b && cells[k] === sectorIds.indexOf(target)));
       } }));
     }
     return localNavs.get(key);
@@ -406,7 +410,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   sync();
   return { addClan, onSpawn, sync, members, counts, canAssign, nextAutomaticSector, sectorAt,
-    overflowAvailable: clan => full(counts(clan)), cellGrid: geometry.cellGrid, canOccupy, canActAt, navFor, allowsOrder,
+    overflowAvailable: clan => full(counts(clan)), cellGrid: geometry.cellGrid, canOccupy, canActAt, navFor, patrolAllowed, allowsOrder,
     canTransfer, command, travelStep, localTravel, destination, returnAfterRally, reserveStatus,
     needsFirstSector:clan=>!D.clans[clan]?.autoSector&&counts(clan).hero>=D.heroLimit&&members(clan,'home').some(e=>!e.downed&&!e.deployment.transfer&&!e.deployment.keepAtHQ&&healthy(e)&&idle(e)),
     enable: () => { D.restrictionsEnabled = true; } };

@@ -231,3 +231,13 @@ console.log('Kuroda: faction hiring, real recruitment, sweep, counter proc/stun/
   const commands=bot.tick();assert.ok(commands.some(c=>c.type==='hire'&&c.unit==='spearman'),'Kuroda bot hires faction spear crew');
 }
 console.log('Kuroda: dodge preserves counter, stronger snares preserved, invalid-target validation and live AI counter/combo/formation/hiring passed');
+
+{
+ const {g,hero,spawn}=make(),target=spawn('brute',hero.x+1,hero.z,{owner:'rival',hp:10000,maxHp:10000});
+ const police=spawn('thug',hero.x+1,hero.z+.5,{owner:POLICE,cop:true,wave:'raid',hp:10000,maxHp:10000});
+ const civilian=spawn('thug',hero.x+1,hero.z-.5,{hp:10000,maxHp:10000});civilian.type='civilian';
+ hero.buffs={reprisal:{until:g.state.tick+1000,splash:.5,radius:4}};
+ use(g,hero,'R',{target:target.id});advance(g,30);
+ assert.ok(target.hp<10000,'threefold hits its enemy');
+ assert.equal(police.hp,10000,'threefold splash excludes even raid police');assert.equal(civilian.hp,10000);
+}

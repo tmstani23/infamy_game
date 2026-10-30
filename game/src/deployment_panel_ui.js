@@ -225,7 +225,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
       if(clans.dataset.key!==clanKey){const chosen=clans.value;clans.dataset.key=clanKey;clans.replaceChildren();for(const c of rivals)clans.add(new Option(c.name,c.id));if(rivals.some(c=>c.id===chosen))clans.value=chosen;}
       const op=task.operation?.kind==='sweep'&&task.operation,can=sweep.eligibility(owner(),focus,select.value,clans.value);
       $('.start-sweep').disabled=!can.ok;$('.cancel-sweep').disabled=!op||op.state==='Returning';
-      $('.sweep-preview').textContent=op?op.state+' · '+(op.hold/20).toFixed(1)+'/20s'+(op.contested?' · CONTESTED':'')+(op.reason?' · '+op.reason:''):can.ok?'10% protection while together. Hold 20s; scatter rival sector crew. Up to 500 ryo total, shared 3-minute cooldown; requires two encountered rivals.':can.why;
+      $('.sweep-preview').textContent=op?op.state+' · Position '+((op.pointIndex||0)+1)+'/3 · '+(op.hold/20).toFixed(1)+'/20s'+(op.contested?' · CONTESTED':'')+(op.reason?' · '+op.reason:''):can.ok?'10% protection while together. Hold 3 positions for 20s each; scatter rival sector crew. Up to 500 ryo total, shared 3-minute cooldown; requires two encountered rivals.':can.why;
     }
     const shakedown=game.shakedown,showShakedown=!!task&&st.clans[owner()].faction==='yakuza'&&!!shakedown;
     $('.shakedown-ops').hidden=!showShakedown;

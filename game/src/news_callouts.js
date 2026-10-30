@@ -4,6 +4,12 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contra
   function update() {
     for (const n of game.state.news) {
       const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
+      if(['sweepAlert','sweepPoint','sweepSuccess'].includes(n.kind)&&(n.clan===me||n.defender===me||n.rival===me)){
+        const yours=n.clan===me,zone=game.state.deployment.sectors.find(s=>s.id===n.sector)?.name||n.sector;
+        const text=n.kind==='sweepSuccess'?`SWEEP COMPLETE · ${zone}${yours?' secured':' scattered'}`:n.kind==='sweepPoint'?`SWEEP · ${zone} · moving to position ${n.point}/3`:`${yours?'SWEEP DISPATCHED':'ENEMY SWEEP'} · ${zone} · three positions to hold`;
+        callout(text,yours?'win':'loss',5000);
+        if(Number.isFinite(n.x)){minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}
+      }
       if(n.kind==='shakedownAlert'&&n.defender===me){callout(`Shakedown at your ${n.name}! Defend the front room!`,'loss',4000);minimap.ping(n.x,n.z);gameMap.ping(n.x,n.z);}
       if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);
       if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);

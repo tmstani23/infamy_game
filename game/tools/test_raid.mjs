@@ -109,3 +109,11 @@ assert.match(g.state.clans.kuroda.notice.text, /lost/);
 g.step();
 assert.ok(guards().every(e => e.owner === 'player'), 'new guards are ours');
 console.log('back-room hold and takeover ok');
+
+{
+ const prior=g.state.attacks[den.id];
+ g.state.attacks[den.id]={mode:'raid',phase:'over',room:den.room,clan:'player'};
+ assert.equal(g.businesses.entryStatus({owner:'player',type:'thug',place:'street'},den.room).ok,true,'ended raids never keep their crew entry cap');
+ assert.equal(g.businesses.crewSlots('player',den.room),Infinity);
+ if(prior)g.state.attacks[den.id]=prior;else delete g.state.attacks[den.id];
+}

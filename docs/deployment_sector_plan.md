@@ -580,4 +580,8 @@ Quick manual checklist: choose rival/adjacent sector; dispatch/recall/return; co
 
 ### Sweep route playtest proposal (2026-10-29)
 
-Tim says Sweep currently feels like walking to one location and holding. Future proposal only: visit a few waypoints around the destination sector before the final hold point. Waypoint count, route and timing remain unsettled; no code change is authorized by this note. Actual configured hold remains twenty seconds. Tim approved current deployment layout/staffing usability as good for now; this does not establish a full memory audit.
+Tim says Sweep currently feels like walking to one location and holding. That proposal is now superseded by the implemented three-position checkpoint below: twenty seconds at each point. Tim approved current deployment layout/staffing usability as good for now; this does not establish a full memory audit.
+
+### Sweep three-position checkpoint (2026-10-29)
+
+Three prevalidated, distinct reachable street hold points, twenty seconds each; no single sixty-second hold. Safe town/road navigation is shared with patrols; reject unavailable three-point routes. March between positions with per-position hold/contest/reset, retaining saved assignments/recovery and authoritative sim behavior. Reward/scatter occur only after final completion. UI shows Position 1/3; start/advance/completion callouts and start/advance map/minimap pings identify progress. Coordinator reports real physical travel, three-position completion/contests/final scatter and return checks passed. Manual playtest remains pending. Earlier one-point/proposed-waypoint text is historical. [Section 2 validation](playtest_followup_plan.md#2-bugs).

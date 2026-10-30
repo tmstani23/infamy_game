@@ -17,11 +17,11 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
   const secondary = (a, t, primary) => alive(t) && !civilian(t) && fair(a, t) && sees(a, t)
     && (!cop(t) || t.wave || cop(primary)) && clearLine(a, t);
 
-  function cleave(a, target, damage) {
+  function cleave(a, target, damage, excludePolice = false) {
     const b = a.buffs?.reprisal;
     if (!b || b.until <= state.tick) return;
     for (const t of Object.values(state.entities)) {
-      if (t === target || !secondary(a, t, target) || distance(target, t) > b.radius) continue;
+      if (t === target || (excludePolice && cop(t)) || !secondary(a, t, target) || distance(target, t) > b.radius) continue;
       hit(a, t, Math.round(damage * b.splash), false, 'cleave');
     }
     emit(a, 'cleave', { tx: target.x, tz: target.z, radius: b.radius });
@@ -46,7 +46,7 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
       if (!slow || slow.until <= state.tick || slow.speed >= f.snareSpeed)
         addBuff(t, 'snared', f.snareSeconds, { speed: f.snareSpeed, style: 'kuroda' });
     }
-    cleave(a, t, damage);
+    cleave(a, t, damage, !normal);
   }
 
   function damaged(t, source) {

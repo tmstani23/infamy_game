@@ -451,6 +451,11 @@ export function createGame(options) {
   const BRING_RADIUS = 12;
   function bringCrew(hero, from, d, ids = []) {
     const out = d.place === 'street';
+    if(!out&&from==='street')for(const id of ids||[]){const u=state.entities[id];
+      if(u&&u.owner===hero.owner&&u.place===from&&!u.dead&&!u.downed&&!u.execute&&!u.crewJob&&!u.deployment?.transfer&&rally.participating(u)){
+        manualCrew(u);u.order={kind:'follow',target:hero.id,regrouping:true};
+      }
+    }
     const crew = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && u.place === from
       && (ids || []).includes(u.id) && (!out || (u.order?.kind === 'follow' && u.order.target === hero.id && u.order.exitWithHero))
       && deployment.canActAt(u, d.to.x, d.to.z, d.place)
@@ -676,7 +681,14 @@ export function createGame(options) {
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'unstuck') unstuck.command(e);   // a stuck hero back to his hideout (sim/unstuck.js)
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
-      if((c.type==='execute'||c.type==='loot')&&c.crewJob&&e.type==='hero'){crewJobs.command(e,c);continue;}
+      if((c.type==='execute'||c.type==='loot')&&c.crewJob&&e.type==='hero'){
+        const t=state.entities[c.target],reach=c.type==='loot'?LOOT_REACH:1.3;
+        if(c.preferHeroInRange&&!c.crewOnly&&!e.execute&&!Object.values(state.entities).some(u=>u.id!==e.id&&(u.execute?.target===c.target||u.crewJob?.target===c.target||u.lootTarget===c.target))&&t&&e.place===t.place&&Math.hypot(e.x-t.x,e.z-t.z)<=reach){
+          if(c.type==='loot')startLoot(e,{...c,units:[]});else startExecute(e,{...c,units:[]});
+          if(e.execute||e.lootTarget)continue;
+        }
+        crewJobs.command(e,c);continue;
+      }
       if (c.type === 'execute' && e.type === 'hero') startExecute(e, c);
       if (c.type === 'loot') startLoot(e, c);
       if (c.type === 'attack' && e.type === 'hero' && !e.dead && fair(e, state.entities[c.target]) && sees(e, state.entities[c.target])) {

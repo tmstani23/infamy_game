@@ -41,7 +41,7 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
     // Move and an explicit Follow recall reach their goal even under fire. Process
     // it before swings, retaliation, automatic executions or hero assistance.
     const recalling = e.order?.kind === 'follow' && e.order.regrouping;
-    if (e.order?.kind === 'follow' && !state.clans?.[e.owner]?.bot && !e.execute && e.place === 'street') {
+    if (e.order?.kind === 'follow' && !e.execute && e.place === 'street') {
       const leader = state.entities[e.order.target];
       const door = leader && !leader.dead && !leader.downed && !leader.jailed && leader.place !== 'street'
         && doors.find(d => d.to && !d.ninja && d.place === leader.place);

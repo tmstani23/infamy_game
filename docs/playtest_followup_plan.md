@@ -113,7 +113,7 @@ Added at Tim’s request (2026-10-29). After the current Geisha/status-label fol
 
 ### Agreed fix list (Tim, 2026-10-30; section 1 implemented/Node-checked)
 
-For whoever builds next (Claude or ChatGPT). Section 1 is implemented/Node-checked; sections 2–4 are not started at this checkpoint. Repo rules still apply: all game rules in game/src/sim; every new control goes in the Controls panel; Node tests only (copy .js to .mjs for `node --check`); Tim playtests; commit after each checkpoint.
+For whoever builds next (Claude or ChatGPT). Section 1 is implemented/Node-checked; sections 1–2 are now implemented/Node-checked; sections 3–4 are unstarted. Repo rules still apply: all game rules in game/src/sim; every new control goes in the Controls panel; Node tests only (copy .js to .mjs for `node --check`); Tim playtests; commit after each checkpoint.
 Causes: project file `phase8/playtest_review.md`. Balance decisions also live in `business_raids_plan.md`, `ninja_clan_plan.md` and `leader_balance.md`.
 
 #### 1. Real-time sim + map/Deployment lag (do first)
@@ -155,17 +155,23 @@ All worker checkpoints remain unchecked/unbuilt possible future scope, gated on 
 
 #### 2. Bugs
 
-- [ ] 1. **Loot a body lying under another body:** the click should prefer the lootable (gold) body under the cursor (`src/crew_input.js` target pick).
-- [ ] 2. **A loot or execute order must not cancel a running execute:** give the job to a free selected crew member from the group; if none is free, queue it after the current execute (`sim/crew_jobs.js` / `loot_execute.js`).
-- [ ] 3. **Hero standing on a body can't loot or execute:** if the hero is in reach, the hero does it (sim `startLoot` / `startExecute`, `preferHeroInRange`).
-- [ ] 4. **Patrols go into the woods and get stuck:** `sim/sector_patrol.js` makes 8 points around the sector box. Keep only points in town or on streets (nav free and not forest), along town edges and roads between bandit camps.
-- [ ] 5. **Patrols idle at full HP and don't fight back:** repro first; likely passive or holdFire left over after Z, Rally or Smoke. Patrol duty should clear it and always hit back.
-- [ ] 6. **Rallied raid group left outside:** rallied raiders should follow the hero through the raid door when they reach the ring; C+V inside should also call in group members still outside.
-- [ ] 7. **Couldn't enter after the lantern fell and the raid ended:** clear the "raiders wait outside" entry lock on every raid end (`sim/businesses.js` mayEnter).
+- [x] 1. **Loot a body lying under another body:** the click should prefer the lootable (gold) body under the cursor (`src/crew_input.js` target pick).
+- [x] 2. **A loot or execute order must not cancel a running execute:** give the job to a free selected crew member from the group; if none is free, queue it after the current execute (`sim/crew_jobs.js` / `loot_execute.js`).
+- [x] 3. **Hero standing on a body can't loot or execute:** if the hero is in reach, the hero does it (sim `startLoot` / `startExecute`, `preferHeroInRange`).
+- [x] 4. **Patrols go into the woods and get stuck:** `sim/sector_patrol.js` makes 8 points around the sector box. Keep only points in town or on streets (nav free and not forest), along town edges and roads between bandit camps.
+- [x] 5. **Patrols idle at full HP and don't fight back:** repro first; likely passive or holdFire left over after Z, Rally or Smoke. Patrol duty should clear it and always hit back.
+- [x] 6. **Rallied raid group left outside:** rallied raiders should follow the hero through the raid door when they reach the ring; C+V inside should also call in group members still outside.
+- [x] 7. **Couldn't enter after the lantern fell and the raid ended:** clear the "raiders wait outside" entry lock on every raid end (`sim/businesses.js` mayEnter).
+
+Section 2 checkpoint (2026-10-29): original seven fixes implemented/Node-checked; manual confirmation pending. Body queues are deduplicated/bounded to eight jobs and preserve active executes/group return plans; free reachable selected crew take work first, including solo selection. Eligible nearby hero has priority for hero/Rally groups; Ctrl/sector groups remain crew-only, with no duplicate claims. Explicit solo nonbody/Stop/Smoke may still cancel. Patrol/Sweep nav uses town/road/boardwalk safe masks; automatic duty clears stale passive flags and pause yields to combat, preserving explicit manual Stop. Rally stragglers physically follow through normal doors/capacity checks; expired raids no longer impose entry/capacity locks.
+
+Approved additions: Threefold Thrust Reprisal splash excludes police (including wave officers) and civilians without changing direct targeting. Running Kuroda lightning uses 0.14-second emission, 0.4-second life, 0.2 drift and fixed-at-birth correlated bends; visual approval pending. **Sweep now has three distinct reachable road-safe street positions, twenty seconds each**, superseding earlier single-point/single-sixty-second interpretations; per-position travel/contest/reset, final-only reward/scatter, Position 1/3 UI, start/advance/completion callouts and start/advance map/minimap pings. Reject routes without three valid points. [Sweep owner](deployment_sector_plan.md#sweep-three-position-checkpoint-2026-10-29).
+
+Coordinator reports passing crew-jobs, target-controls, sector-playtest, assignments, crew-recall, raid, Shinobi-HQ-raid, Kuroda, Sweep and deployment-panel-flow checks, changed-JS syntax and scoped diff checks. No browser automation or full-match/visual claim. Tim separately reports map responsiveness improved; worker remains a deferred idea. Section 3 is next, unstarted; overall manual-confirmation checkbox remains unchecked.
 
 #### 3. UI
 
-- [ ] 8. One ✕ (and Esc) closes both the map and the docked Deployment panel.
+- [ ] 8. **One combined Map/Deployment screen and one button** (not separate screens). A clearly labelled **Close map** button and Esc both close the whole combined workspace. Escape/fullscreen behavior is browser-dependent: existing fullscreen binding requests `keyboard.lock(['Escape'])` where supported/permitted; browser identification (Firefox/Chrome/Edge) is pending, so no universal fix is claimed.
 - [ ] 9. **Party frames:** crew pips move to a fixed-size raid-style frame in the top left with a header ("Crew"), styled differently from the selection panel (which stays where it is). The action bar goes back to one row.
 - [ ] 10. Big Rally and War Lantern buttons with icons next to the action bar (add to the Controls panel).
 
