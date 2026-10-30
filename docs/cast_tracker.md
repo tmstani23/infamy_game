@@ -11,6 +11,8 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 |---|---|---|---|---|---|
 | hero1 (ronin) | Hero | ✅ roninheroobj1.zip | ✅ ronin.fbx | ✅ 10 (160px) | combat |
 | mercenary1 | Hero | ✅ mercobj1.zip | ✅ mercenary.fbx | ✅ 7 (160px), with rifle | gunner |
+| Western gunslinger | Unassigned concept; possible mercenary/enemy | concept art only; see below | — | — | pending |
+| Western dockside bruiser | Unassigned concept; possible mercenary/enemy | concept art only; see below | — | — | pending |
 | brute1 | Hero | ✅ bruteobj1.zip | ✅ brute.fbx | ✅ 9 (160px, 1.12x scale) | brawler (+ Mutant files) |
 | ninja_leader | Hero (ninja); cape rigged fine | ✅ ninjaleader2obj.zip (ninja_leader2 concept) | ✅ ninja_leader.fbx | ✅ 8 (160px), with ninjato (shortened) | ninja |
 | ninja1 | Spare concept, no model planned (ninja_leader is the ninja hero) |  |  |  |  |
@@ -61,6 +63,8 @@ Thin items are image slabs made by `tools/make_slabs.py` from `assets/concepts/i
 
 Save Mixamo downloads under their own names in the set's subfolder.
 
+For a new character, keep one with-skin FBX for its rig; reuse the shared without-skin animation clips. Download additional clips without skin only when needed and place them in the appropriate existing animation set.
+
 - **brawler/** (thug, brute): `Walking`, `Running`, `Hit Reaction` are copies of the ronin's walk (a copy of `ronin.fbx`, whose walk is built in), run and reaction. Tim's own: `Fighting Idle`, `Punching`, `Hook Punch`, `Dying` (saved with a `_noskin` tag, which the export ignores). Brute-only: `Mutant Idle`, `Mutant Punch`, `Mutant Walking` (replaces `Walking` for the brute). A Mixamo download saved under the same name replaces the copy. `Mutant ...` files are brute-only.
 - **combat** (ronin, files directly in the folder): 9 files plus the walk built into `ronin.fbx`.
 - **gunner/** (mercenary): Rifle Aiming Idle, Walk With Rifle, Rifle Run, Firing Rifle, Reloading, Hit Reaction, Death From The Front. The rifle is attached by the export.
@@ -102,6 +106,15 @@ New models are required for both concepts: the existing swordsman rig is explici
 | Shinobi masked bodyguard | [`assets/concepts/shinobi_masked_bodyguard.png`](../assets/concepts/shinobi_masked_bodyguard.png): athletic masked, armored dodge tank | [`shinobi_masked_bodyguard.prompt.txt`](../assets/concepts/shinobi_masked_bodyguard.prompt.txt) | Tencent image-to-3D, then fresh Mixamo rig |
 
 These are concept images only; neither is a rigged 3D model or an exported sprite sheet.
+
+## Western character concepts (art only, 2026-10-30)
+
+These are visual concepts for possible future mercenary/enemy roles; neither role nor gameplay/roster use is approved. No model or rig work is underway.
+
+| Concept | Image | Prompt |
+|---|---|---|
+| Western gunslinger: lean build, waistcoat and short coat | [`assets/concepts/western_gunslinger.png`](../assets/concepts/western_gunslinger.png) | [`western_gunslinger.prompt.txt`](../assets/concepts/western_gunslinger.prompt.txt) |
+| Western dockside bruiser: broad muscular sailor, tattoos and suspenders | [`assets/concepts/western_dockside_bruiser.png`](../assets/concepts/western_dockside_bruiser.png) | [`western_dockside_bruiser.prompt.txt`](../assets/concepts/western_dockside_bruiser.prompt.txt) |
 
 ## Shinobi geisha runtime alias (2026-10-26)
 
