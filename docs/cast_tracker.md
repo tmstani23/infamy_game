@@ -115,6 +115,10 @@ The FBX check confirmed file/header markers only; animation/deformation and in-g
 
 The revised export is complete and the Shinobi sprite is approved by Tim. Gameplay integration is recorded in the Phase 8 checkpoint below; manual VFX/visual review remains pending. Updated preview captures remain local.
 
+### Kuroda chain arc (approved/exported 2026-10-30)
+
+All seven Kuroda color/glow pairs now use the authored backswing → overhead → forward/down cast. The chain is baked, not simulated at runtime; Kuroda damage timing is aligned to the forward cast. The prior 14 PNGs are preserved in `assets/sprites_archive/2026-10-30_tank_chain_arc/`. Export checks passed; Tim's in-game visual check remains pending. Preview is local.
+
 ## Western civilian checkpoint (2026-10-30)
 
 The new unarmed Foreign visitor and Western dockworker use `assets/models/gunslinger.fbx` and `assets/models/western_dockworker.fbx`; six civilian clips each are exported (12 atlases total). They replace one sailor and one laborer, keeping the civilian population at 30. Both use daytime POIs and return indoors to dock warehouse/customs house homes at night. Visuals still need Tim's in-game review.

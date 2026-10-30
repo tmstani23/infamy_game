@@ -182,7 +182,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     if (f.cd > 0) { e.anim = 'idle'; return; }
     const speed = stats.attackInterval(e);
     const len = swingTicks({ ...unit, attackSpeed: speed });
-    e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * STRIKE), target: t.id };
+    e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * (unit.strikeFraction ?? STRIKE)), target: t.id };
     e.anim = 'attack';
     f.cd = speed;
   }

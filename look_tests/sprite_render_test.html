@@ -71,7 +71,7 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { buildSpear, buildShield, poseSpear } from './kuroda_sprite_items.js';
-import { buildLongShield, buildTankWeapon, poseTankWeapon } from './tank_sprite_items.js';
+import { buildLongShield, buildTankWeapon, poseTankWeapon, bakeTankChain } from './tank_sprite_items.js';
 
 // Rows of the spritesheet, top to bottom
 const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
@@ -693,6 +693,13 @@ function renderSheet(i, withGlow = false) {
   const obj = root.children[0];
   const exMixer = new THREE.AnimationMixer(obj);
   exMixer.clipAction(clip).play();
+
+  if(item?.userData.tank==='kusarigama'){
+    root.rotation.y=0;
+    bakeTankChain(item,root,{clip:entry.name,duration:clip.duration,poseAt:phase=>{
+      exMixer.setTime(Math.min(phase,1-1e-7)*clip.duration);spearPhase=phase;updateItem();
+    }});
+  }
 
   DIRS.forEach((d, row) => {
     root.rotation.y = yawFor(d);

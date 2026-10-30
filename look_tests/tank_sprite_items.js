@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {chainWeightPose} from './tank_chain_motion.js';
+import {chainWeightPose,bakeChainTrack,sampleChainTrack,CHAIN_LINKS} from './tank_chain_motion.js';
 import {rightTonfaPitch} from './tank_tonfa_motion.js';
 
 // Physical shield with painted face, iron rim, board thickness and rear straps.
@@ -44,13 +44,25 @@ export function buildTankWeapon(std,kind){
   const shape=new THREE.Shape();shape.moveTo(0,.27);shape.bezierCurveTo(.14,.37,.42,.32,.47,.08);shape.bezierCurveTo(.33,.23,.15,.23,0,.20);shape.closePath();
   const geo=new THREE.ExtrudeGeometry(shape,{depth:.012,bevelEnabled:true,bevelSize:.003,bevelThickness:.002,bevelSegments:1,steps:1});geo.rotateX(Math.PI/2);
   sickle.add(new THREE.Mesh(geo,silver));
-  const links=new THREE.InstancedMesh(new THREE.TorusGeometry(.022,.006,4,8),iron,30);links.name='chain';links.userData.noWeaponGlow=true;links.frustumCulled=false;group.add(links);
+  const links=new THREE.InstancedMesh(new THREE.TorusGeometry(.022,.006,4,8),iron,CHAIN_LINKS);links.name='chain';links.userData.noWeaponGlow=true;links.frustumCulled=false;group.add(links);
   const weight=new THREE.Mesh(new THREE.IcosahedronGeometry(.08,0),iron);weight.name='weight';weight.userData.noWeaponGlow=true;group.add(weight);
  }
  return group;
 }
 
-// The weight follows a deliberate extension/sweep/recovery arc, baked into each attack frame.
+// Sample the animated hand once, in chronological order, before rendering any view.
+export function bakeTankChain(group,root,{clip,duration,poseAt}){
+ if(group?.userData.tank!=='kusarigama')return;
+ delete group.userData.chainBake;group.userData.baking=true;
+ try{
+  group.userData.chainBake=bakeChainTrack({duration,attacking:/slash|thrust/i.test(clip),anchorAt:phase=>{
+   poseAt(phase);const anchor=group.getObjectByName('sickle').localToWorld(new THREE.Vector3(0,0,-.18));
+   return root.worldToLocal(anchor).toArray();
+  }});
+ }finally{delete group.userData.baking;}
+}
+
+// The weight follows a deliberate backswing/overhead/cast/recovery arc.
 // This is asset animation only; it never adds combat reach or damage.
 export function poseTankWeapon(group,root,findBone,{clip,phase,palmOf}){
  root.updateMatrixWorld(true);
@@ -66,11 +78,14 @@ export function poseTankWeapon(group,root,findBone,{clip,phase,palmOf}){
  }
  const hand=findBone(/RightHand$/);if(!hand)return;
  const sickle=group.getObjectByName('sickle');palmOf(hand,sickle.position);hand.getWorldQuaternion(sickle.quaternion);sickle.rotateX(Math.PI/2);sickle.scale.setScalar(root.scale.x);sickle.updateMatrixWorld(true);
+ if(group.userData.baking)return;
  const start=sickle.localToWorld(new THREE.Vector3(0,0,-.18));
  const motion=chainWeightPose(phase,/slash|thrust/i.test(clip)),extend=motion.extension;
  const end=root.localToWorld(new THREE.Vector3(motion.x,motion.y,motion.z));
  const mid=start.clone().lerp(end,.5);mid.y-=(1-extend)*.30;
  const curve=new THREE.QuadraticBezierCurve3(start,mid,end),links=group.getObjectByName('chain'),dummy=new THREE.Object3D();
- for(let i=0;i<30;i++){const t=i/29;dummy.position.copy(curve.getPoint(t));dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),curve.getTangent(t));dummy.rotateY(i%2*Math.PI/2);dummy.scale.setScalar(root.scale.x);dummy.updateMatrix();links.setMatrixAt(i,dummy.matrix);}
- links.instanceMatrix.needsUpdate=true;group.getObjectByName('weight').position.copy(end);
+ const track=group.userData.chainBake,points=track?sampleChainTrack(track,phase).map(p=>root.localToWorld(new THREE.Vector3(...p))):Array.from({length:CHAIN_LINKS},(_,i)=>curve.getPointAt(i/(CHAIN_LINKS-1)));
+ points[0].copy(start);
+ for(let i=0;i<CHAIN_LINKS;i++){const tangent=points[Math.min(i+1,CHAIN_LINKS-1)].clone().sub(points[Math.max(0,i-1)]).normalize();dummy.position.copy(points[i]);dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tangent);dummy.rotateY(i%2*Math.PI/2);dummy.scale.setScalar(root.scale.x);dummy.updateMatrix();links.setMatrixAt(i,dummy.matrix);}
+ links.instanceMatrix.needsUpdate=true;const weight=group.getObjectByName('weight');weight.position.copy(points.at(-1));weight.scale.setScalar(root.scale.x);
 }
