@@ -57,28 +57,28 @@ g.step([{ type: 'time', night: true }]);
 for (let i = 0; i < 40; i++) g.step();
 assert.equal(clan.ryo, 0);
 g.step([{ type: 'time', night: false }]);
-assert.equal(clan.ryo, 200);
-assert.equal(g.state.clans.kuroda.ryo, 600);
-assert.ok(g.state.ryoGains.some(r => r.clan === 'player' && r.amount === 200));
+assert.equal(clan.ryo, 120);   // payouts -40% (2026-10-30)
+assert.equal(g.state.clans.kuroda.ryo, 360);
+assert.ok(g.state.ryoGains.some(r => r.clan === 'player' && r.amount === 120));
 for (let i = 0; i < 40; i++) g.step();
-assert.equal(clan.ryo, 200);
+assert.equal(clan.ryo, 120);
 console.log('dawn payouts ok');
 
 // Manhunt (heat 90+): no payout
 clan.heat = 95;
 g.step([{ type: 'time', night: true }]);
 g.step([{ type: 'time', night: false }]);
-assert.equal(clan.ryo, 200);
+assert.equal(clan.ryo, 120);
 assert.match(clan.notice.text, /No payout/);
 console.log('no payout in a Manhunt ok');
 
 // building panel rows
 const i = Number(tea.id.slice(1)), units = g.settings.units;
 const rows = Object.fromEntries(buildingInfo({ state: g.state, district, info: data('data/buildings.json'), units }, i, 'player').rows);
-assert.equal(rows['Pays you'], '200 ryo at dawn');
+assert.equal(rows['Pays you'], '120 ryo at dawn');
 g.clans.setOwner(tea.id, null);
 const rows2 = Object.fromEntries(buildingInfo({ state: g.state, district, info: data('data/buildings.json'), units }, i, 'player').rows);
-assert.equal(rows2.Price, '400 ryo'); assert.equal(rows2.Pays, '200 ryo at dawn');
+assert.equal(rows2.Price, '400 ryo'); assert.equal(rows2.Pays, '120 ryo at dawn');
 console.log('building panel rows ok');
 
 // house guards: 2 inside each owned business, not crew, can't be ordered, die outright, replaced later

@@ -186,16 +186,18 @@ Section 3 implementation/Node-check checkpoint (2026-10-29): compact nine-icon m
 Additional approved tweaks: Reprisal cooldown 15 seconds; rifle Aimed Shot range ten (melee unchanged); Sweep holds idle within point radius rather than running in place. Coordinator reports `test_command_ui`, game-shell, deployment-panel-flow, HUD-drag, target-controls, realtime-loop, rifleman, Kuroda, Sweep passed; syntax/diff checks passed. No browser/screenshot automation. Firefox-version, fullscreen Escape, visual/layout and sound checks await Tim’s manual test.
 
 New follow-ups, unbuilt: wide ground-route Sweep chevrons follow squad, persist until point capture and refresh on next leg; visible arrival flashes/pings only for observers with sight, with no fog leak. At hold, crimson low shield arcs/stance plus progress ring visualize existing grouped protection; **no extra defensive buff**. Approved lighter ranged Reprisal implemented: landed Aimed Shot uses existing Reprisal on normal 18-damage weapon stats (20% ≈4 splash), not 80-damage shot stats (16); all police/civilians excluded. Focused `test_kuroda`/`test_rifleman` pass per coordinator; manual balance/visual checks pending.
-- [ ] **Game menu / Quit game** button in Settings (Tim 2026-10-30).
+- [x] **Game menu / Quit game** button in Settings (Tim 2026-10-30).
 
 #### 4. Balance (Tim decided)
 
-- [ ] **Business revenue −40%** (settings.json payouts). Diminishing returns: businesses 1–4 pay full, each one after that pays 10% less than the one before, never below 60%, so many businesses still matter.
-- [ ] **Property clans earn Renown (11a):** +40 raid win, +20 Shakedown success, +15 stopping a Shinobi job on your business, +5 sector clear. Renown counts toward season points like the Shinobi's (50 Renown = 1 point, `season.renownPerPoint`; Tim 2026-10-30). No crew slots from it for property clans.
-- [ ] **Shinobi alert window (13):** once a Steal or Sabotage job alerts the owner, at least 75–80 s must remain before it can complete. Design follow-up: give the Shinobi something to do in that time (e.g. defend the mark, plant a second one) so it isn't just standing around.
-- [ ] **Raid limit (14):** each clan may raid each rival at most once per night.
-- [ ] **Rifle Aimed Shot nerf:** 80 to 60 damage, keeping the aim time so it can be interrupted (code still at 80).
-- [ ] **Sounds (15):** Tim makes 3–4 hero ability sounds in ElevenLabs (whoosh, impact, smoke puff, shout) and drops them in assets/sounds; wire them in render/sound.js. More music from Suno later.
+- [x] **Business revenue −40%** (settings.json payouts). Diminishing returns: businesses 1–4 pay full, each one after that pays 10% less than the one before, never below 60%, so many businesses still matter.
+- [x] **Property clans earn Renown (11a):** +40 raid win, +20 Shakedown success, +15 stopping a Shinobi job on your business, +5 sector clear. Renown counts toward season points like the Shinobi's (50 Renown = 1 point, `season.renownPerPoint`; Tim 2026-10-30). No crew slots from it for property clans.
+- [x] **Shinobi alert window (13):** once a Steal or Sabotage job alerts the owner, at least 75–80 s must remain before it can complete. Design follow-up: give the Shinobi something to do in that time (e.g. defend the mark, plant a second one) so it isn't just standing around.
+- [x] **Raid limit (14):** each clan may raid each rival at most once per night.
+- [x] **Rifle Aimed Shot nerf:** 80 to 60 damage, keeping the aim time so it can be interrupted (code still at 80).
+- [~] **Sounds (15), partial:** Tim makes 3–4 hero ability sounds in ElevenLabs (whoosh, impact, smoke puff, shout) and drops them in assets/sounds; wire them in render/sound.js. More music from Suno later.
+
+Section 4 done (2026-10-30, `test_phase8_balance.mjs`): payouts cut 40%; diminishing returns (4 full, then −10% each, floor 60%); property Renown 40/20/15/5; 75 s alert window; one raid per rival per night; rifle Aimed Shot 60. Sounds partial: ability cues for Shadow Step, Red Lantern, Assassinate and Threefold are in (`render/sound.js` `ABILITY_CUE`, `assets/sounds/ability_*_1.ogg`); the rest are parked because the ElevenLabs SFX were poor. Section 3: Quit to game menu done; Edit layout mode built (Settings > Edit layout, `hud_layout.js` registry, `#lock` target-marker layer excluded); target-marker fix (`lock` added to `STRUCTURAL`).
 
 #### 5. Clan roles (proposal, Tim 2026-10-30)
 
@@ -212,4 +214,11 @@ Every clan gets a taunter and a ranged class:
 Maintenance queue: pre-existing stale `test_shinobi_pass` hidden-bonus/dawn-expiry assertions; update focused expectations without reverting correct gameplay. Original reported money-loss reproduction remains open. No other individual new fixes recorded yet. Previously listed Sweep waypoints, visual polish and menu proposals retain their existing status; this queue does not automatically authorize them.
 
 
-Global Edit layout mode: being built (uncommitted: Settings > Edit layout, hud_layout.js rewrite). Settings entry; while active, every UI element must be included: raid/crew frame, status panels/badges, utility icon menu, and all existing/new panels. Shared layout registry or automatic enrollment is mandatory; future UI gets no bespoke omissions. Outlines/drag/resize handles appear while editing and normal panel actions disable. Done saves/exits/locks all; Cancel restores prior layout; Reset restores defaults using existing positions. Remove permanent lock icons outside edit mode. Future regression check enumerates registered/rendered UI panels and verifies every one can move/resize and participates correctly in Done/Cancel/persistence.
+Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js registry). Settings entry; while active, every UI element must be included: raid/crew frame, status panels/badges, utility icon menu, and all existing/new panels. Shared layout registry or automatic enrollment is mandatory; future UI gets no bespoke omissions. Outlines/drag/resize handles appear while editing and normal panel actions disable. Done saves/exits/locks all; Cancel restores prior layout; Reset restores defaults using existing positions. Remove permanent lock icons outside edit mode. Future regression check enumerates registered/rendered UI panels and verifies every one can move/resize and participates correctly in Done/Cancel/persistence.
+
+## Handoff status (2026-10-30, for ChatGPT or the next session)
+
+- Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
+- **Next step: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
+- Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
+- Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.

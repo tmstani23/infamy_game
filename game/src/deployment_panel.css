@@ -122,6 +122,8 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #gamesettings label { display:block; margin:20px 0; }
 #gamesettings output { float:right; color:#bedac2; }
 #gamesettings input[type="range"] { display:block; width:100%; margin-top:12px; accent-color:#c8b581; }
+#gamesettings .quit-game { margin-left:8px; border-color:#8a4b3c; background:#3a2420; }
+#gamesettings .quit-note { margin:6px 0 0; min-height:1em; color:#e0a08a; font-size:12px; }
 #gamesettings button { padding:7px 12px; border:1px solid #7f7052; border-radius:4px; background:#28343b; color:#eee1c4; cursor:pointer; }
 #gamesettings .sound-status { color:#acbeb3; min-height:20px; }
 #deploymentpanel .member .pin { grid-column:2/-1; }

@@ -70,8 +70,12 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 |---|---|
 | Left-click a crew member | Select its deployment command group, replacing other groups; double-click selects individual. Ordinary selection never combines deployment groups |
 | Double-click a crew name / a group header | Camera follows that crew member / that group; arrows, a map click or Home stop following |
-| Drag a crew name onto another group | Transfer them to that group |
 | Left-drag a box | Select exactly the crew inside it (the rest are dropped; an empty box changes nothing) |
+| Crew frame tabs 1–4 | Click selects that control group (same as 1–4); Ctrl+click puts the selected crew in it (same as Ctrl+1–4); again dissolves it |
+| Shift + click a crew name | Add or remove that crew member from the selection |
+| Click a group header in the Crew frame | Select that whole group |
+| Home, or double-click the hero frame | Camera back to the hero |
+| Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
 | C | Select hero party, or active Rally force; replace sector selection |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
@@ -177,6 +181,4 @@ Treasury/contract feedback (2026-10-29): hover the ryo badge for six recent debi
 
 Section 3 controls (2026-10-29): compact nine-icon utility menu beside movable Ryo; hover/focus shows action, shortcut and availability. One Map/Deployment button or M opens the combined workspace; Close map/Esc closes it. Crew frames are movable/resizable at top left; group/solo/status/drag retained; abilities one row. Rally shows active/cooldown; War Lantern previews entry and uses existing command. Firefox fullscreen keyboard lock uses progressive requestFullscreen option with legacy fallback; Firefox-version/manual Esc tests pending. Coordinator reports focused UI checks passed; no browser automation or visual fit claim.
 
-Future Global Edit layout proposal: universal coverage includes raid/crew frame, status panels/badges, utility icon menu and all current/future panels through shared registry or auto-enrollment. Shared move/resize/Done/Cancel/persistence and coverage regression check required. Proposal only; not implemented. See phased plan.
-
-Crew-frame selection follow-up (2026-10-29): own-crew cards, including prisoner stand-ins, are suppressed from duplicate selection panels; enemy/civilian paths and deliberate target-frame inspection remain. Group pips show shared location text with live status/HP; medical tooltip identifies Clinic/Police HQ and bail. Gameplay unchanged. Tim reports Firefox Escape behavior and group switching feel better; this is practical feedback, not exhaustive validation. Coordinator reports selection-dock, selection-panel and deployment-panel-flow checks passed; manual appearance pending.
+Edit layout (built 2026-10-30): **Settings → Edit layout** lets you move and resize every UI panel, including placeholders for hidden panels (`hud_layout.js` registry; the target-marker layer is excluded). Drag a panel to move it, drag its gold corner to resize. Done saves and locks everything; Cancel or Esc restores the previous layout; Reset layout restores defaults. **Settings → Quit to game menu**: click twice to leave the match for the start screen (the match is not saved).

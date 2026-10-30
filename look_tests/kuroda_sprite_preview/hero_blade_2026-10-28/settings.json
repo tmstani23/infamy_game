@@ -1,0 +1,28 @@
+{
+  "previewOnly": true,
+  "framing": {
+    "size": 256,
+    "cellWorld": 4.8,
+    "feetUp": 0.9
+  },
+  "current": {
+    "file": "spear",
+    "proc": "spear",
+    "mode": "right",
+    "length": 1.85,
+    "grip": 0.4,
+    "palmOffset": 0.075,
+    "spear": true,
+    "shield": true
+  },
+  "draft": {
+    "file": "spear",
+    "proc": "spear_hero",
+    "mode": "right",
+    "length": 2.05,
+    "grip": 0.36,
+    "palmOffset": 0.075,
+    "spear": true,
+    "shield": true
+  }
+}

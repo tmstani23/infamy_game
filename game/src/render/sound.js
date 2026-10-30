@@ -13,7 +13,12 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
-const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'] };
+const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [] };
+// hero ability activation cues (Tim's clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
+// Each clip used once per hero so skills don't sound alike (Tim); abilities not listed keep only their old sounds
+const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
+  lantern: ['ability_buff_1', 1],   // Yakuza ronin (Iaido Dash, Intimidate, Rally keep their katana/impact sounds)
+  threefold: ['ability_finisher_1', 1.2] };   // Kuroda boss: storm
 for (let i=1;i<=4;i++) CUSTOM[`katana_slash_${i}`]=['sword_slash_1','sword_slash_2'];
 for (let i=1;i<=4;i++) {
   CUSTOM[`spear_thrust_${i}`]=['sword_slash_1','sword_slash_2'];
@@ -125,6 +130,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const c of state.casts) {
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
+        if (ABILITY_CUE[c.kind] && a?.type === 'hero') variant(ABILITY_CUE[c.kind][0], 0.55 * v, ABILITY_CUE[c.kind][1]);
         if(c.kind==='shakedownSuccess'||c.kind==='sweepSuccess')play(pickCustom('loot_coins_1'),.65*v);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
         if (SWORDS.has(a?.model) && (c.kind==='dash'||c.kind==='assassinate'||(c.kind==='shadowstep'&&c.crit))) swordSlash(.4*v);

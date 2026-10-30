@@ -27,3 +27,14 @@
 .prematch #partyframes,.prematch #utilitymenu {display:none;}
 @media(max-height:750px){#partyframes {height:290px;top:66px;}}
 @media(max-width:1000px){#partyframes {width:270px;}#bar .action-commands button {width:65px;}#bar .slot {width:48px;height:54px;}}
+
+#hudlayout {position:fixed;inset:0;z-index:200;pointer-events:auto;background:#050a1270;}
+#hudlayout[hidden] {display:none;}
+#hudlayout .layout-toolbar {position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:12px;width:min(850px,calc(100vw - 44px));padding:12px;background:#142531;border:1px solid #c6a465;border-radius:7px;box-shadow:0 6px 24px #0009;}
+#hudlayout .layout-toolbar strong {white-space:nowrap;color:#ffe0a2;}
+#hudlayout .layout-toolbar span {font-size:12px;color:#c4d5d8;}
+#hudlayout .layout-toolbar button {padding:10px 13px;background:#334839;border:1px solid #b69f69;border-radius:5px;color:#fff0c8;cursor:pointer;white-space:nowrap;}
+#hudlayout .layout-handle {position:fixed;box-sizing:border-box;outline:2px dashed #e4bc6c;background:#86bbd419;cursor:move;min-width:30px;min-height:24px;}
+#hudlayout .layout-handle span {position:absolute;top:0;left:0;padding:3px 6px;background:#122433ed;color:#ffe2a2;font:600 12px system-ui;pointer-events:none;}
+#hudlayout .layout-handle:focus-visible {outline:3px solid #fff0aa;}
+#hudlayout .layout-resize {position:absolute;right:0;bottom:0;width:23px;height:23px;padding:0;background:#e9c37b;color:#15202b;border:0;cursor:nwse-resize;}

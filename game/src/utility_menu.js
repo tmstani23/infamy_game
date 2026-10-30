@@ -10,7 +10,8 @@ export function createUtilityMenu({ root, anchor, buttons, win = window }) {
       if(b.getAttribute('aria-label')!==label)b.setAttribute('aria-label',label);
       if(b.id==='pausebtn')b.dataset.icon=b.getAttribute('aria-pressed')==='true'?'▶':'Ⅱ';
     }
-    const key=[win.innerWidth,win.innerHeight,anchor.style.cssText].join('|');
+    if(root.dataset.layoutPinned==='true')return;
+    const key=[win.innerWidth,win.innerHeight,anchor.style.cssText,root.dataset.layoutPinned].join('|');
     if(!force&&key===positionKey)return;positionKey=key;
     const r=anchor.getBoundingClientRect(),w=root.offsetWidth,h=root.offsetHeight;
     root.style.left=`${Math.max(8,Math.min(win.innerWidth-w-8,r.left-w-12))}px`;

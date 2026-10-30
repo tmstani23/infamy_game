@@ -80,6 +80,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         : `HQ protected for ${Math.ceil((recovery.protectedUntil - state.tick) / 20)} s` };
     }
     if (!state.night) return { ok: false, why: 'Raid at night' };
+    if (clan && state.raidsTonight?.[clan.id]?.includes(b.owner)) return { ok: false, why: `Already raided ${state.clans[b.owner]?.name || 'them'} tonight` };   // once per rival per night (Tim 2026-10-30)
     if (!able(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot raid now' };
     if (!(clan.lanterns > 0)) return { ok: false, why: 'Needs a War Lantern (moneylender)' };
     if (Object.values(state.attacks).some(a => a.clan === clan.id)) return { ok: false, why: 'Already attacking another place' };
@@ -156,6 +157,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       state.attacks[b.id] = { mode: 'raid', ...(isShinobiHQ(state, b) ? { hq: true } : {}), business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
         phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };
+      ((state.raidsTonight ||= {})[clan.id] ||= []).push(b.owner);
       onRaidPlaced(b.owner);
       say(clan, `War Lantern planted: the doors open in ${RD.warmupSeconds} s`);
       const def = state.clans[b.owner];
@@ -371,13 +373,30 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (!e.guard && e.order?.garrison && e.place !== 'street') patrol({ room: e.place }, [e]);
   }
 
+  // Diminishing payouts (settings.json payouts, Tim 2026-10-30): each clan's fullCount best-paying
+  // businesses pay full, each one after pays step less than the one before, never below floor
+  const DIM = units?.rules?.payoutDiminish;
+  function payoutRanks() {
+    const share = new Map();
+    if (!DIM) return share;
+    const byClan = {};
+    for (const b of Object.values(state.businesses)) if (R[b.kind]?.payout && state.clans?.[b.owner]) (byClan[b.owner] ||= []).push(b);
+    for (const list of Object.values(byClan)) {
+      list.sort((a, b) => R[b.kind].payout - R[a.kind].payout || String(a.id).localeCompare(String(b.id)));
+      list.forEach((b, i) => share.set(b.id, i < (DIM.fullCount ?? 4) ? 1 : Math.max(DIM.floor ?? 0.6, (1 - (DIM.step ?? 0.1)) ** (i - (DIM.fullCount ?? 4) + 1))));
+    }
+    return share;
+  }
+
   // At dawn every owned business pays its clan (nothing during a police Manhunt; more when the clan holds its whole quarter)
   function tick() {
     guardTick();
     attackTick();
+    if (state.dusk) state.raidsTonight = {};
     if (!state.dawn) return;
+    const share = payoutRanks();
     for (const b of Object.values(state.businesses)) {
-      const pay = R[b.kind]?.payout, clan = state.clans?.[b.owner];
+      const pay = Math.round((R[b.kind]?.payout || 0) * (share.get(b.id) ?? 1)), clan = state.clans?.[b.owner];
       if (!pay || !clan) continue;
       // a Shinobi Sabotage contract held its mark here (sim/contracts.js): no payout this dawn
       if (b.sabotaged) { delete b.sabotaged; say(clan, `No payout from the ${name(b)}: sabotaged`); state.news.push({ kind: 'sabotaged', clan: clan.id, business: b.id }); continue; }

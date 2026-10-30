@@ -13,6 +13,7 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   set(ur, 'reviveNowCostShare', c.reviveNowShare);
   set(ur, 'leaderBounty', s.rewards?.leaderKnockout);
   set(ur, 'sectorClearBonus', s.rewards?.sectorClear);
+  if (ur && s.rewards?.renown) ur.propertyRenown = { ...ur.propertyRenown, ...s.rewards.renown };
   if (ur && s.rewards?.buildingDefended !== undefined) ur.contracts = { ...ur.contracts, defendBonus: s.rewards.buildingDefended };
   if (s.rewards?.crewExecution !== undefined) for (const type of Object.values(units?.types || {}))
     if (type.executeRyo !== undefined) type.executeRyo = s.rewards.crewExecution;
@@ -29,6 +30,7 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   if (ur && s.hqCamping) ur.hqCamping = { ...ur.hqCamping, ...s.hqCamping };
   if (ur && s.leader) { const { _note, ...l } = s.leader; ur.leader = { ...ur.leader, ...l }; }
   if (ur && s.shakedown) ur.shakedown = { ...ur.shakedown, ...s.shakedown };
+  if (ur && s.payouts) { const { _note, ...d } = s.payouts; ur.payoutDiminish = { ...ur.payoutDiminish, ...d }; }
   // territory and the season (sim/territory.js)
   if (ur && s.territory) { const { _note, ...t } = s.territory; ur.territory = { ...ur.territory, ...t, radius: { ...ur.territory?.radius, ...t.radius } }; }
   if (ur && s.season) { const { _note, ...t } = s.season; ur.season = { ...ur.season, ...t }; }

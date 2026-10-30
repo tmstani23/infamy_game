@@ -41,8 +41,8 @@ function fixture(clan='yakuza') {
   // Actual modified payout, including suppression: zero cannot consume the claim.
   b.sabotaged=true;g.step([{type:'time',night:false}]);assert.ok(b.shakedownClaim);
   g.state.clans[rival].heat=0;g.step([{type:'time',night:true}]);g.step([{type:'time',night:false}]);
-  assert.equal(b.shakedownClaim,undefined);assert.ok(g.state.ryoGains.some(n=>n.reason==='Shakedown payout'&&n.amount===100));
-  assert.equal(g.state.clans.player.ryo-startMoney,400,'normal small business total is 400');
+  assert.equal(b.shakedownClaim,undefined);assert.ok(g.state.ryoGains.some(n=>n.reason==='Shakedown payout'&&n.amount===60));
+  assert.equal(g.state.clans.player.ryo-startMoney,360,'normal small business total is 360 (payouts -40%, 2026-10-30)');
   for(let i=0;i<2000&&task.operation;i++){clearGuards();g.step();}
   assert.equal(task.operation,undefined,'operation finishes physical return');
   assert.ok(crew.every(e=>e.place==='street'&&g.deployment.sectorAt(e.x,e.z)===e.deployment.group));

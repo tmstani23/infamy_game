@@ -75,7 +75,7 @@ for (const [kind, [price, payout, slots]] of Object.entries(expected)) {
   assert.equal(base.businesses[kind].payout, payout);
   assert.equal(base.capPerBusiness[kind], slots);
   assert.equal(g.businesses.rules[kind].price, price);
-  assert.equal(g.businesses.rules[kind].payout, payout);
+  assert.equal(g.businesses.rules[kind].payout, Math.round(payout * 0.6));   // settings.json payouts -40% (2026-10-30)
   assert.equal(g.settings.units.rules.capPerBusiness[kind], slots);
 }
 
@@ -108,10 +108,13 @@ for (const kind of ['shop', 'tenements', 'pawnshop', 'bathhouse', 'sake_brewery'
   assert.equal(g.territory.ownerAt(b.x, b.z), 'player');
   const rows = Object.fromEntries(buildingInfo({ state: g.state, district, info: data('data/buildings.json'), units: g.settings.units }, i, 'player').rows);
   assert.equal(rows.Gives, `+${slots} crew slots`);
-  assert.equal(rows['Pays you'], `${payout} ryo at dawn`);
+  assert.equal(rows['Pays you'], `${Math.round(payout * 0.6)} ryo at dawn`);
   g.step([{ type: 'time', night: true }]);
   g.step([{ type: 'time', night: false }]);
-  const totalPay = Object.values(g.state.businesses).filter(b => b.owner === 'player').reduce((n, b) => n + Math.round((g.businesses.rules[b.kind]?.payout || 0) * g.territory.payoutBonus(b)), 0);
+  // diminishing payouts (2026-10-30): the 4 best pay full, then -10% each, floor 60%
+  const owned = Object.values(g.state.businesses).filter(b => b.owner === 'player' && g.businesses.rules[b.kind]?.payout)
+    .sort((x, y) => g.businesses.rules[y.kind].payout - g.businesses.rules[x.kind].payout || String(x.id).localeCompare(String(y.id)));
+  const totalPay = owned.reduce((n, b, i) => n + Math.round(Math.round(g.businesses.rules[b.kind].payout * (i < 4 ? 1 : Math.max(0.6, 0.9 ** (i - 3)))) * g.territory.payoutBonus(b)), 0);
   assert.equal(clan.ryo, totalPay);
   g.clans.addClan('rival', { ryo: 0 });
   const rival = g.spawn('hero', 'rival_yakuza', ...b.ring, { owner: 'rival' });

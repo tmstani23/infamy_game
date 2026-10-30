@@ -129,7 +129,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // its mind (raidChance) it sticks to the plan: lantern, scout by day, raid at night
     // the season leader's places first (phase 6 ganging up, sim/leader.js)
     const lead = game.leader?.leader(), leadFirst = (a, b) => (b.owner === lead) - (a.owner === lead);
-    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !ai.blocked(`raid:${b.id}`)).sort(leadFirst);
+    const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !state.raidsTonight?.[clan]?.includes(b.owner) && !ai.blocked(`raid:${b.id}`)).sort(leadFirst);
     const able = targets.length && crew().length >= B.raidMinCrew && ((c.lanterns || 0) > 0 || c.ryo >= RD.lanternPrice + B.raidReserve);
     if (!able) raidPlan = false;
     else if (!raidPlan && rnd() < B.raidChance) raidPlan = true;

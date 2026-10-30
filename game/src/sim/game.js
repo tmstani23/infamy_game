@@ -647,6 +647,7 @@ export function createGame(options) {
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     state.dawn = state.dusk = false;
     leader.tick(lastNews);   // leader bounties for last tick's raids and Shakedowns
+    rewards.renownTick(lastNews);   // property-clan Renown for the same moments
     if (state.clock && --state.clock.left <= 0) setNight(!state.night);
     for (const c of commands) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }

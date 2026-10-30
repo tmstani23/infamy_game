@@ -107,7 +107,7 @@ for (const bot of [false, true]) {
   assert.match(g.businesses.canRaid(t.id, b.id).why, /protected/);
   g.state.tick = recovery.protectedUntil;
   Object.assign(h, { place: 'street', x: b.ring[0], z: b.ring[1] });
-  clan.lanterns = 1;
+  clan.lanterns = 1; g.state.raidsTonight = {};   // a later night: one raid per rival per night (2026-10-30)
   assert.equal(g.businesses.canRaid(h.id, b.id).ok, true, 'raid protection expires at exact tick');
   g.state.season.day = g.state.season.cycles;
   g.step([{ type: 'time', night: false }]);

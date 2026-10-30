@@ -232,7 +232,7 @@ async function start() {
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
-  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true)});
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -332,7 +332,7 @@ async function start() {
   // Positions and sizes live in data/ui_layout.json (written through server.mjs)
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
   const stealthBadge = createStealthBadge({ root: $('stealth'), game, heroId, view });
-  const hudLayout = createHudLayout({ fromFile: uiFile.panels });
+  const hudLayout = createHudLayout({ fromFile: uiFile.panels,onBegin:()=>setGameplayInput(false),onEnd:()=>{setGameplayInput(true);$('settingsbtn').focus();} });
   const deploymentCards=document.createElement('section'),mapCards=document.createElement('section');
   deploymentCards.className=mapCards.className='selection-dock';
   deploymentCards.setAttribute('aria-label','Selected unit and transfer details');mapCards.setAttribute('aria-label','Selected unit and transfer details');
@@ -489,7 +489,7 @@ async function start() {
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
-    const edge = !gameSettings.isOpen() && !characterPanel.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
+    const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);
@@ -507,8 +507,8 @@ async function start() {
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
-    hudLayout.update();
     warLantern.update();utilityMenu.update();
+    hudLayout.update();
   });
 }
 

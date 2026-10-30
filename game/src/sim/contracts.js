@@ -23,6 +23,7 @@ const DEFAULTS = {
   refreshSeconds: 120, repeatSeconds: 120, failedRepeatSeconds: 30, acceptIntervalSeconds: 120,
   hiddenBonusShare: .25, hiddenProgressRate: 2,
   defendBonus: 150,   // ryo for the owner when a Sabotage/Steal they were warned about fails (Tim 2026-10-29)
+  alertWindowSeconds: 75,   // once the owner is alerted, a Sabotage/Steal can't finish for this long (Tim 2026-10-30)
   perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
   scout: { ryo: 150, renown: 15, seconds: 10 },
   mark: { ryo: 300, renown: 30, plantSeconds: 3, holdSeconds: 60, leaveSeconds: 10, alertDelay: 15, clearSeconds: 4, reach: 1.5 },
@@ -184,6 +185,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
         owner.ryo = (owner.ryo || 0) + R.defendBonus;
         state.ryoGains.push({ clan: owner.id, amount: R.defendBonus, target: job.business, reason: 'Building defended' });
         say(owner, `Building defended: +${R.defendBonus} ryo`);
+        state.news.push({ kind: 'buildingDefended', clan: owner.id, business: job.business });
       }
     }
   }
@@ -258,7 +260,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       }
       const m = job.mark;
       delete job.spot;
-      if (!m.alerted && tick >= m.alertAt) { m.alerted = true; state.news.push({ kind: 'markAlert', clan: job.target, business: b.id, x: b.x, z: b.z }); }
+      if (!m.alerted && tick >= m.alertAt) { m.alerted = true; m.alertedAt = tick; state.news.push({ kind: 'markAlert', clan: job.target, business: b.id, x: b.x, z: b.z }); }
       const participants = mine.filter(e => e.place === m.place), inside = participants.find(e => e.hidden) || participants[0];
       job.hiddenEligible = !!inside?.hidden;
       m.away = inside ? 0 : m.away + 1;
@@ -267,6 +269,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       if (scrubbing.update(clanId,job)) return finish(clanId, false, 'the mark was scrubbed off');
       if (inside) job.progress += inside.hidden ? R.hiddenProgressRate : 1;
       job.counter = { x: m.x, z: m.z, place: b.room, label: 'Hold mark', progress: job.progress, need: job.need };
+      if (job.progress >= job.need && alertWait(job, m.alerted ? m.alertedAt : null, m, b)) return;
       if (job.progress >= job.need) { b.sabotaged = true; finish(clanId, true, '', null, inside); }
     } else if (job.kind === 'steal') {
       const spot = stash(b), r = R.steal;
@@ -280,9 +283,10 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       job.counter = { ...spot, place: b.room, label: 'Take stash', progress: job.progress, need: job.need };
       // seen inside: the owners get one alarm (guards fight as usual; medium/hard bots send crew home)
       if (!job.alerted && mine.some(e => e.place === b.room && !e.hidden)) {
-        job.alerted = true;
+        job.alerted = true; job.alertedAt = tick;
         state.news.push({ kind: 'stealAlert', clan: job.target, by: clanId, business: b.id, place: KIND_NAME[b.kind] || b.kind.replace(/_/g, ' '), x: b.x, z: b.z });
       }
+      if (job.progress >= job.need && alertWait(job, job.alerted ? job.alertedAt : null, spot, b)) return;
       if (job.progress >= job.need) {
         const victim = state.clans[job.target], q = quote(job);
         const amount = Math.min(q.stealCap, Math.floor((victim?.ryo || 0) * q.stealShare));
@@ -298,6 +302,15 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       job.progress += state.hits.filter(x => x.kill && state.entities[x.t]?.owner === WILD && state.entities[x.a]?.owner === clanId).length;
       if (job.progress >= job.need) finish(clanId, true);
     }
+  }
+
+  // the owner was alerted at tick `at`: hold the finished job until alertWindowSeconds have passed, so they can respond
+  function alertWait(job, at, spot, b) {
+    const left = at == null ? 0 : at + secs(R.alertWindowSeconds) - state.tick;
+    if (left <= 0) return false;
+    job.progress = job.need;
+    job.counter = { x: spot.x, z: spot.z, place: b.room, label: 'Owners alerted: hold on', progress: secs(R.alertWindowSeconds) - left, need: secs(R.alertWindowSeconds) };
+    return true;
   }
 
   function tick() {

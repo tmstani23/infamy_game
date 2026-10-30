@@ -82,5 +82,18 @@ export function createRewards(state, rules = {}) {
       } else if (F[s] && !ids.length) F[s].most = {};
     }
   }
-  return { tick, leaderDown, crewExecuted, sectorTick, sectorClaim, claimSweep };
+  // Property clans earn Renown toward season points too (Tim 2026-10-30, phase 8), not crew slots.
+  // news: last tick's big moments (sim/game.js passes them before clearing)
+  const PROPERTY_RENOWN = { raidWon: ['raider', 'raid', 'Raid won'], shakedownSuccess: ['clan', 'shakedown', 'Shakedown success'],
+    buildingDefended: ['clan', 'defend', 'Shinobi job stopped'], sectorCleared: ['clan', 'sectorClear', 'Sector cleared'] };
+  function renownTick(news = []) {
+    const R = { raid: 40, shakedown: 20, defend: 15, sectorClear: 5, ...rules.propertyRenown };
+    for (const n of news) {
+      const [who, key, reason] = PROPERTY_RENOWN[n.kind] || [], clan = state.clans?.[n[who]], amount = R[key];
+      if (!clan || clan.kind === 'ninja' || !(amount > 0)) continue;
+      clan.renown = (clan.renown || 0) + amount;
+      state.news.push({ kind: 'renown', clan: clan.id, amount, reason });
+    }
+  }
+  return { tick, leaderDown, crewExecuted, sectorTick, sectorClaim, claimSweep, renownTick };
 }

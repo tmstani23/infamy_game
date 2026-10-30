@@ -14,6 +14,7 @@ function fixture(hidden) {
 {
   const f = fixture(false), { state, actor, contracts, job } = f;
   contracts.tick(); assert.equal(job.progress, 1, 'visible work has base rate');
+  state.tick += 1500;   // past the 75 s alert window (phase 8, 2026-10-30)
   actor.foughtAt = state.tick; actor.hidden = true; job.progress = job.need - 1;
   contracts.tick();
   assert.equal(state.clans.s.renown, 31, 'rehidden actual finisher gets rounded25% despite earlier fight');
@@ -23,7 +24,7 @@ function fixture(hidden) {
 }
 {
   const { state, actor, contracts, job } = fixture(false);
-  contracts.tick(); job.progress = job.need - 1; contracts.tick();
+  contracts.tick(); state.tick += 1500; job.progress = job.need - 1; contracts.tick();   // past the alert window
   assert.equal(state.clans.s.renown, 25, 'unrelated hidden unit cannot grant visible completion bonus');
 }
 {

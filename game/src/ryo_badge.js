@@ -10,8 +10,8 @@ export function treasuryHistory(state, clan) {
 export function rewardPopups(state, clanId) {
   const gains = (state.ryoGains || []).filter(g => g.clan === clanId).map(g => ({ ...g, renown: 0 }));
   for (const n of state.news || []) {
-    if (n.clan !== clanId || !['combatRenown', 'contractDone'].includes(n.kind)) continue;
-    const amount = n.kind === 'combatRenown' ? n.amount : n.renown;
+    if (n.clan !== clanId || !['combatRenown', 'renown', 'contractDone'].includes(n.kind)) continue;
+    const amount = n.kind === 'contractDone' ? n.renown : n.amount;
     if (!(amount > 0)) continue;
     const gain = gains.find(g => n.kind === 'contractDone' ? g.reason === 'Contract' : n.target != null && g.target === n.target);
     if (gain) gain.renown += amount;
