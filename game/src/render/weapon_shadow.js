@@ -15,7 +15,7 @@ export function createWeaponShadow(spriteUniforms) {
   // loose wisps shed by the blade (Tim 2026-10-29 visual pass): idle they drift outward and down,
   // running they stream behind him, opposite the way he faces. Sprite-local units (0..1 of the quad).
   let motes=[],shedAt=0;
-  const MAX_MOTES=28;
+  const MAX_MOTES=44;   // more pronounced wisps (Tim 2026-10-30: too subtle)
   function critical(){critAt=clock;critAxis=lastAxis;}
   return {mesh,critical,
     update(dt,axis,swing=null,enabled=true,{anim='idle',dir=0}={}){
@@ -54,7 +54,7 @@ export function createWeaponShadow(spriteUniforms) {
       // Shed wisps: idle a slow trickle drifting outward and down; running a steadier stream trailing
       // behind (facing from the sheet direction, same convention as sim dirIndex: screen right -sin, down cos).
       const running=anim==='run',walking=anim==='walk',th=dir*Math.PI/4,fx=-Math.sin(th),fy=-Math.cos(th);
-      const every=running?.045:walking?.09:.16;
+      const every=running?.03:walking?.06:.09;
       if(clock-shedAt>every&&motes.length<MAX_MOTES){
         shedAt=clock;
         const t=.25+Math.random()*.7,bx=axis.base.x+(axis.tip.x-axis.base.x)*t,by=axis.base.y+(axis.tip.y-axis.base.y)*t;
@@ -70,7 +70,7 @@ export function createWeaponShadow(spriteUniforms) {
         m.x+=m.vx*dt;m.y+=m.vy*dt;m.vx*=1-dt*.8;m.vy-=dt*.05;   // slows and sinks as it fades
         const sway=.012*Math.sin(clock*3+m.curl),sp=Math.hypot(m.vx,m.vy)||1,len=.03+.05*Math.min(1,sp*3);
         const tail={x:m.x-m.vx/sp*len+sway,y:m.y-m.vy/sp*len};
-        ribbon({base:tail,tip:{x:m.x,y:m.y}},{bend:.18*Math.sin(m.curl),width:.0055*(.4+.6*k),fade:.42*Math.sin(Math.PI*Math.min(1,age*1.4+.15))*k+.02,steps:5});
+        ribbon({base:tail,tip:{x:m.x,y:m.y}},{bend:.18*Math.sin(m.curl),width:.009*(.4+.6*k),fade:.68*Math.sin(Math.PI*Math.min(1,age*1.4+.15))*k+.02,steps:5});
       }
       // A short dark cut persists at previous blade positions, then closes
       // inward. Keep the history bounded and sample independently of FPS.

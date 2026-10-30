@@ -111,7 +111,8 @@ Added at Tim’s request (2026-10-29). After the current Geisha/status-label fol
 - [x] Triage the queued reports together after remaining scheduled phases; agree the fix scope before building.
 - [ ] Apply focused fixes/checks and update owners/checkpoint commits; obtain Tim’s practical playtest confirmation, keeping exhaustive validation claims separate.
 
-- [ ] **Open bug (Tim 2026-10-30, top priority):** the Shinobi ninja leader looks like it uses the grunt/dagger skin, and its hero blade effects (shimmer, idle and run trails, wisps) are gone, leaving only a black glow. Data checks out: `art.json` `ninja_leader` sheets and `_glow` files exist, `weapon_glow.json` maps `ninja_leader` to `ninjato_hero`, and start_clan spawns the `ninja_leader` model; no recent commits touch `characters.js`, `weapon_shadow.js` or the art. Tim's screenshot shows the leader hidden at night, so the stealth veil may be the cause. Needs an in-browser check next session.
+- [x] **Ninja leader blade effects too subtle (Tim 2026-10-30):** not a missing skin. Effects strengthened: about twice as many wisps, about 60% wider and more opaque, shedding faster when idle, walking and running; silver edge glow 0.55 to 0.75. Needs Tim's playtest.
+- [ ] **Idea (Tim 2026-10-30, not built):** a smoke trail behind the ninja leader as he moves.
 
 ### Agreed fix list (Tim, 2026-10-30; section 1 implemented/Node-checked)
 
@@ -220,7 +221,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 
 ## Handoff status (2026-10-30, for ChatGPT or the next session)
 
-- First: the open ninja leader skin/effects bug at the top of phase 8 (check in the browser).
+- First: playtest the stronger ninja leader blade effects; the leader smoke trail is an open idea (top of phase 8).
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
 - **Next step: plan the clan roles** (phase 8 section 5: Yakuza archer, Kuroda spear guard, Shinobi shadow guard, Geisha weak ranged attack). Plan first, Tim OKs before building.
 - Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
