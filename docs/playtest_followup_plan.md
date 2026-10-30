@@ -271,7 +271,7 @@ The current editor is reported as messy. Rebuild in these checkpoints; temporary
 
 ## Next playtest batch (A–D integrated/Node-checked; manual playtest pending, 2026-10-30)
 
-IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. Docs are updated after each integration; implementation chats report changed files and scoped tests, and the docs keeper commits after coordinator integration. No push. Phase E/F remain proposed; item 22 profiling should begin early before any worker decision. Phase G item 23 remains parked.
+IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. A/B recheck by the docs keeper passed: `test_start_screen_exit`, `test_hud_drag`, `test_layout_pages`, `test_crew_frame_selection` and `test_dismissal`. Docs are updated after each integration; implementation chats report changed files and scoped tests, and the docs keeper commits after coordinator integration. No push. Phase E is authorized and the root agent is implementing it; update and commit its docs after the E integration manifest. Phase F remains proposed; item 22 profiling should begin early before any worker decision. Phase G item 23 remains parked.
 
 ### Phase A — easy UI/tuning (built/Node-checked)
 
@@ -291,7 +291,7 @@ IDs below are the authoritative stable numbering. A was built by the Luna medium
 
 ### Phase C — combat (built/Node-checked)
 
-- [x] **11.** Geisha Charm priority/first-attack; preserve the rule against Charming an enemy actively hitting an ally.
+- [x] **11.** Geisha Charm priority/first-attack; preserve the rule against Charming an enemy actively being hit by an ally.
 - [x] **12.** Shorter-range targets close distance and retaliate against ranged attackers within standing engagement rules.
 - [x] **13.** All tanks Taunt instantly; expose the Yakuza Taunt's 5-unit radius and implement true AoE with effect feedback and hiring text.
 
@@ -306,12 +306,12 @@ IDs below are the authoritative stable numbering. A was built by the Luna medium
 
 - [ ] **A:** inspect buff/debuff icon polish, durations and full-name hover; day/night score clock; move the translucent toolbar; verify archer 17 damage and Hamstring normal damage; use the actual main-menu exit and browser-close fallback; inspect longer Shinobi business alerts.
 - [ ] **B:** toggle 10 px snapping; resize the Crew panel and confirm it fills before paging; dismiss crews from different zones at the hideout; drag one crew between sector and hero groups.
-- [ ] **C:** confirm Geisha opens with Charm when valid and does not Charm an enemy actively hitting an ally; test ranged retaliation within normal engagement rules; verify instant Taunts and Yakuza 5-unit AoE feedback.
+- [ ] **C:** confirm Geisha opens with Charm when valid and does not Charm an enemy actively being hit by an ally; test ranged retaliation within normal engagement rules; verify instant Taunts and Yakuza 5-unit AoE feedback.
 - [ ] **D:** check Rally starts with all groups and preserves destinations after interrupted transfers; view a rallied crew inside with hero outside and downed; verify hero loot fallback and protections; retest Shinobi HQ raid grouping/entry and the original counter case. Confirm the counter advances when raid conditions are met, pauses for an actual defender, and resumes after the defender leaves.
 
 Coordinator reports A–D checks passed: `test_rally_followup`, `test_deployment_rally`, `test_shinobi_hq_raid`, `test_crew_frame_selection`, `test_hud_drag`, `test_layout_pages`, `test_target_controls`, `test_start_screen_exit`, `test_settings`, `test_dismissal`, `test_deployment_panel_flow`, `test_new_crew`, `test_ranged_retaliation`, plus builder-reported `test_geisha`, `test_enforcer`, `test_rifleman`, `test_command_ui` and `test_foundation`. JS syntax and diff checks passed. This is Node/logic validation only; manual VFX and gameplay review remains pending.
 
-### Phase E — assignments/operations (proposed; sequencing/authorization pending)
+### Phase E — assignments/operations (authorized; root implementing)
 
 - [ ] **18.** Space Sweep hold points farther apart; keep routes valid/reachable and varied.
 - [ ] **19.** When a guarded business is lost, assigned guards return to HQ; flash the HQ crew group and show a waiting message.

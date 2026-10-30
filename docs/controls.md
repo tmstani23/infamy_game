@@ -4,7 +4,7 @@ Service access (Tim, 2026-10-21): eligible own crew provide presence for clinic 
 
 What works in the game now (updated 2026-10-21). Keep this file up to date whenever a control is added or changed.
 
-Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](gameplay_and_design.md#starting-paths-settled). Kuroda Q/E/R/F use [its own kit](combat_spec.md#kuroda-leader-kit-tim-2026-10-22); the hero table below describes Ronin abilities.
+Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](gameplay_and_design.md#starting-paths-settled). On the start screen, **Exit Game** asks the browser or app to close; if it cannot, it explains how to close the tab. Kuroda Q/E/R/F use [its own kit](combat_spec.md#kuroda-leader-kit-tim-2026-10-22); the hero table below describes Ronin abilities.
 
 ## Hero
 
@@ -30,7 +30,9 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | R | Rally: crew within 8 steps attack 30% faster and heal 15% over 6 s (20 s) |
 | F | Red Lantern (ultimate): 8 s of 50% more damage, healing 20% of damage dealt (60 s) |
 
-The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buffs above it, and a health pip for each crew member on the left. Pips are grouped by Hero/sectors/HQ/active Rally; click a header or normal pip to select that command group, replacing others; double-click selects only that crew member and jumps the camera to them until the hero moves or uses a door. Crew pips show their control-group number. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
+The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buff/debuff icons with remaining time (hover for the full name), and a health pip for each crew member on the left. Pips are grouped by Hero/sectors/HQ/active Rally; click a header or normal pip to select that command group, replacing others; double-click selects only that crew member and jumps the camera to them until the hero moves or uses a door. Crew pips show their control-group number. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
+
+The HUD score panel's day/night clock counts down to the next change.
 
 ## Hiring crew (inside a teahouse)
 
@@ -40,7 +42,7 @@ The action bar at the bottom shows the hero's health, the basic attack and the f
 | 1 / 2 / 3 (or click the price) | Hire a Thug / Brute / Swordsman |
 | Esc | Close the panel |
 
-The top-left line shows your crew count / crew cap; ryo has its own badge. New crew walk out of the teahouse door after a few seconds.
+The top-left line shows your crew count / crew cap; ryo has its own badge. New crew walk out of the teahouse door after a few seconds. At a hideout, switch the H panel to **Dismiss crew · all zones** to dismiss eligible healthy active crew from any zone; click twice to confirm and receive the listed refund.
 
 ## Deployment and sectors (updated 2026-10-27)
 
@@ -75,7 +77,7 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | Shift + click a crew name | Add or remove that crew member from the selection |
 | Click a group header in the Crew frame | Select that whole group |
 | Home, or double-click the hero frame | Camera back to the hero |
-| Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
+| Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. Sector and Hero group targets also accept transfers. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
 | C | Select hero party, or active Rally force; replace sector selection |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
@@ -181,8 +183,6 @@ Treasury/contract feedback (2026-10-29): hover the ryo badge for six recent debi
 
 Section 3 controls (2026-10-29): compact nine-icon utility menu beside movable Ryo; hover/focus shows action, shortcut and availability. One Map/Deployment button or M opens the combined workspace; Close map/Esc closes it. Crew frames are movable/resizable at top left; group/solo/status/drag retained; abilities one row. Rally shows active/cooldown; War Lantern previews entry and uses existing command. Firefox fullscreen keyboard lock uses progressive requestFullscreen option with legacy fallback; Firefox-version/manual Esc tests pending. Coordinator reports focused UI checks passed; no browser automation or visual fit claim.
 
-Edit layout (built 2026-10-30): **Settings → Edit layout** lets you move and resize every UI panel, including placeholders for hidden panels (`hud_layout.js` registry; the target-marker layer is excluded). Drag a panel to move it, drag its gold corner to resize; on text and list panels drag a left, right, top or bottom edge bar to change just the width or height (ryo, minimap, heat, icon menu, stealth badge and raid alarm keep corner-only scaling). Done saves and locks everything; Cancel or Esc restores the previous layout; Reset layout restores defaults. **Settings → Quit to game menu**: click twice to leave the match for the start screen (the match is not saved).
-
-Global Edit layout checkpoint (2026-10-30): Main HUD, Tooltips, Alerts and Windows preview categories; secondary previews start hidden without changing in-game visibility. Picker resolves overlaps; select one panel to raise it and expose its grips. Drag/keyboard affect only the selection; changing selection/filter stops the prior drag. Action bar resizes freely in both dimensions and buttons reflow; portrait/circle controls retain corner scaling. Done/Cancel/Reset preserve and restore size/visibility/stacking. Coordinator reports focused Node tests passed; manual browser/CSS check pending.
+Edit layout (built 2026-10-30): **Settings → Edit layout** lets you move and resize every UI panel, including placeholders for hidden panels (`hud_layout.js` registry; the target-marker layer is excluded). Its translucent toolbar can be moved; **Grid: Off (10px)** toggles 10 px snapping for panel movement and resizing. Drag a panel to move it, drag its gold corner to resize; on text and list panels drag a left, right, top or bottom edge bar to change just the width or height (ryo, minimap, heat, icon menu, stealth badge and raid alarm keep corner-only scaling). Done saves and locks everything; Cancel or Esc restores the previous layout; Reset layout restores defaults. **Settings → Quit to game menu**: click twice to leave the match for the start screen (the match is not saved).
 
 Responsive layout follow-up (2026-10-30): Crew commands now live in an independently resizable layout panel and use the same shared crew input actions. Roster cards, buttons, buffs, text and building details wrap; long populated panels use explicit Previous/Next paging instead of editor scrollbars. Controls pages its sections; character stats and service windows page their rows. All entries remain attached and selection is preserved. Panel height can grow to fit content; saved height is a minimum. Coordinator reports focused layout/command checks passed; narrow/tall viewport visual review remains pending.
