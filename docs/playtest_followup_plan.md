@@ -150,7 +150,7 @@ Goal (Tim): screen lag must never slow the game. Timers (jail, raids, contracts)
 #### 4. Balance (Tim decided)
 
 - [ ] **Business revenue −40%** (settings.json payouts). Diminishing returns: businesses 1–4 pay full, each one after that pays 10% less than the one before, never below 60%, so many businesses still matter.
-- [ ] **Property clans earn Renown (11a):** +40 raid win, +20 Shakedown success, +15 stopping a Shinobi job on your business, +5 sector clear. Renown counts toward season points like the Shinobi's (100 = 1 point). No crew slots from it for property clans.
+- [ ] **Property clans earn Renown (11a):** +40 raid win, +20 Shakedown success, +15 stopping a Shinobi job on your business, +5 sector clear. Renown counts toward season points like the Shinobi's (50 Renown = 1 point, `season.renownPerPoint`; Tim 2026-10-30). No crew slots from it for property clans.
 - [ ] **Shinobi alert window (13):** once a Steal or Sabotage job alerts the owner, at least 75–80 s must remain before it can complete. Design follow-up: give the Shinobi something to do in that time (e.g. defend the mark, plant a second one) so it isn't just standing around.
 - [ ] **Raid limit (14):** each clan may raid each rival at most once per night.
 - [ ] **Sounds (15):** Tim makes 3–4 hero ability sounds in ElevenLabs (whoosh, impact, smoke puff, shout) and drops them in assets/sounds; wire them in render/sound.js. More music from Suno later.

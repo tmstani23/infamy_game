@@ -198,7 +198,7 @@ Economy catch-up (2026-10-28): current dawn payouts are doubled versus the origi
 ## Planned balance changes (Tim 2026-10-30, phase 8, not built)
 
 - Business revenue -40%. Diminishing returns: businesses 1-4 pay full, each later one pays 10% less than the one before, never below 60%, so many businesses still matter.
-- Property clans earn Renown: +40 raid win, +20 Shakedown, +15 stopping a Shinobi job on your business, +5 sector clear. It counts toward season points like Shinobi Renown; no crew slots for property clans.
+- Property clans earn Renown: +40 raid win, +20 Shakedown, +15 stopping a Shinobi job on your business, +5 sector clear. It counts toward season points like Shinobi Renown (50 Renown = 1 point, `season.renownPerPoint`); no crew slots for property clans.
 - Raid limit: each clan may raid each rival at most once per night.
 - Checklist: `playtest_followup_plan.md` phase 8.
 
