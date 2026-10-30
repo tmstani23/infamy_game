@@ -80,7 +80,8 @@ export function createShakedownFx({scene,overlay,unitToScreen}) {
       const unit=op.units.map(id=>state.entities[id]).find(e=>e?.owner===own),b=state.businesses[op.business];
       if(!unit||!b||(place!=='street'&&place!==b.room))continue;
       const p=place===b.room?op.front:{x:b.ring[0],z:b.ring[1]},key=`op:${op.id}`;activeLabels.add(key);
-      label(key,op.state==='Holding'?`SHAKEDOWN ${Math.floor(op.progress/20)}/20s`:op.state==='Contested'?'SHAKEDOWN · CONTESTED':op.state==='Returning'?'SHAKEDOWN · RETURNING':op.state==='Bombarding'?'DYNAMITE!':`SHAKEDOWN · ${op.state.toUpperCase()}`,p,op.state==='Contested'?'#ff9783':'#ffce83');
+      const timer=`${Math.floor(op.progress/20)}/${Math.ceil((op.holdTotal||400)/20)}s`;
+      label(key,['Holding','Contested','Entering'].includes(op.state)?`SHAKEDOWN ${timer} · ${op.state==='Entering'?'SECURE THE ROOM':op.state.toUpperCase()}`:op.state==='Returning'?'SHAKEDOWN · RETURNING':op.state==='Bombarding'?'DYNAMITE!':`SHAKEDOWN · ${op.state.toUpperCase()}`,p,op.state==='Contested'?'#ff9783':'#ffce83');
     }
     for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.age+=dt;if(b.age>2.8){bursts.splice(i,1);continue;}if(b.place!==place)continue;
       const key=`win:${i}`;activeLabels.add(key);label(key,`${b.sweep?'SWEEP COMPLETE':'SHAKEN DOWN'} · +${b.bonus} RYO`,b);

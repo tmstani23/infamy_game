@@ -730,6 +730,7 @@ export function createGame(options) {
     syncCrewAttacks();
     shakedown.tick();
     sweep.tick();
+    assignments.tick();
     sectorRecovery.tick();
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {

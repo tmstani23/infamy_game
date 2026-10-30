@@ -1,4 +1,4 @@
-import { sectorPatrolRoute } from './sector_patrol.js';
+import { sweepPatrolRoute } from './sector_patrol.js';
 import { deploymentFeedback } from './deployment_feedback.js';
 import { withdrawalReason } from './sector_recovery.js';
 import { alive } from './util.js';
@@ -50,16 +50,7 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
       const check=eligibility(h.owner,c.sector,c.targetSector,c.targetClan);
       if(!check.ok){result(false,check.why);return true;}
       const planner={...check.team[0],deployment:{group:c.targetSector}},planTask={objective:check.destination.anchor};
-      const route=sectorPatrolRoute(state,deployment,planner,planTask);
-      const points=[];
-      for(const p of [check.destination.anchor,...route]){
-        if(!deployment.patrolAllowed?.(p.x,p.z)&&deployment.patrolAllowed)continue;
-        if(points.some(q=>distance(p,q)<6))continue;
-        const grid=deployment.navFor({...planner,place:'street',patrolPlanning:true});
-        const start=points.at(-1)||check.destination.anchor,path=grid?.findPath(start.x,start.z,p.x,p.z),end=path?.at(-1);
-        if(end&&Math.hypot(end[0]-p.x,end[1]-p.z)<1)points.push({...p,place:'street'});
-        if(points.length===3)break;
-      }
+      const points=sweepPatrolRoute(state,deployment,planner,planTask);
       if(points.length<3){result(false,'No safe three-point Sweep route in this sector');return true;}
       task.operation={kind:'sweep' ,state:'Marching',targetSector:c.targetSector,targetClan:c.targetClan,
         points,pointIndex:0,point:points[0],returnPoint:{...task.objective,place:'street'},

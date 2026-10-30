@@ -269,9 +269,9 @@ The current editor is reported as messy. Rebuild in these checkpoints; temporary
 - [x] **2. Exclusive selection (implemented/Node-checked):** clicking an item raises/selects it above others. Only the selected panel shows resize/move grips; keyboard and drag affect only that item. Switching selection/category or filters ends the previous drag. Done/Cancel restore temporary visibility and stacking correctly.
 - [x] **3. Stretchy action bar (implemented/Node-checked):** selected bar can resize freely in width and height; buttons reflow with the bar. Portraits/circular elements preserve corner scaling. Free panels now save actual width and height. Persist, Cancel and Reset work. Update Controls and add targeted Node checks for categories, overlap/selection, isolated transforms, temporary visibility/stacking, reflow and persistence. Tim manually checks visual behavior.
 
-## Next playtest batch (A–D integrated/Node-checked; manual playtest pending, 2026-10-30)
+## Next playtest batch (A–E integrated/Node-checked; manual playtest pending, 2026-10-30)
 
-IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. A/B recheck by the docs keeper passed: `test_start_screen_exit`, `test_hud_drag`, `test_layout_pages`, `test_crew_frame_selection` and `test_dismissal`. Docs are updated after each integration; implementation chats report changed files and scoped tests, and the docs keeper commits after coordinator integration. No push. Phase E is authorized and the root agent is implementing it; update and commit its docs after the E integration manifest. Phase F remains proposed; item 22 profiling should begin early before any worker decision. Phase G item 23 remains parked.
+IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. A/B recheck by the docs keeper passed: `test_start_screen_exit`, `test_hud_drag`, `test_layout_pages`, `test_crew_frame_selection` and `test_dismissal`. Phase E is integrated and Node-checked; its manual checklist remains below. Docs are updated after integration; implementation chats report changed files and scoped checks, and the docs keeper commits completed checkpoints. No push. Phase F remains proposed; item 22 profiling should begin early before any worker decision. Phase G item 23 remains parked.
 
 ### Phase A — easy UI/tuning (built/Node-checked)
 
@@ -311,12 +311,16 @@ IDs below are the authoritative stable numbering. A was built by the Luna medium
 
 Coordinator reports A–D checks passed: `test_rally_followup`, `test_deployment_rally`, `test_shinobi_hq_raid`, `test_crew_frame_selection`, `test_hud_drag`, `test_layout_pages`, `test_target_controls`, `test_start_screen_exit`, `test_settings`, `test_dismissal`, `test_deployment_panel_flow`, `test_new_crew`, `test_ranged_retaliation`, plus builder-reported `test_geisha`, `test_enforcer`, `test_rifleman`, `test_command_ui` and `test_foundation`. JS syntax and diff checks passed. This is Node/logic validation only; manual VFX and gameplay review remains pending.
 
-### Phase E — assignments/operations (authorized; root implementing)
+### Phase E — assignments/operations (built/Node-checked; manual playtest pending)
 
-- [ ] **18.** Space Sweep hold points farther apart; keep routes valid/reachable and varied.
-- [ ] **19.** When a guarded business is lost, assigned guards return to HQ; flash the HQ crew group and show a waiting message.
-- [ ] **20.** Keep patrols together; surviving patrol members return to the hideout while defending en route, wait for replacements, then resume the route.
-- [ ] **21.** Fix Shakedown stuck entering after dynamite/civilian deaths and the missing hold timer.
+- [x] **18.** Space Sweep hold points using farthest-point coverage with adaptive 10–26-unit separation; keep routes reachable and exclude city/patrol and HQ points; validate every leg's path endpoint. Each of three holds remains 20 seconds.
+- [x] **19.** When a guarded business is lost, assigned guards return to HQ; flash the HQ crew group and show a waiting message. Prevent auto-redeployment until a manual transfer clears the wait state.
+- [x] **20.** Keep patrols together; after the first casualty, survivors retreat to the hideout while defending en route, wait for replacements, regroup physically at HQ and resume the route. Preserve saved assignment and sector membership.
+- [x] **21.** Shakedown completes entry/hold when bombardment has killed hostages; it still needs a capable, available intimidator and no defender. Show the rules-based hold countdown during Entering, Securing, Holding and Contested, including above the business outside.
+
+Manual E checks pending: review Sweep point separation and reachable varied route legs; lose a guarded business and check guards wait at HQ until manually transferred; down one patrol member, verify group retreat defends en route, waits for replacement and regroups at HQ before resuming; run Shakedown with blasts killing both hostages, confirm the hold completes with a valid intimidator, and inspect phase/countdown text inside and outside.
+
+Coordinator reports `test_assignment_followup`, `test_shakedown`, `test_sweep`, `test_sweep_presentation`, `test_assignments`, `test_sector_recovery`, `test_deployment_automation`, `test_deployment_transfers` and `test_crew_frame_selection` passing, with changed-JS syntax and diff checks. Node/logic only; no browser gameplay test reported.
 
 ### Phase F — performance profiling (start early; architecture choice pending)
 

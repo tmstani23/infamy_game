@@ -20,7 +20,7 @@ function fixture(clan = 'kuroda') {
     { owner:'player', deployment:{ group:source.id }, order:{ kind:'stop' } })]);
   const rival=Object.keys(g.state.clans).find(id=>id!=='player');
   const send = c => g.step([{ id:heroId, type:'deployment', sector:source.id, targetClan:rival, ...c }]);
-  const advance = () => { for (const e of Object.values(g.state.entities)) if (e.guard) e.dead = true; g.step(); };
+  const advance = () => { for (const e of Object.values(g.state.entities)) if (e.guard||e.wild) e.dead = true; g.step(); };
   return { g, source, target, task, crew, send, advance };
 }
 {
@@ -29,7 +29,7 @@ function fixture(clan = 'kuroda') {
   send({ action:'sweep', targetSector:source.id }); assert.equal(task.operation,undefined,'same sector rejected');
   send({ action:'sweep', targetSector:'missing' }); assert.equal(task.operation,undefined,'invalid target rejected');
   send({ action:'sweep', targetSector:target.id });
-  const op = task.operation; assert.equal(op?.state,'Marching');assert.equal(op.points.length,3);assert.ok(op.points.every(p=>g.deployment.patrolAllowed(p.x,p.z)));assert.ok(g.state.news.some(n=>n.kind==='sweepAlert'),'dispatch produces an alert');
+  const op = task.operation; assert.equal(op?.state,'Marching');assert.equal(op.points.length,3);for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)assert.ok(Math.hypot(op.points[i].x-op.points[j].x,op.points[i].z-op.points[j].z)>=10,'hold points are spread across the sector');assert.ok(op.points.every(p=>g.deployment.patrolAllowed(p.x,p.z)));assert.ok(g.state.news.some(n=>n.kind==='sweepAlert'),'dispatch produces an alert');
   assert.ok(g.deployment.canOccupy(crew[0],target.anchor.x,target.anchor.z,'street'));
   const third = g.state.deployment.sectors.find(s => s.id !== source.id && s.id !== target.id);
   assert.equal(g.deployment.canOccupy(crew[0],third.anchor.x,third.anchor.z,'street'),false,'no access to unrelated sector');
@@ -44,7 +44,7 @@ function fixture(clan = 'kuroda') {
   }
   assert.ok(visited,'all crew physically reach target'); assert.ok(returned);
   assert.equal(task.operation,undefined,`physical return completes: ${JSON.stringify(crew.map(e=>({x:e.x,z:e.z,hp:e.hp,dead:e.dead,order:e.order,duty:e.deployment.duty})))}`);
-  assert.ok(crew.every(e => e.place === 'street' && g.deployment.sectorAt(e.x,e.z) === source.id));
+  assert.ok(crew.every(e => e.place === 'street' && g.deployment.sectorAt(e.x,e.z) === source.id),JSON.stringify(crew.map(e=>({id:e.id,x:e.x,z:e.z,dead:e.dead,hp:e.hp,group:e.deployment.group,order:e.order,duty:e.deployment.duty}))))
   assert.equal(JSON.stringify({ task:task.task, objective:task.objective, route:task.route }),saved);
   assert.equal(g.deployment.canOccupy(crew[0],target.anchor.x,target.anchor.z,'street'),false,'excursion permission removed');
   assert.equal(op.success,true,'full hold succeeds');assert.equal(op.reward,0,'empty sector does not award Sweep money');
@@ -86,7 +86,7 @@ function fixture(clan = 'kuroda') {
   foe.type = 'thug'; foe.cop = true; g.sweep.step(actor,unit);
   assert.equal(op.targets[actor.id],undefined,'police excluded');
   delete foe.cop; foe.dead = true;
-  for (const e of crew) Object.assign(e,{ x:target.anchor.x, z:target.anchor.z });
+  for (const e of crew) Object.assign(e,{ x:op.point.x, z:op.point.z });
   advance(); assert.equal(op.state,'Holding','clear street starts independent hold');
   for(const e of crew){e.anim='run';const before=[e.x,e.z];g.sweep.step(e,g.settings.units.types[e.type]);assert.equal(e.anim,'idle','arrived squad stops running in place');assert.deepEqual([e.x,e.z],before,'holding squad stays in its circle');}
   for(let i=0;i<400 && op.state!=='Returning';i++)advance();
@@ -104,9 +104,9 @@ function fixture(clan = 'kuroda') {
   const stats=createStats({state:g.state,units:g.settings.units,formationMultiplier:()=>.75});
   crew[0].buffs.sweep={until:g.state.tick+20,taken:.9};
   assert.equal(stats.damageTaken(crew[0]),.75,'stronger Iron Formation wins without stacking');
-  for(const e of crew)Object.assign(e,{x:target.anchor.x,z:target.anchor.z});
   const op=task.operation,rival=op.targetClan;
-  const defenders=Array.from({length:2},()=>g.state.entities[g.spawn('thug','thug',target.anchor.x+1,target.anchor.z,{owner:rival,holdFire:true,deployment:{group:'hero'},order:{kind:'stop'}})]);
+  for(const e of crew)Object.assign(e,{x:op.point.x,z:op.point.z});
+  const defenders=Array.from({length:2},()=>g.state.entities[g.spawn('thug','thug',op.point.x+1,op.point.z,{owner:rival,holdFire:true,deployment:{group:'hero'},order:{kind:'stop'}})]);
   g.sweep.tick();assert.equal(op.contested,true);assert.equal(op.hold,0);
   const stranger=Object.keys(g.state.clans).find(id=>id!=='player'&&id!==rival);
   defenders[0].owner=stranger;g.sweep.step(crew[0],g.settings.units.types.thug);

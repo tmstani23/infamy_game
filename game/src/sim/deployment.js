@@ -110,7 +110,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     return b ? { targetSector:sectorAt(...b.ring), room:b.room } : null;
   }
   function canOccupy(e, x, z, place = e.place) {
-    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
+    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.homeRecoveryTravel || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
     const group = e.deployment?.group;
     const b = excursion(e);
     if (b && (place === b.room || (place === 'street' && [group, b.targetSector].includes(sectorAt(x,z))))) return true;
@@ -122,7 +122,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   const canActAt = (e, x, z, place = e.place) => !e.deployment?.transfer && !e.deployment?.scattered && canOccupy(e, x, z, place);
   function navFor(e) {
-    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
+    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.homeRecoveryTravel || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
     const group = e.deployment.group, b = excursion(e), target = b?.targetSector;
     const patrol=!!e.order?.patrol||!!e.patrolPlanning||b?.kind==='sweep';
     const key = (b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group)+(patrol?':patrol':'');
@@ -152,6 +152,8 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     return ok;
   }
   function destination(e, to) {
+    const recovery=D.clans[e.owner]?.sectors[to]?.recovery;
+    if(recovery?.home&&!recovery.returning)return destination(e,'home');
     let point, place = 'street';
     if (to === 'hero') {
       const h = hero(e.owner);
@@ -221,8 +223,9 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       && (!o || o.kind === 'stop' || (o.kind === 'move' && o.arrived) || (o.kind === 'station' && o.garrison));
   }
   const healthy = e => Number.isFinite(e.maxHp) && e.hp >= e.maxHp;
-  const ready = e => active(e) && !e.downed && healthy(e) && quiet(e) && idle(e);
+  const ready = e => !e.deployment?.awaitingAssignment && active(e) && !e.downed && healthy(e) && quiet(e) && idle(e);
   function startTransfer(e, to, target, automatic = false) {
+    if(to!=='home')delete e.deployment.awaitingAssignment;
     clearCombat(e);
     delete e.holdFire; delete e.smokePassive;
     if (e.distracted?.source) { delete e.distracted; e.diversionImmuneUntil = state.tick + 200; }
@@ -247,7 +250,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       // hero group up to six first (Tim 2026-10-27). Neither waits for the hero's combat.
       const sent = new Set(), waiting = new Set();
       for (const e of reserves) {
-        if (!quiet(e) || !idle(e) || e.deployment.keepAtHQ) continue;
+        if (e.deployment.awaitingAssignment || !quiet(e) || !idle(e) || e.deployment.keepAtHQ) continue;
         const saved = e.deployment.savedGroup;
         let to = saved && saved !== 'home' && validGroup(saved) ? saved : null;
         if (to && (!canAssign(clan.id, [e.id], to).ok || (to === 'hero' && !heroUp))) {
@@ -298,6 +301,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   function reserveStatus(e) {
     const d = e.deployment;
     if (d?.transfer || d?.group !== 'home' || e.downed) return '';
+    if(d.awaitingAssignment)return 'Crew waiting to be assigned';
     if (d.automatic) return d.automatic.why;
     if (!healthy(e)) return 'Recovering · waits for full health';
     if (!quiet(e) || !idle(e)) return 'Busy · automatic deployment waits';

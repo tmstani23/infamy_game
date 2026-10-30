@@ -69,6 +69,30 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
       if (['shakedown', 'sweep'].includes(task.operation?.kind)) continue;
       const team = members(clan, id);
       if (!team.length) { delete task.engagement; delete task.recovery; continue; }
+      if(task.task==='patrol'&&!task.recovery){
+        const previous=(task.patrolRoster||[]).filter(unit=>{
+          const e=state.entities[unit];return !available(e)||(e.deployment?.group===id&&automated(e));
+        });
+        const lost=previous.some(unit=>!available(state.entities[unit]));
+        if(lost&&deployment.destination(team[0],'home')){request(clan,id,'Patrol casualty — returning home for replacements');Object.assign(task.recovery,{home:true,required:previous.length,rosterIds:previous});}
+        else task.patrolRoster=[...new Set([...previous,...team.map(e=>e.id)])];
+      }
+      if(task.recovery?.home){
+        const r=task.recovery;
+        r.rosterIds=r.rosterIds.filter(unit=>{const e=state.entities[unit];return !available(e)||(e.deployment?.group===id&&automated(e));});
+        r.required=Math.min(r.required,r.rosterIds.length);
+        if(r.returning&&team.length<r.required)r.returning=false;
+        r.point=r.returning?{...(task.patrolPath?.[task.patrolWaypoint||0]||task.route?.[task.patrolWaypoint||0]||task.objective),place:'street'}:deployment.destination(team[0],'home');
+        const gathered=r.point&&team.every(e=>e.place===r.point.place&&Math.hypot(e.x-r.point.x,e.z-r.point.z)<2);
+        r.state=r.returning?'Resuming patrol':gathered?(team.length<r.required?'Waiting for crew':'Recovering'):'Returning to HQ';
+        if(gathered&&r.returning){
+          delete task.recovery;delete task.engagement;task.patrolRoster=team.map(e=>e.id);
+          for(const e of team){clearCombat(e);e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Patrolling'};}
+        }else if(gathered&&team.length>=r.required&&team.every(e=>e.hp>=e.maxHp*RECOVERY.health&&state.tick-Math.max(e.hitAt??-Infinity,e.foughtAt??-Infinity)>=RECOVERY.quietTicks)){
+          r.returning=true;for(const e of team)clearCombat(e);
+        }
+        continue;
+      }
       if (!task.recovery) {
         const fighting = team.some(e => inCombat(e) || state.tick - Math.max(e.hitAt ?? -Infinity, e.foughtAt ?? -Infinity) < RECOVERY.quietTicks);
         if (fighting && !task.engagement) task.engagement = { ids: roster(clan, id).map(e => e.id) };
@@ -100,10 +124,19 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
       }
     }
   }
+  const teamAttacked=(t,clan)=>Object.values(state.entities).some(u=>u.owner===clan&&(u.hitBy?.id===t.id&&state.tick-u.hitBy.tick<120||t.attackTarget===u.id||t.order?.kind==='attack'&&t.order.target===u.id||t.swing?.target===u.id));
   function step(e, unit) {
     if (!automated(e)) return false;
     const r = state.deployment.clans[e.owner]?.sectors[e.deployment.group]?.recovery;
     if (!r) return false;
+    if(r.home){
+      e.deployment.duty={manual:false,status:r.state};e.deployment.homeRecoveryTravel=true;
+      try{
+        const t=threats(e.owner).find(t=>t.place===e.place&&teamAttacked(t,e.owner)&&Math.hypot(t.x-e.x,t.z-e.z)<8);
+        if(t){attackStep(e,unit,t);return true;}
+        const result=r.point&&deployment.localTravel(e,unit,r.point);if(result!=='moving')e.anim='idle';return true;
+      }finally{delete e.deployment.homeRecoveryTravel;}
+    }
     e.deployment.duty ||= { manual: false };
     e.deployment.duty.status = r.state;
     if (r.point) {

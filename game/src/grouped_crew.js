@@ -8,6 +8,9 @@ import { syncChildren } from './stable_list.js';
 // control groups (click selects, Ctrl+click assigns, again dissolves); a drag shows gold where the crew
 // fit and red where they don't, and a refused drop flashes red with the reason.
 const CSS=`
+  @keyframes hqWaiting{50%{box-shadow:0 0 12px #f4c66c99;border-color:#ffe4a0}}
+  #partyframes .crew-waiting{border:1px solid #d8b160;animation:hqWaiting 1.6s ease-in-out infinite}
+  #partyframes .crew-waiting .crew-drop-note{color:#ffe2a3}
   #partyframes .crew-tabs{display:flex;gap:4px;grid-column:1/-1}
   #partyframes .crew-tab{flex:1;padding:2px 0;border-radius:4px;border:1px solid #555;background:#22262e;color:#ffd34d;font:700 11px system-ui;cursor:pointer}
   #partyframes .crew-tab small{color:#aaa;font-weight:400;margin-left:3px}
@@ -76,6 +79,7 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       const members=crew.filter(e=>key(e)===id);
       const s=createSection(id,label),chosen=members.filter(e=>selected.has(e.id)).length,partial=chosen>0&&chosen<members.length,headKey=`${label}|${members.length}|${partial?chosen:''}`;s.count=members.length;
       if(s.headKey!==headKey){s.headKey=headKey;s.head.textContent=`${label} · ${members.length}`;if(partial){const b=document.createElement('b');b.textContent=` · ${chosen} selected`;s.head.appendChild(b);}}
+      const waiting=id==='home'&&members.some(e=>e.deployment?.awaitingAssignment);s.el.classList.toggle('crew-waiting',!!waiting);if(waiting)s.note.textContent='Crew waiting to be assigned';else if(s.note.textContent==='Crew waiting to be assigned')s.note.textContent='';
       s.head.setAttribute('aria-pressed',String(chosen>0));s.el.classList.toggle('selected',chosen>0);
       const nodes=members.map(e=>{
         let p=pips.get(e.id);if(!p){const el=document.createElement('div'),name=document.createElement('span'),hp=document.createElement('div'),group=document.createElement('b'),status=document.createElement('small');el.className='mate';el.draggable=true;name.className='name';hp.className='pip';group.className='group';status.className='crew-status';el.append(name,hp,group,status);p={el,name,hp,group,status};pips.set(e.id,p);}

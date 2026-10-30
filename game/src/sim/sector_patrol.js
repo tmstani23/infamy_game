@@ -4,6 +4,30 @@ export function rivalHQZones(state, owner) {
   return (state.hqCamping?.zones || []).filter(z=>z.owner!==owner);
 }
 export const nearRivalHQ = (state,owner,p,margin=3) => rivalHQZones(state,owner).some(z=>Math.hypot(p.x-z.x,p.z-z.z)<z.radius+margin);
+export function sweepPatrolRoute(state,deployment,e,task){
+  const grid=deployment.navFor({...e,place:'street',patrolPlanning:true});
+  const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+  const candidates=[task.objective,...sectorPatrolRoute(state,deployment,e,task)].filter(p=>p&&!nearRivalHQ(state,e.owner,p)&&(!deployment.patrolAllowed||deployment.patrolAllowed(p.x,p.z)));
+  const diameter=Math.max(0,...candidates.flatMap(a=>candidates.map(b=>distance(a,b))));
+  const spacing=Math.max(10,Math.min(26,diameter*.32)),points=[];
+  // Greedy farthest-point coverage: maximize separation, not the first three
+  // nearby patrol points. All legs must terminate on the requested safe point.
+  while(points.length<3){
+    const from=points.at(-1)||task.objective;
+    const ranked=candidates.filter(p=>!points.includes(p)).sort((a,b)=>{
+      const score=p=>points.length?Math.min(...points.map(q=>distance(p,q))):distance(p,task.objective);
+      return score(b)-score(a);
+    });
+    const next=ranked.find(p=>{
+      if(points.some(q=>distance(p,q)<spacing))return false;
+      const end=grid?.findPath(from.x,from.z,p.x,p.z)?.at(-1);
+      return end&&Math.hypot(end[0]-p.x,end[1]-p.z)<1;
+    });
+    if(!next)return [];
+    points.push(next);
+  }
+  return points.map(p=>({...p,place:'street'}));
+}
 export function sectorPatrolRoute(state,deployment,e,task) {
   if(task.route?.length)return task.route;
   if(task.patrolPath)return task.patrolPath;

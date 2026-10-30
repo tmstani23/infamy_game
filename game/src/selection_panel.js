@@ -21,6 +21,7 @@ export function unitStatus(e, state) {
     const t=e.deployment.transfer,to=t.to==='hero'?'Hero group':t.to==='home'?'HQ reserves':state.deployment?.sectors.find(s=>s.id===t.to)?.name||t.to;
     return `${t.status==='blocked'?'Transfer blocked':'Transferring'} → ${to}`;
   }
+  if(e.deployment?.awaitingAssignment)return 'Waiting for assignment';
   if(e.buffs?.charming?.until>state.tick)return 'Charming';
   if (e.execute) return e.execute.arrest ? 'Arresting' : 'Finishing off';
   if ((e.buffs?.stunned?.until ?? 0) > state.tick) return 'Stunned';

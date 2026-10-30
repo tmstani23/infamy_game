@@ -65,7 +65,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
     if(c.action==='shakedown') {
       const check=eligibility(h.owner,c.sector,c.business);if(!check.ok){result(false,check.why);return true;}
       const {b,team}=check,g=geometry(b),id=S.next++;
-      task.operation={kind:'shakedown',id,business:b.id,defender:b.owner,units:team.map(e=>e.id),state:'Rushing',startedAt:state.tick,progress:0,front:g.front,civilians:[]};
+      task.operation={kind:'shakedown',id,business:b.id,defender:b.owner,units:team.map(e=>e.id),state:'Rushing',startedAt:state.tick,progress:0,holdTotal:ticks(R.holdSeconds),front:g.front,civilians:[]};
       delete task.engagement;
       for(const e of team){clearCombat(e);e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Shakedown: rushing'};}
       addHeat(h.owner,10,'Shakedown',false);
@@ -151,9 +151,11 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
         const defenders=Object.values(state.entities).filter(e=>alive(e)&&e.owner===op.defender&&e.place===b.room&&distance(e,op.front)<=R.radius);
         const intimidating=inside.find(e=>!e.swing&&!e.taunted&&!(e.buffs?.stunned?.until>state.tick)&&state.tick-(e.hitAt??-Infinity)>20);
         op.intimidator=intimidating?.id;
-        const clients=(op.civilians||[]).filter(id=>alive(state.entities[id]));
-        if(inside.length){op.state=defenders.length?'Contested':intimidating&&clients.length?'Holding':'Entering';
+        // Civilian survival is not an objective: the squad must secure and hold
+        // the front room even if the bombardment killed its hostages.
+        if(inside.length){op.state=defenders.length?'Contested':intimidating?'Holding':'Entering';
           if(op.state==='Holding')op.progress++;}
+        else op.state='Entering';
         if(op.progress>=ticks(R.holdSeconds))success(clan,sector,op,b);
       }
     }

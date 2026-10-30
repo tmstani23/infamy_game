@@ -43,11 +43,21 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
     delete old.operation;
     delete old.recovery; delete old.engagement;
     delete old.ambushNext; delete old.patrolWaypoint;
-    delete old.patrolPath;delete old.patrolPauseUntil;
+    delete old.patrolPath;delete old.patrolPauseUntil;delete old.patrolRoster;
     Object.assign(old, { task: c.task, objective: business ? { x: business.ring[0], z: business.ring[1] } : objective, fallback, route, business: business?.id || null });
     for (const e of deployment.members(h.owner, c.sector)) if (!e.deployment.transfer && !isRallyParticipant(state, e)) resume(e);
     const name = state.deployment.sectors.find(s => s.id === c.sector)?.name || c.sector;
     result(true, `${c.task.replaceAll('_', ' ').toUpperCase()} ACTIVE — ${name} crew following this duty`);
+  }
+  function tick(){
+    for(const [clan,c]of Object.entries(state.deployment.clans))for(const task of Object.values(c.sectors)){
+      if(task.task!=='guard'||!task.business||state.businesses[task.business]?.owner===clan)continue;
+      const id=Object.keys(c.sectors).find(id=>c.sectors[id]===task);
+      const team=deployment.members(clan,id).filter(e=>eligible(e)&&!isRallyParticipant(state,e));
+      task.task='patrol';task.business=null;delete task.recovery;delete task.engagement;delete task.patrolRoster;delete task.patrolPath;
+      for(const e of team){clearCombat(e);e.deployment.awaitingAssignment=true;delete e.deployment.savedGroup;deployment.returnAfterRally(e,'home');}
+      if(team.length){state.clans[clan].notice={tick:state.tick,text:'Business lost — guards returning to HQ. Crew waiting to be assigned'};}
+    }
   }
   function step(e, unit) {
     if (!state.deployment.restrictionsEnabled || !eligible(e)) return false;
@@ -71,14 +81,21 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
     const route = task.task === 'patrol' ? sectorPatrolRoute(state,deployment,e,task) : task.route?.length ? task.route : null;
     if (route && task.task !== 'guard') target = route[(duty.waypoint || 0) % route.length];
     if (place === 'street' && e.place === 'street' && task.task === 'patrol') {
-      if(state.tick<(duty.pauseUntil||0)){e.anim='idle';duty.status='Patrolling';return false;}
-      const reached=Math.hypot(e.x-target.x,e.z-target.z)<.9;
-      if(reached&&!duty.nextWaypoint){duty.pauseUntil=state.tick+30;duty.nextWaypoint=true;e.anim='idle';duty.status='Patrolling';return true;}
-      if (!e.order?.duty || Math.hypot(e.x - target.x, e.z - target.z) < .9) {
-        duty.waypoint = ((duty.waypoint || 0) + 1) % route.length; target = route[duty.waypoint];
-        e.order = { kind: 'attackmove', ...target, place, duty: true, patrol:true };delete duty.nextWaypoint;
+      const team=deployment.members(e.owner,e.deployment.group).filter(u=>eligible(u)&&!u.deployment.duty?.manual&&!isRallyParticipant(state,u));
+      task.patrolWaypoint??=duty.waypoint||0;target=route[task.patrolWaypoint%route.length];
+      const gathered=team.every(u=>u.place==='street'&&Math.hypot(u.x-target.x,u.z-target.z)<2);
+      if(gathered){
+        task.patrolPauseUntil??=state.tick+30;
+        if(state.tick>=task.patrolPauseUntil){task.patrolWaypoint=(task.patrolWaypoint+1)%route.length;delete task.patrolPauseUntil;target=route[task.patrolWaypoint];}
+        else {e.order={kind:'station',x:e.x,z:e.z,duty:true,patrol:true};e.anim='idle';duty.status='Patrolling';return false;}
       }
-      duty.status = 'Patrolling'; return false;
+      const lead=team.filter(u=>u.place==='street').sort((a,b)=>Math.hypot(a.x-target.x,a.z-target.z)-Math.hypot(b.x-target.x,b.z-target.z))[0];
+      if(lead&&team.some(u=>u.place!==lead.place||Math.hypot(u.x-lead.x,u.z-lead.z)>3.5)){
+        if(Math.hypot(e.x-target.x,e.z-target.z)<=Math.hypot(lead.x-target.x,lead.z-target.z)+1){e.order={kind:'station',x:e.x,z:e.z,duty:true,patrol:true};e.anim='idle';duty.status='Regrouping patrol';return false;}
+        target={x:lead.x,z:lead.z};
+      }
+      duty.waypoint=task.patrolWaypoint;
+      e.order={kind:'attackmove',...target,place,duty:true,patrol:true};duty.status='Patrolling';return false;
     }
     if ((place !== e.place || Math.hypot(e.x - target.x, e.z - target.z) > 1.2) && !(place !== 'street' && e.place === place && duty.guardRoom === place)) {
       const result = deployment.localTravel(e, unit, { ...target, place });
@@ -116,5 +133,5 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
     const result=deployment.localTravel(e,unit,escape.point);e.deployment.duty={manual:false,status:'Avoiding HQ camping'};
     if(result!=='moving')e.anim='idle';return true;
   }
-  return { command, step, manual, resume, validPoint, avoidCamping };
+  return { command, tick, step, manual, resume, validPoint, avoidCamping };
 }

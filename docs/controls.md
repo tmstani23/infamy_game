@@ -114,6 +114,8 @@ In blueprint interiors, Space near an internal sliding door opens/closes it; a d
 
 The minimap has an integrated footer that moves/resizes with it, with −/+ map zoom buttons. Indoors, the footer shows the building name. Hover or keyboard-focus the name for its owner and available live stats (income, crew capacity, guards and season score). The name/details hide on the street (2026-10-24).
 
+During a Yakuza Shakedown, the business label above the building and the HUD show the operation phase and rules-based hold countdown, including while entering, securing, holding or contested.
+
 The unit frames (your frame and the target frame, small squares top middle under the alerts) each have a lock icon to move and resize them; click the target frame to move the camera to the target. Click the lock icon to unlock the HUD, then drag panels and resize them by the gold corner. Reset layout puts everything back. The layout is saved in `game/data/ui_layout.json`.
 
 ## Camera and view

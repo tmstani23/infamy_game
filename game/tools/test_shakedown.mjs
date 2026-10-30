@@ -31,11 +31,11 @@ function fixture(clan='yakuza') {
   const op=task.operation,afterHeat=g.state.clans.player.heat;assert.ok(op);send({action:'shakedown',business:b.id});assert.equal(task.operation,op);assert.equal(g.state.clans.player.heat,afterHeat,'rejection adds no heat');
   let blasts=0,thrown=op.thrown||0,entered=false;const startMoney=g.state.clans.player.ryo;
   for(let i=0;i<1800&&!b.shakedownClaim;i++){
-    clearGuards();g.step();blasts+=g.state.casts.filter(c=>c.kind==='dynamiteBlast').length;thrown+=g.state.casts.filter(c=>c.kind==='dynamiteThrow').length;
+    clearGuards();for(const id of op.civilians||[])g.state.entities[id].dead=true;g.step();blasts+=g.state.casts.filter(c=>c.kind==='dynamiteBlast').length;thrown+=g.state.casts.filter(c=>c.kind==='dynamiteThrow').length;
     entered ||=crew.some(e=>e.place===b.room);
   }
   assert.equal(thrown,3,'three opening throws');assert.equal(blasts,3,'each thrown bomb explodes once');assert.ok(entered,'crew physically enter business');
-  assert.ok(b.shakedownClaim,`hold completes: ${JSON.stringify(task.operation)}`);assert.equal(g.state.clans.player.ryo-startMoney,300,'small-business immediate bonus');
+  assert.ok(b.shakedownClaim,`hold completes even when all hostages died: ${JSON.stringify(task.operation)}`);assert.equal(g.state.clans.player.ryo-startMoney,300,'small-business immediate bonus');
   assert.equal(b.owner,rival,'ownership stays with defender');
   const claimedAt=g.state.tick,defenderMoney=g.state.clans[rival].ryo;
   // Actual modified payout, including suppression: zero cannot consume the claim.
