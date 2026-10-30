@@ -98,8 +98,8 @@ try{
  const pipRoot=new Element(),pipCrew=createGroupedCrew({where:e=>e.place==='street'?'Port town':'Teahouse · Port town',root:pipRoot,game:g,heroId,units:g.settings.units,crewInput:{selected:()=>[],select(){},groupOf:()=>null}});
  const sample={id:'status-sample',type:'ninja',owner:h.owner,hp:100,maxHp:100,place:'street',deployment:{group:destination,duty:{manual:false,status:'Patrolling'}},order:{kind:'stop'}};
  const task=g.state.deployment.clans[h.owner].sectors[destination],oldRecovery=task.recovery;task.recovery={state:'Recovering'};
- pipCrew.update([sample],[],[]);const pip=pipRoot.children[0].children[1].children[0];assert.equal(pip.children.at(-1).textContent,'Recovering');assert.match(pip.title,/Port town/);
- delete task.recovery;pipCrew.update([sample],[],[]);assert.equal(pipRoot.children[0].children[1].children[0],pip);assert.equal(pip.children.at(-1).textContent,'Patrolling','pip status updates from shared live duty state');
+ pipCrew.update([sample],[],[]);const pip=pipRoot.children[1].children[1].children[0];assert.equal(pip.children.at(-1).textContent,'Recovering');assert.match(pip.title,/Port town/);
+ delete task.recovery;pipCrew.update([sample],[],[]);assert.equal(pipRoot.children[1].children[1].children[0],pip);assert.equal(pip.children.at(-1).textContent,'Patrolling','pip status updates from shared live duty state');
  sample.place='tea';pipCrew.update([sample],[{unit:'thug',left:12}],[{id:'j1',unit:'thug',bail:90}]);assert.match(pip.title,/Teahouse · Port town/);const medical=pipRoot.children.at(-1).children[1];assert.match(medical.children[0].title,/Clinic/);assert.match(medical.children[1].title,/Police HQ.*90 ryo/);
  if(oldRecovery)task.recovery=oldRecovery;
  console.log('Deployment panel: unchanged transfer/duty rules, authoritative receipts, stable controls, paged unique crew, staffing counts and section navigation passed');

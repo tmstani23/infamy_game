@@ -29,7 +29,7 @@ function tooltip(a, key, stats) {
   return { name: a.name + (key === 'F' ? ' (ultimate)' : ''), key, lines: [['Cost', a.cost ? `${a.cost} ryo` : 'None'], ['Cooldown', `${a.cooldown} s`], ...lines], about: a.about };
 }
 
-export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {}, watchGroup = () => {}, send = () => {}, crewRoot = null }) {
+export function createActionBar({ root, game, units, heroId, tickRate, crewInput, where = () => '', jump = () => {}, watchGroup = () => {}, send = () => {}, crewRoot = null, onInspect = () => {}, onHeroFocus = () => {} }) {
   const hero = () => game.state.entities[heroId];
   const stats = game.stats?.base(hero()) || baseStats(units, hero());
   const kit = stats.abilities || {};
@@ -44,22 +44,35 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', crewRoot || row);
   const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput,send,watchGroup,where});
+  // Tim 2026-10-30: click = only this crew member, shown in the target frame; Shift+click adds or removes.
+  // A click on a member of a bigger selection waits for mouseup, so dragging it still moves the whole selection.
+  let pendingPick = null;
+  const pickOne = id => { crewInput.selectUnit(id, true); if (game.state.entities[id]) onInspect(id); };
   crew.addEventListener('mousedown', e => {
     const id = e.target.closest('.mate')?.dataset.id;
+    pendingPick = null;
     if (!id || !crewInput || e.button !== 0) return;
-    if(game.state.deployment?.restrictionsEnabled){crewInput.selectUnit(id);return;}
     const sel = crewInput.selected();
-    crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);   // toggles: the selection sticks (Tim 2026-10-19)
+    if (e.shiftKey) { crewInput.select(sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]); return; }
+    if (sel.includes(id) && sel.length > 1) { pendingPick = id; return; }
+    pickOne(id);
   });
+  crew.addEventListener('click', e => {
+    const id = e.target.closest('.mate')?.dataset.id;
+    if (id && id === pendingPick) pickOne(id);
+    pendingPick = null;
+  });
+  crew.addEventListener('dragstart', () => { pendingPick = null; });
   crew.addEventListener('dblclick', e => {
     if (e.button !== 0) return;
     const id = e.target.closest('.mate')?.dataset.id, u = game.state.entities[id];
     if (id) crewInput?.select([id]);
-    if (u) jump(u);
+    if (u) { onInspect(id); jump(u); }
     else if (id && game.police?.hq?.door) jump({ place: 'street', x: game.police.hq.door[0], z: game.police.hq.door[1] });   // jailed: the HQ
   });
   const portrait = el('div', 'portrait', row);
   portrait.addEventListener('mousedown',e=>{if(e.button===0)crewInput?.selectAll();});
+  portrait.addEventListener('dblclick',e=>{if(e.button===0)onHeroFocus();});   // Tim 2026-10-30: camera back to the hero
   const face = el('div', 'face', portrait);
   el('span', 'glyph', face, 'R');
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);

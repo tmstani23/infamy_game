@@ -85,6 +85,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       hp: c.querySelector('.hp span'), status: c.querySelector('i'), id: null, model: null };
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
+  self.c.addEventListener('dblclick', e => { if (e.button === 0) view.snapBack?.(); });   // Tim 2026-10-30: camera back to the hero
   let remembered = null, rememberedAtLook = null, rememberedAtTab=null, cached=null;
   let inspected=null, inspectedSelection=null, inspectedTab=null;
   const targetMemory=createTargetMemory();

@@ -271,7 +271,7 @@ async function start() {
     const best = crew.map(near).reduce((a, b) => b.length > a.length ? b : a);
     return { x: best.reduce((n, p) => n + p.x, 0) / best.length, z: best.reduce((n, p) => n + p.z, 0) / best.length };
   });
-  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c) });
+  const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c), onInspect: id => unitFrames.inspect(id), onHeroFocus: () => view.snapBack() });
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
   const actionCommands=document.createElement('div');actionCommands.className='action-commands';
