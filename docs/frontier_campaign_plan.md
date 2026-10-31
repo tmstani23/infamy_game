@@ -6,15 +6,11 @@ This page owns the proposed capital, frontier, settlement, supply and larger RTS
 It describes the intended game after the current city match, not current gameplay.
 Current city rules and build status remain in the existing owner docs.
 
-## Required pre-build checkpoint — Classic copy (Tim, 2026-10-31)
+## Classic snapshot before frontier build (Tim, 2026-10-31)
 
-- Before any frontier implementation, Tim will manually copy the current game into his own new folder as **Classic**.
-- Planning and documentation may continue while that copy is pending.
-- Do not begin frontier code until Tim confirms the Classic copy is ready and identifies the development target.
-- When it is prepared, record the baseline commit, date, version label and locations of both copies.
-- Classic preserves the current city game as its own version.
-- Future frontier edits do not automatically change Classic, and no change is backported without an explicit decision.
-- This checkpoint authorizes no copy, move, branch, tag or filesystem permission change now.
+Tim will manually copy the existing city game outside this project folder as a
+preserved Classic snapshot before frontier implementation. Development then
+continues in this current project. No copy or move is requested now.
 
 ## How to read decisions
 
@@ -444,12 +440,6 @@ These are module responsibilities and interfaces, not promised file names or an 
 
 ### Save, resume and multiplayer
 
-- Keep Classic and frontier runtime identities, settings, layouts and saves separate.
-- Browser origin and localStorage keys matter as well as file-backed settings and save paths.
-- Launch scripts and server roots must point at the intended copy; no writable assets or configuration are shared accidentally.
-- Use distinct versioned save namespaces; import across versions only after an explicit compatibility decision.
-- Distinct ports, profiles and version names are possible isolation tools, not mandated exact values.
-- Check for cross-copy writes before opening either version for a test or play session.
 - Version records for regions, buildings, armies, cargo, items, orders and reward claims.
 - Save world tick, seeded random state, governor policies, projects, damage and garrison occupancy.
 - Include in-flight shipments, hero KO/recovery, combat state and paused operations.
@@ -526,23 +516,14 @@ and commands before expanding scale. Browser gameplay and profiling remain neces
 | One hidden defender | Cannot hold an entire region hostage without meaningful contest. |
 | Single-player pause | Exact policy is open; if paused, all world clocks pause together without view-based catch-up. |
 | Multiplayer pause or offline player | Global clock and delegation authority need explicit policy. |
-| Classic and frontier run on one machine | Launch roots, browser storage keys, settings, layouts, saves and writable assets must not cross-write. |
-| Older save offered to frontier | Do not import automatically; require an explicit version-compatibility decision. |
 
 ## Proposed implementation sequence — not code authorization
-
-### 0. Classic copy gate
-
-- Tim manually makes and confirms the Classic folder before frontier code begins.
-- Record baseline commit, date, version label and the chosen frontier development target.
-- Acceptance: Classic launches as the preserved city game, each copy uses separate writable state, and the frontier target is unambiguous.
-- No folder copy, branch, tag, port choice or permission change is authorized by this plan.
 
 ### 1. World foundation and save identities
 
 - Define canonical world/settlement/unit/cargo IDs, time, ownership and event records.
-- Establish economy cadence, active battle scheduling, save/load and deterministic test hooks only after phase 0 is confirmed.
-- Acceptance: leave/revisit a settlement without changing its economic result; save/settings/layout namespaces remain isolated from Classic.
+- Establish economy cadence, active battle scheduling, save/load and deterministic test hooks.
+- Acceptance: leave/revisit a settlement without changing its economic result.
 
 ### 2. Capital plus one frontier settlement
 
