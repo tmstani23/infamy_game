@@ -7,10 +7,11 @@
 // screen right -sin, screen down cos). Purely visual. Style and colour: weapon_glow.json runTrail.
 import * as THREE from 'three';
 import { runTrailMaterial } from './shading.js';
+import { lightningPattern } from './weapon_lightning_pattern.js';
 
 const STYLES = {
   sonic: { color: [0.62, 0.72, 0.9], every: 0.05, life: 0.32, speed: 0.55, width: 0.0035, alpha: 0.5, max: 14 },
-  static: { color: [0.8, 0.07, 0.1], every: 0.14, life: 0.4, speed: 0.2, width: 0.004, alpha: 0.7, max: 12 },
+  static: { color: [0.8, 0.07, 0.1], every: 0.22, life: 0.32, speed: 0.12, width: 0.003, alpha: 0.7, max: 8 },
 };
 
 export function createRunTrail(spriteUniforms, style = 'sonic') {
@@ -23,6 +24,7 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
   const material = runTrailMaterial(spriteUniforms, S.color), mesh = new THREE.Mesh(geometry, material);
   mesh.frustumCulled = false; mesh.visible = false;
   let clock = 0, shedAt = 0, streaks = [], sparks = [], sparkAt = 0, arc = null, rings = [], humming = false;
+  let arcPaths=[],arcAt=-Infinity,previousSwing=null;
   return { mesh,
     update(dt, anim, dir, enabled = true, axis = null, swing = null, hum = false) {
       clock += dt;
@@ -32,8 +34,7 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
         const h = 0.3 + Math.random() * 0.5, side = (Math.random() - 0.5) * 0.14;
         const pts = [];
         if (style === 'static') {   // correlated, finer bends fixed at birth so the arc holds its shape
-          let x = 0, y = 0; pts.push([0, 0]);
-          for (let i = 0; i < 7; i++) { x += 0.016 + Math.random() * 0.008; y = y * 0.55 + (Math.random() - 0.5) * 0.014; pts.push([x, y]); }
+          for(const p of lightningPattern({base:{x:0,y:0},tip:{x:.18,y:0}},Math.random()*0xffffffff,false)[0].points)pts.push([p.x,p.y]);
         }
         streaks.push({ x: 0.5 + side - bx * 0.04, y: h - by * 0.02, born: clock, pts, len: 0.06 + Math.random() * 0.08 });
       }
@@ -47,8 +48,14 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
           sparks.push({ x: axis.base.x + (axis.tip.x - axis.base.x) * t, y: axis.base.y + (axis.tip.y - axis.base.y) * t,
             vx: (Math.random() - 0.5) * 0.12, vy: 0.03, born: clock });
         }
-        if (swing !== null && swing > 0.15 && swing < 0.85) arc = axis;
+        if (swing !== null && swing > 0.15 && swing < 0.85) {
+          if(clock-arcAt>.24||previousSwing===null||swing<previousSwing){
+            arcAt=clock;arcPaths=lightningPattern({base:{x:.2,y:0},tip:{x:1,y:0}},Math.random()*0xffffffff,true);
+          }
+          if(clock-arcAt<.18)arc=axis;
+        }
       }
+      previousSwing=swing;
       sparks = sparks.filter(p => clock - p.born < 0.4);
       // Yakuza hum: on the shimmer's rising edge, two rings from the blade's middle, a beat apart
       if (style === 'sonic' && enabled && axis && hum && !humming && anim !== 'run')
@@ -86,13 +93,13 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
         p.vy -= dt * 0.5; p.x += p.vx * dt; p.y += p.vy * dt;   // falls
         segment(p.x, p.y, p.x - p.vx * 0.05, p.y - p.vy * 0.05 + 0.006, 0.003, 0.0015, 0.8 * (1 - age), 0.2 * (1 - age));
       }
-      if (arc && Math.random() < 0.7) {   // a thin crackle along the blade, re-jagged every frame
+      if (arc) {   // Hold each seeded branching channel; animate light, not random geometry.
         const dx = arc.tip.x - arc.base.x, dy = arc.tip.y - arc.base.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
-        let px = arc.base.x + dx * 0.2, py = arc.base.y + dy * 0.2;
-        for (let i = 1; i <= 5; i++) {
-          const t = 0.2 + 0.8 * i / 5, j = i < 5 ? (Math.random() - 0.5) * 0.05 : 0;
-          const qx = arc.base.x + dx * t + nx * j, qy = arc.base.y + dy * t + ny * j;
-          segment(px, py, qx, qy, 0.0025, 0.0025, 0.55, 0.55); px = qx; py = qy;
+        const fade=Math.exp(-(clock-arcAt)*14);
+        for(const path of arcPaths)for(let i=1;i<path.points.length;i++){
+          const a=path.points[i-1],b=path.points[i],w=.0025*path.width*(1-.6*i/path.points.length);
+          segment(arc.base.x+dx*a.x+nx*l*a.y,arc.base.y+dy*a.x+ny*l*a.y,
+            arc.base.x+dx*b.x+nx*l*b.y,arc.base.y+dy*b.x+ny*l*b.y,w,w,.7*fade,.6*fade);
         }
       }
       for (const r of rings) {   // a flat ellipse (ground-ish perspective) growing and fading

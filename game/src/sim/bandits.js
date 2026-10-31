@@ -9,7 +9,7 @@ export const WILD = 'bandits';     // the owner every bandit has (not a clan: no
 
 // state: the game state; data: bandits.json; units: units.json; pois / edges: the district's
 // spots and its way-in spots; spawn / moveTo / stopPath / remove / fightStep / statsOf come from the game rules
-export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, seed = 4242 }) {
+export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, forcedStep = () => false, seed = 4242 }) {
   const R = data?.rules || {}, types = data?.types || {};
   const secs = s => Math.round(s / DT);
   const snap = ([x, z]) => nav.nearestFree(x, z) || [x, z];
@@ -198,7 +198,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
       for (let i = 0; i < n && night.came < (R.perNight ?? 12) && out().length < (R.maxOut ?? 6); i++) add();
       night.next = state.tick + secs(R.everySeconds ?? 20);
     }
-    for (const e of Object.values(state.entities)) if (e.owner === WILD) step(e);
+    for (const e of Object.values(state.entities)) if (e.owner === WILD && !forcedStep(e)) step(e);
     for (const id of Object.keys(mind)) if (!state.entities[id]) delete mind[id];
   }
 

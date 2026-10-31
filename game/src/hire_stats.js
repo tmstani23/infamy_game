@@ -17,7 +17,7 @@ export function hireStats(type, unit) {
   if (unit.taunt) {
     const a = { ...TAUNT, ...unit.taunt };
     const targets = type === 'yakuza_enforcer' ? 'all nearby enemies' : a.coneDegrees ? `enemies in a ${a.coneDegrees}° forward cone` : 'one enemy';
-    specials.push({ name: 'Instant Taunt', about: `Automatically forces ${targets} within ${a.radius} steps to attack this unit for ${a.durationTicks / 20}s; ${a.cooldownTicks / 20}s cooldown. Enemy clan crew and house guards only; excludes heroes, bandits, police and civilians.${a.damageTaken < 1 ? ` Reduces damage received by ${percent(1 - a.damageTaken)} for the Taunt duration.` : ' No damage reduction.'}` });
+    specials.push({ name: 'Instant Taunt', about: `Automatically forces ${targets} within ${a.radius} steps to attack this unit for ${a.durationTicks / 20}s; ${a.cooldownTicks / 20}s cooldown. Includes enemy heroes and bandits. Police require a direct attack order; area effects never pick nearby police or civilians. Applies immediately and allows pursuit.${a.damageTaken < 1 ? ` Reduces damage received by ${percent(1 - a.damageTaken)} for the Taunt duration.` : ' No damage reduction.'}` });
   }
   if (unit.rifle) {
     const a = { ...RIFLE, ...unit.rifle };

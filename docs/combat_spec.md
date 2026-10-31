@@ -328,3 +328,13 @@ Section 3 combat tuning checkpoint (2026-10-29): Reprisal cooldown is fifteen se
 Sweeping Cut no longer weakens a stronger snare or replaces an equal snare with a shorter duration; its damage is unchanged. The coordinator reports `test_kuroda_phase4` passing.
 
 Movement-speed references for counterplay review: ordinary boss run 6; Ninja crew 5.9 in neutral ground and 6.49 in owned territory; Shinobi hero 6.6; Kuroda Reprisal escape 7.8 for four seconds. These are audit comparisons, not approved tuning. First test the corrected cohesive ambush/interception behavior. No global boss nerf or new pursuit bonus is approved or built; choose counterplay after that test. No full-match lag or browser gameplay result is claimed.
+
+## Kuroda visuals and shared Taunt targeting (2026-10-31)
+
+The Kuroda sickle blade was flipped around its haft and canted 10° downward. The upright grip, chain pin and chain motion stay the same; the ball remains in the existing faint glow mask. Fourteen Kuroda color/glow atlases were re-exported. Offline old/new four-direction previews were inspected, and the sprite check passed all 16 color/glow pairs; final in-game visual review is pending.
+
+The mid-swing run-trail lightning was changing randomly every frame. Seeded channels now hold for 0.18 s, then fade and regenerate over 0.24 s. Static trails are less frequent and slower; the pattern uses five subdivision levels with roughness 0.12 rather than 0.2 and thinner forks. This remains lightweight geometry, without new large textures or lighting postprocess. [NVIDIA's lightning SDK note](https://developer.download.nvidia.com/SDK/10.5/direct3d/Source/Lightning/doc/lightning_doc.pdf) informed the subdivision, forks and stable-topology approach; this is not a physical lightning solver.
+
+Shared Taunt now accepts enemy heroes and bandits. Police require a direct explicit attack; civilians are not Taunt combatants. Taunt lands instantly before pursuit, without an animation lock, so an enforcer can engage and chase during the same cast tick. Hero, bandit and police AI honor the forced target while their own stun still prevents action. Existing cooldown, radius, duration and damage reduction remain unchanged, including Kuroda's 8 s cooldown, 3 s duration, 4.5-range 90° cone and 35% self reduction. All factions use the common rules.
+
+Coordinator reports targeted Taunt, new-crew, hire-stat, bandit, police, lightning, chain, sprite-pair and Worker checks passing, plus syntax/diff checks. No final browser gameplay or visual-runtime playtest is claimed.

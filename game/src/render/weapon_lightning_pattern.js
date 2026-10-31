@@ -36,14 +36,15 @@ export function lightningPattern(axis, seed, attacking = false) {
   function leader(a,b,depth,roughness) {
     if(!depth)return [a,b];
     const t=.35+random()*.3,offset=(random()-.5)*roughness;
-    const m={x:a.x+(b.x-a.x)*t+nx*offset,y:a.y+(b.y-a.y)*t+ny*offset};
+    const sx=b.x-a.x,sy=b.y-a.y,sl=Math.hypot(sx,sy)||1;
+    const m={x:a.x+sx*t-sy/sl*offset,y:a.y+sy*t+sx/sl*offset};
     const left=leader(a,m,depth-1,roughness*.52),right=leader(m,b,depth-1,roughness*.52);
     return [...left.slice(0,-1),...right];
   }
   const end={x:tip.x+dx*(attacking?.18:.06),y:tip.y+dy*(attacking?.18:.06)};
-  const main=leader(base,end,4,len*.2),paths=[{points:main,width:1}];
+  const main=leader(base,end,5,len*.12),paths=[{points:main,width:1}];
   for(let i=0;i<(attacking?4:3);i++) {
-    const start=main[3+Math.floor(random()*10)],side=random()<.5?-1:1;
+    const start=main[5+Math.floor(random()*20)],side=random()<.5?-1:1;
     const outward=len*(.16+random()*(attacking?.45:.28))*side,forward=.08+random()*.28;
     const finish={x:start.x+dx*forward+nx*outward,y:start.y+dy*forward+ny*outward};
     const branch=leader(start,finish,3,len*.12);

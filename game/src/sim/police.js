@@ -45,7 +45,7 @@ const DEFAULTS = {
 // state: the game state; data: police.json; units: units.json; district: the map;
 // spawn / spawnOutside / moveTo / stopPath / remove / statsOf / act come from the game rules.
 // act = { swing(e), arresting(e), arrest(e, t), engage(e, t), hostile(a, b) }
-export function createPolice({ state, data, units, district, nav, doors = [], spawn, spawnOutside, moveTo, stopPath, remove, statsOf, act, seed = 7171 }) {
+export function createPolice({ state, data, units, district, nav, doors = [], spawn, spawnOutside, moveTo, stopPath, remove, statsOf, act, forcedStep = () => false, seed = 7171 }) {
   const R = { ...DEFAULTS, ...(data?.rules || {}) };
   const secs = s => Math.round(s / DT);
   const types = units?.types || {};
@@ -555,7 +555,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     staffPatrols();
     assignPatrols();
     updateTracks();
-    for (const e of officers()) step(e);
+    for (const e of officers()) if(!forcedStep(e))step(e);
     for (const id of Object.keys(mind)) if (!state.entities[id]) delete mind[id];
   }
 

@@ -516,6 +516,7 @@ export function createGame(options) {
     return false;
   }
   const bandits = createBandits({
+    forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
     state, data: banditData, units, camps: district.banditCamps, pois: district.pois, edges: district.edges, nav, spawn, moveTo, fightStep, statsOf,
     canSee: (e, t) => sees(e, t) && nav.clearLine(e.x, e.z, t.x, t.z),
     stopPath: e => { delete paths[e.id]; },
@@ -530,6 +531,7 @@ export function createGame(options) {
   }
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
+    forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
     state, data: policeData, units, district, nav, doors, spawn, spawnOutside, moveTo, statsOf, remove: removeUnit,
     stopPath: e => { delete paths[e.id]; },
     act: {
@@ -734,6 +736,7 @@ export function createGame(options) {
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
       if (stunned(e, state.tick)) { e.anim = 'idle'; continue; }
+      if (e.taunted && taunt.step(e,unit)) continue;
       if (contracts?.scrubStep(e)) continue;
       if (kuroda.stepActor(e, intents[e.id])) continue;
       if (e.dash) { dashStep(e, unit); continue; }
