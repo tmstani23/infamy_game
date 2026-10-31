@@ -31,8 +31,8 @@ console.log('diminishing payouts ok');
 g.state.news.push({ kind: 'raidWon', raider: 'player', defender: 'kuroda', business: small[0].id });
 g.state.news.push({ kind: 'sectorCleared', clan: 'player', sector: 's1', ryo: 200 });
 g.step();
-assert.equal(clan.renown, 45, 'raid win + sector clear Renown');
-assert.ok(g.state.news.some(n => n.kind === 'renown' && n.clan === 'player' && n.amount === 40));
+assert.equal(clan.renown, 80, 'raid win + sector clear Renown');
+assert.ok(g.state.news.some(n => n.kind === 'renown' && n.clan === 'player' && n.amount === 75));
 console.log('property Renown ok');
 
 // one raid per rival per night

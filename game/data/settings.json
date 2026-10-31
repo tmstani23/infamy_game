@@ -22,7 +22,7 @@
     "ryoSpread": 0,
     "ryo": { "bandit": 25, "night_brute": 50 }
   },
-  "rewards": { "crewExecution": 50, "leaderKnockout": 250, "buildingDefended": 150, "sectorClear": 200, "renown": { "raid": 40, "shakedown": 20, "defend": 15, "sectorClear": 5 }, "_note": "renown: property clans (not Shinobi) earn this Renown toward season points, 50 = 1 point (Tim 2026-10-30); buildingDefended: owner gets it when a Shinobi Sabotage/Steal they were warned about fails; sectorClear: rivals (2+ units) on a sector's streets with yours and now only yours remain, once per sector per 3 min (Tim 2026-10-29)" },
+  "rewards": { "crewExecution": 50, "leaderKnockout": 250, "buildingDefended": 150, "sectorClear": 200, "renown": { "raid": 75, "shakedown": 35, "sweep": 50, "defend": 15, "sectorClear": 5 }, "_note": "renown: property clans earn 75 per business raid, 35 per Shakedown and 50 per qualifying paid Sweep (Tim 2026-10-31); HQ raids use separate points only. 50 Renown = 1 point; buildingDefended: owner gets it when a warned Shinobi job fails; sectorClear: 2+ rival units, shared clan/sector cooldown of 3 min" },
   "shakedown": { "_note":"Initial playtest tuning; one manual operation, saved Patrol/Guard resumes on return. Friendly fire includes civilians; avoid the flames.", "blastDamage":60, "blastRadius":2.2, "fireSeconds":8, "fireRadius":0.7, "fireDamage":6, "emergencyDamage":110, "emergencyRadius":3, "fuseSeconds":1.25, "retrySeconds":60, "friendlyFire":true },
   "police": {
     "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",

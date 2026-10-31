@@ -9,7 +9,7 @@ Related docs: `territory.md` (one season score for all clans; the ninja village 
 ## 1. What the ninja clan is
 
 - A fully playable clan, chosen through the [start menu](gameplay_and_design.md#starting-paths-settled). Bots can play it too, through the same commands.
-- **Contracts only:** ninja hold no territory or property and can't buy businesses. Their home is the hidden village in the west forest (`assets/environment/ninja_village` art).
+- **Contracts only:** ninja hold no territory or property and can't buy or capture businesses. Their home is the hidden village in the west forest (`assets/environment/ninja_village` art). They receive no business payouts; an existing historical Shinobi-owned business is not reset automatically but pays nothing.
 - **Score:** the shared season score, from Renown: 50 Renown = 1 point (`settings.json` `season.renownPerPoint`), the same as a teahouse.
 - **Crew cap** grows with Renown.
 

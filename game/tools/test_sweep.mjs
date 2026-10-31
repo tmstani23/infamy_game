@@ -48,6 +48,7 @@ function fixture(clan = 'kuroda') {
   assert.equal(JSON.stringify({ task:task.task, objective:task.objective, route:task.route }),saved);
   assert.equal(g.deployment.canOccupy(crew[0],target.anchor.x,target.anchor.z,'street'),false,'excursion permission removed');
   assert.equal(op.success,true,'full hold succeeds');assert.equal(op.reward,0,'empty sector does not award Sweep money');
+  assert.equal(g.state.clans.player.renown || 0,0,'empty Sweep grants no Renown');
   assert.doesNotThrow(() => JSON.stringify(g.state));
 }
 {
@@ -127,10 +128,14 @@ function fixture(clan = 'kuroda') {
   assert.equal(survivor.deployment.scattered?.phase,'Withdrawing');assert.equal(heroCrew.deployment.scattered,undefined,'hero group never scattered');
   const result=g.state.news.find(n=>n.kind==='sweepSuccess');
   assert.equal(result.ryo,op.reward,'success alert reports actual awarded amount');
+  assert.equal(op.reward,500,'two encountered rivals qualify for the shared Sweep claim');
   assert.equal(result.scattered,op.scattered.length,'success alert reports actual scattered crew');
   assert.equal(g.deployment.canAssign(rival,[survivor.id],'home').ok,false,'recovery cannot be bypassed by transfer');
   assert.equal(g.deployment.canActAt(survivor,far.x,far.z,'street'),false,'retreating crew cannot attack');
   const start={x:survivor.x,z:survivor.z};let reached=false,recoveryAt;
+  const renownBefore=g.state.clans.player.renown||0;
+  advance();
+  assert.equal(g.state.clans.player.renown-renownBefore,50,'actual qualifying Sweep event grants 50 Renown');
   for(let i=0;i<6000&&survivor.deployment.scattered;i++){
     advance();const s=survivor.deployment.scattered;
     assert.equal(survivor.deployment.group,target.id,'saved assignment slot remains reserved');

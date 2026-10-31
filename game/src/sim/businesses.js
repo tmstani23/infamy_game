@@ -32,6 +32,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (!b || !price) return { ok: false, why: 'Not for sale', price: null };
     if (b.owner) return { ok: false, why: b.owner === e?.owner ? 'Already yours' : 'Owned by another clan', price };
     if (!canInteract(e) || !clan) return { ok: false, why: 'No available clan member can buy now', price };
+    if (clan.kind === 'ninja') return { ok: false, why: 'Shinobi do not own businesses', price };
     if (!b.ring || e.place !== 'street' || Math.hypot(e.x - b.ring[0], e.z - b.ring[1]) > reach) return { ok: false, why: 'Walk to its door to buy', price };
     if ((clan.ryo || 0) < price) return { ok: false, why: `Need ${price} ryo`, price };
     return { ok: true, why: '', price };
@@ -45,6 +46,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (state.attacks[b.id]) return { ok: false, why: 'Under attack already' };
     if (!state.night) return { ok: false, why: 'Attack at night' };
     if (!canInteract(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot attack now' };
+    if (clan.kind === 'ninja') return { ok: false, why: 'Shinobi do not capture businesses' };
     if (Object.values(state.attacks).some(a => a.clan === clan.id)) return { ok: false, why: 'Already attacking another place' };
     if (!b.ring || e.place !== 'street' || Math.hypot(e.x - b.ring[0], e.z - b.ring[1]) > reach) return { ok: false, why: 'Walk to its door to attack' };
     return { ok: true, why: '' };
@@ -83,6 +85,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     if (!state.night) return { ok: false, why: 'Raid at night' };
     if (clan && state.raidsTonight?.[clan.id]?.includes(b.owner)) return { ok: false, why: `Already raided ${state.clans[b.owner]?.name || 'them'} tonight` };   // once per rival per night (Tim 2026-10-30)
     if (!able(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot raid now' };
+    if (clan.kind === 'ninja') return { ok: false, why: 'Shinobi do not capture businesses' };
     if (!(clan.lanterns > 0)) return { ok: false, why: 'Needs a War Lantern (moneylender)' };
     if (Object.values(state.attacks).some(a => a.clan === clan.id)) return { ok: false, why: 'Already attacking another place' };
     if (!atDoor(e, b)) return { ok: false, why: 'Walk to its door to raid' };
@@ -209,6 +212,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   }
   function endAttack(a, won, why) {
     const clan = state.clans[a.clan], b = state.businesses[a.business];
+    if (won && clan.kind === 'ninja') { won = false; why = 'Shinobi do not capture businesses'; }
     if (won) {
       clans.setOwner(b.id, clan.id);
       const want = a.heatBefore + A.heatAfterWin;
@@ -230,6 +234,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
   function raidTick(a) {
     const b = state.businesses[a.business], clan = state.clans[a.clan];
     const end = (won, why) => {
+      if (won && clan.kind === 'ninja') { won = false; why = 'Shinobi do not capture businesses'; }
       delete state.attacks[a.business];
       if (won && a.hq) {
         say(clan, 'You defeated the Shinobi HQ');
@@ -400,7 +405,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     const share = payoutRanks();
     for (const b of Object.values(state.businesses)) {
       const pay = Math.round((R[b.kind]?.payout || 0) * (share.get(b.id) ?? 1)), clan = state.clans?.[b.owner];
-      if (!pay || !clan) continue;
+      if (!pay || !clan || clan.kind === 'ninja') continue;
       // a Shinobi Sabotage contract held its mark here (sim/contracts.js): no payout this dawn
       if (b.sabotaged) { delete b.sabotaged; say(clan, `No payout from the ${name(b)}: sabotaged`); state.news.push({ kind: 'sabotaged', clan: clan.id, business: b.id }); continue; }
       let amount = Math.round(pay * payoutShare(clan.id) * (payoutShare(clan.id) > 0 ? payoutBonus(b) : 1));   // whole quarter held: sim/territory.js

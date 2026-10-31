@@ -360,7 +360,8 @@ Coordinator plan. Phase code work stays with its gameplay owner, and this docume
 
 - [ ] Audit Kuroda behavior and prepare boss-runner counterplay proposals.
 
-### Phase 5 — rewards and balance review
+### Phase 5 — rewards and balance review (reward rules built/Node-verified; other balance choices pending)
 
-- [ ] Set property-clan Renown to 75 for a successful raid, 35 for a successful Shakedown, and 50 for a qualifying Sweep. Gate Sweep rewards by meaningful resistance and existing payout/cooldown rules to prevent empty-sector farming. Keep HQ raid score at 2 points.
-- [ ] Audit Shinobi raid ownership. Recommend contract, Geisha, and masked-unit balance changes separately; exact choices remain pending.
+- [x] Set property-clan Renown to 75 for a successful business raid, 35 for a successful Shakedown, and 50 for a qualifying paid Sweep. Require meaningful resistance and a positive shared payout/cooldown claim; empty or cooldown-blocked Sweeps give no Sweep Renown. Sector-clear Renown may stack. Keep HQ raid score at 2 separate points, with no extra Renown or replacement loot/neutralization reward.
+- [x] Audit Shinobi business ownership: purchases and completed raids cannot give Shinobi property; rejected attempts do not spend ryo or consume a War Lantern. Historical Shinobi ownership is not reset, but earns no payout.
+- [ ] Recommend contract, Geisha, and masked-unit balance changes separately. Exact choices remain pending Tim's response; contract 120s and Ninja 15 / Bodyguard 24 / Geisha 7 remain unchanged.

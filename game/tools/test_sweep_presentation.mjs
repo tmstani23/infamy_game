@@ -43,3 +43,17 @@ state.news=[{kind:'sweepSuccess',clan:'enemy',rival:'player',sector:'ward',ryo:5
 assert.match(calls.at(-1)[0],/ENEMY SWEEP COMPLETE.*\n3 of your crew/);
 assert.doesNotMatch(calls.at(-1)[0],/\+500/,'defender is not shown an earned reward');
 console.log('Sweep completion: actual payout/top-up, zero payout, scattering count, owner/defender wording and duration passed');
+
+calls.length=0;
+state.news=[
+  {kind:'renown',clan:'player',amount:37,reason:'Sweep secured'},
+  {kind:'renown',clan:'player',amount:5,reason:'Sector cleared'},
+  {kind:'renown',clan:'enemy',amount:75,reason:'Raid won'},
+  {kind:'renown',clan:'player',amount:0,reason:'Sweep secured'},
+  {kind:'sweepSuccess',clan:'player',sector:'ward',ryo:0,scattered:0},
+];ui.update();
+assert.deepEqual(calls.filter(c=>c[0].includes('Renown')), [
+  ['Sweep secured · +37 Renown','win'], ['Sector cleared · +5 Renown','win'],
+], 'only actual positive owner rewards appear; configured amounts and separately earned sector-clear reward are preserved');
+assert.equal(state.news[0].amount,37,'callout does not mutate reward data');
+console.log('Renown feedback: actual event amounts, owner privacy, positive-only rewards and separate sector-clear stacking passed');
