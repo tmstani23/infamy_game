@@ -271,7 +271,7 @@ The current editor is reported as messy. Rebuild in these checkpoints; temporary
 
 ## Next playtest batch (A–E integrated/Node-checked; manual playtest pending, 2026-10-30)
 
-IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. A/B recheck by the docs keeper passed: `test_start_screen_exit`, `test_hud_drag`, `test_layout_pages`, `test_crew_frame_selection` and `test_dismissal`. Phase E is integrated and Node-checked; its manual checklist remains below. Docs are updated after integration; implementation chats report changed files and scoped checks, and the docs keeper commits completed checkpoints. No push. Phase F remains proposed; item 22 profiling should begin early before any worker decision. Phase G item 23 remains parked.
+IDs below are the authoritative stable numbering. A was built by the Luna medium chat, B by the Sol low chat, and the coordinator integrated the shared work and built C then D. Focused Node checks are reported passing; the manual checks below remain pending. A/B recheck by the docs keeper passed: `test_start_screen_exit`, `test_hud_drag`, `test_layout_pages`, `test_crew_frame_selection` and `test_dismissal`. Phase E is integrated and Node-checked; its manual checklist remains below. Docs are updated after integration; implementation chats report changed files and scoped checks, and the docs keeper commits completed checkpoints. No push. Phase F profiling is complete and worker isolation is Node-verified; manual browser evidence remains pending. The 2026-10-31 phases below carry the active follow-up work.
 
 ### Phase A — easy UI/tuning (built/Node-checked)
 
@@ -324,14 +324,43 @@ Coordinator reports `test_assignment_followup`, `test_shakedown`, `test_sweep`, 
 
 ### Phase F — targeted performance optimization (built/Node-checked; browser evidence pending)
 
-- [ ] **22.** Diagnose and reduce mid/late-game map lag before choosing an architecture. Node baselines, implemented optimizations and limits are in [performance diagnosis](performance_diagnosis.md). The authorized collision and AI route-planning work is built and Node-checked. A Worker remains unbuilt and deferred.
+- [ ] **22.** Diagnose and reduce mid/late-game map lag before choosing an architecture. Node baselines, implemented optimizations and limits are in [performance diagnosis](performance_diagnosis.md). The authorized collision, AI route-planning and worker-isolation work is built and Node-verified; manual browser evidence remains pending.
   - [x] Run warmup-separated startup, full-roster and combat Node profiles; inspect CPU hotspots and targeted optimization guidance.
   - [x] Cache collision radii once per pass; use deterministic nearby-pair filtering and preserve legacy pair order. Seeded collision parity checks cover dense overlaps, blocked pushes and chain reactions.
   - [x] Bound incremental A* and strategic AI route planning while preserving the 20 Hz sim, visibility rules, completed-route behavior and reactive combat.
   - [x] Reprofile and run focused separation, bot, Ninja bot, map performance, Rally and assignment checks. Adaptive AI openings, live match, decisions and bounded-planning tuning pass in reported full/scoped runs; canonical all-day contract and pacing checks pass. Before/after populations/outcomes differ; no browser FPS or all-lag-resolved claim.
   - [ ] During the final playtest, compare responsiveness paused versus running, test map movement and bot contracts, and capture a Firefox performance profile if the lag is present.
-  - [ ] Use browser evidence to decide whether a Worker is warranted; no Worker is implemented.
+  - [ ] Use browser evidence to verify worker responsiveness and decide whether further architecture changes are warranted; see follow-up phase 1 below.
 
-### Phase G — late-game scoring balance (parked; separate from A–D)
+### Phase G — late-game scoring balance (carried forward to 2026-10-31 phase 5)
 
-- [ ] **23.** Revisit asymmetry at the **property-ownership ceiling**: property clans then rely on repeatable successful operations while Shinobi continue contract income. This is not a Shinobi crew cap or Renown cap. Read-only finding for later: `PROPERTY_RENOWN` defaults are raid 40, Shakedown 20, defend 15, sector clear 5; the map has no `sweepSuccess` entry despite that event, while `claimSweep` pays ryo. After auditing reward correctness and repeat cadence, consider Tim's proposal to grant more Renown for successful property-clan raids, Sweeps and Shakedowns. No investigation or tuning now; numeric changes are unapproved.
+- [ ] **23.** Audit reward correctness and repeat cadence at the **property-ownership ceiling**, along with qualifying Sweep and anti-farming gates and Shinobi raid ownership. The approved property-clan Renown values and limits are tracked in follow-up phase 5 below.
+
+## 2026-10-31 follow-up phases
+
+Coordinator plan. Phase code work stays with its gameplay owner, and this document records scope/status.
+
+### Phase 1 — worker isolation (built/Node-verified; manual browser checks pending)
+
+- [x] Preserve the measured user evidence that the map is snappy while paused. Keep the authoritative sim and bots in one permanent Worker; use the main-thread replica only for read-only queries and geometry.
+- [x] Keep snapshots minimal for map and deployment views; cap update cadence; send deltas; apply backpressure; route commands through the Worker. Disable world painting while map mode is active. Manual browser checks remain pending.
+
+### Phase 2 — recruitment and rear entrances
+
+- [x] Extract the shared door-interaction helper/fix (included as a bootstrap dependency in the Phase 1 checkpoint); remaining Phase 2 work is still pending.
+- [ ] Make recruitment stats truthful, including attack rate, DPS, and special-ability hover details.
+- [ ] Add rear entry to shops and teahouses.
+
+### Phase 3 — assignment recovery and boss ambushes
+
+- [ ] Make assignment recovery behavior cohesive, preserving guards' fight-to-end behavior.
+- [ ] Add masked wandering for idle units and clarify boss ambush navigation and behavior.
+
+### Phase 4 — Kuroda and boss-runner counterplay
+
+- [ ] Audit Kuroda behavior and prepare boss-runner counterplay proposals.
+
+### Phase 5 — rewards and balance review
+
+- [ ] Set property-clan Renown to 75 for a successful raid, 35 for a successful Shakedown, and 50 for a qualifying Sweep. Gate Sweep rewards by meaningful resistance and existing payout/cooldown rules to prevent empty-sector farming. Keep HQ raid score at 2 points.
+- [ ] Audit Shinobi raid ownership. Recommend contract, Geisha, and masked-unit balance changes separately; exact choices remain pending.

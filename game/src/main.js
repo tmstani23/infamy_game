@@ -1,7 +1,7 @@
 import {watchCrewGroup} from './crew_watch.js';
 import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
-import { createFixedStepClock } from './fixed_step_clock.js';
+import { createSimWorkerClient } from './sim_worker_client.js';
 import { createStealthBadge } from './stealth_badge.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
@@ -10,6 +10,7 @@ import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
 import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput } from './input.js';
 import { createHireMenu } from './hire_menu.js';
+import { interactionDoor as selectInteractionDoor } from './door_interaction.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
 import { createContractMenu } from './contract_menu.js';
@@ -26,8 +27,6 @@ import { createBuildingPanel } from './building_panel.js';
 import { createInteriorInfo } from './interior_info.js';
 import { createSound } from './render/sound.js';
 import { createFog } from './render/fog.js';
-import { createBot } from './sim/bot.js';
-import { createNinjaBot } from './sim/ninja_bot.js';
 import { bindCrewNumberKeys } from './crew_hotkeys.js';
 import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
@@ -73,15 +72,19 @@ async function start() {
   status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
-  const game = createGame({ district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings });
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings };
+  const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST };
+  // A read-only replica supplies existing UI queries and static geometry. Only
+  // the worker advances the match, including while Map/Deployment is open.
+  const game = createGame(simOptions);
   const units = game.settings.units;   // hire prices etc. as the settings made them
-  const { heroId, rivals, previewCommands = [] } = setupMatch(game, { ...selected, bots, spawns: district.spawns, test: TEST });
-
-  // Townsfolk walking the streets
-  game.civilians.populate();
-
-  const botList = rivals.map(r => (r.kind === 'ninja' ? createNinjaBot : createBot)(game, r));
-  const bot = botList.length ? { tick: () => botList.flatMap(b => b.tick()) } : null;
+  const { heroId } = setupMatch(game, matchOptions);
+  const simClient = await createSimWorkerClient({game,options:simOptions,match:matchOptions,
+    onError:error=>{status(error.message);const banner=$('pausedbanner');banner.hidden=false;
+      banner.textContent='Simulation stopped: '+error.message+' · Reload to restart';console.error(error);}});
+  // Prevent accidental browser-console calls from creating a second simulation.
+  game.step = () => { throw new Error('Simulation runs in its worker; send commands instead'); };
+  addEventListener('pagehide',()=>simClient.dispose(),{once:true});
 
   let view;
   try {
@@ -106,7 +109,7 @@ async function start() {
   };
   // Day and night belong to the sim (townsfolk follow it): N sends a 'time' command and
   // the screen follows the state after each tick
-  const pending = [...previewCommands];
+  const pending = [];
   const toggleNight = () => pending.push({ type: 'time' });
   // dev only (test_params.js DEV): flipping day and night by hand
   if (DEV) onKey('KeyN', toggleNight);
@@ -217,8 +220,7 @@ async function start() {
   onKey('KeyU', unstuck);
   $('unstuckbtn').addEventListener('click', e => { unstuck(); e.currentTarget.blur(); });
   function interactionDoor() {
-    const selected = crewInput.selected(), access = game.serviceAt(heroId, null, selected);
-    return access && selected.includes(access.actor.id) ? access.door : game.doorNear(heroId) || access?.door;
+    return selectInteractionDoor(game, heroId, crewInput.selected());
   }
   onKey('KeyC', () => crewInput.selectAll());
   onKey('KeyV', () => crewInput.followMe());
@@ -350,7 +352,6 @@ async function start() {
 
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
   // draws as often as it can and slides units between the last two ticks.
-  const tick = 1 / TICK_RATE;
   // last tick's units, only what the view reads from it (render/view.js: sliding between ticks, heal pops);
   // a full copy of the state 20 times a second was wasted work (Tim 2026-10-26). Add a field here if the view needs more.
   const snapshot = state => { const entities = {}; for (const id in state.entities) { const e = state.entities[id]; entities[id] = { x: e.x, z: e.z, hp: e.hp, downed: e.downed }; } return { tick: state.tick, entities }; };
@@ -359,7 +360,7 @@ async function start() {
     suspend(){document.body.classList.add('map-active');view.setPresentationActive(false);},
     resume(){document.body.classList.remove('map-active');prev=snapshot(game.state);view.setPresentationActive(true);fog.update(100);}
   });
-  const clock = createFixedStepClock({ tick });
+  const clock = {alpha:()=>simClient.alpha(),diagnostics:()=>simClient.diagnostics()};
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
   const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults });
   const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, scoreText });
@@ -370,27 +371,29 @@ async function start() {
     const mine = Object.values(game.state.attacks || {}).find(r => r.clan === game.state.entities[heroId]?.owner && r.knock);
     if (mine) { const key = `knock:${mine.business}:${mine.opensAt}`; if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); } }
   }
+  simClient.observe(stage=>{
+    if(stage==='before'){if(!presentation.map)prev=snapshot(game.state);return;}
+    gameMap.observe();observeRaidAlarms();
+    if(game.state.policeNews.some(n=>n.kind==='lost'&&n.clan===game.state.entities[heroId]?.owner))lostCops=true;
+    newsCallouts.update();
+    if(!presentation.map){
+      if(game.state.hits.length)view.addHits(fog.seenEvents(game.state.hits,game.state,'t'),game.state,heroId);
+      if(game.state.dodges.length)view.addDodges(fog.seenEvents(game.state.dodges,game.state,'t'));
+      if(game.state.casts.length)view.addCasts(fog.seenEvents(game.state.casts,game.state,'target'),game.state,heroId);
+    }
+    sound.update(game.state,view.audioFocus(game.state,heroId,crewInput.selected()));topBar.observe();
+  });
+  // Input publication is small and independent of render cadence. Movement is
+  // latest-value; discrete commands stay ordered and are consumed exactly once.
+  const inputTimer=setInterval(()=>simClient.input({movement:moveCommand(heroId),commands:pending.splice(0),
+    paused,map:gameMap.isOpen(),selected:[...crewInput.selected(),crewInput.looked?.(),crewInput.tabbed?.()].filter(Boolean)}),50);
+  addEventListener('pagehide',()=>clearInterval(inputTimer),{once:true});
   view.renderer.setAnimationLoop(() => {
     fps.frame();
-    presentation.sync(gameMap.isOpen());
+    presentation.sync(gameMap.isOpen() || simClient.map);
     const now = performance.now() / 1000;
     const dt = Math.max(0, Math.min(now - last, 1.0));
-    const elapsed = now - last; last = now;
-    clock.advance(elapsed, () => {
-      if(!presentation.map)prev = snapshot(game.state);
-      game.step([moveCommand(heroId), ...pending.splice(0), ...(bot ? bot.tick() : [])]);
-      gameMap.observe();
-      observeRaidAlarms();
-      if (game.state.policeNews.some(n => n.kind === 'lost' && n.clan === game.state.entities[heroId]?.owner)) lostCops = true;
-      // big moments (Tim 2026-10-19): a rival boss knocked out or arrested where you can see him,
-      // and a War Lantern knocked down in a raid you are in; shown one after another at the top
-      newsCallouts.update();
-      if (!presentation.map && game.state.hits.length) view.addHits(fog.seenEvents(game.state.hits, game.state, 't'), game.state, heroId);
-      if (!presentation.map && game.state.dodges.length) view.addDodges(fog.seenEvents(game.state.dodges, game.state, 't'));
-      if (!presentation.map && game.state.casts.length) view.addCasts(fog.seenEvents(game.state.casts, game.state, 'target'), game.state, heroId);
-      sound.update(game.state, view.audioFocus(game.state, heroId, crewInput.selected()));
-      topBar.observe();
-    }, paused);
+    last = now;
     if (game.state.night !== view.isNight()) { view.toggleNight(); label(); labelTick = game.state.tick; }
     else if (game.state.tick - labelTick >= TICK_RATE) { label(); labelTick = game.state.tick; }
       // your attack on a business (sim/businesses.js): waves left, then the hold timer
