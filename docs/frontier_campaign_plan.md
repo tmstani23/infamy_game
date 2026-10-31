@@ -307,12 +307,183 @@ Current city rules and build status remain in the existing owner docs.
 24. Bound work queues and snapshots; load static map chunks as needed.
 25. Set world-unit counts and latency targets only after measurement.
 
+## Technical blueprint — proposed, not built (2026-10-31)
+
+This is an implementation design to evaluate before frontier code is approved.
+The [current architecture](architecture.md), [technical plan](tech_plan.md) and
+[measured performance diagnosis](performance_diagnosis.md) describe today's game.
+Some older main-loop prose in those docs predates the existing
+sim_worker.js/runtime/client/sim_snapshot.js checkpoint; its Node microbenchmarks
+are protocol evidence, not a continent-scale capacity claim.
+
+### Authority and boundaries
+
+    Player input + governor policies + bot decisions
+                 | shared, validated commands
+                 v
+       One authoritative world simulation
+                 | canonical records and receipts
+                 v
+       Bounded, interest-filtered revisioned snapshots
+                 |                 |
+                 v                 v
+        Strategic map       Tactical view and UI
+
+- One world state decides ownership, economy, combat, cargo, rewards and hero items.
+- Player, governor and bot actions use the same validated command path.
+- Validate owner, resources, placement and current version before an atomic state change.
+- Return an accepted/rejected receipt with sequence and new revision so UI can explain the result.
+- Renderers read snapshots; they never invent production, combat hits or loot rights.
+- Single-player starts with the existing permanent simulation Worker approach.
+- Multiplayer later runs the authoritative sim on a Node server with the same commands and rules.
+- Clients may present pending input, but do not run independent predicted rule copies.
+- Extra workers, partitions or sharding require profiling; do not create one Worker per town by default.
+
+| Proposed logical owner | Records and boundary |
+|---|---|
+| World registry | Stable IDs, ownership, region-local coordinates and global road nodes. |
+| Region catalog | Static terrain, sites, geometry and resource placements. |
+| Settlement economy | Population, workforce, stocks, production and consumption ledgers. |
+| Governor | Priorities, budgets, authorized projects, defense and readable action reasons. |
+| Construction | Zones, footprints, upgrade projects, structural damage and garrison occupancy. |
+| Logistics | Road graph, connection states, shipment schedule and cargo conservation ledger. |
+| Armies | Supply origin, equipment access, orders, route and unit membership. |
+| Active combat | Shared movement, abilities, collision, damage, retreat and siege stages. |
+| Hero items | Unique item ownership and one authoritative stat evaluator in city and frontier. |
+| Visibility | Discovered geography, current sight and last-observed enemy traffic. |
+| Presentation | Interest-filtered snapshots, revisions, deltas, receipts and resync. |
+| Persistence | Versioned checkpoint and replay-safe command/event identity. |
+
+These are module responsibilities and interfaces, not promised file names or an approved refactor.
+
+### One clock, distinct work rates
+
+- Keep one authoritative world clock so viewing a place never advances it differently.
+- Existing 20 Hz combat is a starting reference, not a promised continent-wide tick budget.
+- Propose a coarser globally equal economy cadence, scheduled arrivals and project deadlines.
+- Governors act on events and bounded reviews instead of scanning every building every combat tick.
+- Unviewed peaceful settlements keep economic records without simulating every footstep.
+- Visible walking citizens represent the record; they cannot create extra workers or resources.
+- Opening a view does not replay a mass of missed ticks or reset a town.
+- Commit food, work, cargo withdrawal, delivery and project costs once in the ledger.
+- Aggregate harvesting preserves real resource availability, depletion and input costs.
+- Meaningful hauling distance and route cost apply equally in viewed and unviewed towns.
+- A formula or scheduled job deadline may represent hauling; the exact model remains open.
+- Conservation checks compare sources, sinks, stock and in-flight cargo across save/load.
+- Local essentials use finite emergency production/reserves under the agreed shortage rules.
+- Exact cadence, work budgets and settlement capacity need profiling and later approval.
+
+### Active battles and shipment contact
+
+- Simulation activity is independent of render visibility.
+- Every active battle uses the same actual combat, including offscreen movement and building damage.
+- Use world positions and spatial queries to activate detailed actors before hostile physical contact.
+- Do not wait for a camera view to wake a threatened army or shipment.
+- A shipment keeps one ID, cargo amount, owner, travel progress and schedule across representations.
+- Road occupation can stop automatic shipments in the first slice.
+- Later physical interception creates an encounter from contact, not a button or alternate combat roll.
+- Switching to tactical view adds graphics and control, never a new outcome rule or tick rate.
+- Unit, building, garrison and cargo identities remain stable through the switch.
+
+### Region streaming and transitions
+
+- Keep lightweight canonical records for the whole world; load nearby visible render chunks.
+- Prefetch neighboring geometry, navigation and assets for a camera destination.
+- Prepare a view asynchronously, then activate it at a simulation tick boundary.
+- A loading preview may appear while the world continues; asset loading cannot pause battles.
+- Do not instantiate a full continent mesh or recreate the game on every view change.
+- Unload distant graphics with bounded caches; reuse atlases, instances and pooled cosmetics.
+- Unloading graphics cannot discard a required battle, road, cargo or navigation record.
+- Preserve selection, orders, garrisons, fort damage and item identity when returning.
+- Exact chunk size, prefetch distance and cache limits remain open.
+
+### Navigation, placement and bounded queues
+
+- Use a regional road graph for long travel and local navigation for tactical movement.
+- Apply spatial broad-phase checks to nearby combat bodies, not all world pairs.
+- Cache stable terrain; version roads, buildings and gates so affected routes invalidate.
+- Validate footprints, street links and gate access before accepting construction.
+- Replan affected agents after a road edit rather than every agent in every region.
+- Reuse bounded incremental path work and deterministic ordering from current performance work.
+- Bound governor, building-generation, path, snapshot and cosmetic queues with fairness across regions.
+- Measure queue age so one busy siege cannot starve another region.
+- Defer nonurgent work under load, but never drop combat or economic events to protect FPS.
+
+### Client payload and input response
+
+- A strategic snapshot contains permitted settlement summaries, connection states, alerts and visible markers.
+- It also includes selected details and last-observed traffic, not a live hidden enemy route.
+- Do not ship every civilian, rival deployment, path planner, private RNG state or whole town record.
+- Use versioned deltas, acknowledgments and backpressure; coalesce latest positions where safe.
+- Commands and critical receipts remain ordered and exactly once despite coalesced presentation.
+- Reject stale or out-of-order packets and wrong region generations, then request resync.
+- Keep selection feedback immediate from the latest valid snapshot and pending command receipt.
+- Interpolate movement and update stable UI lists instead of rebuilding the whole DOM each tick.
+- Do not paint the full world behind the strategic map.
+- Existing 4 Hz map/20 Hz world publication are current checkpoint examples, not future budgets.
+- Avoid a second heavy mutable world sim on the main thread; query views need versioned read-only data.
+
+### Memory, assets and lifecycle
+
+- Bound region, GPU, portrait, navigation, snapshot and event-queue caches.
+- Dispose render resources, listeners, workers and timers when their owning view ends.
+- Repeated city/map/frontier opening should leave memory and GPU object counts stable.
+- Batch asset loads; update construction visuals incrementally instead of rebuilding a town.
+- Keep texture decoding, GPU uploads and full-world serialization out of input handlers and animation frames.
+- A render transition cannot duplicate a sim, leak subscriptions or move a unit twice.
+
+### Save, resume and multiplayer
+
+- Version records for regions, buildings, armies, cargo, items, orders and reward claims.
+- Save world tick, seeded random state, governor policies, projects, damage and garrison occupancy.
+- Include in-flight shipments, hero KO/recovery, combat state and paused operations.
+- Propose a consistent tick-boundary checkpoint with bounded background encoding and recovery checks.
+- Sequence queued commands so reloading cannot apply a purchase, arrival or reward twice.
+- A reload must not reroll a loot claim, refund a recruit twice or duplicate cargo.
+- Multiplayer needs server authority, permissions and an explicit global-clock/offline policy.
+- One client's menus cannot freeze a live shared world.
+- Hero gear always uses the same stat resolver; item uniqueness is authoritative, not UI math.
+
+### Measurement and overload gates
+
+- Instrument combat, collision, path, AI, economy, construction, snapshot encode/apply and saves separately.
+- Measure DOM/layout, draw/GPU, asset loading, memory and input-to-feedback latency in a real browser.
+- Track p95/p99 frame time, long tasks, sim tick delay, queue age, packet bytes/cadence and cache counts.
+- Use Node profiles for sim work and Firefox profiles for the actual UI; current synthetic packet timings are not FPS evidence.
+- Set target budgets and hardware/session limits from measurement, not invented world-unit guarantees.
+- Under load, reduce cosmetic density and presentation cadence first, then defer bounded nonurgent jobs.
+- Keep world time, combat fidelity, cargo accounting and fair player/bot rules intact.
+- Increase regions or simultaneous battles only after the previous slice meets its measured gates.
+- No design can promise zero lag; this plan makes spikes observable and gives specific work to bound.
+
+### Proposed validation matrix when implementation is approved
+
+| Load or transition | Required observation |
+|---|---|
+| Few, then many peaceful towns | Equal economy viewed/unviewed; governor queues and memory stay bounded. |
+| Harvest at different route distances | Viewed and unviewed towns pay the same availability, depletion, input and travel costs. |
+| One, then several offscreen battles | Same actual rules and outcomes for the same seed and orders. |
+| Viewed battle beside offscreen battles | Sim tick lag and input response stay within measured targets. |
+| Shipment crosses an encounter boundary | Contact activates combat; cargo has one owner and no duplicate delivery. |
+| Heavy construction and road edits | Connectivity remains valid; replanning work stays bounded. |
+| Hero KO and clinic capture | Player retains control; recovery follows the chosen facility policy. |
+| Garrison capture or collapse | Occupants, title, damage and exits remain consistent. |
+| Repeated world, capital and map transitions | Selection/order identity survives; memory and GPU counts do not climb. |
+| Save/load during battle, arrival or upgrade | Continuous and resumed results conserve cargo, workforce, items and rewards. |
+
+Build the capital plus one frontier town and one automatic connection first.
+Add focused tests only when a phase is approved; existing regression checks remain.
+Compare observed/unobserved outcomes and continuous/resumed runs with the same seed
+and commands before expanding scale. Browser gameplay and profiling remain necessary.
+
 ## Edge cases to design before implementation
 
 | Case | Agreed constraint or question |
 |---|---|
 | Hero KO during a siege | Player commands and the battle continue; recovery site, delay and cost are open. |
 | Hero KO while equipped | Initial gear remains owned and equipped; no automatic loss or destruction. |
+| Hero inventory is full | Decide pickup/stash handling without item loss, duplication or forced battlefield bag work. |
+| Equipment changes during battle | Timing, command validation and stat refresh must use the authoritative evaluator; policy is open. |
 | Recovery clinic captured | No automatic free revival; choose a fallback policy. |
 | Simultaneous sieges | Both resolve by the same battle rules with finite available reinforcements. |
 | One reserve ordered twice | A unit has one identity and location; orders cannot duplicate it. |
@@ -332,6 +503,7 @@ Current city rules and build status remain in the existing owner docs.
 | Crew finds an eligible item | A later item rule can send it to the shared stash without opening a crew bag. |
 | Bandit camp respawns or save reloads | Reward identity must prevent reroll farming; first-clear claim records are proposed, not settled. |
 | Multiple players claim one cache | Loot rights, sharing and persistence need a separate multiplayer rule. |
+| Item moves between hero and stash | One stable owner/ID through transfer, KO and save/load; never duplicate it. |
 | Upgrade unfinished at capture | Project, stock and authorization persist; new owner chooses whether to resume. |
 | Repeated capture or raze | Prevent resource, reward and recruitment loops. |
 | Disconnected territory | Control may persist, but supply and reinforcement use actual routes. |
