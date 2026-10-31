@@ -24,8 +24,8 @@ for(const b of Object.values(g.state.businesses).filter(b=>b.room)){
  const room=g.rooms.find(r=>r.name===b.room),nav=createNav(room.blockers,{minX:room.origin.x,minZ:room.origin.z,maxX:room.origin.x+room.size[0],maxZ:room.origin.z+room.size[1]},{...ROOM_NAV,pad:ROOM_NAV.pad*(room.template.characterScale||1)});
  const inside=nav.findPath(room.spawn.x,room.spawn.z,d.to.x,d.to.z)?.at(-1);assert.ok(inside&&Math.hypot(inside[0]-d.to.x,inside[1]-d.to.z)<.6,'inside is reachable rather than a wall pocket');checked++;
  for(const p of [d,d.to])assert.ok(!g.blockers.some(k=>Math.hypot(Math.max(k.minX-p.x,0,p.x-k.maxX),Math.max(k.minZ-p.z,0,p.z-k.maxZ))<1.3),`${b.kind}: entire back-window ring clears walls and furniture`);
- if(b.kind==='teahouse'){
-  g.clans.addClan('probe',{kind:'ninja'});
+ if(b.kind==='teahouse'||b.kind==='shop'){
+  if(!g.state.clans.probe)g.clans.addClan('probe',{kind:'ninja'});
   for(const e of Object.values(g.state.entities))e.holdFire=true;
   const start=g.nav.nearestFree(front.x,front.z),id=g.spawn('hero','ninja_leader',...start,{owner:'probe',holdFire:true}),h=g.state.entities[id];
   function walkTo(grid,goal){
@@ -43,7 +43,8 @@ for(const b of Object.values(g.state.businesses).filter(b=>b.room)){
   g.step([{id,type:'use',units:[]}]);assert.equal(h.place,b.room,'Space enters from the real street approach');
   assert.ok(nav.free(h.x,h.z));
   walkTo(nav,room.spawn);walkTo(nav,d.to);
-  g.step([{id,type:'use',units:[]}]);assert.equal(h.place,'street','Space exits after walking through the actual room');
+  g.step([{id,type:'use',units:[]}]);assert.equal(h.place,'street',`${b.kind}: Space exits after walking through the actual room`);
+  delete g.state.entities[id];
  }
 }
-assert.ok(checked);console.log(`Indoor stealth: daytime snuff, room isolation, real detection reduction/dawn reset; ${checked} rear entries clear on both sides; actual teahouse approach, entry and exit passed`);
+assert.ok(checked);console.log(`Indoor stealth: daytime snuff, room isolation, real detection reduction/dawn reset; ${checked} rear entries clear on both sides; actual teahouse/shop approach, entry and exit passed`);

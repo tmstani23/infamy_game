@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { hireStats, hireStatsHtml } from '../src/hire_stats.js';
+const units = JSON.parse(readFileSync(new URL('../data/units.json', import.meta.url))).types;
+assert.equal(hireStats('ninja', units.ninja).dps, 15 / .9);
+assert.equal(hireStats('brute', units.brute).dps, 18 / 1.6, 'fractional weapon power rounds on normal hit');
+const rifle = structuredClone(units.kuroda_rifleman);
+rifle.rifle.damage = 63; rifle.rifle.aimTicks = 30;
+assert.match(hireStats('kuroda_rifleman', rifle).specials[0].about, /1.5s.*63 damage/);
+const tank = structuredClone(units.shinobi_enforcer);
+tank.taunt.radius = 6; tank.taunt.durationTicks = 40;
+assert.match(hireStats('shinobi_enforcer', tank).specials[0].about, /one enemy within 6 steps.*2s/);
+assert.match(hireStats('shinobi_geisha', units.shinobi_geisha).specials[0].about, /excludes heroes, bandits/);
+assert.match(hireStatsHtml('ninja', units.ninja), /Excludes critical hits/);
+assert.ok(!hireStatsHtml('test', { damage: 1, attackSpeed: 1, abilities: { Q: { name: '<unsafe>', about: '"example"' } } }).includes('<unsafe>'));
+console.log('Recruitment: base rounded-hit DPS, authoritative special overrides, Charm eligibility and escaped hover descriptions passed');

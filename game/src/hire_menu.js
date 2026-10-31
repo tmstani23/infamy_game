@@ -1,5 +1,6 @@
 // Hire panel and the crew count in the HUD (ryo has its own badge, src/ryo_badge.js). Reads the game state and sends
 // 'hire' commands only; the rules in sim/clans.js decide what actually happens.
+import { hireStatsHtml } from './hire_stats.js';
 const title = s => s[0].toUpperCase() + s.slice(1);
 
 export function createHireMenu({ panel, money, game, units, heroId, send }) {
@@ -50,8 +51,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
     const rows = hireable.map((k, i) => {
       const t = units.types[k], price = game.clans.hirePrice(c.id, k);
       const can = price !== null && c.ryo >= price && crew + c.queue.length < cap && c.queue.length < units.rules.maxQueue;
-      const taunt = t.taunt ? `<br>Instant Taunt · ${t.taunt.radius} ${k === 'yakuza_enforcer' ? 'radius · all nearby enemies' : t.taunt.coneDegrees ? 'range · forward cone' : 'range · one enemy'}` : '';
-      return `<div class="row"><span>${i + 1}. ${t.name || title(k)}<br><small>${t.hp} hp · ${t.damage} dmg · ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s${taunt}</small></span>` +
+      return `<div class="row"><span>${i + 1}. ${t.name || title(k)}<br><small>${t.hp} hp · hire ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s<br>${hireStatsHtml(k, t)}</small></span>` +
         `<button data-pick="${i}" ${can ? '' : 'disabled'}>${price} ryo</button></div>`;
     }).join('');
     const h = c.queue[0];

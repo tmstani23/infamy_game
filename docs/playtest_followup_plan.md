@@ -345,16 +345,16 @@ Coordinator plan. Phase code work stays with its gameplay owner, and this docume
 - [x] Preserve the measured user evidence that the map is snappy while paused. Keep the authoritative sim and bots in one permanent Worker; use the main-thread replica only for read-only queries and geometry.
 - [x] Keep snapshots minimal for map and deployment views; cap update cadence; send deltas; apply backpressure; route commands through the Worker. Disable world painting while map mode is active. Manual browser checks remain pending.
 
-### Phase 2 — recruitment and rear entrances
+### Phase 2 — recruitment and rear entrances (built/Node-verified; sprite positioning check pending)
 
-- [x] Extract the shared door-interaction helper/fix (included as a bootstrap dependency in the Phase 1 checkpoint); remaining Phase 2 work is still pending.
-- [ ] Make recruitment stats truthful, including attack rate, DPS, and special-ability hover details.
-- [ ] Add rear entry to shops and teahouses.
+- [x] Extract the shared door-interaction helper/fix (included as a bootstrap dependency in the Phase 1 checkpoint). Its fix prevents a remote selected-crew service from overriding the hero's door choice.
+- [x] Verify the existing shop and teahouse rear routes: approach from the street, enter with Space, walk through the actual room, and exit with Space. All 14 rear entries passed. No new entrance geometry or second-floor mechanic was added; manual sprite-art positioning review remains pending.
+- [x] Make recruitment rows reflect current unit definitions for attack rate, base sustained DPS, and special-ability hover details. DPS excludes critical hits, specials, and buffs.
 
 ### Phase 3 — assignment recovery and boss ambushes
 
 - [ ] Make assignment recovery behavior cohesive, preserving guards' fight-to-end behavior.
-- [ ] Add masked wandering for idle units and clarify boss ambush navigation and behavior.
+- [ ] Fix unintended masked wandering. A 300-tick idle test has not reproduced it, so no fix is claimed. Clarify boss ambush navigation and behavior.
 
 ### Phase 4 — Kuroda and boss-runner counterplay
 
