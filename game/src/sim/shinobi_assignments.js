@@ -1,13 +1,13 @@
 import { createAmbush } from './ambush.js';
 import { alive } from './util.js';
-export function createShinobiAssignments({ state, deployment, assignments, rally, vision, sees, clearCombat, attackStep, finishTarget, executeStep, intelligence, recovery }) {
+export function createShinobiAssignments({ state, deployment, assignments, rally, vision, sees, clearCombat, attackStep, finishTarget, executeStep, intelligence, recovery, defenseTarget }) {
   const groups = clan => state.deployment.clans[clan]?.sectors || {};
   const crew = (clan, id) => deployment.members(clan, id).filter(e => alive(e) && !e.deployment.transfer && !rally.participating(e));
   const enemy = (clan, e) => alive(e) && e.owner && e.owner !== clan && e.type !== 'civilian' && !e.cop && !e.hidden;
   const targets = (clan, id) => !groups(clan)[id] ? [] : Object.values(state.entities).filter(e => enemy(clan, e) && e.place === 'street' && vision.canSee(clan, e))
     .sort((a, b) => Math.hypot(a.x - groups(clan)[id].objective.x, a.z - groups(clan)[id].objective.z) - Math.hypot(b.x - groups(clan)[id].objective.x, b.z - groups(clan)[id].objective.z));
   const defenders = (clan, t) => !t ? [] : Object.values(state.entities).filter(e => e.id !== t.id && enemy(clan, e) && e.owner === t.owner && e.place === t.place && vision.canSee(clan, e) && Math.hypot(e.x - t.x, e.z - t.z) <= 8);
-  const ambush = createAmbush({ state, deployment, assignments, rally, vision, sees, intelligence, recovery, clearCombat, attackStep, finishTarget, executeStep });
+  const ambush = createAmbush({ state, deployment, assignments, rally, vision, sees, intelligence, recovery, clearCombat, attackStep, finishTarget, executeStep, defenseTarget });
   const command = (h, c) => ambush.command(h, c);
   function tick() {
     for (const clan of Object.keys(state.clans || {})) {

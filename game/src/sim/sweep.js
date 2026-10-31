@@ -3,7 +3,7 @@ import { deploymentFeedback } from './deployment_feedback.js';
 import { withdrawalReason } from './sector_recovery.js';
 import { alive } from './util.js';
 export const SWEEP = { holdTicks:400, holdRadius:6, groupRadius:3, scatterTicks:600, timeoutTicks:3600 };
-export function createSweep({ state, deployment, rally, clearCombat, hostile, sees, attackStep, rewards, onScatter = () => {}, recover = () => {} }) {
+export function createSweep({ state, deployment, rally, clearCombat, hostile, sees, attackStep, rewards, onScatter = () => {}, recover = () => {}, recoverHome = () => false }) {
   const taskOf = (clan, sector) => state.deployment.clans[clan]?.sectors[sector];
   const adjacent = new Set(), { cells, w } = deployment.cellGrid();
   const ids = state.deployment.sectors.map(s => s.id);
@@ -37,9 +37,11 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
     return {ok:true,team,destination};
   }
   function recall(clan,sector,reason) {
-    const op=taskOf(clan,sector)?.operation;
+    const task=taskOf(clan,sector),op=task?.operation;
     if(op?.kind!=='sweep'||op.state==='Returning')return;
     op.state='Returning';op.reason=reason;
+    delete op.suspendedAt;delete op.resumeState;
+    if(task.recovery?.home)task.recovery.resumePoint={...op.returnPoint};
     for(const e of teamOf(clan,sector,op)){clearCombat(e);e.order={kind:'stop'};}
   }
   function command(h,c) {
@@ -99,6 +101,8 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
       const op=task.operation;if(op?.kind!=='sweep')continue;
       const team=teamOf(clan,sector,op);
       if(!team.length){delete task.operation;continue;}
+      if(task.recovery)continue;
+      if(op.units.some(id=>!alive(state.entities[id]))&&recoverHome(clan,sector,'Sweep casualty — returning home for replacements',op.units))continue;
       if(op.state!=='Returning'){
         const reason=withdrawalReason(state.entities,op.units);
         if(reason)recall(clan,sector,reason);
@@ -166,7 +170,8 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
     return true;
   }
   function step(e,unit) {
-    const op=taskOf(e.owner,e.deployment?.group)?.operation;
+    const task=taskOf(e.owner,e.deployment?.group),op=task?.operation;
+    if(task?.recovery)return false;
     if(op?.kind!=='sweep'||!op.units.includes(e.id)||e.deployment.transfer||e.deployment.scattered||rally.participating(e))return false;
     e.deployment.duty={manual:false,status:'Sweep: '+op.state.toLowerCase()};
     const foe=op.state!=='Returning'&&targetOf(e,op);

@@ -351,10 +351,11 @@ Coordinator plan. Phase code work stays with its gameplay owner, and this docume
 - [x] Verify the existing shop and teahouse rear routes: approach from the street, enter with Space, walk through the actual room, and exit with Space. All 14 rear entries passed. No new entrance geometry or second-floor mechanic was added; manual sprite-art positioning review remains pending.
 - [x] Make recruitment rows reflect current unit definitions for attack rate, base sustained DPS, and special-ability hover details. DPS excludes critical hits, specials, and buffs.
 
-### Phase 3 — assignment recovery and boss ambushes
+### Phase 3 — assignment recovery and boss ambushes (recovery/commands Node-verified; masked wandering unresolved)
 
-- [ ] Make assignment recovery behavior cohesive, preserving guards' fight-to-end behavior.
-- [ ] Fix unintended masked wandering. A 300-tick idle test has not reproduced it, so no fix is claimed. Clarify boss ambush navigation and behavior.
+- [x] On the first squad casualty, withdraw by road while defending, physically regroup at HQ, and wait for replacements before resuming. Apply during Patrol, Ambush, Sweep and Shakedown; preserve assignment, sector membership, operation progress/reward identity and remaining timers. Guards finish their fight first. Suspended Shakedown hazards remain live; dawn or owner change cancels.
+- [x] Arm an exact visible target from the target pane; only sectors that locally detect it hunt, while others patrol. Sector-only order targets its next detected foe. No blind cross-sector chase.
+- [ ] Masked wandering is unresolved: 300-tick idle and actual-taunt/retaliation-then-foe-death/concealment checks returned the masked unit to formation. No speculative fix is claimed.
 
 ### Phase 4 — Kuroda and boss-runner counterplay
 

@@ -64,5 +64,5 @@ const unsafe=foe(sector.anchor);for(const e of team)e.hp=e.maxHp*.2;
 send({action:'armAmbush',sector:sector.id,target:unsafe.id});
 assert.equal(st.deployment.clans.player.sectors[sector.id].operation.state,'Attacking','large force or low group average alone does not veto ambush');
 team[0].downed=true;g.step();
-assert.equal(st.deployment.clans.player.sectors[sector.id].recovery?.state,'Withdrawing','one casualty plus low surviving health withdraws');
+assert.equal(st.deployment.clans.player.sectors[sector.id].recovery?.home,true,'first casualty recalls active ambush survivors to HQ');
 console.log('Shinobi assignments: truthful sightings, coordinated remote arm/cancel, ordinary execution/recovery, Extraction migration and casualty-based withdrawal passed');

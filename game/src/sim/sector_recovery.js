@@ -2,9 +2,10 @@
 // candidate scoring uses only enemies the clan can actually see.
 export const RECOVERY = { health: .7, quietTicks: 120, replanTicks: 20, gatherRadius: 2, dangerRadius: 4 };
 import { nearRivalHQ } from './sector_patrol.js';
-export function withdrawalReason(entities, ids) {
+export function withdrawalReason(entities, ids, firstCasualty = false) {
   const lost = ids.filter(id => !entities[id] || entities[id].dead || entities[id].downed || entities[id].jailed).length;
   const standing = ids.map(id => entities[id]).filter(e => e && !e.dead && !e.downed && !e.jailed);
+  if (firstCasualty && lost) return 'Crew casualty';
   if (lost >= 2) return 'Two crew down';
   if (standing.some(e => e.hp <= e.maxHp / 3) && (lost || ids.length === 1)) return 'Crew in danger';
   return null;
@@ -34,6 +35,43 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
       e.order = { kind: 'stop' }; e.deployment.duty = { manual: false, status: 'Withdrawing' };
     }
     return true;
+  }
+  function requestHome(clan, id, reason, ids) {
+    const task = state.deployment.clans[clan]?.sectors[id], team = members(clan,id);
+    const point = team.length && deployment.destination(team[0],'home');
+    if (!task || !point || task.recovery?.home) return false;
+    const op = task.operation;
+    const resumePoint = op && op.state !== 'Returning'
+      ? { x:team[0].x,z:team[0].z,place:team[0].place } : null;
+    if (!request(clan,id,reason)) return false;
+    Object.assign(task.recovery,{home:true,point,required:ids.length,rosterIds:[...ids],resumePoint});
+    if (op) {
+      // Keep the operation reserved, its excursion permission, reward identity
+      // and objective progress. Only its crew/timers pause; world hazards run.
+      task.operation=op;op.resumeState=op.state;op.state='Regrouping';op.suspendedAt=state.tick;
+      if(op.kind==='ambush') {
+        const own=state.deployment.clans[clan];
+        if(!own.hunt||own.hunt.target===op.target)own.hunt={...own.hunt,target:op.target,committedSector:id,armedAt:own.hunt?.armedAt??state.tick};
+      }
+      for(const unit of op.civilians||[]){const e=state.entities[unit];if(e?.shakedownCivilian){e.shakedownCivilian.released=true;delete e.shakedownHostage;}}
+      for(const e of team){delete e.shakedownAction;delete e.shakedownBlocked;}
+    }
+    return true;
+  }
+  function resumeOperation(clan,id,task,team) {
+    const op=task.operation;if(!op)return;
+    op.units=team.map(e=>e.id);
+    if(op.suspendedAt==null)return;
+    const elapsed=state.tick-op.suspendedAt;
+    for(const key of ['startedAt','attackingAt','volleyAt','entryAt'])if(Number.isFinite(op[key]))op[key]+=elapsed;
+    op.state=op.resumeState;delete op.resumeState;delete op.suspendedAt;
+    delete op.targets;delete op.travel;delete op.intimidator;
+    if(op.kind==='ambush'){
+      // Reacquire through local detection, never chase the unseen live position.
+      const own=state.deployment.clans[clan];
+      if(!own.hunt||own.hunt.target===op.target){own.hunt={...own.hunt,target:op.target,armedAt:state.tick,elapsedAttackTicks:Math.max(0,state.tick-op.attackingAt)};delete own.hunt.committedSector;}
+      delete task.operation;
+    }
   }
   function pickPoint(clan, id, team, enemies) {
     const task = state.deployment.clans[clan].sectors[id], anchor = state.deployment.sectors.find(s => s.id === id).anchor;
@@ -66,15 +104,16 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
   function tick() {
     if (!state.deployment.restrictionsEnabled) return;
     for (const [clan, config] of Object.entries(state.deployment.clans)) for (const [id, task] of Object.entries(config.sectors)) {
-      if (['shakedown', 'sweep'].includes(task.operation?.kind)) continue;
+      if (['shakedown', 'sweep'].includes(task.operation?.kind) && !task.recovery) continue;
       const team = members(clan, id);
       if (!team.length) { delete task.engagement; delete task.recovery; continue; }
-      if(task.task==='patrol'&&!task.recovery){
+      // Business guards hold their post until the fight/business is lost.
+      if(['patrol','watch','ambush'].includes(task.task)&&!task.operation&&!task.recovery){
         const previous=(task.patrolRoster||[]).filter(unit=>{
           const e=state.entities[unit];return !available(e)||(e.deployment?.group===id&&automated(e));
         });
         const lost=previous.some(unit=>!available(state.entities[unit]));
-        if(lost&&deployment.destination(team[0],'home')){request(clan,id,'Patrol casualty — returning home for replacements');Object.assign(task.recovery,{home:true,required:previous.length,rosterIds:previous});}
+        if(lost&&deployment.destination(team[0],'home'))requestHome(clan,id,'Assignment casualty — returning home for replacements',previous);
         else task.patrolRoster=[...new Set([...previous,...team.map(e=>e.id)])];
       }
       if(task.recovery?.home){
@@ -82,18 +121,19 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
         r.rosterIds=r.rosterIds.filter(unit=>{const e=state.entities[unit];return !available(e)||(e.deployment?.group===id&&automated(e));});
         r.required=Math.min(r.required,r.rosterIds.length);
         if(r.returning&&team.length<r.required)r.returning=false;
-        r.point=r.returning?{...(task.patrolPath?.[task.patrolWaypoint||0]||task.route?.[task.patrolWaypoint||0]||task.objective),place:'street'}:deployment.destination(team[0],'home');
+        r.point=r.returning?(r.resumePoint||{...(task.patrolPath?.[task.patrolWaypoint||0]||task.route?.[task.patrolWaypoint||0]||task.objective),place:'street'}):deployment.destination(team[0],'home');
         const gathered=r.point&&team.every(e=>e.place===r.point.place&&Math.hypot(e.x-r.point.x,e.z-r.point.z)<2);
-        r.state=r.returning?'Resuming patrol':gathered?(team.length<r.required?'Waiting for crew':'Recovering'):'Returning to HQ';
+        r.state=r.returning?'Resuming assignment':gathered?(team.length<r.required?'Waiting for crew':'Recovering'):'Returning to HQ';
         if(gathered&&r.returning){
           delete task.recovery;delete task.engagement;task.patrolRoster=team.map(e=>e.id);
+          resumeOperation(clan,id,task,team);
           for(const e of team){clearCombat(e);e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Patrolling'};}
         }else if(gathered&&team.length>=r.required&&team.every(e=>e.hp>=e.maxHp*RECOVERY.health&&state.tick-Math.max(e.hitAt??-Infinity,e.foughtAt??-Infinity)>=RECOVERY.quietTicks)){
           r.returning=true;for(const e of team)clearCombat(e);
         }
         continue;
       }
-      if (!task.recovery) {
+      if (!task.recovery && task.task !== 'guard' && task.operation?.kind !== 'ambush') {
         const fighting = team.some(e => inCombat(e) || state.tick - Math.max(e.hitAt ?? -Infinity, e.foughtAt ?? -Infinity) < RECOVERY.quietTicks);
         if (fighting && !task.engagement) task.engagement = { ids: roster(clan, id).map(e => e.id) };
         if (task.engagement) {
@@ -148,5 +188,5 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
     if (t) attackStep(e, unit, t); else e.anim = 'idle';
     return true;
   }
-  return { tick, step, request };
+  return { tick, step, request, requestHome };
 }

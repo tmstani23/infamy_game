@@ -11,7 +11,7 @@ export const SHAKEDOWN = { holdSeconds:20, radius:4, fuseSeconds:1.25, flightSec
   defenderRadius:9, blockedSeconds:1.25, friendlyFire:true };
 const distance = (a,b) => Math.hypot(a.x-b.x,a.z-b.z);
 export function createShakedown({ state, deployment, rally, vision, sees, rooms, doors, navOf,
-  spawn, remove, clearCombat, attackStep, hit, addHeat, rules = {} }) {
+  spawn, remove, clearCombat, attackStep, hit, addHeat, rules = {}, recoverHome = () => false }) {
   const R = { ...SHAKEDOWN, ...rules }, ticks = s => Math.round(s*20);
   const S = state.shakedowns ||= { next:1, bombs:[], fires:[], retry:{} };
   const taskOf = (clan,id) => state.deployment.clans[clan]?.sectors[id];
@@ -54,6 +54,8 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
   function withdraw(clan,sector,reason) {
     const task=taskOf(clan,sector),op=task?.operation;if(op?.kind!=='shakedown'||op.state==='Returning')return;
     release(op);op.state='Returning';op.reason=reason;op.returnAt=state.tick;delete op.intimidator;
+    delete op.suspendedAt;delete op.resumeState;
+    if(task.recovery?.home)task.recovery.resumePoint={...task.objective,place:'street'};
     S.retry[op.business]=state.tick+ticks(R.retrySeconds);
     for(const e of teamOf(clan,sector,op)){clearCombat(e);e.order={kind:'stop'};delete e.shakedownAction;}
     notice(clan,`${op.success?'Shakedown complete':'Shakedown abandoned'} — ${reason}`);
@@ -128,6 +130,8 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
       const team=teamOf(clan,sector,op),b=state.businesses[op.business];
       if(!team.length){release(op);S.retry[op.business]=state.tick+ticks(R.retrySeconds);delete task.operation;continue;}
       if(!b||b.owner!==op.defender||state.attacks[b.id])withdraw(clan,sector,'Business changed or another raid started');
+      if(task.recovery){if(!state.night)withdraw(clan,sector,'Dawn arrived');continue;}
+      if(op.units.some(id=>!alive(state.entities[id]))&&recoverHome(clan,sector,'Shakedown casualty — returning home for replacements',op.units))continue;
       if(op.state==='Returning'){
         if(team.every(e=>e.place==='street'&&deployment.sectorAt(e.x,e.z)===sector&&distance(e,task.objective)<2.5)){
           release(op);for(const e of team){clearCombat(e);delete e.shakedownAction;delete e.shakedownBlocked;e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Returning'};}
@@ -176,6 +180,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
   }
   function step(e,unit) {
     const task=taskOf(e.owner,e.deployment?.group),op=task?.operation;
+    if(task?.recovery)return false;
     if(op?.kind!=='shakedown'||!op.units.includes(e.id)||e.deployment.transfer||rally.participating(e))return false;
     const b=state.businesses[op.business],team=teamOf(e.owner,e.deployment.group,op);
     e.deployment.duty={manual:false,status:`Shakedown: ${op.state.toLowerCase()}`};

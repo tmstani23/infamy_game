@@ -134,6 +134,11 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     // still within their normal leash and sector/visibility restrictions.
     const own = attacker(e);
     if (own) return own;
+    const group=e.deployment?.group,task=state.deployment?.clans[e.owner]?.sectors[group];
+    if(task&&!e.deployment.transfer&&!e.deployment.duty?.manual)for(const u of Object.values(state.entities)){
+      if(u===e||u.owner!==e.owner||u.dead||u.downed||u.jailed||u.place!==e.place||u.deployment?.group!==group||u.deployment.transfer)continue;
+      const by=attacker(u);if(by)return by;
+    }
     // crew of every clan, bots too, only pick fights on an attack-move, while stationed in a business, or
     // inside a business being raided or attacked (Tim 2026-10-19/20). Otherwise they swing back at whoever
     // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro

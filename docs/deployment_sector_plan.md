@@ -55,6 +55,8 @@ Watch reports/defends without initiating attacks on passers; manual local attack
 
 Historical 5A behavior below is superseded by [follow-on D](#follow-on-d-checkpoint-2026-10-27), including removal of the armed timeout, aggregate-HP/defender vetoes and old escape machinery.
 
+Target orders (built/Node-verified 2026-10-31): the target pane can arm one exact visible foe globally. Only a sector that locally detects that target commits to the hunt; other sectors continue patrolling. A sector-only command targets its next detected foe. Sectors never blindly chase across sector boundaries.
+
 Remote control, including hero KO, is available from any Shinobi task. Choose a visible enemy street target, inspect spotted defender count and **Arm**. All available hired sector units participate. **Cancel** works while armed; **Retreat** during attack. States: Ambush armed → Attacking → Escaping → saved task. Normal swings/damage and execution attempts apply; no guaranteed kill or invisibility.
 
 Initial tuning: armed wait sixty seconds, attack maximum forty-five seconds; abort below 35% aggregate HP, below half the initial available crew rounded up, or when visible defenders within eight of the target exceed crew count plus two. Death/gone target, loss of sight/area or unsafe conditions trigger escape. Fallback uses physical local travel and ordinary stealth; after arrival, resume once hidden or after ten seconds. One attempt disarms.
@@ -72,6 +74,10 @@ No manual Diversion any more. In a sector or the hero group the Shinobi geisha a
 
 - Sector and HQ crew who go down are not carried to the clinic: they come round at their own HQ after 30 s (`rules.sectorRespawnSeconds`) and run back to their sector. Hero-group crew still go to the clinic.
 - Revived and respawned crew go back to the group they came from; new crew fill the hero group up to 6 first. Neither waits for the hero's fight to end.
+
+### Cohesive assignment recovery (built/Node-verified 2026-10-31)
+
+On a squad's first casualty, its survivors withdraw by road to HQ while defending themselves, then regroup physically and wait there for replacements before resuming their saved assignment. This applies during Ambush, Sweep and Shakedown as well as Patrol; operation progress, reward identity and remaining timers are preserved. Guard squads finish their fight before withdrawing. Suspended Shakedown hazards remain live; dawn or a business-owner change cancels the operation. No manual browser or full-match lag test is claimed.
 
 ## One map (2026-10-27)
 

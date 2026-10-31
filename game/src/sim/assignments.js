@@ -2,7 +2,7 @@ import { isRallyParticipant } from './deployment_rally.js';
 import { deploymentFeedback } from './deployment_feedback.js';
 import { sectorPatrolRoute, rivalHQZones, nearRivalHQ } from './sector_patrol.js';
 // Shared saved local duties. Manual orders temporarily override these tasks.
-export function createAssignments({ state, deployment, doors, clearCombat, inCombat = () => false }) {
+export function createAssignments({ state, deployment, doors, clearCombat, inCombat = () => false, defenseTarget = () => null, attackStep = () => {} }) {
   const sector = e => state.deployment.clans[e.owner]?.sectors[e.deployment?.group];
   const eligible = e => e && !e.dead && !e.downed && !e.jailed && !e.guard && e.type !== 'hero' && sector(e) && !e.deployment.transfer;
   function manual(e) { if (eligible(e)) {delete e.deployment.campingEscape;e.deployment.duty = { manual: true, status: 'Manual' };} }
@@ -70,6 +70,9 @@ export function createAssignments({ state, deployment, doors, clearCombat, inCom
       duty=e.deployment.duty;
     }
     if(task.task==='patrol'||task.task==='guard'){delete e.holdFire;delete e.smokePassive;if(e.order?.kind==='stop')e.order={kind:'station',x:e.x,z:e.z,duty:true};}
+    else if(e.order?.kind==='stop')e.order={kind:'move',x:e.x,z:e.z,arrived:true,duty:true};
+    const defender=defenseTarget(e);
+    if(defender){duty.status='Defending';attackStep(e,unit,defender);return true;}
     if (e.swing || e.execute || inCombat(e)) { duty.status = 'Defending'; return false; }
     let target = task.objective, place = 'street', unavailable = false;
     if (task.task === 'guard') {

@@ -213,6 +213,7 @@ export function createGame(options) {
       if (fight[e.id]) delete fight[e.id].target;
     } });
   const assignments = createAssignments({ state, deployment, doors, inCombat: e => !!fight[e.id]?.target,
+    defenseTarget:e=>crewTarget(e),attackStep:(e,unit,t)=>{if(!swingStep(e,unit))engage(e,unit,t);},
     clearCombat: e => { delete e.swing; delete e.execute; delete e.patrol; delete e.indoorDuty; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target;
       for (const h of Object.values(state.entities)) if (h.assistCrew) h.assistCrew = h.assistCrew.filter(id => id !== e.id); } });
   const rally = createDeploymentRally({ state, deployment });
@@ -223,6 +224,7 @@ export function createGame(options) {
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); } });
   const shinobiAssignments = createShinobiAssignments({ state, deployment, assignments, rally, vision, intelligence: shinobiIntelligence, recovery: sectorRecovery, sees: (a, b) => sees(a, b),
+    defenseTarget: e => crewTarget(e),
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, executeStep,
     finishTarget: (clan, target, ids) => { const h = Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero'); if (h) startExecute(h, { target, units: ids, crewOnly: true }, true); } });
@@ -598,10 +600,12 @@ export function createGame(options) {
     cleanup: e => { delete paths[e.id]; delete intents[e.id]; delete e.attackTarget; delete e.assistCrew; delete e.swing; delete e.lootTarget; kuroda.cancel(e); } });
   const contracts = clans ? createContracts({ state, rules: units?.rules?.contracts, scores: scoreOf, backRoom: backRoomOf, stash: stashOf, WILD, seed: (options.seed ?? 12345) ^ 0xc0de, leader: () => territory?.standings().find(r => r.score > 0)?.clan ?? null, inCombat:e=>!!fight[e.id]?.target }) : null;
   const shakedown = createShakedown({ state, deployment, rally, vision, rooms, doors, navOf, spawn, remove:removeUnit,
+    recoverHome:(clan,sector,reason,ids)=>sectorRecovery.requestHome(clan,sector,reason,ids),
     rules:{...units?.rules?.shakedown,businesses:units?.rules?.businesses}, sees,
     addHeat, hit, clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;},
     attackStep:(e,unit,t)=>{if(taunt.step(e,unit))return;if(!swingStep(e,unit))engage(e,unit,t);} });
   const sweep = createSweep({ state, deployment, rally, hostile, sees, rewards,
+    recoverHome:(clan,sector,reason,ids)=>sectorRecovery.requestHome(clan,sector,reason,ids),
     onScatter:manualCrew, recover:(clan,sector,reason)=>sectorRecovery.request(clan,sector,reason),
     attackStep:(e,unit,t)=>{if(taunt.step(e,unit))return;
       const order=e.order;e.order={kind:'attack',target:t.id};const ranged=rifleman.step(e,unit);e.order=order;

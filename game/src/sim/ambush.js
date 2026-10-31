@@ -3,10 +3,10 @@ import { deploymentFeedback } from './deployment_feedback.js';
 import { sectorPatrolRoute } from './sector_patrol.js';
 import { alive } from './util.js';
 
-export function createAmbush({ state, deployment, assignments, rally, vision, sees, intelligence, recovery, clearCombat, attackStep, executeStep, finishTarget }) {
+export function createAmbush({ state, deployment, assignments, rally, vision, sees, intelligence, recovery, clearCombat, attackStep, executeStep, finishTarget, defenseTarget = () => null }) {
   const config = clan => state.deployment.clans[clan];
   const crew = (clan, id) => deployment.members(clan, id).filter(e => alive(e) && !e.deployment.transfer && !e.deployment.duty?.manual && !rally.participating(e));
-  const enemy = (clan, e) => alive(e) && e.owner !== clan && state.clans[e.owner] && !e.guard && !e.cop && !e.wild && e.type !== 'civilian' && !e.hidden;
+  const enemy = (clan, e, includeDowned = false) => (alive(e) || includeDowned && e?.downed && !e.dead && !e.jailed) && e.owner !== clan && state.clans[e.owner] && !e.guard && !e.cop && !e.wild && e.type !== 'civilian' && !e.hidden;
   const observed = (team, e) => e?.place === 'street' && team.some(u => u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= vision.range && sees(u, e));
   function withdraw(clan, id, reason) {
     const c = config(clan), op = c.sectors[id].operation;
@@ -37,9 +37,10 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
   }
   function begin(clan, id, target) {
     const own = config(clan), task = own.sectors[id], team = crew(clan, id);
-    task.operation = { kind: 'ambush', state: 'Attacking', target: target.id, attackingAt: state.tick, units: team.map(e => e.id) };
+    const elapsed=own.hunt?.target===target.id?own.hunt.elapsedAttackTicks||0:0;
+    task.operation = { kind: 'ambush', state: 'Attacking', target: target.id, attackingAt: state.tick-elapsed, units: team.map(e => e.id) };
     task.ambushNext = false;
-    if (own.hunt?.target === target.id) own.hunt.committedSector = id;
+    if (own.hunt?.target === target.id) {own.hunt.committedSector = id;delete own.hunt.elapsedAttackTicks;}
     for (const e of team) { clearCombat(e); delete e.holdFire; delete e.smokePassive; e.order = { kind: 'stop' }; }
   }
   function tick() {
@@ -50,10 +51,16 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
       for (const [id, task] of Object.entries(own.sectors)) {
         const team = crew(clan, id), op = task.operation;
         if (op?.kind === 'ambush') {
+          if(task.recovery){
+            const t=state.entities[op.target];
+            if(!t||t.dead||t.jailed){withdraw(clan,id,'Target defeated or gone');task.recovery.resumePoint=null;}
+            continue;
+          }
           op.units = op.units.filter(unit => { const e = state.entities[unit]; return !e || !alive(e) || (e.deployment.group === id && !e.deployment.transfer && !rally.participating(e) && !e.deployment.duty?.manual); });
           const active = team.filter(e => op.units.includes(e.id));
           if (!active.length) { delete task.operation; if (own.hunt?.committedSector === id) delete own.hunt; continue; }
-          const reason = withdrawalReason(state.entities, op.units), t = state.entities[op.target];
+          const reason = withdrawalReason(state.entities, op.units, true), t = state.entities[op.target];
+          if(reason&&recovery.requestHome?.(clan,id,reason,op.units))continue;
           if (reason) { withdraw(clan, id, reason); continue; }
           if (!t || t.dead || t.jailed) { withdraw(clan, id, 'Target defeated or gone'); continue; }
           if (t.place !== 'street' || deployment.sectorAt(t.x, t.z) !== id || (!t.downed && !observed(active, t))) { withdraw(clan, id, 'Target escaped'); continue; }
@@ -63,7 +70,7 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
         }
         if (!team.length || task.recovery) continue;
         const target = own.hunt && !own.hunt.committedSector && state.entities[own.hunt.target];
-        if (enemy(clan, target) && deployment.sectorAt(target.x, target.z) === id && observed(team, target)) { begin(clan, id, target); claimed.add(target.id); continue; }
+        if (enemy(clan, target, true) && deployment.sectorAt(target.x, target.z) === id && observed(team, target)) { begin(clan, id, target); claimed.add(target.id); continue; }
         // A selected identity waits indefinitely; never substitute another victim.
         if (own.hunt && !own.hunt.committedSector) continue;
         if (task.task !== 'ambush' && !task.ambushNext) continue;
@@ -74,23 +81,36 @@ export function createAmbush({ state, deployment, assignments, rally, vision, se
     }
   }
   function patrol(e, unit, task) {
-    const team = crew(e.owner, e.deployment.group).sort((a, b) => Number(a.id) - Number(b.id));
-    const leader = team[0], grid = deployment.navFor({ ...e, place: 'street' });
-    if (!leader || !grid) return false;
-    const route=sectorPatrolRoute(state,deployment,e,task),k=task.patrolWaypoint||0,p=route[k%route.length];
-    const point = grid.nearestFree(p.x,p.z);
-    if (!point) return false;
-    if (e.id === leader.id && leader.place === 'street' && Math.hypot(leader.x - point[0], leader.z - point[1]) < 1 && state.tick>=(task.patrolPauseUntil||0)) {task.patrolWaypoint = (k + 1) % route.length;task.patrolPauseUntil=state.tick+30;}
-    const slot = team.findIndex(u => u.id === e.id), angle = slot * 2.4;
-    const goal = e.id === leader.id ? point : grid.nearestFree(leader.x + Math.cos(angle) * 1.2, leader.z + Math.sin(angle) * 1.2);
-    if (goal) {
-      if(e.id===leader.id&&state.tick<(task.patrolPauseUntil||0)){e.anim='idle';return true;}
-      const result = deployment.localTravel(e, unit, { x: goal[0], z: goal[1], place: 'street',walk:true });
-      if (result !== 'moving') e.anim = 'idle';
-    }
+    const team = crew(e.owner, e.deployment.group);
     const hunt = config(e.owner).hunt, remembered = hunt && intelligence.targets(e.owner).find(t => t.id === hunt.target);
     const label = remembered ? `${state.clans[remembered.owner]?.name || 'Rival'} ${remembered.type === 'hero' ? 'boss' : remembered.type.replaceAll('_', ' ')}` : 'selected target';
     e.deployment.duty = { manual: false, status: hunt ? `Hunting: ${label}` : 'Patrolling' };
+    // Road-safe navigation must be active during travel, as well as planning.
+    // An arrived move permits retaliation/assistance without acquiring a
+    // substitute victim while a specific identity is armed.
+    e.order = { kind: 'move', x: e.x, z: e.z, arrived: true, duty: true, patrol: true };
+    const defender = defenseTarget(e);
+    if (defender) { e.deployment.duty = { manual: false, status: 'Defending' }; attackStep(e, unit, defender); return true; }
+    const grid = deployment.navFor({ ...e, place: 'street' });
+    if (!team.length || !grid) return false;
+    const route = sectorPatrolRoute(state, deployment, e, task);
+    task.patrolWaypoint ??= 0;
+    let goal = route[task.patrolWaypoint % route.length];
+    const gathered = team.every(u => u.place === 'street' && Math.hypot(u.x-goal.x,u.z-goal.z) < 2);
+    if (gathered) {
+      task.patrolPauseUntil ??= state.tick + 30;
+      if (state.tick >= task.patrolPauseUntil) { task.patrolWaypoint = (task.patrolWaypoint+1)%route.length; delete task.patrolPauseUntil; goal = route[task.patrolWaypoint]; }
+      else { e.anim = 'idle'; return true; }
+    }
+    const distance = u => Math.hypot(u.x-goal.x,u.z-goal.z);
+    const lead = team.filter(u => u.place === 'street').sort((a,b) => distance(a)-distance(b))[0];
+    if (lead && team.some(u => u.place !== lead.place || Math.hypot(u.x-lead.x,u.z-lead.z) > 3.5)) {
+      if (e.place === 'street' && distance(e) <= distance(lead)+1) { e.anim = 'idle'; return true; }
+      goal = lead;
+    }
+    const point = grid.nearestFree(goal.x,goal.z);
+    const result = point && deployment.localTravel(e, unit, { x: point[0], z: point[1], place: 'street', walk: true });
+    if (result !== 'moving') e.anim = 'idle';
     return true;
   }
   function step(e, unit) {

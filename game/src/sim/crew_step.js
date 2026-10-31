@@ -22,8 +22,8 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
     if(crewJobs.step(e,unit))return;
     if (e.taunted && taunt.step(e, unit)) return;
     if (shakedown.step(e, unit) || sweep.step(e, unit)) return;
-    if (assignments.avoidCamping(e,unit)) return;
     if (sectorRecovery.step(e, unit)) return;
+    if (assignments.avoidCamping(e,unit)) return;
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
     if (rifleman.step(e, unit)) return;
