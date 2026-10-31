@@ -8,6 +8,7 @@ import { drawCrest } from './banners.js';
 import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
 import { createWeaponShadow } from './weapon_shadow.js';
 import { createRunTrail } from './run_trail.js';
+import { cachedSheetLoad } from './sheet_cache.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -31,8 +32,10 @@ const loadGlowConfig = () => (glowConfig ??= fetch('data/weapon_glow.json').then
 
 // Spritesheets per model, from data/art.json "characters"
 const sheetCache = {};
-export async function loadSheets(catalog, model) {
-  if (sheetCache[model]) return sheetCache[model];
+export function loadSheets(catalog, model) {
+  return cachedSheetLoad(sheetCache,model,()=>loadModelSheets(catalog,model));
+}
+async function loadModelSheets(catalog, model) {
   const names = catalog.characters[model];
   const sheets = {};
   Object.defineProperty(sheets, 'framing', { value: catalog.characterFraming?.[model] || {} });
@@ -54,7 +57,7 @@ export async function loadSheets(catalog, model) {
     if (weapon) sheets[anim].glow = await loadTex(`../assets/sprites/${file}_glow.png`).catch(() => null);
     if ((weapon?.lightning || weapon?.shadow || weapon?.runTrail) && sheets[anim].glow) sheets[anim].bladeAxes = readBladeAxes(sheets[anim].glow,sheets[anim].frames);
   }));
-  return (sheetCache[model] = sheets);
+  return sheets;
 }
 
 export class CharacterSprite {

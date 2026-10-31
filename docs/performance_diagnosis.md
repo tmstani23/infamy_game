@@ -42,6 +42,12 @@ The Node worker test exercises the actual Worker entry and client, including pau
 
 In the synthetic 121-entity protocol microbenchmark, world encode/clone/apply took 0.374/0.453/0.121 ms at 24.5 KiB; map encode/clone/apply took 0.709/0.098/0.024 ms at 5.5 KiB. These numbers measure protocol work only, not rendering, browser UI, or FPS. Runtime diagnostics are available at `window.infamy.mapPerformance` for worker encode/sim/max/apply timings, packet counts and grid bytes.
 
+## Sprite-sheet load duplication (2026-10-31)
+
+Tim observed RAM rising roughly 850 MB–1 GB after hiring many riflemen, staying high, with lag even while paused. A targeted code audit found that the sprite-sheet cache was filled only after every asynchronous atlas load finished; simultaneous requests for the same model could each decode separate atlases. The loader now caches the pending promise immediately, shares one atlas-object set among concurrent units, and evicts a failed load for retry. The focused sheet-cache test passed 30 concurrent requests with one load and one shared object set.
+
+Mercenary PNG headers indicate six color atlases cost about 118.75 MiB decoded, or about 158.3 MiB with mipmaps, without glow atlases. Several duplicate sets could fit the reported climb, but this is not proof of the browser cause or that every leak is fixed. The Worker one-in-flight queue checks still pass. Reload and manually batch-recruit riflemen, then compare long-session RAM and paused responsiveness; no browser gameplay check is claimed here.
+
 ## Remaining diagnosis
 
 During the final playtest, compare map/input responsiveness while paused versus running, exercise normal movement and bot contracts, and capture a Firefox performance profile if the lag is present. The Node harness excludes browser events, DOM/layout, paint, GPU and frame presentation. Manual browser checks remain pending. Workers cannot directly access the DOM and require message-based data transfer.

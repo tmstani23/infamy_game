@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {cachedSheetLoad} from '../src/render/sheet_cache.js';
+const cache={};let loads=0,finish;
+const load=()=>{loads++;return new Promise(resolve=>finish=resolve);};
+const requests=Array.from({length:30},()=>cachedSheetLoad(cache,'ninja',load));
+assert.ok(requests.every(p=>p===requests[0]),'pending model loads are deduplicated');
+await Promise.resolve();assert.equal(loads,1);
+const sheets={idle:{tex:{id:1}}};finish(sheets);
+const results=await Promise.all(requests);
+assert.ok(results.every(s=>s===sheets),'every unit shares the same atlas objects');
+assert.equal(await cachedSheetLoad(cache,'ninja',()=>{throw new Error('duplicate');}),sheets);
+await assert.rejects(cachedSheetLoad(cache,'retry',()=>Promise.reject(new Error('missing'))));
+assert.equal(await cachedSheetLoad(cache,'retry',()=>sheets),sheets,'failed loads can retry');
+console.log('Sprite sheet cache: 30 concurrent units share one load/object set; failures retry passed');
