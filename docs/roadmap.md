@@ -52,3 +52,5 @@ After the start-menu phase and playtest, begin with a read-only architecture aud
 - [ ] Update [architecture.md](architecture.md) to match the code.
 
 Phase 4 deployment/sector/Rally design (Tim, 2026-10-25; not built): [implementation plan and open decisions](deployment_sector_plan.md), including the linked Shinobi HQ raid. This records future work; it does not authorize implementation.
+
+Future direction (Tim, 2026-10-31; design documentation only): [capital and frontier campaign plan](frontier_campaign_plan.md). It records agreed constraints, provisional supply ideas, open choices and a possible phased build. No frontier implementation is approved or built.

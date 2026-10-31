@@ -43,6 +43,7 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Per-character pipeline status, held items, animation sets | `docs/cast_tracker.md` |
 | Building images index | `docs/buildings.md` |
 | Build layers and next steps | `docs/roadmap.md` |
+| Future capital, frontier, settlements, logistics and campaign RTS design | `docs/frontier_campaign_plan.md` |
 | Environment, item and building image prompts | `assets/image_prompts.md` |
 | Character concept prompts | `assets/character_prompts.md` |
 
