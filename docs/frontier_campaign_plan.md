@@ -133,8 +133,40 @@ Current city rules and build status remain in the existing owner docs.
 - No instant resupply or free revival is inferred from current raid behavior.
 - Do not import current hero-KO raid victory rules into frontier warfare.
 - No battlefield body looting or inventory micromanagement for RTS armies.
-- Future capital inventory and loot can remain a separate system.
-- Equipment stat carryover between capital and frontier needs a later decision.
+- Hero equipment uses the same authoritative stat evaluation in the capital and frontier.
+- Standard crew use unit-type equipment; they have no individual bags.
+
+## Hero equipment, exploration and rewards — agreed direction (2026-10-31)
+
+- Start with three hero equipment slots: weapon, armor and one accessory.
+- Keep a simple small personal inventory and a shared stash; exact capacities remain open.
+- The earlier [capital inventory and loot outline](gameplay_and_design.md#inventory-and-loot-settled) owns the existing stash, fence and carrying concept. This plan records how hero gear fits the campaign.
+- Capital encounters and raid caches can award meaningful gear.
+- Later frontier hero exploration can reveal ruins, caches, outposts and gear discoveries.
+- The hero can explore and collect rewards on the frontier; the restriction is on RTS battlefield bag management, not on geography.
+- Army battles do not require clicking bodies, sorting bags or assigning loot to individual soldiers.
+- Existing crew looting behavior may retrieve eligible items to the shared stash under later item rules.
+- A weapon or armor modifier works identically wherever the hero fights, through the existing authoritative stat evaluator.
+- Initial equipment remains compatible with the hero's current kit; no new ability system is implied.
+- Balance frontier troops around that hero baseline with equipped variants, without equipment that invalidates armies.
+- Hero knockout does not destroy or drop equipped gear in the initial version.
+- Use a few meaningful items and choices rather than frequent low-value drops.
+- Primarily offer sidegrades; slight power increases and bounded item synergies are allowed.
+- No mandatory rare best-in-slot item or runaway multiplicative stacking.
+- Avoid initial durability, inventory Tetris and a huge random-affix pool.
+- Capital craftsmen, merchants and fences using frontier materials are later possibilities, not built features.
+- Rationale: gear makes capital combat and exploration interesting while larger battles still need armies.
+
+### Bandit rewards and anti-farming boundary
+
+- Bandits may occasionally yield useful modest hero gear, not only ryo.
+- The best looted gear comes from meaningful accomplishments, such as a major encounter, raid cache or exploration discovery.
+- Bandit gear is not required for progression, and repeat bandit grinding should not be the optimal or necessary path.
+- Equivalent basic choices should be available by other routes.
+- Do not create a guaranteed item per kill, a repeatable salvage-currency farm, kill-count grind or hidden pity chore.
+- **Proposed mechanism, not approved:** tie some bandit gear to a first meaningful camp clear or exploration reward with a persistent claim record and seed; respawns and reloads would not reroll high-end items.
+- That mechanism, drop frequency and any repeatable reward remain open design decisions.
+- No promise is made that every repeatable drop has absolutely zero incentive.
 
 ## Army origin and capability — agreed direction
 
@@ -280,6 +312,7 @@ Current city rules and build status remain in the existing owner docs.
 | Case | Agreed constraint or question |
 |---|---|
 | Hero KO during a siege | Player commands and the battle continue; recovery site, delay and cost are open. |
+| Hero KO while equipped | Initial gear remains owned and equipped; no automatic loss or destruction. |
 | Recovery clinic captured | No automatic free revival; choose a fallback policy. |
 | Simultaneous sieges | Both resolve by the same battle rules with finite available reinforcements. |
 | One reserve ordered twice | A unit has one identity and location; orders cannot duplicate it. |
@@ -295,6 +328,10 @@ Current city rules and build status remain in the existing owner docs.
 | New site lacks food during a blockade | Pause growth and nonessential projects; use finite reserves or local emergency production. Exact rates are open. |
 | Army supply route is cut | Equipped troops retain gear and can fight. Resupply policy is open; no blanket attrition is assumed. |
 | Enemy traffic leaves sight | Keep discovered geography, but show only last observed traffic position and direction. |
+| Hero changes between capital and frontier | Apply the same equipment modifiers through one stat evaluator; no mode-specific gear reset. |
+| Crew finds an eligible item | A later item rule can send it to the shared stash without opening a crew bag. |
+| Bandit camp respawns or save reloads | Reward identity must prevent reroll farming; first-clear claim records are proposed, not settled. |
+| Multiple players claim one cache | Loot rights, sharing and persistence need a separate multiplayer rule. |
 | Upgrade unfinished at capture | Project, stock and authorization persist; new owner chooses whether to resume. |
 | Repeated capture or raze | Prevent resource, reward and recruitment loops. |
 | Disconnected territory | Control may persist, but supply and reinforcement use actual routes. |
@@ -335,6 +372,14 @@ Current city rules and build status remain in the existing owner docs.
 - Propose a clinic recovery facility with a tested captured-clinic fallback.
 - Acceptance: identical player/bot rules and no outcome change solely from opening a view.
 
+### 5a. Hero equipment and exploration rewards
+
+- Build on the capital inventory/stash concept with hero-only weapon, armor and accessory equipment.
+- Add meaningful capital encounter and raid caches, with occasional modest bandit gear.
+- Later add frontier ruins, caches and outpost discoveries for hero exploration.
+- Acceptance: equipped stats agree across capital/frontier, KO retains gear, and RTS armies need no individual inventory actions.
+- Review repeat-reward and multiplayer loot rights before enabling persistent campaign drops.
+
 ### 6. Forts and conquest
 
 - Add center tiers, defensive structures, multistage siege, selected garrisons and occupation.
@@ -363,6 +408,9 @@ Current city rules and build status remain in the existing owner docs.
 | Trade loss | Cargo custody and delivery timing; later loot share, escort cost, insurance and capture transport. |
 | Army support | Resupply, field depot, origin reassignment and transit policy. |
 | Hero recovery | Clinic location, cost, delay and fallback when captured. |
+| Hero equipment | Exact bag/stash capacities, item power budget, synergy caps and compatibility rules. |
+| Reward cadence | Bandit drop frequency, accomplishment rewards and anti-farm mechanism; no numeric rate is approved. |
+| Loot rights | Party sharing, eligible crew retrieval, claim persistence and campaign reset policy. |
 | Conquest | Stage gates, defenders' mobilization, control duration and minimum contest force. |
 | Occupation | Garrison capacity, civilian title, salvage, sack and raze outcomes. |
 | Settlement growth | Tier thresholds, build time, upkeep and decline grace. |
@@ -375,3 +423,5 @@ power and advanced industry, refugees, fully simulated resident traffic, a compl
 interior RTS and automatic procedural continent generation. Named custom routes,
 escort micromanagement, detailed caravan hunting, scheduled theft and captured-cargo
 transport are optional later logistics features, not first-slice requirements.
+Durability, inventory Tetris, large random-affix pools and individual army bags
+are outside the first hero gear slice.
