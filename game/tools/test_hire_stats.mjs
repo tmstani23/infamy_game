@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { hireStats, hireStatsHtml } from '../src/hire_stats.js';
 const units = JSON.parse(readFileSync(new URL('../data/units.json', import.meta.url))).types;
 assert.equal(hireStats('ninja', units.ninja).dps, 15 / .9);
-assert.equal(hireStats('brute', units.brute).dps, 18 / 1.6, 'fractional weapon power rounds on normal hit');
+assert.equal(hireStats('brute', {...units.brute, damage:17.5, attackSpeed:1.6}).dps, 18 / 1.6, 'fractional weapon power rounds on normal hit');
 const rifle = structuredClone(units.kuroda_rifleman);
 rifle.rifle.damage = 63; rifle.rifle.aimTicks = 30;
 assert.match(hireStats('kuroda_rifleman', rifle).specials[0].about, /1.5s.*63 damage/);

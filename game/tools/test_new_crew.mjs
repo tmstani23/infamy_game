@@ -56,8 +56,9 @@ assert.ok(taunt.step(e,units.types.yakuza_enforcer));
 for(const t of [front,side,back])assert.equal(t.taunted?.source,e.id,'Yakuza radial Taunt includes front, side and rear');
 assert.equal(far.taunted,undefined);assert.equal(cop.taunted,undefined);assert.equal(e.taunt.castUntil,s.tick);
 assert.equal(s.casts.at(-1).radius,5);assert.deepEqual(new Set(s.casts.at(-1).victims.map(t=>t.id)),new Set(['front','side','back']),'effect receipt names every AoE victim');
-assert.equal(read('data/units.json').types.shinobi_enforcer.dodgeChance,.3);
-assert.ok(units.types.shinobi_enforcer.damage>units.types.kuroda_enforcer.damage&&units.types.kuroda_enforcer.damage>units.types.yakuza_enforcer.damage);
+assert.equal(read('data/units.json').types.shinobi_enforcer.dodgeChance,.35);
+const tankDps = type => units.types[type].damage / units.types[type].attackSpeed;
+assert.ok(tankDps('shinobi_enforcer')>tankDps('kuroda_enforcer')&&tankDps('kuroda_enforcer')>tankDps('yakuza_enforcer'));
 assert.equal(units.types.shinobi_geisha.projectile.kind,'geishabolt');assert.ok(units.types.shinobi_geisha.damage<units.types.archer.damage);
 // Charm can open an explicitly commanded engagement before the victim attacks.
 const geisha={id:'g',type:'shinobi_geisha',owner:'a',x:0,z:0,hp:160,order:{kind:'attack',target:'victim'}},victim={id:'victim',type:'thug',owner:'b',x:4,z:0,hp:200};

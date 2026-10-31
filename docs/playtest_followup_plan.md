@@ -198,30 +198,30 @@ Sweep visuals and completion alert (implemented/Node-checked 2026-10-30): bounde
 - [x] **Property clans earn Renown (11a):** +40 raid win, +20 Shakedown success, +15 stopping a Shinobi job on your business, +5 sector clear. Renown counts toward season points like the Shinobi's (50 Renown = 1 point, `season.renownPerPoint`; Tim 2026-10-30). No crew slots from it for property clans.
 - [x] **Shinobi alert window (13):** once a Steal or Sabotage job alerts the owner, at least 75–80 s must remain before it can complete. Design follow-up: give the Shinobi something to do in that time (e.g. defend the mark, plant a second one) so it isn't just standing around.
 - [x] **Raid limit (14):** each clan may raid each rival at most once per night.
-- [x] **Rifle Aimed Shot nerf:** 80 to 60 damage, keeping the aim time so it can be interrupted (code still at 80).
+- [x] **Rifle Aimed Shot nerf:** 80 to 60 damage, keeping the aim time so it can be interrupted. It remains 60 and cannot crit; see the 2026-10-31 roster update below.
 - [~] **Sounds (15), partial:** Tim makes 3–4 hero ability sounds in ElevenLabs (whoosh, impact, smoke puff, shout) and drops them in assets/sounds; wire them in render/sound.js. More music from Suno later.
 
 Tim playtest update (2026-10-30): everything except the new balance changes looks great; this is practical positive feedback, not exhaustive validation. Manual testing of the new balance remains pending.
 
-Section 4 done (2026-10-30, `test_phase8_balance.mjs`): payouts cut 40%; diminishing returns (4 full, then −10% each, floor 60%); property Renown 40/20/15/5; 75 s alert window; one raid per rival per night; rifle Aimed Shot 60. Sounds partial: ability cues for Shadow Step, Red Lantern, Assassinate and Threefold are in (`render/sound.js` `ABILITY_CUE`, `assets/sounds/ability_*_1.ogg`); the rest are parked because the ElevenLabs SFX were poor. Section 3: Quit to game menu done; Edit layout mode built (Settings > Edit layout, `hud_layout.js` registry, `#lock` target-marker layer excluded); target-marker fix (`lock` added to `STRUCTURAL`).
+Section 4 done (2026-10-30, `test_phase8_balance.mjs`): payouts cut 40%; diminishing returns (4 full, then −10% each, floor 60%); property Renown initially 40/20/15/5, updated in the 2026-10-31 Phase 5 checkpoint; 75 s alert window; one raid per rival per night; rifle Aimed Shot 60. Sounds partial: ability cues for Shadow Step, Red Lantern, Assassinate and Threefold are in (`render/sound.js` `ABILITY_CUE`, `assets/sounds/ability_*_1.ogg`); the rest are parked because the ElevenLabs SFX were poor. Section 3: Quit to game menu done; Edit layout mode built (Settings > Edit layout, `hud_layout.js` registry, `#lock` target-marker layer excluded); target-marker fix (`lock` added to `STRUCTURAL`).
 
-#### 5. Clan roles and Western civilians (built/Node-checked 2026-10-30; manual visual review pending)
+#### 5. Clan roles and Western civilians (built/Node-checked 2026-10-30; roster retune approved/checked 2026-10-31; manual visual review pending)
 
 Every clan gets a taunter and a ranged class:
 
 - [x] Yakuza: hireable Yumi archer (ranged); existing Irezumi Enforcer remains tank/taunter.
 - [x] Kuroda: shield/kusarigama tank with cone Taunt and self-brace; Teppo rifleman remains ranged.
-- [x] Shinobi: masked tonfa tank with 30% dodge, highest tank damage and single-target Taunt; obeys passive/engagement orders and reveals on Taunt/attack. Geisha has weak pink ranged basic attacks.
+- [x] Shinobi: masked tonfa tank with 35% dodge, highest tank sustained DPS and single-target Taunt; obeys passive/engagement orders and reveals on Taunt/attack. Geisha has weak pink ranged basic attacks.
 
-Implementation checklist (initial stats/prices remain configurable and subject to tuning):
+Implementation checklist (stats/prices remain configurable in data; approved retuning is tracked in Phase 5 below):
 
-1. [x] **Units and abilities:** authoritative unit stats/resolver; 160 HP/14 damage Yumi archer (8 range, 1.2 s, 120 ryo); 420/18 Kuroda shield guard (160 ryo; 90° cone, 4.5 range, 3 s Taunt, 35% brace reduction, 8 s cooldown); 300/24 Shinobi bodyguard (170 ryo; 30% dodge, no damage reduction, 3 s single Taunt, 8 s cooldown/reveal). Prices/stats are unit-configurable.
-2. [x] **Ranged combat:** real arrow flight and normal-damage Hamstring (35% slow, 3 s, 10 s cooldown); Geisha 7 damage, 5.5 range, 1.25 s attack interval. Charm retains 6 s/10 s, prioritizes including initiation, interrupts basics, and protects against ally focus with explicit-order override. Shallow projectile arc; impact/target debuff visuals. No dedicated arrow-flight clip was available; existing slash/whoosh is used quietly.
+1. [x] **Units and abilities:** authoritative unit stats/resolver; 160 HP/14 damage Yumi archer (8 range, 1.2 s, 120 ryo); 420/18 Kuroda shield guard (160 ryo; 90° cone, 4.5 range, 3 s Taunt, 35% brace reduction, 8 s cooldown); 300/17 Shinobi bodyguard (170 ryo; 35% dodge, no damage reduction, 3 s single Taunt, 8 s cooldown/reveal). Current approved roster stat changes are recorded in [crew recruiting](crew_recruiting_plan.md#approved-roster-tuning-tim-2026-10-31). Prices/stats are unit-configurable.
+2. [x] **Ranged combat:** real arrow flight and normal-damage Hamstring (35% slow, 3 s, 10 s cooldown); Geisha 12 damage, 5.5 range, 1.25 s attack interval and 180 HP. Charm retains 6 s/10 s, prioritizes including initiation, interrupts basics, and protects against ally focus with explicit-order override. Shallow projectile arc; impact/target debuff visuals. No dedicated arrow-flight clip was available; existing slash/whoosh is used quietly.
 3. [x] **Allied paths:** player/bot hiring uses shared APIs; body jobs, revival, group and sector paths integrated. Generic clan-crew execute rewards replace the stale type list.
 4. [x] **Western civilians:** six unarmed clips each for Foreign visitor and Western dockworker; replace one sailor and one laborer (30 total), use daytime POIs and return indoors to dock/customs homes at night.
 5. [x] **Verification and handoff:** focused Node tests, docs and `?test=crew` added; local checkpoint commit below. Tim's manual VFX playtest remains pending.
 
-Playable clan units were prioritized ahead of the Western civilians. Scope stayed to this integration: no new hero kits, growth systems or broad balance pass.
+Playable clan units were prioritized ahead of the Western civilians. No new hero kits, growth systems or combat mechanics were added; the later numeric retuning is tracked in Phase 5.
 
 Art checkpoint (2026-10-30): Kuroda forward-chain and Shinobi tonfa-pose correction exports are complete and verified; Tim approved the Shinobi sprite and later approved the exported Kuroda chain GIF (“that chain looks good”). Kuroda's authored backswing/overhead/front-cast animation passed atlas checks; previous 14 PNGs are archived and Shinobi is unchanged. In-game playtest remains pending; preview is local.
 
@@ -362,8 +362,10 @@ Coordinator plan. Phase code work stays with its gameplay owner, and this docume
 - [x] Fix Sweeping Cut so it does not replace a stronger or longer snare; its damage is unchanged. Audit boss-runner speed comparisons.
 - [ ] Test the corrected cohesive ambush/interception behavior before choosing counterplay. No global boss nerf or new pursuit bonus is implemented without a design choice.
 
-### Phase 5 — rewards and balance review (reward rules built/Node-verified; other balance choices pending)
+### Phase 5 — rewards and approved roster tuning (built/Node-verified; contract balance review pending)
 
 - [x] Set property-clan Renown to 75 for a successful business raid, 35 for a successful Shakedown, and 50 for a qualifying paid Sweep. Require meaningful resistance and a positive shared payout/cooldown claim; empty or cooldown-blocked Sweeps give no Sweep Renown. Sector-clear Renown may stack. Keep HQ raid score at 2 separate points, with no extra Renown or replacement loot/neutralization reward.
 - [x] Audit Shinobi business ownership: purchases and completed raids cannot give Shinobi property; rejected attempts do not spend ryo or consume a War Lantern. Historical Shinobi ownership is not reset, but earns no payout.
-- [ ] Recommend contract, Geisha, and masked-unit balance changes separately. Exact choices remain pending Tim's response; contract 120s and Ninja 15 / Bodyguard 24 / Geisha 7 remain unchanged.
+- [x] Apply the approved roster tuning: Brute 18 damage/1.4 s (12.86 base DPS); Spearman 22/1.2 s (18.33); Geisha 180 HP, 12/1.25 s (9.6), 140 ryo; masked bodyguard 17/1.2 s (14.17), 35% dodge; rifleman melee 12/1.2 s (10). Keep Aimed Shot at 60 damage, with no crit; it cannot one-shot a 180–240 HP crew member, while a concentrated volley still can. Other roster stats are unchanged, including regular Ninja 15/0.9 s. Base DPS excludes critical hits, specials and buffs; no new mechanics or crit changes. See [crew recruiting](crew_recruiting_plan.md#approved-roster-tuning-tim-2026-10-31).
+- [ ] Review contract balance separately; duration remains 120 s with no change in this checkpoint.
+- Coordinator reports `test_new_crew`, `test_geisha`, `test_rifleman` and `test_hire_stats` passed after retuning. No browser playtest was run; manual visual/VFX review remains pending.

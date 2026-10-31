@@ -6,9 +6,9 @@ Follows the multiplayer rules: all rules in `game/src/sim` (Node, no graphics), 
 
 ## Shinobi geisha (built 2026-10-26)
 
-Shinobi-only `shinobi_geisha`: base 120 ryo with existing crew price scaling, 160 HP, twelve damage (latest balance adjustment 2026-10-27), one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
+Shinobi-only `shinobi_geisha`: base 140 ryo with existing crew price scaling, 180 HP, 12 damage, one standard crew slot and eight-second hire. Normal clinic/jail/revive rules apply. [Diversion rules](deployment_sector_plan.md#diversion-5b-builtsim-checked-2026-10-26); [reused cast assets](cast_tracker.md#shinobi-geisha-runtime-alias-2026-10-26).
 
-Balance follow-up (Tim, 2026-10-27): damage reduced from 28 to 14; other stats/charm behavior unchanged. Build coordinator reports `test_geisha` passed hire/charm/immunity/duration/cooldown/flee/fight coverage; cornered-hit assertion now reads configured damage. Tim balance playtest remains pending.
+Approved roster update (Tim, 2026-10-31): Geisha's 12 damage at a 1.25 s interval is 9.6 base sustained DPS. The 2026-10-27 damage adjustment is superseded; Charm behavior and all other unlisted Geisha stats remain unchanged.
 
 ## Decisions (Tim, 2026-10-16)
 
@@ -33,7 +33,11 @@ Own eligible crew can provide presence for business and service actions: [menu c
 
 ## Kuroda spearman (Tim, 2026-10-22)
 
-Kuroda-only Spearman replaces Swordsman in hiring: 204 HP, 24 damage, reach 2.2; base price 120, hire 8 s, attack interval 1.2 s, walk 1.6/run 5.6. Normal price scaling and venue timing apply.
+Kuroda-only Spearman replaces Swordsman in hiring: 204 HP, 22 damage, reach 2.2; base price 120, hire 8 s, attack interval 1.2 s (18.33 base sustained DPS), walk 1.6/run 5.6. Normal price scaling and venue timing apply.
+
+## Approved roster tuning (Tim, 2026-10-31)
+
+Current changed values: Brute 18 damage/1.4 s (12.86 base DPS); Spearman 22/1.2 s (18.33); Geisha 180 HP, 12/1.25 s (9.6), 140 ryo; masked bodyguard 17/1.2 s (14.17), 35% dodge; rifleman melee 12/1.2 s (10). Rifle Aimed Shot stays at 60 damage and cannot crit. Other roster values remain unchanged, including regular Ninja at 15 damage/0.9 s and 120 s contract duration. Base DPS excludes critical hits, specials and buffs. No new mechanics or crit changes.
 
 ## Combat style (Tim, 2026-10-16)
 
