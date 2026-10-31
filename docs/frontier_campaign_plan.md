@@ -432,7 +432,8 @@ These are module responsibilities and interfaces, not promised file names or an 
 ### Memory, assets and lifecycle
 
 - Bound region, GPU, portrait, navigation, snapshot and event-queue caches.
-- Dispose render resources, listeners, workers and timers when their owning view ends.
+- Dispose view-owned render resources, listeners, background workers and timers when that view ends.
+- The authoritative simulation Worker stays alive across map, capital, frontier and camera changes; terminate it only at match or session shutdown.
 - Repeated city/map/frontier opening should leave memory and GPU object counts stable.
 - Batch asset loads; update construction visuals incrementally instead of rebuilding a town.
 - Keep texture decoding, GPU uploads and full-world serialization out of input handlers and animation frames.
