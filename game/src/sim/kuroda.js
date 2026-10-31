@@ -79,7 +79,10 @@ export function createKuroda({ state, statsOf, fair, sees, reachOf, hit, addBuff
       for (const t of Object.values(state.entities)) {
         if (!secondary(e, t, null) || distance(e, t) > a.radius) continue;
         hit(e, t, Math.round(statsOf(e).damage * damageScale(e) * a.damageMultiplier), false, 'sweep');
-        if (alive(t)) addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed, style: 'kuroda' });
+        const slow = t.buffs?.snared;
+        if (alive(t) && (!slow || slow.until <= state.tick || slow.speed > a.snareSpeed))
+          addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed, style: 'kuroda' });
+        else if (alive(t) && slow.speed === a.snareSpeed) slow.until = Math.max(slow.until, state.tick + secs(a.snareSeconds));
       }
     } else if (a.kind === 'reprisal') {
       clearCombat(e);

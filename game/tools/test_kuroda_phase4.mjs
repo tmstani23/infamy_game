@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {createKuroda} from '../src/sim/kuroda.js';
+const hero={id:'h',owner:'p',type:'hero',hp:560,x:0,z:0,place:'street'},target={id:'t',owner:'r',type:'thug',hp:200,x:1,z:0,place:'street'};
+const state={tick:10,entities:{h:hero,t:target},casts:[]};
+const kuroda=createKuroda({state,statsOf:()=>({damage:24}),fair:(a,b)=>!!b&&a.owner!==b.owner,sees:()=>true,reachOf:()=>3,clearLine:()=>true,civilian:()=>false,cop:()=>false,damageScale:()=>1,clearCombat:()=>{},hit:(a,t,d)=>t.hp-=d,addBuff:(e,key,seconds,data)=>(e.buffs||={})[key]={until:state.tick+seconds*20,...data}});
+const cut={kind:'sweep',radius:4,damageMultiplier:.6,snareSeconds:3,snareSpeed:.5};
+target.buffs={snared:{until:110,speed:.3}};kuroda.cast(hero,cut,{});
+assert.equal(target.hp,186,'Sweeping Cut retains its normal rounded damage');
+assert.deepEqual(target.buffs.snared,{until:110,speed:.3},'Sweeping Cut cannot weaken an existing stronger slow');
+delete hero.spearSweep;target.buffs.snared={until:150,speed:.5};kuroda.cast(hero,cut,{});
+assert.equal(target.buffs.snared.until,150,'equal strength does not shorten an existing slow');
+delete hero.spearSweep;target.buffs.snared={until:100,speed:.7};kuroda.cast(hero,cut,{});
+assert.equal(target.buffs.snared.speed,.5,'Sweeping Cut still replaces a weaker slow');assert.equal(target.buffs.snared.until,70);
+console.log('Kuroda audit: Sweeping Cut preserves stronger/longer equal snares and still applies its configured damage/slow passed');

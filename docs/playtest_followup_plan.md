@@ -357,9 +357,10 @@ Coordinator plan. Phase code work stays with its gameplay owner, and this docume
 - [x] Arm an exact visible target from the target pane; only sectors that locally detect it hunt, while others patrol. Sector-only order targets its next detected foe. No blind cross-sector chase.
 - [ ] Masked wandering is unresolved: 300-tick idle and actual-taunt/retaliation-then-foe-death/concealment checks returned the masked unit to formation. No speculative fix is claimed.
 
-### Phase 4 — Kuroda and boss-runner counterplay
+### Phase 4 — Kuroda and boss-runner counterplay (Kuroda fix/audit Node-verified; tuning pending)
 
-- [ ] Audit Kuroda behavior and prepare boss-runner counterplay proposals.
+- [x] Fix Sweeping Cut so it does not replace a stronger or longer snare; its damage is unchanged. Audit boss-runner speed comparisons.
+- [ ] Test the corrected cohesive ambush/interception behavior before choosing counterplay. No global boss nerf or new pursuit bonus is implemented without a design choice.
 
 ### Phase 5 — rewards and balance review (reward rules built/Node-verified; other balance choices pending)
 
