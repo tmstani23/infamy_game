@@ -50,7 +50,8 @@ Current city rules and build status remain in the existing owner docs.
 - The capital supplies money, specialist recruits, imports and finance for frontier expansion.
 - The exact market, currency conversion and bonus rules are open.
 - Basic necessities can be sustained locally in a frontier settlement.
-- A blockade slows growth and military operations; it does not automatically collapse every settlement at once.
+- A blockade first slows imports, advanced recruitment, major construction and resupply.
+- It does not automatically stop existing defenses or collapse a settlement.
 - Capital income and frontier production must have visible source and destination records.
 - No extra productivity is granted merely because the player opens a view.
 
@@ -87,6 +88,7 @@ Current city rules and build status remain in the existing owner docs.
 - Ordinary replacement and defense can proceed under the player's chosen budget.
 - Reports should show shortages, current action, next action and expected consequence.
 - Good defaults make routine towns manageable without daily micromanagement.
+- Governors arrange ordinary supply and trade; the player sets priorities instead of individual deliveries.
 - Visiting the settlement gives the player more direct actions and control, not a production aura.
 - The earlier passive five-percent presence bonus is discarded.
 
@@ -144,30 +146,50 @@ Current city rules and build status remain in the existing owner docs.
 - Resupply, origin reassignment, field depots and transit behavior remain open choices.
 - Unit, army and cargo identities survive movement, battle, save/load and view changes.
 
-## Supply and trade — provisional starting point, not approved
+## Supply and roads — agreed first-scope direction (2026-10-31)
 
-This section is a proposal for discussion, especially the transport and loss rules.
-The agreed constraint is that supply has a real origin, inventory and travel consequence.
+- Logistics supports settlement building and territorial RTS war; it is not a separate micromanagement game.
+- Roads connect settlements, and governors automatically handle routine supplies and trade.
+- The player sets settlement and military priorities, not individual cargo loads, caravan schedules or deliveries.
+- Founding or capturing towns and outposts remains the main expansion objective.
+- The first slice needs roads, automatic real shipments and interruption by enemy road occupation.
+- Shipments have an actual source, finite cargo, travel progress and delivery receipt.
+- Withdraw stock at departure and credit it only on delivery; a blocked shipment is never also delivered.
+- Shipments and units keep stable IDs through travel, battle, save/load and view changes.
+- Route blockage never teleports cargo or creates free goods.
+- Show simple connection states: **Working**, **Threatened**, **Blocked**.
+- Give an early warning with blocked location, affected activities and a response action.
+- A governor may wait or choose a valid route when a road changes; exact routing policy remains open.
+- Basic logistics and the same finite economy apply to all clans, including bots.
+- Rationale: roads matter strategically without turning travel into routine chores.
 
-- Model roads as edges between settlements and useful junctions.
-- A named persistent route has an origin, destination, path, desired goods and reserve budget.
-- A governor requests goods from a source only above its protected local reserve.
-- Schedule batched caravans with finite cargo capacity rather than one carrier per item.
-- Withdraw cargo from the source when a caravan departs; credit it only on a delivery receipt.
-- The earliest version may use abstract workforce carriers rather than individual worker micro.
-- Caravans have real cargo, location, travel time and stable identity.
-- A caravan may be delayed, intercepted, escorted or rerouted after a road changes.
-- A hostile roadblock is a route problem, never a teleport or instant-delivery trigger.
-- An intercepted caravan becomes an active battle even when no player views it.
-- The player gets a useful warning and can order escort or attack on the route.
-- A lost shipment is not also retained in aggregate transport accounting.
-- Recruitment, equipment and construction draw from the supply base or actual deliveries.
-- Basic logistics are available to every clan.
-- Looted supplies are handled by army or settlement logistics, not hero body-loot clicks.
-- Existing equipped units keep equipment after a shipment loss.
-- Route frequency, convoy size, escort budgets, reserve minima and travel speed are open.
-- Loot shares, capture, recovery, insurance, transport home and attrition are open.
-- A disrupted route should expose what is missing and when the next shipment is possible.
+### Traffic, intelligence and interception
+
+- Use a strategic map to scout and move forces, with optional isometric zoom.
+- Discovered geography remains known; enemy traffic requires fresh sight.
+- Show a last observed position and direction after sight is lost, not a live omniscient route.
+- Road interception is optional, not required to expand or operate a first-slice town.
+- When hostile units physically contact a shipment or convoy, the world causes an encounter.
+- The encounter continues under the same combat rules while offscreen; a button does not resolve it.
+- Named custom routes, escort micro, detailed caravan hunting and scheduled theft are later options.
+- Do not require repeated travel chores to keep ordinary settlements functioning.
+- Captured cargo uses army or settlement logistics, never hero RTS body looting.
+- Exact captured-cargo transport, loot share and escort rules remain open.
+
+### Forgiving shortages and isolation — agreed behavior
+
+- Established towns can provide local food and basic water and hold emergency reserves.
+- Blocking the only road to a distant town or small army does not by itself doom the town.
+- Imported materials, advanced recruitment, major construction and resupply slow first.
+- Garrison troops fight, towers function and equipped units keep their gear while isolated.
+- No automatic surrender or ownership loss follows from an isolation timer; an enemy must assault.
+- A growing new site without established food cannot receive infinite free necessities.
+- That site pauses growth and nonessential projects and draws on real reserves or local emergency production.
+- Exact reserve quantities, production rates and supply penalties remain open.
+- Initial version has no starvation-driven population loss.
+- Do not infer blanket army upkeep attrition, loss of defensive ammunition or shutdown of essential services.
+- A siege is dangerous because enemy forces attack and wear defenses down, not because a roadblock counts down to death.
+- Rationale: shortage remains meaningful without a remote punishment or an automatic failure spiral.
 
 ## Garrison buildings — agreed direction
 
@@ -226,12 +248,12 @@ The agreed constraint is that supply has a real origin, inventory and travel con
 
 ## Simulation and view independence — agreed constraints
 
-1. One world state owns all settlements, governors, armies, caravans and battles.
+1. One world state owns all settlements, governors, armies, shipments and battles.
 2. Peaceful economies can be records rather than fully animated individual citizens.
 3. Those records include population, workforce, zones, buildings, projects and stocks.
 4. They also include production, priorities, trade, recruitment, garrisons and damage.
 5. Visible citizens represent activity; looking at a settlement never changes its output.
-6. Economically meaningful caravans retain real cargo, location, travel time and interception.
+6. Economically meaningful shipments retain real cargo, travel progress and interruption; detailed convoy actors may come later.
 7. Ordinary resident foot traffic need not be a persistent individual world simulation.
 8. Unviewed peaceful settlements run the same data, economy, governor and event rules.
 9. Only actors and detailed activity needed in real time stay active there.
@@ -244,7 +266,7 @@ The agreed constraint is that supply has a real origin, inventory and travel con
 15. Ordinary combat randomness, including crits and dodges, remains part of those rules.
 16. Seeded random streams, save continuity and observer-independent orders are engineering guardrails.
 17. Do not promise bitwise parity until repeatable tests demonstrate it.
-18. Supply contact with an enemy activates detailed combat before a convoy could pass through unharmed.
+18. Physical hostile contact activates detailed combat before any convoy could pass through unharmed.
 19. Canonical unit and cargo IDs prevent double counting between aggregate and physical representations.
 20. Saving includes in-flight cargo, paused operations, orders, timers and battle state.
 21. Rendering has no authority over movement, economy, cargo or combat.
@@ -264,11 +286,15 @@ The agreed constraint is that supply has a real origin, inventory and travel con
 | Governor bankrupt | Explain blocked projects, preserve essentials where possible; debt/bailout rules open. |
 | Missing food, timber or stone | Production and growth react visibly; short shortages do not instantly erase tiers. |
 | New road is impassable | Construction and route planning must identify the blocked connection. |
-| Road or gate changes mid-route | Caravan and army reroute or wait; cargo never teleports. |
+| Road or gate changes mid-route | Shipment and army reroute or wait; cargo never teleports. |
 | Ownership changes with cargo en route | Cargo owner, delivery rights and interception result require policy. |
 | Occupied building changes owner | Garrison occupation and civilian title remain separate state. |
 | Blocked spawn or evacuation exit | Find a legal alternate or wait; never spawn through solid geometry. |
 | Trade is interrupted | Source withdrawal stays accounted for; destination receives only delivered cargo. |
+| Only road to an established town is blocked | Warn early; local food, water, reserves, garrisons and towers continue. Imports and expansion slow first. |
+| New site lacks food during a blockade | Pause growth and nonessential projects; use finite reserves or local emergency production. Exact rates are open. |
+| Army supply route is cut | Equipped troops retain gear and can fight. Resupply policy is open; no blanket attrition is assumed. |
+| Enemy traffic leaves sight | Keep discovered geography, but show only last observed traffic position and direction. |
 | Upgrade unfinished at capture | Project, stock and authorization persist; new owner chooses whether to resume. |
 | Repeated capture or raze | Prevent resource, reward and recruitment loops. |
 | Disconnected territory | Control may persist, but supply and reinforcement use actual routes. |
@@ -296,10 +322,12 @@ The agreed constraint is that supply has a real origin, inventory and travel con
 - Add governor priorities and routine replacement/repair within a budget.
 - Acceptance: view/unview economy parity, readable shortage feedback and no inaccessible generated town.
 
-### 4. Physical logistics
+### 4. Road connections and automatic shipments
 
-- Add named routes, batched cargo, escorts, interception and rerouting after road changes.
-- Acceptance: cargo conservation through delivery, loss, capture and save/load; no offscreen immunity.
+- Add connected roads, governor-managed real shipments, finite stock withdrawal/delivery and enemy-occupation interruption.
+- Show Working/Threatened/Blocked with blocked location, affected activities and a response action.
+- Acceptance: cargo conservation through delivery, blockage and save/load; an isolated established town still feeds itself and defends with existing gear.
+- Detailed escorts, route hunting, scheduled theft and captured-cargo transport are later optional work.
 
 ### 5. Shared frontier RTS
 
@@ -331,8 +359,8 @@ The agreed constraint is that supply has a real origin, inventory and travel con
 |---|---|
 | World scale | Region count, travel scale, settlement-site limits and additional capitals. |
 | Resources | Final starter goods, water rules, output rates, storage and shortages. |
-| Supply | Route frequency, convoy size, reserve levels, rerouting and transport labor. |
-| Trade loss | Loot share, cargo custody, escort cost, insurance and delivery timing. |
+| Supply | Reserve quantities, local emergency output, shortage penalty rates and valid-road rerouting. |
+| Trade loss | Cargo custody and delivery timing; later loot share, escort cost, insurance and capture transport. |
 | Army support | Resupply, field depot, origin reassignment and transit policy. |
 | Hero recovery | Clinic location, cost, delay and fallback when captured. |
 | Conquest | Stage gates, defenders' mobilization, control duration and minimum contest force. |
@@ -344,4 +372,6 @@ The agreed constraint is that supply has a real origin, inventory and travel con
 
 **Deferred (2026-10-31):** true continuous MMO operation, railroads, many capitals,
 power and advanced industry, refugees, fully simulated resident traffic, a complete
-interior RTS and automatic procedural continent generation.
+interior RTS and automatic procedural continent generation. Named custom routes,
+escort micromanagement, detailed caravan hunting, scheduled theft and captured-cargo
+transport are optional later logistics features, not first-slice requirements.
