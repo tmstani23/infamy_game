@@ -40,7 +40,7 @@ assert.equal(messages.filter(m=>m.type==='snapshot').length,1);
 assert.equal(runtime.game.state.tick-before,12);consume();
 runtime.receive({type:'input',paused:true,map:true});consume();
 const frozen=runtime.game.state.tick;
-time+=500;runtime.pump();consume();assert.equal(runtime.game.state.tick,frozen);
+time+=500;runtime.pump();assert.equal(consume().length,0,'idle paused state sends no redundant packet');assert.equal(runtime.game.state.tick,frozen);
 runtime.receive({type:'input',paused:false,map:false,movement:{id:heroId,type:'move',right:1,down:0}});consume();
 for(let i=0;i<4;i++){time+=50;runtime.pump();consume();}
 assert.equal(runtime.game.state.tick,frozen+4,'resume has no paused-time catch-up');
@@ -92,9 +92,10 @@ console.log('Worker lifecycle, pause/resume, backpressure, projection, replica q
 
 // Exercise the actual client/ack/apply path too, not only a hand-written receiver.
 const clientMirror=createGame(options);setupMatch(clientMirror,match);
+let inputMessages=0;
 const client=await createSimWorkerClient({game:clientMirror,options,match,workerFactory:()=>{
   const w=new Worker(new URL('./worker_test_bridge.mjs',import.meta.url));
-  const adapter={postMessage:m=>w.postMessage(m),terminate:()=>w.terminate()};
+  const adapter={postMessage:m=>{if(m.type==='input')inputMessages++;w.postMessage(m);},terminate:()=>w.terminate()};
   w.on('message',data=>adapter.onmessage?.({data}));w.on('error',e=>adapter.onerror?.(e));return adapter;
 }});
 try{
@@ -106,6 +107,8 @@ try{
   client.input({map:true,paused:false});
   await updated.finally(()=>clearTimeout(timeout));
   assert.equal(client.map,true);assert.ok(client.diagnostics().applyMs>=0);
+  client.input({map:true,paused:false});client.input({map:true,paused:false});
+  assert.equal(inputMessages,1,'unchanged stationary input is not repeatedly transmitted');
 }finally{client.dispose();}
 console.log('Actual client startup, replica application and acknowledgments passed');
 

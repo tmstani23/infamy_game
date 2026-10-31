@@ -3,6 +3,7 @@ import {applySnapshot} from './sim_snapshot.js';
 export async function createSimWorkerClient({game,options,match,onError,workerFactory=()=>new Worker(new URL('./sim_worker.js',import.meta.url),{type:'module'})}){
   const worker=workerFactory();
   let receivedAt=0,diagnostics={},disposed=false,map=false,onSnapshot=()=>{},applyMs=0,maxApplyMs=0;
+  let lastInput='',lastInputAt=-Infinity;
   await new Promise((resolve,reject)=>{
     const timeout=setTimeout(()=>{worker.terminate();reject(new Error('Simulation worker startup timed out'));},30000);
     let ready=false;
@@ -23,7 +24,13 @@ export async function createSimWorkerClient({game,options,match,onError,workerFa
     worker.postMessage({type:'init',options,match});
   });
   return {
-    input(data){if(!disposed)worker.postMessage({type:'input',...data});},
+    input(data){
+      if(disposed)return;
+      const signature=JSON.stringify({...data,commands:undefined}),time=performance.now();
+      const moving=data.movement&&(data.movement.right||data.movement.down);
+      if(!data.commands?.length&&signature===lastInput&&(!moving||time-lastInputAt<100))return;
+      lastInput=signature;lastInputAt=time;worker.postMessage({type:'input',...data});
+    },
     observe(fn){onSnapshot=fn;},
     alpha(){return Math.min(1,Math.max(0,(performance.now()-receivedAt)/50));},
     diagnostics:()=>({...diagnostics,applyMs,maxApplyMs,worker:true}),

@@ -8,7 +8,7 @@ import {createSnapshotEncoder,EVENT_KEYS} from './sim_snapshot.js';
 // One authoritative match for its whole lifetime. Opening/closing the map only
 // changes publication; no handoff of private simulation state is necessary.
 export function createWorkerRuntime({post,now=()=>performance.now()}) {
-  let game,bots,encoder,clock,last,paused=true,map=false,selected=[],inFlight=0,lastPublish=-Infinity;
+  let game,bots,encoder,clock,last,paused=true,map=false,selected=[],inFlight=0,lastPublish=-Infinity,lastPublishedTick=-1;
   let commands=[],movement=null,movementAt=-Infinity,events={},urgent=false;
   const diagnostics={packets:0,encodeMs:0,simMs:0,maxSimMs:0,eventOverflows:0};
   function collect(){
@@ -22,9 +22,10 @@ export function createWorkerRuntime({post,now=()=>performance.now()}) {
   function publish(force=false){
     // A single unacknowledged packet bounds the message queue, even with a busy UI.
     if(inFlight||!game||!force&&!urgent&&now()-lastPublish<(map?250:50))return;
+    if(!force&&!urgent&&game.state.tick===lastPublishedTick&&!Object.values(events).some(list=>list.length))return;
     const start=now(),packet=encoder.encode({map,selected,events});events={};urgent=false;
     diagnostics.encodeMs+=now()-start;diagnostics.packets++;
-    lastPublish=now();inFlight=packet.sequence;
+    lastPublish=now();lastPublishedTick=game.state.tick;inFlight=packet.sequence;
     post({type:'snapshot',packet,diagnostics:{...diagnostics,changedRecords:packet.set.length,
       recordChars:packet.recordChars,gridBytes:packet.grid.byteLength,mode:map?'map':'world',clock:clock.diagnostics()}},[packet.grid.buffer]);
   }
