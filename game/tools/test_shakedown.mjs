@@ -63,6 +63,7 @@ function fixture(clan='yakuza') {
   const {g,b,task,crew,rival,send,clearGuards}=fixture();g.state.night=true;send({action:'shakedown',business:b.id});
   for(let i=0;i<60;i++){clearGuards();g.step();}
   const op=task.operation,actor=crew.find(e=>e.place===b.room);assert.ok(actor,'squad entered before reinforcement');
+  for(const ally of Object.values(g.state.entities))if(ally.owner==='player'&&!crew.includes(ally))Object.assign(ally,{place:'street',x:-100,z:-100});
   const hero=Object.values(g.state.entities).find(e=>e.owner===rival&&e.type==='hero');
   Object.assign(hero,{x:actor.x+3,z:actor.z,place:b.room,holdFire:true});
   for(let i=0;i<3;i++)g.spawn('thug','thug',actor.x+3,actor.z+i*.4,{owner:rival,place:b.room,holdFire:true,deployment:{group:'hero'}});
@@ -81,4 +82,28 @@ function fixture(clan='yakuza') {
   for(let i=0;i<60;i++)g.step();
   assert.equal(g.state.shakedowns.bombs.filter(b=>b.emergency).length,0,'emergency explodes without replenishing');
 }
-console.log('Shakedown: eligibility/faction, alert/heat, timed blasts/entry, contest/intimidator interruption, zero/actual payout, return, larger-hero retreat and blocked-only emergency bomb passed');
+{
+  const {g,h,b,task,crew,rival,send,clearGuards}=fixture();g.state.night=true;send({action:'shakedown',business:b.id});
+  for(let i=0;i<60;i++){clearGuards();g.step();}
+  const op=task.operation,actor=crew.find(e=>e.place===b.room);assert.ok(actor);
+  const enemy=Object.values(g.state.entities).find(e=>e.owner===rival&&e.type==='hero');
+  Object.assign(enemy,{x:actor.x+3,z:actor.z,place:b.room,holdFire:true});
+  for(let i=0;i<3;i++)g.spawn('thug','thug',actor.x+3,actor.z+i*.4,{owner:rival,place:b.room,holdFire:true});
+  Object.assign(h,{x:b.ring[0],z:b.ring[1],place:'street'});
+  const other=g.state.deployment.sectors.find(s=>s.id!==crew[0].deployment.group).id;
+  g.spawn('thug','thug',b.ring[0]+2,b.ring[1],{owner:'player',deployment:{group:other},holdFire:true});
+  g.step();assert.notEqual(op.state,'Returning','nearby hero and other-sector support count across the doorway');
+}
+{
+  const {g,b,task,crew,clearGuards}=fixture();
+  const home=g.deployment.destination(crew[0],'home');
+  assert.ok(home);
+  task.recovery={home:true,returning:true,required:crew.length,rosterIds:crew.map(e=>e.id),resumePoint:{x:b.ring[0],z:b.ring[1],place:b.room},replanAt:0};
+  delete task.operation;
+  for(const e of crew){e.place=b.room;e.x=g.rooms.find(r=>r.name===b.room).origin.x+3;e.z=g.rooms.find(r=>r.name===b.room).origin.z+3;}
+  clearGuards();g.step();
+  assert.equal(task.recovery?.resumePoint,undefined,'expired operation cannot send replacements back to stale interior');
+  for(let i=0;i<1600&&crew.some(e=>e.place!=='street');i++){clearGuards();g.step();}
+  assert.ok(crew.every(e=>e.place==='street'),'regrouped replacement crew physically leave the old business');
+}
+console.log('Shakedown: existing operation checks plus cross-zone/hero support and expired interior recovery passed');

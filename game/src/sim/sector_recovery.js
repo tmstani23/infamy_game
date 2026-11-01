@@ -118,6 +118,10 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
       }
       if(task.recovery?.home){
         const r=task.recovery;
+        // A wiped/cancelled excursion can disappear while replacements are
+        // arriving. Its old interior rendezvous is no longer a valid duty
+        // destination and can strand the regrouped squad in a rival room.
+        if(!task.operation&&r.resumePoint?.place!=='street')delete r.resumePoint;
         r.rosterIds=r.rosterIds.filter(unit=>{const e=state.entities[unit];return !available(e)||(e.deployment?.group===id&&automated(e));});
         r.required=Math.min(r.required,r.rosterIds.length);
         if(r.returning&&team.length<r.required)r.returning=false;

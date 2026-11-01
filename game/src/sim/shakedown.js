@@ -8,7 +8,7 @@ import { alive } from './util.js';
 export const SHAKEDOWN = { holdSeconds:20, radius:4, fuseSeconds:1.25, flightSeconds:.65,
   blastDamage:60, blastRadius:2.2, fireSeconds:8, fireRadius:.7, fireDamage:6,
   emergencyDamage:110, emergencyRadius:3, retrySeconds:60, timeoutSeconds:120,
-  defenderRadius:9, blockedSeconds:1.25, friendlyFire:true };
+  defenderRadius:9, supportRadius:30, blockedSeconds:1.25, friendlyFire:true };
 const distance = (a,b) => Math.hypot(a.x-b.x,a.z-b.z);
 export function createShakedown({ state, deployment, rally, vision, sees, rooms, doors, navOf,
   spawn, remove, clearCombat, attackStep, hit, addHeat, rules = {}, recoverHome = () => false }) {
@@ -142,8 +142,14 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
       if(danger||!state.night||state.tick-op.startedAt>ticks(R.timeoutSeconds)){withdraw(clan,sector,danger||(!state.night?'Dawn arrived':'Attempt timed out'));continue;}
       const defenderHero=Object.values(state.entities).find(e=>e.owner===op.defender&&e.type==='hero'&&observe(team,e));
       if(defenderHero&&team.some(e=>e.place===defenderHero.place&&distance(e,defenderHero)<=R.defenderRadius)){
-        const count=Object.values(state.entities).filter(e=>e.owner===op.defender&&(e.type==='hero'||e.deployment?.group==='hero')&&e.place===defenderHero.place&&distance(e,defenderHero)<=R.defenderRadius&&observe(team,e)).length;
-        if(count>team.length){withdraw(clan,sector,'Larger defending hero group spotted');continue;}
+        const count=Object.values(state.entities).filter(e=>alive(e)&&e.owner===op.defender&&(e.type==='hero'||e.deployment?.group==='hero')&&e.place===defenderHero.place&&distance(e,defenderHero)<=R.defenderRadius&&observe(team,e)).length;
+        // Interior and street coordinates use different spaces. Nearby street
+        // reinforcements are measured from the business entrance, never from
+        // the room's off-map coordinates; sector membership is irrelevant.
+        const support=Object.values(state.entities).filter(e=>alive(e)&&!e.jailed&&e.owner===clan&&e.type!=='civilian'
+          &&(e.place===b.room||e.place==='street')
+          &&distance(e,e.place===b.room?op.front:{x:b.ring[0],z:b.ring[1]})<=R.supportRadius).length;
+        if(count>support){withdraw(clan,sector,'Larger defending hero group spotted');continue;}
       }
       if(op.state==='Rushing'&&team.every(e=>e.place==='street'&&distance(e,{x:b.ring[0],z:b.ring[1]})<5.5))bombard(clan,sector,op,team,b);
       if(op.state==='Bombarding'){
