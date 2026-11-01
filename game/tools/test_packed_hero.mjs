@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import os from 'node:os';
-import {loadPackedSheets, loadSheetSet, setSheetFrame} from '../src/render/packed_sheets.js';
+import {loadPackedSheets, loadSheetSet, setSheetFrame, copySpriteFrame} from '../src/render/packed_sheets.js';
 import {bladeAxes} from '../src/render/weapon_lightning_pattern.js';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -39,7 +39,7 @@ assert.equal(textures.size, 31);
 assert.equal(sheets.idle.tex, sheets.guard.tex, 'idle/guard aliases share textures');
 assert.equal(sheets.idle.packed, sheets.guard.packed);
 assert.equal(sheets.idle.speed, .5); assert.equal(sheets.guard.speed, 1);
-const vector = () => ({values: [], set(...values) { this.values = values; }});
+const vector = () => ({values: [], set(...values) { this.values = values; }, copy(v) { this.values = [...v.values]; return this; }});
 const uniforms = () => ({uMap: {value: null}, uFrame: {value: vector()}, uSampleBounds: {value: vector()}});
 let checkedFrames = 0;
 for (const [stem, record] of Object.entries(manifest.sheets)) {
@@ -87,6 +87,29 @@ setSheetFrame(normal, legacy, 7, 14);
 assert.deepEqual(normal.uFrame.value.values, [14/15, 0, 1/15, 1/8]);
 assert.deepEqual(normal.uSampleBounds.value.values, [0,0,1,1]);
 setSheetFrame(normal, legacy, 3, 2, true); assert.equal(normal.uMap.value, legacy.glow);
+
+// Iron Formation/downed outlines and afterimages must carry packed crop bounds
+// along with the texture and virtual UVs. Snapshot copies must not follow the
+// live character when it advances to another pose/page.
+const live = {uniforms: uniforms(), defines: {PACKED_SPRITE: 1}};
+setSheetFrame(live.uniforms, sheets.attack, 5, 2);
+const ghost = {uniforms: uniforms()}, outline = {uniforms: uniforms()};
+for (const effect of [ghost, outline]) {
+  copySpriteFrame(effect, live);
+  assert.equal(effect.defines.PACKED_SPRITE, 1);
+  assert.deepEqual(effect.uniforms.uSampleBounds.value.values, live.uniforms.uSampleBounds.value.values);
+  assert.deepEqual(effect.uniforms.uFrame.value.values, live.uniforms.uFrame.value.values);
+}
+const captured = [...ghost.uniforms.uSampleBounds.value.values], capturedFrame = [...ghost.uniforms.uFrame.value.values];
+setSheetFrame(live.uniforms, sheets.run, 1, 1);
+assert.deepEqual(ghost.uniforms.uSampleBounds.value.values, captured);
+assert.deepEqual(ghost.uniforms.uFrame.value.values, capturedFrame);
+outline.needsUpdate = false; copySpriteFrame(outline, live);
+assert.equal(outline.needsUpdate, false, 'live outline does not recompile on every frame');
+assert.deepEqual(outline.uniforms.uSampleBounds.value.values, live.uniforms.uSampleBounds.value.values);
+copySpriteFrame(outline, {uniforms: normal, defines: {}});
+assert.equal(outline.defines.PACKED_SPRITE, undefined);
+assert.deepEqual(outline.uniforms.uSampleBounds.value.values, [0,0,1,1]);
 
 let originalCalls = 0, jsonCalls = 0, warnings = 0;
 const fallback = {packedUrl: url, model: 'rival_yakuza', names,

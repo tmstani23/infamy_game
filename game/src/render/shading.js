@@ -2,6 +2,7 @@
 // All colour math is done on the painted (sRGB) values, like a 2D paint program.
 import * as THREE from 'three';
 import { VIEW_DIR, CAM_UP, CAM_RIGHT } from './iso.js';
+import { SPRITE_SAMPLE } from './packed_sheets.js';
 
 export const MAX_LIGHTS = 24;
 
@@ -118,21 +119,6 @@ void main() {
     vec4 c = projectionMatrix * viewMatrix * vec4(q, 1.0);
     gl_Position.z = c.z / c.w * gl_Position.w;
   }
-}`;
-
-// Packed characters retain the full original quad/UV coordinates. Never sample
-// an adjacent tile when those virtual coordinates extend beyond their crop.
-const SPRITE_SAMPLE = /* glsl */`
-uniform sampler2D uMap;
-uniform vec4 uSampleBounds;
-vec4 spriteTex(vec2 p) {
-  #ifdef PACKED_SPRITE
-  vec4 t = texture2D(uMap, clamp(p, uSampleBounds.xy, uSampleBounds.zw));
-  vec2 inside = step(uSampleBounds.xy, p) * step(p, uSampleBounds.zw);
-  return t * inside.x * inside.y;
-  #else
-  return texture2D(uMap, p);
-  #endif
 }`;
 
 const SPRITE_FRAG = /* glsl */`

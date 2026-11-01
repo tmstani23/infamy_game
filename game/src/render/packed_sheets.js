@@ -1,5 +1,35 @@
 // Packed texture addressing keeps the original full-cell coordinates. The
 // character quad/effect children never move or shrink when its crop changes.
+export const SPRITE_SAMPLE = /* glsl */`
+uniform sampler2D uMap;
+uniform vec4 uSampleBounds;
+vec4 spriteTex(vec2 p) {
+  #ifdef PACKED_SPRITE
+  vec4 t = texture2D(uMap, clamp(p, uSampleBounds.xy, uSampleBounds.zw));
+  vec2 inside = step(uSampleBounds.xy, p) * step(p, uSampleBounds.zw);
+  return t * inside.x * inside.y;
+  #else
+  return texture2D(uMap, p);
+  #endif
+}`;
+
+// Secondary effects must copy the whole frame address, including the crop.
+// Copy values rather than sharing uniforms: ghosts retain their captured pose.
+export function copySpriteFrame(target, source) {
+  const u = target.uniforms, s = source.uniforms;
+  u.uMap.value = s.uMap.value;
+  u.uFrame.value.copy(s.uFrame.value);
+  if (s.uSampleBounds) u.uSampleBounds.value.copy(s.uSampleBounds.value);
+  else u.uSampleBounds.value.set(0, 0, 1, 1);
+  const packed = !!source.defines?.PACKED_SPRITE;
+  if (!!target.defines?.PACKED_SPRITE !== packed) {
+    target.defines ||= {};
+    if (packed) target.defines.PACKED_SPRITE = 1;
+    else delete target.defines.PACKED_SPRITE;
+    target.needsUpdate = true;
+  }
+}
+
 function check(ok, message) { if (!ok) throw new Error(`Packed sprites: ${message}`); }
 
 function validateChannel(channel, directions, margin) {

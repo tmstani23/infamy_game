@@ -9,6 +9,7 @@ import { createKurodaFx } from './kurodafx.js';
 import { createShakedownFx } from './shakedownfx.js';
 import { createSweepFx } from './sweepfx.js';
 import { createCrewFx } from './crewfx.js';
+import { copySpriteFrame } from './packed_sheets.js';
 
 import { flat, WAVE_GEO, DISC_GEO, AURA_GEO, THIN_WAVE_GEO, HALF_WAVE_GEO, BUFF_AURA_GEO, AMBUSH_AURA_GEO, STREAK_GEO, AURAS, STEEL, WHITE, GOLD, PURPLE, GUNSMOKE, MUZZLE, SOOT, SOOT_TINT, DUSK, MIST_BLUE, PETALS, FIRE, pick, count, LANTERNS, ORBIT, rand, screenAngle, OUTLINE, OUTLINE_GEO, OUTLINE_RGB, OUTLINE_VERT, OUTLINE_FRAG, outlineMesh, LANTERN_GEO, HALO_GEO, HALO_TEX, SEAL_TEX } from './abilityfx_assets.js';
 
@@ -628,9 +629,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
           if (OUTLINE[name] && sp && !e.downed) {
             let o = outlines.get(key);
             if (!o) { o = outlineMesh(OUTLINE[name]); scene.add(o); outlines.set(key, o); }
-            const u = o.material.uniforms, su = sp.material.uniforms;
-            u.uMap.value = su.uMap.value;
-            u.uFrame.value.copy(su.uFrame.value);
+            const u = o.material.uniforms;
+            copySpriteFrame(o.material, sp.material);
             u.uWidth.value = (0.021 + 0.012 * i) * (name === 'rally' ? 0.8 : name === 'ambush' ? 1.3 : 1) * 0.5;
             u.uOpacity.value = (name === 'ambush' ? 1 : 0.8) + 0.25 * Math.sin(now * 4 + e.id * 1.3 + i);
             o.position.copy(sp.thing.mesh.position);
@@ -673,9 +673,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         seen.add(key);
         let o = outlines.get(key);
         if (!o) { o = outlineMesh(0xb0100a); scene.add(o); outlines.set(key, o); }
-        const u = o.material.uniforms, su = sp.material.uniforms;
-        u.uMap.value = su.uMap.value;
-        u.uFrame.value.copy(su.uFrame.value);
+        const u = o.material.uniforms;
+        copySpriteFrame(o.material, sp.material);
         u.uWidth.value = 0.01;
         u.uOpacity.value = 0.35 + 1.1 * Math.pow(0.5 + 0.5 * Math.sin(now0 * 3.5 + e.id), 4);
         o.position.copy(sp.thing.mesh.position);

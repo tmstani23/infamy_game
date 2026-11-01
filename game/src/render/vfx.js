@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { CAM_QUAT } from './iso.js';
 import { onFxLayer } from './bloom.js';
+import { SPRITE_SAMPLE, copySpriteFrame } from './packed_sheets.js';
 
 // pixels per world unit for the target being drawn; view.js sets it before each render
 export const fxShared = { uPx: { value: 100 } };
@@ -236,10 +237,11 @@ export function createParticles(scene, { max = 1500, additive = true } = {}) {
 const CARD_GEO = new THREE.PlaneGeometry(1, 1);
 const GHOST_VERT = 'uniform vec4 uFrame; varying vec2 vUv; void main() { vUv = uFrame.xy + uv * uFrame.zw; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
 const GHOST_FRAG = /* glsl */`
-uniform sampler2D uMap; uniform vec3 uColor; uniform float uOpacity;
+${SPRITE_SAMPLE}
+uniform vec3 uColor; uniform float uOpacity;
 varying vec2 vUv;
 void main() {
-  float a = texture2D(uMap, vUv).a;
+  float a = spriteTex(vUv).a;
   if (a < 0.05) discard;
   gl_FragColor = vec4(uColor * a * uOpacity, 1.0);
 }`;
@@ -265,9 +267,10 @@ export function createCards(scene) {
     ghost(sprite, color = [0.55, 0.7, 1], life = 0.32, opacity = 0.75) {
       const u = sprite.material.uniforms;
       const mat = new THREE.ShaderMaterial({
-        uniforms: { uMap: { value: u.uMap.value }, uFrame: { value: u.uFrame.value.clone() }, uColor: { value: new THREE.Color(...color) }, uOpacity: { value: opacity } },
+        uniforms: { uMap: { value: u.uMap.value }, uFrame: { value: u.uFrame.value.clone() }, uSampleBounds: { value: new THREE.Vector4(0,0,1,1) }, uColor: { value: new THREE.Color(...color) }, uOpacity: { value: opacity } },
         vertexShader: GHOST_VERT, fragmentShader: GHOST_FRAG, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false,
       });
+      copySpriteFrame(mat, sprite.material);
       const m = new THREE.Mesh(CARD_GEO, mat);
       m.position.copy(sprite.thing.mesh.position);
       m.scale.copy(sprite.thing.mesh.scale);

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { CAM_RIGHT, CAM_UP } from './iso.js';
 import { onFxLayer } from './bloom.js';
+import { SPRITE_SAMPLE } from './packed_sheets.js';
 const flat = (geo, color, opacity) => {
   const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
     color, transparent: true, opacity, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
@@ -55,9 +56,10 @@ const OUTLINE_GEO = new THREE.PlaneGeometry(1, 1);
 const OUTLINE_RGB = Object.fromEntries(Object.entries(OUTLINE).map(([k, v]) => [k, new THREE.Color(v)]));
 const OUTLINE_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
 const OUTLINE_FRAG = /* glsl */`
-uniform sampler2D uMap; uniform vec4 uFrame; uniform vec3 uColor; uniform float uOpacity; uniform float uWidth;
+${SPRITE_SAMPLE}
+uniform vec4 uFrame; uniform vec3 uColor; uniform float uOpacity; uniform float uWidth;
 varying vec2 vUv;
-float alphaAt(vec2 c) { return (c.x < 0.0 || c.x > 1.0 || c.y < 0.0 || c.y > 1.0) ? 0.0 : texture2D(uMap, uFrame.xy + c * uFrame.zw).a; }
+float alphaAt(vec2 c) { return (c.x < 0.0 || c.x > 1.0 || c.y < 0.0 || c.y > 1.0) ? 0.0 : spriteTex(uFrame.xy + c * uFrame.zw).a; }
 void main() {
   float a = alphaAt(vUv), m = 0.0;
   // widest alpha nearby (two rings of 12 samples), minus the body itself, leaves a halo outside it
@@ -73,7 +75,7 @@ void main() {
 }`;
 const outlineMesh = (color) => {
   const m = new THREE.Mesh(OUTLINE_GEO, new THREE.ShaderMaterial({
-    uniforms: { uMap: { value: null }, uFrame: { value: new THREE.Vector4() }, uColor: { value: new THREE.Color(color) }, uOpacity: { value: 1 }, uWidth: { value: 0.03 } },
+    uniforms: { uMap: { value: null }, uFrame: { value: new THREE.Vector4() }, uSampleBounds: { value: new THREE.Vector4(0,0,1,1) }, uColor: { value: new THREE.Color(color) }, uOpacity: { value: 1 }, uWidth: { value: 0.03 } },
     vertexShader: OUTLINE_VERT, fragmentShader: OUTLINE_FRAG, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false,
   }));
   m.frustumCulled = false;

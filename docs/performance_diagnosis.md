@@ -84,6 +84,8 @@ The source and pre-change runtime backups are in `assets/sprites_archive/sprite_
 
 Only `rival_yakuza` uses the packed catalog entry. A packed load failure disposes successful packed textures and falls back to originals; `?sprites=original` bypasses packed fetches for comparison. Focused Node checks passed for decoded crops, UVs, gutters, axes, aliases, bypass, load failures, late cleanup, sheet cache, sprite packing, weapon lightning and Kuroda pose. The game has not been run in a browser for this checkpoint. Tim still needs to compare idle, walk, run, attacks, abilities and death in each facing at normal and near/far zoom, indoors and outside, including feet, blade effects and fringe; compare Firefox RAM/FPS under matching conditions.
 
+Follow-up: Tim observed multiple atlas poses projected during Iron Formation. The buff/downed outline and afterimage shaders had copied the texture and frame UVs without the packed crop bounds. They now share the packed sampling rule and copy texture, frame UVs, crop bounds and packed mode; afterimages retain their captured pose. Focused Node checks cover the effect bounds, packed/original mode changes and live versus frozen frames. Iron Formation still needs a browser visual retest, and the overall visual/RAM review remains open.
+
 ## Remaining diagnosis
 
 During the final playtest, compare map/input responsiveness while paused versus running, exercise normal movement and bot contracts, and capture a Firefox performance profile if the lag is present. The Node harness excludes browser events, DOM/layout, paint, GPU and frame presentation. Manual browser checks remain pending. Workers cannot directly access the DOM and require message-based data transfer.
