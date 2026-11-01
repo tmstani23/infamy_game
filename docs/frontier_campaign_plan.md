@@ -145,7 +145,7 @@ continues in this current project. No copy or move is requested now.
 ## Hero equipment, exploration and rewards — agreed direction (2026-10-31)
 
 - Start with three hero equipment slots: weapon, armor and one accessory.
-- Keep a simple small personal inventory and a shared stash; exact capacities remain open.
+- The capital inventory plan now specifies 12 personal slots and a separate 12-slot HQ stash (Tim, 2026-11-01); implementation is paused for mock-image approval. Frontier item implementation remains unbuilt.
 - The earlier [capital inventory and loot outline](gameplay_and_design.md#inventory-and-loot-settled) owns the existing stash, fence and carrying concept. This plan records how hero gear fits the campaign.
 - Capital encounters and raid caches can award meaningful gear.
 - Later frontier hero exploration can reveal ruins, caches, outposts and gear discoveries.
@@ -490,7 +490,7 @@ and commands before expanding scale. Browser gameplay and profiling remain neces
 | Hero KO during a siege | Player commands and the battle continue; recovery site, delay and cost are open. |
 | Hero KO while equipped | Initial gear remains owned and equipped; no automatic loss or destruction. |
 | Hero inventory is full | Decide pickup/stash handling without item loss, duplication or forced battlefield bag work. |
-| Equipment changes during battle | Timing, command validation and stat refresh must use the authoritative evaluator; policy is open. |
+| Equipment changes during battle | Field swaps are allowed; command validation and stat refresh must use the authoritative evaluator. Exact timing is still open. |
 | Recovery clinic captured | No automatic free revival; choose a fallback policy. |
 | Simultaneous sieges | Both resolve by the same battle rules with finite available reinforcements. |
 | One reserve ordered twice | A unit has one identity and location; orders cannot duplicate it. |

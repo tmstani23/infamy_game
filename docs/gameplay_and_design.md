@@ -117,10 +117,11 @@ Noise versus power is a choice on every raid.
 
 ## Inventory and loot (Settled)
 
-- Personal inventory: **6 to 8 slots**.
+- Planned personal inventory: **12 slots**, separate from a **12-slot HQ stash** (Tim, 2026-11-01).
+- Planned hero equipment: weapon, armor and accessory. Field swaps are allowed; right-click carried gear to equip and right-click equipped gear to remove it. `I` opens inventory and `J` opens the character panel; that panel shows carried inventory/equipment, never the HQ stash. Implementation is paused for mock-image approval; the static mock is not a working UI.
 - Money is banked automatically, so it is not lost to carrying limits.
 - Bulky goods have to be hauled by crew or by cart.
-- A **stash** for storage and a **fence** for selling stolen goods.
+- The HQ stash stores items; a **fence** can sell stolen goods under later item rules.
 - **Documents** can be looted and used as leverage (blackmail, deeds, debts).
 
 ## Infamy (Settled)
