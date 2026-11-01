@@ -19,6 +19,7 @@ import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { createRyoBadge } from './ryo_badge.js';
+import { createLootNotice } from './loot_notice.js';
 import { drawCrest } from './render/banners.js';
 import { createCrewInput } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
@@ -213,7 +214,10 @@ async function start() {
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
   const characterPanel = createCharacterPanel({ game, heroId, catalog, button: $('characterbtn'), send:c => pending.push(c),
     onOpen: () => setGameplayInput(false), onClose: () => setGameplayInput(true) });
-  onKey(['KeyJ','KeyI'], () => characterPanel.toggle());
+  onKey(['KeyJ'], () => characterPanel.toggle());
+  onKey(['KeyI'], () => characterPanel.showInventory());
+  $('inventorybtn').addEventListener('click', () => characterPanel.showInventory());
+  const lootNotice = createLootNotice({ game, heroId, view, button: $('inventorybtn') });
   const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, catalog, heroId, crewInput, send: c => pending.push(c),
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
@@ -274,13 +278,14 @@ async function start() {
   // double-click a group header: follow the middle of the group's biggest cluster
   const watchGroup=(group,ids=null)=>view.watch(()=>watchCrewGroup(game.state,game.state.entities[heroId]?.owner,group,ids));
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c), onInspect: id => unitFrames.inspect(id), onHeroFocus: () => view.snapBack() });
+  onKey('KeyB', () => bar.useItem());   // usable-item slot
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
   const actionCommands=document.createElement('div');actionCommands.className='action-commands';
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
   $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
-  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','ctlbtn','daynight'].map($)});
+  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput });
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
@@ -480,7 +485,7 @@ async function start() {
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
       stealthBadge.update();
-      characterPanel.update(); hqStash.update(); shop.update();
+      characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();

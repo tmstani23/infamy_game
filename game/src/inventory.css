@@ -58,3 +58,19 @@
 @media(max-width:760px){.shop-body{grid-template-columns:1fr}.shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-height:700px){.shop-detail{height:330px}.shop-window{padding:10px}.shop-window .shop-tile{height:100px;grid-template-rows:52px auto auto}.shop-tile .tile-art,.shop-tile .tile-art img,.shop-tile .tile-art svg{width:48px;height:48px}.shop-window h2{font-size:20px;margin-bottom:5px}}
 .detail-effect.none{color:#8d9a9a}
+
+/* loot notice (loot_notice.js): flying icon, toast over the Inventory button, button pulse */
+.loot-fly { position:fixed; left:0; top:0; z-index:60; width:44px; height:44px; pointer-events:none; border-radius:8px;
+  background:#141c26e6; border:1px solid #b89a5e; box-shadow:0 0 10px #0008; display:grid; place-items:center; }
+.loot-fly img, .loot-fly svg { width:36px; height:36px; object-fit:contain; }
+.loot-fly.green { border-color:#6fd884; box-shadow:0 0 12px #4ccf6a66; }
+.loot-toast { position:fixed; z-index:59; display:flex; align-items:center; gap:8px; padding:6px 12px 6px 6px; pointer-events:none;
+  background:#0f1620ee; border:1px solid #8c7548; border-radius:7px; color:#f0e3c4; font:13px/1.25 system-ui;
+  box-shadow:0 4px 14px #0009; animation:loot-toast 3.6s ease forwards; }
+.loot-toast img, .loot-toast svg { width:30px; height:30px; object-fit:contain; }
+.loot-toast small { display:block; color:#c9b07a; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+.loot-toast.green { border-color:#5fbf73; }
+.loot-toast.green b { color:#8fe79f; }
+@keyframes loot-toast { 0% { opacity:0; transform:translateY(8px); } 10%, 78% { opacity:1; transform:none; } 100% { opacity:0; transform:translateY(-6px); } }
+#utilitymenu .utility-button.loot-pulse { animation:loot-pulse .7s ease-out; }
+@keyframes loot-pulse { 0% { box-shadow:0 0 0 0 #ffe0a1cc; border-color:#ffe0a1; } 100% { box-shadow:0 0 0 10px #ffe0a100; } }

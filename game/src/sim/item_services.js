@@ -15,7 +15,7 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
   const near=e=>!!e&&canInteract(e)&&e.type==='hero'&&e.place==='street'&&!!shop()&&Math.hypot(e.x-shop().x,e.z-shop().z)<=SHOP.reach;
   const inv=e=>state.clans[e?.owner]?.inventory;
   function give(owner,id){const c=state.clans[owner],v=c?.inventory;if(!v||!ITEMS[id])return false;
-    const i=v.bag.indexOf(null);if(i<0)return false;v.bag[i]=id;say(c,`Found ${ITEMS[id].name}`);return true;}
+    const i=v.bag.indexOf(null);if(i<0)return false;v.bag[i]=id;state.itemGains?.push({clan:owner,id});say(c,`Found ${ITEMS[id].name}`);return true;}
   function command(e,c){
     const clan=state.clans[e?.owner],v=inv(e);if(!clan||!v||e.type!=='hero'||!canInteract(e))return;
     if(c.action==='buy'||c.action==='sell'){

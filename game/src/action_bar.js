@@ -7,6 +7,16 @@
 import { unitName } from './selection_panel.js';
 import { baseStats } from './sim/stats.js';
 import { createGroupedCrew } from './grouped_crew.js';
+import { CONSUMABLES } from './sim/gear_catalog.js';
+import { itemArt } from './item_detail.js';
+
+// Usable items share ONE action-bar slot (key B, Tim 2026-11-01): the first one carried shows
+// there with its count and cooldown sweep; nothing carried = empty frame. Add new usables here.
+export const USABLE_ITEMS = [
+  { id: 'bandage', action: 'bandage', def: CONSUMABLES.bandage, count: inv => inv.bandages || 0, readyAt: inv => inv.bandageReadyAt || 0,
+    blocked: h => h.bandaging ? 'Already bandaging' : h.hp >= h.maxHp ? 'Full health' : '',
+    about: 'Heal 25% of maximum HP over 6 s. Moving, attacking or taking damage interrupts it.' },
+];
 
 const BUFFS = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
 const BUFF_ICONS = { charming:'✦', rally:'⚡', lantern:'☀', intimidated:'☠', snared:'⛓', shroud:'◌', ambush:'⌖', veil:'◈', reprisal:'⚔', pursuit:'➤', formation:'⬟', stunned:'✹', downed:'✚' };
@@ -100,6 +110,44 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   addSlot('RMB', 'attack', null);
   for (const [k, a] of Object.entries(kit)) addSlot(k, a.kind, a);
 
+  // the usable-item slot, right of F
+  const itemSlot = el('div', 'slot item-slot empty', row), itemIcon = el('div', 'icon', itemSlot);
+  el('div', 'key', itemSlot, 'B');
+  const itemCount = el('div', 'count', itemSlot), itemSweep = el('div', 'sweep', itemSlot), itemSecs = el('div', 'secs', itemSlot);
+  let itemShown = null, itemWasReady = true;
+  const inv = () => (game.inventory?.status(hero()) || {});
+  const currentItem = () => USABLE_ITEMS.find(u => u.count(inv()) > 0) || null;
+  function useItem() {
+    const h = hero(), u = currentItem();
+    if (!h || !u || h.dead || u.blocked(h) || u.readyAt(inv()) > game.state.tick) return;
+    send({ id: heroId, type: 'item', action: u.action });
+  }
+  itemSlot.addEventListener('click', useItem);
+  itemSlot.addEventListener('mouseenter', () => {
+    const u = currentItem(), v = inv();
+    tip.innerHTML = u ? `<b>${u.def.name}</b><i>B</i><div><span>Carried</span>${u.count(v)} / ${u.def.carryLimit}</div><div><span>Cooldown</span>${u.def.cooldownSeconds} s</div><p>${u.about}</p>`
+      : '<b>Item slot</b><i>B</i><p>Usable items you carry (bandages from the blacksmith) appear here.</p>';
+    tip.hidden = false;
+    const r = itemSlot.getBoundingClientRect();
+    tip.style.left = `${Math.min(innerWidth - 270, Math.max(10, r.left + r.width / 2 - 130))}px`;
+    tip.style.bottom = `${innerHeight - r.top + 10}px`;
+  });
+  itemSlot.addEventListener('mouseleave', () => { tip.hidden = true; });
+  function updateItem(h, t) {
+    const u = currentItem(), v = inv();
+    if ((u?.id || null) !== itemShown) { itemShown = u?.id || null; itemIcon.innerHTML = u ? itemArt(u.id) : ''; }
+    itemSlot.classList.toggle('empty', !u);
+    if (!u) { itemCount.textContent = itemSecs.textContent = ''; itemSweep.style.background = 'none'; itemSlot.classList.remove('active', 'blocked'); return; }
+    const left = (u.readyAt(v) - t) / tickRate, cooling = left > 0;
+    itemCount.textContent = `${u.count(v)}/${u.def.carryLimit}`;
+    itemSweep.style.background = cooling ? `conic-gradient(transparent ${(1 - left / u.def.cooldownSeconds) * 360}deg, rgba(4,5,8,.72) 0)` : 'none';
+    itemSecs.textContent = cooling ? (left < 1 ? left.toFixed(1) : Math.ceil(left)) : '';
+    itemSlot.classList.toggle('active', !!h.bandaging);
+    itemSlot.classList.toggle('blocked', !cooling && !h.bandaging && !!u.blocked(h));
+    if (!cooling && !itemWasReady) { itemSlot.classList.remove('flash'); void itemSlot.offsetWidth; itemSlot.classList.add('flash'); }
+    itemWasReady = !cooling;
+  }
+
   // t = the current tick with the in-between fraction, so sweeps move smoothly
   function update(t) {
     const h = hero();
@@ -131,6 +179,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       sl.wasReady = !cooling;
       sl.s.classList.toggle('active', vanish > 0 || counter > 0 || pursuit > 0 || !!(sl.a.kind === 'reprisal' && h.brace) || !!(sl.a.kind === 'threefold' && h.spearCombo) || !!(sl.a.kind === 'lantern' && h.buffs?.lantern) || !!(sl.a.kind === 'dash' && h.dash));
     }
+
+    updateItem(h, t);
 
     // buffs on the hero (and Rally on any of its crew)
     const mine = Object.values(game.state.entities).filter(e => e.owner === h.owner && !e.dead);
@@ -200,5 +250,5 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.title = `${name} in jail: bail ${p.bail} ryo at the police HQ (Space at its door)`;
     });
   }
-  return { update };
+  return { update, useItem };
 }

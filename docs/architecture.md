@@ -139,6 +139,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 | `clinic_menu.js` | Clinic menu: heal and revive (below the minimap, like the hire menu). |
 | `heat_badge.js` | Heat badge and heat notices. |
 | `ryo_badge.js` | Ryo and ryo gains (`state.ryoGains`); the top-left line now shows crew only. |
+| `loot_notice.js` | Loot toast and flying icon; reads `state.itemGains` [{clan,id}], pushed by the sim per tick and reset each tick like `ryoGains`. |
 | `minimap.js` | Minimap: move the view, send or station crew. |
 | `contract_menu.js` | Contract board menu (`#contracts`) at the village shrine. |
 | `game_map.js` | Full game map (M): territory, businesses, police, units, quarters and the season score; the game keeps running. |

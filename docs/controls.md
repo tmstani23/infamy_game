@@ -11,7 +11,7 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Key | What it does |
 |---|---|
 | W A S D | Move, relative to the screen |
-| I or J / **Character** button | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Hover an equipped slot to pulse its effect on the animated hero preview. Right-click or activate carried gear to equip, or equipped gear to remove it. Supplies offers bandages and eligible War Lantern raids. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
+| J / **Character** button (I or the ▦ **Inventory** button opens it at the bag; press again to close) | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Hover an equipped slot to pulse its effect on the animated hero preview. Right-click or activate carried gear to equip, or equipped gear to remove it. Supplies offers bandages and eligible War Lantern raids. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern. At the neutral blacksmith, open Shop to buy/sell gear. |
@@ -30,6 +30,7 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | E | Intimidate: enemies within 4 steps deal 30% less damage for 5 s (14 s) |
 | R | Rally: crew within 8 steps attack 30% faster and heal 15% over 6 s (20 s) |
 | F | Red Lantern (ultimate): 8 s of 50% more damage, healing 20% of damage dealt (60 s) |
+| B or click the item slot (right of F) | Use the first usable item carried (now bandages, count x/2). Cooldown sweep and ready flash; greyed when blocked (full HP or already bandaging); dashed empty frame when none carried. |
 
 The action bar at the bottom shows the hero's health, the basic attack and the four abilities with their cooldowns (hover a slot for what it does), active buff/debuff icons with remaining time (hover for the full name), and a health pip for each crew member on the left. Pips are grouped by Hero/sectors/HQ/active Rally; click a header or normal pip to select that command group, replacing others; double-click selects only that crew member and jumps the camera to them until the hero moves or uses a door. Crew pips show their control-group number. Jailed crew show as blue pips: click one for "In jail: bail N ryo at the police HQ", double-click to jump the camera to the HQ. A blue ‖ on a name means that crew member is passive (Z). The target marker is blue and turns red while the hero attacks; crew targets get a smaller red marker. Units hidden in the fog can't be targeted.
 

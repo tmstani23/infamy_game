@@ -105,5 +105,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
       el.querySelector('p').textContent = a.about;
     }
   }
-  return { update, toggle: () => setOpen(!open), close: () => { if (open) setOpen(false); }, isOpen: () => open };
+  // I / Inventory button: open at the bag (closes if it is already open)
+  function showInventory() { if (open) return setOpen(false); setOpen(true); $('.character-inventory').scrollIntoView({ block: 'nearest' }); }
+  return { update, showInventory, toggle: () => setOpen(!open), close: () => { if (open) setOpen(false); }, isOpen: () => open };
 }
