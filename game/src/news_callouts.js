@@ -65,8 +65,8 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contra
       if (n.kind === 'contractFailedOnYou' && n.clan === me) contractCallout(`A Shinobi ${n.contractType} contract against you failed`, 'win');
       if (n.kind === 'contractWarn' && n.clan === me) shinobiAlert('SHINOBI CONTRACT TARGETING YOU · Watch your businesses');
       if (n.kind === 'stealAlert' && n.by === me) contractCallout('Spotted! The alarm is up, keep taking the ryo', 'loss');
-      if (n.kind === 'stealAlert' && n.clan === me) { shinobiAlert(`SHINOBI INSIDE YOUR ${n.place || 'BUSINESS'} · Stop the theft`); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
-      if (n.kind === 'markAlert' && n.clan === me) { shinobiAlert('SHINOBI MARK IN YOUR BACK ROOM · Interrupt the sabotage'); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+      if (n.kind === 'stealAlert' && n.clan === me) { shinobiAlert(`SHINOBI INSIDE YOUR ${(n.place || 'BUSINESS').toUpperCase()} · Stop the theft`); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
+      if (n.kind === 'markAlert' && n.clan === me) { shinobiAlert(`SHINOBI MARK IN YOUR ${(game.state.businesses[n.business]?.kind || 'BUSINESS').replace(/_/g, ' ').toUpperCase()} · Interrupt the sabotage`); minimap.ping(n.x, n.z); gameMap.ping(n.x, n.z); }
       if (n.kind === 'sabotaged' && n.clan === me) contractCallout('Sabotaged: a business paid nothing at dawn', 'loss');
     }
   }

@@ -556,7 +556,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
           const flick = 0.85 + 0.15 * Math.sin(now * 11 + i * 3) * Math.sin(now * 6.3 + i);
           body.scale.setScalar(grow);
           halo.scale.setScalar(grow * (0.9 + 0.25 * flick));
-          halo.material.opacity = 0.75 * flick;
+          halo.material.opacity = 0.42 * flick;
           // in front of him or behind him, by which side of him it is on
           const front = ox * VIEW_DIR.x + oz * VIEW_DIR.z > 0;
           body.renderOrder = heroOrder + (front ? 0.6 : -0.6);

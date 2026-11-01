@@ -21,9 +21,9 @@ const HALF_WAVE_GEO = new THREE.RingGeometry(0.93, 1, 64), BUFF_AURA_GEO = new T
 const AMBUSH_AURA_GEO = new THREE.RingGeometry(0.61, 0.79, 64);
 const STREAK_GEO = new THREE.PlaneGeometry(1, 1);
 const AURAS = {
-  lantern: { color: 0xff3a1e, size: 0.625, geo: DISC_GEO, opacity: 0.45 },
+  lantern: { color: 0xff3a1e, size: 0.625, geo: DISC_GEO, opacity: 0.20 },
   intimidated: { color: 0x7a3cff, size: 1, geo: BUFF_AURA_GEO, opacity: 0.55 },
-  rally: { color: 0xffc850, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
+  rally: { color: 0xffc850, size: 1, geo: BUFF_AURA_GEO, opacity: 0.32 },
   shroud: { color: 0x5a3c96, size: 1, geo: BUFF_AURA_GEO, opacity: 0.5 },
   ambush: { color: 0xb38aff, size: 1.1, geo: AMBUSH_AURA_GEO, opacity: 0.72 },
   veil: { color: 0x233d70, size: 1, geo: BUFF_AURA_GEO, opacity: 0.18 },

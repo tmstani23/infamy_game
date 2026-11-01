@@ -24,9 +24,9 @@ export const INDOOR_SIZE = 1;
 const BAR_W = 0.9, BAR_H = 0.09, BAR_UP = 2.35;
 const BAR_GEO = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
 // both transparent with the fill one step later, so the dark back never draws over the fill
-const BAR_BACK = new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false });
+const BAR_BACK = new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.68, depthTest: false, depthWrite: false });
 const RING_GEO = new THREE.RingGeometry(0.55, 0.68, 40);
-const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.85, depthWrite: false });
+const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.60, depthWrite: false });
 
 // Weapon glow per weapon type and which model holds what, from data/weapon_glow.json (loaded once)
 let glowConfig = null;
@@ -271,18 +271,20 @@ export class CharacterSprite {
     this.ring.position.set(x, 0.02, z);
     this.bar.position.set(x, BAR_UP * size, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
     this.nameplate.position.set(x, (BAR_UP + 0.35) * size, z);
-    this.nameplate.scale.setScalar(size);
+    this.nameplate.scale.setScalar(size * (this.heroNameplate ? 1.12 : 1));
   }
 
-  setNameplate(name, visible, color = '#d4aa5a', clan = false) {
+  setNameplate(name, visible, color = '#d4aa5a', clan = false, hero = false) {
+    this.heroNameplate = hero;
     this.nameplate.visible = !!visible && !!name;
-    const key = `${name}|${color}|${clan}`;
+    const key = `${name}|${color}|${clan}|${hero}`;
     if (!name || key === this.nameplateText) return;
     this.nameplateText = key;
     const g = this.labelContext;
     g.clearRect(0, 0, 256, 48);
-    g.fillStyle = 'rgba(8,10,14,.78)'; g.beginPath(); g.roundRect(4, 5, 248, 38, 9); g.fill();
+    g.fillStyle = 'rgba(8,10,14,.60)'; g.beginPath(); g.roundRect(4, 5, 248, 38, 9); g.fill();
     g.strokeStyle = color; g.lineWidth = 2; g.beginPath(); g.roundRect(5, 6, 246, 36, 8); g.stroke();
+    if (hero) { g.lineWidth = 1; g.beginPath(); g.roundRect(9, 10, 238, 28, 5); g.stroke(); }
     if (clan) {
       g.fillStyle = color; g.beginPath(); g.arc(231, 24, 14, 0, Math.PI * 2); g.fill();
       drawCrest(g, 231, 24, 10);

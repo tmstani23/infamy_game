@@ -21,7 +21,10 @@ export function createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, 
       scoreTick = game.state.tick;
       const t = scoreText(); if ($('score').innerHTML !== t) $('score').innerHTML = t;
       // hover: where each clan's points come from (sim/territory.js breakdown)
-      const why = game.territory ? game.territory.standings().map(r => `${r.clan === 'player' ? 'You' : game.state.clans[r.clan]?.name}: ${game.territory.breakdown(r.clan).map(x => `${x.label} ${x.points}`).join(' + ') || 'no businesses'} = ${r.score}`).join('\n') : '';
+      const owner = game.state.entities[heroId]?.owner, c = game.state.clans[owner];
+      const crew = `Crew ${game.clans.crewOf(owner).length} in roster (hero and house guards excluded). Occupied slots ${game.clans.crewCount(owner) + (c?.queue?.length || 0)} / unlocked cap ${game.clans.crewCap(owner)}: roster + clinic ${c?.clinic?.length || 0} + jail ${c?.jail?.length || 0} + respawning ${c?.respawning?.length || 0} + queued hires ${c?.queue?.length || 0}.`;
+      const scores = game.territory ? game.territory.standings().map(r => `${r.clan === 'player' ? 'You' : game.state.clans[r.clan]?.name}: ${game.territory.breakdown(r.clan).map(x => `${x.label} ${x.points}`).join(' + ') || 'no businesses'} = ${r.score}`).join('\n') : '';
+      const why = `${crew}\n${scores}`;
       if ($('score').title !== why) $('score').title = why;
     }
   }

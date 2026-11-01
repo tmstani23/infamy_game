@@ -313,7 +313,8 @@ async function start() {
     const clock = game.state.clock;
     const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
     const timer = timeLeft == null ? '' : ` · ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
-    return `Day ${Math.min(s.day, s.cycles)}/${s.cycles}${timer} · ${parts.join(' · ')}`;
+    const owner = game.state.entities[heroId]?.owner;
+    return `Crew ${game.clans.crewOf(owner).length} (cap ${game.clans.crewCap(owner)}) · Day ${Math.min(s.day, s.cycles)}/${s.cycles}${timer} · ${parts.join(' · ')}`;
   };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
