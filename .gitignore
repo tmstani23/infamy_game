@@ -3,3 +3,10 @@
 
 # Local archives and files awaiting manual cleanup.
 /to_delete/
+/assets/sprites_archive/
+
+# Generated local diagnostics and sprite review outputs.
+/look_tests/perf/
+/look_tests/tank_sprite_preview/
+/look_tests/kuroda_sprite_preview/
+/debug.log
