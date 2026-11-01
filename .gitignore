@@ -5,6 +5,9 @@
 /to_delete/
 /assets/sprites_archive/
 
+# FBX source models: large, kept on disk and backed up outside git (Tim 2026-11-01).
+/assets/models/
+
 # Generated local diagnostics and sprite review outputs.
 /look_tests/perf/
 /look_tests/tank_sprite_preview/
