@@ -199,7 +199,7 @@ Economy catch-up (2026-10-28): current dawn payouts are doubled versus the origi
 
 - Business revenue -40%. Diminishing returns: businesses 1-4 pay full, each later one pays 10% less than the one before, never below 60%, so many businesses still matter.
 - Property clans earn 75 Renown for a successful business raid, 35 for a successful Shakedown, 50 for a qualifying paid Sweep, 15 for stopping a Shinobi job on their business, and 5 for a sector clear. Sweep Renown requires meaningful resistance and a positive reward through the shared payout/cooldown claim; empty or cooldown-blocked Sweeps earn none. Sector-clear Renown can stack with a qualifying Sweep. Renown counts toward season points (50 Renown = 1 point, `season.renownPerPoint`), not crew slots. Only the clan that earned a positive reward gets its Renown feedback. HQ raids retain their separate 2 season points and award no extra Renown.
-- Shinobi cannot buy or capture businesses and do not receive business payouts. Purchase and raid rejection does not spend ryo or consume a War Lantern. An existing historical Shinobi-owned business is not reset automatically, but receives no payout.
+- Shinobi cannot buy or capture businesses or War Lanterns and do not receive business payouts. The purchase guard rejects Shinobi before any ryo debit or lantern grant (player/bot checks passed 2026-11-01); raid rejection likewise spends no ryo or lantern. An existing historical Shinobi-owned business is not reset automatically, but receives no payout.
 - Raid limit: each clan may raid each rival at most once per night.
 - Checklist: `playtest_followup_plan.md` phase 8.
 

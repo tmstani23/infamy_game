@@ -54,14 +54,14 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
   const say = noticeFor(state);
   const unitsOf = id => Object.values(state.entities).filter(e => e.owner === id && alive(e));
   const businessScore = clan => Object.values(state.businesses).reduce((n, b) => n + (b.owner === clan && !b.hideout ? scores[b.kind] || 0 : 0), 0);
-  // Board quotes follow public business strength. Accepted jobs retain their
+  // Ryo quotes follow public business strength; Renown is fixed by job kind. Accepted jobs retain their
   // quoted reward and theft ceiling even if ownership changes elsewhere.
   function quote(job) {
     if (job.rewardLocked) return { ryo: job.ryo, renown: job.renown, businessScore: job.businessScore,
       multiplier: job.multiplier, stealCap: job.stealCap, stealShare: job.stealShare, hiddenBonusShare: job.hiddenBonusShare ?? R.hiddenBonusShare };
     const score = job.target ? businessScore(job.target) : 0, base = R[job.kind];
     const multiplier = 1 + score * R.rewardPerBusinessPoint;
-    return { ryo: base.ryo == null ? null : Math.round(base.ryo * multiplier), renown: Math.round(base.renown * multiplier),
+    return { ryo: base.ryo == null ? null : Math.round(base.ryo * multiplier), renown: base.renown,
       businessScore: score, multiplier, hiddenBonusShare: R.hiddenBonusShare, ...(job.kind === 'steal' ? {
         stealCap: R.steal.max + score * R.steal.capPerBusinessPoint, stealShare: R.steal.share } : {}) };
   }

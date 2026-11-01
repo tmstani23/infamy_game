@@ -36,17 +36,20 @@ function fixture() {
     assert.ok(f.state.contracts.board.every(j => !f.state.businesses[j.business]?.hideout), 'no HQ contracts');
   }
   const job = f.take('scout');
-  assert.equal(job.ryo, 300); assert.equal(job.renown, 30);
+  assert.equal(job.ryo, 300); assert.equal(job.renown, 15);
   assert.equal(job.rewardLocked, true);
   f.state.businesses.manor.owner = 'other';
   assert.equal(f.contracts.quote({ kind: 'scout', target: 'rival' }).ryo, 240, 'new board quotes reflect current strength');
   assert.equal(f.contracts.quote(job).ryo, 300, 'accepted reward stays fixed');
+  assert.equal(f.contracts.quote(job).renown, 15, 'accepted Renown stays fixed');
+  for (const kind of ['scout', 'mark', 'steal', 'boss', 'bandits'])
+    assert.equal(f.contracts.quote({ kind, target: 'rival' }).renown, units.rules.contracts[kind].renown, 'Renown ignores business score');
   Object.assign(f.ninja, { place: 'teahouse' }); f.tick(20 * 11);
-  assert.equal(f.state.clans.shinobi.ryo, 300); assert.equal(f.state.clans.shinobi.renown, 30);
+  assert.equal(f.state.clans.shinobi.ryo, 300); assert.equal(f.state.clans.shinobi.renown, 19);
 }
 {
   const f = fixture(), job = f.take('steal');
-  assert.equal(job.stealCap, 1500); assert.equal(job.renown, 50);
+  assert.equal(job.stealCap, 1500); assert.equal(job.renown, 25);
   assert.match(f.contracts.reward(job), /max 1500/);
   f.state.businesses.manor.owner = 'other';
   Object.assign(f.ninja, { place: 'teahouse', x: 20, z: 20 });
@@ -57,27 +60,27 @@ function fixture() {
     const t = fixture(); t.take('steal'); t.state.clans.rival.ryo = treasury;
     Object.assign(t.ninja, { place: 'teahouse', x: 20, z: 20 }); t.tick(STEAL_TICKS);
     assert.equal(t.state.clans.shinobi.ryo, treasury * .2, 'actual payout uses completion-time treasury, including zero');
-    assert.equal(t.state.clans.shinobi.renown, 50);
+    assert.equal(t.state.clans.shinobi.renown, 31);
   }
 }
 {
   const f = fixture(), job = f.take('mark');
-  assert.equal(job.ryo, 600); assert.equal(job.renown, 60);
-  f.state.night = true; Object.assign(f.ninja, { place: 'teahouse', x: 10, z: 10 }); f.tick(20 * 65);
+  assert.equal(job.ryo, 600); assert.equal(job.renown, 30);
+  f.state.night = true; Object.assign(f.ninja, { place: 'teahouse', x: 10, z: 10 }); f.tick(20 * 95);
   assert.equal(f.state.businesses.teahouse.sabotaged, true);
   assert.equal(f.state.clans.shinobi.ryo, 600);
   const b = fixture(); b.take('boss'); b.state.hits = [{ a: 'ninja', t: 'boss', kill: true }]; b.tick();
-  assert.equal(b.state.clans.shinobi.ryo, 800); assert.equal(b.state.clans.shinobi.renown, 80);
+  assert.equal(b.state.clans.shinobi.ryo, 800); assert.equal(b.state.clans.shinobi.renown, 40);
   const town = fixture(), bandits = town.take('bandits');
   assert.equal(bandits.ryo, 200); assert.equal(bandits.renown, 20, 'town contracts never scale with rival strength');
 }
-for (const reason of ['drop', 'dawn', 'owner']) {
+for (const reason of ['drop', 'owner']) {
   const f = fixture(); f.take('scout');
   const warning = f.state.news.find(n => n.kind === 'contractWarn');
   assert.equal(warning.contractType, undefined, 'initial warning exposes no type');
   f.state.news = [];
   if (reason === 'drop') f.contracts.command(f.ninja, { action: 'drop' });
-  else { if (reason === 'dawn') f.state.dawn = true; else f.state.businesses.teahouse.owner = 'other'; f.tick(); }
+  else { f.state.businesses.teahouse.owner = 'other'; f.tick(); }
   const alert = f.state.news.find(n => n.kind === 'contractFailedOnYou');
   assert.equal(alert.clan, 'rival'); assert.equal(alert.contractType, 'Scout');
   assert.equal(f.state.clans.shinobi.ryo, 0);

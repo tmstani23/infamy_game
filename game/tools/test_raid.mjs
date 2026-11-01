@@ -26,6 +26,17 @@ const hero = g.spawn('hero', 'ronin', ml.ring[0], ml.ring[1], { owner: 'player' 
 const h = g.state.entities[hero];
 const cmd = (action, b) => g.step([{ id: hero, type: 'business', action, business: b.id }]);
 
+// Shared command refuses Shinobi purchases for players and bots, without spending.
+for (const bot of [false, true]) {
+  const originalKind = clan.kind, originalBot = clan.bot;
+  Object.assign(clan, { kind: 'ninja', bot, ryo: RD.lanternPrice * 2, lanterns: 0 });
+  assert.equal(g.businesses.canBuyLantern(hero, ml.id).ok, false);
+  cmd('lantern', ml);
+  assert.equal(clan.ryo, RD.lanternPrice * 2);
+  assert.equal(clan.lanterns, 0);
+  Object.assign(clan, { kind: originalKind, bot: originalBot });
+}
+
 // the lantern: price, carry one
 clan.ryo = 100;
 assert.equal(g.businesses.canBuyLantern(hero, ml.id).why, `Need ${RD.lanternPrice} ryo`);

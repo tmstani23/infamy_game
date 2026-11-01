@@ -76,7 +76,7 @@ Phase 3E access (Tim, 2026-10-21): all ten ownable businesses have Shinobi back-
 ## Phase 3G rules (Tim, 2026-10-21)
 
 - Rival HQs are off-limits through fronts, back windows and crew commands, including legacy contracts. Own HQ access remains. Steal, Scout and Sabotage target scoring rival-owned businesses, never HQs or services.
-- Clan-target ryo/Renown uses rounded base reward × (1 + 0.1 × target owned business score). Board quotes follow current strength; acceptance locks rewards. Town/bandit jobs are unchanged.
+- Clan-target ryo uses rounded base reward × (1 + 0.1 × target owned business score). Renown now stays at its fixed per-kind base; board quotes follow current strength and acceptance locks both rewards. Town/bandit jobs are unchanged.
 - Steal takes 20% of completion-time treasury, capped at the accepted 500 + 100 × target owned business score. Zero treasury pays zero ryo but normal Renown.
 - Initial defender warning stays generic; failure reveals contract type. Reveal-triggered theft alerts name the business.
 - Shinobi earn +2 Renown per rival crew execution and +8 per rival leader defeat, including crew actions, stacking with contracts. Knockdowns alone give no crew Renown; wild enemies, police, civilians and house guards give no passive Renown. Existing cash bounty/claim rules remain.
@@ -228,7 +228,11 @@ Initial tuning: `rules.contracts.acceptIntervalSeconds = 120`, enforced start-to
 
 Short mathematical comparison using actual data, score-one target, hidden completion, twenty-second travel, unlimited jobs and no combat: per 600 seconds, Scout 24 jobs/504 Renown becomes 5/105; Steal 17/595 becomes 5/175; Mark 11/451 becomes 5/205. These are illustrative upper bounds, not full-match simulations or established pacing targets.
 
-Coordinator reports passing contract-pacing/refill/anytime, hidden-contract-bonus, reward-popups, Shinobi-HQ-raid, crew-services, mark-scrub, ninja-bot (40 Renown), crew, businesses, police, clinic-unhit and sector-playtest checks; diff check clean. No browser run. Existing `test_shinobi_pass` line 45 fails 38 versus 30, reproduced identically against pre-phase-4 HEAD contracts: stale expectations omit pre-existing hidden bonus and later expect dawn expiry. Maintenance remains queued; no gameplay alteration to satisfy this old test. [Treasury audit and unresolved reported loss](business_raids_plan.md#treasury-loss-audit-checkpoint-2026-10-29).
+Coordinator reported passing contract-pacing/refill/anytime, hidden-contract-bonus, reward-popups, Shinobi-HQ-raid, crew-services, mark-scrub, ninja-bot, crew, businesses, police, clinic-unhit and sector-playtest checks; diff check clean. The previously stale `test_shinobi_pass` expectations for the hidden bonus and dawn expiry were updated in the capital checkpoint below; the dedicated anytime test covers persistence. No browser run is claimed. [Treasury audit and unresolved reported loss](business_raids_plan.md#treasury-loss-audit-checkpoint-2026-10-29).
+
+## Capital-only reward checkpoint (2026-11-01; built and Node-verified)
+
+Clan-target contract ryo still scales with target business score and Steal keeps its accepted 500 + 100 per business-point cap; accepted quotes stay locked. Renown is now fixed per kind: Scout 15, Mark/Sabotage 30, Steal 25, boss 40 and bandits 20. The actual hidden finisher still earns rounded 25% extra once for eligible jobs: Scout 19 total, Mark/Sabotage 38, Steal 31. Boss and bandits get no hidden bonus. Shinobi combat Renown remains 8 for a rival leader defeat and 2 for a rival crew execution, including allied crew finishers; same-clan, guards and non-clan victims are excluded. Focused raid, Shinobi pass, contract pacing, hidden bonus and anytime tests passed. The pass fixture now runs beyond the existing 75-second alert window. Browser balance/visual review remains pending; this checkpoint does not implement frontier systems.
 
 ## Planned: Shinobi alert window (Tim 2026-10-30, phase 8, not built)
 

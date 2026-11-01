@@ -63,6 +63,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
     const b = state.businesses[businessId], e = actorFor(heroId, b), clan = state.clans?.[e?.owner], price = RD.lanternPrice;
     if (!b || b.kind !== 'moneylender') return { ok: false, why: 'Not sold here', price };
     if (!able(e) || !clan) return { ok: false, why: 'Your boss cannot buy now', price };
+    if (clan.kind === 'ninja') return { ok: false, why: 'Shinobi cannot buy War Lanterns', price };
     if ((clan.lanterns || 0) >= RD.lanternCarry) return { ok: false, why: `You can carry ${RD.lanternCarry}`, price };
     if (!atDoor(e, b)) return { ok: false, why: 'Walk to its door to buy', price };
     if ((clan.ryo || 0) < price) return { ok: false, why: `Need ${price} ryo`, price };

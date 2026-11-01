@@ -61,7 +61,7 @@ for (const treasury of [0, 9, 1000, 10000]) {
   const stolen = Math.min(600, Math.floor(treasury * .2));
   assert.equal(state.clans.r.ryo, treasury - stolen);
   assert.equal(state.clans.s.ryo, stolen, 'treasury loss and thief payment agree');
-  assert.equal(state.clans.s.renown, 35, 'existing quoted/hidden reward unchanged');
+  assert.equal(state.clans.s.renown, 31, 'fixed base reward plus rounded hidden bonus');
   assert.equal(state.ryoLosses?.length || 0, stolen ? 1 : 0, 'completion cannot debit twice');
   if (stolen) {
     const entry = state.ryoLosses[0];
@@ -85,7 +85,7 @@ for (const treasury of [0, 9, 1000, 10000]) {
 for (const kind of ['scout', 'steal', 'mark']) {
   const r = rules[kind], work = kind === 'mark' ? r.plantSeconds + r.holdSeconds : r.seconds;
   const seconds = 20 + work / rules.hiddenProgressRate;
-  const quoted = Math.round(r.renown * (1 + rules.rewardPerBusinessPoint));
+  const quoted = r.renown;
   const renown = quoted + Math.round(quoted * rules.hiddenBonusShare);
   const oldJobs = Math.floor(600 / seconds), newJobs = Math.floor(600 / Math.max(seconds, rules.acceptIntervalSeconds));
   console.log(`${kind}: 10-minute upper bound ${oldJobs * renown} → ${newJobs * renown} Renown (${oldJobs} → ${newJobs} jobs)`);
