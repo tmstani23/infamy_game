@@ -1,0 +1,99 @@
+<div id="frontier-atlas">
+  <h3>The frontier · island draft</h3>
+  <div class="viz-row text-small"><span>24 full regions + 12 coastal regions</span><span>·</span><span>14,000 × 8,000 world units</span></div>
+  <div id="atlas-canvas"></div>
+  <div class="viz-row"><button class="btn" type="button" id="atlas-borders" aria-pressed="true">Region boundaries</button><button class="btn" type="button" id="atlas-roads" aria-pressed="true">Travel routes</button></div>
+  <div id="atlas-detail" class="text-small" aria-live="polite">01–24: full land regions · C1–C12: coastal additions · dashed gold route: 50 minutes running</div>
+  <style>
+  #frontier-atlas{display:grid;gap:calc(var(--font-size-base)*.6)}
+  #frontier-atlas svg{display:block;width:100%;height:auto}
+  #frontier-atlas text{font:400 12px system-ui,sans-serif;fill:var(--foreground)}
+  #frontier-atlas .region-label{paint-order:stroke;stroke:var(--background);stroke-width:3;stroke-opacity:.8}
+  #frontier-atlas .ink{fill:none;stroke:var(--foreground);stroke-opacity:.5;stroke-width:1}
+  #frontier-atlas .boundary{stroke:var(--foreground);stroke-opacity:.24;stroke-width:1;fill:none}
+  #frontier-atlas .main-road{fill:none;stroke:var(--yellow);stroke-width:2.2;stroke-dasharray:6 4}
+  #frontier-atlas .branch-road{fill:none;stroke:var(--yellow);stroke-opacity:.65;stroke-width:1.4;stroke-dasharray:2 4}
+  #frontier-atlas .coast{fill:none;stroke:var(--foreground);stroke-width:1.5;stroke-opacity:.7}
+  #frontier-atlas .region-hit:hover{fill:var(--foreground);fill-opacity:.09}
+  #frontier-atlas .atlas-legend{display:flex;flex-wrap:wrap;gap:calc(var(--font-size-base)*.7)}
+  </style>
+  <div class="atlas-legend text-small"><span>❄ Northern snowfields</span><span>△ Central mountains</span><span>≈ Eastern coast</span><span>Western desert</span><span>Rice valleys</span><span>Southern rainforest</span></div>
+  <script>
+  (()=>{
+    const root=document.getElementById('frontier-atlas'),host=root.querySelector('#atlas-canvas'),detail=root.querySelector('#atlas-detail');
+    // Fictional geography, world units. The entire 6×4 interior is land.
+    const coast=[[0,3700],[350,2200],[1100,1400],[1800,700],[3000,1000],[4200,400],[5600,0],[6900,600],[8200,250],[9600,700],[11000,350],[12300,950],[13000,1900],[13500,2800],[13700,3700],[14000,4500],[13200,5000],[13500,6000],[12600,7150],[11600,7500],[10300,7200],[9000,8000],[7600,7450],[6200,7700],[4900,7300],[3500,7750],[2300,7100],[1600,7000],[1100,6000],[450,5500],[700,4600]];
+    let seed=31872;const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+    function clip(poly,x0,y0,x1,y1){
+      for(const [axis,v,sign]of [[0,x0,1],[0,x1,-1],[1,y0,1],[1,y1,-1]]){
+        const out=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],ia=sign*(a[axis]-v)>=0,ib=sign*(b[axis]-v)>=0;
+          if(ia)out.push(a);if(ia!==ib){const t=(v-a[axis])/(b[axis]-a[axis]);out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}}
+        poly=out;if(!poly.length)break;
+      }return poly;
+    }
+    const area=p=>Math.abs(p.reduce((a,q,i)=>{const r=p[(i+1)%p.length];return a+q[0]*r[1]-r[0]*q[1];},0))/2;
+    const center=p=>{let k=0,x=0,y=0;for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length],c=a[0]*b[1]-b[0]*a[1];k+=c;x+=(a[0]+b[0])*c;y+=(a[1]+b[1])*c;}return[x/(3*k),y/(3*k)];};
+    const biome=(x,y)=>x>12100?'Coastal plain':y<2450?'Snow highlands':x<4500&&y>2700&&y<6200?'Dry basin':x>8800&&y>5700?'Rainforest':x>8200?'Rice valley':x>4800&&x<8100?'Mountain forest':'Temperate woodland';
+    const colors={'Coastal plain':'var(--blue)','Snow highlands':'var(--foreground)','Dry basin':'var(--yellow)','Rainforest':'var(--green)','Rice valley':'var(--orange)','Mountain forest':'var(--purple)','Temperate woodland':'var(--green)'};
+    const names=['Frostpine','White Crane','Snowgate','Northern Crown','Silver Lake','Cold Harbor','Red Dunes','Amber Basin','Cloud Pass','Cedar March','Jade Fields','Eastern Reach','Sunken Sands','Ochre Mesa','Three Passes','Bamboo Vale','River Granary','Harbor Hinterland','Dry Frontier','Western Timber','Moss Highlands','Rainwood','Emerald Canopy','Southern Wetlands'];
+    const nodes=Array.from({length:5},(_,r)=>Array.from({length:7},(_,c)=>[1750+c*1750+(c&&c<6&&r&&r<4?(random()-.5)*240:0),1200+r*1400+(c&&c<6&&r&&r<4?(random()-.5)*200:0)]));
+    const regions=[];
+    for(let r=0;r<4;r++)for(let c=0;c<6;c++){const p=[nodes[r][c],nodes[r][c+1],nodes[r+1][c+1],nodes[r+1][c]],q=center(p),id=String(r*6+c+1).padStart(2,'0');regions.push({id,name:names[r*6+c],p,q,full:true,biome:biome(...q)});}
+    const boxes=[];
+    for(let c=0;c<3;c++)boxes.push([c*14000/3,0,(c+1)*14000/3,1200]);
+    for(let c=0;c<3;c++)boxes.push([c*14000/3,6800,(c+1)*14000/3,8000]);
+    for(let r=0;r<3;r++)boxes.push([0,1200+r*5600/3,1750,1200+(r+1)*5600/3]);
+    for(let r=0;r<3;r++)boxes.push([12250,1200+r*5600/3,14000,1200+(r+1)*5600/3]);
+    boxes.forEach((b,i)=>{const p=clip(coast,...b),q=center(p);regions.push({id:'C'+(i+1),name:['Northwest Cape','Northern Fjords','Northeast Cape','Western Cape','Southern Marshes','Monsoon Coast','West Cliffs','Dune Coast','Southwest Inlet','East Cliffs','Capital Coast','Southeast Inlet'][i],p,q,full:false,biome:biome(...q)});});
+    const xs=[600,2100,3500,4900,6300,7700,9100,10500,12000,13700],wave=[0,-1,.9,-.8,1,-.85,.8,-.8,.7,.1];
+    const makeRoute=a=>xs.map((x,i)=>[x,4000+wave[i]*a]),length=p=>p.slice(1).reduce((n,b,i)=>n+Math.hypot(b[0]-p[i][0],b[1]-p[i][1]),0);
+    let lo=0,hi=2000;for(let i=0;i<60;i++){const m=(lo+hi)/2;if(length(makeRoute(m))<18000)lo=m;else hi=m;}const road=makeRoute((lo+hi)/2);
+    const capital=road[9],first=road[8];
+    const mountains=[];for(let i=0;i<75;i++){const y=1200+random()*5400,x=5000+(y-1200)*.4+(random()-.5)*1800;if(Math.min(...road.map(p=>Math.hypot(p[0]-x,p[1]-y)))>420)mountains.push([x,y,150+random()*180]);}
+    let borders=true,roads=true;
+    function draw(){
+      const w=Math.max(300,host.clientWidth),pad=22,mw=w-2*pad,mh=mw*8000/14000,h=mh+102,X=x=>pad+x/14000*mw,Y=y=>30+y/8000*mh;
+      const points=p=>p.map(q=>`${X(q[0])},${Y(q[1])}`).join(' '),label=(x,y,t,anchor='middle')=>`<text x="${x}" y="${y}" text-anchor="${anchor}" class="region-label">${t}</text>`;
+      let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Painted fictional island with 24 numbered full land regions and 12 coastal additions; existing capital on east coast; measured 50-minute route"><defs><clipPath id="frontier-coast"><polygon points="${points(coast)}"/></clipPath><filter id="atlas-grain"><feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="3" seed="8"/><feColorMatrix type="saturate" values="0"/></filter></defs>`;
+      s+=`<rect x="${pad}" y="30" width="${mw}" height="${mh}" fill="var(--blue)" fill-opacity=".09"/>`;
+      for(let y=800;y<8000;y+=700)s+=`<path d="M${X(0)} ${Y(y)}Q${X(7000)} ${Y(y-450)} ${X(14000)} ${Y(y)}" fill="none" stroke="var(--blue)" stroke-opacity=".12"/>`;
+      s+=`<polygon points="${points(coast)}" fill="var(--background)"/>`;
+      for(const r of regions)s+=`<polygon points="${points(r.p)}" fill="${colors[r.biome]}" fill-opacity="${r.biome==='Snow highlands'?'.12':r.biome==='Dry basin'?'.24':'.19'}"/>`;
+      s+=`<g clip-path="url(#frontier-coast)"><rect x="${pad}" y="30" width="${mw}" height="${mh}" filter="url(#atlas-grain)" opacity=".065"/>`;
+      // Repeated terrain strokes suggest ink illustrations, not unique art assets.
+      let nseed=943;const rnd=()=>((nseed=(Math.imul(nseed,1664525)+1013904223)>>>0)/4294967296);
+      for(let i=0;i<460;i++){
+        const x=rnd()*14000,y=rnd()*8000,b=biome(x,y),px=X(x),py=Y(y),k=mw/700;
+        if(b==='Dry basin')s+=`<path class="ink" stroke-opacity=".2" d="M${px-7*k} ${py+2*k}q${7*k} ${-6*k} ${17*k} 0m${-15*k} ${3*k}q${6*k} ${-3*k} ${12*k} 0"/>`;
+        else if(b==='Rice valley')s+=`<path d="M${px-5*k} ${py-3*k}l${9*k} ${2*k}v${6*k}l${-9*k} ${-2*k}Zm0 ${3*k}l${9*k} ${2*k}" fill="none" stroke="var(--orange)" stroke-opacity=".28"/>`;
+        else if(b.includes('wood')||b.includes('forest')||b==='Rainforest')s+=`<path d="M${px} ${py+5*k}v${-9*k}m${-4*k} ${4*k}l${4*k} ${-7*k}l${4*k} ${7*k}m${-9*k} ${1*k}l${5*k} ${-6*k}l${5*k} ${6*k}" fill="none" stroke="var(--green)" stroke-opacity=".38"/>`;
+      }
+      for(const [x,y,size]of mountains){const z=size/14000*mw; s+=`<path d="M${X(x)-z} ${Y(y)+z*.7}l${z} ${-z*1.5}l${z*1.2} ${z*1.5}M${X(x)} ${Y(y)-z*.8}l${-z*.1} ${z*.65}l${z*.65} ${z*.85}" fill="var(--background)" fill-opacity=".7" stroke="var(--foreground)" stroke-opacity=".45" stroke-width="1"/>`;if(y<2600)s+=`<path d="M${X(x)-z*.3} ${Y(y)-z*.35}l${z*.3} ${-z*.45}l${z*.36} ${z*.45}Z" fill="var(--foreground)" fill-opacity=".4"/>`;}
+      s+=`<path d="M${X(8500)} ${Y(1700)}C${X(10800)} ${Y(2600)} ${X(8500)} ${Y(5000)} ${X(11800)} ${Y(7200)}" fill="none" stroke="var(--blue)" stroke-opacity=".7" stroke-width="2"/>`;
+      if(borders)for(const r of regions)s+=`<polygon class="boundary" points="${points(r.p)}"/>`;
+      if(roads){s+=`<polyline class="main-road" points="${points(road)}"/>`;s+=`<polyline class="branch-road" points="${points([road[2],[4200,2100],[7800,1600],road[7],capital])}"/><polyline class="branch-road" points="${points([road[1],[4200,6200],[8500,6400],first])}"/>`;}
+      s+='</g>';
+      for(const r of regions){s+=label(X(r.q[0]),Y(r.q[1])+4,r.id);s+=`<polygon class="region-hit cursor-interaction" data-region="${r.id}" points="${points(r.p)}" fill="transparent" data-tooltip="${r.id} · ${r.name} · ${r.biome}"/>`;}
+      const site=(p,name,isCapital)=>{
+        const a=600/14000*mw;
+        s+=`<rect x="${X(p[0])-a/2}" y="${Y(p[1])-a/2}" width="${a}" height="${a}" fill="var(--yellow)" fill-opacity=".2" stroke="var(--yellow)" stroke-width="1.5"/>`;
+        if(isCapital)s+=`<rect x="${X(p[0])-212/14000*mw/2}" y="${Y(p[1])-150/8000*mh/2}" width="${212/14000*mw}" height="${150/8000*mh}" fill="var(--foreground)"/>`;
+        s+=label(X(p[0])-4,Y(p[1])+(isCapital?25:-20),name,'end');
+      };
+      site(capital,w<500?'Capital':'Capital · east harbor',true);site(first,w<500?'First site':'First settlement',false);
+      if(w>550){s+=label(X(2800),Y(4100),'WESTERN DRY BASIN');s+=label(X(7600),Y(750),'SNOWCAPPED NORTH');s+=label(X(10500),Y(6200),'MONSOON FORESTS');}
+      s+=`<polygon class="coast" points="${points(coast)}"/>`;
+      s+=label(w-pad,18,'N ↑','end');
+      for(const x of [0,7000,14000])s+=label(X(x),Y(8000)+22,x.toLocaleString(),x===0?'start':x===14000?'end':'middle');
+      s+=label(w/2,Y(8000)+42,'East–west distance · world units');
+      s+=`<path d="M${X(0)} ${Y(8000)+60}H${X(2000)}" stroke="var(--foreground)" stroke-width="2"/>`;
+      s+=label(X(2300),Y(8000)+64,w<500?'2,000 u · 5.6 min':'2,000 units · 5.6 min running','start');
+      s+='</svg>';host.innerHTML=s;
+      host.querySelectorAll('[data-region]').forEach(el=>el.addEventListener('click',()=>{const r=regions.find(r=>r.id===el.dataset.region);detail.textContent=`${r.id} · ${r.name} · ${r.biome} · ${r.full?'Full land':'Coastal addition'} · ${(area(r.p)/1000000).toFixed(2)} million square units`;}));
+    }
+    root.querySelector('#atlas-borders').addEventListener('click',e=>{borders=!borders;e.currentTarget.setAttribute('aria-pressed',String(borders));draw();});
+    root.querySelector('#atlas-roads').addEventListener('click',e=>{roads=!roads;e.currentTarget.setAttribute('aria-pressed',String(roads));draw();});
+    new ResizeObserver(draw).observe(host);draw();
+  })();
+  </script>
+</div>

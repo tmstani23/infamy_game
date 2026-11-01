@@ -1,0 +1,64 @@
+<div id="island-plan">
+  <h3>Island draft · measured planning layout</h3>
+  <div class="viz-row text-small"><span>14,000 × 7,000 world units</span><span>•</span><span>One grid cell: 2,000 × 1,750</span></div>
+  <div id="island-map"></div>
+  <div class="viz-row"><button type="button" class="btn" id="island-grid" aria-pressed="true">Planning grid</button><span class="text-small">★ Capital · □ Settlement site · dashed line: cross-island route</span></div>
+  <div id="island-detail" class="text-small" aria-live="polite">Cross-island route: 18,000 units · 50 min at hero run speed 6 · terrain delays excluded</div>
+  <style>
+  #island-plan{display:grid;gap:calc(var(--font-size-base)*.6)}
+  #island-plan svg{display:block;width:100%;height:auto}
+  #island-plan svg text{fill:var(--foreground);font:400 12px system-ui,sans-serif}
+  #island-plan .land{fill:var(--viz-series-2);fill-opacity:.12;stroke:var(--foreground);stroke-width:1.4}
+  #island-plan .grid{stroke:var(--border);stroke-width:1;fill:none}
+  #island-plan .route{stroke:var(--viz-series-1);stroke-width:2;stroke-dasharray:6 4;fill:none}
+  #island-plan .mountain{stroke:var(--muted-foreground);stroke-width:1.2;fill:var(--muted);fill-opacity:.6}
+  #island-plan .site{fill:var(--viz-series-1);fill-opacity:.16;stroke:var(--viz-series-1);stroke-width:1.5}
+  #island-plan .water{fill:var(--viz-series-3);fill-opacity:.18;stroke:var(--viz-series-3);stroke-width:1}
+  </style>
+  <script>
+  (()=>{
+    const root=document.getElementById('island-plan'),host=root.querySelector('#island-map'),detail=root.querySelector('#island-detail');
+    const coast=[[0,3500],[500,2200],[1800,1300],[3000,1700],[4100,400],[5600,0],[7000,500],[8200,300],[9800,1000],[11200,900],[12400,2100],[13500,2600],[14000,4100],[13100,4900],[12500,6200],[11000,6500],[9800,7000],[8400,6400],[7300,6700],[6200,5700],[4700,6100],[3600,5400],[2200,5800],[1400,4700],[500,4500]];
+    const xs=[700,2200,3500,4800,6200,7600,9000,10400,11900,13500],wave=[0,-1,.9,-.8,1,-.85,.8,-.8,.7,.5];
+    const points=a=>xs.map((x,i)=>[x,3500+wave[i]*a]);
+    const length=p=>p.slice(1).reduce((sum,q,i)=>sum+Math.hypot(q[0]-p[i][0],q[1]-p[i][1]),0);
+    let lo=0,hi=2000;for(let n=0;n<60;n++){const mid=(lo+hi)/2;if(length(points(mid))<18000)lo=mid;else hi=mid;}
+    const route=points((lo+hi)/2);
+    const sites=[{x:700,y:3500,name:'Existing capital',kind:'capital',info:'Existing capital footprint: 212 × 150 units; outer settlement envelope: 600 × 600.'},
+      {x:route[1][0],y:route[1][1],name:'First settlement',kind:'site',info:'600 × 600 buildable envelope; '+(Math.hypot(route[1][0]-route[0][0],route[1][1]-route[0][1])/360).toFixed(1)+' min from capital along this route.'},
+      {x:7600,y:1500,name:'Northern capital',kind:'capital',info:'Possible future capital site; optional, not an implementation commitment.'},
+      {x:11500,y:4900,name:'Eastern capital',kind:'capital',info:'Possible future capital site; optional, not an implementation commitment.'},
+      {x:4800,y:3500+wave[3]*(lo+hi)/2,name:'Pass settlement',kind:'site',info:'600 × 600 prepared settlement envelope on the cross-island corridor.'},
+      {x:9000,y:3500+wave[6]*(lo+hi)/2,name:'River settlement',kind:'site',info:'600 × 600 prepared settlement envelope; resource placement remains flexible.'}];
+    let showGrid=true;
+    function draw(){
+      const w=Math.max(300,host.clientWidth),pad=34,mw=w-2*pad,mh=mw/2,h=mh+100,X=x=>pad+x/14000*mw,Y=y=>30+y/7000*mh;
+      const xy=p=>`${X(p[0])},${Y(p[1])}`,poly=p=>p.map(xy).join(' ');
+      const label=(x,y,t,anchor='middle')=>`<text x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
+      let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Measured fictional island, 14000 by 7000 world units, with capital, settlement sites, terrain and an 18000-unit route"><defs><clipPath id="island-clip"><polygon points="${poly(coast)}"/></clipPath></defs><polygon class="land" points="${poly(coast)}"/>`;
+      if(showGrid){s+='<g clip-path="url(#island-clip)">';for(let x=0;x<=14000;x+=2000)s+=`<path class="grid" d="M${X(x)} ${Y(0)}V${Y(7000)}"/>`;for(let y=0;y<=7000;y+=1750)s+=`<path class="grid" d="M${X(0)} ${Y(y)}H${X(14000)}"/>`;s+='</g>';}
+      s+='<g clip-path="url(#island-clip)">';
+      for(const [x,y]of [[3800,2000],[4400,1900],[5100,1800],[5700,2100],[6600,2000],[7000,5200],[7700,5400],[8300,5300]])s+=`<path class="mountain" d="M${X(x-230)} ${Y(y+250)}L${X(x)} ${Y(y-300)}L${X(x+230)} ${Y(y+250)}Z"/>`;
+      s+=`<path class="water" fill="none" d="M${X(8500)} ${Y(2000)}Q${X(9800)} ${Y(3200)} ${X(8800)} ${Y(5000)}T${X(9800)} ${Y(7000)}"/>`;
+      s+=`<polyline class="route" points="${poly(route)}"/></g>`;
+      sites.forEach((p,i)=>{
+        const size=600/14000*mw;
+        s+=`<rect class="site" x="${X(p.x)-size/2}" y="${Y(p.y)-size/2}" width="${size}" height="${size}"/>`;
+        if(p.kind==='capital')s+=label(X(p.x),Y(p.y)+4,'★');
+        if(i===0)s+=`<rect x="${X(p.x)-212/14000*mw/2}" y="${Y(p.y)-150/7000*mh/2}" width="${212/14000*mw}" height="${150/7000*mh}" fill="var(--foreground)"/>`;
+        if(w>550||i<2)s+=label(X(p.x),Y(p.y)+(w<=550&&i===0?29:i<2?-19:27),w>550?p.name:(i===0?'Capital':'First site'),i===0?'start':'middle');
+        s+=`<rect data-site="${i}" class="cursor-interaction" x="${X(p.x)-18}" y="${Y(p.y)-18}" width="36" height="36" fill="transparent" data-tooltip="${p.name}: ${p.info}"/>`;
+      });
+      for(const x of [0,7000,14000])s+=label(X(x),Y(7000)+24,x.toLocaleString(),x===0?'start':x===14000?'end':'middle');
+      s+=label(w/2,Y(7000)+45,'East–west distance · world units');
+      s+=label(X(14000),20,'N ↑','end');
+      s+=`<path stroke="var(--foreground)" stroke-width="2" d="M${X(0)} ${Y(7000)+64}H${X(2000)}m${-2000/14000*mw} -4v8m${2000/14000*mw} -8v8"/>`;
+      s+=label(X(2300),Y(7000)+68,w>550?'2,000 units · 5.6 min running':'2,000 u · 5.6 min','start');
+      s+='</svg>';host.innerHTML=s;
+      host.querySelectorAll('[data-site]').forEach(el=>el.addEventListener('click',()=>{const p=sites[Number(el.dataset.site)];detail.textContent=p.name+' · '+p.info;}));
+    }
+    root.querySelector('#island-grid').addEventListener('click',e=>{showGrid=!showGrid;e.currentTarget.setAttribute('aria-pressed',String(showGrid));draw();});
+    new ResizeObserver(draw).observe(host);draw();
+  })();
+  </script>
+</div>

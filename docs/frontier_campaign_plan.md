@@ -30,10 +30,22 @@ continues in this current project. No copy or move is requested now.
 - Remaining enemy outposts become contested after that capture; they do not instantly flip into free assets.
 - Rationale: those outposts remain meaningful follow-up objectives and give defenders time to respond.
 - A disconnected capture remains a real possession with a logistics problem, not a magic connection.
-- The number and scale of regions, sites, clans and capitals remain open.
+- The current revised sketch has **24 full land regions plus 12 coastal partial regions**. Region count and dimensions remain provisional map targets, not capacity guarantees.
 - Start with curated capital and region structure so travel, defenses and resources can be balanced.
 - Add procedural variation later if the curated version is good; make it optional.
 - More capitals and railroads are later possibilities, not first-slice requirements.
+
+## World map scale and visual reference (revised sketch, 2026-11-01)
+
+The current island draft is approximately **14,000 × 8,000 world units** (the first rough draft was about 14,000 × 7,000), with **24 full land regions plus 12 coastal partial regions**. The east-coast capital sits on the right-hand side of the water. Regions in the revised sketch are nominally about **1,750 × 1,400 units**. These are provisional measurements to validate in play, not streaming, population or capacity guarantees.
+
+The winding main route is about **18,000 units**: roughly **50 minutes at the current base hero run speed of 6**, compared with a 1.7 walk speed. A developed settlement is about **400–700 units** across, or 1–2 minutes to cross; neighboring settlements have a rough 4–8 minute travel goal. Mounts and trains are later options to change actual travel time; instant travel is not the default.
+
+Terrain transitions across coastal plains, fertile central/eastern farmland, central mountain passes, western rain-shadow desert, northern snow and southern rainforest/bamboo. Preserve alternate corridors so one chokepoint cannot seal the island. The atlas is an illustrative old-Japan fantasy-book direction: sumi-e/watercolor land and gold detail against an indigo sea. The concept image is a style reference, not a 1:1 map overlay.
+
+References: [measured island sketch](images/frontier/measured-island.html), [island atlas](images/frontier/island-atlas.html), and concept image below.
+
+![Illustrative frontier island concept, not a 1:1 map overlay](images/frontier/frontier-island-concept.png)
 
 ## Shared systems before clan specialties — agreed direction
 
@@ -103,6 +115,9 @@ continues in this current project. No copy or move is requested now.
 - Aim for a SimCity and Settlers hybrid with fewer dependencies than a full city simulator.
 - The player strategically places walls, fortifications, major roads, resource works and military facilities.
 - The player reserves residential, commercial, workshop/industrial and military zones.
+- Discover prepared flat build sites from the world map. Settlers physically clear each full buildable cell through overgrown → clearing/stumps → grading → prepared stakes → developed; progress and resources are accounted for, and terrain is revealed rather than arbitrarily deformed in the initial version.
+- Zoning autofills reusable building prefabs. Players place roads, walls and gates manually. Buildings use one fixed facing.
+- Construction visuals progress from foundation to frame to finished isometric art. Damage progresses through damaged and ruined states with a stable repair anchor; share scaffolding and construction parts.
 - Population buildings and jobs fill those zones when access, people and materials permit.
 - Workers harvest and transport routine resources automatically within the settlement rules.
 - Roads, gates and reserved paths must remain usable by people, armies and caravans.
@@ -141,6 +156,7 @@ continues in this current project. No copy or move is requested now.
 - No battlefield body looting or inventory micromanagement for RTS armies.
 - Hero equipment uses the same authoritative stat evaluation in the capital and frontier.
 - Standard crew use unit-type equipment; they have no individual bags.
+- Initial settlement zoom sits farther out for an RTS view. Reuse the existing packed character sprites at first; do not convert characters to 3D for this transition.
 
 ## Hero equipment, exploration and rewards — agreed direction (2026-10-31)
 
@@ -313,6 +329,8 @@ continues in this current project. No copy or move is requested now.
 24. Bound work queues and snapshots; load static map chunks as needed.
 25. Set world-unit counts and latency targets only after measurement.
 
+Initial performance target for a first visible battle is **100–200 combatants plus 20–40 visible workers**, not a proven hardware or capacity limit. Stream terrain and navigation chunks. Keep routine offscreen settlement activity in economic records, but simulate every active battle with real combat rules regardless of camera. Profile settlement economy, visible fights and multiple simultaneous active battles separately before increasing scope.
+
 ## Technical blueprint — proposed, not built (2026-10-31)
 
 This is an implementation design to evaluate before frontier code is approved.
@@ -457,11 +475,14 @@ These are module responsibilities and interfaces, not promised file names or an 
 - Measure DOM/layout, draw/GPU, asset loading, memory and input-to-feedback latency in a real browser.
 - Track p95/p99 frame time, long tasks, sim tick delay, queue age, packet bytes/cadence and cache counts.
 - Use Node profiles for sim work and Firefox profiles for the actual UI; current synthetic packet timings are not FPS evidence.
+- The intended benchmark scenario begins with one visible fight of 100–200 combatants and 20–40 visible workers; treat it as a test target only, then measure terrain/navigation streaming and additional offscreen/active battles.
 - Set target budgets and hardware/session limits from measurement, not invented world-unit guarantees.
 - Under load, reduce cosmetic density and presentation cadence first, then defer bounded nonurgent jobs.
 - Keep world time, combat fidelity, cargo accounting and fair player/bot rules intact.
 - Increase regions or simultaneous battles only after the previous slice meets its measured gates.
 - No design can promise zero lag; this plan makes spikes observable and gives specific work to bound.
+
+Reference approaches, not performance promises: [Epic World Partition](https://dev.epicgames.com/documentation/unreal-engine/world-partition-in-unreal-engine) documents streaming terrain/world cells; Factorio’s [bounded construction work and algorithm optimization (FFF #415)](https://www.factorio.com/blog/post/fff-415) and [terrain/biome distribution review (FFF #401)](https://www.factorio.com/blog/post/fff-401) illustrate incremental work and deliberate map-transition review.
 
 ### Proposed validation matrix when implementation is approved
 
