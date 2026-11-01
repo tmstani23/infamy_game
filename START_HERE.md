@@ -31,7 +31,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 | [docs/deployment_sector_plan.md](docs/deployment_sector_plan.md) | Deployment, sectors and Rally: built rules, checkpoints and manual playtest list |
 | [docs/combat_spec.md](docs/combat_spec.md) | Combat rules and feel, hero abilities, action bar, VFX plan |
 | [docs/business_raids_plan.md](docs/business_raids_plan.md) | Owning businesses, payouts, attacks, War Lantern raids, defending (plan) |
-| [docs/test_params.md](docs/test_params.md) | Every test URL parameter (`?fog=0`, `?raidme=den` ...) and what it does |
+| [docs/test_params.md](docs/test_params.md) | Current test URL presets (`?test=...`) and renderer comparison switch |
 | [docs/rival_bot_plan.md](docs/rival_bot_plan.md) | Rival bot clan: rule-list brain, difficulties, home hideouts (built 2026-10-19) |
 | [docs/territory.md](docs/territory.md) | Territory areas, M game map, home-turf bonuses, season score and end (built 2026-10-20) |
 | [docs/leader_balance.md](docs/leader_balance.md) | **Important, needs balancing:** leader bounty, underdog help, crew cap |

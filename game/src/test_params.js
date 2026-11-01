@@ -16,12 +16,13 @@
 export const DEV = true;
 
 const test = DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search).get('test') : null;
+const playerStartRyo = new Map([['bot', 3000], ['lantern', 3000], ['assignments', 5000], ['crew', 5000]]);
 
 // what main.js reads; everything not set by a ?test setup is the normal game
 export const TEST = {
   setup: test,
   botRyo: test === 'bot' ? 5000 : undefined,
-  playerRyo: ['assignments','crew'].includes(test) ? 5000 : ['bot', 'lantern'].includes(test) ? 3000 : undefined,
+  playerRyo: playerStartRyo.get(test),
   playerOwns: test === 'bot' ? 'teahouse' : null,
   ninja: test === 'ninja',
 };

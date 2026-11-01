@@ -4,16 +4,18 @@ Single source: `game/src/test_params.js` (Tim 2026-10-19: one param, nothing hid
 
 Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). The rich bot test remains separate; Shinobi uses a fair opening (Phase 3G, 2026-10-21).
 
-## URL param
+## URL param inventory (reviewed 2026-10-31)
 
-| Param | What it does |
-|---|---|
-| `?test=bot` | See the whole rival clan fast: the bot clan starts with 5000 ryo (buys, hires, then a War Lantern raid on you); you start with the teahouse and 3000 ryo. |
-| `?test=lantern` | War Lantern testing: normal clan/difficulty menu (choose any clan); player starts with 3000 ryo, rivals with normal 200. No extra property, crew or lantern grants. DEV-only (2026-10-25). |
-| `?test=assignments` | DEV-only: retains clan menu, grants 5000 ryo; stages and dispatches Yakuza Shakedown or Kuroda Sweep. Shinobi gets money only (2026-10-29). |
-| `?test=crew` | DEV-only: retains clan selection and grants 5000 ryo to hire/playtest the expanded clan roster (2026-10-30). |
-| `?test=shakedown` | DEV-only: stages three Yakuza at a rival teahouse and starts a real night Shakedown for dynamite/fire playtesting (2026-10-28). |
-| `?test=ninja` | Play Shinobi at the village: hero + one ninja, 200 ryo, HQ only, against two normal Yakuza rivals. No boosted squad (2026-10-21). |
+| Param | What it does | Status |
+|---|---|---|
+| `?test=bot` | See the whole rival clan fast: the bot clan starts with 5000 ryo (buys, hires, then a War Lantern raid on you); you start with the teahouse and 3000 ryo. | Retained: rival bot scenario. |
+| `?test=lantern` | War Lantern testing: normal clan/difficulty menu (choose any clan); player starts with 3000 ryo, rivals with normal 200. No extra property, crew or lantern grants. DEV-only (2026-10-25). | Retained: funded normal start. |
+| `?test=assignments` | DEV-only: retains clan menu, grants 5000 ryo; stages and dispatches Yakuza Shakedown or Kuroda Sweep. Shinobi gets money only (2026-10-29). | Retained: assignment staging. |
+| `?test=crew` | DEV-only: retains clan selection and grants 5000 ryo to hire/playtest the expanded clan roster (2026-10-30). | Retained: roster test without staging. |
+| `?test=shakedown` | DEV-only: stages three Yakuza at a rival teahouse and starts a real night Shakedown for dynamite/fire playtesting (2026-10-28). | Retained: direct night scenario. |
+| `?test=ninja` | Play Shinobi at the village: hero + one ninja, 200 ryo, HQ only, against two normal Yakuza rivals. No boosted squad (2026-10-21). | Retained: fair Shinobi opening. |
+
+All six presets have distinct starts or staging, so none were retired. The shared 3000/5000-ryo setup is consolidated in `game/src/test_params.js`; existing URLs keep their behavior. Add new manual scenarios there rather than making another test-param simulation copy. Reuse an existing playtest/server session when possible.
 
 ## Renderer comparison URL
 
