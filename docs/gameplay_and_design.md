@@ -117,11 +117,12 @@ Noise versus power is a choice on every raid.
 
 ## Inventory and loot (Settled)
 
-- Planned personal inventory: **12 slots**, separate from a **12-slot HQ stash** (Tim, 2026-11-01).
-- Planned hero equipment: weapon, armor and accessory. Field swaps are allowed; right-click carried gear to equip and right-click equipped gear to remove it. `I` opens inventory and `J` opens the character panel; that panel shows carried inventory/equipment, never the HQ stash. Implementation is paused for mock-image approval; the static mock is not a working UI.
+- Built personal inventory: **12 carried slots**, separate from a **12-slot HQ stash** (Tim, 2026-11-01). Three hero equipment slots are weapon, armor and accessory. `I` or `J` opens the character panel with carried items and equipment only; right-click or activate a carried item to equip, or equipped gear to remove it. Field swaps are allowed and multiplayer does not pause. At your own HQ, `H` opens the hire menu with a separate HQ stash window for item transfers. The authoritative sim rejects full, malformed or incapacitated actions and transfers outside your HQ without losing or duplicating items; storage/equipment survives hero recovery.
+- Three unequipped starter items are carried: Weighted edge (+8% normal damage, +6% attack interval), Light lamellar (−6% incoming damage, −5% run speed) and Scout’s knot (+5% run speed, +3% incoming damage). Gear changes actual combat/movement through the shared stat evaluator; crew base stats are unaffected. Weighted edge tints the existing weapon glow amber and retains existing attack trails. Rare loot is deferred until triggers are agreed.
 - Money is banked automatically, so it is not lost to carrying limits.
 - Bulky goods have to be hauled by crew or by cart.
 - The HQ stash stores items; a **fence** can sell stolen goods under later item rules.
+- A future gear-selling shop should be a new neutral building that cannot be bought, captured or raided, preserving access for every clan. Its site and prices are open; no shop is built.
 - **Documents** can be looted and used as leverage (blackmail, deeds, debts).
 
 ## Infamy (Settled)

@@ -145,7 +145,7 @@ continues in this current project. No copy or move is requested now.
 ## Hero equipment, exploration and rewards — agreed direction (2026-10-31)
 
 - Start with three hero equipment slots: weapon, armor and one accessory.
-- The capital inventory plan now specifies 12 personal slots and a separate 12-slot HQ stash (Tim, 2026-11-01); implementation is paused for mock-image approval. Frontier item implementation remains unbuilt.
+- The capital now has 12 carried slots, a separate 12-slot HQ stash and three equipment slots (Tim, 2026-11-01). Frontier item implementation remains unbuilt; see the [capital inventory status](gameplay_and_design.md#inventory-and-loot-settled).
 - The earlier [capital inventory and loot outline](gameplay_and_design.md#inventory-and-loot-settled) owns the existing stash, fence and carrying concept. This plan records how hero gear fits the campaign.
 - Capital encounters and raid caches can award meaningful gear.
 - Later frontier hero exploration can reveal ruins, caches, outposts and gear discoveries.
@@ -587,7 +587,7 @@ and commands before expanding scale. Browser gameplay and profiling remain neces
 | Trade loss | Cargo custody and delivery timing; later loot share, escort cost, insurance and capture transport. |
 | Army support | Resupply, field depot, origin reassignment and transit policy. |
 | Hero recovery | Clinic location, cost, delay and fallback when captured. |
-| Hero equipment | Exact bag/stash capacities, item power budget, synergy caps and compatibility rules. |
+| Hero equipment | Capital bag/stash capacities are 12 each; frontier item power budget, synergy caps and compatibility rules remain open. |
 | Reward cadence | Bandit drop frequency, accomplishment rewards and anti-farm mechanism; no numeric rate is approved. |
 | Loot rights | Party sharing, eligible crew retrieval, claim persistence and campaign reset policy. |
 | Conquest | Stage gates, defenders' mobilization, control duration and minimum contest force. |

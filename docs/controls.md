@@ -11,7 +11,7 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Key | What it does |
 |---|---|
 | W A S D | Move, relative to the screen |
-| J / **Character** button | Open live hero stats, abilities and existing passives; hover modifiers/icons for sources. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
+| I or J / **Character** button | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Right-click or activate carried gear to equip, or equipped gear to remove it. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern |
@@ -38,11 +38,11 @@ The HUD score panel's day/night clock counts down to the next change.
 
 | Key | What it does |
 |---|---|
-| H | Open or close the hire panel. Also works in your hideout (the inn), at half speed; the hideout also lets heat cool 2x with your boss inside, heals everyone inside slowly, and is where your KO'd hero wakes |
+| H | Open or close the hire panel. Inside your own hideout, click **HQ stash** for the separate 12-slot storage window; click or right-click an item to transfer it between carried inventory and stash. Hideout hiring runs at half speed; the hideout also cools heat 2x with your boss inside, heals everyone inside slowly, and is where your KO'd hero wakes |
 | 1 / 2 / 3 (or click the price) | Hire a Thug / Brute / Swordsman |
 | Esc | Close the panel |
 
-The top-left line shows your crew count / crew cap; ryo has its own badge. New crew walk out of the teahouse door after a few seconds. At a hideout, switch the H panel to **Dismiss crew · all zones** to dismiss eligible healthy active crew from any zone; click twice to confirm and receive the listed refund.
+The top-left line shows the active roster and unlocked cap; its hover explains occupied slots in the roster, clinic, jail, respawn and hire queue. Ryo has its own badge. New crew walk out of the teahouse door after a few seconds. At a hideout, switch the H panel to **Dismiss crew · all zones** to dismiss eligible healthy active crew from any zone; click twice to confirm and receive the listed refund.
 
 ## Deployment and sectors (updated 2026-10-27)
 

@@ -3,7 +3,7 @@
 import { hireStatsHtml } from './hire_stats.js';
 const title = s => s[0].toUpperCase() + s.slice(1);
 
-export function createHireMenu({ panel, money, game, units, heroId, send }) {
+export function createHireMenu({ panel, money, game, units, heroId, send, openStash = () => {} }) {
   // what your clan may hire (units.json "clan": ninja crew for the Shinobi clan only)
   const owner = game.state.entities[heroId]?.owner;
   const hireable = Object.keys(units.types).filter(type => game.clans.hirePrice(owner, type) !== null);
@@ -29,6 +29,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
   }
 
   panel.addEventListener('click', e => {
+    if (e.target.closest?.('[data-open-stash]')) {openStash(); return;}
     const view = e.target.closest?.('[data-crew-view]')?.dataset.crewView;
     if (view) { dismissView = view === 'dismiss'; armedDismiss = null; shown = ''; update(); return; }
     const id = e.target.closest?.('[data-dismiss]')?.dataset.dismiss;
@@ -67,7 +68,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send }) {
           `<button data-dismiss="${u.id}" ${available ? '' : 'disabled'}>${confirm ? `Confirm · ${refund} ryo` : `Dismiss · ${refund} ryo`}</button></div>`;
       }).join('') : '';
     const dismiss = `<h3>DISMISS CREW · ALL ZONES</h3>${dismissRows || '<div class="waiting">No active crew</div>'}<div class="waiting">Healthy crew from any zone · click twice to confirm</div>`;
-    const navigation = b.kind === 'hideout' ? `<div><button data-crew-view="hire">Hire crew</button><button data-crew-view="dismiss">Dismiss crew · all zones</button></div>` : '';
+    const navigation = b.kind === 'hideout' ? `<div><button data-open-stash>HQ stash</button><button data-crew-view="hire">Hire crew</button><button data-crew-view="dismiss">Dismiss crew · all zones</button></div>` : '';
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const html = `${navigation}${dismissView ? dismiss : `<h3>HIRE CREW</h3>${rows}${waiting}`}${notice}<div class="waiting">${dismissView ? 'Select crew above' : `1-${hireable.length} or click`} · H / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }

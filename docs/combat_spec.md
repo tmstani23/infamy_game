@@ -226,11 +226,11 @@ Police and civilians retreat from a nearby fight involving at least five activel
 
 ## Hero character page (authorized 2026-10-27)
 
-Implemented/sim-checked 2026-10-27; Tim visual/gameplay review pending. Themed character pages and an interactive preview use real snapshots. Detailed live stats must come from **one canonical gameplay resolver**, shared by actual movement/combat/regeneration and read-only UI snapshots. No independently maintained display math; future ability/gear modifiers use the same evaluation path.
+Implemented/sim-checked 2026-10-27, with gear added 2026-11-01; Tim visual/gameplay review pending. Themed character pages and an interactive preview use real snapshots. Detailed live stats come from **one canonical gameplay resolver**, shared by actual movement/combat/regeneration, equipped gear and read-only UI snapshots. No independently maintained display math; future ability modifiers use the same evaluation path.
 
 Show base value with adjacent glowing modifier and effective value; reductions have a distinct glow color. Tooltips name actual conditions/modifier sources. Include abilities and existing passive/permanent buff-bar icons with hover explanations. Display current Kuroda field recovery and Shinobi stealth; no new balance passive. Additional Yakuza passive remains undecided: Ruthless Momentum rejected as excessive healing, Unshaken only proposed.
 
-Equipment, armor, weapons and inventory UI/mechanics are explicitly deferred. Opening the page never pauses multiplayer. Controls/architecture link here for ownership.
+The capital character page now includes weapon/armor/accessory equipment and the 12-slot carried inventory, with source labels from the same stat resolver that changes actual combat and movement. Normal hit, attack interval, damage received and run speed stay above the bag by default; eight other stats are under More attributes and existing skills under Abilities. The separate HQ stash never appears on this page. `I` or `J` opens it; right-click or button activation equips/removes gear in the field. Opening it never pauses multiplayer. Rare loot and frontier gear remain deferred; [inventory rules and starter items](gameplay_and_design.md#inventory-and-loot-settled).
 
 - [x] **1:** shared stat resolver wired into actual gameplay and trustworthy read-only snapshots.
 - [x] **2:** themed live character sheet, abilities/passives and compact passive icons/tooltips; base/modifier/effective presentation.

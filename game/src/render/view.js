@@ -1,5 +1,6 @@
 // Everything on screen. Reads the game state every frame and never changes it.
 import * as THREE from 'three';
+import { ITEMS } from '../sim/inventory.js';
 import { VIEW_DIR, CAM_QUAT, CAM_RIGHT, CAM_UP, PPU, toScreen } from './iso.js';
 import { shared, MAX_LIGHTS } from './shading.js';
 import { buildGround, buildScenery, doorRings, markCrewDoors, behind, footprintLines } from './scenery.js';
@@ -277,6 +278,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
       const anim = e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
+      s.setEquipment(e.type === 'hero' ? ITEMS[e.equipment?.weapon] : null);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       s.setHealth(e.hp, e.maxHp);

@@ -1,0 +1,33 @@
+/* Shared charcoal/gold treatment for character gear and the separate HQ window. */
+#characterpage .character-inventory {margin:20px 0;}
+#characterpage .character-inventory h3,#hqstash h3 {display:flex;justify-content:space-between;gap:12px;color:#eadfc6;}
+#characterpage .inventory-count,#hqstash h3 span {color:#b5ae9b;font-size:12px;}
+#characterpage .gear-grid,#hqstash .gear-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
+#characterpage .equipment-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+#characterpage .inventory-slot,#hqstash .inventory-slot {position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:90px;padding:19px 5px 7px;border:1px solid #4b4b44;border-radius:3px;background:linear-gradient(145deg,#1a242a,#10161b);color:#ded5bf;font:12px/1.25 system-ui,sans-serif;text-align:center;}
+#characterpage .equipment-grid .inventory-slot {min-height:110px;font-size:11px;padding-top:24px;}
+#characterpage .inventory-slot.occupied,#hqstash .inventory-slot.occupied {border-color:#a18a58;box-shadow:inset 0 0 16px #a17c2510;}
+#characterpage .inventory-slot:disabled,#hqstash .inventory-slot:disabled {cursor:default;}
+#characterpage .inventory-slot:not(:disabled):hover,#hqstash .inventory-slot:not(:disabled):hover {border-color:#ead19b;background:#283037;}
+#characterpage .inventory-slot:focus-visible,#hqstash button:focus-visible {outline:2px solid #cdb577;outline-offset:2px;}
+#characterpage .inventory-slot small,#hqstash .inventory-slot small {position:absolute;left:6px;top:5px;color:#b8af9c;font-size:10px;}
+#characterpage .item-icon,#hqstash .item-icon {height:42px;width:48px;display:grid;place-items:center;}
+#characterpage .item-icon svg,#hqstash .item-icon svg {height:42px;width:42px;}
+#characterpage .empty-slot,#hqstash .empty-slot {display:block;width:32px;height:32px;border:1px solid #37434b;border-radius:50%;}
+#characterpage .item-name,#hqstash .item-name {overflow-wrap:anywhere;}
+#characterpage .inventory-notice,#hqstash .inventory-notice {min-height:1.4em;color:#e6bc86;}
+#characterpage .character-equipment {margin:18px 0;}
+#characterpage .character-equipment h3 {color:#d8bd85;}
+#hqstash {position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:#04070ab3;color:#e6dfcf;font:13px/1.45 system-ui,sans-serif;}
+#hqstash[hidden] {display:none;}
+#hqstash .stash-window {width:min(900px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto;background:#10151a;border:1px solid #756343;border-top:2px solid #d8b56c;border-radius:8px;box-shadow:0 24px 80px #000a;}
+#hqstash header {display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #514a3d;background:#151b21;}
+#hqstash header small {color:#c9ac70;letter-spacing:.15em;font-size:10px;}
+#hqstash h2 {font-size:22px;font-weight:500;margin:2px 0;}
+#hqstash h3 {font-size:14px;font-weight:500;}
+#hqstash button {border:1px solid #61543e;border-radius:4px;background:#20262d;color:#eadfc6;padding:6px 10px;cursor:pointer;}
+#hqstash .stash-columns {display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:18px 22px;}
+#hqstash .stash-columns section {min-width:0;}
+#hqstash footer {padding:12px 22px;border-top:1px solid #303238;color:#b3b0a7;font-size:12px;}
+@media(max-width:720px) {#hqstash .stash-columns{grid-template-columns:1fr;}#characterpage .character-equipment{grid-column:1/-1;}#characterpage .equipment-grid{gap:9px;}#characterpage .inventory-slot,#hqstash .inventory-slot{min-height:82px;}}
+@media(max-width:420px) {#characterpage .gear-grid,#hqstash .gear-grid{gap:5px;}#hqstash{padding:10px;}#hqstash .stash-window{width:calc(100vw - 20px);}#hqstash .stash-columns{padding:12px;}}

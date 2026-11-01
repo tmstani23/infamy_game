@@ -1,3 +1,4 @@
+import { createItemGrid } from './inventory_ui.js';
 // Character page formats authoritative snapshots; it owns no stat formulas.
 export function formatStat(row, value) {
   const n = row.unit === '%' ? value * 100 : value;
@@ -11,11 +12,14 @@ export function modifierDisplay(row) {
   return { text, kind: (row.lowerBetter ? row.modifier < 0 : row.modifier > 0) ? 'positive' : 'negative', changed: true };
 }
 
-export function createCharacterPanel({ game, heroId, catalog, button, onOpen = () => {}, onClose = () => {} }) {
+export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
   const root = document.createElement('section'); root.id = 'characterpage'; root.hidden = true; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Hero character');
-  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">✕</button></header><div class="character-layout"><aside><div class="hero-art"><div class="hero-sprite"></div></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><div class="character-abilities"><h3>Abilities</h3><div></div></div></main></div><footer>Hover a modifier for its source · Changes update during play</footer></div>';
+  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">✕</button></header><div class="character-layout"><aside><div class="hero-art"><div class="hero-sprite"></div></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip · Right-click equipped gear to remove · I / J close<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
+  const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
+  const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index})});
+  const equipment = createItemGrid($('.equipment-grid'), {equipment:true, activate:slot => command('unequip', {slot})});
   let model = null, open = false, previousFocus = null;
   function setOpen(on) {
     if (open === on) return;
@@ -27,18 +31,23 @@ export function createCharacterPanel({ game, heroId, catalog, button, onOpen = (
   root.addEventListener('click', e => { if (e.target === root) setOpen(false); });
   root.addEventListener('keydown', e => {
     e.stopPropagation();
-    if (e.key === 'Escape' || e.code === 'KeyJ') { e.preventDefault(); setOpen(false); }
+    if (e.key === 'Escape' || ['KeyJ', 'KeyI'].includes(e.code)) { e.preventDefault(); setOpen(false); }
     if (e.key === 'Tab') {
-      const stops = [...root.querySelectorAll('button, summary, [tabindex="0"]')], first = stops[0], last = stops.at(-1);
+      const stops = [...root.querySelectorAll('button:not(:disabled), summary, [tabindex="0"]')].filter(el => el.getClientRects().length), first = stops[0], last = stops.at(-1);
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
     }
   });
-  for (const type of ['mousedown', 'mouseup', 'contextmenu', 'wheel']) root.addEventListener(type, e => e.stopPropagation());
+  for (const type of ['mousedown', 'mouseup', 'contextmenu', 'wheel']) root.addEventListener(type, e => { e.stopPropagation(); if (type === 'contextmenu') e.preventDefault(); });
   button?.addEventListener('click', () => setOpen(!open));
   function update() {
     if (!open) return;
     const hero = game.state.entities[heroId], snapshot = game.stats.snapshot(hero); if (!snapshot) return;
+    const inv = game.inventory.status(hero);
+    bag(inv.bag, inv.available); equipment(inv.equipment, inv.available && inv.bag?.includes(null), 'Remove to inventory');
+    $('.inventory-count').textContent = `${inv.bag?.filter(Boolean).length || 0} / 12`;
+    const notice = game.state.clans[hero.owner]?.notice;
+    $('.inventory-notice').textContent = notice && game.state.tick - notice.tick < 100 ? notice.text : '';
     root.dataset.clan = snapshot.faction || snapshot.kind;
     $('.hero-name').textContent = snapshot.name; $('.hero-clan').textContent = snapshot.clan;
     $('.character-hp').textContent = `${Math.ceil(snapshot.hp)} / ${snapshot.maxHp} HP`;
@@ -59,7 +68,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, onOpen = (
       if (!record) {
         const el = document.createElement('div'); el.className = 'character-stat'; el.tabIndex = 0;
         const label = document.createElement('span'), base = document.createElement('span'), modifier = document.createElement('span'), current = document.createElement('strong');
-        modifier.className = 'stat-modifier'; el.append(label, base, modifier, current); $('.character-stats').appendChild(el);
+        modifier.className = 'stat-modifier'; el.append(label, base, modifier, current); $(['normalHit','attackInterval','damageTaken','run'].includes(row.key) ? '.character-stats' : '.character-extra-stats').appendChild(el);
         record = { el, label, base, modifier, current }; rows.set(row.key, record);
       }
       const change = modifierDisplay(row);

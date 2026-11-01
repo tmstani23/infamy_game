@@ -189,6 +189,14 @@ export class CharacterSprite {
     }
   }
 
+  setEquipment(item) {
+    const key = item?.name || '';
+    if (!this.glow || key === this.gearEffect) return;
+    this.gearEffect = key;
+    this.glow.material.uniforms.uColor.value.setRGB(...(item?.glow || this.weapon.color));
+    for (const m of this.trail || []) m.material.uniforms.uColor.value.setRGB(...(item?.glow || this.weapon.trailColor || this.weapon.color));
+  }
+
   // x, z: interpolated position; dir and anim come from the latest game state
   // swingT: 0..1 through the current attack swing (the attack sheet is stretched over the swing)
   // size: drawing scale (INDOOR_SIZE inside buildings)

@@ -1,5 +1,5 @@
-// One stat evaluator for gameplay and read-only presentation. Gear can later
-// contribute modifiers here without creating a second character-sheet formula.
+import { gearMultiplier, gearSources } from './inventory.js';
+// One stat evaluator for gameplay and read-only presentation, including equipment.
 export const DEFAULT_MOVEMENT = {
   hero: { radius: .35, walk: 1.7, run: 6 },
   civilian: { radius: .3, walk: 1.1, run: 2.6 },
@@ -17,19 +17,19 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const buff = (e, id) => { const b = e?.buffs?.[id]; return b && (b.until == null || b.until > state.tick) ? b : null; };
   const clamp = n => Math.max(0, Math.min(1, n));
   function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1); }
-  function damage(e) { return (base(e).damage || 0) * damageMultiplier(e); }
-  function attackInterval(e) { return (base(e).attackSpeed || 1) / (buff(e, 'rally')?.boost || 1); }
+  function damage(e) { return (base(e).damage || 0) * gearMultiplier(e, 'damage') * damageMultiplier(e); }
+  function attackInterval(e) { return (base(e).attackSpeed || 1) * gearMultiplier(e, 'attackInterval') / (buff(e, 'rally')?.boost || 1); }
   function criticalChance(e) {
     const bonus = Object.values(e.buffs || {}).reduce((n, b) => n + (b.until > state.tick ? b.critChance || 0 : 0), 0);
     return clamp((base(e).critChance || 0) + bonus);
   }
   const dodgeChance = e => clamp(base(e).dodgeChance || 0);
-  const damageTaken = e => Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1);
+  const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const pursuit = e.type === 'hero' && gait === 'run' ? buff(e, 'pursuit')?.runSpeed || 1 : 1;
-    return (b[gait] || 0) * turf * pursuit * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);
+    return (b[gait] || 0) * gearMultiplier(e, gait) * turf * pursuit * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);
   }
   function regeneration(e) {
     const rules = units?.rules || {}, rate = rules.regenPerSecond || 0, wait = (rules.regenAfterSeconds || 0) * 20;
@@ -64,7 +64,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const add = (key, label, group, initial, value, unit, sources = [], note = '', lowerBetter = false) => {
       rows.push({ key, label, group, base: initial, value, modifier: value - initial, unit, sources, note, lowerBetter });
     };
-    const damageSources = [];
+    const damageSources = gearSources(e, 'damage');
     if (buff(e, 'lantern')?.damage) damageSources.push(`Red Lantern ×${buff(e, 'lantern').damage}`);
     if (buff(e, 'intimidated')?.damage) damageSources.push(`Intimidate ×${buff(e, 'intimidated').damage}`);
     add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', e.maxHp !== b.hp ? ['Unit health override'] : []);
@@ -74,15 +74,15 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
       regen.waitSeconds > 0 ? `Resumes in ${Math.ceil(regen.waitSeconds)}s without another hit.` : 'Rate when injured. Full health caps further healing.');
     add('normalHit', 'Normal hit', 'Offence', Math.round(b.damage || 0), Math.round(v.damage), 'damage', damageSources,
       `Weapon power ${b.damage || 0}; modified power ${v.damage}. Rounded once on hit, before target protection. Critical hits round separately.`);
-    add('attackInterval', 'Attack interval', 'Offence', b.attackSpeed || 1, v.attackSpeed, 's', buff(e, 'rally') ? [`Rally ×${buff(e, 'rally').boost || 1} attack speed`] : [], 'Cooldown between normal attacks; movement, range and windup still matter.', true);
+    add('attackInterval', 'Attack interval', 'Offence', b.attackSpeed || 1, v.attackSpeed, 's', [...gearSources(e, 'attackInterval'), ...(buff(e, 'rally') ? [`Rally ×${buff(e, 'rally').boost || 1} attack speed`] : [])], 'Cooldown between normal attacks; movement, range and windup still matter.', true);
     add('range', 'Attack reach', 'Offence', b.attackRange || 1, b.attackRange || 1, 'steps', [], 'Measured to target body; target radius is added by the combat rules.');
     add('critChance', 'Critical chance', 'Offence', clamp(b.critChance || 0), v.critChance, '%', v.critChance !== clamp(b.critChance || 0) ? ['Active critical-chance bonuses'] : []);
     add('critMultiplier', 'Critical damage', 'Offence', b.critMultiplier || 2, b.critMultiplier || 2, '×');
     add('dodge', 'Dodge chance', 'Defence', clamp(b.dodgeChance || 0), v.dodgeChance, '%', [], 'Normal-attack dodge. Abilities retain their own hit rules.');
-    add('damageTaken', 'Damage received', 'Defence', 1, v.damageTaken, '%', [formationMultiplier(e) < 1 && 'Iron Formation', buff(e, 'sweep') && 'Sweep formation', buff(e, 'bulwark') && 'Bulwark'].filter(Boolean), 'Incoming damage multiplier. Assassinate retains its explicit health rule.', true);
+    add('damageTaken', 'Damage received', 'Defence', 1, v.damageTaken, '%', [...gearSources(e, 'damageTaken'), formationMultiplier(e) < 1 && 'Iron Formation', buff(e, 'sweep') && 'Sweep formation', buff(e, 'bulwark') && 'Bulwark'].filter(Boolean), 'Incoming damage multiplier. Assassinate retains its explicit health rule.', true);
     add('lifesteal', 'Lifesteal', 'Defence', 0, v.lifesteal, '%', v.lifesteal ? ['Red Lantern'] : [], 'Healing from actual damage dealt, capped at maximum health.');
     for (const [key, label] of [['walk', 'Walk speed'], ['run', 'Run speed']]) {
-      const sources = [];
+      const sources = gearSources(e, key);
       if (buff(e, 'snared')) sources.push(`Slowed ×${buff(e, 'snared').speed}`);
       if (buff(e, 'charmSnare')) sources.push(`Charm snare ×${buff(e, 'charmSnare').speed}`);
       if (key === 'run' && e.type === 'hero' && buff(e, 'pursuit')) sources.push(`Reprisal escape ×${buff(e, 'pursuit').runSpeed}`);
