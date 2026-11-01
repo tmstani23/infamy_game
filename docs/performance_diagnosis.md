@@ -50,6 +50,28 @@ Mercenary PNG headers indicate six color atlases cost about 118.75 MiB decoded, 
 
 Follow-up (2026-10-31): Tim reports the recruitment RAM climb is fixed. A later lag screenshot coincided with the offline Chrome sprite exporter using roughly 70% CPU and 1 GB RAM; it finished and no exporter process remains. Separate Firefox and Codex process aggregates do not prove a game leak. Avoid exports and profiling while Tim playtests. Long-session browser responsiveness is still unverified; no all-lag-resolved claim is made.
 
+## Sprite atlas packing experiment (offline checks complete 2026-10-31)
+
+- [x] **1. Back up and audit:** a checksum-verified backup of catalog/config and every unique referenced color/glow sheet (232 files, 221.9 MiB) was made before scanning or writing proof PNGs. Original hashes remained unchanged. The sequential audit covered 29 catalog models, 226 unique referenced textures and 39,808 frame slots, including civilians and police; none were missing. Peak audit process RSS was 234 MiB.
+- [x] **2. Prove visual equivalence:** temporarily pack rival_yakuza_great_sword_slash and glow, then decode and reconstruct all 15 frames × 8 directions at original positions. Every alpha and visible RGBA pixel matched; the entire reconstructed sheets were byte-equivalent, including transparent RGB. Checks covered 327,302 nonzero-alpha color pixels and 38,362 glow pixels. Estimated allocation for this pair fell from 50.0 to 9.33 MiB with mips.
+- [x] **3. Report memory:** real no-rotation MaxRects layouts used 8 px transparent padding on each side and power-of-two pages no larger than 2048. Estimates count exact RGBA8 full-mip allocations and page overhead:
+
+| Scope | Source → packed MiB | Estimated reduction |
+|---|---:|---:|
+| All unique catalog textures | 5279.9 → 1504.6 | 71.50% |
+| Civilians + police | 1697.9 → 529.0 | 68.84% |
+| Combat + police | 3821.6 → 1062.5 | 72.20% |
+| Large-framing models | 2003.3 → 336.2 | 83.22% |
+| Masked tank | 693.3 → 104.0 | 85.00% |
+| Kuroda tank | 506.7 → 81.2 | 83.98% |
+| Mercenary | 158.3 → 58.7 | 62.95% |
+
+Group unions deduplicate shared files, but groups overlap and their totals must not be added. No individual layout grew. Four-pixel padding would estimate 76.74% all-catalog reduction; the primary estimate keeps safer 8 px padding. Packing creates 530 pages versus 226 source textures, a possible texture-switching cost.
+
+Commands: node tools/audit_sprite_packing.mjs audit [experiment-folder]; node tools/audit_sprite_packing.mjs validate [experiment-folder] [sheet-stem]. The backup manifest is in assets/sprites_archive/sprite_packing_2026-10-31_backup/manifest.json; audit.json, summary.txt and the one-pair validation outputs are in look_tests/perf/sprite_packing_2026-10-31/. The sprite-packing test, existing sheet-cache test, syntax and diff checks passed.
+
+These are estimated texture allocations, not measured total Firefox RAM, FPS or simultaneous residency of all catalog sheets. CPU reconstruction does not validate GPU mip/filter bleed, shader/glow/trail appearance or frame time. No live runtime, catalog, original art, game/browser run, KTX2, resolution or frame-rate change was made. A one-character runtime trial would be the next checkpoint only if Tim approves it.
+
 ## Remaining diagnosis
 
 During the final playtest, compare map/input responsiveness while paused versus running, exercise normal movement and bot contracts, and capture a Firefox performance profile if the lag is present. The Node harness excludes browser events, DOM/layout, paint, GPU and frame presentation. Manual browser checks remain pending. Workers cannot directly access the DOM and require message-based data transfer.
