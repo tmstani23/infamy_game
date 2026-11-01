@@ -9,6 +9,7 @@ import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
 import { createWeaponShadow } from './weapon_shadow.js';
 import { createRunTrail } from './run_trail.js';
 import { cachedSheetLoad } from './sheet_cache.js';
+import { loadSheetSet, setSheetFrame } from './packed_sheets.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -43,14 +44,36 @@ async function loadModelSheets(catalog, model) {
   const weapon = cfg?.weapons?.[cfg.models?.[model]];
   // the glow settings ride along on the sheet set, hidden from anything that lists the animations
   if (weapon) Object.defineProperty(sheets, 'weapon', { value: weapon });
+  const packedUrl = catalog.packedCharacters?.[model];
+  const loaded = await loadSheetSet({
+    packedUrl: packedUrl ? new URL(packedUrl, document.baseURI).href : null,
+    disabled: new URLSearchParams(globalThis.location?.search || '').get('sprites') === 'original',
+    model, names, requireGlow: !!weapon,
+    loadJson: async url => { const response = await fetch(url); if (!response.ok) throw new Error(`Could not load ${url}`); return response.json(); },
+    loadTexture: async url => { const tex = await loadTex(url); configureCharacterTexture(tex); return tex; },
+    loadOriginal: () => loadOriginalSheets(names, weapon),
+    onFallback: error => console.warn(`[sprites] ${model}: packed load failed; using original sheets`, error),
+  });
+  Object.assign(sheets, loaded);
+  if (loaded.packing) Object.defineProperty(sheets, 'packing', {value: loaded.packing});
+  if (packedUrl) console.info(`[sprites] ${model}: ${loaded.packing ? 'packed atlas trial' : 'original sheets'}`, loaded.packing || '');
+  return sheets;
+}
+
+function configureCharacterTexture(tex) {
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+}
+
+async function loadOriginalSheets(names, weapon) {
+  const sheets = {};
   // each entry is a sheet name, or { file, speed } where speed scales the playback rate
   await Promise.all(Object.entries(names).map(async ([anim, entry]) => {
     const { file, speed = 1 } = typeof entry === 'string' ? { file: entry } : entry;
     const tex = await loadTex(`../assets/sprites/${file}.png`);
     // mipmaps keep the sprite clean when zoomed out (frames are padded, so no bleeding between cells)
-    tex.minFilter = THREE.LinearMipmapLinearFilter;
-    tex.generateMipmaps = true;
-    tex.needsUpdate = true;
+    configureCharacterTexture(tex);
     // rows are the 8 directions; the frame count follows from the sheet's shape
     sheets[anim] = { tex, speed, frames: Math.round(tex.image.width / tex.image.height * 8) };
     // the weapon alone as a soft halo (tools/export_sprites.mjs), same frames at half size; missing = no glow
@@ -65,14 +88,15 @@ export class CharacterSprite {
     this.sheets = sheets;
     this.cellWorld = sheets.framing?.cellWorld || CELL_WORLD;
     this.feetUp = sheets.framing?.feetUp ?? FEET_UP;
-    this.material = spriteMaterial(sheets.idle.tex, { uSelfLight: { value: new THREE.Color(0.2, 0.18, 0.16) } });
+    this.material = spriteMaterial(sheets.idle.tex, { uSelfLight: { value: new THREE.Color(0.2, 0.18, 0.16) } }, !!sheets.packing);
+    setSheetFrame(this.material.uniforms, sheets.idle, 0, 0);
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
     mesh.quaternion.copy(CAM_QUAT);
     mesh.scale.set(this.cellWorld, this.cellWorld, 1);
     mesh.frustumCulled = false;
     // in 3D rooms the sprite is hidden by furniture in front of it; a faint outline shows where it is
     this.material.depthTest = true;
-    this.hidden = new THREE.Mesh(mesh.geometry, hiddenMaterial(this.material.uniforms));
+    this.hidden = new THREE.Mesh(mesh.geometry, hiddenMaterial(this.material.uniforms, !!sheets.packing));
     this.hidden.quaternion.copy(CAM_QUAT);
     this.hidden.scale.copy(mesh.scale);
     this.hidden.renderOrder = 99500;
@@ -120,13 +144,20 @@ export class CharacterSprite {
     if (weapon && Object.values(sheets).some(sh => sh.glow)) {
       this.weapon = weapon;
       const firstGlow = Object.values(sheets).find(sh => sh.glow).glow;
+      // Color and glow have independent packed layouts. They still use the
+      // same original full-cell space as lightning, trails and the body quad.
+      const glowUniforms = {...this.material.uniforms,
+        uFrame: {value: new THREE.Vector4(0, 0, 1, 1)},
+        uSampleBounds: {value: new THREE.Vector4(0, 0, 1, 1)}};
       if (weapon.void) {
-        this.voidHalo = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: true, dark: true }));
+        this.voidHalo = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(glowUniforms, firstGlow, weapon.color, 0, { void: true, dark: true, packed: !!sheets.packing }));
         this.voidHalo.frustumCulled = false;
         mesh.add(this.voidHalo);
         this.thing.extras.push(this.voidHalo);
       }
-      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(this.material.uniforms, firstGlow, weapon.color, 0, { void: !!weapon.void, coreColor: weapon.coreColor, coreStrength: weapon.coreStrength ?? 0, shimmerColor: weapon.shimmerColor }));
+      this.glow = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(glowUniforms, firstGlow, weapon.color, 0, { void: !!weapon.void, coreColor: weapon.coreColor, coreStrength: weapon.coreStrength ?? 0, shimmerColor: weapon.shimmerColor, packed: !!sheets.packing }));
+      const initialGlowSheet = sheets.idle.glow ? sheets.idle : Object.values(sheets).find(sh => sh.glow);
+      setSheetFrame(this.glow.material.uniforms, initialGlowSheet, 0, 0, true);
       this.glow.frustumCulled = false;
       mesh.add(this.glow);
       this.thing.extras.push(this.glow);
@@ -147,8 +178,8 @@ export class CharacterSprite {
       if (weapon.hero && !weapon.lightning && !weapon.shadow) {
         this.trail = []; this.trailHistory = []; this.trailClock = 0;
         for (let i = 0; i < TRAIL; i++) {
-          const own = { uFrame: { value: new THREE.Vector4() }, uDepthAt: this.material.uniforms.uDepthAt, uOpacity: this.material.uniforms.uOpacity };
-          const m = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(own, firstGlow, weapon.trailColor || weapon.color, 0, { coreColor: weapon.shimmerColor || [1, 1, 1], coreStrength: 0.6 }));
+          const own = { uFrame: { value: new THREE.Vector4() }, uSampleBounds: {value: new THREE.Vector4(0, 0, 1, 1)}, uDepthAt: this.material.uniforms.uDepthAt, uOpacity: this.material.uniforms.uOpacity };
+          const m = new THREE.Mesh(mesh.geometry, weaponGlowMaterial(own, firstGlow, weapon.trailColor || weapon.color, 0, { coreColor: weapon.shimmerColor || [1, 1, 1], coreStrength: 0.6, packed: !!sheets.packing }));
           m.frustumCulled = false; m.visible = false; mesh.add(m); this.thing.extras.push(m); this.trail.push(m);
         }
       }
@@ -174,13 +205,12 @@ export class CharacterSprite {
     const lk = Math.sin(this.lean * Math.PI / 2) * 0.16;
     x += (this.leanX || 0) * lk; z += (this.leanZ || 0) * lk;
     const u = this.material.uniforms;
-    u.uMap.value = sheet.tex;
-    u.uFrame.value.set(frame / sheet.frames, 1 - (dir + 1) / 8, 1 / sheet.frames, 1 / 8);
+    setSheetFrame(u, sheet, dir, frame);
     if (this.glow) {
       // a slow faint shimmer, a little brighter mid-swing, fading out as the unit falls
       const w = this.weapon, g = this.glow.material.uniforms;
       this.glow.visible = !!sheet.glow;
-      if (sheet.glow) g.uMap.value = sheet.glow;
+      if (sheet.glow) setSheetFrame(g, sheet, dir, frame, true);
       const swing = (anim === 'attack' || anim === 'sweep') && swingT !== null ? Math.sin(Math.PI * swingT) * (w.attack || 0) : 0;
       const fall = anim === 'death' ? Math.max(0, 1 - this.time / 0.8) : 1;
       const pulse = w.pulse ?? .1;
@@ -199,7 +229,7 @@ export class CharacterSprite {
         this.trailClock += dt;
         if (swinging && this.trailClock >= 1 / 40) {
           this.trailClock = 0;
-          this.trailHistory.unshift({ frame: u.uFrame.value.clone(), map: sheet.glow, life: 1 });
+          this.trailHistory.unshift({ frame: g.uFrame.value.clone(), bounds: g.uSampleBounds.value.clone(), map: g.uMap.value, life: 1 });
           this.trailHistory.length = Math.min(this.trailHistory.length, TRAIL);
         }
         for (const h of this.trailHistory) h.life -= dt / (swinging ? 0.45 : 0.18);
@@ -208,7 +238,7 @@ export class CharacterSprite {
           m.visible = !!h && h.life > 0;
           if (!m.visible) return;
           const tu = m.material.uniforms;
-          tu.uFrame.value.copy(h.frame); tu.uMap.value = h.map;
+          tu.uFrame.value.copy(h.frame); tu.uSampleBounds.value.copy(h.bounds); tu.uMap.value = h.map;
           tu.uStrength.value = (w.trailStrength ?? 0.8) * h.life * (1 - i / TRAIL);
         });
       }

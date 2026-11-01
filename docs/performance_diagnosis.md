@@ -70,7 +70,19 @@ Group unions deduplicate shared files, but groups overlap and their totals must 
 
 Commands: node tools/audit_sprite_packing.mjs audit [experiment-folder]; node tools/audit_sprite_packing.mjs validate [experiment-folder] [sheet-stem]. The backup manifest is in assets/sprites_archive/sprite_packing_2026-10-31_backup/manifest.json; audit.json, summary.txt and the one-pair validation outputs are in look_tests/perf/sprite_packing_2026-10-31/. The sprite-packing test, existing sheet-cache test, syntax and diff checks passed.
 
-These are estimated texture allocations, not measured total Firefox RAM, FPS or simultaneous residency of all catalog sheets. CPU reconstruction does not validate GPU mip/filter bleed, shader/glow/trail appearance or frame time. No live runtime, catalog, original art, game/browser run, KTX2, resolution or frame-rate change was made. A one-character runtime trial would be the next checkpoint only if Tim approves it.
+These are estimated texture allocations, not measured total Firefox RAM, FPS or simultaneous residency of all catalog sheets. CPU reconstruction does not validate GPU mip/filter bleed, shader/glow/trail appearance or frame time. No live runtime, catalog, original art, game/browser run, KTX2, resolution or frame-rate change was made in this audit.
+
+## One-character runtime packing trial (built and Node-verified; browser review pending 2026-10-31)
+
+- [x] Verify existing sprite backups and make a pre-change code/catalog backup.
+- [x] Pack the full Kuroda spear hero (rival_yakuza) animation set, color and glow, with original sheets preserved as fallback. Preserve full-canvas UV positions and offline blade-axis metadata.
+- [x] Add opt-in per-model catalog loading for this hero and an original-sheet comparison URL.
+- [x] Pass focused Node checks for pixels, UVs, load fallback and weapon effects.
+- [ ] Have Tim compare visuals at normal and zoomed scale, indoors and outside, and compare RAM. Browser appearance and memory improvement remain unverified until that review.
+
+The source and pre-change runtime backups are in `assets/sprites_archive/sprite_packing_2026-10-31_backup/` and `assets/sprites_archive/rival_yakuza_v1_runtime_backup/`. All 12 original hero PNG hashes were verified. Six unique color/glow animation pairs were packed; guard shares idle pages. Decoded PNG checks covered all 2,016 frame slots and 3,016,397 nonzero-alpha pixels, preserving original positions, pixels and blade axes. Estimated RGBA8 plus mip allocation is 79.3 MiB packed versus 420.0 MiB for the unique originals, an 81.1% reduction in this estimate. This is not measured browser RAM.
+
+Only `rival_yakuza` uses the packed catalog entry. A packed load failure disposes successful packed textures and falls back to originals; `?sprites=original` bypasses packed fetches for comparison. Focused Node checks passed for decoded crops, UVs, gutters, axes, aliases, bypass, load failures, late cleanup, sheet cache, sprite packing, weapon lightning and Kuroda pose. The game has not been run in a browser for this checkpoint. Tim still needs to compare idle, walk, run, attacks, abilities and death in each facing at normal and near/far zoom, indoors and outside, including feet, blade effects and fringe; compare Firefox RAM/FPS under matching conditions.
 
 ## Remaining diagnosis
 

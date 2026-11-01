@@ -15,6 +15,12 @@ Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). 
 | `?test=shakedown` | DEV-only: stages three Yakuza at a rival teahouse and starts a real night Shakedown for dynamite/fire playtesting (2026-10-28). |
 | `?test=ninja` | Play Shinobi at the village: hero + one ninja, 200 ryo, HQ only, against two normal Yakuza rivals. No boosted squad (2026-10-21). |
 
+## Renderer comparison URL
+
+| Param | What it does |
+|---|---|
+| `?sprites=original` | Reload with the original Kuroda hero sheets instead of its packed sheets for visual and RAM comparison. If the URL already has parameters, append `&sprites=original` instead. Applies on page load; reload after changing it. |
+
 ## Dev-only keys and hooks (off when `DEV = false`)
 
 | Switch | What it does | Where |

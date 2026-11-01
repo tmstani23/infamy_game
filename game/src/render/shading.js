@@ -120,9 +120,24 @@ void main() {
   }
 }`;
 
+// Packed characters retain the full original quad/UV coordinates. Never sample
+// an adjacent tile when those virtual coordinates extend beyond their crop.
+const SPRITE_SAMPLE = /* glsl */`
+uniform sampler2D uMap;
+uniform vec4 uSampleBounds;
+vec4 spriteTex(vec2 p) {
+  #ifdef PACKED_SPRITE
+  vec4 t = texture2D(uMap, clamp(p, uSampleBounds.xy, uSampleBounds.zw));
+  vec2 inside = step(uSampleBounds.xy, p) * step(p, uSampleBounds.zw);
+  return t * inside.x * inside.y;
+  #else
+  return texture2D(uMap, p);
+  #endif
+}`;
+
 const SPRITE_FRAG = /* glsl */`
 ${LIGHTING}
-uniform sampler2D uMap;
+${SPRITE_SAMPLE}
 uniform float uOpacity;
 uniform float uVeil;         // smoke's brief optical camouflage, not ordinary stealth
 uniform vec4 uFrame;
@@ -138,7 +153,7 @@ uniform vec4 uFogAt;         // w > 0: darken by the fog of war at ground point 
 varying vec2 vUv;
 varying vec3 vWorld;
 void main() {
-  vec4 t = texture2D(uMap, vUv);
+  vec4 t = spriteTex(vUv);
   if (t.a < 0.02) discard;
   float veilEdge = 0.0, veilRipple = 0.0;
   if (uVeil > 0.0) {
@@ -146,14 +161,14 @@ void main() {
     veilRipple = 0.5 + 0.5 * sin(local.y * 49.0 + uTime * 8.0 + sin(local.x * 23.0 - uTime * 3.0));
     vec2 offset = vec2(sin(local.y * 35.0 + uTime * 6.0), cos(local.x * 31.0 - uTime * 4.0)) * 0.007;
     vec2 warp = uFrame.xy + clamp(local + offset, vec2(0.001), vec2(0.999)) * uFrame.zw;
-    t.rgb = texture2D(uMap, warp).rgb;
+    t.rgb = spriteTex(warp).rgb;
     // A broken blue-silver contour gives a watery silhouette without filling the body.
     vec2 lo = uFrame.xy + uFrame.zw * 0.001, hi = uFrame.xy + uFrame.zw * 0.999;
     vec2 d = uFrame.zw * 0.012;
-    float inner = min(min(texture2D(uMap, clamp(vUv + vec2(d.x, 0.0), lo, hi)).a,
-                          texture2D(uMap, clamp(vUv - vec2(d.x, 0.0), lo, hi)).a),
-                      min(texture2D(uMap, clamp(vUv + vec2(0.0, d.y), lo, hi)).a,
-                          texture2D(uMap, clamp(vUv - vec2(0.0, d.y), lo, hi)).a));
+    float inner = min(min(spriteTex(clamp(vUv + vec2(d.x, 0.0), lo, hi)).a,
+                          spriteTex(clamp(vUv - vec2(d.x, 0.0), lo, hi)).a),
+                      min(spriteTex(clamp(vUv + vec2(0.0, d.y), lo, hi)).a,
+                          spriteTex(clamp(vUv - vec2(0.0, d.y), lo, hi)).a));
     veilEdge = max(0.0, t.a - inner) * (0.35 + 0.65 * veilRipple);
   }
   t.rgb *= uTint;
@@ -181,16 +196,17 @@ void main() {
 }`;
 
 // The parts of a sprite that something solid hides, drawn as a faint silhouette
-export function hiddenMaterial(uniforms) {
+export function hiddenMaterial(uniforms, packed = false) {
   return new THREE.ShaderMaterial({
+    defines: packed ? {PACKED_SPRITE: 1} : {},
     uniforms,
     vertexShader: SPRITE_VERT,
     fragmentShader: /* glsl */`
-      uniform sampler2D uMap;
+      ${SPRITE_SAMPLE}
       uniform float uVeil;
       varying vec2 vUv;
       void main() {
-        float a = texture2D(uMap, vUv).a;
+        float a = spriteTex(vUv).a;
         if (a < 0.4) discard;
         gl_FragColor = mix(vec4(0.85, 0.78, 0.64, 0.16), vec4(0.18, 0.3, 0.5, 0.05), uVeil);
       }`,
@@ -202,11 +218,13 @@ export function hiddenMaterial(uniforms) {
 // Faint weapon glow over a character: the exporter's _glow sheet (weapon alone, white halo)
 // tinted per weapon type and added on top; shares the sprite's frame, depth and opacity uniforms
 // shimmerColor: hero weapons only (Tim 2026-10-28): a band of light that sweeps up the blade (uShimmer = band position, < -0.5 off)
-export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false, coreColor = color, coreStrength = 0, shimmerColor = [1, 1, 1] } = {}) {
+export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false, coreColor = color, coreStrength = 0, shimmerColor = [1, 1, 1], packed = false } = {}) {
   return new THREE.ShaderMaterial({
+    defines: packed ? {PACKED_SPRITE: 1} : {},
     uniforms: {
       uMap: { value: map },
       uFrame: spriteUniforms.uFrame,
+      uSampleBounds: spriteUniforms.uSampleBounds,
       uDepthAt: spriteUniforms.uDepthAt,
       uOpacity: spriteUniforms.uOpacity,
       uColor: { value: new THREE.Color(...color) },
@@ -220,7 +238,7 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
     },
     vertexShader: SPRITE_VERT,
     fragmentShader: /* glsl */`
-      uniform sampler2D uMap;
+      ${SPRITE_SAMPLE}
       uniform float uOpacity;
       uniform vec3 uColor;
       uniform float uStrength;
@@ -233,7 +251,7 @@ export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void:
       uniform vec4 uFrame;
       varying vec2 vUv;
       void main() {
-        float mask = texture2D(uMap, vUv).a;
+        float mask = spriteTex(vUv).a;
         if (uVoid > 0.0) {
           float fade = uStrength * uOpacity;
           if (uDark > 0.0) {
@@ -333,12 +351,14 @@ export function runTrailMaterial(spriteUniforms, color, electric=false) {
   });
 }
 
-export function spriteMaterial(map, extra = {}) {
+export function spriteMaterial(map, extra = {}, packed = false) {
   return new THREE.ShaderMaterial({
+    defines: packed ? {PACKED_SPRITE: 1} : {},
     uniforms: {
       ...shared,
       uMap: { value: map },
       uFrame: { value: new THREE.Vector4(0, 0, 1, 1) },
+      uSampleBounds: { value: new THREE.Vector4(0, 0, 1, 1) },
       uOpacity: { value: 1 },
       uVeil: { value: 0 },
       uCut: { value: 0 },
