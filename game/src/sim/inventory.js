@@ -1,14 +1,8 @@
 import { canInteract } from './interactions.js';
 import { noticeFor } from './util.js';
 
-export const INVENTORY_SLOTS = 12;
-export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory'];
-// Modest tradeoffs on existing weapon shapes. No loot generation in this checkpoint.
-export const ITEMS = {
-  weighted_edge: { name: 'Weighted edge', slot: 'weapon', about: '+8% normal-hit power; 6% longer attack interval.', modifiers: { damage: 1.08, attackInterval: 1.06 }, glow: [1, .52, .18] },
-  light_lamellar: { name: 'Light lamellar', slot: 'armor', about: '6% less incoming damage; 5% slower running.', modifiers: { damageTaken: .94, run: .95 } },
-  scouts_knot: { name: "Scout’s knot", slot: 'accessory', about: '+5% run speed; 3% more incoming damage.', modifiers: { run: 1.05, damageTaken: 1.03 } },
-};
+import { INVENTORY_SLOTS, EQUIPMENT_SLOTS, CURRENT_ITEMS as ITEMS } from './gear_catalog.js';
+export { INVENTORY_SLOTS, EQUIPMENT_SLOTS, ITEMS };
 export function gearMultiplier(e, key) {
   if (e?.type !== 'hero') return 1;
   return EQUIPMENT_SLOTS.reduce((n, slot) => n * (ITEMS[e.equipment?.[slot]]?.slot === slot ? ITEMS[e.equipment[slot]].modifiers[key] ?? 1 : 1), 1);
