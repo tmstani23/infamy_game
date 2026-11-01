@@ -312,20 +312,22 @@ export function weaponShadowMaterial(spriteUniforms) {
 
 // Hero running trails (render/run_trail.js): soft-edged additive streaks in one colour, sharing the
 // character's opacity and depth like the shadow blade.
-export function runTrailMaterial(spriteUniforms, color) {
+export function runTrailMaterial(spriteUniforms, color, electric=false) {
   return new THREE.ShaderMaterial({
-    uniforms:{uFrame:spriteUniforms.uFrame,uDepthAt:spriteUniforms.uDepthAt,uOpacity:spriteUniforms.uOpacity,uColor:{value:new THREE.Color(...color)}},
+    uniforms:{uFrame:spriteUniforms.uFrame,uDepthAt:spriteUniforms.uDepthAt,uOpacity:spriteUniforms.uOpacity,uColor:{value:new THREE.Color(...color)},uElectric:{value:electric?1:0}},
     vertexShader:SPRITE_VERT,
     fragmentShader:/* glsl */`
       uniform vec4 uFrame;
       uniform float uOpacity;
       uniform vec3 uColor;
+      uniform float uElectric;
       varying vec2 vUv;
       void main(){
         float side=abs(2.0*(vUv.x-uFrame.x)/uFrame.z-1.0);
         float fade=(vUv.y-uFrame.y)/uFrame.w;
         float a=(1.0-smoothstep(0.35,1.0,side))*fade*uOpacity;
-        gl_FragColor=vec4(uColor*a,1.0);
+        vec3 color=mix(uColor,vec3(1.0,.7,.65),uElectric*.75*exp(-side*side*70.0));
+        gl_FragColor=vec4(color*a,1.0);
       }`,
     transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,
   });

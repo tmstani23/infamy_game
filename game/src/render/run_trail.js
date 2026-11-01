@@ -8,23 +8,25 @@
 import * as THREE from 'three';
 import { runTrailMaterial } from './shading.js';
 import { lightningPattern } from './weapon_lightning_pattern.js';
+import { lightningRipplePoint } from './lightning_ripple.js';
 
 const STYLES = {
   sonic: { color: [0.62, 0.72, 0.9], every: 0.05, life: 0.32, speed: 0.55, width: 0.0035, alpha: 0.5, max: 14 },
-  static: { color: [0.8, 0.07, 0.1], every: 0.22, life: 0.32, speed: 0.12, width: 0.003, alpha: 0.7, max: 8 },
+  static: { color: [1, 0.1, 0.16], every: 0.18, life: 0.48, speed: 0.18, width: 0.0045, alpha: 0.95, max: 4 },
 };
 
 export function createRunTrail(spriteUniforms, style = 'sonic') {
-  const S = STYLES[style] || STYLES.sonic, capacity = 1200;
+  const S = STYLES[style] || STYLES.sonic, capacity = style==='static'?2400:1200;
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(capacity * 3), uvs = new Float32Array(capacity * 2);
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2).setUsage(THREE.DynamicDrawUsage));
   geometry.setDrawRange(0, 0);
-  const material = runTrailMaterial(spriteUniforms, S.color), mesh = new THREE.Mesh(geometry, material);
+  const material = runTrailMaterial(spriteUniforms, S.color,style==='static'), mesh = new THREE.Mesh(geometry, material);
   mesh.frustumCulled = false; mesh.visible = false;
   let clock = 0, shedAt = 0, streaks = [], sparks = [], sparkAt = 0, arc = null, rings = [], humming = false;
   let arcPaths=[],arcAt=-Infinity,previousSwing=null;
+  const rippleA={},rippleB={};
   return { mesh,
     update(dt, anim, dir, enabled = true, axis = null, swing = null, hum = false) {
       clock += dt;
@@ -32,11 +34,11 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
       if (enabled && anim === 'run' && clock - shedAt > S.every && streaks.length < S.max) {
         shedAt = clock;
         const h = 0.3 + Math.random() * 0.5, side = (Math.random() - 0.5) * 0.14;
-        const pts = [];
+        let paths=[];
         if (style === 'static') {   // correlated, finer bends fixed at birth so the arc holds its shape
-          for(const p of lightningPattern({base:{x:0,y:0},tip:{x:.18,y:0}},Math.random()*0xffffffff,false)[0].points)pts.push([p.x,p.y]);
+          paths=lightningPattern({base:{x:0,y:0},tip:{x:1,y:0}},Math.random()*0xffffffff,false);
         }
-        streaks.push({ x: 0.5 + side - bx * 0.04, y: h - by * 0.02, born: clock, pts, len: 0.06 + Math.random() * 0.08 });
+        streaks.push({ x: axis&&style==='static'?axis.base.x:0.5 + side - bx * 0.04, y:axis&&style==='static'?axis.base.y:h - by * 0.02, born: clock, paths,bend:(Math.random()<.5?-1:1)*(.07+Math.random()*.04),len: 0.06 + Math.random() * 0.08 });
       }
       streaks = streaks.filter(s => clock - s.born < S.life);
       // Kuroda extras on the blade (needs its blade axis): idle sparks, mid-swing arc
@@ -78,10 +80,10 @@ export function createRunTrail(spriteUniforms, style = 'sonic') {
         if (style === 'static') {
           if ((clock-s.born)<0.025) continue;   // stable discharge, no frame-random flicker
           const ux = bx, uy = by, px = -uy, py = ux;
-          for (let i = 0; i + 1 < s.pts.length; i++) {
-            const [a1, b1] = s.pts[i], [a2, b2] = s.pts[i + 1];
-            segment(hx + ux * a1 * 1.6 + px * b1, hy + uy * a1 * 1.6 + py * b1, hx + ux * a2 * 1.6 + px * b2, hy + uy * a2 * 1.6 + py * b2,
-              S.width * k, S.width * k, S.alpha * k, S.alpha * k * 0.8);
+          for(const path of s.paths)for (let i = 0; i + 1 < path.points.length; i++) {
+            const a=lightningRipplePoint(path.points[i],age,s.bend,rippleA),b=lightningRipplePoint(path.points[i+1],age,s.bend,rippleB),w=S.width*k*path.width;
+            segment(hx + ux*a.x + px*a.y, hy + uy*a.x + py*a.y, hx + ux*b.x + px*b.y, hy + uy*b.x + py*b.y,
+              w,w,S.alpha*k,S.alpha*k*.8);
           }
         } else {
           const len = s.len * (0.4 + 0.6 * Math.min(1, age * 3));

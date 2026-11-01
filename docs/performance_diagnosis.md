@@ -48,6 +48,8 @@ Tim observed RAM rising roughly 850 MB–1 GB after hiring many riflemen, stayin
 
 Mercenary PNG headers indicate six color atlases cost about 118.75 MiB decoded, or about 158.3 MiB with mipmaps, without glow atlases. Several duplicate sets could fit the reported climb, but this is not proof of the browser cause or that every leak is fixed. The Worker one-in-flight queue checks still pass. Reload and manually batch-recruit riflemen, then compare long-session RAM and paused responsiveness; no browser gameplay check is claimed here.
 
+Follow-up (2026-10-31): Tim reports the recruitment RAM climb is fixed. A later lag screenshot coincided with the offline Chrome sprite exporter using roughly 70% CPU and 1 GB RAM; it finished and no exporter process remains. Separate Firefox and Codex process aggregates do not prove a game leak. Avoid exports and profiling while Tim playtests. Long-session browser responsiveness is still unverified; no all-lag-resolved claim is made.
+
 ## Remaining diagnosis
 
 During the final playtest, compare map/input responsiveness while paused versus running, exercise normal movement and bot contracts, and capture a Firefox performance profile if the lag is present. The Node harness excludes browser events, DOM/layout, paint, GPU and frame presentation. Manual browser checks remain pending. Workers cannot directly access the DOM and require message-based data transfer.

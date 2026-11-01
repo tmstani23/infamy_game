@@ -28,9 +28,22 @@ export function createCrewFx({scene,spriteOf}){
         for(const radius of [.8,1.2]){const m=ring(radius,0xba9fff);m.position.set(c.x,.12,c.z);bursts.push({mesh:m,time:0,life:.6,expand:true});}
       }
       if(c.kind==='taunt'&&c.cone){
-        // A sharp shield-slam sector points toward the actual cone used by the sim.
-        const m=add(new THREE.RingGeometry(.4,c.radius,40,1,-c.cone*Math.PI/360,c.cone*Math.PI/180),0xff514d);
-        m.rotation.x=-Math.PI/2;m.rotation.z=-Math.PI*(1+c.dir)/4;m.position.set(c.x,.08,c.z);bursts.push({mesh:m,time:0,life:.65});
+        // A translucent ward sector, with a few angular spell marks. The fill
+        // deliberately stays out of bloom so it doesn't wash out the ground.
+        const m=new THREE.Group(),half=c.cone*Math.PI/360;
+        const fill=new THREE.Mesh(new THREE.RingGeometry(.4,c.radius,40,1,-half,half*2),material(0xa73543));
+        fill.userData.fxOpacity=.16;m.add(fill);
+        const edge=new THREE.Mesh(new THREE.RingGeometry(c.radius-.025,c.radius,40,1,-half,half*2),material(0xe8887e));
+        edge.userData.fxOpacity=.32;m.add(edge);
+        const points=[];
+        for(let i=0;i<5;i++){
+          const angle=-half+(i+.5)*half*2/5,r=c.radius*.76,co=Math.cos(angle),si=Math.sin(angle);
+          const glyph=[[0,-.15,0,.15],[-.1,.06,0,.15],[0,.15,.1,.06],[-.09,-.04,.09,-.04]];
+          for(const [x,y,u,v]of glyph)points.push(co*(r+x)-si*y,si*(r+x)+co*y,0,co*(r+u)-si*v,si*(r+u)+co*v,0);
+        }
+        const glyphs=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(points,3)),new THREE.LineBasicMaterial({color:0xffbe95,transparent:true,opacity:.4,depthWrite:false}));
+        glyphs.userData.fxOpacity=.4;m.add(glyphs);
+        m.rotation.x=-Math.PI/2;m.rotation.z=-Math.PI*(1+c.dir)/4;m.position.set(c.x,.08,c.z);scene.add(m);bursts.push({mesh:m,time:0,life:.8});
       }
     },
     update(dt,state,heroId){
@@ -56,7 +69,7 @@ export function createCrewFx({scene,spriteOf}){
         }
       }
       for(const [map,active] of [[bindings,activeBindings],[braces,activeBraces]])for(const [id,m] of map)if(!active.has(id)){remove(m);map.delete(id);}
-      for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.time+=dt;if(b.expand)b.mesh.scale.setScalar(1+b.time*3);b.mesh.material.opacity=.65*Math.max(0,1-b.time/b.life);if(b.time>=b.life){remove(b.mesh);bursts.splice(i,1);}}
+      for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.time+=dt;if(b.expand)b.mesh.scale.setScalar(1+b.time*3);b.mesh.traverse(n=>{if(n.material)n.material.opacity=(n.userData.fxOpacity??.65)*Math.max(0,1-b.time/b.life);});if(b.time>=b.life){remove(b.mesh);bursts.splice(i,1);}}
     }
   };
 }

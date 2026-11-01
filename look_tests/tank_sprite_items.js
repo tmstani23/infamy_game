@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {chainWeightPose,bakeChainTrack,sampleChainTrack,CHAIN_LINKS} from './tank_chain_motion.js';
 import {rightTonfaPitch} from './tank_tonfa_motion.js';
+import {sickleBasis} from './tank_sickle_motion.js';
 
 // Physical shield with painted face, iron rim, board thickness and rear straps.
 export function buildLongShield(std,texture){
@@ -43,9 +44,7 @@ export function buildTankWeapon(std,kind){
   for(const z of [-.17,.28])box(sickle,.05,.05,.025,0,0,z,silver);
   const shape=new THREE.Shape();shape.moveTo(0,.27);shape.bezierCurveTo(.14,.37,.42,.32,.47,.08);shape.bezierCurveTo(.33,.23,.15,.23,0,.20);shape.closePath();
   const geo=new THREE.ExtrudeGeometry(shape,{depth:.012,bevelEnabled:true,bevelSize:.003,bevelThickness:.002,bevelSegments:1,steps:1});geo.rotateX(Math.PI/2);
-  // Flip only the blade around the upright haft; leave the grip and chain pin
-  // unchanged. A small downward cant keeps its forward tip out of the armpit.
-  geo.rotateZ(Math.PI);geo.translate(0,0,-.235);geo.rotateY(-Math.PI/18);geo.translate(0,0,.235);
+  // Local +Z is the haft; local +X is the forward, downward-curving blade.
   sickle.add(new THREE.Mesh(geo,silver));
   const links=new THREE.InstancedMesh(new THREE.TorusGeometry(.022,.006,4,8),iron,CHAIN_LINKS);links.name='chain';links.userData.noWeaponGlow=true;links.frustumCulled=false;group.add(links);
   const weight=new THREE.Mesh(new THREE.IcosahedronGeometry(.08,0),iron);weight.name='weight';weight.userData.noWeaponGlow=false;group.add(weight);
@@ -80,7 +79,14 @@ export function poseTankWeapon(group,root,findBone,{clip,phase,palmOf}){
   }return;
  }
  const hand=findBone(/RightHand$/);if(!hand)return;
- const sickle=group.getObjectByName('sickle');palmOf(hand,sickle.position);hand.getWorldQuaternion(sickle.quaternion);sickle.rotateX(Math.PI/2);sickle.scale.setScalar(root.scale.x);sickle.updateMatrixWorld(true);
+ const sickle=group.getObjectByName('sickle');palmOf(hand,sickle.position);
+ if(/death|dying/i.test(clip)){hand.getWorldQuaternion(sickle.quaternion);sickle.rotateX(Math.PI/2);}
+ else{
+  const b=sickleBasis(phase,/slash|thrust/i.test(clip));
+  const basis=new THREE.Matrix4().makeBasis(new THREE.Vector3(...b.blade),new THREE.Vector3(...b.normal),new THREE.Vector3(...b.haft));
+  sickle.quaternion.copy(root.getWorldQuaternion(new THREE.Quaternion())).multiply(new THREE.Quaternion().setFromRotationMatrix(basis));
+ }
+ sickle.scale.setScalar(root.scale.x);sickle.updateMatrixWorld(true);
  if(group.userData.baking)return;
  const start=sickle.localToWorld(new THREE.Vector3(0,0,-.18));
  const motion=chainWeightPose(phase,/slash|thrust/i.test(clip)),extend=motion.extension;
