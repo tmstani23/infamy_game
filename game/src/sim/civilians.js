@@ -89,7 +89,8 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     if (!sources.length) return;
     const radius = R.fearRadius ?? 8;
     for (const e of Object.values(state.entities)) {
-      if (e.type !== 'civilian' || e.place !== 'street' || e.downed || e.dead) continue;
+      // the blacksmith keeps working through fights (Tim 2026-11-01: never scared, no crouching)
+      if (e.type !== 'civilian' || e.shopkeeper || e.place !== 'street' || e.downed || e.dead) continue;
       // hit themselves this tick: that counts before anything else nearby
       const own = sources.find(src => src.t === e.id);
       for (const src of own ? [own] : sources) {

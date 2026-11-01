@@ -10,7 +10,7 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
   function initialize(){
     if(shop()||!spawn)return;
     const p=nav.nearestFree(SHOP.x,SHOP.z);
-    spawn('civilian','merchant',...p,{name:SHOP.name,shopkeeper:true,holdFire:true});
+    spawn('civilian','merchant',...p,{name:SHOP.name,shopkeeper:true,holdFire:true,hp:60});   // hp only so frames read right; he can never be hit (combat.js, game.js hostile/attackAllowed)
   }
   const near=e=>!!e&&canInteract(e)&&e.type==='hero'&&e.place==='street'&&!!shop()&&Math.hypot(e.x-shop().x,e.z-shop().z)<=SHOP.reach;
   const inv=e=>state.clans[e?.owner]?.inventory;

@@ -79,7 +79,7 @@ export function setSheetFrame(uniforms, sheet, dir, frame, glow = false) {
 
 export async function loadPackedSheets({url, model, names, loadJson, loadTexture, requireGlow = false, releaseTexture = texture => texture.dispose()}) {
   const manifest = await loadJson(url);
-  check(manifest.version === 1 && manifest.model === model && manifest.directions === 8 && manifest.margin >= 8, 'unsupported manifest');
+  check(manifest.version === 1 && manifest.model === model && manifest.directions === 8 && manifest.margin >= 2, 'unsupported manifest');
   const records = new Map(), pages = new Map();
   for (const entry of Object.values(names)) {
     const file = typeof entry === 'string' ? entry : entry.file;

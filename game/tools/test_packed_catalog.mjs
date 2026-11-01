@@ -43,7 +43,10 @@ for(const model of Object.keys(art.characters)){
     }
   }
 }
-assert.equal(loads,530,'every unique page loads once across the full catalog');
+// Page count follows the manifests (tools/repack_model.mjs changes it per model)
+const uniquePages=new Set(Object.keys(art.characters).flatMap(m=>{const man=read(new URL(art.packedCharacters[m],base));
+  return Object.values(man.sheets).flatMap(s=>[s.color,s.glow].filter(Boolean).flatMap(c=>c.pages.map(p=>p.file)));}));
+assert.equal(loads,uniquePages.size,'every unique page loads once across the full catalog');
 assert.equal(models.brute.idle.tex,models.enforcer.idle.tex,'shared brute/enforcer assets share GPU texture');
 assert.equal(models.geisha.idle.tex,models.shinobi_geisha.idle.tex,'civilian/crew variants share GPU texture');
 let disposed=0,active=0,peak=0;

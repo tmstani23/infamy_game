@@ -56,7 +56,7 @@
   <label>Turn X / Y (deg, one hand) <span><input id="itemRx" type="number" step="15" value="0" style="width:46px"> <input id="itemRy" type="number" step="15" value="0" style="width:46px"></span></label>
 
   <h2>Spritesheet</h2>
-  <label>Frame size (px) <select id="size"><option>96</option><option>128</option><option selected>160</option><option>192</option><option>256</option></select></label>
+  <label>Frame size (px) <select id="size"><option>96</option><option>128</option><option selected>160</option><option>192</option><option>256</option><option>512</option></select></label>
   <label>Frames per second <input id="fps" type="number" min="4" max="30" value="12"></label>
   <label>Max frames <input id="maxf" type="number" min="1" max="64" value="32"></label>
   <label>Character scale <input id="cscale" type="number" min="0.5" max="1.5" step="0.05" value="1"></label>
@@ -658,7 +658,10 @@ function glowSwap(on, saved) {
 
 // Renders the spritesheet for clip i: 8 rows (directions) x N frames, transparent
 // withGlow: also render the weapon glow sheet (needs a held item)
-function renderSheet(i, withGlow = false) {
+// opts.rows: only these direction rows, stacked in that order (hi-res portraits use [7])
+// opts.blurScale: widen the glow blur to match a bigger frame size
+function renderSheet(i, withGlow = false, opts = {}) {
+  const rows = opts.rows || DIRS.map((_, r) => r), blur = 2.5 * (opts.blurScale || 1);
   const size = Number($('size').value);
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
@@ -669,14 +672,14 @@ function renderSheet(i, withGlow = false) {
   const frames = Math.max(1, Math.min(Number($('maxf').value), Math.round(clip.duration * fps)));
 
   const sheet = document.createElement('canvas');
-  sheet.width = size * frames; sheet.height = size * DIRS.length;
+  sheet.width = size * frames; sheet.height = size * rows.length;
   const ctx = sheet.getContext('2d');
   const doGlow = withGlow && !!item;
   const gs = size / 2;
   const glow = doGlow ? document.createElement('canvas') : null;
   let gctx = null, cell = null, cctx = null;
   if (doGlow) {
-    glow.width = gs * frames; glow.height = gs * DIRS.length; gctx = glow.getContext('2d');
+    glow.width = gs * frames; glow.height = gs * rows.length; gctx = glow.getContext('2d');
     cell = document.createElement('canvas'); cell.width = cell.height = gs; cctx = cell.getContext('2d');
   }
   const saved = [];
@@ -701,7 +704,9 @@ function renderSheet(i, withGlow = false) {
     }});
   }
 
-  DIRS.forEach((d, row) => {
+  DIRS.forEach((d, dirRow) => {
+    if (!rows.includes(dirRow)) return;
+    const row = rows.indexOf(dirRow);
     root.rotation.y = yawFor(d);
     for (let f = 0; f < frames; f++) {
       exMixer.setTime((f / frames) * clip.duration);
@@ -715,7 +720,7 @@ function renderSheet(i, withGlow = false) {
         glowSwap(false, saved);
         // soft halo plus a fainter sharp core, blurred inside its own cell so frames never bleed
         cctx.clearRect(0, 0, gs, gs);
-        cctx.filter = 'blur(2.5px)'; cctx.globalAlpha = 1;
+        cctx.filter = `blur(${blur}px)`; cctx.globalAlpha = 1;
         cctx.drawImage(off.domElement, 0, 0, gs, gs);
         cctx.drawImage(off.domElement, 0, 0, gs, gs);
         cctx.filter = 'none'; cctx.globalAlpha = 0.5;
@@ -754,7 +759,7 @@ $('export').onclick = () => {
 window.spriteTest = {
   ready: () => clips.length > 0,
   clipCount: () => clips.length,
-  render: (i, withGlow = false) => { const r = renderSheet(i, withGlow); return { fname: r.fname, frames: r.frames, duration: r.duration, dataUrl: r.sheet.toDataURL('image/png'), glowUrl: r.glow ? r.glow.toDataURL('image/png') : null }; },
+  render: (i, withGlow = false, opts = {}) => { const r = renderSheet(i, withGlow, opts); return { fname: r.fname, frames: r.frames, duration: r.duration, dataUrl: r.sheet.toDataURL('image/png'), glowUrl: r.glow ? r.glow.toDataURL('image/png') : null }; },
   tracks: i => clips[i].clip.tracks.map(t => t.name),
   clipNames: () => clips.map(c => c.name),
   itemReady: () => !!item,

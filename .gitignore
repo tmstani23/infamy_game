@@ -10,3 +10,6 @@
 /look_tests/tank_sprite_preview/
 /look_tests/kuroda_sprite_preview/
 /debug.log
+
+# Local npm install (sharp, playwright for sprite export).
+/node_modules/

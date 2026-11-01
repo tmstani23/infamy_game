@@ -24,8 +24,8 @@ export function createInventory({state,baseHp}) {
   function initialize(e) {
     const clan = state.clans[e.owner];
     if (e.type !== 'hero' || !clan) return;
-    // Clan storage survives recovery; spawning again cannot mint starter items.
-    clan.inventory ||= { bag: [...CURRENT_ITEM_IDS, ...Array(INVENTORY_SLOTS - CURRENT_ITEM_IDS.length).fill(null)],
+    // Clan storage survives recovery. Heroes start with no gear (Tim 2026-11-01): buy it or win it.
+    clan.inventory ||= { bag: Array(INVENTORY_SLOTS).fill(null),
       stash: Array(INVENTORY_SLOTS).fill(null), equipment: Object.fromEntries(EQUIPMENT_SLOTS.map(s => [s, null])) };
     e.equipment = clan.inventory.equipment;
   }

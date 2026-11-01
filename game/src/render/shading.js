@@ -100,7 +100,7 @@ vec3 grade(vec3 base, vec3 P, bool upright, vec3 selfLight) {
 }
 `;
 
-const SPRITE_VERT = /* glsl */`
+export const SPRITE_VERT = /* glsl */`
 const vec3 VIEW_DIR = vec3(${v.x.toFixed(6)}, ${v.y.toFixed(6)}, ${v.z.toFixed(6)});
 uniform vec4 uFrame;   // uv offset (xy) and scale (zw) for spritesheets
 uniform vec4 uDepthAt; // xyz: ground point the sprite stands on; w > 0: test depth against 3D rooms, pulled this far toward the camera

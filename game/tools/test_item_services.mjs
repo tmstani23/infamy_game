@@ -10,9 +10,9 @@ const h={id:'h',owner:'player',type:'hero',place:'street',x:0,z:0,hp:200,maxHp:4
 state.entities={h,r,npc:{id:'npc',shopkeeper:true,x:0,z:0,place:'street'}};inventory.initialize(h);inventory.initialize(r);
 const service=createItemServices({state,raidRules:{lanternPrice:400,lanternCarry:1}}),v=state.clans.player.inventory;
 const command=(action,item,index)=>service.command(h,{action,item,index});
-command('buy','honed_weapon');assert.equal(state.clans.player.ryo,4850);assert.equal(v.bag[3],'honed_weapon');
+command('buy','honed_weapon');assert.equal(state.clans.player.ryo,4850);assert.equal(v.bag[0],'honed_weapon','heroes start with an empty bag, so it lands in slot 0');
 h.x=99;command('buy','bandage');assert.equal(v.bandages,undefined,'cannot trade remotely');h.x=0;
-command('sell',null,3);assert.equal(state.clans.player.ryo,4890);assert.equal(v.bag[3],null);
+command('sell',null,0);assert.equal(state.clans.player.ryo,4890);assert.equal(v.bag[0],null);
 v.bag.fill('honed_weapon');const before=state.clans.player.ryo;command('buy','balanced_weapon');assert.equal(state.clans.player.ryo,before,'full bag costs nothing');v.bag.fill(null);
 command('buy','bandage');command('buy','bandage');command('buy','bandage');assert.equal(v.bandages,2);
 command('buy','war_lantern');command('buy','war_lantern');assert.equal(state.clans.player.lanterns,1);
@@ -33,4 +33,10 @@ const game=createGame({district:json('data/port_town.json'),catalog:json('data/a
 assert.ok(game.itemServices.shop(),'placed blacksmith gets one outdoor shopkeeper');
 game.clans.addClan('player');const npc=game.itemServices.shop(),id=game.spawn('hero','ronin',npc.x,npc.z,{owner:'player',holdFire:true});
 game.state.clans.player.ryo=5000;game.step([{id,type:'item',action:'buy',item:'bandage'}]);assert.equal(game.state.clans.player.inventory.bandages,1,'shared command reaches authoritative shop');
+// Tim 2026-11-01: the blacksmith can't be attacked, never gets scared or crouches, and his frame reads normally
+game.step([{id,type:'attack',target:npc.id}]);for(let i=0;i<40;i++)game.step([]);assert.equal(npc.hp,60,'shopkeeper takes no damage');
+game.clans.addClan('rival');const foe=game.spawn('thug','thug',npc.x+1,npc.z,{owner:'rival'});
+for(let i=0;i<80;i++)game.step(i?[]:[{id,type:'attack',target:foe}]);
+assert.ok(game.state.hits.length||game.state.entities[foe].hp<game.state.entities[foe].maxHp,'a fight happened next to him');
+assert.ok(!npc.scared&&!npc.flee&&npc.anim!=='scared','shopkeeper never scared');assert.equal(npc.maxHp,60);
 console.log('Shop/gear: prices, remote/full refusals, selling, supply limits, shared lantern, interrupted healing, green stats, repeat protection and city command integration passed');

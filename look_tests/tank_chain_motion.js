@@ -22,48 +22,67 @@ export function chainWeightPose(phase,attacking){
 
 // Verlet integration + position-based distance constraints. The exporter samples
 // animated hand anchors in chronological order, then reuses this track for 8 views.
+// anchorAt may return {pin, belt}: out of attacks the weight hangs from the belt
+// (Tim 2026-11-01) and the slack chain is coiled into the weight; attacks cast
+// from the belt and return to it.
 export function bakeChainTrack({duration,anchorAt,attacking=true,hz=240,links=CHAIN_LINKS,length=CHAIN_LENGTH}){
  const count=links,step=length/(count-1),dt=1/hz,points=[],previous=[];
- const anchor=anchorAt(0),rest=chainWeightPose(0,false),tip=[rest.x,rest.y,rest.z];
- for(let i=0;i<count;i++){const u=i/(count-1),p=anchor.map((n,k)=>mix(n,tip[k],u));p[1]=Math.max(.12,p[1]-.55*Math.sin(Math.PI*u));points.push(p);previous.push([...p]);}
+ const read=phase=>{const a=anchorAt(phase);return Array.isArray(a)?{pin:a,belt:null}:a;};
+ const first=read(0),anchor=first.pin,rest=chainWeightPose(0,false);
+ // Goal for the weight and how many links are paid out at this phase.
+ const goalAt=(phase,pin,belt)=>{
+  const g=chainWeightPose(phase,attacking);let goal=[g.x,g.y,g.z],w=0;
+  if(belt){
+   // Weight of the authored swing: 0 at the belt, 1 mid-attack.
+   w=attacking?clamp(Math.min(phase/.13,(1-phase)/.14)):0;w=w*w*(3-2*w);
+   goal=attacking?belt.map((b,k)=>mix(b,[g.x,g.y,g.z][k],w)):[...belt];
+  }
+  const span=Math.hypot(...goal.map((v,k)=>v-pin[k]));
+  const used=belt?mix(Math.min(length,span*1.08+.08),length,w):length;
+  return {goal,active:Math.max(3,Math.min(count,Math.ceil(used/step)+1))};
+ };
+ const tip0=goalAt(0,anchor,first.belt);
+ for(let i=0;i<count;i++){const u=Math.min(1,i/(tip0.active-1)),p=anchor.map((n,k)=>mix(n,tip0.goal[k],u));p[1]=Math.max(.12,p[1]-.25*Math.sin(Math.PI*u)*(tip0.active/count));points.push(p);previous.push([...p]);}
  const collide=p=>{
   p[1]=Math.max(.10,p[1]);
   // A conservative torso capsule; the right-hand path avoids the opposite shield.
   if(p[1]>.35&&p[1]<1.75){const d=Math.hypot(p[0],p[2]);if(d<.32){const s=.32/Math.max(d,1e-8);p[0]=d<1e-8?-.32:p[0]*s;p[2]*=s;}}
  };
- function constrain(pin,goal,iterations=64){
-  const target=[...goal],d=Math.hypot(...goal.map((v,k)=>v-pin[k]));
-  if(d>length*.98)for(let k=0;k<3;k++)target[k]=pin[k]+(goal[k]-pin[k])*length*.98/d;
+ function constrain(pin,goal,active,iterations=64){
+  const last=active-1,len=step*last,target=[...goal],d=Math.hypot(...goal.map((v,k)=>v-pin[k]));
+  if(d>len*.98)for(let k=0;k<3;k++)target[k]=pin[k]+(goal[k]-pin[k])*len*.98/d;
   for(let n=0;n<iterations;n++){
-   points[0]=[...pin];points[count-1]=[...target];
-   for(let j=0;j<count-1;j++){
-    const i=n%2?count-2-j:j;
+   points[0]=[...pin];points[last]=[...target];
+   for(let j=0;j<last;j++){
+    const i=n%2?last-1-j:j;
     const a=points[i],b=points[i+1],dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],d=Math.hypot(dx,dy,dz)||1e-8;
-    const fix=(d-step)/d,wa=i===0?0:i===count-2?1:.5,wb=i===count-2?0:i===0?1:.5;
+    const fix=(d-step)/d,wa=i===0?0:i===last-1?1:.5,wb=i===last-1?0:i===0?1:.5;
     for(let k=0;k<3;k++){const v=(b[k]-a[k])*fix;a[k]+=v*wa;b[k]-=v*wb;}
    }
-   for(let i=1;i<count-1;i++)collide(points[i]);
+   for(let i=1;i<last;i++)collide(points[i]);
   }
-  points[0]=[...pin];points[count-1]=[...target];
+  points[0]=[...pin];
+  // Coiled links sit inside the weight, ready to pay out without a jump.
+  for(let i=last;i<count;i++){points[i]=[...target];previous[i]=[...target];}
  }
- function advance(pin,goal){
-  for(let i=1;i<count-1;i++)for(let k=0;k<3;k++){
+ function advance(pin,{goal,active}){
+  for(let i=1;i<active-1;i++)for(let k=0;k<3;k++){
    const p=points[i],old=p[k],velocity=(p[k]-previous[i][k])*.987;
    p[k]+=velocity+(k===1?-9.81*dt*dt:0);previous[i][k]=old;
   }
   // The authored weight leads the stroke; free links retain inertia and sag.
-  constrain(pin,goal);
+  constrain(pin,goal,active);
  }
- for(let i=0;i<hz;i++)advance(anchor,tip);
+ for(let i=0;i<hz;i++)advance(anchor,tip0);
  const initial=points.map(p=>[...p]),frames=[initial],steps=Math.max(1,Math.ceil(duration*hz));
  for(let i=1;i<=steps;i++){
-  const phase=i/steps,pin=anchorAt(phase),guide=chainWeightPose(phase,attacking);
-  advance(pin,[guide.x,guide.y,guide.z]);
+  const phase=i/steps,{pin,belt}=read(phase),guide=goalAt(phase,pin,belt);
+  advance(pin,guide);
   // Ease residual whip energy into the next idle pose.
   if(attacking&&phase>.86){
    const t=clamp((phase-.86)/.14),blend=t*t*(3-2*t);
-   for(let j=1;j<count;j++)for(let k=0;k<3;k++)points[j][k]=mix(points[j][k],initial[j][k]+(pin[k]-anchor[k]),blend*.28);
-   constrain(pin,[guide.x,guide.y,guide.z]);
+   for(let j=1;j<guide.active;j++)for(let k=0;k<3;k++)points[j][k]=mix(points[j][k],initial[j][k]+(pin[k]-anchor[k]),blend*.28);
+   constrain(pin,guide.goal,guide.active);
   }
   frames.push(points.map(p=>[...p]));
  }

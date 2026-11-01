@@ -3,7 +3,7 @@
 export const INVENTORY_SLOTS = 12;
 export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory'];
 export const GEAR = {
-  weighted_edge: { name: 'Weighted edge', slot: 'weapon', about: '+8% normal-hit power; 6% longer attack interval.', modifiers: { damage: 1.08, attackInterval: 1.06 }, glow: [1, .52, .18], visual: { kind: 'weaponGlint', color: [1,.52,.18] } },
+  weighted_edge: { name: 'Weighted edge', slot: 'weapon', about: '+8% normal-hit power; 6% longer attack interval.', modifiers: { damage: 1.08, attackInterval: 1.06 }, glow: [1, .52, .18], visual: { kind: 'weaponEmbers', color: [1,.52,.18] } },
   light_lamellar: { name: 'Light lamellar', slot: 'armor', about: '6% less incoming damage; 5% slower running.', modifiers: { damageTaken: .94, run: .95 }, visual: { kind: 'armorShimmer', color: [.65,.8,.85] } },
   scouts_knot: { name: 'Scout’s knot', slot: 'accessory', about: '+5% run speed; 3% more incoming damage.', modifiers: { run: 1.05, damageTaken: 1.03 }, visual: { kind: 'movementWisps', color: [.5,.8,.65] } },
   honed_weapon: { name: 'Honed weapon', slot: 'weapon', buy: 150, sell: 40, bonuses: { normalDamage: .05 }, visual: { kind: 'weaponGlint', color: [.8,.9,1] } },
@@ -18,7 +18,7 @@ export const CURRENT_ITEMS = Object.fromEntries(CURRENT_ITEM_IDS.map(id => [id, 
 export const SHOP_ITEM_IDS = ['honed_weapon', 'balanced_weapon', 'reinforced_coat', 'lightweight_wraps', 'travelers_charm', 'focus_charm'];
 export const RARITIES = {
   common: { name: 'Common', bonusScale: 1, visualStrength: 1 },
-  green: { name: 'Green', bonusScale: 1.25, visualStrength: 1.25, color: [.35,.85,.45] },
+  green: { name: 'Green', bonusScale: 1.25, visualStrength: 1.4, color: [.35,.85,.45] },
 };
 // bonusScale multiplies the BONUS, not the full stat: +5% becomes +6.25%.
 // Every item requires a visible equipment effect; sprite variants are optional.
@@ -70,8 +70,9 @@ for (const id of SHOP_ITEM_IDS) for (const rarity of ['common','green']) {
   if(b.maxHpFlat)modifiers.maxHpFlat=b.maxHpFlat;
   if(b.dodgeChanceFlat)modifiers.dodgeChanceFlat=b.dodgeChanceFlat;
   const about=Object.entries(b).map(([k,v])=>({normalDamage:`+${percent(v)} normal-hit damage`,normalAttackRate:`+${percent(v)} attack speed`,movement:`+${percent(v)} movement`,cooldownReduction:`−${percent(v)} ability cooldown`,maxHpFlat:`+${v} maximum HP`,dodgeChanceFlat:`+${percent(v)} dodge`})[k]).join('; ');
+  // weapons (Tim 2026-11-01): common = edge glint, green = embers
   ITEMS[rarity==='green'?`${id}_green`:id]={...source, id, rarity, modifiers, about,
     name:(rarity==='green'?'Fine ':'')+source.name, sell:source.sell,
-    visual:{...source.visual,strength:RARITIES[rarity].visualStrength},glow:source.slot==='weapon'?source.visual.color:undefined};
+    visual:{...source.visual,...(source.slot==='weapon'?(rarity==='green'?{kind:'weaponEmbers',color:[1,.52,.18]}:{kind:'weaponGlint'}):{}),strength:RARITIES[rarity].visualStrength},glow:source.slot==='weapon'?source.visual.color:undefined};
 }
 export const SHOP = {reach:4.5, x:-53,z:-10,building:'blacksmith',name:'Blacksmith',lootRepeatSeconds:120};

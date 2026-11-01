@@ -52,6 +52,16 @@ export function buildTankWeapon(std,kind){
  return group;
 }
 
+// Where the weight hangs from the belt: right hip (character-local -X), a little
+// forward and below the hips bone, outside the torso capsule.
+const BELT={side:-.33,forward:.08,drop:.14};
+function beltPoint(root){
+ let hips=null;root.traverse(o=>{if(!hips&&o.isBone&&/Hips$/.test(o.name))hips=o;});
+ if(!hips)return null;
+ const h=root.worldToLocal(hips.getWorldPosition(new THREE.Vector3()));
+ return [h.x+BELT.side,h.y-BELT.drop,h.z+BELT.forward];
+}
+
 // Sample the animated hand once, in chronological order, before rendering any view.
 export function bakeTankChain(group,root,{clip,duration,poseAt}){
  if(group?.userData.tank!=='kusarigama')return;
@@ -59,7 +69,7 @@ export function bakeTankChain(group,root,{clip,duration,poseAt}){
  try{
   group.userData.chainBake=bakeChainTrack({duration,attacking:/slash|thrust/i.test(clip),anchorAt:phase=>{
    poseAt(phase);const anchor=group.getObjectByName('sickle').localToWorld(new THREE.Vector3(0,0,-.18));
-   return root.worldToLocal(anchor).toArray();
+   return {pin:root.worldToLocal(anchor).toArray(),belt:beltPoint(root)};
   }});
  }finally{delete group.userData.baking;}
 }

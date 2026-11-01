@@ -14,10 +14,11 @@ export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{}
   const tile=key=>{const b=document.createElement('button');b.type='button';b.className='shop-tile';b.dataset.key=key;
     b.innerHTML='<small class="tile-slot"></small><span class="tile-art"></span><b class="tile-name"></b><span class="tile-price"></span>';
     b.addEventListener('click',()=>{picked=picked===key?null:key;render();});
-    b.addEventListener('mouseenter',()=>{hover=key;render();});b.addEventListener('mouseleave',()=>{if(hover===key){hover=null;render();}});
+    b.addEventListener('mouseenter',()=>{if(hover!==key){hover=key;render();}});   // leaving a tile keeps its preview until the pointer leaves the grid (no flicker between tiles)
     b.addEventListener('focus',()=>{hover=key;render();});b.addEventListener('blur',()=>{if(hover===key){hover=null;render();}});
     return b;};
   const tiles={buy:stockIds.map(tile),sell:Array.from({length:INVENTORY_SLOTS},(_,i)=>tile(String(i)))};
+  $('.shop-grid').addEventListener('mouseleave',()=>{if(hover!=null){hover=null;render();}});
   $('.shop-tabs').addEventListener('click',e=>{const t=e.target.closest('[data-tab]')?.dataset.tab;if(t&&t!==tab){tab=t;picked=hover=null;layout();render();}});
   function layout(){const grid=$('.shop-grid');grid.replaceChildren(...tiles[tab]);
     for(const b of root.querySelectorAll('[data-tab]')){const on=b.dataset.tab===tab;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));}}
@@ -64,8 +65,8 @@ export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{}
   function update(){
     const e=hero(),npc=game.itemServices.shop(),clan=game.state.clans[e?.owner],near=game.itemServices.near(e);
     icon.hidden=hidden()||!npc||e?.place!=='street'||!game.vision.canSee(e.owner,npc)||open;
-    if(!icon.hidden){const p=view.unitToScreen(npc.x,npc.z),k=`${Math.round(p.x)},${Math.round(p.y)},${near}`;   // write the DOM only when it moved
-      if(k!==lastMarker){lastMarker=k;icon.style.left=`${Math.round(p.x)}px`;icon.style.top=`${Math.round(p.y)-65}px`;icon.disabled=!near;}}
+    if(!icon.hidden){const p=view.unitToScreen(npc.x,npc.z,3.0),k=`${Math.round(p.x)},${Math.round(p.y)},${near}`;   // write the DOM only when it moved
+      if(k!==lastMarker){lastMarker=k;icon.style.left=`${Math.round(p.x)}px`;icon.style.top=`${Math.round(p.y)-2}px`;icon.disabled=!near;}}
     if(!open)return;if(!near||hidden())return close();
     const inv=clan.inventory;render();
     put($('.shop-money'),`${Math.floor(clan.ryo)} ryo · Bag ${inv.bag.filter(Boolean).length}/${INVENTORY_SLOTS}`);

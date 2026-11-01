@@ -4,6 +4,13 @@
 //   node tools/export_sprites.mjs . thug brute (only these models)
 //   add --glow-only to write just the weapon glow sheets and keep the colour sheets
 //   add --clip=arms_hip_hop_dance to render only that named clip
+//   add --pack to repack just these models into the live catalog afterwards
+//       (tools/repack_model.mjs; --margin=N passes through)
+//   add --portrait for the character-page portrait: the idle from art.json, front
+//       row only (row 7) at 512 px, to assets/sprites/portraits/; with --pack it goes
+//       to assets/sprites_packed/portraits/ (render/hero_preview.js loads it)
+// Before a sheet is overwritten the old one is copied to
+// assets/sprites_archive/<date>_<model>/ (once per day per file).
 //
 // Reads   assets/models/*.fbx      (rigged characters with skin; models/source is ignored)
 //         assets/animations/**.fbx (Mixamo clips without skin)
@@ -102,6 +109,11 @@ const flags = process.argv.slice(3).filter(s => s.startsWith('--'));
 const only = process.argv.slice(3).filter(s => !s.startsWith('--')).map(s => s.toLowerCase());
 const glowOnly = flags.includes('--glow-only');
 const onlyClips = flags.filter(s => s.startsWith('--clip=')).map(s => s.slice(7).toLowerCase());
+const portrait = flags.includes('--portrait'), pack = flags.includes('--pack');
+const PORTRAIT_SIZE = 512, PORTRAIT_ROW = 7;
+const artCatalog = JSON.parse(fs.readFileSync(path.join(root, 'game', 'data', 'art.json'), 'utf8'));
+const today = new Date().toISOString().slice(0, 10);
+const exported = new Set();
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
 const page_url = pathToFileURL(path.join(root, 'look_tests', 'sprite_render_test.html')).href;
@@ -152,8 +164,12 @@ for (const { file: model, name } of models) {
     const f = path.join(animDir, e);
     if (fs.existsSync(f)) mine.push(f); else console.log(`  missing extra clip ${e}`);
   }
-  if (onlyClips.length) mine = mine.filter(a => onlyClips.includes(clipName(clipOf(a))));
-  const builtIn = !onlyClips.length || onlyClips.includes(BUILT_IN[name]) ? BUILT_IN[name] ?? null : null;
+  // Portrait: only the idle clip named in art.json (e.g. ronin_breathing_idle -> breathing_idle)
+  const idleEntry = artCatalog.characters?.[name]?.idle;
+  const wanted = portrait ? (idleEntry ? [(idleEntry.file || idleEntry).replace(name + '_', '')] : []) : onlyClips;
+  if (portrait && !wanted.length) { console.log(`${name}: no idle in art.json, no portrait`); continue; }
+  if (wanted.length) mine = mine.filter(a => wanted.includes(clipName(clipOf(a))));
+  const builtIn = !wanted.length || wanted.includes(BUILT_IN[name]) ? BUILT_IN[name] ?? null : null;
   if (!mine.length && !builtIn) { console.log(`${name}: no animations in set(s) ${sets.join(', ')}, skipped`); continue; }
 
   const page = await browser.newPage();
@@ -171,6 +187,10 @@ for (const { file: model, name } of models) {
   await page.waitForFunction(() => window.spriteTest?.ready(), null, { timeout: 300000 });
   await page.evaluate(s => window.spriteTest.setScale(s), SCALE[name] ?? 1);
   if (spearConfig) await page.evaluate(f => window.spriteTest.setFraming(f), KURODA_FRAMING);
+  // Portrait: same framing, bigger frame; the glow blur grows with it so it reads the same
+  const baseSize = await page.evaluate(() => Number(document.getElementById('size').value));
+  if (portrait) await page.evaluate(s => { document.getElementById('size').value = String(s); }, PORTRAIT_SIZE);
+  const renderOpts = portrait ? { rows: [PORTRAIT_ROW], blurScale: PORTRAIT_SIZE / baseSize } : {};
   const it = ITEMS[name] || TANK_SPRITES[name]?.item;
   if(it?.shield==='long')await page.evaluate(()=>window.spriteTest.loadLongShieldTexture());
   let holding = false;
@@ -196,14 +216,18 @@ for (const { file: model, name } of models) {
     if (isBuiltIn && !builtIn) continue;
     // <model>_<clip> with set and variant prefixes dropped, e.g. brute_walking.png from brawler/Mutant Walking.fbx
     const clip = isBuiltIn ? builtIn : clipName(safe(names[i]).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, ''));
-    if (onlyClips.length && !onlyClips.includes(clip)) continue;
-    const r = await page.evaluate(([i, g]) => window.spriteTest.render(i, g), [i, holding]);
-    const fname = `${name}_${clip}.png`;
+    if (wanted.length && !wanted.includes(clip)) continue;
+    const r = await page.evaluate(([i, g, o]) => window.spriteTest.render(i, g, o), [i, holding, renderOpts]);
+    const fname = portrait ? `portraits/${name}_portrait_idle.png` : `${name}_${clip}.png`;
+    fs.mkdirSync(path.dirname(path.join(outDir, fname)), { recursive: true });
+    exported.add(name);
+    // Never lose an old sheet: keep the first copy of the day
     const preserveOld = file => {
-      if (!spearConfig || !fs.existsSync(path.join(outDir, file))) return;
-      const archive = path.join(root, TANK_SPRITES[name]?'assets/sprites_archive/2026-10-30_tank_chain_forward':'assets/sprites_archive/2026-10-22_kuroda_spear');
+      if (!fs.existsSync(path.join(outDir, file))) return;
+      const archive = path.join(root, 'assets', 'sprites_archive', `${today}_${name}`, path.dirname(file));
       fs.mkdirSync(archive, { recursive: true });
-      if (!fs.existsSync(path.join(archive, file))) fs.copyFileSync(path.join(outDir, file), path.join(archive, file));
+      const target = path.join(archive, path.basename(file));
+      if (!fs.existsSync(target)) fs.copyFileSync(path.join(outDir, file), target);
     };
     if (!glowOnly) {
       preserveOld(fname);
@@ -223,3 +247,8 @@ for (const { file: model, name } of models) {
 }
 } finally { await browser.close(); }
 console.log(`Done: ${written} spritesheet(s) in assets/sprites`);
+if (pack && exported.size) {
+  const { execFileSync } = await import('child_process');
+  const passOn = flags.filter(f => f.startsWith('--margin='));
+  execFileSync(process.execPath, [path.join(root, 'tools', 'repack_model.mjs'), ...exported, ...passOn, ...(portrait ? ['--portrait'] : [])], { stdio: 'inherit', cwd: root });
+}

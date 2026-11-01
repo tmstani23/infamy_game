@@ -20,7 +20,7 @@ Double-click `start_game.bat` (needs Node and internet). Controls: [docs/control
 
 | Doc | What it covers |
 |---|---|
-| [README.md](README.md) | Project overview, repo layout, sprite export how-to |
+| [README.md](README.md) | Project overview, repo layout, sprite export how-to. **All sprite work (new or updated characters and items) uses [Exporting sprites](README.md#exporting-sprites).** |
 | [docs/usage.md](docs/usage.md) | Usage-saving rules |
 | [docs/documentation_role.md](docs/documentation_role.md) | Which doc owns which topic, and how doc changes are approved and written |
 | [docs/architecture.md](docs/architecture.md) | High-level code architecture: modules, data flow, main loop |

@@ -120,7 +120,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       f.pic.style.backgroundImage = url ? `url(${url})` : '';
       if (url) f.model = e.model;
     }
-    if (f.id !== e.id) { f.id = e.id; set(f.name, 'textContent', unitName(units, e.type === 'hero' ? e.model : (e.civ || e.type))); }
+    if (f.id !== e.id) { f.id = e.id; set(f.name, 'textContent', (e.shopkeeper && e.name) || unitName(units, e.type === 'hero' ? e.model : (e.civ || e.type))); }
     const r = relation(e, hero), [c, bar] = COLORS[r.kind];
     f.c.style.setProperty('--c', c);
     f.c.style.setProperty('--bar', bar);

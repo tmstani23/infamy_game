@@ -140,9 +140,37 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // thin ring under every character, coloured by who they are to you, over a faint dark
   // edge so it reads on light and dark ground, day or night
   const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2, police: 0x4a78e6 };
-  const TEAM_GEO = new THREE.RingGeometry(0.5, 0.56, 40), TEAM_EDGE_GEO = new THREE.RingGeometry(0.47, 0.59, 40);
-  const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.75, depthWrite: false })]));
-  const TEAM_EDGE = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false });
+  // Turning arcs (Tim 2026-11-01, mock C): three soft arcs with gaps and small beads that slowly
+  // rotate, a faint inner line and a dark under-shadow so it reads on any ground. One shared quad
+  // and one shader material per team: no textures, no per-unit memory beyond the mesh itself.
+  const TEAM_TIME = { value: 0 };
+  const TEAM_GEO = new THREE.PlaneGeometry(1.4, 1.4);
+  const teamMaterial = c => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uOpacity: { value: 0.6 } },
+    vertexShader: `varying vec2 vP; varying float vPhase;
+      void main() { vP = (uv - 0.5) * 1.4;
+        vec2 c = modelMatrix[3].xz; vPhase = fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453) * 6.2832;
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform vec3 uColor; uniform float uTime, uOpacity; varying vec2 vP; varying float vPhase;
+      const float TAU = 6.2831853, R = 0.53;
+      void main() {
+        float r = length(vP), a = atan(vP.y, vP.x) + uTime * 0.35 + vPhase;
+        float seg = fract(a / (TAU / 3.0));                          // 0..1 within each third
+        float arc = smoothstep(0.0, 0.05, seg) * (1.0 - smoothstep(0.69, 0.74, seg));
+        float d = r - R;
+        float core = exp(-d * d / 0.00018), glow = exp(-d * d / 0.0028);
+        float inner = exp(-pow(r - 0.43, 2.0) / 0.00006) * 0.35;
+        float bp = (0.815 + floor(a / (TAU / 3.0))) * (TAU / 3.0) - uTime * 0.35 - vPhase;   // bead in each gap
+        float bead = exp(-dot(vP - R * vec2(cos(bp), sin(bp)), vP - R * vec2(cos(bp), sin(bp))) / 0.00035);
+        float light = (core * 0.85 + glow * 0.35) * arc + inner + bead * 0.9;
+        float shade = exp(-d * d / 0.004) * 0.22;                     // dark under-shadow for light ground
+        float alpha = clamp(light + shade * (1.0 - light), 0.0, 1.0) * uOpacity;
+        vec3 col = uColor * light / max(light + shade * (1.0 - light), 1e-4);
+        if (alpha < 0.004) discard;
+        gl_FragColor = vec4(col, alpha);
+      }` });
+  const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c)]));
   function teamOf(e, me) {
     if (e.id === me?.id) return 'hero';
     if (e.type === 'civilian') return 'townsfolk';
@@ -155,13 +183,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   function updateTeamRing(s, e, me) {
     if (!s.team) {
       s.team = new THREE.Group();
-      const edge = new THREE.Mesh(TEAM_EDGE_GEO, TEAM_EDGE), ring = new THREE.Mesh(TEAM_GEO, TEAM_MAT.enemy);
-      edge.renderOrder = 2; ring.renderOrder = 2;
-      s.team.add(edge, ring);
+      const ring = new THREE.Mesh(TEAM_GEO, TEAM_MAT.enemy);
+      ring.renderOrder = 2;
+      s.team.add(new THREE.Object3D(), ring);   // slot 0 kept empty so children[1] stays the ring
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);
     }
     s.team.visible = !e.dead && !e.downed && !e.jailed;
+    TEAM_TIME.value = performance.now() / 1000;
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
     s.team.position.set(s.pos.x, 0.018, s.pos.z);
     s.team.scale.setScalar(s.size);
@@ -500,9 +529,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       for (const t of things) if (t.building !== null && t.covers(P) && (!best || t.mesh.renderOrder > best.mesh.renderOrder)) best = t;
       return best ? best.building : null;
     },
-    // a unit's body centre (about 0.9 above its feet) -> page pixel { x, y }
-    unitToScreen(x, z) {
-      v.set(x, 0.9, z).project(camera);
+    // a unit's body centre (about 0.9 above its feet) -> page pixel { x, y }; y = another height
+    unitToScreen(x, z, y = 0.9) {
+      v.set(x, y, z).project(camera);
       return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
     },
     // where a lantern prop's lights actually glow, as page pixels [{ x, y }] (for hovering it to snuff, Tim 2026-10-21)

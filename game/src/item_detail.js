@@ -9,14 +9,22 @@ export const ICONS = {
   accessory: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 23C7 23 20 4 32 18c12-14 25 5 0 5ZM28 22l-9 17m17-17 9 17" fill="none" stroke="#ba8169" stroke-width="4"/><circle cx="32" cy="43" r="13" fill="#645634" stroke="#d4b16d" stroke-width="2"/><path d="M28 39h8v8h-8Z" fill="none" stroke="#e1c790" stroke-width="2"/></svg>',
 };
 
-const EFFECT = { weapon: 'Tints your blade glow, with a glint along the edge',
-  armor: 'Soft ring of light around your body', accessory: 'Small light orbiting you' };
-const SHORT = { weapon: 'blade glint', armor: 'body ring', accessory: 'orbiting light' };
+// what render/gear_fx.js draws for each visual kind
+const EFFECT = { weaponGlint: 'A small glint slides along your blade every few seconds',
+  weaponEmbers: 'A few sparks drift off your blade, more as you swing',
+  weaponTrail: 'A thin arc of light follows your blade tip on swings',
+  armorShimmer: 'A thin line of light sweeps down your outline',
+  bodyOutline: 'Faint afterimages trail you while you move',
+  accessoryAura: 'Tiny spirit motes rise around you',
+  movementWisps: 'Wind curls on the ground behind you while you run' };
+const SHORT = { weaponGlint: 'edge glint', weaponEmbers: 'embers', weaponTrail: 'swing trail', armorShimmer: 'rim sheen',
+  bodyOutline: 'afterimage', accessoryAura: 'spirit motes', movementWisps: 'wind wisps' };
 const css = c => c ? `rgb(${c.map(v => Math.round(v * 255)).join(',')})` : '#d8b56c';
 export const itemOf = id => ITEMS[id] || CONSUMABLES[id] || null;
 export function effectOf(item) {
   if (!item?.slot) return null;
-  return { text: EFFECT[item.slot], short: SHORT[item.slot], color: css(item.visual?.color || item.glow) };
+  const kind = item.visual?.kind;
+  return { text: EFFECT[kind] || 'Subtle light on your hero', short: SHORT[kind] || item.slot, color: css(item.visual?.color || item.glow) };
 }
 export function itemArt(id) {
   const item = ITEMS[id];

@@ -41,7 +41,7 @@
 5. Export from Mixamo as FBX:
    - one **with-skin** file per character in `assets/models` (for example `ronin.fbx`);
    - **without-skin** animations in `assets/animations`, grouped into sets by subfolder (list in `cast_tracker.md`, Animation sets). They all use the same Mixamo skeleton, so any animation works on any character; the export script pairs each model with its set.
-6. Render with `look_tests/sprite_render_test.html` (live preview of all 8 directions) or batch-export with `tools/export_sprites.mjs`. Before overwriting live sheets, make a restorable backup with verified source hashes. Audit the current sheets, pack unique sources, verify decoded pixels, UVs, frame positions and weapon/glow/trail/effect sampling, then update the runtime catalog. This sequence is a manual workflow, not an automatic exporter hook; the current packer reads a historical audit path (see `README.md`).
+6. Render with `look_tests/sprite_render_test.html` (live preview of all 8 directions), then export and pack with `node tools/export_sprites.mjs . <model> --pack` (see `README.md`, Exporting sprites). Packing gates (2026-11-01): for changed models the single-model repack replaces the full re-audit and catalog step; old sheets are archived automatically. A full audit is only for catalog-wide policy changes. Gutter trial: the shield guard (`koruda_enforcer`) is on a 4 px gutter (81 to 61 MiB; `packed_sheets` accepts margin 2 or more); extend to all models if there is no edge bleed when zoomed out. Repacking one model takes about 5 s.
 7. Result: one **8-direction spritesheet** per character and animation in `assets/sprites/<model>_<animation>.png`, plus verified packed pages in `assets/sprites_packed/catalog_v1/` for the current runtime. Rows top to bottom are S, SW, W, NW, N, NE, E, SE; default frames are 160px at 12 fps (the character is the same size as in the earlier 128px sheets; the extra room keeps lunges and falls inside the cell). Root motion is removed so each frame stays centered, and the feet sit at the same point in every cell.
 
 **Original-sheet retirement plan (2026-11-01; not approved for implementation):** Keep `assets/sprites/` active for `?sprites=original` comparison and runtime load-failure fallback. Before retiring it, check every roster animation and its glows, buffs, trails and death effects indoors and outside at near/far zoom; compare long-match browser memory and failure behavior; and verify a complete restorable archive with hashes. A separate approved checkpoint would remove the comparison switch and legacy runtime fallback, archive source sheets outside the active runtime without destroying them, and update exporter, test and doc references. No export, move or deletion is part of this plan.
@@ -57,6 +57,7 @@
 - Abilities use an existing Mixamo animation plus code or sprite VFX.
 - Night lighting, rain, mist and wet reflections stay live effects on top of the sprites.
 - Weapon glow (2026-10-18): faint per-weapon glow layer; see `combat_spec.md` section G.
+- Unit circles (2026-11-01): turning-arc magic circles (shader in `render/view.js`) replace the flat team rings, dimmer.
 - Door rings (2026-10-17): a notched outer ring, a turning dashed inner ring, ember glow and a sweeping highlight; each ring sits 1 step out from its door.
 
 ### Superseded

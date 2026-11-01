@@ -13,6 +13,9 @@ function fixture(faction = 'yakuza', bot = false) {
   const id=g.spawn('hero',faction==='shinobi'?'ninja_leader':faction==='kuroda'?'rival_yakuza':'ronin',-8,1,{owner:'player',holdFire:true});
   const hero=g.state.entities[id],inv=g.state.clans.player.inventory;
   const cmd=(action,detail={})=>g.step([{id,type:'inventory',action,...detail}]);
+  // heroes start with no gear (Tim 2026-11-01); the tests seed the legacy items an old save would hold
+  assert.equal(inv.bag.filter(Boolean).length,0,'heroes start with no gear');
+  inv.bag[0]='weighted_edge';inv.bag[1]='light_lamellar';inv.bag[2]='scouts_knot';
   return {g,hero,inv,cmd};
 }
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);

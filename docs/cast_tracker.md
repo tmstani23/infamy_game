@@ -9,24 +9,24 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 
 | Concept | Role | Tencent zip | Mixamo rigged | Sheets | Anim set |
 |---|---|---|---|---|---|
-| hero1 (ronin) | Hero | ✅ roninheroobj1.zip | ✅ ronin.fbx | ✅ 10 (160px) | combat |
+| hero1 (ronin) | Hero | ✅ roninheroobj1.zip | ✅ ronin.fbx | ✅ 10 (160px) | combat; 512 px character-page portrait |
 | mercenary1 | Hero | ✅ mercobj1.zip | ✅ mercenary.fbx | ✅ 7 (160px), with rifle | gunner |
 | foreign_visitor (gunslinger model) | Civilian | ✅ western_gunslingerobj1.zip | `gunslinger.fbx` | ✅ 6 unarmed clips | civilian |
 | western_dockworker | Civilian | ✅ western_dockworkerobj1.zip | `western_dockworker.fbx` | ✅ 6 unarmed clips | civilian |
 | brute1 | Hero | ✅ bruteobj1.zip | ✅ brute.fbx | ✅ 9 (160px, 1.12x scale) | brawler (+ Mutant files) |
-| ninja_leader | Hero (ninja); cape rigged fine | ✅ ninjaleader2obj.zip (ninja_leader2 concept) | ✅ ninja_leader.fbx | ✅ 8 (160px), with ninjato (shortened) | ninja |
+| ninja_leader | Hero (ninja); cape rigged fine | ✅ ninjaleader2obj.zip (ninja_leader2 concept) | ✅ ninja_leader.fbx | ✅ 8 (160px), with ninjato (shortened) | ninja; 512 px character-page portrait |
 | ninja1 | Spare concept, no model planned (ninja_leader is the ninja hero) |  |  |  |  |
 | thug | Crew | ✅ thugobj1.zip | ✅ thug.fbx | ✅ 7 (160px) | brawler |
 | swordsman | Crew | ✅ | ✅ (Great Sword Idle) | ✅ 10 (walk borrowed from brawler) | combat, katana |
 | archer | Crew | ✅ | ✅ archer.fbx | ✅ 6 (160px), with bow | archer |
-| Kuroda spear guard | Kuroda tank recruit (new model) | ✅ korudaenforcerobj1.zip | `koruda_enforcer.fbx` (header checked) | ✅ 7 color/glow pairs | combat (new clips) |
+| Kuroda spear guard | Kuroda tank recruit (new model) | ✅ korudaenforcerobj1.zip | `koruda_enforcer.fbx` (header checked) | ✅ 7 color/glow pairs | combat (new clips); kusarigama weight hangs at the right hip outside attacks, casts from and returns to the belt (2026-11-01) |
 | Shinobi masked bodyguard | Shinobi dodge tank (new model) | ✅ shinobi_enforcerobj1.zip | `shinobi_enforcer.fbx` (header checked) | ✅ 9 color/glow pairs | ninja (new clips) |
 | lookout | Crew | ✅ | ✅ | ✅ 7 | brawler |
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
 | police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip | ✅ police.fbx (was policeman2) | ✅ 7, with jitte (2026-10-18) | brawler |
 | bandit | Enemy | ✅ | ✅ | ✅ 7 (cloak touches the edge at the end of dying) | brawler |
-| rival_yakuza | Enemy | ✅ femyakuza2obj1.zip (concept rivalyakuza2) | ✅ | ✅ 10 (walk borrowed from brawler) | combat, katana (confirmed by Tim); wired into `data/art.json` 2026-10-19 (bot hero, `?raidme` boss) |
+| rival_yakuza | Enemy | ✅ femyakuza2obj1.zip (concept rivalyakuza2) | ✅ | ✅ 10 (walk borrowed from brawler) | combat, katana (confirmed by Tim); wired into `data/art.json` 2026-10-19 (bot hero, `?raidme` boss); 512 px character-page portrait |
 | merchant | Townsfolk | ✅ (concept merchant2) | ✅ | ✅ 6 | civilian |
 | geisha | Townsfolk | ✅ geisha2 zip (the older geisha zip won't rig) | ✅ geisha.fbx (was geisha2) | ✅ 6; robe flares as she lands in the new death (Tim: keep) | civilian |
 | laborer | Townsfolk | ✅ | ✅ | ✅ 6 | civilian |

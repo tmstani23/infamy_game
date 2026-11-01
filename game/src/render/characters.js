@@ -9,6 +9,7 @@ import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
 import { createWeaponShadow } from './weapon_shadow.js';
 import { createRunTrail } from './run_trail.js';
 import { cachedSheetLoad } from './sheet_cache.js';
+import { createGearFx } from './gear_fx.js';
 import { loadSheetSet, setSheetFrame } from './packed_sheets.js';
 import { createTextureCache } from './texture_cache.js';
 
@@ -26,7 +27,7 @@ const BAR_GEO = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
 // both transparent with the fill one step later, so the dark back never draws over the fill
 const BAR_BACK = new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.68, depthTest: false, depthWrite: false });
 const RING_GEO = new THREE.RingGeometry(0.55, 0.68, 40);
-const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.60, depthWrite: false });
+const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.38, depthWrite: false });   // softer (Tim 2026-11-01)
 
 // Weapon glow per weapon type and which model holds what, from data/weapon_glow.json (loaded once)
 let glowConfig = null;
@@ -38,15 +39,25 @@ const packedTextures = createTextureCache(async url => { const tex = await loadT
 export function loadSheets(catalog, model) {
   return cachedSheetLoad(sheetCache,model,()=>loadModelSheets(catalog,model));
 }
-async function loadModelSheets(catalog, model) {
-  const names = catalog.characters[model];
+// Character page portrait (tools/export_sprites.mjs <model> --portrait --pack): the idle,
+// front row only, at 512 px. Models without a portrait use their normal sheets.
+export function loadPortraitSheets(catalog, model) {
+  const idle = catalog.characters[model]?.idle, speed = idle?.speed ?? 1;
+  return cachedSheetLoad(sheetCache, 'portrait:' + model, () => loadModelSheets(catalog, model, {
+    names: { idle: { file: `${model}_portrait_idle`, speed } },
+    packedUrl: `../assets/sprites_packed/portraits/${model}.json`,
+    fallback: () => loadSheets(catalog, model),
+  }));
+}
+async function loadModelSheets(catalog, model, portrait = null) {
+  const names = portrait?.names || catalog.characters[model];
   const sheets = {};
   Object.defineProperty(sheets, 'framing', { value: catalog.characterFraming?.[model] || {} });
   const cfg = await loadGlowConfig();
   const weapon = cfg?.weapons?.[cfg.models?.[model]];
   // the glow settings ride along on the sheet set, hidden from anything that lists the animations
   if (weapon) Object.defineProperty(sheets, 'weapon', { value: weapon });
-  const packedUrl = catalog.packedCharacters?.[model];
+  const packedUrl = portrait ? portrait.packedUrl : catalog.packedCharacters?.[model];
   const loaded = await loadSheetSet({
     packedUrl: packedUrl ? new URL(packedUrl, document.baseURI).href : null,
     disabled: new URLSearchParams(globalThis.location?.search || '').get('sprites') === 'original',
@@ -54,8 +65,9 @@ async function loadModelSheets(catalog, model) {
     loadJson: async url => { const response = await fetch(url); if (!response.ok) throw new Error(`Could not load ${url}`); return response.json(); },
     loadTexture: url => packedTextures.acquire(url),
     releaseTexture: texture => packedTextures.release(texture),
-    loadOriginal: () => loadOriginalSheets(names, weapon),
-    onFallback: error => console.warn(`[sprites] ${model}: packed load failed; using original sheets`, error),
+    loadOriginal: portrait ? portrait.fallback : () => loadOriginalSheets(names, weapon),
+    onFallback: error => portrait ? console.info(`[sprites] ${model}: no portrait yet, using game sheets`)
+      : console.warn(`[sprites] ${model}: packed load failed; using original sheets`, error),
   });
   Object.assign(sheets, loaded);
   if (loaded.packing) Object.defineProperty(sheets, 'packing', {value: loaded.packing});
@@ -192,17 +204,11 @@ export class CharacterSprite {
   setEquipment(items=[]) {
     const key=items.map(i=>i?.name||'').join('|');
     if(key===this.gearEffect)return;this.gearEffect=key;this.gearItems=items;
-    // Small procedural accents share the existing sprite; no variant sheets.
-    if(!this.gearMeshes&&items.some(Boolean)){
-      this.gearMeshes=[0,1].map(i=>{
-        const m=new THREE.Mesh(new THREE.RingGeometry(i?.012:.18,i?.022:.187,48),new THREE.MeshBasicMaterial({transparent:true,opacity:.35,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
-        m.position.z=.025;m.visible=false;this.thing.mesh.add(m);return m;
-      });
-    }
+    // One effect per item kind (render/gear_fx.js); no variant sheets.
+    if(this.gearFx||items.some(Boolean))(this.gearFx??=createGearFx(this)).set(items);
     const accent=items[0]?.glow;
     // Preserve each hero's established weapon signature; gear adds a tint/glint.
     if(this.glow){const c=this.weapon.color;this.glow.material.uniforms.uColor.value.setRGB(...c.map((v,i)=>accent?v*.8+accent[i]*.2:v));}
-    this.gearMeshes?.forEach((m,i)=>{const item=items[i+1];m.visible=!!item;if(item)m.material.color.setRGB(...(item.visual?.color||item.glow||[.7,.8,.6]));});
   }
 
   // x, z: interpolated position; dir and anim come from the latest game state
@@ -210,13 +216,7 @@ export class CharacterSprite {
   // size: drawing scale (INDOOR_SIZE inside buildings)
   update(dt, x, z, dir, anim, swingT = null, size = 1) {
     if (anim !== this.anim) { this.anim = anim; this.time = 0; }
-    this.time += dt;this.gearClock=(this.gearClock||0)+dt;
-    this.gearMeshes?.forEach((m,i)=>{
-      const item=this.gearItems?.[i+1];m.visible=!!item&&anim!=='death';
-      m.material.opacity=(.22+.13*Math.sin(this.gearClock*2+i))*(item?.visual?.strength||1);
-      if(i===0){m.scale.set(1,1.35,1);m.position.y=-.015;}
-      else{const t=this.gearClock*1.5;m.position.set(Math.cos(t)*.2,Math.sin(t)*.25-.02,.04);}
-    });
+    this.time += dt;
     const sheet = this.sheets[anim] || this.sheets.idle;
     // a fall plays once and stays down; an attack follows the swing; everything else loops
     const f = Math.floor(this.time * FPS * sheet.speed);
@@ -275,9 +275,8 @@ export class CharacterSprite {
       }
     }
 
-    if(this.glow&&this.gearItems?.[0]&&anim!=='death'){
-      const t=this.gearClock%3.5;if(t<.7){const g=this.glow.material.uniforms;g.uStrength.value*=1+.3*Math.sin(t/.7*Math.PI);if(g.uShimmer)g.uShimmer.value=-.15+1.3*t/.7;}
-    }
+    // gear effects after the weapon glow, so a glint can ride on it; gearFocus = character page hover
+    this.gearFx?.update(dt,{anim,sheet,dir,frame,swingT,x,z,focus:this.gearFocus});
     this.pos.set(x, 0, z);
     const r = 0.2;
     if (size !== this.size) {
@@ -345,7 +344,7 @@ export class CharacterSprite {
     for (const m of [this.material, this.hidden.material, this.fill.material, this.labelMaterial]) m.dispose();
     this.nameplate.geometry.dispose(); this.labelTexture.dispose();
     this.glow?.material.dispose();
-    for(const m of this.gearMeshes||[]){m.geometry.dispose();m.material.dispose();}
+    this.gearFx?.dispose();
     this.lightning?.dispose();
     this.shadowBlade?.dispose();
     this.runTrail?.dispose();

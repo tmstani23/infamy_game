@@ -243,7 +243,7 @@ Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js
 - Phase 8 sections 1-4 are built; sounds are partial (see above). Everything is committed locally; Tim pushes.
 - **Stretchy action bar: active again** under Tim’s explicit layout-editor approval (2026-10-30); see phased checklist below.
 - **Phase 8 section 5: clan roles and Western civilians.** Built/Node-checked; manual VFX playtest remains. Hamstring is approved at 35% slow for 3 s on a 10 s cooldown. See [combat spec](combat_spec.md#phase-8-section-5-clan-roster-roles-design-approved-implementation-authorized-2026-10-30).
-- Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility.
+- Older failing tests (also fail at HEAD, not from phase 8): test_crew, test_deployment_transfers, test_ninja, test_rewards, test_shinobi_pass, test_reprisal_mobility. `test_character_stats` imports three (via `hero_preview`), so a plain node run fails with "Cannot find package 'three'"; run it with a resolve hook mapping 'three' to a local three.module.js.
 - Rules: all game rules in `game/src/sim`; every control in the Controls panel and `controls.md`; test switches only in `game/src/test_params.js`; Node tests only (copy to .mjs for `node --check`); Tim playtests, then commit per checkpoint.
 
 

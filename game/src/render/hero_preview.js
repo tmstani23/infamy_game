@@ -2,7 +2,7 @@
 // facing front, with the real weapon glow and gear auras from render/characters.js.
 // Its own small WebGL canvas; only drawn while the character page is open.
 import * as THREE from 'three';
-import { CharacterSprite, loadSheets } from './characters.js';
+import { CharacterSprite, loadPortraitSheets } from './characters.js';
 import { CAM_QUAT, VIEW_DIR } from './iso.js';
 import { shared } from './shading.js';
 import { ITEMS } from '../sim/inventory.js';
@@ -15,7 +15,7 @@ export function createHeroPreview({ canvas, catalog }) {
   camera.quaternion.copy(CAM_QUAT);
   async function setModel(m) {
     if (m === model) return; model = m;
-    const sheets = await loadSheets(catalog, m); if (model !== m) return;
+    const sheets = await loadPortraitSheets(catalog, m); if (model !== m) return;
     if (sprite) { scene.remove(sprite.thing.mesh); sprite.dispose(); }
     sprite = new CharacterSprite(sheets); scene.add(sprite.thing.mesh);
   }
@@ -32,14 +32,12 @@ export function createHeroPreview({ canvas, catalog }) {
     const now = performance.now() / 1000, dt = last ? Math.min(0.1, now - last) : 0; last = now;
     const items = SLOTS.map(s => ITEMS[hero.equipment?.[s]]);
     sprite.setEquipment(items);
+    const p = 1.4 + 0.6 * Math.sin(now * 6);
+    sprite.gearFocus = focus != null ? { slot: focus, pulse: p } : null;   // slot 0 weapon, 1 armor, 2 accessory
     sprite.update(dt, 0, 0, FRONT, 'idle', null, 1);
     sprite.material.uniforms.uDepthAt.value.w = 0;
     // hovering an equipped slot makes that aura pulse and dims the others
-    if (focus != null) {
-      const p = 1.4 + 0.6 * Math.sin(now * 6);
-      if (sprite.glow) sprite.glow.material.uniforms.uStrength.value *= focus === 0 ? p : 0.35;
-      sprite.gearMeshes?.forEach((m, i) => { m.material.opacity *= focus === i + 1 ? p * 1.6 : 0.25; });
-    }
+    if (focus != null && sprite.glow) sprite.glow.material.uniforms.uStrength.value *= focus === 0 ? p : 0.35;
     const half = sprite.cellWorld * 0.42, aspect = w / h;
     Object.assign(camera, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
     camera.updateProjectionMatrix();
