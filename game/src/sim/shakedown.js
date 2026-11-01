@@ -67,7 +67,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
     if(c.action==='shakedown') {
       const check=eligibility(h.owner,c.sector,c.business);if(!check.ok){result(false,check.why);return true;}
       const {b,team}=check,g=geometry(b),id=S.next++;
-      task.operation={kind:'shakedown',id,business:b.id,defender:b.owner,units:team.map(e=>e.id),state:'Rushing',startedAt:state.tick,progress:0,holdTotal:ticks(R.holdSeconds),front:g.front,civilians:[]};
+      task.operation={kind:'shakedown',id,business:b.id,defender:b.owner,units:team.map(e=>e.id),state:'Rushing',startedAt:state.tick,progress:0,holdTotal:ticks(R.holdSeconds),holdRadius:R.radius,front:g.front,civilians:[]};
       delete task.engagement;
       for(const e of team){clearCombat(e);e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Shakedown: rushing'};}
       addHeat(h.owner,10,'Shakedown',false);

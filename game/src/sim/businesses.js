@@ -162,7 +162,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       // the lantern stands beside the door ring, on the other side from the owner's banner
       const ox = b.ring[0] - b.x, oz = b.ring[1] - b.z, len = Math.hypot(ox, oz) || 1;
       state.attacks[b.id] = { mode: 'raid', ...(isShinobiHQ(state, b) ? { hq: true } : {}), business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
-        phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
+        phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), warmupTotal: secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };
       ((state.raidsTonight ||= {})[clan.id] ||= []).push(b.owner);
       onRaidPlaced(b.owner);

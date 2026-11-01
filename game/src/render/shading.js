@@ -1,3 +1,4 @@
+import { RUNE_GLSL } from './rune_patterns.js';
 // Shaders for painted art: day/night grading, lantern light and the see-through cutaway.
 // All colour math is done on the painted (sRGB) values, like a 2D paint program.
 import * as THREE from 'three';
@@ -487,41 +488,28 @@ export function flameMaterial(seed) {
   });
 }
 
-// Door ring on the ground (Tim OK'd the mock 2026-10-17): a crisp outer ring with four
-// notches, a slowly turning dashed inner ring, a faint ember glow inside and a bright
-// spot sweeping round the rim, all gently pulsing. A building with your crew inside gets the
-// same ring in bright crew teal, bigger and flashing (Tim 2026-10-18).
-const doorRingMaterial = ({ pale, gold, ember, pulse, gain = '1.0' }) => new THREE.ShaderMaterial({
-  uniforms: { uTime: shared.uTime, uFog: shared.uFog, uFogRect: shared.uFogRect, uFogOn: shared.uFogOn },
-  vertexShader: QUAD_VERT,
-  fragmentShader: /* glsl */`
+// Stationary threshold marks share the action-circle vocabulary and existing fog.
+const doorRingMaterial = (color, style=0, occupied=false) => new THREE.ShaderMaterial({
+  uniforms: {uTime:shared.uTime,uFog:shared.uFog,uFogRect:shared.uFogRect,uFogOn:shared.uFogOn},
+  vertexShader:QUAD_VERT,
+  fragmentShader:/* glsl */`
     uniform float uTime; varying vec2 vUv;
     ${FOG_QUAD}
-    void main() {
-      vec2 p = vUv - 0.5;
-      float d = length(p) * 2.0, ang = atan(p.y, p.x), t = uTime;
-      float pulse = ${pulse};
-      float rim = abs(d - 0.86);
-      float outer = smoothstep(0.035, 0.0, rim);
-      float halo = smoothstep(0.30, 0.0, rim) * 0.45;
-      float dash = step(0.35, cos(ang * 12.0 - t * 0.8)) * smoothstep(0.03, 0.0, abs(d - 0.66));
-      float notch = step(0.97, cos(ang * 4.0 + t * 0.3)) * smoothstep(0.09, 0.0, rim) * 1.2;
-      float fill = pow(clamp(1.0 - d / 0.86, 0.0, 1.0), 1.5) * 0.28;
-      float sweep = pow(max(cos(ang - t * 1.6), 0.0), 8.0) * smoothstep(0.12, 0.0, rim) * 0.9;
-      vec3 gold = vec3(${gold}), pale = vec3(${pale}), ember = vec3(${ember});
-      vec3 col = (pale * (outer * 1.5 + notch * 1.4 + sweep) + gold * (halo + dash * 1.1) + ember * fill) * pulse * ${gain};
-      col *= fogGlow(fogGround());
-      gl_FragColor = vec4(col, min(1.0, max(col.r, max(col.g, col.b))));
+    ${RUNE_GLSL}
+    void main(){
+      vec2 p=(vUv-.5)*2.0/.9663;
+      vec2 mark=runePattern(p,${style.toFixed(1)},-1.0);
+      ${occupied ? 'mark.x=max(mark.x,runePattern(p*.95,6.0,-1.0).x*.65);' : ''}
+      float alpha=mark.x*(.66+.06*sin(uTime*2.0));
+      vec3 color=vec3(${color})*fogGlow(fogGround());
+      gl_FragColor=vec4(color,alpha);
     }`,
-  transparent: true, depthTest: false, depthWrite: false,
-  blending: THREE.AdditiveBlending,   // reads as light on both the day and night ground
+  transparent:true,depthTest:false,depthWrite:false,blending:THREE.NormalBlending,
 });
-export const doorMaterial = doorRingMaterial({ pale: '1.0, 0.92, 0.7', gold: '1.0, 0.78, 0.38', ember: '1.0, 0.45, 0.2', pulse: '0.85 + 0.15 * sin(t * 2.5)' });
-// crew ring: brighter and flashing (Tim 2026-10-18: the soft pulse was hard to notice)
-// Shinobi back window ring: violet, and drawn over the buildings (Tim 2026-10-21: walls hid it)
-export const windowDoorMaterial = doorRingMaterial({ pale: '0.85, 0.75, 1.0', gold: '0.62, 0.45, 1.0', ember: '0.45, 0.3, 0.85', pulse: '0.7 + 0.3 * sin(t * 3.0)', gain: '1.4' });
-windowDoorMaterial.depthTest = false;
-export const crewDoorMaterial = doorRingMaterial({ pale: '0.75, 1.0, 1.0', gold: '0.3, 0.9, 1.0', ember: '0.2, 0.75, 0.95', pulse: '0.4 + 0.9 * pow(0.5 + 0.5 * sin(t * 4.5), 2.0)', gain: '1.8' });
+export const doorMaterial=doorRingMaterial('1.0,.83,.53');
+export const windowDoorMaterial=doorRingMaterial('.71,.57,1.0',1);
+export const crewDoorMaterial=doorRingMaterial('.42,.88,.88',0,true);
+export const crewWindowDoorMaterial=doorRingMaterial('.42,.88,.88',1,true);
 
 export const shadowMaterial = new THREE.ShaderMaterial({
   vertexShader: QUAD_VERT,

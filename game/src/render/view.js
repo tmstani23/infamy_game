@@ -362,7 +362,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       .addScaledVector(VIEW_DIR, 200);
 
     // clan banners at owned businesses; a gold burst where one just changed hands
-    for (const b of banners.update(state, time, state.entities[followId]?.owner)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
+    for (const b of banners.update(state, time, state.entities[followId]?.owner, state.entities[followId]?.place)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;

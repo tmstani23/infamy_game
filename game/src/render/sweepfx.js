@@ -1,3 +1,4 @@
+import { createRune, RUNE } from './rune_mesh.js';
 import * as THREE from 'three';
 import { onFxLayer } from './bloom.js';
 import { createSweepTrail } from './sweep_trail.js';
@@ -17,11 +18,11 @@ export function createSweepFx({scene,spriteOf}){
   function create(){
     const group=new THREE.Group(),trail=onFxLayer(new THREE.InstancedMesh(chevron,material(.48),96));
     const shields=onFxLayer(new THREE.InstancedMesh(shield,material(.3),32));
-    const ring=onFxLayer(new THREE.Mesh(circle,material(.32)));
+    const ring=onFxLayer(createRune(RUNE.sweep,0xe39b9e,.46));
     const progress=onFxLayer(new THREE.Mesh(circle,new THREE.ShaderMaterial({
       uniforms:{progress:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
       vertexShader:'varying vec2 p; void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader:'varying vec2 p; uniform float progress; void main(){float a=mod(atan(p.y,p.x)+6.2831853,6.2831853)/6.2831853;if(a>progress)discard;gl_FragColor=vec4(1.,.32,.4,.85);}'
+      fragmentShader:'varying vec2 p; uniform float progress; void main(){float a=mod(atan(p.y,p.x)+6.2831853,6.2831853)/6.2831853;if(a>progress||fract(a*32.)<.16)discard;gl_FragColor=vec4(1.,.32,.4,.85);}'
     })));
     for(const m of [trail,shields]){m.count=0;m.frustumCulled=false;}
     ring.rotation.x=progress.rotation.x=-Math.PI/2;
@@ -52,7 +53,7 @@ export function createSweepFx({scene,spriteOf}){
       p.shields.count=count;p.shields.instanceMatrix.needsUpdate=true;
       p.ring.visible=p.progress.visible=clan===own;
       p.ring.position.set(op.point.x,.055,op.point.z);p.progress.position.set(op.point.x,.06,op.point.z);
-      p.ring.material.opacity=op.contested?.55:.27;
+      p.ring.material.opacity=op.contested?.62:.46;
       p.progress.material.uniforms.progress.value=Math.min(1,op.hold/SWEEP.holdTicks);
     }
     for(const key of active.keys())if(!seen.has(key))remove(key);

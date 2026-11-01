@@ -3,7 +3,7 @@
 // Also keeps all sprites in the right draw order.
 import * as THREE from 'three';
 import { CAM_RIGHT, CAM_UP, CAM_QUAT, VIEW_DIR, toScreen } from './iso.js';
-import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial, crewDoorMaterial, windowDoorMaterial } from './shading.js';
+import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMaterial, crewDoorMaterial, crewWindowDoorMaterial, windowDoorMaterial } from './shading.js';
 import { shapeDistance, shapeBox, groundZone } from '../sim/geometry.js';
 
 const loader = new THREE.TextureLoader();
@@ -266,7 +266,7 @@ export function markCrewDoors(rings, state, owner) {
     const d = m.userData.door, crew = !!d.to && d.place !== 'street' && held.has(d.place);
     const business = d.ninja && state.businesses[d.business];
     m.visible = !business?.hideout || business.owner === owner;
-    m.material = crew ? crewDoorMaterial : d.ninja ? windowDoorMaterial : doorMaterial;
+    m.material = crew ? (d.ninja ? crewWindowDoorMaterial : crewDoorMaterial) : d.ninja ? windowDoorMaterial : doorMaterial;
     m.scale.setScalar(crew ? 1.4 : 1);   // a bigger ring, so it is easy to spot
   }
 }

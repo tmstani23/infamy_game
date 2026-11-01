@@ -1,3 +1,4 @@
+import { createRune, runeProgress, RUNE } from './rune_mesh.js';
 // Clan banners (Tim OK'd the mock 2026-10-19, business_visuals/ownership_mock_v2.png): a tall
 // nobori in the owner's colour beside the door of every owned business, with a thin glowing
 // outline and a faint ring at its foot; it swaps when the business changes hands. Reads
@@ -99,12 +100,13 @@ export function createBanners({ scene }) {
   const RING_GEO = new THREE.RingGeometry(0.46, 0.51, 48);
   const things = [];
   const holds = new Map();           // business id -> back-room ring
-  const HOLD_GEO = new THREE.RingGeometry(0.93, 1, 64);
+  const assignmentRunes = new Map(), staffed = new Set();
+  let assignmentTick = -1, assignmentOwner = null;
 
   const lanterns = new Map();        // business id -> { mesh, glow, pool, ring, thing }
   const knocks = new Map();          // business id -> the knock-down progress ring
   let lanternTex = null, glowTex = null;
-  const POOL_GEO = new THREE.CircleGeometry(1, 48), LRING_GEO = new THREE.RingGeometry(0.97, 1, 64);
+  const POOL_GEO = new THREE.CircleGeometry(1, 48);
 
   function addLantern(x, z) {
     if (!lanternTex) {
@@ -125,7 +127,7 @@ export function createBanners({ scene }) {
     glow.frustumCulled = false; glow.renderOrder = 4;
     // a faint pool of red light and a thin ring on the ground
     const pool = new THREE.Mesh(POOL_GEO, new THREE.MeshBasicMaterial({ color: 0xc82818, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    const ring = new THREE.Mesh(LRING_GEO, new THREE.MeshBasicMaterial({ color: 0xff7850, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const ring = createRune(RUNE.raid, 0xffa27e);
     for (const m of [pool, ring]) { m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); m.renderOrder = 2; }
     const thing = new Thing(mesh, { minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
     thing.extras.push(glow);
@@ -180,7 +182,19 @@ export function createBanners({ scene }) {
   let jobRing = null, jobMark = null;
   const campingRings = new Map();
   const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
-  function update(state, time, me) {
+  function update(state, time, me, place = 'street') {
+    if (assignmentTick !== state.tick || assignmentOwner !== me) {
+      assignmentTick=state.tick;assignmentOwner=me;staffed.clear();
+      for (const e of Object.values(state.entities)) if (e.owner===me && e.type!=='hero' && !e.guard && !e.dead) staffed.add(e.deployment?.group);
+    }
+    const assigned = new Set();
+    if (place === 'street') for (const [id, task] of Object.entries(state.deployment?.clans?.[me]?.sectors || {})) {
+      if (!staffed.has(id) || task.operation || !task.task || !task.objective) continue;
+      assigned.add(id); let mark = assignmentRunes.get(id);
+      if (!mark) { mark = createRune(RUNE.assignment, state.clans[me]?.color || 0x94b9ac, .34); mark.renderOrder=2; scene.add(mark); assignmentRunes.set(id,mark); }
+      mark.position.set(task.objective.x,.045,task.objective.z);mark.scale.setScalar(1.2);
+    }
+    for (const [id, mark] of assignmentRunes) if (!assigned.has(id)) {scene.remove(mark);mark.material.dispose();assignmentRunes.delete(id);}
     const visits = (state.hqCamping?.visits || []).filter(v => v.clan === me && (v.inside || v.active));
     for (const [id, ring] of campingRings) if (!visits.some(v => v.business === id)) {
       scene.remove(ring); ring.material.dispose(); campingRings.delete(id);
@@ -200,12 +214,12 @@ export function createBanners({ scene }) {
     }
     const job = me && state.contracts?.active?.[me], spot = job?.spot || (job?.mark&&{...job.mark,r:1.5,on:true});
     if (spot && !jobRing) {
-      jobRing = new THREE.Mesh(HOLD_GEO, new THREE.MeshBasicMaterial({ color: 0xa080ff, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
+      jobRing = createRune(RUNE.contract, 0xb39be6, .60, false);
       jobRing.rotation.x = -Math.PI / 2; jobRing.renderOrder = 99800; scene.add(jobRing);
     }
     if (jobRing) {
-      jobRing.visible = !!spot;
-      if (spot) { jobRing.position.set(spot.x, 0.05, spot.z); jobRing.scale.setScalar(spot.r); jobRing.material.opacity = spot.on ? 0.7 + 0.25 * Math.sin(time * 6) : 0.4 + 0.15 * Math.sin(time * 2.5); }
+      jobRing.visible = !!spot && job.counter?.place === place;
+      if (spot) { jobRing.position.set(spot.x, 0.05, spot.z); jobRing.scale.setScalar(spot.r); jobRing.material.opacity = spot.on ? .64 + .06 * Math.sin(time * 3) : .38; runeProgress(jobRing, job.counter?.progress / job.counter?.need); }
     }
     if(job?.mark&&!jobMark){
       const canvas=document.createElement('canvas');canvas.width=384;canvas.height=192;const g=canvas.getContext('2d');
@@ -214,7 +228,7 @@ export function createBanners({ scene }) {
       const material=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas),transparent:true,depthTest:false,depthWrite:false});
       jobMark=new THREE.Sprite(material);jobMark.renderOrder=99820;scene.add(jobMark);
     }
-    if(jobMark){jobMark.visible=!!job?.mark;if(job?.mark){jobMark.position.set(job.mark.x,2.7+Math.sin(time*2)*.12,job.mark.z);jobMark.scale.set(3.8,1.9,1);jobMark.material.opacity=.85+.12*Math.sin(time*2.5);}}
+    if(jobMark){jobMark.visible=!!job?.mark && job.mark.place===place;if(job?.mark){jobMark.position.set(job.mark.x,2.7+Math.sin(time*2)*.12,job.mark.z);jobMark.scale.set(3.8,1.9,1);jobMark.material.opacity=.85+.12*Math.sin(time*2.5);}}
     const claimed = [];
     for (const b of Object.values(state.businesses)) {
       const s = shown.get(b.id);
@@ -228,18 +242,19 @@ export function createBanners({ scene }) {
     // the glow breathes a little
     const k = 0.25 + 0.08 * Math.sin(time * 2.2);
     for (const s of shown.values()) s.ring.material.opacity = k;
-    // the back room to hold during an attack (sim/businesses.js): a gold ring on the floor,
-    // bright and pulsing while the timer runs, dim while it waits (placeholder look)
+    // Back-room seals retain the authoritative hold radius; only outer segments advance.
     for (const [id, r] of holds) if (state.attacks?.[id]?.phase !== 'hold') { scene.remove(r); r.material.dispose(); holds.delete(id); }
     for (const a of Object.values(state.attacks || {})) {
       if (a.phase !== 'hold') continue;
       let r = holds.get(a.business);
       if (!r) {
-        r = new THREE.Mesh(HOLD_GEO, new THREE.MeshBasicMaterial({ color: 0xffd060, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+        r = createRune(RUNE.raid, 0xe8c279);
         r.rotation.x = -Math.PI / 2; r.position.set(a.hold.x, 0.05, a.hold.z); r.scale.setScalar(a.hold.r); r.renderOrder = 3;
         scene.add(r); holds.set(a.business, r);
       }
-      r.material.opacity = a.holding ? 0.6 + 0.3 * Math.sin(time * 6) : 0.25;
+      r.visible = a.room === place;
+      r.material.opacity = a.holding ? .62 + .05 * Math.sin(time * 3) : .32;
+      runeProgress(r, 1 - a.holdLeft / a.holdTotal);
     }
     // War Lanterns planted for raids: the glow and the ground ring breathe together, softly
     for (const id of [...lanterns.keys()]) if (!state.attacks?.[id]?.lantern) dropLantern(id);
@@ -253,23 +268,25 @@ export function createBanners({ scene }) {
       const r = 0.85 + 0.15 * beat;
       l.pool.scale.setScalar(r); l.ring.scale.setScalar(r);
       l.pool.material.opacity = 0.08 + 0.08 * beat;
-      l.ring.material.opacity = 0.25 + 0.35 * beat;
+      l.ring.material.opacity = .45 + .05 * beat;
+      runeProgress(l.ring, a.warmupTotal ? 1 - (a.opensAt - state.tick) / a.warmupTotal : NaN);
     }
     // someone knocking a War Lantern down (Tim 2026-10-20): a red ring at his feet fills over the channel
-    for (const [id, m] of knocks) if (!state.attacks?.[id]?.knock) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); knocks.delete(id); }
+    for (const [id, m] of knocks) if (!state.attacks?.[id]?.knock) { scene.remove(m); m.material.dispose(); knocks.delete(id); }
     for (const a of Object.values(state.attacks || {})) {
       const k = a.knock;
       if (!k) continue;
       let m = knocks.get(a.business);
       if (!m) {
-        m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.74, 48, 1, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff3c28, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+        m = createRune(RUNE.raid, 0xea806b); m.scale.setScalar(.74);
         m.rotation.x = -Math.PI / 2; m.renderOrder = 3;
         scene.add(m); knocks.set(a.business, m);
       }
       const u = state.entities[k.by] || k;
       m.position.set(u.x, 0.05, u.z);
-      m.geometry.setDrawRange(0, Math.ceil(Math.min(1, (state.tick - k.start) / (k.ticks || 80)) * 48) * 6);
-      m.material.opacity = 0.65 + 0.3 * Math.sin(time * 10);
+      m.visible = place === 'street';
+      runeProgress(m, (state.tick - k.start) / (k.ticks || 80));
+      m.material.opacity = .62 + .05 * Math.sin(time * 3);
     }
     return claimed;
   }
