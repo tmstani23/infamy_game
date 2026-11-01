@@ -10,6 +10,7 @@ import { createWeaponShadow } from './weapon_shadow.js';
 import { createRunTrail } from './run_trail.js';
 import { cachedSheetLoad } from './sheet_cache.js';
 import { loadSheetSet, setSheetFrame } from './packed_sheets.js';
+import { createTextureCache } from './texture_cache.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -33,6 +34,7 @@ const loadGlowConfig = () => (glowConfig ??= fetch('data/weapon_glow.json').then
 
 // Spritesheets per model, from data/art.json "characters"
 const sheetCache = {};
+const packedTextures = createTextureCache(async url => { const tex = await loadTex(url); configureCharacterTexture(tex); return tex; });
 export function loadSheets(catalog, model) {
   return cachedSheetLoad(sheetCache,model,()=>loadModelSheets(catalog,model));
 }
@@ -50,7 +52,8 @@ async function loadModelSheets(catalog, model) {
     disabled: new URLSearchParams(globalThis.location?.search || '').get('sprites') === 'original',
     model, names, requireGlow: !!weapon,
     loadJson: async url => { const response = await fetch(url); if (!response.ok) throw new Error(`Could not load ${url}`); return response.json(); },
-    loadTexture: async url => { const tex = await loadTex(url); configureCharacterTexture(tex); return tex; },
+    loadTexture: url => packedTextures.acquire(url),
+    releaseTexture: texture => packedTextures.release(texture),
     loadOriginal: () => loadOriginalSheets(names, weapon),
     onFallback: error => console.warn(`[sprites] ${model}: packed load failed; using original sheets`, error),
   });

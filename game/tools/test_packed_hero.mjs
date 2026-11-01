@@ -11,8 +11,8 @@ import {bladeAxes} from '../src/render/weapon_lightning_pattern.js';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const art = read(path.join(root, 'game/data/art.json'));
-assert.deepEqual(Object.keys(art.packedCharacters), ['rival_yakuza'], 'only the approved hero is converted');
-const url = new URL('../../assets/sprites_packed/rival_yakuza_v1/manifest.json', import.meta.url).href;
+assert.ok(art.packedCharacters.rival_yakuza, 'hero uses packed sheets');
+const url = new URL(art.packedCharacters.rival_yakuza, new URL('../', import.meta.url)).href;
 const manifest = read(fileURLToPath(url)), names = art.characters.rival_yakuza;
 // Backups are deliberately local/uncommitted. Compare them when available,
 // but the committed test also works on a fresh checkout without archives.

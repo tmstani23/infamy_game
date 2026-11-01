@@ -82,9 +82,19 @@ These are estimated texture allocations, not measured total Firefox RAM, FPS or 
 
 The source and pre-change runtime backups are in `assets/sprites_archive/sprite_packing_2026-10-31_backup/` and `assets/sprites_archive/rival_yakuza_v1_runtime_backup/`. All 12 original hero PNG hashes were verified. Six unique color/glow animation pairs were packed; guard shares idle pages. Decoded PNG checks covered all 2,016 frame slots and 3,016,397 nonzero-alpha pixels, preserving original positions, pixels and blade axes. Estimated RGBA8 plus mip allocation is 79.3 MiB packed versus 420.0 MiB for the unique originals, an 81.1% reduction in this estimate. This is not measured browser RAM.
 
-Only `rival_yakuza` uses the packed catalog entry. A packed load failure disposes successful packed textures and falls back to originals; `?sprites=original` bypasses packed fetches for comparison. Focused Node checks passed for decoded crops, UVs, gutters, axes, aliases, bypass, load failures, late cleanup, sheet cache, sprite packing, weapon lightning and Kuroda pose. The game has not been run in a browser for this checkpoint. Tim still needs to compare idle, walk, run, attacks, abilities and death in each facing at normal and near/far zoom, indoors and outside, including feet, blade effects and fringe; compare Firefox RAM/FPS under matching conditions.
+At this trial checkpoint, only `rival_yakuza` used the packed catalog entry. A packed load failure disposes successful packed textures and falls back to originals; `?sprites=original` bypasses packed fetches for comparison. Focused Node checks passed for decoded crops, UVs, gutters, axes, aliases, bypass, load failures, late cleanup, sheet cache, sprite packing, weapon lightning and Kuroda pose. The game had not been run in a browser for this checkpoint. Tim still needs to compare idle, walk, run, attacks, abilities and death in each facing at normal and near/far zoom, indoors and outside, including feet, blade effects and fringe; compare Firefox RAM/FPS under matching conditions.
 
 Follow-up: Tim observed multiple atlas poses projected during Iron Formation. The buff/downed outline and afterimage shaders had copied the texture and frame UVs without the packed crop bounds. They now share the packed sampling rule and copy texture, frame UVs, crop bounds and packed mode; afterimages retain their captured pose. Focused Node checks cover the effect bounds, packed/original mode changes and live versus frozen frames. Iron Formation still needs a browser visual retest, and the overall visual/RAM review remains open.
+
+## Full catalog packing batch (built and Node-verified; browser review pending 2026-10-31)
+
+- [x] Back up and SHA-verify the original sheets; keep the earlier Kuroda trial and pre-change code/catalog backup.
+- [x] Pack all 29 models, preserving source pixels, frame positions, directions and timing; roundtrip-check every source frame.
+- [x] Load shared atlas pages through a reference-counted cache with at most four concurrent texture loads; retain per-model fallback to originals.
+- [x] Pass focused catalog, hero, sheet-cache, sprite-packing and weapon-lightning checks.
+- [ ] Compare all-roster visuals and Firefox RAM/FPS in the browser against `?sprites=original`, including geisha, enforcers, glows, buffs, rally, death and zoom.
+
+The batch contains 226 unique source textures across 157 animation stems, with 530 shared PNG pages and 29 model manifests in `assets/sprites_packed/catalog_v1/`. Its pre-change code/catalog backup is `assets/sprites_archive/catalog_v1_runtime_backup/`. Estimated RGBA8 plus mip allocation falls from 5,279.9 to 1,504.6 MiB (71.5%); this is an allocation estimate, not measured Firefox RAM or FPS. The catalog check covered 29 models, 530 unique loads and 43,756 crop addresses including aliases, plus shared texture ownership and bounded loading. No browser playtest or export was run for this batch. `?sprites=original` now bypasses packing for every character.
 
 ## Remaining diagnosis
 

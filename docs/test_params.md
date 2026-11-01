@@ -19,7 +19,7 @@ Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). 
 
 | Param | What it does |
 |---|---|
-| `?sprites=original` | Reload with the original Kuroda hero sheets instead of its packed sheets for visual and RAM comparison. If the URL already has parameters, append `&sprites=original` instead. Applies on page load; reload after changing it. |
+| `?sprites=original` | Reload with original sheets for all characters instead of packed sheets for visual and RAM comparison. If the URL already has parameters, append `&sprites=original` instead. Applies on page load; reload after changing it. |
 
 ## Dev-only keys and hooks (off when `DEV = false`)
 

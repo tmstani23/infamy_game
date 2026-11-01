@@ -77,7 +77,7 @@ export function setSheetFrame(uniforms, sheet, dir, frame, glow = false) {
   }
 }
 
-export async function loadPackedSheets({url, model, names, loadJson, loadTexture, requireGlow = false}) {
+export async function loadPackedSheets({url, model, names, loadJson, loadTexture, requireGlow = false, releaseTexture = texture => texture.dispose()}) {
   const manifest = await loadJson(url);
   check(manifest.version === 1 && manifest.model === model && manifest.directions === 8 && manifest.margin >= 8, 'unsupported manifest');
   const records = new Map(), pages = new Map();
@@ -108,7 +108,7 @@ export async function loadPackedSheets({url, model, names, loadJson, loadTexture
     check(texture.image.width === page.width && texture.image.height === page.height, `wrong image dimensions ${file}`);
   }));
   const failure = results.find(r => r.status === 'rejected');
-  if (failure) { for (const texture of new Set(loaded.values())) texture.dispose(); throw failure.reason; }
+  if (failure) { for (const texture of new Set(loaded.values())) releaseTexture(texture); throw failure.reason; }
   const sets = new Map();
   for (const [file, record] of records) {
     const color = record.color.pages.map(p => loaded.get(p.file));
