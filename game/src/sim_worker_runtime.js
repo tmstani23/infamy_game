@@ -21,7 +21,9 @@ export function createWorkerRuntime({post,now=()=>performance.now()}) {
   }
   function publish(force=false){
     // A single unacknowledged packet bounds the message queue, even with a busy UI.
-    if(inFlight||!game||!force&&!urgent&&now()-lastPublish<(map?250:50))return;
+    // World view: one packet per new tick, so the main thread interpolates exactly one 50 ms step
+    // (a 50 ms wall-clock gate against a 10 ms pump made packets carry 0 or 2 ticks: hero stutter).
+    if(inFlight||!game||!force&&!urgent&&map&&now()-lastPublish<250)return;
     if(!force&&!urgent&&game.state.tick===lastPublishedTick&&!Object.values(events).some(list=>list.length))return;
     const start=now(),packet=encoder.encode({map,selected,events});events={};urgent=false;
     diagnostics.encodeMs+=now()-start;diagnostics.packets++;

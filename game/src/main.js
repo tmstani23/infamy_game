@@ -378,8 +378,8 @@ async function start() {
     const mine = Object.values(game.state.attacks || {}).find(r => r.clan === game.state.entities[heroId]?.owner && r.knock);
     if (mine) { const key = `knock:${mine.business}:${mine.opensAt}`; if (!alarmSeen.has(key)) { alarmSeen.add(key); sound.bell(); } }
   }
-  simClient.observe(stage=>{
-    if(stage==='before'){if(!presentation.map)prev=snapshot(game.state);return;}
+  simClient.observe((stage,newTick)=>{
+    if(stage==='before'){if(!presentation.map&&newTick)prev=snapshot(game.state);return;}
     gameMap.observe();observeRaidAlarms();
     if(game.state.policeNews.some(n=>n.kind==='lost'&&n.clan===game.state.entities[heroId]?.owner))lostCops=true;
     newsCallouts.update();

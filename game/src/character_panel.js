@@ -1,4 +1,7 @@
 import { createItemGrid } from './inventory_ui.js';
+import { createHeroPreview } from './render/hero_preview.js';
+import { effectOf } from './item_detail.js';
+import { ITEMS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 // Character page formats authoritative snapshots; it owns no stat formulas.
 export function formatStat(row, value) {
   const n = row.unit === '%' ? value * 100 : value;
@@ -14,20 +17,27 @@ export function modifierDisplay(row) {
 
 export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
   const root = document.createElement('section'); root.id = 'characterpage'; root.hidden = true; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Hero character');
-  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">✕</button></header><div class="character-layout"><aside><div class="hero-art"><div class="hero-sprite"></div></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip · Right-click equipped gear to remove · I / J close<div class="inventory-notice" role="status"></div></footer></div>';
+  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">✕</button></header><div class="character-layout"><aside><div class="hero-art"><canvas class="hero-preview" aria-label="Hero preview with equipped effects"></canvas></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip · Right-click equipped gear to remove · I / J close<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
   const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
   const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index})});
   const equipment = createItemGrid($('.equipment-grid'), {equipment:true, activate:slot => command('unequip', {slot})});
-  let model = null, open = false, previousFocus = null;
+  let open = false, previousFocus = null;
+  // animated front view with the real weapon glow and gear auras (render/hero_preview.js)
+  const preview = createHeroPreview({ canvas: $('.hero-preview'), catalog });
+  [...$('.equipment-grid').children].forEach((button, i) => {
+    const fx = document.createElement('span'); fx.className = 'slot-effect'; button.appendChild(fx);
+    button.addEventListener('mouseenter', () => preview.focus(i)); button.addEventListener('mouseleave', () => preview.focus(null));
+    button.addEventListener('focus', () => preview.focus(i)); button.addEventListener('blur', () => preview.focus(null));
+  });
   $('.use-bandage').addEventListener('click',()=>{send({id:heroId,type:'item',action:'bandage'});setOpen(false);});
   let raidTarget;$('.use-lantern').addEventListener('click',()=>{if(raidTarget){send({id:heroId,type:'business',action:'raid',business:raidTarget});setOpen(false);}});
   function setOpen(on) {
     if (open === on) return;
     open = on; root.hidden = !on; button?.setAttribute('aria-expanded', String(on));
     if (on) { previousFocus = document.activeElement; onOpen(); update(); $('.character-close').focus(); }
-    else { onClose(); previousFocus?.focus?.(); }
+    else { preview.focus(null); preview.pause(); onClose(); previousFocus?.focus?.(); }
   }
   $('.character-close').addEventListener('click', () => setOpen(false));
   root.addEventListener('click', e => { if (e.target === root) setOpen(false); });
@@ -47,10 +57,10 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     const hero = game.state.entities[heroId], snapshot = game.stats.snapshot(hero); if (!snapshot) return;
     const inv = game.inventory.status(hero);
     const supply=game.state.clans[hero.owner],cooldown=Math.max(0,Math.ceil(((inv.bandageReadyAt||0)-game.state.tick)/20));
-    $('.use-bandage').textContent=`Bandage � ${inv.bandages||0}/2${hero.bandaging?' � Healing�':cooldown?' � '+cooldown+'s':''}`;
+    $('.use-bandage').textContent=`Bandage · ${inv.bandages||0}/2${hero.bandaging?' · Healing…':cooldown?' · '+cooldown+'s':''}`;
     $('.use-bandage').disabled=!inv.available||!(inv.bandages>0)||cooldown>0||!!hero.bandaging||hero.hp>=hero.maxHp;
     raidTarget=Object.values(game.state.businesses).find(b=>game.businesses.canRaid(heroId,b.id).ok)?.id;
-    $('.use-lantern').textContent=`War Lantern � ${supply.lanterns||0}${raidTarget?' � Raid '+(game.state.businesses[raidTarget].name||'this business'):''}`;
+    $('.use-lantern').textContent=`War Lantern · ${supply.lanterns||0}${raidTarget?' · Raid '+(game.state.businesses[raidTarget].name||'this business'):''}`;
     $('.use-lantern').disabled=!raidTarget;
     $('.supplies-hint').textContent='Bandage: stand still for 6s; damage and actions interrupt. War Lantern: approach a rival business at night.';
     bag(inv.bag, inv.available); equipment(inv.equipment, inv.available && inv.bag?.includes(null), 'Remove to inventory');
@@ -61,17 +71,11 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     $('.hero-name').textContent = snapshot.name; $('.hero-clan').textContent = snapshot.clan;
     $('.character-hp').textContent = `${Math.ceil(snapshot.hp)} / ${snapshot.maxHp} HP`;
     $('.character-health div').style.width = `${Math.max(0, Math.min(100, snapshot.hp / snapshot.maxHp * 100))}%`;
-    if (model !== snapshot.model) {
-      model = snapshot.model; const entry = catalog.characters?.[model]?.idle, file = typeof entry === 'string' ? entry : entry?.file;
-      if (file) {
-        const image = new Image(), expected = model; image.onload = () => {
-          if (expected !== model) return;
-          const frame = image.naturalHeight / 8;
-          $('.hero-sprite').style.backgroundImage = `url(${image.src})`;
-          $('.hero-sprite').style.backgroundSize = `${image.naturalWidth / frame * 100}% 800%`;
-        }; image.src = `../assets/sprites/${file}.png`;
-      }
-    }
+    preview.draw(hero);
+    [...$('.equipment-grid').children].forEach((button, i) => {
+      const fx = effectOf(ITEMS[inv.equipment?.[EQUIPMENT_SLOTS[i]]]), el = button.querySelector('.slot-effect'), text = fx ? fx.short : '';
+      if (el.textContent !== text) { el.textContent = text; el.style.setProperty('--fx', fx?.color || 'transparent'); }
+    });
     for (const row of snapshot.rows) {
       let record = rows.get(row.key);
       if (!record) {

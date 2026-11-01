@@ -11,7 +11,9 @@
 #characterpage .character-layout { display:grid; grid-template-columns:240px minmax(0,1fr); }
 #characterpage aside { padding:20px; border-right:1px solid #303238; background:linear-gradient(180deg,var(--hero-halo),#11171d 65%); }
 #characterpage .hero-art { aspect-ratio:1; display:grid; place-items:center; background:radial-gradient(ellipse,var(--hero-halo),transparent 70%); }
-#characterpage .hero-sprite { width:100%; aspect-ratio:1; background-repeat:no-repeat; background-position:0 57.142857%; }
+#characterpage .hero-preview { display:block; width:190px; max-width:100%; height:210px; margin:0 auto; } /* live preview, kept small so the 160 px sprite frames stay crisp (Tim 2026-11-01) */
+#characterpage .slot-effect { display:flex; align-items:center; gap:4px; font-size:10px; color:#c9c0a8; }
+#characterpage .slot-effect:not(:empty)::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--fx); box-shadow:0 0 6px var(--fx); }
 #characterpage .hero-clan { display:block; margin-top:10px; color:var(--hero-accent); font-size:11px; text-transform:uppercase; letter-spacing:.15em; }
 #characterpage .hero-name { margin:5px 0 15px; font-size:20px; font-weight:500; }
 #characterpage .character-health { height:5px; background:#2b3339; border-radius:4px; overflow:hidden; }

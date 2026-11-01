@@ -81,8 +81,14 @@
 #bldpanel .info {flex:1 1 180px;}
 #utilitymenu[data-layout-sized="true"] {grid-template-columns:repeat(auto-fit,minmax(min(34px,100%),1fr));}
 #utilitymenu[data-layout-sized="true"] .utility-button {width:auto;height:auto;min-height:32px;}
-#controls,#control-tooltip,#characterpage .character-window,#gamesettings .settings-window {overflow:visible;max-height:none;}
-#characterpage .character-layout {grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));}
+#controls,#control-tooltip,#gamesettings .settings-window {overflow:visible;max-height:none;}
+/* character window: fixed narrow hero column, whole window fits the screen and scrolls inside (Tim 2026-11-01) */
+#characterpage .character-layout {grid-template-columns:minmax(200px,250px) minmax(0,1fr);}
+#characterpage .character-window {max-height:calc(100vh - 32px);overflow:auto;}
+#characterpage .hero-art {aspect-ratio:auto;max-width:220px;margin:0 auto;border-radius:8px;}
+#characterpage .character-inventory .inventory-slot {min-height:68px;padding-top:16px;}
+#characterpage .character-equipment .inventory-slot {min-height:84px;}
+@media(max-width:620px){#characterpage .character-layout{grid-template-columns:1fr;}}
 #partyframes {min-width:220px;}
 #crewcommands {min-width:140px;}
 #controls,#characterpage .character-window,#gamesettings .settings-window {min-width:min(280px,100vw);}

@@ -2,7 +2,7 @@ import {applySnapshot} from './sim_snapshot.js';
 
 export async function createSimWorkerClient({game,options,match,onError,workerFactory=()=>new Worker(new URL('./sim_worker.js',import.meta.url),{type:'module'})}){
   const worker=workerFactory();
-  let receivedAt=0,diagnostics={},disposed=false,map=false,onSnapshot=()=>{},applyMs=0,maxApplyMs=0;
+  let receivedAt=0,lastTick=null,span=1,diagnostics={},disposed=false,map=false,onSnapshot=()=>{},applyMs=0,maxApplyMs=0;
   let lastInput='',lastInputAt=-Infinity;
   await new Promise((resolve,reject)=>{
     const timeout=setTimeout(()=>{worker.terminate();reject(new Error('Simulation worker startup timed out'));},30000);
@@ -13,9 +13,12 @@ export async function createSimWorkerClient({game,options,match,onError,workerFa
       if(m.type==='fatal'){fail(new Error(m.message));return;}
       if(m.type!=='snapshot')return;
       try{
-        onSnapshot('before');const start=performance.now();applySnapshot(game,m.packet);
+        const newTick=m.packet.tick!==lastTick;
+        onSnapshot('before',newTick);const start=performance.now();applySnapshot(game,m.packet);
         applyMs=performance.now()-start;maxApplyMs=Math.max(maxApplyMs,applyMs);
-        map=m.packet.map;receivedAt=performance.now();diagnostics=m.diagnostics;
+        map=m.packet.map;diagnostics=m.diagnostics;
+        // Same-tick packets (urgent commands) must not restart interpolation, or moving units jump.
+        if(newTick){span=lastTick==null?1:Math.max(1,Math.min(4,m.packet.tick-lastTick));lastTick=m.packet.tick;receivedAt=performance.now();}
         onSnapshot('after');
         worker.postMessage({type:'ack',sequence:m.packet.sequence});
         if(!ready){ready=true;clearTimeout(timeout);resolve();}
@@ -32,7 +35,7 @@ export async function createSimWorkerClient({game,options,match,onError,workerFa
       lastInput=signature;lastInputAt=time;worker.postMessage({type:'input',...data});
     },
     observe(fn){onSnapshot=fn;},
-    alpha(){return Math.min(1,Math.max(0,(performance.now()-receivedAt)/50));},
+    alpha(){return Math.min(1,Math.max(0,(performance.now()-receivedAt)/(50*span)));},
     diagnostics:()=>({...diagnostics,applyMs,maxApplyMs,worker:true}),
     get map(){return map;},
     dispose(){disposed=true;worker.terminate();},

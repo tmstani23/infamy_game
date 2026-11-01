@@ -1,11 +1,7 @@
 import { ITEMS, INVENTORY_SLOTS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 
-// Small reusable item icons; physical hero weapons continue using existing sprites.
-const ICONS = {
-  weapon: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 45Q43 24 52 9Q50 30 23 49Z" fill="#d5d9d6" stroke="#f4ead2"/><path d="m16 44 8 8M10 55l9-10" stroke="#c19a5f" stroke-width="5"/></svg>',
-  armor: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="m24 10-12 7-6 15 12 4 1 20h26l1-20 12-4-6-15-12-7-8 8Z" fill="#4e625e" stroke="#c6ac7b" stroke-width="2"/><path d="M22 29h20M22 37h20M22 45h20M28 24v26m8-26v26" stroke="#c6ac7b" stroke-width="2"/></svg>',
-  accessory: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 23C7 23 20 4 32 18c12-14 25 5 0 5ZM28 22l-9 17m17-17 9 17" fill="none" stroke="#ba8169" stroke-width="4"/><circle cx="32" cy="43" r="13" fill="#645634" stroke="#d4b16d" stroke-width="2"/><path d="M28 39h8v8h-8Z" fill="none" stroke="#e1c790" stroke-width="2"/></svg>',
-};
+import { ICONS, effectOf } from './item_detail.js';
+export { ICONS };
 export function createItemGrid(root, { equipment = false, activate }) {
   const keys = equipment ? EQUIPMENT_SLOTS : Array.from({length:INVENTORY_SLOTS}, (_, i) => i);
   const buttons = keys.map(key => {
@@ -26,7 +22,7 @@ export function createItemGrid(root, { equipment = false, activate }) {
         button.querySelector('.item-icon').innerHTML = item ? (item.id ? `<img src="../assets/items/${item.id}.png" alt="">` : ICONS[item.slot]) : '<span class="empty-slot"></span>';
         button.querySelector('.item-name').textContent = item?.name || (equipment ? 'Empty' : '');
       }
-      const detail = item ? `${item.name}: ${item.about}${item.sell ? ` Sell value: ${item.sell} ryo.` : ''} ${verb}.` : `${equipment ? key : `Slot ${i + 1}`}: Empty`;
+      const fx = effectOf(item), detail = item ? `${item.name}: ${item.about}${/\.$/.test(item.about) ? '' : '.'} Visual effect: ${fx ? fx.text.toLowerCase() : 'none'}.${item.sell ? ` Sell value: ${item.sell} ryo.` : ''} ${verb}.` : `${equipment ? key : `Slot ${i + 1}`}: Empty`;
       button.title = detail; button.setAttribute('aria-label', detail);
     });
   };
