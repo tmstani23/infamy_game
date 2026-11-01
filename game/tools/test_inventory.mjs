@@ -62,7 +62,7 @@ for(const faction of ['yakuza','kuroda','shinobi'])for(const bot of [false,true]
   inv.stash.fill('scouts_knot');hero.place='stash-room';g.state.businesses.hq={owner:'player',hideout:'player',room:hero.place};
   const all=JSON.stringify(inv);cmd('deposit',{index:1});cmd('withdraw',{index:0});assert.equal(JSON.stringify(inv),all,'full destinations preserve both containers');
   const crew=g.state.entities[g.spawn('thug','thug',0,0,{owner:'player',equipment:{weapon:'weighted_edge'}})];
-  near(g.stats.damage(crew),g.stats.base(crew).damage);assert.equal(INVENTORY_SLOTS,12);assert.equal(Object.keys(ITEMS).length,3);
+  near(g.stats.damage(crew),g.stats.base(crew).damage);assert.equal(INVENTORY_SLOTS,12);assert.equal(Object.keys(ITEMS).length,15);
 }
 {
   const {g,hero,cmd}=fixture(),replica=fixture().g,encoder=createSnapshotEncoder(g);

@@ -278,7 +278,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
       const anim = e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
-      s.setEquipment(e.type === 'hero' ? ITEMS[e.equipment?.weapon] : null);
+      s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       s.setHealth(e.hp, e.maxHp);

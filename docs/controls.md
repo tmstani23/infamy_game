@@ -11,10 +11,10 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Key | What it does |
 |---|---|
 | W A S D | Move, relative to the screen |
-| I or J / **Character** button | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Right-click or activate carried gear to equip, or equipped gear to remove it. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
+| I or J / **Character** button | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Right-click or activate carried gear to equip, or equipped gear to remove it. Supplies offers bandages and eligible War Lantern raids. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
-| Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern |
+| Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern. At the neutral blacksmith, open Shop to buy/sell gear. |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
 | Space by a raider's War Lantern | Knock it down (5 s channel; moving or a hit cancels). Raid warm-up is 45 s |
 | Double-click the red raid alarm | Camera to the raided business |

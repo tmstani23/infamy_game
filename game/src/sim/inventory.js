@@ -1,7 +1,7 @@
 import { canInteract } from './interactions.js';
 import { noticeFor } from './util.js';
 
-import { INVENTORY_SLOTS, EQUIPMENT_SLOTS, CURRENT_ITEMS as ITEMS } from './gear_catalog.js';
+import { INVENTORY_SLOTS, EQUIPMENT_SLOTS, CURRENT_ITEM_IDS, ITEMS } from './gear_catalog.js';
 export { INVENTORY_SLOTS, EQUIPMENT_SLOTS, ITEMS };
 export function gearMultiplier(e, key) {
   if (e?.type !== 'hero') return 1;
@@ -14,14 +14,18 @@ export function gearSources(e, key) {
     return value == null ? [] : [`${item.name} ×${value}`];
   });
 }
-export function createInventory({state}) {
+export function gearFlat(e,key) {
+  if(e?.type!=='hero')return 0;
+  return EQUIPMENT_SLOTS.reduce((n,s)=>n+(ITEMS[e.equipment?.[s]]?.modifiers[key]||0),0);
+}
+export function createInventory({state,baseHp}) {
   const say = noticeFor(state);
   const atHQ = e => !!e && e.place !== 'street' && Object.values(state.businesses).some(b => b.hideout === e.owner && b.owner === e.owner && b.room === e.place);
   function initialize(e) {
     const clan = state.clans[e.owner];
     if (e.type !== 'hero' || !clan) return;
     // Clan storage survives recovery; spawning again cannot mint starter items.
-    clan.inventory ||= { bag: [...Object.keys(ITEMS), ...Array(INVENTORY_SLOTS - Object.keys(ITEMS).length).fill(null)],
+    clan.inventory ||= { bag: [...CURRENT_ITEM_IDS, ...Array(INVENTORY_SLOTS - CURRENT_ITEM_IDS.length).fill(null)],
       stash: Array(INVENTORY_SLOTS).fill(null), equipment: Object.fromEntries(EQUIPMENT_SLOTS.map(s => [s, null])) };
     e.equipment = clan.inventory.equipment;
   }
@@ -51,6 +55,7 @@ export function createInventory({state}) {
       } else return;
     }
     e.equipment = inv.equipment;
+    if(baseHp){e.maxHp=baseHp(e)+gearFlat(e,'maxHpFlat');e.hp=Math.min(e.hp,e.maxHp);}
   }
   return { initialize, command, status, atHQ };
 }

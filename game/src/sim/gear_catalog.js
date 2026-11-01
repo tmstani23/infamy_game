@@ -1,5 +1,5 @@
-// Single source for gear definitions and the next shop/loot checkpoint.
-// Only CURRENT_ITEMS are active today. Other records are data, not new grants.
+// Single source for active gear, shop prices, consumables and loot rates.
+// CURRENT_ITEMS are legacy starters; compiled ITEMS also include shop/drop gear.
 export const INVENTORY_SLOTS = 12;
 export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory'];
 export const GEAR = {
@@ -55,3 +55,23 @@ export const CONSUMABLES = {
     allowedClanKinds: ['yakuza'], inventoryRepresentation: 'sharedClanCharge',
     visual: { kind: 'redLantern', color: [1,.2,.1] } },
 };
+
+// Compile both rarities from one set of bonuses. Legacy starter gear is kept
+// for existing inventories; new shop items are never granted on spawning.
+const percent = n => `${+(n*100).toFixed(2)}%`;
+export const ITEMS = {...CURRENT_ITEMS};
+for (const id of SHOP_ITEM_IDS) for (const rarity of ['common','green']) {
+  const source=GEAR[id], scale=RARITIES[rarity].bonusScale, b=Object.fromEntries(Object.entries(source.bonuses).map(([k,v])=>[k,v*scale]));
+  const modifiers={};
+  if(b.normalDamage)modifiers.damage=1+b.normalDamage;
+  if(b.normalAttackRate)modifiers.attackInterval=1/(1+b.normalAttackRate);
+  if(b.movement)modifiers.run=modifiers.walk=1+b.movement;
+  if(b.cooldownReduction)modifiers.cooldown=1-b.cooldownReduction;
+  if(b.maxHpFlat)modifiers.maxHpFlat=b.maxHpFlat;
+  if(b.dodgeChanceFlat)modifiers.dodgeChanceFlat=b.dodgeChanceFlat;
+  const about=Object.entries(b).map(([k,v])=>({normalDamage:`+${percent(v)} normal-hit damage`,normalAttackRate:`+${percent(v)} attack speed`,movement:`+${percent(v)} movement`,cooldownReduction:`−${percent(v)} ability cooldown`,maxHpFlat:`+${v} maximum HP`,dodgeChanceFlat:`+${percent(v)} dodge`})[k]).join('; ');
+  ITEMS[rarity==='green'?`${id}_green`:id]={...source, id, rarity, modifiers, about,
+    name:(rarity==='green'?'Fine ':'')+source.name, sell:source.sell,
+    visual:{...source.visual,strength:RARITIES[rarity].visualStrength},glow:source.slot==='weapon'?source.visual.color:undefined};
+}
+export const SHOP = {reach:4.5, x:-53,z:-10,building:'blacksmith',name:'Blacksmith',lootRepeatSeconds:120};

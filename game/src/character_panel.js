@@ -14,13 +14,15 @@ export function modifierDisplay(row) {
 
 export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
   const root = document.createElement('section'); root.id = 'characterpage'; root.hidden = true; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Hero character');
-  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">âœ•</button></header><div class="character-layout"><aside><div class="hero-art"><div class="hero-sprite"></div></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip Â· Right-click equipped gear to remove Â· I / J close<div class="inventory-notice" role="status"></div></footer></div>';
+  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">âœ•</button></header><div class="character-layout"><aside><div class="hero-art"><div class="hero-sprite"></div></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip Â· Right-click equipped gear to remove Â· I / J close<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
   const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
   const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index})});
   const equipment = createItemGrid($('.equipment-grid'), {equipment:true, activate:slot => command('unequip', {slot})});
   let model = null, open = false, previousFocus = null;
+  $('.use-bandage').addEventListener('click',()=>{send({id:heroId,type:'item',action:'bandage'});setOpen(false);});
+  let raidTarget;$('.use-lantern').addEventListener('click',()=>{if(raidTarget){send({id:heroId,type:'business',action:'raid',business:raidTarget});setOpen(false);}});
   function setOpen(on) {
     if (open === on) return;
     open = on; root.hidden = !on; button?.setAttribute('aria-expanded', String(on));
@@ -44,6 +46,13 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     if (!open) return;
     const hero = game.state.entities[heroId], snapshot = game.stats.snapshot(hero); if (!snapshot) return;
     const inv = game.inventory.status(hero);
+    const supply=game.state.clans[hero.owner],cooldown=Math.max(0,Math.ceil(((inv.bandageReadyAt||0)-game.state.tick)/20));
+    $('.use-bandage').textContent=`Bandage · ${inv.bandages||0}/2${hero.bandaging?' · Healing…':cooldown?' · '+cooldown+'s':''}`;
+    $('.use-bandage').disabled=!inv.available||!(inv.bandages>0)||cooldown>0||!!hero.bandaging||hero.hp>=hero.maxHp;
+    raidTarget=Object.values(game.state.businesses).find(b=>game.businesses.canRaid(heroId,b.id).ok)?.id;
+    $('.use-lantern').textContent=`War Lantern · ${supply.lanterns||0}${raidTarget?' · Raid '+(game.state.businesses[raidTarget].name||'this business'):''}`;
+    $('.use-lantern').disabled=!raidTarget;
+    $('.supplies-hint').textContent='Bandage: stand still for 6s; damage and actions interrupt. War Lantern: approach a rival business at night.';
     bag(inv.bag, inv.available); equipment(inv.equipment, inv.available && inv.bag?.includes(null), 'Remove to inventory');
     $('.inventory-count').textContent = `${inv.bag?.filter(Boolean).length || 0} / 12`;
     const notice = game.state.clans[hero.owner]?.notice;

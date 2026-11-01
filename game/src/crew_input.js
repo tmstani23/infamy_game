@@ -92,7 +92,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     .filter(e => e.type === 'civilian' && !e.dead && e.place === commandPlace() && seen(e));
   // bandit bodies with ryo on them: right-click to loot (Tim 2026-10-19)
   const bodies = () => Object.values(game.state.entities)
-    .filter(e => e.dead && e.loot > 0 && seen(e) && e.place === commandPlace());
+    .filter(e => e.dead && (e.loot > 0 || e.gearItem) && seen(e) && e.place === commandPlace());
 
   // has the hero's clan ever seen any of building i's footprint (centre or corners)?
   const explored = i => {

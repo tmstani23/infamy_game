@@ -2,6 +2,7 @@
 // Moved out of sim/game.js (phase 7 split, 2026-10-29); game.js passes in what it shares.
 import { KURODA_KINDS, stunned } from './kuroda.js';
 import { SCREEN_DOWN, SCREEN_RIGHT, dirIndex } from './geometry.js';
+import { gearMultiplier } from './inventory.js';
 export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild }) {
   function useAbility(e, c) {
     const a = statsOf(e).abilities?.[c.slot];
@@ -141,7 +142,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
       }
     } else return;
     delete e.swing;
-    (e.cooldowns ||= {})[c.slot] = state.tick + secs(a.cooldown);
+    (e.cooldowns ||= {})[c.slot] = state.tick + secs(a.cooldown*gearMultiplier(e,'cooldown'));
     state.casts.push({ a: e.id, slot: c.slot, kind: a.kind, x: e.x, z: e.z, ...(a.radius ? { radius: a.radius } : {}), ...extra });
   }
 

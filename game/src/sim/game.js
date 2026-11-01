@@ -10,7 +10,8 @@ import { createNav, ROOM_NAV } from './nav.js';
 import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
 import { createRewards } from './rewards.js';
-import { createInventory } from './inventory.js';
+import { gearFlat, createInventory } from './inventory.js';
+import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
@@ -139,7 +140,8 @@ export function createGame(options) {
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1,
     onAddClan: clan => deployment.addClan(clan), priceFactor: id => leader.hireFactor(id), respawnFactor: id => leader.respawnFactor(id) }) : null;
   const rewards = createRewards(state, units?.rules);
-  const inventory = createInventory({state});
+  const inventory = createInventory({state,baseHp:e=>stats.base(e).hp||0});
+  const itemServices = createItemServices({state,inventory,raidRules:units?.rules?.raid,spawn,nav:{nearestFree:(...p)=>nav.nearestFree(...p)}});
   // territory: the street around each owned business, quarters and the season score (sim/territory.js)
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
@@ -255,7 +257,7 @@ export function createGame(options) {
     state.entities[id] = { id, type, model, x, z, dir: 0, anim: 'idle', place: 'street', ...extra };
     const e = state.entities[id], hp = statsOf(e).hp;
     inventory.initialize(e);
-    if (hp && e.hp === undefined) e.hp = hp;
+    if (hp && e.hp === undefined) e.hp = hp+gearFlat(e,'maxHpFlat');
     if (e.hp !== undefined) e.maxHp ??= e.hp;
     if (type === 'kuroda_rifleman') e.rifle ??= { readyAt: state.tick }; // hires/revivals arrive loaded; aiming still takes its normal second
     if (stealth.canHide(e)) e.hidden = true;   // Shinobi units start hidden (sim/stealth.js)
@@ -295,14 +297,14 @@ export function createGame(options) {
   const baseHostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
-  const hostile=(a,b)=>baseHostile(a,b)&&!charmProtected(a,b,state);
+  const hostile=(a,b)=>!b?.shopkeeper&&baseHostile(a,b)&&!charmProtected(a,b,state);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
   const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
-  const attackAllowed=(a,b)=>fair(a,b)&&!charmProtected(a,b,state);
+  const attackAllowed=(a,b)=>!b?.shopkeeper&&fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
   // (night bandits) are not limited.
   // a hidden ninja (sim/stealth.js) is seen by nobody but its own side
@@ -344,7 +346,7 @@ export function createGame(options) {
   // A bandit's body carries its ryo (body.loot). A nearby hero takes it; otherwise
   // the nearest selected crew member goes, with non-following selected crew escorting.
   const LOOT_REACH = 1.6;
-  const lootable = (e, b) => !!b && b.dead && b.loot > 0 && b.place === e.place && sees(e, b) && deployment.canActAt(e, b.x, b.z, b.place);
+  const lootable = (e, b) => !!b && b.dead && (b.loot > 0 || b.gearItem) && b.place === e.place && sees(e, b) && deployment.canActAt(e, b.x, b.z, b.place);
   // Looting bodies and executing downed units (hero and crew): sim/loot_execute.js
   function botExecute(...a) { return lootExecute.botExecute(...a); }
   function executeStep(...a) { return lootExecute.executeStep(...a); }
@@ -653,6 +655,7 @@ export function createGame(options) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
       const e = state.entities[c.id];
       if (!e) continue;
+      itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
       if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment'].includes(c.type)) continue;
       // Selection and crew commands cannot replace the hero's current execution.
@@ -676,6 +679,7 @@ export function createGame(options) {
       if (c.type === 'interiorDoor' && !stunned(e, state.tick)) toggleInteriorDoor(e);
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'inventory') inventory.command(e, c);
+      if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}
       if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') giveOrder(e, c);
@@ -855,6 +859,7 @@ export function createGame(options) {
       if (unseen(e.execute?.target)) delete e.execute;
       if (unseen(fight[e.id]?.target)) delete fight[e.id].target;
     }
+    itemServices.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -902,9 +907,10 @@ export function createGame(options) {
   }
 
   const heroAbilities = createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild });
-  const lootExecute = createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
+  const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
-  const combat = createCombat({ clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory };
+  const combat = createCombat({ onDefeat:(a,t)=>itemServices.defeat(a,t), clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
+  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices };
 }

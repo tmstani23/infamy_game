@@ -2,7 +2,7 @@
 // Moved out of sim/game.js (phase 7 split, 2026-10-29); game.js passes in what it shares.
 import { dirIndex } from './geometry.js';
 import { TICK_RATE } from './game.js';
-export function createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units }) {
+export function createLootExecute({ items, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units }) {
   function startLoot(e, c) {
     const body = state.entities[c.target];
     if (e.type !== 'hero') return;
@@ -44,10 +44,11 @@ export function createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, c
     const body = state.entities[id];
     if (!lootable(e, body)) return false;
     if (Math.hypot(body.x - e.x, body.z - e.z) <= LOOT_REACH) {
+      if(items&&!items.collect(e,body))return false;
       const clan = state.clans?.[e.owner];
       if (clan) {
-        clan.ryo += body.loot;
-        state.ryoGains.push({ clan: clan.id, amount: body.loot, reason: `${body.type === 'night_brute' ? 'Night brute' : 'Bandit'} looted` });
+        clan.ryo += body.loot||0;
+        state.ryoGains.push({ clan: clan.id, amount: body.loot||0, reason: `${body.type === 'night_brute' ? 'Night brute' : 'Bandit'} looted` });
         state.casts.push({ kind: 'loot', a: e.id, x: body.x, z: body.z, ryo: body.loot });
       }
       delete body.loot;   // the body then fades like any other
@@ -118,6 +119,7 @@ export function createLootExecute({ AGGRO, LOOT_REACH, addHeat, anchorOf, civ, c
     if (civ(t)) { addHeat(e.owner, heatFor('kill'), 'Townsperson killed'); police?.witnessAssault(e, t); }
     else {
       payExecute(e, t, state.casts[state.casts.length - 1]);
+      items?.defeat(e,t);
       rewards.crewExecuted(e, t);
     }
     delete e.execute;

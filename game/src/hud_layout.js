@@ -4,14 +4,14 @@ export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','crewc
 const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','height','minHeight'];
 // fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
 const UNIFORM=new Set(['ryo','minimap','heat','stealth','raidalarm','uself','utarget','uhover','prompt','attackbar','knockbar']);
-const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',gamesettings:'Settings window',hqstash:'HQ stash',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip'};
+const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',gamesettings:'Settings window',blacksmithshop:'Blacksmith shop',hqstash:'HQ stash',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip'};
 export function layoutCategory(id){
  if(/tooltip|hint|uhover/.test(id))return 'tooltips';
  if(['raidalarm','attackbar','knockbar','campingnotice','lostcops','callout','pausedbanner','snap','jail'].includes(id))return 'alerts';
- if(['hire','clinic','police','contracts','deploymentpanel','gamesettings','hqstash','characterpage','controls','seasonend'].includes(id))return 'windows';
+ if(['hire','clinic','police','contracts','deploymentpanel','gamesettings','blacksmithshop','hqstash','characterpage','controls','seasonend'].includes(id))return 'windows';
  return 'main';
 }
-const STRUCTURAL=new Set(['view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','hqstash','characterpage','controls','results']);
+const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results']);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clone=v=>JSON.parse(JSON.stringify(v));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}};
@@ -84,7 +84,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  }
  HUD_PANELS.forEach(id=>register(document.getElementById(id)));
  for(const el of document.body.children)enroll(el);
- for(const [id,selector]of [['gamesettings','.settings-window'],['characterpage','.character-window'],['hqstash','.stash-window'],['controls',null]]){const root=document.getElementById(id);if(root)register(selector?root.querySelector(selector)||root:root,id,NAMES[id]);}
+ for(const [id,selector]of [['gamesettings','.settings-window'],['characterpage','.character-window'],['hqstash','.stash-window'],['blacksmithshop','.shop-window'],['controls',null]]){const root=document.getElementById(id);if(root)register(selector?root.querySelector(selector)||root:root,id,NAMES[id]);}
  if(typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)enroll(n);}).observe(document.body,{childList:true});
  function update(){
   let hidden=0;

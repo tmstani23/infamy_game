@@ -169,7 +169,7 @@ export function createClans(state, units, opts = {}) {
       debitRyo(state, clan, cost, 'Crew revived', { target: p.unit });
       clan.clinic.splice(c.patient, 1);
       const leader = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
-      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, deployment: restoredDeployment(p), ...(clan.bot && leader && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: leader.id } } : {}) });
+      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, noGearLoot: true, deployment: restoredDeployment(p), ...(clan.bot && leader && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: leader.id } } : {}) });
       return say(clan, `Your ${p.unit} is back on their feet (${cost} ryo)`);
     }
     if (c.action === 'heal') {
@@ -201,7 +201,7 @@ export function createClans(state, units, opts = {}) {
         const home = hideoutOf(clan.id);
         if (!home) continue;
         clan.respawning.splice(clan.respawning.indexOf(r), 1);
-        spawn(r.unit, r.model || types[r.unit].sprite, home, { owner: clan.id, hp: types[r.unit].hp, deployment: restoredDeployment(r) });
+        spawn(r.unit, r.model || types[r.unit].sprite, home, { owner: clan.id, hp: types[r.unit].hp, noGearLoot: true, deployment: restoredDeployment(r) });
         say(clan, `Your ${r.unit} came round at your HQ`);
       }
       for (const c of [...clan.clinic]) {
@@ -214,7 +214,7 @@ export function createClans(state, units, opts = {}) {
         clan.clinic.splice(clan.clinic.indexOf(c), 1);
         const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
         spawn(c.unit, c.model || types[c.unit].sprite, b,
-          { owner: clan.id, hp: types[c.unit].hp, deployment: restoredDeployment(c), ...(clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
+          { owner: clan.id, hp: types[c.unit].hp, noGearLoot: true, deployment: restoredDeployment(c), ...(clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
         say(clan, `Your ${c.unit} is back from the clinic`);
       }
     }

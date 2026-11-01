@@ -1,3 +1,4 @@
+import {createShopUI} from './shop_ui.js';
 import { createHQStash } from './inventory_ui.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { createUtilityMenu } from './utility_menu.js';
@@ -119,6 +120,7 @@ async function start() {
   if (DEV) onKey('F3', () => view.toggleDebug());
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
+    if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
     const door0 = interactionDoor();
     const innerDoor = !door0 && game.interiorDoorNear(heroId);
@@ -189,6 +191,7 @@ async function start() {
 
   const hqStash = createHQStash({game, heroId, send:c => pending.push(c),
     onOpen:() => {characterPanel.close();setGameplayInput(false);}, onClose:() => setGameplayInput(true)});
+  const shop=createShopUI({game,heroId,view,send:c=>pending.push(c),hidden:()=>gameMap.isOpen()||hudLayout.isEditing(),onOpen:()=>{characterPanel.close();hqStash.close();setGameplayInput(false);},onClose:()=>setGameplayInput(true)});
   // Hire menu: only reads the state and sends 'hire' commands, like a bot would
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
@@ -238,7 +241,7 @@ async function start() {
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
-  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -477,7 +480,7 @@ async function start() {
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
       stealthBadge.update();
-      characterPanel.update(); hqStash.update();
+      characterPanel.update(); hqStash.update(); shop.update();
       hireMenu.update();
       clinicMenu.update();
       policeMenu.update();
@@ -494,7 +497,7 @@ async function start() {
     const pan = panAxes();
     // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
-    const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !hqStash.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
+    const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !hqStash.isOpen() && !shop.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);

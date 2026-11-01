@@ -470,7 +470,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       const veiledIds = new Set();
       for (const e of Object.values(state.entities)) {
         // a bandit's body with ryo on it: a gold glint now and then, so it reads as lootable
-        if (e.dead && e.loot > 0) {
+        if (e.dead && (e.loot > 0 || e.gearItem)) {
           const q = posOf(e.id);
           if (q && Math.random() < dt * 2.5) glow.emit({ x: q.x + rand(-0.3, 0.3), y: rand(0.15, 0.4), z: q.z + rand(-0.3, 0.3), vy: rand(0.3, 0.7),
             life: rand(0.5, 0.8), size: rand(0.14, 0.22), color: GOLD, shape: SHAPE.sparkle, twinkle: 0.8, spin: 2 });

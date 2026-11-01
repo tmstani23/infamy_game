@@ -378,7 +378,16 @@ The top score line now shows the actual crew roster and unlocked cap. Its hover 
 
 ## Capital inventory checkpoint (2026-11-01; built/Node-verified, browser review pending)
 
-The carried bag and separate HQ stash each hold 12 items; the character page shows three equipment slots and carried items only. Four core stats stay above the bag by default; other stats and abilities remain available in their sections. The stash is registered as a HUD layout window, and keyboard focus skips hidden/disabled controls. Starter gear remains unequipped until the player chooses it. Authoritative commands enforce field equips, own-HQ transfers, capacity, availability and persistence through recovery; the shared stat resolver applies item tradeoffs to actual hero combat and movement, leaving crew base stats unchanged. The existing physical weapons, attack trails and sprite exports are unchanged. `test_inventory`, `test_character_stats`, `test_hire_stats` and `test_sim_worker` passed, with touched-JS syntax and diff checks. No browser/headless run was reported. Tim still needs to review the UI and item behavior in game. Rare loot waits on trigger decisions; the neutral gear shop is proposed only.
+The carried bag and separate HQ stash each hold 12 items; the character page shows three equipment slots and carried items only. Four core stats stay above the bag by default; other stats and abilities remain available in their sections. The stash is registered as a HUD layout window, and keyboard focus skips hidden/disabled controls. Starter gear remains unequipped until the player chooses it. Authoritative commands enforce field equips, own-HQ transfers, capacity, availability and persistence through recovery; the shared stat resolver applies item tradeoffs to actual hero combat and movement, leaving crew base stats unchanged. The existing physical weapons, attack trails and sprite exports are unchanged. `test_inventory`, `test_character_stats`, `test_hire_stats` and `test_sim_worker` passed, with touched-JS syntax and diff checks. No browser/headless run was reported. Shop and item services are now built as described in the gameplay inventory section; Tim’s manual playtest remains pending.
+
+### Shop and item-service checkpoint (2026-11-01; built/Node-verified, manual review pending)
+
+- [x] Build the neutral outdoor blacksmith at −53, −10 with Shop access for every clan; buy/sell uses the shared gear catalog.
+- [x] Add eligible rare drops from bandit/crew deaths and hero, camp or raid accomplishments; keep claims bounded until collected at the shop, auto-sell overflow and exclude revived enemies from gear farming.
+- [x] Add Character Supplies for the 25-ryo bandage (carry two; heal 25% max HP over six seconds; damage, movement or attack interrupts; 60-second cooldown) and eligible nearby night raids using existing War Lantern rules.
+- [x] Add procedural equipped-item accents preserving hero identity; add transparent painterly gear icons (3×2 sheet) and separate linen bandage art. Tea and incense remain proposals; no sprite variants.
+- [x] Focused inventory, character-stat and item-service tests passed, with syntax and diff checks. No browser run.
+- [ ] Manual review: approach the blacksmith, buy/sell, collect/equip a green drop and check its effect, interrupt a bandage, and verify War Lantern eligibility.
 
 ## Rune-circle checkpoint (2026-11-01; built/Node-verified, visual review pending)
 

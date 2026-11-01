@@ -1,4 +1,4 @@
-import { gearMultiplier, gearSources } from './inventory.js';
+import { gearMultiplier, gearSources, gearFlat } from './inventory.js';
 // One stat evaluator for gameplay and read-only presentation, including equipment.
 export const DEFAULT_MOVEMENT = {
   hero: { radius: .35, walk: 1.7, run: 6 },
@@ -23,7 +23,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const bonus = Object.values(e.buffs || {}).reduce((n, b) => n + (b.until > state.tick ? b.critChance || 0 : 0), 0);
     return clamp((base(e).critChance || 0) + bonus);
   }
-  const dodgeChance = e => clamp(base(e).dodgeChance || 0);
+  const dodgeChance = e => clamp((base(e).dodgeChance || 0)+gearFlat(e,'dodgeChanceFlat'));
   const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
@@ -67,7 +67,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const damageSources = gearSources(e, 'damage');
     if (buff(e, 'lantern')?.damage) damageSources.push(`Red Lantern ×${buff(e, 'lantern').damage}`);
     if (buff(e, 'intimidated')?.damage) damageSources.push(`Intimidate ×${buff(e, 'intimidated').damage}`);
-    add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', e.maxHp !== b.hp ? ['Unit health override'] : []);
+    add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', gearSources(e,'maxHpFlat').length ? gearSources(e,'maxHpFlat') : e.maxHp !== b.hp ? ['Unit health override'] : []);
     add('regen', 'Passive recovery', 'Vitality', regen.base, regen.current, 'hp/s', [
       ...(regen.turf !== 1 ? [`Home territory ×${regen.turf}`] : []), ...(regen.clan !== 1 ? [`Battle Hardened ×${regen.clan}`] : []),
       ...(regen.home ? ['HQ rest'] : []), ...(!regen.eligible ? ['Recovery currently paused'] : [])],
@@ -78,7 +78,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     add('range', 'Attack reach', 'Offence', b.attackRange || 1, b.attackRange || 1, 'steps', [], 'Measured to target body; target radius is added by the combat rules.');
     add('critChance', 'Critical chance', 'Offence', clamp(b.critChance || 0), v.critChance, '%', v.critChance !== clamp(b.critChance || 0) ? ['Active critical-chance bonuses'] : []);
     add('critMultiplier', 'Critical damage', 'Offence', b.critMultiplier || 2, b.critMultiplier || 2, '×');
-    add('dodge', 'Dodge chance', 'Defence', clamp(b.dodgeChance || 0), v.dodgeChance, '%', [], 'Normal-attack dodge. Abilities retain their own hit rules.');
+    add('dodge', 'Dodge chance', 'Defence', clamp(b.dodgeChance || 0), v.dodgeChance, '%', gearSources(e,'dodgeChanceFlat'), 'Normal-attack dodge. Abilities retain their own hit rules.');
     add('damageTaken', 'Damage received', 'Defence', 1, v.damageTaken, '%', [...gearSources(e, 'damageTaken'), formationMultiplier(e) < 1 && 'Iron Formation', buff(e, 'sweep') && 'Sweep formation', buff(e, 'bulwark') && 'Bulwark'].filter(Boolean), 'Incoming damage multiplier. Assassinate retains its explicit health rule.', true);
     add('lifesteal', 'Lifesteal', 'Defence', 0, v.lifesteal, '%', v.lifesteal ? ['Red Lantern'] : [], 'Healing from actual damage dealt, capped at maximum health.');
     for (const [key, label] of [['walk', 'Walk speed'], ['run', 'Run speed']]) {
@@ -91,7 +91,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     }
     return { id: e.id, type: e.type, model: e.model, name: b.name || `${clan?.name || 'Clan'} leader`, clan: clan?.name || e.owner,
       faction: clan?.faction, kind: clan?.kind, hp: e.hp, maxHp: e.maxHp, tick: state.tick, rows, passives: passives(e),
-      abilities: Object.entries(b.abilities || {}).map(([key, a]) => ({ key, ...a, remaining: Math.max(0, ((e.cooldowns?.[key] || 0) - state.tick) / 20) })) };
+      abilities: Object.entries(b.abilities || {}).map(([key, a]) => ({ key, ...a, cooldown:a.cooldown*gearMultiplier(e,'cooldown'), remaining: Math.max(0, ((e.cooldowns?.[key] || 0) - state.tick) / 20) })) };
   }
   return { base, effective, damage, damageMultiplier, attackInterval, criticalChance, dodgeChance, damageTaken, lifesteal, movement, regeneration, passives, snapshot };
 }

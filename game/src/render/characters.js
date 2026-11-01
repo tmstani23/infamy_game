@@ -189,12 +189,20 @@ export class CharacterSprite {
     }
   }
 
-  setEquipment(item) {
-    const key = item?.name || '';
-    if (!this.glow || key === this.gearEffect) return;
-    this.gearEffect = key;
-    this.glow.material.uniforms.uColor.value.setRGB(...(item?.glow || this.weapon.color));
-    for (const m of this.trail || []) m.material.uniforms.uColor.value.setRGB(...(item?.glow || this.weapon.trailColor || this.weapon.color));
+  setEquipment(items=[]) {
+    const key=items.map(i=>i?.name||'').join('|');
+    if(key===this.gearEffect)return;this.gearEffect=key;this.gearItems=items;
+    // Small procedural accents share the existing sprite; no variant sheets.
+    if(!this.gearMeshes&&items.some(Boolean)){
+      this.gearMeshes=[0,1].map(i=>{
+        const m=new THREE.Mesh(new THREE.RingGeometry(i?.012:.18,i?.022:.187,48),new THREE.MeshBasicMaterial({transparent:true,opacity:.35,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+        m.position.z=.025;m.visible=false;this.thing.mesh.add(m);return m;
+      });
+    }
+    const accent=items[0]?.glow;
+    // Preserve each hero's established weapon signature; gear adds a tint/glint.
+    if(this.glow){const c=this.weapon.color;this.glow.material.uniforms.uColor.value.setRGB(...c.map((v,i)=>accent?v*.8+accent[i]*.2:v));}
+    this.gearMeshes?.forEach((m,i)=>{const item=items[i+1];m.visible=!!item;if(item)m.material.color.setRGB(...(item.visual?.color||item.glow||[.7,.8,.6]));});
   }
 
   // x, z: interpolated position; dir and anim come from the latest game state
@@ -202,7 +210,13 @@ export class CharacterSprite {
   // size: drawing scale (INDOOR_SIZE inside buildings)
   update(dt, x, z, dir, anim, swingT = null, size = 1) {
     if (anim !== this.anim) { this.anim = anim; this.time = 0; }
-    this.time += dt;
+    this.time += dt;this.gearClock=(this.gearClock||0)+dt;
+    this.gearMeshes?.forEach((m,i)=>{
+      const item=this.gearItems?.[i+1];m.visible=!!item&&anim!=='death';
+      m.material.opacity=(.22+.13*Math.sin(this.gearClock*2+i))*(item?.visual?.strength||1);
+      if(i===0){m.scale.set(1,1.35,1);m.position.y=-.015;}
+      else{const t=this.gearClock*1.5;m.position.set(Math.cos(t)*.2,Math.sin(t)*.25-.02,.04);}
+    });
     const sheet = this.sheets[anim] || this.sheets.idle;
     // a fall plays once and stays down; an attack follows the swing; everything else loops
     const f = Math.floor(this.time * FPS * sheet.speed);
@@ -261,6 +275,9 @@ export class CharacterSprite {
       }
     }
 
+    if(this.glow&&this.gearItems?.[0]&&anim!=='death'){
+      const t=this.gearClock%3.5;if(t<.7){const g=this.glow.material.uniforms;g.uStrength.value*=1+.3*Math.sin(t/.7*Math.PI);if(g.uShimmer)g.uShimmer.value=-.15+1.3*t/.7;}
+    }
     this.pos.set(x, 0, z);
     const r = 0.2;
     if (size !== this.size) {
@@ -328,6 +345,7 @@ export class CharacterSprite {
     for (const m of [this.material, this.hidden.material, this.fill.material, this.labelMaterial]) m.dispose();
     this.nameplate.geometry.dispose(); this.labelTexture.dispose();
     this.glow?.material.dispose();
+    for(const m of this.gearMeshes||[]){m.geometry.dispose();m.material.dispose();}
     this.lightning?.dispose();
     this.shadowBlade?.dispose();
     this.runTrail?.dispose();

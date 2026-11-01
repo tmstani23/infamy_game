@@ -4,7 +4,7 @@ import { charmProtected } from './charm_rules.js';
 import { dirIndex } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true }) {
+export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true, onDefeat=()=>{} }) {
   state.projectiles||=[];
   function launch(e,t,unit){
     const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian';
@@ -268,7 +268,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
   }
 
   function hit(a, t, damage, crit = false, kind = null) {
-    if(charmProtected(a,t,state))return;
+    if(t.shopkeeper||charmProtected(a,t,state))return;
     // Assassinate's explicit current-health rule stays exact inside a formation.
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
@@ -313,7 +313,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     delete fight[t.id];
     t.anim = 'death';
     // Bandits leave their money on the body for whoever loots it.
-    if (wild(t)) { t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
+    if (wild(t)) { onDefeat(a,t); t.dead = true; t.diedAt = state.tick; bandits.killed(a, t); return; }
     // an officer knocked out is taken away (the HQ sends another)
     if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
     // house guards (sim/businesses.js) die outright; the business sends a new one later
@@ -323,6 +323,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)
     state.news.push({ kind: 'bossDown', clan: t.owner, hero: t.id, by: a.owner || null, x: t.x, z: t.z });
     if (cop(a) && police) { t.downed = true; t.downedAt = state.tick; return; }
+    onDefeat(a,t);
     rewards.leaderDown(a, t);
     leader.downed(a, t);
     t.dead = true;

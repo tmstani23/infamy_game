@@ -19,14 +19,14 @@ export function createItemGrid(root, { equipment = false, activate }) {
     keys.forEach((key, i) => {
       const button = buttons[i], id = values[key], item = ITEMS[id];
       button.disabled = !available || !item;
-      button.classList.toggle('occupied', !!item);
+      button.classList.toggle('occupied', !!item);button.classList.toggle('green-item',item?.rarity==='green');
       button.querySelector('small').textContent = equipment ? key[0].toUpperCase() + key.slice(1) : String(i + 1);
       if (button.dataset.item !== (id || '')) {
         button.dataset.item = id || '';
-        button.querySelector('.item-icon').innerHTML = item ? ICONS[item.slot] : '<span class="empty-slot"></span>';
+        button.querySelector('.item-icon').innerHTML = item ? (item.id ? `<img src="../assets/items/${item.id}.png" alt="">` : ICONS[item.slot]) : '<span class="empty-slot"></span>';
         button.querySelector('.item-name').textContent = item?.name || (equipment ? 'Empty' : '');
       }
-      const detail = item ? `${item.name}: ${item.about} ${verb}.` : `${equipment ? key : `Slot ${i + 1}`}: Empty`;
+      const detail = item ? `${item.name}: ${item.about}${item.sell ? ` Sell value: ${item.sell} ryo.` : ''} ${verb}.` : `${equipment ? key : `Slot ${i + 1}`}: Empty`;
       button.title = detail; button.setAttribute('aria-label', detail);
     });
   };
