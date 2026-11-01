@@ -6,6 +6,7 @@ Read this first. It links to the docs rather than repeating them.
 
 - Usage: follow [docs/usage.md](docs/usage.md).
 - Usage awareness (Tim, 2026-10-25): keep routine work lean. Ask Tim before work likely to consume substantial usage, including broad archive/history searches, large reviews, or extensive testing. Prefer targeted reads and checks.
+- Test-param playtests (Tim, 2026-10-31): reuse one canonical manual playtest setup. Extend `game/src/test_params.js` instead of adding duplicate test-param simulation copies, and reuse an existing running playtest/server instead of launching parallel copies. See [docs/test_params.md](docs/test_params.md). Focused Node regression tests are still fine.
 - This local folder is the main copy of the project.
 - Plan first: ask Tim before building anything new. Big builds go in phases with a checklist in the plan file.
 - Always build for multiplayer, playable single-player with bots: all game rules live in `game/src/sim` (runs in Node, no graphics), players and bots act only through the same commands, render only draws. See [docs/tech_plan.md](docs/tech_plan.md).
