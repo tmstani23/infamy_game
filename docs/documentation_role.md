@@ -80,5 +80,5 @@ Last sweep: 2026-10-19 00:35 UTC, after the 2x map, Rally and looting batch (las
 ## How the Docs keeper writes
 
 1. Re-read the file right before writing, since other threads may have changed it.
-2. Make the smallest edit that applies the approved change, and fix nearby lines it makes outdated or redundant only if Tim approved that.
+2. Update docs in place (Tim, 2026-10-31): replace outdated statements and avoid duplicating existing information. Remove text only when redundant, obsolete or unclear; preserve useful decisions, rationale and unresolved issues. Keep cleanup within the section being edited, without unrelated scans, deletion quotas, negative-diff targets or deletion bookkeeping.
 3. Read the file back afterwards to check the edit landed.
