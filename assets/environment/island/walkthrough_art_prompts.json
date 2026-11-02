@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "status": "requested by Tim 2026-11-02",
+  "instructions": "Generate missing files only, built-in imagegen, one at a time; save to assets/environment/island/ with exact filenames. Inspect local references before use. Rims genuine transparent alpha; top textures opaque. Original top_<biome>.png is A; generate B,C,D for four total. Preserve originals and drafts. No placement/code edits. Read the mirrored geometry and high-ground side carefully. Images here are new assets, not implementations of connected ranges, shared corner calibration, blending or water rendering. Lake-edge prompts are separately in lake_edges_prompts.json and the Markdown image doc.",
+  "sharedRimPrompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.",
+  "sharedTexturePrompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.",
+  "items": [
+    {
+      "file": "rim_forest_opposite.png",
+      "label": "forest rim — opposite bank",
+      "transparent": true,
+      "width": 1536,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/rim_forest.png",
+        "game/art/props/pine_tree.png"
+      ],
+      "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.\n\nThe low rocky rim runs from UPPER LEFT to LOWER RIGHT. High-ground interior and its trees must be on the LOWER-LEFT side of that diagonal; the land drops away out of sight toward UPPER RIGHT. Do not place the forest on the drop side.\nForest biome: low mossy granite boulders, ferns, a few dark olive cedar/pine trees; same grey/olive palette as approved forest rim."
+    },
+    {
+      "file": "rim_forest_opposite_mirrored.png",
+      "label": "forest rim — opposite bank, mirrored",
+      "transparent": true,
+      "width": 1536,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/rim_forest.png",
+        "game/art/props/pine_tree.png"
+      ],
+      "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.\n\nThe low rocky rim runs from UPPER RIGHT to LOWER LEFT. High-ground interior and its trees must be on the LOWER-RIGHT side of that diagonal; the land drops away out of sight toward UPPER LEFT. This is the mirrored geometry companion of the opposite-bank rim.\nForest biome: low mossy granite boulders, ferns, a few dark olive cedar/pine trees; same grey/olive palette as approved forest rim."
+    },
+    {
+      "file": "rim_snow_opposite.png",
+      "label": "snow rim — opposite bank",
+      "transparent": true,
+      "width": 1536,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/rim_snow.png",
+        "game/art/props/pine_tree.png"
+      ],
+      "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.\n\nThe low rocky rim runs from UPPER LEFT to LOWER RIGHT. High-ground interior and its trees must be on the LOWER-LEFT side of that diagonal; the land drops away out of sight toward UPPER RIGHT. Do not place the forest on the drop side.\nSnow biome: low blue-grey rocks half buried in snow, modest icicles, a couple of bent snowy pines; same white/blue-grey material palette as approved snow rim."
+    },
+    {
+      "file": "rim_snow_opposite_mirrored.png",
+      "label": "snow rim — opposite bank, mirrored",
+      "transparent": true,
+      "width": 1536,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/rim_snow.png",
+        "game/art/props/pine_tree.png"
+      ],
+      "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.\n\nThe low rocky rim runs from UPPER RIGHT to LOWER LEFT. High-ground interior and its trees must be on the LOWER-RIGHT side of that diagonal; the land drops away out of sight toward UPPER LEFT. This is the mirrored geometry companion of the opposite-bank rim.\nSnow biome: low blue-grey rocks half buried in snow, modest icicles, a couple of bent snowy pines; same white/blue-grey material palette as approved snow rim."
+    },
+    {
+      "file": "top_forest_b.png",
+      "label": "forest high ground variant B",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_forest.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nMore irregular small mossy clearings between dense cedar and pine crowns, a few dispersed grey stones. Crown diameters match reference (~200 pixels); all crowns viewed directly from above, no exposed trunks."
+    },
+    {
+      "file": "top_forest_c.png",
+      "label": "forest high ground variant C",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_forest.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nA denser mix of overlapping dark pine and cedar crowns, a few rock seams and tiny moss pockets. Irregular clustering, no tree rows; directly overhead crowns only."
+    },
+    {
+      "file": "top_forest_d.png",
+      "label": "forest high ground variant D",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_forest.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nBroken patches of cedar/pine crowns and mottled mossy granite with sparse ferny clearings. Similar overall forest coverage but different arrangement; no side-on trees."
+    },
+    {
+      "file": "top_snow_b.png",
+      "label": "snow high ground variant B",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_snow.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nWind-packed snow, small scattered dark blue-grey rock chips and sparse snowy pine CROWNS viewed directly overhead. Different irregular arrangement from reference; no tree trunks or side views."
+    },
+    {
+      "file": "top_snow_c.png",
+      "label": "snow high ground variant C",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_snow.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nA little more exposed blue-grey stone among broad natural snow patches, a few compact snow-dusted pine crowns in overhead plan view. No parallel rock rows."
+    },
+    {
+      "file": "top_snow_d.png",
+      "label": "snow high ground variant D",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_snow.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nSofter irregular drift patches across wind-scoured snow and small dark rock clusters, very sparse snowy pine crowns. Keep snow brightness and fine feature scale matched."
+    },
+    {
+      "file": "top_dry_b.png",
+      "label": "dry high ground variant B",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_dry.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nFine ochre and faded rust rock cracks mixed with gravel and sparse tiny dry grass tufts. Avoid broad linear cracks that create long repeated lines."
+    },
+    {
+      "file": "top_dry_c.png",
+      "label": "dry high ground variant C",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_dry.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nIrregular sun-bleached sandstone plates, reddish pebbles and sparse dark scrub seen from above. Match the approved dry texture scale and colour, no large dominating rock."
+    },
+    {
+      "file": "top_dry_d.png",
+      "label": "dry high ground variant D",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_dry.png"
+      ],
+      "prompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.\n\nMottled ochre/rust grit and fractured small rock patches with dry grass scattered unevenly. No straight repeated seams, broad directional bands or rectangular patches."
+    }
+  ]
+}

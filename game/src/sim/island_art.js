@@ -1,9 +1,15 @@
 // Deterministic art records for a chunk. Terrain/blockers remain authoritative.
-import {terrainAt} from './world_data.js';
+import {terrainAt,passable} from './world_data.js';
 
 export function islandBiome(world,x,z){
   const region=world.regions?.find(r=>x>=r.box[0]&&x<r.box[2]&&z>=r.box[1]&&z<r.box[3]);
   return region?.biome==='snow'?'snow':region?.biome==='dry'?'dry':'forest';
+}
+// Legacy pass metadata can sit in open fields after a blueprint update.
+// Only draw a gateway where actual terrain flanks a walkable crossing.
+export function islandPassFits(world,p){
+  const t=world.terrain.cell,m=(dx,dz)=>terrainAt(world,p.x+dx*t,p.z+dz*t)==='m';
+  return passable(world,p.x,p.z)&&((m(-1,0)&&m(1,0))||(m(0,-1)&&m(0,1)));
 }
 export function islandArt(world,cfg,cx,cz){
   if(!cfg.islandArt?.enabled)return [];
@@ -27,17 +33,7 @@ export function islandArt(world,cfg,cx,cz){
       for(let k=0;k<(cfg.islandArt.topPinesPerCell||0);k++)add('pine_tree',x+T*(.3+k*.22),z+T*.4,{top:true});
     }
   }
-  for(const p of cfg.islandArt.reviewEnabled?cfg.islandArt.reviewProps||[]:[])add(p.art,p.x,p.z,p);
-  for(const p of world.passes||[])add('pass_gate',p.x,p.z);
-  for(const p of world.fords||[])add('river_ford',p.x,p.z,{decal:true,width:cfg.islandArt.fordWidth,height:cfg.islandArt.fordLength});
-  for(const lake of world.lakes||[]){
-    const count=Math.max(4,Math.ceil(2*Math.PI*lake.r/cfg.islandArt.lakeSpacing));
-    for(let k=0;k<count;k++){
-      const a=k/count*Math.PI*2,x=lake.x+Math.cos(a)*lake.r,z=lake.z+Math.sin(a)*lake.r;
-      // The lake mask is the map authority; don't decorate dry land away from it.
-      if(!['w','r'].includes(terrainAt(world,x,z))&&!['w','r'].includes(terrainAt(world,x-Math.cos(a)*T/2,z-Math.sin(a)*T/2)))continue;
-      add('lake_edge',x,z,{decal:true,width:cfg.islandArt.lakeWidth,height:cfg.islandArt.lakeWidth,angle:a});
-    }
-  }
+  for(const p of world.passes||[])if(islandPassFits(world,p))add('pass_gate',p.x,p.z);
+  // Ford and shoreline art await correctly scaled, terrain-fitted replacements.
   return out;
 }

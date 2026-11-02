@@ -105,7 +105,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || [];
     if (!name) return null;
     if(p.decal){
-      const tex=textureFor(`art/${p.groundTexture?'ground':'props'}/${name}.png`);if(!tex)return undefined;
+      const tex=textureFor(`art/props/${name}.png`);if(!tex)return undefined;
       const mesh=new THREE.Mesh(new THREE.PlaneGeometry(p.width,p.height),spriteMaterial(tex));mesh.rotation.x=-Math.PI/2;mesh.rotation.z=-(p.angle||0);mesh.position.set(p.x,.015,p.z);mesh.renderOrder=-.5;
       mesh.material.uniforms.uFogAt.value.set(p.x,p.z,0,1);
       return {mesh,extras:[],lights:[],decal:true};

@@ -49,8 +49,7 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
       ...world.camps.filter(k => known(k.x, k.z)).map(k => ({ ...k, campKind: k.kind, kind: 'camp' })),
       ...(st.pins || []).map(p => ({ ...p, kind: 'pin' })),
       ...(st.towns || []).map(t => ({ ...t, kind: 'town' })),   // late, so a town wins over the site under it
-      { kind: 'capital', x: world.capital.x, z: world.capital.z },
-      ...(st.artTests || [])];
+      { kind: 'capital', x: world.capital.x, z: world.capital.z }];
   }
   function buildCache() {
     const t = world.terrain, off = document.createElement('canvas');
@@ -94,11 +93,6 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     for (const pin of st.pins || []) {
       const p = worldToCanvas(pin.x, pin.z, view); ctx.strokeStyle = '#ff78c8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.px, p.py, 5, 0, 7); ctx.stroke();
       if (pin.note) { ctx.fillStyle = '#ffd6ee'; ctx.fillText(pin.note, p.px + 8, p.py + 4); }
-    }
-    for(const test of st.artTests||[]){
-      const p=worldToCanvas(test.x,test.z,view);ctx.fillStyle='#281739';ctx.strokeStyle='#f5a8ff';ctx.lineWidth=2;
-      ctx.fillRect(p.px-6,p.py-6,12,12);ctx.strokeRect(p.px-6,p.py-6,12,12);
-      ctx.font='bold 12px sans-serif';ctx.lineWidth=3;ctx.strokeStyle='#14101c';ctx.strokeText(test.id,p.px+9,p.py+4);ctx.fillStyle='#f8ccff';ctx.fillText(test.id,p.px+9,p.py+4);
     }
     if (st.hero) { const p = worldToCanvas(st.hero.x, st.hero.z, view); ctx.fillStyle = '#5adc78'; ctx.beginPath(); ctx.moveTo(p.px, p.py - 8); ctx.lineTo(p.px + 6, p.py + 5); ctx.lineTo(p.px - 6, p.py + 5); ctx.fill(); }
     dirty = false;
