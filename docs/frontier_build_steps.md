@@ -21,7 +21,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
-- [ ] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [ ] 2.3 · [ ] 2.4 · [ ] 2.4b · [ ] 2.5 · [ ] 2.5b · [ ] 2.6 · [ ] 2.7 · [ ] 2.8 · [ ] 2.9 · [ ] 2.10
+- [ ] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [ ] 2.4 · [ ] 2.4b · [ ] 2.5 · [ ] 2.5b · [ ] 2.6 · [ ] 2.7 · [ ] 2.8 · [ ] 2.9 · [ ] 2.10
 - [ ] **F4** Town panel: [ ] 4.1 mock · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.4b · [ ] 4.4c · [ ] 4.4d · [ ] 4.5 playtest
 - [ ] **W3** Walkable world: [ ] W3.1 · [ ] W3.2 · [ ] W3.3 · [ ] W3.4 · [ ] W3.4b art · [ ] W3.5 · [ ] W3.6 · [ ] W3.7 playtest
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F2.2b · Next step: F2.3 (new Opus thread); F1.7 Tim playtest still deferred to the end
+Last step done: F2.3 · Next step: F2.4; F1.7 Tim playtest still deferred to the end
 
 ## Working in one long window (auto-compacting)
 
@@ -634,7 +634,7 @@ Done note: "F2.2b frontier guards in."
 
 ### F2.3. Hook the frontier into the sim  [STRONG]
 Needs: F2.2
-Files: `game/src/sim/game.js`, `game/src/main.js`, `game/tools/test_frontier_world.mjs`.
+Files: new hub `game/src/sim/frontier/frontier.js` (where `frontier.tick` and `frontier.command` come from), `game/src/sim/game.js`, `game/src/main.js`, `game/tools/test_frontier_world.mjs`.
 Do:
   1. In `createGame`, if `options.frontier` is set, create the world and the F2 modules, and call
      `frontier.tick()` from `step()` once per tick (it runs economy only every `cadenceTicks`).
@@ -646,6 +646,7 @@ Check (pass/fail): `test_frontier_world.mjs` builds a full `createGame` with `fr
 200 ticks; `state.frontier.econTick === 10`. Without `frontier` in options, `state.frontier` is
 undefined. Regression set: no new failures.
 Done note: "F2.3 frontier runs inside the sim."
+As built (2026-11-02): later modules plug in by pushing into `frontier.modules` with `econTick(ctx)` and/or `command(e, c, ctx)`. Regression set passes except `test_crew` line 97 (already failing before).
 
 ### F2.4. Production and food  [SMALL]
 Needs: F2.3

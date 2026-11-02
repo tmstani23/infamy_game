@@ -3,6 +3,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createFrontierWorld } from '../src/sim/frontier/world.js';
+import { createGame } from '../src/sim/game.js';
+import { patch } from '../src/sim/save.js';
 
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
 const fresh = () => { const state = { tick: 0 }; return { state, world: createFrontierWorld({ state, data }) }; };
@@ -74,5 +76,35 @@ const fresh = () => { const state = { tick: 0 }; return { state, world: createFr
   assert.equal(JSON.stringify(state), before, 'a refused change writes nothing');
   world.setOwner('s_frontier_1', 'player');
   assert.equal(world.settlement('s_frontier_1').owner, 'player');
+}
+
+// F2.3: the frontier runs inside the full sim, and only when options.frontier is set
+{
+  const json = file => JSON.parse(readFileSync(new URL(`../${file}`, import.meta.url)));
+  const options = { district: json('data/waterfront.json'), catalog: json('data/art.json'),
+    cutouts: json('art/cutouts.json'), interiors: json('data/interiors.json'),
+    parts: json('data/interior_parts.json'), recipes: json('data/room_recipes.json'), units: json('data/units.json') };
+  const g = createGame({ ...options, frontier: data });
+  g.clans.addClan('player', { faction: 'yakuza', kind: 'yakuza', bot: false });
+  const hero = g.spawn('hero', 'ronin', -8, 1, { owner: 'player', holdFire: true });
+  for (let i = 0; i < 200; i++) g.step(i === 50 ? [{ id: hero, type: 'frontier', action: 'noop' }] : []);
+  assert.equal(g.state.frontier.econTick, 10, '200 ticks at cadence 20');
+  assert.ok(g.frontier && g.frontier.world.settlement('s_frontier_1'));
+  g.frontier.world.checkInvariants();
+  // a save without a frontier (older save) loaded into a frontier game: fresh records, still ticking
+  const plainGame = createGame(options);
+  plainGame.step([]);
+  patch(g.state, structuredClone(plainGame.state));
+  assert.equal(g.state.frontier, undefined);
+  g.step([]);
+  assert.equal(g.frontier.world.settlement('s_frontier_1').pop, 8);
+  g.frontier.world.checkInvariants();
+  // and a save with a frontier keeps it (the hub follows the same records)
+  const saved = structuredClone(g.state);
+  saved.frontier.econTick = 77;
+  patch(g.state, saved);
+  assert.equal(g.frontier.world.frontier.econTick, 77);
+  assert.equal(plainGame.state.frontier, undefined, 'no frontier option, no state.frontier');
+  assert.equal(plainGame.frontier, null);
 }
 console.log('test_frontier_world: ok');

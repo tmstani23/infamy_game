@@ -64,10 +64,10 @@ const getJSON = async url => {
 async function start() {
   setGameplayInput(false);
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier] = await Promise.all([
     getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json')]);
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
   const startSaves = createSaveStore(serverBackend('/saves'));
@@ -78,7 +78,7 @@ async function start() {
   status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world };
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world, frontier };   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST };
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
