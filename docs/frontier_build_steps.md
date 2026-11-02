@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [ ] W3.8 island art (Tim, 13 images) · [ ] W3.9 fit art and smooth blocked areas (any time before E; W4 does not depend on them)
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [ ] W3.8 island art (Tim, 25 images) · [ ] W3.9 fit art and smooth blocked areas (any time before E; W4 does not depend on them)
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -1050,84 +1050,98 @@ Watch Firefox memory and frame rate. Check that the ground looks right by biome.
 
 ### W3.8. Generate the island art  [TIM]
 
-Tim makes 13 images in ChatGPT from the W3.4b prompts. The prompts are in
-`assets/image_prompts.md`, section "Island art (W3.4b, frontier)". For each image, put
-the shared style line first, then the prompt, and ask for a **transparent PNG**, about 1024 px.
+Tim makes 25 images in ChatGPT from `assets/image_prompts.md`, island section; the draft is
+/mnt/project-files/w3_walkable/w3_4b_art_prompts.md. The file starts with instructions for ChatGPT:
+one image at a time, transparent PNG, sizes, file names, wait for "next". Tim attaches the file plus
+`game/art/props/pine_tree.png` and a game screenshot as style and scale references, then says "start".
 
-Save them in `assets/environment/island/` with these names:
+Saved in `assets/environment/island/`:
 
-| # | File | What |
-|---|---|---|
-| 1 | mountain_forest_broad.png | broad forest mountain |
-| 2 | mountain_forest_peak.png | steep forest peak |
-| 3 | mountain_snow_broad.png | broad snow mountain |
-| 4 | mountain_snow_ridge.png | jagged snow ridge |
-| 5 | mountain_dry_mesa.png | dry mesa |
-| 6 | mountain_dry_hills.png | eroded dry hills |
-| 7 | outcrop_moss.png | mossy granite outcrop |
-| 8 | outcrop_snow.png | snowy rock outcrop |
-| 9 | outcrop_dry.png | dry rock outcrop |
-| 10 | pass_gate.png | mountain pass gateway |
-| 11 | river_ford.png | river ford (flat, lies on the ground) |
-| 12 | lake_edge.png | lake shore (flat, lies on the ground) |
-| 13 | city_gate.png | the town gate on the east trail |
+| Set | Files |
+|---|---|
+| Cliff pieces, per biome (forest, snow, dry) | `cliff_<biome>_a.png`, `cliff_<biome>_b.png` (straight, south face, runs upper left to lower right), `corner_out_<biome>.png` (V pointing at the viewer), `corner_in_<biome>.png` (notch opening to the viewer), `rim_<biome>.png` (far side, low lip) |
+| High-ground textures (top-down, seamless, opaque) | `top_forest.png`, `top_snow.png`, `top_dry.png` |
+| Outcrops | `outcrop_moss.png`, `outcrop_snow.png`, `outcrop_dry.png` |
+| Landmarks | `pass_gate.png`, `river_ford.png` and `lake_edge.png` (top-down decals), `city_gate.png` |
 
-Check: Tim puts them side by side. They should share the same angle (high three-quarter view from
-the south-east), the same light and muted colours, and have no background or ground shadow. Redo any
-that stand out.
+Check: Tim puts them side by side. They should share the same angle, light and colours, and the trees
+should be the same size as the game's pine. Redo any that stand out.
 
-### W3.9. Fit the art and make blocked areas walk smoothly  [SMALL]
+### W3.9. Build the ranges from the pieces and make blocked areas walk smoothly  [SMALL]
 
-Needs: W3.8 images. They can run any time before E (founding); W4 does not depend on them. Read the whole plan and step_runner_guide.md first, as for every step.
+Needs: W3.8 images. Read the whole plan and step_runner_guide.md first, as for every step.
 
 **Why:** in the W3.7 playtest the hero got stuck or slid diagonally along mountains and water.
-- `sim/chunk_gen.js` merges blocked 50-unit terrain cells into row-run rectangles, so every blocked
-  edge is a staircase of square corners.
+- `sim/chunk_gen.js` merges blocked 50-unit terrain cells into row-run rectangles, so a range whose
+  outline runs diagonally in the world is a staircase of square corners.
 - `tryMove` in `sim/game.js` resolves x and z one after the other and stops flush against a box.
 - The iso camera turns W/A/S/D into diagonal world moves. Against a staircase edge, one axis is
   blocked and the other slides (diagonal on screen), or the hero catches on a step corner (stuck).
 
-**Steps**
-1. **Cut the art in.** Single transparent PNGs need no sheet cutting. Copy them to `game/art/props/`
-   and add their entries to `game/art/cutouts.json` (size and ground anchor). Reuse the anchor code in
-   `tools/cut_environment.py`, for example with a small `--singles assets/environment/island` mode.
-   Add `game/data/art.json` entries (scale, foot, solid) like `boulder`.
-2. **Draw them.** In `render/world_ground.js` `ART`:
-   - mountains by biome (forest, snow or dry, from the region's biome), with a variant picked by a
-     hash of the position;
-   - outcrops on mountain edge cells, to soften them;
-   - pass_gate at mountain passes, river_ford at fords, lake_edge along lake shores (flat, under units).
+**Camera facts:**
+- The camera sits to the south-east at an elevation of atan(0.5); `SCREEN_RIGHT` is (+x, −z).
+- A south face (cell edge along x) shows as a line from the upper left to the lower right, facing the
+  lower left.
+- An east face (edge along z) is the mirror image, so draw it as the flipped cliff piece.
+- An outer south-east corner is the bottom point of a V. North and west edges face away and get the
+  low rim piece.
 
-   In `game/data/world_chunks.json`, set mountain props per biome and the outcrop density. city_gate:
-   a prop at `port_town.json` islandGate, replacing the lantern-post marker, plus the same art on the
-   island side of the gate.
-3. **Shape the blocked areas to the art** (the stuck/slide fix):
-   - a) Only cells on the **edge** of a blocked area change. Inside, keep the row-run rectangles,
-     since nobody walks there. On an edge cell, replace the square with the drawn prop's footprint
-     (ellipse from art.json `foot` × scale), built from thin 2-unit strips so the edge is round and
-     matches the picture. The same rule applies to water edges, with rounded strips along the shore.
+**Steps**
+1. **Cut the art in.**
+   - Single transparent PNGs need no sheet cutting. Copy them to `game/art/props/` (textures to
+     `game/art/ground/`) and add their entries to `game/art/cutouts.json` (size and ground anchor).
+     Reuse the anchor code in `tools/cut_environment.py`, for example with a small
+     `--singles assets/environment/island` mode.
+   - ChatGPT's PNGs come out nearly opaque inside (alpha about 250 instead of 255). Snap alpha above
+     240 to 255 so the pieces don't show the ground faintly through them.
+   - Add `game/data/art.json` entries (scale, foot, solid). Set each scale so the trees in the piece
+     match the pine prop (about 5.5 units wide). Measure one tree per image rather than guessing.
+2. **Place pieces on the edges of blocked mountain cells** (deterministic, in `sim/chunk_gen.js` as
+   chunk data so the sim and drawing agree; drawn in `render/world_ground.js`):
+   - For each mountain cell, look at its 4 neighbours. A free south neighbour gets a south cliff piece
+     along that edge; a free east neighbour gets a flipped piece. Variant a or b is chosen by a hash of
+     the cell.
+   - The cell's south-east corner gets `corner_out` when both south and east are free.
+   - A concave step (south free here, east blocked, and that east cell's south free) gets `corner_in`.
+   - North and west free neighbours get `rim` (flipped for west).
+   - The biome comes from the region (forest, snow or dry).
+   - Interior mountain cells get the `top_<biome>` ground texture, plus a few full-size pine props on
+     forest tops (`world_chunks.json` density).
+   - Outcrops go where pieces meet badly (chunk borders, single-cell spurs).
+   - Landmarks: pass_gate at passes, river_ford at fords, lake_edge along lake shores (flat decals
+     under units). city_gate replaces the lantern-post marker at `port_town.json` islandGate, with the
+     same art on the island side of the gate.
+3. **Make the blocked areas walk smoothly** (the stuck/slide fix):
+   - a) Blockers stay the cell squares, since the cliff pieces follow cell edges exactly. Make sure
+     each run is one clean rectangle per row and that touching runs share edges exactly (no 1e-9
+     gaps).
    - b) Add **corner slip** to `tryMove`, for `place === 'world'` only. When a move is stopped by a box
      corner with less than about 0.6 units of overlap, nudge along the other axis so the hero rounds
      the corner. City movement must stay exactly as it is.
-   - c) The fine walk grid in `sim/areas.js` is built from the same blockers, so crew paths follow
-     automatically. Check that crew don't zigzag along the new edges; if they do, smooth with a
+   - c) Pressing straight into a wall that runs diagonally on screen should slide the hero along it
+     smoothly. That is the one-axis slide working as intended, now that the art shows a wall there.
+   - d) The fine walk grid in `sim/areas.js` is built from the same blockers, so crew paths follow
+     automatically. Check that crew don't zigzag along the staircase; if they do, smooth with a
      string-pull step like the city's.
+   - e) Water and river edges: same corner slip; the lake_edge decal and outcrops soften the look.
 4. **New test `tools/test_island_edges.mjs`:**
    - Pick 200 blocked edge points (mountain and water) from several regions.
    - At each point, walk the hero into the edge in all 8 screen directions for 3 s each, then away.
    - Assert that he never ends inside a blocker, that he always gets clear within 1 s when walking
-     away, and that pressing diagonally into an edge moves him along it at least half his speed
-     (no catching on corners).
+     away, and that pressing diagonally into an edge moves him along it at least half his speed (no
+     catching on corners).
+   - Check that piece placement is deterministic (the same chunk twice gives the same pieces).
    - Also run test_world_gate, test_areas, test_chunk_gen, test_port_town and the combat regression;
      all must pass unchanged.
    - `profile_world_chunks.mjs` should stay within +20% of the W3.6 numbers (chunks avg 0.8 ms,
      worst 9 ms).
 5. **Checkpoint:** Tim playtests with the test-build instant travel (World tab, click and confirm).
-   He walks along a mountain range, a river with a ford and a lake shore, and goes through the city
-   gate both ways.
+   He walks along a forest range, a snow range and a dry range, a river with a ford and a lake shore,
+   and goes through the city gate both ways.
 
-**Process:** if 3a gets messy (strips per edge cell cost too much), measure first. The fallback is
-corner slip (3b) alone plus outcrop art hiding the square edges. Ask Tim before falling back.
+**Process:** if a piece's art doesn't line up with its cell edge, fix the anchor in art.json rather
+than moving blockers. If the pieces look too repetitive along long ranges, ask Tim before generating
+more variants.
 
 **Phase end:** tests pass; Docs keeper commits "Walkable world"; Tim playtest W3.7.
 
