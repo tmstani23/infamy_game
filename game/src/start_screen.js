@@ -78,10 +78,18 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
           b.type = 'button'; b.className = 'start-save-pick'; b.textContent = rowText(h); b.addEventListener('click', () => begin(h.name));
           del.type = 'button'; del.className = 'start-save-delete'; del.textContent = 'Delete'; del.title = 'Delete this save (kept in saves/_trash)';
           del.addEventListener('click', async () => {
-            if (!confirm(`Delete this save?\n\n${rowText(h)}\n\nThe file is moved to saves/_trash.`)) return;
-            try { await saves.remove(h.name); } catch { note.textContent = 'Could not delete that save.'; return; }
-            sorted = sorted.filter(x => x.name !== h.name); li.remove(); note.textContent = 'Save deleted.';
-            if (!sorted.length) { box.hidden = true; listEl.hidden = true; }
+            if (li.querySelector('.start-save-ask')) return;
+            const ask = document.createElement('span'), yes = document.createElement('button'), no = document.createElement('button');
+            ask.className = 'start-save-ask'; ask.textContent = 'Delete this save?';
+            yes.type = no.type = 'button'; yes.className = 'start-save-yes'; yes.textContent = 'Yes, delete'; no.textContent = 'Keep';
+            const close = () => { ask.remove(); yes.remove(); no.remove(); b.hidden = false; del.hidden = false; };
+            no.addEventListener('click', close);
+            yes.addEventListener('click', async () => {
+              try { await saves.remove(h.name); } catch { close(); note.textContent = 'Could not delete that save.'; return; }
+              sorted = sorted.filter(x => x.name !== h.name); li.remove(); note.textContent = 'Save deleted.';
+              if (!sorted.length) { box.hidden = true; listEl.hidden = true; }
+            });
+            b.hidden = del.hidden = true; li.append(ask, yes, no); no.focus();
           });
           li.append(b, del); listEl.append(li);
         }
