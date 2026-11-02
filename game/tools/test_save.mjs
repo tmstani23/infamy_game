@@ -10,7 +10,7 @@ const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
-  police: data('data/police.json'), settings: data('data/settings.json') };
+  police: data('data/police.json'), settings: data('data/settings.json'), frontier: data('data/frontier.json') };   // frontier towns run inside the match (F2.10)
 const clan = process.argv[2] || 'yakuza', dawns = +(process.argv[3] || 2);
 const match = { clan, difficulty: 'medium', bots: data('data/bots.json'), spawns: options.district.spawns, test: {} };
 
@@ -40,6 +40,10 @@ const t0 = Date.now();
 const A = newMatch();
 let seen = 0;
 while (seen < dawns) { run(A, 1); if (A.game.state.dawn) seen++; }
+// F2.10: a frontier project is half done at the dawn save (shipments in flight join after F3)
+{ const s = A.game.state.frontier.settlements.s_frontier_1;
+  s.projects.push({ id: A.game.frontier.world.newId('p'), type: 'stockade', cell: null, cost: { timber: 40 }, paid: true, progress: 10, need: 60, authorized: true }); }
+const econAtSave = A.game.state.frontier.econTick;
 const dawnSave = makeSave(A.game, { bots: A.bots });
 assert.equal(dawnSave.tick, A.game.state.tick);
 
@@ -51,6 +55,15 @@ const diff = diffKeys(A.game.state, C.game.state);
 console.log(`dawn at tick ${dawnSave.tick} (${Date.now() - t0} ms), save ${Math.round(JSON.stringify(dawnSave).length / 1024)} KB`);
 if (diff.length) console.log('dawn parity diff keys:', diff.join(', '));
 assert.deepEqual(diff, [], 'dawn save replays exactly');
+
+// F2.10: 50 economy ticks after the dawn save, the loaded game's frontier equals the straight run
+run(A, 700); run(C, 700);
+assert.equal(A.game.state.frontier.econTick - econAtSave, 50, '50 economy ticks since the save');
+assert.equal(JSON.stringify(C.game.state.frontier), JSON.stringify(A.game.state.frontier), 'frontier survives the dawn save');
+{ const s = C.game.state.frontier.settlements.s_frontier_1;
+  assert.equal(s.projects.length, 0, 'the half-done project finished');
+  assert.ok(s.buildings.some(b => b.type === 'stockade'), 'and became a building');
+  C.game.frontier.world.checkInvariants(); }
 
 // Any-time case: mid-fight
 let guard = 0;

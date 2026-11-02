@@ -25,6 +25,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
     const st = game.state, detail = new Set(selected), roots = pick(st, ROOTS);
     // Island discovery (frontier W2.3): only this clan's fog, scouted sites and last-seen markers, never another clan's.
     if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []} };
+    // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
+    if (st.frontier) roots.frontier = Object.fromEntries(Object.entries(st.frontier).filter(([k]) => k !== 'ledger'));
     if (map) {
       // No world VFX, rival orders or rival deployment records on the map.
       delete roots.formations; delete roots.smokes; delete roots.projectiles;

@@ -5,6 +5,10 @@
 // Later F2 steps add their module to `modules` below; each may define econTick(ctx) and
 // command(e, c, ctx) (ctx = { state, data, world }) and returns true when it handled the command.
 import { createFrontierWorld } from './world.js';
+import { createEconomy } from './economy.js';
+import { createConstruction } from './construction.js';
+import { createGovernor } from './governor.js';
+import { createCommands } from './commands.js';
 
 export function createFrontier({ state, data }) {
   let world = createFrontierWorld({ state, data });
@@ -16,10 +20,20 @@ export function createFrontier({ state, data }) {
     if (state.frontier !== world.frontier) ctx.world = world = createFrontierWorld({ state, data });
     return world;
   }
-  const modules = [];   // F2.4+ economy modules, run in this order each economy tick
+  // modules follow the current world records even after a save load swaps them (ensure)
+  const live = new Proxy({}, { get: (_, k) => ensure()[k] });
+  const economy = createEconomy({ state, data, world: live });
+  const construction = createConstruction({ state, data, world: live });
+  const governor = createGovernor({ state, data, world: live, economy, construction });
+  const modules = [{ name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
+    { name: 'governor', econTick: () => governor.run() }];
+  const commands = createCommands({ state, data, world: live, economy, construction, governor });
+  modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
     ensure();
+    commands.clearOldReceipts();   // receipts live one tick
+    world.syncCapital();           // the capital's ryo mirrors the clan treasury
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
     if ((state.tick ?? 0) % cadence !== cadence - 1) return;
     state.frontier.econTick++;

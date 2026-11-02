@@ -10,8 +10,46 @@
     "_growthNote": "F0.2: +1 person every 60 economy ticks while housing is free and food is in surplus",
     "maxBuilders": 3,
     "_buildersNote": "placeholder, Tim to tune: most workers that can build one project at once",
+    "foodShortTicks": 30,
+    "_foodShortNote": "placeholder, Tim to tune: food is 'short' when stock covers fewer than this many economy ticks of eating; short food fills farm jobs first",
+    "tax": { "low": 0.02, "normal": 0.05, "high": 0.09 },
+    "_taxNote": "placeholder, Tim to tune: ryo per person per review (every mood.reviewTicks economy ticks), times mood/100",
     "shipmentSpeed": 3,
     "_shipmentNote": "F0.2: units per second (used from F3)"
+  },
+  "values": { "food": 1, "timber": 1, "stone": 1, "goods": 4, "ryo": 1, "_note": "F0.2: frontier goods sold in the capital: goods 4 ryo, timber 1, stone 1; food 1 is a placeholder. Used to price projects against a town budget" },
+  "governor": {
+    "_note": "placeholder, Tim to tune (F2.7)",
+    "reviewTicks": 5,
+    "maxSuggestions": 3,
+    "idleNeeded": 2,
+    "foodFallingReviews": 3,
+    "moodLow": 55,
+    "moodHigh": 80,
+    "moodHighReviews": 5,
+    "budgetWindowReviews": 100
+  },
+  "priorities": {
+    "grow":    ["farm", "lumber_camp", "quarry", "workshop", "storehouse"],
+    "produce": ["workshop", "lumber_camp", "quarry", "farm", "storehouse"],
+    "trade":   ["workshop", "farm", "lumber_camp", "quarry", "storehouse"],
+    "fortify": ["stockade", "lumber_camp", "quarry", "farm", "workshop", "storehouse"],
+    "_note": "placeholder, Tim to tune: job fill order per settlement priority (after short food and builders)"
+  },
+  "mood": {
+    "_note": "placeholder, Tim to tune (F2.5b). mood 0-100 = weighted food, safety and taxes factors, reviewed every reviewTicks economy ticks",
+    "reviewTicks": 5,
+    "weights": { "food": 0.4, "safety": 0.3, "taxes": 0.3 },
+    "foodFactor": { "ok": 100, "low": 50, "out": 0 },
+    "foodLowTicks": 120,
+    "taxFactor": { "low": 100, "normal": 75, "high": 40 },
+    "safetyRecover": 3,
+    "raidSafetyHit": 40,
+    "declineBelow": 30,
+    "declineReviews": 10,
+    "floorPop": 5,
+    "growthFullAt": 70,
+    "growthMinSpeed": 0.25
   },
   "buildings": {
     "house":       { "cost": { "timber": 15 }, "jobs": 0, "housing": 6, "buildTicks": 30, "_note": "F0.2: housing 6, cost 15 timber; buildTicks placeholder, Tim to tune" },
@@ -24,16 +62,17 @@
   },
   "regions": {
     "capital":    { "name": "The Capital", "_note": "the existing port city" },
-    "frontier_1": { "name": "First Frontier", "_note": "fixture region for tests and the dev_frontier save" }
+    "frontier_1": { "name": "First Frontier", "_note": "fixture region for tests and the dev_frontier save" },
+    "frontier_2": { "name": "Second Frontier", "_note": "fixture region for the bot clan's town (F2.9), tests and the dev_frontier save" }
   },
   "settlements": {
     "capital": {
-      "name": "The Capital", "region": "capital", "owner": null, "capital": true,
+      "name": "The Capital", "region": "capital", "owner": null, "startOwner": "player", "capital": true,
       "pop": 0, "stock": { "food": 0, "timber": 0, "stone": 0, "goods": 0, "ryo": 0 }, "buildings": [],
-      "_note": "linked to the city treasury in F2.9; no frontier economy of its own"
+      "_note": "its ryo is the owner clan's city treasury (F2.9); no frontier economy of its own"
     },
     "s_frontier_1": {
-      "name": "First Frontier", "region": "frontier_1", "owner": null, "site": "S48", "priority": "grow",
+      "name": "First Frontier", "region": "frontier_1", "owner": null, "startOwner": "player", "site": "S48", "priority": "grow",
       "pop": 8,
       "stock": { "food": 60, "timber": 40, "stone": 10, "goods": 0, "ryo": 0 },
       "buildings": [
@@ -41,10 +80,22 @@
         { "type": "house", "stage": "built" },
         { "type": "house", "stage": "built" }
       ],
-      "_note": "fixture town for tests and the dev_frontier save only (site S48 of world.json); owner is set in F2.9"
+      "_note": "fixture town for tests and the dev_frontier save only (site S48 of world.json); startOwner is resolved by world.assignStartOwners (F2.9)"
+    },
+    "s_frontier_2": {
+      "name": "Second Frontier", "region": "frontier_2", "owner": null, "startOwner": "bot", "site": "S29", "priority": "grow",
+      "pop": 8,
+      "stock": { "food": 60, "timber": 40, "stone": 10, "goods": 0, "ryo": 0 },
+      "buildings": [
+        { "type": "farm", "stage": "built" },
+        { "type": "house", "stage": "built" },
+        { "type": "house", "stage": "built" }
+      ],
+      "_note": "F2.9 fixture town for the first bot clan (site S29 of world.json), same start as town 1; tests and the dev_frontier save only"
     }
   },
   "roads": {
-    "r1": { "from": "capital", "to": "s_frontier_1", "length": 540, "_note": "F0.2: fixture road length for tests and the dev_frontier save only" }
+    "r1": { "from": "capital", "to": "s_frontier_1", "length": 540, "_note": "F0.2: fixture road length for tests and the dev_frontier save only" },
+    "r2": { "from": "capital", "to": "s_frontier_2", "length": 540, "_note": "F2.9 fixture road for the bot clan's town; same length as r1" }
   }
 }

@@ -21,7 +21,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
-- [ ] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [ ] 2.4 · [ ] 2.4b · [ ] 2.5 · [ ] 2.5b · [ ] 2.6 · [ ] 2.7 · [ ] 2.8 · [ ] 2.9 · [ ] 2.10
+- [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [ ] **F4** Town panel: [ ] 4.1 mock · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.4b · [ ] 4.4c · [ ] 4.4d · [ ] 4.5 playtest
 - [ ] **W3** Walkable world: [ ] W3.1 · [ ] W3.2 · [ ] W3.3 · [ ] W3.4 · [ ] W3.4b art · [ ] W3.5 · [ ] W3.6 · [ ] W3.7 playtest
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F2.3 · Next step: F2.4; F1.7 Tim playtest still deferred to the end
+Last step done: F2.10 · Next step: F4 (order: F2 → F4 → W3); F1.7 Tim playtest still deferred to the end
 
 ## Working in one long window (auto-compacting)
 
@@ -672,6 +672,7 @@ watch the economy from F2 on; F4 replaces it with the real panel.
 Check (pass/fail): `.mjs` syntax copy passes; the readout code only reads snapshot data.
 In game (Tim): load the `dev_frontier` save; the numbers tick once a second.
 Done note: "F2.4b debug town readout in (dev build)."
+As built: a dev-only text box (`frontier_report.js`) refreshed once a second, plus `infamy.frontierReport()` in the window. No key, so no Controls entry. The snapshot carries `state.frontier` without the 500-entry ledger.
 
 ### F2.5. Jobs and growth  [SMALL]
 Needs: F2.4
@@ -713,6 +714,7 @@ alone lower mood but never below the decline line; with three bad factors for 10
 pop drops by 1 per review and stops at the floor; fixing one factor ends the decline; `moodWhy`
 names the worst factors.
 Done note: "F2.5b town mood and taxes in."
+As built and confirmed by Tim (2026-11-02): tax is ryo per person per review (every 5 economy ticks), because the economy has no "day" yet. Mood is a weighted food, safety and tax score; a raid calls `economy.hit(sid)`. Extra settlement fields: `mood`, `safety`, `taxLevel`, `taxLocked`, `autoBuild`, `suggestions`. Extra `report` fields: `idle`, `unfilled`, `moodWhy`.
 
 ### F2.6. Construction projects  [SMALL]
 Needs: F2.5
@@ -764,6 +766,7 @@ and no idle workers, no farm is queued and the report says "need workers"; with 
 house; over-budget projects stay unauthorized; the governor never queues two projects at once; in a
 500-review run no more than 3 farms are queued while pop stays flat.
 Done note: "F2.7 governor in."
+As built and confirmed by Tim (2026-11-02): the governor will not suggest a farm right after a building finishes, so it cannot double-build while food catches up; its budget is a ryo-value limit per window of 100 reviews. All new numbers (`tax`, `mood`, `governor`, `values`, `priorities`) are placeholders in `data/frontier.json`.
 
 ### F2.8. Frontier commands and receipts  [SMALL]
 Needs: F2.7
@@ -777,6 +780,7 @@ Check (pass/fail): a wrong-owner command is rejected with a reason and changes n
 (`JSON.stringify` of the settlement is equal before and after); each valid action produces one
 `ok: true` receipt.
 Done note: "F2.8 frontier commands in."
+As built: command receipts carry an extra `tick` field.
 
 ### F2.9. Owner, rival town and capital link  [SMALL]
 Needs: F2.8
@@ -796,6 +800,7 @@ Check (pass/fail): spending capital ryo lowers the clan treasury by the same amo
 over 500 economy ticks; the bot town's governor issues only commands that get `ok: true`; a
 `structuredClone` of `state.frontier` restored into a fresh game runs on identically for 50 ticks.
 Done note: "F2.9 owners, bot town and capital link in."
+As built: bot town `s_frontier_2` on site S29 belongs to the first bot clan (`world.assignStartOwners`); it gets commands only through the player's path. Capital ryo is now the clan treasury via `creditRyo` in `treasury.js`.
 
 ### F2.10. Frontier save check  [SMALL]
 Needs: F2.9 and F1.4
@@ -804,6 +809,7 @@ Do: add a case: save at a dawn with a project half done and a shipment in flight
 run 50 economy ticks: equal to a straight run.
 Check (pass/fail): the new case passes.
 Done note: "F2.10 frontier survives dawn save."
+As built: `test_save.mjs` runs with frontier on and a half-done project at the dawn save; the loaded game matches the straight run after 50 economy ticks (about 70 s). Shipments join this check after F3.
 
 **Phase end:** all `test_frontier_*` tests and the regression set pass; Docs keeper commits
 "Frontier economy rules"; Tim playtest: none visible yet. Tim can read the console:

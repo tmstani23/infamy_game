@@ -5,6 +5,7 @@
 // All state is plain data (no functions, Maps or Sets), so save/load and the worker carry it as is.
 // Ids: `${prefix}${state.frontier.nextId++}`, e.g. 'p1' project, 'b2' building, 'h3' shipment.
 // Data keys that start with '_' are notes and are ignored.
+import { debitRyo, creditRyo } from '../treasury.js';
 const LEDGER_MAX = 500;
 const EPS = 1e-6;
 const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('_')));
@@ -58,10 +59,38 @@ export function createFrontierWorld({ state, data }) {
     if (!s || !(resource in s.stock)) throw new Error(`[frontier] change: unknown ${nameOf(sid)}/${resource}`);
     if (!Number.isFinite(delta)) throw new Error('[frontier] change: delta must be a number');
     if (delta === 0) return s.stock[resource];
+    const clan = capitalClan(s, resource);
+    if (clan) {   // the capital's ryo IS the owner clan's city treasury (F2.9)
+      if (clan.ryo + delta < -EPS) throw new Error(`[frontier] change: ${s.id} ryo would go negative`);
+      if (delta < 0) debitRyo(state, clan, -delta, `frontier ${reason}`); else creditRyo(state, clan, delta, `frontier ${reason}`);
+      s.stock.ryo = clan.ryo;
+      ledgerAdd({ settlement: s.id, resource, delta, reason });
+      return s.stock.ryo;
+    }
     if (s.stock[resource] + delta < -EPS) throw new Error(`[frontier] change: ${s.id} ${resource} would go negative`);
     s.stock[resource] = Math.max(0, s.stock[resource] + delta);
     ledgerAdd({ settlement: s.id, resource, delta, reason });
     return s.stock[resource];
+  }
+
+  // The capital's ryo mirrors its owner's clan treasury; any other settlement keeps its own stock.
+  function capitalClan(s, resource) {
+    return s.capital && resource === 'ryo' && s.owner ? state.clans?.[s.owner] || null : null;
+  }
+  // Keeps the mirror fresh when the treasury changed elsewhere (shops, payouts); the hub calls it each tick.
+  function syncCapital() {
+    for (const s of Object.values(f.settlements)) {
+      const clan = capitalClan(s, 'ryo');
+      if (clan) s.stock.ryo = clan.ryo;
+    }
+  }
+  // Fixture towns only (tests and the dev_frontier save): data flag startOwner 'player' | 'bot' becomes a clan id.
+  function assignStartOwners({ player, bot }) {
+    for (const [id, d] of Object.entries(data.settlements || {})) {
+      const clan = d.startOwner === 'player' ? player : d.startOwner === 'bot' ? bot : null;
+      if (clan && f.settlements[id]) setOwner(id, clan);
+    }
+    syncCapital();
   }
 
   // The only owner writer (ownership has one door, like stock).
@@ -69,6 +98,19 @@ export function createFrontierWorld({ state, data }) {
     const s = settlement(sid);
     if (!s) throw new Error(`[frontier] setOwner: unknown ${nameOf(sid)}`);
     s.owner = clan ?? null;
+  }
+
+  // The only pop writer. People arrive or leave, never die; logged in the display ledger as 'pop'.
+  function changePop(sid, delta, reason) {
+    const s = settlement(sid);
+    if (!s) throw new Error(`[frontier] changePop: unknown ${nameOf(sid)}`);
+    if (!Number.isInteger(delta)) throw new Error('[frontier] changePop: delta must be a whole number');
+    if (s.pop + delta < 0) throw new Error(`[frontier] changePop: ${s.id} pop would go negative`);
+    s.pop += delta;
+    s.workforce = s.pop;
+    f.ledger.push({ tick: state.tick ?? 0, settlement: s.id, resource: 'pop', delta, reason });
+    if (f.ledger.length > LEDGER_MAX) f.ledger.splice(0, f.ledger.length - LEDGER_MAX);
+    return s.pop;
   }
 
   // Housing and workforce are derived from the buildings and the population.
@@ -89,6 +131,8 @@ export function createFrontierWorld({ state, data }) {
         if (!Number.isFinite(v) || v < -EPS) bad(`${s.id} ${r} stock ${v}`);
         const t = f.totals[s.id]?.[r];
         if (!t) bad(`${s.id} ${r} has no totals`);
+        const clan = capitalClan(s, r);
+        if (clan) { if (Math.abs(clan.ryo - v) > EPS * Math.max(1, Math.abs(v))) bad(`${s.id} ryo ${v} != treasury ${clan.ryo}`); continue; }
         const expect = t.start + t.in - t.out;
         if (Math.abs(expect - v) > EPS * Math.max(1, Math.abs(expect))) bad(`${s.id} ${r} stock ${v} != start+in-out ${expect}`);
       }
@@ -104,5 +148,5 @@ export function createFrontierWorld({ state, data }) {
     try { return checkInvariants(); } catch (err) { console.error(err.message); return false; }
   }
 
-  return { frontier: f, newId, settlement, ledgerAdd, change, setOwner, recount, checkInvariants, logInvariants };
+  return { frontier: f, newId, settlement, ledgerAdd, change, changePop, setOwner, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
 }

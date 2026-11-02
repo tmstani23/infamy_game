@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { createFrontierWorld } from '../src/sim/frontier/world.js';
 import { createGame } from '../src/sim/game.js';
 import { patch } from '../src/sim/save.js';
+import { createFrontier } from '../src/sim/frontier/frontier.js';
 
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
 const fresh = () => { const state = { tick: 0 }; return { state, world: createFrontierWorld({ state, data }) }; };
@@ -106,5 +107,56 @@ const fresh = () => { const state = { tick: 0 }; return { state, world: createFr
   assert.equal(g.frontier.world.frontier.econTick, 77);
   assert.equal(plainGame.state.frontier, undefined, 'no frontier option, no state.frontier');
   assert.equal(plainGame.frontier, null);
+}
+// F2.9: owners, a bot clan's town and the capital's ryo = the clan treasury (fixture towns only)
+{
+  const mkState = () => ({ tick: 0, ryoGains: [], clans: { player: { id: 'player', ryo: 1000 }, kuroda: { id: 'kuroda', ryo: 800 } } });
+  const state = mkState();
+  const fr = createFrontier({ state, data });
+  const w = fr.world;
+  w.assignStartOwners({ player: 'player', bot: 'kuroda' });
+  assert.equal(w.settlement('s_frontier_1').owner, 'player');
+  assert.equal(w.settlement('s_frontier_2').owner, 'kuroda');
+  assert.equal(w.settlement('capital').owner, 'player');
+  assert.equal(state.frontier.roads.r2.to, 's_frontier_2');
+  // capital ryo: spending lowers the clan treasury by the same amount; credits raise it
+  assert.equal(w.settlement('capital').stock.ryo, 1000);
+  w.change('capital', 'ryo', -250, 'test');
+  assert.equal(state.clans.player.ryo, 750);
+  assert.equal(w.settlement('capital').stock.ryo, 750);
+  assert.equal(state.ryoLosses.at(-1).amount, 250);
+  w.change('capital', 'ryo', 40, 'test');
+  assert.equal(state.clans.player.ryo, 790);
+  assert.equal(state.ryoGains.at(-1).amount, 40);
+  assert.throws(() => w.change('capital', 'ryo', -5000, 'test'), /negative/);
+  assert.equal(state.clans.player.ryo, 790, 'a refused spend changes nothing');
+  state.clans.player.ryo = 900;           // changed elsewhere (a shop)
+  fr.tick();                               // the hub re-syncs the mirror
+  assert.equal(w.settlement('capital').stock.ryo, 900);
+  w.checkInvariants();
+
+  // both towns grow over 500 economy ticks; a bot clan drives its town only through commands
+  const bot = { owner: 'kuroda' };
+  const rejected = [];
+  const cmd = c => { fr.command(bot, { type: 'frontier', ...c }); const r = state.frontier.receipts.at(-1); if (!r.ok) rejected.push(r); };
+  cmd({ action: 'setAutoBuild', settlement: 's_frontier_2', on: true });
+  cmd({ action: 'setBudget', settlement: 's_frontier_2', ryo: 200 });
+  for (let i = 0; i < 500 * data.cadenceTicks; i++) {
+    fr.tick(); state.tick++;
+    if (i % 100 === 0) for (let k = state.frontier.settlements.s_frontier_2.suggestions?.length || 0; k > 0; k--) cmd({ action: 'approveSuggestion', settlement: 's_frontier_2', index: 0 });
+  }
+  assert.equal(state.frontier.econTick, 500);
+  for (const id of ['s_frontier_1', 's_frontier_2']) assert.ok(state.frontier.settlements[id].pop > 8, `${id} grew`);
+  assert.deepEqual(rejected, [], 'the bot town only issues commands that get ok');
+  assert.ok(state.frontier.receipts.length === 0 || state.frontier.receipts.every(r => r.tick >= state.tick - 1));
+  w.checkInvariants();
+
+  // a structuredClone of state.frontier restored into a fresh game runs on identically for 50 economy ticks
+  const twin = mkState(); twin.tick = state.tick; twin.clans = structuredClone(state.clans);
+  twin.frontier = structuredClone(state.frontier);
+  const fr2 = createFrontier({ state: twin, data });
+  for (let i = 0; i < 50 * data.cadenceTicks; i++) { fr.tick(); state.tick++; fr2.tick(); twin.tick++; }
+  assert.equal(JSON.stringify(twin.frontier), JSON.stringify(state.frontier));
+  fr2.world.checkInvariants();
 }
 console.log('test_frontier_world: ok');

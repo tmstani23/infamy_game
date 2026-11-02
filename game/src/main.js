@@ -19,6 +19,7 @@ import { createPoliceMenu } from './police_menu.js';
 import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
+import { frontierReport } from './frontier_report.js';
 import { createRyoBadge } from './ryo_badge.js';
 import { createLootNotice } from './loot_notice.js';
 import { drawCrest } from './render/banners.js';
@@ -375,6 +376,14 @@ async function start() {
     destination:()=>deploymentPanel.isOpen()?deploymentCards:gameMap.isOpen()?mapCards:null,onRestore:()=>unitFrames.clearInspection()});
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
+  // Dev-only town readout (frontier F2.4b): reads the snapshot once a second, never writes. F4 replaces it.
+  if (DEV && game.state.frontier) {
+    window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
+    const box = document.createElement('pre');
+    box.style.cssText = 'position:fixed;left:4px;top:4px;margin:0;padding:4px 6px;z-index:5;font:11px/1.3 monospace;color:#ddd;background:rgba(0,0,0,.55);pointer-events:none;white-space:pre';
+    document.body.append(box);
+    setInterval(() => { box.textContent = frontierReport(game.state.frontier); }, 1000);
+  }
   $('loading').remove();
   $('startscreen').remove();
   document.body.classList.remove('prematch');
