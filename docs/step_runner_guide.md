@@ -156,3 +156,5 @@ what slowed it down, what a card got wrong, or a rule that would have helped (fo
 named the wrong file" or "test took 90 s, split it"). The coordinator collects these. When one
 repeats, it becomes a rule in this guide or a fix in the step list, through the usual doc OK, and
 the Docs keeper records it. That way the docs get better with every phase instead of drifting.
+
+Process note (W1, 2026-11-02): validate design-tool output (generators, previews, data files) early, with the validator and a quick look, before building on it.

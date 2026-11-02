@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "_note": "Tim's steering for the island (W1.4). tools/seed_world.mjs applies these to the blueprint, then re-derives corridors, lanes and stats. paint: [{ code, x0, z0, x1, z1 } or { code, x, z, r }]; remove: [id]; move: [{ id, x, z }]; add: { sites|nodes|camps: [records] }; set: [{ id, fields }]. Each entry may carry a _why.",
+  "paint": [],
+  "remove": [],
+  "move": [],
+  "add": {},
+  "set": []
+}

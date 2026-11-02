@@ -19,7 +19,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 
 - [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic` save done via `game/tools/make_dev_save.mjs`; campaign and frontier saves wait for their phases; `test_params.js` stays until Tim sees the presets)
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
-- [ ] **W1** World data: [ ] W1.1 choices · [ ] W1.2 · [ ] W1.3 generate · [ ] W1.4 steer · [ ] W1.5 tool (optional)
+- [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
 - [ ] **W2** World map: [ ] W2.1 mock · [ ] W2.2 · [ ] W2.3 · [ ] W2.4 · [ ] W2.5 playtest
 - [ ] **F2** Economy: [ ] 2.1 · [ ] 2.2 · [ ] 2.2b · [ ] 2.3 · [ ] 2.4 · [ ] 2.4b · [ ] 2.5 · [ ] 2.5b · [ ] 2.6 · [ ] 2.7 · [ ] 2.8 · [ ] 2.9 · [ ] 2.10
 - [ ] **F4** Town panel: [ ] 4.1 mock · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.4b · [ ] 4.4c · [ ] 4.4d · [ ] 4.5 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F1.6b · Next step: F1.7 (Tim playtest, deferred to the end); then W1.1 onward
+Last step done: W1.4 · Next step: W2.1 (F1.7 Tim playtest still deferred to the end)
 
 ## Working in one long window (auto-compacting)
 
@@ -485,6 +485,7 @@ Do:
 Check (pass/fail): a hand-made tiny test world passes; versions of it with a site in water, two sites
 too close, a one-pass island and a site with only one route each give the matching problem.
 Done note: "W1.2 world format and validator in."
+As built (2026-11-02): terrain code `d` = dry; regions have `box` + `full` + `biome` (no `poly`); added `lakes`, `islets` and a `rules` block (validator, road-cost and seed numbers); nodes carry `richness` 1 to 3 instead of `amount` (a node never depletes); camps keep `tier` + `strength`; corridors carry `traffic`; fishing nodes may sit on water; a pass within 450 units of a site does not count as sealing it.
 
 ### W1.3. Generate the island  [STRONG]
 Needs: W1.2
@@ -513,6 +514,7 @@ Do: a script, using a fixed seed so the same input gives the same file:
 Check (pass/fail): the output passes `validateWorld`; running the script twice gives identical files;
 the preview PNG exists.
 Done note: "W1.3 island generated: N sites, N nodes, N camps; preview at <path>."
+As built (2026-11-02): `node tools/seed_world.mjs` (about 9 s) reads blueprint v2 plus `world_overrides.json`. Corridors are each site's 3 independent routes merged into one network; kind `both` = rail-capable where 10 or more primary routes share it. Corridors are suggestions only: roads can be built on any walkable cell (Tim confirmed). Previews stay out of git.
 
 ### W1.4. Steer the island in words  [TIM]
 Tim looks at the preview and says what to change ("bigger lake in the north", "more bandits by the
@@ -526,7 +528,7 @@ Only if word steering gets slow: a dev page (`game/tools/world_editor.html`, ser
 `game/server.mjs`) to drag sites, camps and nodes and paint small terrain fixes, saving into
 `world_overrides.json`. The validator's problems show live. Skip unless needed.
 
-**Phase end:** `test_world_data` passes; Docs keeper commits "World layout data"; Tim's layout approved.
+**Phase end:** `test_world_data` passes; Docs keeper commits "World layout data"; Tim's layout approved (g2g 2026-11-02). Done.
 
 ---
 
@@ -973,6 +975,7 @@ with a seed made from the chunk id; no props on corridor, site or node cells.
 Check (pass/fail): the same chunk built twice is identical; a water cell always gives a blocker; no
 prop lands within 4 units of a corridor; building one chunk takes under the W3.1 target in Node.
 Done note: "W3.3 chunk generator in."
+Future note, not built (Tim idea, 2026-11-02): forest regrowth. `world.json` keeps the starting forest; cleared cells live in `state.world` as a changes-only list with a stage (stumps, saplings, young, forest) that regrows over days unless built on; `chunk_gen` draws props by stage. See also F5.7.
 
 ### W3.4. Drawing the world  [STRONG]
 Needs: W3.3
