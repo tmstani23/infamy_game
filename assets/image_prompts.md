@@ -154,6 +154,38 @@ Using the attached image as a style reference, make a sheet of separate item con
 Using the attached image as a style reference, make a sheet of separate item concepts for a dark, stylized game set in 1870s Japan, sleek and not cartoony. A neat 3x2 grid of 6 cells, each item alone in its own cell with plenty of empty space around it, the last cell left empty. Items: an open folding fan, a handheld paper lantern, a bamboo fishing rod, a carrying pole with a basket hanging from each end, and a monk's staff with metal rings at the top. Side view, each object whole and fully visible, no hands or people, no text or labels. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, no shadows, muted and moody colors. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
 ```
 
+## Island art (W3.4b, frontier)
+
+Drafted 2026-11-02, approved by Tim. Until these exist, the island uses scaled boulders as mountain placeholders and a big door ring plus a lantern post (G on the minimap) as the city gate. After Tim generates them, a thread cuts them in with the existing cutout tool and maps them in `game/src/render/world_ground.js` (`ART`).
+
+Shared style line (add to every prompt):
+> Semi-realistic painted illustration, muted moody colours, soft overcast light, 1870s Japan, seen from a high three-quarter isometric angle (camera looking down at about 30 degrees from the south-east), single object centred, fully transparent background, no ground plane, no shadow on the background, no text, no border.
+
+### Mountains (6), large standing cutouts on blocked mountain cells
+
+1. **Forest mountain, broad.** A broad rounded mountain with dark cedar forest climbing its lower slopes, bare grey rock and scree near the top, thin mist caught in a fold of the slope.
+2. **Forest mountain, steep peak.** A steep craggy peak, grey-brown rock with pines clinging to ledges, a narrow gully of loose stones, mist at the base.
+3. **Snow mountain, broad.** A wide snow-covered mountain, wind-scoured rock ribs showing through the snow, a few dark pines at the foot, pale cold light.
+4. **Snow mountain, jagged ridge.** A jagged ridge of three snow-capped teeth, blue-grey shadows in the snow, cornices on the crest.
+5. **Dry mountain, mesa.** A flat-topped mesa of layered ochre and rust stone, crumbling cliff faces, sparse dry scrub at the base.
+6. **Dry mountain, eroded hill range.** A low run of eroded sandstone hills, dusty tan and faded red, wind-cut gullies, a dead tree on one shoulder.
+
+### Rock outcrops (3), to soften mountain edges
+
+7. **Mossy granite outcrop.** A cluster of rounded granite boulders, moss and ferns in the cracks.
+8. **Snowy rock outcrop.** Angular dark rocks half buried in snow, icicles on one overhang.
+9. **Dry rock outcrop.** Split sandstone blocks with dry grass tufts, sun-bleached.
+
+### Landmarks (3)
+
+10. **Mountain pass gateway.** A narrow stone path between two rock walls, a weathered wooden torii-like gate frame of plain posts (no writing), a small stone marker and a rope with paper strips, wind-bent pines above.
+11. **River ford.** A shallow river crossing seen from above: flat stepping stones and gravel bars, clear water rippling over them, a worn track meeting the bank on both sides. Wide and flat, to lie on the ground.
+12. **Lake edge.** A curved stretch of lake shore: reeds, a few wet rocks, a fallen log half in the water, still dark water fading out at the edge. Wide and flat, to lie on the ground.
+
+### City gate (part of this art pass, Tim 2026-11-02)
+
+13. **Town gate on the forest road.** A wooden town gate of the 1870s Japanese port town: two thick dark-timber posts with a heavy crossbeam and small tiled roof, a pair of open plank doors swung back, short stretches of rough timber palisade on both sides, a hanging paper lantern on each post, a worn dirt road running through it, a few pines behind. Placed where the east trail leaves town at the map edge (`port_town.json` `islandGate` 96,8).
+
 ## Later
 
 - Ninja hero

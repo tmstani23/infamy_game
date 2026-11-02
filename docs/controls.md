@@ -16,6 +16,8 @@ Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](g
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click a building | Show the building panel. At the door ring it has Buy (unowned business), Attack (unowned, night only), Raid (rival-owned, night only, needs a War Lantern) and, at the moneylender (M on the minimap), Buy War Lantern. At the neutral blacksmith, open Shop to buy/sell gear. |
 | Space at the blacksmith / Shop marker | Open the shop: Buy and Sell tabs; hover or click an item for its detail pane; the Buy or Sell button confirms the picked item; Esc clears the pick, then closes. |
+| Space at the island gate ring (campaign only; G on the minimap; the lantern post where the east trail out of town ends) | Go out to the island and back; selected and following crew come along. Shut in Classic. |
+| M map → World tab, click empty ground or the Capital (test build only) | Confirm instant travel there (needs the dev frontier flag and campaign; to be replaced by real travel). |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
 | Space by a raider's War Lantern | Knock it down (5 s channel; moving or a hit cancels). Raid warm-up is 45 s |
 | Double-click the red raid alarm | Camera to the raided business |
