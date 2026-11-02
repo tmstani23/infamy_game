@@ -7,12 +7,13 @@ import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
+import { createWorldMap } from './world_map.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ root, deploymentRoot, game, district, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
+export function createGameMap({ root, deploymentRoot, game, district, world = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
@@ -209,9 +210,81 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
     if (side.innerHTML !== html) side.innerHTML = html;
   }
 
+  // World tab (frontier W2.4): the island (data/world.json) with this clan's fog, scouted sites and
+  // pins from the snapshot (sim/discovery.js). Drag pans, the wheel zooms, click a site or camp for its
+  // box, right-click drops a pin with a note (right-click a pin removes it). Only reads the state.
+  let tab = 'city', worldMap = null, worldCanvas = null, pinDraft = null, picked = null;
+  const tabs = document.createElement('div'), worldSide = document.createElement('div');
+  tabs.className = 'maptabs'; worldSide.className = 'worldside'; worldSide.hidden = true;
+  if (world) {
+    tabs.innerHTML = '<button type="button" data-tab="city" class="on">City</button><button type="button" data-tab="world">World</button>';
+    root.querySelector('h3').after(tabs); root.querySelector('.mapside').after(worldSide);
+    tabs.addEventListener('click', e => { const t = e.target.closest('button')?.dataset.tab; if (t) { setTab(t); e.target.blur(); } });
+  }
+  const worldState = () => {
+    const w = game.state.world, h = game.state.entities[heroId];
+    return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+      lastSeen: w?.lastSeen?.[clan] || {}, hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: [] };
+  };
+  const TRAIT = v => '●'.repeat(v) + '○'.repeat(Math.max(0, 3 - v));
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function drawWorldSide() {
+    const st = worldState(), scouted = new Set(st.scoutedSites);
+    let box = '<div class="key">Click a site or camp to see it.</div>';
+    if (picked?.kind === 'site') {
+      const region = world.regions.find(r => r.id === picked.region);
+      box = `<h4>Site ${esc(picked.id)}</h4><div class="key">${esc(region?.name || 'Region ' + picked.region)} · ${picked.tags.includes('coast') ? 'coast' : 'inland'}</div>`
+        + (scouted.has(picked.id) ? Object.entries(picked.traits).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${TRAIT(v)}</b></div>`).join('')
+          + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ' · harbor' : ''}</div>` : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
+    } else if (picked?.kind === 'camp') box = `<h4>${picked.campKind === 'bandit' ? 'Bandit camp' : picked.campKind === 'ruin' ? 'Ruin' : 'Cache'}</h4><div class="key">Tier ${picked.tier}</div>`;
+    else if (picked?.kind === 'pin') box = `<h4>Your pin</h4><div class="key">${esc(picked.note || '(no note)')}</div><div class="key">Right-click it to remove.</div>`;
+    const form = pinDraft ? '<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)"><button type="button" class="pinsave">Save pin</button> <button type="button" class="pincancel">Cancel</button>' : '';
+    const legend = '<h4>Key</h4><div class="key"><i style="background:#e6c85a"></i>Site (hollow: not scouted)</div><div class="key"><i style="background:#be3228"></i>Camp</div>'
+      + '<div class="key"><i style="background:#c82828"></i>The Capital</div><div class="key"><i style="background:#5adc78"></i>You</div><div class="key"><i style="background:#ff78c8"></i>Your pin</div>'
+      + '<div class="key"><i style="background:#0a0e1c;border:1px solid #555"></i>Unexplored</div><div class="key">Drag: pan · Wheel: zoom · Right-click: pin</div>';
+    worldSide.innerHTML = `${box}${form}${legend}`;
+    if (pinDraft) {
+      const note = worldSide.querySelector('.pinnote'); note.focus();
+      const save = () => { send({ id: heroId, type: 'world', action: 'pin', x: pinDraft.x, z: pinDraft.z, note: note.value.trim() }); pinDraft = null; drawWorldSide(); };
+      note.addEventListener('keydown', e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { e.stopPropagation(); pinDraft = null; drawWorldSide(); } });
+      worldSide.querySelector('.pinsave').addEventListener('click', save);
+      worldSide.querySelector('.pincancel').addEventListener('click', () => { pinDraft = null; drawWorldSide(); });
+    }
+  }
+  function ensureWorldMap() {
+    if (worldMap) return;
+    worldCanvas = document.createElement('canvas'); worldCanvas.className = 'worldcanvas'; worldCanvas.setAttribute('aria-label', 'World map');
+    canvas.after(worldCanvas);
+    worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
+    worldMap = createWorldMap({ canvas: worldCanvas, world, getState: worldState }); worldMap.attach();
+    const local = e => { const r = worldCanvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    worldCanvas.addEventListener('click', e => { if (worldMap.wasDrag()) return; picked = worldMap.hit(...local(e)); drawWorldSide(); });
+    worldCanvas.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const [px, py] = local(e), hit = worldMap.hit(px, py);
+      if (hit?.kind === 'pin') { send({ id: heroId, type: 'world', action: 'unpin', pin: hit.id }); picked = null; pinDraft = null; }
+      else { const p = canvasToWorldPoint(px, py); pinDraft = p; }
+      drawWorldSide();
+    });
+  }
+  const canvasToWorldPoint = (px, py) => { const v = worldMap.view; return { x: Math.round((px - v.w / 2) / v.scale + v.cx), z: Math.round((py - v.h / 2) / v.scale + v.cz) }; };
+  function setTab(t) {
+    if (!world) t = 'city';
+    tab = t; root.classList.toggle('world', t === 'world'); worldSide.hidden = t !== 'world';
+    for (const b of tabs.querySelectorAll('button')) b.className = b.dataset.tab === t ? 'on' : '';
+    if (t === 'world') {
+      tip.hidden = true; ensureWorldMap();
+      const w = worldCanvas.clientWidth, h = worldCanvas.clientHeight;
+      if (w && h && (w !== worldCanvas.width || h !== worldCanvas.height)) { worldCanvas.width = w; worldCanvas.height = h; worldMap.fit(); }
+      worldMap.invalidate(); drawWorldSide();
+    } else map?.invalidate();
+  }
+
   const isOpen = () => !root.hidden;
   function open() {
     root.hidden = false;
+    // M opens straight to World while the hero is out on the island (W3 puts heroes there)
+    if (world && game.state.entities[heroId]?.area === 'world') setTab('world');
     deploymentData.update(true, true);
     if (!map) {
       // made on first open, when the canvas has its size on screen
@@ -224,6 +297,7 @@ export function createGameMap({ root, deploymentRoot, game, district, view, fog,
 
   let shownData = null;
   function update() {
+    if (isOpen() && tab === 'world' && worldMap) { const w = game.state.world?.pins?.[clan]; worldMap.frame(Math.floor(game.state.tick / 10) + ':' + (w?.length || 0)); return; }
     if (!isOpen() || !map) return;
     const data = deploymentData.update();
     const changed = data !== shownData;

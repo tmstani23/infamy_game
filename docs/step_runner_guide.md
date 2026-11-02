@@ -158,3 +158,4 @@ repeats, it becomes a rule in this guide or a fix in the step list, through the 
 the Docs keeper records it. That way the docs get better with every phase instead of drifting.
 
 Process note (W1, 2026-11-02): validate design-tool output (generators, previews, data files) early, with the validator and a quick look, before building on it.
+Process note (W2, 2026-11-02): re-run `node tools/seed_world.mjs` after editing `rules` so `world.json` keeps its formatting.

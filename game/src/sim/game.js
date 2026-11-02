@@ -48,6 +48,7 @@ import { createLootExecute } from './loot_execute.js';
 import { createCrewOrders } from './crew_orders.js';
 import { createCrewStep } from './crew_step.js';
 import { createCombat } from './combat.js';
+import { createDiscovery } from './discovery.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -148,6 +149,7 @@ export function createGame(options) {
   const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory);
+  const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
@@ -663,7 +665,7 @@ export function createGame(options) {
       if (!e) continue;
       itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
-      if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment'].includes(c.type)) continue;
+      if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world'].includes(c.type)) continue;
       // Selection and crew commands cannot replace the hero's current execution.
       if (e.type === 'hero' && e.execute && ['ability', 'snuff', 'use'].includes(c.type)) continue;
       if (e.markScrub && ((c.type === 'move' && Math.hypot(c.right,c.down) >= .1)
@@ -683,6 +685,7 @@ export function createGame(options) {
         }
       }
       if (c.type === 'interiorDoor' && !stunned(e, state.tick)) toggleInteriorDoor(e);
+      if (c.type === 'world') discovery.command(e, c);   // island map pins (sim/discovery.js)
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}
@@ -876,6 +879,7 @@ export function createGame(options) {
     regen();
     deployment.sync();
     vision.tick();
+    discovery.tick();
     state.tick++;
   }
 
@@ -935,5 +939,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices };
+  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices };
 }

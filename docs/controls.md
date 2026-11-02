@@ -136,6 +136,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shinobi: right-click the business of your active contract | Selected crew climb in by the back window (up to 6); rival HQs are off-limits |
 | K, or Mute | Toggle saved sound mute; silences current voices too |
 | Settings | Locally saved Master/Effects/Mute and Test sound |
+| M map: World tab | The island with fog, sites (hollow = not scouted, walk close to scout), camps and the capital; drag to pan, wheel to zoom, click for details. |
+| Right-click the World map | Drop a pin with a note (max 50); right-click a pin removes it. |
 | Settings → Save game | Save the city now under a name (any time). |
 | Settings → saved games list | Load or Delete a save (delete moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
 | Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. |

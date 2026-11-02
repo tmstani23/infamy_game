@@ -20,7 +20,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic` save done via `game/tools/make_dev_save.mjs`; campaign and frontier saves wait for their phases; `test_params.js` stays until Tim sees the presets)
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
-- [ ] **W2** World map: [ ] W2.1 mock · [ ] W2.2 · [ ] W2.3 · [ ] W2.4 · [ ] W2.5 playtest
+- [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [ ] **F2** Economy: [ ] 2.1 · [ ] 2.2 · [ ] 2.2b · [ ] 2.3 · [ ] 2.4 · [ ] 2.4b · [ ] 2.5 · [ ] 2.5b · [ ] 2.6 · [ ] 2.7 · [ ] 2.8 · [ ] 2.9 · [ ] 2.10
 - [ ] **F4** Town panel: [ ] 4.1 mock · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.4b · [ ] 4.4c · [ ] 4.4d · [ ] 4.5 playtest
 - [ ] **W3** Walkable world: [ ] W3.1 · [ ] W3.2 · [ ] W3.3 · [ ] W3.4 · [ ] W3.4b art · [ ] W3.5 · [ ] W3.6 · [ ] W3.7 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: W1.4 · Next step: W2.1 (F1.7 Tim playtest still deferred to the end)
+Last step done: W2.5 · Next step: F2 (F1.7 Tim playtest still deferred to the end)
 
 ## Working in one long window (auto-compacting)
 
@@ -579,6 +579,7 @@ Controls panel. No test switch: the `dev_frontier` save (F0.5) has the whole map
 Check (pass/fail): syntax copies pass; `test_world_map.mjs` still passes.
 In game (Tim): M → World shows the island; in the `dev_frontier` save, everything is visible.
 Done note: "W2.4 World tab in (controls.md line needed)."
+As built (2026-11-02): the Controls rows live in `game/index.html`, not `main.js` as the card says. "M opens World outside city" is coded but cannot trigger until W3. City units count as standing at the capital point. The `dev_frontier` full-reveal save waits for F0.5. Discovery numbers are placeholders in `world.json` `rules.discovery`. Known failing test: `test_crew` line 97 (already failing before).
 
 ### W2.5. Playtest  [TIM]
 Open M → World, pan and zoom, click sites and camps, and check the look against the mock.

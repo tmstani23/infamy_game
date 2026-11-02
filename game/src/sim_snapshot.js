@@ -23,6 +23,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
   let previous = new Map(), previousGrid = null, sequence = 0;
   function encode({map = false, selected = [], events = {}} = {}) {
     const st = game.state, detail = new Set(selected), roots = pick(st, ROOTS);
+    // Island discovery (frontier W2.3): only this clan's fog, scouted sites and last-seen markers, never another clan's.
+    if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []} };
     if (map) {
       // No world VFX, rival orders or rival deployment records on the map.
       delete roots.formations; delete roots.smokes; delete roots.projectiles;
