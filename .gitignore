@@ -14,3 +14,6 @@
 
 # Local npm install (sharp, playwright for sprite export).
 /node_modules/
+
+# Local save files (F1).
+saves/
