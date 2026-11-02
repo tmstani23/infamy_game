@@ -3,6 +3,7 @@
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { createNav, ROOM_NAV } from './nav.js';
 import { inHeroParty } from './deployment_ai.js';
+import { refill } from './util.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
 const intent = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
@@ -200,5 +201,18 @@ export function createAISupport(game, clan, hero, rules = {}) {
   }
   const key = g => g?.camp ? `camp:${g.camp}` : g?.body ? `loot:${g.body}` : g?.target ? `wild:${g.target}` : `${g?.kind}:${g?.business ?? g?.job ?? ''}`;
   return { plan, planning:()=>pendingRoutes.size>0, walk, toStreet, route, recall, known, crew, sees, power, safe, wild, pickHunt, hunt, engage, reset,
-    blocked, avoid, key, failed: () => failed, camps };
+    blocked, avoid, key, failed: () => failed, camps, saveState, loadState };
+  // Save/load (sim/save.js). A half-done route search is saved as its inputs and step count,
+  // and rebuilt by replaying those steps on the fixed street grid.
+  function saveState() {
+    return { routes, cooldowns, camps, exiting, path, failed, campCycle, plannedTick,
+      pending: [...pendingRoutes].map(([k, r]) => [k, { origin: r.origin, from: r.from, x: r.x, z: r.z, steps: r.job.steps }]) };
+  }
+  function loadState(d) {
+    if (!d) return;
+    refill(routes, d.routes); refill(cooldowns, d.cooldowns); refill(camps, d.camps); refill(exiting, d.exiting);
+    ({ path, failed, campCycle, plannedTick } = d);
+    pendingRoutes.clear();
+    for (const [k, r] of d.pending) { const job = game.nav.beginPath(...r.from, r.x, r.z); if (r.steps) job.advance(r.steps); pendingRoutes.set(k, { ...r, job }); }
+  }
 }

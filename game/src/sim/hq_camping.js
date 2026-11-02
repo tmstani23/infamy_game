@@ -1,3 +1,4 @@
+import { refill } from './util.js';
 // Rival HQ loitering: street presence is counted once per visiting clan, not
 // once per unit. Rules and public summaries stay independent of the renderer.
 export function createHQCamping({ state, rules = {}, addHeat, tickRate = 20 }) {
@@ -58,5 +59,6 @@ export function createHQCamping({ state, rules = {}, addHeat, tickRate = 20 }) {
     for (const key of records.keys()) if (!keep.has(key)) records.delete(key);
     state.hqCamping = { zones, visits };
   }
-  return { tick, rules: R };
+  return { tick, rules: R,
+    saveState: () => ({ records }), loadState: d => { if (d) refill(records, d.records); } };
 }

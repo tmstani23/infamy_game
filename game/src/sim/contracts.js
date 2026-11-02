@@ -39,7 +39,7 @@ import { canInteract } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { contractLockoutUntil } from './hq_raids.js';
 import { createMarkScrubbing } from './mark_scrub.js';
-import { alive, noticeFor, secs } from './util.js';
+import { alive, noticeFor, refill, secs } from './util.js';
 export function createContracts({ state, rules = {}, scores = {}, backRoom, stash = backRoom, WILD = 'wild', seed = 1234, leader = () => null, inCombat = () => false }) {
   const R = Object.fromEntries(Object.entries(DEFAULTS).map(([k, v]) => [k, typeof v === 'object' && !Array.isArray(v) ? { ...v, ...rules[k] } : rules[k] ?? v]));
   let rs = seed;
@@ -332,5 +332,6 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
     && ['scout', 'mark', 'steal'].includes(j.kind) && !state.businesses[j.business]?.hideout && state.businesses[j.business]?.room === place);
 
   return { tick, command, post, mayClimb, where, reward, quote, readyIn, businessScore, backRoom, stash, rules: R,
-    scrubStep:scrubbing.step, interruptScrub:scrubbing.interrupt };
+    scrubStep:scrubbing.step, interruptScrub:scrubbing.interrupt,
+    saveState: () => ({ rs }), loadState: d => { if (d) rs = d.rs; } };
 }

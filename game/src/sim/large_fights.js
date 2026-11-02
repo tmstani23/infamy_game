@@ -56,3 +56,7 @@ export function retreatSpot(e, zone, nav) {
   }
   return null;
 }
+
+// Save/load (sim/save.js): the last fight zones, which decide whether a fight is "continuing"
+export const largeFightsMemory = state => cache.get(state) ?? null;
+export function restoreLargeFights(state, memory) { if (memory) cache.set(state, memory); else cache.delete(state); }

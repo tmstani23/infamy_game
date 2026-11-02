@@ -6,6 +6,7 @@ import { readFile, stat, writeFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { exec } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { handleSaves } from './saves_api.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -14,6 +15,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 
 const server = createServer(async (req, res) => {
   try {
+    if (await handleSaves(req, res, join(ROOT, 'saves'))) return;   // save files (F1.6)
     // the movable HUD saves its layout here (src/hud_layout.js); the only file the game may write
     if (req.method === 'PUT') {
       if (new URL(req.url, 'http://x').pathname !== '/game/data/ui_layout.json') { res.writeHead(403).end(); return; }

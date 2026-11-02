@@ -42,6 +42,7 @@ import { bindControlTooltips } from './control_tooltips.js';
 import { createDeploymentPanel } from './deployment_panel.js';
 import { createCharacterPanel } from './character_panel.js';
 import { createGameSettings } from './game_settings.js';
+import { createSaveStore, serverBackend } from './save_store.js';
 import { createGameMusic } from './game_music.js';
 import { bindGameShell } from './game_shell.js';
 import { createSelectionDock } from './selection_dock.js';
@@ -245,7 +246,16 @@ async function start() {
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
-  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
+  // Save files (frontier F1.6): written by the dev server into saves/. Same clan and hero only until the start screen can load.
+  const saveStore=createSaveStore(serverBackend('/saves'));
+  const saveMeta=()=>({day:game.state.clock?.day??null,clan:game.state.clans.player?.kind??'player',mode:'classic'});
+  const saves={meta:saveMeta,list:()=>saveStore.list(),remove:n=>saveStore.remove(n),
+    async save(name,label){await saveStore.write(name,await simClient.save(),{...saveMeta(),label});},
+    async load(name){const file=await saveStore.read(name);
+      const hero=Object.values(file.state?.entities||{}).find(e=>e.type==='hero'&&e.owner==='player')?.id;
+      if(file.clan!==saveMeta().clan||hero!==heroId)throw new Error('This save is from another clan; load it from the start screen');
+      await simClient.load(file);}};
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,saves,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -386,6 +396,7 @@ async function start() {
   simClient.observe((stage,newTick)=>{
     if(stage==='before'){if(!presentation.map&&newTick)prev=snapshot(game.state);return;}
     gameMap.observe();observeRaidAlarms();
+    if(newTick&&game.state.dawn&&!game.state.test)simClient.save().then(sv=>saveStore.autosave(sv,saveMeta())).catch(()=>{});   // 3 rotating dawn autosaves
     if(game.state.policeNews.some(n=>n.kind==='lost'&&n.clan===game.state.entities[heroId]?.owner))lostCops=true;
     newsCallouts.update();
     if(!presentation.map){

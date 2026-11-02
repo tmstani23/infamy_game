@@ -11,7 +11,7 @@ import { charmProtected } from './charm_rules.js';
 import { createAISupport } from './ai_support.js';
 import { isShinobiHQ } from './hq_raids.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
-import { dist } from './util.js';
+import { dist, refill } from './util.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
@@ -441,5 +441,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     return out;
   }
 
-  return { tick:()=>tick().filter(c=>!((c.type==='attack'||c.type==='order'&&c.kind==='attack')&&charmProtected({owner:clan},state.entities[c.target],state))), goal: () => goal, seen };
+  return { tick:()=>tick().filter(c=>!((c.type==='attack'||c.type==='order'&&c.kind==='attack')&&charmProtected({owner:clan},state.entities[c.target],state))), goal: () => goal, seen,
+    // Save/load (sim/save.js)
+    saveState: () => ({ goal, nextThink, nextReact, last, still, raidPlan, downs, seen, r, ai: ai.saveState(), deploymentAI: deploymentAI.saveState() }),
+    loadState: d => { if (!d) return; ({ goal, nextThink, nextReact, last, still, raidPlan, r } = d); refill(downs, d.downs); refill(seen, d.seen);
+      ai.loadState(d.ai); deploymentAI.loadState(d.deploymentAI); } };
 }

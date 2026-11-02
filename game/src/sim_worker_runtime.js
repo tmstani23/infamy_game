@@ -1,14 +1,13 @@
 import {createGame,TICK_RATE} from './sim/game.js';
 import {setupMatch} from './sim/setup_match.js';
-import {createBot} from './sim/bot.js';
-import {createNinjaBot} from './sim/ninja_bot.js';
+import {makeBots,makeSave,loadSave,heroOf} from './sim/save.js';
 import {createFixedStepClock} from './fixed_step_clock.js';
 import {createSnapshotEncoder,EVENT_KEYS} from './sim_snapshot.js';
 
 // One authoritative match for its whole lifetime. Opening/closing the map only
 // changes publication; no handoff of private simulation state is necessary.
 export function createWorkerRuntime({post,now=()=>performance.now()}) {
-  let game,bots,encoder,clock,last,paused=true,map=false,selected=[],inFlight=0,lastPublish=-Infinity,lastPublishedTick=-1;
+  let game,bots,encoder,clock,last,options,paused=true,map=false,selected=[],inFlight=0,lastPublish=-Infinity,lastPublishedTick=-1;
   let commands=[],movement=null,movementAt=-Infinity,events={},urgent=false;
   const diagnostics={packets:0,encodeMs:0,simMs:0,maxSimMs:0,eventOverflows:0};
   function collect(){
@@ -46,12 +45,25 @@ export function createWorkerRuntime({post,now=()=>performance.now()}) {
   function receive(m){
     if(m.type==='init'){
       if(game)throw new Error('Match already initialized');
-      game=createGame(m.options);
-      const match=setupMatch(game,m.match);game.civilians.populate();
-      bots=match.rivals.map(r=>(r.kind==='ninja'?createNinjaBot:createBot)(game,r));
-      commands.push(...match.previewCommands);encoder=createSnapshotEncoder(game);
+      options=m.options;game=createGame(options);
+      // A saved game (frontier F1) starts from its file instead of a new match setup.
+      if(m.save){bots=loadSave(game,m.save);}
+      else{
+        const match=setupMatch(game,m.match);game.civilians.populate();
+        bots=makeBots(game,match.rivals);commands.push(...match.previewCommands);
+      }
+      encoder=createSnapshotEncoder(game);
       clock=createFixedStepClock({tick:1/TICK_RATE});last=now();
-      post({type:'ready',heroId:match.heroId});publish(true);
+      post({type:'ready',heroId:heroOf(game)});publish(true);
+    }else if(m.type==='save'){
+      // Between ticks, so a save is always a whole tick.
+      post({type:'save',request:m.request,save:makeSave(game,{bots})});
+    }else if(m.type==='load'){
+      // Swap in the saved match: a fresh game, its bots, and a full snapshot for the screen.
+      const next=createGame(options),nextBots=loadSave(next,m.save);
+      game=next;bots=nextBots;encoder=createSnapshotEncoder(game);
+      commands=[];movement=null;events={};inFlight=0;lastPublishedTick=-1;urgent=true;last=now();
+      post({type:'loaded',request:m.request,heroId:heroOf(game)});publish(true);
     }else if(m.type==='ack'){
       if(m.sequence===inFlight)inFlight=0;
     }else if(m.type==='input'){

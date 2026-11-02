@@ -56,12 +56,15 @@ export function createSnapshotEncoder(game, clan = 'player') {
     }
     const gridFull=changes.length*4>previousGrid.length;
     const grid=gridFull?previousGrid.slice():Uint32Array.from(changes);
-    return {sequence:++sequence,tick:st.tick,map,set,remove,grid,gridFull,events,recordChars};
+    // full: the first packet of an encoder carries everything (a new match or a loaded save)
+    return {sequence:++sequence,tick:st.tick,map,set,remove,grid,gridFull,events,recordChars,full:initialGrid};
   }
   return {encode};
 }
 
 export function applySnapshot(game, packet) {
+  // A full packet replaces the replica's units, so ones missing from a loaded save disappear.
+  if(packet.full){const keep=new Set(packet.set.map(([k])=>k));for(const id of Object.keys(game.state.entities))if(!keep.has('e:'+id))delete game.state.entities[id];}
   for(const key of packet.remove){const [kind,id]=key.split(':');delete (kind==='e'?game.state.entities:game.state)[id];}
   for(const [key,value] of packet.set){
     const kind=key.slice(0,2),id=key.slice(2),root=kind==='e:'?game.state.entities:game.state;

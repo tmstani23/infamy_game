@@ -11,6 +11,7 @@ import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
 import { createRewards } from './rewards.js';
 import { gearFlat, createInventory } from './inventory.js';
+import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
 import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
 import { createTerritory } from './territory.js';
@@ -178,11 +179,15 @@ export function createGame(options) {
       && u.x + 0.45 > door.blocker.minX && u.x - 0.45 < door.blocker.maxX
       && u.z + 0.45 > door.blocker.minZ && u.z - 0.45 < door.blocker.maxZ)) return;
     state.interiorDoors[door.id] = !closing;
-    const r = rooms.find(r => r.name === door.place);
-    const closed = interiorDoors.filter(d => d.place === door.place && !state.interiorDoors[d.id]).map(d => d.blocker);
-    roomNavs[door.place] = createNav([...r.blockers, ...closed],
-      { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, navSettings(r));
+    rebuildRoomNav(door.place);
     for (const u of Object.values(state.entities)) if (u.place === door.place) delete paths[u.id];
+  }
+  // a room's walk grid with its closed interior doors as walls (also after a load)
+  function rebuildRoomNav(place) {
+    const r = rooms.find(r => r.name === place);
+    const closed = interiorDoors.filter(d => d.place === place && !state.interiorDoors[d.id]).map(d => d.blocker);
+    roomNavs[place] = createNav([...r.blockers, ...closed],
+      { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, navSettings(r));
   }
 
   // Back windows (ninja build phase 3, Tim 2026-10-20): every business with a room gets a second way
@@ -913,5 +918,22 @@ export function createGame(options) {
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
   const combat = createCombat({ onDefeat:(a,t)=>itemServices.defeat(a,t), clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
-  return { state, step, spawn, scenery, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices };
+  // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
+  // Closure state that lives outside game.state. Values are copied by the save encoder.
+  const savedModules = () => ({ combat, bandits, civilians, police, contracts, territory, vision, stealth, hqCamping });
+  function saveState() {
+    const modules = {};
+    for (const [k, m] of Object.entries(savedModules())) if (m?.saveState) modules[k] = m.saveState();
+    return { nextId, intents, fight, paths, largeFights: largeFightsMemory(state), modules };
+  }
+  function loadState(d) {
+    if (!d) return;
+    nextId = d.nextId;
+    for (const [o, v] of [[intents, d.intents], [fight, d.fight], [paths, d.paths]]) { for (const k of Object.keys(o)) delete o[k]; Object.assign(o, v); }
+    restoreLargeFights(state, d.largeFights);
+    for (const [k, m] of Object.entries(savedModules())) m?.loadState?.(d.modules?.[k]);
+    for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
+    inventory.relink();
+  }
+  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices };
 }

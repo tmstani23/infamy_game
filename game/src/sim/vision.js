@@ -65,5 +65,11 @@ export function createVision(state, bounds, rules = {}, territory = null) {
       || Object.values(state.businesses).some(b => b.owner === clan && !territory?.areas().some(a => a.business === b.id) && near(b.x, b.z, businessRange));
   }
 
-  return { tick, update, canSee, cellOf, grid, range, businessRange };
+  // save/load (sim/save.js): the fog each clan has explored, and what it sees right now
+  const saveState = () => ({ grids });
+  function loadState(d) {
+    for (const k of Object.keys(grids)) delete grids[k];
+    for (const [clan, g] of Object.entries(d?.grids || {})) { const t = grid(clan); t.explored.set(g.explored); t.visible.set(g.visible); }
+  }
+  return { tick, update, canSee, cellOf, grid, range, businessRange, saveState, loadState };
 }

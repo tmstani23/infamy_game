@@ -1,3 +1,4 @@
+import { refill } from './util.js';
 // Territory and the season (docs/territory_plan.md, Tim 2026-10-20): every business a clan owns
 // marks a circle of street around it as that clan's territory (where circles overlap, the
 // nearest business wins). Inside your own territory you see every unit (except hidden ninja,
@@ -133,5 +134,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
   }
 
   return { tick, areaAt, ownerAt, inOwn, areas: () => areas, cellGrid: () => ({ minX, minZ, w, h, cells, areas }), refresh,
-    quarters: quarterList, heldBy, payoutBonus, score, breakdown, standings, rules: T };
+    quarters: quarterList, heldBy, payoutBonus, score, breakdown, standings, rules: T,
+    saveState: () => ({ held, lastAlert }),
+    loadState: d => { if (!d) return; held = { ...d.held }; refill(lastAlert, d.lastAlert); key = null; refresh(); } };
 }

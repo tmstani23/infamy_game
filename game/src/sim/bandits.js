@@ -4,6 +4,7 @@
 // Hitting one also angers nearby bandits. Bodies hold ryo until somebody loots them.
 // At dawn the ones left walk back out. Plain sim code, no three.js.
 import { distractionStep } from './distraction.js';
+import { refill } from './util.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const WILD = 'bandits';     // the owner every bandit has (not a clan: nobody hires or runs it)
 
@@ -202,5 +203,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     for (const id of Object.keys(mind)) if (!state.entities[id]) delete mind[id];
   }
 
-  return { tick, add, provoke, killed, mind, night, spots, ways };
+  return { tick, add, provoke, killed, mind, night, spots, ways,
+    saveState: () => ({ mind, night, s }),
+    loadState: d => { if (!d) return; refill(mind, d.mind); Object.assign(night, d.night); s = d.s; } };
 }

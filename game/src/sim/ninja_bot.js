@@ -372,5 +372,8 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     return out;
   }
 
-  return { tick:()=>tick().filter(c=>!((c.type==='attack'||c.type==='order'&&c.kind==='attack')&&charmProtected({owner:clan},state.entities[c.target],state))), goal: () => goal };
+  return { tick:()=>tick().filter(c=>!((c.type==='attack'||c.type==='order'&&c.kind==='attack')&&charmProtected({owner:clan},state.entities[c.target],state))), goal: () => goal,
+    // Save/load (sim/save.js)
+    saveState: () => ({ goal, nextThink, nextReact, last, still, spot, workingJob, jobUntil, ai: ai.saveState(), deploymentAI: deploymentAI.saveState() }),
+    loadState: d => { if (!d) return; ({ goal, nextThink, nextReact, last, still, spot, workingJob, jobUntil } = d); ai.loadState(d.ai); deploymentAI.loadState(d.deploymentAI); } };
 }

@@ -113,8 +113,9 @@ export function createNav(blockers, bounds, { cell = 0.5, pad = 0.4, allowed = n
   }
 
   function beginPath(...args){
-    const iterator=searchPath(...args);let result={done:false},work=0;
-    return {advance(budget=256){work=0;for(let i=0;i<budget&&!result.done;i++){work++;result=iterator.next();}return result.done;},get work(){return work;},get done(){return result.done;},get path(){return result.done?result.value:undefined;}};
+    const iterator=searchPath(...args);let result={done:false},work=0,steps=0;
+    // steps: total search steps so far, so a saved job can be rebuilt by replaying them (sim/save.js)
+    return {advance(budget=256){work=0;for(let i=0;i<budget&&!result.done;i++){work++;steps++;result=iterator.next();}return result.done;},get work(){return work;},get steps(){return steps;},get done(){return result.done;},get path(){return result.done?result.value:undefined;}};
   }
   function findPath(...args){const job=beginPath(...args);while(!job.advance(65536)){}return job.path;}
   return { beginPath, findPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFree(x, z); return c && centre(...c); } };

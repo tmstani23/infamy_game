@@ -8,7 +8,7 @@
 // (only being downed cancels it): the light is out until dawn (state.lightsOut = prop indexes, for the screen),
 // at most snuffPerNight a night. Numbers: units.json rules.stealth.
 import { inViewCone } from './perception.js';
-import { secs } from './util.js';
+import { refill, secs } from './util.js';
 const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, revealSeconds: 5, lightRadius: 5,
   viewAngle: 90, closeRange: 1.2, suspicionSeconds: 1.2, suspicionDecay: 2,
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
@@ -118,5 +118,6 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     state.casts?.push({ kind: 'snuff', a: e.id, x: e.x, z: e.z, tx: l.x, tz: l.z });   // the smoke flash (render/abilityfx.js)
   }
 
-  return { tick, lit, reveal, veiled, exposed, snuff, snuffable, snuffsLeft, lights, canHide, rules: R };
+  return { tick, lit, reveal, veiled, exposed, snuff, snuffable, snuffsLeft, lights, canHide, rules: R,
+    saveState: () => ({ suspicion }), loadState: d => { if (d) refill(suspicion, d.suspicion); } };
 }

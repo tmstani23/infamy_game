@@ -6,6 +6,7 @@
 // Plain sim code, no three.js: the server runs the same townsfolk in multiplayer.
 import { dirIndex } from './geometry.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
+import { refill } from './util.js';
 
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 
@@ -279,5 +280,7 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     return { out, away: away.length, lost: lost.length, total: TOTAL, all: out + away.length + lost.length };
   }
 
-  return { populate, add, tick, count, spots, away, lost, mind };
+  return { populate, add, tick, count, spots, away, lost, mind,
+    saveState: () => ({ mind, away, lost, s }),
+    loadState: d => { if (!d) return; refill(mind, d.mind); refill(away, d.away); refill(lost, d.lost); s = d.s; } };
 }

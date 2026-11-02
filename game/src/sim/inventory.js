@@ -57,5 +57,9 @@ export function createInventory({state,baseHp}) {
     e.equipment = inv.equipment;
     if(baseHp){e.maxHp=baseHp(e)+gearFlat(e,'maxHpFlat');e.hp=Math.min(e.hp,e.maxHp);}
   }
-  return { initialize, command, status, atHQ };
+  // after a load (sim/save.js): each hero's equipment is its clan inventory's own object again
+  function relink() {
+    for (const e of Object.values(state.entities)) { const inv = state.clans[e.owner]?.inventory; if (e.type === 'hero' && inv) e.equipment = inv.equipment; }
+  }
+  return { initialize, command, status, atHQ, relink };
 }

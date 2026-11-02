@@ -350,5 +350,6 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
       for (const u of Object.values(state.entities)) if (u.order?.target === e.id && u.order.kind === 'attack') endAttack(u);
     }
   }
-  return { addHeat, anchorOf, carryOffDowned, coolHeat, crewTarget, endAttack, engage, hit, nearestEnemy, resumable, rng, setAssistCrew, swingStep, syncCrewAttacks, projectileTick };
+  return { addHeat, anchorOf, carryOffDowned, coolHeat, crewTarget, endAttack, engage, hit, nearestEnemy, resumable, rng, setAssistCrew, swingStep, syncCrewAttacks, projectileTick,
+    saveState: () => ({ seed }), loadState: d => { if (d) seed = d.seed; } };
 }

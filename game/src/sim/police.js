@@ -11,7 +11,7 @@ import { debitRyo } from './treasury.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
 import { distractionStep } from './distraction.js';
-import { noticeFor } from './util.js';
+import { noticeFor, refill } from './util.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -560,5 +560,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   }
 
   return { tick, provoke, witnessAssault, knockedOut, jail, jailHero, menu, bribeCost, bribeBlocked, tierOf, tierIndex,
-    clinicScale, payoutShare, heatScale, knownHero, searchSpot, track, hq, box, mind, rules: R };
+    clinicScale, payoutShare, heatScale, knownHero, searchSpot, track, hq, box, mind, rules: R,
+    saveState: () => ({ s, mind, track, hunted, nextOut, owed, nextPatrol, patrolOwed }),
+    loadState: d => { if (!d) return; s = d.s; for (const [k, o] of Object.entries({ mind, track, hunted, nextOut, owed, nextPatrol, patrolOwed })) refill(o, d[k]); } };
 }

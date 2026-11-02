@@ -1,9 +1,9 @@
 import {applySnapshot} from './sim_snapshot.js';
 
-export async function createSimWorkerClient({game,options,match,onError,workerFactory=()=>new Worker(new URL('./sim_worker.js',import.meta.url),{type:'module'})}){
+export async function createSimWorkerClient({game,options,match,save=null,onError,workerFactory=()=>new Worker(new URL('./sim_worker.js',import.meta.url),{type:'module'})}){
   const worker=workerFactory();
   let receivedAt=0,lastTick=null,span=1,diagnostics={},disposed=false,map=false,onSnapshot=()=>{},applyMs=0,maxApplyMs=0;
-  let lastInput='',lastInputAt=-Infinity;
+  let lastInput='',lastInputAt=-Infinity,request=0;const pending=new Map();
   await new Promise((resolve,reject)=>{
     const timeout=setTimeout(()=>{worker.terminate();reject(new Error('Simulation worker startup timed out'));},30000);
     let ready=false;
@@ -11,6 +11,7 @@ export async function createSimWorkerClient({game,options,match,onError,workerFa
     worker.onerror=e=>fail(new Error(e.message||'Simulation worker failed'));
     worker.onmessage=({data:m})=>{
       if(m.type==='fatal'){fail(new Error(m.message));return;}
+      if((m.type==='save'||m.type==='loaded')&&pending.has(m.request)){const done=pending.get(m.request);pending.delete(m.request);done(m);return;}
       if(m.type!=='snapshot')return;
       try{
         const newTick=m.packet.tick!==lastTick;
@@ -24,8 +25,10 @@ export async function createSimWorkerClient({game,options,match,onError,workerFa
         if(!ready){ready=true;clearTimeout(timeout);resolve();}
       }catch(error){fail(error);}
     };
-    worker.postMessage({type:'init',options,match});
+    worker.postMessage({type:'init',options,match,save});
   });
+  // one reply per request id (save / load), so overlapping asks never mix up
+  const ask=m=>new Promise((resolve,reject)=>{if(disposed)return reject(new Error('Simulation stopped'));const id=++request;pending.set(id,resolve);worker.postMessage({...m,request:id});});
   return {
     input(data){
       if(disposed)return;
@@ -35,6 +38,9 @@ export async function createSimWorkerClient({game,options,match,onError,workerFa
       lastInput=signature;lastInputAt=time;worker.postMessage({type:'input',...data});
     },
     observe(fn){onSnapshot=fn;},
+    // Save and load (frontier F1): the worker answers between ticks.
+    save(){return ask({type:'save'}).then(m=>m.save);},
+    load(save){return ask({type:'load',save});},
     alpha(){return Math.min(1,Math.max(0,(performance.now()-receivedAt)/(50*span)));},
     diagnostics:()=>({...diagnostics,applyMs,maxApplyMs,worker:true}),
     get map(){return map;},

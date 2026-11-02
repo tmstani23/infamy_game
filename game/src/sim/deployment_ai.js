@@ -58,5 +58,5 @@ export function createDeploymentAI(game, { clan, hero }) {
     }
     return out;
   }
-  return {tick};
+  return {tick,saveState:()=>({next}),loadState:d=>{if(d)next=d.next;}};
 }

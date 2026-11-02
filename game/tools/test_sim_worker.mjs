@@ -67,6 +67,34 @@ const again=enc.encode({map:true});assert.equal(again.set.length,0);assert.equal
 const fog=mirror.vision.grid('player'),authority=runtime.game.vision.grid('player');
 assert.deepEqual(fog.explored,authority.explored);
 
+// Save and load through the worker (frontier F1.5).
+{
+  messages=[];runtime.receive({type:'save',request:7});
+  const reply=messages.find(m=>m.type==='save');assert.equal(reply.request,7);
+  const save=structuredClone(reply.save);messages=[];
+  assert.equal(save.tick,runtime.game.state.tick);
+  // a new runtime started from the save
+  let t2=0;const out=[];const second=createWorkerRuntime({now:()=>t2,post:m=>out.push(structuredClone(m))});
+  second.receive({type:'init',options,save});
+  const first=out.find(m=>m.type==='snapshot').packet;
+  assert.equal(first.tick,save.tick,'loaded snapshot tick');
+  assert.equal(first.full,true);
+  assert.equal(first.set.filter(([k])=>k.startsWith('e:')).length,Object.keys(runtime.game.state.entities).length,'loaded entity count');
+  assert.equal(out.find(m=>m.type==='ready').heroId,heroId);
+  // the same runtime loads a save in place; the replica drops units the save does not have
+  const extra=runtime.game.spawn('thug','thug',0,0,{owner:'player'});time+=300;runtime.pump();consume();
+  assert.ok(mirror.state.entities[extra]);
+  const tickBefore=runtime.game.state.tick;
+  runtime.receive({type:'load',request:8,save});
+  assert.equal(messages.find(m=>m.type==='loaded')?.request,8);
+  assert.equal(runtime.game.state.tick,save.tick);
+  consume();
+  assert.equal(mirror.state.entities[extra],undefined,'full packet removes units missing from the save');
+  assert.equal(mirror.state.tick,save.tick);
+  assert.ok(tickBefore>=save.tick);
+  console.log('Worker save and load messages passed');
+}
+
 // Real Node worker uses the browser entry module and actual structured cloning.
 const worker=new Worker(new URL('./worker_test_bridge.mjs',import.meta.url));
 try{
