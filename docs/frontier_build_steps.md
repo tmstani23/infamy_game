@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02)
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [ ] W3.8 island art (Tim, 13 images) · [ ] W3.9 fit art and smooth blocked areas (any time before E; W4 does not depend on them)
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -1046,6 +1046,88 @@ Known follow-ups (with W3.4b art): the hero gets stuck or slides diagonally alon
 ### W3.7. Playtest  [TIM]
 In campaign mode, walk out of the gate, explore for a few minutes, cross a river ford, walk back in.
 Watch Firefox memory and frame rate. Check that the ground looks right by biome.
+
+
+### W3.8. Generate the island art  [TIM]
+
+Tim makes 13 images in ChatGPT from the W3.4b prompts. The prompts are in
+`assets/image_prompts.md`, section "Island art (W3.4b, frontier)". For each image, put
+the shared style line first, then the prompt, and ask for a **transparent PNG**, about 1024 px.
+
+Save them in `assets/environment/island/` with these names:
+
+| # | File | What |
+|---|---|---|
+| 1 | mountain_forest_broad.png | broad forest mountain |
+| 2 | mountain_forest_peak.png | steep forest peak |
+| 3 | mountain_snow_broad.png | broad snow mountain |
+| 4 | mountain_snow_ridge.png | jagged snow ridge |
+| 5 | mountain_dry_mesa.png | dry mesa |
+| 6 | mountain_dry_hills.png | eroded dry hills |
+| 7 | outcrop_moss.png | mossy granite outcrop |
+| 8 | outcrop_snow.png | snowy rock outcrop |
+| 9 | outcrop_dry.png | dry rock outcrop |
+| 10 | pass_gate.png | mountain pass gateway |
+| 11 | river_ford.png | river ford (flat, lies on the ground) |
+| 12 | lake_edge.png | lake shore (flat, lies on the ground) |
+| 13 | city_gate.png | the town gate on the east trail |
+
+Check: Tim puts them side by side. They should share the same angle (high three-quarter view from
+the south-east), the same light and muted colours, and have no background or ground shadow. Redo any
+that stand out.
+
+### W3.9. Fit the art and make blocked areas walk smoothly  [SMALL]
+
+Needs: W3.8 images. They can run any time before E (founding); W4 does not depend on them. Read the whole plan and step_runner_guide.md first, as for every step.
+
+**Why:** in the W3.7 playtest the hero got stuck or slid diagonally along mountains and water.
+- `sim/chunk_gen.js` merges blocked 50-unit terrain cells into row-run rectangles, so every blocked
+  edge is a staircase of square corners.
+- `tryMove` in `sim/game.js` resolves x and z one after the other and stops flush against a box.
+- The iso camera turns W/A/S/D into diagonal world moves. Against a staircase edge, one axis is
+  blocked and the other slides (diagonal on screen), or the hero catches on a step corner (stuck).
+
+**Steps**
+1. **Cut the art in.** Single transparent PNGs need no sheet cutting. Copy them to `game/art/props/`
+   and add their entries to `game/art/cutouts.json` (size and ground anchor). Reuse the anchor code in
+   `tools/cut_environment.py`, for example with a small `--singles assets/environment/island` mode.
+   Add `game/data/art.json` entries (scale, foot, solid) like `boulder`.
+2. **Draw them.** In `render/world_ground.js` `ART`:
+   - mountains by biome (forest, snow or dry, from the region's biome), with a variant picked by a
+     hash of the position;
+   - outcrops on mountain edge cells, to soften them;
+   - pass_gate at mountain passes, river_ford at fords, lake_edge along lake shores (flat, under units).
+
+   In `game/data/world_chunks.json`, set mountain props per biome and the outcrop density. city_gate:
+   a prop at `port_town.json` islandGate, replacing the lantern-post marker, plus the same art on the
+   island side of the gate.
+3. **Shape the blocked areas to the art** (the stuck/slide fix):
+   - a) Only cells on the **edge** of a blocked area change. Inside, keep the row-run rectangles,
+     since nobody walks there. On an edge cell, replace the square with the drawn prop's footprint
+     (ellipse from art.json `foot` × scale), built from thin 2-unit strips so the edge is round and
+     matches the picture. The same rule applies to water edges, with rounded strips along the shore.
+   - b) Add **corner slip** to `tryMove`, for `place === 'world'` only. When a move is stopped by a box
+     corner with less than about 0.6 units of overlap, nudge along the other axis so the hero rounds
+     the corner. City movement must stay exactly as it is.
+   - c) The fine walk grid in `sim/areas.js` is built from the same blockers, so crew paths follow
+     automatically. Check that crew don't zigzag along the new edges; if they do, smooth with a
+     string-pull step like the city's.
+4. **New test `tools/test_island_edges.mjs`:**
+   - Pick 200 blocked edge points (mountain and water) from several regions.
+   - At each point, walk the hero into the edge in all 8 screen directions for 3 s each, then away.
+   - Assert that he never ends inside a blocker, that he always gets clear within 1 s when walking
+     away, and that pressing diagonally into an edge moves him along it at least half his speed
+     (no catching on corners).
+   - Also run test_world_gate, test_areas, test_chunk_gen, test_port_town and the combat regression;
+     all must pass unchanged.
+   - `profile_world_chunks.mjs` should stay within +20% of the W3.6 numbers (chunks avg 0.8 ms,
+     worst 9 ms).
+5. **Checkpoint:** Tim playtests with the test-build instant travel (World tab, click and confirm).
+   He walks along a mountain range, a river with a ford and a lake shore, and goes through the city
+   gate both ways.
+
+**Process:** if 3a gets messy (strips per edge cell cost too much), measure first. The fallback is
+corner slip (3b) alone plus outcrop art hiding the square edges. Ask Tim before falling back.
 
 **Phase end:** tests pass; Docs keeper commits "Walkable world"; Tim playtest W3.7.
 
