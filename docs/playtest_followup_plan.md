@@ -236,6 +236,8 @@ Maintenance queue: pre-existing stale `test_shinobi_pass` hidden-bonus/dawn-expi
 
 Global Edit layout mode: built 2026-10-30 (Settings > Edit layout, hud_layout.js registry). Settings entry; while active, every UI element must be included: raid/crew frame, status panels/badges, utility icon menu, and all existing/new panels. Shared layout registry or automatic enrollment is mandatory; future UI gets no bespoke omissions. Outlines/drag/resize handles appear while editing and normal panel actions disable. Done saves/exits/locks all; Cancel restores prior layout; Reset restores defaults using existing positions. Remove permanent lock icons outside edit mode. Future regression check enumerates registered/rendered UI panels and verifies every one can move/resize and participates correctly in Done/Cancel/persistence.
 
+**Open idea, not decided (Tim, 2026-11-02): window management.** With more windows now (town panel O, all-towns Y, inventory, map), let the player either move them all around (Edit layout already moves HUD panels; extend it to these windows) or at least click a window to bring it to the front until it is closed. Needs Tim's OK and a short plan before building.
+
 ## Handoff status (2026-10-30, for ChatGPT or the next session)
 
 - Edit layout side-handle resizing: checked by Tim; fixed-size bars and portraits are now corner-only.
