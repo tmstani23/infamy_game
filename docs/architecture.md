@@ -101,6 +101,8 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 **Render** (`game/src/render`, three.js, reads state, never changes it)
 
+Island ground, props and trails are painted by the layered procedure in [world_painting.md](world_painting.md) (pure seeded module shared by sim and renderer; step W3.10).
+
 | File | Job |
 |---|---|
 | `draw_order.js` | Draw order for the street: cached sort of static scenery, only moving things re-sorted each frame (`game/tools/test_draw_sort.mjs`). `main.js` keeps a lean previous-tick snapshot for smoothing. |

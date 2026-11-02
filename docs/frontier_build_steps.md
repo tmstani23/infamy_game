@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan)
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [ ] W3.10 paint the island by `docs/world_painting.md` and fit the walkthrough art
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -1160,6 +1160,53 @@ separate completion checks.
 **Process:** if a piece's art doesn't line up with its cell edge, fix the anchor in art.json rather
 than moving blockers. If the pieces look too repetitive along long ranges, ask Tim before generating
 more variants.
+
+### W3.10. Paint the island and fit the walkthrough art  [SMALL]
+
+Needs: W3.9 baseline. Read the whole plan, step_runner_guide.md and **docs/world_painting.md** (the
+procedure) first.
+
+**Part A: ground painting by the procedure** (docs/world_painting.md, layers 1 to 8)
+1. `src/world_paint.js`: a pure, seeded module shared by the sim and the renderer. It gives the biome
+   field (blurred cells, domain warp, edge noise), material weights, grove noise and the stamps
+   lookup. `game/data/world_paint.json` holds all numbers, material tables, prop sizes and stamps.
+2. Ground (`render/world_ground.js` + the ground shader in `render/shading.js`, island only):
+   - the material mosaic per biome with height blend;
+   - stochastic tiling (offset and 90° rotation per cell, smooth blend);
+   - macro colour drift;
+   - at most 8 materials per chunk.
+
+   Import the textures: the forest tiles; the snow lowland set (ground_snow, ground_snow_b, plus the
+   thaw pair at snow edges, with seams blended at import); the top B/C/D variants. Snow-code cells
+   must use the snow set, not sand/gravel.
+3. Trails and banks: corridors with noisy width, a ragged edge and a worn verge; muddy banks on
+   rivers.
+4. Props (`sim/chunk_gen.js`): the jittered grid, grove and clearing density, trail clearance, edge
+   trees, undergrowth near trees, sizes in units, stamps clearing or adding props. Keep blocking props
+   as blockers.
+
+**Part B: walkthrough art still open** (Tim's notes in docs/frontier_campaign_plan.md)
+5. Replace the old painted lake decals with the 8 numeric bank pieces (lake_edge_1 to 8: N, NE, E,
+   SE, S, SW, W, NW) around code-drawn water. Line the bank art and the blockers up with the shore.
+6. Place the 4 opposite-bank rims on forest and snow ranges (high ground facing inward).
+7. Shrink the ford art by 1 to 2 tiles and fit it at real thin river crossings. Pass gates go only at
+   real passes.
+8. Not in this step: the dry range waits for Tim's blueprint decision.
+
+**Checks**
+- New `tools/test_world_paint.mjs`:
+  - each chunk built twice is identical;
+  - splat values and props match along every shared chunk border;
+  - no prop on corridors, blocked cells, within 3 units of a trail, or in a clearing stamp;
+  - density per biome stays within the data ranges.
+- test_island_edges, test_world_gate, test_areas, test_chunk_gen, test_port_town and the combat
+  regression all pass.
+- `profile_world_chunks.mjs` stays within +20% of W3.6.
+- Before building the shader, render the mock (`tools/ground_mock.py`) for a snow edge and a meadow
+  with a trail, and show Tim.
+
+**Checkpoint:** Tim playtests with test travel (World tab): a forest edge, a snow lowland, a lake
+shore, a ford, a pass and a trail across a meadow.
 
 **Phase end:** tests pass; Docs keeper commits "Walkable world"; Tim playtest W3.7.
 

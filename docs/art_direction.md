@@ -31,6 +31,7 @@
 
 - **Fixed-camera isometric sprites rendered from 3D by script.** The camera does not rotate; buildings fade when a character walks behind them.
 - All art is **placeholder** and will be redone before selling, so the pipeline must keep art swappable.
+- **Island ground painting:** the island's ground, trails and props are built from layered rules, not hand-painted maps; see [world_painting.md](world_painting.md) (mock: `images/frontier/ground_painting_mock.jpg`).
 
 ### Characters (proven end to end with the ronin, 2026-10-14)
 
