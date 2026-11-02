@@ -5,9 +5,9 @@ import { stageAssignmentPreview } from './assignment_preview.js';
 
 // Players keep the local 'player' id, while clan identity determines their
 // leader, home and rivals. Bots and humans use the same fair clan initializer.
-export function setupMatch(game, { clan, difficulty, bots, spawns = {}, test = {} }) {
+export function setupMatch(game, { clan, difficulty, mode, bots, spawns = {}, test = {} }) {
   if (Object.keys(game.state.clans).length) throw new Error('Match setup requires a fresh game');
-  const options = matchOptions({ clan, difficulty });
+  const options = matchOptions({ clan, difficulty, mode });
   if (test.setup === 'bot') options.clan = 'yakuza';
   if (test.ninja) options.clan = 'shinobi';
   for (const levels of [bots.levels, bots.shinobiLevels])

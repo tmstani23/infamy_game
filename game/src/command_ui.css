@@ -92,3 +92,10 @@
 #partyframes {min-width:220px;}
 #crewcommands {min-width:140px;}
 #controls,#characterpage .character-window,#gamesettings .settings-window {min-width:min(280px,100vw);}
+
+/* Controls (Tim 2026-11-02): page buttons at the top; a long section flows its rows into columns so it fits */
+#controls .layout-pages {margin:0 0 8px;padding-top:0;}
+#controls .cols > section {display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));column-gap:10px;align-content:start;}
+#controls .cols > section > h4 {grid-column:1/-1;}
+#controls .cols > section > .row {margin:2px 0;}
+#controls .cols > section > .row kbd {padding:3px 7px;}

@@ -3,7 +3,7 @@
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;
-const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
+export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
 const NODE_COL = { quarry: '#9696a0', forest: '#3c783c', fertile: '#c8be50', ore: '#be6e3c', fishing: '#5aaad2' };
 
 // view = { cx, cz, scale, w, h }: world point (cx, cz) is at the canvas centre, scale = pixels per unit.
@@ -48,7 +48,8 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     return [...sites.filter(s => known(s.x, s.z)).map(s => ({ kind: 'site', ...s })),
       ...world.camps.filter(k => known(k.x, k.z)).map(k => ({ ...k, campKind: k.kind, kind: 'camp' })),
       ...(st.pins || []).map(p => ({ ...p, kind: 'pin' })),
-      ...(st.towns || []).map(t => ({ ...t, kind: 'town' }))];   // last, so a town wins over the site under it
+      ...(st.towns || []).map(t => ({ ...t, kind: 'town' })),   // late, so a town wins over the site under it
+      { kind: 'capital', x: world.capital.x, z: world.capital.z }];
   }
   function buildCache() {
     const t = world.terrain, off = document.createElement('canvas');

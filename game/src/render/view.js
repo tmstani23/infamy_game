@@ -14,10 +14,11 @@ import { fxShared } from './vfx.js';
 import { createBanners } from './banners.js';
 import { unitName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
+import { createWorldGround } from './world_ground.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
@@ -40,11 +41,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const PAN_SPEED = 16;
   // Indoors the camera may also travel to the street to command outdoor crew.
   const B = district.bounds, inMap = p => {
+    if (heroPlace === 'world') return p;   // out on the island (frontier W3): no city edges
     const farX = heroPlace === 'street' ? B.maxX + 4 : Math.max(B.maxX + 4, ...rooms.map(r => r.origin.x + (r.renderLayout || r).size[0] * (r.worldScale || 1) + 4));
     p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, farX);
     p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4);
     return p; };
-  const cameraPlace = h => watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
+  const cameraPlace = h => watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -77,6 +79,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const rings = doorRings(doors);
   for (const d of rings) scene.add(d);
   const things = await buildScenery(scenery, renderer);
+  // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
+  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds }) : null;
+  // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
+  const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);
   const lights = [...things.flatMap(t => t.lights), ...roomLights];
   // lanterns by prop index, so a snuffed one (state.lightsOut, sim/stealth.js) can go dark
@@ -213,7 +219,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   function updateLights(time) {
-    const near = lights.filter(l => !l.off)
+    const wild = heroPlace === 'world' && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
+    const near = [...lights, ...wild].filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
       .sort((a, b) => a.d - b.d).slice(0, MAX_LIGHTS);
     near.forEach(({ l }, i) => {
@@ -229,7 +236,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // Open a see-through hole in anything drawn in front of the followed unit
   const probe = new THREE.Vector3();
   function updateCutaway(hero, dt) {
-    for (const t of things) {
+    for (const t of [...things, ...(worldGround?.things() || [])]) {
       if (!t.big) continue;
       let covering = false;
       if (hero) {
@@ -309,7 +316,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const anim = e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
-        e.place && e.place !== 'street' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
+        e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       s.setHealth(e.hp, e.maxHp);
       s.setNameplate(e.name || unitName(units || { types: {} }, e.type), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero');
@@ -359,7 +366,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
-    let inside = cameraPlace(state.entities[followId]) !== 'street';
+    let inside = !['street', 'world'].includes(cameraPlace(state.entities[followId]));
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
 
     // camera follows the hero, snapped to whole screen pixels so the art stays crisp
@@ -370,7 +377,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // watching a unit or group (double-click, Tim 2026-10-28): follow it until a pan, a map click or Home
       const w = watchFn && watchFn();
       if (watchFn && !w) watchFn = null;
-      watchedPlace=w?.place??null;watchedId=w?.id??null;inside=cameraPlace(state.entities[followId])!=='street';
+      watchedPlace=w?.place??null;watchedId=w?.id??null;inside=!['street','world'].includes(cameraPlace(state.entities[followId]));
       if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, hero.pos.y, w.z); }
       else {
         if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
@@ -401,11 +408,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = shakeAmp * shakeT / 0.18;
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
+    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt);
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things], [...sprites.values()].filter(Boolean).map(s => s.thing));
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...sprites.values()].filter(Boolean).map(s => s.thing));
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
     fxShared.uPx.value = px * bloom.scale;

@@ -27,7 +27,7 @@ uniform sampler2D uFog;
 uniform vec4 uFogRect;
 uniform float uFogOn;
 vec2 fogAt(vec2 p) {
-  if (uFogOn < 0.5 || p.x > 200.0) return vec2(1.0);
+  if (uFogOn < 0.5 || p.x > 200.0 || p.y > 200.0) return vec2(1.0);   // rooms (x > 200) and the island (render/world_ground.js) have no fog shading
   vec2 uv = (p - uFogRect.xy) / uFogRect.zw;
   if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return vec2(0.0);
   return texture2D(uFog, uv).rg;

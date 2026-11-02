@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "_note": "placeholder, Tim to tune (frontier W3). How the island is cut into chunks for walking, sight and drawing.",
+  "chunk": 250,
+  "navCell": 1,
+  "navPad": 0.4,
+  "loadRadius": 1,
+  "keepChunks": 50,
+  "updateTicks": 5,
+  "refineAhead": 200,
+  "maxSearchCells": 250000,
+  "maxSearchSteps": 20000,
+  "drawRadius": 1,
+  "drawCache": 16,
+  "propRadius": 55,
+  "nightGlow": {
+    "_note": "placeholder, Tim to tune. The soft cool light around the hero on the island at night",
+    "radius": 12,
+    "color": [
+      0.3,
+      0.36,
+      0.5
+    ]
+  },
+  "sight": {
+    "_note": "placeholder, Tim to tune. range = how far units see on the island; near a lit fire the range is fireRange",
+    "range": 26,
+    "fireRange": 40,
+    "fireRadius": 18
+  },
+  "clear": {
+    "_note": "no props this close (units) to a corridor, a site or a resource node",
+    "corridor": 4,
+    "site": 30,
+    "node": 12,
+    "city": 20
+  },
+  "props": {
+    "_note": "per biome code: kind, count per 1000 square units, scale range, block = half width of the walk blocker (0 = walk through)",
+    "p": [
+      {
+        "kind": "bush",
+        "per1000": 0.8,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "pine",
+        "per1000": 0.35,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0.5
+      },
+      {
+        "kind": "small_rocks",
+        "per1000": 0.3,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "boulder",
+        "per1000": 0.08,
+        "scale": [
+          0.8,
+          1.3
+        ],
+        "block": 1.1
+      }
+    ],
+    "f": [
+      {
+        "kind": "cedar",
+        "per1000": 6,
+        "scale": [
+          0.8,
+          1.3
+        ],
+        "block": 0.5
+      },
+      {
+        "kind": "pine",
+        "per1000": 3,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0.5
+      },
+      {
+        "kind": "bush",
+        "per1000": 2,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "ferns",
+        "per1000": 4,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "stump",
+        "per1000": 0.4,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0.4
+      },
+      {
+        "kind": "fallen_log",
+        "per1000": 0.25,
+        "scale": [
+          0.8,
+          1.1
+        ],
+        "block": 0.6
+      }
+    ],
+    "h": [
+      {
+        "kind": "boulder",
+        "per1000": 0.6,
+        "scale": [
+          0.8,
+          1.4
+        ],
+        "block": 1.1
+      },
+      {
+        "kind": "small_rocks",
+        "per1000": 1,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "twisted_pine",
+        "per1000": 0.5,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0.5
+      },
+      {
+        "kind": "bush",
+        "per1000": 0.5,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      }
+    ],
+    "d": [
+      {
+        "kind": "small_rocks",
+        "per1000": 0.8,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "boulder",
+        "per1000": 0.3,
+        "scale": [
+          0.8,
+          1.3
+        ],
+        "block": 1.1
+      },
+      {
+        "kind": "bush",
+        "per1000": 0.3,
+        "scale": [
+          0.6,
+          1.0
+        ],
+        "block": 0
+      }
+    ],
+    "n": [
+      {
+        "kind": "pine",
+        "per1000": 2,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0.5
+      },
+      {
+        "kind": "boulder",
+        "per1000": 0.4,
+        "scale": [
+          0.8,
+          1.3
+        ],
+        "block": 1.1
+      }
+    ],
+    "b": [
+      {
+        "kind": "bamboo",
+        "per1000": 10,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0.4
+      },
+      {
+        "kind": "ferns",
+        "per1000": 2,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      }
+    ],
+    "k": [
+      {
+        "kind": "ferns",
+        "per1000": 2,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      },
+      {
+        "kind": "bush",
+        "per1000": 1,
+        "scale": [
+          0.8,
+          1.2
+        ],
+        "block": 0
+      }
+    ],
+    "m": [
+      {
+        "kind": "mountain",
+        "per1000": 0.5,
+        "scale": [
+          6,
+          10
+        ],
+        "block": 0
+      }
+    ]
+  }
+}

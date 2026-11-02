@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [ ] W3.1 · [ ] W3.2 · [ ] W3.3 · [ ] W3.4 · [ ] W3.4b art · [ ] W3.5 · [ ] W3.6 · [ ] W3.7 playtest
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02)
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F4.5 · Next step: W3; F1.7 Tim playtest still deferred to the end
+Last step done: W3.7 (W3.4b art pass still open) · Next step: W4; F1.7 Tim playtest still deferred to the end
 
 ## Working in one long window (auto-compacting)
 
@@ -1037,6 +1037,11 @@ Do: a Node script that walks a hero 5,000 units out along the main corridor and 
 time (average and worst), loaded chunk count and memory.
 Check (pass/fail): the script runs and prints the numbers; loaded chunks stay within the W3.1 limit.
 Done note: "W3.6 world walk: X ms worst chunk, N loaded, Y MB."
+As built (2026-11-02): the island is one more place (`e.place === 'world'`, island coordinates): 250-unit chunks, 1-unit walk grid, island-wide route graph (HPA*) from `world.json`. No geometry worker (a chunk takes about 1 ms). City grids unchanged. Ground by biome uses the city ground textures (forest tiles later), dirt trails on corridors, placeholder props and mountains (scaled boulders) until W3.4b. No fog shading on the island; enemies are hidden outside sight. Minimap clicks are off on the island (view only; W4). Benchmark (5,000-unit walk, 6 crew, bots in the city): chunks average 0.8 ms, worst 9 ms, 12 to 18 active, cache 50, +10 MB heap, sim tick average 2.3 ms.
+**Campaign mode** now exists: match option `mode` (`classic` default, `campaign`); campaign skips the season end (F0.4). `dev_frontier` is a campaign save. Top bar and M map read "Campaign · Day N"; in-game saves record the real mode (it was always `classic`).
+**City gate (W3.5):** campaign only. Space at the ring by the lantern post where the east trail out of town ends (96,8); the hero plus selected and following crew go out and back with a 1 s fade. Big ring and a G on the minimap; gate art is prompt 13 in the W3.4b art pass. Classic: shut with a notice.
+**Playtest fixes:** gate moved to the east trail end; Controls panel page buttons at the top with long sections in columns (`layout_pages.js`); island minimap camera box, zoom and N arrow (the minimap stays turned like the camera). Test-build instant travel: World tab, click empty ground or the Capital, confirm; sim command `travel`, only with the dev frontier flag and campaign; to be replaced by real travel (roads, railway, mounts).
+Known follow-ups (with W3.4b art): the hero gets stuck or slides diagonally along blocked areas (mountain edges, 50-unit terrain cells as square blockers); decide how unpassable areas look and feel once the mountain art is in. W4: minimap clicks on the island (look there or send crew). Side finding, not from W3: in Classic too, one tick takes about 1.7 s when `deployment.js` builds a sector walk grid (`shapeDistance`); worth a later performance pass. Regression set passes except `test_crew` line 97 (already failing before).
 
 ### W3.7. Playtest  [TIM]
 In campaign mode, walk out of the gate, explore for a few minutes, cross a river ford, walk back in.

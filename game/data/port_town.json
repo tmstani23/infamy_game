@@ -46,7 +46,7 @@
     ["paving",26,9,30,22,0.6],
     ["dirt",{"line":[[-80,-7],[-62,-7]],"w":3},1.5],
     ["dirt",{"line":[[62,8],[80,8]],"w":3},1.5],
-    ["dirt",{"line":[[2,48],[2,58],[0,74]],"w":3},1.5],
+    ["dirt",{"line":[[2,48],[2,58],[0,74],[0,92]],"w":3},1.5],
     ["dirt",{"line":[[-61,24],[-66,30]],"w":3},1.5],
     ["dirt",{"line":[[57,46],[61,49]],"w":3},1.5],
     ["planks",-26,-31.2,-17,-21.8,0.2],
@@ -844,8 +844,11 @@
     ["bamboo",92.9,44.8],
     ["pine_tree",82.9,22.6],
     ["pine_tree",-106.5,84.1],
-    ["bamboo",88.1,84.1,{"flip":true}]
+    ["bamboo",88.1,84.1,{"flip":true}],
+    ["lantern_post",95.4,5.4]
   ],
+  "_islandGate": "frontier W3.5: the gate out to the island, where the east trail out of town ends at the map edge (city units); open in a campaign match only, marked by a lantern post. out = how far outside the city's edge the island side stands (Tim 2026-11-02: the east trail end, not the west, that is the bandit camp and the Shinobi village)",
+  "islandGate": {"x": 96, "z": 8, "out": 5},
   "_edges": "way-in spots at the map edge (night bandits walk in and out here, sim/bandits.js): the west, east and north trails and the forest",
   "edges": [[-77,-7],[98,8],[0,92],[-77,22],[-77,48],[98,32],[98,-24],[-40,92],[36,92]],
   "pois": [

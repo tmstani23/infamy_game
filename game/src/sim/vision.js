@@ -8,7 +8,10 @@
 const EVERY = 5;   // ticks between rebuilds of what is in sight (4 a second)
 
 // territory (sim/territory.js, optional): inside a clan's own territory it sees every unit but hidden ninja
-export function createVision(state, bounds, rules = {}, territory = null) {
+// island (optional, frontier W3.2): sight on the island (e.place === 'world'), where there is no grid:
+//   { range, fireRange, fireRadius, lightsNear(x, z, r) }. A unit there is seen by the clan's standing units
+//   on the island within range, or within fireRange while it stands near a lit fire (fair for bots too).
+export function createVision(state, bounds, rules = {}, territory = null, island = null) {
   const range = rules.range ?? 18, businessRange = rules.businessRange ?? 10;
   const minX = Math.floor(bounds.minX), minZ = Math.floor(bounds.minZ);
   const w = Math.ceil(bounds.maxX) - minX, h = Math.ceil(bounds.maxZ) - minZ;
@@ -57,6 +60,11 @@ export function createVision(state, bounds, rules = {}, territory = null) {
     if (!e || !clan) return false;
     if (e.owner === clan) return true;
     if (e.hidden) return false;   // a hidden ninja (sim/stealth.js)
+    if (e.place === 'world') {
+      if (!island) return false;
+      const r = island.lightsNear?.(e.x, e.z, island.fireRadius).length ? island.fireRange : island.range;
+      return Object.values(state.entities).some(u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r * r);
+    }
     if (e.place !== 'street') return Object.values(state.entities).some(u => u.owner === clan && !u.dead && u.place === e.place);
     // checked exactly rather than on the grid, so it is never a few ticks late
     const near = (x, z, r) => (x - e.x) ** 2 + (z - e.z) ** 2 <= r * r;

@@ -11,26 +11,26 @@ const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
-  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), frontier: data('data/frontier.json') };
+  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: data('data/frontier.json') };
 const dir = new URL('../../saves/', import.meta.url);
 
 const SAVES = {
   // A Classic city match: Yakuza, medium, 3 clans with bots, 20 s in, spare ryo to buy and hire.
   dev_classic: { clan: 'yakuza', difficulty: 'medium', ticks: 400, playerRyo: 3000 },
-  // The same city match with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
-  dev_frontier: { clan: 'yakuza', difficulty: 'easy', ticks: 400, playerRyo: 3000, frontier: true },
+  // A campaign match (the island gate is open, W3.5) with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
+  dev_frontier: { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', ticks: 400, playerRyo: 3000, frontier: true },
 };
 
 export function build(name, spec) {
   const game = createGame(options);
-  const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, bots: data('data/bots.json'),
+  const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, mode: spec.mode, bots: data('data/bots.json'),
     spawns: options.district.spawns, test: { playerRyo: spec.playerRyo } });
   game.civilians.populate();
   const bots = makeBots(game, m.rivals);
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
   if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });
   const save = makeSave(game, { bots });
-  return makeFile(save, { clan: game.state.clans.player?.kind ?? spec.clan, mode: 'classic', label: `Dev: ${name}`, day: game.state.clock?.day });
+  return makeFile(save, { clan: game.state.clans.player?.kind ?? spec.clan, mode: game.state.match.mode, label: `Dev: ${name}`, day: game.state.clock?.day });
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('make_dev_save.mjs')) {

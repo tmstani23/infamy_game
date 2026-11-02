@@ -143,7 +143,7 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
   // take control; leaving them behind again restores duty once that task ends.
   function indoorDuty(e) {
     if (e.guard || e.wild || e.cop) return;
-    if (e.place === 'street') { delete e.indoorDuty; delete e.patrol; return; }
+    if (e.place === 'street' || e.place === 'world') { delete e.indoorDuty; delete e.patrol; return; }   // the island (W3) is outdoors too
     const leader = Object.values(state.entities).find(h => h.type === 'hero' && h.owner === e.owner);
     const present = leader && !leader.dead && !leader.jailed && leader.place === e.place;
     const o = e.order;

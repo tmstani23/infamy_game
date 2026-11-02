@@ -14,6 +14,8 @@ import { gearFlat, createInventory } from './inventory.js';
 import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
 import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
+import { createAreas } from './areas.js';
+import { cityOnIsland } from './chunk_gen.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
 import { createUnstuck } from './unstuck.js';
@@ -149,7 +151,24 @@ export function createGame(options) {
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
-  const vision = createVision(state, district.bounds, units?.rules?.vision, territory);
+  // the island as a walkable place, e.place === 'world' (sim/areas.js, frontier W3.2); the city sits on it
+  // at world.capital + cityOffset, as a blocker whose way in is the gate (W3.5)
+  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds) }) : null;
+  // the city gate out to the island (frontier W3.5, district.islandGate): a pair of doors, open in a
+  // campaign match only. The island side stands just outside the city's west wall on the island.
+  // The island side is the gate's spot on the island, pushed out past the nearest edge of the city.
+  const gate = areas && district.islandGate ? (() => {
+    const gd = district.islandGate, c = areas.city, b = district.bounds, out = gd.out ?? 5;
+    let [x, z] = [c.minX - b.minX + gd.x, c.minZ - b.minZ + gd.z];
+    const side = [[x - c.minX, 'W'], [c.maxX - x, 'E'], [z - c.minZ, 'N'], [c.maxZ - z, 'S']].sort((p, q) => p[0] - q[0])[0][1];
+    if (side === 'W') x = c.minX - out; else if (side === 'E') x = c.maxX + out; else if (side === 'N') z = c.minZ - out; else z = c.maxZ + out;
+    // coming back in, the hero steps a little way in from the gate, toward the middle of the city
+    const mx = (b.minX + b.maxX) / 2 - gd.x, mz = (b.minZ + b.maxZ) / 2 - gd.z, ml = Math.hypot(mx, mz) || 1;
+    return { city: [gd.x, gd.z], inside: [gd.x + mx / ml * 3, gd.z + mz / ml * 3], island: [x, z], side };
+  })() : null;
+  if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
+    { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
+  const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
   const frontier = options.frontier ? createFrontier({ state, data: options.frontier }) : null;   // settlement economy (sim/frontier/, F2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
@@ -167,7 +186,7 @@ export function createGame(options) {
   const roomBodyScales = Object.fromEntries(rooms.map(r => [r.name, r.template.characterScale || 1]));
   const navSettings = r => ({ ...ROOM_NAV, pad: ROOM_NAV.pad * roomBodyScales[r.name] });
   const roomNavs = Object.fromEntries(rooms.map(r => [r.name, createNav(r.blockers, { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, navSettings(r))]));
-  const navOf = place => place === 'street' ? nav : roomNavs[place];
+  const navOf = place => place === 'street' ? nav : place === 'world' ? areas?.nav : roomNavs[place];
   function interiorDoorNear(id) {
     const e = state.entities[id];
     if (!e || e.place === 'street') return null;
@@ -456,6 +475,25 @@ export function createGame(options) {
   // indoors come along. Others stay until ordered to move to the street.
   // Whoever comes along lands in a little ring round the hero and follows him.
   const BRING_RADIUS = 12;
+  // Through the island gate (W3.5): the hero's group comes along, the selected crew and anyone
+  // following him, if they are near the gate; they keep following him on the other side.
+  const GATE_RADIUS = 14;
+  function gateCrew(hero, from, d, ids = []) {
+    areas.update(Object.values(state.entities));   // the hero is through: wake the chunks round him
+    const grid = navOf(d.place);
+    const group = Object.values(state.entities).filter(u => u.owner === hero.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed
+      && u.place === from && Math.hypot(u.x - d.x, u.z - d.z) < GATE_RADIUS && ((ids || []).includes(u.id) || (u.order?.kind === 'follow' && u.order.target === hero.id))
+      && deployment.canActAt(u, d.to.x, d.to.z, d.place));
+    group.forEach((u, k) => {
+      const [ox, oz] = followOffset(k % 36);
+      const [x, z] = grid.nearestFree(hero.x + ox * 0.8, hero.z + oz * 0.8) || [hero.x, hero.z];
+      Object.assign(u, { x, z, place: d.place, anim: 'idle' });
+      delete paths[u.id]; delete u.execute; delete u.swing; delete u.patrol; delete u.indoorDuty;
+      if (fight[u.id]) delete fight[u.id].target;
+      u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id);
+    });
+    areas.update(Object.values(state.entities));
+  }
   function bringCrew(hero, from, d, ids = []) {
     const out = d.place === 'street';
     if(!out&&from==='street')for(const id of ids||[]){const u=state.entities[id];
@@ -658,6 +696,7 @@ export function createGame(options) {
     state.news = [];         // this tick's big moments (boss knocked out or arrested, War Lantern knocked down), for the screen
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     state.dawn = state.dusk = false;
+    areas?.update(Object.values(state.entities));   // island chunks around the units out there (cheap when nobody moved chunk)
     leader.tick(lastNews);   // leader bounties for last tick's raids and Shakedowns
     rewards.renownTick(lastNews);   // property-clan Renown for the same moments
     if (state.clock && --state.clock.left <= 0) setNight(!state.night);
@@ -680,14 +719,32 @@ export function createGame(options) {
         if (stunned(e, state.tick) || e.brace || e.spearCombo) continue;
         const d = doorNear(c.id);
         // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
-        if (d?.to && deployment.canActAt(e, d.to.x, d.to.z, d.place) && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
+        if (d?.gate && state.match?.mode !== 'campaign') { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The gate to the island opens in a campaign' }; }
+        else if (d?.to && deployment.canActAt(e, d.to.x, d.to.z, d.place) && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
           const from = e.place;
           e.x = d.to.x; e.z = d.to.z; e.place = d.place;
-          if (e.type === 'hero') bringCrew(e, from, d, c.units);
+          delete paths[e.id];
+          if (e.type === 'hero') (d.gate ? gateCrew : bringCrew)(e, from, d, c.units);
         }
       }
       if (c.type === 'interiorDoor' && !stunned(e, state.tick)) toggleInteriorDoor(e);
       if (c.type === 'world') discovery.command(e, c);   // island map pins (sim/discovery.js)
+      // Dev-only instant travel (Tim 2026-11-02, for testing the island): campaign, dev build, hero on the
+      // street or the island; the hero's group comes along like through the gate.
+      if (c.type === 'travel' && areas && options.frontier?.dev && state.match?.mode === 'campaign' && e.type === 'hero' && !e.dead && !e.downed
+        && (e.place === 'street' || e.place === 'world') && (c.city ? gate : Number.isFinite(c.x) && Number.isFinite(c.z))) {
+        const from = e.place, old = { x: e.x, z: e.z };
+        if (c.city) {   // back into the city, just inside the gate (the capital on the World map)
+          Object.assign(e, { x: gate.inside[0], z: gate.inside[1], place: 'street', anim: 'idle' }); delete paths[e.id]; delete intents[e.id];
+          gateCrew(e, from, { x: old.x, z: old.z, to: { x: e.x, z: e.z }, place: 'street' }, c.units);
+          continue;
+        }
+        Object.assign(e, { x: c.x, z: c.z, place: 'world', anim: 'idle' });
+        areas.update(Object.values(state.entities));
+        const spot = areas.nav.nearestFree(c.x, c.z);
+        if (!spot) { Object.assign(e, old, { place: from }); const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'No dry land there to travel to' }; }
+        else { [e.x, e.z] = spot; delete paths[e.id]; delete intents[e.id]; gateCrew(e, from, { x: old.x, z: old.z, to: { x: e.x, z: e.z }, place: 'world' }, c.units); }
+      }
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'frontier' && frontier) frontier.command(e, c);   // towns keep running while the hero is down
@@ -909,7 +966,8 @@ export function createGame(options) {
     if (stunned(e, state.tick)) return;
     r *= roomBodyScales[e.place] || 1;
     let x = e.x + dx, z = e.z + dz;
-    for (const b of blockersNear(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
+    const near = e.place === 'world' && areas ? areas.blockersNear : blockersNear;
+    for (const b of near(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
       if (!(x + r > b.minX && x - r < b.maxX && z + r > b.minZ && z - r < b.maxZ)) continue;
       if (dx > 0) x = Math.min(x, b.minX - r - 1e-4);
       else if (dx < 0) x = Math.max(x, b.maxX + r + 1e-4);
@@ -943,5 +1001,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier };
+  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier };
 }

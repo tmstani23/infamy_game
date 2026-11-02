@@ -18,7 +18,7 @@ export function createDiscovery({ state, world }) {
   const off = world.capital.cityOffset || { x: 0, z: 0 };
   // indoors (rooms sit far off the street map, sim/interiors.js) counts as the capital point itself
   const worldPos = e => {
-    if (e.area === 'world') return { x: e.x, z: e.z };
+    if (e.area === 'world' || e.place === 'world') return { x: e.x, z: e.z };
     const out = !e.place || e.place === 'street';
     return { x: world.capital.x + (off.x || 0) + (out ? e.x : 0), z: world.capital.z + (off.z || 0) + (out ? e.z : 0) };
   };

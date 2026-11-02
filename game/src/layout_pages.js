@@ -5,7 +5,8 @@ export function createLayoutPages(root,id){
  const nav=document.createElement('nav');nav.className='layout-pages';nav.setAttribute('aria-label','Panel pages');
  const previous=document.createElement('button'),label=document.createElement('span'),next=document.createElement('button');
  previous.type=next.type='button';previous.textContent='‹ Previous';next.textContent='Next ›';
- nav.append(previous,label,next);root.appendChild(nav);
+ nav.append(previous,label,next);
+ const title=id==='controls'&&root.querySelector('h3');if(title)title.after(nav);else root.appendChild(nav);   // Controls: page buttons at the top (Tim 2026-11-02)
  let page=0,size=1,items=[],oldWidth=-1,oldHeight=-1,crewPages=[],oldGroups=[],oldCardHeight=0;
  const measured=new WeakMap();
  function paint(){

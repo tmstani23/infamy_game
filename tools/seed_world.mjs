@@ -28,7 +28,7 @@ const w = {
   size: bp.size,
   rules: R,
   capital: { x: bp.capital.x, z: bp.capital.z, name: bp.capital.name, port: { ...bp.capital.port },
-    cityOffset: { x: 0, z: 0, _note: 'placeholder, set in W3.2' } },
+    cityOffset: { x: 0, z: -150, _note: 'W3.5: the city sits 150 units north of the capital point, so its harbour meets the island coast' } },
   coast: bp.coast, islets: bp.islets,
   regions: bp.regions.map(r => ({ id: r.id, name: r.name, full: r.full, box: r.box, biome: null })),
   terrain: { cell: bp.cell, codes: bp.terrain.codes, rows: bp.terrain.rows.slice() },

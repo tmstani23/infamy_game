@@ -67,10 +67,10 @@ const getJSON = async url => {
 async function start() {
   setGameplayInput(false);
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier, worldChunks] = await Promise.all([
     getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json'), getJSON('data/world_chunks.json')]);
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
   const startSaves = createSaveStore(serverBackend('/saves'));
@@ -81,7 +81,7 @@ async function start() {
   status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world, frontier: DEV && frontier ? { ...frontier, dev: true } : frontier };   // the worker gets the same options, frontier included
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world, worldChunks, frontier: DEV && frontier ? { ...frontier, dev: true } : frontier };   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST };
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -105,8 +105,8 @@ async function start() {
   let view;
   try {
     view = await createView({
-      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms,
-      doors: game.doors.filter(d => !d.ninja || game.state.clans.player.kind === 'ninja'), units,   // back windows: Shinobi only
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world, worldChunks, cutouts,
+      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || game.state.match?.mode === 'campaign')), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');
@@ -263,7 +263,7 @@ async function start() {
   sound.subscribe(settings=>music.setSettings(settings));
   // Save files (frontier F1.6): written by the dev server into saves/. Same clan and hero only until the start screen can load.
   const saveStore=createSaveStore(serverBackend('/saves'));
-  const saveMeta=()=>({day:game.state.clock?.day??null,clan:game.state.clans.player?.kind??'player',mode:'classic'});
+  const saveMeta=()=>({day:game.state.clock?.day??null,clan:game.state.clans.player?.kind??'player',mode:game.state.match?.mode??'classic'});
   const saves={meta:saveMeta,list:()=>saveStore.list(),remove:n=>saveStore.remove(n),
     async save(name,label){await saveStore.write(name,await simClient.save(),{...saveMeta(),label});},
     async load(name){const file=await saveStore.read(name);
@@ -279,6 +279,7 @@ async function start() {
   $('mutebtn').addEventListener('click', e => { mute(); e.currentTarget.blur(); });
   // Pause (Tim 2026-10-27, single player): the sim stops stepping, drawing and menus keep going
   let paused = false;
+  let gatePlace = null;   // the hero's place last frame, for the gate fade
   const togglePause = () => { paused = !paused; $('pausedbanner').hidden = !paused; $('pausebtn').textContent = paused ? 'Resume (`)' : 'Pause (`)'; $('pausebtn').setAttribute('aria-pressed', String(paused)); };
   onKey(['Backquote', 'Pause'], togglePause);
   $('pausebtn').addEventListener('click', e => { togglePause(); e.currentTarget.blur(); });
@@ -323,7 +324,7 @@ async function start() {
     else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
     else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
   } });
-  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const mapZoom = factor => {
     const level = minimap.zoomBy(factor);
     $('minimapout').disabled = level <= 1;
@@ -334,7 +335,7 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
+  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
@@ -350,7 +351,7 @@ async function start() {
     const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
     const timer = timeLeft == null ? '' : ` · ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
     const owner = game.state.entities[heroId]?.owner;
-    return `Crew ${game.clans.crewOf(owner).length} (cap ${game.clans.crewCap(owner)}) · Day ${Math.min(s.day, s.cycles)}/${s.cycles}${timer} · ${parts.join(' · ')}`;
+    return `Crew ${game.clans.crewOf(owner).length} (cap ${game.clans.crewCap(owner)}) · ${game.state.match?.mode === 'campaign' ? `Campaign · Day ${s.day}` : `Day ${Math.min(s.day, s.cycles)}/${s.cycles}`}${timer} · ${parts.join(' · ')}`;
   };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
@@ -550,6 +551,9 @@ async function start() {
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned();
     fog.update(dt);
+    // through the island gate (W3.5): a one-second fade from black
+    { const place = game.state.entities[heroId]?.place;
+      if (place !== gatePlace) { if (gatePlace && (place === 'world' || gatePlace === 'world')) { const f = $('gatefade'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); } gatePlace = place; } }
     presentation.measure('world',()=>view.render(fog.seen(game.state), prev, clock.alpha(), dt, now, heroId));
     crewInput.drawMarkers($('lock'));
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));

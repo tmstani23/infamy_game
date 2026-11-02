@@ -14,7 +14,7 @@ const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sak
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ openTown = () => {}, root, deploymentRoot, game, district, world = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
+export function createGameMap({ openTown = () => {}, root, deploymentRoot, game, district, world = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
@@ -207,7 +207,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key">Q · Pawnshop · A · Bathhouse</div><div class="key">K · Sake brewery · R · Manor</div><div class="key">U · Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
-    const html = `<h4>Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}</h4>${rows}${quarters}${legend}`;
+    const html = `<h4>${st.match?.mode === 'campaign' ? `Campaign · day ${s.day}` : `Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}`}</h4>${rows}${quarters}${legend}`;
     if (side.innerHTML !== html) side.innerHTML = html;
   }
 
@@ -215,6 +215,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   // pins from the snapshot (sim/discovery.js). Drag pans, the wheel zooms, click a site or camp for its
   // box, right-click drops a pin with a note (right-click a pin removes it). Only reads the state.
   let tab = 'city', worldMap = null, worldCanvas = null, pinDraft = null, picked = null;
+  let travelTo = null;   // dev-only instant travel (Tim 2026-11-02): click empty ground on the World tab, then confirm
+  const canTravel = () => devTravel && game.state.match?.mode === 'campaign' && ['street', 'world'].includes(game.state.entities[heroId]?.place);
   const tabs = document.createElement('div'), worldSide = document.createElement('div');
   tabs.className = 'maptabs'; worldSide.className = 'worldside'; worldSide.hidden = true;
   if (world) {
@@ -244,13 +246,19 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       box = `<h4>Site ${esc(picked.id)}</h4><div class="key">${esc(region?.name || 'Region ' + picked.region)} · ${picked.tags.includes('coast') ? 'coast' : 'inland'}</div>`
         + (scouted.has(picked.id) ? Object.entries(picked.traits).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${TRAIT(v)}</b></div>`).join('')
           + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ' · harbor' : ''}</div>` : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
-    } else if (picked?.kind === 'camp') box = `<h4>${picked.campKind === 'bandit' ? 'Bandit camp' : picked.campKind === 'ruin' ? 'Ruin' : 'Cache'}</h4><div class="key">Tier ${picked.tier}</div>`;
+    } else if (picked?.kind === 'capital') box = `<h4>The Capital</h4><div class="key">Your home port city.</div>`;
+    else if (picked?.kind === 'camp') box = `<h4>${picked.campKind === 'bandit' ? 'Bandit camp' : picked.campKind === 'ruin' ? 'Ruin' : 'Cache'}</h4><div class="key">Tier ${picked.tier}</div>`;
     else if (picked?.kind === 'pin') box = `<h4>Your pin</h4><div class="key">${esc(picked.note || '(no note)')}</div><div class="key">Right-click it to remove.</div>`;
     const form = pinDraft ? '<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)"><button type="button" class="pinsave">Save pin</button> <button type="button" class="pincancel">Cancel</button>' : '';
     const legend = '<h4>Key</h4><div class="key"><i style="background:#e6c85a"></i>Site (hollow: not scouted)</div><div class="key"><i style="background:#be3228"></i>Camp</div>'
       + '<div class="key"><i style="background:#c82828"></i>The Capital</div><div class="key"><i style="background:#5adc78"></i>You</div><div class="key"><i style="background:#ff78c8"></i>Your pin</div>'
       + '<div class="key"><i style="background:#0a0e1c;border:1px solid #555"></i>Unexplored</div><div class="key">Drag: pan · Wheel: zoom · Right-click: pin</div>';
-    worldSide.innerHTML = `${box}${form}${legend}`;
+    const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">Your hero and the crew following him jump there at once.</div><button type="button" class="travelgo">Travel</button> <button type="button" class="travelcancel">Cancel</button>` : '';
+    worldSide.innerHTML = `${travel}${box}${form}${legend}`;
+    if (travelTo) {
+      worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
+      worldSide.querySelector('.travelcancel').addEventListener('click', () => { travelTo = null; drawWorldSide(); });
+    }
     if (pinDraft) {
       const note = worldSide.querySelector('.pinnote'); note.focus();
       const save = () => { send({ id: heroId, type: 'world', action: 'pin', x: pinDraft.x, z: pinDraft.z, note: note.value.trim() }); pinDraft = null; drawWorldSide(); };
@@ -280,6 +288,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     worldCanvas.addEventListener('click', e => {
       if (worldMap.wasDrag()) return;
       picked = worldMap.hit(...local(e));
+      travelTo = !canTravel() ? null : picked?.kind === 'capital' ? { city: true } : !picked ? canvasToWorldPoint(...local(e)) : null;
       if (picked?.kind === 'town' && picked.owner === clan && picked.stock) { card.hidden = true; openTown(picked.id); return; }   // your town: the full panel (F4.4d)
       drawWorldSide();
     });
@@ -308,7 +317,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   function open() {
     root.hidden = false;
     // M opens straight to World while the hero is out on the island (W3 puts heroes there)
-    if (world && game.state.entities[heroId]?.area === 'world') setTab('world');
+    if (world && game.state.entities[heroId]?.place === 'world') setTab('world');
     deploymentData.update(true, true);
     if (!map) {
       // made on first open, when the canvas has its size on screen

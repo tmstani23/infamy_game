@@ -12,8 +12,12 @@ export const DIFFICULTY_CHOICES = [
   { id: 'medium', name: 'Medium', about: 'Adaptive rivals using their full ability kits.' },
   { id: 'hard', name: 'Hard', about: 'Faster reactions, bolder hunts and more aggressive raids.' },
 ];
-export function matchOptions({ clan = 'yakuza', difficulty = 'easy' } = {}) {
+// mode (frontier F0.4): 'classic' = today's city game with its season; 'campaign' = city plus the island
+// (the gate opens, W3.5). Only 'classic' is offered on the start screen until the campaign is playable.
+export const MODES = ['classic', 'campaign'];
+export function matchOptions({ clan = 'yakuza', difficulty = 'easy', mode = 'classic' } = {}) {
   if (!CLAN_CHOICES.some(c => c.id === clan)) throw new Error(`Unknown clan: ${clan}`);
   if (!DIFFICULTY_CHOICES.some(d => d.id === difficulty)) throw new Error(`Unknown difficulty: ${difficulty}`);
-  return { clan, difficulty };
+  if (!MODES.includes(mode)) throw new Error(`Unknown mode: ${mode}`);
+  return { clan, difficulty, mode };
 }

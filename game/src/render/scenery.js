@@ -110,14 +110,24 @@ function buildSplats(zones, SB) {
   return [pack(CHANNELS.slice(0, 4)), pack(CHANNELS.slice(4))];
 }
 
+// the ground textures, loaded once and shared (the city ground and the island, render/world_ground.js)
+let groundTextures = null;
+export function loadGroundTextures(renderer) {
+  return groundTextures ||= (async () => {
+    const textures = {};
+    await Promise.all(Object.entries(GROUND_TEXTURES).map(async ([k, name]) => {
+      const t = await loadTex(`art/ground/${name}.jpg`);
+      t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
+      t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      textures[k] = t;
+    }));
+    return textures;
+  })();
+}
+export const GROUND_CHANNELS = CHANNELS;
+
 export async function buildGround(zones, renderer, bounds = { minX: -46, maxX: 46, minZ: -46, maxZ: 46 }) {
-  const textures = {};
-  await Promise.all(Object.entries(GROUND_TEXTURES).map(async ([k, name]) => {
-    const t = await loadTex(`art/ground/${name}.jpg`);
-    t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
-    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    textures[k] = t;
-  }));
+  const textures = await loadGroundTextures(renderer);
   const SB = splatBounds(bounds);
   const [a, b] = buildSplats(zones, SB);
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(SB[2], SB[3]),
@@ -145,8 +155,9 @@ function alphaMask(img, flip = false) {
 
 const colorOf = c => new THREE.Color(c);
 
-// One building or prop from sim/geometry.js placeScenery()
-function cutoutThing(s, tex) {
+const maskCache = new WeakMap();
+// One building or prop from sim/geometry.js placeScenery() (exported for the island, render/world_ground.js)
+export function cutoutThing(s, tex) {
   const { item, meta, k, center, flip, indoor } = s;
   const C = new THREE.Vector3(s.x, 0, s.z);
   // hanging things are drawn higher up (the lift is a height in world units)
@@ -183,7 +194,10 @@ function cutoutThing(s, tex) {
   const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2, s.shear || 0, s.topShear || 0);
   thing.building = s.building ?? null;   // index in the district's buildings (street buildings only)
   thing.prop = s.prop ?? null;           // index in the district's props (a snuffed lantern goes dark, sim/stealth.js)
-  if (thing.big) thing.mask = alphaMask(tex.image, flip);
+  if (thing.big) {   // one see-through map per image (the island draws many of the same tree)
+    const masks = maskCache.get(tex) || maskCache.set(tex, {}).get(tex);
+    thing.mask = masks[flip ? 1 : 0] ||= alphaMask(tex.image, flip);
+  }
 
   // lamps: a world position for the light, and a glow drawn on the sprite
   const lamp = (x, y, radius, color, fire) => {
@@ -253,6 +267,7 @@ export function doorRings(doors) {
     m.rotation.x = -Math.PI / 2;
     m.position.set(d.x, 0.02, d.z);
     m.renderOrder = d.ninja ? 99800 : 1;   // a back window ring shows through the wall in front of it
+    if (d.gate) m.scale.setScalar(1.8);   // the island gate: a bigger ring (W3.5)
     m.userData.door = d;
     return m;
   });

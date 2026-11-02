@@ -161,3 +161,4 @@ Process note (W1, 2026-11-02): validate design-tool output (generators, previews
 Process note (W2, 2026-11-02): re-run `node tools/seed_world.mjs` after editing `rules` so `world.json` keeps its formatting.
 Process note (F2, 2026-11-02): when a new fixture town is added, older tests that count ledger entries must filter by settlement.
 Process note (F4, 2026-11-02): check that a dev save exists before telling Tim to load it.
+Process note (W3, 2026-11-02): card file lists missed `crew_step.js`, `crew_orders.js`, `minimap.js` and `match_options.js` (campaign mode did not exist yet); when a card adds a new place or mode, search for every caller first.

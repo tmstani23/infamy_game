@@ -146,8 +146,11 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     const grid = deployment.navFor(e) || navOf(e.place);
     if (!grid) paths[e.id] = { pts: [[gx, gz]], gx, gz };   // a place with no walk grid: walk straight
     let p = paths[e.id];
-    if (!p || Math.hypot(p.gx - gx, p.gz - gz) > 1.2 || !p.pts.length) {
-      p = paths[e.id] = { pts: grid.findPath(e.x, e.z, gx, gz) || [], gx, gz };
+    // replanAt (island paths, sim/areas.js): only the first part of a long trip is walked in detail;
+    // when just the rough waypoints are left, ask again from here
+    if (!p || Math.hypot(p.gx - gx, p.gz - gz) > 1.2 || !p.pts.length || (p.replanAt && p.pts.length <= p.replanAt)) {
+      const pts = grid.findPath(e.x, e.z, gx, gz) || [];
+      p = paths[e.id] = pts.replanAt ? { pts, gx, gz, replanAt: pts.replanAt } : { pts, gx, gz };
       if (!p.pts.length) return false;
     }
     // the last leg goes straight at the live goal (keeps up with a moving hero or enemy)

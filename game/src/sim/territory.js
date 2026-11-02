@@ -124,7 +124,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
     const s = state.season;
     if (state.dawn && !s.over) {
       s.day++;
-      if (s.day > s.cycles) {
+      if (s.day > s.cycles && state.match?.mode !== 'campaign') {   // a campaign has no season end (frontier F0.4, Tim 2026-11-01)
         s.over = true;
         s.final = standings();
         s.winner = s.final.length && (s.final.length < 2 || s.final[0].score > s.final[1].score) ? s.final[0].clan : null;   // null = a draw
