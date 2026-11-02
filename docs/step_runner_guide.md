@@ -28,7 +28,8 @@ stops, reports what failed, and the step is re-run on the default model.
 
 1. `START_HERE.md` and `docs/usage.md`.
 2. This guide.
-3. Its one step card, plus the files the card names. No other docs, no docs catch-up.
+3. The WHOLE plan, `docs/frontier_build_steps.md` (Tim's rule, 2026-11-02).
+4. Its one step card, plus the files the card names. No other docs, no docs catch-up.
 
 If the step needs a file the card does not name, read it only to find one function, with `grep`
 and a short `sed -n` range, never the whole file.

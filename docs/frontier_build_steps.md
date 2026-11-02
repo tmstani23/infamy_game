@@ -17,7 +17,7 @@ session, read it before doing anything else.
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
-- [ ] **F0** Ready: [x] F0.1 snapshot · [ ] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (after F1.6b)
+- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (after F1.6b)
 - [ ] **F1** Save/load: [ ] 1.1 · [ ] 1.2 · [ ] 1.3 batches (list: ) · [ ] 1.4 · [ ] 1.5 · [ ] 1.6 · [ ] 1.6b · [ ] 1.7 playtest
 - [ ] **W1** World data: [ ] W1.1 choices · [ ] W1.2 · [ ] W1.3 generate · [ ] W1.4 steer · [ ] W1.5 tool (optional)
 - [ ] **W2** World map: [ ] W2.1 mock · [ ] W2.2 · [ ] W2.3 · [ ] W2.4 · [ ] W2.5 playtest
@@ -33,14 +33,14 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F0.1 (Tim backed up 2026-11-01) · Next step: F0.2
+Last step done: F0.2 · Next step: F1.1
 
 ## Working in one long window (auto-compacting)
 
 Tim usually keeps one window that compacts itself instead of starting fresh sessions. That works if
 the doc, not the chat, carries the state:
 
-1. **Before every step, re-read** this doc's Progress checklist, the Shared design section and the
+1. **Before every step, re-read** this whole doc (Progress checklist, Shared design and every phase) and the
    one step card. Do not trust a summary of earlier chat for file names or numbers.
 2. **One step at a time.** Finish the card's check, then tick its box and update "Last step done /
    Next step" above, before starting the next card.
@@ -57,7 +57,7 @@ is enough). If Tim prefers, he can let the building thread tick boxes in this on
 - **One phase at a time.** A fresh session per phase is best; in one long window, follow the
   section above. Never try the whole plan in one go: early detail gets lost and usage runs out.
 - A phase session reads: `START_HERE.md`, `docs/usage.md`, `docs/step_runner_guide.md`, this
-  doc's **End-state architecture** and **Shared design** sections, and its own phase. Extra reads are listed per phase.
+  WHOLE doc (Tim's rule, 2026-11-02). Extra reads are listed per phase.
 - Inside a phase, SMALL steps can go to a cheaper model one card at a time; STRONG steps stay on
   the default model. A TIM step stops the phase until Tim answers.
 - Every phase ends the same way: all phase tests pass, the regression set shows no new failures,
@@ -212,7 +212,7 @@ state.frontier = {
 
 ## Phase F0: Ready to start
 
-Reads: this section only.
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02).
 
 ### F0.1. Classic snapshot  [TIM]
 Tim copies the current city game outside the project folder as the preserved Classic version, as
@@ -227,12 +227,14 @@ Tim OKs or edits these placeholder starting values (they go in `data/frontier.js
 | Starter resources | food, timber, stone, goods, ryo |
 | Food per person per economy tick | 0.01 |
 | Farm / lumber camp / quarry output per worker per tick | food 0.03 / timber 0.02 / stone 0.015 |
-| Workshop | 1 timber + 0.5 stone into 1 goods every 10 ticks per 2 workers |
-| House | housing 6, cost 20 timber |
-| Growth | +1 person every 30 ticks while housing is free and food is in surplus |
+| Workshop | 1 timber + 0.5 stone into 1 goods every 40 ticks per 2 workers |
+| House | housing 6, cost 15 timber |
+| Growth | +1 person every 60 ticks while housing is free and food is in surplus |
 | Fixture road length (tests and the `dev_frontier` save only) | 540 units; in the campaign, roads follow world corridors and take their real length |
 | Shipment speed | 3 units per second |
 | Frontier goods sold in the capital | goods 4 ryo, timber 1, stone 1 (market rules are open) |
+
+Approved by Tim 2026-11-02 with these tweaks.
 
 ### F0.3. Close current playtests (recommended)  [TIM]
 Shakedown, Sweep and the latest shop and item work are built and waiting on Tim's playtest. Closing
@@ -283,7 +285,7 @@ is also roadmap item 9 (load/save).
 Order note: F2 and F3 keep all their state in `state.frontier` and do not need F1, so F2 may be
 built before F1 if Tim wants to see the frontier sooner.
 
-Reads: Shared design, this phase, `docs/architecture.md` (first 80 lines only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/architecture.md` (first 80 lines only).
 
 ### F1.1. Find hidden state  [STRONG]
 Needs: F0
@@ -418,7 +420,7 @@ Goal (Tim, 2026-11-01): the whole island exists as data before anything else is 
 land, water, rivers, passes, settlement sites, resource nodes, road and rail corridors, and camps.
 Nothing is walkable yet.
 
-Reads: Shared design, this phase. Extra: `docs/frontier_campaign_plan.md` section "World map scale
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` section "World map scale
 and visual reference" only, and the `coast`, route and mountain arrays in
 `docs/images/frontier/measured-island.html` (about 60 lines).
 
@@ -520,7 +522,7 @@ Only if word steering gets slow: a dev page (`game/tools/world_editor.html`, ser
 
 Goal: the M map gets a World tab showing the island, with fog over what you haven't explored.
 
-Reads: Shared design, this phase. Extra: `game/src/game_map.js` (function list only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/game_map.js` (function list only).
 
 ### W2.1. Mock the world map  [TIM]
 A thread draws one mock image: atlas style (sumi-e land, gold detail, indigo sea) with the capital,
@@ -576,7 +578,7 @@ Open M → World, pan and zoom, click sites and camps, and check the look agains
 Goal: one frontier settlement that feeds itself, grows, builds and reports, with no graphics yet.
 Almost all SMALL: each card is one module with a pure test.
 
-Reads: Shared design, this phase. Extra: `game/src/sim/inventory.js` first 40 lines (module style).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/inventory.js` first 40 lines (module style).
 
 ### F2.1. Frontier data file  [SMALL]
 Needs: F0.2
@@ -798,7 +800,7 @@ Goal: Tim can read a town's report and steer it. (The world map moved to W2, wal
 grids to W3.2 and the town in the world to E5.) It can be built right after F2, using the
 fixture towns in the `dev_frontier` save.
 
-Reads: Shared design, this phase. Extra: `game/src/building_panel.js` (first 60 lines).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/building_panel.js` (first 60 lines).
 
 ### F4.1. Mock the town panel  [TIM]
 A thread draws one mock image (no browser runs) of the town panel: stocks, pop and housing, jobs,
@@ -901,7 +903,7 @@ Goal: the hero walks out of the city gate into the island. Ground loads in chunk
 sim loads chunks wherever a town or a battle needs them. This is the hardest technical phase: mostly
 STRONG.
 
-Reads: Shared design, this phase. Extra: `docs/frontier_campaign_plan.md` sections "Region streaming
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` sections "Region streaming
 and transitions" and "Navigation, placement and bounded queues" only.
 
 ### W3.1. Chunk design and prototype  [STRONG]
@@ -1019,7 +1021,7 @@ Watch Firefox memory and frame rate. Check that the ground looks right by biome.
 
 Goal: the island has things to find: camps, resource nodes and scoutable sites.
 
-Reads: Shared design, this phase. Extra: `game/src/sim/bandits.js` (function list only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/bandits.js` (function list only).
 
 ### W4.1. Camp rules  [TIM]
 Tim decides: bandit camp strength and respawn (proposed: cleared camps stay cleared for N days,
@@ -1083,7 +1085,7 @@ Goal (Tim, 2026-11-02): the city keeps a real job in the campaign instead of a 1
 the market, the recruiting ground and the seat of Influence, and the existing city operations become
 economic warfare that feeds or starves the frontier. A lieutenant runs it while the hero is away.
 
-Reads: Shared design, this phase. Extra: `game/src/sim/bot.js` (rule list and `createBot` only),
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/bot.js` (rule list and `createBot` only),
 `docs/rival_bot_plan.md` (first 40 lines).
 
 ### C1. Campaign city rules  [TIM]
@@ -1166,7 +1168,7 @@ Goal (Tim, 2026-11-01): the campaign begins with founding. You lead your hero, a
 settlers and riflemen into the wilderness, pick a site you like (for looks or for strategy), and
 found a town there.
 
-Reads: Shared design, this phase. Extra: `game/src/sim/clans.js` (hire function only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/clans.js` (hire function only).
 
 ### E1. Expedition rules  [TIM]
 **Decided (Tim, 2026-11-02):** an expedition is the hero, up to one crew group of 6, at least 5
@@ -1252,7 +1254,7 @@ drag it through other points; its length and terrain set the cost. Building it c
 cart travels with an escort that beats bandits and random trouble except in rare cases; enemy clans
 can raid roads (F6), but raids are capped and spaced out (F3.6).
 
-Reads: Shared design, this phase.
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02).
 
 ### F3.1. Road graph and connection state  [SMALL]
 Needs: E done (F2 for the rules; fixture road in tests)
@@ -1348,7 +1350,7 @@ shipments"; Tim playtest: watch a cart reach the city and the ryo arrive.
 ## Phase F5: Build your town
 
 Goal: the player clears land, zones it, and places roads, walls and gates, with the governor filling
-zones. Reads: Shared design, this phase. Extra: `game/src/input.js` (pointer handlers only).
+zones. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
 
 ### F5.1. Site grid and clearing  [SMALL]
 Needs: E done
@@ -1451,7 +1453,7 @@ yourself in (should refuse), watch it fill and grow.
 Goal: recruit troops at a barracks, march them on the road, and fight a real battle that runs the
 same whether or not anyone watches. This phase is the hardest and needs Tim's choices first.
 
-Reads: Shared design, this phase. Extra: `docs/combat_spec.md` (section list only),
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/combat_spec.md` (section list only),
 `game/src/sim/combat.js` (function list only).
 
 ### F6.1. Troop roster and rival town  [TIM]
@@ -1628,7 +1630,7 @@ Goal (Tim, 2026-11-02): attacking a frontier town is a real RTS siege. The attac
 breaks the walls and takes the town hall; defenders fortify buildings and shoot from them. Frontier
 towns only: the capital can't be attacked (F6.1).
 
-Reads: Shared design, this phase, F6.1. Extra: the War Lantern raid code (back-room hold only) and the city's building
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: the War Lantern raid code (back-room hold only) and the city's building
 interior setup (how a business's rooms are a separate place).
 
 ### F7.1. Siege rules  [TIM]
@@ -1711,7 +1713,7 @@ Goal (Tim, 2026-11-02): the wilds are worth exploring: native villages with thei
 one-time set-piece areas, and unique items you can only find out there. Builds on W4 (basic camps,
 nodes, the relation record) and runs after F7.
 
-Reads: Shared design, this phase, W4.1. Extra: the existing loot and item-slot code (function list
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: the existing loot and item-slot code (function list
 only).
 
 ### W5.1. Natives, areas and items list  [TIM]
