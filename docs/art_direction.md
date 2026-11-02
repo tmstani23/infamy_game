@@ -51,6 +51,7 @@
 - AI-painted isometric sheets (`assets/environment`), drawn on **invisible three.js block proxies** for collision, depth and fading.
 - Night darkens them and adds lantern glow. Flames (torches, campfires) are a **separate animated layer**, not the painted ones.
 - Ground is tiled from the texture sheets.
+- Frontier island art (W3.8/W3.9): generate the 25 sources listed in `assets/image_prompts.md`, then run `tools/import_island_art.mjs` for family-only alpha normalization and prop/ground outputs. `sim/island_art.js` deterministically assigns chunk-owned pieces; `render/world_ground.js` uses bounded streaming and disposes chunk masks. Fitting and art scale still require in-game review; see the [frontier checkpoint](frontier_campaign_plan.md#world-map-scale-and-visual-reference-revised-sketch-2026-11-01).
 
 ### Effects (Settled)
 

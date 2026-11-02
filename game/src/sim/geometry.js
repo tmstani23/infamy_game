@@ -32,6 +32,7 @@ export function artItem(catalog, name) {
     lift: a.lift ?? 0,                 // drawn this far above the floor (hanging lanterns)
     corner: !!a.corner,
     cord: a.cord ?? null,              // [x, y] art pixel where a hanging cord starts                // the art's lowest pixel is the front corner of a long box (alcoves, shelves)
+    artAnchor: a.artAnchor,
     file: a.file ?? `art/${kind}/${name}.png`,
   };
 }
@@ -70,7 +71,7 @@ export function placePiece(entry, catalog, cutouts) {
     flip: false, indoor: false, ...entry, item, meta, ...f,
     // An interior can calibrate the painted floor-contact pixel without moving
     // its recipe footprint or gameplay blocker.
-    center: entry.artAnchor ?? f.center,
+    center: entry.artAnchor ?? item.artAnchor ?? f.center,
     foot: rect(entry.x, entry.z, f.fa * shrink, f.fb * shrink),
     // Interior parts already provide their exact blockers, including surface-mounted props.
     solid: !entry.roomProp && item.solid > 0 ? rect(entry.x, entry.z, f.fa * item.solid, f.fb * item.solid) : null,

@@ -1,0 +1,177 @@
+[
+  {
+    "number": 9,
+    "file": "assets/environment/island/corner_in_snow.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nThe inner-corner shape of the forest inner corner in the snow style of the snow cliff. A CONCAVE recessed 90-degree notch opens toward the viewer. Two exposed blue-grey rock faces meet at the back upper centre, ground contact edges forming an upside-down V from lower left to upper centre to lower right. Open wedge toward bottom centre is transparent with NO floor. Snow on ledges, icicles, wind-scoured ribs, snowy pines on high-ground strips behind walls, fading out toward top. Match reference1 geometry exactly and reference2 snow materials.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 10,
+    "file": "assets/environment/island/rim_snow.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nSnow rim (far side): a low lip of snow-covered rocks with a couple of bent pines. Match reference1 low rim geometry, direction and length. Seen from the high-ground side looking over the far edge; land drops away behind it toward upper right OUT OF SIGHT. No tall visible cliff face. Snow-covered boulders and two bent snowy pines, same scale and material style as reference2. Narrow diagonal strip from upper left to lower right, about a third of image high locally, clean short ends.\n\nOutput exactly 1536 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 11,
+    "file": "assets/environment/island/cliff_dry_a.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry cliff, straight A. Same shape and direction as reference1: layered sandstone in ochre, rust and faded red, crumbling ledges, sparse dry scrub and one twisted pine. Dry rocky high ground with tufts of grass along the top, fading out to transparent toward upper right. Straight wall from upper left down to lower right slope 1 down per 2 across; visible rock face toward lower left. Match approved cliff height, length, scale and clean short end cuts. A modular wall piece, not a whole mountain.\n\nOutput exactly 1536 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 12,
+    "file": "assets/environment/island/cliff_dry_b.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry cliff, straight B. Same shape, direction, scale, wall height, length and endpoints as reference1, but different rock details: a wind-cut overhang, a fan of fallen rubble at the foot, a dead tree on the edge. Layered ochre, rust and faded red sandstone, crumbling ledges, sparse dry scrub. Dry rocky high-ground strip above fades toward transparent upper right. End cuts join straight A. No whole mountain.\n\nOutput exactly 1536 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 13,
+    "file": "assets/environment/island/corner_out_dry.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry cliff, outer corner. Match reference1 convex outer-corner geometry exactly: a V pointing at viewer, front projecting corner at bottom centre, exposed left face looking lower left and right face looking lower right. Both cliff faces wrap around projecting high ground. Use dry style of reference2: ochre/rust layered sandstone, crumbling ledges, sparse scrub, twisted pine, dry grass on upper ground fading transparent toward top. Same cliff and tree scale, clean outer end cuts for modular joins. NOT an inner notch.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 14,
+    "file": "assets/environment/island/corner_in_dry.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry cliff, inner corner. Match reference1 CONCAVE recessed corner geometry: two exposed cliff faces meet at the back upper centre, upside-down V ground contact edges extending to lower left and lower right. The open wedge toward viewer at bottom centre is transparent with no floor. Use reference2 dry style: layered ochre and rust sandstone, crumbling ledges, scrub and sparse dry grass on high-ground strips behind walls fading transparent toward top. Same scale and clean endpoints.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 15,
+    "file": "assets/environment/island/rim_dry.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry rim (far side). The low rim shape of reference1: a low lip of sun-bleached sandstone blocks and dry grass. Match geometry, size, length and slope from upper left to lower right. Use reference2's ochre, rust and faded-red dry biome. Viewed from high-ground side looking over low edge; drop is BEHIND toward upper right, invisible. No tall visible rock wall. Sparse grass and scrub only, no forest. Narrow strip with clean end cuts.\n\nOutput exactly 1536 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 16,
+    "file": "assets/environment/island/top_forest.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nForest high ground TEXTURE. Override camera and transparency from shared style: seen straight down from above, orthographic top-down, NOT isometric, fully opaque. A dense carpet of dark cedar and pine treetops with a few grey rock patches and mossy clearings. Tree crowns about 200 pixels wide, matching the reference pine from above. Seamless tileable texture: left continues into right, top into bottom, no edge fading, no borders, no directional composition, even overcast illumination without baked cast shadows.\n\nOutput exactly 1024 × 1024 PNG. Opaque seamless ground texture. No text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": false
+  },
+  {
+    "number": 17,
+    "file": "assets/environment/island/top_snow.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nSnow high ground TEXTURE. Override camera and transparency from shared style: straight-down orthographic top-down, NOT isometric, fully opaque. Wind-packed snow with dark blue-grey rock poking through and a few small snowy pine tops, same snow/rock colors and painted detail as reference. Seamless tileable texture: left continues into right, top into bottom. No edge fading, vignette, border or directional composition, evenly lit without baked cast shadows.\n\nOutput exactly 1024 × 1024 PNG. Opaque seamless ground texture. No text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": false
+  },
+  {
+    "number": 18,
+    "file": "assets/environment/island/top_dry.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry high ground TEXTURE. Override camera and transparency from shared style: straight-down orthographic top-down, NOT isometric, fully opaque. Cracked ochre and rust rock, gravel, dry grass tufts and a few dark scrub bushes. Same biome palette and painterly material detail as reference. Seamless tileable texture, left continues into right, top into bottom. No edge fading, vignette, border or baked cast shadows, even overcast lighting.\n\nOutput exactly 1024 × 1024 PNG. Opaque seamless ground texture. No text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": false
+  },
+  {
+    "number": 19,
+    "file": "assets/environment/island/outcrop_moss.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nMossy granite outcrop. A cluster of rounded granite boulders, about as tall as one tree, moss and ferns in the cracks. Single isolated standing prop, entire boulder cluster visible with transparent margin. Same weathered grey granite and dark olive moss/fern palette as reference1, same pine-tree scale and painted material detail as reference2. No tall cliff wall, no forest of tiny trees, no terrain platform or ground plane.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 20,
+    "file": "assets/environment/island/outcrop_snow.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nSnowy rock outcrop. Angular dark blue-grey rocks half buried in snow, icicles on one overhang, about as tall as one tree. Single isolated standing prop, entire cluster visible with transparent margin. Match reference1 snow/rock painterly style and reference2 scale, not a tall cliff wall or mountain. No ground plane or terrain platform.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 21,
+    "file": "assets/environment/island/outcrop_dry.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nDry rock outcrop. Split sandstone blocks with dry grass tufts, sun-bleached, about as tall as one tree. Single isolated standing prop, entire cluster visible with transparent margin. Match reference1 layered ochre and rust stone style, reference2 tree scale. No mountain, tall cliff wall, or extra terrain platform.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 22,
+    "file": "assets/environment/island/pass_gate.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nMountain pass gateway. A narrow stone path between two SHORT rock walls, weathered gate frame of plain wooden posts and a crossbeam (no writing), a small stone marker, a rope with paper strips, two wind-bent pines. Path runs from lower left to upper right. Posts are about TWO people tall (person about75px tall), trees about200px wide. 1870s Japanese mountain pass, plain timber gate not grand temple. Match reference rock and foliage painting. Isolated complete landmark cutout with transparent margin, only described path strip, no surrounding landscape or background.\n\nOutput exactly 1536 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 23,
+    "file": "assets/environment/island/river_ford.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nRiver ford ground DECAL. Override shared isometric camera: seen STRAIGHT DOWN FROM ABOVE, orthographic top-down, laid flat on ground. Shallow river crossing with flat stepping stones and gravel bars, clear water rippling over them, river running TOP TO BOTTOM of image. Water and banks fade gently to TRUE TRANSPARENT ALPHA toward ALL FOUR edges. Crossing reads left to right over river. Same muted painted natural materials as references, no perspective, horizon, standing cutout, surrounding backdrop, hard square edge or solid background.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 24,
+    "file": "assets/environment/island/lake_edge.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nLake edge ground DECAL. Override shared isometric camera: seen STRAIGHT DOWN FROM ABOVE, orthographic top-down, laid flat on ground. Curved stretch of lake shore with reeds, a few wet rocks and a fallen log half in water. Dark still water on one side, shore on other, EVERYTHING fades gently to true transparent alpha toward edges. Muted painted natural materials consistent with reference, no horizon, perspective, standing cutout, backdrop or hard square edge.\n\nOutput exactly 1024 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "number": 25,
+    "file": "assets/environment/island/city_gate.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nTown gate on the forest road. Wooden town gate: two thick dark-timber posts with a heavy crossbeam and small tiled roof, pair of open plank doors swung back, short stretches of rough timber palisade on both sides, hanging paper lantern on EACH post, worn dirt road running through from lower left to upper right, a few pines behind. Posts are about THREE people tall; person about75px tall, tree about200px wide. 1870s Japan, weathered painted timber and roof tiles, same pine and material style as reference. Complete isolated game landmark with some transparent margin, only described road strip, no extra landscape, cast background shadow, UI or writing.\n\nOutput exactly 1536 × 1024 PNG. Genuine transparent alpha background. No backdrop, no cast shadow on background, no text, border or frame.\nReference images provide approved modular geometry/materials where specified; the final reference is the game's pine_tree.png for painterly style and consistent tree size. Keep the approved scale across this whole asset family.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  },
+  {
+    "file": "assets/environment/island/outcrop_moss.png",
+    "prompt": "Edit the attached outcrop asset. Remove BOTH pine trees completely, including their trunks, branches, roots and foliage. Keep only a compact cluster of rounded weathered grey granite boulders, moss and small ferns in the cracks. Where trees were, show rocks/moss as appropriate or transparent empty space. Round the boulder silhouettes a little to read as natural granite boulders rather than a straight wall. Preserve the semi-realistic painted game style, muted palette, soft upper-left overcast light, 2:1 isometric projection and detailed natural rock surfaces. No extra ground plane, no backdrop or cast shadow. Center the complete isolated rock cluster with empty transparent margin, 1024 × 1024 PNG with genuine alpha transparency. No trees, no text, no border.",
+    "tool": "imagegen",
+    "revision": "remove unrequested trees",
+    "preservedDraft": "to_delete/island_art_drafts/outcrop_moss_with_trees.png"
+  },
+  {
+    "file": "assets/environment/island/outcrop_snow.png",
+    "prompt": "Edit the attached outcrop asset. Remove ALL pine trees and all shrubs completely, including trunks, branches, foliage and roots. Keep only a compact cluster of angular dark blue-grey rocks half buried in natural snow, with icicles on ONE overhang. A few large irregular rocks, not a long modular cliff wall. Preserve the semi-realistic painted game style, muted palette, soft upper-left overcast light, 2:1 isometric projection and detailed natural rock surfaces. No extra ground plane, no backdrop or cast shadow. Center the complete isolated rock cluster with empty transparent margin, 1024 × 1024 PNG with genuine alpha transparency. No trees, no text, no border.",
+    "tool": "imagegen",
+    "revision": "remove unrequested trees",
+    "preservedDraft": "to_delete/island_art_drafts/outcrop_snow_with_trees.png"
+  },
+  {
+    "file": "assets/environment/island/city_gate_se.png",
+    "prompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: the camera looks down at about 27 degrees from the south-east, so lines running along the ground go diagonally at a gentle slope (1 down for every 2 across). Scale: each tree is about 200 pixels wide, so only about 7 trees fit across a 1536-pixel-wide image; a person would be about 75 pixels tall. Fully transparent background, no text, no border.\n\nCreate the matching OTHER-ORIENTATION variant of the attached wooden town gate. Reorient the entire gate structure in the world by 90 degrees so the worn dirt road runs from UPPER LEFT, through the gate opening, toward LOWER RIGHT on the screen: a downward-to-the-right SE diagonal with a slope of 1 down for 2 across. The road must visibly continue into the LOWER-RIGHT foreground. The gate crossbeam, tiled roof ridge and flanking palisade run perpendicular to that road, from lower left toward upper right. Keep the isometric camera fixed. This is a second physical orientation of the same gate, not just rotating the flat image, and not the original road direction from lower left to upper right.\n\nPreserve the reference's exact architectural design, material detail, size and painterly style: two thick dark-timber posts, heavy crossbeam, small grey-tiled roof, two open plank doors swung back leaving a clear walkable opening, short rough timber palisades on both sides, one hanging paper lantern on each post, worn dirt road through the opening and a few matching pines behind. Posts about three people tall. Lighting remains from SCREEN UPPER LEFT after reorientation. Complete isolated game asset with some transparent margin. No text or writing, no backdrop, no extra ground plane outside the described road strip, no cast shadow on background, no border or frame. Output 1536 × 1024 PNG with genuine transparent alpha.",
+    "tool": "imagegen",
+    "width": 1536,
+    "height": 1024,
+    "transparent": true
+  }
+]

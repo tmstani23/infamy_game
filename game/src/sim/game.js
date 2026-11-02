@@ -1,3 +1,4 @@
+import {slideWorld} from './world_slide.js';
 import {separateUnits} from './separation.js';
 // The game rules. Holds the state and advances it one fixed tick at a time from
 // commands. No three.js and no DOM: in multiplayer a Colyseus server runs this
@@ -965,6 +966,7 @@ export function createGame(options) {
   function tryMove(e, r, dx, dz) {
     if (stunned(e, state.tick)) return;
     r *= roomBodyScales[e.place] || 1;
+    if(e.place==='world'&&areas){const [x,z]=slideWorld(e.x,e.z,r,dx,dz,areas.blockersNear,options.worldChunks?.islandArt?.cornerSlip??.6);if(deployment.canOccupy(e,x,z)){e.x=x;e.z=z;}return;}
     let x = e.x + dx, z = e.z + dz;
     const near = e.place === 'world' && areas ? areas.blockersNear : blockersNear;
     for (const b of near(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {

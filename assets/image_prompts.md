@@ -156,12 +156,11 @@ Using the attached image as a style reference, make a sheet of separate item con
 
 ## Island art (W3.8, frontier)
 
-Drafted 2026-11-02, rewritten the same day (mountains are now cliff pieces plus high-ground textures, 25 images), approved by Tim. **Check off each image (`- [ ]` to `- [x]`) once it is made and saved**; when an item is done, ChatGPT can also say "done" and Tim ticks it here. Until all exist, the island uses scaled boulders as mountain placeholders and a big door ring plus a lantern post (G on the minimap) as the city gate; the cut-in is step W3.9.
+Drafted and approved 2026-11-02 (mountains are cliff pieces plus high-ground textures, 25 images). All 25 files exist in `assets/environment/island/`; W3.8 art generation is complete. W3.9 import/fitting/placement is implemented; texture tiling, scale and overall appearance still need Tim’s in-game review.
 
-### Instructions for ChatGPT (read this first, then start)
+### Original generation brief (completed 2026-11-02)
 
-You are making art for an isometric painted game set on an island near an 1870s Japanese port town.
-Make the 25 images below **one at a time** with your image generation tool, in the order listed.
+The prompts below are retained as the source brief for the generated assets. The 25 images are complete; W3.9 fitting is implemented, with in-game art review pending.
 
 **Reference images:** I will attach `pine_tree.png` (a tree from the game) and a screenshot of the
 game. Match their painting style, colours and **tree size**: the trees in every image must look like
@@ -195,101 +194,101 @@ a low rocky lip from behind.
 
 ### Mountain pieces: forest (grey rock, dark cedar and pine)
 
-- [ ] 1. **Forest cliff, straight A**. File: `cliff_forest_a.png`
+- [x] 1. **Forest cliff, straight A**. File: `cliff_forest_a.png`
    A straight cliff wall about three tree-heights tall, running diagonally across the whole image from
    the upper left down to the lower right at the isometric slope. Its rock face looks toward the
    lower left (toward the viewer): grey weathered granite, ledges with ferns, a few pines clinging on.
    Along its top edge, a strip of dense cedar and pine forest on the high ground, fading out to
    transparent toward the upper right. Both short ends are cut off cleanly so pieces can be placed
    end to end.
-- [ ] 2. **Forest cliff, straight B**. File: `cliff_forest_b.png`
+- [x] 2. **Forest cliff, straight B**. File: `cliff_forest_b.png`
    Same as straight A, the same direction, height and ends, but different rock detail: a narrow gully
    of loose stones, a small trickle of water, a fallen tree on a ledge.
-- [ ] 3. **Forest cliff, outer corner** (1024 × 1024). File: `corner_out_forest.png`
+- [x] 3. **Forest cliff, outer corner** (1024 × 1024). File: `corner_out_forest.png`
    The cliff turns a corner that points toward the viewer: a V shape with its point at the bottom
    centre. The left half runs from the upper left down to the point, its face looking lower left; the
    right half runs from the point up to the upper right, its face looking lower right. Forest on the
    high ground above, fading out to transparent at the top.
-- [ ] 4. **Forest cliff, inner corner** (1024 × 1024). File: `corner_in_forest.png`
+- [x] 4. **Forest cliff, inner corner** (1024 × 1024). File: `corner_in_forest.png`
    A notch in the cliff that opens toward the viewer: two cliff faces meeting at the back, an
    upside-down V with its peak at the top centre. The left face runs from the peak down to the lower
    left, the right face from the peak down to the lower right; both faces are visible. Forest on the
    high ground behind, fading out to transparent at the top.
-- [ ] 5. **Forest rim (far side)**. File: `rim_forest.png`
+- [x] 5. **Forest rim (far side)**. File: `rim_forest.png`
    The far edge of the high ground seen from behind: a low lip of mossy boulders and a few pines
    running diagonally from the upper left to the lower right, no taller than a third of the image. The
    ground drops away behind it (toward the upper right), out of sight.
 
 ### Mountain pieces: snow (blue-grey rock, snow, a few dark pines)
 
-- [ ] 6. **Snow cliff, straight A**. File: `cliff_snow_a.png`
+- [x] 6. **Snow cliff, straight A**. File: `cliff_snow_a.png`
    Same shape and direction as item 1: a cliff of dark blue-grey rock with snow on every ledge,
    icicles, wind-scoured rock ribs, a few dark pines at the foot. Snowy high ground along the top,
    fading out to transparent toward the upper right.
-- [ ] 7. **Snow cliff, straight B**. File: `cliff_snow_b.png`
+- [x] 7. **Snow cliff, straight B**. File: `cliff_snow_b.png`
    Same as item 6 with different detail: a frozen waterfall in a cleft, cornices of snow overhanging
    the top.
-- [ ] 8. **Snow cliff, outer corner** (1024 × 1024). File: `corner_out_snow.png`
+- [x] 8. **Snow cliff, outer corner** (1024 × 1024). File: `corner_out_snow.png`
    The outer-corner shape of item 3, in the snow style of item 6.
-- [ ] 9. **Snow cliff, inner corner** (1024 × 1024). File: `corner_in_snow.png`
+- [x] 9. **Snow cliff, inner corner** (1024 × 1024). File: `corner_in_snow.png`
    The inner-corner shape of item 4, in the snow style of item 6.
-- [ ] 10. **Snow rim (far side)**. File: `rim_snow.png`
+- [x] 10. **Snow rim (far side)**. File: `rim_snow.png`
     The rim shape of item 5: a low lip of snow-covered rocks with a couple of bent pines.
 
 ### Mountain pieces: dry (layered ochre and rust stone, scrub)
 
-- [ ] 11. **Dry cliff, straight A**. File: `cliff_dry_a.png`
+- [x] 11. **Dry cliff, straight A**. File: `cliff_dry_a.png`
     Same shape and direction as item 1: layered sandstone in ochre, rust and faded red, crumbling
     ledges, sparse dry scrub and one twisted pine. Dry rocky high ground with tufts of grass along
     the top, fading out to transparent toward the upper right.
-- [ ] 12. **Dry cliff, straight B**. File: `cliff_dry_b.png`
+- [x] 12. **Dry cliff, straight B**. File: `cliff_dry_b.png`
     Same as item 11 with different detail: a wind-cut overhang, a fan of fallen rubble at the foot,
     a dead tree on the edge.
-- [ ] 13. **Dry cliff, outer corner** (1024 × 1024). File: `corner_out_dry.png`
+- [x] 13. **Dry cliff, outer corner** (1024 × 1024). File: `corner_out_dry.png`
     The outer-corner shape of item 3, in the dry style of item 11.
-- [ ] 14. **Dry cliff, inner corner** (1024 × 1024). File: `corner_in_dry.png`
+- [x] 14. **Dry cliff, inner corner** (1024 × 1024). File: `corner_in_dry.png`
     The inner-corner shape of item 4, in the dry style of item 11.
-- [ ] 15. **Dry rim (far side)**. File: `rim_dry.png`
+- [x] 15. **Dry rim (far side)**. File: `rim_dry.png`
     The rim shape of item 5: a low lip of sun-bleached sandstone blocks and dry grass.
 
 ### High-ground textures (the top of a range, tiled flat on the ground)
 
-- [ ] 16. **Forest high ground** *(texture, 1024 × 1024, not transparent)*. File: `top_forest.png`
+- [x] 16. **Forest high ground** *(texture, 1024 × 1024, not transparent)*. File: `top_forest.png`
     Seen straight down from above, not isometric: a dense carpet of dark cedar and pine treetops with
     a few grey rock patches and mossy clearings. Tree crowns the same size as the reference pine seen
     from above. Seamless: the left edge must continue into the right edge and the top into the bottom.
-- [ ] 17. **Snow high ground** *(texture, 1024 × 1024, not transparent)*. File: `top_snow.png`
+- [x] 17. **Snow high ground** *(texture, 1024 × 1024, not transparent)*. File: `top_snow.png`
     Seen straight down: wind-packed snow with dark rock poking through and a few small snowy pine tops.
     Seamless.
-- [ ] 18. **Dry high ground** *(texture, 1024 × 1024, not transparent)*. File: `top_dry.png`
+- [x] 18. **Dry high ground** *(texture, 1024 × 1024, not transparent)*. File: `top_dry.png`
     Seen straight down: cracked ochre and rust rock, gravel, dry grass tufts, a few dark scrub bushes.
     Seamless.
 
 ### Rock outcrops (standing props, to break up edges and fill gaps)
 
-- [ ] 19. **Mossy granite outcrop** (1024 × 1024). File: `outcrop_moss.png`
+- [x] 19. **Mossy granite outcrop** (1024 × 1024). File: `outcrop_moss.png`
     A cluster of rounded granite boulders, about as tall as one tree, moss and ferns in the cracks.
-- [ ] 20. **Snowy rock outcrop** (1024 × 1024). File: `outcrop_snow.png`
+- [x] 20. **Snowy rock outcrop** (1024 × 1024). File: `outcrop_snow.png`
     Angular dark rocks half buried in snow, icicles on one overhang, about as tall as one tree.
-- [ ] 21. **Dry rock outcrop** (1024 × 1024). File: `outcrop_dry.png`
+- [x] 21. **Dry rock outcrop** (1024 × 1024). File: `outcrop_dry.png`
     Split sandstone blocks with dry grass tufts, sun-bleached, about as tall as one tree.
 
 ### Landmarks
 
-- [ ] 22. **Mountain pass gateway**. File: `pass_gate.png`
+- [x] 22. **Mountain pass gateway**. File: `pass_gate.png`
     A narrow stone path between two short rock walls, a weathered gate frame of plain wooden posts and
     a crossbeam (no writing), a small stone marker, a rope with paper strips, two wind-bent pines.
     The path runs from the lower left to the upper right. The posts are about two people tall.
-- [ ] 23. **River ford** *(1024 × 1024)*. File: `river_ford.png`
+- [x] 23. **River ford** *(1024 × 1024)*. File: `river_ford.png`
     Seen **straight down from above** (not isometric), because it is laid flat on the ground: a
     shallow river crossing with flat stepping stones and gravel bars, clear water rippling over them,
     the river running from the top to the bottom of the image. The water and banks fade out to
     transparent toward all four edges.
-- [ ] 24. **Lake edge** *(1024 × 1024)*. File: `lake_edge.png`
+- [x] 24. **Lake edge** *(1024 × 1024)*. File: `lake_edge.png`
     Seen **straight down from above**, laid flat on the ground: a curved stretch of lake shore with
     reeds, a few wet rocks and a fallen log half in the water. Dark still water on one side, the shore
     on the other, everything fading out to transparent toward the edges.
-- [ ] 25. **Town gate on the forest road**. File: `city_gate.png`
+- [x] 25. **Town gate on the forest road**. File: `city_gate.png`
     A wooden town gate: two thick dark-timber posts with a heavy crossbeam and a small tiled roof, a
     pair of open plank doors swung back, short stretches of rough timber palisade on both sides, a
     hanging paper lantern on each post, a worn dirt road running through it from the lower left to
@@ -299,10 +298,9 @@ a low rocky lip from behind.
 
 - **Before:** attach `game/art/props/pine_tree.png` and one game screenshot in the same message as
   this file, so ChatGPT matches the style and tree size.
-- **After:** save all 25 into `assets/environment/island/` with the file names above. Skip
-  `mountain_forest_broad.png` from the first try; it is not used. If an image has a white or checkered
-  background instead of real transparency, note it: the cut-in step (W3.9) can remove a plain
-  background. Then tell Claude they are in and W3.9 can start.
+- **After:** all 25 files are saved in `assets/environment/island/`. The earlier
+  `mountain_forest_broad.png` concept is obsolete and preserved. W3.9 fitted assets use the importer
+  and render pipeline documented in `docs/frontier_campaign_plan.md`; visual review is pending.
 - Only one cliff direction is drawn. The game mirrors each piece for the other side (east faces), so
   the light is mirrored there too, which the soft overcast light hides.
 

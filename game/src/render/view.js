@@ -80,7 +80,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   for (const d of rings) scene.add(d);
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
-  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds }) : null;
+  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street') }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);

@@ -10,6 +10,7 @@
 // cfg is game/data/world_chunks.json. city (optional) = { minX, maxX, minZ, maxZ } in island
 // coordinates: the walled city is a blocker on the island (the way in is its gate, W3.5).
 import { terrainAt, passable } from './world_data.js';
+import {islandArt} from './island_art.js';
 
 export const chunkId = (cx, cz) => `c${cx}_${cz}`;
 
@@ -91,10 +92,11 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
         const x = x0 + (j + rng()) * tc, z = z0 + (i + rng()) * tc;
         const s = k.scale[0] + (k.scale[1] - k.scale[0]) * rng();
         if (code !== 'm' && (!passable(world, x, z) || !clearAt(x, z))) continue;
+        if(cfg.islandArt?.enabled&&k.kind==='mountain')continue;
         props.push({ kind: k.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
         if (k.block > 0) { const b = k.block * s; blockers.push({ minX: x - b, maxX: x + b, minZ: z - b, maxZ: z + b, kind: k.kind }); }
       }
     }
   }
-  return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props };
+  return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props, art:islandArt(world,cfg,cx,cz) };
 }

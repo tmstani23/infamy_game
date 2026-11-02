@@ -9,6 +9,8 @@
 //   recently used are dropped past a small cache (src/world_stream.js decides, Node-tested).
 import * as THREE from 'three';
 import { buildChunk, cityOnIsland } from '../sim/chunk_gen.js';
+import {islandBiome} from '../sim/island_art.js';
+import {spriteMaterial} from './shading.js';
 import { terrainAt } from '../sim/world_data.js';
 import { placePiece } from '../sim/geometry.js';
 import { groundMaterial } from './shading.js';
@@ -31,14 +33,17 @@ const GROUND = {
 const SPLAT_RES = 0.5;   // weight-map pixels per world unit
 const TRAIL = 3;         // half width of a corridor trail
 
-export function createWorldGround({ scene, renderer, world, cfg, catalog, cutouts, bounds }) {
+export function createWorldGround({ scene, renderer, world, cfg, catalog, cutouts, bounds, gate }) {
   const S = cfg.chunk, seed = world.seed ?? 1, city = cityOnIsland(world, bounds);
   const cols = Math.ceil(world.size.w / S), rows = Math.ceil(world.size.h / S);
   const loaded = new Map();     // 'cx,cz' -> { gen, mesh, used }
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
   let groundTex = null, frame = 0, last = null, list = [], shown = false, propAt = null;
-  loadGroundTextures(renderer).then(t => { groundTex = t; });
+  loadGroundTextures(renderer).then(async t => {
+    if(cfg.islandArt?.enabled){const tops=await Promise.all(['forest','snow','dry'].map(b=>loadTex(`art/ground/top_${b}.png`)));tops.forEach(tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();});t={...t,tTopForest:tops[0],tTopSnow:tops[1],tTopDry:tops[2]};}
+    groundTex=t;
+  }).catch(e=>console.error('Island ground textures:',e));
   const segs = [];
   for (const c of world.corridors || []) for (let k = 1; k < c.points.length; k++) segs.push([c.points[k - 1], c.points[k]]);
 
@@ -49,11 +54,14 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     return w;
   }
   function groundMesh(gen) {
-    const n = Math.round(S * SPLAT_RES), A = new Uint8Array(n * n * 4), B = new Uint8Array(n * n * 4);
+    const n = Math.round(S * SPLAT_RES), A = new Uint8Array(n * n * 4), B = new Uint8Array(n * n * 4), M = new Uint8Array(n * n * 4);
     const near = segs.filter(([a, b]) => Math.max(a[0], b[0]) > gen.x0 - 10 && Math.min(a[0], b[0]) < gen.x0 + S + 10 && Math.max(a[1], b[1]) > gen.z0 - 10 && Math.min(a[1], b[1]) < gen.z0 + S + 10);
+    const tc=world.terrain.cell,topBiomes=gen.cells.map((row,j)=>[...row].map((code,i)=>code==='m'?['forest','snow','dry'].indexOf(islandBiome(world,gen.x0+(i+.5)*tc,gen.z0+(j+.5)*tc)):-1));
     for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
       const x = gen.x0 + (i + 0.5) / SPLAT_RES, z = gen.z0 + (j + 0.5) / SPLAT_RES;
       const w = weightsAt(x, z);
+      const top=topBiomes[Math.floor((z-gen.z0)/tc)]?.[Math.floor((x-gen.x0)/tc)];
+      if(cfg.islandArt?.enabled&&top>=0)M[(j*n+i)*4+top]=255;
       // corridors: a dirt trail fading out at its edge (not over water)
       let trail = 0;
       for (const [a, b] of near) {
@@ -66,6 +74,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     }
     const tex = d => { const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return t; };
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(S, S), groundMaterial(groundTex, tex(A), tex(B), [gen.x0, gen.z0, S, S], [5.6, 3.6]));
+    if(cfg.islandArt?.enabled){
+      const mat=mesh.material;mat.uniforms.uIslandTop={value:tex(M)};mat.uniforms.uTopTile={value:cfg.islandArt.topTile};
+      mat.fragmentShader=mat.fragmentShader.replace('varying vec3 vWorld;', 'uniform sampler2D uIslandTop,tTopForest,tTopSnow,tTopDry; uniform float uTopTile; varying vec3 vWorld;').replace('  vec3 g = grade(col', '  vec3 top = texture2D(uIslandTop,(p-uBounds.xy)/uBounds.zw).rgb; col = col*(1.0-min(1.0,top.r+top.g+top.b)) + tex(tTopForest,p/uTopTile)*top.r + tex(tTopSnow,p/uTopTile)*top.g + tex(tTopDry,p/uTopTile)*top.b;\n  vec3 g = grade(col');
+    }
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set(gen.x0 + S / 2, 0, gen.z0 + S / 2);
     mesh.renderOrder = -1;   // under the city's own ground where they overlap
@@ -78,6 +90,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     scene.remove(c.mesh);
     c.mesh.geometry.dispose();
     c.mesh.material.uniforms.uSplatA.value.dispose(); c.mesh.material.uniforms.uSplatB.value.dispose();
+    c.mesh.material.uniforms.uIslandTop?.value.dispose();
     c.mesh.material.dispose();
     loaded.delete(key);
   }
@@ -89,9 +102,15 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     return null;
   }
   function makeThing(p) {
-    const [name, f] = ART[p.kind] || [];
+    const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || [];
     if (!name) return null;
-    const piece = placePiece({ name, x: p.x, z: p.z, flip: Math.floor(p.x * 7 + p.z * 3) % 2 === 0 }, catalog, cutouts);
+    if(p.decal){
+      const tex=textureFor(`art/props/${name}.png`);if(!tex)return undefined;
+      const mesh=new THREE.Mesh(new THREE.PlaneGeometry(p.width,p.height),spriteMaterial(tex));mesh.rotation.x=-Math.PI/2;mesh.rotation.z=-(p.angle||0);mesh.position.set(p.x,.015,p.z);mesh.renderOrder=-.5;
+      mesh.material.uniforms.uFogAt.value.set(p.x,p.z,0,1);
+      return {mesh,extras:[],lights:[],decal:true};
+    }
+    const piece = placePiece({ name, x: p.x, z: p.z, flip: p.art ? !!p.flip : Math.floor(p.x * 7 + p.z * 3) % 2 === 0 }, catalog, cutouts);
     if (!piece) return null;
     const tex = textureFor(piece.item.file);
     if (!tex) return undefined;   // still loading: try next pass
@@ -108,6 +127,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (!t) return;
     scene.remove(t.mesh, ...t.extras);
     t.mesh.material.dispose();
+    if(t.decal)t.mesh.geometry.dispose();
     sprites.delete(key);
   }
 
@@ -138,9 +158,11 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < 4) return;
     propAt = [x, z];
     const want = new Map();
+    if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gate.x,z:gate.z});
     for (const c of loaded.values()) {
       if (Math.abs(c.gen.x0 + S / 2 - x) > S / 2 + R + 40 || Math.abs(c.gen.z0 + S / 2 - z) > S / 2 + R + 40) continue;
       const near = propsInView(c.gen.props, x, z, R);
+      for(const [i,p]of (c.gen.art||[]).entries())if(Math.hypot(p.x-x,p.z-z)<R+60)want.set(`${c.gen.id}:art:${i}`,p);
       for (const p of near) want.set(`${c.gen.id}:${c.gen.props.indexOf(p)}`, p);
     }
     let changed = false, pending = false;
@@ -154,7 +176,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       sprites.set(k, t); changed = true;
     }
     if (pending) propAt = null;
-    if (changed) list = [...sprites.values()];
+    if (changed) list = [...sprites.values()].filter(t=>!t.decal);
   }
 
   return { update, things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };

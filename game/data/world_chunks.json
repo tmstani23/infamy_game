@@ -193,7 +193,7 @@
         "per1000": 0.3,
         "scale": [
           0.6,
-          1.0
+          1
         ],
         "block": 0
       }
@@ -269,5 +269,16 @@
         "block": 0
       }
     ]
+  },
+  "islandArt": {
+    "enabled": true,
+    "_note": "W3.9 art calibration only; tune after visual review. Navigation stays terrain-cell based.",
+    "topPinesPerCell": 2,
+    "topTile": 28,
+    "fordWidth": 36,
+    "fordLength": 56,
+    "lakeSpacing": 70,
+    "lakeWidth": 80,
+    "cornerSlip": 0.6
   }
 }

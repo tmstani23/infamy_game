@@ -2252,5 +2252,28 @@
     28
    ]
   ]
- }
+ },
+ "props/cliff_forest_a": {"w":1536,"h":1024,"left":1,"right":1534,"bottomX":1385,"bottomY":1023,"glows":[]},
+ "props/cliff_forest_b": {"w":1536,"h":1024,"left":3,"right":1533,"bottomX":1389,"bottomY":1022,"glows":[]},
+ "props/rim_forest": {"w":1536,"h":1024,"left":11,"right":1525,"bottomX":1413,"bottomY":955,"glows":[]},
+ "props/corner_out_forest": {"w":1024,"h":1024,"left":7,"right":1015,"bottomX":521,"bottomY":976,"glows":[]},
+ "props/corner_in_forest": {"w":1024,"h":1024,"left":8,"right":1018,"bottomX":121,"bottomY":971,"glows":[]},
+ "props/outcrop_moss": {"w":1024,"h":1024,"left":21,"right":1010,"bottomX":549,"bottomY":922,"glows":[]},
+ "props/cliff_snow_a": {"w":1536,"h":1024,"left":5,"right":1528,"bottomX":1389,"bottomY":1019,"glows":[]},
+ "props/cliff_snow_b": {"w":1536,"h":1024,"left":7,"right":1528,"bottomX":1390,"bottomY":1019,"glows":[]},
+ "props/rim_snow": {"w":1536,"h":1024,"left":11,"right":1525,"bottomX":1374,"bottomY":999,"glows":[]},
+ "props/corner_out_snow": {"w":1024,"h":1024,"left":6,"right":1016,"bottomX":518,"bottomY":978,"glows":[]},
+ "props/corner_in_snow": {"w":1024,"h":1024,"left":4,"right":1021,"bottomX":127,"bottomY":975,"glows":[]},
+ "props/outcrop_snow": {"w":1024,"h":1024,"left":53,"right":969,"bottomX":607,"bottomY":908,"glows":[]},
+ "props/cliff_dry_a": {"w":1536,"h":1024,"left":4,"right":1530,"bottomX":1373,"bottomY":1020,"glows":[]},
+ "props/cliff_dry_b": {"w":1536,"h":1024,"left":3,"right":1531,"bottomX":1355,"bottomY":1023,"glows":[]},
+ "props/rim_dry": {"w":1536,"h":1024,"left":16,"right":1519,"bottomX":1413,"bottomY":968,"glows":[]},
+ "props/corner_out_dry": {"w":1024,"h":1024,"left":5,"right":1020,"bottomX":519,"bottomY":972,"glows":[]},
+ "props/corner_in_dry": {"w":1024,"h":1024,"left":9,"right":1020,"bottomX":367,"bottomY":952,"glows":[]},
+ "props/outcrop_dry": {"w":1024,"h":1024,"left":28,"right":996,"bottomX":764,"bottomY":907,"glows":[]},
+ "props/pass_gate": {"w":1536,"h":1024,"left":10,"right":1526,"bottomX":247,"bottomY":1018,"glows":[]},
+ "props/city_gate": {"w":1536,"h":1024,"left":16,"right":1525,"bottomX":296,"bottomY":1011,"glows":[]},
+ "props/city_gate_se": {"w":1536,"h":1024,"left":40,"right":1518,"bottomX":1274,"bottomY":1002,"glows":[]},
+ "props/river_ford": {"w":1024,"h":1024,"left":44,"right":984,"bottomX":543,"bottomY":1006,"glows":[]},
+ "props/lake_edge": {"w":1024,"h":1024,"left":84,"right":997,"bottomX":792,"bottomY":978,"glows":[]}
 }
