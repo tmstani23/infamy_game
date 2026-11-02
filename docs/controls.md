@@ -138,6 +138,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Settings | Locally saved Master/Effects/Mute and Test sound |
 | Settings → Save game | Save the city now under a name (any time). |
 | Settings → saved games list | Load or Delete a save (delete moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
+| Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. |
 | Alt+Enter / fullscreen | Fullscreen toggle; short Escape stays with game UI only where Keyboard Lock is supported/allowed. Browser long-Escape exit remains. [Capability limits](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |

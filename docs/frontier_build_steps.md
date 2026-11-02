@@ -17,8 +17,8 @@ session, read it before doing anything else.
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
-- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (after F1.6b)
-- [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [ ] 1.6b (partial: Settings Save/Load list and dawn autosave built; start-screen Continue/Load remaining, retagged STRONG) · [ ] 1.7 playtest
+- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic` save done via `game/tools/make_dev_save.mjs`; campaign and frontier saves wait for their phases; `test_params.js` stays until Tim sees the presets)
+- [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [ ] **W1** World data: [ ] W1.1 choices · [ ] W1.2 · [ ] W1.3 generate · [ ] W1.4 steer · [ ] W1.5 tool (optional)
 - [ ] **W2** World map: [ ] W2.1 mock · [ ] W2.2 · [ ] W2.3 · [ ] W2.4 · [ ] W2.5 playtest
 - [ ] **F2** Economy: [ ] 2.1 · [ ] 2.2 · [ ] 2.2b · [ ] 2.3 · [ ] 2.4 · [ ] 2.4b · [ ] 2.5 · [ ] 2.5b · [ ] 2.6 · [ ] 2.7 · [ ] 2.8 · [ ] 2.9 · [ ] 2.10
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F1.6 · Next step: F1.6b (start-screen Continue/Load)
+Last step done: F1.6b · Next step: F1.7 (Tim playtest, deferred to the end); then W1.1 onward
 
 ## Working in one long window (auto-compacting)
 
@@ -402,7 +402,7 @@ Check (pass/fail): `test_save_menu.mjs` covers sorting, labels and the overwrite
 pass.
 In game (Tim): see the playtest below.
 Done note: "F1.6b Save/Load menus in Settings and start screen (controls.md line needed)."
-Progress (2026-11-02): Settings Save game and saved-games list (Load, Delete to `saves/_trash`) and dawn autosave (keep 3) are built. Remaining: start-screen Continue/Load. Note: card F1.6 missed the `main.js` dawn hookup and replica-versus-worker load; both are now handled, so retagged STRONG.
+Progress (2026-11-02): built: Settings Save game, saved-games list (Load, Delete to `saves/_trash`), dawn autosave (keep 3), and the start-screen Continue and Load game (`start_screen.js`/`.css`, boot-from-save in `main.js`, `game/tools/test_start_load.mjs`). Note: card F1.6 missed the `main.js` dawn hookup and replica-versus-worker load; both are now handled, so retagged STRONG.
 
 ### F1.7. Playtest  [TIM]
 Play past a dawn, keep playing, load the autosave: everything is back at dawn. Save by hand during a

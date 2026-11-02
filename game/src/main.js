@@ -8,6 +8,7 @@ import { createStealthBadge } from './stealth_badge.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
 import { setupMatch } from './sim/setup_match.js';
+import { loadSave, heroOf } from './sim/save.js';
 import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
 import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput } from './input.js';
@@ -69,10 +70,11 @@ async function start() {
     getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json')]);
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
+  const startSaves = createSaveStore(serverBackend('/saves'));
   const selected = ['ninja', 'bot', 'shakedown'].includes(TEST.setup)
     ? { clan: TEST.ninja ? 'shinobi' : 'yakuza', difficulty: bots.difficulty }
     : await chooseMatch({ root: $('startscreen'), loading: $('loading'), difficulty: bots.difficulty,
-      startRyo: settings.costs?.startRyo ?? unitsFile.rules.startRyo, cycles: settings.season?.cycles ?? 10, drawCrest });
+      startRyo: settings.costs?.startRyo ?? unitsFile.rules.startRyo, cycles: settings.season?.cycles ?? 10, drawCrest, saves: startSaves });
   status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
@@ -82,8 +84,15 @@ async function start() {
   // the worker advances the match, including while Map/Deployment is open.
   const game = createGame(simOptions);
   const units = game.settings.units;   // hire prices etc. as the settings made them
-  const { heroId } = setupMatch(game, matchOptions);
-  const simClient = await createSimWorkerClient({game,options:simOptions,match:matchOptions,
+  // Continue / Load from the start screen: the display copy and the worker both boot from the file.
+  let saveFile = null, heroId;
+  if (selected.loadSave) {
+    saveFile = await startSaves.read(selected.loadSave);
+    loadSave(game, saveFile);   // migrates the file in place; only the display copy uses the result
+    heroId = heroOf(game);
+    selected.difficulty = game.state.match?.difficulty ?? bots.difficulty;
+  } else ({ heroId } = setupMatch(game, matchOptions));
+  const simClient = await createSimWorkerClient({game,options:simOptions,match:matchOptions,save:saveFile,
     onError:error=>{status(error.message);const banner=$('pausedbanner');banner.hidden=false;
       banner.textContent='Simulation stopped: '+error.message+' · Reload to restart';console.error(error);}});
   // Prevent accidental browser-console calls from creating a second simulation.

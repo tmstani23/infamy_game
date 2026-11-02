@@ -1,5 +1,6 @@
 import { CLAN_CHOICES, DIFFICULTY_CHOICES, matchOptions } from './sim/match_options.js';
 import { createMenuMusic } from './menu_music.js';
+import { sortSaves, rowText, newest } from './save_menu.js';
 
 const STORAGE = 'infamy.start-options';
 export function requestGameExit({ windowRef = globalThis.window, timers = globalThis, onBlocked = () => {} } = {}) {
@@ -14,7 +15,7 @@ export function savedMatchOptions(defaultDifficulty = 'easy') {
   } catch { return matchOptions({ difficulty: defaultDifficulty }); }
 }
 
-export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200, cycles = 10, drawCrest }) {
+export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200, cycles = 10, drawCrest, saves = null }) {
   const initial = savedMatchOptions(difficulty);
   root.innerHTML = `<div class="start-art" aria-hidden="true"></div><div class="start-light" aria-hidden="true"></div>
     <div class="start-rain" aria-hidden="true"></div><div class="start-mist" aria-hidden="true"></div>
@@ -29,6 +30,8 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       <p class="start-difficulty-note" aria-live="polite"></p></fieldset>
     <div class="start-footer"><div><p class="start-loadout" aria-live="polite"></p><p class="start-season">${cycles}-day season · two rival clans</p></div>
       <button class="start-play" type="submit">Start game <span aria-hidden="true">→</span></button></div>
+    <div class="start-saves" hidden><button type="button" class="start-continue">Continue</button> <button type="button" class="start-load">Load game</button>
+      <ul class="start-save-list" hidden></ul><p class="start-save-note" role="status"></p></div>
     </form><div class="start-exit"><button type="button" class="start-exit-button">Exit Game</button><p class="start-exit-note" role="status" aria-live="polite"></p></div><div class="start-music"><button class="start-music-toggle" type="button">Play music</button>
     <span class="start-music-title"></span><label>Music volume <input class="start-music-volume" aria-label="Intro music volume" type="range" min="0" max="100" step="1"></label></div></div>`;
   const musicButton=root.querySelector('.start-music-toggle'),musicVolume=root.querySelector('.start-music-volume');
@@ -61,6 +64,21 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
   form.addEventListener('change', update);
   form.querySelector('input:checked').focus({ preventScroll: true });
   return new Promise(resolve => {
+    // Continue / Load (frontier F1.6b): boot a saved match of any clan instead of a new one.
+    const box = root.querySelector('.start-saves'), listEl = box.querySelector('.start-save-list'), note = box.querySelector('.start-save-note');
+    const begin = name => { root.hidden = true; loading.hidden = false; music.stop(); resolve({ loadSave: name }); };
+    saves?.list().then(all => {
+      if (!all.length) return;
+      const sorted = sortSaves(all);
+      box.hidden = false;
+      box.querySelector('.start-continue').addEventListener('click', () => begin(newest(sorted).name));
+      box.querySelector('.start-load').addEventListener('click', () => {
+        listEl.hidden = !listEl.hidden; if (!listEl.hidden && !listEl.children.length) for (const h of sorted) {
+          const li = document.createElement('li'), b = document.createElement('button');
+          b.type = 'button'; b.textContent = rowText(h); b.addEventListener('click', () => begin(h.name)); li.append(b); listEl.append(li);
+        }
+      });
+    }).catch(() => {});   // no save server: the buttons stay hidden
     form.addEventListener('submit', e => {
       e.preventDefault();
       const options = matchOptions({ clan: value('clan'), difficulty: value('difficulty') });
