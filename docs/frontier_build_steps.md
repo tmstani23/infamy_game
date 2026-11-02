@@ -421,11 +421,16 @@ land, water, rivers, passes, settlement sites, resource nodes, road and rail cor
 Nothing is walkable yet.
 
 Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` section "World map scale
-and visual reference" only, and the `coast`, route and mountain arrays in
-`docs/images/frontier/measured-island.html` (about 60 lines).
+and visual reference" only, and the approved blueprint in `docs/images/frontier/blueprint/` (`world_blueprint_v2.json`,
+`v2_overview.png` and the six layer PNGs, `blueprint.py`). `island-atlas.html` and `measured-island.html`
+are superseded references.
 
 ### W1.1. World layout choices  [TIM]
-Tim confirms or edits:
+**Approved (Tim, 2026-11-02): the layout is blueprint v2** (`docs/images/frontier/blueprint/`): a south bay (Sallow Bay,
+about 30% up the island) with a floodplain, 6 mountain ranges, 20 passes, 4 rivers with waterfall or
+tarn sources and walkable feeder streams, 17 fords or bridges, 60 sites, 30 harbors, 17% unbuildable,
+and every site has 3 or more routes to the capital. Full regions may contain water. Blueprint names
+are drafts pending the `world_names.json` review. The earlier choices below stay as background.
 - Island 14,000 × 8,000 units from the revised atlas (`island-atlas.html`, not the older
   `measured-island.html`): 24 full regions in a 6 × 4 block with 12 coastal partial regions around
   them, capital on the east coast.
@@ -457,12 +462,15 @@ new `game/tools/test_world_data.mjs`.
 Do:
   1. Format: `{ version, size: { w, h }, capital: { x, z, cityOffset: { x, z } }, coast: [[x, z], ...],
      regions: [{ id, name, poly, biome }], terrain: { cell: 50, codes: { p: 'plain', f: 'forest',
-     m: 'mountain', w: 'water', d: 'desert', n: 'snow', b: 'bamboo', k: 'marsh', r: 'river' },
+     m: 'mountain', w: 'water', d: 'desert', n: 'snow', b: 'bamboo', k: 'marsh', r: 'river',
+     h: 'hills' },
      rows: ["pppff...", ...] }, rivers: [{ id, points, width }], passes: [{ id, x, z }],
      sites: [{ id, x, z, region, size, traits: { soil, water, defense }, harbor: null | { x, z } }],
      nodes: [{ id, kind, x, z, amount }], corridors: [{ id, points, kind: 'road' | 'rail' | 'both' }],
      seaLanes: [{ id, points, from, to }],
-     camps: [{ id, kind, x, z, strength }] }`. At 50-unit cells the terrain grid is 280 × 160 short
+     camps: [{ id, kind, x, z, strength }], fords, riverSources, streams, floodplain, islets,
+     ranges, setPieces (1 per full region), nativeVillageSlots (4; Tim picks 2 to 4) }`.
+     Hills (`h`) are buildable, road cost 2×. Unbuildable = mountain, water, river and marsh (blueprint v2, 2026-11-02). At 50-unit cells the terrain grid is 280 × 160 short
      strings, which is fine as data.
   2. `world_data.js` exports `terrainAt(world, x, z)`, `passable(world, x, z)` and
      `validateWorld(world)`, which returns a list of problems.
@@ -484,12 +492,15 @@ Files: new `tools/seed_world.mjs`, writes `game/data/world.json` and a preview P
 Why (Tim, 2026-11-01): Tim doesn't paint the island by hand. Claude generates it from the existing
 references, and Tim steers with words.
 Do: a script, using a fixed seed so the same input gives the same file:
-  1. **Base layout from the revised atlas** (`docs/images/frontier/island-atlas.html`): its coast
+  1. **Base layout from the approved blueprint (2026-11-02):** read `docs/images/frontier/blueprint/world_blueprint_v2.json`
+     (or port the `blueprint.py` rules into `seed_world.mjs`) instead of the atlas. Nodes and camps are
+     placed by rule once and then fixed, the same every campaign; camp tier 1 to 5 rises with distance
+     from the capital, while camp contents can vary. Superseded earlier text: base layout from the atlas (`docs/images/frontier/island-atlas.html`): its coast
      polygon, the 24 full regions (6 × 4 grid of 1,750 × 1,400 starting at x 1,750, y 1,200) with their
      names, the 12 coastal regions, the 18,000-unit route, the capital at the route's east end, the
      mountain chain and the biome rules (snow north, dry basin west, rainforest south-east, rice valley
      east, mountain forest centre, coastal plain east coast).
-  2. **Detail from the concept image** (`frontier-island-concept.png`): sample its colours to refine
+  2. **Optional: detail from the concept image** (`frontier-island-concept.png`): sample its colours to refine
      the coastline, lakes and biome edges where they differ from the atlas rules.
   3. Rivers from the mountains to the coast; a pass gap through each mountain band plus an alternate.
   4. Sites by rule (passable, near water, 2 to 3 per full region, at least 1,000 apart), traits
@@ -1174,8 +1185,10 @@ Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_gui
 **Decided (Tim, 2026-11-02):** an expedition is the hero, up to one crew group of 6, at least 5
 settlers and optional riflemen. Settlers cost 60 ryo each (placeholder), are hired at HQ in campaign
 mode only and don't count against the crew cap. Founding costs 500 ryo (placeholder), paid at
-founding. More towns can be founded later, each with a new expedition. Founding is allowed only on a
-scouted site (one of the ~60 W1 sites). Losses on the way: a settler who dies is gone for good; if
+founding. More towns can be founded later, each with a new expedition. ~~Founding is allowed only on a
+scouted site (one of the ~60 W1 sites).~~ **Updated (Tim, 2026-11-02):** the player can found a town
+anywhere buildable, at least 1,000 units from other towns; the 60 sites are hint spots with known
+traits. Bots found only on the 60 sites. Traits are computed for any spot from the terrain. Losses on the way: a settler who dies is gone for good; if
 the hero is knocked out, he wakes in the city and the rest of the party walks home.
 
 ### E2. Settler unit  [SMALL]
@@ -1192,11 +1205,12 @@ Done note: "E2 settler unit in."
 Needs: E2, F2 done, W4.4
 Files: `game/src/sim/frontier/commands.js`, `game/src/sim/frontier/world.js`, new `game/tools/test_founding.mjs`.
 Do: action `found { site }` is valid when the hero and at least the E1 number of settlers stand
-within 30 units of an unclaimed, scouted site in campaign mode. It pays the founding cost, turns the
+on a buildable spot at least 1,000 units from other towns (bots: within 30 units of an unclaimed
+W1 site) in campaign mode. It pays the founding cost, turns the
 settlers into the town's first people, creates a settlement record (Shared design shape) with the
-site's traits, sets the owner, places a tier 1 town hall (F6.1) and queues a stockade project.
+spot's traits (computed from terrain), sets the owner, places a tier 1 town hall (F6.1) and queues a stockade project.
 Check (pass/fail): a valid found creates exactly one settlement and removes exactly those settler
-entities; founding on a claimed or unscouted site, or with too few settlers, is rejected and changes
+entities; founding on unbuildable ground, within 1,000 units of a town, or with too few settlers, is rejected and changes
 nothing; a founded town survives save/load.
 Done note: "E3 founding in."
 

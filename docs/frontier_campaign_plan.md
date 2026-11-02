@@ -43,7 +43,7 @@ The winding main route is about **18,000 units**: roughly **50 minutes at the cu
 
 Terrain transitions across coastal plains, fertile central/eastern farmland, central mountain passes, western rain-shadow desert, northern snow and southern rainforest/bamboo. Preserve alternate corridors so one chokepoint cannot seal the island. The atlas is an illustrative old-Japan fantasy-book direction: sumi-e/watercolor land and gold detail against an indigo sea. The concept image is a style reference, not a 1:1 map overlay.
 
-References: [measured island sketch](images/frontier/measured-island.html), [island atlas](images/frontier/island-atlas.html), and concept image below.
+References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontier/blueprint/v2_overview.png), [data](images/frontier/blueprint/world_blueprint_v2.json)**; superseded: [measured island sketch](images/frontier/measured-island.html), [island atlas](images/frontier/island-atlas.html); and concept image below.
 
 ![Illustrative frontier island concept, not a 1:1 map overlay](images/frontier/frontier-island-concept.png)
 
