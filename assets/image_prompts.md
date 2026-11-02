@@ -168,7 +168,7 @@ For every image:
 2. Generate it with a **transparent background** (PNG with alpha). Show only the object: no ground
    plane, no backdrop, no cast shadow on the background, no text, no border, no frame.
 3. Size: **1024 × 1024**, except items marked *(wide)*, which are **1536 × 1024**.
-4. Under the image, give the **file name** to save it as (listed with each item).
+4. Under the image, give the **file name** to save it as (listed with each item). Every image is saved to `assets/environment/island/` in the game repo under exactly that file name.
 5. Then stop and wait. Go on to the next item only when I say "next". If I say "again", remake the
    same item, keeping what I say about it.
 
