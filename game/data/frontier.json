@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "_note": "Frontier economy numbers (F2). F0.2 values approved by Tim 2026-11-02; everything else is a placeholder for Tim to tune. Time units: 'ticks' = economy ticks (1 per cadenceTicks sim ticks).",
+  "cadenceTicks": 20,
+  "resources": ["food", "timber", "stone", "goods", "ryo"],
+  "rates": {
+    "food": 0.01,
+    "_foodNote": "F0.2: food eaten per person per economy tick",
+    "growthTicks": 60,
+    "_growthNote": "F0.2: +1 person every 60 economy ticks while housing is free and food is in surplus",
+    "maxBuilders": 3,
+    "_buildersNote": "placeholder, Tim to tune: most workers that can build one project at once",
+    "shipmentSpeed": 3,
+    "_shipmentNote": "F0.2: units per second (used from F3)"
+  },
+  "buildings": {
+    "house":       { "cost": { "timber": 15 }, "jobs": 0, "housing": 6, "buildTicks": 30, "_note": "F0.2: housing 6, cost 15 timber; buildTicks placeholder, Tim to tune" },
+    "farm":        { "cost": { "timber": 20 }, "jobs": 4, "housing": 0, "output": { "food": 0.03 }, "buildTicks": 40, "_note": "F0.2: 0.03 food per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "lumber_camp": { "cost": { "timber": 15 }, "jobs": 4, "housing": 0, "output": { "timber": 0.02 }, "buildTicks": 40, "_note": "F0.2: 0.02 timber per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "quarry":      { "cost": { "timber": 25 }, "jobs": 4, "housing": 0, "output": { "stone": 0.015 }, "buildTicks": 50, "_note": "F0.2: 0.015 stone per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "workshop":    { "cost": { "timber": 25, "stone": 5 }, "jobs": 2, "housing": 0, "recipe": { "in": { "timber": 1, "stone": 0.5 }, "out": { "goods": 1 }, "everyTicks": 2 }, "buildTicks": 50, "_note": "F0.2: 1 timber + 0.5 stone into 1 goods every 40 sim ticks (2 economy ticks) with 2 workers; cost placeholder, Tim to tune" },
+    "storehouse":  { "cost": { "timber": 20 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
+    "stockade":    { "cost": { "timber": 40 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "placeholder, Tim to tune; defence rules come with F6/F7" }
+  },
+  "regions": {
+    "capital":    { "name": "The Capital", "_note": "the existing port city" },
+    "frontier_1": { "name": "First Frontier", "_note": "fixture region for tests and the dev_frontier save" }
+  },
+  "settlements": {
+    "capital": {
+      "name": "The Capital", "region": "capital", "owner": null, "capital": true,
+      "pop": 0, "stock": { "food": 0, "timber": 0, "stone": 0, "goods": 0, "ryo": 0 }, "buildings": [],
+      "_note": "linked to the city treasury in F2.9; no frontier economy of its own"
+    },
+    "s_frontier_1": {
+      "name": "First Frontier", "region": "frontier_1", "owner": null, "site": "S48", "priority": "grow",
+      "pop": 8,
+      "stock": { "food": 60, "timber": 40, "stone": 10, "goods": 0, "ryo": 0 },
+      "buildings": [
+        { "type": "farm", "stage": "built" },
+        { "type": "house", "stage": "built" },
+        { "type": "house", "stage": "built" }
+      ],
+      "_note": "fixture town for tests and the dev_frontier save only (site S48 of world.json); owner is set in F2.9"
+    }
+  },
+  "roads": {
+    "r1": { "from": "capital", "to": "s_frontier_1", "length": 540, "_note": "F0.2: fixture road length for tests and the dev_frontier save only" }
+  }
+}
