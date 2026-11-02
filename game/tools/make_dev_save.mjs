@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json
+//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, saves/dev_frontier.json
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 4).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -11,12 +11,14 @@ const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
-  police: data('data/police.json'), settings: data('data/settings.json') };
+  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), frontier: data('data/frontier.json') };
 const dir = new URL('../../saves/', import.meta.url);
 
 const SAVES = {
   // A Classic city match: Yakuza, medium, 3 clans with bots, 20 s in, spare ryo to buy and hire.
   dev_classic: { clan: 'yakuza', difficulty: 'medium', ticks: 400, playerRyo: 3000 },
+  // The same city match with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
+  dev_frontier: { clan: 'yakuza', difficulty: 'easy', ticks: 400, playerRyo: 3000, frontier: true },
 };
 
 export function build(name, spec) {
@@ -26,6 +28,7 @@ export function build(name, spec) {
   game.civilians.populate();
   const bots = makeBots(game, m.rivals);
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
+  if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });
   const save = makeSave(game, { bots });
   return makeFile(save, { clan: game.state.clans.player?.kind ?? spec.clan, mode: 'classic', label: `Dev: ${name}`, day: game.state.clock?.day });
 }

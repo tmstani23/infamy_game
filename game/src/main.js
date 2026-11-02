@@ -20,6 +20,8 @@ import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { frontierReport } from './frontier_report.js';
+import { createFrontierPanel } from './frontier_panel.js';
+import { createTownsOverview } from './towns_overview.js';
 import { createRyoBadge } from './ryo_badge.js';
 import { createLootNotice } from './loot_notice.js';
 import { drawCrest } from './render/banners.js';
@@ -79,7 +81,7 @@ async function start() {
   status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world, frontier };   // the worker gets the same options, frontier included
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world, frontier: DEV && frontier ? { ...frontier, dev: true } : frontier };   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST };
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -251,7 +253,10 @@ async function start() {
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
-  onKey('Escape', () => { hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  let openTownHook = () => {};   // opens a town panel (F4.4d)
+  let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
+  let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
+  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -329,7 +334,7 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
+  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c),
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
@@ -376,13 +381,23 @@ async function start() {
     destination:()=>deploymentPanel.isOpen()?deploymentCards:gameMap.isOpen()?mapCards:null,onRestore:()=>unitFrames.clearInspection()});
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
-  // Dev-only town readout (frontier F2.4b): reads the snapshot once a second, never writes. F4 replaces it.
-  if (DEV && game.state.frontier) {
-    window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
-    const box = document.createElement('pre');
-    box.style.cssText = 'position:fixed;left:4px;top:4px;margin:0;padding:4px 6px;z-index:5;font:11px/1.3 monospace;color:#ddd;background:rgba(0,0,0,.55);pointer-events:none;white-space:pre';
-    document.body.append(box);
-    setInterval(() => { box.textContent = frontierReport(game.state.frontier); }, 1000);
+  // Town panel (frontier F4.4, replaces the F2.4b dev text box): key O. The console helper stays in the dev build.
+  if (game.state.frontier) {
+    const townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c) });
+    const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
+    onKey('KeyO', () => townPanel.toggle());
+    onKey('KeyY', () => overview.toggle());
+    openTownHook = id => townPanel.open(id);
+    closeTown = () => { townPanel.close(); overview.close(); };
+    // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
+    townAlertHook = n => {
+      const b = document.createElement('button'); b.textContent = n.text; b.className = n.urgent ? 'urgent' : '';
+      b.addEventListener('click', () => { townPanel.open(n.settlement); b.remove(); });
+      $('townalerts').append(b); setTimeout(() => b.remove(), n.urgent ? 10000 : 6000);
+      overview.alert(n.settlement, n.event, n.urgent);
+    };
+    if (DEV) window.infamy.blockRoad = (road = 'r1', st = 'blocked') => pending.push({ id: heroId, type: 'frontier', action: 'devRoadState', road, state: st });   // try the F4.4c alerts
+    if (DEV) window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
   }
   $('loading').remove();
   $('startscreen').remove();
@@ -402,7 +417,7 @@ async function start() {
   });
   const clock = {alpha:()=>simClient.alpha(),diagnostics:()=>simClient.diagnostics()};
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
-  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults });
+  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n) });
   const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, scoreText });
   let last = performance.now() / 1000, labelTick = -Infinity, lostCops = false;
   function observeRaidAlarms() {

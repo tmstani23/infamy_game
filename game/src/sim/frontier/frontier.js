@@ -9,6 +9,7 @@ import { createEconomy } from './economy.js';
 import { createConstruction } from './construction.js';
 import { createGovernor } from './governor.js';
 import { createCommands } from './commands.js';
+import { createAlerts } from './alerts.js';
 
 export function createFrontier({ state, data }) {
   let world = createFrontierWorld({ state, data });
@@ -26,7 +27,8 @@ export function createFrontier({ state, data }) {
   const construction = createConstruction({ state, data, world: live });
   const governor = createGovernor({ state, data, world: live, economy, construction });
   const modules = [{ name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
-    { name: 'governor', econTick: () => governor.run() }];
+    { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
+  const alerts = createAlerts({ state, data });
   const commands = createCommands({ state, data, world: live, economy, construction, governor });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 

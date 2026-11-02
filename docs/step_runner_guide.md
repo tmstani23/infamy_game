@@ -160,3 +160,4 @@ the Docs keeper records it. That way the docs get better with every phase instea
 Process note (W1, 2026-11-02): validate design-tool output (generators, previews, data files) early, with the validator and a quick look, before building on it.
 Process note (W2, 2026-11-02): re-run `node tools/seed_world.mjs` after editing `rules` so `world.json` keeps its formatting.
 Process note (F2, 2026-11-02): when a new fixture town is added, older tests that count ledger entries must filter by settlement.
+Process note (F4, 2026-11-02): check that a dev save exists before telling Tim to load it.

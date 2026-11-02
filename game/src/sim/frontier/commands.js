@@ -6,7 +6,7 @@
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue'];
+const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState'];
 
 export function createCommands({ state, data, world, economy, construction, governor }) {
   const f = () => state.frontier;
@@ -27,6 +27,19 @@ export function createCommands({ state, data, world, economy, construction, gove
   function command(e, c) {
     if (c.action === 'noop') return false;
     if (!ACTIONS.includes(c.action)) return reject(e, c, 'unknown action');
+    if (c.action === 'devRoadState') {   // dev build only (data.dev): block or clear a road to try the alerts
+      if (!data.dev) return reject(e, c, 'dev only');
+      if (!world.frontier.roads[c.road] || !['working', 'blocked'].includes(c.state)) return reject(e, c, 'no such road');
+      world.setRoadState(c.road, c.state);
+      return receipt(e, c, true);
+    }
+    if (c.action === 'setTownOrder') {   // clan-wide: the full list of your towns, in your order
+      const mine = world.townOrder(e.owner);
+      const ok = e.owner && Array.isArray(c.order) && c.order.length === mine.length && new Set(c.order).size === mine.length && c.order.every(id => mine.includes(id));
+      if (!ok) return reject(e, c, 'order must list each of your towns once');
+      world.setTownOrder(e.owner, c.order);
+      return receipt(e, c, true);
+    }
     // projects name their town through the project id; everything else names the settlement
     let s, hit;
     if (c.action === 'authorize' || c.action === 'cancel') {

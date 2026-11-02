@@ -17,12 +17,12 @@ session, read it before doing anything else.
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
-- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic` save done via `game/tools/make_dev_save.mjs`; campaign and frontier saves wait for their phases; `test_params.js` stays until Tim sees the presets)
+- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic` and `dev_frontier` saves done via `game/tools/make_dev_save.mjs`; campaign and frontier saves wait for their phases; `test_params.js` stays until Tim sees the presets)
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
-- [ ] **F4** Town panel: [ ] 4.1 mock · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.4b · [ ] 4.4c · [ ] 4.4d · [ ] 4.5 playtest
+- [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
 - [ ] **W3** Walkable world: [ ] W3.1 · [ ] W3.2 · [ ] W3.3 · [ ] W3.4 · [ ] W3.4b art · [ ] W3.5 · [ ] W3.6 · [ ] W3.7 playtest
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: F2.10 · Next step: F4 (order: F2 → F4 → W3); F1.7 Tim playtest still deferred to the end
+Last step done: F4.5 · Next step: W3; F1.7 Tim playtest still deferred to the end
 
 ## Working in one long window (auto-compacting)
 
@@ -839,6 +839,7 @@ Send it at 4 Hz (like the map), not every tick.
 Check (pass/fail): the snapshot contains own stock and no rival stock; the packet grows by less than
 2 KB for one town; the existing worker test still passes.
 Done note: "F4.2 frontier snapshot in."
+As built (2026-11-02): the snapshot is filtered per clan at 4 Hz.
 
 ### F4.3. Town report helper  [SMALL]
 Needs: F4.2
@@ -870,6 +871,7 @@ file passes `node --check`.
 In game (Tim): the panel opens, numbers move each second, and priority buttons change the governor's
 next project.
 Done note: "F4.4 town panel in, key <X> (controls.md line needed)."
+As built: key O. The governor chat on Space is deferred to E5, so the panel has a Governor button instead. New commands: `setTownOrder`, and `devRoadState` (dev only). Dev console helpers: `infamy.blockRoad` and `infamy.frontierReport`.
 
 ### F4.4b. All-towns overview  [SMALL]
 Needs: F4.4
@@ -887,6 +889,7 @@ Check (pass/fail): `overviewRows` gives one row per owned town with the right va
 snapshot; `setTownOrder` with a wrong-owner or incomplete list is rejected; the capital's shipments
 go to the top town first in a Node test.
 Done note: "F4.4b towns overview in, key <X> (controls.md line needed)."
+As built: key Y. "Ryo per day" shows the ryo stock and its trend. Garrison shows "-" until F6. The capital-shipments test waits for F3.
 
 ### F4.4c. Town alerts  [SMALL]
 Needs: F4.4
@@ -900,6 +903,7 @@ blocked) also flash the town's row in the overview.
 Check (pass/fail): a sustained shortage fires exactly one alert until it clears and comes back; the
 cooldown holds; alerts only go to the owner.
 Done note: "F4.4c town alerts in."
+As built: new `sim/frontier/alerts.js` with an `alerts` block in `frontier.json`. The "grew a tier" alert waits for F5.
 
 ### F4.4d. Town hover on the map  [SMALL]
 Needs: F4.4b, W2.4
@@ -910,6 +914,7 @@ size, last seen). Clicking still opens the full panel (own towns only).
 Check (pass/fail): `hoverCard` returns the full card for an own town and only seen fields for a
 rival town from a sample snapshot.
 Done note: "F4.4d town hover cards in."
+Open idea, not decided: a "Build" picker in the town panel.
 
 ### F4.5. Playtest  [TIM]
 In the `dev_frontier` save, open the towns overview, reorder the towns, hover them on the World map, trigger

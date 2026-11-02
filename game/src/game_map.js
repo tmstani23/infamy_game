@@ -3,6 +3,7 @@
 // The game keeps running underneath (no pause, as in multiplayer). Hover a business for its
 // owner and payout; click anywhere (a business: its door) to look there and close the map.
 // Drawn by src/minimap.js in its big mode. Only reads the state.
+import { hoverCard } from './frontier_report.js';
 import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
@@ -13,7 +14,7 @@ const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sak
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ root, deploymentRoot, game, district, world = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
+export function createGameMap({ openTown = () => {}, root, deploymentRoot, game, district, world = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
@@ -224,8 +225,15 @@ export function createGameMap({ root, deploymentRoot, game, district, world = nu
   const worldState = () => {
     const w = game.state.world, h = game.state.entities[heroId];
     return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
-      lastSeen: w?.lastSeen?.[clan] || {}, hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: [] };
+      lastSeen: w?.lastSeen?.[clan] || {}, hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap() };
   };
+  // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
+  // (the snapshot only carries those). Placed at their world site.
+  const siteXZ = Object.fromEntries((world?.sites || []).map(t => [t.id, t]));
+  function townsOnMap() {
+    const f = game.state.frontier; if (!f) return [];
+    return Object.values(f.settlements || {}).filter(t => !t.capital && siteXZ[t.site ?? ''] ).map(t => ({ ...t, x: siteXZ[t.site].x, z: siteXZ[t.site].z }));
+  }
   const TRAIT = v => '●'.repeat(v) + '○'.repeat(Math.max(0, 3 - v));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function drawWorldSide() {
@@ -258,7 +266,23 @@ export function createGameMap({ root, deploymentRoot, game, district, world = nu
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
     worldMap = createWorldMap({ canvas: worldCanvas, world, getState: worldState }); worldMap.attach();
     const local = e => { const r = worldCanvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    worldCanvas.addEventListener('click', e => { if (worldMap.wasDrag()) return; picked = worldMap.hit(...local(e)); drawWorldSide(); });
+    const card = document.createElement('div'); card.className = 'townhover'; card.hidden = true; root.appendChild(card);
+    const esc2 = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    worldCanvas.addEventListener('mousemove', e => {
+      const [px, py] = local(e), hit = worldMap.hit(px, py);
+      const c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
+      if (!c) { card.hidden = true; return; }
+      card.innerHTML = `<b>${esc2(c.title)}</b><i>${esc2(c.sub)}</i>` + c.lines.map(([k, v]) => `<div><span>${esc2(k)}</span>${esc2(v)}</div>`).join('');
+      const r = root.getBoundingClientRect();
+      card.style.left = `${e.clientX - r.left + 14}px`; card.style.top = `${e.clientY - r.top + 14}px`; card.hidden = false;
+    });
+    worldCanvas.addEventListener('mouseleave', () => { card.hidden = true; });
+    worldCanvas.addEventListener('click', e => {
+      if (worldMap.wasDrag()) return;
+      picked = worldMap.hit(...local(e));
+      if (picked?.kind === 'town' && picked.owner === clan && picked.stock) { card.hidden = true; openTown(picked.id); return; }   // your town: the full panel (F4.4d)
+      drawWorldSide();
+    });
     worldCanvas.addEventListener('contextmenu', e => {
       e.preventDefault();
       const [px, py] = local(e), hit = worldMap.hit(px, py);

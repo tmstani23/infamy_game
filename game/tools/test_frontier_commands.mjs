@@ -82,4 +82,21 @@ const snap = s => JSON.stringify(s);
   state.tick = 6; fr.tick();
   assert.equal(state.frontier.receipts.length, 0);
 }
+// F4.4b: setTownOrder
+{
+  const { state, fr, send } = fresh();
+  fr.world.setOwner('s_frontier_2', 'player');
+  assert.deepEqual(fr.world.townOrder('player'), ['s_frontier_1', 's_frontier_2']);
+  const before = JSON.stringify(state.frontier.townOrder || null);
+  for (const bad of [['s_frontier_1'], ['s_frontier_1', 's_frontier_1'], ['s_frontier_1', 'capital'], 'x', ['s_frontier_2', 's_frontier_1', 'zz']]) {
+    const r = send({ owner: 'player' }, { action: 'setTownOrder', order: bad });
+    assert.equal(r.ok, false, JSON.stringify(bad));
+  }
+  assert.equal(send({ owner: 'rival' }, { action: 'setTownOrder', order: ['s_frontier_2', 's_frontier_1'] }).ok, false, 'wrong owner');
+  assert.equal(JSON.stringify(state.frontier.townOrder || null), before, 'rejected orders change nothing');
+  assert.equal(send({ owner: 'player' }, { action: 'setTownOrder', order: ['s_frontier_2', 's_frontier_1'] }).ok, true);
+  assert.deepEqual(fr.world.townOrder('player'), ['s_frontier_2', 's_frontier_1']);
+  fr.world.setOwner('s_frontier_2', 'kuroda');
+  assert.deepEqual(fr.world.townOrder('player'), ['s_frontier_1'], 'a town you lost leaves the list');
+}
 console.log('test_frontier_commands: ok');

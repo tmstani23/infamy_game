@@ -36,6 +36,7 @@
     "fortify": ["stockade", "lumber_camp", "quarry", "farm", "workshop", "storehouse"],
     "_note": "placeholder, Tim to tune: job fill order per settlement priority (after short food and builders)"
   },
+  "alerts": { "_note": "placeholder, Tim to tune (F4.4c)", "cooldownEcon": 20, "moodBelow": 40, "attackDrop": 20 },
   "mood": {
     "_note": "placeholder, Tim to tune (F2.5b). mood 0-100 = weighted food, safety and taxes factors, reviewed every reviewTicks economy ticks",
     "reviewTicks": 5,

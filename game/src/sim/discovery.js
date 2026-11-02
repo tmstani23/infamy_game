@@ -12,7 +12,7 @@
 // Units in the city (no e.area, or e.area !== 'world') count as standing at the capital
 // (capital + cityOffset + their street position; indoors = the capital point); the island units (e.area === 'world') use x, z as is.
 export function createDiscovery({ state, world }) {
-  if (!world) return { tick() {}, command() { return false; }, enabled: false };
+  if (!world) return { tick() {}, command() { return false; }, siteDiscovered() { return false; }, enabled: false };
   const R = { cell: 250, everyTicks: 10, revealHero: 600, revealUnit: 350, scoutRadius: 150, sightRadius: 400, maxPins: 50, pinNoteChars: 40, ...(world.rules?.discovery || {}) };
   const cols = Math.ceil(world.size.w / R.cell), rows = Math.ceil(world.size.h / R.cell);
   const off = world.capital.cityOffset || { x: 0, z: 0 };
@@ -95,6 +95,9 @@ export function createDiscovery({ state, world }) {
     const i = Math.floor(x / R.cell), j = Math.floor(z / R.cell);
     return i >= 0 && j >= 0 && i < cols && j < rows && g[j * cols + i] === '1';
   };
+  // Is the named site (world.json sites id) inside this clan's discovered area? Used to filter other clans' towns (F4.2).
+  const siteById = Object.fromEntries((world.sites || []).map(t => [t.id, t]));
+  const siteDiscovered = (clan, id) => { const t = siteById[id]; return !!t && isDiscovered(clan, t.x, t.z); };
   // What one clan may know: own grid, own scouted list, enemies in the world only while seen (else last-seen).
   function viewFor(clan) {
     const w = state.world; if (!w) return null;
@@ -102,5 +105,5 @@ export function createDiscovery({ state, world }) {
     return { discovered: w.discovered?.[clan] ?? null, scouted: [...(w.scouted?.[clan] || [])],
       lastSeen: Object.fromEntries(Object.entries(seen).map(([id, m]) => [id, { ...m }])), cell: R.cell };
   }
-  return { tick, command, isDiscovered, viewFor, worldPos, enabled: true, cols, rows, rules: R };
+  return { tick, command, isDiscovered, viewFor, siteDiscovered, worldPos, enabled: true, cols, rows, rules: R };
 }

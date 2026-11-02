@@ -100,6 +100,26 @@ export function createFrontierWorld({ state, data }) {
     s.owner = clan ?? null;
   }
 
+  // The only road-state writer ('working' | 'threatened' | 'blocked'); F3 raids and the dev helper use it.
+  function setRoadState(rid, st) {
+    const r = f.roads[rid];
+    if (!r) throw new Error(`[frontier] setRoadState: unknown road ${rid}`);
+    if (!['working', 'threatened', 'blocked'].includes(st)) throw new Error('[frontier] setRoadState: bad state');
+    r.state = st; r.blockedAt = st === 'blocked' ? state.tick ?? 0 : null;
+  }
+
+  // Town priority list (F4.4b): the order decides who gets capital supplies, imports and recruits first.
+  // townOrder(clan) always lists exactly the clan's non-capital towns (saved order first, new towns last).
+  function townOrder(clan) {
+    const own = Object.values(f.settlements).filter(s => s.owner === clan && !s.capital).map(s => s.id);
+    const saved = (f.townOrder?.[clan] || []).filter(id => own.includes(id));
+    return [...saved, ...own.filter(id => !saved.includes(id))];
+  }
+  // Only call with a full permutation of townOrder(clan); the command checks that.
+  function setTownOrder(clan, ids) {
+    (f.townOrder ||= {})[clan] = [...ids];
+  }
+
   // The only pop writer. People arrive or leave, never die; logged in the display ledger as 'pop'.
   function changePop(sid, delta, reason) {
     const s = settlement(sid);
@@ -148,5 +168,5 @@ export function createFrontierWorld({ state, data }) {
     try { return checkInvariants(); } catch (err) { console.error(err.message); return false; }
   }
 
-  return { frontier: f, newId, settlement, ledgerAdd, change, changePop, setOwner, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
+  return { frontier: f, newId, settlement, ledgerAdd, change, changePop, setOwner, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
 }

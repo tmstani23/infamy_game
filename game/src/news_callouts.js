@@ -1,7 +1,7 @@
 // News callouts each sim tick: the big moments in state.news shown to this player (moved out of main.js,
 // phase 7 split, 2026-10-29). Reads the state only; never sends commands.
 import { sweepArrivalVisible } from './render/sweep_trail.js';
-export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults }) {
+export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert = () => {} }) {
   const shinobiAlert = text => callout(text, 'loss shinobi-alert', 8000);
   function update() {
     for (const n of game.state.news) {
@@ -26,6 +26,7 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contra
       if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);
       if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);
       if(n.kind==='shakedownPaid'&&n.clan===me)callout(`Shakedown paid: +${n.ryo} ryo`,'win');
+      if (n.kind === 'town' && n.clan === me) townAlert(n);   // frontier town alerts (sim/frontier/alerts.js, F4.4c)
       if (n.kind === 'renown' && n.clan === me && n.amount > 0) callout(`${n.reason || 'Renown earned'} · +${n.amount} Renown`, 'win');
       if (n.kind === 'leaderBounty' && n.clan === me) callout(`${n.reason} · +${n.amount} ryo`, 'win');
       if (n.kind === 'unstuck' && n.clan === me) { console.info('[stuck spot]', n.place, n.x.toFixed(1), n.z.toFixed(1)); callout('Back inside your HQ', 'win'); }

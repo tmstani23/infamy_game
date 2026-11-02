@@ -159,4 +159,34 @@ const fresh = () => { const state = { tick: 0 }; return { state, world: createFr
   assert.equal(JSON.stringify(twin.frontier), JSON.stringify(state.frontier));
   fr2.world.checkInvariants();
 }
+// F4.4c: town alerts
+{
+  const { createFrontier } = await import('../src/sim/frontier/frontier.js');
+  const state = { tick: 0, news: [] };
+  const fr = createFrontier({ state, data: { ...data, dev: true } });
+  fr.world.setOwner('s_frontier_1', 'player');
+  const run = n => { const seen = []; for (let i = 0; i < n * 20; i++) { state.tick++; state.news = []; fr.tick(); seen.push(...state.news.filter(x => x.kind === 'town')); } return seen; };
+  const s = state.frontier.settlements.s_frontier_1;
+  s.buildings = s.buildings.filter(b => b.type !== 'farm'); fr.world.recount(s.id);   // no farm: food runs out for real
+  run(3);
+  // a sustained shortage fires exactly one alert, and again only after it clears and the cooldown passed
+  s.stock.food = 0; let n = 0;
+  const foods = () => run(1).filter(x => x.event === 'food');
+  for (let i = 0; i < 10; i++) n += foods().length;
+  assert.equal(n, 1, 'one food alert while the shortage lasts');
+  s.stock.food = 500; run(3); run(25);
+  s.stock.food = 0; s.pop = 8; n = 0; for (let i = 0; i < 6; i++) n += foods().length;
+  assert.equal(n, 1, 'fires again after it cleared');
+  // cooldown: a quick on/off flips do not repeat
+  const a = []; for (let i = 0; i < 6; i++) { state.frontier.roads.r1.state = i % 2 ? 'working' : 'blocked'; a.push(...run(1).filter(x => x.event === 'blocked')); }
+  assert.ok(a.length <= 1, 'cooldown holds for road alerts');
+  assert.equal(a[0]?.urgent ?? true, true);
+  // alerts only go to the owner
+  assert.ok(state.news.every(x => x.clan === 'player'));
+  fr.world.setOwner('s_frontier_2', 'kuroda');
+  const other = run(3); assert.ok(other.filter(x => x.settlement === 's_frontier_2').every(x => x.clan === 'kuroda'));
+  // attack: safety drop
+  run(30); const before = state.frontier.alertState.s_frontier_1.at.attack; s.safety = 10;
+  assert.ok(run(1).some(x => x.event === 'attack' && x.urgent), 'attack alert is urgent');
+}
 console.log('test_frontier_world: ok');

@@ -138,6 +138,9 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Settings | Locally saved Master/Effects/Mute and Test sound |
 | M map: World tab | The island with fog, sites (hollow = not scouted, walk close to scout), camps and the capital; drag to pan, wheel to zoom, click for details. |
 | Right-click the World map | Drop a pin with a note (max 50); right-click a pin removes it. |
+| O | Open the town panel (needs a town; has a Governor button for the governor chat). |
+| Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |
+| M map → World tab, hover or click a town | Hover shows a town card; click opens its details. |
 | Settings → Save game | Save the city now under a name (any time). |
 | Settings → saved games list | Load or Delete a save (delete moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
 | Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. The Load list also has Delete, with an in-game confirmation (checked by Tim 2026-11-02). |

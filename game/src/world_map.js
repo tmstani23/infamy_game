@@ -47,7 +47,8 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     const st = getState(), grid = st.discovered ?? null, known = (x, z) => isDiscovered(world, grid, x, z);
     return [...sites.filter(s => known(s.x, s.z)).map(s => ({ kind: 'site', ...s })),
       ...world.camps.filter(k => known(k.x, k.z)).map(k => ({ ...k, campKind: k.kind, kind: 'camp' })),
-      ...(st.pins || []).map(p => ({ ...p, kind: 'pin' }))];
+      ...(st.pins || []).map(p => ({ ...p, kind: 'pin' })),
+      ...(st.towns || []).map(t => ({ ...t, kind: 'town' }))];   // last, so a town wins over the site under it
   }
   function buildCache() {
     const t = world.terrain, off = document.createElement('canvas');

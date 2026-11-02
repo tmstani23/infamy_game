@@ -38,7 +38,7 @@ export function createWorkerRuntime({post,now=()=>performance.now()}) {
       const intent=movement&&now()-movementAt>250?{...movement,right:0,down:0}:movement;
       game.step([...(intent?[intent]:[]),...batch,...bots.flatMap(b=>b.tick())]);
       diagnostics.simMs+=now()-start;diagnostics.maxSimMs=Math.max(diagnostics.maxSimMs,now()-start);
-      collect();if(batch.length)urgent=true;
+      encoder.observe();collect();if(batch.length)urgent=true;
     },paused);
     publish();
   }

@@ -19,14 +19,39 @@ export function reconcile(target, source) {
   return target;
 }
 
+// What one clan may know of the frontier (plan F4.2): full records for its own towns, only
+// { id, name, owner, region, site } for towns on discovered ground, roads with their state, its own
+// shipments, its own receipts. Never the 500-entry ledger, totals or rival stock.
+export const FRONTIER_EVERY = 5;
+export function frontierFor(f, clan, discovery, recent) {
+  const settlements = {};
+  for (const [id, s] of Object.entries(f.settlements || {})) {
+    if (s.owner === clan) settlements[id] = s;
+    else if (s.capital || discovery?.siteDiscovered?.(clan, s.site)) settlements[id] = { id: s.id, name: s.name, owner: s.owner, region: s.region, site: s.site };
+  }
+  return { version: f.version, econTick: f.econTick, settlements,
+    roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
+    shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
+    receipts: recent || (f.receipts || []).filter(r => r.clan === clan) };
+}
+
 export function createSnapshotEncoder(game, clan = 'player') {
-  let previous = new Map(), previousGrid = null, sequence = 0;
+  let previous = new Map(), previousGrid = null, sequence = 0, frontierView = null, frontierAt = -Infinity, recentReceipts = [], lastSeq = 0;
+  // Receipts live one sim tick but the screen sees 4 Hz: keep this clan's last few so a rejection can be shown (called each tick).
+  function observe() {
+    for (const r of game.state.frontier?.receipts || []) if (r.clan === clan && r.seq > lastSeq) { lastSeq = r.seq; recentReceipts.push(r); }
+    if (recentReceipts.length > 8) recentReceipts.splice(0, recentReceipts.length - 8);
+  }
   function encode({map = false, selected = [], events = {}} = {}) {
     const st = game.state, detail = new Set(selected), roots = pick(st, ROOTS);
     // Island discovery (frontier W2.3): only this clan's fog, scouted sites and last-seen markers, never another clan's.
     if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []} };
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
-    if (st.frontier) roots.frontier = Object.fromEntries(Object.entries(st.frontier).filter(([k]) => k !== 'ledger'));
+    // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
+    if (st.frontier) {
+      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts)); /* a copy, so it stays still between refreshes */ frontierAt = st.tick; }
+      roots.frontier = frontierView;
+    }
     if (map) {
       // No world VFX, rival orders or rival deployment records on the map.
       delete roots.formations; delete roots.smokes; delete roots.projectiles;
@@ -63,7 +88,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     // full: the first packet of an encoder carries everything (a new match or a loaded save)
     return {sequence:++sequence,tick:st.tick,map,set,remove,grid,gridFull,events,recordChars,full:initialGrid};
   }
-  return {encode};
+  return {encode,observe};
 }
 
 export function applySnapshot(game, packet) {
