@@ -139,6 +139,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | K, or Mute | Toggle saved sound mute; silences current voices too |
 | Settings | Locally saved Master/Effects/Mute and Test sound |
 | M map: World tab | The island with fog, sites (hollow = not scouted, walk close to scout), camps and the capital; drag to pan, wheel to zoom, click for details. |
+| M map → World tab, Island art tour (DEV) | Reload the game to see 39 purple T01–T39 review markers. Use the dropdown or Previous/Next; hover/click for asset details. Select a marker and use the existing Travel confirmation to visit. Review markers are visual-only and do not block movement. |
 | Right-click the World map | Drop a pin with a note (max 50); right-click a pin removes it. |
 | O | Open the town panel (needs a town; has a Governor button for the governor chat). |
 | Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |

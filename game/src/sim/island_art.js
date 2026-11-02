@@ -27,6 +27,7 @@ export function islandArt(world,cfg,cx,cz){
       for(let k=0;k<(cfg.islandArt.topPinesPerCell||0);k++)add('pine_tree',x+T*(.3+k*.22),z+T*.4,{top:true});
     }
   }
+  for(const p of cfg.islandArt.reviewEnabled?cfg.islandArt.reviewProps||[]:[])add(p.art,p.x,p.z,p);
   for(const p of world.passes||[])add('pass_gate',p.x,p.z);
   for(const p of world.fords||[])add('river_ford',p.x,p.z,{decal:true,width:cfg.islandArt.fordWidth,height:cfg.islandArt.fordLength});
   for(const lake of world.lakes||[]){

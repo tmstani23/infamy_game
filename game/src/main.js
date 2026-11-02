@@ -72,6 +72,7 @@ async function start() {
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
     getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json'), getJSON('data/world_chunks.json')]);
 
+  if(worldChunks?.islandArt)worldChunks.islandArt.reviewEnabled=DEV;
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
   const startSaves = createSaveStore(serverBackend('/saves'));
   const selected = ['ninja', 'bot', 'shakedown'].includes(TEST.setup)
@@ -335,7 +336,8 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
+  const artTests=DEV?(await getJSON('data/island_art_tests.json')).stops:[];
+  const gameMap = createGameMap({artTests, openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),

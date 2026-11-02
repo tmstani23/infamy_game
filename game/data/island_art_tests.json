@@ -1,0 +1,664 @@
+{
+  "version": 1,
+  "_note": "Dev-map art review tour generated from actual placements. Regenerate with game/tools/make_island_art_tests.mjs after world/art changes.",
+  "stops": [
+    {
+      "key": "city_gate",
+      "asset": "city_gate",
+      "label": "GATE REVIEW · city gate",
+      "x": 13083.5,
+      "z": 3303.5,
+      "focus": {
+        "x": 13075,
+        "z": 3303
+      },
+      "travel": {
+        "x": 13083.5,
+        "z": 3303.5
+      },
+      "id": "T01",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_dry_a_east",
+      "asset": "cliff_dry_a",
+      "label": "DRY REVIEW · cliff dry a · east (mirrored)",
+      "x": 3733.5,
+      "z": 2625.5,
+      "focus": {
+        "x": 3725,
+        "z": 2625
+      },
+      "travel": {
+        "x": 3733.5,
+        "z": 2625.5
+      },
+      "id": "T02",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_dry_a_south",
+      "asset": "cliff_dry_a",
+      "label": "DRY REVIEW · cliff dry a · south",
+      "x": 3525.5,
+      "z": 2633.5,
+      "focus": {
+        "x": 3525,
+        "z": 2625
+      },
+      "travel": {
+        "x": 3525.5,
+        "z": 2633.5
+      },
+      "id": "T03",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_dry_b_east",
+      "asset": "cliff_dry_b",
+      "label": "DRY REVIEW · cliff dry b · east (mirrored)",
+      "x": 4133.5,
+      "z": 2625.5,
+      "focus": {
+        "x": 4125,
+        "z": 2625
+      },
+      "travel": {
+        "x": 4133.5,
+        "z": 2625.5
+      },
+      "id": "T04",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_dry_b_south",
+      "asset": "cliff_dry_b",
+      "label": "DRY REVIEW · cliff dry b · south",
+      "x": 3925.5,
+      "z": 2633.5,
+      "focus": {
+        "x": 3925,
+        "z": 2625
+      },
+      "travel": {
+        "x": 3925.5,
+        "z": 2633.5
+      },
+      "id": "T05",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_forest_a_east",
+      "asset": "cliff_forest_a",
+      "label": "cliff forest a · east (mirrored)",
+      "x": 11608.5,
+      "z": 6075.5,
+      "focus": {
+        "x": 11600,
+        "z": 6075
+      },
+      "travel": {
+        "x": 11608.5,
+        "z": 6075.5
+      },
+      "id": "T06",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_forest_a_south",
+      "asset": "cliff_forest_a",
+      "label": "cliff forest a · south",
+      "x": 11475.5,
+      "z": 6108.5,
+      "focus": {
+        "x": 11475,
+        "z": 6100
+      },
+      "travel": {
+        "x": 11475.5,
+        "z": 6108.5
+      },
+      "id": "T07",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_forest_b_east",
+      "asset": "cliff_forest_b",
+      "label": "cliff forest b · east (mirrored)",
+      "x": 11658.5,
+      "z": 6175.5,
+      "focus": {
+        "x": 11650,
+        "z": 6175
+      },
+      "travel": {
+        "x": 11658.5,
+        "z": 6175.5
+      },
+      "id": "T08",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_forest_b_south",
+      "asset": "cliff_forest_b",
+      "label": "cliff forest b · south",
+      "x": 11525.5,
+      "z": 6108.5,
+      "focus": {
+        "x": 11525,
+        "z": 6100
+      },
+      "travel": {
+        "x": 11525.5,
+        "z": 6108.5
+      },
+      "id": "T09",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_snow_a_east",
+      "asset": "cliff_snow_a",
+      "label": "cliff snow a · east (mirrored)",
+      "x": 8718.5,
+      "z": 1475.5,
+      "focus": {
+        "x": 8700,
+        "z": 1475
+      },
+      "travel": {
+        "x": 8718.5,
+        "z": 1475.5
+      },
+      "id": "T10",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_snow_a_south",
+      "asset": "cliff_snow_a",
+      "label": "cliff snow a · south",
+      "x": 8675.5,
+      "z": 1508.5,
+      "focus": {
+        "x": 8675,
+        "z": 1500
+      },
+      "travel": {
+        "x": 8675.5,
+        "z": 1508.5
+      },
+      "id": "T11",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_snow_b_east",
+      "asset": "cliff_snow_b",
+      "label": "cliff snow b · east (mirrored)",
+      "x": 8708.5,
+      "z": 1425.5,
+      "focus": {
+        "x": 8700,
+        "z": 1425
+      },
+      "travel": {
+        "x": 8708.5,
+        "z": 1425.5
+      },
+      "id": "T12",
+      "kind": "arttest"
+    },
+    {
+      "key": "cliff_snow_b_south",
+      "asset": "cliff_snow_b",
+      "label": "cliff snow b · south",
+      "x": 9175.5,
+      "z": 1158.5,
+      "focus": {
+        "x": 9175,
+        "z": 1150
+      },
+      "travel": {
+        "x": 9175.5,
+        "z": 1158.5
+      },
+      "id": "T13",
+      "kind": "arttest"
+    },
+    {
+      "key": "corner_in_dry",
+      "asset": "corner_in_dry",
+      "label": "DRY REVIEW · corner in dry",
+      "x": 4533.5,
+      "z": 2625.5,
+      "focus": {
+        "x": 4525,
+        "z": 2625
+      },
+      "travel": {
+        "x": 4533.5,
+        "z": 2625.5
+      },
+      "id": "T14",
+      "kind": "arttest"
+    },
+    {
+      "key": "corner_in_forest",
+      "asset": "corner_in_forest",
+      "label": "corner in forest",
+      "x": 10207.5,
+      "z": 6203.5,
+      "focus": {
+        "x": 10200,
+        "z": 6200
+      },
+      "travel": {
+        "x": 10207.5,
+        "z": 6203.5
+      },
+      "id": "T15",
+      "kind": "arttest"
+    },
+    {
+      "key": "corner_in_snow",
+      "asset": "corner_in_snow",
+      "label": "corner in snow",
+      "x": 8558.5,
+      "z": 1500.5,
+      "focus": {
+        "x": 8550,
+        "z": 1500
+      },
+      "travel": {
+        "x": 8558.5,
+        "z": 1500.5
+      },
+      "id": "T16",
+      "kind": "arttest"
+    },
+    {
+      "key": "corner_out_dry",
+      "asset": "corner_out_dry",
+      "label": "DRY REVIEW · corner out dry",
+      "x": 4333.5,
+      "z": 2625.5,
+      "focus": {
+        "x": 4325,
+        "z": 2625
+      },
+      "travel": {
+        "x": 4333.5,
+        "z": 2625.5
+      },
+      "id": "T17",
+      "kind": "arttest"
+    },
+    {
+      "key": "corner_out_forest",
+      "asset": "corner_out_forest",
+      "label": "corner out forest",
+      "x": 11658.5,
+      "z": 6200.5,
+      "focus": {
+        "x": 11650,
+        "z": 6200
+      },
+      "travel": {
+        "x": 11658.5,
+        "z": 6200.5
+      },
+      "id": "T18",
+      "kind": "arttest"
+    },
+    {
+      "key": "corner_out_snow",
+      "asset": "corner_out_snow",
+      "label": "corner out snow",
+      "x": 8708.5,
+      "z": 1500.5,
+      "focus": {
+        "x": 8700,
+        "z": 1500
+      },
+      "travel": {
+        "x": 8708.5,
+        "z": 1500.5
+      },
+      "id": "T19",
+      "kind": "arttest"
+    },
+    {
+      "key": "lake_edge_0",
+      "asset": "lake_edge",
+      "label": "lake edge",
+      "x": 10725.5,
+      "z": 4806.5,
+      "focus": {
+        "x": 10716.975608143734,
+        "z": 4806.030866743484
+      },
+      "travel": {
+        "x": 10725.5,
+        "z": 4806.5
+      },
+      "id": "T20",
+      "kind": "arttest"
+    },
+    {
+      "key": "lake_edge_1",
+      "asset": "lake_edge",
+      "label": "lake edge",
+      "x": 10676.5,
+      "z": 5251.5,
+      "focus": {
+        "x": 10670.813100098423,
+        "z": 5245.23779240754
+      },
+      "travel": {
+        "x": 10676.5,
+        "z": 5251.5
+      },
+      "id": "T21",
+      "kind": "arttest"
+    },
+    {
+      "key": "lake_edge_2",
+      "asset": "lake_edge",
+      "label": "lake edge",
+      "x": 10183.5,
+      "z": 4798.5,
+      "focus": {
+        "x": 10183.024391856266,
+        "z": 4806.030866743484
+      },
+      "travel": {
+        "x": 10183.5,
+        "z": 4798.5
+      },
+      "id": "T22",
+      "kind": "arttest"
+    },
+    {
+      "key": "lake_edge_3",
+      "asset": "lake_edge",
+      "label": "lake edge",
+      "x": 10665.5,
+      "z": 4749.5,
+      "focus": {
+        "x": 10670.813100098423,
+        "z": 4754.76220759246
+      },
+      "travel": {
+        "x": 10665.5,
+        "z": 4749.5
+      },
+      "id": "T23",
+      "kind": "arttest"
+    },
+    {
+      "key": "outcrop_dry",
+      "asset": "outcrop_dry",
+      "label": "DRY REVIEW · outcrop dry",
+      "x": 5133.5,
+      "z": 2625.5,
+      "focus": {
+        "x": 5125,
+        "z": 2625
+      },
+      "travel": {
+        "x": 5133.5,
+        "z": 2625.5
+      },
+      "id": "T24",
+      "kind": "arttest"
+    },
+    {
+      "key": "outcrop_moss",
+      "asset": "outcrop_moss",
+      "label": "outcrop moss",
+      "x": 11543.5,
+      "z": 6101.5,
+      "focus": {
+        "x": 11542.5,
+        "z": 6092.5
+      },
+      "travel": {
+        "x": 11543.5,
+        "z": 6101.5
+      },
+      "id": "T25",
+      "kind": "arttest"
+    },
+    {
+      "key": "outcrop_snow",
+      "asset": "outcrop_snow",
+      "label": "outcrop snow",
+      "x": 8551.5,
+      "z": 1543.5,
+      "focus": {
+        "x": 8542.5,
+        "z": 1542.5
+      },
+      "travel": {
+        "x": 8551.5,
+        "z": 1543.5
+      },
+      "id": "T26",
+      "kind": "arttest"
+    },
+    {
+      "key": "pass_gate",
+      "asset": "pass_gate",
+      "label": "pass gate",
+      "x": 11406.5,
+      "z": 6372.5,
+      "focus": {
+        "x": 11398,
+        "z": 6372
+      },
+      "travel": {
+        "x": 11406.5,
+        "z": 6372.5
+      },
+      "id": "T27",
+      "kind": "arttest"
+    },
+    {
+      "key": "rim_dry_north",
+      "asset": "rim_dry",
+      "label": "DRY REVIEW · rim dry · north",
+      "x": 4725.5,
+      "z": 2617.5,
+      "focus": {
+        "x": 4725,
+        "z": 2625
+      },
+      "travel": {
+        "x": 4725.5,
+        "z": 2617.5
+      },
+      "id": "T28",
+      "kind": "arttest"
+    },
+    {
+      "key": "rim_dry_west",
+      "asset": "rim_dry",
+      "label": "DRY REVIEW · rim dry · west (mirrored)",
+      "x": 4917.5,
+      "z": 2625.5,
+      "focus": {
+        "x": 4925,
+        "z": 2625
+      },
+      "travel": {
+        "x": 4917.5,
+        "z": 2625.5
+      },
+      "id": "T29",
+      "kind": "arttest"
+    },
+    {
+      "key": "rim_forest_north",
+      "asset": "rim_forest",
+      "label": "rim forest · north",
+      "x": 11575.5,
+      "z": 6042.5,
+      "focus": {
+        "x": 11575,
+        "z": 6050
+      },
+      "travel": {
+        "x": 11575.5,
+        "z": 6042.5
+      },
+      "id": "T30",
+      "kind": "arttest"
+    },
+    {
+      "key": "rim_forest_west",
+      "asset": "rim_forest",
+      "label": "rim forest · west (mirrored)",
+      "x": 11542.5,
+      "z": 6125.5,
+      "focus": {
+        "x": 11550,
+        "z": 6125
+      },
+      "travel": {
+        "x": 11542.5,
+        "z": 6125.5
+      },
+      "id": "T31",
+      "kind": "arttest"
+    },
+    {
+      "key": "rim_snow_north",
+      "asset": "rim_snow",
+      "label": "rim snow · north",
+      "x": 9325.5,
+      "z": 992.5,
+      "focus": {
+        "x": 9325,
+        "z": 1000
+      },
+      "travel": {
+        "x": 9325.5,
+        "z": 992.5
+      },
+      "id": "T32",
+      "kind": "arttest"
+    },
+    {
+      "key": "rim_snow_west",
+      "asset": "rim_snow",
+      "label": "rim snow · west (mirrored)",
+      "x": 9192.5,
+      "z": 1175.5,
+      "focus": {
+        "x": 9200,
+        "z": 1175
+      },
+      "travel": {
+        "x": 9192.5,
+        "z": 1175.5
+      },
+      "id": "T33",
+      "kind": "arttest"
+    },
+    {
+      "key": "river_ford",
+      "asset": "river_ford",
+      "label": "river ford",
+      "x": 12494.5,
+      "z": 2947.5,
+      "focus": {
+        "x": 12486,
+        "z": 2947
+      },
+      "travel": {
+        "x": 12494.5,
+        "z": 2947.5
+      },
+      "id": "T34",
+      "kind": "arttest"
+    },
+    {
+      "key": "top_dry",
+      "asset": "top_dry",
+      "label": "DRY REVIEW · top dry",
+      "x": 3633.5,
+      "z": 2725.5,
+      "focus": {
+        "x": 3625,
+        "z": 2725
+      },
+      "travel": {
+        "x": 3633.5,
+        "z": 2725.5
+      },
+      "id": "T35",
+      "kind": "arttest"
+    },
+    {
+      "key": "top_forest",
+      "asset": "top_forest",
+      "label": "forest high-ground texture · view across the cliff top",
+      "x": 11610.5,
+      "z": 6075.5,
+      "focus": {
+        "x": 11575,
+        "z": 6075
+      },
+      "travel": {
+        "x": 11610.5,
+        "z": 6075.5
+      },
+      "id": "T36",
+      "kind": "arttest"
+    },
+    {
+      "key": "top_snow",
+      "asset": "top_snow",
+      "label": "snow high-ground texture · view across the cliff top",
+      "x": 9312.5,
+      "z": 993.5,
+      "focus": {
+        "x": 9325,
+        "z": 1025
+      },
+      "travel": {
+        "x": 9312.5,
+        "z": 993.5
+      },
+      "id": "T37",
+      "kind": "arttest"
+    },
+    {
+      "key": "gate_city",
+      "asset": "city_gate_se",
+      "label": "Town gate · city side",
+      "x": 13055,
+      "z": 3278,
+      "travel": {
+        "city": true
+      },
+      "id": "T38",
+      "kind": "arttest"
+    },
+    {
+      "key": "gate_island",
+      "asset": "city_gate_se",
+      "label": "Town gate · island side",
+      "x": 13060,
+      "z": 3278,
+      "focus": {
+        "x": 13055,
+        "z": 3278
+      },
+      "travel": {
+        "x": 13060,
+        "z": 3278
+      },
+      "id": "T39",
+      "kind": "arttest"
+    }
+  ]
+}
