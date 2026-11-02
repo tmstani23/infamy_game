@@ -17,3 +17,9 @@
 
 # Local save files (F1).
 saves/
+
+# Source art (generated images, concepts): kept on disk and in backups, not in git (Tim 2026-11-02)
+/assets/environment/**/*.png
+/assets/environment/**/*.jpg
+/assets/environment/**/*.webp
+/assets/concepts/
