@@ -103,9 +103,13 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     hit(px, py) { return hitTest(hitItems(), px, py, view); },
     attach() {
       canvas.addEventListener('wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); zoomAt(world, view, e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15); dirty = true; }, { passive: false });
-      canvas.addEventListener('pointerdown', e => { if (e.button === 0) drag = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false }; });
-      canvas.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.cx = drag.cx - dx / view.scale; view.cz = drag.cz - dy / view.scale; clampView(world, view); dirty = true; });
-      addEventListener('pointerup', () => { if (drag) lastMoved = drag.moved; drag = null; });
+      // Pointer capture keeps the release on this canvas even if other game handlers swallow it
+      // (Tim 2026-11-02: drag stuck to the cursor); a move with no button held also ends the drag.
+      const end = e => { if (drag) lastMoved = drag.moved; drag = null; try { canvas.releasePointerCapture?.(e.pointerId); } catch {} };
+      canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false }; try { canvas.setPointerCapture?.(e.pointerId); } catch {} });
+      canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end); canvas.addEventListener('lostpointercapture', end);
+      canvas.addEventListener('pointermove', e => { if (!drag) return; if (!(e.buttons & 1)) return end(e); const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.cx = drag.cx - dx / view.scale; view.cz = drag.cz - dy / view.scale; clampView(world, view); dirty = true; });
+      addEventListener('pointerup', end, true);   // window, capture phase: a release anywhere ends it
     },
     wasDrag() { return lastMoved; },
     fit() { view = fitView(world, canvas.width, canvas.height); dirty = true; },
