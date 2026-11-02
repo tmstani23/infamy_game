@@ -154,37 +154,85 @@ Using the attached image as a style reference, make a sheet of separate item con
 Using the attached image as a style reference, make a sheet of separate item concepts for a dark, stylized game set in 1870s Japan, sleek and not cartoony. A neat 3x2 grid of 6 cells, each item alone in its own cell with plenty of empty space around it, the last cell left empty. Items: an open folding fan, a handheld paper lantern, a bamboo fishing rod, a carrying pole with a basket hanging from each end, and a monk's staff with metal rings at the top. Side view, each object whole and fully visible, no hands or people, no text or labels. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, no shadows, muted and moody colors. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
 ```
 
-## Island art (W3.4b, frontier)
+## Island art (W3.8, frontier)
 
-Drafted 2026-11-02, approved by Tim. Until these exist, the island uses scaled boulders as mountain placeholders and a big door ring plus a lantern post (G on the minimap) as the city gate. After Tim generates them, a thread cuts them in with the existing cutout tool and maps them in `game/src/render/world_ground.js` (`ART`).
+Drafted 2026-11-02, approved by Tim. **Check off each image (`- [ ]` to `- [x]`) once it is made and saved**; when an item is done, ChatGPT can also say "done" and Tim ticks it here. Until all exist, the island uses scaled boulders as mountain placeholders and a big door ring plus a lantern post (G on the minimap) as the city gate; the cut-in is step W3.9 (`game/src/render/world_ground.js` `ART`).
 
-Shared style line (add to every prompt):
-> Semi-realistic painted illustration, muted moody colours, soft overcast light, 1870s Japan, seen from a high three-quarter isometric angle (camera looking down at about 30 degrees from the south-east), single object centred, fully transparent background, no ground plane, no shadow on the background, no text, no border.
+### Instructions for ChatGPT (read this first, then start)
 
-### Mountains (6), large standing cutouts on blocked mountain cells
+You are making art for an isometric painted game set on an island near an 1870s Japanese port town.
+Make the 13 images below **one at a time** with your image generation tool, in the order listed.
 
-1. **Forest mountain, broad.** A broad rounded mountain with dark cedar forest climbing its lower slopes, bare grey rock and scree near the top, thin mist caught in a fold of the slope.
-2. **Forest mountain, steep peak.** A steep craggy peak, grey-brown rock with pines clinging to ledges, a narrow gully of loose stones, mist at the base.
-3. **Snow mountain, broad.** A wide snow-covered mountain, wind-scoured rock ribs showing through the snow, a few dark pines at the foot, pale cold light.
-4. **Snow mountain, jagged ridge.** A jagged ridge of three snow-capped teeth, blue-grey shadows in the snow, cornices on the crest.
-5. **Dry mountain, mesa.** A flat-topped mesa of layered ochre and rust stone, crumbling cliff faces, sparse dry scrub at the base.
-6. **Dry mountain, eroded hill range.** A low run of eroded sandstone hills, dusty tan and faded red, wind-cut gullies, a dead tree on one shoulder.
+For every image:
+1. Write one image prompt: the **shared style** text below, then that item's description.
+2. Generate it with a **transparent background** (PNG with alpha). Show only the object: no ground
+   plane, no backdrop, no cast shadow on the background, no text, no border, no frame.
+3. Size: **1024 × 1024**, except items marked *(wide)*, which are **1536 × 1024**.
+4. Under the image, give the **file name** to save it as (listed with each item).
+5. Then stop and wait. Go on to the next item only when I say "next". If I say "again", remake the
+   same item, keeping what I say about it.
 
-### Rock outcrops (3), to soften mountain edges
+Keep every image consistent with the ones before it: the same camera angle, the same light coming from
+the upper left, the same muted palette and the same level of painted detail.
 
-7. **Mossy granite outcrop.** A cluster of rounded granite boulders, moss and ferns in the cracks.
-8. **Snowy rock outcrop.** Angular dark rocks half buried in snow, icicles on one overhang.
-9. **Dry rock outcrop.** Split sandstone blocks with dry grass tufts, sun-bleached.
+**Shared style (put at the start of every prompt):**
+> Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left,
+> 1870s Japan. Seen from a high three-quarter isometric angle, the camera looking down at about 30
+> degrees from the south-east. A single object centred in the frame with some empty margin around it,
+> on a fully transparent background, with no ground plane, no shadow on the background, no text and
+> no border.
 
-### Landmarks (3)
+### Mountains (drawn as large standing cutouts on mountain ground)
 
-10. **Mountain pass gateway.** A narrow stone path between two rock walls, a weathered wooden torii-like gate frame of plain posts (no writing), a small stone marker and a rope with paper strips, wind-bent pines above.
-11. **River ford.** A shallow river crossing seen from above: flat stepping stones and gravel bars, clear water rippling over them, a worn track meeting the bank on both sides. Wide and flat, to lie on the ground.
-12. **Lake edge.** A curved stretch of lake shore: reeds, a few wet rocks, a fallen log half in the water, still dark water fading out at the edge. Wide and flat, to lie on the ground.
+- [ ] 1. **Forest mountain, broad**. File: `mountain_forest_broad.png`
+   A broad rounded mountain, dark cedar forest climbing its lower slopes, bare grey rock and scree
+   near the top, thin mist caught in a fold of the slope.
+- [ ] 2. **Forest mountain, steep peak**. File: `mountain_forest_peak.png`
+   A steep craggy peak, grey-brown rock with pines clinging to ledges, a narrow gully of loose
+   stones, mist at the base.
+- [ ] 3. **Snow mountain, broad**. File: `mountain_snow_broad.png`
+   A wide snow-covered mountain, wind-scoured rock ribs showing through the snow, a few dark pines at
+   the foot, pale cold light.
+- [ ] 4. **Snow mountain, jagged ridge** *(wide)*. File: `mountain_snow_ridge.png`
+   A jagged ridge of three snow-capped teeth, blue-grey shadows in the snow, cornices on the crest.
+- [ ] 5. **Dry mountain, mesa** *(wide)*. File: `mountain_dry_mesa.png`
+   A flat-topped mesa of layered ochre and rust stone, crumbling cliff faces, sparse dry scrub at
+   the base.
+- [ ] 6. **Dry mountain, eroded hills** *(wide)*. File: `mountain_dry_hills.png`
+   A low run of eroded sandstone hills, dusty tan and faded red, wind-cut gullies, a dead tree on
+   one shoulder.
 
-### City gate (part of this art pass, Tim 2026-11-02)
+### Rock outcrops (to soften mountain edges)
 
-13. **Town gate on the forest road.** A wooden town gate of the 1870s Japanese port town: two thick dark-timber posts with a heavy crossbeam and small tiled roof, a pair of open plank doors swung back, short stretches of rough timber palisade on both sides, a hanging paper lantern on each post, a worn dirt road running through it, a few pines behind. Placed where the east trail leaves town at the map edge (`port_town.json` `islandGate` 96,8).
+- [ ] 7. **Mossy granite outcrop**. File: `outcrop_moss.png`
+   A cluster of rounded granite boulders, moss and ferns in the cracks.
+- [ ] 8. **Snowy rock outcrop**. File: `outcrop_snow.png`
+   Angular dark rocks half buried in snow, icicles on one overhang.
+- [ ] 9. **Dry rock outcrop**. File: `outcrop_dry.png`
+   Split sandstone blocks with dry grass tufts, sun-bleached.
+
+### Landmarks
+
+- [ ] 10. **Mountain pass gateway**. File: `pass_gate.png`
+    A narrow stone path between two rock walls, a weathered gate frame of plain wooden posts and a
+    crossbeam (no writing), a small stone marker, a rope with paper strips, wind-bent pines above.
+- [ ] 11. **River ford** *(wide)*. File: `river_ford.png`
+    A shallow river crossing seen from above at the same angle: flat stepping stones and gravel
+    bars, clear water rippling over them, a worn track meeting the bank on both sides. Wide and flat,
+    meant to lie on the ground; the water fades out to transparent at the edges.
+- [ ] 12. **Lake edge** *(wide)*. File: `lake_edge.png`
+    A curved stretch of lake shore: reeds, a few wet rocks, a fallen log half in the water, still
+    dark water fading out to transparent at the edge. Wide and flat, meant to lie on the ground.
+- [ ] 13. **Town gate on the forest road** *(wide)*. File: `city_gate.png`
+    A wooden town gate: two thick dark-timber posts with a heavy crossbeam and a small tiled roof, a
+    pair of open plank doors swung back, short stretches of rough timber palisade on both sides, a
+    hanging paper lantern on each post, a worn dirt road running through it, a few pines behind.
+
+### After generating (for Tim)
+
+Save all 13 into `assets/environment/island/` in the game folder with the file names above. If any
+image has a white or checkered background instead of real transparency, note it: the cut-in step
+(W3.9) can remove a plain background. Then tell Claude they are in and W3.9 can start.
 
 ## Later
 
