@@ -7,18 +7,22 @@ export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f',
 const NODE_COL = { quarry: '#9696a0', forest: '#3c783c', fertile: '#c8be50', ore: '#be6e3c', fishing: '#5aaad2' };
 
 // view = { cx, cz, scale, w, h }: world point (cx, cz) is at the canvas centre, scale = pixels per unit.
-export function worldToCanvas(x, z, view) { return { px: (x - view.cx) * view.scale + view.w / 2, py: (z - view.cz) * view.scale + view.h / 2 }; }
-export function canvasToWorld(px, py, view) { return { x: (px - view.w / 2) / view.scale + view.cx, z: (py - view.h / 2) / view.scale + view.cz }; }
+// Turned 45 degrees like the game camera and the minimap (Tim 2026-11-02): screen right = (+x, -z), down = (+x, +z)
+const R = Math.SQRT1_2;
+export function worldToCanvas(x, z, view) { const dx = x - view.cx, dz = z - view.cz; return { px: (dx - dz) * R * view.scale + view.w / 2, py: (dx + dz) * R * view.scale + view.h / 2 }; }
+export function canvasToWorld(px, py, view) { const a = (px - view.w / 2) / view.scale, b = (py - view.h / 2) / view.scale; return { x: (a + b) * R + view.cx, z: (b - a) * R + view.cz }; }
+// canvas transform that draws world units turned like worldToCanvas
+export function worldTransform(view) { const k = R * view.scale; return [k, k, -k, k, view.w / 2 - k * (view.cx - view.cz), view.h / 2 - k * (view.cx + view.cz)]; }
 // Nearest item ({ x, z }) within maxPx pixels of (px, py), or null.
 export function hitTest(items, px, py, view, maxPx = 8) {
   let best = null, bd = maxPx;
   for (const it of items) { const p = worldToCanvas(it.x, it.z, view); const d = Math.hypot(p.px - px, p.py - py); if (d <= bd) { bd = d; best = it; } }
   return best;
 }
-export function fitView(world, w, h) { const scale = Math.min(w / world.size.w, h / world.size.h); return { cx: world.size.w / 2, cz: world.size.h / 2, scale, w, h }; }
+export function fitView(world, w, h) { const span = (world.size.w + world.size.h) * R, scale = Math.min(w, h) / span; return { cx: world.size.w / 2, cz: world.size.h / 2, scale, w, h }; }
 // Keep zoom sane and the map from being dragged away entirely.
 export function clampView(world, v) {
-  const min = Math.min(v.w / world.size.w, v.h / world.size.h) * 0.9;
+  const min = Math.min(v.w, v.h) / ((world.size.w + world.size.h) * R) * 0.9;
   v.scale = Math.max(min, Math.min(v.scale, 1.2));
   v.cx = Math.max(0, Math.min(v.cx, world.size.w)); v.cz = Math.max(0, Math.min(v.cz, world.size.h));
   return v;
@@ -64,15 +68,16 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     view.w = canvas.width; view.h = canvas.height;
     ctx.fillStyle = TERRAIN.w; ctx.fillRect(0, 0, view.w, view.h);
     if (!cache) buildCache();
-    const o = worldToCanvas(0, 0, view), cell = world.terrain.cell * view.scale;
-    ctx.imageSmoothingEnabled = false; ctx.drawImage(cache, o.px, o.py, cache.width * cell, cache.height * cell);
+    const cell = world.terrain.cell;
+    ctx.setTransform(...worldTransform(view)); ctx.imageSmoothingEnabled = false; ctx.drawImage(cache, 0, 0, cache.width * cell, cache.height * cell); ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#4670aa'; ctx.lineWidth = Math.max(1, 2 * view.scale * 10); for (const r of world.rivers) path(r.points);
     ctx.strokeStyle = 'rgba(120,92,56,.85)'; ctx.lineWidth = 1; for (const c of world.corridors) path(c.points);
     if (grid) { // fog: dark haze on undiscovered cells
-      const C = fogCell(world), c = fogCols(world), rowsN = Math.ceil(world.size.h / C), s = C * view.scale;
-      ctx.fillStyle = 'rgba(10,14,28,.84)';
-      for (let j = 0; j < rowsN; j++) for (let i = 0; i < c; i++) if (grid[j * c + i] !== '1') { const p = worldToCanvas(i * C, j * C, view); ctx.fillRect(p.px, p.py, s + 1, s + 1); }
+      const C = fogCell(world), c = fogCols(world), rowsN = Math.ceil(world.size.h / C), pad = 1 / view.scale;
+      ctx.fillStyle = 'rgba(10,14,28,.84)'; ctx.setTransform(...worldTransform(view));
+      for (let j = 0; j < rowsN; j++) for (let i = 0; i < c; i++) if (grid[j * c + i] !== '1') ctx.fillRect(i * C - pad, j * C - pad, C + 2 * pad, C + 2 * pad);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     const known = (x, z) => isDiscovered(world, grid, x, z);
     for (const n of world.nodes) if (known(n.x, n.z)) { const p = worldToCanvas(n.x, n.z, view); ctx.fillStyle = NODE_COL[n.kind] || '#fff'; ctx.fillRect(p.px - 2, p.py - 2, 4, 4); }
@@ -110,11 +115,13 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
       const end = e => { if (drag) lastMoved = drag.moved; drag = null; try { canvas.releasePointerCapture?.(e.pointerId); } catch {} };
       canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false }; try { canvas.setPointerCapture?.(e.pointerId); } catch {} });
       canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end); canvas.addEventListener('lostpointercapture', end);
-      canvas.addEventListener('pointermove', e => { if (!drag) return; if (!(e.buttons & 1)) return end(e); const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.cx = drag.cx - dx / view.scale; view.cz = drag.cz - dy / view.scale; clampView(world, view); dirty = true; });
+      canvas.addEventListener('pointermove', e => { if (!drag) return; if (!(e.buttons & 1)) return end(e); const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.cx = drag.cx - (dx + dy) * R / view.scale; view.cz = drag.cz - (dy - dx) * R / view.scale; clampView(world, view); dirty = true; });
       addEventListener('pointerup', end, true);   // window, capture phase: a release anywhere ends it
     },
     wasDrag() { return lastMoved; },
     fit() { view = fitView(world, canvas.width, canvas.height); dirty = true; },
+    // + / - buttons: zoom about the middle of the map
+    zoomBy(factor) { zoomAt(world, view, view.w / 2, view.h / 2, factor); dirty = true; },
   };
   return api;
 }

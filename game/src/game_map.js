@@ -8,7 +8,7 @@ import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
-import { createWorldMap } from './world_map.js';
+import { createWorldMap, canvasToWorld } from './world_map.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
@@ -254,7 +254,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       + '<div class="key"><i style="background:#c82828"></i>The Capital</div><div class="key"><i style="background:#5adc78"></i>You</div><div class="key"><i style="background:#ff78c8"></i>Your pin</div>'
       + '<div class="key"><i style="background:#0a0e1c;border:1px solid #555"></i>Unexplored</div><div class="key">Drag: pan · Wheel: zoom · Right-click: pin</div>';
     const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">Your hero and the crew following him jump there at once.</div><button type="button" class="travelgo">Travel</button> <button type="button" class="travelcancel">Cancel</button>` : '';
-    worldSide.innerHTML = `${travel}${box}${form}${legend}`;
+    const zoom = '<div class="wzoom"><button type="button" data-zoom="1.4" title="Zoom in">+</button><button type="button" data-zoom="0.714" title="Zoom out">−</button></div>';
+    worldSide.innerHTML = `${zoom}${travel}${box}${form}${legend}`;
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
       worldSide.querySelector('.travelcancel').addEventListener('click', () => { travelTo = null; drawWorldSide(); });
@@ -269,6 +270,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   }
   function ensureWorldMap() {
     if (worldMap) return;
+    worldSide.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (z && worldMap) { worldMap.zoomBy(+z.dataset.zoom); z.blur(); } });   // + / - (Tim 2026-11-02)
     worldCanvas = document.createElement('canvas'); worldCanvas.className = 'worldcanvas'; worldCanvas.setAttribute('aria-label', 'World map');
     canvas.after(worldCanvas);
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
@@ -300,7 +302,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       drawWorldSide();
     });
   }
-  const canvasToWorldPoint = (px, py) => { const v = worldMap.view; return { x: Math.round((px - v.w / 2) / v.scale + v.cx), z: Math.round((py - v.h / 2) / v.scale + v.cz) }; };
+  const canvasToWorldPoint = (px, py) => { const p = canvasToWorld(px, py, worldMap.view); return { x: Math.round(p.x), z: Math.round(p.z) }; };
   function setTab(t) {
     if (!world) t = 'city';
     tab = t; root.classList.toggle('world', t === 'world'); worldSide.hidden = t !== 'world';
