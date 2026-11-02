@@ -88,4 +88,6 @@ body.prematch > :not(#startscreen):not(#loading):not(script) { visibility: hidde
 #startscreen .start-saves { margin-top:14px; }
 #startscreen .start-saves button { padding:8px 16px; font-size:13px; cursor:pointer; }
 #startscreen .start-save-list { list-style:none; margin:10px 0 0; padding:0; max-height:200px; overflow:auto; }
-#startscreen .start-save-list button { width:100%; text-align:left; margin-bottom:4px; }
+#startscreen .start-save-list li { display:flex; gap:4px; margin-bottom:4px; }
+#startscreen .start-save-list .start-save-pick { flex:1; text-align:left; }
+#startscreen .start-save-list .start-save-delete { flex:none; padding:8px 10px; }

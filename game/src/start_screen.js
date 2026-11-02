@@ -69,13 +69,21 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
     const begin = name => { root.hidden = true; loading.hidden = false; music.stop(); resolve({ loadSave: name }); };
     saves?.list().then(all => {
       if (!all.length) return;
-      const sorted = sortSaves(all);
+      let sorted = sortSaves(all);
       box.hidden = false;
       box.querySelector('.start-continue').addEventListener('click', () => begin(newest(sorted).name));
       box.querySelector('.start-load').addEventListener('click', () => {
         listEl.hidden = !listEl.hidden; if (!listEl.hidden && !listEl.children.length) for (const h of sorted) {
-          const li = document.createElement('li'), b = document.createElement('button');
-          b.type = 'button'; b.textContent = rowText(h); b.addEventListener('click', () => begin(h.name)); li.append(b); listEl.append(li);
+          const li = document.createElement('li'), b = document.createElement('button'), del = document.createElement('button');
+          b.type = 'button'; b.className = 'start-save-pick'; b.textContent = rowText(h); b.addEventListener('click', () => begin(h.name));
+          del.type = 'button'; del.className = 'start-save-delete'; del.textContent = 'Delete'; del.title = 'Delete this save (kept in saves/_trash)';
+          del.addEventListener('click', async () => {
+            if (!confirm(`Delete this save?\n\n${rowText(h)}\n\nThe file is moved to saves/_trash.`)) return;
+            try { await saves.remove(h.name); } catch { note.textContent = 'Could not delete that save.'; return; }
+            sorted = sorted.filter(x => x.name !== h.name); li.remove(); note.textContent = 'Save deleted.';
+            if (!sorted.length) { box.hidden = true; listEl.hidden = true; }
+          });
+          li.append(b, del); listEl.append(li);
         }
       });
     }).catch(() => {});   // no save server: the buttons stay hidden
