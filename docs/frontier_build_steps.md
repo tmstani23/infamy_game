@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [ ] W3.8 island art (Tim, 25 images) · [ ] W3.9 fit art and smooth blocked areas (any time before E; W4 does not depend on them)
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan)
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -1048,12 +1048,12 @@ In campaign mode, walk out of the gate, explore for a few minutes, cross a river
 Watch Firefox memory and frame rate. Check that the ground looks right by biome.
 
 
-### W3.8. Generate the island art  [TIM]
+### W3.8. Generate the island art  [SOURCE SET COMPLETE; FOLLOW-UPS OPEN] [TIM]
 
-Tim makes 25 images in ChatGPT from `assets/image_prompts.md`, island section; the draft is
-/mnt/project-files/w3_walkable/w3_4b_art_prompts.md. The file starts with instructions for ChatGPT:
-one image at a time, transparent PNG, sizes, file names, wait for "next". Tim attaches the file plus
-`game/art/props/pine_tree.png` and a game screenshot as style and scale references, then says "start".
+The original 25-image W3.8 source set has been generated and verified in `assets/environment/island/`.
+The approved source prompts and inventory are in `assets/image_prompts.md` under Island art. Follow-up
+art from the first walkthrough is tracked separately there; do not treat source generation as completion
+of terrain mapping, visual calibration, or runtime integration.
 
 Saved in `assets/environment/island/`:
 
@@ -1064,12 +1064,27 @@ Saved in `assets/environment/island/`:
 | Outcrops | `outcrop_moss.png`, `outcrop_snow.png`, `outcrop_dry.png` |
 | Landmarks | `pass_gate.png`, `river_ford.png` and `lake_edge.png` (top-down decals), `city_gate.png` |
 
+Checkpoint (2026-11-02): W3.9 baseline cliff/top/outcrop/city-gate assets are imported and mapped from
+the blueprint-derived mountain cells; movement/corner handling is implemented and coordinator-reported
+checks passed. The tour markers and temporary staged review props have been removed. Twenty-one
+follow-up assets (8 numeric lake banks, 4 opposite-bank rims, 9 high-ground variants) are saved and
+accepted, but still await mapping/integration. The first new opaque snow-lowland texture,
+`ground_snow.png`, has appeared but is pending verification; `ground_snow_thaw.png` is pending
+sequential generation. Keep the pair open until both are saved and verified. W3.8/W3.9 visual and
+biome-ground work remains open.
+
 Check: Tim puts them side by side. They should share the same angle, light and colours, and the trees
 should be the same size as the game's pine. Redo any that stand out.
 
-### W3.9. Build the ranges from the pieces and make blocked areas walk smoothly  [SMALL]
+### W3.9. Build the ranges from the pieces and make blocked areas walk smoothly  [BASELINE IMPLEMENTED; VISUAL/INTEGRATION OPEN]
 
 Needs: W3.8 images. Read the whole plan and step_runner_guide.md first, as for every step.
+
+**Status (2026-11-02):** Baseline art import and deterministic placement from blocked terrain cells
+are implemented; world-only corner slipping and baseline checks are complete. This does not close the
+visual art pass. Follow-up priorities and Tim's walkthrough approvals live in
+`docs/frontier_campaign_plan.md`; keep generated art, terrain mapping, and runtime integration as
+separate completion checks.
 
 **Why:** in the W3.7 playtest the hero got stuck or slid diagonally along mountains and water.
 - `sim/chunk_gen.js` merges blocked 50-unit terrain cells into row-run rectangles, so a range whose
@@ -1108,9 +1123,12 @@ Needs: W3.8 images. Read the whole plan and step_runner_guide.md first, as for e
    - Interior mountain cells get the `top_<biome>` ground texture, plus a few full-size pine props on
      forest tops (`world_chunks.json` density).
    - Outcrops go where pieces meet badly (chunk borders, single-cell spurs).
-   - Landmarks: pass_gate at passes, river_ford at fords, lake_edge along lake shores (flat decals
-     under units). city_gate replaces the lantern-post marker at `port_town.json` islandGate, with the
-     same art on the island side of the gate.
+   - Landmarks: draw `pass_gate` only at a walkable pass flanked by mountain cells; stale pass
+     metadata without that terrain fit is ignored. Legacy `river_ford` and oversized painted-water
+     `lake_edge` emissions are disabled. Integrate resized ford art at actual crossings and the eight
+     accepted numeric lake-bank pieces around code-rendered water, aligning the visual shore with
+     terrain/collision. `city_gate` replaces the lantern-post marker at `port_town.json` islandGate,
+     with the same art on the island side of the gate.
 3. **Make the blocked areas walk smoothly** (the stuck/slide fix):
    - a) Blockers stay the cell squares, since the cliff pieces follow cell edges exactly. Make sure
      each run is one clean rectangle per row and that touching runs share edges exactly (no 1e-9

@@ -306,7 +306,7 @@ a low rocky lip from behind.
 
 ### Walkthrough follow-up art prompts (2026-11-02)
 
-For each item, prepend its shared prompt, attach the listed references, then append the exact item description. Shared text is shown once to avoid duplicating the full prompt for every file. The machine-readable source prompts remain in [`lake_edges_prompts.json`](environment/island/lake_edges_prompts.json) and [`walkthrough_art_prompts.json`](environment/island/walkthrough_art_prompts.json).
+For each item, prepend its shared prompt, attach the listed references, then append the exact item description. Shared text is shown once to avoid duplicating the full prompt for every file. The machine-readable source prompts remain in [`lake_edges_prompts.json`](environment/island/lake_edges_prompts.json) and [`walkthrough_art_prompts.json`](environment/island/walkthrough_art_prompts.json). All 21 follow-up assets have been generated and Tim accepted them for later mapping review. They are in the existing `assets/environment/island/` source folder; no importer, placement, or game-code integration is included here.
 
 #### Lake-bank segments
 
@@ -316,28 +316,29 @@ For each item, prepend its shared prompt, attach the listed references, then app
 
 > Semi-realistic painted game illustration for 1870s Japan, muted olive greens, weathered grey stones and brown earth, soft overcast lighting from the upper left, matching the supplied game pine and lake-shore reference. STRICT ORTHOGRAPHIC TOP-DOWN camera at 90 degrees, looking straight down, NOT an isometric standing cutout. A modular narrow lake-bank strip on a genuine transparent PNG, 1024 × 1024. Use a nominal human height of 75 pixels for scale: individual pebbles 4–12 pixels, small bank rocks 15–35 pixels, occasional reed clumps 30–55 pixels. Keep the decorated band about 100–140 pixels wide overall. Paint damp earth, scattered small stones and sparse reeds on the LAND side. On the water side, include only a thin wet-stone fringe fading to transparent; do NOT paint a water surface, blue or dark water fill, underwater scenery or lake interior—the engine supplies all water. Fade the outer land margin to transparent too. Keep the two joining ends simple, compatible and open, without endcaps or a vignette cutting off the strip. The shoreline boundary is the centre of the decorated band. No logs, trees, large boulders, characters, text, grid, border, frame, cast background shadow or backdrop. Do not reproduce the reference lake's oversized features or its painted water. The directions below refer to this TOP-DOWN texture's axes; the game handles its isometric projection.
 
-| File | Exact item description |
-|---|---|
-| `lake_edge_n.png` | Horizontal shore boundary from (0,512) to (1024,512). Land is ABOVE the line; lake water is BELOW it. Keep the water area transparent. |
-| `lake_edge_e.png` | Vertical shore boundary from (512,0) to (512,1024). Land is RIGHT of the line; lake water is LEFT. Keep the water area transparent. |
-| `lake_edge_s.png` | Horizontal shore boundary from (0,512) to (1024,512). Land is BELOW the line; lake water is ABOVE. Keep the water area transparent. |
-| `lake_edge_w.png` | Vertical shore boundary from (512,0) to (512,1024). Land is LEFT of the line; lake water is RIGHT. Keep the water area transparent. |
-| `lake_edge_ne.png` | Straight diagonal shoreline from TOP LEFT (0,0) to BOTTOM RIGHT (1024,1024). This bevel connects the north and east shores of an octagonal lake. Land lies on the NORTHEAST side of the diagonal (above/right); water lies SOUTHWEST (below/left). Water area stays transparent. It is a diagonal bank segment, not a rounded island or an L-shaped wall. |
-| `lake_edge_se.png` | Straight diagonal shoreline from BOTTOM LEFT (0,1024) to TOP RIGHT (1024,0). This bevel connects east and south shores. Land lies SOUTHEAST (below/right); water lies NORTHWEST (above/left). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
-| `lake_edge_sw.png` | Straight diagonal shoreline from TOP LEFT (0,0) to BOTTOM RIGHT (1024,1024). This bevel connects south and west shores. Land lies SOUTHWEST (below/left); water lies NORTHEAST (above/right). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
-| `lake_edge_nw.png` | Straight diagonal shoreline from BOTTOM LEFT (0,1024) to TOP RIGHT (1024,0). This bevel connects west and north shores. Land lies NORTHWEST (above/left); water lies SOUTHEAST (below/right). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
+| Saved file | Orientation | Exact item description |
+|---|---|---|
+| `lake_edge_1.png` | North straight | Horizontal shore boundary from (0,512) to (1024,512). Land is ABOVE the line; lake water is BELOW it. Keep the water area transparent. |
+| `lake_edge_2.png` | Northeast bevel | Straight diagonal shoreline from TOP LEFT (0,0) to BOTTOM RIGHT (1024,1024). This bevel connects the north and east shores of an octagonal lake. Land lies on the NORTHEAST side of the diagonal (above/right); water lies SOUTHWEST (below/left). Water area stays transparent. It is a diagonal bank segment, not a rounded island or an L-shaped wall. |
+| `lake_edge_3.png` | East straight | Vertical shore boundary from (512,0) to (512,1024). Land is RIGHT of the line; lake water is LEFT. Keep the water area transparent. |
+| `lake_edge_4.png` | Southeast bevel | Straight diagonal shoreline from BOTTOM LEFT (0,1024) to TOP RIGHT (1024,0). This bevel connects east and south shores. Land lies SOUTHEAST (below/right); water lies NORTHWEST (above/left). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
+| `lake_edge_5.png` | South straight | Horizontal shore boundary from (0,512) to (1024,512). Land is BELOW the line; lake water is ABOVE. Keep the water area transparent. |
+| `lake_edge_6.png` | Southwest bevel | Straight diagonal shoreline from TOP LEFT (0,0) to BOTTOM RIGHT (1024,1024). This bevel connects south and west shores. Land lies SOUTHWEST (below/left); water lies NORTHEAST (above/right). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
+| `lake_edge_7.png` | West straight | Vertical shore boundary from (512,0) to (512,1024). Land is LEFT of the line; lake water is RIGHT. Keep the water area transparent. |
+| `lake_edge_8.png` | Northwest bevel | Straight diagonal shoreline from BOTTOM LEFT (0,1024) to TOP RIGHT (1024,0). This bevel connects west and north shores. Land lies NORTHWEST (above/left); water lies SOUTHEAST (below/right). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
 
-All lake pieces use genuine transparency. The engine supplies the water; bank placement and collision must follow the mapped shoreline.
+All lake pieces are 1254 × 1254 with genuine transparency (the source prompts requested 1024 × 1024). Numeric order is N, NE, E, SE, S, SW, W, NW; these names identify assets only, not calibrated placement. `lake_edge_1.png` is the approved north v3, matching retained `lake_edge_n_v3.png`. `lake_edge_n_initial.png` and the original `lake_edge.png` are preserved. `lake_edge_n_v2.png` was moved to `to_delete/` at Tim’s request. The engine supplies water; bank placement and collision must follow the mapped shoreline.
 
 #### Opposite-bank rims
 
 **References:** the approved `assets/environment/island/rim_<biome>.png` and `game/art/props/pine_tree.png`.
+All four saved opposite-bank rims are 1536 × 1024 with genuine transparency. The mirrored companions are separately generated reverse-orientation art, not exact pixel flips; Tim accepted this.
 
 **Shared prompt:**
 
 > Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.
 
-| File | Exact item description |
+| Saved file | Exact item description |
 |---|---|
 | `rim_forest_opposite.png` | The low rocky rim runs from UPPER LEFT to LOWER RIGHT. High-ground interior and its trees must be on the LOWER-LEFT side of that diagonal; the land drops away out of sight toward UPPER RIGHT. Do not place the forest on the drop side. Forest biome: low mossy granite boulders, ferns, a few dark olive cedar/pine trees; same grey/olive palette as approved forest rim. |
 | `rim_forest_opposite_mirrored.png` | The low rocky rim runs from UPPER RIGHT to LOWER LEFT. High-ground interior and its trees must be on the LOWER-RIGHT side of that diagonal; the land drops away out of sight toward UPPER LEFT. This is the mirrored geometry companion of the opposite-bank rim. Forest biome: low mossy granite boulders, ferns, a few dark olive cedar/pine trees; same grey/olive palette as approved forest rim. |
@@ -348,13 +349,13 @@ All rims use genuine transparent alpha; the high-ground side faces inward and th
 
 #### High-ground texture variants B–D
 
-**References:** the approved `assets/environment/island/top_<biome>.png` for each biome. These are 1024 × 1024 opaque, seamless, strict top-down textures. Each biome has four variants total: existing A plus new B, C, and D.
+**References:** the approved `assets/environment/island/top_<biome>.png` for each biome. The source prompts request 1024 × 1024 opaque, seamless, strict top-down textures; all nine saved B/C/D variants are 1254 × 1254, fully opaque (alpha 255). Each biome has four variants total: existing A plus new B, C, and D. Keep the actual output dimensions in mind if integration requires resizing.
 
 **Shared prompt:**
 
 > Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.
 
-| File | Exact item description |
+| Saved file | Exact item description |
 |---|---|
 | `top_forest_b.png` | More irregular small mossy clearings between dense cedar and pine crowns, a few dispersed grey stones. Crown diameters match reference (~200 pixels); all crowns viewed directly from above, no exposed trunks. |
 | `top_forest_c.png` | A denser mix of overlapping dark pine and cedar crowns, a few rock seams and tiny moss pockets. Irregular clustering, no tree rows; directly overhead crowns only. |
@@ -367,6 +368,21 @@ All rims use genuine transparent alpha; the high-ground side faces inward and th
 | `top_dry_d.png` | Mottled ochre/rust grit and fractured small rock patches with dry grass scattered unevenly. No straight repeated seams, broad directional bands or rectangular patches. |
 
 These prompts create art assets only. Connected dry-range layout, terrain changes, water rendering, collision alignment, and shared corner/edge calibration remain separate implementation work.
+
+#### Snow-region lowland ground textures (generation underway, 2026-11-02)
+
+Prompt source: [`snow_ground_prompts.json`](environment/island/snow_ground_prompts.json). Only `ground_snow.png` and `ground_snow_thaw.png` are in scope. Both are opaque top-down ground textures; target size is 1024 × 1024. `ground_snow.png` has appeared in the asset folder but is not yet verified; `ground_snow_thaw.png` is still pending generation. Do not mark this pair complete until both saved outputs are verified. No additional texture families or variants are approved by this prompt set.
+
+**Shared prompt (prepend to each item):**
+
+> A seamless terrain texture for a dark, semi-realistic painted isometric game set in 1870s Japan. Match the supplied approved snow high-ground image's cool muted off-white and blue-grey snow materials and the forest-floor reference's fine ground-detail scale. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, not an isometric scene. One continuous flat walkable ground surface filling an opaque 1024 by 1024 PNG, no transparency. Fine natural painted detail, diffuse overcast illumination, restrained contrast, no baked directional cast shadows. All opposite edges must continue naturally for seamless tiling. No borders, frames, text, vignette, edge fading, tile grids, roads, footprints, characters, buildings, trees, crowns, branches, standing rocks, cliff faces, horizon or large central focal motif. Avoid lines, stripes, rows and strongly recognizable shapes that reveal repetition across a large region.
+
+| File | References | Exact item description |
+|---|---|---|
+| `ground_snow.png` | `assets/environment/island/top_snow.png`; `assets/environment/forest_textures/forest_floor_tile.png` | An almost continuous blanket of settled lowland snow, approximately 90 to 95 percent snow coverage. Subtle wind-softened grain, gentle irregular shallow depressions, sparse tiny dark pebbles and occasional short dormant grass tips barely breaking the surface. Mostly calm open snow, no deep dramatic drifts, exposed rock slabs, pine tops or mountainous features. Small details distributed naturally and quietly, consistent scale across the image. This must read as snowy terrain beneath walking human-sized units rather than a miniature mountain landscape. |
+| `ground_snow_thaw.png` | `assets/environment/island/ground_snow.png`; `assets/environment/forest_textures/wet_soil_tile.png`; `assets/environment/forest_textures/pine_needles_tile.png` | A companion lowland texture blending irregular remnants of melting snow with damp dark earth, subdued dead olive-brown grass and sparse tiny pebbles. Approximately 45 to 55 percent snow coverage, broken into soft-edged organic patches of varied size, without stripes or a single boundary dividing the image. Match `ground_snow.png` exactly in snow colour, detail scale and diffuse illumination. Exposed earth is dark muted soil, not orange sand or bright mud. Slight dampness without broad puddles or reflective water. This is a fully covered mixed ground tile for procedural blending at snow-region edges, not a transparent decal, fixed path or directional transition strip. |
+
+After generation, record actual output dimensions and verify opaque coverage, scale, palette, tile edges, and repeated motifs before marking these textures complete. Whole-region snow-ground rendering and thaw blending still require code integration.
 
 ## Later
 

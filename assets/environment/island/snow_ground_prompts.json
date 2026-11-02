@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "status": "ground_snow.png has appeared but is pending verification; ground_snow_thaw.png is pending sequential generation; runtime integration pending",
+  "outputDirectory": "assets/environment/island/",
+  "instructions": "Generate these two assets one at a time using the built-in imagegen tool and imagegen skill. Inspect the reference images first. Save each exact filename in outputDirectory, preserving existing assets. These are continuous opaque ground textures, not transparent props. Target 1024 by 1024; record actual output dimensions if different. Check top-down view, fine feature scale, palette, full coverage and absence of conspicuous repeated motifs. No code, importer, placement or test changes. No additional variants requested.",
+  "sharedPrompt": "A seamless terrain texture for a dark, semi-realistic painted isometric game set in 1870s Japan. Match the supplied approved snow high-ground image's cool muted off-white and blue-grey snow materials and the forest-floor reference's fine ground-detail scale. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, not an isometric scene. One continuous flat walkable ground surface filling an opaque 1024 by 1024 PNG, no transparency. Fine natural painted detail, diffuse overcast illumination, restrained contrast, no baked directional cast shadows. All opposite edges must continue naturally for seamless tiling. No borders, frames, text, vignette, edge fading, tile grids, roads, footprints, characters, buildings, trees, crowns, branches, standing rocks, cliff faces, horizon or large central focal motif. Avoid lines, stripes, rows and strongly recognizable shapes that reveal repetition across a large region.",
+  "items": [
+    {
+      "file": "ground_snow.png",
+      "label": "Snow-covered lowland ground",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/top_snow.png",
+        "assets/environment/forest_textures/forest_floor_tile.png"
+      ],
+      "detailPrompt": "An almost continuous blanket of settled lowland snow, approximately 90 to 95 percent snow coverage. Subtle wind-softened grain, gentle irregular shallow depressions, sparse tiny dark pebbles and occasional short dormant grass tips barely breaking the surface. Mostly calm open snow, no deep dramatic drifts, exposed rock slabs, pine tops or mountainous features. Small details distributed naturally and quietly, consistent scale across the image. This must read as snowy terrain beneath walking human-sized units rather than a miniature mountain landscape."
+    },
+    {
+      "file": "ground_snow_thaw.png",
+      "label": "Patchy snow and thaw ground",
+      "transparent": false,
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "assets/environment/island/ground_snow.png",
+        "assets/environment/forest_textures/wet_soil_tile.png",
+        "assets/environment/forest_textures/pine_needles_tile.png"
+      ],
+      "detailPrompt": "A companion lowland texture blending irregular remnants of melting snow with damp dark earth, subdued dead olive-brown grass and sparse tiny pebbles. Approximately 45 to 55 percent snow coverage, broken into soft-edged organic patches of varied size, without stripes or a single boundary dividing the image. Match ground_snow.png exactly in snow colour, detail scale and diffuse illumination. Exposed earth is dark muted soil, not orange sand or bright mud. Slight dampness without broad puddles or reflective water. This is a fully covered mixed ground tile for procedural blending at snow-region edges, not a transparent decal, fixed path or directional transition strip."
+    }
+  ]
+}
