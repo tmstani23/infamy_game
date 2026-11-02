@@ -182,6 +182,8 @@ Both live in one world with the same coordinates and the same sim rules, so crew
 
 Concept image (Gemini) -> 3D model (Tencent Hunyuan) -> rig and animations (Mixamo) -> sprite sheets via `tools/export_sprites.mjs` (8 directions, weapons from `assets/models/items` baked in) -> `assets/sprites`, which the game loads directly. Environment sheets are cut by `tools/cut_environment.py`; interior textures by `tools/make_interior_textures.py`. Full details: [art_direction.md](art_direction.md), [cast_tracker.md](cast_tracker.md), and the README.
 
+Future performance and efficiency (possibility, not planned): runtime art size. The island art PNGs are about 3 MB each (`game/art/props` is 55 MB, `game/art/ground` 9 MB). A later pass could resize each one to the size it is actually drawn at (about 1 art px per screen px at zoom 1, PPU 53.3) and compress it (quantized PNG or WebP). That would mean faster loading, less GPU memory and smaller git commits.
+
 ## Map presentation lifecycle (2026-10-29)
 
 `presentation_mode.js` coordinates map/world presentation in `main.js` without pausing simulation. Map-open frames retain sim/AI/audio/news/commands but skip world rendering/bloom, animation/particles/nameplates, camera-pan/fog GPU work, small minimap and hidden action-bar paints. Transient FX are cleared through existing bounded pools; scene resources stay allocated. World events/interpolation snapshots are skipped while hidden. Close resynchronizes snapshot/fog to current sim state, avoiding stale FX replay and delayed ownership celebrations.
