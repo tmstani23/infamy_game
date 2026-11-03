@@ -58,8 +58,13 @@ export function atlasFeatureName(it) {
 export function atlasItems(world, st, layers, known) {
   const records = [];
   const add = (list, kind) => { if (!layers[ATLAS_MARKERS[kind].layer]) return; for (const it of list || []) if (known(it.x,it.z)) records.push({ ...it, featureKind: it.kind, kind }); };
-  add(world.sites, 'site'); add(world.nodes, 'resource'); add(world.camps, 'camp'); add(world.passes, 'pass');
-  for (const it of world.fords || []) if (layers.crossings && known(it.x,it.z)) records.push({ ...it, kind: it.kind === 'bridge' ? 'bridge' : 'ford' });
+  add(world.sites, 'site'); add(world.nodes, 'resource'); add(world.camps, 'camp');
+  // Geographic crossings are part of the full atlas, independent of site exploration.
+  // Keep them in this shared list so the symbols, key and hover all agree.
+  if (layers.crossings) {
+    for (const it of world.passes || []) records.push({ ...it, kind: 'pass' });
+    for (const it of world.fords || []) records.push({ ...it, kind: it.kind === 'bridge' ? 'bridge' : 'ford' });
+  }
   // Settlements have already been filtered by the authoritative snapshot; they win over their site.
   if (layers.sites) for (const t of st.towns || []) records.push({ ...t, kind: 'town' });
   records.push({ ...world.capital, kind: 'capital', name: 'The Capital' });

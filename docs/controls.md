@@ -140,7 +140,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Settings | Locally saved Master/Effects/Mute and Test sound |
 | M map: World tab (updated 2026-11-03) | Illustrated north-up atlas with full geography and discovered features. Drag to pan, wheel or +/− to zoom; Fit island resets the view and Your location centers on you. Hover shows the exact biome, grid square, coordinates and marked feature; click for details. Own location and pins remain visible. |
 | Right-click the World map | Drop a pin with a note (40 characters, max 50 pins); right-click a pin removes it. Notes appear in hover/details. |
-| World atlas layer buttons | Toggle Routes, Sites & towns, Camps & ruins, Resources, Crossings & passes, Biome tint and Grid. The key lists actual known markers in enabled layers. Hollow sites are unscouted: walk close to learn their traits. Grid lines start hidden; adaptive rulers remain visible. |
+| World atlas layer buttons | Toggle Routes, Sites & towns, Camps & ruins, Resources, Crossings & passes, Biome tint and Grid. Crossings & passes shows all 9 bridges (H), 8 fords (X) and 20 mountain passes (hollow diamond), with matching key entries and type/ID hover. Sites, camps and resources require discovery; hollow sites are unscouted. Grid lines start hidden; adaptive rulers remain visible. |
 | Island minimap | North-up island view with your 500-unit square label and the camera footprint shown as a diamond. |
 | O | Open the town panel (needs a town; has a Governor button for the governor chat). |
 | Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |
