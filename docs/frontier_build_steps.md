@@ -1228,6 +1228,27 @@ As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcro
 - Sharper minimap and world map (devicePixelRatio, smoother terrain layer) [1].
 - Bug (Tim 2026-11-03): the camera box on the minimap and World map does not follow the hero after test travel, and sometimes not while running around the island; it also needs the right orientation (match the map it sits on).
 
+**Handoff (2026-11-03, Tim OK'd; nothing built yet).** Rules: read the whole plan and step_runner_guide.md; Node checks only (copy a .js to `to_delete/_chk/*.mjs` before `node --check`); mock image first for Tim's OK; new controls go in the Controls panel and `controls.md`; only the Docs keeper commits.
+
+**Where the code is (checked 2026-11-03):**
+- World map: game/src/world_map.js. worldToCanvas, canvasToWorld, worldTransform, fitView, clampView, zoomAt and the drag handler are all turned 45 degrees (R = SQRT1_2). Terrain is a 1 px per 50-unit cell cache drawn with smoothing off (blocky). Canvas ignores devicePixelRatio. Grid (# button) is 1000 units. It has NO camera box today.
+- World tab wiring: game/src/game_map.js (ensureWorldMap, worldState, setTab, canvasToWorldPoint). Canvas CSS is 7:4 in game/index.html (line ~408), which already equals the island's 14000 x 8000.
+- Island minimap: game/src/minimap.js paintIsland (hero-centred, 450-unit span, 45 degree turn, 1 px per cell image, north arrow, camera box from view.screenToGround).
+- Camera: game/src/render/view.js (freeCam, farCam, camTarget, screenToGround at ~line 526).
+- Test: game/tools/test_world_map.mjs (round trip, zoom, hitTest, fog); it must be updated for the new orientation.
+
+**Steps:**
+1. Mock (PIL, world.json terrain rows staged): north-up World map filling the width, 500-unit grid (28 x 16, letters A..AB across the top, numbers 1..16 down the side), hover readout "C12" plus small "x 1234 z 567", own square; island minimap north-up in the same style. Ask Tim OK.
+2. World map: drop the rotation (x right, z down), scale = min(w/14000, h/8000); draw at devicePixelRatio (canvas.width = css*dpr, ctx.setTransform(dpr...)); terrain cache upscaled about 4x with smoothing; ruler labels always on, grid lines still behind the # button; hover and own-square readout; add a camera-view quad (view.screenToGround corners) when the hero is on the island.
+3. Pure helpers in world_map.js (testable): GRID = 500, column letters, gridLabel(x, z).
+4. Minimap island mode: north-up (x right, z down), same smoothed cached terrain, drop the north arrow, show own square label, camera quad (now a rotated diamond, correct).
+5. Camera-box bug, likely cause (not reproduced, no browser): in view.js a panned camera (freeCam) or farCam is only cleared when the hero's place changes, so a world-to-world travel leaves the camera at the old spot and the box shows it. Fix: when the hero jumps more than about 60 units in one frame, clear freeCam/farCam/watch and snap camTarget; also call camera.updateMatrixWorld() inside screenToGround so the box never uses a stale matrix.
+6. Controls panel: mention the grid labels and hover readout, and that the map is now north-up.
+7. Node checks, then report to the coordinator.
+
+Check: `test_world_map.mjs` updated for the north-up layout and passing, plus new tests for `gridLabel`; regression set unchanged. Playtest: test travel to a far spot, then run around; the camera box on both maps follows the hero and matches the view.
+
+
 #### P3 Edges and water (shader and paint code; Opus suggested)
 - Feather mountain tops into the ground under the rim/cliff art; wider thaw band between snow textures [6c].
 - Lakes: diagonal bank pieces 2/4/6/8 on staircase corners; water variation (shallow tint, slow noise) [4].
