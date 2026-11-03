@@ -18,3 +18,30 @@ export function waterSurfaceUniforms(cfg) {
     light: cfg?.lightDirection || [-0.5, 0.85, -0.25],
   };
 }
+
+// Periodic height derivatives: integer Fourier modes join exactly on both tile
+// axes. These are numerical normal data, not painted color/foam images.
+export function waterNormalData(size, seed) {
+  const sx = new Float32Array(size * size), sz = new Float32Array(size * size);
+  let state = seed >>> 0;
+  const random = () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 4294967296; };
+  for (let c = 0; c < 16; c++) {
+    const kx = 2 + Math.floor(random() * 22), kz = Math.floor(random() * 9) - 4;
+    const phase = random() * Math.PI * 2, amplitude = (0.025 + random() * 0.025) / Math.sqrt(c + 1);
+    const length = Math.hypot(kx, kz), ax = amplitude * kx / length, az = amplitude * kz / length;
+    const cos = new Float32Array(size), sin = new Float32Array(size);
+    for (let x = 0; x < size; x++) { const a = (x + 0.5) / size * kx * Math.PI * 2 + phase; cos[x] = Math.cos(a); sin[x] = Math.sin(a); }
+    for (let z = 0; z < size; z++) {
+      const a = (z + 0.5) / size * kz * Math.PI * 2, cy = Math.cos(a), sy = Math.sin(a);
+      for (let x = 0; x < size; x++) { const i = z * size + x, h = cos[x] * cy - sin[x] * sy; sx[i] += h * ax; sz[i] += h * az; }
+    }
+  }
+  const data = new Uint8Array(size * size * 4);
+  for (let i = 0; i < sx.length; i++) {
+    const d = Math.hypot(sx[i], sz[i], 1);
+    data[i * 4] = Math.round((0.5 - sx[i] / d * 0.5) * 255);
+    data[i * 4 + 1] = Math.round((0.5 - sz[i] / d * 0.5) * 255);
+    data[i * 4 + 2] = Math.round((0.5 + 1 / d * 0.5) * 255); data[i * 4 + 3] = 255;
+  }
+  return data;
+}
