@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Paused at Tim request due usage limits. Water reflection/normal maps and inland bank reuse implemented on disk but not fully verified. Resume from water_checkpoint_2026-11-03.json; do not claim completion.",
+  "status": "Done 2026-11-03: Tim visually accepted the water surface, reflection, depth gradient, foam and caustics, inland banks and the visual-only rounded ford corners. 34 harbor corners and 17 mountain corners are still unrounded. The checkpoint below is history.",
   "setup": "Three.js 0.186.1 WebGLRenderer, fixed isometric OrthographicCamera, one custom painted ground ShaderMaterial per streamed chunk, shared time/day-night/lantern lighting, existing rounded water mask and coast ribbons.",
   "localFindings": [
     "Before the follow-up, island water scrolled a cropped photographic color texture through four repeat phases under a strong static noise warp. Color features blended into one another during animation.",
@@ -105,23 +105,23 @@
   "approvedPass": [
     {
       "task": "Shared bounded reflection and two small seamless normal fields",
-      "done": false
+      "done": true
     },
     {
       "task": "Lighter low-repetition surface and normal/reflection integration",
-      "done": false
+      "done": true
     },
     {
       "task": "Reuse biome strips/transition and shared rounding for inland water with protected crossings",
-      "done": false
+      "done": true
     },
     {
       "task": "Focused resource/normal-field and shoreline regression checks",
-      "done": false
+      "done": true
     },
     {
       "task": "Tim visual/performance review",
-      "done": false
+      "done": true
     }
   ],
   "checkpoint": "assets/environment/island/water_checkpoint_2026-11-03.json"

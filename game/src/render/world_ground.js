@@ -18,6 +18,7 @@ import { loadTex, cutoutThing, loadGroundTextures, GROUND_CHANNELS } from './sce
 import { chunksToDraw, planChunks, propsInView } from '../world_stream.js';
 import { createIslandPainter } from './island_ground.js';
 import { createCoastlineRenderer } from './coastline.js';
+import { createWaterEffects } from './water_effects.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
 // mountain art is cut in, W3.4b)
@@ -43,10 +44,12 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
   const coastline = createCoastlineRenderer({ world, cfg, renderer });
+  const waterEffects = createWaterEffects({ world, cfg, renderer, scene });
+  const reflectionFrustum = new THREE.Frustum(), reflectionProjection = new THREE.Matrix4(), waterBox = new THREE.Box3();
   let painter = null, groundTex = null, frame = 0, last = null, list = [], shown = false, propAt = null;
   loadGroundTextures(renderer).then(async t => {
     if(cfg.islandArt?.enabled){const tops=await Promise.all(['forest','snow','dry'].map(b=>loadTex(`art/ground/top_${b}.png`)));tops.forEach(tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();});t={...t,tTopForest:tops[0],tTopSnow:tops[1],tTopDry:tops[2]};}
-    if (cfg.paint?.enabled) painter = createIslandPainter({ world, cfg, renderer, groundTex: t });
+    if (cfg.paint?.enabled) painter = createIslandPainter({ world, cfg, renderer, groundTex: t, waterEffects });
     groundTex=t;
   }).catch(e=>console.error('Island ground textures:',e));
   // W3.10: the walled city seen from the island. Its box is a walk blocker (sim/chunk_gen.js), so a line of
@@ -126,7 +129,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       mesh.material.uniforms.uFogAt.value.set(p.x,p.z,0,1);
       return {mesh,extras:[],lights:[],decal:true};
     }
-    const piece = placePiece({ name, x: p.x, z: p.z, flip: p.art ? !!p.flip : Math.floor(p.x * 7 + p.z * 3) % 2 === 0 }, catalog, cutouts);
+    const piece = placePiece({ name, x: p.x, z: p.z, flip: p.art ? !!p.flip : !cfg.biomeProps?.noMirror?.kinds?.includes(p.kind) && Math.floor(p.x * 7 + p.z * 3) % 2 === 0 }, catalog, cutouts);
     if (!piece) return null;
     const tex = textureFor(piece.item.file);
     if (!tex) return undefined;   // still loading: try next pass
@@ -199,5 +202,24 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (changed) list = [...sprites.values()].filter(t=>!t.decal);
   }
 
-  return { update, things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
+  function captureWater(camera, time) {
+    if (!waterEffects) return;
+    let waterVisible = false;
+    if (shown && painter) {
+      camera.updateMatrixWorld(); reflectionProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      reflectionFrustum.setFromProjectionMatrix(reflectionProjection);
+      const T = world.terrain.cell, pad = world.terrain.shoreline?.radius || 0;
+      outer: for (const c of loaded.values()) for (let j = 0; j < c.gen.cells.length; j++) for (let i = 0; i < c.gen.cells[j].length; i++) {
+        if (!'wr'.includes(c.gen.cells[j][i])) continue;
+        const x = c.gen.x0 + i * T, z = c.gen.z0 + j * T;
+        waterBox.min.set(x - pad, -0.1, z - pad); waterBox.max.set(x + T + pad, 0.1, z + T + pad);
+        if (reflectionFrustum.intersectsBox(waterBox)) { waterVisible = true; break outer; }
+      }
+    }
+    const hidden = [];
+    for (const c of loaded.values()) { hidden.push(c.mesh); if (c.coastMesh) hidden.push(c.coastMesh); }
+    for (const t of sprites.values()) if (t.decal) hidden.push(t.mesh);
+    waterEffects.capture(camera, time, waterVisible, hidden);
+  }
+  return { update, captureWater, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
 }

@@ -445,13 +445,13 @@ const ISLAND_FRAG = /* glsl */`
 ${LIGHTING}
 precision highp sampler2DArray;
 uniform sampler2DArray tMats;
-uniform sampler2D uSplatA, uSplatB, uSplatC, uSplatD, uOver, tWater;
+uniform sampler2D uSplatA, uSplatB, uSplatC, uSplatD, uSplatE, uSplatF, uOver, tWater;   // 24 weight slots (W3.11 P4)
 uniform vec3 uWetCoastColor, uDryCoastColor, uSnowCoastColor;
 ${WATER_SAMPLE_GLSL}
 ${WATER_SURFACE_GLSL}
 uniform vec4 uBounds;
-uniform float uLayer[16];
-uniform float uTileSize[16];
+uniform float uLayer[24];
+uniform float uTileSize[24];
 uniform vec4 uMosaic;   // height gain, band, random-tiling cell size, 0
 uniform vec4 uMacro;    // scale, brightness drift, warmth drift, 0
 varying vec3 vWorld;
@@ -490,10 +490,10 @@ vec3 stoch(float layer, float tile, vec2 p) {
 void main() {
   vec2 p = vWorld.xz, suv = (p - uBounds.xy) / uBounds.zw;
   vec4 over = texture2D(uOver, suv);
-  vec4 A = texture2D(uSplatA, suv), B = texture2D(uSplatB, suv), C = texture2D(uSplatC, suv), D = texture2D(uSplatD, suv);
-  float w[16] = float[16](A.r, A.g, A.b, A.a, B.r, B.g, B.b, B.a, C.r, C.g, C.b, C.a, D.r, D.g, D.b, D.a);
-  vec3 col[16]; float sc[16]; float best = -1.0;
-  for (int i = 0; i < 16; i++) {
+  vec4 A = texture2D(uSplatA, suv), B = texture2D(uSplatB, suv), C = texture2D(uSplatC, suv), D = texture2D(uSplatD, suv), E = texture2D(uSplatE, suv), F = texture2D(uSplatF, suv);
+  float w[24] = float[24](A.r, A.g, A.b, A.a, B.r, B.g, B.b, B.a, C.r, C.g, C.b, C.a, D.r, D.g, D.b, D.a, E.r, E.g, E.b, E.a, F.r, F.g, F.b, F.a);
+  vec3 col[24]; float sc[24]; float best = -1.0;
+  for (int i = 0; i < 24; i++) {
     sc[i] = -1.0; col[i] = vec3(0.0);
     if (w[i] > 0.03) {
       col[i] = stoch(uLayer[i], uTileSize[i], p);
@@ -502,7 +502,7 @@ void main() {
     }
   }
   vec3 ground = vec3(0.0), meanGround = vec3(0.0); float tot = 0.0;
-  for (int i = 0; i < 16; i++) if (sc[i] >= 0.0) {
+  for (int i = 0; i < 24; i++) if (sc[i] >= 0.0) {
     float a = clamp((sc[i] - (best - uMosaic.y)) / uMosaic.y, 0.0, 1.0);
     ground += col[i] * a; tot += a;
     if (over.g > 0.001) meanGround += textureLod(tMats, vec3(0.5, 0.5, uLayer[i]), 9.0).rgb * a;
@@ -519,18 +519,28 @@ void main() {
   ground *= vec3(1.0 + (n2 - 0.5) * uMacro.z, 1.0, 1.0 - (n2 - 0.5) * uMacro.z);
 
   // water (lakes, rivers, sea): the drifting dark layers of the city ground; the shore is the weight map's 0.5 line
-  float wm = smoothstep(0.42, 0.58, over.r);
+  float wm = smoothstep(0.455, 0.545, over.r);
   // Gradients are evaluated outside the water-only branch. Explicit texture
   // gradients avoid undefined mip selection at mask edges and fract tile wraps.
   vec2 baseUv = p / vec2(5.6, 3.6) * 0.6;
-  vec2 waterDx = dFdx(baseUv), waterDy = dFdy(baseUv), waterPixel = fwidth(p);
+  vec2 worldDx = dFdx(p), worldDy = dFdy(p), waterPixel = fwidth(p);
+  vec2 waterDx = worldDx / vec2(5.6, 3.6) * 0.6, waterDy = worldDy / vec2(5.6, 3.6) * 0.6;
   vec3 water = vec3(0.0), waterNormal = vec3(0.0, 1.0, 0.0);
   if (wm > 0.001) {
     if (uWaterMotion.x > 0.5) {
-      waterNormal = waterSurfaceNormal(p, waterPixel);
+      waterNormal = waterSurfaceNormal(p, waterPixel, worldDx, worldDy);
       vec2 uv = baseUv + uWaterMotion.yz * uTime + waterNormal.xz * uWaterMotion.w;
-      vec3 painted = continuousWater(uv, waterDx, waterDy);
-      water = waterSurfaceLight(mix(uWaterDeep, painted, uWaterOptics.x), waterNormal);
+      vec3 painted = continuousWater(uv, waterDx * 4.0, waterDy * 4.0);
+      // Color art supplies restrained variation, not repeated white foam curls.
+      vec3 base = uWaterDeep * mix(vec3(1.0), vec3(0.6) + painted * 2.0, uWaterOptics.x);
+      // shallow water near banks (from the coast-transition map, 0 deep .. 1 at the bank): clearer and greener, with faint caustics
+      float shallow = clamp(over.g * 1.45, 0.0, 1.0); shallow *= shallow;
+      base = mix(base, vec3(0.16, 0.40, 0.42), shallow * 0.55);
+      water = waterSurfaceLight(base, waterNormal);
+      vec2 cq = p * 0.85 + waterNormal.xz * 2.5 + vec2(uTime * 0.07, uTime * 0.045);
+      float cA = sin(cq.x * 2.3 + sin(cq.y * 1.7 + uTime * 0.6)), cB = sin(cq.y * 2.1 + sin(cq.x * 1.9 - uTime * 0.5));
+      float caus = pow(max(0.0, 1.0 - abs(cA)) * max(0.0, 1.0 - abs(cB)), 4.0);
+      water += vec3(0.45, 0.75, 0.78) * caus * shallow * 0.16;
     } else {
       // Comparison fallback: the accepted seam-safe P3 color-flow appearance.
       vec2 warp = (vec2(vnz(p / 23.0, 21u), vnz(p / 23.0, 22u)) - 0.5) * 0.84;
@@ -540,18 +550,27 @@ void main() {
   vec3 col0 = mix(ground, water, wm);
 
   vec3 g = grade(col0, vWorld, false, vec3(0.0));
+  if (wm > 0.001 && uWaterMotion.x > 0.5) {
+    vec4 reflection = waterSceneReflection(vWorld, waterNormal);
+    g = mix(g, reflection.rgb, reflection.a * wm);
+  }
   float ripple = clamp(0.5 + abs(dot(waterNormal.xz, vec2(0.7, 0.3))) * 2.0, 0.5, 1.0);
   g += wm * uNight * lanternLight(vWorld, false) * 0.35 * ripple;
   gl_FragColor = vec4(fogged(g, p), 1.0);
 }`;
 
-export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic, coastTransition, waterSurface }) {
+export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic, coastTransition, waterSurface, waterEffects }) {
   const surface = waterSurfaceUniforms(waterSurface);
   return new THREE.ShaderMaterial({
     uniforms: {
       ...shared,
       tMats: { value: mats }, tWater: { value: water },
       uWaterWindow: { value: new THREE.Vector4(...WATER_WINDOW) },
+      ...(waterEffects || {
+        uWaterNormal0: { value: water }, uWaterNormal1: { value: water }, uWaterReflection: { value: water },
+        uWaterNormalCfg: { value: new THREE.Vector4(8, 0, 0.045, 0.18) },
+        uWaterReflectionMatrix: { value: new THREE.Matrix4() }, uWaterReflectionCfg: { value: new THREE.Vector4(0, 0, 0, 0) },
+      }),
       uWaterWaves: { value: surface.waves.map(w => new THREE.Vector4(...w)) },
       uWaterMotion: { value: new THREE.Vector4(...surface.motion) },
       uWaterOptics: { value: new THREE.Vector4(...surface.optics) },
@@ -561,7 +580,7 @@ export function islandGroundMaterial({ mats, water, splats, over, bounds, layers
       uWetCoastColor: { value: new THREE.Vector3(...(coastTransition?.wetColor || [0.38, 0.39, 0.30])) },
       uDryCoastColor: { value: new THREE.Vector3(...(coastTransition?.dryColor || [0.56, 0.49, 0.37])) },
       uSnowCoastColor: { value: new THREE.Vector3(...(coastTransition?.snowColor || [0.68, 0.70, 0.69])) },
-      uSplatA: { value: splats[0] }, uSplatB: { value: splats[1] }, uSplatC: { value: splats[2] }, uSplatD: { value: splats[3] }, uOver: { value: over },
+      uSplatA: { value: splats[0] }, uSplatB: { value: splats[1] }, uSplatC: { value: splats[2] }, uSplatD: { value: splats[3] }, uSplatE: { value: splats[4] }, uSplatF: { value: splats[5] }, uOver: { value: over },
       uBounds: { value: new THREE.Vector4(...bounds) },
       uLayer: { value: layers }, uTileSize: { value: tiles },
       uMosaic: { value: new THREE.Vector4(mosaic.gain, mosaic.band, mosaic.cell, 0) },
@@ -591,14 +610,17 @@ export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
     vertexShader: /* glsl */`
       attribute vec3 coastWeights;
       attribute float coastClear;
+      attribute vec2 coastSize;
       varying vec2 vCoastUv;
       varying vec3 vCoastWeights;
       varying float vCoastClear;
+      varying vec2 vCoastSize;
       varying vec3 vWorld;
       void main() {
         vec4 w = modelMatrix * vec4(position, 1.0);
         vWorld = w.xyz; vCoastUv = uv;
         vCoastWeights = coastWeights; vCoastClear = coastClear;
+        vCoastSize = coastSize;
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */`
@@ -609,11 +631,12 @@ export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
       varying vec2 vCoastUv;
       varying vec3 vCoastWeights;
       varying float vCoastClear;
+      varying vec2 vCoastSize;
       varying vec3 vWorld;
       vec4 coastSample(sampler2D tex, vec3 rows) {
         float d = vCoastUv.y;
-        float y = d >= 0.0 ? mix(rows.y, rows.x, clamp(d / uCoastWidth.x, 0.0, 1.0))
-                           : mix(rows.y, rows.z, clamp(-d / uCoastWidth.y, 0.0, 1.0));
+        float y = d >= 0.0 ? mix(rows.y, rows.x, clamp(d / vCoastSize.x, 0.0, 1.0))
+                           : mix(rows.y, rows.z, clamp(-d / vCoastSize.y, 0.0, 1.0));
         vec4 a = texture2D(tex, vec2(vCoastUv.x, 1.0 - y));
         vec4 b = texture2D(tex, vec2(vCoastUv.x + 0.5, 1.0 - y));
         a.rgb *= a.a; b.rgb *= b.a;
@@ -631,11 +654,21 @@ export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
         if (weights.x > 0.001) ink += coastSample(uCoastWet, uWetRows) * weights.x;
         if (weights.y > 0.001) ink += coastSample(uCoastDry, uDryRows) * weights.y;
         if (weights.z > 0.001) ink += coastSample(uCoastSnow, uSnowRows) * weights.z;
-        float fade = (1.0 - smoothstep(uCoastWidth.x - uCoastWidth.z, uCoastWidth.x, vCoastUv.y)) *
-                     smoothstep(-uCoastWidth.y, -uCoastWidth.y + uCoastWidth.w, vCoastUv.y);
+        float fade = (1.0 - smoothstep(vCoastSize.x * (1.0 - uCoastWidth.z / uCoastWidth.x), vCoastSize.x, vCoastUv.y)) *
+                     smoothstep(-vCoastSize.y, -vCoastSize.y * (1.0 - uCoastWidth.w / uCoastWidth.y), vCoastUv.y);
         float alpha = ink.a * fade * vCoastClear;
-        if (alpha < 0.015) discard;
         vec3 col = ink.rgb / max(ink.a, 0.0001);
+        // soft lapping foam on the water side of the bank: a thin band that breathes in and out along the shore, no art
+        float wd = -vCoastUv.y;
+        if (wd > 0.0) {
+          float lap = 0.5 + 0.5 * sin(uTime * 1.1 + vCoastUv.x * 37.0 + sin(vCoastUv.x * 91.0) * 1.3);
+          float reach = vCoastSize.y * (0.28 + 0.34 * lap);
+          float foam = (1.0 - smoothstep(0.0, reach, wd)) * (0.55 + 0.45 * sin(vCoastUv.x * 143.0 + uTime * 0.7));
+          foam = clamp(foam, 0.0, 1.0) * 0.55 * vCoastClear;
+          col = mix(col, vec3(0.82, 0.88, 0.88), foam / max(foam + alpha, 0.0001));
+          alpha = max(alpha, foam);
+        }
+        if (alpha < 0.015) discard;
         gl_FragColor = vec4(fogged(grade(col, vWorld, false, vec3(0.0)), p), alpha);
       }`,
     transparent: true,

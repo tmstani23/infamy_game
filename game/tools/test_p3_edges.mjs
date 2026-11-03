@@ -93,7 +93,8 @@ assert.ok(L.O.every((v, i) => i % 4 !== 1 || v === 0), 'no ocean tint added at t
 
 // Regression: diagonal input must not undo corner nudges on either orientation.
 const real = read('world'), realCfg = read('world_chunks');
-for (const [x0, z0, dx, dz] of [[1925, 150.351, -1, -1], [2999.649, 525, 1, -1]]) {
+// Open-shore corners (W3.11 P4 turned the old north-coast spots into cliff).
+for (const [x0, z0, dx, dz] of [[10525, 5300.351, -1, -1], [10549.649, 775, 1, -1]]) {
   const blocks = buildChunk(real, realCfg, Math.floor(x0 / 250), Math.floor(z0 / 250)).blockers.filter(b => b.kind === 'terrain');
   let x = x0, z = z0;
   for (let n = 0; n < 60; n++) {

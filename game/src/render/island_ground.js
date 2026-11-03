@@ -24,7 +24,7 @@ async function loadMaterialArray(paintCfg, renderer) {
   return tex;
 }
 
-export function createIslandPainter({ world, cfg, renderer, groundTex }) {
+export function createIslandPainter({ world, cfg, renderer, groundTex, waterEffects }) {
   const pc = cfg.paint, paint = createPaint(world, pc), M = pc.mosaic;
   let array = null, failed = false;
   loadMaterialArray(pc, renderer).then(t => { array = t; }).catch(e => { failed = true; console.error('Island ground textures:', e); });
@@ -43,11 +43,11 @@ export function createIslandPainter({ world, cfg, renderer, groundTex }) {
       const S = gen.size, margin = pc.trail.verge + pc.trail.wMax;
       const near = { segs: trailSegments(world, gen.x0, gen.z0, gen.x0 + S, gen.z0 + S, margin, pc.paths?.list), stamps: paint.stampsIn(gen.x0, gen.z0, gen.x0 + S, gen.z0 + S) };
       const c = paint.paintChunk(gen.x0, gen.z0, S, near);
-      const layers = Array.from({ length: 16 }, (_, i) => c.mats[i] != null ? paint.M[c.mats[i]] : 0);
-      const tiles = Array.from({ length: 16 }, (_, i) => c.mats[i] != null ? pc.materials[c.mats[i]].tile : 8);
-      const splats = Array.from({ length: 4 }, (_, i) => dt(c.maps[i] || new Uint8Array(c.N * c.N * 4), c.N));
+      const layers = Array.from({ length: 24 }, (_, i) => c.mats[i] != null ? paint.M[c.mats[i]] : 0);
+      const tiles = Array.from({ length: 24 }, (_, i) => c.mats[i] != null ? pc.materials[c.mats[i]].tile : 8);
+      const splats = Array.from({ length: 6 }, (_, i) => dt(c.maps[i] || new Uint8Array(c.N * c.N * 4), c.N));
       const bounds = [gen.x0 - c.h, gen.z0 - c.h, S + 2 * c.h, S + 2 * c.h];
-      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition, waterSurface: pc.waterSurface });
+      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition, waterSurface: pc.waterSurface, waterEffects: waterEffects?.uniforms });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(gen.x0 + S / 2, 0, gen.z0 + S / 2);
@@ -57,7 +57,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex }) {
     },
     dispose(mesh) {
       const u = mesh.material.uniforms;
-      for (const k of ['uSplatA', 'uSplatB', 'uSplatC', 'uSplatD', 'uOver']) u[k].value.dispose();
+      for (const k of ['uSplatA', 'uSplatB', 'uSplatC', 'uSplatD', 'uSplatE', 'uSplatF', 'uOver']) u[k].value.dispose();
     },
   };
 }

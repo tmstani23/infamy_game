@@ -82,9 +82,15 @@ export function createPaint(world, cfg) {
   // fraction of water around a point (r units), without wandering: shores stay on the cell edges
   const SH = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
   const waterFrac = (x, z, r) => { let s = 0; for (const [a, b] of SH) if (gridAt(x + a * r, z + b * r) === B.bank) s += 0.2; return s; };
+  // Water mask value: signed distance to the (rounded) shoreline, 0.5 on the bank line, +-WATER_RANGE units to 0 / 1.
+  // Linear across a pixel, so the shader's 0.5 contour follows the true fillets instead of the coarse cell grid.
+  const WATER_RANGE = 4;
   function waterAt(x, z) {
-    const n = (vnoise(x, z, 6, seed + 9) - 0.5) * 2;
-    return waterFrac(x + n, z - n, 2.5);
+    if (!shore) { const n = (vnoise(x, z, 6, seed + 9) - 0.5) * 2; return waterFrac(x + n, z - n, 2.5); }
+    const d = shore.distanceAt(x, z, WATER_RANGE, null);
+    // drawing-only fillets (beside fords) count here, but not for props, biomes or walking
+    const code = shore.codeAt(x, z, t.rows[Math.floor(z / tc)]?.[Math.floor(x / tc)] ?? 'w', true), wet = 'wr'.includes(code);
+    return Math.max(0, Math.min(1, 0.5 + (wet ? d : -d) / (2 * WATER_RANGE)));
   }
   const blockedAt = (x, z) => BLOCKED_BIOME.has(gridAt(x, z));
   const bankAt = (x, z) => Math.min(1, waterFrac(x, z, F.bank) * 2.4);
@@ -141,6 +147,7 @@ export function createPaint(world, cfg) {
   const byBiome = cfg.biomes.map(() => []);
   matIds.forEach((id, mi) => { const m = cfg.materials[id]; for (const [b, v] of Object.entries(m.w)) if (v > 0 && B[b] != null) byBiome[B[b]].push([mi, v]); });
   const F0 = new Float32Array(NB), raw = new Float32Array(NM);
+  const bankDistance = { body: 'sea' };
   const AMP = matIds.map(id => cfg.materials[id].amp), SCALE = matIds.map(id => cfg.materials[id].scale);
   const KEEP = cfg.mosaic.perPoint ?? 4, top = new Int16Array(KEEP), kept = new Float32Array(NM);
   const ROOTS = M.trail_roots, TRAIL = M.dirt_trail, VERGE = M.pebbles_soil;
@@ -205,9 +212,10 @@ export function createPaint(world, cfg) {
       // Reuse the actual local ground mosaic; this mask only adjusts its tone.
       const CT = cfg.coastTransition;
       if (CT?.enabled && !BLOCKED_BIOME.has(gridAt(x, z))) {
-        const d = shore.distanceAt(x, z, CT.end + CT.ragged);
-        const ragged = (vnoise(x, z, CT.noiseScale, seed + 61) - 0.5) * 2 * CT.ragged;
-        const amount = (1 - smooth(CT.start, CT.end, d + ragged)) * CT.strength;
+        const d = shore.distanceAt(x, z, CT.end + CT.ragged, bankDistance);
+        const profile = bankDistance.body !== 'sea' && CT.inland ? CT.inland : CT;
+        const ragged = (vnoise(x, z, CT.noiseScale, seed + 61) - 0.5) * 2 * profile.ragged;
+        const amount = (1 - smooth(profile.start, profile.end, d + ragged)) * profile.strength;
         if (amount > 0) {
           fieldAt(x, z, F0);
           O[k * 4 + 1] = Math.round(amount * 255);
@@ -216,7 +224,15 @@ export function createPaint(world, cfg) {
         }
       }
     }
-    const order = [...cover.keys()].sort((a, b) => cover[b] - cover[a]).slice(0, cfg.maxMaterials).filter(mi => cover[mi] > 0);
+    // W3.11 P4: materials seen on the shared border pixels go first, so a busy chunk (coast cliffs + lowland mosaic)
+    // never drops a material its neighbour keeps; the rest rank by coverage.
+    const edge = new Float32Array(NM);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      if (i > 1 && i < N - 2 && j > 1 && j < N - 2) continue;
+      const k = j * N + i; for (let mi = 0; mi < NM; mi++) if (px[k * NM + mi] > edge[mi]) edge[mi] = px[k * NM + mi];
+    }
+    const score = mi => cover[mi] + (edge[mi] > 0.02 ? 1e6 * edge[mi] : 0);
+    const order = [...cover.keys()].sort((a, b) => score(b) - score(a)).slice(0, cfg.maxMaterials).filter(mi => cover[mi] > 0);
     const maps = Array.from({ length: Math.ceil(cfg.maxMaterials / 4) }, () => new Uint8Array(N * N * 4));
     for (let k = 0; k < N * N; k++) {
       let s = 0;

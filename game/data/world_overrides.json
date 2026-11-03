@@ -1,10 +1,56 @@
 {
   "version": 1,
-  "_note": "Tim's steering for the island (W1.4). tools/seed_world.mjs applies these to the blueprint, then re-derives corridors, lanes and stats. paint: [{ code, x0, z0, x1, z1 } or { code, x, z, r }]; remove: [id]; move: [{ id, x, z }]; add: { sites|nodes|camps: [records] }; set: [{ id, fields }]. Each entry may carry a _why.",
-  "shoreline": { "radius": 20, "harborKeep": 30 },
-  "paint": [],
+  "_note": "Tim's steering for the island (W1.4). tools/seed_world.mjs applies these to the blueprint, then re-derives corridors, lanes and stats. paint: [{ code, x0, z0, x1, z1 } or { code, x, z, r }]; remove: [id]; move: [{ id, x, z }]; add: { sites|nodes|camps: [records] }; set: [{ id, fields }]. Each entry may carry a _why. coastCliff: { depth, harborOpen, riverOpen, openAreas: [{ x0, z0, x1, z1 }] } turns land near the open sea into cliff cells. paint may also use near: { biome, cells } and only: '<codes>'.",
+  "shoreline": {
+    "radius": 20,
+    "harborKeep": 30,
+    "inland": true
+  },
+  "paint": [
+    {
+      "code": "d",
+      "only": "h",
+      "near": {
+        "biome": "dry",
+        "cells": 10
+      },
+      "_why": "W3.11 P4 (Tim 2026-11-03): dry ground around the Red Mesa Walls, so the dry range sits in dry land"
+    }
+  ],
   "remove": [],
   "move": [],
   "add": {},
-  "set": []
+  "set": [],
+  "coastCliff": {
+    "depth": 2,
+    "harborOpen": 200,
+    "riverOpen": 250,
+    "_why": "W3.11 P4 (Tim 2026-11-03): cliffs along most of the coast; open shore at harbours, capital port, river mouths",
+    "openAreas": [
+      {
+        "name": "Sallow Bay",
+        "x0": 7300,
+        "z0": 4900,
+        "x1": 10100,
+        "z1": 7300,
+        "_why": "Tim 2026-11-03: the whole inner bay keeps a shoreline, no cliffs"
+      },
+      {
+        "name": "East inlet (Heron River mouth)",
+        "x0": 11000,
+        "z0": 2150,
+        "x1": 14000,
+        "z1": 3350,
+        "_why": "Tim 2026-11-03: the east inlet's sides and head keep a shoreline"
+      },
+      {
+        "name": "Ashen Wash mouth (south-west)",
+        "x0": 2500,
+        "z0": 7000,
+        "x1": 3800,
+        "z1": 8000,
+        "_why": "Tim 2026-11-03: shoreline at the south-west river mouth"
+      }
+    ]
+  }
 }

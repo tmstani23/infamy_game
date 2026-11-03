@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { buildGrids, countRoutes, onIsland, passable, terrainAt, validateWorld } from '../game/src/sim/world_data.js';
+import { islandBiome } from '../game/src/sim/island_art.js';
 
 const BLUEPRINT = 'docs/images/frontier/blueprint/world_blueprint_v2.json';
 const OVERRIDES = 'game/data/world_overrides.json';
@@ -43,16 +44,59 @@ const CELL = w.terrain.cell, NX = w.terrain.rows[0].length, NZ = w.terrain.rows.
 // ---------- 2. overrides (Tim's steering, W1.4) ----------
 const lists = ['sites', 'nodes', 'camps', 'setPieces', 'nativeVillageSlots', 'passes', 'fords'];
 const findById = id => { for (const k of lists) { const o = w[k].find(q => q.id === id); if (o) return o; } return null; };
-for (const p of ov.paint || []) {           // { code, x0, z0, x1, z1 } or { code, x, z, r }
+// paint: { code, x0, z0, x1, z1 } or { code, x, z, r } or { code, near: { biome, cells } } (W3.11 P4: cells within
+// `cells` of a mountain cell whose islandBiome is `biome`). Optional `only`: string of codes that may be replaced.
+for (const p of ov.paint || []) {
+  let nearMask = null;
+  if (p.near) {
+    const mt = [];
+    for (let i = 0; i < NZ; i++) for (let j = 0; j < NX; j++)
+      if (w.terrain.rows[i][j] === 'm' && islandBiome(w, (j + 0.5) * CELL, (i + 0.5) * CELL) === p.near.biome) mt.push([i, j]);
+    nearMask = new Uint8Array(NX * NZ); const rr = p.near.cells;
+    for (const [mi, mj] of mt) for (let i = Math.max(0, mi - rr); i <= Math.min(NZ - 1, mi + rr); i++)
+      for (let j = Math.max(0, mj - rr); j <= Math.min(NX - 1, mj + rr); j++) if (Math.hypot(i - mi, j - mj) <= rr) nearMask[i * NX + j] = 1;
+  }
   for (let i = 0; i < NZ; i++) {
     const row = w.terrain.rows[i].split('');
     for (let j = 0; j < NX; j++) {
       const x = (j + 0.5) * CELL, z = (i + 0.5) * CELL;
-      const hit = p.r != null ? Math.hypot(x - p.x, z - p.z) < p.r : x >= p.x0 && x < p.x1 && z >= p.z0 && z < p.z1;
+      if (p.only && !p.only.includes(row[j])) continue;
+      const hit = nearMask ? nearMask[i * NX + j] === 1 : p.r != null ? Math.hypot(x - p.x, z - p.z) < p.r : x >= p.x0 && x < p.x1 && z >= p.z0 && z < p.z1;
       if (hit) row[j] = p.code;
     }
     w.terrain.rows[i] = row.join('');
   }
+}
+// coastCliff (W3.11 P4, Tim 2026-11-03): land within `depth` cells of the open sea becomes mountain ('m') so the
+// existing cliff art lines the coast; shore stays open near harbours, the capital port and river mouths.
+if (ov.coastCliff) {
+  const cc = ov.coastCliff, rows = w.terrain.rows, ocean = new Uint8Array(NX * NZ), q = [];
+  for (let i = 0; i < NZ; i++) for (let j = 0; j < NX; j++)
+    if ((i === 0 || j === 0 || i === NZ - 1 || j === NX - 1) && rows[i][j] === 'w') { ocean[i * NX + j] = 1; q.push(i * NX + j); }
+  for (let h = 0; h < q.length; h++) {
+    const k = q[h], i = (k / NX) | 0, j = k % NX;
+    for (const [a, b] of [[i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]]) {
+      if (a < 0 || b < 0 || a >= NZ || b >= NX || ocean[a * NX + b] || rows[a][b] !== 'w') continue;
+      ocean[a * NX + b] = 1; q.push(a * NX + b);
+    }
+  }
+  const open = [...w.sites.filter(s => s.harbor).map(s => [s.harbor.x, s.harbor.z, cc.harborOpen]),
+    [w.capital.port.x, w.capital.port.z, cc.harborOpen], ...w.rivers.map(r => [...r.points[r.points.length - 1], cc.riverOpen])];
+  const d = cc.depth; let n = 0;
+  const next = rows.map(r => r.split(''));
+  for (let i = 0; i < NZ; i++) for (let j = 0; j < NX; j++) {
+    if ('wmr'.includes(rows[i][j])) continue;   // rivers keep flowing to the sea
+    let near = false;
+    for (let a = Math.max(0, i - d); a <= Math.min(NZ - 1, i + d) && !near; a++)
+      for (let b = Math.max(0, j - d); b <= Math.min(NX - 1, j + d); b++) if (ocean[a * NX + b] && Math.hypot(a - i, b - j) <= d) { near = true; break; }
+    if (!near) continue;
+    const x = (j + 0.5) * CELL, z = (i + 0.5) * CELL;
+    if (open.some(([ox, oz, r]) => Math.hypot(x - ox, z - oz) < r)) continue;
+    if ((cc.openAreas || []).some(a => x >= a.x0 && x < a.x1 && z >= a.z0 && z < a.z1)) continue;
+    next[i][j] = 'm'; n++;
+  }
+  w.terrain.rows = next.map(r => r.join(''));
+  log.push(`coastCliff: ${n} coast cells -> m`);
 }
 for (const id of ov.remove || []) for (const k of lists) w[k] = w[k].filter(q => q.id !== id);
 for (const m of ov.move || []) { const o = findById(m.id); if (o) { o.x = m.x; o.z = m.z; } else log.push(`override move: no ${m.id}`); }

@@ -16,70 +16,26 @@
  "waterSurface": {
   "_note": "Painted water with animated surface slopes and light, independent of the slow base color drift. World-unit wave sizes/speeds; visual only. Disable to compare the earlier seam-safe color-flow shader.",
   "enabled": true,
-  "drift": [
-   0.001,
-   0.0006
-  ],
+  "normalMaps": {"size":512,"tile":8,"strength":0.65,"flowSpeed":0.045},
+  "reflection": {"enabled":true,"size":512,"strength":0.8,"distortion":0.012,"updateHz":30},
+  "drift": [0.001, 0.0006],
   "distortion": 0.025,
-  "textureStrength": 0.42,
+  "textureStrength": 0.12,
   "highlightStrength": 0.14,
   "gloss": 40,
   "sheenStrength": 0.45,
-  "deepColor": [
-   0.035,
-   0.065,
-   0.08
-  ],
-  "skyColor": [
-   0.28,
-   0.34,
-   0.37
-  ],
-  "lightDirection": [
-   -0.5,
-   0.85,
-   -0.25
-  ],
+  "deepColor": [0.045, 0.115, 0.185],
+  "skyColor": [0.28, 0.42, 0.55],
+  "lightDirection": [-0.5, 0.85, -0.25],
   "waves": [
-   {
-    "direction": [
-     1,
-     0.28
-    ],
-    "wavelength": 4.2,
-    "amplitude": 0.045,
-    "speed": 1.2
-   },
-   {
-    "direction": [
-     0.78,
-     0.62
-    ],
-    "wavelength": 2.15,
-    "amplitude": 0.023,
-    "speed": 0.95
-   },
-   {
-    "direction": [
-     1,
-     -0.18
-    ],
-    "wavelength": 0.66,
-    "amplitude": 0.007,
-    "speed": 0.52
-   },
-   {
-    "direction": [
-     0.55,
-     0.83
-    ],
-    "wavelength": 0.33,
-    "amplitude": 0.0025,
-    "speed": 0.35
-   }
+   {"direction":[1,0.28],"wavelength":4.2,"amplitude":0.045,"speed":1.2},
+   {"direction":[0.78,0.62],"wavelength":2.15,"amplitude":0.023,"speed":0.95},
+   {"direction":[1,-0.18],"wavelength":0.66,"amplitude":0.0,"speed":0.52},
+   {"direction":[0.55,0.83],"wavelength":0.33,"amplitude":0.0,"speed":0.35}
   ]
  },
  "coastTransition": {
+  "inland": {"start":2,"end":12,"strength":0.65,"ragged":1.5},
   "_note": "P3: recolor the existing biome mosaic near ocean banks. Distances/raggedness in world units; colors are ungraded painted RGB, not flat replacement tiles.",
   "enabled": true,
   "start": 5,
@@ -103,7 +59,7 @@
    0.69
   ]
  },
- "maxMaterials": 16,
+ "maxMaterials": 24,
  "mosaic": {
   "_note": "layers 3 and 4: height blend (score = weight + brightness * gain, show those within band of the best) and cell size for the shader's random tiling; macro = slow brightness/warmth drift; perPoint = most materials one spot mixes (shader cost per pixel); maxMaterials = per chunk (4 per weight map)",
   "gain": 0.35,
