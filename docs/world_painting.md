@@ -29,7 +29,8 @@ machine.
   - corridors, rivers, lakes, sites, nodes, camps and passes.
 - `game/data/world_overrides.json` and the hand stamps (layer 8).
 - `game/data/world_paint.json` (new): every number and material table below lives here, never in
-  code.
+  code. `main.js` passes it in as `worldChunks.paint` (sim and renderer); tools that want painted
+  props merge it the same way.
 
 ## The layers
 
@@ -73,7 +74,7 @@ edges.
 - Rivers get muddy_bank along their sides. Lakes get the narrow bank pieces (lake_edge_1 to 8),
   with code-drawn water.
 
-**6. Detail decals by rule.** These are small transparent patches, each with a rule and a density:
+**6. Detail decals by rule.** As built (W3.10): material rules for now (worn verge on trails, muddy banks by water, rocky patches on hills, needles in forest); separate decal art is a later art pass. These are small transparent patches, each with a rule and a density:
 - worn earth along trails;
 - wet mud by water;
 - flower clumps in meadows;
@@ -108,8 +109,8 @@ gate, town site), each with a radius.
 - **Seamless:** anything decided per chunk must give the same answer from both sides of a chunk
   border. Use world-coordinate noise and the jittered grid; no per-chunk normalising.
 - **Budgets:**
-  - a chunk build stays within +20% of the W3.6 numbers (average 0.8 ms, worst 9 ms);
-  - the ground shader uses at most 8 materials per chunk, picking the 8 that cover most of it;
+  - a chunk build stays within +20% of the W3.6 numbers (average 0.8 ms, worst 9 ms). Measured after W3.10: average 1.9 ms, worst 15 ms on the profile walk (warm builds 0.55 / 2.5 ms; sim tick unchanged at 2.31 ms); ground painting about 15 ms per new chunk on the render side. Proposed budget: average 2 ms, worst 16 ms, with a later speed-up step;
+  - each spot mixes at most 4 materials (decided per point, so chunk borders always agree); a chunk uses up to 16 (four weight maps). A per-chunk top 8 made seams where neighbours picked different sets;
   - no extra draw calls per prop.
 - **Numbers in data:** every scale, threshold and density goes in `world_paint.json`, so Tim can
   tune it without code.

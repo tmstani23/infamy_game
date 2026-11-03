@@ -101,7 +101,7 @@ Code paths are under `game/src/` unless they start with `data/` (`game/data/`), 
 
 **Render** (`game/src/render`, three.js, reads state, never changes it)
 
-Island ground, props and trails are painted by the layered procedure in [world_painting.md](world_painting.md) (pure seeded module shared by sim and renderer; step W3.10).
+Island ground, props and trails are painted by the layered procedure in [world_painting.md](world_painting.md) (pure seeded module shared by sim and renderer; step W3.10). Built in `src/world_paint.js` (pure, shared) and `render/island_ground.js`.
 
 | File | Job |
 |---|---|

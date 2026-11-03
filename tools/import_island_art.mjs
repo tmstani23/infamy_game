@@ -8,6 +8,8 @@ const configs={};
 for(const biome of ['forest','snow','dry']){
   for(const variant of ['a','b'])configs[`cliff_${biome}_${variant}`]={scale:1.4667,foot:[55,3],anchor:[768,680],treePixels:200};
   configs[`rim_${biome}`]={scale:1.4667,foot:[55,3],anchor:[768,600],treePixels:200};
+  // W3.10: the opposite-bank rims (forest and snow only), same canvas and calibration as the rims
+  if(biome!=='dry')for(const v of ['_opposite','_opposite_mirrored'])configs[`rim_${biome}${v}`]={scale:1.4667,foot:[55,3],anchor:[768,600],treePixels:200};
   configs[`corner_out_${biome}`]={scale:1.2222,foot:[24,24],anchor:[512,955],treePixels:240};
   configs[`corner_in_${biome}`]={scale:1.2222,foot:[24,24],anchor:[512,540],treePixels:240};
   configs[`outcrop_${biome==='forest'?'moss':biome}`]={scale:.32,foot:[4,4]};
@@ -31,4 +33,4 @@ function closeObject(text,start){let depth=0,quoted=false,escape=false;for(let i
 function update(text,values,nested){for(const [key,value]of Object.entries(values)){const root=nested?text.indexOf('{',text.indexOf('"items"')):text.indexOf('{'),end=closeObject(text,root),found=text.indexOf(JSON.stringify(key)+':',root);if(found>=0&&found<end){const a=text.indexOf('{',found),b=closeObject(text,a);text=text.slice(0,a)+JSON.stringify(value)+text.slice(b+1);}else{text=text.slice(0,end).trimEnd()+',\n'+(nested?'    ':' ')+JSON.stringify(key)+': '+JSON.stringify(value)+'\n'+(nested?'  ':'')+text.slice(end);}}return text;}
 fs.writeFileSync(catalogFile,update(catalogText,Object.fromEntries(Object.keys(configs).map(k=>[k,catalog.items[k]])),true));
 fs.writeFileSync(cutsFile,update(cutsText,Object.fromEntries(Object.keys(configs).map(k=>['props/'+k,cuts['props/'+k]])),false));
-console.log('Imported 26 island assets; source art preserved; alpha>240 snapped opaque');
+console.log('Imported '+Object.keys(configs).length+' island assets; source art preserved; alpha>240 snapped opaque');

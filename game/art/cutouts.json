@@ -2275,5 +2275,9 @@
  "props/city_gate": {"w":1536,"h":1024,"left":16,"right":1525,"bottomX":296,"bottomY":1011,"glows":[]},
  "props/city_gate_se": {"w":1536,"h":1024,"left":40,"right":1518,"bottomX":1274,"bottomY":1002,"glows":[]},
  "props/river_ford": {"w":1024,"h":1024,"left":44,"right":984,"bottomX":543,"bottomY":1006,"glows":[]},
- "props/lake_edge": {"w":1024,"h":1024,"left":84,"right":997,"bottomX":792,"bottomY":978,"glows":[]}
+ "props/lake_edge": {"w":1024,"h":1024,"left":84,"right":997,"bottomX":792,"bottomY":978,"glows":[]},
+ "props/rim_forest_opposite": {"w":1536,"h":1024,"left":11,"right":1526,"bottomX":1333,"bottomY":963,"glows":[]},
+ "props/rim_forest_opposite_mirrored": {"w":1536,"h":1024,"left":12,"right":1525,"bottomX":169,"bottomY":972,"glows":[]},
+ "props/rim_snow_opposite": {"w":1536,"h":1024,"left":12,"right":1522,"bottomX":1280,"bottomY":963,"glows":[]},
+ "props/rim_snow_opposite_mirrored": {"w":1536,"h":1024,"left":10,"right":1526,"bottomX":152,"bottomY":974,"glows":[]}
 }

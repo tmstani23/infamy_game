@@ -434,6 +434,107 @@ export function groundMaterial(textures, splatA, splatB, bounds, tile) {
   });
 }
 
+// ---------- island ground (frontier W3.10): a material mosaic instead of fixed channels ----------
+// Up to 16 materials per chunk (each spot mixes at most 4) live in one texture array. Per pixel: the chunk's weight maps say how much of each;
+// every material is sampled with random tiling (each 10-unit cell gets its own offset and 90-degree turn,
+// neighbouring cells blend smoothly), and the materials are not cross-faded but compared by height: score =
+// weight + brightness * gain, and only those within `band` of the best show. Slow noise drifts brightness and warmth.
+const ISLAND_FRAG = /* glsl */`
+${LIGHTING}
+precision highp sampler2DArray;
+uniform sampler2DArray tMats;
+uniform sampler2D uSplatA, uSplatB, uSplatC, uSplatD, uOver, tWater;
+uniform vec4 uBounds;
+uniform float uLayer[16];
+uniform float uTileSize[16];
+uniform vec4 uMosaic;   // height gain, band, random-tiling cell size, 0
+uniform vec4 uMacro;    // scale, brightness drift, warmth drift, 0
+varying vec3 vWorld;
+
+uint ihash(uvec2 v) {
+  v = v * 1664525u + 1013904223u; v.x += v.y * 1664525u; v.y += v.x * 1664525u;
+  v ^= v >> 16u; v.x += v.y * 1664525u; v.y += v.x * 1664525u; v ^= v >> 16u;
+  return v.x;
+}
+float rnd(vec2 c, uint s) { return float(ihash(uvec2(ivec2(c)) + uvec2(s, s * 7u)) & 65535u) / 65535.0; }
+float vnz(vec2 p, uint s) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(rnd(i, s), rnd(i + vec2(1, 0), s), f.x), mix(rnd(i + vec2(0, 1), s), rnd(i + vec2(1, 1), s), f.x), f.y);
+}
+vec2 turn(vec2 v, float k) {
+  if (k < 0.5) return v;
+  if (k < 1.5) return vec2(-v.y, v.x);
+  if (k < 2.5) return -v;
+  return vec2(v.y, -v.x);
+}
+vec3 stoch(float layer, float tile, vec2 p) {
+  vec2 uv0 = p / tile, dx = dFdx(uv0), dy = dFdy(uv0);
+  vec2 q = p / uMosaic.z - 0.5, i0 = floor(q), f = fract(q);
+  f = f * f * (3.0 - 2.0 * f);
+  vec3 acc = vec3(0.0);
+  for (int c = 0; c < 4; c++) {
+    vec2 o = vec2(float(c & 1), float(c >> 1)), ci = i0 + o;
+    float w = (o.x > 0.5 ? f.x : 1.0 - f.x) * (o.y > 0.5 ? f.y : 1.0 - f.y);
+    float k = floor(rnd(ci, 3u) * 4.0);
+    vec2 uv = turn(uv0, k) + vec2(rnd(ci, 1u), rnd(ci, 2u));
+    acc += textureGrad(tMats, vec3(uv, layer), turn(dx, k), turn(dy, k)).rgb * w;
+  }
+  return acc;
+}
+
+void main() {
+  vec2 p = vWorld.xz, suv = (p - uBounds.xy) / uBounds.zw;
+  vec4 A = texture2D(uSplatA, suv), B = texture2D(uSplatB, suv), C = texture2D(uSplatC, suv), D = texture2D(uSplatD, suv);
+  float w[16] = float[16](A.r, A.g, A.b, A.a, B.r, B.g, B.b, B.a, C.r, C.g, C.b, C.a, D.r, D.g, D.b, D.a);
+  vec3 col[16]; float sc[16]; float best = -1.0;
+  for (int i = 0; i < 16; i++) {
+    sc[i] = -1.0; col[i] = vec3(0.0);
+    if (w[i] > 0.03) {
+      col[i] = stoch(uLayer[i], uTileSize[i], p);
+      sc[i] = w[i] + dot(col[i], vec3(0.3, 0.5, 0.2)) * uMosaic.x;
+      best = max(best, sc[i]);
+    }
+  }
+  vec3 ground = vec3(0.0); float tot = 0.0;
+  for (int i = 0; i < 16; i++) if (sc[i] >= 0.0) {
+    float a = clamp((sc[i] - (best - uMosaic.y)) / uMosaic.y, 0.0, 1.0);
+    ground += col[i] * a; tot += a;
+  }
+  ground /= max(tot, 0.0001);
+  float n1 = vnz(p / uMacro.x, 11u), n2 = vnz(p / (uMacro.x * 1.7), 12u);
+  ground *= 1.0 + (n1 - 0.5) * 2.0 * uMacro.y;
+  ground *= vec3(1.0 + (n2 - 0.5) * uMacro.z, 1.0, 1.0 - (n2 - 0.5) * uMacro.z);
+
+  // water (lakes, rivers, sea): the drifting dark layers of the city ground; the shore is the weight map's 0.5 line
+  float wm = smoothstep(0.42, 0.58, texture2D(uOver, suv).r);
+  vec2 uv = p / vec2(5.6, 3.6);
+  vec3 water = (texture2D(tWater, uv * 0.6 + vec2(uTime * 0.012, uTime * 0.02)).rgb + texture2D(tWater, uv * 0.9 - vec2(uTime * 0.017, -uTime * 0.008)).rgb) * 0.5;
+  water = mix(water, vec3(0.04, 0.07, 0.09), 0.35);
+  vec3 col0 = mix(ground, water, wm);
+
+  vec3 g = grade(col0, vWorld, false, vec3(0.0));
+  float ripple = 0.6 + 0.4 * sin(p.x * 3.1 + uTime * 1.7) * sin(p.y * 2.3 - uTime * 1.3);
+  g += wm * uNight * lanternLight(vWorld, false) * 0.35 * ripple;
+  gl_FragColor = vec4(fogged(g, p), 1.0);
+}`;
+
+export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic }) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      ...shared,
+      tMats: { value: mats }, tWater: { value: water },
+      uSplatA: { value: splats[0] }, uSplatB: { value: splats[1] }, uSplatC: { value: splats[2] }, uSplatD: { value: splats[3] }, uOver: { value: over },
+      uBounds: { value: new THREE.Vector4(...bounds) },
+      uLayer: { value: layers }, uTileSize: { value: tiles },
+      uMosaic: { value: new THREE.Vector4(mosaic.gain, mosaic.band, mosaic.cell, 0) },
+      uMacro: { value: new THREE.Vector4(mosaic.macroScale, mosaic.macroBright, mosaic.macroWarm, 0) },
+    },
+    vertexShader: GROUND_VERT,
+    fragmentShader: ISLAND_FRAG,
+    depthWrite: false,
+  });
+}
+
 // ---------- additive light glow and animated flames ----------
 const QUAD_VERT = /* glsl */`
 varying vec2 vUv;

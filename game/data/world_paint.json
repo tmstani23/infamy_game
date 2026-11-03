@@ -1,0 +1,831 @@
+{
+ "version": 1,
+ "_note": "placeholder, Tim to tune (W3.10). Every number of the island painting (docs/world_painting.md): biome field, material mosaic, trails, props, stamps. src_paint.js reads this; tools/import_island_ground.mjs makes the textures from `src`.",
+ "enabled": true,
+ "seed": 7,
+ "field": {
+  "_note": "layer 1: wandering borders. blur and warp in world units",
+  "blur": 12,
+  "warpScale": 22,
+  "warp": 17,
+  "fineScale": 9,
+  "fine": 7,
+  "bank": 4
+ },
+ "res": 0.4,
+ "maxMaterials": 16,
+ "mosaic": {
+  "_note": "layers 3 and 4: height blend (score = weight + brightness * gain, show those within band of the best) and cell size for the shader's random tiling; macro = slow brightness/warmth drift; perPoint = most materials one spot mixes (shader cost per pixel); maxMaterials = per chunk (4 per weight map)",
+  "gain": 0.35,
+  "band": 0.12,
+  "cell": 10,
+  "macroScale": 70,
+  "macroBright": 0.1,
+  "macroWarm": 0.06,
+  "perPoint": 4
+ },
+ "size": 512,
+ "biomes": [
+  "forest",
+  "plain",
+  "hills",
+  "marsh",
+  "dry",
+  "snow",
+  "top_forest",
+  "top_snow",
+  "top_dry",
+  "bank",
+  "snowedge"
+ ],
+ "trail": {
+  "_note": "layer 5: width range (units), ragged edge, worn verge; props keep clear within `clearNone` and are full density from `clearFull`",
+  "wMin": 2.2,
+  "wMax": 3.8,
+  "verge": 2.5,
+  "ragged": 1.2,
+  "verged": 0.7,
+  "clearNone": 3,
+  "clearFull": 9,
+  "rootsInForest": 0.5
+ },
+ "groves": {
+  "_note": "layer 7: grove noise scale (units) and threshold",
+  "scale": 26,
+  "threshold": 0.42,
+  "soft": 0.1
+ },
+ "grid": 3.4,
+ "edgeTrees": {
+  "_note": "edge trees: the `edge` prop rules fire where the forest mask is between lo and hi",
+  "lo": 0.12,
+  "hi": 0.6
+ },
+ "props": [
+  {
+   "kind": "cedar",
+   "biome": "forest",
+   "per1000": 9,
+   "scale": [
+    0.6,
+    0.95
+   ],
+   "block": 0.5,
+   "grove": "in"
+  },
+  {
+   "kind": "pine",
+   "biome": "forest",
+   "per1000": 5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "in"
+  },
+  {
+   "kind": "bush",
+   "biome": "forest",
+   "per1000": 2.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "ferns",
+   "biome": "forest",
+   "per1000": 4,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "stump",
+   "biome": "forest",
+   "per1000": 0.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.4,
+   "grove": "any"
+  },
+  {
+   "kind": "fallen_log",
+   "biome": "forest",
+   "per1000": 0.3,
+   "scale": [
+    0.8,
+    1.1
+   ],
+   "block": 0.6,
+   "grove": "any"
+  },
+  {
+   "kind": "pine",
+   "biome": "forest",
+   "per1000": 2.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "edge"
+  },
+  {
+   "kind": "boulder",
+   "biome": "hills",
+   "per1000": 0.6,
+   "scale": [
+    0.8,
+    1.4
+   ],
+   "block": 1.1,
+   "grove": "any"
+  },
+  {
+   "kind": "small_rocks",
+   "biome": "hills",
+   "per1000": 1,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "twisted_pine",
+   "biome": "hills",
+   "per1000": 0.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "any"
+  },
+  {
+   "kind": "bush",
+   "biome": "hills",
+   "per1000": 0.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "small_rocks",
+   "biome": "dry",
+   "per1000": 0.8,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "boulder",
+   "biome": "dry",
+   "per1000": 0.3,
+   "scale": [
+    0.8,
+    1.3
+   ],
+   "block": 1.1,
+   "grove": "any"
+  },
+  {
+   "kind": "bush",
+   "biome": "dry",
+   "per1000": 0.3,
+   "scale": [
+    0.6,
+    1
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "pine",
+   "biome": "snow",
+   "per1000": 3.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "in"
+  },
+  {
+   "kind": "boulder",
+   "biome": "snow",
+   "per1000": 0.4,
+   "scale": [
+    0.8,
+    1.3
+   ],
+   "block": 1.1,
+   "grove": "any"
+  },
+  {
+   "kind": "ferns",
+   "biome": "marsh",
+   "per1000": 2,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "bush",
+   "biome": "marsh",
+   "per1000": 1,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "bush",
+   "biome": "plain",
+   "per1000": 1.6,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "pine",
+   "biome": "plain",
+   "per1000": 0.35,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "any"
+  },
+  {
+   "kind": "pine",
+   "biome": "plain",
+   "per1000": 1.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "in"
+  },
+  {
+   "kind": "cherry",
+   "biome": "plain",
+   "per1000": 0.3,
+   "scale": [
+    0.8,
+    1.1
+   ],
+   "block": 0.5,
+   "grove": "in"
+  },
+  {
+   "kind": "ferns",
+   "biome": "plain",
+   "per1000": 0.8,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "in"
+  },
+  {
+   "kind": "small_rocks",
+   "biome": "plain",
+   "per1000": 0.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "boulder",
+   "biome": "plain",
+   "per1000": 0.08,
+   "scale": [
+    0.8,
+    1.3
+   ],
+   "block": 1.1,
+   "grove": "any"
+  }
+ ],
+ "bamboo": {
+  "_note": "bamboo cells (code b) keep the old dense stand",
+  "kind": "bamboo",
+  "per1000": 10,
+  "scale": [
+   0.8,
+   1.2
+  ],
+  "block": 0.4
+ },
+ "density": {
+  "_note": "check ranges: props per 1000 square units, by biome (test_world_paint)",
+  "forest": [
+   6,
+   40
+  ],
+  "plain": [
+   0.5,
+   7
+  ],
+  "snow": [
+   0.5,
+   8
+  ]
+ },
+ "stamps": {
+  "_note": "layer 8: hand stamps win over every rule inside r and fade out over the outer 30%. `from` lists take their spots from world.json",
+  "from": {
+   "sites": {
+    "r": 26,
+    "clear": true
+   },
+   "camps": {
+    "r": 18,
+    "clear": true,
+    "material": "dirt_trail",
+    "materialAmount": 0.7
+   },
+   "passes": {
+    "r": 22,
+    "clear": true
+   }
+  },
+  "list": [
+   {
+    "_note": "trampled earth at the city gate (island side)",
+    "x": 13058,
+    "z": 3278,
+    "r": 14,
+    "clear": true,
+    "material": "dirt_trail",
+    "materialAmount": 0.85
+   }
+  ]
+ },
+ "bankDecals": {
+  "_note": "Part B: lake bank strips (lake_edge_1 N, 3 E, 5 S, 7 W) along lake shores; length = world units one strip covers",
+  "length": 30,
+  "step": 26,
+  "files": {
+   "N": "lake_edge_1",
+   "E": "lake_edge_3",
+   "S": "lake_edge_5",
+   "W": "lake_edge_7"
+  }
+ },
+ "ford": {
+  "_note": "Part B: ford art size in units (shrunk from the W3.9 draft) and the widest river (units across) that gets stepping stones",
+  "size": 70,
+  "maxWidth": 130
+ },
+ "materials": {
+  "forest_floor": {
+   "src": "assets/environment/forest_textures/forest_floor_tile.png",
+   "file": "island/forest_floor.jpg",
+   "tile": 9,
+   "scale": 30,
+   "amp": 0.3,
+   "w": {
+    "forest": 1.0
+   }
+  },
+  "pine_needles": {
+   "src": "assets/environment/forest_textures/pine_needles_tile.png",
+   "file": "island/pine_needles.jpg",
+   "tile": 9,
+   "scale": 22,
+   "amp": 0.5,
+   "w": {
+    "forest": 0.9,
+    "snow": 0.06
+   }
+  },
+  "leaf_litter": {
+   "src": "assets/environment/forest_textures/leaf_litter_tile.png",
+   "file": "island/leaf_litter.jpg",
+   "tile": 8,
+   "scale": 18,
+   "amp": 0.9,
+   "w": {
+    "forest": 0.35,
+    "plain": 0.15
+   }
+  },
+  "moss": {
+   "src": "assets/environment/forest_textures/moss_tile.png",
+   "file": "island/moss.jpg",
+   "tile": 8,
+   "scale": 20,
+   "amp": 0.9,
+   "w": {
+    "forest": 0.3,
+    "plain": 0.4,
+    "marsh": 0.5
+   }
+  },
+  "bracken": {
+   "src": "assets/environment/forest_textures/bracken_tile.png",
+   "file": "island/bracken.jpg",
+   "tile": 8,
+   "scale": 17,
+   "amp": 1.0,
+   "w": {
+    "forest": 0.18
+   }
+  },
+  "ferns": {
+   "src": "assets/environment/forest_textures/ferns_tile.png",
+   "file": "island/ferns.jpg",
+   "tile": 8,
+   "scale": 15,
+   "amp": 1.0,
+   "w": {
+    "forest": 0.15,
+    "marsh": 0.2
+   }
+  },
+  "tree_roots": {
+   "src": "assets/environment/forest_textures/tree_roots_tile.png",
+   "file": "island/tree_roots.jpg",
+   "tile": 9,
+   "scale": 16,
+   "amp": 1.0,
+   "w": {
+    "forest": 0.1
+   }
+  },
+  "maple_leaves": {
+   "src": "assets/environment/forest_textures/maple_leaves_tile.png",
+   "file": "island/maple_leaves.jpg",
+   "tile": 8,
+   "scale": 14,
+   "amp": 1.0,
+   "w": {
+    "forest": 0.08
+   }
+  },
+  "mossy_stones": {
+   "src": "assets/environment/forest_textures/mossy_stones_tile.png",
+   "file": "island/mossy_stones.jpg",
+   "tile": 9,
+   "scale": 14,
+   "amp": 1.0,
+   "w": {
+    "forest": 0.1,
+    "hills": 0.15
+   }
+  },
+  "rocky_patch": {
+   "src": "assets/environment/forest_textures/rocky_patch_tile.png",
+   "file": "island/rocky_patch.jpg",
+   "tile": 9,
+   "scale": 19,
+   "amp": 0.9,
+   "w": {
+    "hills": 0.55,
+    "forest": 0.05,
+    "dry": 0.15,
+    "snow": 0.06,
+    "plain": 0.08
+   }
+  },
+  "wet_soil": {
+   "src": "assets/environment/forest_textures/wet_soil_tile.png",
+   "file": "island/wet_soil.jpg",
+   "tile": 8,
+   "scale": 20,
+   "amp": 0.5,
+   "w": {
+    "marsh": 0.8,
+    "bank": 0.7,
+    "forest": 0.03
+   }
+  },
+  "muddy_bank": {
+   "src": "assets/environment/forest_textures/muddy_bank_tile.png",
+   "file": "island/muddy_bank.jpg",
+   "tile": 8,
+   "scale": 14,
+   "amp": 0.4,
+   "w": {
+    "bank": 1.0,
+    "marsh": 0.3
+   }
+  },
+  "pebbles_soil": {
+   "src": "assets/environment/forest_textures/pebbles_soil_tile.png",
+   "file": "island/pebbles_soil.jpg",
+   "tile": 8,
+   "scale": 18,
+   "amp": 0.9,
+   "w": {
+    "plain": 0.35,
+    "hills": 0.3,
+    "forest": 0.12,
+    "dry": 0.2
+   }
+  },
+  "dirt_trail": {
+   "src": "assets/environment/forest_textures/dirt_trail_tile.png",
+   "file": "island/dirt_trail.jpg",
+   "tile": 8,
+   "scale": 24,
+   "amp": 0.6,
+   "w": {}
+  },
+  "trail_roots": {
+   "src": "assets/environment/forest_textures/trail_roots_tile.png",
+   "file": "island/trail_roots.jpg",
+   "tile": 8,
+   "scale": 24,
+   "amp": 0.6,
+   "w": {}
+  },
+  "grass": {
+   "src": "game/art/ground/grass.jpg",
+   "file": "island/grass.jpg",
+   "tile": 8,
+   "scale": 26,
+   "amp": 0.5,
+   "w": {
+    "plain": 1.0,
+    "hills": 0.45,
+    "marsh": 0.2
+   }
+  },
+  "dry_grass": {
+   "src": "game/art/ground/dry_grass.jpg",
+   "file": "island/dry_grass.jpg",
+   "tile": 8,
+   "scale": 24,
+   "amp": 0.5,
+   "w": {
+    "dry": 0.6,
+    "hills": 0.35,
+    "plain": 0.22
+   }
+  },
+  "sand": {
+   "src": "game/art/ground/sand.jpg",
+   "file": "island/sand.jpg",
+   "tile": 8,
+   "scale": 22,
+   "amp": 0.8,
+   "w": {
+    "dry": 0.5
+   }
+  },
+  "mud": {
+   "src": "game/art/ground/mud.jpg",
+   "file": "island/mud.jpg",
+   "tile": 8,
+   "scale": 18,
+   "amp": 0.6,
+   "w": {
+    "marsh": 0.5,
+    "bank": 0.2
+   }
+  },
+  "ground_snow": {
+   "src": "assets/environment/island/ground_snow.png",
+   "file": "island/ground_snow.jpg",
+   "tile": 14,
+   "scale": 28,
+   "amp": 0.3,
+   "w": {
+    "snow": 1.0
+   },
+   "seamless": true
+  },
+  "ground_snow_b": {
+   "src": "assets/environment/island/ground_snow_b.png",
+   "file": "island/ground_snow_b.jpg",
+   "tile": 14,
+   "scale": 22,
+   "amp": 0.6,
+   "w": {
+    "snow": 0.8
+   },
+   "seamless": true
+  },
+  "ground_snow_thaw": {
+   "src": "assets/environment/island/ground_snow_thaw.png",
+   "file": "island/ground_snow_thaw.jpg",
+   "tile": 16,
+   "scale": 20,
+   "amp": 0.5,
+   "w": {
+    "snowedge": 1.0,
+    "snow": 0.12
+   },
+   "seamless": true
+  },
+  "ground_snow_thaw_b": {
+   "src": "assets/environment/island/ground_snow_thaw_b.png",
+   "file": "island/ground_snow_thaw_b.jpg",
+   "tile": 16,
+   "scale": 16,
+   "amp": 0.6,
+   "w": {
+    "snowedge": 0.8,
+    "snow": 0.1
+   },
+   "seamless": true
+  },
+  "top_forest": {
+   "src": "assets/environment/island/top_forest.png",
+   "file": "island/top_forest.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.3,
+   "w": {
+    "top_forest": 1.0
+   },
+   "seamless": true
+  },
+  "top_forest_b": {
+   "src": "assets/environment/island/top_forest_b.png",
+   "file": "island/top_forest_b.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_forest": 0.6
+   },
+   "seamless": true
+  },
+  "top_forest_c": {
+   "src": "assets/environment/island/top_forest_c.png",
+   "file": "island/top_forest_c.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_forest": 0.6
+   },
+   "seamless": true
+  },
+  "top_forest_d": {
+   "src": "assets/environment/island/top_forest_d.png",
+   "file": "island/top_forest_d.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_forest": 0.6
+   },
+   "seamless": true
+  },
+  "top_snow": {
+   "src": "assets/environment/island/top_snow.png",
+   "file": "island/top_snow.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.3,
+   "w": {
+    "top_snow": 1.0
+   },
+   "seamless": true
+  },
+  "top_snow_b": {
+   "src": "assets/environment/island/top_snow_b.png",
+   "file": "island/top_snow_b.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_snow": 0.6
+   },
+   "seamless": true
+  },
+  "top_snow_c": {
+   "src": "assets/environment/island/top_snow_c.png",
+   "file": "island/top_snow_c.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_snow": 0.6
+   },
+   "seamless": true
+  },
+  "top_snow_d": {
+   "src": "assets/environment/island/top_snow_d.png",
+   "file": "island/top_snow_d.jpg",
+   "tile": 14,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_snow": 0.6
+   },
+   "seamless": true
+  },
+  "top_dry": {
+   "src": "assets/environment/island/top_dry.png",
+   "file": "island/top_dry.jpg",
+   "tile": 12,
+   "scale": 20,
+   "amp": 0.3,
+   "w": {
+    "top_dry": 1.0,
+    "dry": 0.25
+   },
+   "seamless": true
+  },
+  "top_dry_b": {
+   "src": "assets/environment/island/top_dry_b.png",
+   "file": "island/top_dry_b.jpg",
+   "tile": 12,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_dry": 0.6,
+    "dry": 0.25
+   },
+   "seamless": true
+  },
+  "top_dry_c": {
+   "src": "assets/environment/island/top_dry_c.png",
+   "file": "island/top_dry_c.jpg",
+   "tile": 12,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_dry": 0.6
+   },
+   "seamless": true
+  },
+  "top_dry_d": {
+   "src": "assets/environment/island/top_dry_d.png",
+   "file": "island/top_dry_d.jpg",
+   "tile": 12,
+   "scale": 20,
+   "amp": 0.7,
+   "w": {
+    "top_dry": 0.6
+   },
+   "seamless": true
+  }
+ },
+ "paths": {
+  "_note": "extra trails (like corridors) drawn and kept clear of props: the walk from the city gate down to the capital's road junction",
+  "list": [
+   [
+    [
+     13058,
+     3278
+    ],
+    [
+     13082,
+     3318
+    ],
+    [
+     13066,
+     3392
+    ],
+    [
+     12975,
+     3425
+    ]
+   ]
+  ]
+ },
+ "cityWall": {
+  "_note": "stone wall pieces drawn along the city's edges on the island (the city box is a walk blocker); gap = half width left open at the gate",
+  "art": "stone_wall",
+  "step": 2.45,
+  "gap": 5.5,
+  "out": 0.6
+ }
+}

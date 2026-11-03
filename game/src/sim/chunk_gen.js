@@ -11,6 +11,7 @@
 // coordinates: the walled city is a blocker on the island (the way in is its gate, W3.5).
 import { terrainAt, passable } from './world_data.js';
 import {islandArt} from './island_art.js';
+import { createPaint, trailSegments, hash2 } from '../world_paint.js';
 
 export const chunkId = (cx, cz) => `c${cx}_${cz}`;
 
@@ -74,10 +75,17 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
     if (Math.max(a[0], b[0]) < x0 - r || Math.min(a[0], b[0]) > x0 + size + r || Math.max(a[1], b[1]) < z0 - r || Math.min(a[1], b[1]) > z0 + size + r) continue;
     segs.push([a, b]);
   }
-  const clearAt = (x, z) => !segs.some(([a, b]) => segDist(x, z, a, b) < (C.corridor || 0))
+  const clearAt = (x, z, noTrail = false) => (noTrail || !segs.some(([a, b]) => segDist(x, z, a, b) < (C.corridor || 0)))
     && !sites.some(p => Math.hypot(p.x - x, p.z - z) < (C.site || 0))
     && !nodes.some(p => Math.hypot(p.x - x, p.z - z) < (C.node || 0))
     && !(city && x > city.minX - (C.city || 0) && x < city.maxX + (C.city || 0) && z > city.minZ - (C.city || 0) && z < city.maxZ + (C.city || 0));
+
+  // W3.10: when cfg.paint is on, props come from the painted rules (jittered grid, groves, edge trees,
+  // trail clearance, stamps; docs/world_painting.md layer 7). Otherwise the older per-cell scatter below.
+  if (cfg.paint?.enabled) {
+    const props = paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt);
+    return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props, art: islandArt(world, cfg, cx, cz) };
+  }
 
   // props scattered per terrain cell by biome; the count per cell is fixed by density, the
   // positions by the chunk's seed. Every random draw happens whether or not a prop is kept,
@@ -99,4 +107,52 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
     }
   }
   return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props, art:islandArt(world,cfg,cx,cz) };
+}
+
+// Layer 7 of docs/world_painting.md. Candidates sit on one global jittered grid (one per grid x grid units,
+// the offset from the seeded hash), so a chunk border never changes what is on either side of it.
+function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
+  const pc = cfg.paint, P = createPaint(world, pc), g = pc.grid, area = g * g / 1000, ps = P.seed;
+  const F = new Float32Array(P.NB), props = [];
+  const segs = trailSegments(world, x0, z0, x0 + size, z0 + size, pc.trail.clearFull, pc.paths?.list), stamps = P.stampsIn(x0, z0, x0 + size, z0 + size);
+  const bamboo = pc.bamboo, E = pc.edgeTrees, fo = P.B.forest;
+  // Each candidate draws ONE number u and walks the rules' best-case chances (per1000 x area) end to end;
+  // the rule u lands in then keeps the prop with chance (real / best case), so each rule still fires with its
+  // real probability but most candidates cost one hash. All draws come from the candidate's grid cell.
+  let rules = pc.props.map((r, i) => ({ ...r, i, b: P.B[r.biome], pmax: r.per1000 * area }));
+  if (bamboo) rules = [...rules, { ...bamboo, i: 90, b: -1, pmax: bamboo.per1000 * area, grove: 'bamboo' }];
+  let cum = 0;
+  for (const r of rules) { cum += r.pmax; r.cum = cum; }
+  const reach = pc.field.warp + pc.field.fine + pc.field.blur, T = world.terrain.cell, near = new Set();
+  for (let z = z0 - reach; z < z0 + size + reach + T; z += T) for (let x = x0 - reach; x < x0 + size + reach + T; x += T) near.add(P.gridAt(Math.min(x, x0 + size + reach), Math.min(z, z0 + size + reach)));
+  for (const r of rules) r.here = r.grove === 'bamboo' || near.has(r.b);
+  for (let gj = Math.floor(z0 / g) - 1; gj <= Math.floor((z0 + size) / g) + 1; gj++) for (let gi = Math.floor(x0 / g) - 1; gi <= Math.floor((x0 + size) / g) + 1; gi++) {
+    const u = hash2(gi, gj, ps + 3);
+    if (u >= cum) continue;
+    const x = (gi + hash2(gi, gj, ps + 1)) * g, z = (gj + hash2(gi, gj, ps + 2)) * g;
+    if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) continue;
+    if (P.blockedAt(x, z)) continue;
+    let k = 0;
+    while (rules[k].cum <= u) k++;
+    const r = rules[k];
+    if (!r.here) continue;   // its biome is nowhere near this chunk
+    // cheapest tests first: the keep draw against each factor (all are at most 1) before the costly field
+    const keep = hash2(gi, gj, ps + 4);
+    const m = r.grove === 'in' ? P.grove(x, z) : r.grove === 'out' ? 1 - P.grove(x, z) : 1;
+    if (keep >= m) continue;
+    const open = P.trailClear(P.trailDist(segs, x, z)) * (1 - P.stampClear(stamps, x, z));
+    if (keep >= m * open) continue;
+    let f;
+    if (r.grove === 'bamboo') f = terrainAt(world, x, z) === 'b' ? 1 : 0;
+    else {
+      P.fieldAt(x, z, F);
+      f = F[r.b] * (r.grove === 'edge' ? (F[fo] > E.lo && F[fo] < E.hi ? 1 : 0) : 1);
+    }
+    if (keep >= f * m * open) continue;
+    if (!clearAt(x, z, true)) continue;
+    const s = r.scale[0] + (r.scale[1] - r.scale[0]) * hash2(gi, gj, ps + 5);
+    props.push({ kind: r.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
+    if (r.block > 0) { const q = r.block * s; blockers.push({ minX: x - q, maxX: x + q, minZ: z - q, maxZ: z + q, kind: r.kind }); }
+  }
+  return props;
 }

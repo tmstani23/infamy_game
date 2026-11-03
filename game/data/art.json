@@ -204,6 +204,10 @@
     "city_gate": {"kind":"props","scale":0.5,"foot":[8,3],"solid":0,"artAnchor":[768,620],"_note":"W3.9 art-only; does not change navigation"},
     "city_gate_se": {"kind":"props","scale":0.5,"foot":[3,8],"solid":0,"artAnchor":[768,620],"_note":"W3.9 art-only; does not change navigation"},
     "river_ford": {"kind":"props","scale":1,"foot":[1,1],"solid":0,"_note":"W3.9 art-only; does not change navigation"},
-    "lake_edge": {"kind":"props","scale":1,"foot":[1,1],"solid":0,"_note":"W3.9 art-only; does not change navigation"}
+    "lake_edge": {"kind":"props","scale":1,"foot":[1,1],"solid":0,"_note":"W3.9 art-only; does not change navigation"},
+    "rim_forest_opposite": {"kind":"props","scale":1.4667,"foot":[55,3],"solid":0,"artAnchor":[768,600],"_note":"W3.9 crown calibration 200px to ~5.5u; anchor/scale are art-only, tune after visual review"},
+    "rim_forest_opposite_mirrored": {"kind":"props","scale":1.4667,"foot":[55,3],"solid":0,"artAnchor":[768,600],"_note":"W3.9 crown calibration 200px to ~5.5u; anchor/scale are art-only, tune after visual review"},
+    "rim_snow_opposite": {"kind":"props","scale":1.4667,"foot":[55,3],"solid":0,"artAnchor":[768,600],"_note":"W3.9 crown calibration 200px to ~5.5u; anchor/scale are art-only, tune after visual review"},
+    "rim_snow_opposite_mirrored": {"kind":"props","scale":1.4667,"foot":[55,3],"solid":0,"artAnchor":[768,600],"_note":"W3.9 crown calibration 200px to ~5.5u; anchor/scale are art-only, tune after visual review"}
   }
 }

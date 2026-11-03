@@ -12,7 +12,7 @@ const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
-  settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json') };
+  settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: { ...data('data/world_chunks.json'), paint: data('data/world_paint.json') } };   // W3.10: painted props, as in the game
 const cfg = options.worldChunks, DISTANCE = 5000, SPEED = 5;   // units a second, a little under a crew run so the group keeps up
 const mb = () => process.memoryUsage().heapUsed / 1048576;
 
