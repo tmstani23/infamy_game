@@ -46,7 +46,8 @@ import { bindControlTooltips } from './control_tooltips.js';
 import { createDeploymentPanel } from './deployment_panel.js';
 import { createCharacterPanel } from './character_panel.js';
 import { createGameSettings } from './game_settings.js';
-import { createSaveStore, serverBackend } from './save_store.js';
+import { createSaveStore, serverBackend, usable } from './save_store.js';
+import { saveLoadURL, saveFromURL } from './save_menu.js';
 import { createGameMusic } from './game_music.js';
 import { bindGameShell } from './game_shell.js';
 import { createSelectionDock } from './selection_dock.js';
@@ -76,7 +77,8 @@ async function start() {
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
   const startSaves = createSaveStore(serverBackend('/saves'));
-  const selected = ['ninja', 'bot', 'shakedown'].includes(TEST.setup)
+  const bootSave = saveFromURL(location.href);
+  const selected = bootSave ? { loadSave: bootSave } : ['ninja', 'bot', 'shakedown'].includes(TEST.setup)
     ? { clan: TEST.ninja ? 'shinobi' : 'yakuza', difficulty: bots.difficulty }
     : await chooseMatch({ root: $('startscreen'), loading: $('loading'), difficulty: bots.difficulty,
       startRyo: settings.costs?.startRyo ?? unitsFile.rules.startRyo, cycles: settings.season?.cycles ?? 10, drawCrest, saves: startSaves });
@@ -96,6 +98,7 @@ async function start() {
     loadSave(game, saveFile);   // migrates the file in place; only the display copy uses the result
     heroId = heroOf(game);
     selected.difficulty = game.state.match?.difficulty ?? bots.difficulty;
+    if (bootSave) history.replaceState(null, '', location.pathname);   // consume the one-shot load request
   } else ({ heroId } = setupMatch(game, matchOptions));
   const simClient = await createSimWorkerClient({game,options:simOptions,match:matchOptions,save:saveFile,
     onError:error=>{status(error.message);const banner=$('pausedbanner');banner.hidden=false;
@@ -263,15 +266,17 @@ async function start() {
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
-  // Save files (frontier F1.6): written by the dev server into saves/. Same clan and hero only until the start screen can load.
+  // Save files (frontier F1.6): Settings uses the same full startup path as the main menu,
+  // rebuilding faction/mode-specific UI, doors, hero bindings and the authoritative worker.
   const saveStore=createSaveStore(serverBackend('/saves'));
   const saveMeta=()=>({day:game.state.clock?.day??null,clan:game.state.clans.player?.kind??'player',mode:game.state.match?.mode??'classic'});
   const saves={meta:saveMeta,list:()=>saveStore.list(),remove:n=>saveStore.remove(n),
     async save(name,label){await saveStore.write(name,await simClient.save(),{...saveMeta(),label});},
     async load(name){const file=await saveStore.read(name);
       const hero=Object.values(file.state?.entities||{}).find(e=>e.type==='hero'&&e.owner==='player')?.id;
-      if(file.clan!==saveMeta().clan||hero!==heroId)throw new Error('This save is from another clan; load it from the start screen');
-      await simClient.load(file);}};
+      const check=usable(file);if(!check.ok)throw new Error(check.message);
+      if(!hero||!file.state?.clans?.player)throw new Error('This save has no player hero');
+      location.assign(saveLoadURL(name,location.href));}};
   const gameSettings=createGameSettings({button:$('settingsbtn'),sound,saves,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
   sound.subscribe(updateMute);updateMute(sound.getSettings());

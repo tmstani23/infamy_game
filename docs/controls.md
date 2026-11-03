@@ -146,7 +146,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |
 | M map → World tab, hover or click a town | Hover shows a town card; click opens its details. |
 | Settings → Save game | Save the city now under a name (any time). |
-| Settings → saved games list | Load or Delete a save (delete moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
+| Settings → saved games list | Load any saved clan or Classic/campaign match, or Delete a save (moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
 | Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. The Load list also has Delete, with an in-game confirmation (checked by Tim 2026-11-02). |
 | Alt+Enter / fullscreen | Fullscreen toggle; short Escape stays with game UI only where Keyboard Lock is supported/allowed. Browser long-Escape exit remains. [Capability limits](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |

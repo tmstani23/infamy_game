@@ -1,5 +1,5 @@
 // Pure helpers for the Save / Load menus (frontier F1.6b). No DOM here, so Node can test them.
-import { isAutosave } from './save_store.js';
+import { isAutosave, validName } from './save_store.js';
 
 // Default name box text: "Day 3, yakuza"
 export const defaultLabel = (day, clan) => `Day ${day ?? '?'}, ${clan ?? 'player'}`;
@@ -20,3 +20,17 @@ export function rowText(h) {
 export const willOverwrite = (headers, name) => headers.some(h => h.name === name);
 // Continue = newest save of any kind
 export const newest = headers => sortSaves(headers)[0] ?? null;
+
+// Settings loads rebuild the whole presentation, just like a main-menu load. Carry only
+// the server save name across navigation, never a second copy of the saved simulation.
+export function saveLoadURL(name, currentURL) {
+  if (!validName(name)) throw new Error('Bad save name');
+  const url = new URL(currentURL); url.search = ''; url.hash = '';
+  url.searchParams.set('load', name);
+  return url.href;
+}
+export function saveFromURL(currentURL) {
+  const name = new URL(currentURL).searchParams.get('load');
+  if (name !== null && !validName(name)) throw new Error('Bad save name');
+  return name;
+}

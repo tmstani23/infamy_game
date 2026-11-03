@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { defaultLabel, slug, sortSaves, rowText, willOverwrite, newest } from '../src/save_menu.js';
+import { defaultLabel, slug, sortSaves, rowText, willOverwrite, newest, saveLoadURL, saveFromURL } from '../src/save_menu.js';
 
 assert.equal(defaultLabel(3, 'yakuza'), 'Day 3, yakuza');
 assert.equal(slug('Day 3, Yakuza!'), 'day-3-yakuza');
@@ -17,4 +17,10 @@ assert.match(rowText(hs[1]), /^Dawn · Dawn, day 2 · yakuza · day 2 · classic
 assert.ok(!rowText(hs[0]).startsWith('Dawn'));
 assert.ok(willOverwrite(hs, 'b')); assert.ok(!willOverwrite(hs, 'c'));
 assert.equal(newest(hs).name, 'autosave_1'); assert.equal(newest([]), null);
+const route = saveLoadURL('dev_frontier', 'http://localhost:8080/game/?test=ninja#old-panel');
+assert.equal(route, 'http://localhost:8080/game/?load=dev_frontier', 'save navigation keeps the server/path and drops stale test presets');
+assert.equal(saveFromURL(route), 'dev_frontier');
+assert.equal(saveFromURL('http://localhost:8080/game/'), null, 'ordinary launch still opens the main menu');
+assert.throws(()=>saveLoadURL('../outside',route), /Bad save name/);
+assert.throws(()=>saveFromURL('http://localhost:8080/game/?load=..%2Foutside'), /Bad save name/);
 console.log('test_save_menu: ok');

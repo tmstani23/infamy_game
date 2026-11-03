@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 map implementation (checks passed) · [ ] P2 Tim playtest · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: P2 Maps implementation (2026-11-03); Tim playtest pending (W3.4b art pass still open) · Next: P3 only after Tim's P2 playtest; F1.7 playtest remains deferred to the end
+Last step done: P2 Maps (Tim playtest passed 2026-11-02; W3.4b art pass still open) · Next: P3 Edges and water; F1.7 playtest remains deferred to the end
 
 ## Working in one long window (auto-compacting)
 
@@ -403,6 +403,8 @@ pass.
 In game (Tim): see the playtest below.
 Done note: "F1.6b Save/Load menus in Settings and start screen (controls.md line needed)."
 Progress (2026-11-02): built: Settings Save game, saved-games list (Load, Delete to `saves/_trash`), dawn autosave (keep 3), and the start-screen Continue and Load game (`start_screen.js`/`.css`, boot-from-save in `main.js`, `game/tools/test_start_load.mjs`). Note: card F1.6 missed the `main.js` dawn hookup and replica-versus-worker load; both are now handled, so retagged STRONG.
+
+Fix (Tim, 2026-11-02): Settings could not load a different campaign save because of an old clan/hero-ID restriction. Settings loads now accept any confirmed save after validating its version and player hero, then pass its validated filename through the normal startup route; it does not use a test preset. The route is cleared after load, and existing pagehide cleanup handles the previous worker/timer. `test_save_menu.mjs` and `test_start_load.mjs` passed. Tim's in-game verification of this Settings route is still pending.
 
 ### F1.7. Playtest  [TIM]
 Play past a dawn, keep playing, load the autosave: everything is back at dawn. Save by hand during a
@@ -1222,9 +1224,9 @@ As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcro
 - World map grid: hidden by default, a toggle (Controls panel entry), fainter lines [2].
 - Playtest: also check a real ford (V2-F1 at 9552,1851, by site S08).
 
-#### P2 Maps (UI only) — implemented 2026-11-03; Tim playtest pending
+#### P2 Maps (UI only) — complete; Tim playtest passed 2026-11-02
 
-Tim approved `docs/images/frontier/p2_maps_mock.png` before implementation. Baseline implementation is complete; do not start P3 until Tim finishes the in-game P2 playtest.
+Tim approved `docs/images/frontier/p2_maps_mock.png` before implementation and has now playtested P2 successfully.
 
 - [x] World map north-up, aspect-fitted to the real 14,000 × 8,000 island without stretching; 24 px ruler gutter.
 - [x] Always-visible 500-unit A–AB / 1–16 labels, exact hovered x/z and square, and own-location marker; grid lines remain an optional, default-hidden overlay.
@@ -1233,7 +1235,9 @@ Tim approved `docs/images/frontier/p2_maps_mock.png` before implementation. Base
 - [x] Same-place and >60-unit test teleports release stale pan/far-camera/watch state; camera matrices update before footprint raycasts.
 - [x] Keep map presentation lightweight while open: update camera projection math, but suspend scene, GPU, prop, and VFX painting. City-map orientation stays camera-oriented.
 - [x] Controls panel and `controls.md` updated. Node checks passed: `test_world_map.mjs` (north-up/grid/DPR/cache/pan/zoom/camera quad), `test_camera_tracking.mjs`, `test_map_performance.mjs`, and the reported combat/inventory/business/bot/sim-worker/settings regressions. `test_crew.mjs:97` retains its pre-existing teahouse-vs-street failure.
-- [ ] Tim's in-browser playtest: verify labels/hover, panning and zoom, own marker, and that both footprints track the view after moving and test travel. No browser run is claimed.
+- [x] Tim's in-game playtest passed 2026-11-02; P2 is complete.
+
+High-resolution note: canvases are DPR-aware and terrain is rendered from a shared 4× smoothed cache, but the underlying geographic grid remains 50-unit cells. Finer minimap terrain detail is a separate future idea; no additional map art or build is approved here.
 
 Process note: suspending map presentation must leave camera projection updates live; keep graphics paused while camera math continues.
 
