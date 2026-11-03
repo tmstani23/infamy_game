@@ -28,6 +28,7 @@ export function createCoastlineRenderer({ world, cfg, renderer }) {
       geometry.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2));
       geometry.setAttribute('coastWeights', new THREE.BufferAttribute(data.colors, 3));
       geometry.setAttribute('coastClear', new THREE.BufferAttribute(data.alpha, 1));
+      geometry.setAttribute('coastSize', new THREE.BufferAttribute(data.bankSizes, 2));
       geometry.setIndex(new THREE.BufferAttribute(data.indices, 1));
       const material = coastlineMaterial({ textures, available, rows,
         bounds: [gen.x0, gen.z0, gen.size, gen.size], cfg: C });

@@ -13,6 +13,7 @@
   "harborClear": 12,
   "clearFeather": 8,
   "height": 0.018,
+  "inland": { "enabled": true, "landWidth": 5, "waterWidth": 1, "crossingClear": 35 },
   "materials": {
     "wet": {
       "src": "assets/environment/island/coastline/coast_wet_strip_v2.png",

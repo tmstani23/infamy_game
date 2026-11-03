@@ -2,7 +2,7 @@
 // Pure module: no DOM, no three.js, no randomness. Coordinates: x east, z south, world units.
 // Rule numbers (spacing, route counts, choke radii, road costs) live in world.rules.
 
-import { oceanTopology } from './shoreline.js';
+import { shorelineTopology } from './shoreline.js';
 
 const BLOCKED = new Set(['m', 'w']);        // never walkable
 const UNBUILDABLE = new Set(['m', 'w', 'r', 'k']);
@@ -18,7 +18,7 @@ export function terrainAt(world, x, z) {
   const i = Math.floor(z / g.cell), j = Math.floor(x / g.cell);
   if (i < 0 || j < 0 || i >= g.nz || j >= g.nx) return 'w';
   const code = g.rows[i][j];
-  return world.terrain.shoreline?.radius ? oceanTopology(world).codeAt(x, z, code) : code;
+  return world.terrain.shoreline?.radius ? shorelineTopology(world).codeAt(x, z, code) : code;
 }
 
 export function terrainName(world, x, z) {

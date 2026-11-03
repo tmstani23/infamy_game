@@ -1,8 +1,8 @@
-// Render ribbon derived from the shared terrain/fillet geometry. Ocean-connected
-// water only: lakes, rivers, cliff faces and harbor approaches keep their own art.
+// Biome bank ribbons follow shared terrain fillets: broad sea coast and smaller
+// lake/river banks. Upright cliffs and crossing/harbor approaches stay separate.
 import { terrainAt } from './sim/world_data.js';
 
-import { oceanTopology } from './sim/shoreline.js';
+import { oceanTopology, shorelineTopology } from './sim/shoreline.js';
 export const seaContours = world => oceanTopology(world).loops;
 const key = p => p.join(',');
 const unit = (x, z) => { const d = Math.hypot(x, z) || 1; return [x / d, z / d]; };
@@ -53,8 +53,22 @@ function sampleLoop(loop, cfg, corners) {
 }
 
 export function createCoastline(world, cfg, paint, chunkSize) {
-  const topology = oceanTopology(world);
+  const topology = cfg.inland?.enabled ? shorelineTopology(world) : oceanTopology(world);
   const loops = topology.loops.map(loop => sampleLoop(loop, cfg, topology.corners)), bins = new Map();
+  function sizes(v) {
+    if (!cfg.inland?.enabled || !topology.inland) return [cfg.landWidth, cfg.waterWidth];
+    let sea = 0, wet = 0;
+    // Local tangent samples feather the sea-to-river width at mouths. Samples
+    // that land on shore are ignored so convex sea corners retain full width.
+    for (const offset of [-30, -15, 0, 15, 30]) {
+      const body = topology.waterKindAt(v.p[0] - v.normal[0] * 3 - v.normal[1] * offset, v.p[1] - v.normal[1] * 3 + v.normal[0] * offset);
+      if (body === 'land') continue;
+      wet++; if (body === 'sea') sea++;
+    }
+    const k = wet ? sea / wet : 1;
+    return [cfg.inland.landWidth + (cfg.landWidth - cfg.inland.landWidth) * k, cfg.inland.waterWidth + (cfg.waterWidth - cfg.inland.waterWidth) * k];
+  }
+  for (const loop of loops) for (const v of loop.points) v.sizes = sizes(v);
   const reach = Math.max(cfg.landWidth, cfg.waterWidth) * cfg.miterLimit;
   for (const loop of loops) for (let i = 0; i < loop.points.length; i++) {
     const a = loop.points[i], next = loop.points[(i + 1) % loop.points.length];
@@ -68,6 +82,7 @@ export function createCoastline(world, cfg, paint, chunkSize) {
     }
   }
   const harbors = [...(world.sites || []).filter(s => s.harbor).map(s => s.harbor), ...(world.capital?.port ? [world.capital.port] : [])];
+  const crossings = cfg.inland?.enabled && topology.inland ? (world.fords || []) : [];
   const F = paint ? new Float32Array(paint.NB) : null;
   function weights(p, normal) {
     const x = p[0] + normal[0] * cfg.biomeSample, z = p[1] + normal[1] * cfg.biomeSample;
@@ -84,7 +99,7 @@ export function createCoastline(world, cfg, paint, chunkSize) {
     meshData(cx, cz) {
       const segments = bins.get(`${cx},${cz}`);
       if (!segments) return null;
-      const positions = [], uvs = [], colors = [], alpha = [], indices = [];
+      const positions = [], uvs = [], colors = [], alpha = [], indices = [], bankSizes = [];
       const x0 = cx * chunkSize, z0 = cz * chunkSize;
       const nearbyHarbors = harbors.filter(h => h.x >= x0 - reach - cfg.harborClear - cfg.clearFeather && h.x <= x0 + chunkSize + reach + cfg.harborClear + cfg.clearFeather && h.z >= z0 - reach - cfg.harborClear - cfg.clearFeather && h.z <= z0 + chunkSize + reach + cfg.harborClear + cfg.clearFeather);
       for (const { a, b, period } of segments) {
@@ -92,17 +107,19 @@ export function createCoastline(world, cfg, paint, chunkSize) {
         const land = terrainAt(world, mid[0] + normal[0] * cfg.biomeSample, mid[1] + normal[1] * cfg.biomeSample);
         if (land === 'm' || land === 'r' || land === 'w') continue;
         const base = positions.length / 3;
-        for (const d of [cfg.landWidth, 0, -cfg.waterWidth]) for (const v of [a, b]) {
+        for (let row = 0; row < 3; row++) for (const v of [a, b]) {
+          const d = row === 0 ? v.sizes[0] : row === 1 ? 0 : -v.sizes[1];
           const x = v.p[0] + v.normal[0] * d * v.miter, z = v.p[1] + v.normal[1] * d * v.miter;
-          positions.push(x, cfg.height, z); uvs.push(v.s / period, d); colors.push(...weights(v.p, v.normal));
+          positions.push(x, cfg.height, z); uvs.push(v.s / period, d); bankSizes.push(...v.sizes); colors.push(...weights(v.p, v.normal));
           let clear = 1;
           for (const h of nearbyHarbors) clear = Math.min(clear, smooth(cfg.harborClear, cfg.harborClear + cfg.clearFeather, Math.hypot(h.x - x, h.z - z)));
+          for (const f of crossings) clear = Math.min(clear, smooth(cfg.inland.crossingClear, cfg.inland.crossingClear + cfg.clearFeather, Math.hypot(f.x - x, f.z - z)));
           alpha.push(clear);
         }
         // Both faces are enabled by the material; orientation is irrelevant to lighting.
         for (let row = 0; row < 2; row++) { const j = base + row * 2; indices.push(j, j + 2, j + 1, j + 1, j + 2, j + 3); }
       }
-      return indices.length ? { positions: new Float32Array(positions), uvs: new Float32Array(uvs), colors: new Float32Array(colors), alpha: new Float32Array(alpha), indices: new Uint32Array(indices) } : null;
+      return indices.length ? { positions: new Float32Array(positions), uvs: new Float32Array(uvs), colors: new Float32Array(colors), alpha: new Float32Array(alpha), bankSizes: new Float32Array(bankSizes), indices: new Uint32Array(indices) } : null;
     },
   };
 }

@@ -81,7 +81,7 @@ export function islandArt(world,cfg,cx,cz){
     // code-drawn water and the walk blockers end. lake_edge_1 N, 3 E, 5 S, 7 W = the side the land is on.
     const L=cfg.paint.bankDecals,water=(x,z)=>terrainAt(world,x,z)==='w';
     const lakes=(world.lakes||[]).filter(l=>l.x+l.r+2*T>x0&&l.x-l.r-2*T<x0+S&&l.z+l.r+2*T>z0&&l.z-l.r-2*T<z0+S);
-    if(lakes.length)for(let z=z0-T;z<z0+S+T;z+=T)for(let x=x0-T;x<x0+S+T;x+=T){
+    if(!cfg.coastline?.inland?.enabled&&lakes.length)for(let z=z0-T;z<z0+S+T;z+=T)for(let x=x0-T;x<x0+S+T;x+=T){
       const cx=x+T/2,cz=z+T/2;
       if(!water(cx,cz)||!lakes.some(l=>Math.hypot(l.x-cx,l.z-cz)<l.r+2*T))continue;
       const n=Math.max(1,Math.ceil(T/L.step));

@@ -391,6 +391,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
     fxShared.uPx.value = px * bloom.scale;
+    worldGround?.captureWater(camera, time);
     bloom.render(scene, camera);
     fxShared.uPx.value = px;
     renderer.render(scene, camera);
