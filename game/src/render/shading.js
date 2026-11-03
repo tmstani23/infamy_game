@@ -507,8 +507,11 @@ void main() {
 
   // water (lakes, rivers, sea): the drifting dark layers of the city ground; the shore is the weight map's 0.5 line
   float wm = smoothstep(0.42, 0.58, texture2D(uOver, suv).r);
-  vec2 uv = p / vec2(5.6, 3.6);
-  vec3 water = (texture2D(tWater, uv * 0.6 + vec2(uTime * 0.012, uTime * 0.02)).rgb + texture2D(tWater, uv * 0.9 - vec2(uTime * 0.017, -uTime * 0.008)).rgb) * 0.5;
+  // W3.11 P1: the mirrored water texture creased in a regular diagonal grid; a slow noise warp and a second
+  // layer turned by about 37 degrees keep the fold lines of the two layers from lining up
+  vec2 uv = p / vec2(5.6, 3.6) + (vec2(vnz(p / 23.0, 21u), vnz(p / 23.0, 22u)) - 0.5) * 1.4;
+  vec2 uv2 = mat2(0.8, -0.6, 0.6, 0.8) * uv;
+  vec3 water = (texture2D(tWater, uv * 0.6 + vec2(uTime * 0.012, uTime * 0.02)).rgb + texture2D(tWater, uv2 * 0.9 - vec2(uTime * 0.017, -uTime * 0.008)).rgb) * 0.5;
   water = mix(water, vec3(0.04, 0.07, 0.09), 0.35);
   vec3 col0 = mix(ground, water, wm);
 

@@ -37,6 +37,14 @@ for (const [id, m] of Object.entries(cfg.materials)) {
   await sharp(px, { raw: { width: size, height: size, channels: 3 } }).jpeg({ quality: 86, mozjpeg: true }).toFile(file);
   total += fs.statSync(file).size;
 }
+// Island water (W3.11 P1): the city water picture is brighter along its bottom edge, made for mirrored repeat;
+// on the island it showed as a crisscross of light bands, so the island gets its own edge-blended copy.
+{
+  const { data, info } = await sharp('game/art/ground/water.jpg').removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const file = out + 'water.jpg';
+  await sharp(makeSeamless(data, info.width, info.height), { raw: { width: info.width, height: info.height, channels: 3 } }).jpeg({ quality: 88, mozjpeg: true }).toFile(file);
+  total += fs.statSync(file).size;
+}
 // Top-down decals (Part B): lake bank strips, resized to what they are drawn at
 // (a 30-unit strip at the normal zoom of about 37 px per unit).
 const decals = { ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map(i => [`lake_edge_${i}`, 768])) };   // river_ford: the W3.9 copy (1024 px) is used as is

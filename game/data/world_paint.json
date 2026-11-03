@@ -164,7 +164,7 @@
   {
    "kind": "twisted_pine",
    "biome": "hills",
-   "per1000": 0.5,
+   "per1000": 2.0,
    "scale": [
     0.8,
     1.2
@@ -175,7 +175,7 @@
   {
    "kind": "bush",
    "biome": "hills",
-   "per1000": 0.5,
+   "per1000": 2.0,
    "scale": [
     0.8,
     1.2
@@ -186,7 +186,7 @@
   {
    "kind": "small_rocks",
    "biome": "dry",
-   "per1000": 0.8,
+   "per1000": 1.6,
    "scale": [
     0.8,
     1.2
@@ -208,7 +208,7 @@
   {
    "kind": "bush",
    "biome": "dry",
-   "per1000": 0.3,
+   "per1000": 1.6,
    "scale": [
     0.6,
     1
@@ -219,7 +219,7 @@
   {
    "kind": "pine",
    "biome": "snow",
-   "per1000": 3.5,
+   "per1000": 5,
    "scale": [
     0.8,
     1.2
@@ -285,7 +285,7 @@
   {
    "kind": "pine",
    "biome": "plain",
-   "per1000": 1.5,
+   "per1000": 2.5,
    "scale": [
     0.8,
     1.2
@@ -336,6 +336,105 @@
    ],
    "block": 1.1,
    "grove": "any"
+  },
+  {
+   "kind": "pine",
+   "biome": "hills",
+   "per1000": 1.5,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0.5,
+   "grove": "any"
+  },
+  {
+   "kind": "twisted_pine",
+   "biome": "dry",
+   "per1000": 0.6,
+   "scale": [
+    0.7,
+    1.1
+   ],
+   "block": 0.5,
+   "grove": "any"
+  },
+  {
+   "kind": "bush",
+   "biome": "snow",
+   "per1000": 0.8,
+   "scale": [
+    0.8,
+    1.1
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "bush",
+   "biome": "marsh",
+   "per1000": 1,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 0,
+   "grove": "any"
+  },
+  {
+   "kind": "outcrop_moss",
+   "biome": "hills",
+   "per1000": 0.12,
+   "scale": [
+    0.8,
+    1.3
+   ],
+   "block": 1.6,
+   "grove": "any"
+  },
+  {
+   "kind": "outcrop_moss",
+   "biome": "plain",
+   "per1000": 0.03,
+   "scale": [
+    0.8,
+    1.1
+   ],
+   "block": 1.6,
+   "grove": "any"
+  },
+  {
+   "kind": "outcrop_moss",
+   "biome": "forest",
+   "per1000": 0.05,
+   "scale": [
+    0.8,
+    1.2
+   ],
+   "block": 1.6,
+   "grove": "any"
+  },
+  {
+   "kind": "outcrop_dry",
+   "biome": "dry",
+   "per1000": 0.12,
+   "scale": [
+    0.8,
+    1.3
+   ],
+   "block": 1.6,
+   "grove": "any"
+  },
+  {
+   "kind": "outcrop_snow",
+   "biome": "snow",
+   "per1000": 0.1,
+   "scale": [
+    0.8,
+    1.3
+   ],
+   "block": 1.6,
+   "grove": "any"
   }
  ],
  "bamboo": {
@@ -360,7 +459,15 @@
   ],
   "snow": [
    0.5,
-   8
+   9
+  ],
+  "hills": [
+   1,
+   14
+  ],
+  "dry": [
+   1,
+   10
   ]
  },
  "stamps": {
@@ -515,7 +622,7 @@
    "w": {
     "hills": 0.55,
     "forest": 0.05,
-    "dry": 0.15,
+    "dry": 0.04,
     "snow": 0.06,
     "plain": 0.08
    }
@@ -582,7 +689,8 @@
     "plain": 1.0,
     "hills": 0.45,
     "marsh": 0.2
-   }
+   },
+   "seamless": true
   },
   "dry_grass": {
    "src": "game/art/ground/dry_grass.jpg",
@@ -594,7 +702,8 @@
     "dry": 0.6,
     "hills": 0.35,
     "plain": 0.22
-   }
+   },
+   "seamless": true
   },
   "sand": {
    "src": "game/art/ground/sand.jpg",
@@ -604,7 +713,8 @@
    "amp": 0.8,
    "w": {
     "dry": 0.5
-   }
+   },
+   "seamless": true
   },
   "mud": {
    "src": "game/art/ground/mud.jpg",
@@ -615,7 +725,8 @@
    "w": {
     "marsh": 0.5,
     "bank": 0.2
-   }
+   },
+   "seamless": true
   },
   "ground_snow": {
    "src": "assets/environment/island/ground_snow.png",
@@ -759,7 +870,7 @@
    "amp": 0.3,
    "w": {
     "top_dry": 1.0,
-    "dry": 0.25
+    "dry": 0.03
    },
    "seamless": true
   },
@@ -771,7 +882,7 @@
    "amp": 0.7,
    "w": {
     "top_dry": 0.6,
-    "dry": 0.25
+    "dry": 0.03
    },
    "seamless": true
   },

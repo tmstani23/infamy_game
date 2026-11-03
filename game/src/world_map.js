@@ -44,7 +44,7 @@ export function isDiscovered(world, grid, x, z) {
 //   scoutedSites: array of ids, pins: [{id,x,z,note}], lastSeen: { id: {x,z,dir,now} } }
 export function createWorldMap({ canvas, world, getState = () => ({}) }) {
   const ctx = canvas.getContext('2d');
-  let view = fitView(world, canvas.width, canvas.height), cache = null, dirty = true, drag = null, lastMoved = false, rev = -1;
+  let view = fitView(world, canvas.width, canvas.height), cache = null, dirty = true, showGrid = false, drag = null, lastMoved = false, rev = -1;
   const sites = world.sites;
   // What may be clicked: only what is drawn (known sites and camps, own pins)
   function hitItems() {
@@ -73,10 +73,17 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#4670aa'; ctx.lineWidth = Math.max(1, 2 * view.scale * 10); for (const r of world.rivers) path(r.points);
     ctx.strokeStyle = 'rgba(120,92,56,.85)'; ctx.lineWidth = 1; for (const c of world.corridors) path(c.points);
+    if (showGrid) { // map grid (W3.11 P1): hidden by default, the # button shows it; faint 1000-unit squares
+      const G = 1000; ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
+      for (let x = 0; x <= world.size.w; x += G) path([[x, 0], [x, world.size.h]]);
+      for (let z = 0; z <= world.size.h; z += G) path([[0, z], [world.size.w, z]]);
+    }
     if (grid) { // fog: dark haze on undiscovered cells
       const C = fogCell(world), c = fogCols(world), rowsN = Math.ceil(world.size.h / C), pad = 1 / view.scale;
       ctx.fillStyle = 'rgba(10,14,28,.84)'; ctx.setTransform(...worldTransform(view));
-      for (let j = 0; j < rowsN; j++) for (let i = 0; i < c; i++) if (grid[j * c + i] !== '1') ctx.fillRect(i * C - pad, j * C - pad, C + 2 * pad, C + 2 * pad);
+      // one path, one fill (W3.11 P1): separate overlapping fills drew darker lines where the cells met, a grid look
+      ctx.beginPath(); for (let j = 0; j < rowsN; j++) for (let i = 0; i < c; i++) if (grid[j * c + i] !== '1') ctx.rect(i * C - pad, j * C - pad, C + 2 * pad, C + 2 * pad);
+      ctx.fill();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     const known = (x, z) => isDiscovered(world, grid, x, z);
@@ -105,6 +112,8 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
   const api = {
     get view() { return view; },
     invalidate() { dirty = true; },
+    get grid() { return showGrid; },
+    setGrid(on) { showGrid = !!on; dirty = true; },
     // call every frame; redraws only when the view or the snapshot revision changed
     frame(revision) { if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },
     hit(px, py) { return hitTest(hitItems(), px, py, view); },

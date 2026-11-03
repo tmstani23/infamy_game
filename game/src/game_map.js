@@ -254,7 +254,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       + '<div class="key"><i style="background:#c82828"></i>The Capital</div><div class="key"><i style="background:#5adc78"></i>You</div><div class="key"><i style="background:#ff78c8"></i>Your pin</div>'
       + '<div class="key"><i style="background:#0a0e1c;border:1px solid #555"></i>Unexplored</div><div class="key">Drag: pan · Wheel: zoom · Right-click: pin</div>';
     const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">Your hero and the crew following him jump there at once.</div><button type="button" class="travelgo">Travel</button> <button type="button" class="travelcancel">Cancel</button>` : '';
-    const zoom = '<div class="wzoom"><button type="button" data-zoom="1.4" title="Zoom in">+</button><button type="button" data-zoom="0.714" title="Zoom out">−</button></div>';
+    const zoom = '<div class="wzoom"><button type="button" data-zoom="1.4" title="Zoom in">+</button><button type="button" data-zoom="0.714" title="Zoom out">−</button><button type="button" data-grid title="Show or hide the map grid">#</button></div>';
     worldSide.innerHTML = `${zoom}${travel}${box}${form}${legend}`;
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
@@ -270,7 +270,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   }
   function ensureWorldMap() {
     if (worldMap) return;
-    worldSide.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (z && worldMap) { worldMap.zoomBy(+z.dataset.zoom); z.blur(); } });   // + / - (Tim 2026-11-02)
+    worldSide.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (z && worldMap) { worldMap.zoomBy(+z.dataset.zoom); z.blur(); } const gb = e.target.closest('[data-grid]'); if (gb && worldMap) { worldMap.setGrid(!worldMap.grid); gb.classList.toggle('on', worldMap.grid); gb.blur(); } });   // + / - (Tim 2026-11-02)
     worldCanvas = document.createElement('canvas'); worldCanvas.className = 'worldcanvas'; worldCanvas.setAttribute('aria-label', 'World map');
     canvas.after(worldCanvas);
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;

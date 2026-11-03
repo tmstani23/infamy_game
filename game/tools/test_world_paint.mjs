@@ -68,7 +68,7 @@ for (const { cx, cz } of sample) {
 
 // 4. density per biome within the data ranges (props per 1000 square units of walkable ground)
 const dens = {};
-for (const [biome, code] of [['forest', 'f'], ['plain', 'p'], ['snow', 'n']]) {
+for (const [biome, code] of [['forest', 'f'], ['plain', 'p'], ['snow', 'n'], ['hills', 'h'], ['dry', 'd']]) {
   const list = all.filter(c => (c.m[code] || 0) === n * n).slice(0, 4);
   assert.ok(list.length, `a full ${biome} chunk exists`);
   let props = 0;

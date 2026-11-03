@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [ ] P1 quick fixes · [ ] P2 maps · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [ ] P2 maps · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -1214,7 +1214,8 @@ As built (W3.10, 2026-11-03): `src/world_paint.js` (pure, seeded biome field, ma
 
 Order = lowest usage first (Tim, 2026-11-03). Anything that needs new art waits in the art phase (P5). Item numbers in brackets point to [island_playtest_notes_2026-11-02.md](island_playtest_notes_2026-11-02.md).
 
-#### P1 Quick fixes (small, data and tool changes; Sonnet)
+#### P1 Quick fixes (small, data and tool changes; Sonnet) — DONE 2026-11-03
+As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcrops, toned-down cliff-foot patch, edge-blended island water texture (`water.jpg`, fixes the crisscross), map grid toggle (# button).
 - Sand/grass grid lines: mark the city JPEGs `seamless` and re-run tools/import_island_ground.mjs; check the forest *_tile textures and the water stripes the same way [6d, 9].
 - More trees and shrubs in every biome, and random rock outcrops from the existing outcrop_moss/snow/dry art. Forest grove = target; pass, cliffs and dry land first; open biomes stay open. Data in world_paint.json `props`; watch chunk build time [5, 6, 6a, 6d].
 - Tone down the dark cracked patch at the cliff foot in the dry mosaic [6].
