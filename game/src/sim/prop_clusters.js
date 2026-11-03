@@ -115,7 +115,9 @@ export function clusterProps(ctx) {
         if (hash2(gi, gj, seed + 19) >= gm) continue;
         const members = patchAt(cl, f, rates, gi, gj, seed, kindInfo);
         members.forEach((p, m) => {
-          const { x, z } = p;
+          // Validate the coordinates that are actually emitted. Rounding after
+          // land/ownership checks can move a member across a shoreline or seam.
+          const x = +p.x.toFixed(2), z = +p.z.toFixed(2);
           if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) return;   // another chunk owns it
           if (P.blockedAt(x, z)) return;
           const keep = hash2(gi, gj * 131 + m, seed + 20);
@@ -133,7 +135,7 @@ export function clusterProps(ctx) {
             if (keep >= open * F[b] * zone) return;   // soft, irregular fade where the biome blends out
             if (!clearAt(x, z, true)) return;
           }
-          props.push({ kind: p.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +p.s.toFixed(2) });
+          props.push({ kind: p.kind, x, z, s: +p.s.toFixed(2) });
           if (p.block > 0) { const q = p.block * p.s; blockers.push({ minX: x - q, maxX: x + q, minZ: z - q, maxZ: z + q, kind: p.kind }); }
         });
       }

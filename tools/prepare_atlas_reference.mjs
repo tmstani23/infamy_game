@@ -7,19 +7,22 @@ import { terrainAt } from '../game/src/sim/world_data.js';
 import { createPaint } from '../game/src/world_paint.js';
 
 const args = process.argv.slice(2);
+const revision = args.includes('--version') ? args[args.indexOf('--version') + 1] : 'v2';
+if (!/^v[1-9][0-9]*$/.test(revision || '')) throw Error('Use --version v1, v2, etc.');
 const out = args.includes('--output') ? args[args.indexOf('--output') + 1] : 'assets/environment/island/atlas';
 if (!out || out.startsWith('--')) throw Error('Missing --output directory');
 const inputs = [
   'game/data/world.json', 'game/data/world_paint.json', 'game/data/world_overrides.json',
   'docs/images/frontier/blueprint/world_blueprint_v2.json', 'docs/images/frontier/blueprint/blueprint.py',
   'tools/seed_world.mjs', 'tools/prepare_atlas_reference.mjs',
+  'docs/images/frontier/blueprint/world_reshape_v1.json', 'tools/lib/world_reshape.mjs',
   'game/src/sim/world_data.js', 'game/src/sim/shoreline.js',
   'game/src/sim/island_art.js', 'game/src/world_paint.js',
 ];
 const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-const manifestPath = `${out}/atlas_reference_manifest_v1.json`;
+const manifestPath = `${out}/atlas_reference_manifest_${revision}.json`;
 const files = ['atlas_blueprint_v1.png', 'atlas_features_v1.json', 'atlas_features_v1.svg',
-  'atlas_registration_v1.png', 'atlas_review_v1.png', 'atlas_effective_blueprint_v1.json'];
+  'atlas_registration_v1.png', 'atlas_review_v1.png', 'atlas_effective_blueprint_v1.json'].map(p => p.replace('_v1.', `_${revision}.`));
 if (args.includes('--check')) {
   const stale = [];
   const saved = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath)) : null;
@@ -65,7 +68,7 @@ for (let py = 0; py < height; py++) for (let px = 0; px < width; px++) {
   pixels.set(color,index); counts[family] = (counts[family] || 0) + 1;
 }
 // Water bodies use the same runtime code; names/classification remain in the data overlay.
-await sharp(pixels,{raw:{width,height,channels:3}}).png().toFile(`${out}/atlas_blueprint_v1.png`);
+await sharp(pixels,{raw:{width,height,channels:3}}).png().toFile(`${out}/atlas_blueprint_${revision}.png`);
 const markers = [
   { type:'capital', ...world.capital },
   ...world.sites.map(v => ({...v,type:'site'})),
@@ -80,7 +83,7 @@ const identities = markers.map(m => `${m.type}/${m.id || m.name}`);
 if (new Set(identities).size !== identities.length) throw Error('Duplicate feature identity');
 // Generated structural snapshot, never an additional hand-edited source.
 const { rules, stats, _note, ...effective } = world;
-fs.writeFileSync(`${out}/atlas_effective_blueprint_v1.json`, JSON.stringify({
+fs.writeFileSync(`${out}/atlas_effective_blueprint_${revision}.json`, JSON.stringify({
   generated: true, editable: false, source: 'blueprint + overrides + seed_world adjustments',
   ...effective, biomeAreas: cfg.biomeAreas || [],
 }, null, 2)+'\n');
@@ -90,7 +93,7 @@ const overlay = {
   extraTrails: cfg.paths?.list || [], markers,
   discovery: 'Review reference includes all records. Game atlas must filter undiscovered sites/features; no live units or camera quad.',
 };
-fs.writeFileSync(`${out}/atlas_features_v1.json`,JSON.stringify(overlay,null,2)+'\n');
+fs.writeFileSync(`${out}/atlas_features_${revision}.json`,JSON.stringify(overlay,null,2)+'\n');
 const point = p => `${p[0]*scale},${p[1]*scale}`;
 let drawing = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
 for (const r of overlay.routes) drawing += `<polyline points="${r.points.map(point).join(' ')}" fill="none" stroke="#f6db9b" stroke-opacity=".7" stroke-width="2"/>`;
@@ -103,8 +106,8 @@ for (const m of markers) if (Number.isFinite(m.x) && Number.isFinite(m.z)) {
   else drawing+=`<circle cx="${x}" cy="${y}" r="${m.type==='capital'?7:3}" fill="${colors[m.type]}" stroke="#182b32" stroke-width="1"/>`;
 }
 drawing+='</svg>';
-fs.writeFileSync(`${out}/atlas_features_v1.svg`,drawing);
-await sharp(`${out}/atlas_blueprint_v1.png`).composite([{input:Buffer.from(drawing)}]).png().toFile(`${out}/atlas_registration_v1.png`);
+fs.writeFileSync(`${out}/atlas_features_${revision}.svg`,drawing);
+await sharp(`${out}/atlas_blueprint_${revision}.png`).composite([{input:Buffer.from(drawing)}]).png().toFile(`${out}/atlas_registration_${revision}.png`);
 // Review furniture lives OUTSIDE the exact artwork rectangle. Never send this
 // sheet as the edit target; use the clean no-padding blueprint instead.
 const reviewHeader = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="2800" height="240">
@@ -116,20 +119,20 @@ ${Object.entries(colors).map(([name,color],i)=>`${name==='crossing'?`<g transfor
 <text x="36" y="210" font-size="20">Biome colours: snow = pale; mountains = grey/rust; dry = ochre; plains = olive; forest = muted green; jungle = deep green; marsh = grey-green.</text>
 </g></svg>`);
 await sharp({create:{width,height:height+240,channels:3,background:'#eee8d9'}})
-  .composite([{input:reviewHeader,top:0,left:0},{input:`${out}/atlas_registration_v1.png`,top:240,left:0}])
-  .png().toFile(`${out}/atlas_review_v1.png`);
+  .composite([{input:reviewHeader,top:0,left:0},{input:`${out}/atlas_registration_${revision}.png`,top:240,left:0}])
+  .png().toFile(`${out}/atlas_review_${revision}.png`);
 const manifest = {
-  version:2,date:'2026-11-03',status:'Step 1 complete: effective blueprint/reference + freshness gate. Illustration generation/integration not started.',
+  version:2,artifactRevision:revision,date:'2026-11-03',status:'Effective blueprint/reference + freshness gate; approved reshape applied. Illustration generation/integration not started.',
   worldUnits:[world.size.w,world.size.h],referencePixels:[width,height],worldUnitsPerPixel:1/scale,
   orientation:'north-up; no padding; identical bounds for terrain, art and feature overlays',
   sourceHashes:Object.fromEntries(inputs.map(p=>[p,hash(p)])),
   outputHashes:Object.fromEntries(files.map(p=>[p,hash(`${out}/${p}`)])),
   synchronization:'Read-only seed_world --check passed before export. Source design + overrides reproduce the runtime world.',
-  artifactRoles:{artReference:'atlas_blueprint_v1.png',registration:'atlas_registration_v1.png',humanReview:'atlas_review_v1.png (240px header; NOT an artwork target)',structuralSnapshot:'atlas_effective_blueprint_v1.json (generated, not editable)',features:'atlas_features_v1.json / .svg'},
+  artifactRoles:{artReference:files[0],registration:files[3],humanReview:files[4]+' (240px header; NOT an artwork target)',structuralSnapshot:files[5]+' (generated, not editable)',features:files[1]+' / '+files[2]},
   palette,referencePixelCounts:counts,
   crossingCounts:world.fords.reduce((a,f)=>(a[f.kind]=(a[f.kind]||0)+1,a),{}),
   accuracy:'Blueprint samples authoritative rounded terrain and runtime biome classification at 5-unit pixel centers. Base is a reference, not generated artwork; original blueprint has not been overwritten.',
   review:'Generated art may drift. Compare registered coast/lakes/rivers/ranges/biomes before accepting. Data overlays and hover queries remain authoritative; never move gameplay to fit art.',
 };
-fs.writeFileSync(`${out}/atlas_reference_manifest_v1.json`,JSON.stringify(manifest,null,2)+'\n');
+fs.writeFileSync(`${out}/atlas_reference_manifest_${revision}.json`,JSON.stringify(manifest,null,2)+'\n');
 console.log(`Atlas reference ${width}x${height}; ${markers.length} exact feature records; crossings ${JSON.stringify(manifest.crossingCounts)}`);

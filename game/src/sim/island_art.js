@@ -3,14 +3,14 @@ import {terrainAt,passable} from './world_data.js';
 
 export function islandBiome(world,x,z){
   // Explicit range art survives the surrounding lowlands' majority biome.
-  let nearest=null, distance=Infinity;
-  for(const range of world.ranges||[]) for(let i=1;i<range.spine.length;i++){
-    const [ax,az]=range.spine[i-1],[bx,bz]=range.spine[i],dx=bx-ax,dz=bz-az;
+  let nearest=null, distance=Infinity, width=0;
+  for(const range of world.ranges||[]) for(const line of [range,...(range.spurs||[])]) for(let i=1;i<line.spine.length;i++){
+    const [ax,az]=line.spine[i-1],[bx,bz]=line.spine[i],dx=bx-ax,dz=bz-az;
     const t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz||1)));
     const d=Math.hypot(x-ax-t*dx,z-az-t*dz);
-    if(d<distance){distance=d;nearest=range;}
+    if(d<distance){distance=d;nearest=range;width=line.halfWidths?line.halfWidths[i-1]*(1-t)+line.halfWidths[i]*t:range.halfWidth;}
   }
-  if(nearest?.biome&&distance<=nearest.halfWidth+350)return nearest.biome;
+  if(nearest?.biome&&distance<=width+350)return nearest.biome;
   const region=world.regions?.find(r=>x>=r.box[0]&&x<r.box[2]&&z>=r.box[1]&&z<r.box[3]);
   return region?.biome==='snow'?'snow':region?.biome==='dry'?'dry':'forest';
 }

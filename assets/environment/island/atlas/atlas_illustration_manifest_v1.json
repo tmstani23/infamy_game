@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Illustration trial generated; Tim style approval and full geographic registration review pending. Not installed in runtime.",
+  "status": "Tim approved style; pre-reshape geography is superseded. Preserve as historical style trial, not current runtime map art.",
   "tool": "Built-in image_gen; edit using exact blueprint",
   "prompt": "atlas_illustration_prompt_v1.txt",
   "reference": "atlas_blueprint_v1.png",
@@ -42,5 +42,5 @@
     "Mountain relief is illustrative and must not become authoritative terrain."
   ],
   "runtimeChanges": false,
-  "next": "Tim reviews style; inspect data overlay alignment, especially small lake/river-source geometry, before atlas integration."
+  "next": "After applied reshape playtest, generate a new version using atlas_blueprint_v2.png and verify registration."
 }

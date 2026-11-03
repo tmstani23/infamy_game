@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-03",
+  "status": "Applied; all ten focused Node checks pass; Tim in-game visual/traversal review pending",
+  "approvedProposal": "reshape_proposal_v2.json",
+  "sourceOverlay": "docs/images/frontier/blueprint/world_reshape_v1.json",
+  "baseBlueprintUnchanged": true,
+  "protectedCounts": {
+    "sites": 60,
+    "nodes": 107,
+    "camps": 52,
+    "setPieces": 23,
+    "nativeVillageSlots": 4,
+    "passes": 20,
+    "fords": 17
+  },
+  "crossingRelocations": [],
+  "capitalAndPortUnchanged": true,
+  "riverSourceAnchorsUnchanged": true,
+  "localClearanceFixes": [
+    "K37 cache retained at its authored point; local V4 bend shoulder uses 3610,4850 instead of 3500,4770 to keep river off the cache.",
+    "Retain the original buildable substrate at protected site clearings if lowland reconstruction infers marsh."
+  ],
+  "corridorsBefore": 173,
+  "corridorsAfter": 242,
+  "validationProblems": 0,
+  "passedTests": [
+    "test_world_reshape",
+    "test_world_data",
+    "test_frontier_world",
+    "test_island_edges",
+    "test_p3_edges",
+    "test_inland_banks",
+    "test_world_coast",
+    "test_world_paint",
+    "test_chunk_gen",
+    "test_prop_clusters"
+  ],
+  "testNotes": [
+    "Concurrent timing run exceeded chunk threshold; isolated rerun passed, worst 12.3ms. No broad performance claim.",
+    "Prop-cluster test exposed pre-emission coordinate rounding crossing the new lake shore. Fixed by validating rounded emitted positions; existing assertions retained."
+  ],
+  "notClaimed": [
+    "In-game visual/traversal acceptance",
+    "Comprehensive gameplay/GPU regression",
+    "Updated illustration or atlas UI",
+    "New bridge/ford art"
+  ]
+}
