@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Water-only surface pass implemented after Tim asked to keep working on water. Coastline/land blending remains visually approved; diagonals were confirmed gone before this follow-up. New moving surface appearance and GPU cost require Tim manual review.",
+  "status": "Paused at Tim request due usage limits. Water reflection/normal maps and inland bank reuse implemented on disk but not fully verified. Resume from water_checkpoint_2026-11-03.json; do not claim completion.",
   "setup": "Three.js 0.186.1 WebGLRenderer, fixed isometric OrthographicCamera, one custom painted ground ShaderMaterial per streamed chunk, shared time/day-night/lantern lighting, existing rounded water mask and coast ribbons.",
   "localFindings": [
     "Before the follow-up, island water scrolled a cropped photographic color texture through four repeat phases under a strong static noise warp. Color features blended into one another during animation.",
@@ -71,5 +71,58 @@
     "scope": "Visual shader/config only. No water/coastline shape, collision, source-image, rainforest or clustering implementation edits in this follow-up. Original P3 comparison available through waterSurface.enabled=false. No new assets, libraries, reflection/refraction render targets or per-frame CPU wave geometry.",
     "validation": "Edited modules pass node --check; configured packets are finite, preserve authored world wavelengths/speeds and have a maximum slope bound of 0.249. test_p3_edges still passes (90,000 collision samples, rounded geometry, masks/halos, exclusions and bounded movement). Scoped diff whitespace check passed. No live WebGL compile, visual result or measured GPU cost claimed.",
     "remaining": "Tim manually checks motion at an already approved coast location, including day/night and zoom. Verify that highlights read as moving water, no magma-like texture morphing, no diagonal seams, and acceptable frame cost. Coast foam and water-body-specific profiles remain optional later work."
-  }
+  },
+  "secondPassProposal": {
+    "feedback": "Repeated white motifs in the source color tile still dominate the open water. The first pass added analytical ripple lighting, not the complete Three.js water material.",
+    "recommended": "Subdued lighter blue-green base, shared normal/derivative-map wave detail and soft view-angle reflection. Keep the successful shoreline masks and anti-banding. Reduce the repeated painted foam motifs instead of merely brightening them.",
+    "reflection": "Start with one shared low-resolution reflection capture for all visible coplanar water, sampled only through the existing water mask. Optional sky-only mode provides a cheaper fallback. Do not create a reflection/refraction helper for every streamed chunk.",
+    "proposedBudget": {
+      "reflectionSize": [
+        512,
+        512
+      ],
+      "reflectionFormat": "RGBA16F",
+      "reflectionDepth": "assumed 32-bit per pixel",
+      "reflectionMSAA": 0,
+      "normalMaps": 2,
+      "normalMapSize": [
+        512,
+        512
+      ],
+      "normalMapFormat": "RGBA8 with full mip chain",
+      "estimatedGpuMiB": 5.67,
+      "estimateLimits": "Allocation arithmetic only, not measured total RAM/VRAM. Excludes CPU decoded images, driver allocations and any other render buffers. Exact depth format and mip handling vary."
+    },
+    "mainCost": "A real reflection adds a scene render; GPU/frame time and sprite rendering cost need manual measurement. Memory is bounded with one shared target. Stock Water2 creates both reflection and refraction helpers, whose current defaults include four-sample MSAA; avoid those defaults for a memory-conscious prototype.",
+    "camera": "Reflector in r186 handles cloned cameras, but our fixed isometric billboard art still needs visual validation in reflected views. Use orthographic-compatible capture and existing day/night grading.",
+    "sources": [
+      "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/objects/Water2.js",
+      "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/objects/Reflector.js",
+      "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/objects/Refractor.js"
+    ],
+    "approval": "Discussion proposal; keep runtime shader unchanged until Tim accepts this direction."
+  },
+  "approvedPass": [
+    {
+      "task": "Shared bounded reflection and two small seamless normal fields",
+      "done": false
+    },
+    {
+      "task": "Lighter low-repetition surface and normal/reflection integration",
+      "done": false
+    },
+    {
+      "task": "Reuse biome strips/transition and shared rounding for inland water with protected crossings",
+      "done": false
+    },
+    {
+      "task": "Focused resource/normal-field and shoreline regression checks",
+      "done": false
+    },
+    {
+      "task": "Tim visual/performance review",
+      "done": false
+    }
+  ],
+  "checkpoint": "assets/environment/island/water_checkpoint_2026-11-03.json"
 }

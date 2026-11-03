@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-03",
+  "status": "PAUSED at Tim request: usage nearly exhausted. Do not continue implementation until Tim resumes.",
+  "accepted": "Tim likes ocean coastline rounding/biome-ground transitions in every biome and confirms diagonal water banding is gone.",
+  "latestAuthorization": "Implement lighter water with less painted-foam repetition, shared reflection and normal-map surface detail; also reuse wet/dry/snow shoreline textures, rounding and ground transition for lakes and rivers while preserving crossings.",
+  "implementedOnDisk": [
+    "Shared reflection: game/src/render/water_effects.js uses ONE Three.js r186 Reflector, 512x512 half-float target, no MSAA, capped at 30 Hz, captured manually before main rendering. Ground/coast/decal meshes are hidden for capture then restored. View and world_ground hooks are wired.",
+    "Two shared procedural seamless normal fields (512x512 RGBA8) are generated once by waterNormalData in game/src/water_surface.js. GLSL phased flow follows Three.js Water2 principles; NVIDIA-style analytical waves retained. No downloaded/new painted assets.",
+    "Water color is lighter blue-green; repeated color-image whitecaps reduced to restrained low-frequency variation. Reflection composites AFTER day/night grade, using transparent capture alpha and wave distortion. Config: world_paint.json waterSurface normalMaps/reflection.",
+    "Pure capture lifecycle in game/src/render/water_capture.js restores hidden visibility, background, render target, clear state, XR/shadows after success/failure, throttles capture and falls back on failure.",
+    "Inland opt-in: sim/shoreline.js now exposes oceanTopology for legacy ocean-only API and shorelineTopology for all water. Lakes/rivers use the same circular fillets for terrain queries, fine blockers and painting. World overrides and regenerated world terrain metadata set shoreline.inland=true.",
+    "world_coast.js and coastline renderer/shader reuse the THREE original biome strips. Inland banks use 5u land/1u water (sea remains 10/2), per-vertex size attributes, mouth width feathering and crossing clearances. world_paint coastTransition.inland uses a narrower 2-12u transition.",
+    "Legacy lake-edge decals are suppressed only when cfg.coastline.inland.enabled, preserving the old fallback and ford art. No new bridge/source art.",
+    "Crossing protection was strengthened to exclude ANY affected terrain cell intersecting ford/bridge clearance, preventing fine rasterization from narrowing the legacy crossing."
+  ],
+  "checksPassed": [
+    "node tools/seed_world.mjs: 0 validation problems. Regenerated metadata includes inland=true; other current biome edits from the art chat were preserved.",
+    "test_water_capture.mjs: deterministic/unit-length/periodic normal fields; capture throttle, visibility/renderer restoration and failure fallback.",
+    "test_world_coast.mjs: passed after inland enabling (7 loops / 27084 segments; representative geometry and source preservation).",
+    "test_island_edges.mjs: passed after stronger crossing protection (200 edges x 8 directions).",
+    "test_world_paint.mjs: passed after inland enabling; zero mask seam error; legacy fixture intentionally has no coastline config so still emits fallback bank decals.",
+    "test_chunk_gen.mjs: passed, worst sampled build ~15ms.",
+    "test_p3_edges.mjs: passed.",
+    "Syntax checks run on water_effects, shading, world_ground, view and shoreline during this pass; final all-file check still pending."
+  ],
+  "outstanding": [
+    "New test game/tools/test_inland_banks.mjs currently FAILS at line 39 because it asserts triangle signed area is NEGATIVE. Diagnostic of the same fixture found ALL areas positive (min 3.3333, max 39.6228), so correct its expected winding / use consistent-sign invariant and rerun. This is NOT evidence of folded geometry; later assertions in that test have NOT run yet.",
+    "No live WebGL shader compilation, visual reflection validation or measured GPU/frame-time/RAM check has been done. Tim manually tests; repository forbids browser automation/screenshots.",
+    "Review reflection integration on isometric billboard sprites, projected matrix orientation, transparent alpha, day/night grading, recurrence prevention, and lake/river bank appearance. These are new WIP, not visually approved.",
+    "Run final focused syntax/diff checks and only tests justified by any fixes after resuming; do not repeat broad prior work.",
+    "Update main water_surface_plan.json approvedPass checklist to reflect actual verified state, then docs after this WIP is finished. Reflection GPU allocation estimate ~5.67MiB plus 2MiB retained CPU normal arrays, excludes temporary/driver allocations; no measured memory claim.",
+    "Groundcover clustering remains PLANNING ONLY in groundcover_clustering_plan.json. Include all biomes, rainforest, forest-floor and marsh. Do not implement it yet."
+  ],
+  "sourceFiles": [
+    "game/src/water_surface.js",
+    "game/src/render/water_sampling.js",
+    "game/src/render/water_effects.js",
+    "game/src/render/water_capture.js",
+    "game/src/render/shading.js",
+    "game/src/render/island_ground.js",
+    "game/src/render/world_ground.js",
+    "game/src/render/view.js",
+    "game/src/sim/shoreline.js",
+    "game/src/sim/world_data.js",
+    "game/src/sim/chunk_gen.js",
+    "game/src/sim/island_art.js",
+    "game/src/world_coast.js",
+    "game/src/world_paint.js",
+    "game/src/render/coastline.js",
+    "game/data/world_paint.json",
+    "game/data/coastline.json",
+    "game/data/world_overrides.json",
+    "game/data/world.json",
+    "game/tools/test_water_capture.mjs",
+    "game/tools/test_inland_banks.mjs"
+  ],
+  "collaboration": "Shared checkout contains separate Luna rainforest/marsh imports, biome/blueprint and scale/color work, plus previous package-lock update. Do not revert or stage those blindly. Luna chat 01a1a267-154a-7fa1-b9f9-f305de5c6ca2 was directly authorized by Tim to integrate after source generation. Docs keeper 01a19f43-b0de-7241-a585-e42365c681bc owns docs/commits.",
+  "commitPolicy": "Checkpoint docs/this JSON can be committed by Docs keeper; source WIP remains on disk. Do not label the current surface/inland pass complete or sweep other active work into its commit."
+}
