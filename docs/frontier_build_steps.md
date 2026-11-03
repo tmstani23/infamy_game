@@ -8,6 +8,16 @@ rules, test pattern and regression set).
 Drafted 2026-11-01. Proposed home: `docs/frontier_build_steps.md`. **Nothing here is approved to
 build until Tim OKs a phase.** Numbers in `data/frontier.json` are placeholders for Tim to tune.
 
+## Blueprint and presentation workflow
+
+Settled (Tim, 2026-11-03):
+
+- Structure: coastlines, rivers/lakes, ranges, routes, crossings and authored locations belong to the blueprint sources. Current inputs are `docs/images/frontier/blueprint/blueprint.py`, its generated `world_blueprint_v2.json`, and `game/data/world_overrides.json`. Keep generator-script and generated-blueprint edits reproducible; do not hand-edit `game/data/world.json`.
+- Review the combined effective blueprint, including overrides and generator adjustments. Apply approved structural changes through `tools/seed_world.mjs`, validate, then refresh world/atlas references together. An old design preview is not evidence of the current world.
+- Presentation: illustration, textures, decorative prop density, labels and UI styling follow the structure. Changes to walkability or gameplay behavior belong to structure/simulation even when prompted by an art issue. Preserve exact coordinate registration; never move gameplay features to fit a painting.
+- Simulation owns rules and live state. Rendering/UI read them; an illustration is not a second source of geometry, locations or discovery state.
+- Derived references must identify their source version and be refreshed after relevant source changes. Until the combined preview/freshness workflow is automated, verify those inputs explicitly before art generation or map integration.
+
 ## Progress checklist
 
 Tick a box (`[x]`) only when the step's check passes. A phase box is ticked after its commit and
