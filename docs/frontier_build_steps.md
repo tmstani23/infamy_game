@@ -70,6 +70,20 @@ Reference roles (current revision v2; v1 retained as historical style-trial inpu
 
 Runtime registration: `game/data/world_atlas.json` records the installed `game/art/maps/world_atlas_v2.png`, exact world bounds and source hashes. After structural/painting changes, refresh the reference, run `node game/tools/test_world_atlas.mjs` and review/regenerate the illustration before updating these hashes. The reference freshness command does not replace or certify the painting. Original illustration/reference versions remain preserved.
 
+## Basic campaign loop pass (proposed, 2026-11-03)
+
+Tim's target: a broad functional **explore → found → gather → build → fight** playthrough using existing art and simple readable UI. Target confirmed; the substantial implementation pass awaits approval. Reuse built F2 economy and F4 town controls. These are slices through the existing phases below, not replacement systems or permission to mark whole phases complete.
+
+| Slice | Deliverable | Exit check |
+|---|---|---|
+| [ ] Loop 1: usable wilderness | Finish the atlas refresh check and basic crossing fitting; add authored W4 camps, node/site props and scouting with existing assets. Carry required campaign city-away safeguards from C into the prerequisite work. | Explore, cross rivers/passes, find resources and scout a founding location; camp claims survive unloading/save-load. |
+| [ ] Loop 2: expedition and founding | E2–E5: hire settlers at HQ, escort them, found on valid buildable ground using the settled E1 rules, and draw a starter town from its real settlement record. | One real expedition creates a persistent owned town; invalid founding changes nothing. |
+| [ ] Loop 3: gather and build | Connect E4 traits and the minimum F5 clearing/placement/worker loop to F2/F4: housing, food, timber, stone, workshop/storage and basic roads/gates/stockade. Include actual route prerequisites needed by these rules. | Workers produce stock; construction spends stock and work; finished buildings change town output/capacity. No manual resource grind. |
+| [ ] Loop 4: complete the playthrough | Use existing hero/crew combat against W4 camps, persistent rewards, resupply and basic town defence. Exercise departure, founding, production, construction and fighting in one save. | Complete the loop through ordinary commands; save/load and walk away/return preserve outcomes. Players and bots use the same rules. |
+| [ ] Loop 5: scale the functional world | Increase representative active camps/units and founded towns in the canonical playtest setup; measure sim, chunk/render cost and UI responsiveness. | Report measured limits and fix the first actual bottleneck before increasing load again. Distant towns keep correct economy without permanently active chunks. |
+
+Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6/F7 are complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for Tim's review. Reuse the existing save and test setup; do not reset the capital save.
+
 ## Progress checklist
 
 Tick a box (`[x]`) only when the step's check passes. A phase box is ticked after its commit and
