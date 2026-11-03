@@ -1,0 +1,177 @@
+{
+  "audited": 57,
+  "previouslyClippedAtBoundary": 41,
+  "oldClipped": [
+    {
+      "file": "snow_pine.png",
+      "opaquePixelsOnOldBoundary": 399
+    },
+    {
+      "file": "snow_cedar.png",
+      "opaquePixelsOnOldBoundary": 219
+    },
+    {
+      "file": "snow_boulders.png",
+      "opaquePixelsOnOldBoundary": 231
+    },
+    {
+      "file": "snow_fallen_log.png",
+      "opaquePixelsOnOldBoundary": 181
+    },
+    {
+      "file": "snow_stump.png",
+      "opaquePixelsOnOldBoundary": 118
+    },
+    {
+      "file": "meadow_grass.png",
+      "opaquePixelsOnOldBoundary": 5
+    },
+    {
+      "file": "meadow_flowers.png",
+      "opaquePixelsOnOldBoundary": 41
+    },
+    {
+      "file": "meadow_broadleaf_tree.png",
+      "opaquePixelsOnOldBoundary": 39
+    },
+    {
+      "file": "hill_heather.png",
+      "opaquePixelsOnOldBoundary": 36
+    },
+    {
+      "file": "dry_scrub.png",
+      "opaquePixelsOnOldBoundary": 34
+    },
+    {
+      "file": "dry_grass_tussock.png",
+      "opaquePixelsOnOldBoundary": 1
+    },
+    {
+      "file": "snow_frozen_well.png",
+      "opaquePixelsOnOldBoundary": 83
+    },
+    {
+      "file": "snow_ruined_shed.png",
+      "opaquePixelsOnOldBoundary": 92
+    },
+    {
+      "file": "snow_frost_covered_standing_stones.png",
+      "opaquePixelsOnOldBoundary": 87
+    },
+    {
+      "file": "snow_giant_broken_cedar.png",
+      "opaquePixelsOnOldBoundary": 87
+    },
+    {
+      "file": "plains_abandoned_farmstead.png",
+      "opaquePixelsOnOldBoundary": 216
+    },
+    {
+      "file": "plains_ruined_granary.png",
+      "opaquePixelsOnOldBoundary": 241
+    },
+    {
+      "file": "plains_overgrown_cemetery.png",
+      "opaquePixelsOnOldBoundary": 27
+    },
+    {
+      "file": "plains_collapsed_watchtower.png",
+      "opaquePixelsOnOldBoundary": 95
+    },
+    {
+      "file": "plains_neglected_orchard.png",
+      "opaquePixelsOnOldBoundary": 229
+    },
+    {
+      "file": "plains_roadside_shrine.png",
+      "opaquePixelsOnOldBoundary": 120
+    },
+    {
+      "file": "hills_abandoned_mine_entrance.png",
+      "opaquePixelsOnOldBoundary": 5
+    },
+    {
+      "file": "hills_ruined_signal_tower.png",
+      "opaquePixelsOnOldBoundary": 238
+    },
+    {
+      "file": "hills_old_quarry_workings.png",
+      "opaquePixelsOnOldBoundary": 242
+    },
+    {
+      "file": "hills_hermits_hut.png",
+      "opaquePixelsOnOldBoundary": 53
+    },
+    {
+      "file": "hills_weathered_stone_circle.png",
+      "opaquePixelsOnOldBoundary": 60
+    },
+    {
+      "file": "dry_fossil_skull_in_sandstone.png",
+      "opaquePixelsOnOldBoundary": 184
+    },
+    {
+      "file": "dry_ruined_plaster_and_timber_building.png",
+      "opaquePixelsOnOldBoundary": 184
+    },
+    {
+      "file": "dry_ancient_dry_well.png",
+      "opaquePixelsOnOldBoundary": 140
+    },
+    {
+      "file": "dry_abandoned_caravan_camp.png",
+      "opaquePixelsOnOldBoundary": 258
+    },
+    {
+      "file": "dry_shaded_rock_grotto.png",
+      "opaquePixelsOnOldBoundary": 125
+    },
+    {
+      "file": "coast_broken_shipwreck_hull.png",
+      "opaquePixelsOnOldBoundary": 196
+    },
+    {
+      "file": "coast_ruined_coastal_lookout.png",
+      "opaquePixelsOnOldBoundary": 228
+    },
+    {
+      "file": "coast_washed_up_cargo_cache.png",
+      "opaquePixelsOnOldBoundary": 26
+    },
+    {
+      "file": "coast_sea_cave.png",
+      "opaquePixelsOnOldBoundary": 229
+    },
+    {
+      "file": "coast_abandoned_fishermans_shack.png",
+      "opaquePixelsOnOldBoundary": 473
+    },
+    {
+      "file": "coast_seaside_memorial.png",
+      "opaquePixelsOnOldBoundary": 246
+    },
+    {
+      "file": "forest_root_covered_shrine.png",
+      "opaquePixelsOnOldBoundary": 144
+    },
+    {
+      "file": "forest_giant_hollow_cedar.png",
+      "opaquePixelsOnOldBoundary": 325
+    },
+    {
+      "file": "forest_old_charcoal_kiln.png",
+      "opaquePixelsOnOldBoundary": 136
+    },
+    {
+      "file": "forest_collapsed_woodland_gate.png",
+      "opaquePixelsOnOldBoundary": 323
+    }
+  ],
+  "checks": [
+    "all re-cut extraction boundaries clear of opaque art",
+    "all output borders clear of opaque art",
+    "all dimensions and trimmed-image anchors match runtime metadata",
+    "all runtime PNGs identical to reviewed source cutouts",
+    "all 57 visually inspected in three review pages"
+  ]
+}

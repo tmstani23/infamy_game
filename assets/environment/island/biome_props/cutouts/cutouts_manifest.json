@@ -1,0 +1,3082 @@
+{
+  "schemaVersion": 2,
+  "createdFrom": "assets/environment/island/p5_biome_art_plan.json",
+  "status": "Reviewed per-object cuts imported into runtime; trimmed-image ground anchors preserved.",
+  "canvas": {
+    "width": 1536,
+    "height": 1024,
+    "columns": 3,
+    "rows": 2,
+    "layout": "logical 3x2; actual extraction rectangles reviewed per object"
+  },
+  "cellPolicy": "Reviewed per-object extraction regions in crop_regions.json; alpha-trim at >30 with 4px padding; source alpha preserved. Ground anchors are trimmed-image coordinates.",
+  "assetCount": 57,
+  "assets": [
+    {
+      "file": "snow_pine.png",
+      "label": "Snow-laden pine",
+      "biome": "snow",
+      "group": "Snow starter set",
+      "sourceSheet": "snow_core_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 620,
+          "height": 600
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 9,
+          "y": 23,
+          "width": 601,
+          "height": 517
+        },
+        "size": {
+          "width": 601,
+          "height": 517
+        }
+      },
+      "groundAnchor": {
+        "x": 202,
+        "y": 511,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 13,
+        "top": 27,
+        "right": 605,
+        "bottom": 535
+      },
+      "intendedFootprintUnitsGuidance": [
+        5.5,
+        5.5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 3810,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_cedar.png",
+      "label": "Snow-laden cedar",
+      "biome": "snow",
+      "group": "Snow starter set",
+      "sourceSheet": "snow_core_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 620,
+          "y": 0,
+          "width": 430,
+          "height": 600
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 5,
+          "y": 5,
+          "width": 385,
+          "height": 549
+        },
+        "size": {
+          "width": 385,
+          "height": 549
+        }
+      },
+      "groundAnchor": {
+        "x": 187,
+        "y": 543,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 9,
+        "top": 9,
+        "right": 385,
+        "bottom": 549
+      },
+      "intendedFootprintUnitsGuidance": [
+        4.2,
+        4.2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 2580,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_bush.png",
+      "label": "Snow-covered shrub",
+      "biome": "snow",
+      "group": "Snow starter set",
+      "sourceSheet": "snow_core_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 1050,
+          "y": 0,
+          "width": 486,
+          "height": 600
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 32,
+          "y": 235,
+          "width": 429,
+          "height": 274
+        },
+        "size": {
+          "width": 429,
+          "height": 274
+        }
+      },
+      "groundAnchor": {
+        "x": 173,
+        "y": 268,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 36,
+        "top": 239,
+        "right": 456,
+        "bottom": 504
+      },
+      "intendedFootprintUnitsGuidance": [
+        2.5,
+        2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 1736,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_boulders.png",
+      "label": "Frosted boulder cluster",
+      "biome": "snow",
+      "group": "Snow starter set",
+      "sourceSheet": "snow_core_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 600,
+          "width": 500,
+          "height": 424
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 29,
+          "y": 54,
+          "width": 446,
+          "height": 278
+        },
+        "size": {
+          "width": 446,
+          "height": 278
+        }
+      },
+      "groundAnchor": {
+        "x": 114,
+        "y": 272,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 33,
+        "top": 58,
+        "right": 470,
+        "bottom": 327
+      },
+      "intendedFootprintUnitsGuidance": [
+        3.2,
+        2.5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 232,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_fallen_log.png",
+      "label": "Snow-covered fallen log",
+      "biome": "snow",
+      "group": "Snow starter set",
+      "sourceSheet": "snow_core_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 500,
+          "y": 600,
+          "width": 620,
+          "height": 424
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 16,
+          "y": 95,
+          "width": 575,
+          "height": 214
+        },
+        "size": {
+          "width": 575,
+          "height": 214
+        }
+      },
+      "groundAnchor": {
+        "x": 525,
+        "y": 208,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 20,
+        "top": 99,
+        "right": 586,
+        "bottom": 304
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        1.4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 496,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_stump.png",
+      "label": "Frozen stump",
+      "biome": "snow",
+      "group": "Snow starter set",
+      "sourceSheet": "snow_core_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 1120,
+          "y": 600,
+          "width": 416,
+          "height": 424
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 28,
+          "y": 87,
+          "width": 356,
+          "height": 247
+        },
+        "size": {
+          "width": 356,
+          "height": 247
+        }
+      },
+      "groundAnchor": {
+        "x": 274,
+        "y": 242,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 32,
+        "top": 91,
+        "right": 379,
+        "bottom": 329
+      },
+      "intendedFootprintUnitsGuidance": [
+        2,
+        1.8
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 7125,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "meadow_grass.png",
+      "label": "Wild grass tussock",
+      "biome": "plain",
+      "group": "Open-country plants",
+      "sourceSheet": "open_country_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 480,
+          "height": 570
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 15,
+          "y": 160,
+          "width": 458,
+          "height": 291
+        },
+        "size": {
+          "width": 458,
+          "height": 291
+        }
+      },
+      "groundAnchor": {
+        "x": 260,
+        "y": 285,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 19,
+        "top": 164,
+        "right": 468,
+        "bottom": 446
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 43550,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "meadow_flowers.png",
+      "label": "Wildflower clump",
+      "biome": "plain",
+      "group": "Open-country plants",
+      "sourceSheet": "open_country_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 480,
+          "y": 0,
+          "width": 510,
+          "height": 570
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 24,
+          "y": 144,
+          "width": 461,
+          "height": 334
+        },
+        "size": {
+          "width": 461,
+          "height": 334
+        }
+      },
+      "groundAnchor": {
+        "x": 160,
+        "y": 328,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 28,
+        "top": 148,
+        "right": 480,
+        "bottom": 473
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        2.5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 49481,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "meadow_broadleaf_tree.png",
+      "label": "Quiet meadow broadleaf tree",
+      "biome": "plain",
+      "group": "Open-country plants",
+      "sourceSheet": "open_country_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 990,
+          "y": 0,
+          "width": 546,
+          "height": 570
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 18,
+          "y": 15,
+          "width": 516,
+          "height": 501
+        },
+        "size": {
+          "width": 516,
+          "height": 501
+        }
+      },
+      "groundAnchor": {
+        "x": 193,
+        "y": 495,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 22,
+        "top": 19,
+        "right": 529,
+        "bottom": 511
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 88122,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "hill_heather.png",
+      "label": "Low upland scrub",
+      "biome": "hills",
+      "group": "Open-country plants",
+      "sourceSheet": "open_country_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 570,
+          "width": 480,
+          "height": 454
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 16,
+          "y": 87,
+          "width": 453,
+          "height": 285
+        },
+        "size": {
+          "width": 453,
+          "height": 285
+        }
+      },
+      "groundAnchor": {
+        "x": 220,
+        "y": 279,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 20,
+        "top": 91,
+        "right": 464,
+        "bottom": 367
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 43390,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_scrub.png",
+      "label": "Drought-hardened scrub",
+      "biome": "dry",
+      "group": "Open-country plants",
+      "sourceSheet": "open_country_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 480,
+          "y": 570,
+          "width": 520,
+          "height": 454
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 14,
+          "y": 70,
+          "width": 489,
+          "height": 296
+        },
+        "size": {
+          "width": 489,
+          "height": 296
+        }
+      },
+      "groundAnchor": {
+        "x": 284,
+        "y": 291,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 18,
+        "top": 74,
+        "right": 498,
+        "bottom": 361
+      },
+      "intendedFootprintUnitsGuidance": [
+        3.5,
+        2.5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 47311,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "dry_grass_tussock.png",
+      "label": "Dry grass tussock",
+      "biome": "dry",
+      "group": "Open-country plants",
+      "sourceSheet": "open_country_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 1000,
+          "y": 570,
+          "width": 536,
+          "height": 454
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 15,
+          "y": 73,
+          "width": 491,
+          "height": 283
+        },
+        "size": {
+          "width": 491,
+          "height": 283
+        }
+      },
+      "groundAnchor": {
+        "x": 153,
+        "y": 277,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 19,
+        "top": 77,
+        "right": 501,
+        "bottom": 351
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 50685,
+        "min": 0,
+        "max": 252
+      }
+    },
+    {
+      "file": "sandstone_stones.png",
+      "label": "Small sandstone cluster",
+      "biome": "dry",
+      "group": "Landscape details",
+      "sourceSheet": "landscape_details_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 512
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 42,
+          "y": 166,
+          "width": 429,
+          "height": 275
+        },
+        "size": {
+          "width": 429,
+          "height": 275
+        }
+      },
+      "groundAnchor": {
+        "x": 237,
+        "y": 270,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 46,
+        "top": 170,
+        "right": 466,
+        "bottom": 436
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        2.3
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 43647,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "bleached_log.png",
+      "label": "Bleached deadwood",
+      "biome": "dry",
+      "group": "Landscape details",
+      "sourceSheet": "landscape_details_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 512,
+          "y": 0,
+          "width": 512,
+          "height": 512
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 10,
+          "y": 161,
+          "width": 491,
+          "height": 252
+        },
+        "size": {
+          "width": 491,
+          "height": 252
+        }
+      },
+      "groundAnchor": {
+        "x": 421,
+        "y": 247,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 14,
+        "top": 165,
+        "right": 496,
+        "bottom": 408
+      },
+      "intendedFootprintUnitsGuidance": [
+        4.5,
+        1.4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 61358,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dune_grass.png",
+      "label": "Coastal grass clump",
+      "biome": "coast",
+      "group": "Landscape details",
+      "sourceSheet": "landscape_details_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 1024,
+          "y": 0,
+          "width": 512,
+          "height": 512
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 35,
+          "y": 146,
+          "width": 445,
+          "height": 287
+        },
+        "size": {
+          "width": 445,
+          "height": 287
+        }
+      },
+      "groundAnchor": {
+        "x": 109,
+        "y": 280,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 39,
+        "top": 150,
+        "right": 475,
+        "bottom": 428
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 43856,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "coastal_driftwood.png",
+      "label": "Weathered driftwood",
+      "biome": "coast",
+      "group": "Landscape details",
+      "sourceSheet": "landscape_details_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 512,
+          "width": 512,
+          "height": 512
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 22,
+          "y": 144,
+          "width": 461,
+          "height": 176
+        },
+        "size": {
+          "width": 461,
+          "height": 176
+        }
+      },
+      "groundAnchor": {
+        "x": 49,
+        "y": 171,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 26,
+        "top": 148,
+        "right": 478,
+        "bottom": 315
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        1.6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 36223,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_drift.png",
+      "label": "Small snow drift",
+      "biome": "snow",
+      "group": "Landscape details",
+      "sourceSheet": "landscape_details_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 512,
+          "y": 512,
+          "width": 512,
+          "height": 512
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 10,
+          "y": 138,
+          "width": 497,
+          "height": 187
+        },
+        "size": {
+          "width": 497,
+          "height": 187
+        }
+      },
+      "groundAnchor": {
+        "x": 302,
+        "y": 181,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 14,
+        "top": 142,
+        "right": 502,
+        "bottom": 320
+      },
+      "intendedFootprintUnitsGuidance": [
+        4,
+        2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 30780,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "trail_cairn.png",
+      "label": "Weathered trail cairn",
+      "biome": "shared",
+      "group": "Landscape details",
+      "sourceSheet": "landscape_details_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 1024,
+          "y": 512,
+          "width": 512,
+          "height": 512
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 142,
+          "y": 115,
+          "width": 254,
+          "height": 229
+        },
+        "size": {
+          "width": 254,
+          "height": 229
+        }
+      },
+      "groundAnchor": {
+        "x": 113,
+        "y": 223,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 146,
+        "top": 119,
+        "right": 391,
+        "bottom": 339
+      },
+      "intendedFootprintUnitsGuidance": [
+        1.5,
+        1.5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 22077,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_stone_lantern.png",
+      "label": "Snow-capped stone lantern",
+      "biome": "snow",
+      "group": "Later snow features",
+      "sourceSheet": "snow_features_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 450,
+          "height": 530
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 175,
+          "y": 96,
+          "width": 180,
+          "height": 357
+        },
+        "size": {
+          "width": 180,
+          "height": 357
+        }
+      },
+      "groundAnchor": {
+        "x": 91,
+        "y": 351,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 179,
+        "top": 100,
+        "right": 350,
+        "bottom": 448
+      },
+      "intendedFootprintUnitsGuidance": [
+        1.2,
+        1.2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 15009,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_frozen_well.png",
+      "label": "Abandoned snowy well",
+      "biome": "snow",
+      "group": "Later snow features",
+      "sourceSheet": "snow_features_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 450,
+          "y": 0,
+          "width": 510,
+          "height": 530
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 78,
+          "y": 27,
+          "width": 393,
+          "height": 466
+        },
+        "size": {
+          "width": 393,
+          "height": 466
+        }
+      },
+      "groundAnchor": {
+        "x": 215,
+        "y": 461,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 82,
+        "top": 31,
+        "right": 466,
+        "bottom": 488
+      },
+      "intendedFootprintUnitsGuidance": [
+        2.2,
+        2.2
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 32264,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_ruined_shed.png",
+      "label": "Abandoned snowy farm shed",
+      "biome": "snow",
+      "group": "Later snow features",
+      "sourceSheet": "snow_features_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 960,
+          "y": 0,
+          "width": 576,
+          "height": 530
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 26,
+          "y": 55,
+          "width": 509,
+          "height": 403
+        },
+        "size": {
+          "width": 509,
+          "height": 403
+        }
+      },
+      "groundAnchor": {
+        "x": 321,
+        "y": 397,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 30,
+        "top": 59,
+        "right": 530,
+        "bottom": 453
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 41438,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_fence_x.png",
+      "label": "Snowy farm fence, x axis",
+      "biome": "snow",
+      "group": "Later snow features",
+      "sourceSheet": "snow_features_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 530,
+          "width": 500,
+          "height": 494
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 35,
+          "y": 51,
+          "width": 442,
+          "height": 329
+        },
+        "size": {
+          "width": 442,
+          "height": 329
+        }
+      },
+      "groundAnchor": {
+        "x": 411,
+        "y": 323,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 39,
+        "top": 55,
+        "right": 472,
+        "bottom": 375
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        0.35
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 68485,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_fence_z.png",
+      "label": "Snowy farm fence, z axis",
+      "biome": "snow",
+      "group": "Later snow features",
+      "sourceSheet": "snow_features_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 500,
+          "y": 530,
+          "width": 524,
+          "height": 494
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 28,
+          "y": 59,
+          "width": 435,
+          "height": 322
+        },
+        "size": {
+          "width": 435,
+          "height": 322
+        }
+      },
+      "groundAnchor": {
+        "x": 28,
+        "y": 317,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 32,
+        "top": 63,
+        "right": 458,
+        "bottom": 376
+      },
+      "intendedFootprintUnitsGuidance": [
+        0.35,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 78733,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_half_buried_shrine.png",
+      "label": "Half-buried shrine",
+      "biome": "snow",
+      "group": "snow oddities",
+      "sourceSheet": "snow_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 58,
+          "y": 90,
+          "width": 427,
+          "height": 377
+        },
+        "size": {
+          "width": 427,
+          "height": 377
+        }
+      },
+      "groundAnchor": {
+        "x": 232,
+        "y": 371,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 62,
+        "top": 94,
+        "right": 480,
+        "bottom": 462
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 5378,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_icicle_grotto.png",
+      "label": "Icicle grotto",
+      "biome": "snow",
+      "group": "snow oddities",
+      "sourceSheet": "snow_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 510,
+          "width": 512,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 7,
+          "y": 76,
+          "width": 504,
+          "height": 360
+        },
+        "size": {
+          "width": 504,
+          "height": 360
+        }
+      },
+      "groundAnchor": {
+        "x": 230,
+        "y": 354,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 11,
+        "top": 80,
+        "right": 506,
+        "bottom": 431
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 2634,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "snow_frost_covered_standing_stones.png",
+      "label": "Frost-covered standing stones",
+      "biome": "snow",
+      "group": "snow oddities",
+      "sourceSheet": "snow_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 512,
+          "y": 510,
+          "width": 468,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 11,
+          "y": 92,
+          "width": 457,
+          "height": 343
+        },
+        "size": {
+          "width": 457,
+          "height": 343
+        }
+      },
+      "groundAnchor": {
+        "x": 288,
+        "y": 337,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 15,
+        "top": 96,
+        "right": 465,
+        "bottom": 430
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 1746,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "snow_giant_broken_cedar.png",
+      "label": "Giant broken cedar",
+      "biome": "snow",
+      "group": "snow oddities",
+      "sourceSheet": "snow_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 980,
+          "y": 510,
+          "width": 556,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 1,
+          "y": 32,
+          "width": 545,
+          "height": 432
+        },
+        "size": {
+          "width": 545,
+          "height": 432
+        }
+      },
+      "groundAnchor": {
+        "x": 326,
+        "y": 426,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 5,
+        "top": 36,
+        "right": 541,
+        "bottom": 459
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 3820,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "plains_abandoned_farmstead.png",
+      "label": "Abandoned farmstead",
+      "biome": "plains",
+      "group": "plains oddities",
+      "sourceSheet": "plains_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 650,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 12,
+          "y": 61,
+          "width": 637,
+          "height": 420
+        },
+        "size": {
+          "width": 637,
+          "height": 420
+        }
+      },
+      "groundAnchor": {
+        "x": 322,
+        "y": 415,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 16,
+        "top": 65,
+        "right": 644,
+        "bottom": 476
+      },
+      "intendedFootprintUnitsGuidance": [
+        14,
+        10
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 41966,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "plains_ruined_granary.png",
+      "label": "Ruined granary",
+      "biome": "plains",
+      "group": "plains oddities",
+      "sourceSheet": "plains_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 650,
+          "y": 0,
+          "width": 410,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 29,
+          "y": 66,
+          "width": 366,
+          "height": 401
+        },
+        "size": {
+          "width": 366,
+          "height": 401
+        }
+      },
+      "groundAnchor": {
+        "x": 158,
+        "y": 395,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 33,
+        "top": 70,
+        "right": 390,
+        "bottom": 462
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 28507,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "plains_overgrown_cemetery.png",
+      "label": "Overgrown cemetery",
+      "biome": "plains",
+      "group": "plains oddities",
+      "sourceSheet": "plains_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 1060,
+          "y": 0,
+          "width": 476,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 12,
+          "y": 126,
+          "width": 451,
+          "height": 334
+        },
+        "size": {
+          "width": 451,
+          "height": 334
+        }
+      },
+      "groundAnchor": {
+        "x": 258,
+        "y": 328,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 16,
+        "top": 130,
+        "right": 458,
+        "bottom": 455
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 30553,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "plains_collapsed_watchtower.png",
+      "label": "Collapsed watchtower",
+      "biome": "plains",
+      "group": "plains oddities",
+      "sourceSheet": "plains_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 510,
+          "width": 460,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 30,
+          "y": 40,
+          "width": 421,
+          "height": 411
+        },
+        "size": {
+          "width": 421,
+          "height": 411
+        }
+      },
+      "groundAnchor": {
+        "x": 143,
+        "y": 405,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 34,
+        "top": 44,
+        "right": 446,
+        "bottom": 446
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 38009,
+        "min": 0,
+        "max": 254
+      },
+      "extractionMask": {
+        "rowSplits": {
+          "1": [
+            [
+              510,
+              425
+            ],
+            [
+              850,
+              460
+            ]
+          ]
+        },
+        "column": 1
+      }
+    },
+    {
+      "file": "plains_neglected_orchard.png",
+      "label": "Neglected orchard",
+      "biome": "plains",
+      "group": "plains oddities",
+      "sourceSheet": "plains_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 425,
+          "y": 510,
+          "width": 705,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 10,
+          "y": 34,
+          "width": 693,
+          "height": 407
+        },
+        "size": {
+          "width": 693,
+          "height": 407
+        }
+      },
+      "groundAnchor": {
+        "x": 511,
+        "y": 401,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 14,
+        "top": 38,
+        "right": 698,
+        "bottom": 436
+      },
+      "intendedFootprintUnitsGuidance": [
+        12,
+        9
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 30049,
+        "min": 0,
+        "max": 254
+      },
+      "extractionMask": {
+        "rowSplits": {
+          "1": [
+            [
+              510,
+              425
+            ],
+            [
+              850,
+              460
+            ]
+          ]
+        },
+        "column": 2
+      }
+    },
+    {
+      "file": "plains_roadside_shrine.png",
+      "label": "Roadside shrine",
+      "biome": "plains",
+      "group": "plains oddities",
+      "sourceSheet": "plains_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 1130,
+          "y": 510,
+          "width": 406,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 48,
+          "y": 68,
+          "width": 306,
+          "height": 358
+        },
+        "size": {
+          "width": 306,
+          "height": 358
+        }
+      },
+      "groundAnchor": {
+        "x": 111,
+        "y": 353,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 52,
+        "top": 72,
+        "right": 349,
+        "bottom": 421
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        3
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 28225,
+        "min": 0,
+        "max": 254
+      },
+      "extractionMask": {
+        "rowSplits": {
+          "1": [
+            [
+              510,
+              425
+            ],
+            [
+              850,
+              460
+            ]
+          ]
+        },
+        "column": 3
+      }
+    },
+    {
+      "file": "hills_abandoned_mine_entrance.png",
+      "label": "Abandoned mine entrance",
+      "biome": "hills",
+      "group": "hills oddities",
+      "sourceSheet": "hills_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 490,
+          "height": 540
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 11,
+          "y": 87,
+          "width": 468,
+          "height": 398
+        },
+        "size": {
+          "width": 468,
+          "height": 398
+        }
+      },
+      "groundAnchor": {
+        "x": 172,
+        "y": 393,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 15,
+        "top": 91,
+        "right": 474,
+        "bottom": 480
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 32937,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "hills_ruined_signal_tower.png",
+      "label": "Ruined signal tower",
+      "biome": "hills",
+      "group": "hills oddities",
+      "sourceSheet": "hills_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 490,
+          "y": 0,
+          "width": 445,
+          "height": 540
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 14,
+          "y": 42,
+          "width": 421,
+          "height": 465
+        },
+        "size": {
+          "width": 421,
+          "height": 465
+        }
+      },
+      "groundAnchor": {
+        "x": 242,
+        "y": 459,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 18,
+        "top": 46,
+        "right": 430,
+        "bottom": 502
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 60790,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "hills_old_quarry_workings.png",
+      "label": "Old quarry workings",
+      "biome": "hills",
+      "group": "hills oddities",
+      "sourceSheet": "hills_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 935,
+          "y": 0,
+          "width": 601,
+          "height": 540
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 9,
+          "y": 103,
+          "width": 579,
+          "height": 379
+        },
+        "size": {
+          "width": 579,
+          "height": 379
+        }
+      },
+      "groundAnchor": {
+        "x": 341,
+        "y": 373,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 13,
+        "top": 107,
+        "right": 583,
+        "bottom": 477
+      },
+      "intendedFootprintUnitsGuidance": [
+        10,
+        7
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 37571,
+        "min": 0,
+        "max": 253
+      }
+    },
+    {
+      "file": "hills_cliff_grotto.png",
+      "label": "Cliff grotto",
+      "biome": "hills",
+      "group": "hills oddities",
+      "sourceSheet": "hills_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 540,
+          "width": 490,
+          "height": 484
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 16,
+          "y": 63,
+          "width": 462,
+          "height": 320
+        },
+        "size": {
+          "width": 462,
+          "height": 320
+        }
+      },
+      "groundAnchor": {
+        "x": 187,
+        "y": 314,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 20,
+        "top": 67,
+        "right": 473,
+        "bottom": 378
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 25141,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "hills_hermits_hut.png",
+      "label": "Hermit’s hut",
+      "biome": "hills",
+      "group": "hills oddities",
+      "sourceSheet": "hills_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 490,
+          "y": 540,
+          "width": 485,
+          "height": 484
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 26,
+          "y": 52,
+          "width": 442,
+          "height": 343
+        },
+        "size": {
+          "width": 442,
+          "height": 343
+        }
+      },
+      "groundAnchor": {
+        "x": 257,
+        "y": 338,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 30,
+        "top": 56,
+        "right": 463,
+        "bottom": 390
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 27496,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "hills_weathered_stone_circle.png",
+      "label": "Weathered stone circle",
+      "biome": "hills",
+      "group": "hills oddities",
+      "sourceSheet": "hills_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 975,
+          "y": 540,
+          "width": 561,
+          "height": 484
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 7,
+          "y": 54,
+          "width": 538,
+          "height": 334
+        },
+        "size": {
+          "width": 538,
+          "height": 334
+        }
+      },
+      "groundAnchor": {
+        "x": 314,
+        "y": 328,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 11,
+        "top": 58,
+        "right": 540,
+        "bottom": 383
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 71294,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_exposed_dinosaur_rib_cage.png",
+      "label": "Exposed dinosaur rib cage",
+      "biome": "dry",
+      "group": "dry oddities",
+      "sourceSheet": "dry_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 515,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 1,
+          "y": 90,
+          "width": 511,
+          "height": 370
+        },
+        "size": {
+          "width": 511,
+          "height": 370
+        }
+      },
+      "groundAnchor": {
+        "x": 328,
+        "y": 365,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 5,
+        "top": 94,
+        "right": 507,
+        "bottom": 455
+      },
+      "intendedFootprintUnitsGuidance": [
+        9,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 59498,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_fossil_skull_in_sandstone.png",
+      "label": "Fossil skull in sandstone",
+      "biome": "dry",
+      "group": "dry oddities",
+      "sourceSheet": "dry_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 515,
+          "y": 0,
+          "width": 455,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 6,
+          "y": 133,
+          "width": 427,
+          "height": 305
+        },
+        "size": {
+          "width": 427,
+          "height": 305
+        }
+      },
+      "groundAnchor": {
+        "x": 256,
+        "y": 300,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 10,
+        "top": 137,
+        "right": 428,
+        "bottom": 433
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        3
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 27795,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_ruined_plaster_and_timber_building.png",
+      "label": "Ruined plaster-and-timber building",
+      "biome": "dry",
+      "group": "dry oddities",
+      "sourceSheet": "dry_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 970,
+          "y": 0,
+          "width": 566,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 1,
+          "y": 63,
+          "width": 562,
+          "height": 413
+        },
+        "size": {
+          "width": 562,
+          "height": 413
+        }
+      },
+      "groundAnchor": {
+        "x": 350,
+        "y": 407,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 5,
+        "top": 67,
+        "right": 558,
+        "bottom": 471
+      },
+      "intendedFootprintUnitsGuidance": [
+        8,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 65035,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_ancient_dry_well.png",
+      "label": "Ancient dry well",
+      "biome": "dry",
+      "group": "dry oddities",
+      "sourceSheet": "dry_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 510,
+          "width": 440,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 53,
+          "y": 57,
+          "width": 370,
+          "height": 386
+        },
+        "size": {
+          "width": 370,
+          "height": 386
+        }
+      },
+      "groundAnchor": {
+        "x": 191,
+        "y": 380,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 57,
+        "top": 61,
+        "right": 418,
+        "bottom": 438
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        3
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 50389,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_abandoned_caravan_camp.png",
+      "label": "Abandoned caravan camp",
+      "biome": "dry",
+      "group": "dry oddities",
+      "sourceSheet": "dry_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 440,
+          "y": 510,
+          "width": 550,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 6,
+          "y": 66,
+          "width": 544,
+          "height": 365
+        },
+        "size": {
+          "width": 544,
+          "height": 365
+        }
+      },
+      "groundAnchor": {
+        "x": 164,
+        "y": 359,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 10,
+        "top": 70,
+        "right": 547,
+        "bottom": 426
+      },
+      "intendedFootprintUnitsGuidance": [
+        9,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 68605,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "dry_shaded_rock_grotto.png",
+      "label": "Shaded rock grotto",
+      "biome": "dry",
+      "group": "dry oddities",
+      "sourceSheet": "dry_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 990,
+          "y": 510,
+          "width": 546,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 2,
+          "y": 61,
+          "width": 528,
+          "height": 377
+        },
+        "size": {
+          "width": 528,
+          "height": 377
+        }
+      },
+      "groundAnchor": {
+        "x": 371,
+        "y": 371,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 6,
+        "top": 65,
+        "right": 525,
+        "bottom": 433
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 43404,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "coast_broken_shipwreck_hull.png",
+      "label": "Broken shipwreck hull",
+      "biome": "coast",
+      "group": "coast oddities",
+      "sourceSheet": "coast_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 650,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 25,
+          "y": 98,
+          "width": 606,
+          "height": 377
+        },
+        "size": {
+          "width": 606,
+          "height": 377
+        }
+      },
+      "groundAnchor": {
+        "x": 457,
+        "y": 372,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 29,
+        "top": 102,
+        "right": 626,
+        "bottom": 470
+      },
+      "intendedFootprintUnitsGuidance": [
+        14,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 87945,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "coast_ruined_coastal_lookout.png",
+      "label": "Ruined coastal lookout",
+      "biome": "coast",
+      "group": "coast oddities",
+      "sourceSheet": "coast_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 650,
+          "y": 0,
+          "width": 410,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 11,
+          "y": 45,
+          "width": 381,
+          "height": 451
+        },
+        "size": {
+          "width": 381,
+          "height": 451
+        }
+      },
+      "groundAnchor": {
+        "x": 157,
+        "y": 445,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 15,
+        "top": 49,
+        "right": 387,
+        "bottom": 491
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 54278,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "coast_washed_up_cargo_cache.png",
+      "label": "Washed-up cargo cache",
+      "biome": "coast",
+      "group": "coast oddities",
+      "sourceSheet": "coast_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 1060,
+          "y": 0,
+          "width": 476,
+          "height": 510
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 40,
+          "y": 127,
+          "width": 408,
+          "height": 331
+        },
+        "size": {
+          "width": 408,
+          "height": 331
+        }
+      },
+      "groundAnchor": {
+        "x": 267,
+        "y": 326,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 44,
+        "top": 131,
+        "right": 443,
+        "bottom": 453
+      },
+      "intendedFootprintUnitsGuidance": [
+        4,
+        3
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 37796,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "coast_sea_cave.png",
+      "label": "Sea cave",
+      "biome": "coast",
+      "group": "coast oddities",
+      "sourceSheet": "coast_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 510,
+          "width": 565,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 18,
+          "y": 22,
+          "width": 543,
+          "height": 446
+        },
+        "size": {
+          "width": 543,
+          "height": 446
+        }
+      },
+      "groundAnchor": {
+        "x": 177,
+        "y": 440,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 22,
+        "top": 26,
+        "right": 556,
+        "bottom": 463
+      },
+      "intendedFootprintUnitsGuidance": [
+        8,
+        5
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 53712,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "coast_abandoned_fishermans_shack.png",
+      "label": "Abandoned fisherman’s shack",
+      "biome": "coast",
+      "group": "coast oddities",
+      "sourceSheet": "coast_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 565,
+          "y": 510,
+          "width": 560,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 9,
+          "y": 61,
+          "width": 522,
+          "height": 391
+        },
+        "size": {
+          "width": 522,
+          "height": 391
+        }
+      },
+      "groundAnchor": {
+        "x": 271,
+        "y": 386,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 13,
+        "top": 65,
+        "right": 526,
+        "bottom": 447
+      },
+      "intendedFootprintUnitsGuidance": [
+        6,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 53024,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "coast_seaside_memorial.png",
+      "label": "Seaside memorial",
+      "biome": "coast",
+      "group": "coast oddities",
+      "sourceSheet": "coast_oddities_sheet_v2.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 1125,
+          "y": 510,
+          "width": 411,
+          "height": 514
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 21,
+          "y": 52,
+          "width": 347,
+          "height": 394
+        },
+        "size": {
+          "width": 347,
+          "height": 394
+        }
+      },
+      "groundAnchor": {
+        "x": 175,
+        "y": 389,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 25,
+        "top": 56,
+        "right": 363,
+        "bottom": 441
+      },
+      "intendedFootprintUnitsGuidance": [
+        3,
+        3
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 57373,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "forest_root_covered_shrine.png",
+      "label": "Root-covered shrine",
+      "biome": "forest",
+      "group": "forest oddities",
+      "sourceSheet": "forest_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 490,
+          "height": 575
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 26,
+          "y": 113,
+          "width": 438,
+          "height": 417
+        },
+        "size": {
+          "width": 438,
+          "height": 417
+        }
+      },
+      "groundAnchor": {
+        "x": 255,
+        "y": 412,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 30,
+        "top": 117,
+        "right": 459,
+        "bottom": 525
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 65570,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "forest_giant_hollow_cedar.png",
+      "label": "Giant hollow cedar",
+      "biome": "forest",
+      "group": "forest oddities",
+      "sourceSheet": "forest_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 2,
+        "rect": {
+          "x": 490,
+          "y": 0,
+          "width": 530,
+          "height": 575
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 20,
+          "y": 8,
+          "width": 510,
+          "height": 543
+        },
+        "size": {
+          "width": 510,
+          "height": 543
+        }
+      },
+      "groundAnchor": {
+        "x": 282,
+        "y": 537,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 24,
+        "top": 12,
+        "right": 529,
+        "bottom": 546
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 83252,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "forest_moss_covered_ruins.png",
+      "label": "Moss-covered ruins",
+      "biome": "forest",
+      "group": "forest oddities",
+      "sourceSheet": "forest_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 1,
+        "column": 3,
+        "rect": {
+          "x": 1020,
+          "y": 0,
+          "width": 516,
+          "height": 575
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 7,
+          "y": 170,
+          "width": 495,
+          "height": 331
+        },
+        "size": {
+          "width": 495,
+          "height": 331
+        }
+      },
+      "groundAnchor": {
+        "x": 195,
+        "y": 326,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 11,
+        "top": 174,
+        "right": 497,
+        "bottom": 496
+      },
+      "intendedFootprintUnitsGuidance": [
+        8,
+        6
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 55259,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "forest_old_charcoal_kiln.png",
+      "label": "Old charcoal kiln",
+      "biome": "forest",
+      "group": "forest oddities",
+      "sourceSheet": "forest_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 1,
+        "rect": {
+          "x": 0,
+          "y": 575,
+          "width": 490,
+          "height": 449
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 18,
+          "y": 84,
+          "width": 454,
+          "height": 305
+        },
+        "size": {
+          "width": 454,
+          "height": 305
+        }
+      },
+      "groundAnchor": {
+        "x": 276,
+        "y": 299,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 22,
+        "top": 88,
+        "right": 467,
+        "bottom": 384
+      },
+      "intendedFootprintUnitsGuidance": [
+        5,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 41873,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "forest_collapsed_woodland_gate.png",
+      "label": "Collapsed woodland gate",
+      "biome": "forest",
+      "group": "forest oddities",
+      "sourceSheet": "forest_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 2,
+        "rect": {
+          "x": 490,
+          "y": 575,
+          "width": 535,
+          "height": 449
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 14,
+          "y": 37,
+          "width": 512,
+          "height": 372
+        },
+        "size": {
+          "width": 512,
+          "height": 372
+        }
+      },
+      "groundAnchor": {
+        "x": 188,
+        "y": 366,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 18,
+        "top": 41,
+        "right": 521,
+        "bottom": 404
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 78145,
+        "min": 0,
+        "max": 254
+      }
+    },
+    {
+      "file": "forest_fern_lined_grotto.png",
+      "label": "Fern-lined grotto",
+      "biome": "forest",
+      "group": "forest oddities",
+      "sourceSheet": "forest_oddities_sheet_v1.png",
+      "sourceCell": {
+        "row": 2,
+        "column": 3,
+        "rect": {
+          "x": 1025,
+          "y": 575,
+          "width": 511,
+          "height": 449
+        }
+      },
+      "trim": {
+        "alphaThreshold": 30,
+        "paddingPixels": 4,
+        "rectWithinCell": {
+          "x": 9,
+          "y": 37,
+          "width": 488,
+          "height": 360
+        },
+        "size": {
+          "width": 488,
+          "height": 360
+        }
+      },
+      "groundAnchor": {
+        "x": 122,
+        "y": 354,
+        "coordinateSpace": "trimmedImage",
+        "method": "mean opaque x in bottom 3 rows"
+      },
+      "opaqueBoundsWithinCell": {
+        "left": 13,
+        "top": 41,
+        "right": 492,
+        "bottom": 392
+      },
+      "intendedFootprintUnitsGuidance": [
+        7,
+        4
+      ],
+      "alpha": {
+        "channel": true,
+        "transparentPixels": 42457,
+        "min": 0,
+        "max": 254
+      }
+    }
+  ]
+}

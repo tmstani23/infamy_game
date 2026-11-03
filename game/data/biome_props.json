@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "_note": "Runtime art selection and decorative placement for the transparent island biome props. All items are art-only; movement and collision stay unchanged.",
+  "visualScaleByKind": { "snow_pine": 0.75, "snow_cedar": 0.65 },
+  "replaceByBiome": {
+    "snow": { "pine": "snow_pine", "boulder": "snow_boulders", "bush": "snow_bush" },
+    "plain": { "bush": "meadow_grass", "ferns": "meadow_flowers", "cherry": "meadow_broadleaf_tree" },
+    "hills": { "bush": "hill_heather" },
+    "dry": { "bush": "dry_scrub", "small_rocks": "sandstone_stones" }
+  },
+  "additional": [
+    { "kind": "snow_cedar", "biome": "snow", "per1000": 0.8, "scale": [0.85, 1.1], "block": 0, "grove": "in" },
+    { "kind": "snow_fallen_log", "biome": "snow", "per1000": 0.3, "scale": [0.9, 1.1], "block": 0, "grove": "any" },
+    { "kind": "snow_stump", "biome": "snow", "per1000": 0.4, "scale": [0.9, 1.1], "block": 0, "grove": "any" },
+    { "kind": "snow_drift", "biome": "snow", "per1000": 0.8, "scale": [0.85, 1.15], "block": 0, "grove": "any" },
+    { "kind": "sandstone_stones", "biome": "dry", "per1000": 0.25, "scale": [0.9, 1.1], "block": 0, "grove": "any" },
+    { "kind": "dry_grass_tussock", "biome": "dry", "per1000": 0.8, "scale": [0.9, 1.1], "block": 0, "grove": "any" }
+  ],
+  "coast": {
+    "grid": 10,
+    "distance": 58,
+    "duneChance": 0.05,
+    "driftwoodChance": 0.012
+  },
+  "oddities": {
+    "grid": 32,
+    "chance": 0.16,
+    "minSpacing": 24,
+    "scale": [0.92, 1.08],
+    "byBiome": {
+      "snow": ["snow_half_buried_shrine", "snow_icicle_grotto", "snow_frost_covered_standing_stones", "snow_giant_broken_cedar", "snow_frozen_well", "snow_ruined_shed", "snow_stone_lantern", "snow_fence_x", "snow_fence_z", "trail_cairn"],
+      "plain": ["plains_abandoned_farmstead", "plains_ruined_granary", "plains_overgrown_cemetery", "plains_collapsed_watchtower", "plains_neglected_orchard", "plains_roadside_shrine", "trail_cairn"],
+      "hills": ["hills_abandoned_mine_entrance", "hills_ruined_signal_tower", "hills_old_quarry_workings", "hills_cliff_grotto", "hills_hermits_hut", "hills_weathered_stone_circle", "trail_cairn"],
+      "dry": ["dry_exposed_dinosaur_rib_cage", "dry_fossil_skull_in_sandstone", "dry_ruined_plaster_and_timber_building", "dry_ancient_dry_well", "dry_abandoned_caravan_camp", "dry_shaded_rock_grotto", "trail_cairn"],
+      "forest": ["forest_root_covered_shrine", "forest_giant_hollow_cedar", "forest_moss_covered_ruins", "forest_old_charcoal_kiln", "forest_collapsed_woodland_gate", "forest_fern_lined_grotto", "trail_cairn"]
+    },
+    "coast": ["coast_broken_shipwreck_hull", "coast_ruined_coastal_lookout", "coast_washed_up_cargo_cache", "coast_sea_cave", "coast_abandoned_fishermans_shack", "coast_seaside_memorial"],
+    "requireMountainNearby": ["snow_icicle_grotto", "hills_abandoned_mine_entrance", "hills_old_quarry_workings", "hills_cliff_grotto", "dry_exposed_dinosaur_rib_cage", "dry_fossil_skull_in_sandstone", "dry_shaded_rock_grotto"],
+    "requireCoast": ["coast_broken_shipwreck_hull", "coast_ruined_coastal_lookout", "coast_washed_up_cargo_cache", "coast_sea_cave", "coast_abandoned_fishermans_shack", "coast_seaside_memorial"]
+  }
+}

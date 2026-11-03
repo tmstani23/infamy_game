@@ -114,7 +114,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     return null;
   }
   function makeThing(p) {
-    const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || [];
+    const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || (catalog.items[p.kind] ? [p.kind, 1] : []);
     if (!name) return null;
     if(p.decal){
       const tex=textureFor(`art/props/${name}.png`);if(!tex)return undefined;
@@ -126,7 +126,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (!piece) return null;
     const tex = textureFor(piece.item.file);
     if (!tex) return undefined;   // still loading: try next pass
-    const s = (p.s || 1) * f;
+    const s = (p.s || 1) * f * (cfg.biomeProps?.visualScaleByKind?.[p.art || p.kind] ?? 1);
     if (s !== 1) {   // scale the art and its footprint about the prop's spot
       piece.k *= s;
       const sc = r => ({ minX: p.x + (r.minX - p.x) * s, maxX: p.x + (r.maxX - p.x) * s, minZ: p.z + (r.minZ - p.z) * s, maxZ: p.z + (r.maxZ - p.z) * s });

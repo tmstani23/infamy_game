@@ -68,12 +68,12 @@ const getJSON = async url => {
 async function start() {
   setGameplayInput(false);
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier, worldChunksFile, worldPaint] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier, worldChunksFile, worldPaint, biomeProps] = await Promise.all([
     getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json'), getJSON('data/world_chunks.json'), getJSON('data/world_paint.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json'), getJSON('data/world_chunks.json'), getJSON('data/world_paint.json'), getJSON('data/biome_props.json')]);
 
-  const worldChunks = { ...worldChunksFile, paint: worldPaint };   // W3.10: the painting numbers ride along with the chunk numbers
+  const worldChunks = { ...worldChunksFile, paint: worldPaint, biomeProps };   // painting and biome prop rules travel with chunk settings
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
   const startSaves = createSaveStore(serverBackend('/saves'));

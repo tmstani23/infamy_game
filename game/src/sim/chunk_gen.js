@@ -39,6 +39,12 @@ function segDist(px, pz, [ax, az], [bx, bz]) {
   return Math.hypot(px - ax - dx * t, pz - az - dz * t);
 }
 
+function coastDist(segments, x, z) {
+  let d = Infinity;
+  for (const [a, b] of segments) d = Math.min(d, segDist(x, z, a, b));
+  return d;
+}
+
 export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   const size = cfg.chunk, tc = world.terrain.cell, n = Math.round(size / tc);
   const x0 = cx * size, z0 = cz * size;
@@ -113,16 +119,20 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
 // the offset from the seeded hash), so a chunk border never changes what is on either side of it.
 function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
   const pc = cfg.paint, P = createPaint(world, pc), g = pc.grid, area = g * g / 1000, ps = P.seed;
-  const F = new Float32Array(P.NB), props = [];
+  const F = new Float32Array(P.NB), props = [], biomeProps = cfg.biomeProps || {};
   const segs = trailSegments(world, x0, z0, x0 + size, z0 + size, pc.trail.clearFull, pc.paths?.list), stamps = P.stampsIn(x0, z0, x0 + size, z0 + size);
+  const coastPoints = world.coast || [], coastSegments = coastPoints.map((p, i) => [p, coastPoints[(i + 1) % coastPoints.length]]);
   const bamboo = pc.bamboo, E = pc.edgeTrees, fo = P.B.forest;
   // Each candidate draws ONE number u and walks the rules' best-case chances (per1000 x area) end to end;
   // the rule u lands in then keeps the prop with chance (real / best case), so each rule still fires with its
   // real probability but most candidates cost one hash. All draws come from the candidate's grid cell.
-  let rules = pc.props.map((r, i) => ({ ...r, i, b: P.B[r.biome], pmax: r.per1000 * area }));
+  const replacements = biomeProps.replaceByBiome || {};
+  let rules = pc.props.map((r, i) => ({ ...r, kind: replacements[r.biome]?.[r.kind] || r.kind, i, b: P.B[r.biome], pmax: r.per1000 * area }));
+  rules = [...rules, ...(biomeProps.additional || []).map((r, i) => ({ ...r, i: 100 + i, b: P.B[r.biome], pmax: r.per1000 * area }))];
   if (bamboo) rules = [...rules, { ...bamboo, i: 90, b: -1, pmax: bamboo.per1000 * area, grove: 'bamboo' }];
   let cum = 0;
   for (const r of rules) { cum += r.pmax; r.cum = cum; }
+  if (cum > 1) throw new Error(`Island prop candidate probability exceeds 1 (${cum.toFixed(4)}); reduce biome prop rates.`);
   const reach = pc.field.warp + pc.field.fine + pc.field.blur, T = world.terrain.cell, near = new Set();
   for (let z = z0 - reach; z < z0 + size + reach + T; z += T) for (let x = x0 - reach; x < x0 + size + reach + T; x += T) near.add(P.gridAt(Math.min(x, x0 + size + reach), Math.min(z, z0 + size + reach)));
   for (const r of rules) r.here = r.grove === 'bamboo' || near.has(r.b);
@@ -153,6 +163,54 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
     const s = r.scale[0] + (r.scale[1] - r.scale[0]) * hash2(gi, gj, ps + 5);
     props.push({ kind: r.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
     if (r.block > 0) { const q = r.block * s; blockers.push({ minX: x - q, maxX: x + q, minZ: z - q, maxZ: z + q, kind: r.kind }); }
+  }
+  // Coast plants use the authored island shoreline rather than a water-biome mask, so they stay out of lakes and rivers.
+  const shore = biomeProps.coast;
+  if (shore) {
+    const sg = shore.grid, edgeReach = Math.max(shore.distance, 58);
+    const localCoast = coastSegments.filter(([a, b]) => Math.max(a[0], b[0]) >= x0 - edgeReach && Math.min(a[0], b[0]) <= x0 + size + edgeReach && Math.max(a[1], b[1]) >= z0 - edgeReach && Math.min(a[1], b[1]) <= z0 + size + edgeReach);
+    for (let gj = Math.floor(z0 / sg) - 1; gj <= Math.floor((z0 + size) / sg) + 1; gj++) for (let gi = Math.floor(x0 / sg) - 1; gi <= Math.floor((x0 + size) / sg) + 1; gi++) {
+      const x = (gi + hash2(gi, gj, ps + 31)) * sg, z = (gj + hash2(gi, gj, ps + 32)) * sg;
+      if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size || coastDist(localCoast, x, z) > shore.distance) continue;
+      if (!passable(world, x, z) || P.blockedAt(x, z) || !clearAt(x, z, false)) continue;
+      const pick = hash2(gi, gj, ps + 33);
+      const kind = pick < shore.duneChance ? 'dune_grass' : pick < shore.duneChance + shore.driftwoodChance ? 'coastal_driftwood' : null;
+      if (kind) props.push({ kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +(0.9 + hash2(gi, gj, ps + 34) * 0.2).toFixed(2) });
+    }
+  }
+  // Rare landmarks: one seeded world-space candidate grid shared by all chunks. They are art-only;
+  // cliffs, fossils and wrecks are only selected where their corresponding terrain is present.
+  const rare = biomeProps.oddities;
+  if (rare) {
+    const rg = rare.grid, cliffNames = new Set(rare.requireMountainNearby || []), coastNames = new Set(rare.requireCoast || []);
+    const edgeReach = shore?.distance || 58;
+    const localCoast = coastSegments.filter(([a, b]) => Math.max(a[0], b[0]) >= x0 - edgeReach && Math.min(a[0], b[0]) <= x0 + size + edgeReach && Math.max(a[1], b[1]) >= z0 - edgeReach && Math.min(a[1], b[1]) <= z0 + size + edgeReach);
+    const mountainNearby = (x, z) => {
+      const t = world.terrain.cell;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++)
+        if ((dx || dz) && terrainAt(world, x + dx * t, z + dz * t) === 'm') return true;
+      return false;
+    };
+    for (let gj = Math.floor(z0 / rg) - 1; gj <= Math.floor((z0 + size) / rg) + 1; gj++) for (let gi = Math.floor(x0 / rg) - 1; gi <= Math.floor((x0 + size) / rg) + 1; gi++) {
+      if (hash2(gi, gj, ps + 41) >= rare.chance) continue;
+      const x = (gi + 0.42 + hash2(gi, gj, ps + 42) * 0.16) * rg, z = (gj + 0.42 + hash2(gi, gj, ps + 43) * 0.16) * rg;
+      if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) continue;
+      if (!passable(world, x, z) || P.blockedAt(x, z) || !clearAt(x, z, false)) continue;
+      if (P.stampClear(stamps, x, z) > 0.15 || P.trailClear(P.trailDist(segs, x, z)) < 0.75) continue;
+      P.fieldAt(x, z, F);
+      let biome = 'plain', weight = -1;
+      for (let i = 0; i < P.biomes.length; i++) if (F[i] > weight) { biome = P.biomes[i]; weight = F[i]; }
+      if (biome === 'snowedge') biome = 'snow';
+      const atCoast = coastDist(localCoast, x, z) <= edgeReach;
+      const candidates = atCoast && biome !== 'snow' ? (rare.coast || []) : (rare.byBiome?.[biome] || []);
+      const hasMountain = mountainNearby(x, z);
+      const eligible = candidates.filter(name => (!cliffNames.has(name) || hasMountain) && (!coastNames.has(name) || atCoast));
+      if (!eligible.length) continue;
+      const choose = Math.min(eligible.length - 1, Math.floor(hash2(gi, gj, ps + 44) * eligible.length));
+      const name = eligible[choose];
+      const s = rare.scale[0] + (rare.scale[1] - rare.scale[0]) * hash2(gi, gj, ps + 45);
+      props.push({ kind: 'biome_oddity', art: name, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2), flip: hash2(gi, gj, ps + 46) > 0.5 });
+    }
   }
   return props;
 }
