@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "date": "2026-11-03",
+  "status": "Post-reshape illustration trial saved; current-geography/style acceptance pending Tim review, not installed in game.",
+  "tool": "Built-in image_gen edit",
+  "file": "atlas_illustration_v2.png",
+  "actualPixels": [
+    1659,
+    948
+  ],
+  "actualAspectRatio": 1.75,
+  "requestedPixels": [
+    2800,
+    1600
+  ],
+  "opaque": true,
+  "reference": "atlas_blueprint_v2.png",
+  "styleOnlyReference": "atlas_illustration_v1.png",
+  "prompt": "atlas_illustration_prompt_v2.txt",
+  "referenceManifestSha256": "99b75352aa0aa0f7b9a1846253d1d539ba2f01f1c5caaf536c7ebd86455717b0",
+  "referenceSourceHashes": {
+    "game/data/world.json": "d3b66e8dc781f0cc56fbfbcd1191a1556abc88280f9468a6692d8445bda2a445",
+    "game/data/world_paint.json": "c71a9bbc2c29b408fbcd46d260880d19d9d2df51c3cd4a09ee075aa874a78dec",
+    "game/data/world_overrides.json": "fa57a2f4325dce6e68d0051ae4bac40402ba6ebd48fb7c0743dfff792dc984ec",
+    "docs/images/frontier/blueprint/world_blueprint_v2.json": "213f3329ed80ae197465394b7ff7388ff334cd9f5a6b2e5e81040b24adf92893",
+    "docs/images/frontier/blueprint/blueprint.py": "8a78ed058acb93199b07b848d20e868ece0247e34d1614a2c7601f88f41577a4",
+    "tools/seed_world.mjs": "a7bdb381a5f871ca3aae3e12415e75a89de87464875b373fa5613a694bb8b9a4",
+    "tools/prepare_atlas_reference.mjs": "d24c4f8c3814ae86741e2bd9442de98427a700a857c971f2093a469247d0a719",
+    "docs/images/frontier/blueprint/world_reshape_v1.json": "c242bdbb3d7cbff483204e58d1343d7999f5c963fa61b86c58db45e0dedc2800",
+    "tools/lib/world_reshape.mjs": "8f2580646bcd617a9f6561c92df83cfad900924a6333d10b6cd3824b542d3548",
+    "game/src/sim/world_data.js": "b3c914536c5ac858633a12900101d4eae5efe004c2923be700cf0a809866fff2",
+    "game/src/sim/shoreline.js": "a94fd492990546a7894282671668419163cb47bff94fcec5e69bcb6c07745252",
+    "game/src/sim/island_art.js": "d35b8f1cb5664796874608d7100373616d130f0e852320524203795df0fc5133",
+    "game/src/world_paint.js": "94a43fc390cd4dc4d42d9c2d4a06dfd7734ae033e85c0c5f88ec795dc4d5a7ed"
+  },
+  "hashes": {
+    "atlas_illustration_v2.png": "7f493f816014a7b4e97b394be13addd0dc92b5247ed112196b0991254c6fe912",
+    "atlas_blueprint_v2.png": "5d508b05144476b699103100f817678d3b59f5a49e1701e07da189393ef737d8",
+    "atlas_illustration_v1.png": "6c35f88936a5be6bac75bdb324d47c601f96fdc49711620f53a5612487e2ce75",
+    "atlas_illustration_prompt_v2.txt": "790a451f8d6254ac09450c8b013006ca6ad3468db381b4e9d6acc18d2d25a214"
+  },
+  "review": [
+    "Visually inspected full output: painterly terrain-only plate, irregular lakes and the revised river/mountain composition.",
+    "Native aspect ratio matches 7:4; source preserved without crop, warp or upscale.",
+    "Uniform framing permits data-layer registration, but full coastline/biome/river conformance is not certified by aspect ratio alone.",
+    "Roads, feature markers, legend, biome hover and discovery must come from authoritative data."
+  ],
+  "runtimeChanges": false,
+  "next": "Tim reviews v2; build atlas layout and inspect exact overlay registration before runtime art acceptance."
+}

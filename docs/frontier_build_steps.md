@@ -21,7 +21,7 @@ Settled (Tim, 2026-11-03):
 
 ### Mountain and lake reshape before atlas completion (Tim, 2026-11-03)
 
-**Status (2026-11-03):** Tim approved revision 2; MR0–MR3 complete and the reshaped world is applied. MR4 Node checks pass; **Tim's in-game terrain/traversal playtest is pending**. L1/L2 approved outlines retained; a local V4 shoulder adjustment preserves cache K37 and S42 retains its original buildable clearing substrate. All authored locations and 20 passes/17 crossing anchors are fixed; capital/port unchanged. [Current effective review](../assets/environment/island/atlas/atlas_review_v2.png), [blueprint overlay](images/frontier/blueprint/world_reshape_v1.json), [build report](../assets/environment/island/reshape/reshape_build_report_v2.json). Original proposal/reference/illustration sources remain preserved. Save migration waived by Tim; no save deleted/reset.
+**Status (2026-11-03):** Tim approved revision 2; MR0–MR3 complete and the reshaped world is applied. MR4 Node checks pass; Tim confirms the reshaped geography is in game and looks nice; full traversal coverage is not claimed. L1/L2 approved outlines retained; a local V4 shoulder adjustment preserves cache K37 and S42 retains its original buildable clearing substrate. All authored locations and 20 passes/17 crossing anchors are fixed; capital/port unchanged. [Current effective review](../assets/environment/island/atlas/atlas_review_v2.png), [blueprint overlay](images/frontier/blueprint/world_reshape_v1.json), [build report](../assets/environment/island/reshape/reshape_build_report_v2.json). Original proposal/reference/illustration sources remain preserved. Save migration waived by Tim; no save deleted/reset.
 
 **Goal:** make the six existing ranges read as natural mountain systems through bends, varied widths, tapering ends, foothill pockets and occasional secondary ridges. Preserve their regional identity and strategic role, especially the central barrier and dry range. Avoid replacing straight bands with equally uniform zigzags or random disconnected rocks. Also reshape the two main lakes (L1 Lake of Still Bells and L2 Reedmirror Lake) into believable basins with varied widths, irregular but coherent shores, modest coves and tapered ends. Avoid circular stamps, uniform-width ovals and noisy starburst outlines.
 
@@ -52,6 +52,8 @@ Settled (Tim, 2026-11-03):
 
 **MR4 checks:** `validateWorld`/`test_world_data.mjs` and `test_frontier_world.mjs` for world/access invariants; `test_island_edges.mjs`, `test_p3_edges.mjs`, `test_inland_banks.mjs` and `test_world_coast.mjs` for terrain/water/movement; `test_world_paint.mjs`, `test_chunk_gen.mjs` and `test_prop_clusters.mjs` for streamed ground/props. Add one focused reshape regression for protected-record preservation, pass/source connectivity and deterministic output. If terrain fixtures need relocation, first demonstrate that their invariant still holds; do not weaken old assertions to obtain a pass. Run only relevant checks during implementation, the listed set at the phase checkpoint, then manual review; no browser automation or broad simulation runs.
 
+**MR5 progress (2026-11-03):** current reference v2 and post-reshape illustration trial v2 are saved; source v1 remains preserved. Tim confirmed the geography appears in game and looks nice. V2 art/overlay acceptance and detailed traversal coverage remain open.
+
 **Each phase:** update its box only after its exit check; Docs keeper commits completed work locally, no push. Stop for the two design/art approvals and the runtime playtest. MR1 design approval is recorded; MR4 manual acceptance and MR5 new artwork remain pending.
 
 ### Atlas reference checkpoint (2026-11-03)
@@ -59,7 +61,7 @@ Settled (Tim, 2026-11-03):
 - [x] Step 1: combined current blueprint preview and freshness gate; 14,000 × 8,000 world units map to a north-up 2,800 × 1,600 artwork rectangle with no padding or crop (5 units/pixel).
 - [x] Step 2a: save exact illustration prompt and generate one terrain-only trial with the built-in image tool (2026-11-03). Native output 1659 × 948, correct 7:4 aspect; source preserved without resizing.
 - [x] Step 2b style: Tim likes the trial's illustrated look (2026-11-03).
-- [ ] Step 2b geography: mountain/lake reshape is applied and reference v2 refreshed; after MR4 playtest, generate updated art before final alignment acceptance. Current v1 is a style trial; it has not been accepted as final runtime geography. [Trial manifest](../assets/environment/island/atlas/atlas_illustration_manifest_v1.json).
+- [ ] Step 2b geography: mountain/lake reshape is applied and reference v2 refreshed; updated illustration v2 is generated; Tim art review and full overlay alignment acceptance remain pending. Current v1 is a style trial; it has not been accepted as final runtime geography. [Trial manifest](../assets/environment/island/atlas/atlas_illustration_manifest_v1.json).
 - [ ] Step 3: atlas layout/layers, existing square/coordinate hover plus biome/features, accurate shared legend/markers, terrain visible with site discovery respected, no live units/camera footprint.
 - [ ] Linked crossing phase: actual bridge/ford art and world fitting; reference records 9 bridges and 8 fords, without claiming those 17 records have been fitted or validated as usable crossings.
 
@@ -90,13 +92,13 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last completed: P3 water, P4 coast/dry range and current P5 biome art/clustering (Tim accepted 2026-11-03); atlas step 1 current blueprint/reference and freshness gate. Next: Tim playtests the applied mountain/lake/Ashen Wash reshape (MR4); then updated atlas art/UI, bridge/ford work and W4. Recheck clustering performance under mobs/camps load; F1.7 remains deferred.
+Last completed: P3 water, P4 coast/dry range and current P5 biome art/clustering (Tim accepted 2026-11-03); atlas step 1 current blueprint/reference and freshness gate. Next: review post-reshape illustration v2 and atlas overlay/layout; retain any unfinished MR4 traversal checks, then bridge/ford art and W4. Recheck clustering performance under mobs/camps load; F1.7 remains deferred.
 
 ## Next coordinator handoff (Tim, 2026-11-03)
 
 - P3 water/reflection/inland banks, P4 coast cliffs/dry range and current biome art/clustering are complete and visually accepted. Tim completed the coastal playtest: all looks great.
 - Clustering performance seems good in the current world; recheck measured camera-visible cost once mobs/camps add representative load. No final performance-budget claim.
-- Current priority is the bounded mountain/lake reshape (MR0–MR5 above), then the atlas rebuild and bridge/ford work. Atlas reference and v1 style trial exist; Tim likes the style but requested natural range and lake shapes before atlas completion. MR0 inventory is frozen, MR1 approved, MR2–MR3 applied. MR4 Node checks pass; Tim in-game review pending. W4 follows afterward. Read START_HERE.md, this full plan and step_runner_guide.md before an actual game build.
+- Current priority is the bounded mountain/lake reshape (MR0–MR5 above), then the atlas rebuild and bridge/ford work. Atlas reference and v1 style trial exist; Tim likes the style but requested natural range and lake shapes before atlas completion. MR0 inventory is frozen, MR1 approved, MR2–MR3 applied. MR4 Node checks pass and Tim likes the geography in game; detailed traversal review remains unconfirmed. MR5 updated illustration v2 generated, with art/overlay acceptance pending. W4 follows afterward. Read START_HERE.md, this full plan and step_runner_guide.md before an actual game build.
 - Retain P4's reported river-corner snag at 4200,4275, 34 harbor/17 mountain corners unrounded, Settings manual cross-save check and deferred F1.7. Bridges and source/lake shape redesign remain separate.
 - Keep Docs keeper available. A fresh coordinator can use this handoff. Obsolete paused-water checkpoint is archived under to_delete/; source art remains preserved.
 
