@@ -216,6 +216,28 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
         props.push({ kind: r.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
       }
   }
+  // Mountain tops (2026-11-03): sparse art-only props on the flat top of a range (blocked ground, so no
+  // walk blockers), kept `inset` units in from the rim in all 8 directions so they stay clear of the
+  // cliff art. Own seeded grid like the marsh supplement; biome_props.json mountainTops.byTop picks the kinds.
+  const tops = biomeProps.mountainTops, topLists = {};
+  for (const [name, items] of Object.entries(tops?.byTop || {}))
+    if (P.B[name] !== undefined && near.has(P.B[name])) topLists[P.B[name]] = { items, total: items.reduce((n, r) => n + r.weight, 0) };
+  if (Object.keys(topLists).length) {
+    const tg = tops.grid, d = tops.inset || 0, e = d * 0.7071;
+    const rim = [[d, 0], [-d, 0], [0, d], [0, -d], [e, e], [e, -e], [-e, e], [-e, -e]];
+    for (let gj = Math.floor(z0 / tg) - 1; gj <= Math.floor((z0 + size) / tg) + 1; gj++)
+      for (let gi = Math.floor(x0 / tg) - 1; gi <= Math.floor((x0 + size) / tg) + 1; gi++) {
+        if (hash2(gi, gj, ps + 80) >= tops.chance) continue;
+        const x = (gi + hash2(gi, gj, ps + 81)) * tg, z = (gj + hash2(gi, gj, ps + 82)) * tg;
+        if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) continue;
+        const b = P.gridAt(x, z), L = topLists[b];
+        if (!L || rim.some(([dx, dz]) => P.gridAt(x + dx, z + dz) !== b)) continue;
+        let pick = hash2(gi, gj, ps + 83) * L.total, r = L.items.at(-1);
+        for (const item of L.items) if ((pick -= item.weight) < 0) { r = item; break; }
+        const sc = r.scale || tops.scale, s = sc[0] + (sc[1] - sc[0]) * hash2(gi, gj, ps + 84);
+        props.push({ kind: r.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
+      }
+  }
   // Coast plants use the authored island shoreline rather than a water-biome mask, so they stay out of lakes and rivers.
   const shore = biomeProps.coast;
   if (shore) {

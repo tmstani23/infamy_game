@@ -472,6 +472,18 @@
       "block": 0,
       "grove": "any",
       "marshZone": "wooded"
+    },
+    {
+      "kind": "bleached_log",
+      "biome": "dry",
+      "per1000": 0.15,
+      "scale": [
+        0.85,
+        1.1
+      ],
+      "block": 0,
+      "grove": "any",
+      "_note": "placeholder, Tim to tune (2026-11-03: bleached_log art was never placed)"
     }
   ],
   "coast": {
@@ -649,5 +661,63 @@
         "zone": "wooded"
       }
     ]
+  },
+  "mountainTops": {
+    "_note": "Art-only props on flat mountain tops (blocked, not walkable), kept inset units in from the rim so they stay clear of the cliff art. Own seeded grid. Placeholder, Tim to tune (2026-11-03).",
+    "grid": 14,
+    "chance": 0.85,
+    "inset": 22,
+    "scale": [
+      0.85,
+      1.15
+    ],
+    "byTop": {
+      "top_dry": [
+        {
+          "kind": "dry_scrub",
+          "weight": 4
+        },
+        {
+          "kind": "dry_grass_tussock",
+          "weight": 4
+        },
+        {
+          "kind": "sandstone_stones",
+          "weight": 3,
+          "scale": [
+            0.8,
+            1.2
+          ]
+        },
+        {
+          "kind": "twisted_pine",
+          "weight": 1,
+          "scale": [
+            0.7,
+            1.1
+          ]
+        },
+        {
+          "kind": "boulder",
+          "weight": 0.6,
+          "scale": [
+            0.8,
+            1.3
+          ]
+        },
+        {
+          "kind": "bleached_log",
+          "weight": 0.6
+        },
+        {
+          "kind": "outcrop_dry",
+          "weight": 0.3,
+          "scale": [
+            0.8,
+            1.3
+          ]
+        }
+      ]
+    }
   }
 }

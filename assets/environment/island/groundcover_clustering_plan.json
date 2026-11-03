@@ -107,7 +107,9 @@
     ],
     "snow": [
       "snow_drift",
-      "snow_bush"
+      "snow_bush",
+      "snow_stump",
+      "snow_fallen_log"
     ],
     "forest": [
       "forest_broad_fern",
@@ -136,6 +138,15 @@
     "marshStillWater": [
       "marsh_lily_pads",
       "marsh_duckweed"
+    ],
+    "mountainTops": [
+      "dry_scrub",
+      "dry_grass_tussock",
+      "sandstone_stones",
+      "twisted_pine",
+      "boulder",
+      "bleached_log",
+      "outcrop_dry"
     ]
   },
   "profiles": [
@@ -318,7 +329,8 @@
     {
       "id": "A",
       "task": "Finish the asset inventory: accepted crops, actual displayed footprint, transparency and surface mode. Refresh marsh readiness, final jungle/forest coverage and current density snapshot.",
-      "done": false
+      "done": true,
+      "result": "Census done 2026-11-03 with game/tools/prop_census.mjs: about 617k props, 116 of 119 assets used. The 3 unused dry oddities wait for P4 (coast cliffs + dry range)."
     },
     {
       "id": "B",

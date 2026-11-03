@@ -95,6 +95,8 @@ They follow the same noise as layer 2 so they gather in sensible places.
 - Sizes are in units: pine 5.5 wide, cedar 4.2, bush 3.6, ferns 3.0, rocks 3.0, boulder 3.6, stump
   2.0, log 5.0, each varied ±20%.
 - Props are sim data (`sim/chunk_gen.js`), because some of them block.
+- Mountain tops: a separate pass puts sparse art-only props (no walk blockers) on the flat top of a range, kept
+  `inset` units in from the rim so they clear the cliff art. Data in `biome_props.json` `mountainTops`.
 
 **8. Hand stamps.** A list in `world_paint.json`, one entry per authored spot (landmark, camp, pass,
 gate, town site), each with a radius.
