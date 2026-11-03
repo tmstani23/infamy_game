@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [ ] P2 maps · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 map implementation (checks passed) · [ ] P2 Tim playtest · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -33,7 +33,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: W3.7 (W3.4b art pass still open) · Next step: W4; F1.7 Tim playtest still deferred to the end
+Last step done: P2 Maps implementation (2026-11-03); Tim playtest pending (W3.4b art pass still open) · Next: P3 only after Tim's P2 playtest; F1.7 playtest remains deferred to the end
 
 ## Working in one long window (auto-compacting)
 
@@ -1222,31 +1222,20 @@ As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcro
 - World map grid: hidden by default, a toggle (Controls panel entry), fainter lines [2].
 - Playtest: also check a real ford (V2-F1 at 9552,1851, by site S08).
 
-#### P2 Maps (UI only; Sonnet)
-- Mock first: world map north-up, fitting the screen width, no stretching; minimap in the same orientation [2b].
-- Grid labels (letters across, numbers down), hover readout like "C24" plus coordinates, your own square on the map and minimap [2c].
-- Sharper minimap and world map (devicePixelRatio, smoother terrain layer) [1].
-- Bug (Tim 2026-11-03): the camera box on the minimap and World map does not follow the hero after test travel, and sometimes not while running around the island; it also needs the right orientation (match the map it sits on).
+#### P2 Maps (UI only) — implemented 2026-11-03; Tim playtest pending
 
-**Handoff (2026-11-03, Tim OK'd; nothing built yet).** Rules: read the whole plan and step_runner_guide.md; Node checks only (copy a .js to `to_delete/_chk/*.mjs` before `node --check`); mock image first for Tim's OK; new controls go in the Controls panel and `controls.md`; only the Docs keeper commits.
+Tim approved `docs/images/frontier/p2_maps_mock.png` before implementation. Baseline implementation is complete; do not start P3 until Tim finishes the in-game P2 playtest.
 
-**Where the code is (checked 2026-11-03):**
-- World map: game/src/world_map.js. worldToCanvas, canvasToWorld, worldTransform, fitView, clampView, zoomAt and the drag handler are all turned 45 degrees (R = SQRT1_2). Terrain is a 1 px per 50-unit cell cache drawn with smoothing off (blocky). Canvas ignores devicePixelRatio. Grid (# button) is 1000 units. It has NO camera box today.
-- World tab wiring: game/src/game_map.js (ensureWorldMap, worldState, setTab, canvasToWorldPoint). Canvas CSS is 7:4 in game/index.html (line ~408), which already equals the island's 14000 x 8000.
-- Island minimap: game/src/minimap.js paintIsland (hero-centred, 450-unit span, 45 degree turn, 1 px per cell image, north arrow, camera box from view.screenToGround).
-- Camera: game/src/render/view.js (freeCam, farCam, camTarget, screenToGround at ~line 526).
-- Test: game/tools/test_world_map.mjs (round trip, zoom, hitTest, fog); it must be updated for the new orientation.
+- [x] World map north-up, aspect-fitted to the real 14,000 × 8,000 island without stretching; 24 px ruler gutter.
+- [x] Always-visible 500-unit A–AB / 1–16 labels, exact hovered x/z and square, and own-location marker; grid lines remain an optional, default-hidden overlay.
+- [x] HiDPI canvases capped at DPR 2; shared per-world terrain cache with 4× smoothed rendering; overlays/location refresh at 4 Hz.
+- [x] North-up island minimap with correctly oriented diamond camera footprint. World map shows the camera footprint only while the hero is on the island.
+- [x] Same-place and >60-unit test teleports release stale pan/far-camera/watch state; camera matrices update before footprint raycasts.
+- [x] Keep map presentation lightweight while open: update camera projection math, but suspend scene, GPU, prop, and VFX painting. City-map orientation stays camera-oriented.
+- [x] Controls panel and `controls.md` updated. Node checks passed: `test_world_map.mjs` (north-up/grid/DPR/cache/pan/zoom/camera quad), `test_camera_tracking.mjs`, `test_map_performance.mjs`, and the reported combat/inventory/business/bot/sim-worker/settings regressions. `test_crew.mjs:97` retains its pre-existing teahouse-vs-street failure.
+- [ ] Tim's in-browser playtest: verify labels/hover, panning and zoom, own marker, and that both footprints track the view after moving and test travel. No browser run is claimed.
 
-**Steps:**
-1. Mock (PIL, world.json terrain rows staged): north-up World map filling the width, 500-unit grid (28 x 16, letters A..AB across the top, numbers 1..16 down the side), hover readout "C12" plus small "x 1234 z 567", own square; island minimap north-up in the same style. Ask Tim OK.
-2. World map: drop the rotation (x right, z down), scale = min(w/14000, h/8000); draw at devicePixelRatio (canvas.width = css*dpr, ctx.setTransform(dpr...)); terrain cache upscaled about 4x with smoothing; ruler labels always on, grid lines still behind the # button; hover and own-square readout; add a camera-view quad (view.screenToGround corners) when the hero is on the island.
-3. Pure helpers in world_map.js (testable): GRID = 500, column letters, gridLabel(x, z).
-4. Minimap island mode: north-up (x right, z down), same smoothed cached terrain, drop the north arrow, show own square label, camera quad (now a rotated diamond, correct).
-5. Camera-box bug, likely cause (not reproduced, no browser): in view.js a panned camera (freeCam) or farCam is only cleared when the hero's place changes, so a world-to-world travel leaves the camera at the old spot and the box shows it. Fix: when the hero jumps more than about 60 units in one frame, clear freeCam/farCam/watch and snap camTarget; also call camera.updateMatrixWorld() inside screenToGround so the box never uses a stale matrix.
-6. Controls panel: mention the grid labels and hover readout, and that the map is now north-up.
-7. Node checks, then report to the coordinator.
-
-Check: `test_world_map.mjs` updated for the north-up layout and passing, plus new tests for `gridLabel`; regression set unchanged. Playtest: test travel to a far spot, then run around; the camera box on both maps follows the hero and matches the view.
+Process note: suspending map presentation must leave camera projection updates live; keep graphics paused while camera math continues.
 
 
 #### P3 Edges and water (shader and paint code; Opus suggested)

@@ -10,7 +10,7 @@
 import { mapTerrain, createMapRaster } from './map_raster.js';
 import { drawWatchMarkers } from './watch_markers.js';
 import { contractMapLocation } from './contract_map_marker.js';
-import { TERRAIN } from './world_map.js';
+import { worldTerrainCache, worldToCanvas, gridLabel } from './world_map.js';
 
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
@@ -27,7 +27,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   let size = canvas.clientWidth || 180, zoom = Math.max(1, size / 180);   // big map: letters and dots grow a little
   let baseScale = size / ((g.w + g.h) * S) * 1.02;
   let mapZoom = 1, k = baseScale;   // the turned district fills the box
-  const dpr = Math.min(devicePixelRatio || 1, 2);
+  let dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = canvas.height = Math.round(size * dpr);
   const ctx = canvas.getContext('2d');
 
@@ -103,30 +103,24 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     return ['#ff4632', 2.6];
   }
 
-  // Out on the island (frontier W3.5): the terrain round the hero, turned like the city map, with the
-  // city's outline and the units your clan can see out there
+  // Island only: north up, like the World map. The city map keeps its camera orientation.
   let islandImg = null;
   const ISLAND_SPAN = 450;   // units from the middle of the minimap to its edge
   function paintIsland(state) {
-    const me = game.state.entities[heroId], t = world.terrain, cell = t.cell;
-    if (!islandImg) {
-      islandImg = document.createElement('canvas'); islandImg.width = t.rows[0].length; islandImg.height = t.rows.length;
-      const g2 = islandImg.getContext('2d'), im = g2.createImageData(islandImg.width, islandImg.height);
-      t.rows.forEach((row, i) => { for (let j = 0; j < row.length; j++) { const h = TERRAIN[row[j]] || '#000000', k = (i * row.length + j) * 4;
-        im.data[k] = parseInt(h.slice(1, 3), 16); im.data[k + 1] = parseInt(h.slice(3, 5), 16); im.data[k + 2] = parseInt(h.slice(5, 7), 16); im.data[k + 3] = 255; } });
-      g2.putImageData(im, 0, 0);
-    }
+    const me = game.state.entities[heroId];
+    if (!islandImg) islandImg = worldTerrainCache(world);
     const kk = size / 2 / ISLAND_SPAN * mapZoom;   // + / - zoom in on the island too
-    const at = (x, z) => [size / 2 + (x - me.x - (z - me.z)) * S * kk, size / 2 + (x - me.x + (z - me.z)) * S * kk];
+    const mv = { cx: me.x, cz: me.z, scale: kk, w: size, h: size };
+    const at = (x, z) => { const p = worldToCanvas(x, z, mv); return [p.px, p.py]; };
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, size, size);
     ctx.save();
     ctx.translate(size / 2, size / 2);
-    ctx.transform(S * kk, S * kk, -S * kk, S * kk, 0, 0);
+    ctx.scale(kk, kk);
     ctx.translate(-me.x, -me.z);
-    ctx.scale(cell, cell);
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(islandImg, 0, 0);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(islandImg, 0, 0, world.size.w, world.size.h);
     ctx.restore();
     // corridors as faint trails, the city as an outline
     ctx.strokeStyle = 'rgba(90,70,45,.8)'; ctx.lineWidth = 1.2;
@@ -141,14 +135,6 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.beginPath(); ctx.arc(u, v, r * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
       ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.stroke();
     }
-    // a north arrow in the corner: the minimap is turned like the camera, the World map is north-up
-    { const [nu, nv] = at(me.x, me.z - 100), dl = Math.hypot(nu - size / 2, nv - size / 2) || 1, dx = (nu - size / 2) / dl, dy = (nv - size / 2) / dl;
-      const r = 9 * Math.sqrt(zoom), ox = r + 6, oy = r + 6;
-      ctx.save(); ctx.fillStyle = 'rgba(10,12,16,.55)'; ctx.beginPath(); ctx.arc(ox, oy, r + 3, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#f2ddb2'; ctx.fillStyle = '#f2ddb2'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(ox - dx * r * .8, oy - dy * r * .8); ctx.lineTo(ox + dx * r * .2, oy + dy * r * .2); ctx.stroke();
-      ctx.font = `bold ${Math.round(8 * Math.sqrt(zoom))}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('N', ox + dx * r * .6, oy + dy * r * .6); ctx.restore(); }
     // what the camera sees (island coordinates)
     const corners = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y));
     if (corners.every(Boolean)) {
@@ -156,11 +142,14 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       corners.forEach((p, i) => { const [u, v] = at(p.x, p.z); i ? ctx.lineTo(u, v) : ctx.moveTo(u, v); });
       ctx.closePath(); ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
     }
+    ctx.font = '600 12px sans-serif'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
+    ctx.fillStyle = '#f3dfae'; ctx.fillText(`World · ${gridLabel(me.x, me.z)}`, 10, size - 10);
   }
 
   function paintMap() {
-    if (canvas.clientWidth && canvas.clientWidth !== size) {
-      size = canvas.clientWidth; zoom = Math.max(1, size / 180);
+    const ratio = Math.min(devicePixelRatio || 1, 2);
+    if ((canvas.clientWidth && canvas.clientWidth !== size) || ratio !== dpr) {
+      size = canvas.clientWidth || size; dpr = ratio; zoom = Math.max(1, size / 180);
       baseScale = size / ((g.w + g.h) * S) * 1.02; k = baseScale * mapZoom;
       canvas.width = canvas.height = Math.round(size * dpr);
     }

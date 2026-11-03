@@ -15,6 +15,7 @@ import { createBanners } from './banners.js';
 import { unitName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
 import { createWorldGround } from './world_ground.js';
+import { cameraDiscontinuity } from '../camera_tracking.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
@@ -366,36 +367,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
-    let inside = !['street', 'world'].includes(cameraPlace(state.entities[followId]));
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
 
-    // camera follows the hero, snapped to whole screen pixels so the art stays crisp
-    if (hero) {
-      // went through a door (or first frame): jump there and follow again
-      // a crew jump (jumpTo) lasts until the hero moves or goes through a door
-      const place = state.entities[followId]?.place;
-      // watching a unit or group (double-click, Tim 2026-10-28): follow it until a pan, a map click or Home
-      const w = watchFn && watchFn();
-      if (watchFn && !w) watchFn = null;
-      watchedPlace=w?.place??null;watchedId=w?.id??null;inside=!['street','world'].includes(cameraPlace(state.entities[followId]));
-      if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, hero.pos.y, w.z); }
-      else {
-        if (farCam && (place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(hero.pos) > 0.3))) { farCam = false; freeCam = null; }
-        if (place !== heroPlace) freeCam = null;   // through a door: look at the hero again
-      }
-      heroPlace = place;
-      if (!camReady || camTarget.distanceTo(hero.pos) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(hero.pos); camReady = true; freeCam = null; }
-      camTarget.lerp(freeCam || hero.pos, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
-      heroPos = hero.pos;
-    }
-    const wantZoom = inside ? INDOOR_ZOOM : zoom;
-    if (Math.abs(wantZoom - zoomNow) > 1e-3) { zoomNow += (wantZoom - zoomNow) * (1 - Math.exp(-dt * 5)); resize(); }
-    const ppx = PPU * zoomNow * renderer.getPixelRatio();
-    const s = toScreen(camTarget);
-    camera.position.copy(camTarget)
-      .addScaledVector(CAM_RIGHT, Math.round(s.x * ppx) / ppx - s.x)
-      .addScaledVector(CAM_UP, Math.round(s.y * ppx) / ppx - s.y)
-      .addScaledVector(VIEW_DIR, 200);
+    updateCamera(state, followId, dt, hero?.pos);
 
     // clan banners at owned businesses; a gold burst where one just changed hands
     for (const b of banners.update(state, time, state.entities[followId]?.owner, state.entities[followId]?.place)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
@@ -475,9 +449,39 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const raycaster = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const v = new THREE.Vector3();
   let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null;
+  let previousCameraHero = null;
+  const cameraPoint = new THREE.Vector3();
+  // Also runs with map presentation active: update only camera math, never the scene or GPU.
+  function updateCamera(state, followId, dt, position = null) {
+    const h = state.entities[followId]; if (!h) return;
+    const sample = { id: followId, place: h.place, x: h.x, z: h.z };
+    const jumped = cameraDiscontinuity(previousCameraHero, sample);
+    previousCameraHero = sample;
+    cameraPoint.set(h.x, 0, h.z);
+    // Don't interpolate through a whole-island test travel.
+    if (position && Math.hypot(position.x - h.x, position.z - h.z) <= 60) cameraPoint.copy(position);
+    if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; camTarget.copy(cameraPoint); }
+    const w = watchFn && watchFn();
+    if (watchFn && !w) watchFn = null;
+    watchedPlace = w?.place ?? null; watchedId = w?.id ?? null;
+    if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, cameraPoint.y, w.z); }
+    else if (farCam && (h.place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(cameraPoint) > 0.3))) { farCam = false; freeCam = null; }
+    heroPlace = h.place;
+    if (!camReady || camTarget.distanceTo(cameraPoint) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(cameraPoint); camReady = true; freeCam = null; }
+    camTarget.lerp(freeCam || cameraPoint, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
+    (heroPos ||= new THREE.Vector3()).copy(cameraPoint);
+    const wantZoom = !['street', 'world'].includes(cameraPlace(h)) ? INDOOR_ZOOM : zoom;
+    if (Math.abs(wantZoom - zoomNow) > 1e-3) { zoomNow += (wantZoom - zoomNow) * (1 - Math.exp(-dt * 5)); resize(); }
+    const ppx = PPU * zoomNow * renderer.getPixelRatio(), s = toScreen(camTarget);
+    camera.position.copy(camTarget)
+      .addScaledVector(CAM_RIGHT, Math.round(s.x * ppx) / ppx - s.x)
+      .addScaledVector(CAM_UP, Math.round(s.y * ppx) / ppx - s.y)
+      .addScaledVector(VIEW_DIR, 200);
+    camera.updateMatrixWorld();
+  }
   let resumingPresentation=false;
   return {
-    render, renderer, scene, addHits, addCasts,
+    render, renderer, scene, addHits, addCasts, updateCamera,
     setPresentationActive(active){
       fxLayer.hidden=!active;
       resumingPresentation=active;
@@ -524,6 +528,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     },
     // page pixel -> ground point { x, z }
     screenToGround(px, py) {
+      camera.updateMatrixWorld();
       raycaster.setFromCamera({ x: px / innerWidth * 2 - 1, y: 1 - py / innerHeight * 2 }, camera);
       return raycaster.ray.intersectPlane(groundPlane, v) ? { x: v.x, z: v.z } : null;
     },

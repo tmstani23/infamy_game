@@ -138,10 +138,10 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shinobi: right-click the business of your active contract | Selected crew climb in by the back window (up to 6); rival HQs are off-limits |
 | K, or Mute | Toggle saved sound mute; silences current voices too |
 | Settings | Locally saved Master/Effects/Mute and Test sound |
-| M map: World tab | The island with fog, sites (hollow = not scouted, walk close to scout), camps and the capital; drag to pan, wheel to zoom, click for details. |
-| M map → World tab, Island art tour (DEV) | Reload the game to see 39 purple T01–T39 review markers. Use the dropdown or Previous/Next; hover/click for asset details. Select a marker and use the existing Travel confirmation to visit. Review markers are visual-only and do not block movement. |
+| M map: World tab | North-up island map with fog, sites (hollow = not scouted, walk close to scout), camps and the capital. Drag to pan, wheel to zoom, click for details. The 500-unit letter/number rulers and hover square/coordinates stay visible; your location and island camera footprint are shown. |
 | Right-click the World map | Drop a pin with a note (max 50); right-click a pin removes it. |
-| World map: # button | Show or hide the map grid (1000-unit squares; hidden by default). |
+| World map: # button | Show or hide 500-unit grid lines (hidden by default; ruler labels remain visible). |
+| Island minimap | North-up island view with your 500-unit square label and the camera footprint shown as a diamond. |
 | O | Open the town panel (needs a town; has a Governor button for the governor chat). |
 | Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |
 | M map → World tab, hover or click a town | Hover shows a town card; click opens its details. |

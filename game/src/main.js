@@ -566,6 +566,7 @@ async function start() {
     minimap.update();
     }else{
       $('snuffhint').hidden=true;
+      view.updateCamera(game.state, heroId, dt);   // live map footprint; scene painting stays suspended
       presentation.measure('map',()=>gameMap.update());
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}

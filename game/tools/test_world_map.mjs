@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { worldToCanvas, canvasToWorld, hitTest, fitView, zoomAt, clampView, isDiscovered, fogCols } from '../src/world_map.js';
+import { worldToCanvas, canvasToWorld, worldTransform, hitTest, fitView, zoomAt, clampView, isDiscovered, fogCols, GRID, gridLabel, columnLetters, createWorldMap, worldTerrainCache } from '../src/world_map.js';
 const world = JSON.parse(readFileSync(new URL('../data/world.json', import.meta.url)));
 const v = fitView(world, 1400, 800);
 for (const [x, z] of [[0, 0], [7000, 4000], [13950, 7950], [3210.5, 999.9]]) {
@@ -19,4 +19,52 @@ assert.equal(hitTest(items, 400, 330, vv), null, 'too far');
 assert.equal(isDiscovered(world, null, 5, 5), true);
 const g = '0'.repeat(fogCols(world) * 32).split(''); g[0] = '1'; const gs = g.join('');
 assert.equal(isDiscovered(world, gs, 100, 100), true); assert.equal(isDiscovered(world, gs, 600, 100), false);
+// North-up geometry is independent of display density; no stretch, rotation or lost margins.
+const origin = worldToCanvas(0, 0, v), east = worldToCanvas(500, 0, v), south = worldToCanvas(0, 500, v);
+assert.equal(east.py, origin.py); assert.equal(south.px, origin.px);
+assert.ok(east.px > origin.px && south.py > origin.py);
+assert.equal(east.px - origin.px, south.py - origin.py);
+assert.ok(origin.px >= 24 && origin.py >= 24);
+assert.ok(worldToCanvas(14000, 8000, v).px <= v.w - 24);
+const [a,b,c,d,e,f] = worldTransform(v);
+assert.equal(a * 3210 + c * 999 + e, worldToCanvas(3210,999,v).px);
+assert.equal(b * 3210 + d * 999 + f, worldToCanvas(3210,999,v).py);
+assert.equal(GRID, 500);
+for (const [i,label] of [[0,'A'],[25,'Z'],[26,'AA'],[27,'AB'],[51,'AZ'],[52,'BA']]) assert.equal(columnLetters(i),label);
+for (const [x,z,label] of [[0,0,'A1'],[499.99,499.99,'A1'],[500,500,'B2'],[12480,3500,'Y8'],[13999.99,7999.99,'AB16'],[-1,0,''],[0,NaN,'']]) assert.equal(gridLabel(x,z),label);
+
+// Canvas doubles verify CSS/backing pixels, event coordinates and caching in Node (no browser).
+const globals = { document: globalThis.document, devicePixelRatio: globalThis.devicePixelRatio, addEventListener: globalThis.addEventListener };
+function canvasDouble(w=800,h=460) {
+  const events = {}, calls = [];
+  const ctx = new Proxy({ calls, measureText: s=>({width:s.length*7}) }, {get(o,k){return o[k] ?? ((...args)=>calls.push([k,...args]));}});
+  return { width:w, height:h, clientWidth:w, clientHeight:h, ctx, events, getContext:()=>ctx,
+    getBoundingClientRect:()=>({left:0,top:0,width:w*2,height:h*2}),
+    addEventListener:(name,fn)=>{events[name]=fn;},setPointerCapture(){},releasePointerCapture(){} };
+}
+try {
+  const made=[];
+  globalThis.document = { createElement:()=>{const c=canvasDouble();made.push(c);return c;} };
+  globalThis.devicePixelRatio = 2; globalThis.addEventListener = ()=>{};
+  const canvas = canvasDouble(), st = {hero:{x:12480,z:3500},cameraQuad:[{x:12400,z:3500},{x:12480,z:3450},{x:12560,z:3500},{x:12480,z:3550}]};
+  const map = createWorldMap({canvas,world,getState:()=>st});map.attach();map.frame(1);
+  assert.equal(canvas.width,1600);assert.equal(canvas.height,920);
+  assert.equal(map.view.w,800);assert.equal(map.view.h,460);
+  const cache=worldTerrainCache(world);assert.equal(worldTerrainCache(world),cache);
+  assert.equal(cache.width,world.terrain.rows[0].length*4);assert.equal(cache.height,world.terrain.rows.length*4);
+  assert.equal(made.length,2,'World map and minimap reuse a single terrain cache');
+  assert.equal(map.grid,false,'grid starts hidden');
+  assert.ok(canvas.ctx.calls.some(c=>c[0]==='fillText' && c[1]==='AB'),'rulers remain visible with grid hidden');
+  assert.ok(canvas.ctx.calls.some(c=>c[0]==='lineTo' && Math.abs(c[1]-worldToCanvas(12480,3450,map.view).px)<1e-6),'actual camera quad is drawn');
+  const draws=canvas.ctx.calls.length;map.frame(1);assert.equal(canvas.ctx.calls.length,draws,'unchanged frames do not redraw');
+  const mouse={clientX:800,clientY:460,buttons:1,button:0,pointerId:1};
+  const before=canvasToWorld(400,230,map.view);canvas.events.wheel({...mouse,deltaY:-1,preventDefault(){}});
+  const after=canvasToWorld(400,230,map.view);assert.ok(Math.hypot(before.x-after.x,before.z-after.z)<1e-6,'zoom at transformed CSS pointer');
+  const start={...map.view};canvas.events.pointerdown(mouse);canvas.events.pointermove({...mouse,clientX:840,clientY:480});canvas.events.pointerup(mouse);
+  assert.ok(Math.abs(map.view.cx-(start.cx-20/start.scale))<1e-6,'north-up horizontal pan');
+  assert.ok(Math.abs(map.view.cz-(start.cz-10/start.scale))<1e-6,'north-up vertical pan');assert.equal(map.wasDrag(),true);
+  canvas.events.pointerdown(mouse);canvas.events.pointerup(mouse);assert.equal(map.wasDrag(),false,'new click clears old drag');
+  map.setGrid(true);map.frame(1);assert.equal(map.grid,true);
+  globalThis.devicePixelRatio=1;map.frame(1);assert.equal(canvas.width,800);assert.equal(map.view.w,800);
+} finally { for (const [key,value] of Object.entries(globals)) {if(value===undefined)delete globalThis[key];else globalThis[key]=value;} }
 console.log('test_world_map: ok');

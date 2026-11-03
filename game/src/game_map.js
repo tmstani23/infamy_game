@@ -8,7 +8,7 @@ import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
-import { createWorldMap, canvasToWorld } from './world_map.js';
+import { createWorldMap, canvasToWorld, gridLabel } from './world_map.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
@@ -227,7 +227,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   const worldState = () => {
     const w = game.state.world, h = game.state.entities[heroId];
     return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
-      lastSeen: w?.lastSeen?.[clan] || {}, hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap() };
+      lastSeen: w?.lastSeen?.[clan] || {}, hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(),
+      cameraQuad: h?.place === 'world' && view.commandPlace(game.state, heroId) === 'world' ? [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y)) : null };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
   // (the snapshot only carries those). Placed at their world site.
@@ -254,8 +255,9 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       + '<div class="key"><i style="background:#c82828"></i>The Capital</div><div class="key"><i style="background:#5adc78"></i>You</div><div class="key"><i style="background:#ff78c8"></i>Your pin</div>'
       + '<div class="key"><i style="background:#0a0e1c;border:1px solid #555"></i>Unexplored</div><div class="key">Drag: pan · Wheel: zoom · Right-click: pin</div>';
     const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">Your hero and the crew following him jump there at once.</div><button type="button" class="travelgo">Travel</button> <button type="button" class="travelcancel">Cancel</button>` : '';
-    const zoom = '<div class="wzoom"><button type="button" data-zoom="1.4" title="Zoom in">+</button><button type="button" data-zoom="0.714" title="Zoom out">−</button><button type="button" data-grid title="Show or hide the map grid">#</button></div>';
-    worldSide.innerHTML = `${zoom}${travel}${box}${form}${legend}`;
+    const zoom = `<div class="wzoom"><button type="button" data-zoom="1.4" title="Zoom in">+</button><button type="button" data-zoom="0.714" title="Zoom out">−</button><button type="button" data-grid class="${worldMap?.grid ? 'on' : ''}" aria-pressed="${!!worldMap?.grid}" title="Show or hide 500-unit grid lines; labels stay visible">#</button></div>`;
+    worldSide.innerHTML = `${zoom}<div class="worldlocation"></div>${travel}${box}${form}${legend}`;
+    updateWorldLocation();
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
       worldSide.querySelector('.travelcancel').addEventListener('click', () => { travelTo = null; drawWorldSide(); });
@@ -268,14 +270,20 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       worldSide.querySelector('.pincancel').addEventListener('click', () => { pinDraft = null; drawWorldSide(); });
     }
   }
+  function updateWorldLocation() {
+    const h = game.state.entities[heroId], p = h && game.discovery?.worldPos?.(h), el = worldSide.querySelector('.worldlocation');
+    if (!el) return;
+    const label = p ? `Your location · ${gridLabel(p.x, p.z)}\nx ${Math.floor(p.x).toLocaleString('en-US')}  z ${Math.floor(p.z).toLocaleString('en-US')}\nNorth up · 500-unit squares` : 'North up · 500-unit squares';
+    if (el.textContent !== label) el.textContent = label;
+  }
   function ensureWorldMap() {
     if (worldMap) return;
-    worldSide.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (z && worldMap) { worldMap.zoomBy(+z.dataset.zoom); z.blur(); } const gb = e.target.closest('[data-grid]'); if (gb && worldMap) { worldMap.setGrid(!worldMap.grid); gb.classList.toggle('on', worldMap.grid); gb.blur(); } });   // + / - (Tim 2026-11-02)
+    worldSide.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (z && worldMap) { worldMap.zoomBy(+z.dataset.zoom); z.blur(); } const gb = e.target.closest('[data-grid]'); if (gb && worldMap) { worldMap.setGrid(!worldMap.grid); gb.classList.toggle('on', worldMap.grid); gb.setAttribute('aria-pressed', String(worldMap.grid)); gb.blur(); } });
     worldCanvas = document.createElement('canvas'); worldCanvas.className = 'worldcanvas'; worldCanvas.setAttribute('aria-label', 'World map');
     canvas.after(worldCanvas);
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
     worldMap = createWorldMap({ canvas: worldCanvas, world, getState: worldState }); worldMap.attach();
-    const local = e => { const r = worldCanvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const local = e => { const r = worldCanvas.getBoundingClientRect(); return [(e.clientX - r.left) * worldMap.view.w / r.width, (e.clientY - r.top) * worldMap.view.h / r.height]; };
     const card = document.createElement('div'); card.className = 'townhover'; card.hidden = true; root.appendChild(card);
     const esc2 = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     worldCanvas.addEventListener('mousemove', e => {
@@ -309,8 +317,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     for (const b of tabs.querySelectorAll('button')) b.className = b.dataset.tab === t ? 'on' : '';
     if (t === 'world') {
       tip.hidden = true; ensureWorldMap();
-      const w = worldCanvas.clientWidth, h = worldCanvas.clientHeight;
-      if (w && h && (w !== worldCanvas.width || h !== worldCanvas.height)) { worldCanvas.width = w; worldCanvas.height = h; worldMap.fit(); }
+      worldMap.resize();
       worldMap.invalidate(); drawWorldSide();
     } else map?.invalidate();
   }
@@ -331,8 +338,14 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   const toggle = () => (isOpen() ? close() : open());
 
   let shownData = null;
+  let shownWorldRevision = null;
   function update() {
-    if (isOpen() && tab === 'world' && worldMap) { const w = game.state.world?.pins?.[clan]; worldMap.frame(Math.floor(game.state.tick / 10) + ':' + (w?.length || 0)); return; }
+    if (isOpen() && tab === 'world' && worldMap) {
+      const w = game.state.world?.pins?.[clan], revision = Math.floor(game.state.tick / 5) + ':' + (w?.length || 0);
+      worldMap.frame(revision);
+      if (revision !== shownWorldRevision) { shownWorldRevision = revision; updateWorldLocation(); }
+      return;
+    }
     if (!isOpen() || !map) return;
     const data = deploymentData.update();
     const changed = data !== shownData;

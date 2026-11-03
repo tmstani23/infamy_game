@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { cameraDiscontinuity } from '../src/camera_tracking.js';
+const hero = {id:'hero',place:'world',x:12480,z:3500};
+assert.equal(cameraDiscontinuity(null,hero),true,'initial camera snaps');
+assert.equal(cameraDiscontinuity(hero,{...hero,x:hero.x+.3}),false,'walking preserves a pan or crew watch');
+assert.equal(cameraDiscontinuity(hero,{...hero,x:hero.x+60}),false,'ordinary movement threshold is inclusive');
+assert.equal(cameraDiscontinuity(hero,{...hero,x:2000,z:1000}),true,'world-to-world travel releases detached camera');
+assert.equal(cameraDiscontinuity(hero,{...hero,place:'street'}),true,'gate transition snaps even at the same position');
+assert.equal(cameraDiscontinuity(hero,{...hero,id:'newHero'}),true,'loading a different hero cannot retain the old camera');
+assert.equal(cameraDiscontinuity(hero,{...hero}),false,'paused unchanged hero preserves camera');
+console.log('test_camera_tracking: ok');

@@ -5,24 +5,47 @@ export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;
 export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
 const NODE_COL = { quarry: '#9696a0', forest: '#3c783c', fertile: '#c8be50', ore: '#be6e3c', fishing: '#5aaad2' };
+export const GRID = 500;
+const MARGIN = 24;
+export function columnLetters(index) {
+  if (!Number.isInteger(index) || index < 0) return '';
+  let label = '';
+  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) label = String.fromCharCode(65 + (n - 1) % 26) + label;
+  return label;
+}
+export function gridLabel(x, z) {
+  return Number.isFinite(x) && Number.isFinite(z) && x >= 0 && z >= 0 ? `${columnLetters(Math.floor(x / GRID))}${Math.floor(z / GRID) + 1}` : '';
+}
+// One immutable smoothed terrain cache shared by the World map and island minimap.
+const terrainCaches = new WeakMap();
+export function worldTerrainCache(world) {
+  if (terrainCaches.has(world)) return terrainCaches.get(world);
+  const t = world.terrain, base = document.createElement('canvas'), out = document.createElement('canvas');
+  base.width = t.rows[0].length; base.height = t.rows.length;
+  const c = base.getContext('2d');
+  for (let z = 0; z < base.height; z++) for (let x = 0; x < base.width; x++) { c.fillStyle = TERRAIN[t.rows[z][x]] || TERRAIN.p; c.fillRect(x, z, 1, 1); }
+  out.width = base.width * 4; out.height = base.height * 4;
+  const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(base, 0, 0, out.width, out.height);
+  terrainCaches.set(world, out);
+  return out;
+}
 
 // view = { cx, cz, scale, w, h }: world point (cx, cz) is at the canvas centre, scale = pixels per unit.
-// Turned 45 degrees like the game camera and the minimap (Tim 2026-11-02): screen right = (+x, -z), down = (+x, +z)
-const R = Math.SQRT1_2;
-export function worldToCanvas(x, z, view) { const dx = x - view.cx, dz = z - view.cz; return { px: (dx - dz) * R * view.scale + view.w / 2, py: (dx + dz) * R * view.scale + view.h / 2 }; }
-export function canvasToWorld(px, py, view) { const a = (px - view.w / 2) / view.scale, b = (py - view.h / 2) / view.scale; return { x: (a + b) * R + view.cx, z: (b - a) * R + view.cz }; }
-// canvas transform that draws world units turned like worldToCanvas
-export function worldTransform(view) { const k = R * view.scale; return [k, k, -k, k, view.w / 2 - k * (view.cx - view.cz), view.h / 2 - k * (view.cx + view.cz)]; }
+// North up: x right, z down. All interaction coordinates are CSS pixels, independent of DPR.
+export function worldToCanvas(x, z, view) { return { px: (x - view.cx) * view.scale + view.w / 2, py: (z - view.cz) * view.scale + view.h / 2 }; }
+export function canvasToWorld(px, py, view) { return { x: (px - view.w / 2) / view.scale + view.cx, z: (py - view.h / 2) / view.scale + view.cz }; }
+export function worldTransform(view) { const k = view.scale; return [k, 0, 0, k, view.w / 2 - k * view.cx, view.h / 2 - k * view.cz]; }
 // Nearest item ({ x, z }) within maxPx pixels of (px, py), or null.
 export function hitTest(items, px, py, view, maxPx = 8) {
   let best = null, bd = maxPx;
   for (const it of items) { const p = worldToCanvas(it.x, it.z, view); const d = Math.hypot(p.px - px, p.py - py); if (d <= bd) { bd = d; best = it; } }
   return best;
 }
-export function fitView(world, w, h) { const span = (world.size.w + world.size.h) * R, scale = Math.min(w, h) / span; return { cx: world.size.w / 2, cz: world.size.h / 2, scale, w, h }; }
+export function fitView(world, w, h) { const scale = Math.min(Math.max(1, w - 2 * MARGIN) / world.size.w, Math.max(1, h - 2 * MARGIN) / world.size.h); return { cx: world.size.w / 2, cz: world.size.h / 2, scale, w, h }; }
 // Keep zoom sane and the map from being dragged away entirely.
 export function clampView(world, v) {
-  const min = Math.min(v.w, v.h) / ((world.size.w + world.size.h) * R) * 0.9;
+  const min = fitView(world, v.w, v.h).scale * 0.9;
   v.scale = Math.max(min, Math.min(v.scale, 1.2));
   v.cx = Math.max(0, Math.min(v.cx, world.size.w)); v.cz = Math.max(0, Math.min(v.cz, world.size.h));
   return v;
@@ -44,7 +67,16 @@ export function isDiscovered(world, grid, x, z) {
 //   scoutedSites: array of ids, pins: [{id,x,z,note}], lastSeen: { id: {x,z,dir,now} } }
 export function createWorldMap({ canvas, world, getState = () => ({}) }) {
   const ctx = canvas.getContext('2d');
-  let view = fitView(world, canvas.width, canvas.height), cache = null, dirty = true, showGrid = false, drag = null, lastMoved = false, rev = -1;
+  let dpr = 1, view = fitView(world, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height), cache = null, dirty = true, showGrid = false, drag = null, hover = null, lastMoved = false, rev = -1;
+  function resize() {
+    const ratio = Math.min(globalThis.devicePixelRatio || 1, 2), w = canvas.clientWidth || view.w, h = canvas.clientHeight || view.h;
+    if (w !== view.w || h !== view.h) { const old = fitView(world, view.w, view.h).scale; view.scale *= fitView(world, w, h).scale / old; view.w = w; view.h = h; clampView(world, view); dirty = true; }
+    if (dpr !== ratio || canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) { dpr = ratio; canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); dirty = true; }
+  }
+  const transform = () => ctx.setTransform(...worldTransform(view).map(v => v * dpr));
+  const cssTransform = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const inWorld = p => p.x >= 0 && p.z >= 0 && p.x < world.size.w && p.z < world.size.h;
+  const location = p => `${gridLabel(p.x, p.z)}  ·  x ${Math.floor(p.x).toLocaleString('en-US')}  z ${Math.floor(p.z).toLocaleString('en-US')}`;
   const sites = world.sites;
   // What may be clicked: only what is drawn (known sites and camps, own pins)
   function hitItems() {
@@ -55,36 +87,28 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
       ...(st.towns || []).map(t => ({ ...t, kind: 'town' })),   // late, so a town wins over the site under it
       { kind: 'capital', x: world.capital.x, z: world.capital.z }];
   }
-  function buildCache() {
-    const t = world.terrain, off = document.createElement('canvas');
-    off.width = t.rows[0].length; off.height = t.rows.length; // one pixel per terrain cell, scaled up when drawn
-    const c = off.getContext('2d');
-    for (let i = 0; i < t.rows.length; i++) for (let j = 0; j < t.rows[i].length; j++) { c.fillStyle = TERRAIN[t.rows[i][j]] || TERRAIN.p; c.fillRect(j, i, 1, 1); }
-    cache = off;
-  }
   function path(points) { ctx.beginPath(); points.forEach(([x, z], k) => { const p = worldToCanvas(x, z, view); k ? ctx.lineTo(p.px, p.py) : ctx.moveTo(p.px, p.py); }); ctx.stroke(); }
   function draw() {
     const st = getState(), grid = st.discovered ?? null, scouted = new Set(st.scoutedSites || []);
-    view.w = canvas.width; view.h = canvas.height;
+    cssTransform();
     ctx.fillStyle = TERRAIN.w; ctx.fillRect(0, 0, view.w, view.h);
-    if (!cache) buildCache();
-    const cell = world.terrain.cell;
-    ctx.setTransform(...worldTransform(view)); ctx.imageSmoothingEnabled = false; ctx.drawImage(cache, 0, 0, cache.width * cell, cache.height * cell); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!cache) cache = worldTerrainCache(world);
+    transform(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(cache, 0, 0, world.size.w, world.size.h); cssTransform();
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#4670aa'; ctx.lineWidth = Math.max(1, 2 * view.scale * 10); for (const r of world.rivers) path(r.points);
     ctx.strokeStyle = 'rgba(120,92,56,.85)'; ctx.lineWidth = 1; for (const c of world.corridors) path(c.points);
-    if (showGrid) { // map grid (W3.11 P1): hidden by default, the # button shows it; faint 1000-unit squares
-      const G = 1000; ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
+    if (showGrid) { // hidden by default; ruler labels remain visible
+      const G = GRID; ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
       for (let x = 0; x <= world.size.w; x += G) path([[x, 0], [x, world.size.h]]);
       for (let z = 0; z <= world.size.h; z += G) path([[0, z], [world.size.w, z]]);
     }
     if (grid) { // fog: dark haze on undiscovered cells
       const C = fogCell(world), c = fogCols(world), rowsN = Math.ceil(world.size.h / C), pad = 1 / view.scale;
-      ctx.fillStyle = 'rgba(10,14,28,.84)'; ctx.setTransform(...worldTransform(view));
+      ctx.fillStyle = 'rgba(10,14,28,.84)'; transform();
       // one path, one fill (W3.11 P1): separate overlapping fills drew darker lines where the cells met, a grid look
       ctx.beginPath(); for (let j = 0; j < rowsN; j++) for (let i = 0; i < c; i++) if (grid[j * c + i] !== '1') ctx.rect(i * C - pad, j * C - pad, C + 2 * pad, C + 2 * pad);
       ctx.fill();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      cssTransform();
     }
     const known = (x, z) => isDiscovered(world, grid, x, z);
     for (const n of world.nodes) if (known(n.x, n.z)) { const p = worldToCanvas(n.x, n.z, view); ctx.fillStyle = NODE_COL[n.kind] || '#fff'; ctx.fillRect(p.px - 2, p.py - 2, 4, 4); }
@@ -107,6 +131,17 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
       if (pin.note) { ctx.fillStyle = '#ffd6ee'; ctx.fillText(pin.note, p.px + 8, p.py + 4); }
     }
     if (st.hero) { const p = worldToCanvas(st.hero.x, st.hero.z, view); ctx.fillStyle = '#5adc78'; ctx.beginPath(); ctx.moveTo(p.px, p.py - 8); ctx.lineTo(p.px + 6, p.py + 5); ctx.lineTo(p.px - 6, p.py + 5); ctx.fill(); }
+    if (st.cameraQuad?.length === 4 && st.cameraQuad.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.z))) { ctx.strokeStyle = 'rgba(255,240,197,.9)'; ctx.lineWidth = 1.5; path([...st.cameraQuad.map(p => [p.x, p.z]), [st.cameraQuad[0].x, st.cameraQuad[0].z]]); }
+    // Fixed rulers stay legible while the map pans/zooms underneath them.
+    ctx.fillStyle = 'rgba(10,20,27,.94)'; ctx.fillRect(0, 0, view.w, MARGIN); ctx.fillRect(0, 0, MARGIN, view.h);
+    ctx.fillStyle = '#dfcc9b'; ctx.font = '600 12px sans-serif'; ctx.textAlign = 'center';
+    for (let x = 0; x < world.size.w; x += GRID) { const p = worldToCanvas(x + GRID / 2, 0, view); if (p.px > MARGIN && p.px < view.w - 8) ctx.fillText(columnLetters(x / GRID), p.px, 16); }
+    for (let z = 0; z < world.size.h; z += GRID) { const p = worldToCanvas(0, z + GRID / 2, view); if (p.py > MARGIN && p.py < view.h - 30) ctx.fillText(String(z / GRID + 1), 12, p.py + 4); }
+    ctx.textAlign = 'left';
+    const label = hover && canvasToWorld(hover.px, hover.py, view);
+    const badge = (label, x) => { ctx.font = '13px sans-serif'; const w = ctx.measureText(label).width + 20; ctx.fillStyle = 'rgba(10,20,27,.94)'; ctx.fillRect(x, view.h - 30, w, 26); ctx.fillStyle = '#f3dfae'; ctx.fillText(label, x + 10, view.h - 12); };
+    if (label && inWorld(label)) badge(location(label), MARGIN + 6);
+    if (st.hero && inWorld(st.hero)) { const own = `You · ${location(st.hero)}`; ctx.font = '13px sans-serif'; badge(own, Math.max(MARGIN + 6, view.w - ctx.measureText(own).width - 26)); }
     dirty = false;
   }
   const api = {
@@ -115,20 +150,23 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
     get grid() { return showGrid; },
     setGrid(on) { showGrid = !!on; dirty = true; },
     // call every frame; redraws only when the view or the snapshot revision changed
-    frame(revision) { if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },
-    hit(px, py) { return hitTest(hitItems(), px, py, view); },
+    resize,
+    frame(revision) { resize(); if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },
+    hit(px, py) { return px < MARGIN || py < MARGIN ? null : hitTest(hitItems(), px, py, view); },
     attach() {
-      canvas.addEventListener('wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); zoomAt(world, view, e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15); dirty = true; }, { passive: false });
+      const local = e => { const r = canvas.getBoundingClientRect(); return { px: (e.clientX - r.left) * view.w / r.width, py: (e.clientY - r.top) * view.h / r.height }; };
+      canvas.addEventListener('wheel', e => { e.preventDefault(); const p = local(e); zoomAt(world, view, p.px, p.py, e.deltaY < 0 ? 1.15 : 1 / 1.15); dirty = true; }, { passive: false });
       // Pointer capture keeps the release on this canvas even if other game handlers swallow it
       // (Tim 2026-11-02: drag stuck to the cursor); a move with no button held also ends the drag.
       const end = e => { if (drag) lastMoved = drag.moved; drag = null; try { canvas.releasePointerCapture?.(e.pointerId); } catch {} };
-      canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false }; try { canvas.setPointerCapture?.(e.pointerId); } catch {} });
+      canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; const p = local(e); lastMoved = false; drag = { x: p.px, y: p.py, cx: view.cx, cz: view.cz, moved: false }; try { canvas.setPointerCapture?.(e.pointerId); } catch {} });
       canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end); canvas.addEventListener('lostpointercapture', end);
-      canvas.addEventListener('pointermove', e => { if (!drag) return; if (!(e.buttons & 1)) return end(e); const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.cx = drag.cx - (dx + dy) * R / view.scale; view.cz = drag.cz - (dy - dx) * R / view.scale; clampView(world, view); dirty = true; });
+      canvas.addEventListener('pointermove', e => { hover = local(e); dirty = true; if (!drag) return; if (!(e.buttons & 1)) return end(e); const dx = hover.px - drag.x, dy = hover.py - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; view.cx = drag.cx - dx / view.scale; view.cz = drag.cz - dy / view.scale; clampView(world, view); });
+      canvas.addEventListener('pointerleave', () => { hover = null; dirty = true; });
       addEventListener('pointerup', end, true);   // window, capture phase: a release anywhere ends it
     },
     wasDrag() { return lastMoved; },
-    fit() { view = fitView(world, canvas.width, canvas.height); dirty = true; },
+    fit() { resize(); view = fitView(world, view.w, view.h); dirty = true; },
     // + / - buttons: zoom about the middle of the map
     zoomBy(factor) { zoomAt(world, view, view.w / 2, view.h / 2, factor); dirty = true; },
   };
