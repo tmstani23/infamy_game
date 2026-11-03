@@ -1,12 +1,12 @@
 {
   "version": 4,
   "date": "2026-11-03",
-  "status": "Built 2026-11-03 (phases A to C, all families incl. marsh and coast). Tim: \"clustering is perfect\". Data lives in game/data/biome_props.json `clustering` (no separate prop_clustering.json, no loader changes); code game/src/sim/prop_clusters.js; switch clustering.enabled:false restores the old scatter. Outcrops and edge trees stay on the old scatter. Half scale for non-tree props (Tim 2026-11-03, biome_props.json propScale) supersedes \"keep current per-kind display scale\". Open: D (Tim's visual tuning) and E (camera-visible cost).",
+  "status": "Built and visually accepted 2026-11-03. Current-world performance seems good; measured representative-load cost with mobs/camps remains open.",
   "scope": "All ordinary procedural island props, including trees, brush, fungi, grasses, rocks, logs, stumps and driftwood. Oddities and fixed terrain art are excluded. Ground textures remain the underlying continuous cover.",
   "prerequisites": [
     {
       "task": "P3 coast/water code",
-      "state": "Coastline and land blending visually approved across biomes; diagonals confirmed gone. Water-surface animation follow-up is being researched separately. No walking validation claim."
+      "state": "Water/coastal visual review passed."
     },
     {
       "task": "Asset cut/scale audit",
@@ -14,7 +14,7 @@
     },
     {
       "task": "Tim accepts clustering design",
-      "state": "Tim requested the revised all-normal-props, five-footprint-size and three-height-tier design; visual tuning remains pending"
+      "state": "Built and visually accepted."
     }
   ],
   "recommendation": {
@@ -23,10 +23,22 @@
     "densityTuning": {
       "principle": "Tune patch-center frequency and final member count separately. More members in the same few clumps makes those clumps denser but does not fill the gaps; more centers and a retained single-sprite share address coverage.",
       "startingMultipliersVsMeasuredCurrent": {
-        "lowVegetation": [1.25, 1.5],
-        "mediumBrushAndWood": [1.1, 1.3],
-        "treesAndBlockingRocks": [1, 1.15],
-        "rareOrSpecial": [1, 1]
+        "lowVegetation": [
+          1.25,
+          1.5
+        ],
+        "mediumBrushAndWood": [
+          1.1,
+          1.3
+        ],
+        "treesAndBlockingRocks": [
+          1,
+          1.15
+        ],
+        "rareOrSpecial": [
+          1,
+          1
+        ]
       },
       "note": "Provisional visual-tuning ranges, not fixed implementation targets. Measure accepted current counts by biome and family first, then adjust for actual visible gaps, traversable space and frame cost. Keep glowing mushrooms and rare props at their existing overall rarity. Marsh already has a dense supplement pass, so compare its actual accepted count before raising it further."
     },
@@ -43,28 +55,58 @@
     "sizing": [
       {
         "size": "tiny",
-        "members": [2, 2],
-        "diameterUnits": [3, 6]
+        "members": [
+          2,
+          2
+        ],
+        "diameterUnits": [
+          3,
+          6
+        ]
       },
       {
         "size": "small",
-        "members": [2, 3],
-        "diameterUnits": [6, 10]
+        "members": [
+          2,
+          3
+        ],
+        "diameterUnits": [
+          6,
+          10
+        ]
       },
       {
         "size": "medium",
-        "members": [4, 6],
-        "diameterUnits": [10, 16]
+        "members": [
+          4,
+          6
+        ],
+        "diameterUnits": [
+          10,
+          16
+        ]
       },
       {
         "size": "large",
-        "members": [6, 8],
-        "diameterUnits": [16, 24]
+        "members": [
+          6,
+          8
+        ],
+        "diameterUnits": [
+          16,
+          24
+        ]
       },
       {
         "size": "expansive",
-        "members": [8, 11],
-        "diameterUnits": [24, 34]
+        "members": [
+          8,
+          11
+        ],
+        "diameterUnits": [
+          24,
+          34
+        ]
       }
     ],
     "sizingNote": "Five footprint presets are available, but each family selects an allowed subset. Values are starting ranges around member footprints, not universal radii. Fungi and driftwood use the small presets; large trees and boulders use few members with wider spacing. No uniform enlargement of one sprite to represent a wider patch.",
@@ -80,17 +122,59 @@
     "lighting": "Keep glowing mushrooms rare at their existing overall rarity. Clustering does not add a point light for every mushroom; any new glow behavior is a separately reviewed renderer change."
   },
   "families": {
-    "forestTrees": ["cedar", "pine"],
-    "plainTrees": ["pine", "meadow_broadleaf_tree"],
-    "hillTrees": ["pine", "twisted_pine"],
-    "dryTrees": ["twisted_pine"],
-    "snowTrees": ["snow_pine", "snow_cedar"],
-    "jungleTrees": ["jungle_large_buttress_tree", "jungle_large_broad_canopy_tree", "jungle_large_banyan_tree", "jungle_medium_palm", "jungle_medium_broadleaf_tree", "jungle_small_sapling"],
-    "marshTreesAndWood": ["marsh_leaning_willow", "marsh_stunted_wetland_tree", "marsh_dead_snag", "marsh_waterlogged_stump", "marsh_fallen_rotting_trunk"],
-    "forestWood": ["stump", "fallen_log"],
-    "rockAndOutcrops": ["boulder", "small_rocks", "sandstone_stones", "snow_boulders", "outcrop_moss", "outcrop_dry", "outcrop_snow"],
-    "bamboo": ["bamboo"],
-    "coastWood": ["coastal_driftwood"],
+    "forestTrees": [
+      "cedar",
+      "pine"
+    ],
+    "plainTrees": [
+      "pine",
+      "meadow_broadleaf_tree"
+    ],
+    "hillTrees": [
+      "pine",
+      "twisted_pine"
+    ],
+    "dryTrees": [
+      "twisted_pine"
+    ],
+    "snowTrees": [
+      "snow_pine",
+      "snow_cedar"
+    ],
+    "jungleTrees": [
+      "jungle_large_buttress_tree",
+      "jungle_large_broad_canopy_tree",
+      "jungle_large_banyan_tree",
+      "jungle_medium_palm",
+      "jungle_medium_broadleaf_tree",
+      "jungle_small_sapling"
+    ],
+    "marshTreesAndWood": [
+      "marsh_leaning_willow",
+      "marsh_stunted_wetland_tree",
+      "marsh_dead_snag",
+      "marsh_waterlogged_stump",
+      "marsh_fallen_rotting_trunk"
+    ],
+    "forestWood": [
+      "stump",
+      "fallen_log"
+    ],
+    "rockAndOutcrops": [
+      "boulder",
+      "small_rocks",
+      "sandstone_stones",
+      "snow_boulders",
+      "outcrop_moss",
+      "outcrop_dry",
+      "outcrop_snow"
+    ],
+    "bamboo": [
+      "bamboo"
+    ],
+    "coastWood": [
+      "coastal_driftwood"
+    ],
     "meadow": [
       "meadow_grass",
       "meadow_flowers"
@@ -347,12 +431,14 @@
     {
       "id": "D",
       "task": "Tim compares the same seeded locations across five footprint presets and three relative height tiers, plus clearings, biome edges, coast and trails. Tune mixtures and density while keeping oddities and fixed art unchanged.",
-      "done": false
+      "done": true,
+      "result": "Tim visually accepted clustering."
     },
     {
       "id": "E",
       "task": "Finish focused regressions and measure camera-visible sprites, chunk generation, draw calls/frame time and memory against the baseline. Approve any required rendering optimization separately.",
-      "done": false
+      "done": false,
+      "result": "Current-world performance acceptable provisionally; measure with mobs/camps load."
     }
   ],
   "acceptance": [

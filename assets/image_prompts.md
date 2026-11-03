@@ -423,12 +423,9 @@ Implemented (2026-11-03): wet v2, dry v1 and snow v1 are imported as byte-identi
 
 `game/data/coastline.json`, pure `game/src/world_coast.js`, `render/coastline.js` and shader/main/world-ground wiring fit mitered continuous ribbons to the exact authoritative 50-unit terrain ocean border. Rendering blends local wet/dry/snow materials and repeat phases, feathers land/water edges, fades harbors, excludes lakes/cliffs/river mouths, and disposes streamed chunk geometry/materials. The original ribbon import left collision unchanged; P3 now shares rounded ocean geometry with terrain and movement. See the finishing status below.
 
-P3 finishing (2026-11-03): Tim said the coast art looks good and requested rounding, inland blending and water crosshatch repair. Code is complete; coastline/blending are now visually approved across biomes and diagonals confirmed gone. Walking validation is not claimed; the new water-motion pass awaits manual review. [P3 plan](environment/island/p3_water_finishing_plan.json) records shared 20-unit ocean fillets, half-unit corner blockers, bounded sliding, biome-texture coastal tint and original-water interior sampling. Original images remain unchanged. Focused Node checks pass; no WebGL compilation/live visual validation. The [prop clustering plan](environment/island/groundcover_clustering_plan.json) now covers ordinary procedural props across biomes, with five footprint sizes and three relative height tiers. No clustering code has been added.
+P3/P4 complete (Tim, 2026-11-03): coast rounding/blending, diagonal-seam removal, water reflection/surface/depth/foam/caustics and inland banks accepted. Coastal cliffs/dry-range playtest passed. [Water record](environment/island/water_surface_plan.json) owns details. Old paused checkpoint is archived under to_delete/.
 
-
-Water-motion follow-up (2026-11-03): Tim reported magma-like motion and authorized continued water work. [Water surface plan](environment/island/water_surface_plan.json) records primary Three.js r186 Water2 / NVIDIA GPU Gems research and the implementation: plain uniform packing, four seam-safe phase samples with explicit gradients, two broad/two fine analytical waves driving normals/highlights, and subdued color drift. Accepted coast geometry/masks/collision and original art are unchanged; no new targets, libraries or art. Syntax, finite config/wave checks, scoped diff and P3 edges passed. No GPU compilation, new-motion appearance or performance approval; Tim must refresh and judge motion.
-
-Prop clustering remains planning only: each ordinary prop family would mix singles and varied clumps, using current generator scale as the baseline. A measured increase in patch centers and emitted sprites may be needed to avoid excessive gaps; trees, rocks and wood use looser clusters with collision checks. Oddities and fixed terrain art stay on their current passes. No clustering code.
+Clustering is implemented for 28 families and visually accepted; current-world performance seems good. Representative-load cost with mobs/camps remains open. [Clustering record](environment/island/groundcover_clustering_plan.json) owns the implementation and tuning.
 
 ### Jungle, regular forest and marsh integration (2026-11-03)
 
@@ -436,7 +433,7 @@ Completed sources, cuts and generation records are preserved in `environment/isl
 
 Jungle coverage, tree display sizes, ground cover and marsh density are integrated through `biome_props.json`, `world_paint.json`, `world_chunks.json` and the chunk/paint pipeline. Jungle includes lighter green ground texture treatment; original ground images are preserved. `tools/import_island_ground.mjs` owns runtime texture processing. Explicit dry-mountain art selection survives surrounding biome coverage; blueprint/generator metadata and `tools/render_biome_map.mjs` plus current biome-map SVG/PNG reflect this integration.
 
-[Clustering plan v4](environment/island/groundcover_clustering_plan.json) remains DESIGN ONLY: all ordinary props, five footprint sizes and three relative height tiers measured against current display scale; oddities/fixed terrain excluded. Measure current emitted counts first, then tune patch-center frequency and controlled member-count increases to avoid gaps while retaining singles and traversal. No clustering implementation is included.
+[Clustering v4](environment/island/groundcover_clustering_plan.json) is built and accepted, with half-scale non-tree props. Representative-load performance remains open; oddities/fixed terrain use separate passes.
 
 **Shared opening — use for every group**
 

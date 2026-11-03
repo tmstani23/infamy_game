@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest pending) · [ ] P5 art (grouped generation; see owner queue) · [ ] later: chunk and ground-paint speed-up
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -33,16 +33,15 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: P2 Maps (Tim playtest passed 2026-11-02; W3.4b art pass still open) · Next: Tim’s refreshed in-game water-motion review; biome-prop integration and crop repair are complete (see owner prompt record). F1.7 playtest remains deferred to the end.
+Last completed: P3 water, P4 coast/dry range and current P5 biome art/clustering (Tim accepted 2026-11-03). Next: W4 wilderness readiness/rules review before building. Recheck clustering performance under mobs/camps load; F1.7 remains deferred.
 
-## Next coordinator handoff (Tim, 2026-11-02)
+## Next coordinator handoff (Tim, 2026-11-03)
 
-- Read `START_HERE.md`; before any actual build, read this full file and [step_runner_guide.md](step_runner_guide.md). Current next action is Tim’s refreshed in-game water-motion review; see the owner prompt record. Biome props are cut, imported and integrated; coastline/blending are visually approved and diagonals confirmed gone; the new water-motion pass awaits review.
-- W3.10 and W3.11 P1 are done. P2 Maps is locally committed (`2964641`) and Tim marked it COMPLETE. Its north-up maps, 500-unit labels, DPR 2 canvases, shared 4× smoothed cache and camera/teleport fixes are recorded in P2 below; geography still has 50-unit cells.
-- Settings load fix `eac645b` uses a full normal boot through one-shot `?load=filename`, rebuilding UI/worker for another clan/hero/mode. Node save-menu/start-load checks passed; Tim's in-game load confirmation remains open. `test_crew.mjs:97` still has the pre-existing teahouse-vs-street failure; do not claim all old tests pass.
-- P3 coast/water finishing is implemented; manual visual review remains pending. Special mountain-top feathering remains deferred. P3 water was accepted by Tim and P4 coastal cliffs/connected dry range were built on 2026-11-03 (Tim playtest pending). Later water design must revisit fords, bridges, lakes and especially rounded pool/tarn-like river sources.
-- Approved P5 categories, six rare landmark sheet candidates, reuse, rarity and shoreline direction live in [image_prompts.md](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02), with draft specifications in [p5_biome_art_plan.json](../assets/environment/island/p5_biome_art_plan.json). Units remain rough fitting guidance. Ten accepted sheets and 57 sprites are integrated; crop repair is complete. Full gameplay/performance regression testing is not claimed.
-- [Island playtest notes](island_playtest_notes_2026-11-02.md) retain the visual issues and deferred water discussion. Keep this Docs keeper chat available; the outgoing coordinator can close after handing off.
+- P3 water/reflection/inland banks, P4 coast cliffs/dry range and current biome art/clustering are complete and visually accepted. Tim completed the coastal playtest: all looks great.
+- Clustering performance seems good in the current world; recheck measured camera-visible cost once mobs/camps add representative load. No final performance-budget claim.
+- Next is W4 wilderness readiness and the existing W4.1 rules, then Tim's approval before building. Read START_HERE.md, this full plan and step_runner_guide.md first.
+- Retain P4's reported river-corner snag at 4200,4275, 34 harbor/17 mountain corners unrounded, Settings manual cross-save check and deferred F1.7. Bridges and source/lake shape redesign remain separate.
+- Keep Docs keeper available. A fresh coordinator can use this handoff. Obsolete paused-water checkpoint is archived under to_delete/; source art remains preserved.
 
 ## Working in one long window (auto-compacting)
 
@@ -1252,36 +1251,22 @@ High-resolution note: canvases are DPR-aware and terrain is rendered from a shar
 Process note: suspending map presentation must leave camera projection updates live; keep graphics paused while camera math continues.
 
 
-#### P3 Edges and water — DONE, Tim visually accepted (2026-11-03)
+#### P3 Edges and water — DONE, Tim accepted (2026-11-03)
 
-**Final (Tim, 2026-11-03):** Tim accepted the water surface, reflection, depth gradient, foam and caustics, inland banks, and the visual-only rounded ford corners. Still unrounded: 34 harbor corners and 17 mountain corners. The paused checkpoint below is history.
+- [x] Coast rounding/blending and diagonal-seam removal.
+- [x] Water surface/reflection, depth gradient, foam/caustics, inland banks and visual-only rounded ford corners accepted.
+- [x] Focused inland-bank, capture and clustering tests pass; old winding assertion failure resolved.
+- [ ] Retain documented corner/crossing checks and representative-load performance measurement.
+- Current implementation: [water plan](../assets/environment/island/water_surface_plan.json). Obsolete paused checkpoint moved to to_delete/.
 
-Tim said the coast art looks good, then requested rounding, inland transition and water crosshatch repair. Tim now confirms coastline/blending look great across all biomes and water diagonals are gone. Walking validation is not claimed. A separate water-motion follow-up awaits review. [P3 plan](../assets/environment/island/p3_water_finishing_plan.json) owns details and checks.
-
-- Shared pure `sim/shoreline.js` topology uses 20-unit circular ocean fillets; terrain queries, water/props, coastline ribbons and half-unit corner collision rectangles agree. Lakes, cliff/mouth joins and harbors are excluded. Bounded tangent-first sliding prevents opposing nudges.
-- Coastal ground retains actual biome texture detail, recolored using mip averages toward wet/dry/snow tones with an irregular 5–23-unit transition. Water uses the unchanged original image's open-water interior with independent X/Y phase blends and one flowing orientation.
-- Focused checks passed: P3 edges (90k terrain/blocker samples plus geometry, exclusions, tint/halos and bounded movement), island edges (200×8), world paint/coast, chunk generation and areas; syntax/diff checks pass. No WebGL compilation or live visual validation.
-- After smoothing review, inventory/re-analyze groundcover patches across ALL biomes, including rainforest/jungle, forest mushrooms/ferns and marsh assets. [Clustering plan](../assets/environment/island/groundcover_clustering_plan.json) is planning only; no clustering implementation authorized. Bridges and river-source/lake redesign remain separate.
-
-
-Water-motion follow-up (2026-11-03): Tim reported magma-like motion and authorized continued water work. [Water surface plan](../assets/environment/island/water_surface_plan.json) records primary Three.js r186 Water2 / NVIDIA GPU Gems research and the implementation: plain uniform packing, four seam-safe phase samples with explicit gradients, two broad/two fine analytical waves driving normals/highlights, and subdued color drift. Accepted coast geometry/masks/collision and original art are unchanged; no new targets, libraries or art. Syntax, finite config/wave checks, scoped diff and P3 edges passed. No GPU compilation, new-motion appearance or performance approval; Tim must refresh and judge motion.
-
-**PAUSED water checkpoint (Tim, 2026-11-03; usage nearly exhausted; resume only when Tim says).** Details: [water_checkpoint_2026-11-03.json](../assets/environment/island/water_checkpoint_2026-11-03.json); [water_surface_plan.json](../assets/environment/island/water_surface_plan.json) is marked paused and links it.
-- **Accepted (P3, done):** ocean coastline rounding and biome-ground transitions in every biome; diagonal water banding removed.
-- **WIP on disk, NOT complete or visually tested (uncommitted code):** lighter reflective water (one shared reflection capture, two procedural normal fields, less painted foam; `render/water_effects.js`, `render/water_capture.js`, `water_surface.js`), and lake/river reuse of the wet/dry/snow shoreline strips, rounding and ground transition (`shorelineTopology`, inland banks 5u land / 1u water, crossings kept clear).
-- **Known failure:** new `game/tools/test_inland_banks.mjs` line 39 expects negative triangle winding, but every area is positive (3.33 to 39.62): fix the expected sign and rerun; later assertions have not run. Earlier focused tests pass; no live shader compile, reflection check or GPU/memory measurement yet.
-- **Next chats (Tim):** water reflection finish-up in its own chat; ground cover clustering in its own thread from [groundcover_clustering_plan.json](../assets/environment/island/groundcover_clustering_plan.json) (planning only, v4; all biomes incl. rainforest, forest floor and marsh).
-
-Groundcover v4 remains planning only: all ordinary props, five footprint sizes, three relative height tiers, baseline current display scale, measured spawn-count increases and independent patch-center tuning to avoid gaps. Preserve singles and rarity; no clustering code. See [plan](../assets/environment/island/groundcover_clustering_plan.json).
-
-#### P4 Coast cliffs and dry range — built 2026-11-03; Tim playtest pending
+#### P4 Coast cliffs and dry range — built 2026-11-03; Tim playtest passed 2026-11-03
 - Built: the dry skirt is painted through `world_overrides.json`; `coastCliff` settings line the coast with the cliff art, leaving open areas at Sallow Bay, the east Heron inlet and the Ashen Wash mouth; island ground is capped at 24 materials (`island_ground.js`). Seeded by `tools/seed_world.mjs`.
 - Tests: `test_p3_edges` passes (its two coast spots moved to open shore). **Open follow-up:** `test_island_edges` still fails on a river-corner snag at 4200,4275, which predates P4.
 - Mark coast cells and line most of the coast with the existing cliff/rim/corner art; keep harbours and landings open [4b].
 - Dry-range blueprint: blueprint.py -> seed_world.mjs, sites/routes/passes still validate [dry range].
 
 #### Ground cover clustering — built 2026-11-03 (Tim: "clustering is perfect")
-- 28 families, half-scale ground props, oddity size/rate tuning, marsh trees, jungle trees unmirrored. Details in the [clustering plan](../assets/environment/island/groundcover_clustering_plan.json); open: D visual tuning, E camera-visible cost. Prop census tool: `game/tools/prop_census.mjs`.
+- 28 families, half-scale ground props, oddity size/rate tuning, marsh trees, jungle trees unmirrored. Details in the [clustering plan](../assets/environment/island/groundcover_clustering_plan.json); D visual acceptance passed; E current-world performance acceptable provisionally, representative-load measurement open. Prop census tool: `game/tools/prop_census.mjs`.
 
 #### P5 Biome art — integrated; crop repair complete (Tim, 2026-11-02)
 
@@ -1290,11 +1275,11 @@ Groundcover v4 remains planning only: all ordinary props, five footprint sizes, 
 - [x] Generate ten accepted transparent sheets; cut/import all 57 sprites and integrate common replacements and sparse seeded decorative oddities. Repair all cuts with reviewed object regions; Tim accepted repaired previews.
 - [x] Record source/crop audit, anchor fix, runtime integration and validation limits in the [owner prompt record](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02).
 - [x] Import wet v2/dry v1/snow v1 at native 2172 × 724; implement continuous terrain-border ribbons, material/repeat blending, feathering/exclusions and chunk disposal without gameplay/collision changes. [Owner status](../assets/image_prompts.md#coastline-plan-and-wet-trial-2026-11-02), [plan](../assets/environment/island/coastline_art_plan.json), [prompts](../assets/environment/island/coastline_prompts.txt).
-- [ ] Tim reviews the new water-motion pass after refresh. Coastline/blending look approved across biomes; diagonals confirmed gone. No walking/performance claim.
+- [x] Tim accepted the final water-motion/reflection/inland banks and coastal playtest (2026-11-03).
 - [x] Approve eight shoreline orientations and distinct biome material/silhouette families for planning; beach banks and coastal cliffs are separate geometry families. Exact endpoints, land/water sides, corners, connectors and spans await later water design; existing eight lake images do not complete a coast kit.
 - [ ] Bridges, lakes, river sources and capital silhouette remain deferred; no copy-ready prompts are approved for them. See the [island playtest notes](island_playtest_notes_2026-11-02.md) for the W3.10 walkthrough handoff.
 
-Completed biome integration (2026-11-03): jungle, regular forest mushrooms/ferns, marsh props/textures, dry-mountain art selection, coverage map and sizing/density/ground processing are saved. [Owner record](../assets/image_prompts.md#jungle-regular-forest-and-marsh-integration-2026-11-03). The newer reflection-water pass is active separately; no new motion visual approval implied.
+Completed biome integration (2026-11-03): jungle, regular forest mushrooms/ferns, marsh props/textures, dry-mountain art selection, coverage map and sizing/density/ground processing are saved. [Owner record](../assets/image_prompts.md#jungle-regular-forest-and-marsh-integration-2026-11-03). Final reflection-water pass visually accepted.
 
 #### Later (Tim OK'd)
 - Chunk build and ground-paint speed-up after the main build [8].

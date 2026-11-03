@@ -10,7 +10,7 @@ Tim asked to note these for a later phase instead of building now.
 ## Art session (Tim 00:08) - ON HOLD (Tim 00:09: out of ChatGPT image usage; Gemini possible later; do the non-art items first)
 Tim wants a dedicated session of massive prop generation for the biomes with few assets: snow, dry, plains/grassland, hills, beach/coast (plus farms, fences, ruins, features), and more variety for biomes that already have some art (forest, lake, cliffs) (Tim 00:08 "and some we do"). Output: prompt sheets per biome following the piece-type rule (standalone vs joining vs tile, size in units), Tim generates, then a cut-and-import step and the placement rules.
 
-## Dry range blueprint (P4; BUILT 2026-11-03, Tim playtest pending)
+## Dry range blueprint (P4; BUILT 2026-11-03, Tim playtest passed)
 Later proposal: add connected mountain cells in a dry region so the dry cliffs, rims, corners, tops and outcrops can be mapped together. Proposed blueprint workflow: python3 blueprint.py (world_blueprint), then tools/seed_world.mjs; validate sites, routes and passes. Mock and Tim's build approval first.
 
 ## Walkthrough findings (historical; current status below)
@@ -33,17 +33,12 @@ Status (Tim, 2026-11-02): W3.10/P1 are done; P2 Maps is complete after Tim's pla
 8. Later (Tim OK'd): chunk build and ground-paint speed-up after the main build is complete.
 9. Bridges (Tim 00:16): the crossing just north of the capital (V1-F7, island 12486,2947) is a `bridge`-kind crossing: walkable river cells with nothing drawn, so the hero stands "in" the water. W3.10 put ford art only on the 8 `ford` crossings; the 9 bridges have no art yet. Needs bridge art (standalone piece, sized to the river width) or a placeholder (e.g. plank walkway) on all bridge crossings. Same shot: the water shows faint diagonal stripes in a regular grid, likely the same plain-repeat seam issue as 6d; check the water texture in the fix phase. Real fords: nearest is V2-F1 at 9552,1851 (by site S08).
 
-## P3 direction (Tim, 2026-11-02; deferred)
+## Resolved follow-ups (Tim, 2026-11-03)
 
-- Defer P3 overall. In the latest screenshot, mountain, snow, and cliff joins look good enough for now.
-- When P3 is revisited, focus on water edges, prop density/clustering, and missing biome art.
-- Redesign fords, bridges, lakes, and especially river sources in a future design pass. The current source reads like a single diagonal river segment, not a rounded pool/lake or believable source. Springs or pools, mountain tarns, and waterfalls feeding streams are brainstorming categories only—not approved designs.
-- Any future water design must make source shapes, stream connections, crossing scale/alignment, and water collision agree. Do not start art generation or implementation until the phase is reopened and designs are approved.
+- [x] P3 water/coast/blending and final reflection/depth/foam/caustics/inland banks visually accepted.
+- [x] P4 coast cliffs/dry range: Tim completed the coastal playtest; all looks great.
+- [x] Current biome art/crop/import and 28-family clustering accepted.
+- [ ] Current-world clustering performance seems good; recheck with mobs/camps and representative load.
+- [ ] Retain reported river-corner snag and unrounded harbor/mountain corners; bridges/source/lake shape redesign separate.
 
-P5 status (Tim, 2026-11-02): ten accepted sheets and 57 sprites are cut, imported and integrated; all cuts repaired with reviewed object regions after clipping was found. Tim accepted repaired previews. See the [owner prompt record](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02) for validation limits and the coastline plan/wet-only trial. Coastline update (2026-11-03): wet v2/dry v1/snow v1 are imported and continuous terrain-border rendering is implemented; focused Node checks pass. Tim has now approved coastline/blending across biomes and confirmed diagonals gone; the separate new water-motion pass awaits review.
-
-P3 update (2026-11-03): coast art look accepted before finishing; rounding, inland biome-ground transition and water crosshatch repair are now code complete. Tim confirms coastline/blending look great across biomes and water diagonals are gone. Walking validation is not claimed; new water-motion review is pending. See [current P3 status](frontier_build_steps.md#p3-edges-and-water--code-complete-visual-review-pending-2026-11-03); bridges and source/lake redesign remain separate. All-biome groundcover clustering remains planning only until smoothing review.
-
-Water-motion follow-up (2026-11-03): Tim reported magma-like motion and authorized continued water work. [Water surface plan](../assets/environment/island/water_surface_plan.json) records primary Three.js r186 Water2 / NVIDIA GPU Gems research and the implementation: plain uniform packing, four seam-safe phase samples with explicit gradients, two broad/two fine analytical waves driving normals/highlights, and subdued color drift. Accepted coast geometry/masks/collision and original art are unchanged; no new targets, libraries or art. Syntax, finite config/wave checks, scoped diff and P3 edges passed. No GPU compilation, new-motion appearance or performance approval; Tim must refresh and judge motion.
-
-Groundcover remains planning only: 28 named candidates / 12 placement profiles, singles plus varied clumps, unchanged other props, density budget and an independent deterministic pass across jungle/forest/marsh. No clustering code.
+Earlier findings above are historical context. [Current handoff](frontier_build_steps.md#next-coordinator-handoff-tim-2026-11-03) owns next steps.
