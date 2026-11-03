@@ -388,83 +388,143 @@ Each B file is a separately generated alternate arrangement matching its A textu
 
 ## P5 biome art plan only (2026-11-02)
 
-Tim approved the six basic categories below, all 36 rare oddity concepts, and grouped transparent sheets for planning. Exact dimensions, rates, packing, prompt details and art acceptance still await review. Generation remains ON HOLD; no P5 images or gameplay code have been created. Cutting, import, placement, density and collision changes are not authorized.
+Tim approved these prompts and sequential transparent-sheet generation (2026-11-02): start snow essentials and review the first sheet before proceeding. Grouped sheets are the default; singles only where truly necessary for usable resolution. Units remain rough fitting guidance, not exact generator output. No cutting, import, runtime, density, collision, export or build approval. No water, shoreline or opaque tile generation. Preserve source sheets.
 
-The [planning JSON](environment/island/p5_biome_art_plan.json) preserves the reuse audit, four full basic sheet prompts, 25 individual specifications (23 transparent sprites plus two optional opaque tiles), and six rare sheet candidates. Individual prompt strings are specifications/fallbacks, not extra image generations. Optional opaque tiles and the extra `ruined_field_shed.png` variant remain proposals; review overlap before adding a separate rural shed.
+Request high resolution to preserve cell detail for later sizing; requested resolution is not guaranteed tool output. Separate canvases are reserved for large detailed landmarks that truly require them; farmstead and shipwreck are candidates, not an approved expanded singles run.
 
-| Approved basic category | Contents |
-|---|---|
-| Snow | Snowy pine, cedar, bush, boulders, fallen log, stump, small drift |
-| Plains | Grass tussock, wildflowers, broadleaf tree |
-| Hills | Low upland scrub; reuse rocks and twisted trees |
-| Dry | Dry scrub, straw grass, sandstone stones, bleached log |
-| Coast | Dune grass, driftwood |
-| Optional features | Snowy lantern, frozen well, ruined shed, snowy fence pieces |
+The exact approved opening and group wording follow; shared opening precedes every group, and the shared addition also precedes oddities. Canonical full prompts are in [planning JSON](environment/island/p5_biome_art_plan.json). Individual specifications are not extra generations.
 
-**Approved grouped method; dimensions proposed:** transparent 3-column by 2-row sheets of six isolated objects, then cut and alpha-trim each cell into named sprites. First six core snow props fit one sheet. Current draft canvas is 1536 x 1024 with six 512 x 512 cells and at least 32 pixels of transparent padding per cell; exact dimensions await review. Use the muted 1870s Japanese painted style, fixed 2:1 isometric camera and soft upper-left overcast light. Keep relative world scale anchored to the game pine (canopy about 5.5 units); do not enlarge small props to fill cells. No visible grid, labels, overlap, merged objects, backdrop, ground slabs or scenery. Preserve source sheets and crop/ground-anchor/fitted-size metadata. After separate generation approval, inspect references, generate one sheet at a time and review the snow cuts first. Reject unusable merged cells rather than guessing crops. Opaque seamless ground textures are separate outputs, never prop-sheet cells.
+**Shared opening — use for every group**
 
-### Proposed transparent sheets and order
+> Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.
+>
+> Arrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.
+>
+> Use genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.
+>
+> Preserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.
 
-| Order | Sheet | Contents in cell order (top row, then bottom row) | References |
-|---|---|---|---|
-| 1 · Snow starter set | <code>p5_snow_core_sheet.png</code> (1536 x 1024; 3 x 2) | snow_pine.png; snow_cedar.png; snow_bush.png; snow_boulders.png; snow_fallen_log.png; snow_stump.png | <code>game/art/props/pine_tree.png</code>; <code>assets/environment/island/cliff_snow_a.png</code>; <code>assets/environment/forest_props/cedar.png</code>; <code>assets/environment/forest_props/bush.png</code>; <code>assets/environment/forest_props/small_rocks.png</code>; <code>assets/environment/forest_props/fallen_log.png</code>; <code>assets/environment/forest_props/stump.png</code> |
-| 2 · Open-country plants | <code>p5_open_country_sheet.png</code> (1536 x 1024; 3 x 2) | meadow_grass.png; meadow_flowers.png; meadow_broadleaf_tree.png; hill_heather.png; dry_scrub.png; dry_grass_tussock.png | <code>assets/environment/forest_props/bush.png</code>; <code>assets/environment/forest_props/ferns.png</code>; <code>game/art/props/cherry_tree.png</code>; <code>game/art/props/pine_tree.png</code>; <code>assets/environment/forest_props/small_rocks.png</code>; <code>assets/environment/island/outcrop_dry.png</code> |
-| 3 · Landscape details | <code>p5_landscape_details_sheet.png</code> (1536 x 1024; 3 x 2) | sandstone_stones.png; bleached_log.png; dune_grass.png; coastal_driftwood.png; snow_drift.png; ruined_field_shed.png | <code>assets/environment/island/outcrop_dry.png</code>; <code>assets/environment/forest_props/small_rocks.png</code>; <code>assets/environment/forest_props/fallen_log.png</code>; <code>assets/environment/forest_props/bush.png</code>; <code>assets/environment/island/ground_snow.png</code>; <code>assets/environment/buildings/wilderness/forest_hut.png</code> |
-| 4 · Later snow features | <code>p5_snow_features_sheet.png</code> (1536 x 1024; 3 x 2) | snow_stone_lantern.png; snow_frozen_well.png; snow_ruined_shed.png; snow_fence_x.png; snow_fence_z.png; blank | <code>assets/environment/forest_props/stone_lantern.png</code>; <code>assets/environment/island/cliff_snow_a.png</code>; <code>game/art/props/well.png</code>; <code>assets/environment/buildings/wilderness/forest_hut.png</code>; <code>game/art/props/bamboo_fence.png</code> |
+**1. Snow essentials**
 
-### Draft cut manifest
+> Six STANDALONE props; no joining edges.
+>
+> 1. **Snowy pine — 5.5 × 5.5 units.** Mature Japanese pine with irregular spreading branches, dark needles and substantial natural snow caps. Readable trunk; uneven, wind-shaped silhouette.
+> 2. **Snowy cedar — 4.2 × 4.2 units.** Taller, narrower Japanese cedar with tiered branches bowed beneath snow. Clearly different from the spreading pine.
+> 3. **Snow-covered bush — 2.5 × 2 units.** Low irregular shrub, dark exposed twigs and muted foliage beneath broken snow caps. Airy edges rather than a solid white ball.
+> 4. **Frosted boulders — 3.2 × 2.5 units.** One compact cluster of angular grey rocks, snow collected on upper faces and in crevices. Exposed dark stone remains visible.
+> 5. **Snowy fallen log — 5 × 1.4 units.** Weathered fallen trunk with broken branch stubs, dark bark and uneven snow along its upper surface. Keep the broken end readable.
+> 6. **Frozen stump — 2 × 1.8 units.** Old broken stump with a few exposed roots, frost and a small snow cap. No surrounding woodland or snow platform.
 
-The pixel sizes below are retained standalone fallback targets, not cell-cut dimensions or required upscales. A draft 512 x 512 cell is trimmed at its actual resolution. All world footprints are proposals, not tuned runtime values.
+**2. Open-country plants**
 
-| Sprite output | Source sheet / cell | Type | Fallback pixels | Proposed world footprint |
-|---|---|---|---|---|
-| <code>snow_pine.png</code> | <code>p5_snow_core_sheet.png</code>, top left | standalone | 1024 x 1024 | 5.5 x 5.5 units |
-| <code>snow_cedar.png</code> | <code>p5_snow_core_sheet.png</code>, top middle | standalone | 1024 x 1024 | 4.2 x 4.2 units |
-| <code>snow_bush.png</code> | <code>p5_snow_core_sheet.png</code>, top right | standalone | 1024 x 1024 | 2.5 x 2 units |
-| <code>snow_boulders.png</code> | <code>p5_snow_core_sheet.png</code>, bottom left | standalone | 1024 x 1024 | 3.2 x 2.5 units |
-| <code>snow_fallen_log.png</code> | <code>p5_snow_core_sheet.png</code>, bottom middle | standalone | 1024 x 1024 | 5 x 1.4 units |
-| <code>snow_stump.png</code> | <code>p5_snow_core_sheet.png</code>, bottom right | standalone | 1024 x 1024 | 2 x 1.8 units |
-| <code>meadow_grass.png</code> | <code>p5_open_country_sheet.png</code>, top left | standalone | 1024 x 1024 | 1.8 x 1.2 units |
-| <code>meadow_flowers.png</code> | <code>p5_open_country_sheet.png</code>, top middle | standalone | 1024 x 1024 | 2 x 1.5 units |
-| <code>meadow_broadleaf_tree.png</code> | <code>p5_open_country_sheet.png</code>, top right | standalone | 1024 x 1024 | 5 x 5 units |
-| <code>hill_heather.png</code> | <code>p5_open_country_sheet.png</code>, bottom left | standalone | 1024 x 1024 | 2 x 1.6 units |
-| <code>dry_scrub.png</code> | <code>p5_open_country_sheet.png</code>, bottom middle | standalone | 1024 x 1024 | 2.2 x 1.8 units |
-| <code>dry_grass_tussock.png</code> | <code>p5_open_country_sheet.png</code>, bottom right | standalone | 1024 x 1024 | 1.7 x 1.2 units |
-| <code>sandstone_stones.png</code> | <code>p5_landscape_details_sheet.png</code>, top left | standalone | 1024 x 1024 | 3 x 2.3 units |
-| <code>bleached_log.png</code> | <code>p5_landscape_details_sheet.png</code>, top middle | standalone | 1024 x 1024 | 4.5 x 1.4 units |
-| <code>dune_grass.png</code> | <code>p5_landscape_details_sheet.png</code>, top right | standalone | 1024 x 1024 | 2 x 1.4 units |
-| <code>coastal_driftwood.png</code> | <code>p5_landscape_details_sheet.png</code>, bottom left | standalone | 1024 x 1024 | 5 x 1.6 units |
-| <code>snow_drift.png</code> | <code>p5_landscape_details_sheet.png</code>, bottom middle | standalone | 1024 x 1024 | 4 x 2 units |
-| <code>ruined_field_shed.png</code> | <code>p5_landscape_details_sheet.png</code>, bottom right | standalone | 1024 x 1024 | 6 x 4 units |
-| <code>snow_stone_lantern.png</code> | <code>p5_snow_features_sheet.png</code>, top left | standalone | 1024 x 1024 | 1.2 x 1.2 units |
-| <code>snow_frozen_well.png</code> | <code>p5_snow_features_sheet.png</code>, top middle | standalone | 1024 x 1024 | 2.2 x 2.2 units |
-| <code>snow_ruined_shed.png</code> | <code>p5_snow_features_sheet.png</code>, top right | standalone | 1024 x 1024 | 6 x 4 units |
-| <code>snow_fence_x.png</code> | <code>p5_snow_features_sheet.png</code>, bottom left | joining piece | 1536 x 1024 | 6 x 0.35 units |
-| <code>snow_fence_z.png</code> | <code>p5_snow_features_sheet.png</code>, bottom middle | joining piece | 1536 x 1024 | 0.35 x 6 units |
+> Five STANDALONE vegetation patches and one STANDALONE tree. Patches are small irregular clusters, not seamless tiles. Keep transparent gaps between plants, broken natural edges and no painted soil underneath.
+>
+> 1. **Meadow grass patch — 3 × 2 units.** Several uneven tussocks of muted olive and straw-green grass, varied blade heights and small open gaps. No rectangular lawn.
+> 2. **Wildflower patch — 3 × 2.5 units.** Loose meadow grasses with scattered cream, pale lavender and faded yellow flowers. Mostly foliage; sparse flowers rather than a bright bouquet.
+> 3. **Broadleaf tree — 5 × 5 units.** One mature Japanese countryside tree with an irregular open canopy, muted olive leaves and visible branching trunk. No blossoms or spherical ornamental crown.
+> 4. **Hill-scrub patch — 3 × 2 units.** Several low wind-pressed shrubs, grey-green leaves, exposed twigs and restrained dusky mauve tips. Broken, rugged silhouette.
+> 5. **Dry-scrub patch — 3.5 × 2.5 units.** Loose drought-hardened shrubs with dusty sage and ochre leaves, twisted brown twigs and dead tips. No cactus or tropical plants.
+> 6. **Dry-grass patch — 3 × 2 units.** Several separated straw-coloured tussocks with curled blades and thin seed stalks. Airy, ragged and sun-bleached, with substantial transparent openings.
 
-### Rare oddities — six transparent-sheet candidates (Tim approved, 2026-11-02)
+**3. Landscape details**
 
-Cell order is top row then bottom row. Each landmark may be a small coherent cutout cluster, isolated from its neighbours. These are concept groups for prompt discussion, not generation requests.
+> Six STANDALONE props or compact clusters; no joining edges.
+>
+> 1. **Sandstone stones — 3 × 2.3 units.** Low cluster of weathered ochre stones with pale faces, rusty seams and small fissures. Small rocks, not a miniature mountain range.
+> 2. **Bleached log — 4.5 × 1.4 units.** Dry inland deadwood with split grey-ochre grain, a broken hollow end and short brittle branch stubs.
+> 3. **Dune-grass patch — 3 × 2 units.** Several loose clumps of tough green-gold coastal grass, bent consistently by wind, with pale seed heads and transparent gaps. No sand base.
+> 4. **Coastal driftwood — 5 × 1.6 units.** Silver-grey trunk with water-worn surfaces, rounded broken ends and smooth root prongs. Distinct from the cracked inland log; no water or beach.
+> 5. **Small snow drift — 4 × 2 units.** Low wind-shaped snow mound with a rounded crest and tapering tongue. Subtle blue-grey shading matching approved snow terrain; soft irregular alpha edge, no rectangular base.
+> 6. **Weathered trail cairn — 1.5 × 1.5 units.** Small, slightly uneven stack of five to seven local grey stones, broad stable base and narrower top. Old and understated, with sparse lichen; no inscription or surrounding landscape.
 
-| Biome / candidate sheet | Six landmarks |
-|---|---|
-| Snow / `p5_snow_oddities_sheet.png` | Half-buried shrine; collapsed mountain hut; frozen well; icicle grotto; frost-covered ancient standing stones; giant broken cedar |
-| Plains / `p5_plains_oddities_sheet.png` | Abandoned farmstead; ruined granary; overgrown cemetery; collapsed watchtower; neglected orchard; small roadside shrine |
-| Hills / `p5_hills_oddities_sheet.png` | Abandoned mine entrance; ruined signal tower; old quarry workings; cliff grotto; hermit's hut; weathered stone circle |
-| Dry / `p5_dry_oddities_sheet.png` | Exposed dinosaur rib cage; fossil skull embedded in sandstone; ruined plaster-and-timber building; ancient dry well; abandoned caravan camp; shaded rock grotto |
-| Coast / `p5_coast_oddities_sheet.png` | Broken shipwreck hull; ruined coastal lookout; washed-up cargo cache; sea cave; abandoned fisherman's shack; weathered seaside memorial |
-| Forest / `p5_forest_oddities_sheet.png` | Root-covered shrine; giant hollow cedar; moss-covered ruins; old charcoal kiln; collapsed woodland gate; fern-lined grotto |
+**4. Optional snow features**
 
-Rarity direction: about one of each TYPE per few normal viewscreens (proposed calibration 3–5), with world-space spacing usually leaving only 1–2 oddities total on a normal view. Measure actual units later. Placements are fixed and seeded; never respawn/reroll with camera or zoom. Grottos need suitable cliffs, fossils exposed rock, wrecks actual coast; terrain and collision must match. Reuse overlapping wells, sheds/huts and shrines across basic and rare manifests; the frozen well already has a basic specification. Resolve shared outputs and skip/repack duplicate cells before generation. Six candidates do not require six new sheets. No interactive systems, interiors or loot are implied; discuss those later.
+> Three STANDALONE props, two JOINING PIECES and one empty cell. Match materials and snow treatment to group 1.
+>
+> 1. **Snowy stone lantern — 1.2 × 1.2 units.** Aged Japanese stone lantern, unlit, snow on its roof and base, frost in the joints. No garden or paving platform.
+> 2. **Frozen well — 2.2 × 2.2 units.** Abandoned stone well with weathered timber crossbeam and idle bucket. Snow on rim and beam, a dark recessed opening and a few restrained icicles.
+> 3. **Collapsed snowy hut/shed — 6 × 4 units.** Small rural Japanese timber structure, partly collapsed roof, exposed rafters and dark posts under uneven snow. One coherent ruin, with no surrounding yard or furnished interior.
+> 4. **Snowy fence, X direction — 6 × 0.35 units, about 1.1 units high.** Straight rustic two-rail timber module. Baseline slopes upper-left to lower-right at 1 vertical to 2 horizontal. Ends at −X and +X must meet matching modules at identical ground and rail heights. Half-width shared end posts; no gate, corner or endcap.
+> 5. **Snowy fence, Z direction — 0.35 × 6 units, same height.** Matching companion module, baseline upper-right to lower-left at the same 1:2 slope. Ends at −Z and +Z join matching modules. Identical timber, rails, post proportions and snow treatment.
+> 6. **Leave completely transparent.**
 
-### Optional opaque ground-tile proposals (separate later generations)
+The frozen well and collapsed snowy hut above also serve their corresponding snow oddities. They do not need duplicate generations.
 
-These are not transparent-sheet cells and are not part of the initial sheet run. Each is a separate seamless 1024 x 1024 opaque texture proposal for an 8 x 8 world-unit tile; review the choices before any later generation.
+**Shared addition — use for all oddity groups**
 
-| File | Biome / use | References |
-|---|---|---|
-| <code>packed_snow_trail.png</code> | snow / Packed snow trail material | <code>assets/environment/island/ground_snow.png</code>; <code>assets/environment/island/ground_snow_thaw.png</code> |
-| <code>fallow_field.png</code> | plain / Small fallow field material | <code>assets/environment/forest_textures/wet_soil_tile.png</code>; <code>assets/environment/forest_textures/pebbles_soil_tile.png</code> |
+> Each occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.
+>
+> Cave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.
+>
+> Ruins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.
+
+**5. Snow oddities**
+
+> Use cold blue-grey stone, weathered dark timber, frost and irregular snow accumulation.
+>
+> 1. **Half-buried shrine — 5 × 4 units.** Small neglected timber roadside shrine, lower structure partly swallowed by snow, sagging roof and a few exposed steps. Use the same underlying shrine design as the plains roadside shrine, with a snow-specific treatment.
+> 2. **Leave transparent.** The collapsed mountain hut uses group 4’s snowy hut/shed.
+> 3. **Leave transparent.** The frozen well uses group 4’s well.
+> 4. **Icicle grotto — 7 × 4 units.** Dark recessed opening in fractured cold-grey rock, irregular icicles hanging from its lip and snow on upper ledges. Include immediate backing rock only.
+> 5. **Frost-covered standing stones — 6 × 5 units.** Small uneven arrangement of ancient rough monoliths, some leaning or partly buried, with frost and restrained snow caps. No runes.
+> 6. **Giant broken cedar — 7 × 5 units.** Massive old cedar with a splintered upper trunk, surviving twisted limbs and snow lodged in bark crevices. A distinctive broken silhouette.
+
+**6. Plains oddities**
+
+> Weathered timber, faded plaster, muted meadow vegetation and restrained moss. Plants belong to each compact landmark, not a surrounding field.
+>
+> 1. **Abandoned farmstead — 14 × 10 units.** Compact ruined farmhouse with a collapsed lean-to and a few attached broken fence sections. Exposed rafters, patchy roof and weeds; no complete farm landscape.
+> 2. **Ruined granary — 7 × 5 units.** Small raised Japanese timber storehouse, damaged supports, missing wall boards and a partly collapsed roof. Readable elevated floor.
+> 3. **Overgrown cemetery — 7 × 6 units.** Compact cluster of irregular weathered Japanese grave markers, a few leaning, with low grasses and weeds between them. No readable writing.
+> 4. **Collapsed watchtower — 7 × 6 units.** Broken timber lookout with a surviving lower frame and fallen upper platform gathered close to its base.
+> 5. **Neglected orchard — 12 × 9 units.** Small coherent group of three old fruit trees, uneven crowns, sparse foliage and tangled lower growth. No blossoms, field base or regimented plantation.
+> 6. **Roadside shrine — 3 × 3 units.** Small aged Japanese timber shrine with a shallow roof, low stone base and worn steps. Establish the shared shrine construction used by compatible snow and forest variants.
+
+**7. Hills oddities**
+
+> Wind-weathered grey stone, sparse upland plants and dark aged timber.
+>
+> 1. **Abandoned mine entrance — 6 × 4 units.** Timber-braced dark opening inset into fractured hill rock, broken support beam and a few stones at its foot. Immediate backing rock only.
+> 2. **Ruined signal tower — 6 × 5 units.** Remains of a hilltop timber signalling structure on a rough stone footing. Broken upper frame, no flag or fire.
+> 3. **Old quarry workings — 10 × 7 units.** Compact exposed rock face with stepped extraction scars, chisel marks, several abandoned cut blocks and close rubble. No surrounding hillside.
+> 4. **Cliff grotto — 7 × 4 units.** Irregular recessed opening with a heavy fractured rock brow, weathered ledges and sparse scrub in cracks.
+> 5. **Hermit’s hut — 6 × 4 units.** Tiny weather-beaten timber shelter with a patched roof and partly collapsed porch. Use the shared small-hut structure where compatible, with a temperate finish.
+> 6. **Weathered stone circle — 7 × 6 units.** Loose ring of low rough stones, some fallen or tilted, with sparse grass between them. Ancient and understated; no magical symbols.
+
+**8. Dry oddities**
+
+> Pale sandstone, dusty ochre, sun-bleached timber and sparse drought-hardened vegetation.
+>
+> 1. **Exposed dinosaur rib cage — 9 × 5 units.** Partly mineralised fossil ribs and a section of spine emerging from a compact eroded sandstone exposure. Broken, incomplete and visibly embedded; no fresh carcass.
+> 2. **Fossil skull in sandstone — 5 × 3 units.** Weathered prehistoric skull partly enclosed by layered sandstone, with portions still concealed in rock. Natural fossil discovery, not a clean museum display.
+> 3. **Ruined plaster-and-timber building — 8 × 6 units.** Small abandoned rural structure with cracked faded plaster, exposed framing and a fallen roof section.
+> 4. **Ancient dry well — 3 × 3 units.** Worn stone well with a broken timber support, chipped rim and dark dry opening. No snow, water or desert scenery.
+> 5. **Abandoned caravan camp — 9 × 6 units.** Compact abandoned pack-travel camp: collapsed canvas shelter, broken wooden handcart, bundled goods and an extinguished fire ring. No camels or exotic desert styling.
+> 6. **Shaded rock grotto — 7 × 4 units.** Low recessed cavity beneath an eroded sandstone overhang, deep natural shade and sparse dry scrub in cracks. Immediate rock surround only.
+
+**9. Coast oddities**
+
+> Salt-weathered grey timber, muted coastal stone, rust stains and sparse wind-bent vegetation. Do not paint water, surf or a shoreline into the sheet.
+>
+> 1. **Broken shipwreck hull — 14 × 6 units.** Grounded remains of an old wooden Japanese coastal vessel, split planking and exposed ribs, broken mast resting close against the hull. No sea or beach base.
+> 2. **Ruined coastal lookout — 7 × 5 units.** Small weather-beaten timber lookout on a rough stone footing, partly collapsed roof and salt-worn supports.
+> 3. **Washed-up cargo cache — 4 × 3 units.** Compact tangle of battered crates, one damaged barrel, frayed rope and torn packing material. No gold, glowing loot or scattered distant pieces.
+> 4. **Sea cave — 8 × 5 units.** Broad dark opening in salt-worn coastal rock, damp lower faces and restrained mineral staining. Immediate backing rock only; no painted waterline.
+> 5. **Abandoned fisherman’s shack — 6 × 4 units.** Small damaged timber shelter with a sagging roof, a folded torn net and a few fishing floats attached close to its wall. Use compatible shared hut construction.
+> 6. **Seaside memorial — 3 × 3 units.** Weathered Japanese stone memorial with a small broken offering ledge, salt erosion and sparse lichen. No readable lettering or surrounding vista.
+
+**10. Forest oddities**
+
+> Dark weathered timber, damp grey stone, subdued moss, ferns and woody roots. Keep vegetation local to the landmark.
+>
+> 1. **Root-covered shrine — 5 × 4 units.** The shared small roadside shrine design, aged beneath thick roots gripping its base and creeping across damaged timber. Moss on the roof; no surrounding forest.
+> 2. **Giant hollow cedar — 7 × 6 units.** Ancient broad-trunked cedar with a dark natural hollow, twisted roots and a few surviving heavy limbs. The hollow is part of the tree, with no furnished interior.
+> 3. **Moss-covered ruins — 8 × 6 units.** Compact broken stone foundation and short wall remnants entwined with roots, moss and sparse ferns. No whole ruined settlement.
+> 4. **Old charcoal kiln — 5 × 4 units.** Abandoned low domed earthen-and-stone Japanese charcoal kiln, cracked surface, small dark mouth and restrained charcoal staining.
+> 5. **Collapsed woodland gate — 7 × 4 units.** Broken timber gate with one leaning upright, fallen crossbeam and short attached fence remnants. Weathered, mossy and structurally readable.
+> 6. **Fern-lined grotto — 7 × 4 units.** Recessed opening in damp fractured rock, ferns concentrated beside the mouth and roots crossing the brow. Immediate backing rock only.
+
+The shrine and hut variants should share their underlying designs wherever compatible. Their different snow, root and weathering treatments remain distinct; the exact snowy well and collapsed hut are reused outright.
 
 **Shoreline kit reservation (planning only):** temperate, snow and dry shores each need eight world-space water-facing orientations (N, NE, E, SE, S, SW, W, NW). Share a topology template, but keep materials and silhouettes distinct. Low beach banks and coastal cliffs/rims are separate geometry families. Existing <code>lake_edge_1..8</code> are references, not a complete coast kit. Eight facings do not solve arbitrary concave/convex joins; connectors, caps and beach-to-cliff/biome transitions wait until water redesign approves exact footprint, endpoints, land/water side and geometry. No bridge, river-source, lake or capital-silhouette prompts are approved in this pass.
 
