@@ -23,7 +23,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [ ] P3 edges and water · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [ ] P3 edges and water (deferred by Tim; no approved design/build) · [ ] P4 coast cliffs and dry range · [ ] P5 art (on hold) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [ ] W4.2 · [ ] W4.3 · [ ] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] E6 · [ ] E7 playtest
@@ -33,7 +33,16 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: P2 Maps (Tim playtest passed 2026-11-02; W3.4b art pass still open) · Next: P3 Edges and water; F1.7 playtest remains deferred to the end
+Last step done: P2 Maps (Tim playtest passed 2026-11-02; W3.4b art pass still open) · Next: finish discussing grouped P5 basic and rare art lists/prompts; generation stays on hold. F1.7 playtest remains deferred to the end.
+
+## Next coordinator handoff (Tim, 2026-11-02)
+
+- Read `START_HERE.md`; before any actual build, read this full file and [step_runner_guide.md](step_runner_guide.md). Current next action is P5 discussion/planning only: finish grouped basic and rare art lists/prompts with Tim. No generation or gameplay changes are authorized.
+- W3.10 and W3.11 P1 are done. P2 Maps is locally committed (`2964641`) and Tim marked it COMPLETE. Its north-up maps, 500-unit labels, DPR 2 canvases, shared 4× smoothed cache and camera/teleport fixes are recorded in P2 below; geography still has 50-unit cells.
+- Settings load fix `eac645b` uses a full normal boot through one-shot `?load=filename`, rebuilding UI/worker for another clan/hero/mode. Node save-menu/start-load checks passed; Tim's in-game load confirmation remains open. `test_crew.mjs:97` still has the pre-existing teahouse-vs-street failure; do not claim all old tests pass.
+- P3 is deferred: general biome blending exists; special mountain-top feathering remains deferred. P4 coastal cliffs/connected dry range are not built or approved to build. Later water design must revisit fords, bridges, lakes and especially rounded pool/tarn-like river sources.
+- Approved P5 categories, six rare landmark sheet candidates, reuse, rarity and shoreline direction live in [image_prompts.md](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02), with draft specifications in [p5_biome_art_plan.json](../assets/environment/island/p5_biome_art_plan.json). Exact dimensions, rates, prompt details and art acceptance remain for review. No P5 images or gameplay code exist.
+- [Island playtest notes](island_playtest_notes_2026-11-02.md) retain the visual issues and deferred water discussion. Keep this Docs keeper chat available; the outgoing coordinator can close after handing off.
 
 ## Working in one long window (auto-compacting)
 
@@ -1070,10 +1079,11 @@ Checkpoint (2026-11-02): W3.9 baseline cliff/top/outcrop/city-gate assets are im
 the blueprint-derived mountain cells; movement/corner handling is implemented and coordinator-reported
 checks passed. The tour markers and temporary staged review props have been removed. Twenty-one
 follow-up assets (8 numeric lake banks, 4 opposite-bank rims, 9 high-ground variants) are saved and
-accepted, but still await mapping/integration. The first new opaque snow-lowland texture,
-`ground_snow.png`, has appeared but is pending verification; `ground_snow_thaw.png` is pending
-sequential generation. Keep the pair open until both are saved and verified. W3.8/W3.9 visual and
-biome-ground work remains open.
+accepted, but still await mapping/integration. Four snow-lowland textures are now saved:
+`ground_snow.png`, `ground_snow_b.png`, `ground_snow_thaw.png`, and `ground_snow_thaw_b.png`.
+Coordinator verified all are 1254 × 1254 with opaque alpha 255 (prompts targeted 1024 × 1024).
+Large-area seamless continuity still needs review; mild directional grain or patch alignment may show.
+Runtime integration remains pending. W3.8/W3.9 visual and biome-ground work remains open.
 
 Check: Tim puts them side by side. They should share the same angle, light and colours, and the trees
 should be the same size as the game's pine. Redo any that stand out.
@@ -1242,20 +1252,23 @@ High-resolution note: canvases are DPR-aware and terrain is rendered from a shar
 Process note: suspending map presentation must leave camera projection updates live; keep graphics paused while camera math continues.
 
 
-#### P3 Edges and water (shader and paint code; Opus suggested)
-- Feather mountain tops into the ground under the rim/cliff art; wider thaw band between snow textures [6c].
-- Lakes: diagonal bank pieces 2/4/6/8 on staircase corners; water variation (shallow tint, slow noise) [4].
-- Sea shore: shallow-water tint and foam band (code only) [4b].
+#### P3 Edges and water — deferred; no design/build approved
 
-#### P4 Coast cliffs and dry range (world data change; Opus suggested; previews first)
+Tim deferred P3. Latest screenshot: mountain, snow, and cliff joins look good enough; future priorities are water edges, prop density/clustering, and missing biome art. Redesign fords, bridges, lakes, and especially river sources in a later design pass. The current source reads as one diagonal river segment, not a rounded pool/lake or believable source. Springs/pools, mountain tarns, and waterfalls feeding streams are brainstorming categories only, not approved designs. Future source shapes, stream connections, crossing scale/alignment, and water collision must agree. Do not generate art or implement P3 until reopened and approved. See [island playtest notes](island_playtest_notes_2026-11-02.md#p3-direction-tim-2026-11-02-deferred).
+
+#### P4 Coast cliffs and dry range — not built; no build approval
 - Mark coast cells and line most of the coast with the existing cliff/rim/corner art; keep harbours and landings open [4b].
 - Dry-range blueprint: blueprint.py -> seed_world.mjs, sites/routes/passes still validate [dry range].
 
-#### P5 Art phase (ON HOLD until image generation is available)
-- Prompt sheets per biome (standalone / joining / tile, size in units): snow props and snowy trees (also for mountain tops), snowy trails, fences, abandoned farms, ruins; plains, hills and dry features; beach strips, foam, driftwood; more variety for forest, lake and cliffs [5, 6b, 6c, 4b].
-- Bridge art for the 9 bridge crossings [9].
-- Capital seen from the island: a painted city silhouette with lantern light and smoke, "Enter the capital" on hover; mock first [3].
-- Then: cut, import and placement rules.
+#### P5 Biome art — approved concepts; discussion/plan only (Tim, 2026-11-02)
+
+- [x] Prepare reuse audit, proposed densities/sizes, four full basic sheet prompts and 25 individual specifications (23 transparent sprites plus two optional opaque tiles). These individual strings are specifications/fallbacks, not additional generations. See [owner prompt plan](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02) and [planning JSON](../assets/environment/island/p5_biome_art_plan.json).
+- [x] Tim approved all six basic categories, grouped transparent 3×2 sheets, and all 36 rare oddity concepts grouped into six biome sheet candidates. Reuse overlapping assets before final packing; no duplicate well/shed/shrine generations.
+- [ ] Finish discussing exact prompts, dimensions, rarity/spacing, optional opaque tiles and the extra rural shed variant. Proposed numbers are not tuned runtime values.
+- [ ] Generation remains ON HOLD. Only after separate approval: snow starter sheet first, cut/review, then one sheet at a time. Preserve source sheets; alpha-trim isolated cells. Ground textures stay separate opaque outputs. Output target: `assets/environment/island/p5/`.
+- [ ] Review/import and placement changes need separate approval. No P5 images or gameplay code have been created; no runtime, collision or density changes are approved.
+- [x] Approve eight shoreline orientations and distinct biome material/silhouette families for planning; beach banks and coastal cliffs are separate geometry families. Exact endpoints, land/water sides, corners, connectors and spans await later water design; existing eight lake images do not complete a coast kit.
+- [ ] Bridges, lakes, river sources and capital silhouette remain deferred; no copy-ready prompts are approved for them. See the [island playtest notes](island_playtest_notes_2026-11-02.md) for the W3.10 walkthrough handoff.
 
 #### Later (Tim OK'd)
 - Chunk build and ground-paint speed-up after the main build [8].

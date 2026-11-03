@@ -1,0 +1,1282 @@
+{
+  "version": 1,
+  "date": "2026-11-02",
+  "status": "Basic categories, grouped-sheet method and 36 rare oddity concepts approved by Tim 2026-11-02 for planning only; exact prompts, dimensions and rates await review; generation ON HOLD",
+  "scope": {
+    "authorizedDraftWork": [
+      "asset reuse audit",
+      "draft biome density/clustering proposals",
+      "grouped basic and rare sheet specifications and prompts for discussion"
+    ],
+    "notApproved": [
+      "exact implementation dimensions and rates",
+      "final prompt details and art acceptance",
+      "optional opaque tile choices or extra rural shed variant",
+      "image generation or cutting",
+      "runtime density changes",
+      "imports or collision changes",
+      "water/source redesign implementation",
+      "capital silhouette generation"
+    ],
+    "approvedPlanningOnly": {
+      "snow": [
+        "snowy pine",
+        "cedar",
+        "bush",
+        "boulders",
+        "fallen log",
+        "stump",
+        "small drift"
+      ],
+      "plains": [
+        "grass tussock",
+        "wildflowers",
+        "broadleaf tree"
+      ],
+      "hills": [
+        "low upland scrub",
+        "reuse rocks and twisted trees"
+      ],
+      "dry": [
+        "dry scrub",
+        "straw grass",
+        "sandstone stones",
+        "bleached log"
+      ],
+      "coast": [
+        "dune grass",
+        "driftwood"
+      ],
+      "optionalFeatures": [
+        "snowy lantern",
+        "frozen well",
+        "ruined shed",
+        "snowy fence pieces"
+      ]
+    }
+  },
+  "generation": {
+    "order": [
+      "snow starter sheet first; review and cut before more generation",
+      "open-country plants",
+      "landscape details",
+      "snow features later",
+      "two optional opaque ground tiles separately later"
+    ],
+    "noBatchGrid": false,
+    "noOverwrite": true,
+    "outputDirectory": "assets/environment/island/p5/",
+    "sourcePixelNote": "Sheet canvas dimensions are proposals, not approved output sizes. Individual prompt width/height fields are legacy standalone fallback targets, NOT expected cell-cut dimensions. A 1536 x 1024 sheet has 512 x 512 cells before alpha trim; do not upscale cuts to those fallback sizes. Record actual output dimensions and alpha.",
+    "referenceRule": "Inspect every referenced source before generation. Match first approved new snow prop throughout its family. Output files do not exist merely because a prompt exists.",
+    "mode": "One transparent 3-column by 2-row prop sheet per generation, then cut into individually named sprites. Standalone refers to each object, not a requirement for one generation per sprite.",
+    "sheetCutting": "Use fixed equal cells with generous gutters, then alpha-trim each cell separately. Preserve original sheet, output each named sprite with crop/ground-anchor metadata and fitted visual size. Do not cut touching/merged objects by guesswork; reject only that cell. Import one reviewed sheet first, not all sheets at once.",
+    "counts": {
+      "basicDraftTransparentSprites": 23,
+      "basicDraftSheets": 4,
+      "optionalOpaqueTiles": 2,
+      "firstSnowSheetSprites": 6,
+      "rareSheetCandidates": 6,
+      "rareConceptSlots": 36,
+      "rareUniqueNewOutputs": "pending overlap/reuse and packing review; not 36 automatic generations"
+    },
+    "oneSheetAtATime": true,
+    "individualPromptRule": "prompts[] are individual specifications/fallback wording, NOT additional generation requests. sheets[] hold the four full basic grouped prompts. All generation remains on hold."
+  },
+  "reuse": [
+    {
+      "source": "assets/environment/forest_props/",
+      "files": [
+        "cedar.png",
+        "pine.png",
+        "ferns.png",
+        "stump.png",
+        "fallen_log.png",
+        "small_rocks.png",
+        "twisted_pine.png"
+      ],
+      "status": "distinct source art exists; several island kinds currently use substitutes in world_ground.ART",
+      "next": "import/map these distinct sources before generating duplicate temperate assets"
+    },
+    {
+      "source": "assets/environment/forest_props/",
+      "files": [
+        "bush.png",
+        "branch_pile.png",
+        "firewood.png",
+        "jizo_statue.png",
+        "stone_lantern.png",
+        "signpost.png",
+        "campfire_ring.png",
+        "bandit_tent.png"
+      ],
+      "status": "sources exist; selective authored use, not uniform scatter",
+      "next": "review legibility, remove/avoid readable sign text, fit anchors; no new interaction implied"
+    },
+    {
+      "source": "game/art/props/",
+      "files": [
+        "bamboo_fence.png",
+        "stone_wall.png",
+        "haystack.png",
+        "well.png",
+        "handcart.png",
+        "rowboat.png",
+        "crates.png",
+        "barrels.png"
+      ],
+      "status": "runtime art exists",
+      "next": "reuse only where context fits; terrain/collision and navigation still reviewed; no boats placed on dry inland terrain"
+    },
+    {
+      "source": "assets/environment/island/",
+      "files": [
+        "outcrop_moss.png",
+        "outcrop_snow.png",
+        "outcrop_dry.png"
+      ],
+      "status": "already available and emitted as rare props",
+      "next": "keep large outcrops sparse; they are not substitutes for small ground clutter"
+    },
+    {
+      "source": "assets/environment/island/",
+      "files": [
+        "ground_snow.png",
+        "ground_snow_thaw.png",
+        "top_snow.png",
+        "top_snow_b.png",
+        "top_snow_c.png",
+        "top_snow_d.png"
+      ],
+      "status": "snow ground/high-ground art already exists",
+      "next": "do not regenerate these for the prop pass; new packed-snow trail is a separate material"
+    }
+  ],
+  "density": {
+    "status": "proposed starting targets, not runtime configuration",
+    "units": "visible standalone props per 1000 eligible passable world-square-units, after exclusion masks; large authored landmarks excluded",
+    "existingNominalPer1000": {
+      "forest": 23.85,
+      "hills": 7.22,
+      "dry": 4.22,
+      "snow": 6.3,
+      "marsh": 4,
+      "plain": 6.16
+    },
+    "existingNominalExplanation": "These are sums of rule inputs, NOT measured visible density. Grove masks, biome weights, trail/site clearances and blocker exclusions reduce actual counts. Do not compare raw rates directly to target observations.",
+    "targets": [
+      {
+        "biome": "snow",
+        "average": [
+          6,
+          10
+        ],
+        "grove": [
+          14,
+          18
+        ],
+        "treesAverage": [
+          2,
+          4
+        ],
+        "rule": "Snowy pine/cedar groups of 3-7 in sheltered patches, sparse snow bushes/stumps/rocks around edges; broad open snow lanes and wind-scoured areas. Replace summer pine/bush stand-ins before raising counts."
+      },
+      {
+        "biome": "plain",
+        "average": [
+          7,
+          11
+        ],
+        "grove": [
+          12,
+          16
+        ],
+        "treesAverage": [
+          0.3,
+          1
+        ],
+        "rule": "Mostly grass/flowers/small stones, tree copses around field edges and rare shrines; keep open views and large clearings. Farms/hedges/sheds are authored features, not random lawn clutter."
+      },
+      {
+        "biome": "hills",
+        "average": [
+          6,
+          10
+        ],
+        "treesAverage": [
+          1,
+          2
+        ],
+        "rule": "Small rocks, upland scrub and grass in uneven rocky clusters; wind-bent trees in pockets; large outcrops rare, no unbroken obstacle walls."
+      },
+      {
+        "biome": "dry",
+        "average": [
+          5,
+          8
+        ],
+        "treesAverage": [
+          0,
+          0.5
+        ],
+        "rule": "Dry tussocks and scrub clustered by occasional sandstone/bleached logs; wide exposed areas, no green pine carpet or imported cactus biome."
+      },
+      {
+        "biome": "coast",
+        "average": [
+          5,
+          9
+        ],
+        "treesAverage": [
+          0,
+          0.5
+        ],
+        "rule": "Beach grass landward of the shore, pebbles near exposed banks, rare driftwood above the waterline. Preserve bare sand and every harbor/landing/gate approach."
+      },
+      {
+        "biome": "forest",
+        "average": [
+          12,
+          18
+        ],
+        "grove": [
+          16,
+          24
+        ],
+        "rule": "Use existing grove look as the benchmark. Increase silhouette variety by importing distinct cedar/fern/stump/log sources, rather than making a uniform denser wall of the same pine."
+      }
+    ],
+    "placementRules": [
+      "Seed all choices in world coordinates; retain deterministic ownership across chunk seams.",
+      "Use 20-45-unit irregular vegetation patches as a starting proposal; broad gaps matter as much as density.",
+      "Never scatter blockers on water, trails, crossings, city gate approaches, settlement/node clearances or authored clearings.",
+      "Render visual canopy extent separately from fitted trunk/rock blockers; grass, flowers and low drifts do not block walking.",
+      "Avoid adjacent repeated silhouettes at identical size; bounded scale variance around authored dimensions, no extreme random rotations of fixed-camera sprites.",
+      "Snow and dry get their own material/silhouette sets, including shores. Share temperate assets only where they actually fit.",
+      "Ground contact shading should be a shared cached treatment, not a new independently drawn effect stack for every prop.",
+      "Snow trails use packed-snow/thaw material; do not draw a brown summer dirt road through all snow.",
+      "Large landmarks are rare authored clusters with clear exits and no implied interactive systems."
+    ],
+    "samplerGuard": {
+      "currentGrid": 3.4,
+      "currentGlobalCandidateProbability": 0.7138299999999999,
+      "rule": "Current paintProps chooses at most one candidate from cumulative probabilities across all biome rules, plus bamboo. Before increasing rule sums or adding coast rules, ensure sum(per1000)*grid^2/1000 stays <=1, or separately review a deterministic sampler change. Never silently clip later rules or claim raw sums equal observed density."
+    },
+    "performance": "Check chunk generation, active sprite count, draw calls and memory against the current accepted baseline before/after a small representative density change. Keep streamed bounds; no whole-island prop instantiation. No browser/headless automation; Tim checks in game."
+  },
+  "shorelineKits": {
+    "status": "Eight orientations and distinct biome families approved for planning; exact geometry, dimensions, spans/connectors and generation prompts wait for later water design",
+    "orientations": [
+      "N",
+      "NE",
+      "E",
+      "SE",
+      "S",
+      "SW",
+      "W",
+      "NW"
+    ],
+    "directionConvention": "World-space outward water-facing direction. Every production prompt must also name its projected screen slope, which side contains land/water, its world-unit footprint and exact joining endpoints. Never rely on a filename or arbitrary sprite rotation to establish orientation.",
+    "families": [
+      {
+        "name": "temperate",
+        "materials": "weathered grey stone, damp dark soil, olive bank vegetation; reusable for compatible forest/plain coasts"
+      },
+      {
+        "name": "snow",
+        "materials": "snow-capped banks, frosted dark stone, sparse frozen reeds, restrained shore ice when the water design supports it; complete matching set, not green grass tinted white"
+      },
+      {
+        "name": "dry",
+        "materials": "ochre/sandstone or pale arid shore materials and dry scrub; own bank treatment, not recoloured moss"
+      }
+    ],
+    "separateGeometryFamilies": [
+      "low beach/bank pieces",
+      "coastal cliffs/rims where the blueprint calls for steep shore"
+    ],
+    "cornerRule": "Eight facings alone do not solve arbitrary coastlines. Add compatible concave/convex connectors, caps, beach-to-cliff and biome transition joins only after the footprint/endpoint template is approved. Snow and dry share the joining template, not necessarily the silhouette or painted details.",
+    "reuse": "Existing numeric lake_edge_1..8 remain source candidates; they do not automatically fulfill a complete coastal or climate-specific kit.",
+    "preserve": "Existing usable shoreline/cliff art and screenshots remain references. New kit never changes water blockers to disguise a mismatched image."
+  },
+  "deferred": [
+    {
+      "topic": "Sources, lakes, fords and bridges",
+      "next": "Brainstorm source pools/springs/tarns/waterfalls, lake shapes and crossing geometry later; especially replace the single-diagonal source look. No copy-ready bank/bridge prompt until exact endpoints and span are approved."
+    },
+    {
+      "topic": "Capital silhouette",
+      "next": "Separate mock first; no generation now."
+    },
+    {
+      "topic": "Additional distinct biomes",
+      "next": "Rainforest/bamboo/marsh reuse compatible existing forest/wetland art initially. Add a distinct set where material or silhouette differences justify it; do not generate eight near-identical kits by default."
+    }
+  ],
+  "prompts": [
+    {
+      "biome": "snow",
+      "file": "snow_pine.png",
+      "label": "Snow-laden pine",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        5.5,
+        5.5
+      ],
+      "references": [
+        "game/art/props/pine_tree.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "trunk only, approximately 1 x 1 units; canopy remains nonblocking",
+      "detail": "One mature Japanese pine, dark muted needles supporting substantial irregular snow caps, a readable dark trunk and bent branches. Match the reference pine silhouette and scale; snow clings naturally to upper surfaces. No surrounding forest, cliff or snow platform.",
+      "output": "assets/environment/island/p5/snow_pine.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 5.5 x 5.5 world units. A single standalone cutout placed alone; no joining edges required. One mature Japanese pine, dark muted needles supporting substantial irregular snow caps, a readable dark trunk and bent branches. Match the reference pine silhouette and scale; snow clings naturally to upper surfaces. No surrounding forest, cliff or snow platform.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_core_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_cedar.png",
+      "label": "Snow-laden cedar",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        4.2,
+        4.2
+      ],
+      "references": [
+        "assets/environment/forest_props/cedar.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "trunk only, approximately 1 x 1 units",
+      "detail": "One upright Japanese cedar with tiered evergreen branches bowed under irregular snow caps; visible brown-grey trunk. Taller and narrower than the pine, with a distinct silhouette; no forest background or ground platform.",
+      "output": "assets/environment/island/p5/snow_cedar.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 4.2 x 4.2 world units. A single standalone cutout placed alone; no joining edges required. One upright Japanese cedar with tiered evergreen branches bowed under irregular snow caps; visible brown-grey trunk. Taller and narrower than the pine, with a distinct silhouette; no forest background or ground platform.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_core_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_bush.png",
+      "label": "Snow-covered shrub",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2.5,
+        2
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One low rounded shrub with a few dark twig and leaf tips beneath an irregular snow covering. Uneven edges and several small snow lobes; keep the silhouette low enough to leave nearby characters readable.",
+      "output": "assets/environment/island/p5/snow_bush.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2.5 x 2 world units. A single standalone cutout placed alone; no joining edges required. One low rounded shrub with a few dark twig and leaf tips beneath an irregular snow covering. Uneven edges and several small snow lobes; keep the silhouette low enough to leave nearby characters readable.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_core_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_boulders.png",
+      "label": "Frosted boulder cluster",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        3.2,
+        2.5
+      ],
+      "references": [
+        "assets/environment/forest_props/small_rocks.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "large stones only; fitted footprint, never their transparent border",
+      "detail": "One small cluster of three to five blue-grey boulders, varied in size, half buried in snow with sparse short icicles in sheltered cracks. Low landscape dressing, no towering outcrop, ice lake or ground slab.",
+      "output": "assets/environment/island/p5/snow_boulders.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 3.2 x 2.5 world units. A single standalone cutout placed alone; no joining edges required. One small cluster of three to five blue-grey boulders, varied in size, half buried in snow with sparse short icicles in sheltered cracks. Low landscape dressing, no towering outcrop, ice lake or ground slab.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_core_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_fallen_log.png",
+      "label": "Snow-covered fallen log",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        5,
+        1.4
+      ],
+      "references": [
+        "assets/environment/forest_props/fallen_log.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "solid wood only; keep clear of paths",
+      "detail": "One weathered fallen cedar log with broken end grain, a few bare branch stubs and snow resting on its upper surface. Runs along the x ground axis, upper-left to lower-right on screen. No forest floor or connecting branches outside the silhouette.",
+      "output": "assets/environment/island/p5/snow_fallen_log.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 5 x 1.4 world units. A single standalone cutout placed alone; no joining edges required. One weathered fallen cedar log with broken end grain, a few bare branch stubs and snow resting on its upper surface. Runs along the x ground axis, upper-left to lower-right on screen. No forest floor or connecting branches outside the silhouette.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_core_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_stump.png",
+      "label": "Frozen stump",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2,
+        1.8
+      ],
+      "references": [
+        "assets/environment/forest_props/stump.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "stump core only",
+      "detail": "One old cut stump with visible weathered roots, snow on its top and in root crevices, and slight frost on the bark. Compact distinct shape; no large surrounding snow patch.",
+      "output": "assets/environment/island/p5/snow_stump.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.8 world units. A single standalone cutout placed alone; no joining edges required. One old cut stump with visible weathered roots, snow on its top and in root crevices, and slight frost on the bark. Compact distinct shape; no large surrounding snow patch.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_core_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_drift.png",
+      "label": "Small snow drift",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        4,
+        2
+      ],
+      "references": [
+        "assets/environment/island/ground_snow.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One low irregular drift with a soft rounded windward crest and a tapering leeward tongue. Subtle blue-grey shading compatible with ground_snow, a natural feathered transparent perimeter and no rectangular snow base. Low local relief, not a hill or mountain; no permanent cast shadow.",
+      "output": "assets/environment/island/p5/snow_drift.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 4 x 2 world units. A single standalone cutout placed alone; no joining edges required. One low irregular drift with a soft rounded windward crest and a tapering leeward tongue. Subtle blue-grey shading compatible with ground_snow, a natural feathered transparent perimeter and no rectangular snow base. Low local relief, not a hill or mountain; no permanent cast shadow.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_landscape_details_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_stone_lantern.png",
+      "label": "Snow-capped stone lantern",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        1.2,
+        1.2
+      ],
+      "references": [
+        "assets/environment/forest_props/stone_lantern.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "stone base only",
+      "detail": "One aged Japanese stone lantern, unlit, snow on the roof and base, a little frost in the stone joints. Small isolated landmark; no paving slab, large garden or baked glow. Light, if used, is added in code.",
+      "output": "assets/environment/island/p5/snow_stone_lantern.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 1.2 x 1.2 world units. A single standalone cutout placed alone; no joining edges required. One aged Japanese stone lantern, unlit, snow on the roof and base, a little frost in the stone joints. Small isolated landmark; no paving slab, large garden or baked glow. Light, if used, is added in code.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_features_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_frozen_well.png",
+      "label": "Abandoned snowy well",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2.2,
+        2.2
+      ],
+      "references": [
+        "game/art/props/well.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "well structure only",
+      "detail": "One small abandoned stone well with weathered timber crossbeam and idle bucket, rim and beam capped with snow, dark closed-looking opening. No characters, roofed building, usable water surface or background; a decorative feature with no implied new interaction.",
+      "output": "assets/environment/island/p5/snow_frozen_well.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2.2 x 2.2 world units. A single standalone cutout placed alone; no joining edges required. One small abandoned stone well with weathered timber crossbeam and idle bucket, rim and beam capped with snow, dark closed-looking opening. No characters, roofed building, usable water surface or background; a decorative feature with no implied new interaction.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_features_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_ruined_shed.png",
+      "label": "Abandoned snowy farm shed",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        6,
+        4
+      ],
+      "references": [
+        "assets/environment/buildings/wilderness/forest_hut.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "survey and fit actual remaining structure; do not block an invisible whole room",
+      "detail": "One small ruined rural timber farm shed, partially collapsed roof, dark weathered posts, a few visible rafters and snow on the remaining roof. A single coherent ruin; no yard, fences, field, scattered distant debris or habitable interior. Fixed facing matching existing Japanese buildings.",
+      "output": "assets/environment/island/p5/snow_ruined_shed.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 6 x 4 world units. A single standalone cutout placed alone; no joining edges required. One small ruined rural timber farm shed, partially collapsed roof, dark weathered posts, a few visible rafters and snow on the remaining roof. A single coherent ruin; no yard, fences, field, scattered distant debris or habitable interior. Fixed facing matching existing Japanese buildings.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_features_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_fence_x.png",
+      "label": "Snowy farm fence, x axis",
+      "pieceType": "joining piece",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        6,
+        0.35
+      ],
+      "references": [
+        "game/art/props/bamboo_fence.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "short fence footprint only; only at authored feature sites after navigation approval",
+      "detail": "A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-left to lower-right on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the x axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
+      "output": "assets/environment/island/p5/snow_fence_x.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [
+        "-x",
+        "+x"
+      ],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: JOINING PIECE. CANVAS: 1536 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 6 x 0.35 world units. JOINING SIDES: -x and +x. A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-left to lower-right on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the x axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_features_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "snow_fence_z.png",
+      "label": "Snowy farm fence, z axis",
+      "pieceType": "joining piece",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        0.35,
+        6
+      ],
+      "references": [
+        "game/art/props/bamboo_fence.png",
+        "assets/environment/island/cliff_snow_a.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "short fence footprint only; only at authored feature sites after navigation approval",
+      "detail": "A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-right to lower-left on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the z axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
+      "output": "assets/environment/island/p5/snow_fence_z.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [
+        "-z",
+        "+z"
+      ],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: JOINING PIECE. CANVAS: 1536 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 0.35 x 6 world units. JOINING SIDES: -z and +z. A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-right to lower-left on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the z axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_snow_features_sheet.png"
+    },
+    {
+      "biome": "snow",
+      "file": "packed_snow_trail.png",
+      "label": "Packed snow trail material",
+      "pieceType": "seamless tile",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false,
+      "footprintUnits": [
+        8,
+        8
+      ],
+      "references": [
+        "assets/environment/island/ground_snow.png",
+        "assets/environment/island/ground_snow_thaw.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "none; appearance only, does not change water or buildability",
+      "detail": "A continuous surface of compressed off-white snow, subtle grain, slightly darker compacted icy flecks and sparse exposed tiny grit. No recognizable repeating boot prints, directional path stripe or painted verge. This material fills a procedural trail mask, so all four tile edges must join the same compressed-snow material. Snow colour matches ground_snow; trail width and bank fade are added in code.",
+      "output": "assets/environment/island/p5/packed_snow_trail.png",
+      "status": "draft item specification; pending Tim review; generation not approved; not imported",
+      "joiningSides": [
+        "left/right",
+        "top/bottom"
+      ],
+      "prompt": "Semi-realistic painted ground texture for the same muted 1870s Japanese island game. STRICT orthographic top-down, 90 degrees straight down, not an isometric scene. One opaque seamless PNG filling the full canvas; all four edges repeat continuously, with no transparency, border, vignette, text, horizon, standing objects, directional cast shadows or obvious central motif. Match the referenced existing ground materials in palette and small-detail scale. No sheet of multiple tiles.\n\nPIECE TYPE: SEAMLESS TILE. CANVAS: 1024 x 1024 pixels. IN-GAME TILE COVERAGE: 8 x 8 world units. SEAMLESS SIDES: left joins right and top joins bottom. A continuous surface of compressed off-white snow, subtle grain, slightly darker compacted icy flecks and sparse exposed tiny grit. No recognizable repeating boot prints, directional path stripe or painted verge. This material fills a procedural trail mask, so all four tile edges must join the same compressed-snow material. Snow colour matches ground_snow; trail width and bank fade are added in code.",
+      "generationMethod": "Optional separate opaque tile proposal; pending Tim review, later if approved"
+    },
+    {
+      "biome": "plain",
+      "file": "meadow_grass.png",
+      "label": "Wild grass tussock",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        1.8,
+        1.2
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/forest_props/ferns.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One irregular tuft of fine meadow grass, mixed muted olive and straw-green blades, slightly wind bent, varied height. Low airy silhouette, not a lawn tile, hedge or dense reed wall.",
+      "output": "assets/environment/island/p5/meadow_grass.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 1.8 x 1.2 world units. A single standalone cutout placed alone; no joining edges required. One irregular tuft of fine meadow grass, mixed muted olive and straw-green blades, slightly wind bent, varied height. Low airy silhouette, not a lawn tile, hedge or dense reed wall.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_open_country_sheet.png"
+    },
+    {
+      "biome": "plain",
+      "file": "meadow_flowers.png",
+      "label": "Wildflower clump",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2,
+        1.5
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One sparse natural clump of meadow grasses with small restrained cream, pale lavender and faded yellow wildflowers. Keep most of the silhouette leafy green and brown; no bright bouquet, manicured bed or surrounding ground.",
+      "output": "assets/environment/island/p5/meadow_flowers.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.5 world units. A single standalone cutout placed alone; no joining edges required. One sparse natural clump of meadow grasses with small restrained cream, pale lavender and faded yellow wildflowers. Keep most of the silhouette leafy green and brown; no bright bouquet, manicured bed or surrounding ground.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_open_country_sheet.png"
+    },
+    {
+      "biome": "plain",
+      "file": "meadow_broadleaf_tree.png",
+      "label": "Quiet meadow broadleaf tree",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        5,
+        5
+      ],
+      "references": [
+        "game/art/props/cherry_tree.png",
+        "game/art/props/pine_tree.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "trunk only, approximately 1 x 1 units",
+      "detail": "One mature Japanese countryside broadleaf tree with an irregular open canopy, small muted olive leaves and a readable branching trunk. No pink blossoms. Distinct from a pine, grounded and wind-shaped, no perfect spherical crown or park landscaping.",
+      "output": "assets/environment/island/p5/meadow_broadleaf_tree.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 5 x 5 world units. A single standalone cutout placed alone; no joining edges required. One mature Japanese countryside broadleaf tree with an irregular open canopy, small muted olive leaves and a readable branching trunk. No pink blossoms. Distinct from a pine, grounded and wind-shaped, no perfect spherical crown or park landscaping.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_open_country_sheet.png"
+    },
+    {
+      "biome": "plain",
+      "file": "fallow_field.png",
+      "label": "Small fallow field material",
+      "pieceType": "seamless tile",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false,
+      "footprintUnits": [
+        8,
+        8
+      ],
+      "references": [
+        "assets/environment/forest_textures/wet_soil_tile.png",
+        "assets/environment/forest_textures/pebbles_soil_tile.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "none; appearance only, does not change water or buildability",
+      "detail": "Muted dark brown fallow agricultural earth with small clods, tiny straw fragments and very shallow parallel furrows. The furrows intentionally continue across opposing edges at a constant spacing; no raised border, bund, field boundary, water, crops, road or farm building. For rare authored field patches, not for spreading over every meadow.",
+      "output": "assets/environment/island/p5/fallow_field.png",
+      "status": "draft item specification; pending Tim review; generation not approved; not imported",
+      "joiningSides": [
+        "left/right",
+        "top/bottom"
+      ],
+      "prompt": "Semi-realistic painted ground texture for the same muted 1870s Japanese island game. STRICT orthographic top-down, 90 degrees straight down, not an isometric scene. One opaque seamless PNG filling the full canvas; all four edges repeat continuously, with no transparency, border, vignette, text, horizon, standing objects, directional cast shadows or obvious central motif. Match the referenced existing ground materials in palette and small-detail scale. No sheet of multiple tiles.\n\nPIECE TYPE: SEAMLESS TILE. CANVAS: 1024 x 1024 pixels. IN-GAME TILE COVERAGE: 8 x 8 world units. SEAMLESS SIDES: left joins right and top joins bottom. Muted dark brown fallow agricultural earth with small clods, tiny straw fragments and very shallow parallel furrows. The furrows intentionally continue across opposing edges at a constant spacing; no raised border, bund, field boundary, water, crops, road or farm building. For rare authored field patches, not for spreading over every meadow.",
+      "generationMethod": "Optional separate opaque tile proposal; pending Tim review, later if approved"
+    },
+    {
+      "biome": "hills",
+      "file": "hill_heather.png",
+      "label": "Low upland scrub",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2,
+        1.6
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/forest_props/small_rocks.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One low wind-pressed heather-like upland scrub clump, muted olive-grey foliage with a few subdued dusky mauve tips, uneven exposed twigs and a rugged low silhouette. No oversized flowers, boulders or ground platform.",
+      "output": "assets/environment/island/p5/hill_heather.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.6 world units. A single standalone cutout placed alone; no joining edges required. One low wind-pressed heather-like upland scrub clump, muted olive-grey foliage with a few subdued dusky mauve tips, uneven exposed twigs and a rugged low silhouette. No oversized flowers, boulders or ground platform.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_open_country_sheet.png"
+    },
+    {
+      "biome": "dry",
+      "file": "dry_scrub.png",
+      "label": "Drought-hardened scrub",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2.2,
+        1.8
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/island/outcrop_dry.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One low tough Japanese dry-basin scrub bush, sparse dusty sage and ochre leaves, twisted exposed brown twigs and a few dead tips. No cactus, palm, tropical leaves, dense green hedge or sand platform.",
+      "output": "assets/environment/island/p5/dry_scrub.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2.2 x 1.8 world units. A single standalone cutout placed alone; no joining edges required. One low tough Japanese dry-basin scrub bush, sparse dusty sage and ochre leaves, twisted exposed brown twigs and a few dead tips. No cactus, palm, tropical leaves, dense green hedge or sand platform.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_open_country_sheet.png"
+    },
+    {
+      "biome": "dry",
+      "file": "dry_grass_tussock.png",
+      "label": "Dry grass tussock",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        1.7,
+        1.2
+      ],
+      "references": [
+        "assets/environment/island/outcrop_dry.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One dry straw-coloured grass tussock, fine curled blades and a few thin seed stalks, ragged airy silhouette, dusty ochre muted to match the dry outcrop. No green fern, large landscape or rectangular base.",
+      "output": "assets/environment/island/p5/dry_grass_tussock.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 1.7 x 1.2 world units. A single standalone cutout placed alone; no joining edges required. One dry straw-coloured grass tussock, fine curled blades and a few thin seed stalks, ragged airy silhouette, dusty ochre muted to match the dry outcrop. No green fern, large landscape or rectangular base.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_open_country_sheet.png"
+    },
+    {
+      "biome": "dry",
+      "file": "sandstone_stones.png",
+      "label": "Small sandstone cluster",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        3,
+        2.3
+      ],
+      "references": [
+        "assets/environment/island/outcrop_dry.png",
+        "assets/environment/forest_props/small_rocks.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "large stones only; fit their actual base",
+      "detail": "One low cluster of several weathered sandstone stones, ochre and rust with pale sun-bleached faces and tiny fissures. Small readable stones rather than a miniature cliff wall or pillar range. No ground slab or dramatic scene lighting.",
+      "output": "assets/environment/island/p5/sandstone_stones.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 3 x 2.3 world units. A single standalone cutout placed alone; no joining edges required. One low cluster of several weathered sandstone stones, ochre and rust with pale sun-bleached faces and tiny fissures. Small readable stones rather than a miniature cliff wall or pillar range. No ground slab or dramatic scene lighting.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_landscape_details_sheet.png"
+    },
+    {
+      "biome": "dry",
+      "file": "bleached_log.png",
+      "label": "Bleached deadwood",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        4.5,
+        1.4
+      ],
+      "references": [
+        "assets/environment/forest_props/fallen_log.png",
+        "assets/environment/island/outcrop_dry.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "solid wood only",
+      "detail": "One sun-bleached fallen log with split grey-ochre grain, a broken hollow end and two short dry branch stubs. Low horizontal silhouette, no moss or bright green leaves, no terrain backdrop.",
+      "output": "assets/environment/island/p5/bleached_log.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 4.5 x 1.4 world units. A single standalone cutout placed alone; no joining edges required. One sun-bleached fallen log with split grey-ochre grain, a broken hollow end and two short dry branch stubs. Low horizontal silhouette, no moss or bright green leaves, no terrain backdrop.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_landscape_details_sheet.png"
+    },
+    {
+      "biome": "coast",
+      "file": "dune_grass.png",
+      "label": "Coastal grass clump",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        2,
+        1.4
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "none",
+      "detail": "One wind-bent coastal grass clump, thin tough muted green-gold blades with a few pale seed heads, slightly splayed stems. No palm, water, shore strip or sand platform. Suitable on open temperate and dry beaches after import at matching scale.",
+      "output": "assets/environment/island/p5/dune_grass.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.4 world units. A single standalone cutout placed alone; no joining edges required. One wind-bent coastal grass clump, thin tough muted green-gold blades with a few pale seed heads, slightly splayed stems. No palm, water, shore strip or sand platform. Suitable on open temperate and dry beaches after import at matching scale.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_landscape_details_sheet.png"
+    },
+    {
+      "biome": "coast",
+      "file": "coastal_driftwood.png",
+      "label": "Weathered driftwood",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        5,
+        1.6
+      ],
+      "references": [
+        "assets/environment/forest_props/fallen_log.png"
+      ],
+      "priority": 1,
+      "blockerProposal": "large central wood only",
+      "detail": "One weathered driftwood trunk, silver-grey bleached grain, rounded broken ends and a few smooth root prongs. One standalone object with no beach, sea, foam, waterline or rock arrangement.",
+      "output": "assets/environment/island/p5/coastal_driftwood.png",
+      "status": "Concept/category approved for planning; exact size/prompt and art await review; generation on hold; not imported",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 5 x 1.6 world units. A single standalone cutout placed alone; no joining edges required. One weathered driftwood trunk, silver-grey bleached grain, rounded broken ends and a few smooth root prongs. One standalone object with no beach, sea, foam, waterline or rock arrangement.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_landscape_details_sheet.png"
+    },
+    {
+      "biome": "shared",
+      "file": "ruined_field_shed.png",
+      "label": "Small rural shed ruin",
+      "pieceType": "standalone",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "footprintUnits": [
+        6,
+        4
+      ],
+      "references": [
+        "assets/environment/buildings/wilderness/forest_hut.png"
+      ],
+      "priority": 2,
+      "blockerProposal": "actual standing structure only; placement reviewed with routes",
+      "detail": "One abandoned rural Japanese timber shed, partly collapsed weathered roof, exposed rafters, a broken doorway and a compact coherent footprint. No surrounding farm, field, fence, forest, characters or intact interior. Decorative ruin only, not a new interactive business or settlement building.",
+      "output": "assets/environment/island/p5/ruined_field_shed.png",
+      "status": "Extra rural shed variant proposal; review overlap with approved ruins before generation",
+      "joiningSides": [],
+      "prompt": "Semi-realistic painted game art for the same dark, muted 1870s Japanese island as the reference images. Match their material detail, restrained palette and soft upper-left overcast lighting. Fixed 2:1 isometric camera, about 27 degrees above the ground from the southeast; ground axes slope one down for two across. One complete object, entirely inside the canvas with generous transparent margin. Genuine transparent alpha PNG, no white or checkerboard backdrop, ground slab, scenery, horizon, border, text, labels, people or baked directional background shadow. Use the supplied game pine for visual scale: its canopy spans about 5.5 world units. World dimensions below describe in-game size after import, not a giant landscape. Place the ground-contact anchor at the centre of the object's base. Preserve fine but readable silhouette detail when reduced to game scale.\n\nPIECE TYPE: STANDALONE. CANVAS: 1024 x 1024 pixels. IN-GAME VISUAL GROUND COVERAGE: 6 x 4 world units. A single standalone cutout placed alone; no joining edges required. One abandoned rural Japanese timber shed, partly collapsed weathered roof, exposed rafters, a broken doorway and a compact coherent footprint. No surrounding farm, field, fence, forest, characters or intact interior. Decorative ruin only, not a new interactive business or settlement building.",
+      "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
+      "sourceSheet": "p5_landscape_details_sheet.png"
+    }
+  ],
+  "sheets": [
+    {
+      "file": "p5_snow_core_sheet.png",
+      "output": "assets/environment/island/p5/p5_snow_core_sheet.png",
+      "label": "Snow starter set",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "layout": {
+        "columns": 3,
+        "rows": 2,
+        "minimumCellPaddingPixels": 32
+      },
+      "status": "Grouped method approved for planning; exact dimensions, packing and prompt details await review; generation ON HOLD",
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "file": "snow_pine.png"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "file": "snow_cedar.png"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "file": "snow_bush.png"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "file": "snow_boulders.png"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "file": "snow_fallen_log.png"
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "file": "snow_stump.png"
+        }
+      ],
+      "references": [
+        "game/art/props/pine_tree.png",
+        "assets/environment/island/cliff_snow_a.png",
+        "assets/environment/forest_props/cedar.png",
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/forest_props/small_rocks.png",
+        "assets/environment/forest_props/fallen_log.png",
+        "assets/environment/forest_props/stump.png"
+      ],
+      "prompt": "Semi-realistic painted game art for the existing muted, dark 1870s Japanese island. Match the supplied game pine and approved biome references, soft upper-left overcast lighting, fixed 2:1 isometric camera about 27 degrees above the ground from southeast. ONE TRANSPARENT PROP SHEET, 3 columns by 2 rows, target 1536 x 1024 pixels, six equal 512 x 512 cells. No visible grid lines or cell borders. Each cell contains only its listed whole independent object, with at least 32 pixels of transparent padding to every cell edge and no overlap with adjacent cells. Consistent world scale: pine canopy about 5.5 world units wide; smaller bushes and rocks stay proportionately smaller, never enlarge everything to fill the cells. Maximum tree height must fit wholly inside its cell. Genuine transparent alpha, no white or painted checkerboard backdrop, text, labels, cast shadows outside objects, ground slabs, landscape, people or added objects. Per-cell dimensions below are intended in-game size after import. Keep anchors readable at the base of each object. Snow applies only to snow cells; preserve the specified palette of each biome. Do not assemble the props into one scene. Joining modules still have precisely defined connecting ends despite being separated on this sheet.\n\nCELL 1 (top row, left): Snow-laden pine. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 5.5 x 5.5 world units. A standalone isolated prop, no joining sides. One mature Japanese pine, dark muted needles supporting substantial irregular snow caps, a readable dark trunk and bent branches. Match the reference pine silhouette and scale; snow clings naturally to upper surfaces. No surrounding forest, cliff or snow platform.\n\nCELL 2 (top row, middle): Snow-laden cedar. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 4.2 x 4.2 world units. A standalone isolated prop, no joining sides. One upright Japanese cedar with tiered evergreen branches bowed under irregular snow caps; visible brown-grey trunk. Taller and narrower than the pine, with a distinct silhouette; no forest background or ground platform.\n\nCELL 3 (top row, right): Snow-covered shrub. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2.5 x 2 world units. A standalone isolated prop, no joining sides. One low rounded shrub with a few dark twig and leaf tips beneath an irregular snow covering. Uneven edges and several small snow lobes; keep the silhouette low enough to leave nearby characters readable.\n\nCELL 4 (bottom row, left): Frosted boulder cluster. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 3.2 x 2.5 world units. A standalone isolated prop, no joining sides. One small cluster of three to five blue-grey boulders, varied in size, half buried in snow with sparse short icicles in sheltered cracks. Low landscape dressing, no towering outcrop, ice lake or ground slab.\n\nCELL 5 (bottom row, middle): Snow-covered fallen log. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 5 x 1.4 world units. A standalone isolated prop, no joining sides. One weathered fallen cedar log with broken end grain, a few bare branch stubs and snow resting on its upper surface. Runs along the x ground axis, upper-left to lower-right on screen. No forest floor or connecting branches outside the silhouette.\n\nCELL 6 (bottom row, right): Frozen stump. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.8 world units. A standalone isolated prop, no joining sides. One old cut stump with visible weathered roots, snow on its top and in root crevices, and slight frost on the bark. Compact distinct shape; no large surrounding snow patch."
+    },
+    {
+      "file": "p5_open_country_sheet.png",
+      "output": "assets/environment/island/p5/p5_open_country_sheet.png",
+      "label": "Open-country plants",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "layout": {
+        "columns": 3,
+        "rows": 2,
+        "minimumCellPaddingPixels": 32
+      },
+      "status": "Grouped method approved for planning; exact dimensions, packing and prompt details await review; generation ON HOLD",
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "file": "meadow_grass.png"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "file": "meadow_flowers.png"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "file": "meadow_broadleaf_tree.png"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "file": "hill_heather.png"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "file": "dry_scrub.png"
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "file": "dry_grass_tussock.png"
+        }
+      ],
+      "references": [
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/forest_props/ferns.png",
+        "game/art/props/cherry_tree.png",
+        "game/art/props/pine_tree.png",
+        "assets/environment/forest_props/small_rocks.png",
+        "assets/environment/island/outcrop_dry.png"
+      ],
+      "prompt": "Semi-realistic painted game art for the existing muted, dark 1870s Japanese island. Match the supplied game pine and approved biome references, soft upper-left overcast lighting, fixed 2:1 isometric camera about 27 degrees above the ground from southeast. ONE TRANSPARENT PROP SHEET, 3 columns by 2 rows, target 1536 x 1024 pixels, six equal 512 x 512 cells. No visible grid lines or cell borders. Each cell contains only its listed whole independent object, with at least 32 pixels of transparent padding to every cell edge and no overlap with adjacent cells. Consistent world scale: pine canopy about 5.5 world units wide; smaller bushes and rocks stay proportionately smaller, never enlarge everything to fill the cells. Maximum tree height must fit wholly inside its cell. Genuine transparent alpha, no white or painted checkerboard backdrop, text, labels, cast shadows outside objects, ground slabs, landscape, people or added objects. Per-cell dimensions below are intended in-game size after import. Keep anchors readable at the base of each object. Snow applies only to snow cells; preserve the specified palette of each biome. Do not assemble the props into one scene. Joining modules still have precisely defined connecting ends despite being separated on this sheet.\n\nCELL 1 (top row, left): Wild grass tussock. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 1.8 x 1.2 world units. A standalone isolated prop, no joining sides. One irregular tuft of fine meadow grass, mixed muted olive and straw-green blades, slightly wind bent, varied height. Low airy silhouette, not a lawn tile, hedge or dense reed wall.\n\nCELL 2 (top row, middle): Wildflower clump. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.5 world units. A standalone isolated prop, no joining sides. One sparse natural clump of meadow grasses with small restrained cream, pale lavender and faded yellow wildflowers. Keep most of the silhouette leafy green and brown; no bright bouquet, manicured bed or surrounding ground.\n\nCELL 3 (top row, right): Quiet meadow broadleaf tree. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 5 x 5 world units. A standalone isolated prop, no joining sides. One mature Japanese countryside broadleaf tree with an irregular open canopy, small muted olive leaves and a readable branching trunk. No pink blossoms. Distinct from a pine, grounded and wind-shaped, no perfect spherical crown or park landscaping.\n\nCELL 4 (bottom row, left): Low upland scrub. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.6 world units. A standalone isolated prop, no joining sides. One low wind-pressed heather-like upland scrub clump, muted olive-grey foliage with a few subdued dusky mauve tips, uneven exposed twigs and a rugged low silhouette. No oversized flowers, boulders or ground platform.\n\nCELL 5 (bottom row, middle): Drought-hardened scrub. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2.2 x 1.8 world units. A standalone isolated prop, no joining sides. One low tough Japanese dry-basin scrub bush, sparse dusty sage and ochre leaves, twisted exposed brown twigs and a few dead tips. No cactus, palm, tropical leaves, dense green hedge or sand platform.\n\nCELL 6 (bottom row, right): Dry grass tussock. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 1.7 x 1.2 world units. A standalone isolated prop, no joining sides. One dry straw-coloured grass tussock, fine curled blades and a few thin seed stalks, ragged airy silhouette, dusty ochre muted to match the dry outcrop. No green fern, large landscape or rectangular base."
+    },
+    {
+      "file": "p5_landscape_details_sheet.png",
+      "output": "assets/environment/island/p5/p5_landscape_details_sheet.png",
+      "label": "Landscape details",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "layout": {
+        "columns": 3,
+        "rows": 2,
+        "minimumCellPaddingPixels": 32
+      },
+      "status": "Grouped method approved for planning; exact dimensions, packing and prompt details await review; generation ON HOLD",
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "file": "sandstone_stones.png"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "file": "bleached_log.png"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "file": "dune_grass.png"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "file": "coastal_driftwood.png"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "file": "snow_drift.png"
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "file": "ruined_field_shed.png"
+        }
+      ],
+      "references": [
+        "assets/environment/island/outcrop_dry.png",
+        "assets/environment/forest_props/small_rocks.png",
+        "assets/environment/forest_props/fallen_log.png",
+        "assets/environment/forest_props/bush.png",
+        "assets/environment/island/ground_snow.png",
+        "assets/environment/buildings/wilderness/forest_hut.png"
+      ],
+      "prompt": "Semi-realistic painted game art for the existing muted, dark 1870s Japanese island. Match the supplied game pine and approved biome references, soft upper-left overcast lighting, fixed 2:1 isometric camera about 27 degrees above the ground from southeast. ONE TRANSPARENT PROP SHEET, 3 columns by 2 rows, target 1536 x 1024 pixels, six equal 512 x 512 cells. No visible grid lines or cell borders. Each cell contains only its listed whole independent object, with at least 32 pixels of transparent padding to every cell edge and no overlap with adjacent cells. Consistent world scale: pine canopy about 5.5 world units wide; smaller bushes and rocks stay proportionately smaller, never enlarge everything to fill the cells. Maximum tree height must fit wholly inside its cell. Genuine transparent alpha, no white or painted checkerboard backdrop, text, labels, cast shadows outside objects, ground slabs, landscape, people or added objects. Per-cell dimensions below are intended in-game size after import. Keep anchors readable at the base of each object. Snow applies only to snow cells; preserve the specified palette of each biome. Do not assemble the props into one scene. Joining modules still have precisely defined connecting ends despite being separated on this sheet.\n\nCELL 1 (top row, left): Small sandstone cluster. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 3 x 2.3 world units. A standalone isolated prop, no joining sides. One low cluster of several weathered sandstone stones, ochre and rust with pale sun-bleached faces and tiny fissures. Small readable stones rather than a miniature cliff wall or pillar range. No ground slab or dramatic scene lighting.\n\nCELL 2 (top row, middle): Bleached deadwood. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 4.5 x 1.4 world units. A standalone isolated prop, no joining sides. One sun-bleached fallen log with split grey-ochre grain, a broken hollow end and two short dry branch stubs. Low horizontal silhouette, no moss or bright green leaves, no terrain backdrop.\n\nCELL 3 (top row, right): Coastal grass clump. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2 x 1.4 world units. A standalone isolated prop, no joining sides. One wind-bent coastal grass clump, thin tough muted green-gold blades with a few pale seed heads, slightly splayed stems. No palm, water, shore strip or sand platform. Suitable on open temperate and dry beaches after import at matching scale.\n\nCELL 4 (bottom row, left): Weathered driftwood. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 5 x 1.6 world units. A standalone isolated prop, no joining sides. One weathered driftwood trunk, silver-grey bleached grain, rounded broken ends and a few smooth root prongs. One standalone object with no beach, sea, foam, waterline or rock arrangement.\n\nCELL 5 (bottom row, middle): Small snow drift. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 4 x 2 world units. A standalone isolated prop, no joining sides. One low irregular drift with a soft rounded windward crest and a tapering leeward tongue. Subtle blue-grey shading compatible with ground_snow, a natural feathered transparent perimeter and no rectangular snow base. Low local relief, not a hill or mountain; no permanent cast shadow.\n\nCELL 6 (bottom row, right): Small rural shed ruin. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 6 x 4 world units. A standalone isolated prop, no joining sides. One abandoned rural Japanese timber shed, partly collapsed weathered roof, exposed rafters, a broken doorway and a compact coherent footprint. No surrounding farm, field, fence, forest, characters or intact interior. Decorative ruin only, not a new interactive business or settlement building."
+    },
+    {
+      "file": "p5_snow_features_sheet.png",
+      "output": "assets/environment/island/p5/p5_snow_features_sheet.png",
+      "label": "Later snow features",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "layout": {
+        "columns": 3,
+        "rows": 2,
+        "minimumCellPaddingPixels": 32
+      },
+      "status": "Grouped method approved for planning; exact dimensions, packing and prompt details await review; generation ON HOLD",
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "file": "snow_stone_lantern.png"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "file": "snow_frozen_well.png"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "file": "snow_ruined_shed.png"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "file": "snow_fence_x.png"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "file": "snow_fence_z.png"
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "file": null
+        }
+      ],
+      "references": [
+        "assets/environment/forest_props/stone_lantern.png",
+        "assets/environment/island/cliff_snow_a.png",
+        "game/art/props/well.png",
+        "assets/environment/buildings/wilderness/forest_hut.png",
+        "game/art/props/bamboo_fence.png"
+      ],
+      "prompt": "Semi-realistic painted game art for the existing muted, dark 1870s Japanese island. Match the supplied game pine and approved biome references, soft upper-left overcast lighting, fixed 2:1 isometric camera about 27 degrees above the ground from southeast. ONE TRANSPARENT PROP SHEET, 3 columns by 2 rows, target 1536 x 1024 pixels, six equal 512 x 512 cells. No visible grid lines or cell borders. Each cell contains only its listed whole independent object, with at least 32 pixels of transparent padding to every cell edge and no overlap with adjacent cells. Consistent world scale: pine canopy about 5.5 world units wide; smaller bushes and rocks stay proportionately smaller, never enlarge everything to fill the cells. Maximum tree height must fit wholly inside its cell. Genuine transparent alpha, no white or painted checkerboard backdrop, text, labels, cast shadows outside objects, ground slabs, landscape, people or added objects. Per-cell dimensions below are intended in-game size after import. Keep anchors readable at the base of each object. Snow applies only to snow cells; preserve the specified palette of each biome. Do not assemble the props into one scene. Joining modules still have precisely defined connecting ends despite being separated on this sheet.\n\nCELL 1 (top row, left): Snow-capped stone lantern. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 1.2 x 1.2 world units. A standalone isolated prop, no joining sides. One aged Japanese stone lantern, unlit, snow on the roof and base, a little frost in the stone joints. Small isolated landmark; no paving slab, large garden or baked glow. Light, if used, is added in code.\n\nCELL 2 (top row, middle): Abandoned snowy well. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 2.2 x 2.2 world units. A standalone isolated prop, no joining sides. One small abandoned stone well with weathered timber crossbeam and idle bucket, rim and beam capped with snow, dark closed-looking opening. No characters, roofed building, usable water surface or background; a decorative feature with no implied new interaction.\n\nCELL 3 (top row, right): Abandoned snowy farm shed. PIECE TYPE: STANDALONE. IN-GAME VISUAL GROUND COVERAGE: 6 x 4 world units. A standalone isolated prop, no joining sides. One small ruined rural timber farm shed, partially collapsed roof, dark weathered posts, a few visible rafters and snow on the remaining roof. A single coherent ruin; no yard, fences, field, scattered distant debris or habitable interior. Fixed facing matching existing Japanese buildings.\n\nCELL 4 (bottom row, left): Snowy farm fence, x axis. PIECE TYPE: JOINING PIECE. IN-GAME VISUAL GROUND COVERAGE: 6 x 0.35 world units. JOINING SIDES: -x and +x. A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-left to lower-right on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the x axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.\n\nCELL 5 (bottom row, middle): Snowy farm fence, z axis. PIECE TYPE: JOINING PIECE. IN-GAME VISUAL GROUND COVERAGE: 0.35 x 6 world units. JOINING SIDES: -z and +z. A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-right to lower-left on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the z axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.\n\nCELL 6 (bottom right): completely empty transparent cell; no extra prop."
+    }
+  ],
+  "rareOddities": {
+    "status": "All 36 concepts approved by Tim 2026-11-02 for planning; six transparent-sheet candidates only, no generation",
+    "sheetRule": "Six isolated landmark concepts per biome, transparent 3 x 2 layout using the shared style and gutters; a landmark may be a small coherent cutout cluster but never touches neighbouring cells. Exact scale, dimensions, terrain integration and full prompts await review.",
+    "sheetCandidates": [
+      {
+        "biome": "snow",
+        "file": "p5_snow_oddities_sheet.png",
+        "cells": [
+          "half-buried shrine",
+          "collapsed mountain hut",
+          "frozen well",
+          "icicle grotto",
+          "frost-covered ancient standing stones",
+          "giant broken cedar"
+        ]
+      },
+      {
+        "biome": "plains",
+        "file": "p5_plains_oddities_sheet.png",
+        "cells": [
+          "abandoned farmstead",
+          "ruined granary",
+          "overgrown cemetery",
+          "collapsed watchtower",
+          "neglected orchard",
+          "small roadside shrine"
+        ]
+      },
+      {
+        "biome": "hills",
+        "file": "p5_hills_oddities_sheet.png",
+        "cells": [
+          "abandoned mine entrance",
+          "ruined signal tower",
+          "old quarry workings",
+          "cliff grotto",
+          "hermit's hut",
+          "weathered stone circle"
+        ]
+      },
+      {
+        "biome": "dry",
+        "file": "p5_dry_oddities_sheet.png",
+        "cells": [
+          "exposed dinosaur rib cage",
+          "fossil skull embedded in sandstone",
+          "ruined plaster-and-timber building",
+          "ancient dry well",
+          "abandoned caravan camp",
+          "shaded rock grotto"
+        ]
+      },
+      {
+        "biome": "coast",
+        "file": "p5_coast_oddities_sheet.png",
+        "cells": [
+          "broken shipwreck hull",
+          "ruined coastal lookout",
+          "washed-up cargo cache",
+          "sea cave",
+          "abandoned fisherman's shack",
+          "weathered seaside memorial"
+        ]
+      },
+      {
+        "biome": "forest",
+        "file": "p5_forest_oddities_sheet.png",
+        "cells": [
+          "root-covered shrine",
+          "giant hollow cedar",
+          "moss-covered ruins",
+          "old charcoal kiln",
+          "collapsed woodland gate",
+          "fern-lined grotto"
+        ]
+      }
+    ],
+    "rarity": {
+      "direction": "About one of each TYPE per few normal viewscreens; proposed calibration 3-5, with spacing usually leaving only 1-2 oddities total on a normal view. Actual world units measured later.",
+      "placement": "Fixed seeded world-space placements and cross-type spacing; never respawn or reroll based on camera or zoom."
+    },
+    "terrainRules": [
+      "Grottos/caves require suitable cliffs; no floating standalone cave mouths.",
+      "Fossils require exposed rock; wrecks require actual coast.",
+      "Placement, art footprint, terrain and collision must agree."
+    ],
+    "reuse": "Reuse overlapping frozen well, shed/hut and shrine assets across basic and rare manifests where compatible; snow_frozen_well.png is already in the basic draft. Decide shared output identity and skip/repack duplicate cells before any generation; six candidates are not six mandatory new sheets.",
+    "gameplay": "Decorative landmark planning only; no new interactive systems, interiors or loot implied. Discuss these later."
+  }
+}

@@ -158,6 +158,8 @@ Using the attached image as a style reference, make a sheet of separate item con
 
 Drafted and approved 2026-11-02 (mountains are cliff pieces plus high-ground textures, 25 images). All 25 files exist in `assets/environment/island/`; W3.8 art generation is complete. W3.9 import/fitting/placement is implemented; texture tiling, scale and overall appearance still need Tim’s in-game review.
 
+For the separate P5 biome-prop planning pass, use the [P5 prompt sheets below](#p5-biome-art-plan-only-2026-11-02); full draft basic prompts and planning data are in [`p5_biome_art_plan.json`](environment/island/p5_biome_art_plan.json). This does not change the W3.8 status above.
+
 ### Original generation brief (completed 2026-11-02)
 
 The prompts below are retained as the source brief for the generated assets. The 25 images are complete; W3.9 fitting is implemented, with in-game art review pending.
@@ -369,22 +371,104 @@ All rims use genuine transparent alpha; the high-ground side faces inward and th
 
 These prompts create art assets only. Connected dry-range layout, terrain changes, water rendering, collision alignment, and shared corner/edge calibration remain separate implementation work.
 
-#### Snow-region lowland ground textures (generation underway, 2026-11-02)
+#### Snow-region lowland ground textures (generated, 2026-11-02)
 
-Prompt source: [`snow_ground_prompts.json`](environment/island/snow_ground_prompts.json). Only `ground_snow.png` and `ground_snow_thaw.png` are in scope. Both are opaque top-down ground textures; target size is 1024 × 1024. `ground_snow.png` has appeared in the asset folder but is not yet verified; `ground_snow_thaw.png` is still pending generation. Do not mark this pair complete until both saved outputs are verified. No additional texture families or variants are approved by this prompt set.
+Prompt source: [`snow_ground_prompts.json`](environment/island/snow_ground_prompts.json). The two requested lowland ground types each have an A and B arrangement. All four saved files are opaque top-down textures at 1254 × 1254; per-pixel alpha checks confirmed alpha 255. The prompts requested 1024 × 1024. Broad-area seamless continuity has not been verified; mild directional grain or patch alignment may show at scale. These are ground textures, not snow high-ground variants.
 
 **Shared prompt (prepend to each item):**
 
 > A seamless terrain texture for a dark, semi-realistic painted isometric game set in 1870s Japan. Match the supplied approved snow high-ground image's cool muted off-white and blue-grey snow materials and the forest-floor reference's fine ground-detail scale. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, not an isometric scene. One continuous flat walkable ground surface filling an opaque 1024 by 1024 PNG, no transparency. Fine natural painted detail, diffuse overcast illumination, restrained contrast, no baked directional cast shadows. All opposite edges must continue naturally for seamless tiling. No borders, frames, text, vignette, edge fading, tile grids, roads, footprints, characters, buildings, trees, crowns, branches, standing rocks, cliff faces, horizon or large central focal motif. Avoid lines, stripes, rows and strongly recognizable shapes that reveal repetition across a large region.
 
-| File | References | Exact item description |
+| A file | B file | References | Exact A item description |
+|---|---|---|---|
+| `ground_snow.png` | `ground_snow_b.png` | `assets/environment/island/top_snow.png`; `assets/environment/forest_textures/forest_floor_tile.png` | An almost continuous blanket of settled lowland snow, approximately 90 to 95 percent snow coverage. Subtle wind-softened grain, gentle irregular shallow depressions, sparse tiny dark pebbles and occasional short dormant grass tips barely breaking the surface. Mostly calm open snow, no deep dramatic drifts, exposed rock slabs, pine tops or mountainous features. Small details distributed naturally and quietly, consistent scale across the image. This must read as snowy terrain beneath walking human-sized units rather than a miniature mountain landscape. |
+| `ground_snow_thaw.png` | `ground_snow_thaw_b.png` | `assets/environment/island/ground_snow.png`; `assets/environment/forest_textures/wet_soil_tile.png`; `assets/environment/forest_textures/pine_needles_tile.png` | A companion lowland texture blending irregular remnants of melting snow with damp dark earth, subdued dead olive-brown grass and sparse tiny pebbles. Approximately 45 to 55 percent snow coverage, broken into soft-edged organic patches of varied size, without stripes or a single boundary dividing the image. Match `ground_snow.png` exactly in snow colour, detail scale and diffuse illumination. Exposed earth is dark muted soil, not orange sand or bright mud. Slight dampness without broad puddles or reflective water. This is a fully covered mixed ground tile for procedural blending at snow-region edges, not a transparent decal, fixed path or directional transition strip. |
+
+Each B file is a separately generated alternate arrangement matching its A texture's colour and feature scale, with stronger instructions to avoid directional patterning. No extra snow high-ground E variant was requested or generated. Whole-region snow-ground rendering and thaw blending still require code integration.
+
+## P5 biome art plan only (2026-11-02)
+
+Tim approved the six basic categories below, all 36 rare oddity concepts, and grouped transparent sheets for planning. Exact dimensions, rates, packing, prompt details and art acceptance still await review. Generation remains ON HOLD; no P5 images or gameplay code have been created. Cutting, import, placement, density and collision changes are not authorized.
+
+The [planning JSON](environment/island/p5_biome_art_plan.json) preserves the reuse audit, four full basic sheet prompts, 25 individual specifications (23 transparent sprites plus two optional opaque tiles), and six rare sheet candidates. Individual prompt strings are specifications/fallbacks, not extra image generations. Optional opaque tiles and the extra `ruined_field_shed.png` variant remain proposals; review overlap before adding a separate rural shed.
+
+| Approved basic category | Contents |
+|---|---|
+| Snow | Snowy pine, cedar, bush, boulders, fallen log, stump, small drift |
+| Plains | Grass tussock, wildflowers, broadleaf tree |
+| Hills | Low upland scrub; reuse rocks and twisted trees |
+| Dry | Dry scrub, straw grass, sandstone stones, bleached log |
+| Coast | Dune grass, driftwood |
+| Optional features | Snowy lantern, frozen well, ruined shed, snowy fence pieces |
+
+**Approved grouped method; dimensions proposed:** transparent 3-column by 2-row sheets of six isolated objects, then cut and alpha-trim each cell into named sprites. First six core snow props fit one sheet. Current draft canvas is 1536 x 1024 with six 512 x 512 cells and at least 32 pixels of transparent padding per cell; exact dimensions await review. Use the muted 1870s Japanese painted style, fixed 2:1 isometric camera and soft upper-left overcast light. Keep relative world scale anchored to the game pine (canopy about 5.5 units); do not enlarge small props to fill cells. No visible grid, labels, overlap, merged objects, backdrop, ground slabs or scenery. Preserve source sheets and crop/ground-anchor/fitted-size metadata. After separate generation approval, inspect references, generate one sheet at a time and review the snow cuts first. Reject unusable merged cells rather than guessing crops. Opaque seamless ground textures are separate outputs, never prop-sheet cells.
+
+### Proposed transparent sheets and order
+
+| Order | Sheet | Contents in cell order (top row, then bottom row) | References |
+|---|---|---|---|
+| 1 · Snow starter set | <code>p5_snow_core_sheet.png</code> (1536 x 1024; 3 x 2) | snow_pine.png; snow_cedar.png; snow_bush.png; snow_boulders.png; snow_fallen_log.png; snow_stump.png | <code>game/art/props/pine_tree.png</code>; <code>assets/environment/island/cliff_snow_a.png</code>; <code>assets/environment/forest_props/cedar.png</code>; <code>assets/environment/forest_props/bush.png</code>; <code>assets/environment/forest_props/small_rocks.png</code>; <code>assets/environment/forest_props/fallen_log.png</code>; <code>assets/environment/forest_props/stump.png</code> |
+| 2 · Open-country plants | <code>p5_open_country_sheet.png</code> (1536 x 1024; 3 x 2) | meadow_grass.png; meadow_flowers.png; meadow_broadleaf_tree.png; hill_heather.png; dry_scrub.png; dry_grass_tussock.png | <code>assets/environment/forest_props/bush.png</code>; <code>assets/environment/forest_props/ferns.png</code>; <code>game/art/props/cherry_tree.png</code>; <code>game/art/props/pine_tree.png</code>; <code>assets/environment/forest_props/small_rocks.png</code>; <code>assets/environment/island/outcrop_dry.png</code> |
+| 3 · Landscape details | <code>p5_landscape_details_sheet.png</code> (1536 x 1024; 3 x 2) | sandstone_stones.png; bleached_log.png; dune_grass.png; coastal_driftwood.png; snow_drift.png; ruined_field_shed.png | <code>assets/environment/island/outcrop_dry.png</code>; <code>assets/environment/forest_props/small_rocks.png</code>; <code>assets/environment/forest_props/fallen_log.png</code>; <code>assets/environment/forest_props/bush.png</code>; <code>assets/environment/island/ground_snow.png</code>; <code>assets/environment/buildings/wilderness/forest_hut.png</code> |
+| 4 · Later snow features | <code>p5_snow_features_sheet.png</code> (1536 x 1024; 3 x 2) | snow_stone_lantern.png; snow_frozen_well.png; snow_ruined_shed.png; snow_fence_x.png; snow_fence_z.png; blank | <code>assets/environment/forest_props/stone_lantern.png</code>; <code>assets/environment/island/cliff_snow_a.png</code>; <code>game/art/props/well.png</code>; <code>assets/environment/buildings/wilderness/forest_hut.png</code>; <code>game/art/props/bamboo_fence.png</code> |
+
+### Draft cut manifest
+
+The pixel sizes below are retained standalone fallback targets, not cell-cut dimensions or required upscales. A draft 512 x 512 cell is trimmed at its actual resolution. All world footprints are proposals, not tuned runtime values.
+
+| Sprite output | Source sheet / cell | Type | Fallback pixels | Proposed world footprint |
+|---|---|---|---|---|
+| <code>snow_pine.png</code> | <code>p5_snow_core_sheet.png</code>, top left | standalone | 1024 x 1024 | 5.5 x 5.5 units |
+| <code>snow_cedar.png</code> | <code>p5_snow_core_sheet.png</code>, top middle | standalone | 1024 x 1024 | 4.2 x 4.2 units |
+| <code>snow_bush.png</code> | <code>p5_snow_core_sheet.png</code>, top right | standalone | 1024 x 1024 | 2.5 x 2 units |
+| <code>snow_boulders.png</code> | <code>p5_snow_core_sheet.png</code>, bottom left | standalone | 1024 x 1024 | 3.2 x 2.5 units |
+| <code>snow_fallen_log.png</code> | <code>p5_snow_core_sheet.png</code>, bottom middle | standalone | 1024 x 1024 | 5 x 1.4 units |
+| <code>snow_stump.png</code> | <code>p5_snow_core_sheet.png</code>, bottom right | standalone | 1024 x 1024 | 2 x 1.8 units |
+| <code>meadow_grass.png</code> | <code>p5_open_country_sheet.png</code>, top left | standalone | 1024 x 1024 | 1.8 x 1.2 units |
+| <code>meadow_flowers.png</code> | <code>p5_open_country_sheet.png</code>, top middle | standalone | 1024 x 1024 | 2 x 1.5 units |
+| <code>meadow_broadleaf_tree.png</code> | <code>p5_open_country_sheet.png</code>, top right | standalone | 1024 x 1024 | 5 x 5 units |
+| <code>hill_heather.png</code> | <code>p5_open_country_sheet.png</code>, bottom left | standalone | 1024 x 1024 | 2 x 1.6 units |
+| <code>dry_scrub.png</code> | <code>p5_open_country_sheet.png</code>, bottom middle | standalone | 1024 x 1024 | 2.2 x 1.8 units |
+| <code>dry_grass_tussock.png</code> | <code>p5_open_country_sheet.png</code>, bottom right | standalone | 1024 x 1024 | 1.7 x 1.2 units |
+| <code>sandstone_stones.png</code> | <code>p5_landscape_details_sheet.png</code>, top left | standalone | 1024 x 1024 | 3 x 2.3 units |
+| <code>bleached_log.png</code> | <code>p5_landscape_details_sheet.png</code>, top middle | standalone | 1024 x 1024 | 4.5 x 1.4 units |
+| <code>dune_grass.png</code> | <code>p5_landscape_details_sheet.png</code>, top right | standalone | 1024 x 1024 | 2 x 1.4 units |
+| <code>coastal_driftwood.png</code> | <code>p5_landscape_details_sheet.png</code>, bottom left | standalone | 1024 x 1024 | 5 x 1.6 units |
+| <code>snow_drift.png</code> | <code>p5_landscape_details_sheet.png</code>, bottom middle | standalone | 1024 x 1024 | 4 x 2 units |
+| <code>ruined_field_shed.png</code> | <code>p5_landscape_details_sheet.png</code>, bottom right | standalone | 1024 x 1024 | 6 x 4 units |
+| <code>snow_stone_lantern.png</code> | <code>p5_snow_features_sheet.png</code>, top left | standalone | 1024 x 1024 | 1.2 x 1.2 units |
+| <code>snow_frozen_well.png</code> | <code>p5_snow_features_sheet.png</code>, top middle | standalone | 1024 x 1024 | 2.2 x 2.2 units |
+| <code>snow_ruined_shed.png</code> | <code>p5_snow_features_sheet.png</code>, top right | standalone | 1024 x 1024 | 6 x 4 units |
+| <code>snow_fence_x.png</code> | <code>p5_snow_features_sheet.png</code>, bottom left | joining piece | 1536 x 1024 | 6 x 0.35 units |
+| <code>snow_fence_z.png</code> | <code>p5_snow_features_sheet.png</code>, bottom middle | joining piece | 1536 x 1024 | 0.35 x 6 units |
+
+### Rare oddities — six transparent-sheet candidates (Tim approved, 2026-11-02)
+
+Cell order is top row then bottom row. Each landmark may be a small coherent cutout cluster, isolated from its neighbours. These are concept groups for prompt discussion, not generation requests.
+
+| Biome / candidate sheet | Six landmarks |
+|---|---|
+| Snow / `p5_snow_oddities_sheet.png` | Half-buried shrine; collapsed mountain hut; frozen well; icicle grotto; frost-covered ancient standing stones; giant broken cedar |
+| Plains / `p5_plains_oddities_sheet.png` | Abandoned farmstead; ruined granary; overgrown cemetery; collapsed watchtower; neglected orchard; small roadside shrine |
+| Hills / `p5_hills_oddities_sheet.png` | Abandoned mine entrance; ruined signal tower; old quarry workings; cliff grotto; hermit's hut; weathered stone circle |
+| Dry / `p5_dry_oddities_sheet.png` | Exposed dinosaur rib cage; fossil skull embedded in sandstone; ruined plaster-and-timber building; ancient dry well; abandoned caravan camp; shaded rock grotto |
+| Coast / `p5_coast_oddities_sheet.png` | Broken shipwreck hull; ruined coastal lookout; washed-up cargo cache; sea cave; abandoned fisherman's shack; weathered seaside memorial |
+| Forest / `p5_forest_oddities_sheet.png` | Root-covered shrine; giant hollow cedar; moss-covered ruins; old charcoal kiln; collapsed woodland gate; fern-lined grotto |
+
+Rarity direction: about one of each TYPE per few normal viewscreens (proposed calibration 3–5), with world-space spacing usually leaving only 1–2 oddities total on a normal view. Measure actual units later. Placements are fixed and seeded; never respawn/reroll with camera or zoom. Grottos need suitable cliffs, fossils exposed rock, wrecks actual coast; terrain and collision must match. Reuse overlapping wells, sheds/huts and shrines across basic and rare manifests; the frozen well already has a basic specification. Resolve shared outputs and skip/repack duplicate cells before generation. Six candidates do not require six new sheets. No interactive systems, interiors or loot are implied; discuss those later.
+
+### Optional opaque ground-tile proposals (separate later generations)
+
+These are not transparent-sheet cells and are not part of the initial sheet run. Each is a separate seamless 1024 x 1024 opaque texture proposal for an 8 x 8 world-unit tile; review the choices before any later generation.
+
+| File | Biome / use | References |
 |---|---|---|
-| `ground_snow.png` | `assets/environment/island/top_snow.png`; `assets/environment/forest_textures/forest_floor_tile.png` | An almost continuous blanket of settled lowland snow, approximately 90 to 95 percent snow coverage. Subtle wind-softened grain, gentle irregular shallow depressions, sparse tiny dark pebbles and occasional short dormant grass tips barely breaking the surface. Mostly calm open snow, no deep dramatic drifts, exposed rock slabs, pine tops or mountainous features. Small details distributed naturally and quietly, consistent scale across the image. This must read as snowy terrain beneath walking human-sized units rather than a miniature mountain landscape. |
-| `ground_snow_thaw.png` | `assets/environment/island/ground_snow.png`; `assets/environment/forest_textures/wet_soil_tile.png`; `assets/environment/forest_textures/pine_needles_tile.png` | A companion lowland texture blending irregular remnants of melting snow with damp dark earth, subdued dead olive-brown grass and sparse tiny pebbles. Approximately 45 to 55 percent snow coverage, broken into soft-edged organic patches of varied size, without stripes or a single boundary dividing the image. Match `ground_snow.png` exactly in snow colour, detail scale and diffuse illumination. Exposed earth is dark muted soil, not orange sand or bright mud. Slight dampness without broad puddles or reflective water. This is a fully covered mixed ground tile for procedural blending at snow-region edges, not a transparent decal, fixed path or directional transition strip. |
+| <code>packed_snow_trail.png</code> | snow / Packed snow trail material | <code>assets/environment/island/ground_snow.png</code>; <code>assets/environment/island/ground_snow_thaw.png</code> |
+| <code>fallow_field.png</code> | plain / Small fallow field material | <code>assets/environment/forest_textures/wet_soil_tile.png</code>; <code>assets/environment/forest_textures/pebbles_soil_tile.png</code> |
 
-After generation, record actual output dimensions and verify opaque coverage, scale, palette, tile edges, and repeated motifs before marking these textures complete. Whole-region snow-ground rendering and thaw blending still require code integration.
+**Shoreline kit reservation (planning only):** temperate, snow and dry shores each need eight world-space water-facing orientations (N, NE, E, SE, S, SW, W, NW). Share a topology template, but keep materials and silhouettes distinct. Low beach banks and coastal cliffs/rims are separate geometry families. Existing <code>lake_edge_1..8</code> are references, not a complete coast kit. Eight facings do not solve arbitrary concave/convex joins; connectors, caps and beach-to-cliff/biome transitions wait until water redesign approves exact footprint, endpoints, land/water side and geometry. No bridge, river-source, lake or capital-silhouette prompts are approved in this pass.
 
+**Draft reuse and density notes:** the reuse audit suggests importing distinct existing forest props (cedar, pine, ferns, stump, fallen log, small rocks, twisted pine) where island art currently uses substitutes before generating duplicates; reuse runtime fences, walls, wells and carts only where context fits. Existing nominal rule sums per 1,000 units (forest 23.85, hills 7.22, dry 4.22, snow 6.3, marsh 4, plain 6.16) are not observed counts because masks and filters reduce placement. Candidate observed averages per 1,000 eligible units: snow 6-10, plain 7-11, hills 6-10, dry 5-8, coast 5-9, forest 12-18; grove peaks are separate. The current one-candidate sampler has global probability 0.71383, so rates cannot be blindly raised beyond its limit; review deterministic sampling if needed. These are unapproved proposals; no runtime density change is approved.
 ## Later
-
 - Ninja hero
 - Effects (slashes, muzzle flashes)

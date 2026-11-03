@@ -2,7 +2,7 @@
 
 Tim asked to note these for a later phase instead of building now.
 
-## Already changed before the pause (tests pass, not committed)
+## Already changed before the pause (W3.10; coordinator-reported checks)
 - City seen from the island: a line of stone wall pieces along the city box edges (left out over water, open at the gate), so the blocked zone up and to the left of the gate is visible. Art only; the city box was already the walk blocker. Data: `cityWall` in world_paint.json; code in render/world_ground.js.
 - Gate blend: a trampled-earth stamp at the gate (island side) plus a short trail from the gate down to the capital's road junction (`paths` and `stamps.list` in world_paint.json).
 - Start area livelier: meadow ground mixes more moss, pebbles, leaf litter and dry grass; meadow props roughly 1.6 to 4.3 per 1000 sq units, with pine and cherry groves, ferns, more bushes and rocks.
@@ -10,10 +10,12 @@ Tim asked to note these for a later phase instead of building now.
 ## Art session (Tim 00:08) - ON HOLD (Tim 00:09: out of ChatGPT image usage; Gemini possible later; do the non-art items first)
 Tim wants a dedicated session of massive prop generation for the biomes with few assets: snow, dry, plains/grassland, hills, beach/coast (plus farms, fences, ruins, features), and more variety for biomes that already have some art (forest, lake, cliffs) (Tim 00:08 "and some we do"). Output: prompt sheets per biome following the piece-type rule (standalone vs joining vs tile, size in units), Tim generates, then a cut-and-import step and the placement rules.
 
-## Dry range blueprint (Tim 00:08)
-Create the dry-zone blueprint now pending: add connected mountain cells (a dry range) in a dry region so the dry cliffs, rims, corners, tops and outcrops can be mapped together. Blueprint change: python3 blueprint.py (world_blueprint), then tools/seed_world.mjs; check sites, routes and passes still validate. Mock for Tim first.
+## Dry range blueprint (P4; not built or approved to build)
+Later proposal: add connected mountain cells in a dry region so the dry cliffs, rims, corners, tops and outcrops can be mapped together. Proposed blueprint workflow: python3 blueprint.py (world_blueprint), then tools/seed_world.mjs; validate sites, routes and passes. Mock and Tim's build approval first.
 
-## Still open (for the phase)
+## Walkthrough findings (historical; current status below)
+
+Status (Tim, 2026-11-02): W3.10/P1 are done; P2 Maps is complete after Tim's playtest. Map findings 1, 2, 2b and 2c below are retained as the original brief, not open tasks. Current status and load-check limits: [next coordinator handoff](frontier_build_steps.md#next-coordinator-handoff-tim-2026-11-02).
 1. Minimap and world map look low resolution. Likely cause: the world map draws terrain as one pixel per 50-unit cell, scaled up, and the canvases may not use the screen's pixel ratio. Fix idea: draw at devicePixelRatio, smooth or painted terrain layer, sharper overlays.
 2. World map grid: hidden by default, a toggle to show it (button on the map, maybe a key; Controls panel entry), and the grid lines more transparent.
 2b. World map layout (Tim 23:58): turn the World map so the island lies horizontally and fits the screen width (rotate, no stretching; the island is 14000 x 8000, so north up fills a wide screen). Then align the minimap with the World map (same orientation). Note: the minimap then no longer matches the screen's 45-degree view; show Tim a mock of both before building.
@@ -30,3 +32,12 @@ Create the dry-zone blueprint now pending: add connected mountain cells (a dry r
 7. Check again in game: the city wall look from the island, gate blend, start-area density.
 8. Later (Tim OK'd): chunk build and ground-paint speed-up after the main build is complete.
 9. Bridges (Tim 00:16): the crossing just north of the capital (V1-F7, island 12486,2947) is a `bridge`-kind crossing: walkable river cells with nothing drawn, so the hero stands "in" the water. W3.10 put ford art only on the 8 `ford` crossings; the 9 bridges have no art yet. Needs bridge art (standalone piece, sized to the river width) or a placeholder (e.g. plank walkway) on all bridge crossings. Same shot: the water shows faint diagonal stripes in a regular grid, likely the same plain-repeat seam issue as 6d; check the water texture in the fix phase. Real fords: nearest is V2-F1 at 9552,1851 (by site S08).
+
+## P3 direction (Tim, 2026-11-02; deferred)
+
+- Defer P3 overall. In the latest screenshot, mountain, snow, and cliff joins look good enough for now.
+- When P3 is revisited, focus on water edges, prop density/clustering, and missing biome art.
+- Redesign fords, bridges, lakes, and especially river sources in a future design pass. The current source reads like a single diagonal river segment, not a rounded pool/lake or believable source. Springs or pools, mountain tarns, and waterfalls feeding streams are brainstorming categories only—not approved designs.
+- Any future water design must make source shapes, stream connections, crossing scale/alignment, and water collision agree. Do not start art generation or implementation until the phase is reopened and designs are approved.
+
+P5 status (Tim, 2026-11-02): basic categories, grouped-sheet method and all rare oddity concepts are approved for planning only. Lists, rarity direction, reuse and shoreline families live in [assets/image_prompts.md](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02) and its [planning JSON](../assets/environment/island/p5_biome_art_plan.json). Finish discussing sizes, rates and prompt details; generation remains on hold and no integration is approved.
