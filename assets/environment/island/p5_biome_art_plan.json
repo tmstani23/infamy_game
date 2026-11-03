@@ -1,17 +1,53 @@
 {
   "version": 1,
   "date": "2026-11-02",
-  "status": "Tim approved prompts and sequential transparent-sheet generation 2026-11-02; snow essentials first, review before proceeding. No cutting/import/runtime approval.",
+  "status": "Transparent prop sheets cropped and organized 2026-11-02. Tim requested runtime generator integration 2026-11-02.",
+  "runtimeIntegration": {
+    "cropRepair": {
+      "status": "All 57 re-cut, visually reviewed and imported after Tim reported clipping; 41 old cuts had opaque pixels on a crop boundary.",
+      "cause": "Generated objects crossed the assumed equal 512px cell boundaries. The importer also wrongly subtracted source trim offsets from anchors already in trimmed-image coordinates.",
+      "pipeline": "tools/cut_biome_props.mjs uses reviewed crop_regions.json, rejects opaque extraction boundaries and preserves source alpha. tools/import_biome_props.mjs requires schema v2 with explicit trimmed-image anchors.",
+      "review": "assets/environment/island/biome_props/review/crop_audit.json and crops_1.png through crops_3.png",
+      "archive": "to_delete/biome_props_fixed_grid_cuts_2026-11-02/",
+      "snowVisualScale": {
+        "snow_pine": 0.75,
+        "snow_cedar": 0.65
+      }
+    },
+    "status": "wired; pending in-game visual tuning",
+    "phase": "1: register accepted transparent sprites and wire deterministic biome placement",
+    "checklist": [
+      {
+        "task": "Import all 57 alpha-trimmed sprites into the runtime prop catalog with fitted footprints and ground anchors.",
+        "done": true
+      },
+      {
+        "task": "Use the new common plant and ground-detail sprites in the seeded biome prop sampler without exceeding its candidate probability budget.",
+        "done": true
+      },
+      {
+        "task": "Place rare oddities deterministically with spacing and coast/cliff terrain eligibility; keep them decorative and nonblocking.",
+        "done": true
+      },
+      {
+        "task": "Preserve the original generated sheets and organized cutouts as source art.",
+        "done": true
+      }
+    ],
+    "constraints": [
+      "Transparent backgrounds; no background removal or compositing.",
+      "Placement is seeded in world coordinates and owned once across chunk boundaries.",
+      "No navigation or collision changes in this art integration phase."
+    ]
+  },
   "scope": {
     "authorizedDraftWork": [
       "asset reuse audit",
       "draft biome density/clustering proposals",
-      "grouped basic and rare sheet specifications and prompts for discussion"
+      "grouped basic and rare sheet specifications and prompts",
+      "cutting/importing the accepted transparent sheets and wiring decorative biome props into the seeded generator (approved 2026-11-02)"
     ],
     "notApproved": [
-      "cutting",
-      "imports",
-      "runtime/density/collision/export/build changes",
       "water/shoreline generation",
       "opaque tile generation"
     ],
@@ -63,10 +99,10 @@
     "noBatchGrid": false,
     "noOverwrite": true,
     "outputDirectory": "assets/environment/island/biome_props/",
-    "sourcePixelNote": "Sheet canvas dimensions are proposals, not approved output sizes. Individual prompt width/height fields are legacy standalone fallback targets, NOT expected cell-cut dimensions. A 1536 x 1024 sheet has 512 x 512 cells before alpha trim; do not upscale cuts to those fallback sizes. Record actual output dimensions and alpha.",
+    "sourcePixelNote": "Requested sizes were guidance. Actual source sizes and reviewed object regions are authoritative; never assume equal cells. See schema-v2 cutouts manifest.",
     "referenceRule": "Inspect every referenced source before generation. Match first approved new snow prop throughout its family. Output files do not exist merely because a prompt exists.",
     "mode": "One transparent 3-column by 2-row prop sheet per generation, then cut into individually named sprites. Standalone refers to each object, not a requirement for one generation per sprite.",
-    "sheetCutting": "Use fixed equal cells with generous gutters, then alpha-trim each cell separately. Preserve original sheet, output each named sprite with crop/ground-anchor metadata and fitted visual size. Do not cut touching/merged objects by guesswork; reject only that cell. Import one reviewed sheet first, not all sheets at once.",
+    "sheetCutting": "Completed repair: all 57 re-cut using reviewed per-object crop_regions.json (schema v2), source alpha preserved; equal-cell method superseded after 41 clipped cuts. Explicit trimmed-image anchors preserved during import.",
     "counts": {
       "basicDraftTransparentSprites": 23,
       "basicDraftSheets": 4,
@@ -77,8 +113,8 @@
       "rareUniqueNewOutputs": "pending overlap/reuse and packing review; not 36 automatic generations"
     },
     "oneSheetAtATime": true,
-    "individualPromptRule": "Individual specifications are fallback guidance, not extra generations. Grouped generation is authorized; cutting/import/runtime are not.",
-    "authorization": "Tim approved prompts and sequential transparent-sheet generation 2026-11-02; snow essentials first, review before proceeding. No cutting/import/runtime approval.",
+    "individualPromptRule": "Individual specifications are fallback guidance, not extra generations. Grouped generation was used; accepted sprites are now cut and imported.",
+    "authorization": "Tim approved sequential transparent-sheet generation 2026-11-02 and later requested cropping, organization and runtime generator integration.",
     "exception": "Grouped sheets by default; singles only where truly necessary for usable resolution. World units are rough fitting guidance, not exact generator output.",
     "resolutionGuidance": "Request high resolution for cell detail and later sizing; requested resolution is not guaranteed output. Singles only where truly necessary; farmstead and shipwreck are candidates, not an approved expanded singles run.",
     "assignmentQueue": [
@@ -86,61 +122,61 @@
         "file": "snow_core_sheet_v1.png",
         "output": "assets/environment/island/biome_props/snow_core_sheet_v1.png",
         "owner": "coordinator 01a19f47-4aee-7772-8384-80c9c4a44ed8",
-        "status": "saved; Tim APPROVED LOOK"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "open_country_sheet_v1.png",
         "output": "assets/environment/island/biome_props/open_country_sheet_v1.png",
         "owner": "trial chat 01a19f55-d9d8-7b60-ba86-a79b1da1baa4",
-        "status": "saved; Luna high one-generation workflow trial; pending review"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "landscape_details_sheet_v1.png",
         "output": "assets/environment/island/biome_props/landscape_details_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "snow_features_sheet_v1.png",
         "output": "assets/environment/island/biome_props/snow_features_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "snow_oddities_sheet_v1.png",
         "output": "assets/environment/island/biome_props/snow_oddities_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "plains_oddities_sheet_v1.png",
         "output": "assets/environment/island/biome_props/plains_oddities_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "hills_oddities_sheet_v1.png",
         "output": "assets/environment/island/biome_props/hills_oddities_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "dry_oddities_sheet_v1.png",
         "output": "assets/environment/island/biome_props/dry_oddities_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "coast_oddities_sheet_v1.png",
         "output": "assets/environment/island/biome_props/coast_oddities_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       },
       {
         "file": "forest_oddities_sheet_v1.png",
         "output": "assets/environment/island/biome_props/forest_oddities_sheet_v1.png",
         "owner": "unassigned; no generation chat launched",
-        "status": "queued"
+        "status": "Completed; accepted source version and cuts recorded in cutouts manifest."
       }
     ],
     "ownershipRule": "One sheet per chat with exclusive ownership and named save. No other generation chats launched. Grouped sheets by default; large singles only when actually needed, not blanket extra outputs."
@@ -215,7 +251,7 @@
     }
   ],
   "density": {
-    "status": "proposed starting targets, not runtime configuration",
+    "status": "Runtime starting rates are configured in game/data/biome_props.json; tune after in-game visual review.",
     "units": "visible standalone props per 1000 eligible passable world-square-units, after exclusion masks; large authored landmarks excluded",
     "existingNominalPer1000": {
       "forest": 23.85,
@@ -321,14 +357,21 @@
     ],
     "samplerGuard": {
       "currentGrid": 3.4,
-      "currentGlobalCandidateProbability": 0.7138299999999999,
-      "rule": "Current paintProps chooses at most one candidate from cumulative probabilities across all biome rules, plus bamboo. Before increasing rule sums or adding coast rules, ensure sum(per1000)*grid^2/1000 stays <=1, or separately review a deterministic sampler change. Never silently clip later rules or claim raw sums equal observed density."
+      "currentGlobalCandidateProbability": 0.752556,
+      "rule": "The original one-candidate sampler plus bamboo is about 0.71383; the six additional common-prop rates add about 0.038726, for about 0.752556 total (<1). Biome replacements keep existing rates unchanged. Coast plants and rare oddities use separate deterministic world-space grids. Runtime throws if future common-rule rates push the cumulative candidate probability above 1. Never silently clip later rules or claim raw sums equal observed density."
     },
     "performance": "Check chunk generation, active sprite count, draw calls and memory against the current accepted baseline before/after a small representative density change. Keep streamed bounds; no whole-island prop instantiation. No browser/headless automation; Tim checks in game."
   },
   "shorelineKits": {
-    "status": "Eight orientations and distinct biome families approved for planning; exact geometry, dimensions, spans/connectors and generation prompts wait for later water design",
-    "orientations": [
+    "status": "Tim requested wet/dry/snow only, with odd-angle fitting and blending. Research recommends three neutral-lit top-down strips; prompts and blueprint audit drafted 2026-11-02.",
+    "canonicalPlan": "assets/environment/island/coastline_art_plan.json",
+    "promptDrafts": "assets/environment/island/coastline_prompts.txt",
+    "families": [
+      "wet",
+      "dry",
+      "snow"
+    ],
+    "placementDirections": [
       "N",
       "NE",
       "E",
@@ -338,28 +381,10 @@
       "W",
       "NW"
     ],
-    "directionConvention": "World-space outward water-facing direction. Every production prompt must also name its projected screen slope, which side contains land/water, its world-unit footprint and exact joining endpoints. Never rely on a filename or arbitrary sprite rotation to establish orientation.",
-    "families": [
-      {
-        "name": "temperate",
-        "materials": "weathered grey stone, damp dark soil, olive bank vegetation; reusable for compatible forest/plain coasts"
-      },
-      {
-        "name": "snow",
-        "materials": "snow-capped banks, frosted dark stone, sparse frozen reeds, restrained shore ice when the water design supports it; complete matching set, not green grass tinted white"
-      },
-      {
-        "name": "dry",
-        "materials": "ochre/sandstone or pale arid shore materials and dry scrub; own bank treatment, not recoloured moss"
-      }
-    ],
-    "separateGeometryFamilies": [
-      "low beach/bank pieces",
-      "coastal cliffs/rims where the blueprint calls for steep shore"
-    ],
-    "cornerRule": "Eight facings alone do not solve arbitrary coastlines. Add compatible concave/convex connectors, caps, beach-to-cliff and biome transition joins only after the footprint/endpoint template is approved. Snow and dry share the joining template, not necessarily the silhouette or painted details.",
-    "reuse": "Existing numeric lake_edge_1..8 remain source candidates; they do not automatically fulfill a complete coastal or climate-specific kit.",
-    "preserve": "Existing usable shoreline/cliff art and screenshots remain references. New kit never changes water blockers to disguise a mismatched image."
+    "recommendedGenerationCount": 3,
+    "orientationRule": "Continuous ground-space fitting handles opposite banks and arbitrary angles. Eight direction-specific images per family remain an alternative if the approved art contains baked perspective; do not rotate upright isometric cliff sprites as flat textures.",
+    "existingCliffs": "Reuse/assess existing cliff, rim and corner sources; no additional cliff prompts planned.",
+    "scope": "Planning only; source generation and runtime fitting remain later phases."
   },
   "deferred": [
     {
@@ -396,7 +421,7 @@
       "blockerProposal": "trunk only, approximately 1 x 1 units; canopy remains nonblocking",
       "detail": "One mature Japanese pine, dark muted needles supporting substantial irregular snow caps, a readable dark trunk and bent branches. Match the reference pine silhouette and scale; snow clings naturally to upper surfaces. No surrounding forest, cliff or snow platform.",
       "output": "assets/environment/island/biome_props/snow_pine.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -422,7 +447,7 @@
       "blockerProposal": "trunk only, approximately 1 x 1 units",
       "detail": "One upright Japanese cedar with tiered evergreen branches bowed under irregular snow caps; visible brown-grey trunk. Taller and narrower than the pine, with a distinct silhouette; no forest background or ground platform.",
       "output": "assets/environment/island/biome_props/snow_cedar.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -448,7 +473,7 @@
       "blockerProposal": "none",
       "detail": "One low rounded shrub with a few dark twig and leaf tips beneath an irregular snow covering. Uneven edges and several small snow lobes; keep the silhouette low enough to leave nearby characters readable.",
       "output": "assets/environment/island/biome_props/snow_bush.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -474,7 +499,7 @@
       "blockerProposal": "large stones only; fitted footprint, never their transparent border",
       "detail": "One small cluster of three to five blue-grey boulders, varied in size, half buried in snow with sparse short icicles in sheltered cracks. Low landscape dressing, no towering outcrop, ice lake or ground slab.",
       "output": "assets/environment/island/biome_props/snow_boulders.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -500,7 +525,7 @@
       "blockerProposal": "solid wood only; keep clear of paths",
       "detail": "One weathered fallen cedar log with broken end grain, a few bare branch stubs and snow resting on its upper surface. Runs along the x ground axis, upper-left to lower-right on screen. No forest floor or connecting branches outside the silhouette.",
       "output": "assets/environment/island/biome_props/snow_fallen_log.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -526,7 +551,7 @@
       "blockerProposal": "stump core only",
       "detail": "One old cut stump with visible weathered roots, snow on its top and in root crevices, and slight frost on the bark. Compact distinct shape; no large surrounding snow patch.",
       "output": "assets/environment/island/biome_props/snow_stump.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -551,7 +576,7 @@
       "blockerProposal": "none",
       "detail": "One low irregular drift with a soft rounded windward crest and a tapering leeward tongue. Subtle blue-grey shading compatible with ground_snow, a natural feathered transparent perimeter and no rectangular snow base. Low local relief, not a hill or mountain; no permanent cast shadow.",
       "output": "assets/environment/island/biome_props/snow_drift.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -577,7 +602,7 @@
       "blockerProposal": "stone base only",
       "detail": "One aged Japanese stone lantern, unlit, snow on the roof and base, a little frost in the stone joints. Small isolated landmark; no paving slab, large garden or baked glow. Light, if used, is added in code.",
       "output": "assets/environment/island/biome_props/snow_stone_lantern.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -603,7 +628,7 @@
       "blockerProposal": "well structure only",
       "detail": "One small abandoned stone well with weathered timber crossbeam and idle bucket, rim and beam capped with snow, dark closed-looking opening. No characters, roofed building, usable water surface or background; a decorative feature with no implied new interaction.",
       "output": "assets/environment/island/biome_props/snow_frozen_well.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -629,7 +654,7 @@
       "blockerProposal": "survey and fit actual remaining structure; do not block an invisible whole room",
       "detail": "One small ruined rural timber farm shed, partially collapsed roof, dark weathered posts, a few visible rafters and snow on the remaining roof. A single coherent ruin; no yard, fences, field, scattered distant debris or habitable interior. Fixed facing matching existing Japanese buildings.",
       "output": "assets/environment/island/biome_props/snow_ruined_shed.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -655,7 +680,7 @@
       "blockerProposal": "short fence footprint only; only at authored feature sites after navigation approval",
       "detail": "A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-left to lower-right on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the x axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
       "output": "assets/environment/island/biome_props/snow_fence_x.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [
         "-x",
         "+x"
@@ -684,7 +709,7 @@
       "blockerProposal": "short fence footprint only; only at authored feature sites after navigation approval",
       "detail": "A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-right to lower-left on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the z axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
       "output": "assets/environment/island/biome_props/snow_fence_z.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [
         "-z",
         "+z"
@@ -741,7 +766,7 @@
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
       "output": "assets/environment/island/biome_props/meadow_grass.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -766,7 +791,7 @@
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
       "output": "assets/environment/island/biome_props/meadow_flowers.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -792,7 +817,7 @@
       "blockerProposal": "trunk only, approximately 1 x 1 units",
       "detail": "One mature Japanese countryside broadleaf tree with an irregular open canopy, small muted olive leaves and a readable branching trunk. No pink blossoms. Distinct from a pine, grounded and wind-shaped, no perfect spherical crown or park landscaping.",
       "output": "assets/environment/island/biome_props/meadow_broadleaf_tree.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -846,7 +871,7 @@
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
       "output": "assets/environment/island/biome_props/hill_heather.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -872,7 +897,7 @@
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
       "output": "assets/environment/island/biome_props/dry_scrub.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -897,7 +922,7 @@
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
       "output": "assets/environment/island/biome_props/dry_grass_tussock.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -923,7 +948,7 @@
       "blockerProposal": "large stones only; fit their actual base",
       "detail": "One low cluster of several weathered sandstone stones, ochre and rust with pale sun-bleached faces and tiny fissures. Small readable stones rather than a miniature cliff wall or pillar range. No ground slab or dramatic scene lighting.",
       "output": "assets/environment/island/biome_props/sandstone_stones.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -949,7 +974,7 @@
       "blockerProposal": "solid wood only",
       "detail": "One sun-bleached fallen log with split grey-ochre grain, a broken hollow end and two short dry branch stubs. Low horizontal silhouette, no moss or bright green leaves, no terrain backdrop.",
       "output": "assets/environment/island/biome_props/bleached_log.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -974,7 +999,7 @@
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
       "output": "assets/environment/island/biome_props/dune_grass.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -999,7 +1024,7 @@
       "blockerProposal": "large central wood only",
       "detail": "One weathered driftwood trunk, silver-grey bleached grain, rounded broken ends and a few smooth root prongs. One standalone object with no beach, sea, foam, waterline or rock arrangement.",
       "output": "assets/environment/island/biome_props/coastal_driftwood.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -1024,7 +1049,7 @@
       "blockerProposal": "actual standing structure only; placement reviewed with routes",
       "detail": "Small uneven stack of five to seven local grey stones; use approved group 3 prompt.",
       "output": "assets/environment/island/biome_props/trail_cairn.png",
-      "status": "Approved grouped generation; rough fitting guidance only; not imported",
+      "status": "Generated, cut and imported 2026-11-02; visual size can be tuned after in-game review.",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
@@ -1044,7 +1069,7 @@
         "rows": 2,
         "minimumCellPaddingPixels": 32
       },
-      "status": "saved; Tim APPROVED LOOK",
+      "status": "Accepted, cut/imported; per-object crop repair complete.",
       "cells": [
         {
           "row": 1,
@@ -1100,7 +1125,7 @@
         "rows": 2,
         "minimumCellPaddingPixels": 32
       },
-      "status": "saved; Luna high one-generation workflow trial; pending review",
+      "status": "Accepted, cut/imported; per-object crop repair complete.",
       "cells": [
         {
           "row": 1,
@@ -1144,8 +1169,8 @@
       "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nFive STANDALONE vegetation patches and one STANDALONE tree. Patches are small irregular clusters, not seamless tiles. Keep transparent gaps between plants, broken natural edges and no painted soil underneath.\n\n1. **Meadow grass patch — 3 × 2 units.** Several uneven tussocks of muted olive and straw-green grass, varied blade heights and small open gaps. No rectangular lawn.\n2. **Wildflower patch — 3 × 2.5 units.** Loose meadow grasses with scattered cream, pale lavender and faded yellow flowers. Mostly foliage; sparse flowers rather than a bright bouquet.\n3. **Broadleaf tree — 5 × 5 units.** One mature Japanese countryside tree with an irregular open canopy, muted olive leaves and visible branching trunk. No blossoms or spherical ornamental crown.\n4. **Hill-scrub patch — 3 × 2 units.** Several low wind-pressed shrubs, grey-green leaves, exposed twigs and restrained dusky mauve tips. Broken, rugged silhouette.\n5. **Dry-scrub patch — 3.5 × 2.5 units.** Loose drought-hardened shrubs with dusty sage and ochre leaves, twisted brown twigs and dead tips. No cactus or tropical plants.\n6. **Dry-grass patch — 3 × 2 units.** Several separated straw-coloured tussocks with curled blades and thin seed stalks. Airy, ragged and sun-bleached, with substantial transparent openings."
     },
     {
-      "file": "landscape_details_sheet_v1.png",
-      "output": "assets/environment/island/biome_props/landscape_details_sheet_v1.png",
+      "file": "landscape_details_sheet_v2.png",
+      "output": "assets/environment/island/biome_props/landscape_details_sheet_v2.png",
       "label": "Landscape details",
       "width": 1536,
       "height": 1024,
@@ -1155,7 +1180,7 @@
         "rows": 2,
         "minimumCellPaddingPixels": 32
       },
-      "status": "approved for sequential generation; review snow essentials first",
+      "status": "Accepted, cut/imported; per-object crop repair complete.",
       "cells": [
         {
           "row": 1,
@@ -1210,7 +1235,7 @@
         "rows": 2,
         "minimumCellPaddingPixels": 32
       },
-      "status": "approved for sequential generation; review snow essentials first",
+      "status": "Accepted, cut/imported; per-object crop repair complete.",
       "cells": [
         {
           "row": 1,
@@ -1254,7 +1279,7 @@
     }
   ],
   "rareOddities": {
-    "status": "All 36 concepts approved by Tim 2026-11-02 for planning; six transparent-sheet candidates only, no generation",
+    "status": "Oddity concepts were grouped into transparent sheets, cropped, imported and wired to sparse seeded placement 2026-11-02.",
     "sheetRule": "Six isolated landmark concepts per biome, transparent 3 x 2 layout using the shared style and gutters; a landmark may be a small coherent cutout cluster but never touches neighbouring cells. Exact scale, dimensions, terrain integration and full prompts await review.",
     "sheetCandidates": [
       {
@@ -1269,7 +1294,7 @@
           "giant broken cedar"
         ],
         "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nEach occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.\n\nCave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.\n\nRuins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.\n\nUse cold blue-grey stone, weathered dark timber, frost and irregular snow accumulation.\n\n1. **Half-buried shrine — 5 × 4 units.** Small neglected timber roadside shrine, lower structure partly swallowed by snow, sagging roof and a few exposed steps. Use the same underlying shrine design as the plains roadside shrine, with a snow-specific treatment.\n2. **Leave transparent.** The collapsed mountain hut uses group 4’s snowy hut/shed.\n3. **Leave transparent.** The frozen well uses group 4’s well.\n4. **Icicle grotto — 7 × 4 units.** Dark recessed opening in fractured cold-grey rock, irregular icicles hanging from its lip and snow on upper ledges. Include immediate backing rock only.\n5. **Frost-covered standing stones — 6 × 5 units.** Small uneven arrangement of ancient rough monoliths, some leaning or partly buried, with frost and restrained snow caps. No runes.\n6. **Giant broken cedar — 7 × 5 units.** Massive old cedar with a splintered upper trunk, surviving twisted limbs and snow lodged in bark crevices. A distinctive broken silhouette.",
-        "status": "approved grouped prompt; sequential generation after first-sheet review",
+        "status": "Accepted, cut/imported; per-object crop repair complete.",
         "blankCellsReused": {
           "2": "snow_ruined_shed.png",
           "3": "snow_frozen_well.png"
@@ -1287,7 +1312,7 @@
           "small roadside shrine"
         ],
         "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nEach occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.\n\nCave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.\n\nRuins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.\n\nWeathered timber, faded plaster, muted meadow vegetation and restrained moss. Plants belong to each compact landmark, not a surrounding field.\n\n1. **Abandoned farmstead — 14 × 10 units.** Compact ruined farmhouse with a collapsed lean-to and a few attached broken fence sections. Exposed rafters, patchy roof and weeds; no complete farm landscape.\n2. **Ruined granary — 7 × 5 units.** Small raised Japanese timber storehouse, damaged supports, missing wall boards and a partly collapsed roof. Readable elevated floor.\n3. **Overgrown cemetery — 7 × 6 units.** Compact cluster of irregular weathered Japanese grave markers, a few leaning, with low grasses and weeds between them. No readable writing.\n4. **Collapsed watchtower — 7 × 6 units.** Broken timber lookout with a surviving lower frame and fallen upper platform gathered close to its base.\n5. **Neglected orchard — 12 × 9 units.** Small coherent group of three old fruit trees, uneven crowns, sparse foliage and tangled lower growth. No blossoms, field base or regimented plantation.\n6. **Roadside shrine — 3 × 3 units.** Small aged Japanese timber shrine with a shallow roof, low stone base and worn steps. Establish the shared shrine construction used by compatible snow and forest variants.",
-        "status": "approved grouped prompt; sequential generation after first-sheet review"
+        "status": "Accepted, cut/imported; per-object crop repair complete."
       },
       {
         "biome": "hills",
@@ -1301,7 +1326,7 @@
           "weathered stone circle"
         ],
         "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nEach occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.\n\nCave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.\n\nRuins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.\n\nWind-weathered grey stone, sparse upland plants and dark aged timber.\n\n1. **Abandoned mine entrance — 6 × 4 units.** Timber-braced dark opening inset into fractured hill rock, broken support beam and a few stones at its foot. Immediate backing rock only.\n2. **Ruined signal tower — 6 × 5 units.** Remains of a hilltop timber signalling structure on a rough stone footing. Broken upper frame, no flag or fire.\n3. **Old quarry workings — 10 × 7 units.** Compact exposed rock face with stepped extraction scars, chisel marks, several abandoned cut blocks and close rubble. No surrounding hillside.\n4. **Cliff grotto — 7 × 4 units.** Irregular recessed opening with a heavy fractured rock brow, weathered ledges and sparse scrub in cracks.\n5. **Hermit’s hut — 6 × 4 units.** Tiny weather-beaten timber shelter with a patched roof and partly collapsed porch. Use the shared small-hut structure where compatible, with a temperate finish.\n6. **Weathered stone circle — 7 × 6 units.** Loose ring of low rough stones, some fallen or tilted, with sparse grass between them. Ancient and understated; no magical symbols.",
-        "status": "approved grouped prompt; sequential generation after first-sheet review"
+        "status": "Accepted, cut/imported; per-object crop repair complete."
       },
       {
         "biome": "dry",
@@ -1315,7 +1340,7 @@
           "shaded rock grotto"
         ],
         "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nEach occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.\n\nCave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.\n\nRuins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.\n\nPale sandstone, dusty ochre, sun-bleached timber and sparse drought-hardened vegetation.\n\n1. **Exposed dinosaur rib cage — 9 × 5 units.** Partly mineralised fossil ribs and a section of spine emerging from a compact eroded sandstone exposure. Broken, incomplete and visibly embedded; no fresh carcass.\n2. **Fossil skull in sandstone — 5 × 3 units.** Weathered prehistoric skull partly enclosed by layered sandstone, with portions still concealed in rock. Natural fossil discovery, not a clean museum display.\n3. **Ruined plaster-and-timber building — 8 × 6 units.** Small abandoned rural structure with cracked faded plaster, exposed framing and a fallen roof section.\n4. **Ancient dry well — 3 × 3 units.** Worn stone well with a broken timber support, chipped rim and dark dry opening. No snow, water or desert scenery.\n5. **Abandoned caravan camp — 9 × 6 units.** Compact abandoned pack-travel camp: collapsed canvas shelter, broken wooden handcart, bundled goods and an extinguished fire ring. No camels or exotic desert styling.\n6. **Shaded rock grotto — 7 × 4 units.** Low recessed cavity beneath an eroded sandstone overhang, deep natural shade and sparse dry scrub in cracks. Immediate rock surround only.",
-        "status": "approved grouped prompt; sequential generation after first-sheet review"
+        "status": "Accepted, cut/imported; per-object crop repair complete."
       },
       {
         "biome": "coast",
@@ -1329,7 +1354,7 @@
           "weathered seaside memorial"
         ],
         "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nEach occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.\n\nCave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.\n\nRuins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.\n\nSalt-weathered grey timber, muted coastal stone, rust stains and sparse wind-bent vegetation. Do not paint water, surf or a shoreline into the sheet.\n\n1. **Broken shipwreck hull — 14 × 6 units.** Grounded remains of an old wooden Japanese coastal vessel, split planking and exposed ribs, broken mast resting close against the hull. No sea or beach base.\n2. **Ruined coastal lookout — 7 × 5 units.** Small weather-beaten timber lookout on a rough stone footing, partly collapsed roof and salt-worn supports.\n3. **Washed-up cargo cache — 4 × 3 units.** Compact tangle of battered crates, one damaged barrel, frayed rope and torn packing material. No gold, glowing loot or scattered distant pieces.\n4. **Sea cave — 8 × 5 units.** Broad dark opening in salt-worn coastal rock, damp lower faces and restrained mineral staining. Immediate backing rock only; no painted waterline.\n5. **Abandoned fisherman’s shack — 6 × 4 units.** Small damaged timber shelter with a sagging roof, a folded torn net and a few fishing floats attached close to its wall. Use compatible shared hut construction.\n6. **Seaside memorial — 3 × 3 units.** Weathered Japanese stone memorial with a small broken offering ledge, salt erosion and sparse lichen. No readable lettering or surrounding vista.",
-        "status": "approved grouped prompt; sequential generation after first-sheet review"
+        "status": "Accepted, cut/imported; per-object crop repair complete."
       },
       {
         "biome": "forest",
@@ -1343,7 +1368,7 @@
           "fern-lined grotto"
         ],
         "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nEach occupied cell is one STANDALONE landmark or compact coherent landmark cluster. Include only the structure, vegetation, rubble or exposed rock essential to that landmark. No surrounding landscape, scenic vignette, floating terrain island or rectangular ground base.\n\nCave and mine mouths must include their immediate backing rock and an irregular outer silhouette suitable for embedding into matching cliffs. They are cliff inserts, not freestanding arches or complete modular cliff segments. Do not include distant terrain, water, a horizon or an interior scene.\n\nRuins should look abandoned and historically compatible with rural 1870s Japan. No readable inscriptions, visible treasure, glowing effects or occupants.\n\nDark weathered timber, damp grey stone, subdued moss, ferns and woody roots. Keep vegetation local to the landmark.\n\n1. **Root-covered shrine — 5 × 4 units.** The shared small roadside shrine design, aged beneath thick roots gripping its base and creeping across damaged timber. Moss on the roof; no surrounding forest.\n2. **Giant hollow cedar — 7 × 6 units.** Ancient broad-trunked cedar with a dark natural hollow, twisted roots and a few surviving heavy limbs. The hollow is part of the tree, with no furnished interior.\n3. **Moss-covered ruins — 8 × 6 units.** Compact broken stone foundation and short wall remnants entwined with roots, moss and sparse ferns. No whole ruined settlement.\n4. **Old charcoal kiln — 5 × 4 units.** Abandoned low domed earthen-and-stone Japanese charcoal kiln, cracked surface, small dark mouth and restrained charcoal staining.\n5. **Collapsed woodland gate — 7 × 4 units.** Broken timber gate with one leaning upright, fallen crossbeam and short attached fence remnants. Weathered, mossy and structurally readable.\n6. **Fern-lined grotto — 7 × 4 units.** Recessed opening in damp fractured rock, ferns concentrated beside the mouth and roots crossing the brow. Immediate backing rock only.",
-        "status": "approved grouped prompt; sequential generation after first-sheet review"
+        "status": "Accepted, cut/imported; per-object crop repair complete."
       }
     ],
     "rarity": {

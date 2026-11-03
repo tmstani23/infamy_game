@@ -388,30 +388,38 @@ Each B file is a separately generated alternate arrangement matching its A textu
 
 ## P5 biome art plan only (2026-11-02)
 
-Tim approved these prompts and sequential transparent-sheet generation (2026-11-02): start snow essentials and review the first sheet before proceeding. Grouped sheets are the default; singles only where truly necessary for usable resolution. Units remain rough fitting guidance, not exact generator output. No cutting, import, runtime, density, collision, export or build approval. No water, shoreline or opaque tile generation. Preserve source sheets.
-
-Request high resolution to preserve cell detail for later sizing; requested resolution is not guaranteed tool output. Separate canvases are reserved for large detailed landmarks that truly require them; farmstead and shipwreck are candidates, not an approved expanded singles run.
-
-The exact approved opening and group wording follow; shared opening precedes every group, and the shared addition also precedes oddities. Canonical full prompts are in [planning JSON](environment/island/p5_biome_art_plan.json). Individual specifications are not extra generations.
+Completed (Tim, 2026-11-02): ten accepted transparent sheets and 57 named sprites, cut, imported and integrated. Tim reviewed the repaired previews and said they look awesome. Original approved prompt wording follows as the source brief; units are rough fitting guidance, not exact generator output.
 
 ### Sheet assignment queue (Tim, 2026-11-02)
 
-All new prop outputs use `assets/environment/island/biome_props/`. Generation chat/image names omit P5; W3.11 P5 remains the phase identifier and `p5_biome_art_plan.json` keeps its filename. One sheet per chat, exclusive ownership and named saves. No other generation chats have launched.
+Completed inventory is in [cutouts_manifest.json](environment/island/biome_props/cutouts/cutouts_manifest.json); all sources/cutouts live in `assets/environment/island/biome_props/`. Generation chat/image names omit P5; W3.11 P5 remains the phase identifier. Exclusive one-sheet ownership was used during generation.
 
-| Sheet | Owner / status |
+| Accepted source | Status |
 |---|---|
-| `snow_core_sheet_v1.png` | coordinator 01a19f47-4aee-7772-8384-80c9c4a44ed8; saved; Tim APPROVED LOOK |
-| `open_country_sheet_v1.png` | trial chat 01a19f55-d9d8-7b60-ba86-a79b1da1baa4; saved; Luna high one-generation workflow trial; pending review |
-| `landscape_details_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `snow_features_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `snow_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `plains_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `hills_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `dry_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `coast_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
-| `forest_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `coast_oddities_sheet_v2.png` | Accepted; cut and imported |
+| `dry_oddities_sheet_v1.png` | Accepted; cut and imported |
+| `forest_oddities_sheet_v1.png` | Accepted; cut and imported |
+| `hills_oddities_sheet_v2.png` | Accepted; cut and imported |
+| `landscape_details_sheet_v2.png` | Accepted; cut and imported |
+| `open_country_sheet_v1.png` | Accepted; cut and imported |
+| `plains_oddities_sheet_v2.png` | Accepted; cut and imported |
+| `snow_core_sheet_v1.png` | Accepted; cut and imported |
+| `snow_features_sheet_v1.png` | Accepted; cut and imported |
+| `snow_oddities_sheet_v2.png` | Accepted; cut and imported |
 
-The open-country trial is one generation to test the workflow. Snow oddities leave hut/well cells blank and reuse snow features. Large detailed singles only when needed; no blanket extra outputs. No cutting/import/runtime approval.
+Five rejected opaque v1 sheets and obsolete cuts are archived in root `to_delete/`, excluded from commits. Snow oddity hut/well reuse snow-feature outputs; no duplicate generation.
+
+**Crop repair:** Tim found clipping in game. The old equal-cell method clipped 41 of 57 cutouts. All 57 were re-cut using reviewed per-object regions in [crop_regions.json](environment/island/biome_props/crop_regions.json), preserving source alpha. Review images: [1](environment/island/biome_props/review/crops_1.png), [2](environment/island/biome_props/review/crops_2.png), [3](environment/island/biome_props/review/crops_3.png); [audit](environment/island/biome_props/review/crop_audit.json). Old cuts: `to_delete/biome_props_fixed_grid_cuts_2026-11-02/`.
+
+`tools/cut_biome_props.mjs` uses object regions, not assumed 512px cells. `tools/import_biome_props.mjs` requires schema v2 and explicit trimmed-image ground anchors; it no longer subtracts trim offsets from already-local anchors. All 57 runtime PNGs match source cuts, metadata dimensions/anchors match, and no opaque pixels touch extraction boundaries. JS syntax and JSON checks passed; full gameplay/performance regression testing is not claimed.
+
+Runtime configuration: `game/data/biome_props.json`, loaded in `main.js` and placed by `sim/chunk_gen.js`, replaces common art and adds sparse seeded decorative oddities with coast/cliff/rock eligibility. `render/world_ground.js` handles catalogued kinds and visual-only scales (snow pine .75, cedar .65). Existing common blocker sizes remain; added props/landmarks are decorative. The [canonical plan](environment/island/p5_biome_art_plan.json) records integration and repair details.
+
+### Coastline plan and wet trial (2026-11-02)
+
+[Coastline plan](environment/island/coastline_art_plan.json) owns the blueprint v2 audit, research URLs, fitting constraints and checklist. [Three standalone prompt drafts](environment/island/coastline_prompts.txt) cover wet/dry/snow continuous flat ground ribbons with mask fitting at arbitrary angles. Eight placement directions do not imply 24 generations. Tall directional cliffs remain separate; assess/reuse existing cliff/rim art.
+
+Future fitting must match the authoritative 50-unit runtime land/water and movement boundary, which differs from the smooth blueprint. No shoreline renderer is implemented. Tim approved only wet generation first, then fitting review before dry/snow. Chat `01a19fa0-f060-7fb0-a617-7e666736cd96` owns the in-flight `coastline/coast_wet_strip_v1.png`, using corrected forest moss-covered ruins as style reference and lake edges 1/5 for layout. Output/manifest await review and are excluded from this checkpoint.
 
 **Shared opening — use for every group**
 

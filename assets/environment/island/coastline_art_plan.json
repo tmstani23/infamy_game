@@ -1,0 +1,392 @@
+{
+  "version": 1,
+  "date": "2026-11-02",
+  "status": "Tim approved wet-strip generation first, then a fitting review before dry/snow; prompts finalized and generation delegated to a new Luna chat 2026-11-02.",
+  "decision": {
+    "recommended": "Three flat, neutral-lit shoreline texture strips, wet/dry/snow. Continuous fitting around the coastline; eight directions are placement directions, not eight new paintings per family.",
+    "promptCount": 3,
+    "alternative24": "Use 3 x 8 direction-specific images only if a later approved look requires baked perspective or substantial upright silhouettes in the shoreline art. Such images still do not solve arbitrary bends by themselves.",
+    "existingCliffs": "Assess and reuse the current cliff/rim/corner inventory. Tim believes the cliff edges are covered; no new cliff generation is included."
+  },
+  "sources": [
+    {
+      "url": "https://dev.epicgames.com/documentation/fortnite/water-tools-in-unreal-editor-for-fortnite?lang=en-US",
+      "finding": "Epic documents editable spline outlines for oceans, lakes and islands."
+    },
+    {
+      "url": "https://docs.flightsimulator.com/html/Developer_Mode/Scenery_Editor/Objects/Polygon_Objects.htm",
+      "finding": "Flight Simulator documents polygon-derived distance fields for feathering the water/land shoreline."
+    },
+    {
+      "url": "https://docs.unity.cn/Packages/com.unity.2d.spriteshape%409.0/manual/index.html",
+      "finding": "Unity documents outline-based sprite deformation and angle-based sprite selection, useful for genuinely directional art."
+    },
+    {
+      "url": "https://media.gdcvault.com/gdc2017/Presentations/Longchamps_Nicolas_ShoreToHorizon_NOTES.pdf",
+      "finding": "GDC presentation From Shore to Horizon describes shoreline-distance-field masking for foam."
+    }
+  ],
+  "blueprintAudit": {
+    "source": "docs/images/frontier/blueprint/world_blueprint_v2.json",
+    "sha256": "c957c8a89245eb396595b2cdf2c5baa30353351ca65db8b11af2660a5eed3d31",
+    "runtimeWorld": "game/data/world.json",
+    "size": {
+      "w": 14000,
+      "h": 8000
+    },
+    "terrainCell": 50,
+    "mainCoastSegments": 329,
+    "mainCoastApproxLength": 47949,
+    "sampledLengthByTerrain": {
+      "dry": 4264,
+      "wet": 35866,
+      "snow": 7819
+    },
+    "method": "Approximate inventory only: segment midpoint, clockwise inward normal, land samples 50/100/150/200 units inward. n=snow, d=dry, other land=wet. Region runs use midpoint box membership. This is not a final painted mask or exact clipping audit.",
+    "sections": [
+      {
+        "region": "C8",
+        "name": "Ember Strand",
+        "fromSegment": 0,
+        "toSegment": 8,
+        "approxLength": 1495,
+        "sampledTerrainFamilies": {
+          "dry": 1495
+        }
+      },
+      {
+        "region": "C7",
+        "name": "Red Wall Cliffs",
+        "fromSegment": 9,
+        "toSegment": 22,
+        "approxLength": 2453,
+        "sampledTerrainFamilies": {
+          "dry": 1312,
+          "wet": 1141
+        }
+      },
+      {
+        "region": "C1",
+        "name": "Bleached Net Point",
+        "fromSegment": 23,
+        "toSegment": 57,
+        "approxLength": 4989,
+        "sampledTerrainFamilies": {
+          "wet": 2756,
+          "snow": 2233
+        }
+      },
+      {
+        "region": "C2",
+        "name": "Ice-Bell Coast",
+        "fromSegment": 58,
+        "toSegment": 96,
+        "approxLength": 5326,
+        "sampledTerrainFamilies": {
+          "snow": 4948,
+          "wet": 378
+        }
+      },
+      {
+        "region": "C3",
+        "name": "Thaw Mouth",
+        "fromSegment": 97,
+        "toSegment": 124,
+        "approxLength": 3976,
+        "sampledTerrainFamilies": {
+          "snow": 638,
+          "wet": 3338
+        }
+      },
+      {
+        "region": "C10",
+        "name": "Watchfire Cape",
+        "fromSegment": 125,
+        "toSegment": 144,
+        "approxLength": 3105,
+        "sampledTerrainFamilies": {
+          "wet": 3105
+        }
+      },
+      {
+        "region": "C11",
+        "name": "Harbor of Debts",
+        "fromSegment": 145,
+        "toSegment": 168,
+        "approxLength": 3189,
+        "sampledTerrainFamilies": {
+          "wet": 3189
+        }
+      },
+      {
+        "region": "C12",
+        "name": "Lacquer Reef",
+        "fromSegment": 169,
+        "toSegment": 183,
+        "approxLength": 2463,
+        "sampledTerrainFamilies": {
+          "wet": 2463
+        }
+      },
+      {
+        "region": "C6",
+        "name": "Monsoon Inlet",
+        "fromSegment": 184,
+        "toSegment": 222,
+        "approxLength": 5639,
+        "sampledTerrainFamilies": {
+          "wet": 5639
+        }
+      },
+      {
+        "region": "23",
+        "name": "Green Fever Canopy",
+        "fromSegment": 223,
+        "toSegment": 231,
+        "approxLength": 1731,
+        "sampledTerrainFamilies": {
+          "wet": 1731
+        }
+      },
+      {
+        "region": "17",
+        "name": "Broken Levee Plain",
+        "fromSegment": 232,
+        "toSegment": 235,
+        "approxLength": 546,
+        "sampledTerrainFamilies": {
+          "wet": 546
+        }
+      },
+      {
+        "region": "16",
+        "name": "Mossbridge Hills",
+        "fromSegment": 236,
+        "toSegment": 237,
+        "approxLength": 283,
+        "sampledTerrainFamilies": {
+          "wet": 283
+        }
+      },
+      {
+        "region": "22",
+        "name": "Old Charcoal Forest",
+        "fromSegment": 238,
+        "toSegment": 246,
+        "approxLength": 1678,
+        "sampledTerrainFamilies": {
+          "wet": 1678
+        }
+      },
+      {
+        "region": "C5",
+        "name": "Ninety Stones Coast",
+        "fromSegment": 247,
+        "toSegment": 274,
+        "approxLength": 3984,
+        "sampledTerrainFamilies": {
+          "wet": 3984
+        }
+      },
+      {
+        "region": "C4",
+        "name": "Wreck Lantern Shore",
+        "fromSegment": 275,
+        "toSegment": 306,
+        "approxLength": 4184,
+        "sampledTerrainFamilies": {
+          "wet": 4184
+        }
+      },
+      {
+        "region": "C9",
+        "name": "Bone Comb Inlets",
+        "fromSegment": 307,
+        "toSegment": 324,
+        "approxLength": 2384,
+        "sampledTerrainFamilies": {
+          "wet": 1451,
+          "dry": 933
+        }
+      },
+      {
+        "region": "C8",
+        "name": "Ember Strand",
+        "fromSegment": 325,
+        "toSegment": 328,
+        "approxLength": 523,
+        "sampledTerrainFamilies": {
+          "dry": 523
+        }
+      }
+    ],
+    "islets": [
+      {
+        "name": "Watch Rock",
+        "x": 13700,
+        "z": 2050,
+        "r": 170,
+        "plannedFamily": "wet",
+        "familyStatus": "provisional; verify local runtime land material at placement"
+      },
+      {
+        "name": "Gull Teeth",
+        "x": 13350,
+        "z": 7350,
+        "r": 230,
+        "plannedFamily": "wet",
+        "familyStatus": "provisional; verify local runtime land material at placement"
+      },
+      {
+        "name": "Lantern Isle",
+        "x": 450,
+        "z": 6950,
+        "r": 200,
+        "plannedFamily": "wet",
+        "familyStatus": "provisional; verify local runtime land material at placement"
+      },
+      {
+        "name": "Frost Skerry",
+        "x": 2000,
+        "z": 330,
+        "r": 190,
+        "plannedFamily": "snow",
+        "familyStatus": "provisional; verify local runtime land material at placement"
+      }
+    ],
+    "specialAreas": [
+      "Sallow Bay enters full regions 23,17,16,22 as well as coastal C5/C6; include its interior shores.",
+      "The three external river mouths are Heron River V1, Sallow River V3 and Ashen Wash V4. Snowmelt Run V2 joins V1 inland; it needs no separate ocean mouth.",
+      "Keep 30 harbor approaches, the capital port, river mouths and landing clearances open.",
+      "C1/C3 are snow-to-wet transitions; C7/C9 mix wet/dry. Choose from local land, not the coastal region name alone."
+    ]
+  },
+  "fitting": {
+    "representation": "A thin ground ribbon or signed-distance/material band follows the land/water boundary; UV u follows accumulated coast length, UV v measures signed cross-shore distance.",
+    "otherSide": "Keep the inland half of v on land using the shoreline inward normal. Opposite shores do not require mirrored source art. Reverse longitudinal u only as optional variation; do not flip land and water accidentally.",
+    "angles": "Continuous tangents cover arbitrary angles. Add mesh samples at bends; use short local spans, bevel/trim acute corners and clip overlaps rather than stretching one long rectangle through a hairpin.",
+    "directionLighting": "Rotate only neutral-lit flat material. Preserve existing isometric sprites and their painted lighting for cliffs, large rocks and tall plants.",
+    "scale": "Keep texel density and pebble size fixed along arc length; repeat or sample the source rather than scaling a 64-unit strip over an entire multi-thousand-unit region.",
+    "blending": "Soft landward fade, consistent wet fringe, low-frequency width/colour noise and world-anchored biome transition masks. Keep material/shoreline position stable across chunks.",
+    "repetition": "Start with the varied long strip and deterministic UV offsets. Request A/B art variants only if a fitting preview shows repetition.",
+    "collision": "Current runtime sea boundary comes from 50-unit terrain cells, while blueprint.coast is a smoother polygon. First compare both. Fit art to the authoritative boundary, or plan a shared shoreline geometry/collision update explicitly before moving the visible water edge. Cosmetic smoothing must not create walkable sea or blocked visible beach.",
+    "streaming": "Build/cache only nearby chunk ribbons with a consistent halo and world-space ownership; no per-prop draw-call increase for the bank."
+  },
+  "phases": [
+    {
+      "task": "Inspect blueprint, source art and relevant studio/engine methods",
+      "done": true
+    },
+    {
+      "task": "Draft three standalone high-resolution strip prompts and joining contract",
+      "done": true
+    },
+    {
+      "task": "Review the proposed wet strip before commissioning the other two",
+      "done": false
+    },
+    {
+      "task": "Generate and save approved standalone sources, recording actual resolution/alpha and tile joins",
+      "done": false
+    },
+    {
+      "task": "Prototype fitting on straight, diagonal, concave, convex, near-hairpin and opposite shores using one source",
+      "done": false
+    },
+    {
+      "task": "Check art against water/movement boundaries, harbor/mouth clearances and chunk seams",
+      "done": false
+    },
+    {
+      "task": "Apply remaining families and tune blending after the fitting review",
+      "done": false
+    }
+  ],
+  "prompts": [
+    {
+      "id": "coast_wet_strip_v1",
+      "terrain": "wet",
+      "output": "assets/environment/island/coastline/coast_wet_strip_v1.png",
+      "transparentBackground": true,
+      "requestedPixels": [
+        4096,
+        1024
+      ],
+      "nativeResolutionNotGuaranteed": true,
+      "worldLength": 64,
+      "materialBandWidth": 12,
+      "references": [
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/lake_edge_1.png",
+        "assets/environment/island/lake_edge_5.png"
+      ],
+      "prompt": "Create ONE long shoreline ground-texture strip for the existing muted painterly 1870s Japanese island game. STRICT ORTHOGRAPHIC TOP-DOWN view, camera 90 degrees straight down. This texture will lie flat on a ground mesh; the game camera supplies the isometric projection. Use supplied references for painted material character and detail scale; do not copy standing silhouettes or perspective from prop references. Request the highest supported native resolution, ideally a 4096 x 1024 PNG, with genuine transparent alpha outside the strip. Actual returned dimensions must be recorded; do not upscale a smaller image to claim this resolution.\n\nCOMPOSITION AND SCALE: One horizontal strip representing 64 world units along the shore, with an approximately 12-unit cross-shore material band. Pixel coordinates below are proportions of the requested canvas. The reference shoreline runs through y=0.75H, from joining endpoint A=(0,0.75H) to B=(W,0.75H). Inland is ABOVE the line; open water is BELOW it. Paint approximately 10 units of landward material and at most 2 units of low wet fringe below the reference line. Fade the far inland edge and outer wet fringe to transparent, with a clean continuous silhouette rather than a fog halo. Keep irregular water-edge detail within about 1 world unit of the reference line. Do not paint water: the open-water region below the fringe is transparent. The first and last 8 world units are matching connection zones with the same band width, material proportions and reference-line position. Continue the material through the left and right canvas boundaries; these are intentional tile joins, with no endcaps or fading at those two ends. The long axis must tile left-to-right without a visible join.\n\nSURFACE DETAIL: Fine readable soil, sand and pebbles at a consistent scale. Pebbles mostly 0.05-0.25 world units; occasional low stones at most 0.5 units. Give the long strip several uneven material patches so the game can sample different lengths without large repeated landmarks. Diffuse neutral overcast illumination, restrained shallow local shading. Avoid a directional light gradient or cast shadows, because the texture must bend and rotate. No standing trees, bushes, tall reeds, logs, cliffs, buildings, boats, people, fauna, lettering, border, grid, multiple panels, black/white backdrop, vignette or background haze. Keep higher objects out of the strip; separate existing sprites supply those.\n\nTERRAIN FAMILY WET: Damp muted grey pebbles and low weathered stones, dark brown wet earth, subdued sand, restrained olive moss and tiny short grass tufts. Vary exposed grit, wetness and moss in irregular patches. Compatible with temperate, forest, meadow and marsh shores; avoid a continuous lush green hedge.\n\nPRIMARY STYLE EXAMPLE: assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png. Match its fine painterly stone and weathered material treatment only. Do not include its walls, ruins, roots, standing objects or isometric camera. Keep the new coast strip strictly top-down with neutral diffuse lighting. The nominal 4096 x 1024 canvas represents 64 x 16 world units, so the reference waterline is 12 units down from the top (y=0.75H), leaving room for 10 units of landward material, 2 units of wet fringe and transparent margins. If the tool returns a different canvas, preserve the strip and record its actual shoreline endpoints and band bounds; do not stretch the art to fake the requested dimensions.",
+      "styleReference": "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+      "requestedCanvasWorldUnits": [
+        64,
+        16
+      ]
+    },
+    {
+      "id": "coast_dry_strip_v1",
+      "terrain": "dry",
+      "output": "assets/environment/island/coastline/coast_dry_strip_v1.png",
+      "transparentBackground": true,
+      "requestedPixels": [
+        4096,
+        1024
+      ],
+      "nativeResolutionNotGuaranteed": true,
+      "worldLength": 64,
+      "materialBandWidth": 12,
+      "references": [
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/biome_props/cutouts/sandstone_stones.png",
+        "assets/environment/island/biome_props/cutouts/dry_grass_tussock.png",
+        "assets/environment/island/lake_edge_1.png"
+      ],
+      "prompt": "Create ONE long shoreline ground-texture strip for the existing muted painterly 1870s Japanese island game. STRICT ORTHOGRAPHIC TOP-DOWN view, camera 90 degrees straight down. This texture will lie flat on a ground mesh; the game camera supplies the isometric projection. Use supplied references for painted material character and detail scale; do not copy standing silhouettes or perspective from prop references. Request the highest supported native resolution, ideally a 4096 x 1024 PNG, with genuine transparent alpha outside the strip. Actual returned dimensions must be recorded; do not upscale a smaller image to claim this resolution.\n\nCOMPOSITION AND SCALE: One horizontal strip representing 64 world units along the shore, with an approximately 12-unit cross-shore material band. Pixel coordinates below are proportions of the requested canvas. The reference shoreline runs through y=0.75H, from joining endpoint A=(0,0.75H) to B=(W,0.75H). Inland is ABOVE the line; open water is BELOW it. Paint approximately 10 units of landward material and at most 2 units of low wet fringe below the reference line. Fade the far inland edge and outer wet fringe to transparent, with a clean continuous silhouette rather than a fog halo. Keep irregular water-edge detail within about 1 world unit of the reference line. Do not paint water: the open-water region below the fringe is transparent. The first and last 8 world units are matching connection zones with the same band width, material proportions and reference-line position. Continue the material through the left and right canvas boundaries; these are intentional tile joins, with no endcaps or fading at those two ends. The long axis must tile left-to-right without a visible join.\n\nSURFACE DETAIL: Fine readable soil, sand and pebbles at a consistent scale. Pebbles mostly 0.05-0.25 world units; occasional low stones at most 0.5 units. Give the long strip several uneven material patches so the game can sample different lengths without large repeated landmarks. Diffuse neutral overcast illumination, restrained shallow local shading. Avoid a directional light gradient or cast shadows, because the texture must bend and rotate. No standing trees, bushes, tall reeds, logs, cliffs, buildings, boats, people, fauna, lettering, border, grid, multiple panels, black/white backdrop, vignette or background haze. Keep higher objects out of the strip; separate existing sprites supply those.\n\nTERRAIN FAMILY DRY: Pale ochre sand, sun-bleached grey-brown grit, small weathered sandstone pebbles, restrained rust mineral patches and very sparse short straw grass. A narrow darker damp fringe at the shoreline. Sparse arid Japanese coast, without cactus, lush moss or desert dunes.\n\nPRIMARY STYLE EXAMPLE: assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png. Match its fine painterly stone and weathered material treatment only. Do not include its walls, ruins, roots, standing objects or isometric camera. Keep the new coast strip strictly top-down with neutral diffuse lighting. The nominal 4096 x 1024 canvas represents 64 x 16 world units, so the reference waterline is 12 units down from the top (y=0.75H), leaving room for 10 units of landward material, 2 units of wet fringe and transparent margins. If the tool returns a different canvas, preserve the strip and record its actual shoreline endpoints and band bounds; do not stretch the art to fake the requested dimensions.",
+      "styleReference": "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+      "requestedCanvasWorldUnits": [
+        64,
+        16
+      ]
+    },
+    {
+      "id": "coast_snow_strip_v1",
+      "terrain": "snow",
+      "output": "assets/environment/island/coastline/coast_snow_strip_v1.png",
+      "transparentBackground": true,
+      "requestedPixels": [
+        4096,
+        1024
+      ],
+      "nativeResolutionNotGuaranteed": true,
+      "worldLength": 64,
+      "materialBandWidth": 12,
+      "references": [
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/ground_snow.png",
+        "assets/environment/island/biome_props/cutouts/snow_boulders.png",
+        "assets/environment/island/lake_edge_1.png"
+      ],
+      "prompt": "Create ONE long shoreline ground-texture strip for the existing muted painterly 1870s Japanese island game. STRICT ORTHOGRAPHIC TOP-DOWN view, camera 90 degrees straight down. This texture will lie flat on a ground mesh; the game camera supplies the isometric projection. Use supplied references for painted material character and detail scale; do not copy standing silhouettes or perspective from prop references. Request the highest supported native resolution, ideally a 4096 x 1024 PNG, with genuine transparent alpha outside the strip. Actual returned dimensions must be recorded; do not upscale a smaller image to claim this resolution.\n\nCOMPOSITION AND SCALE: One horizontal strip representing 64 world units along the shore, with an approximately 12-unit cross-shore material band. Pixel coordinates below are proportions of the requested canvas. The reference shoreline runs through y=0.75H, from joining endpoint A=(0,0.75H) to B=(W,0.75H). Inland is ABOVE the line; open water is BELOW it. Paint approximately 10 units of landward material and at most 2 units of low wet fringe below the reference line. Fade the far inland edge and outer wet fringe to transparent, with a clean continuous silhouette rather than a fog halo. Keep irregular water-edge detail within about 1 world unit of the reference line. Do not paint water: the open-water region below the fringe is transparent. The first and last 8 world units are matching connection zones with the same band width, material proportions and reference-line position. Continue the material through the left and right canvas boundaries; these are intentional tile joins, with no endcaps or fading at those two ends. The long axis must tile left-to-right without a visible join.\n\nSURFACE DETAIL: Fine readable soil, sand and pebbles at a consistent scale. Pebbles mostly 0.05-0.25 world units; occasional low stones at most 0.5 units. Give the long strip several uneven material patches so the game can sample different lengths without large repeated landmarks. Diffuse neutral overcast illumination, restrained shallow local shading. Avoid a directional light gradient or cast shadows, because the texture must bend and rotate. No standing trees, bushes, tall reeds, logs, cliffs, buildings, boats, people, fauna, lettering, border, grid, multiple panels, black/white backdrop, vignette or background haze. Keep higher objects out of the strip; separate existing sprites supply those.\n\nTERRAIN FAMILY SNOW: Soft off-white snow resting over blue-grey grit and small stones, broken thawed patches and subtle cold dampness at the immediate shoreline. Tiny frost grains and sparse flattened frozen grass. Open water-side edge; no solid ice sheet or large protruding icicles. Match approved snow ground colour.\n\nPRIMARY STYLE EXAMPLE: assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png. Match its fine painterly stone and weathered material treatment only. Do not include its walls, ruins, roots, standing objects or isometric camera. Keep the new coast strip strictly top-down with neutral diffuse lighting. The nominal 4096 x 1024 canvas represents 64 x 16 world units, so the reference waterline is 12 units down from the top (y=0.75H), leaving room for 10 units of landward material, 2 units of wet fringe and transparent margins. If the tool returns a different canvas, preserve the strip and record its actual shoreline endpoints and band bounds; do not stretch the art to fake the requested dimensions.",
+      "styleReference": "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+      "requestedCanvasWorldUnits": [
+        64,
+        16
+      ]
+    }
+  ],
+  "generationHandoff": {
+    "model": "gpt-6-luna",
+    "order": [
+      "wet first; save and report for fitting review",
+      "dry and snow prompts prepared; await wet fitting review"
+    ],
+    "destination": "assets/environment/island/coastline/",
+    "manifest": "assets/environment/island/coastline/generation_manifest.json",
+    "sourcePreservation": "Use versioned sibling files if a target exists; never overwrite accepted source images.",
+    "styleReference": "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png"
+  }
+}
