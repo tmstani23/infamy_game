@@ -1,15 +1,33 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Coast/water finishing implemented; focused geometry, terrain/nav, paint/halo, movement and syntax checks passed. Tim's in-game appearance review remains pending.",
+  "status": "Tim visually approved coastline rounding and biome-ground blending across all biomes, and confirmed water diagonals are gone (2026-11-03). Walking review is not claimed. Water body animation needs a follow-up: current motion looks like magma; research in water_surface_plan.json.",
   "scope": "Shared rounded ocean corners for rendering and walking, existing biome ground recolored near the bank, seamless water sampling. Bridges, river-source/lake redesign, ground-cover clustering and new art integration remain separate phases.",
   "checklist": [
-    { "task": "Dispatch generation-only jungle and separate forest art with prompts, references, folders and manifests", "done": true },
-    { "task": "Replace flawed island water tile sampling without editing original art", "done": true },
-    { "task": "Share restrained rounded ocean geometry between terrain queries, nav blockers, paint and shoreline ribbon", "done": true },
-    { "task": "Add irregular biome-ground coastal tint transition using the existing material mosaic", "done": true },
-    { "task": "Run focused Node geometry, chunk/nav, paint and syntax checks; review water sampling math", "done": true },
-    { "task": "Tim reviews finished appearance and walking in game", "done": false }
+    {
+      "task": "Dispatch generation-only jungle and separate forest art with prompts, references, folders and manifests",
+      "done": true
+    },
+    {
+      "task": "Replace flawed island water tile sampling without editing original art",
+      "done": true
+    },
+    {
+      "task": "Share restrained rounded ocean geometry between terrain queries, nav blockers, paint and shoreline ribbon",
+      "done": true
+    },
+    {
+      "task": "Add irregular biome-ground coastal tint transition using the existing material mosaic",
+      "done": true
+    },
+    {
+      "task": "Run focused Node geometry, chunk/nav, paint and syntax checks; review water sampling math",
+      "done": true
+    },
+    {
+      "task": "Tim reviews finished appearance and walking in game",
+      "done": false
+    }
   ],
   "constraints": [
     "Ocean only: preserve lakes, rivers, fords, mountain cliff joins and harbor approaches.",
@@ -22,6 +40,6 @@
     "transition": "Existing biome materials and their detail remain in use. An irregular mask from the shared coast recolors the mosaic toward wet/dry/snow coastal tones between 5 and 23 units inland. Config: world_paint.json coastTransition.",
     "water": "Runtime island renderer samples the open-water interior of the preserved original water.jpg using independent X/Y phase blends and one flowing orientation. The old processed tile is preserved but no longer used. No source image changes.",
     "validation": "test_p3_edges (90,000 collision samples, convex/concave arc and fringe orientation, cliff/mouth/harbor/lake preservation, family tint, chunk halos, speed-bounded movement), test_island_edges (200 edges x 8 directions), test_world_coast, test_world_paint, test_chunk_gen and test_areas pass. Edited JS syntax and diff whitespace checks pass. No WebGL shader compilation or live visual check performed.",
-    "followUp": "After Tim's coast/smoothing review, audit patch clustering across all biomes including new rainforest, forest-floor and marsh assets. See groundcover_clustering_plan.json. Bridges and river-source/lake redesign remain separate."
+    "followUp": "Water-surface animation research is recorded in water_surface_plan.json. Clustering design is drafted in groundcover_clustering_plan.json; no clustering runtime code. Include all biomes and new rainforest, forest-floor and marsh assets. Bridges and river-source/lake redesign remain separate."
   }
 }

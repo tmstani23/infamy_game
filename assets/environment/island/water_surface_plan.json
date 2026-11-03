@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "date": "2026-11-03",
+  "status": "Water-only surface pass implemented after Tim asked to keep working on water. Coastline/land blending remains visually approved; diagonals were confirmed gone before this follow-up. New moving surface appearance and GPU cost require Tim manual review.",
+  "setup": "Three.js 0.186.1 WebGLRenderer, fixed isometric OrthographicCamera, one custom painted ground ShaderMaterial per streamed chunk, shared time/day-night/lantern lighting, existing rounded water mask and coast ribbons.",
+  "localFindings": [
+    "Before the follow-up, island water scrolled a cropped photographic color texture through four repeat phases under a strong static noise warp. Color features blended into one another during animation.",
+    "Before the follow-up, the shader had no changing surface normal or broad daylight wave highlights; its extra ripple expression only modulated nighttime lantern light.",
+    "Inference from code plus Tim's motion report: moving/morphing the color pattern without independently moving surface-light cues likely causes the thick or magma-like appearance. A still screenshot alone cannot verify the animation.",
+    "The seam correction works visually; retain its safe source window and independent-axis continuity. Tim likes the coastline and biome-ground transition, so preserve those."
+  ],
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/mrdoob/three.js/r186/examples/jsm/objects/Water2.js",
+      "finding": "Official matching-major Three.js implementation uses two animated normal maps, phased flow, Fresnel reflection weighting and reflection/refraction textures. Its full helper also performs extra reflection and refraction scene renders."
+    },
+    {
+      "url": "https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models",
+      "finding": "Cyan Worlds developer describes layered periodic waves with analytically derived surface normals, separating broad shape from finer texture-space ripples. Fine waves strongly affect perceived water realism. Historical implementation, used here for stable rendering principles rather than modern performance claims."
+    },
+    {
+      "url": "https://catlikecoding.com/unity/tutorials/flow/texture-distortion/",
+      "finding": "Author's shader implementation demonstrates seamless flow phases and derivative/normal-map animation; emphasizes the light response of the surface rather than relying on animated albedo alone. Unity syntax requires adaptation to our GLSL."
+    }
+  ],
+  "recommendation": [
+    "Keep the current chunk renderer and seam-safe base, with restrained color-pattern movement and much weaker large-scale warping. Keep contrast controlled so painted white features do not dominate as melting shapes.",
+    "Add two or three coherent directional wave components plus finer ripples, animated in world space. Initially compute slopes/normals analytically in the fragment shader; a dedicated seamless normal/derivative texture is an optional later refinement, not an initial art requirement.",
+    "Drive moving soft highlights and a restrained sky-colored surface sheen from the changing normals. Use the fixed orthographic VIEW_DIR, existing painterly palette, day/night grade and lantern lights. Do not use a per-fragment perspective view vector that makes an orthographic surface shade incorrectly.",
+    "Retain original water mask, rounded shoreline, ground transition and collisions. Clip all surface effects to water. Share wave phase by world position and common time so streaming chunk edges agree.",
+    "If the first surface pass needs it, add restrained water-side shoreline foam later from the same rounded shore distance. Do not generate a tiled white foam grid, paint foam onto land, or change the accepted beach art.",
+    "Start with open-ocean motion. Expose cosmetic calmness/flow settings for later lake, river and marsh water profiles using actual water classification; this does not authorize reshaping rivers, lakes, sources or crossings."
+  ],
+  "tradeoffs": {
+    "fullWater2Helper": "Compatible with WebGLRenderer, but reflection/refraction scene passes and a separate water mesh per ground chunk would be an architectural/performance change. Adapt its wave/lighting principles into our shader first; do not instantiate a helper per chunk.",
+    "analyticNormals": "No new image assets or reflection render targets initially. Extra fragment math requires measurement; avoid evaluating expensive water shading over inland pixels where possible.",
+    "limitations": "Stylized surface lighting on a flat water plane does not provide a displaced ocean silhouette, real scene reflections, wave physics or boat buoyancy. Those are not required for this proposed camera/style pass."
+  },
+  "implementationOutline": [
+    {
+      "task": "Water-only continuation authorized; retain accepted shoreline settings",
+      "done": true
+    },
+    {
+      "task": "Add tunable analytical wave slopes and surface highlights; calm the color drift in the existing ground shader",
+      "done": true
+    },
+    {
+      "task": "Run focused uniform/config and JS syntax checks plus shared coast/mask regression; review explicit gradients and world-space phase continuity",
+      "done": true
+    },
+    {
+      "task": "Tim manually reviews moving water at the same coast location, including paused/unpaused and day/night; confirm no reintroduced diagonals or thick morphing",
+      "done": false
+    },
+    {
+      "task": "Consider water-side foam and separate calmer water profiles only after the basic movement reads correctly",
+      "done": false
+    }
+  ],
+  "boundaries": "Implemented only the first surface-animation pass. No new fluid engine, FFT ocean, WebGPU conversion, bridge/river-shape work, new image generation or clustering. Use canonical manual playtest; no browser automation.",
+  "implementation": {
+    "files": [
+      "game/src/water_surface.js",
+      "game/src/render/water_sampling.js",
+      "game/src/render/shading.js",
+      "game/src/render/island_ground.js",
+      "game/data/world_paint.json waterSurface"
+    ],
+    "changes": "Four authored wave components (two broad/two fine) drive analytical slopes, orthographic-view sheen and soft moving highlights. Base texture drift is much weaker with tiny ripple distortion; strong noise warping is removed from the enabled path. Existing safe source window and independent-axis phase blending retained. Explicit texture gradients avoid false mip blur at tile wraps and water-mask branches. Pixel-footprint filtering damps subpixel waves. Expensive water shading is skipped on fully inland pixels.",
+    "scope": "Visual shader/config only. No water/coastline shape, collision, source-image, rainforest or clustering implementation edits in this follow-up. Original P3 comparison available through waterSurface.enabled=false. No new assets, libraries, reflection/refraction render targets or per-frame CPU wave geometry.",
+    "validation": "Edited modules pass node --check; configured packets are finite, preserve authored world wavelengths/speeds and have a maximum slope bound of 0.249. test_p3_edges still passes (90,000 collision samples, rounded geometry, masks/halos, exclusions and bounded movement). Scoped diff whitespace check passed. No live WebGL compile, visual result or measured GPU cost claimed.",
+    "remaining": "Tim manually checks motion at an already approved coast location, including day/night and zoom. Verify that highlights read as moving water, no magma-like texture morphing, no diagonal seams, and acceptable frame cost. Coast foam and water-body-specific profiles remain optional later work."
+  }
+}

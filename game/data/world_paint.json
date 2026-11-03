@@ -13,6 +13,72 @@
   "bank": 4
  },
  "res": 0.4,
+ "waterSurface": {
+   "_note": "Painted water with animated surface slopes and light, independent of the slow base color drift. World-unit wave sizes/speeds; visual only. Disable to compare the earlier seam-safe color-flow shader.",
+   "enabled": true,
+   "drift": [
+     0.001,
+     0.0006
+   ],
+   "distortion": 0.025,
+   "textureStrength": 0.42,
+   "highlightStrength": 0.14,
+   "gloss": 40,
+   "sheenStrength": 0.45,
+   "deepColor": [
+     0.035,
+     0.065,
+     0.08
+   ],
+   "skyColor": [
+     0.28,
+     0.34,
+     0.37
+   ],
+   "lightDirection": [
+     -0.5,
+     0.85,
+     -0.25
+   ],
+   "waves": [
+     {
+       "direction": [
+         1,
+         0.28
+       ],
+       "wavelength": 4.2,
+       "amplitude": 0.045,
+       "speed": 1.2
+     },
+     {
+       "direction": [
+         0.78,
+         0.62
+       ],
+       "wavelength": 2.15,
+       "amplitude": 0.023,
+       "speed": 0.95
+     },
+     {
+       "direction": [
+         1,
+         -0.18
+       ],
+       "wavelength": 0.66,
+       "amplitude": 0.007,
+       "speed": 0.52
+     },
+     {
+       "direction": [
+         0.55,
+         0.83
+       ],
+       "wavelength": 0.33,
+       "amplitude": 0.0025,
+       "speed": 0.35
+     }
+   ]
+ },
  "coastTransition": {
   "_note": "P3: recolor the existing biome mosaic near ocean banks. Distances/raggedness in world units; colors are ungraded painted RGB, not flat replacement tiles.",
   "enabled": true,

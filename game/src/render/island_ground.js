@@ -47,7 +47,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex }) {
       const tiles = Array.from({ length: 16 }, (_, i) => c.mats[i] != null ? pc.materials[c.mats[i]].tile : 8);
       const splats = Array.from({ length: 4 }, (_, i) => dt(c.maps[i] || new Uint8Array(c.N * c.N * 4), c.N));
       const bounds = [gen.x0 - c.h, gen.z0 - c.h, S + 2 * c.h, S + 2 * c.h];
-      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition });
+      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition, waterSurface: pc.waterSurface });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(gen.x0 + S / 2, 0, gen.z0 + S / 2);

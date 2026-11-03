@@ -4,7 +4,8 @@ import { RUNE_GLSL } from './rune_patterns.js';
 import * as THREE from 'three';
 import { VIEW_DIR, CAM_UP, CAM_RIGHT } from './iso.js';
 import { SPRITE_SAMPLE } from './packed_sheets.js';
-import { WATER_SAMPLE_GLSL, WATER_WINDOW } from './water_sampling.js';
+import { WATER_SAMPLE_GLSL, WATER_SURFACE_GLSL, WATER_WINDOW } from './water_sampling.js';
+import { waterSurfaceUniforms } from '../water_surface.js';
 
 export const MAX_LIGHTS = 24;
 
@@ -447,6 +448,7 @@ uniform sampler2DArray tMats;
 uniform sampler2D uSplatA, uSplatB, uSplatC, uSplatD, uOver, tWater;
 uniform vec3 uWetCoastColor, uDryCoastColor, uSnowCoastColor;
 ${WATER_SAMPLE_GLSL}
+${WATER_SURFACE_GLSL}
 uniform vec4 uBounds;
 uniform float uLayer[16];
 uniform float uTileSize[16];
@@ -518,25 +520,44 @@ void main() {
 
   // water (lakes, rivers, sea): the drifting dark layers of the city ground; the shore is the weight map's 0.5 line
   float wm = smoothstep(0.42, 0.58, over.r);
-  // P3: one flowing orientation, no crossing rotated layers. Independent phase
-  // blending hides both cropped source wraps without copying rocks into water.
-  vec2 uv = p / vec2(5.6, 3.6) + (vec2(vnz(p / 23.0, 21u), vnz(p / 23.0, 22u)) - 0.5) * 1.4;
-  vec3 water = continuousWater(uv * 0.6 + vec2(uTime * 0.012, uTime * 0.02));
-  water = mix(water, vec3(0.04, 0.07, 0.09), 0.35);
+  // Gradients are evaluated outside the water-only branch. Explicit texture
+  // gradients avoid undefined mip selection at mask edges and fract tile wraps.
+  vec2 baseUv = p / vec2(5.6, 3.6) * 0.6;
+  vec2 waterDx = dFdx(baseUv), waterDy = dFdy(baseUv), waterPixel = fwidth(p);
+  vec3 water = vec3(0.0), waterNormal = vec3(0.0, 1.0, 0.0);
+  if (wm > 0.001) {
+    if (uWaterMotion.x > 0.5) {
+      waterNormal = waterSurfaceNormal(p, waterPixel);
+      vec2 uv = baseUv + uWaterMotion.yz * uTime + waterNormal.xz * uWaterMotion.w;
+      vec3 painted = continuousWater(uv, waterDx, waterDy);
+      water = waterSurfaceLight(mix(uWaterDeep, painted, uWaterOptics.x), waterNormal);
+    } else {
+      // Comparison fallback: the accepted seam-safe P3 color-flow appearance.
+      vec2 warp = (vec2(vnz(p / 23.0, 21u), vnz(p / 23.0, 22u)) - 0.5) * 0.84;
+      water = mix(continuousWater(baseUv + warp + vec2(uTime * 0.012, uTime * 0.02), waterDx, waterDy), vec3(0.04, 0.07, 0.09), 0.35);
+    }
+  }
   vec3 col0 = mix(ground, water, wm);
 
   vec3 g = grade(col0, vWorld, false, vec3(0.0));
-  float ripple = 0.6 + 0.4 * sin(p.x * 3.1 + uTime * 1.7) * sin(p.y * 2.3 - uTime * 1.3);
+  float ripple = clamp(0.5 + abs(dot(waterNormal.xz, vec2(0.7, 0.3))) * 2.0, 0.5, 1.0);
   g += wm * uNight * lanternLight(vWorld, false) * 0.35 * ripple;
   gl_FragColor = vec4(fogged(g, p), 1.0);
 }`;
 
-export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic, coastTransition }) {
+export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic, coastTransition, waterSurface }) {
+  const surface = waterSurfaceUniforms(waterSurface);
   return new THREE.ShaderMaterial({
     uniforms: {
       ...shared,
       tMats: { value: mats }, tWater: { value: water },
       uWaterWindow: { value: new THREE.Vector4(...WATER_WINDOW) },
+      uWaterWaves: { value: surface.waves.map(w => new THREE.Vector4(...w)) },
+      uWaterMotion: { value: new THREE.Vector4(...surface.motion) },
+      uWaterOptics: { value: new THREE.Vector4(...surface.optics) },
+      uWaterDeep: { value: new THREE.Vector3(...surface.deep) },
+      uWaterSky: { value: new THREE.Vector3(...surface.sky) },
+      uWaterLight: { value: new THREE.Vector3(...surface.light) },
       uWetCoastColor: { value: new THREE.Vector3(...(coastTransition?.wetColor || [0.38, 0.39, 0.30])) },
       uDryCoastColor: { value: new THREE.Vector3(...(coastTransition?.dryColor || [0.56, 0.49, 0.37])) },
       uSnowCoastColor: { value: new THREE.Vector3(...(coastTransition?.snowColor || [0.68, 0.70, 0.69])) },
