@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "date": "2026-11-03",
+  "status": "Illustration trial generated; Tim style approval and full geographic registration review pending. Not installed in runtime.",
+  "tool": "Built-in image_gen; edit using exact blueprint",
+  "prompt": "atlas_illustration_prompt_v1.txt",
+  "reference": "atlas_blueprint_v1.png",
+  "referenceManifestSha256": "4ffca9cfaf171ea17893da6dd88259e8187692da76b8f2180f331da453871e13",
+  "referenceSourceHashes": {
+    "game/data/world.json": "d4a345052d4e56d30b159c9b6ca909551f89746267253475f2dc20f93a0cf6f5",
+    "game/data/world_paint.json": "c71a9bbc2c29b408fbcd46d260880d19d9d2df51c3cd4a09ee075aa874a78dec",
+    "game/data/world_overrides.json": "fa57a2f4325dce6e68d0051ae4bac40402ba6ebd48fb7c0743dfff792dc984ec",
+    "docs/images/frontier/blueprint/world_blueprint_v2.json": "213f3329ed80ae197465394b7ff7388ff334cd9f5a6b2e5e81040b24adf92893",
+    "docs/images/frontier/blueprint/blueprint.py": "8a78ed058acb93199b07b848d20e868ece0247e34d1614a2c7601f88f41577a4",
+    "tools/seed_world.mjs": "9552855ed2d33ff338ec8d7f86fd8b4fea74868dad7139ac82c8eb1eb7228109",
+    "tools/prepare_atlas_reference.mjs": "19b14282158769217733363c4ac8e355ca4c4262e7e2c1714f98ac262c5b198c",
+    "game/src/sim/world_data.js": "b3c914536c5ac858633a12900101d4eae5efe004c2923be700cf0a809866fff2",
+    "game/src/sim/shoreline.js": "a94fd492990546a7894282671668419163cb47bff94fcec5e69bcb6c07745252",
+    "game/src/sim/island_art.js": "5140f9ea5cae5cd310500b77f660748fdce9595e069a25f7a64e1dfe923dc71b",
+    "game/src/world_paint.js": "94a43fc390cd4dc4d42d9c2d4a06dfd7734ae033e85c0c5f88ec795dc4d5a7ed"
+  },
+  "referenceSha256": "621a6343d9be3c003ba85620b6225c78a882d32f7ff05d94dcfaadb05342216a",
+  "promptSha256": "35a41909bcebc7ab74c9a5321383ac227b2c232c9ef5fe404c5e85d77e9f0014",
+  "file": "atlas_illustration_v1.png",
+  "imageSha256": "6c35f88936a5be6bac75bdb324d47c601f96fdc49711620f53a5612487e2ce75",
+  "requestedPixels": [
+    2800,
+    1600
+  ],
+  "actualPixels": [
+    1659,
+    948
+  ],
+  "actualAspectRatio": 1.75,
+  "opaque": true,
+  "registration": "Same 7:4 bounds; whole-image uniform scale is possible. No cropping, warping or upscaling applied to saved source.",
+  "analysis": "atlas_alignment_analysis_v1.json",
+  "reviewNotes": [
+    "Visually inspected full image; painterly terrain-only trial with no labels/roads/markers.",
+    "Approximate water-color analysis places the two principal lake centroids close to reference positions; not a complete accuracy certificate.",
+    "Small pool/source topology, all river channels, biome extents and coastline require registration review before runtime acceptance.",
+    "Mountain relief is illustrative and must not become authoritative terrain."
+  ],
+  "runtimeChanges": false,
+  "next": "Tim reviews style; inspect data overlay alignment, especially small lake/river-source geometry, before atlas integration."
+}

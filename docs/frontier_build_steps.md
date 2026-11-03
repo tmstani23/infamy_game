@@ -22,7 +22,8 @@ Settled (Tim, 2026-11-03):
 ### Atlas reference checkpoint (2026-11-03)
 
 - [x] Step 1: combined current blueprint preview and freshness gate; 14,000 × 8,000 world units map to a north-up 2,800 × 1,600 artwork rectangle with no padding or crop (5 units/pixel).
-- [ ] Step 2: illustration prompt/trial and registered geography review. No illustration generated yet.
+- [x] Step 2a: save exact illustration prompt and generate one terrain-only trial with the built-in image tool (2026-11-03). Native output 1659 × 948, correct 7:4 aspect; source preserved without resizing.
+- [ ] Step 2b: Tim approves style; finish registered geography review before runtime acceptance. Two principal lake centroids align closely in approximate analysis; small source/pool topology and full coastline/river/biome fit remain to review. [Trial manifest](../assets/environment/island/atlas/atlas_illustration_manifest_v1.json).
 - [ ] Step 3: atlas layout/layers, existing square/coordinate hover plus biome/features, accurate shared legend/markers, terrain visible with site discovery respected, no live units/camera footprint.
 - [ ] Linked crossing phase: actual bridge/ford art and world fitting; reference records 9 bridges and 8 fords, without claiming those 17 records have been fitted or validated as usable crossings.
 

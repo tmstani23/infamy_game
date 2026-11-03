@@ -1,0 +1,88 @@
+{
+  "method": "Read-only approximate blue-water component analysis at 700x400 sample centers; not a registration certificate. Mountain shadows may classify as water.",
+  "images": [
+    {
+      "file": "assets/environment/island/atlas/atlas_blueprint_v1.png",
+      "pixels": [
+        2800,
+        1600
+      ],
+      "aspectRatio": 1.75,
+      "waterComponentCandidates": [
+        {
+          "samples": 1114,
+          "centerFraction": [
+            0.2641,
+            0.26742
+          ]
+        },
+        {
+          "samples": 843,
+          "centerFraction": [
+            0.74459,
+            0.62347
+          ]
+        },
+        {
+          "samples": 586,
+          "centerFraction": [
+            0.36084,
+            0.38842
+          ]
+        }
+      ]
+    },
+    {
+      "file": "assets/environment/island/atlas/atlas_illustration_v1.png",
+      "pixels": [
+        1659,
+        948
+      ],
+      "aspectRatio": 1.75,
+      "waterComponentCandidates": [
+        {
+          "samples": 1048,
+          "centerFraction": [
+            0.26461,
+            0.26939
+          ]
+        },
+        {
+          "samples": 820,
+          "centerFraction": [
+            0.74443,
+            0.62372
+          ]
+        },
+        {
+          "samples": 570,
+          "centerFraction": [
+            0.39067,
+            0.11582
+          ]
+        },
+        {
+          "samples": 364,
+          "centerFraction": [
+            0.44911,
+            0.14617
+          ]
+        },
+        {
+          "samples": 249,
+          "centerFraction": [
+            0.67839,
+            0.18525
+          ]
+        },
+        {
+          "samples": 230,
+          "centerFraction": [
+            0.59002,
+            0.14285
+          ]
+        }
+      ]
+    }
+  ]
+}
