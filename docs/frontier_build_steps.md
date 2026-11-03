@@ -21,7 +21,7 @@ Settled (Tim, 2026-11-03):
 
 ### Mountain and lake reshape before atlas completion (Tim, 2026-11-03)
 
-**Status:** phased plan requested; no terrain edits started. Do this before atlas integration and W4. Tim waived save migration for this pass: the only save is in the capital. Preserve the capital and its access; do not delete or reset the save.
+**Status:** phased plan requested; no terrain edits started. Do this before atlas integration and W4. Tim waived save migration for this pass: the only save is in the capital. Preserve the capital and its access; do not delete or reset the save. Scope addition (Tim, 2026-11-03): give V4 Ashen Wash, the western river through the drylands, a more natural curving course.
 
 **Goal:** make the six existing ranges read as natural mountain systems through bends, varied widths, tapering ends, foothill pockets and occasional secondary ridges. Preserve their regional identity and strategic role, especially the central barrier and dry range. Avoid replacing straight bands with equally uniform zigzags or random disconnected rocks. Also reshape the two main lakes (L1 Lake of Still Bells and L2 Reedmirror Lake) into believable basins with varied widths, irregular but coherent shores, modest coves and tapered ends. Avoid circular stamps, uniform-width ovals and noisy starburst outlines.
 
@@ -38,6 +38,7 @@ Settled (Tim, 2026-11-03):
 
 **Implementation guardrails:**
 
+- **Ashen Wash (V4):** include a few broad, asymmetric meanders through the drylands in MR1's before/after proposal; avoid a straight diagonal, regular sine wave or tightly pinched bends. Keep source and mouth anchors, general valley corridor, river identity and existing width/taper behavior. Preserve the six V4 ford IDs and their usable connections; if crossing coordinates must follow the new channel, show each proposed shift and affected route in the approval preview rather than leaving markers at the old river. Keep protected shore locations clear. Update river points, rasterized channel, crossing metadata, derived routes and atlas overlays together in MR2–MR4. Other rivers remain unchanged except already-approved join fixes; source-pool redesign is still separate.
 - Existing `blueprint.py` computes passes, water sources and procedural placements from terrain and shared random sequences. Do not simply edit `RANGES` and overwrite its outputs: that could move unrelated content. MR2 must explicitly preserve those placements and report deltas before MR3 writes live outputs.
 - Current range metadata uses spines/half-widths. If variable widths or secondary ridges require a schema extension, update the blueprint producer, `seed_world.mjs` and range-art selection together; terrain rows and range metadata must describe the same mountains. Keep simulation pure and seeded; use existing art and placement systems.
 - Lake outlines must be authored/reproducible, rasterized into the authoritative terrain and reflected in lake metadata. Audit radius-only consumers before introducing an outline/width schema; retain compatible bounds or update consumers explicitly. Keep water continuous without thin artificial necks, isolated water specks or stranded shore features. Preserve marsh character and existing inland-bank widths unless a geometry fix is demonstrated. Tiny source tarns and full river-source redesign remain separate.
