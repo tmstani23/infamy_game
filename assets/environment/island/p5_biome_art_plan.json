@@ -62,7 +62,7 @@
     ],
     "noBatchGrid": false,
     "noOverwrite": true,
-    "outputDirectory": "assets/environment/island/p5/",
+    "outputDirectory": "assets/environment/island/biome_props/",
     "sourcePixelNote": "Sheet canvas dimensions are proposals, not approved output sizes. Individual prompt width/height fields are legacy standalone fallback targets, NOT expected cell-cut dimensions. A 1536 x 1024 sheet has 512 x 512 cells before alpha trim; do not upscale cuts to those fallback sizes. Record actual output dimensions and alpha.",
     "referenceRule": "Inspect every referenced source before generation. Match first approved new snow prop throughout its family. Output files do not exist merely because a prompt exists.",
     "mode": "One transparent 3-column by 2-row prop sheet per generation, then cut into individually named sprites. Standalone refers to each object, not a requirement for one generation per sprite.",
@@ -77,10 +77,73 @@
       "rareUniqueNewOutputs": "pending overlap/reuse and packing review; not 36 automatic generations"
     },
     "oneSheetAtATime": true,
-    "individualPromptRule": "prompts[] are individual specifications/fallback wording, NOT additional generation requests. sheets[] hold the four full basic grouped prompts. All generation remains on hold.",
+    "individualPromptRule": "Individual specifications are fallback guidance, not extra generations. Grouped generation is authorized; cutting/import/runtime are not.",
     "authorization": "Tim approved prompts and sequential transparent-sheet generation 2026-11-02; snow essentials first, review before proceeding. No cutting/import/runtime approval.",
     "exception": "Grouped sheets by default; singles only where truly necessary for usable resolution. World units are rough fitting guidance, not exact generator output.",
-    "resolutionGuidance": "Request high resolution for cell detail and later sizing; requested resolution is not guaranteed output. Singles only where truly necessary; farmstead and shipwreck are candidates, not an approved expanded singles run."
+    "resolutionGuidance": "Request high resolution for cell detail and later sizing; requested resolution is not guaranteed output. Singles only where truly necessary; farmstead and shipwreck are candidates, not an approved expanded singles run.",
+    "assignmentQueue": [
+      {
+        "file": "snow_core_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/snow_core_sheet_v1.png",
+        "owner": "coordinator 01a19f47-4aee-7772-8384-80c9c4a44ed8",
+        "status": "saved; Tim APPROVED LOOK"
+      },
+      {
+        "file": "open_country_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/open_country_sheet_v1.png",
+        "owner": "trial chat 01a19f55-d9d8-7b60-ba86-a79b1da1baa4",
+        "status": "saved; Luna high one-generation workflow trial; pending review"
+      },
+      {
+        "file": "landscape_details_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/landscape_details_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "snow_features_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/snow_features_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "snow_oddities_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/snow_oddities_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "plains_oddities_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/plains_oddities_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "hills_oddities_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/hills_oddities_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "dry_oddities_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/dry_oddities_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "coast_oddities_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/coast_oddities_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      },
+      {
+        "file": "forest_oddities_sheet_v1.png",
+        "output": "assets/environment/island/biome_props/forest_oddities_sheet_v1.png",
+        "owner": "unassigned; no generation chat launched",
+        "status": "queued"
+      }
+    ],
+    "ownershipRule": "One sheet per chat with exclusive ownership and named save. No other generation chats launched. Grouped sheets by default; large singles only when actually needed, not blanket extra outputs."
   },
   "reuse": [
     {
@@ -332,12 +395,12 @@
       "priority": 1,
       "blockerProposal": "trunk only, approximately 1 x 1 units; canopy remains nonblocking",
       "detail": "One mature Japanese pine, dark muted needles supporting substantial irregular snow caps, a readable dark trunk and bent branches. Match the reference pine silhouette and scale; snow clings naturally to upper surfaces. No surrounding forest, cliff or snow platform.",
-      "output": "assets/environment/island/p5/snow_pine.png",
+      "output": "assets/environment/island/biome_props/snow_pine.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_core_sheet.png"
+      "sourceSheet": "snow_core_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -358,12 +421,12 @@
       "priority": 1,
       "blockerProposal": "trunk only, approximately 1 x 1 units",
       "detail": "One upright Japanese cedar with tiered evergreen branches bowed under irregular snow caps; visible brown-grey trunk. Taller and narrower than the pine, with a distinct silhouette; no forest background or ground platform.",
-      "output": "assets/environment/island/p5/snow_cedar.png",
+      "output": "assets/environment/island/biome_props/snow_cedar.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_core_sheet.png"
+      "sourceSheet": "snow_core_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -384,12 +447,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "One low rounded shrub with a few dark twig and leaf tips beneath an irregular snow covering. Uneven edges and several small snow lobes; keep the silhouette low enough to leave nearby characters readable.",
-      "output": "assets/environment/island/p5/snow_bush.png",
+      "output": "assets/environment/island/biome_props/snow_bush.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_core_sheet.png"
+      "sourceSheet": "snow_core_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -410,12 +473,12 @@
       "priority": 1,
       "blockerProposal": "large stones only; fitted footprint, never their transparent border",
       "detail": "One small cluster of three to five blue-grey boulders, varied in size, half buried in snow with sparse short icicles in sheltered cracks. Low landscape dressing, no towering outcrop, ice lake or ground slab.",
-      "output": "assets/environment/island/p5/snow_boulders.png",
+      "output": "assets/environment/island/biome_props/snow_boulders.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_core_sheet.png"
+      "sourceSheet": "snow_core_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -436,12 +499,12 @@
       "priority": 1,
       "blockerProposal": "solid wood only; keep clear of paths",
       "detail": "One weathered fallen cedar log with broken end grain, a few bare branch stubs and snow resting on its upper surface. Runs along the x ground axis, upper-left to lower-right on screen. No forest floor or connecting branches outside the silhouette.",
-      "output": "assets/environment/island/p5/snow_fallen_log.png",
+      "output": "assets/environment/island/biome_props/snow_fallen_log.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_core_sheet.png"
+      "sourceSheet": "snow_core_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -462,12 +525,12 @@
       "priority": 1,
       "blockerProposal": "stump core only",
       "detail": "One old cut stump with visible weathered roots, snow on its top and in root crevices, and slight frost on the bark. Compact distinct shape; no large surrounding snow patch.",
-      "output": "assets/environment/island/p5/snow_stump.png",
+      "output": "assets/environment/island/biome_props/snow_stump.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_core_sheet.png"
+      "sourceSheet": "snow_core_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -487,12 +550,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "One low irregular drift with a soft rounded windward crest and a tapering leeward tongue. Subtle blue-grey shading compatible with ground_snow, a natural feathered transparent perimeter and no rectangular snow base. Low local relief, not a hill or mountain; no permanent cast shadow.",
-      "output": "assets/environment/island/p5/snow_drift.png",
+      "output": "assets/environment/island/biome_props/snow_drift.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_landscape_details_sheet.png"
+      "sourceSheet": "landscape_details_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -513,12 +576,12 @@
       "priority": 2,
       "blockerProposal": "stone base only",
       "detail": "One aged Japanese stone lantern, unlit, snow on the roof and base, a little frost in the stone joints. Small isolated landmark; no paving slab, large garden or baked glow. Light, if used, is added in code.",
-      "output": "assets/environment/island/p5/snow_stone_lantern.png",
+      "output": "assets/environment/island/biome_props/snow_stone_lantern.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_features_sheet.png"
+      "sourceSheet": "snow_features_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -539,12 +602,12 @@
       "priority": 2,
       "blockerProposal": "well structure only",
       "detail": "One small abandoned stone well with weathered timber crossbeam and idle bucket, rim and beam capped with snow, dark closed-looking opening. No characters, roofed building, usable water surface or background; a decorative feature with no implied new interaction.",
-      "output": "assets/environment/island/p5/snow_frozen_well.png",
+      "output": "assets/environment/island/biome_props/snow_frozen_well.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_features_sheet.png"
+      "sourceSheet": "snow_features_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -565,12 +628,12 @@
       "priority": 2,
       "blockerProposal": "survey and fit actual remaining structure; do not block an invisible whole room",
       "detail": "One small ruined rural timber farm shed, partially collapsed roof, dark weathered posts, a few visible rafters and snow on the remaining roof. A single coherent ruin; no yard, fences, field, scattered distant debris or habitable interior. Fixed facing matching existing Japanese buildings.",
-      "output": "assets/environment/island/p5/snow_ruined_shed.png",
+      "output": "assets/environment/island/biome_props/snow_ruined_shed.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_features_sheet.png"
+      "sourceSheet": "snow_features_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -591,7 +654,7 @@
       "priority": 2,
       "blockerProposal": "short fence footprint only; only at authored feature sites after navigation approval",
       "detail": "A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-left to lower-right on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the x axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
-      "output": "assets/environment/island/p5/snow_fence_x.png",
+      "output": "assets/environment/island/biome_props/snow_fence_x.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [
         "-x",
@@ -599,7 +662,7 @@
       ],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_features_sheet.png"
+      "sourceSheet": "snow_features_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -620,7 +683,7 @@
       "priority": 2,
       "blockerProposal": "short fence footprint only; only at authored feature sites after navigation approval",
       "detail": "A straight 6-world-unit rustic timber farm-fence module, about 1.1 units high. Its ground baseline runs upper-right to lower-left on screen, a slope of exactly 1 vertical for 2 horizontal. Joining ends: both ends along the z axis must meet identical modules at equal ground level and rail height. Use two simple weathered horizontal rails, snow caps and sparse connecting posts; end posts are half shared so adjoining pieces do not form oversized doubled posts. No endcaps, corner turn, gate, enclosed yard, curved fence or background. Match the other axis companion's posts, rails, snow and physical proportions.",
-      "output": "assets/environment/island/p5/snow_fence_z.png",
+      "output": "assets/environment/island/biome_props/snow_fence_z.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [
         "-z",
@@ -628,7 +691,7 @@
       ],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_snow_features_sheet.png"
+      "sourceSheet": "snow_features_sheet_v1.png"
     },
     {
       "biome": "snow",
@@ -649,7 +712,7 @@
       "priority": 2,
       "blockerProposal": "none; appearance only, does not change water or buildability",
       "detail": "A continuous surface of compressed off-white snow, subtle grain, slightly darker compacted icy flecks and sparse exposed tiny grit. No recognizable repeating boot prints, directional path stripe or painted verge. This material fills a procedural trail mask, so all four tile edges must join the same compressed-snow material. Snow colour matches ground_snow; trail width and bank fade are added in code.",
-      "output": "assets/environment/island/p5/packed_snow_trail.png",
+      "output": "assets/environment/island/biome_props/packed_snow_trail.png",
       "status": "draft item specification; pending Tim review; generation not approved; not imported",
       "joiningSides": [
         "left/right",
@@ -677,12 +740,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
-      "output": "assets/environment/island/p5/meadow_grass.png",
+      "output": "assets/environment/island/biome_props/meadow_grass.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_open_country_sheet.png"
+      "sourceSheet": "open_country_sheet_v1.png"
     },
     {
       "biome": "plain",
@@ -702,12 +765,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
-      "output": "assets/environment/island/p5/meadow_flowers.png",
+      "output": "assets/environment/island/biome_props/meadow_flowers.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_open_country_sheet.png"
+      "sourceSheet": "open_country_sheet_v1.png"
     },
     {
       "biome": "plain",
@@ -728,12 +791,12 @@
       "priority": 1,
       "blockerProposal": "trunk only, approximately 1 x 1 units",
       "detail": "One mature Japanese countryside broadleaf tree with an irregular open canopy, small muted olive leaves and a readable branching trunk. No pink blossoms. Distinct from a pine, grounded and wind-shaped, no perfect spherical crown or park landscaping.",
-      "output": "assets/environment/island/p5/meadow_broadleaf_tree.png",
+      "output": "assets/environment/island/biome_props/meadow_broadleaf_tree.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_open_country_sheet.png"
+      "sourceSheet": "open_country_sheet_v1.png"
     },
     {
       "biome": "plain",
@@ -754,7 +817,7 @@
       "priority": 2,
       "blockerProposal": "none; appearance only, does not change water or buildability",
       "detail": "Muted dark brown fallow agricultural earth with small clods, tiny straw fragments and very shallow parallel furrows. The furrows intentionally continue across opposing edges at a constant spacing; no raised border, bund, field boundary, water, crops, road or farm building. For rare authored field patches, not for spreading over every meadow.",
-      "output": "assets/environment/island/p5/fallow_field.png",
+      "output": "assets/environment/island/biome_props/fallow_field.png",
       "status": "draft item specification; pending Tim review; generation not approved; not imported",
       "joiningSides": [
         "left/right",
@@ -782,12 +845,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
-      "output": "assets/environment/island/p5/hill_heather.png",
+      "output": "assets/environment/island/biome_props/hill_heather.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_open_country_sheet.png"
+      "sourceSheet": "open_country_sheet_v1.png"
     },
     {
       "biome": "dry",
@@ -808,12 +871,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
-      "output": "assets/environment/island/p5/dry_scrub.png",
+      "output": "assets/environment/island/biome_props/dry_scrub.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_open_country_sheet.png"
+      "sourceSheet": "open_country_sheet_v1.png"
     },
     {
       "biome": "dry",
@@ -833,12 +896,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
-      "output": "assets/environment/island/p5/dry_grass_tussock.png",
+      "output": "assets/environment/island/biome_props/dry_grass_tussock.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_open_country_sheet.png"
+      "sourceSheet": "open_country_sheet_v1.png"
     },
     {
       "biome": "dry",
@@ -859,12 +922,12 @@
       "priority": 1,
       "blockerProposal": "large stones only; fit their actual base",
       "detail": "One low cluster of several weathered sandstone stones, ochre and rust with pale sun-bleached faces and tiny fissures. Small readable stones rather than a miniature cliff wall or pillar range. No ground slab or dramatic scene lighting.",
-      "output": "assets/environment/island/p5/sandstone_stones.png",
+      "output": "assets/environment/island/biome_props/sandstone_stones.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_landscape_details_sheet.png"
+      "sourceSheet": "landscape_details_sheet_v1.png"
     },
     {
       "biome": "dry",
@@ -885,12 +948,12 @@
       "priority": 2,
       "blockerProposal": "solid wood only",
       "detail": "One sun-bleached fallen log with split grey-ochre grain, a broken hollow end and two short dry branch stubs. Low horizontal silhouette, no moss or bright green leaves, no terrain backdrop.",
-      "output": "assets/environment/island/p5/bleached_log.png",
+      "output": "assets/environment/island/biome_props/bleached_log.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_landscape_details_sheet.png"
+      "sourceSheet": "landscape_details_sheet_v1.png"
     },
     {
       "biome": "coast",
@@ -910,12 +973,12 @@
       "priority": 1,
       "blockerProposal": "none",
       "detail": "Vegetation patch with transparent gaps; use approved grouped prompt.",
-      "output": "assets/environment/island/p5/dune_grass.png",
+      "output": "assets/environment/island/biome_props/dune_grass.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_landscape_details_sheet.png"
+      "sourceSheet": "landscape_details_sheet_v1.png"
     },
     {
       "biome": "coast",
@@ -935,12 +998,12 @@
       "priority": 1,
       "blockerProposal": "large central wood only",
       "detail": "One weathered driftwood trunk, silver-grey bleached grain, rounded broken ends and a few smooth root prongs. One standalone object with no beach, sea, foam, waterline or rock arrangement.",
-      "output": "assets/environment/island/p5/coastal_driftwood.png",
+      "output": "assets/environment/island/biome_props/coastal_driftwood.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_landscape_details_sheet.png"
+      "sourceSheet": "landscape_details_sheet_v1.png"
     },
     {
       "biome": "shared",
@@ -960,18 +1023,18 @@
       "priority": 2,
       "blockerProposal": "actual standing structure only; placement reviewed with routes",
       "detail": "Small uneven stack of five to seven local grey stones; use approved group 3 prompt.",
-      "output": "assets/environment/island/p5/trail_cairn.png",
+      "output": "assets/environment/island/biome_props/trail_cairn.png",
       "status": "Approved grouped generation; rough fitting guidance only; not imported",
       "joiningSides": [],
       "prompt": "Individual fallback superseded; use exact approved sourceSheet prompt.",
       "generationMethod": "Cut and alpha-trim named cell from sourceSheet after later generation approval; individual prompt is a specification/fallback only, not another generation",
-      "sourceSheet": "p5_landscape_details_sheet.png"
+      "sourceSheet": "landscape_details_sheet_v1.png"
     }
   ],
   "sheets": [
     {
-      "file": "p5_snow_core_sheet.png",
-      "output": "assets/environment/island/p5/p5_snow_core_sheet.png",
+      "file": "snow_core_sheet_v1.png",
+      "output": "assets/environment/island/biome_props/snow_core_sheet_v1.png",
       "label": "Snow starter set",
       "width": 1536,
       "height": 1024,
@@ -981,7 +1044,7 @@
         "rows": 2,
         "minimumCellPaddingPixels": 32
       },
-      "status": "approved for sequential generation; review snow essentials first",
+      "status": "saved; Tim APPROVED LOOK",
       "cells": [
         {
           "row": 1,
@@ -1026,8 +1089,8 @@
       "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nSix STANDALONE props; no joining edges.\n\n1. **Snowy pine — 5.5 × 5.5 units.** Mature Japanese pine with irregular spreading branches, dark needles and substantial natural snow caps. Readable trunk; uneven, wind-shaped silhouette.\n2. **Snowy cedar — 4.2 × 4.2 units.** Taller, narrower Japanese cedar with tiered branches bowed beneath snow. Clearly different from the spreading pine.\n3. **Snow-covered bush — 2.5 × 2 units.** Low irregular shrub, dark exposed twigs and muted foliage beneath broken snow caps. Airy edges rather than a solid white ball.\n4. **Frosted boulders — 3.2 × 2.5 units.** One compact cluster of angular grey rocks, snow collected on upper faces and in crevices. Exposed dark stone remains visible.\n5. **Snowy fallen log — 5 × 1.4 units.** Weathered fallen trunk with broken branch stubs, dark bark and uneven snow along its upper surface. Keep the broken end readable.\n6. **Frozen stump — 2 × 1.8 units.** Old broken stump with a few exposed roots, frost and a small snow cap. No surrounding woodland or snow platform."
     },
     {
-      "file": "p5_open_country_sheet.png",
-      "output": "assets/environment/island/p5/p5_open_country_sheet.png",
+      "file": "open_country_sheet_v1.png",
+      "output": "assets/environment/island/biome_props/open_country_sheet_v1.png",
       "label": "Open-country plants",
       "width": 1536,
       "height": 1024,
@@ -1037,7 +1100,7 @@
         "rows": 2,
         "minimumCellPaddingPixels": 32
       },
-      "status": "approved for sequential generation; review snow essentials first",
+      "status": "saved; Luna high one-generation workflow trial; pending review",
       "cells": [
         {
           "row": 1,
@@ -1081,8 +1144,8 @@
       "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nFive STANDALONE vegetation patches and one STANDALONE tree. Patches are small irregular clusters, not seamless tiles. Keep transparent gaps between plants, broken natural edges and no painted soil underneath.\n\n1. **Meadow grass patch — 3 × 2 units.** Several uneven tussocks of muted olive and straw-green grass, varied blade heights and small open gaps. No rectangular lawn.\n2. **Wildflower patch — 3 × 2.5 units.** Loose meadow grasses with scattered cream, pale lavender and faded yellow flowers. Mostly foliage; sparse flowers rather than a bright bouquet.\n3. **Broadleaf tree — 5 × 5 units.** One mature Japanese countryside tree with an irregular open canopy, muted olive leaves and visible branching trunk. No blossoms or spherical ornamental crown.\n4. **Hill-scrub patch — 3 × 2 units.** Several low wind-pressed shrubs, grey-green leaves, exposed twigs and restrained dusky mauve tips. Broken, rugged silhouette.\n5. **Dry-scrub patch — 3.5 × 2.5 units.** Loose drought-hardened shrubs with dusty sage and ochre leaves, twisted brown twigs and dead tips. No cactus or tropical plants.\n6. **Dry-grass patch — 3 × 2 units.** Several separated straw-coloured tussocks with curled blades and thin seed stalks. Airy, ragged and sun-bleached, with substantial transparent openings."
     },
     {
-      "file": "p5_landscape_details_sheet.png",
-      "output": "assets/environment/island/p5/p5_landscape_details_sheet.png",
+      "file": "landscape_details_sheet_v1.png",
+      "output": "assets/environment/island/biome_props/landscape_details_sheet_v1.png",
       "label": "Landscape details",
       "width": 1536,
       "height": 1024,
@@ -1136,8 +1199,8 @@
       "prompt": "Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.\n\nArrange three columns and two rows on a proposed 1536 × 1024 canvas. Each object or coherent cluster occupies its own equal cell, entirely visible, with at least 32 pixels of transparent padding on every side. Cell order is top-left, top-middle, top-right, bottom-left, bottom-middle, bottom-right. No visible grid, borders, labels or text.\n\nUse genuine transparent alpha. No background scenery, ground platforms, rectangular terrain bases, people, animals or cast shadows extending beyond the objects. Preserve natural openings between branches, stems and separate objects within clusters. Never merge neighbouring cells into a scene.\n\nPreserve relative scale within the sheet; small props must stay smaller than trees and buildings. Use the approved game pine, with a canopy about 5.5 world units across, as the scale reference. Keep silhouettes readable at game size. Dimensions below are intended world ground coverage after fitting, not pixel dimensions.\n\nSix STANDALONE props or compact clusters; no joining edges.\n\n1. **Sandstone stones — 3 × 2.3 units.** Low cluster of weathered ochre stones with pale faces, rusty seams and small fissures. Small rocks, not a miniature mountain range.\n2. **Bleached log — 4.5 × 1.4 units.** Dry inland deadwood with split grey-ochre grain, a broken hollow end and short brittle branch stubs.\n3. **Dune-grass patch — 3 × 2 units.** Several loose clumps of tough green-gold coastal grass, bent consistently by wind, with pale seed heads and transparent gaps. No sand base.\n4. **Coastal driftwood — 5 × 1.6 units.** Silver-grey trunk with water-worn surfaces, rounded broken ends and smooth root prongs. Distinct from the cracked inland log; no water or beach.\n5. **Small snow drift — 4 × 2 units.** Low wind-shaped snow mound with a rounded crest and tapering tongue. Subtle blue-grey shading matching approved snow terrain; soft irregular alpha edge, no rectangular base.\n6. **Weathered trail cairn — 1.5 × 1.5 units.** Small, slightly uneven stack of five to seven local grey stones, broad stable base and narrower top. Old and understated, with sparse lichen; no inscription or surrounding landscape."
     },
     {
-      "file": "p5_snow_features_sheet.png",
-      "output": "assets/environment/island/p5/p5_snow_features_sheet.png",
+      "file": "snow_features_sheet_v1.png",
+      "output": "assets/environment/island/biome_props/snow_features_sheet_v1.png",
       "label": "Later snow features",
       "width": 1536,
       "height": 1024,
@@ -1196,7 +1259,7 @@
     "sheetCandidates": [
       {
         "biome": "snow",
-        "file": "p5_snow_oddities_sheet.png",
+        "file": "snow_oddities_sheet_v1.png",
         "cells": [
           "half-buried shrine",
           null,
@@ -1214,7 +1277,7 @@
       },
       {
         "biome": "plains",
-        "file": "p5_plains_oddities_sheet.png",
+        "file": "plains_oddities_sheet_v1.png",
         "cells": [
           "abandoned farmstead",
           "ruined granary",
@@ -1228,7 +1291,7 @@
       },
       {
         "biome": "hills",
-        "file": "p5_hills_oddities_sheet.png",
+        "file": "hills_oddities_sheet_v1.png",
         "cells": [
           "abandoned mine entrance",
           "ruined signal tower",
@@ -1242,7 +1305,7 @@
       },
       {
         "biome": "dry",
-        "file": "p5_dry_oddities_sheet.png",
+        "file": "dry_oddities_sheet_v1.png",
         "cells": [
           "exposed dinosaur rib cage",
           "fossil skull embedded in sandstone",
@@ -1256,7 +1319,7 @@
       },
       {
         "biome": "coast",
-        "file": "p5_coast_oddities_sheet.png",
+        "file": "coast_oddities_sheet_v1.png",
         "cells": [
           "broken shipwreck hull",
           "ruined coastal lookout",
@@ -1270,7 +1333,7 @@
       },
       {
         "biome": "forest",
-        "file": "p5_forest_oddities_sheet.png",
+        "file": "forest_oddities_sheet_v1.png",
         "cells": [
           "root-covered shrine",
           "giant hollow cedar",

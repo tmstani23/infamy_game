@@ -394,6 +394,25 @@ Request high resolution to preserve cell detail for later sizing; requested reso
 
 The exact approved opening and group wording follow; shared opening precedes every group, and the shared addition also precedes oddities. Canonical full prompts are in [planning JSON](environment/island/p5_biome_art_plan.json). Individual specifications are not extra generations.
 
+### Sheet assignment queue (Tim, 2026-11-02)
+
+All new prop outputs use `assets/environment/island/biome_props/`. Generation chat/image names omit P5; W3.11 P5 remains the phase identifier and `p5_biome_art_plan.json` keeps its filename. One sheet per chat, exclusive ownership and named saves. No other generation chats have launched.
+
+| Sheet | Owner / status |
+|---|---|
+| `snow_core_sheet_v1.png` | coordinator 01a19f47-4aee-7772-8384-80c9c4a44ed8; saved; Tim APPROVED LOOK |
+| `open_country_sheet_v1.png` | trial chat 01a19f55-d9d8-7b60-ba86-a79b1da1baa4; saved; Luna high one-generation workflow trial; pending review |
+| `landscape_details_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `snow_features_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `snow_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `plains_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `hills_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `dry_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `coast_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+| `forest_oddities_sheet_v1.png` | unassigned; no generation chat launched; queued |
+
+The open-country trial is one generation to test the workflow. Snow oddities leave hut/well cells blank and reuse snow features. Large detailed singles only when needed; no blanket extra outputs. No cutting/import/runtime approval.
+
 **Shared opening — use for every group**
 
 > Create a transparent game prop sheet for a muted, atmospheric game set in 1870s Japan. Match the supplied approved game art: semi-realistic painted textures, weathered natural materials, restrained colours, fixed 2:1 isometric view facing southeast, and soft upper-left overcast lighting.
