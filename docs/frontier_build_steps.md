@@ -70,9 +70,9 @@ Reference roles (current revision v2; v1 retained as historical style-trial inpu
 
 Runtime registration: `game/data/world_atlas.json` records the installed `game/art/maps/world_atlas_v2.png`, exact world bounds and source hashes. After structural/painting changes, refresh the reference, run `node game/tools/test_world_atlas.mjs` and review/regenerate the illustration before updating these hashes. The reference freshness command does not replace or certify the painting. Original illustration/reference versions remain preserved.
 
-## Basic campaign loop pass (proposed, 2026-11-03)
+## Basic campaign loop pass (approved, 2026-11-03)
 
-Tim's target: a broad functional **explore → found → gather → build → fight** playthrough using existing art and simple readable UI. Target confirmed; the substantial implementation pass awaits approval. Reuse built F2 economy and F4 town controls. These are slices through the existing phases below, not replacement systems or permission to mark whole phases complete.
+Tim approved a broad functional **explore → found → gather → build → fight** build using existing art and simple readable UI: "yea can you do it in phased checkpoints" (2026-11-03). Approval persists across the Claude handoff; no repeat build-permission request is needed within this scope. Reuse built F2 economy and F4 town controls. These are slices through the existing phases below, not replacement systems or permission to mark whole phases complete.
 
 | Slice | Deliverable | Exit check |
 |---|---|---|
@@ -109,15 +109,16 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last completed: Map first atlas implementation (2026-11-03); v2 illustration look accepted. Next: Tim's runtime atlas/overlay playtest; retain unfinished MR4 traversal checks, then bridge/ford art and W4. Recheck clustering performance under mobs/camps load; F1.7 remains deferred.
+Last completed: Map first atlas, crossing/pass markers, close/travel layout fixes and named-region labels (2026-11-03). Tim loves the map. Next: approved Loop 1 in phased checkpoints; latest close/travel/labels refresh check, basic crossing fitting, then W4. Recheck clustering performance under mobs/camps load; unfinished MR4 traversal checks and F1.7 remain deferred.
 
 ## Next coordinator handoff (Tim, 2026-11-03)
 
-- P3 water/reflection/inland banks, P4 coast cliffs/dry range and current biome art/clustering are complete and visually accepted. Tim completed the coastal playtest: all looks great.
-- Clustering performance seems good in the current world; recheck measured camera-visible cost once mobs/camps add representative load. No final performance-budget claim.
-- Current priority is the Map first runtime atlas playtest, then bridge/ford art/fitting. MR0–MR3 are applied; MR4 Node checks pass and Tim likes the geography in game, with detailed traversal review unconfirmed. MR5 illustration v2 look approved and atlas installed; full overlay/runtime acceptance pending. W4 follows afterward. Read START_HERE.md, this full plan and step_runner_guide.md before an actual game build.
-- Retain P4's reported river-corner snag at 4200,4275, 34 harbor/17 mountain corners unrounded, Settings manual cross-save check and deferred F1.7. Bridges and source/lake shape redesign remain separate.
-- Keep Docs keeper available. A fresh coordinator can use this handoff. Obsolete paused-water checkpoint is archived under to_delete/; source art remains preserved.
+- **Claude continuation:** Tim approved the basic campaign loop above, in phased checkpoints, then requested a usage-saving handoff. No campaign-loop implementation has started; the last action was plan/source reading. Begin Loop 1, not another planning/permission round. First small checkpoint: basic bridge/ford world fitting at the existing anchors, using existing assets; then W4 camp persistence/spawning, node/site props and scouting. Keep city-away safeguards from C as a prerequisite before sustained expedition playtests. Commit tested increments and stop at a playable checkpoint for Tim's review.
+- **Current code:** `c82e166` installed the illustrated atlas; `d2ec151` made all 9 bridges, 8 fords and 20 passes visible in the atlas; `b1450ba` fixed hidden-state CSS priority and moved travel/details above the map with no scrollbars, plus a Zone names toggle using the blueprint regions (Saltwind Moor, Rust Mesa, etc., confirmed by Tim). `4a5b64f` added the loop proposal; this handoff records its approval. Worktree was clean before this handoff-only edit. No server/process was started.
+- **Atlas acceptance/checks:** Tim repeatedly calls the map awesome/phenomenal; preserve the look. Latest close/travel/zone-label changes still need explicit refresh/manual verification; don't claim full interaction/traversal/alignment coverage. Focused `test_world_atlas.mjs`, `test_world_map.mjs`, `test_command_ui.mjs` and game-map syntax checks passed. Atlas code is in `game/src/world_atlas.js`, `world_atlas.css`, `world_map.js` and `game_map.js`; runtime painting/config are `game/art/maps/world_atlas_v2.png` and `game/data/world_atlas.json`. Existing crossing atlas symbols do not mean new in-world bridge/ford art is fitted.
+- **Source contract:** MR0–MR3 applied; mountain/lake shapes and v2 illustration look accepted. Detailed MR4 traversal and MR5 overlay alignment remain unconfirmed. Structure stays blueprint-first; preserve all authored anchors. Reference gate: `node tools/prepare_atlas_reference.mjs --check --version v2`; runtime art/source gate: `node game/tools/test_world_atlas.mjs`. Refresh references after structural changes, review the painting before changing its registration hashes. Never move features to fit art or hand-edit generated world.json.
+- **Earlier acceptance/open issues:** coastal playtest, P3 water, P4 coast/dry range and current biome art/clustering accepted. Performance seems good without representative mobs/camps load; measure again after population. Retain river-corner snag at 4200,4275, 34 harbor/17 mountain corners unrounded, Settings cross-save check and deferred F1.7. Source-pool redesign remains separate.
+- **Operating rules:** read START_HERE.md, docs/usage.md, step_runner_guide.md and this plan. Sim owns rules; UI only reads/sends commands; tuning in data; save plain state. Node tests only, no browser automation/screenshots. Do not weaken old assertions. Reuse the canonical test setup and running server; never reset/delete the one capital save. Preserve source art; unwanted files move to to_delete/. Docs keeper owns docs/local commits, no push. Keep usage bounded to the current checkpoint.
 
 ## Working in one long window (auto-compacting)
 
