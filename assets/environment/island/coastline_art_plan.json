@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-02",
-  "status": "Tim approved wet-strip generation first, then a fitting review before dry/snow; prompts finalized and generation delegated to a new Luna chat 2026-11-02.",
+  "status": "Tim approved all three terrain strips: wet v1/v2 generated, generation_manifest selects thicker wet v2; dry/snow generation underway in the same Luna chat. Coast fitting/import remain pending; no runtime fitting code.",
   "decision": {
     "recommended": "Three flat, neutral-lit shoreline texture strips, wet/dry/snow. Continuous fitting around the coastline; eight directions are placement directions, not eight new paintings per family.",
     "promptCount": 3,
@@ -388,5 +388,11 @@
     "manifest": "assets/environment/island/coastline/generation_manifest.json",
     "sourcePreservation": "Use versioned sibling files if a target exists; never overwrite accepted source images.",
     "styleReference": "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png"
+  },
+  "currentGenerationStatus": {
+    "wet": "coast_wet_strip_v1.png and coast_wet_strip_v2.png generated; v2 selected by generation_manifest.json",
+    "drySnow": "Tim authorized one standalone image per terrain type, matching wet v2 thickness; generation underway with per-image manifests",
+    "scope": "Three terrain types / three selected strips total; continuous direction fitting later, no directional set or runtime fitting code",
+    "commitExclusion": "assets/environment/island/coastline/ remains excluded while outputs/manifests are actively written"
   }
 }
