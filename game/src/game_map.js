@@ -252,11 +252,11 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     else if (picked?.kind === 'pin') box = `<h4>Your pin</h4><div class="key">${esc(picked.note || '(no note)')}</div><div class="key">Right-click it to remove.</div>`;
     else if (picked) box = `<h4>${esc(atlasFeatureName(picked))}</h4>` + (picked.kind === 'resource' ? `<div class="key">${esc(picked.featureKind)} · richness ${esc(picked.richness)}</div>` : '');
     if (picked) box += `<div class="key">${esc(gridLabel(picked.x,picked.z))} · x ${Math.round(picked.x).toLocaleString('en-US')} z ${Math.round(picked.z).toLocaleString('en-US')} · ${esc(worldMap.biomeAt(picked.x,picked.z).name)}</div>`;
-    const form = pinDraft ? `<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)" value="${esc(pinDraft.note)}"><button type="button" class="pinsave">Save pin</button> <button type="button" class="pincancel">Cancel</button>` : '';
-    const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">Your hero and the crew following him jump there at once.</div><button type="button" class="travelgo">Travel</button> <button type="button" class="travelcancel">Cancel</button>` : '';
+    const form = pinDraft ? `<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)" value="${esc(pinDraft.note)}"><div class="atlas-actions"><button type="button" class="pinsave">Save pin</button><button type="button" class="pincancel">Cancel</button></div>` : '';
+    const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">${travelTo.city ? 'The Capital' : `${gridLabel(travelTo.x,travelTo.z)} · x ${travelTo.x.toLocaleString('en-US')} z ${travelTo.z.toLocaleString('en-US')}`} · Hero and following or selected crew</div><div class="atlas-actions"><button type="button" class="travelgo">Travel</button><button type="button" class="travelcancel">Cancel</button></div>` : '';
     const zoom = '<div class="atlas-navigation"><button type="button" data-locate title="Center on your location">Your location</button><button type="button" data-zoom="0.714" aria-label="Zoom out">−</button><button type="button" data-zoom="1.4" aria-label="Zoom in">+</button><button type="button" data-fit>Fit island</button></div>';
     const toggles = ATLAS_LAYERS.map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('');
-    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up · 500-unit squares · Drag to pan · Wheel to zoom · Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div><div class="atlas-detail">${travel}${box}${form}</div></div>`;
+    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel || (picked ? box : '')}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up · 500-unit squares · Drag to pan · Wheel to zoom · Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
     updateWorldLocation(); updateWorldLegend();
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
@@ -303,7 +303,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
     worldMap = createWorldMap({ canvas: worldCanvas, world, paintConfig, atlasConfig, getState: worldState, onHover: info => {
       const el=worldSide.querySelector('.atlas-hover'); if (!el) return;
-      const text=info ? `${info.feature ? info.feature + ' · ' : ''}${info.biome} · ${info.grid} · x ${Math.floor(info.x).toLocaleString('en-US')} z ${Math.floor(info.z).toLocaleString('en-US')}` : 'Hover the map for biome, grid square and coordinates.';
+      const text=info ? `${info.feature ? info.feature + ' · ' : ''}${info.zone ? info.zone + ' · ' : ''}${info.biome} · ${info.grid} · x ${Math.floor(info.x).toLocaleString('en-US')} z ${Math.floor(info.z).toLocaleString('en-US')}` : 'Hover the map for zone, biome, grid square and coordinates.';
       if (el.textContent!==text) el.textContent=text;
     } }); worldMap.attach();
     const local = e => { const r = worldCanvas.getBoundingClientRect(); return [(e.clientX - r.left) * worldMap.view.w / r.width, (e.clientY - r.top) * worldMap.view.h / r.height]; };
@@ -358,7 +358,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     }
     map.invalidate(); drawSide();
   }
-  function close() { if(root.hidden)return;root.hidden = true; tip.hidden = true; pointPicker = null; destinationPicker=null;onClose(); }
+  function close() { if(root.hidden)return;root.hidden = true; tip.hidden = true; travelTo=null;pinDraft=null;picked=null;pointPicker = null; destinationPicker=null;onClose(); }
   const toggle = () => (isOpen() ? close() : open());
 
   let shownData = null;

@@ -1,7 +1,7 @@
 // World atlas: registered illustration with data overlays, feature discovery and exact hover.
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
-import { ATLAS_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes } from './world_atlas.js';
+import { ATLAS_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;
 export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
@@ -125,6 +125,14 @@ export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig 
       for (let z = 0; z <= world.size.h; z += G) path([[0, z], [world.size.w, z]]);
     }
     const items=hitItems();
+    if (layers.names) {
+      ctx.save(); ctx.font='italic 12px Georgia, serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.lineWidth=3; ctx.lineJoin='round'; ctx.strokeStyle='rgba(16,33,37,.85)'; ctx.fillStyle='#f5e5ba';
+      const obstacles=[...items,...(st.hero ? [st.hero] : [])].map(it=>{const p=worldToCanvas(it.x,it.z,view);return {left:p.px-10,right:p.px+10,top:p.py-10,bottom:p.py+10};});
+      const labels=atlasZoneLabels(world,(x,z)=>worldToCanvas(x,z,view),s=>ctx.measureText(s).width,{left:MARGIN+5,top:MARGIN+5,right:view.w-5,bottom:view.h-5},obstacles);
+      for (const label of labels) label.lines.forEach((line,i)=>{const y=label.py+(i-(label.lines.length-1)/2)*label.lineHeight;ctx.strokeText(line,label.px,y);ctx.fillText(line,label.px,y);});
+      ctx.restore();
+    }
     for (const it of items) { const p=worldToCanvas(it.x,it.z,view); drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     ctx.restore(); cssTransform();
@@ -137,7 +145,7 @@ export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig 
     const label = hover && canvasToWorld(hover.px, hover.py, view);
     if (label && hover.px>=MARGIN && hover.py>=MARGIN && inWorld(label)) {
       const feature=hitTest(items,hover.px,hover.py,view,10);
-      onHover({ ...label, grid:gridLabel(label.x,label.z), biome:biomes.at(label.x,label.z).name, feature:atlasFeatureName(feature) });
+      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:atlasFeatureName(feature) });
     } else onHover(null);
     dirty = false;
   }

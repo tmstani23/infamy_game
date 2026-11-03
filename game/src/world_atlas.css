@@ -1,8 +1,10 @@
 /* Map first: World owns a wide workspace; City keeps its existing deployment layout. */
 #gamemap.game-map.world {
-  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto;
+  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto auto minmax(0,1fr) auto;
   gap:10px; padding:16px 22px; background:#080f13; color:#ded8c8;
+  width:100%; height:100dvh; max-height:100dvh; box-sizing:border-box; align-content:stretch; overflow:clip;
 }
+#gamemap.game-map.world[hidden] { display:none; }
 #gamemap.game-map.world .mapcol {
   grid-column:1; grid-row:1; display:flex; flex-direction:row; align-items:center; flex-wrap:wrap;
   gap:16px; padding:0; margin:0; overflow:visible; border:0; border-radius:0; background:none; box-shadow:none;
@@ -12,7 +14,7 @@
 #gamemap.game-map.world h3::after { content:' / ISLAND ATLAS'; color:#b3aa93; font-size:11px; letter-spacing:.12em; }
 #gamemap.game-map.world .mapclose { margin:0 0 0 auto; }
 #gamemap.game-map.world .mapbox {
-  grid-column:1; grid-row:3; min-height:0; min-width:0; display:block; border:1px solid #7a704e; border-radius:6px;
+  grid-column:1; grid-row:4; min-height:0; min-width:0; display:block; border:1px solid #7a704e; border-radius:6px;
 }
 #gamemap.game-map.world .mapbox::after { display:none; }
 #gamemap.game-map.world .mapbox canvas.worldcanvas {
@@ -28,14 +30,16 @@
 #gamemap .atlas-rail button { min-height:30px; padding:5px 10px; font-size:12px; border-color:#4c5148; background:#121e23; color:#c2bcae; }
 #gamemap .atlas-rail button[aria-pressed="true"] { color:#f2dfac; background:#2a332d; border-color:#a09161; box-shadow:inset 0 -2px #b5a06d; }
 #gamemap .atlas-navigation [data-zoom] { font-size:17px; line-height:1; min-width:32px; }
-#gamemap .atlas-footer { grid-column:1; grid-row:4; display:grid; grid-template-columns:minmax(0,1fr) minmax(200px,auto); gap:8px 20px; font-size:12px; }
+#gamemap .atlas-footer { grid-column:1; grid-row:5; min-width:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(200px,auto); gap:8px 20px; font-size:12px; }
 #gamemap .atlas-hover { font-size:14px; color:#eee0b6; overflow-wrap:anywhere; }
 #gamemap.game-map.world .worldside .worldlocation { color:#aaceb9; font-size:12px; line-height:1.5; padding:0; margin:3px 0; border:0; background:none; white-space:normal; }
 #gamemap .atlas-hint { color:#969f99; font-size:11px; }
 #gamemap .atlas-legend { display:flex; justify-content:flex-end; align-content:flex-start; flex-wrap:wrap; gap:4px 12px; max-width:620px; }
 #gamemap .atlas-legend > span { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; color:#c2c4b6; font-size:11px; }
 #gamemap .atlas-legend small { color:#8d9b95; }
-#gamemap .atlas-detail { grid-column:1/-1; max-height:17vh; overflow:auto; border-top:1px solid #39443d; padding-top:6px; overflow-wrap:anywhere; }
+#gamemap .atlas-detail { grid-column:1; grid-row:3; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:5px 12px; border:1px solid #56604b; border-radius:5px; padding:8px 12px; background:#162127; font-size:12px; overflow-wrap:anywhere; }
+#gamemap .atlas-detail[hidden] { display:none; }
+#gamemap .atlas-detail .atlas-actions { display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
 #gamemap .atlas-detail h4 { display:inline-block; margin:0 12px 3px 0; }
 #gamemap .atlas-detail .key { display:inline-flex; margin-right:12px; }
 #gamemap .atlas-detail .row { display:inline-flex; gap:5px; margin-right:15px; }

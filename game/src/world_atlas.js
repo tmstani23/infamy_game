@@ -9,6 +9,7 @@ export const ATLAS_LAYERS = [
   { id: 'camps', label: 'Camps & ruins', on: false },
   { id: 'resources', label: 'Resources', on: false },
   { id: 'crossings', label: 'Crossings & passes', on: true },
+  { id: 'names', label: 'Zone names', on: true },
   { id: 'biomes', label: 'Biome tint', on: false },
   { id: 'grid', label: 'Grid', on: false },
 ];
@@ -70,6 +71,35 @@ export function atlasItems(world, st, layers, known) {
   records.push({ ...world.capital, kind: 'capital', name: 'The Capital' });
   for (const p of st.pins || []) records.push({ ...p, kind: 'pin' });
   return records;
+}
+
+export function atlasRegionAt(world, x, z) {
+  return (world.regions || []).find(r => x>=r.box[0] && z>=r.box[1] && x<r.box[2] && z<r.box[3]) || null;
+}
+// Labels stay inside their source zone, clear of symbols and each other. Small views omit
+// labels that cannot fit; exact zone hover remains available at every zoom level.
+export function atlasZoneLabels(world, project, measure, viewport, obstacles = []) {
+  const labels=[], occupied=[...obstacles], lineHeight=14;
+  const overlaps=(a,b)=>a.left<b.right+5 && a.right>b.left-5 && a.top<b.bottom+5 && a.bottom>b.top-5;
+  for (const region of world.regions || []) {
+    const [x0,z0,x1,z1]=region.box, a=project(x0,z0), b=project(x1,z1);
+    const maxWidth=Math.min(190,b.px-a.px-16);
+    const lines=[]; let text='';
+    for (const word of region.name.split(/\s+/)) {
+      if (measure(word)>maxWidth) { lines.length=0; text=''; break; }
+      if (text && measure(text+' '+word)>maxWidth) { lines.push(text); text=word; } else text=text ? text+' '+word : word;
+    }
+    if (text) lines.push(text);
+    if (!lines.length || lines.length>2) continue;
+    const width=Math.max(...lines.map(measure)), height=lines.length*lineHeight;
+    for (const offset of [0,-.22,.22]) {
+      const px=(a.px+b.px)/2, py=(a.py+b.py)/2+(b.py-a.py)*offset;
+      const box={left:px-width/2-3,right:px+width/2+3,top:py-height/2-2,bottom:py+height/2+2};
+      if (box.left<Math.max(a.px+4,viewport.left) || box.right>Math.min(b.px-4,viewport.right) || box.top<Math.max(a.py+4,viewport.top) || box.bottom>Math.min(b.py-4,viewport.bottom) || occupied.some(it=>overlaps(box,it))) continue;
+      labels.push({region,lines,px,py,box,lineHeight}); occupied.push(box); break;
+    }
+  }
+  return labels;
 }
 
 const BIOMES = {
