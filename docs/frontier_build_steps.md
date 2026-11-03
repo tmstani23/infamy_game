@@ -1280,6 +1280,9 @@ Groundcover v4 remains planning only: all ordinary props, five footprint sizes, 
 - Mark coast cells and line most of the coast with the existing cliff/rim/corner art; keep harbours and landings open [4b].
 - Dry-range blueprint: blueprint.py -> seed_world.mjs, sites/routes/passes still validate [dry range].
 
+#### Ground cover clustering — built 2026-11-03 (Tim: "clustering is perfect")
+- 28 families, half-scale ground props, oddity size/rate tuning, marsh trees, jungle trees unmirrored. Details in the [clustering plan](../assets/environment/island/groundcover_clustering_plan.json); open: D visual tuning, E camera-visible cost. Prop census tool: `game/tools/prop_census.mjs`.
+
 #### P5 Biome art — integrated; crop repair complete (Tim, 2026-11-02)
 
 - [x] Prepare reuse audit, proposed densities/sizes, four full basic sheet prompts and 25 individual specifications (23 transparent sprites plus two optional opaque tiles). These individual strings are specifications/fallbacks, not additional generations. See [owner prompt plan](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02) and [planning JSON](../assets/environment/island/p5_biome_art_plan.json).

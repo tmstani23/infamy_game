@@ -1,6 +1,6 @@
 // Island prop census (groundcover clustering plan, phase A). Run from the repo root:
 //   node game/tools/prop_census.mjs           (all passes, then the report; about 45 s)
-//   node game/tools/prop_census.mjs --stage=N (one pass only, N = 0..6; saved to to_delete/_chk/)
+//   node game/tools/prop_census.mjs --stage=N (one pass only, N = 0..7; add --old for the old scatter; saved to to_delete/_chk/)
 //   node game/tools/prop_census.mjs --report  (report from the saved passes)
 // Runs the CURRENT generator (sim/chunk_gen.js buildChunk) over every island chunk and counts what it
 // places, by the ground biome under each prop. Read-only: changes no game code or data.
@@ -19,13 +19,15 @@ mkdirSync(out, { recursive: true });
 const world = data('data/world.json'), district = data('data/port_town.json'), catalog = data('data/art.json').items;
 const base = { ...data('data/world_chunks.json'), paint: data('data/world_paint.json'), biomeProps: data('data/biome_props.json'), coastline: data('data/coastline.json') };
 const bp = base.biomeProps;
-const STAGES = ['painted', 'additional', 'bamboo', 'marsh', 'coast', 'tops', 'oddities'];
+const STAGES = ['painted', 'additional', 'bamboo', 'marsh', 'coast', 'tops', 'clusters', 'oddities'];
+const OLD = process.argv.includes('--old'), tag = OLD ? 'old_' : '';   // --old: clustering off (the old scatter)
 const stageArg = process.argv.find(a => a.startsWith('--stage='));
 
 const cfgFor = n => ({ ...base,
   paint: { ...base.paint, bamboo: n >= 2 ? base.paint.bamboo : undefined },
   biomeProps: { ...bp, additional: n >= 1 ? bp.additional : [], marshSupplement: n >= 3 ? bp.marshSupplement : undefined,
-    coast: n >= 4 ? bp.coast : undefined, mountainTops: n >= 5 ? bp.mountainTops : undefined, oddities: n >= 6 ? bp.oddities : undefined } });
+    coast: n >= 4 ? bp.coast : undefined, mountainTops: n >= 5 ? bp.mountainTops : undefined, oddities: n >= 7 ? bp.oddities : undefined,
+    clustering: bp.clustering && (OLD ? { ...bp.clustering, enabled: false } : { ...bp.clustering, families: bp.clustering.families.map(f => n >= 6 ? f : { ...f, per1000: 0 }) }) } });
 
 const S = base.chunk, T = world.terrain, W = T.rows[0].length * T.cell, H = T.rows.length * T.cell;
 const city = district.bounds ? cityOnIsland(world, district.bounds) : null;
@@ -37,7 +39,7 @@ function runStage(n) {
     for (const p of buildChunk(world, cfg, cx, cz, base.seed ?? 1, { city }).props) {
       const k = `${P.biomes[P.gridAt(p.x, p.z)] ?? '?'}|${p.art || p.kind}`; counts[k] = (counts[k] || 0) + 1;
     }
-  writeFileSync(new URL(`census_${n}.json`, out), JSON.stringify(counts));
+  writeFileSync(new URL(`${tag}census_${n}.json`, out), JSON.stringify(counts));
   console.log(`pass ${n} (${STAGES[n]}): ${Object.values(counts).reduce((a, b) => a + b, 0)} props, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 
@@ -60,7 +62,7 @@ function assetList() {
 }
 
 function report() {
-  const st = STAGES.map((_, n) => JSON.parse(readFileSync(new URL(`census_${n}.json`, out))));
+  const st = STAGES.map((_, n) => JSON.parse(readFileSync(new URL(`${tag}census_${n}.json`, out))));
   const all = st.at(-1), area = {}, byKind = {};
   for (let i = 0; i < T.rows.length; i++) for (let j = 0; j < T.rows[0].length; j++) {
     const b = P.biomes[P.gridAt((j + .5) * T.cell, (i + .5) * T.cell)]; area[b] = (area[b] || 0) + T.cell * T.cell;
@@ -118,7 +120,7 @@ function report() {
   }
   const unknown = Object.keys(byKind).filter(k => !known.has(k));
   if (unknown.length) L.push('## Placed kinds with no art-folder entry', '', unknown.join(', '), '');
-  writeFileSync(new URL('prop_census.md', out), L.join('\n'));
+  writeFileSync(new URL(`${tag}prop_census.md`, out), L.join('\n'));
   console.log(L.slice(0, 22 + bad.length).join('\n'));
 }
 

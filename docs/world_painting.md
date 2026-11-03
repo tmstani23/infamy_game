@@ -97,6 +97,11 @@ They follow the same noise as layer 2 so they gather in sensible places.
 - Props are sim data (`sim/chunk_gen.js`), because some of them block.
 - Mountain tops: a separate pass puts sparse art-only props (no walk blockers) on the flat top of a range, kept
   `inset` units in from the rim so they clear the cliff art. Data in `biome_props.json` `mountainTops`.
+- Clustering (2026-11-03): ordinary props are placed as clusters by `sim/prop_clusters.js` (28 families in
+  `biome_props.json` `clustering`; five footprint sizes, three layouts, singles, three height tiers; every member
+  checked on its own). `clustering.enabled: false` restores the old scatter exactly. `propScale` draws every
+  non-tree, non-oddity prop at 0.5x and shrinks its blocker to match. Edge trees, outcrops, mountain tops and
+  oddities keep their own passes.
 
 **8. Hand stamps.** A list in `world_paint.json`, one entry per authored spot (landmark, camp, pass,
 gate, town site), each with a radius.

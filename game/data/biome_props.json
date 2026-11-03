@@ -6,9 +6,9 @@
     "snow_cedar": 0.65,
     "cliff_dry_a": 1.15,
     "cliff_dry_b": 1.15,
-    "marsh_leaning_willow": 0.661,
-    "marsh_stunted_wetland_tree": 0.707,
-    "marsh_dead_snag": 0.775,
+    "marsh_leaning_willow": 0.826,
+    "marsh_stunted_wetland_tree": 0.884,
+    "marsh_dead_snag": 0.969,
     "marsh_waterlogged_stump": 0.798,
     "marsh_fallen_rotting_trunk": 0.798,
     "marsh_exposed_root_clump": 0.627,
@@ -24,30 +24,42 @@
     "jungle_vine_root_tangle": 0.72,
     "jungle_low_dense_shrub": 0.72,
     "jungle_tall_grass_clump": 0.72,
-    "jungle_strangler_root_staircase": 0.63,
-    "jungle_overgrown_stone_cistern": 0.72,
-    "jungle_giant_termite_mound": 0.72,
-    "jungle_fallen_giant": 0.63,
-    "jungle_abandoned_expedition_camp": 0.8,
-    "jungle_ruined_tree_lookout": 0.65,
+    "jungle_strangler_root_staircase": 0.441,
+    "jungle_overgrown_stone_cistern": 0.504,
+    "jungle_giant_termite_mound": 0.504,
+    "jungle_fallen_giant": 0.441,
+    "jungle_abandoned_expedition_camp": 0.56,
+    "jungle_ruined_tree_lookout": 0.455,
     "marsh_tall_reeds": 0.889,
     "marsh_cattails": 0.889,
     "marsh_rushes": 0.889,
     "marsh_sedge_tussock": 0.889,
     "marsh_lily_pads": 0.855,
     "marsh_duckweed": 0.855,
-    "marsh_half_sunken_shrine": 0.889,
-    "marsh_reed_cutters_shelter": 0.889,
-    "marsh_stranded_wooden_boat": 0.889,
-    "marsh_collapsed_fishing_platform": 0.889,
-    "marsh_drowned_grove": 0.889,
-    "marsh_old_stone_sluice": 0.889,
+    "marsh_half_sunken_shrine": 0.622,
+    "marsh_reed_cutters_shelter": 0.622,
+    "marsh_stranded_wooden_boat": 0.622,
+    "marsh_collapsed_fishing_platform": 0.622,
+    "marsh_drowned_grove": 0.622,
+    "marsh_old_stone_sluice": 0.622,
     "forest_broad_fern": 0.55,
     "forest_feathery_fern": 0.55,
     "forest_brown_mushrooms": 0.55,
     "forest_cream_mushrooms": 0.55,
     "forest_russet_mushrooms": 0.55,
-    "forest_glowing_mushrooms": 0.55
+    "forest_glowing_mushrooms": 0.55,
+    "dry_exposed_dinosaur_rib_cage": 0.7,
+    "dry_fossil_skull_in_sandstone": 0.7,
+    "dry_ruined_plaster_and_timber_building": 0.7,
+    "dry_ancient_dry_well": 0.7,
+    "dry_abandoned_caravan_camp": 0.7,
+    "dry_shaded_rock_grotto": 0.7,
+    "plains_abandoned_farmstead": 0.5,
+    "plains_ruined_granary": 0.5,
+    "plains_overgrown_cemetery": 0.5,
+    "plains_collapsed_watchtower": 0.5,
+    "plains_neglected_orchard": 0.5,
+    "plains_roadside_shrine": 0.5
   },
   "replaceByBiome": {
     "snow": {
@@ -590,7 +602,14 @@
       "coast_sea_cave",
       "coast_abandoned_fishermans_shack",
       "coast_seaside_memorial"
-    ]
+    ],
+    "chanceByBiome": {
+      "snow": 0.32,
+      "forest": 0.32,
+      "plain": 0.32,
+      "hills": 0.32
+    },
+    "_noteChance": "chanceByBiome (Tim 2026-11-03): snow, forest, plain and hills oddities at twice the base chance; other biomes use chance."
   },
   "marshSupplement": {
     "grid": 6,
@@ -719,5 +738,1172 @@
         }
       ]
     }
+  },
+  "propScale": {
+    "_note": "Tim 2026-11-03: every ordinary island prop except trees and oddities is drawn at `factor` x its rule scale; its walk blocker shrinks to match (sim/chunk_gen.js scalePaintedProps). `keep` = tree kinds left at full size.",
+    "factor": 0.5,
+    "keep": [
+      "cedar",
+      "pine",
+      "twisted_pine",
+      "cherry",
+      "meadow_broadleaf_tree",
+      "snow_pine",
+      "snow_cedar",
+      "bamboo",
+      "jungle_large_buttress_tree",
+      "jungle_large_broad_canopy_tree",
+      "jungle_large_banyan_tree",
+      "jungle_medium_palm",
+      "jungle_medium_broadleaf_tree",
+      "jungle_small_sapling",
+      "marsh_leaning_willow",
+      "marsh_stunted_wetland_tree",
+      "marsh_dead_snag"
+    ]
+  },
+  "clustering": {
+    "_note": "Ordinary-prop clustering (assets/environment/island/groundcover_clustering_plan.json; sim/prop_clusters.js). enabled false = the old scatter. per1000 = final sprites per 1000 sq u before biome/clearing rejection, calibrated against the old scatter x vsOld (game/tools/prop_census.mjs). Placeholder numbers, Tim to tune.",
+    "enabled": true,
+    "version": 1,
+    "seed": 200,
+    "replacePasses": [
+      "marsh",
+      "coast"
+    ],
+    "sizes": {
+      "tiny": {
+        "members": [
+          2,
+          2
+        ],
+        "diameter": [
+          3,
+          6
+        ]
+      },
+      "small": {
+        "members": [
+          2,
+          3
+        ],
+        "diameter": [
+          6,
+          10
+        ]
+      },
+      "medium": {
+        "members": [
+          4,
+          6
+        ],
+        "diameter": [
+          10,
+          16
+        ]
+      },
+      "large": {
+        "members": [
+          6,
+          8
+        ],
+        "diameter": [
+          16,
+          24
+        ]
+      },
+      "expansive": {
+        "members": [
+          8,
+          11
+        ],
+        "diameter": [
+          24,
+          34
+        ]
+      }
+    },
+    "heightTiers": {
+      "short": 0.88,
+      "baseline": 1,
+      "tall": 1.12
+    },
+    "families": [
+      {
+        "id": "plain_meadow",
+        "biome": "plain",
+        "vsOld": 1.5,
+        "per1000": 3.283,
+        "grid": 10,
+        "sizes": {
+          "small": 3,
+          "medium": 3,
+          "large": 2,
+          "expansive": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "meadow_grass",
+            "weight": 1
+          }
+        ],
+        "companions": [
+          {
+            "kind": "meadow_flowers",
+            "weight": 1
+          }
+        ],
+        "companionShare": 0.3
+      },
+      {
+        "id": "plain_trees",
+        "biome": "plain",
+        "vsOld": 1.1,
+        "per1000": 3.926,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "pine",
+            "weight": 2.85
+          },
+          {
+            "kind": "meadow_broadleaf_tree",
+            "weight": 0.3
+          }
+        ],
+        "mixShare": 0.15,
+        "grove": "in"
+      },
+      {
+        "id": "plain_rocks",
+        "biome": "plain",
+        "vsOld": 1.1,
+        "per1000": 0.7,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2,
+          "medium": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "small_rocks",
+            "weight": 1
+          }
+        ],
+        "companions": [
+          {
+            "kind": "boulder",
+            "weight": 1
+          }
+        ],
+        "companionShare": 0.12
+      },
+      {
+        "id": "forest_trees",
+        "biome": "forest",
+        "vsOld": 1.1,
+        "per1000": 16.25,
+        "grid": 8,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "cedar",
+            "weight": 9
+          },
+          {
+            "kind": "pine",
+            "weight": 5
+          }
+        ],
+        "mixShare": 0.35,
+        "grove": "in"
+      },
+      {
+        "id": "forest_ferns",
+        "biome": "forest",
+        "vsOld": 1.3,
+        "per1000": 10.129,
+        "grid": 10,
+        "sizes": {
+          "small": 3,
+          "medium": 3,
+          "large": 2,
+          "expansive": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "forest_broad_fern",
+            "weight": 4
+          },
+          {
+            "kind": "forest_feathery_fern",
+            "weight": 1.2
+          }
+        ],
+        "companions": [
+          {
+            "kind": "bush",
+            "weight": 1
+          }
+        ],
+        "companionShare": 0.3,
+        "mixShare": 0.3
+      },
+      {
+        "id": "forest_fungi",
+        "biome": "forest",
+        "vsOld": 1.25,
+        "per1000": 1.837,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2
+        },
+        "layouts": {
+          "compact": 3,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 0.6,
+        "tiers": {
+          "short": 2,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "forest_brown_mushrooms",
+            "weight": 1
+          },
+          {
+            "kind": "forest_cream_mushrooms",
+            "weight": 1
+          },
+          {
+            "kind": "forest_russet_mushrooms",
+            "weight": 1
+          }
+        ],
+        "mixShare": 0.1
+      },
+      {
+        "id": "forest_glowing_fungi",
+        "biome": "forest",
+        "vsOld": 1,
+        "per1000": 0.122,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2
+        },
+        "layouts": {
+          "compact": 3,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 0.6,
+        "tiers": {
+          "short": 2,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "forest_glowing_mushrooms",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "id": "forest_wood",
+        "biome": "forest",
+        "vsOld": 1.2,
+        "per1000": 1.019,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2,
+          "medium": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "stump",
+            "weight": 0.5
+          },
+          {
+            "kind": "fallen_log",
+            "weight": 0.3
+          }
+        ],
+        "mixShare": 0.4
+      },
+      {
+        "id": "bamboo",
+        "biome": "bamboo",
+        "vsOld": 1,
+        "per1000": 10.434,
+        "grid": 10,
+        "sizes": {
+          "small": 2,
+          "medium": 3,
+          "large": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.25,
+        "spacing": 1.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "bamboo",
+            "weight": 1
+          }
+        ],
+        "terrain": "b"
+      },
+      {
+        "id": "hills_heather",
+        "biome": "hills",
+        "vsOld": 1.5,
+        "per1000": 3.002,
+        "grid": 10,
+        "sizes": {
+          "small": 3,
+          "medium": 3,
+          "large": 2,
+          "expansive": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "hill_heather",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "id": "hills_trees",
+        "biome": "hills",
+        "vsOld": 1.1,
+        "per1000": 4.133,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "twisted_pine",
+            "weight": 2
+          },
+          {
+            "kind": "pine",
+            "weight": 1.5
+          }
+        ],
+        "mixShare": 0.25
+      },
+      {
+        "id": "hills_rocks",
+        "biome": "hills",
+        "vsOld": 1.15,
+        "per1000": 1.947,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2,
+          "medium": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "small_rocks",
+            "weight": 1
+          }
+        ],
+        "companions": [
+          {
+            "kind": "boulder",
+            "weight": 1
+          }
+        ],
+        "companionShare": 0.35
+      },
+      {
+        "id": "dry_grass_scrub",
+        "biome": "dry",
+        "vsOld": 1.4,
+        "per1000": 3.391,
+        "grid": 10,
+        "sizes": {
+          "small": 3,
+          "medium": 3,
+          "large": 2,
+          "expansive": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "dry_grass_tussock",
+            "weight": 1
+          }
+        ],
+        "companions": [
+          {
+            "kind": "dry_scrub",
+            "weight": 1
+          }
+        ],
+        "companionShare": 0.35
+      },
+      {
+        "id": "dry_trees",
+        "biome": "dry",
+        "vsOld": 1.1,
+        "per1000": 0.702,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "twisted_pine",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "id": "dry_rocks",
+        "biome": "dry",
+        "vsOld": 1.15,
+        "per1000": 2.731,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2,
+          "medium": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "sandstone_stones",
+            "weight": 1
+          }
+        ],
+        "companions": [
+          {
+            "kind": "boulder",
+            "weight": 0.3
+          },
+          {
+            "kind": "bleached_log",
+            "weight": 0.15
+          }
+        ],
+        "companionShare": 0.2
+      },
+      {
+        "id": "snow_trees",
+        "biome": "snow",
+        "vsOld": 1.1,
+        "per1000": 6.756,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "snow_pine",
+            "weight": 5
+          },
+          {
+            "kind": "snow_cedar",
+            "weight": 0.8
+          }
+        ],
+        "mixShare": 0.2,
+        "grove": "in"
+      },
+      {
+        "id": "snow_drifts",
+        "biome": "snow",
+        "vsOld": 1.4,
+        "per1000": 2.203,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "strip": 2,
+          "lobed": 2,
+          "compact": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "snow_drift",
+            "weight": 1
+          }
+        ],
+        "companions": [
+          {
+            "kind": "snow_bush",
+            "weight": 1
+          }
+        ],
+        "companionShare": 0.35
+      },
+      {
+        "id": "snow_wood",
+        "biome": "snow",
+        "vsOld": 1.2,
+        "per1000": 0.878,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2,
+          "medium": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "snow_stump",
+            "weight": 0.4
+          },
+          {
+            "kind": "snow_fallen_log",
+            "weight": 0.3
+          }
+        ],
+        "mixShare": 0.4
+      },
+      {
+        "id": "snow_rocks",
+        "biome": "snow",
+        "vsOld": 1.1,
+        "per1000": 0.425,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2,
+          "medium": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "snow_boulders",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "id": "jungle_large_trees",
+        "biome": "jungle",
+        "vsOld": 1.1,
+        "per1000": 5.568,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 3.5,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "jungle_large_buttress_tree",
+            "weight": 1.6
+          },
+          {
+            "kind": "jungle_large_broad_canopy_tree",
+            "weight": 1.6
+          },
+          {
+            "kind": "jungle_large_banyan_tree",
+            "weight": 1.2
+          }
+        ],
+        "mixShare": 0.3,
+        "grove": "in"
+      },
+      {
+        "id": "jungle_trees",
+        "biome": "jungle",
+        "vsOld": 1.1,
+        "per1000": 5.373,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.45,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "jungle_medium_palm",
+            "weight": 1.44
+          },
+          {
+            "kind": "jungle_medium_broadleaf_tree",
+            "weight": 2
+          },
+          {
+            "kind": "jungle_small_sapling",
+            "weight": 1.2
+          }
+        ],
+        "mixShare": 0.35
+      },
+      {
+        "id": "jungle_undergrowth",
+        "biome": "jungle",
+        "vsOld": 1.4,
+        "per1000": 8.74,
+        "grid": 10,
+        "sizes": {
+          "small": 3,
+          "medium": 3,
+          "large": 2,
+          "expansive": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "jungle_broadleaf_clump",
+            "weight": 1.12
+          },
+          {
+            "kind": "jungle_large_fern_clump",
+            "weight": 1.44
+          },
+          {
+            "kind": "jungle_tall_grass_clump",
+            "weight": 0.96
+          }
+        ],
+        "companions": [
+          {
+            "kind": "jungle_fan_palm_clump",
+            "weight": 0.96
+          },
+          {
+            "kind": "jungle_low_dense_shrub",
+            "weight": 1.2
+          },
+          {
+            "kind": "jungle_vine_root_tangle",
+            "weight": 0.48
+          }
+        ],
+        "companionShare": 0.35,
+        "mixShare": 0.15
+      },
+      {
+        "id": "marsh_reedbeds",
+        "biome": "marsh",
+        "vsOld": 1.4,
+        "per1000": 12.269,
+        "grid": 10,
+        "sizes": {
+          "small": 3,
+          "medium": 3,
+          "large": 2,
+          "expansive": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "marsh_tall_reeds",
+            "weight": 1
+          },
+          {
+            "kind": "marsh_cattails",
+            "weight": 0.7
+          }
+        ],
+        "companions": [
+          {
+            "kind": "marsh_rushes",
+            "weight": 1
+          },
+          {
+            "kind": "marsh_sedge_tussock",
+            "weight": 1.1
+          }
+        ],
+        "companionShare": 0.45,
+        "mixShare": 0.2,
+        "zone": "water"
+      },
+      {
+        "id": "marsh_trees",
+        "biome": "marsh",
+        "vsOld": 3.0,
+        "per1000": 10.024,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.55,
+        "spacing": 2.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "marsh_leaning_willow",
+            "weight": 1.1
+          },
+          {
+            "kind": "marsh_stunted_wetland_tree",
+            "weight": 0.9
+          },
+          {
+            "kind": "marsh_dead_snag",
+            "weight": 0.8
+          }
+        ],
+        "mixShare": 0.5,
+        "zone": "wooded",
+        "_note": "Tim 2026-11-03: a lot more marsh trees (about 3x)"
+      },
+      {
+        "id": "marsh_roots",
+        "biome": "marsh",
+        "vsOld": 1.2,
+        "per1000": 1.073,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2,
+          "large": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.35,
+        "spacing": 1.4,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "marsh_exposed_root_clump",
+            "weight": 1
+          }
+        ],
+        "zone": "wooded"
+      },
+      {
+        "id": "marsh_floating_leaves",
+        "biome": "marsh",
+        "vsOld": 1,
+        "per1000": 1.275,
+        "grid": 10,
+        "sizes": {
+          "tiny": 3,
+          "small": 2
+        },
+        "layouts": {
+          "compact": 3,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 0.6,
+        "tiers": {
+          "short": 2,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "marsh_lily_pads",
+            "weight": 1
+          },
+          {
+            "kind": "marsh_duckweed",
+            "weight": 1
+          }
+        ],
+        "mixShare": 0.1,
+        "zone": "surface",
+        "_note": "still on land mode (zone surface), like before; true still-water placement waits for the water work"
+      },
+      {
+        "id": "coast_dune_grass",
+        "biome": "coast",
+        "vsOld": 1.4,
+        "per1000": 0.694,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "strip": 3,
+          "lobed": 1
+        },
+        "singles": 0.3,
+        "spacing": 1,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "dune_grass",
+            "weight": 1
+          }
+        ],
+        "coast": true,
+        "scale": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "id": "coast_driftwood",
+        "biome": "coast",
+        "vsOld": 1,
+        "per1000": 0.146,
+        "grid": 10,
+        "sizes": {
+          "tiny": 1
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 1
+        },
+        "singles": 0.7,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 3,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "coastal_driftwood",
+            "weight": 1
+          }
+        ],
+        "coast": true,
+        "scale": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "id": "marsh_wood",
+        "biome": "marsh",
+        "vsOld": 1.1,
+        "per1000": 1.671,
+        "grid": 10,
+        "sizes": {
+          "tiny": 2,
+          "small": 3,
+          "medium": 2
+        },
+        "layouts": {
+          "compact": 2,
+          "strip": 1,
+          "lobed": 2
+        },
+        "singles": 0.5,
+        "spacing": 2.2,
+        "tiers": {
+          "short": 1,
+          "baseline": 4,
+          "tall": 1
+        },
+        "primary": [
+          {
+            "kind": "marsh_waterlogged_stump",
+            "weight": 0.8
+          },
+          {
+            "kind": "marsh_fallen_rotting_trunk",
+            "weight": 0.6
+          }
+        ],
+        "mixShare": 0.5,
+        "zone": "wooded"
+      }
+    ]
+  },
+  "noMirror": {
+    "_note": "Tim 2026-11-03: kinds always drawn as painted, never mirrored (render/world_ground.js).",
+    "kinds": [
+      "jungle_large_buttress_tree",
+      "jungle_large_broad_canopy_tree",
+      "jungle_large_banyan_tree",
+      "jungle_medium_palm",
+      "jungle_medium_broadleaf_tree",
+      "jungle_small_sapling"
+    ]
   }
 }

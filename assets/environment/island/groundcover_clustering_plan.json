@@ -1,7 +1,7 @@
 {
   "version": 4,
   "date": "2026-11-03",
-  "status": "Revised design requested by Tim. No clustering code or runtime density changes made. Coast/blending visual review is complete; refresh asset and density measurements before implementation.",
+  "status": "Built 2026-11-03 (phases A to C, all families incl. marsh and coast). Tim: \"clustering is perfect\". Data lives in game/data/biome_props.json `clustering` (no separate prop_clustering.json, no loader changes); code game/src/sim/prop_clusters.js; switch clustering.enabled:false restores the old scatter. Outcrops and edge trees stay on the old scatter. Half scale for non-tree props (Tim 2026-11-03, biome_props.json propScale) supersedes \"keep current per-kind display scale\". Open: D (Tim's visual tuning) and E (camera-visible cost).",
   "scope": "All ordinary procedural island props, including trees, brush, fungi, grasses, rocks, logs, stumps and driftwood. Oddities and fixed terrain art are excluded. Ground textures remain the underlying continuous cover.",
   "prerequisites": [
     {
@@ -335,12 +335,14 @@
     {
       "id": "B",
       "task": "Implement deterministic ordinary-prop helper/config with old-scatter fallback. Pilot meadow, forest trees/ferns/fungi and snow trees/drifts; establish baseline emitted-member budgets and blocker validation.",
-      "done": false
+      "done": true,
+      "result": "Built 2026-11-03: prop_clusters.js with old-scatter switch; test_prop_clusters.mjs."
     },
     {
       "id": "C",
       "task": "Apply hills, dry, coast, jungle and marsh ordinary-prop profiles, including trees, rocks, wood and the marsh supplement. Separately validate the still-water leaf branch before moving it off land.",
-      "done": false
+      "done": true,
+      "result": "Built 2026-11-03: 28 families across every biome; marsh supplement and coast passes replaced. 617k -> 744k props; chunk build 4.7 ms vs 3.6 ms old. Follow-ups: oddity size 0.7x dry/jungle/marsh, 0.5x plains; oddity rate doubled in snow/forest/plain/hills; marsh_trees ~3x and 25% larger, new marsh_wood family; jungle trees never mirrored (noMirror)."
     },
     {
       "id": "D",

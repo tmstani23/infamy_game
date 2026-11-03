@@ -13,6 +13,7 @@ import { terrainAt, passable } from './world_data.js';
 import { shorelineTopology } from './shoreline.js';
 import {islandArt} from './island_art.js';
 import { createPaint, trailSegments, hash2 } from '../world_paint.js';
+import { clusterProps, clusterReplaces } from './prop_clusters.js';
 
 export const chunkId = (cx, cz) => `c${cx}_${cz}`;
 
@@ -115,6 +116,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   // trail clearance, stamps; docs/world_painting.md layer 7). Otherwise the older per-cell scatter below.
   if (cfg.paint?.enabled) {
     const props = paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt);
+    scalePaintedProps(props, blockers, cfg.biomeProps?.propScale);
     return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props, art: islandArt(world, cfg, cx, cz) };
   }
 
@@ -140,6 +142,19 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props, art:islandArt(world,cfg,cx,cz) };
 }
 
+// Tim 2026-11-03: ordinary props other than trees (propScale.keep) and oddities are drawn at
+// propScale.factor x their scale, and their walk blockers (centred on the prop) shrink by the same factor.
+function scalePaintedProps(props, blockers, ps) {
+  if (!ps?.factor || ps.factor === 1) return;
+  const keep = new Set(ps.keep || []), f = ps.factor;
+  const hit = k => k !== 'biome_oddity' && k !== 'terrain' && k !== 'city' && !keep.has(k);
+  for (const p of props) if (hit(p.kind)) p.s = +(p.s * f).toFixed(3);
+  for (const b of blockers) if (hit(b.kind)) {
+    const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2, hx = (b.maxX - b.minX) / 2 * f, hz = (b.maxZ - b.minZ) / 2 * f;
+    Object.assign(b, { minX: cx - hx, maxX: cx + hx, minZ: cz - hz, maxZ: cz + hz });
+  }
+}
+
 // Layer 7 of docs/world_painting.md. Candidates sit on one global jittered grid (one per grid x grid units,
 // the offset from the seeded hash), so a chunk border never changes what is on either side of it.
 function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
@@ -155,6 +170,16 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
   let rules = pc.props.map((r, i) => ({ ...r, kind: replacements[r.biome]?.[r.kind] || r.kind, i, b: P.B[r.biome], pmax: r.per1000 * area }));
   rules = [...rules, ...(biomeProps.additional || []).map((r, i) => ({ ...r, i: 100 + i, b: P.B[r.biome], pmax: r.per1000 * area }))];
   if (bamboo) rules = [...rules, { ...bamboo, i: 90, b: -1, pmax: bamboo.per1000 * area, grove: 'bamboo' }];
+  // Clustering (biome_props.json clustering): rules whose kind a cluster family now places are skipped after
+  // the draw, so every other rule keeps exactly the same props. Edge trees stay on their own rule.
+  const cl = biomeProps.clustering?.enabled ? biomeProps.clustering : null, replaced = clusterReplaces(cl);
+  const kindInfo = new Map();
+  for (const r of rules) {
+    const key = `${r.biome ?? 'bamboo'}|${r.kind}`;
+    if (!kindInfo.has(key)) kindInfo.set(key, { scale: r.scale, block: r.block || 0 });
+    r.skip = replaced.has(key) && r.grove !== 'edge';
+  }
+  for (const r of biomeProps.marshSupplement?.items || []) if (!kindInfo.has(`marsh|${r.kind}`)) kindInfo.set(`marsh|${r.kind}`, { scale: biomeProps.marshSupplement.scale, block: 0 });
   let cum = 0;
   for (const r of rules) { cum += r.pmax; r.cum = cum; }
   if (cum > 1) throw new Error(`Island prop candidate probability exceeds 1 (${cum.toFixed(4)}); reduce biome prop rates.`);
@@ -170,7 +195,7 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
     let k = 0;
     while (rules[k].cum <= u) k++;
     const r = rules[k];
-    if (!r.here) continue;   // its biome is nowhere near this chunk
+    if (!r.here || r.skip) continue;   // its biome is nowhere near this chunk, or a cluster family places it now
     // cheapest tests first: the keep draw against each factor (all are at most 1) before the costly field
     const keep = hash2(gi, gj, ps + 4);
     const m = r.grove === 'in' ? P.grove(x, z) : r.grove === 'out' ? 1 - P.grove(x, z) : 1;
@@ -196,7 +221,7 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
   // Marsh uses its own seeded grid so its local density can be tuned without
   // consuming the one-candidate budget shared by every other biome.
   const marsh = biomeProps.marshSupplement;
-  if (marsh && near.has(P.B.marsh)) {
+  if (marsh && near.has(P.B.marsh) && !cl?.replacePasses?.includes('marsh')) {
     const mg = marsh.grid, total = marsh.items.reduce((n, r) => n + r.weight, 0);
     for (let gj = Math.floor(z0 / mg) - 1; gj <= Math.floor((z0 + size) / mg) + 1; gj++)
       for (let gi = Math.floor(x0 / mg) - 1; gi <= Math.floor((x0 + size) / mg) + 1; gi++) {
@@ -240,7 +265,7 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
   }
   // Coast plants use the authored island shoreline rather than a water-biome mask, so they stay out of lakes and rivers.
   const shore = biomeProps.coast;
-  if (shore) {
+  if (shore && !cl?.replacePasses?.includes('coast')) {
     const sg = shore.grid, edgeReach = Math.max(shore.distance, 58);
     const localCoast = coastSegments.filter(([a, b]) => Math.max(a[0], b[0]) >= x0 - edgeReach && Math.min(a[0], b[0]) <= x0 + size + edgeReach && Math.max(a[1], b[1]) >= z0 - edgeReach && Math.min(a[1], b[1]) <= z0 + size + edgeReach);
     for (let gj = Math.floor(z0 / sg) - 1; gj <= Math.floor((z0 + size) / sg) + 1; gj++) for (let gi = Math.floor(x0 / sg) - 1; gi <= Math.floor((x0 + size) / sg) + 1; gi++) {
@@ -254,8 +279,16 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
   }
   // Rare landmarks: one seeded world-space candidate grid shared by all chunks. They are art-only;
   // cliffs, fossils and wrecks are only selected where their corresponding terrain is present.
+  if (cl) {
+    const dist = shore?.distance ?? 58, reachC = Math.max(dist, 58) + 20;
+    const coastLocal = coastSegments.filter(([a, b]) => Math.max(a[0], b[0]) >= x0 - reachC && Math.min(a[0], b[0]) <= x0 + size + reachC && Math.max(a[1], b[1]) >= z0 - reachC && Math.min(a[1], b[1]) <= z0 + size + reachC);
+    clusterProps({ cl, P, F, x0, z0, size, segs, stamps, clearAt, near, kindInfo, ps, props, blockers,
+      terrainAt: (x, z) => terrainAt(world, x, z), passable: (x, z) => passable(world, x, z),
+      coastNear: coastLocal.length > 0, coastDist: (x, z) => coastDist(coastLocal, x, z), coastDistance: dist });
+  }
   const rare = biomeProps.oddities;
   if (rare) {
+    const rareMax = Math.max(rare.chance, ...Object.values(rare.chanceByBiome || {}));   // per-biome chance (snow higher), checked once the biome is known
     const rg = rare.grid, cliffNames = new Set(rare.requireMountainNearby || []), coastNames = new Set(rare.requireCoast || []);
     const edgeReach = shore?.distance || 58;
     const localCoast = coastSegments.filter(([a, b]) => Math.max(a[0], b[0]) >= x0 - edgeReach && Math.min(a[0], b[0]) <= x0 + size + edgeReach && Math.max(a[1], b[1]) >= z0 - edgeReach && Math.min(a[1], b[1]) <= z0 + size + edgeReach);
@@ -266,7 +299,8 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
       return false;
     };
     for (let gj = Math.floor(z0 / rg) - 1; gj <= Math.floor((z0 + size) / rg) + 1; gj++) for (let gi = Math.floor(x0 / rg) - 1; gi <= Math.floor((x0 + size) / rg) + 1; gi++) {
-      if (hash2(gi, gj, ps + 41) >= rare.chance) continue;
+      const roll = hash2(gi, gj, ps + 41);
+      if (roll >= rareMax) continue;
       const x = (gi + 0.42 + hash2(gi, gj, ps + 42) * 0.16) * rg, z = (gj + 0.42 + hash2(gi, gj, ps + 43) * 0.16) * rg;
       if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) continue;
       if (!passable(world, x, z) || P.blockedAt(x, z) || !clearAt(x, z, false)) continue;
@@ -275,6 +309,7 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
       let biome = 'plain', weight = -1;
       for (let i = 0; i < P.biomes.length; i++) if (F[i] > weight) { biome = P.biomes[i]; weight = F[i]; }
       if (biome === 'snowedge') biome = 'snow';
+      if (roll >= (rare.chanceByBiome?.[biome] ?? rare.chance)) continue;
       const atCoast = coastDist(localCoast, x, z) <= edgeReach;
       const candidates = atCoast && biome !== 'snow' ? (rare.coast || []) : (rare.byBiome?.[biome] || []);
       const hasMountain = mountainNearby(x, z);
