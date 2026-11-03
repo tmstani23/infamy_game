@@ -1,0 +1,74 @@
+{
+  "status": "MR0/MR1 proposal only; not a runtime-valid candidate",
+  "liveWorldChanged": false,
+  "rangeCount": 6,
+  "protectedCounts": {
+    "sites": 60,
+    "nodes": 107,
+    "camps": 52,
+    "setPieces": 23,
+    "nativeVillageSlots": 4,
+    "passes": 20,
+    "fords": 17
+  },
+  "lakeMetrics": [
+    {
+      "id": "L1",
+      "before": {
+        "areaSquareUnits": 447500,
+        "bounds": [
+          3300,
+          1800,
+          4100,
+          2550
+        ],
+        "width": 800,
+        "height": 750
+      },
+      "proposed": {
+        "areaSquareUnits": 405000,
+        "bounds": [
+          3250,
+          1800,
+          4250,
+          2500
+        ],
+        "width": 1000,
+        "height": 700
+      }
+    },
+    {
+      "id": "L2",
+      "before": {
+        "areaSquareUnits": 337500,
+        "bounds": [
+          10100,
+          4650,
+          10750,
+          5350
+        ],
+        "width": 650,
+        "height": 700
+      },
+      "proposed": {
+        "areaSquareUnits": 345000,
+        "bounds": [
+          10100,
+          4650,
+          10850,
+          5350
+        ],
+        "width": 750,
+        "height": 700
+      }
+    }
+  ],
+  "crossingRelocations": [],
+  "reservedMountainCells": 2117,
+  "protectedPointConflicts": [],
+  "limits": [
+    "Lowland infill is estimated from nearby existing biomes, not the final blueprint paint.",
+    "River preview uses a near-constant mask; final approved taper retained in MR2.",
+    "Pass/point buffers are reservations, not a proven pathfinding or pass-clearance result."
+  ]
+}
