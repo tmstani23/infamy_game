@@ -138,9 +138,9 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shinobi: right-click the business of your active contract | Selected crew climb in by the back window (up to 6); rival HQs are off-limits |
 | K, or Mute | Toggle saved sound mute; silences current voices too |
 | Settings | Locally saved Master/Effects/Mute and Test sound |
-| M map: World tab | North-up island map with fog, sites (hollow = not scouted, walk close to scout), camps and the capital. Drag to pan, wheel to zoom, click for details. The 500-unit letter/number rulers and hover square/coordinates stay visible; your location and island camera footprint are shown. |
-| Right-click the World map | Drop a pin with a note (max 50); right-click a pin removes it. |
-| World map: # button | Show or hide 500-unit grid lines (hidden by default; ruler labels remain visible). |
+| M map: World tab (updated 2026-11-03) | Illustrated north-up atlas with full geography and discovered features. Drag to pan, wheel or +/− to zoom; Fit island resets the view and Your location centers on you. Hover shows the exact biome, grid square, coordinates and marked feature; click for details. Own location and pins remain visible. |
+| Right-click the World map | Drop a pin with a note (40 characters, max 50 pins); right-click a pin removes it. Notes appear in hover/details. |
+| World atlas layer buttons | Toggle Routes, Sites & towns, Camps & ruins, Resources, Crossings & passes, Biome tint and Grid. The key lists actual known markers in enabled layers. Hollow sites are unscouted: walk close to learn their traits. Grid lines start hidden; adaptive rulers remain visible. |
 | Island minimap | North-up island view with your 500-unit square label and the camera footprint shown as a diamond. |
 | O | Open the town panel (needs a town; has a Governor button for the governor chat). |
 | Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |

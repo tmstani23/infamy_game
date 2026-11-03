@@ -1,7 +1,7 @@
 {
   "version": 2,
   "date": "2026-11-03",
-  "status": "Tim approved the v2 illustration look (2026-11-03). Runtime installation and full data-overlay registration acceptance remain pending.",
+  "status": "Tim approved the v2 illustration look and selected Map first (2026-11-03). Runtime atlas installed; Tim's full overlay/alignment playtest remains pending.",
   "tool": "Built-in image_gen edit",
   "file": "atlas_illustration_v2.png",
   "actualPixels": [
@@ -45,6 +45,8 @@
     "Uniform framing permits data-layer registration, but full coastline/biome/river conformance is not certified by aspect ratio alone.",
     "Roads, feature markers, legend, biome hover and discovery must come from authoritative data."
   ],
-  "runtimeChanges": false,
-  "next": "Choose atlas layout from the interactive mock, then implement the game UI and verify overlays against authoritative data."
+  "runtimeChanges": true,
+  "runtimeImage": "game/art/maps/world_atlas_v2.png",
+  "runtimeRegistration": "game/data/world_atlas.json",
+  "next": "Tim checks runtime artwork/overlay alignment, layers/key, exact biome hover, discovery, pins, pan/zoom and City tab."
 }

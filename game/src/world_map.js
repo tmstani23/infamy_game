@@ -1,10 +1,10 @@
-// World map drawing (frontier W2.2). Draws game/data/world.json on a canvas: terrain once into a
-// cached offscreen canvas, overlays on demand. Pan with drag, zoom with the wheel. Read-only.
+// World atlas: registered illustration with data overlays, feature discovery and exact hover.
+// Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
+import { ATLAS_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes } from './world_atlas.js';
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;
 export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
-const NODE_COL = { quarry: '#9696a0', forest: '#3c783c', fertile: '#c8be50', ore: '#be6e3c', fishing: '#5aaad2' };
 export const GRID = 500;
 const MARGIN = 24;
 export function columnLetters(index) {
@@ -59,15 +59,30 @@ export function fogCols(world) { return Math.ceil(world.size.w / fogCell(world))
 export function isDiscovered(world, grid, x, z) {
   if (!grid) return true;
   const C = fogCell(world), c = fogCols(world), i = Math.floor(x / C), j = Math.floor(z / C);
-  if (i < 0 || j < 0 || i >= c) return false;
+  if (i < 0 || j < 0 || i >= c || x >= world.size.w || z >= world.size.h) return false;
   return grid[j * c + i] === '1';
 }
 
+// Pixel spacing accounts for multi-letter columns and narrow viewports without changing grid IDs.
+export function rulerLabels(count, position, label, measure, min, max, gap = 8) {
+  const out = []; let edge = min - gap;
+  for (let i=0;i<count;i++) { const text=label(i), at=position(i), half=measure(text)/2;
+    if (at-half < min || at+half > max || at-half < edge+gap) continue;
+    out.push({text,at}); edge=at+half;
+  }
+  return out;
+}
+
 // state (all optional): { discovered: '0101…' | null (null = all known), towns: [{id,x,z,name}], hero: {x,z},
-//   scoutedSites: array of ids, pins: [{id,x,z,note}], lastSeen: { id: {x,z,dir,now} } }
-export function createWorldMap({ canvas, world, getState = () => ({}) }) {
+//   scoutedSites: array of ids, pins: [{id,x,z,note}] }
+export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig = null, onHover = () => {}, getState = () => ({}) }) {
   const ctx = canvas.getContext('2d');
-  let dpr = 1, view = fitView(world, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height), cache = null, dirty = true, showGrid = false, drag = null, hover = null, lastMoved = false, rev = -1;
+  const layers = Object.fromEntries(ATLAS_LAYERS.map(l => [l.id,l.on])), biomes = createAtlasBiomes(world,paintConfig);
+  let dpr = 1, view = fitView(world, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height), cache = null, dirty = true, drag = null, hover = null, lastMoved = false, rev = -1, illustration = null, biomeCache = null;
+  if (atlasConfig?.image && atlasConfig.size?.w === world.size.w && atlasConfig.size?.h === world.size.h && typeof Image !== 'undefined') {
+    const img = new Image(); img.onload = () => { illustration=img; dirty=true; }; img.onerror = () => { dirty=true; };
+    img.src=atlasConfig.image;
+  }
   function resize() {
     const ratio = Math.min(globalThis.devicePixelRatio || 1, 2), w = canvas.clientWidth || view.w, h = canvas.clientHeight || view.h;
     if (w !== view.w || h !== view.h) { const old = fitView(world, view.w, view.h).scale; view.scale *= fitView(world, w, h).scale / old; view.w = w; view.h = h; clampView(world, view); dirty = true; }
@@ -76,79 +91,66 @@ export function createWorldMap({ canvas, world, getState = () => ({}) }) {
   const transform = () => ctx.setTransform(...worldTransform(view).map(v => v * dpr));
   const cssTransform = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const inWorld = p => p.x >= 0 && p.z >= 0 && p.x < world.size.w && p.z < world.size.h;
-  const location = p => `${gridLabel(p.x, p.z)}  ·  x ${Math.floor(p.x).toLocaleString('en-US')}  z ${Math.floor(p.z).toLocaleString('en-US')}`;
-  const sites = world.sites;
-  // What may be clicked: only what is drawn (known sites and camps, own pins)
+  // One feature list serves drawing, the key and hit testing.
   function hitItems() {
     const st = getState(), grid = st.discovered ?? null, known = (x, z) => isDiscovered(world, grid, x, z);
-    return [...sites.filter(s => known(s.x, s.z)).map(s => ({ kind: 'site', ...s })),
-      ...world.camps.filter(k => known(k.x, k.z)).map(k => ({ ...k, campKind: k.kind, kind: 'camp' })),
-      ...(st.pins || []).map(p => ({ ...p, kind: 'pin' })),
-      ...(st.towns || []).map(t => ({ ...t, kind: 'town' })),   // late, so a town wins over the site under it
-      { kind: 'capital', x: world.capital.x, z: world.capital.z }];
+    return atlasItems(world,st,layers,known);
   }
   function path(points) { ctx.beginPath(); points.forEach(([x, z], k) => { const p = worldToCanvas(x, z, view); k ? ctx.lineTo(p.px, p.py) : ctx.moveTo(p.px, p.py); }); ctx.stroke(); }
   function draw() {
-    const st = getState(), grid = st.discovered ?? null, scouted = new Set(st.scoutedSites || []);
+    const st = getState(), scouted = new Set(st.scoutedSites || []);
     cssTransform();
-    ctx.fillStyle = TERRAIN.w; ctx.fillRect(0, 0, view.w, view.h);
-    if (!cache) cache = worldTerrainCache(world);
-    transform(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(cache, 0, 0, world.size.w, world.size.h); cssTransform();
+    ctx.fillStyle = '#162e3a'; ctx.fillRect(0, 0, view.w, view.h);
+    if (!illustration && !cache) cache = worldTerrainCache(world);
+    ctx.save(); ctx.beginPath(); ctx.rect(MARGIN,MARGIN,view.w-MARGIN,view.h-MARGIN); ctx.clip();
+    transform(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(illustration || cache, 0, 0, world.size.w, world.size.h); cssTransform();
+    if (layers.biomes) {
+      if (!biomeCache) {
+        biomeCache=document.createElement('canvas'); biomeCache.width=world.terrain.rows[0].length; biomeCache.height=world.terrain.rows.length;
+        const c=biomeCache.getContext('2d'), cell=world.terrain.cell;
+        for (let j=0;j<biomeCache.height;j++) for (let i=0;i<biomeCache.width;i++) { c.fillStyle=biomes.at((i+.5)*cell,(j+.5)*cell).color; c.fillRect(i,j,1,1); }
+      }
+      ctx.globalAlpha=.24; transform(); ctx.drawImage(biomeCache,0,0,world.size.w,world.size.h); cssTransform(); ctx.globalAlpha=1;
+    }
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#4670aa'; ctx.lineWidth = Math.max(1, 2 * view.scale * 10); for (const r of world.rivers) path(r.points);
-    ctx.strokeStyle = 'rgba(120,92,56,.85)'; ctx.lineWidth = 1; for (const c of world.corridors) path(c.points);
-    if (showGrid) { // hidden by default; ruler labels remain visible
+    // Fallback stays usable while the illustration loads or if it is unavailable.
+    if (!illustration) { ctx.strokeStyle = '#4670aa'; ctx.lineWidth = Math.max(1, 2 * view.scale * 10); for (const r of world.rivers) path(r.points); }
+    if (layers.routes) {
+      for (const c of world.corridors) { ctx.strokeStyle=c.kind==='road' ? 'rgba(78,55,34,.5)' : 'rgba(89,65,44,.33)'; ctx.lineWidth=c.kind==='road' ? 1.4 : 1; path(c.points); }
+      ctx.strokeStyle='rgba(89,65,44,.4)'; ctx.lineWidth=1; for (const points of paintConfig?.paths?.list || []) path(points);
+    }
+    if (layers.grid) { // hidden by default; ruler labels remain visible
       const G = GRID; ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
       for (let x = 0; x <= world.size.w; x += G) path([[x, 0], [x, world.size.h]]);
       for (let z = 0; z <= world.size.h; z += G) path([[0, z], [world.size.w, z]]);
     }
-    if (grid) { // fog: dark haze on undiscovered cells
-      const C = fogCell(world), c = fogCols(world), rowsN = Math.ceil(world.size.h / C), pad = 1 / view.scale;
-      ctx.fillStyle = 'rgba(10,14,28,.84)'; transform();
-      // one path, one fill (W3.11 P1): separate overlapping fills drew darker lines where the cells met, a grid look
-      ctx.beginPath(); for (let j = 0; j < rowsN; j++) for (let i = 0; i < c; i++) if (grid[j * c + i] !== '1') ctx.rect(i * C - pad, j * C - pad, C + 2 * pad, C + 2 * pad);
-      ctx.fill();
-      cssTransform();
-    }
-    const known = (x, z) => isDiscovered(world, grid, x, z);
-    for (const n of world.nodes) if (known(n.x, n.z)) { const p = worldToCanvas(n.x, n.z, view); ctx.fillStyle = NODE_COL[n.kind] || '#fff'; ctx.fillRect(p.px - 2, p.py - 2, 4, 4); }
-    for (const k of world.camps) if (known(k.x, k.z)) { const p = worldToCanvas(k.x, k.z, view); ctx.fillStyle = '#be3228'; ctx.beginPath(); ctx.moveTo(p.px, p.py - 5); ctx.lineTo(p.px + 5, p.py + 4); ctx.lineTo(p.px - 5, p.py + 4); ctx.fill(); }
-    for (const s of sites) {
-      if (!known(s.x, s.z)) continue;
-      const p = worldToCanvas(s.x, s.z, view); ctx.beginPath(); ctx.arc(p.px, p.py, 5, 0, 7);
-      if (!grid || scouted.has(s.id)) { ctx.fillStyle = '#e6c85a'; ctx.fill(); } else { ctx.strokeStyle = '#e6c85a'; ctx.lineWidth = 1.5; ctx.stroke(); }   // hollow = not scouted
-    }
-    for (const t of st.towns || []) { const p = worldToCanvas(t.x, t.z, view); ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 2; ctx.strokeRect(p.px - 7, p.py - 7, 14, 14); }
-    const cp = worldToCanvas(world.capital.x, world.capital.z, view);
-    ctx.fillStyle = '#c82828'; ctx.beginPath(); ctx.arc(cp.px, cp.py, 9, 0, 7); ctx.fill(); ctx.strokeStyle = '#ffe696'; ctx.lineWidth = 2; ctx.stroke();
-    for (const m of Object.values(st.lastSeen || {})) {   // enemy units out in the world: solid while seen, hollow where last seen
-      const p = worldToCanvas(m.x, m.z, view); ctx.strokeStyle = ctx.fillStyle = '#e04a3a'; ctx.lineWidth = 1.5;
-      m.now ? ctx.fillRect(p.px - 4, p.py - 4, 8, 8) : ctx.strokeRect(p.px - 4, p.py - 4, 8, 8);
-    }
-    ctx.font = '12px sans-serif';
-    for (const pin of st.pins || []) {
-      const p = worldToCanvas(pin.x, pin.z, view); ctx.strokeStyle = '#ff78c8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.px, p.py, 5, 0, 7); ctx.stroke();
-      if (pin.note) { ctx.fillStyle = '#ffd6ee'; ctx.fillText(pin.note, p.px + 8, p.py + 4); }
-    }
-    if (st.hero) { const p = worldToCanvas(st.hero.x, st.hero.z, view); ctx.fillStyle = '#5adc78'; ctx.beginPath(); ctx.moveTo(p.px, p.py - 8); ctx.lineTo(p.px + 6, p.py + 5); ctx.lineTo(p.px - 6, p.py + 5); ctx.fill(); }
-    if (st.cameraQuad?.length === 4 && st.cameraQuad.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.z))) { ctx.strokeStyle = 'rgba(255,240,197,.9)'; ctx.lineWidth = 1.5; path([...st.cameraQuad.map(p => [p.x, p.z]), [st.cameraQuad[0].x, st.cameraQuad[0].z]]); }
+    const items=hitItems();
+    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
+    if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
+    ctx.restore(); cssTransform();
     // Fixed rulers stay legible while the map pans/zooms underneath them.
     ctx.fillStyle = 'rgba(10,20,27,.94)'; ctx.fillRect(0, 0, view.w, MARGIN); ctx.fillRect(0, 0, MARGIN, view.h);
     ctx.fillStyle = '#dfcc9b'; ctx.font = '600 12px sans-serif'; ctx.textAlign = 'center';
-    for (let x = 0; x < world.size.w; x += GRID) { const p = worldToCanvas(x + GRID / 2, 0, view); if (p.px > MARGIN && p.px < view.w - 8) ctx.fillText(columnLetters(x / GRID), p.px, 16); }
-    for (let z = 0; z < world.size.h; z += GRID) { const p = worldToCanvas(0, z + GRID / 2, view); if (p.py > MARGIN && p.py < view.h - 30) ctx.fillText(String(z / GRID + 1), 12, p.py + 4); }
+    for (const l of rulerLabels(Math.ceil(world.size.w/GRID),i=>worldToCanvas((i+.5)*GRID,0,view).px,columnLetters,s=>ctx.measureText(s).width,MARGIN+4,view.w-4)) ctx.fillText(l.text,l.at,16);
+    for (const l of rulerLabels(Math.ceil(world.size.h/GRID),i=>worldToCanvas(0,(i+.5)*GRID,view).py,i=>String(i+1),()=>12,MARGIN+4,view.h-4,4)) ctx.fillText(l.text,12,l.at+4);
     ctx.textAlign = 'left';
     const label = hover && canvasToWorld(hover.px, hover.py, view);
-    const badge = (label, x) => { ctx.font = '13px sans-serif'; const w = ctx.measureText(label).width + 20; ctx.fillStyle = 'rgba(10,20,27,.94)'; ctx.fillRect(x, view.h - 30, w, 26); ctx.fillStyle = '#f3dfae'; ctx.fillText(label, x + 10, view.h - 12); };
-    if (label && inWorld(label)) badge(location(label), MARGIN + 6);
-    if (st.hero && inWorld(st.hero)) { const own = `You · ${location(st.hero)}`; ctx.font = '13px sans-serif'; badge(own, Math.max(MARGIN + 6, view.w - ctx.measureText(own).width - 26)); }
+    if (label && hover.px>=MARGIN && hover.py>=MARGIN && inWorld(label)) {
+      const feature=hitTest(items,hover.px,hover.py,view,10);
+      onHover({ ...label, grid:gridLabel(label.x,label.z), biome:biomes.at(label.x,label.z).name, feature:atlasFeatureName(feature) });
+    } else onHover(null);
     dirty = false;
   }
   const api = {
     get view() { return view; },
     invalidate() { dirty = true; },
-    get grid() { return showGrid; },
-    setGrid(on) { showGrid = !!on; dirty = true; },
+    get grid() { return layers.grid; },
+    setGrid(on) { layers.grid = !!on; dirty = true; },
+    get layers() { return { ...layers }; },
+    setLayer(id,on) { if (Object.hasOwn(layers,id)) { layers[id]=!!on; dirty=true; } },
+    items: hitItems,
+    biomeAt: (x,z) => biomes.at(x,z),
+    centerOn(p) { if (p && inWorld(p)) { view.cx=p.x; view.cz=p.z; clampView(world,view); dirty=true; } },
     // call every frame; redraws only when the view or the snapshot revision changed
     resize,
     frame(revision) { resize(); if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },

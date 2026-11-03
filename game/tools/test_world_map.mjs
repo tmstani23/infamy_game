@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { worldToCanvas, canvasToWorld, worldTransform, hitTest, fitView, zoomAt, clampView, isDiscovered, fogCols, GRID, gridLabel, columnLetters, createWorldMap, worldTerrainCache } from '../src/world_map.js';
+import { worldToCanvas, canvasToWorld, worldTransform, hitTest, fitView, zoomAt, clampView, isDiscovered, fogCols, GRID, gridLabel, columnLetters, createWorldMap, worldTerrainCache, rulerLabels } from '../src/world_map.js';
 const world = JSON.parse(readFileSync(new URL('../data/world.json', import.meta.url)));
 const v = fitView(world, 1400, 800);
 for (const [x, z] of [[0, 0], [7000, 4000], [13950, 7950], [3210.5, 999.9]]) {
@@ -55,7 +55,10 @@ try {
   assert.equal(made.length,2,'World map and minimap reuse a single terrain cache');
   assert.equal(map.grid,false,'grid starts hidden');
   assert.ok(canvas.ctx.calls.some(c=>c[0]==='fillText' && c[1]==='AB'),'rulers remain visible with grid hidden');
-  assert.ok(canvas.ctx.calls.some(c=>c[0]==='lineTo' && Math.abs(c[1]-worldToCanvas(12480,3450,map.view).px)<1e-6),'actual camera quad is drawn');
+  // The atlas is now geographical: camera and enemy snapshots cannot alter its drawing.
+  const initial=canvas.ctx.calls.slice();canvas.ctx.calls.length=0;
+  st.cameraQuad=null;st.lastSeen={enemy:{x:12345,z:2345,now:true}};map.invalidate();map.frame(1);
+  assert.deepEqual(canvas.ctx.calls,initial,'camera footprint and enemy units are absent from the atlas');
   const draws=canvas.ctx.calls.length;map.frame(1);assert.equal(canvas.ctx.calls.length,draws,'unchanged frames do not redraw');
   const mouse={clientX:800,clientY:460,buttons:1,button:0,pointerId:1};
   const before=canvasToWorld(400,230,map.view);canvas.events.wheel({...mouse,deltaY:-1,preventDefault(){}});
@@ -67,4 +70,9 @@ try {
   map.setGrid(true);map.frame(1);assert.equal(map.grid,true);
   globalThis.devicePixelRatio=1;map.frame(1);assert.equal(canvas.width,800);assert.equal(map.view.w,800);
 } finally { for (const [key,value] of Object.entries(globals)) {if(value===undefined)delete globalThis[key];else globalThis[key]=value;} }
+// Even narrow rulers leave measured gaps between AA/AB instead of overlapping.
+for (const width of [240,420,800,1400]) {
+  const labels=rulerLabels(28,i=>25+(i+.5)*(width-50)/28,columnLetters,s=>s.length*7,24,width-4);
+  for (let i=1;i<labels.length;i++) assert.ok(labels[i].at-labels[i].text.length*3.5 >= labels[i-1].at+labels[i-1].text.length*3.5+8);
+}
 console.log('test_world_map: ok');
