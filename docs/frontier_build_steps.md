@@ -33,11 +33,11 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last step done: P2 Maps (Tim playtest passed 2026-11-02; W3.4b art pass still open) · Next: review/fitting of the wet coastline trial; biome-prop integration and crop repair are complete (see owner prompt record). F1.7 playtest remains deferred to the end.
+Last step done: P2 Maps (Tim playtest passed 2026-11-02; W3.4b art pass still open) · Next: Tim’s in-game coastline visual review; biome-prop integration and crop repair are complete (see owner prompt record). F1.7 playtest remains deferred to the end.
 
 ## Next coordinator handoff (Tim, 2026-11-02)
 
-- Read `START_HERE.md`; before any actual build, read this full file and [step_runner_guide.md](step_runner_guide.md). Current next action is review/fitting of the wet coastline trial; see the owner prompt record. Biome props are cut, imported and integrated; coastline renderer work is not implemented.
+- Read `START_HERE.md`; before any actual build, read this full file and [step_runner_guide.md](step_runner_guide.md). Current next action is Tim’s in-game coastline visual review; see the owner prompt record. Biome props are cut, imported and integrated; coastline renderer implementation is complete; appearance/joins remain unapproved pending Tim’s review.
 - W3.10 and W3.11 P1 are done. P2 Maps is locally committed (`2964641`) and Tim marked it COMPLETE. Its north-up maps, 500-unit labels, DPR 2 canvases, shared 4× smoothed cache and camera/teleport fixes are recorded in P2 below; geography still has 50-unit cells.
 - Settings load fix `eac645b` uses a full normal boot through one-shot `?load=filename`, rebuilding UI/worker for another clan/hero/mode. Node save-menu/start-load checks passed; Tim's in-game load confirmation remains open. `test_crew.mjs:97` still has the pre-existing teahouse-vs-street failure; do not claim all old tests pass.
 - P3 is deferred: general biome blending exists; special mountain-top feathering remains deferred. P4 coastal cliffs/connected dry range are not built or approved to build. Later water design must revisit fords, bridges, lakes and especially rounded pool/tarn-like river sources.
@@ -1266,7 +1266,8 @@ Tim deferred P3. Latest screenshot: mountain, snow, and cliff joins look good en
 - [x] Tim approved all six basic categories, grouped transparent 3×2 sheets, and all 36 rare oddity concepts grouped into six biome sheet candidates. Reuse overlapping assets before final packing; no duplicate well/shed/shrine generations.
 - [x] Generate ten accepted transparent sheets; cut/import all 57 sprites and integrate common replacements and sparse seeded decorative oddities. Repair all cuts with reviewed object regions; Tim accepted repaired previews.
 - [x] Record source/crop audit, anchor fix, runtime integration and validation limits in the [owner prompt record](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02).
-- [ ] Coastline plan: three flat ribbon drafts; wet v2 selected and dry/snow generation authorized and underway. [Plan](../assets/environment/island/coastline_art_plan.json) and [prompts](../assets/environment/island/coastline_prompts.txt). All coast fitting/import is pending; no shoreline renderer implementation. Runtime 50-unit boundary is authoritative.
+- [x] Import wet v2/dry v1/snow v1 at native 2172 × 724; implement continuous terrain-border ribbons, material/repeat blending, feathering/exclusions and chunk disposal without gameplay/collision changes. [Owner status](../assets/image_prompts.md#coastline-plan-and-wet-trial-2026-11-02), [plan](../assets/environment/island/coastline_art_plan.json), [prompts](../assets/environment/island/coastline_prompts.txt).
+- [ ] Tim reviews coastline appearance/joins in game. Focused Node geometry test and syntax checks pass; no visual approval or broad smoothing implied.
 - [x] Approve eight shoreline orientations and distinct biome material/silhouette families for planning; beach banks and coastal cliffs are separate geometry families. Exact endpoints, land/water sides, corners, connectors and spans await later water design; existing eight lake images do not complete a coast kit.
 - [ ] Bridges, lakes, river sources and capital silhouette remain deferred; no copy-ready prompts are approved for them. See the [island playtest notes](island_playtest_notes_2026-11-02.md) for the W3.10 walkthrough handoff.
 

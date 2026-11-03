@@ -17,6 +17,7 @@ import { groundMaterial } from './shading.js';
 import { loadTex, cutoutThing, loadGroundTextures, GROUND_CHANNELS } from './scenery.js';
 import { chunksToDraw, planChunks, propsInView } from '../world_stream.js';
 import { createIslandPainter } from './island_ground.js';
+import { createCoastlineRenderer } from './coastline.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
 // mountain art is cut in, W3.4b)
@@ -41,6 +42,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const loaded = new Map();     // 'cx,cz' -> { gen, mesh, used }
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
+  const coastline = createCoastlineRenderer({ world, cfg, renderer });
   let painter = null, groundTex = null, frame = 0, last = null, list = [], shown = false, propAt = null;
   loadGroundTextures(renderer).then(async t => {
     if(cfg.islandArt?.enabled){const tops=await Promise.all(['forest','snow','dry'].map(b=>loadTex(`art/ground/top_${b}.png`)));tops.forEach(tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();});t={...t,tTopForest:tops[0],tTopSnow:tops[1],tTopDry:tops[2]};}
@@ -100,9 +102,11 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     const c = loaded.get(key);
     if (!c) return;
     scene.remove(c.mesh);
+    if (c.coastMesh) { scene.remove(c.coastMesh); coastline.dispose(c.coastMesh); }
     c.mesh.geometry.dispose();
     c.mesh.material.uniforms.uSplatA.value.dispose(); c.mesh.material.uniforms.uSplatB.value.dispose();
     c.mesh.material.uniforms.uIslandTop?.value.dispose(); c.mesh.material.uniforms.uOver?.value.dispose();
+    c.mesh.material.uniforms.uSplatC?.value.dispose(); c.mesh.material.uniforms.uSplatD?.value.dispose();
     c.mesh.material.dispose();
     loaded.delete(key);
   }
@@ -146,10 +150,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   // Each frame: (camera x, z), whether the followed hero is on the island, frame time
   function update(x, z, active, dt) {
     if (!active) {
-      if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) c.mesh.visible = false; list = []; shown = false; last = null; propAt = null; }
+      if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; }
       return;
     }
-    if (!shown) { for (const c of loaded.values()) c.mesh.visible = true; shown = true; }
+    if (!shown) { for (const c of loaded.values()) { c.mesh.visible = true; if (c.coastMesh) c.coastMesh.visible = true; } shown = true; }
     frame++;
     const vx = last && dt > 0 ? (x - last[0]) / dt : 0, vz = last && dt > 0 ? (z - last[1]) / dt : 0;
     last = [x, z];
@@ -162,7 +166,9 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       for (const [a, b] of plan.build) {
         const gen = buildChunk(world, cfg, a, b, seed, { city }), mesh = groundMesh(gen);
         scene.add(mesh);
-        loaded.set(`${a},${b}`, { gen, mesh, used: frame });
+        const coastMesh = coastline?.mesh(gen);
+        if (coastMesh) scene.add(coastMesh);
+        loaded.set(`${a},${b}`, { gen, mesh, coastMesh, used: frame });
         propAt = null;   // new props may be in view
       }
     }

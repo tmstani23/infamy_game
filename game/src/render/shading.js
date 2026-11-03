@@ -538,6 +538,77 @@ export function islandGroundMaterial({ mats, water, splats, over, bounds, layers
   });
 }
 
+// Flat coastline material. Along-shore UVs follow arc length; cross-shore UVs
+// are signed world distance, positive inland. Blend two repeat phases in
+// premultiplied colour so unverified source tile ends cannot leave a hard seam.
+export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      ...shared,
+      uCoastWet: textures.wet, uCoastDry: textures.dry, uCoastSnow: textures.snow,
+      uAvailable: { value: available },
+      uWetRows: { value: new THREE.Vector3(...rows.wet) },
+      uDryRows: { value: new THREE.Vector3(...rows.dry) },
+      uSnowRows: { value: new THREE.Vector3(...rows.snow) },
+      uCoastBounds: { value: new THREE.Vector4(...bounds) },
+      uCoastWidth: { value: new THREE.Vector4(cfg.landWidth, cfg.waterWidth, cfg.landFade, cfg.waterFade) },
+    },
+    vertexShader: /* glsl */`
+      attribute vec3 coastWeights;
+      attribute float coastClear;
+      varying vec2 vCoastUv;
+      varying vec3 vCoastWeights;
+      varying float vCoastClear;
+      varying vec3 vWorld;
+      void main() {
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        vWorld = w.xyz; vCoastUv = uv;
+        vCoastWeights = coastWeights; vCoastClear = coastClear;
+        gl_Position = projectionMatrix * viewMatrix * w;
+      }`,
+    fragmentShader: /* glsl */`
+      ${LIGHTING}
+      uniform sampler2D uCoastWet, uCoastDry, uCoastSnow;
+      uniform vec3 uAvailable, uWetRows, uDryRows, uSnowRows;
+      uniform vec4 uCoastBounds, uCoastWidth;
+      varying vec2 vCoastUv;
+      varying vec3 vCoastWeights;
+      varying float vCoastClear;
+      varying vec3 vWorld;
+      vec4 coastSample(sampler2D tex, vec3 rows) {
+        float d = vCoastUv.y;
+        float y = d >= 0.0 ? mix(rows.y, rows.x, clamp(d / uCoastWidth.x, 0.0, 1.0))
+                           : mix(rows.y, rows.z, clamp(-d / uCoastWidth.y, 0.0, 1.0));
+        vec4 a = texture2D(tex, vec2(vCoastUv.x, 1.0 - y));
+        vec4 b = texture2D(tex, vec2(vCoastUv.x + 0.5, 1.0 - y));
+        a.rgb *= a.a; b.rgb *= b.a;
+        float k = sin(fract(vCoastUv.x) * 3.14159265);
+        return mix(b, a, k * k);
+      }
+      void main() {
+        vec2 p = vWorld.xz;
+        // Each chunk owns its exact rectangle. Halo geometry has matching UVs
+        // but is never blended twice across a streaming boundary.
+        if (p.x < uCoastBounds.x || p.y < uCoastBounds.y ||
+            p.x >= uCoastBounds.x + uCoastBounds.z || p.y >= uCoastBounds.y + uCoastBounds.w) discard;
+        vec3 weights = max(vCoastWeights, vec3(0.0)) * uAvailable;
+        vec4 ink = vec4(0.0);
+        if (weights.x > 0.001) ink += coastSample(uCoastWet, uWetRows) * weights.x;
+        if (weights.y > 0.001) ink += coastSample(uCoastDry, uDryRows) * weights.y;
+        if (weights.z > 0.001) ink += coastSample(uCoastSnow, uSnowRows) * weights.z;
+        float fade = (1.0 - smoothstep(uCoastWidth.x - uCoastWidth.z, uCoastWidth.x, vCoastUv.y)) *
+                     smoothstep(-uCoastWidth.y, -uCoastWidth.y + uCoastWidth.w, vCoastUv.y);
+        float alpha = ink.a * fade * vCoastClear;
+        if (alpha < 0.015) discard;
+        vec3 col = ink.rgb / max(ink.a, 0.0001);
+        gl_FragColor = vec4(fogged(grade(col, vWorld, false, vec3(0.0)), p), alpha);
+      }`,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+}
+
 // ---------- additive light glow and animated flames ----------
 const QUAD_VERT = /* glsl */`
 varying vec2 vUv;

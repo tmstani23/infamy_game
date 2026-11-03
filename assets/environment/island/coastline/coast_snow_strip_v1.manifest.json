@@ -1,0 +1,57 @@
+{
+  "assetPath": "C:\\Tim_Files\\Programming_2026\\infamy_game\\assets\\environment\\island\\coastline\\coast_snow_strip_v1.png",
+  "actualGeneratedImagePath": "C:\\Users\\tmsta\\.codex\\generated_images\\01a19fa0-f060-7fb0-a617-7e666736cd96\\exec-af45bd62-b2fd-4116-9640-ec43fb5f669d.png",
+  "tool": "built-in image_gen",
+  "exactPrompt": "Create ONE long shoreline ground-texture strip for the existing muted painterly 1870s Japanese island game. STRICT ORTHOGRAPHIC TOP-DOWN view, camera 90 degrees straight down. This texture will lie flat on a ground mesh; the game camera supplies the isometric projection. Use supplied references for painted material character and detail scale; do not copy standing silhouettes or perspective from prop references. Request the highest supported native resolution, ideally a 4096 x 1024 PNG, with genuine transparent alpha outside the strip. Actual returned dimensions must be recorded; do not upscale a smaller image to claim this resolution.\n\nCOMPOSITION AND SCALE: One horizontal strip representing 64 world units along the shore, with an approximately 12-unit cross-shore material band. Pixel coordinates below are proportions of the requested canvas. The reference shoreline runs through y=0.75H, from joining endpoint A=(0,0.75H) to B=(W,0.75H). Inland is ABOVE the line; open water is BELOW it. Paint approximately 10 units of landward material and at most 2 units of low wet fringe below the reference line. Fade the far inland edge and outer wet fringe to transparent, with a clean continuous silhouette rather than a fog halo. Keep irregular water-edge detail within about 1 world unit of the reference line. Do not paint water: the open-water region below the fringe is transparent. The first and last 8 world units are matching connection zones with the same band width, material proportions and reference-line position. Continue the material through the left and right canvas boundaries; these are intentional tile joins, with no endcaps or fading at those two ends. The long axis must tile left-to-right without a visible join.\n\nSURFACE DETAIL: Fine readable soil, sand and pebbles at a consistent scale. Pebbles mostly 0.05-0.25 world units; occasional low stones at most 0.5 units. Give the long strip several uneven material patches so the game can sample different lengths without large repeated landmarks. Diffuse neutral overcast illumination, restrained shallow local shading. Avoid a directional light gradient or cast shadows, because the texture must bend and rotate. No standing trees, bushes, tall reeds, logs, cliffs, buildings, boats, people, fauna, lettering, border, grid, multiple panels, black/white backdrop, vignette or background haze. Keep higher objects out of the strip; separate existing sprites supply those.\n\nTERRAIN FAMILY SNOW: Soft off-white snow resting over blue-grey grit and small stones, broken thawed patches and subtle cold dampness at the immediate shoreline. Tiny frost grains and sparse flattened frozen grass. Open water-side edge; no solid ice sheet or large protruding icicles. Match approved snow ground colour.\n\nPRIMARY STYLE EXAMPLE: assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png. Match its fine painterly stone and weathered material treatment only. Do not include its walls, ruins, roots, standing objects or isometric camera. Keep the new coast strip strictly top-down with neutral diffuse lighting. The nominal 4096 x 1024 canvas represents 64 x 16 world units, so the reference waterline is 12 units down from the top (y=0.75H), leaving room for 10 units of landward material, 2 units of wet fringe and transparent margins. If the tool returns a different canvas, preserve the strip and record its actual shoreline endpoints and band bounds; do not stretch the art to fake the requested dimensions.\n\nAUTHORIZED COMPOSITION REFINEMENT (takes priority over original nominal placement above): Use coast_wet_strip_v2.png as the full-width horizontal composition and painterly detail reference. Match its thick material band, covering roughly 70–75% of canvas height, with genuine transparent margins above and below. Inland stays above the lower wet shoreline edge. Match the thick band coverage rather than forcing y=0.75H. Do not copy green wet moss; retain only this terrain family's specified materials. All prop references supply surface style only, never upright silhouettes. One very wide horizontal strip, no directional variants. Request ideally 4096x1024, preserve native result without resizing.",
+  "references": [
+    "C:/Tim_Files/Programming_2026/infamy_game/assets/environment/island/coastline/coast_wet_strip_v2.png",
+    "C:/Tim_Files/Programming_2026/infamy_game/assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+    "C:/Tim_Files/Programming_2026/infamy_game/assets/environment/island/ground_snow.png",
+    "C:/Tim_Files/Programming_2026/infamy_game/assets/environment/island/biome_props/cutouts/snow_boulders.png",
+    "C:/Tim_Files/Programming_2026/infamy_game/assets/environment/island/lake_edge_1.png"
+  ],
+  "requestedResolution": [
+    4096,
+    1024
+  ],
+  "intendedShoreLengthWorldUnits": 64,
+  "intendedMaterialBandWorldUnits": 12,
+  "compositionRefinement": "Thick wet v2 layout; approximately 70–75% band height. Landward above lower water-side edge.",
+  "resized": false,
+  "qualityCaveats": [
+    "Scattered white and colored flecks visible above upper edge; margin is not perfectly clean.",
+    "Exact tile joins and nominal shoreline y=.75H are not verified."
+  ],
+  "visualObservations": "Flat horizontal material band reaches both side boundaries. No obvious painted water, broad haze or tall scenery.",
+  "nativePixelDimensions": [
+    2172,
+    724
+  ],
+  "alpha": {
+    "range": [
+      0,
+      255
+    ],
+    "partial": 1137543,
+    "topFivePercentNonzeroPixels": 40,
+    "fullyTransparent": 434979,
+    "fullyOpaque": 6,
+    "bottomFivePercentNonzeroPixels": 1
+  },
+  "observedBand": {
+    "threshold": "alpha >127",
+    "yBoundsInclusive": [
+      74,
+      627
+    ],
+    "rightBoundaryYBounds": [
+      115,
+      599
+    ],
+    "leftBoundaryYBounds": [
+      114,
+      594
+    ],
+    "wetEdge": "Lower irregular silhouette; no unique waterline encoded. Measured bottom boundary is the fitting guide."
+  }
+}

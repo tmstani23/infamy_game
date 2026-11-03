@@ -1,0 +1,57 @@
+{
+  "asset": "coast_wet_strip_v2.png",
+  "status": "Thickened review version; coast_wet_strip_v1.png preserved as the prior generated version",
+  "tool": "Built-in image_gen",
+  "exactOriginalPromptFromProject": "Create ONE long shoreline ground-texture strip for the existing muted painterly 1870s Japanese island game. STRICT ORTHOGRAPHIC TOP-DOWN view, camera 90 degrees straight down. This texture will lie flat on a ground mesh; the game camera supplies the isometric projection. Use supplied references for painted material character and detail scale; do not copy standing silhouettes or perspective from prop references. Request the highest supported native resolution, ideally a 4096 x 1024 PNG, with genuine transparent alpha outside the strip. Actual returned dimensions must be recorded; do not upscale a smaller image to claim this resolution.\n\nCOMPOSITION AND SCALE: One horizontal strip representing 64 world units along the shore, with an approximately 12-unit cross-shore material band. Pixel coordinates below are proportions of the requested canvas. The reference shoreline runs through y=0.75H, from joining endpoint A=(0,0.75H) to B=(W,0.75H). Inland is ABOVE the line; open water is BELOW it. Paint approximately 10 units of landward material and at most 2 units of low wet fringe below the reference line. Fade the far inland edge and outer wet fringe to transparent, with a clean continuous silhouette rather than a fog halo. Keep irregular water-edge detail within about 1 world unit of the reference line. Do not paint water: the open-water region below the fringe is transparent. The first and last 8 world units are matching connection zones with the same band width, material proportions and reference-line position. Continue the material through the left and right canvas boundaries; these are intentional tile joins, with no endcaps or fading at those two ends. The long axis must tile left-to-right without a visible join.\n\nSURFACE DETAIL: Fine readable soil, sand and pebbles at a consistent scale. Pebbles mostly 0.05-0.25 world units; occasional low stones at most 0.5 units. Give the long strip several uneven material patches so the game can sample different lengths without large repeated landmarks. Diffuse neutral overcast illumination, restrained shallow local shading. Avoid a directional light gradient or cast shadows, because the texture must bend and rotate. No standing trees, bushes, tall reeds, logs, cliffs, buildings, boats, people, fauna, lettering, border, grid, multiple panels, black/white backdrop, vignette or background haze. Keep higher objects out of the strip; separate existing sprites supply those.\n\nTERRAIN FAMILY WET: Damp muted grey pebbles and low weathered stones, dark brown wet earth, subdued sand, restrained olive moss and tiny short grass tufts. Vary exposed grit, wetness and moss in irregular patches. Compatible with temperate, forest, meadow and marsh shores; avoid a continuous lush green hedge.\n\nPRIMARY STYLE EXAMPLE: assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png. Match its fine painterly stone and weathered material treatment only. Do not include its walls, ruins, roots, standing objects or isometric camera. Keep the new coast strip strictly top-down with neutral diffuse lighting. The nominal 4096 x 1024 canvas represents 64 x 16 world units, so the reference waterline is 12 units down from the top (y=0.75H), leaving room for 10 units of landward material, 2 units of wet fringe and transparent margins. If the tool returns a different canvas, preserve the strip and record its actual shoreline endpoints and band bounds; do not stretch the art to fake the requested dimensions.",
+  "exactFinalEditPrompt": "Make this existing shoreline asset substantially thicker across its vertical cross-shore dimension while preserving its wide left-to-right shape and all current material character. Expand the existing strip primarily toward the landward (top) side, with a smaller increase at the immediate water-side (bottom) fringe. Final painted band should cover about 70–75% of the canvas height, with clean transparent margins above and below. Keep the strict orthographic top-down view, damp muted grey pebbles, low weathered stones, dark wet earth, subdued sand, restrained olive moss and tiny short grass; no tall objects, painted water, haze, borders or shadows. Preserve the full image, do not crop or scale-stretch the existing art. Continue texture to both left and right canvas edges as tile joins. Transparent alpha must remain genuine.",
+  "referenceImages": [
+    "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+    "assets/environment/island/lake_edge_1.png",
+    "assets/environment/island/lake_edge_5.png"
+  ],
+  "editInput": "assets/environment/island/coastline/coast_wet_strip_v1.png",
+  "actualGeneratedImagePath": "C:\\Users\\tmsta\\.codex\\generated_images\\01a19fa0-f060-7fb0-a617-7e666736cd96\\exec-b70dedb9-84de-40be-bfcb-ce032433e61b.png",
+  "savedProjectPath": "C:\\Tim_Files\\Programming_2026\\infamy_game\\assets\\environment\\island\\coastline\\coast_wet_strip_v2.png",
+  "dimensionsPixels": {
+    "height": 724,
+    "width": 2172
+  },
+  "alpha": {
+    "cornerAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "channel": "RGBA alpha",
+    "range": {
+      "max": 254,
+      "min": 0
+    },
+    "fullyTransparentPixels": 428284,
+    "partiallyTransparentPixels": 1144244,
+    "observation": "Clear transparent margins at all four corners. Transparency is graded across edges; alpha channel alone does not establish a perfectly clean matte.",
+    "fullyOpaquePixels": 0
+  },
+  "intendedScale": {
+    "nominalEndpoints": {
+      "A": "(0,0.75H)",
+      "B": "(W,0.75H)"
+    },
+    "materialBandWidthWorldUnits": 12,
+    "shoreLengthWorldUnits": 64,
+    "requestedCanvasPixels": {
+      "height": 1024,
+      "width": 4096
+    }
+  },
+  "actualVisualAssessment": {
+    "joins": "Texture reaches both side edges, but exact seamless tile continuity is not verified.",
+    "caveats": [
+      "Native output is 2172x724 (about 3:1), not requested 4:1 4096x1024. No upscaling or stretching applied.",
+      "Material band is thicker after the edit; exact original nominal waterline placement is not met or verified.",
+      "No obvious painted water, tall scenery, or broad haze visible in the preview."
+    ],
+    "composition": "Horizontal top-down strip; material now spans roughly 70% of canvas height."
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "enabled": true,
+  "_note": "Flat ocean shoreline ribbons on the authoritative terrain border. Length/width/fades in world units; texture source y increases downward. Existing lakes and upright cliffs keep their own art.",
+  "length": 64,
+  "landWidth": 10,
+  "waterWidth": 2,
+  "landFade": 3,
+  "waterFade": 1,
+  "sampleStep": 4,
+  "miterLimit": 1.5,
+  "biomeSample": 6,
+  "harborClear": 12,
+  "clearFeather": 8,
+  "height": 0.018,
+  "materials": {
+    "wet": {
+      "src": "assets/environment/island/coastline/coast_wet_strip_v2.png",
+      "file": "art/ground/coast/coast_wet_strip_v2.png",
+      "rows": [
+        0.11174,
+        0.813398,
+        0.918398
+      ],
+      "pixels": [
+        2172,
+        724
+      ]
+    },
+    "dry": {
+      "src": "assets/environment/island/coastline/coast_dry_strip_v1.png",
+      "file": "art/ground/coast/coast_dry_strip_v1.png",
+      "rows": [
+        0.121409,
+        0.767818,
+        0.872818
+      ],
+      "pixels": [
+        2172,
+        724
+      ]
+    },
+    "snow": {
+      "src": "assets/environment/island/coastline/coast_snow_strip_v1.png",
+      "file": "art/ground/coast/coast_snow_strip_v1.png",
+      "rows": [
+        0.103453,
+        0.813398,
+        0.918398
+      ],
+      "pixels": [
+        2172,
+        724
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "wet": {
+    "source": "assets/environment/island/coastline/coast_wet_strip_v2.png",
+    "runtime": "game\\art\\ground\\coast\\coast_wet_strip_v2.png",
+    "pixels": [
+      2172,
+      724
+    ],
+    "rows": [
+      0.11174,
+      0.813398,
+      0.918398
+    ],
+    "sha256": "006b8883962ac0389beefe3be94b510ee4247cd00cb14f869526bf5c49358a8b",
+    "resized": false,
+    "alphaPreserved": true
+  },
+  "dry": {
+    "source": "assets/environment/island/coastline/coast_dry_strip_v1.png",
+    "runtime": "game\\art\\ground\\coast\\coast_dry_strip_v1.png",
+    "pixels": [
+      2172,
+      724
+    ],
+    "rows": [
+      0.121409,
+      0.767818,
+      0.872818
+    ],
+    "sha256": "3b7b0a3e53a42521054a99687d6f5a335ab2a8083b8668cec69ed64bcad69f3b",
+    "resized": false,
+    "alphaPreserved": true
+  },
+  "snow": {
+    "source": "assets/environment/island/coastline/coast_snow_strip_v1.png",
+    "runtime": "game\\art\\ground\\coast\\coast_snow_strip_v1.png",
+    "pixels": [
+      2172,
+      724
+    ],
+    "rows": [
+      0.103453,
+      0.813398,
+      0.918398
+    ],
+    "sha256": "6c1d376fb424ad1ea7f14df032b55c6225fd384b730b5bf234bb806ee2223bed",
+    "resized": false,
+    "alphaPreserved": true
+  }
+}

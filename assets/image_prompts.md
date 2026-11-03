@@ -419,7 +419,11 @@ Runtime configuration: `game/data/biome_props.json`, loaded in `main.js` and pla
 
 [Coastline plan](environment/island/coastline_art_plan.json) owns the blueprint v2 audit, research URLs, fitting constraints and checklist. [Three standalone prompt drafts](environment/island/coastline_prompts.txt) cover wet/dry/snow continuous flat ground ribbons with mask fitting at arbitrary angles. Eight placement directions do not imply 24 generations. Tall directional cliffs remain separate; assess/reuse existing cliff/rim art.
 
-Future fitting must match the authoritative 50-unit runtime land/water and movement boundary, which differs from the smooth blueprint. No shoreline renderer or runtime fitting code is implemented. Wet v1 and thicker wet v2 are generated; `generation_manifest.json` selects v2. Tim authorized dry and snow generation in the same Luna chat `01a19fa0-f060-7fb0-a617-7e666736cd96`, one standalone strip each matching wet v2 thickness, with per-image manifests. These are three terrain types / three selected strips total, with continuous direction fitting later. Dry/snow generation is underway; all coast fitting/import remains pending. The actively written `assets/environment/island/coastline/` outputs/manifests remain excluded from this checkpoint.
+Implemented (2026-11-03): wet v2, dry v1 and snow v1 are imported as byte-identical native 2172 × 724 PNGs, with no resize/crop; `tools/import_coastline_art.mjs` measures actual UV band rows. Original wet v1 is preserved. Three selected strips serve all placement directions.
+
+`game/data/coastline.json`, pure `game/src/world_coast.js`, `render/coastline.js` and shader/main/world-ground wiring fit mitered continuous ribbons to the exact authoritative 50-unit terrain ocean border. Rendering blends local wet/dry/snow materials and repeat phases, feathers land/water edges, fades harbors, excludes lakes/cliffs/river mouths, and disposes streamed chunk geometry/materials. No gameplay or collision changes. Broad smoothing of the actual coastline is a separate task.
+
+Focused `game/tools/test_world_coast.mjs` passes (5 loops, 16,755 segments, seven real chunks and synthetic regressions); edited JS syntax and diff checks pass. Tim's in-game visual review is PENDING: appearance, strip width, repetition, tile/corner joins and biome blending are not visually approved. Source and runtime coast outputs/manifests are complete and included in this checkpoint.
 
 **Shared opening — use for every group**
 
