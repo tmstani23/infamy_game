@@ -10,7 +10,7 @@
 // cfg is game/data/world_chunks.json. city (optional) = { minX, maxX, minZ, maxZ } in island
 // coordinates: the walled city is a blocker on the island (the way in is its gate, W3.5).
 import { terrainAt, passable } from './world_data.js';
-import { oceanTopology } from './shoreline.js';
+import { shorelineTopology } from './shoreline.js';
 import {islandArt} from './island_art.js';
 import { createPaint, trailSegments, hash2 } from '../world_paint.js';
 
@@ -58,7 +58,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   }
   // blocked terrain cells, merged into runs along each row
   const blockers = [];
-  const shore = world.terrain.shoreline?.radius ? oceanTopology(world) : null;
+  const shore = world.terrain.shoreline?.radius ? shorelineTopology(world) : null;
   for (let i = 0; i < n; i++) {
     let start = -1;
     for (let j = 0; j <= n; j++) {
@@ -183,11 +183,38 @@ function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
       P.fieldAt(x, z, F);
       f = F[r.b] * (r.grove === 'edge' ? (F[fo] > E.lo && F[fo] < E.hi ? 1 : 0) : 1);
     }
-    if (keep >= f * m * open) continue;
+    const wet = r.marshZone ? Math.min(1, P.waterFrac(x, z, 35) * 3) : 0;
+    const zone = r.marshZone === 'surface' ? (wet > 0 ? wet : 0)
+      : r.marshZone === 'water' ? 0.35 + 0.65 * wet
+      : r.marshZone === 'wooded' ? 0.3 + 0.7 * Math.min(1, F[fo] * 3) : 1;
+    if (keep >= f * m * open * zone) continue;
     if (!clearAt(x, z, true)) continue;
     const s = r.scale[0] + (r.scale[1] - r.scale[0]) * hash2(gi, gj, ps + 5);
     props.push({ kind: r.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
     if (r.block > 0) { const q = r.block * s; blockers.push({ minX: x - q, maxX: x + q, minZ: z - q, maxZ: z + q, kind: r.kind }); }
+  }
+  // Marsh uses its own seeded grid so its local density can be tuned without
+  // consuming the one-candidate budget shared by every other biome.
+  const marsh = biomeProps.marshSupplement;
+  if (marsh && near.has(P.B.marsh)) {
+    const mg = marsh.grid, total = marsh.items.reduce((n, r) => n + r.weight, 0);
+    for (let gj = Math.floor(z0 / mg) - 1; gj <= Math.floor((z0 + size) / mg) + 1; gj++)
+      for (let gi = Math.floor(x0 / mg) - 1; gi <= Math.floor((x0 + size) / mg) + 1; gi++) {
+        if (hash2(gi, gj, ps + 70) >= marsh.chance) continue;
+        const x = (gi + hash2(gi, gj, ps + 71)) * mg, z = (gj + hash2(gi, gj, ps + 72)) * mg;
+        if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size || P.gridAt(x, z) !== P.B.marsh) continue;
+        if (!passable(world, x, z) || !clearAt(x, z, true)) continue;
+        if (hash2(gi, gj, ps + 73) >= P.trailClear(P.trailDist(segs, x, z)) * (1 - P.stampClear(stamps, x, z))) continue;
+        let pick = hash2(gi, gj, ps + 74) * total, r = marsh.items.at(-1);
+        for (const item of marsh.items) if ((pick -= item.weight) < 0) { r = item; break; }
+        const wet = Math.min(1, P.waterFrac(x, z, 35) * 3);
+        P.fieldAt(x, z, F);
+        const zone = r.zone === 'surface' ? wet : r.zone === 'water' ? .4 + .6 * wet
+          : r.zone === 'wooded' ? .35 + .65 * Math.min(1, F[fo] * 3) : 1;
+        if (hash2(gi, gj, ps + 75) >= zone) continue;
+        const s = marsh.scale[0] + (marsh.scale[1] - marsh.scale[0]) * hash2(gi, gj, ps + 76);
+        props.push({ kind: r.kind, x: +x.toFixed(2), z: +z.toFixed(2), s: +s.toFixed(2) });
+      }
   }
   // Coast plants use the authored island shoreline rather than a water-biome mask, so they stay out of lakes and rivers.
   const shore = biomeProps.coast;

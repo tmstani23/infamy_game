@@ -10,6 +10,7 @@ import sharp from 'sharp';
 
 const cfg = JSON.parse(fs.readFileSync('game/data/world_paint.json', 'utf8'));
 const size = cfg.size, out = 'game/art/ground/island/';
+const selected = new Set(process.argv.slice(2));
 fs.mkdirSync(out, { recursive: true });
 
 function makeSeamless(px, W, H) {
@@ -31,6 +32,7 @@ function makeSeamless(px, W, H) {
 
 let total = 0;
 for (const [id, m] of Object.entries(cfg.materials)) {
+  if (selected.size && !selected.has(id)) continue;
   const { data } = await sharp(m.src).removeAlpha().resize(size, size, { fit: 'fill', kernel: 'lanczos3' }).raw().toBuffer({ resolveWithObject: true });
   const px = m.seamless ? makeSeamless(data, size, size) : data;
   const file = out + id + '.jpg';
@@ -39,7 +41,7 @@ for (const [id, m] of Object.entries(cfg.materials)) {
 }
 // Island water (W3.11 P1): the city water picture is brighter along its bottom edge, made for mirrored repeat;
 // on the island it showed as a crisscross of light bands, so the island gets its own edge-blended copy.
-{
+if (!selected.size) {
   const { data, info } = await sharp('game/art/ground/water.jpg').removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const file = out + 'water.jpg';
   await sharp(makeSeamless(data, info.width, info.height), { raw: { width: info.width, height: info.height, channels: 3 } }).jpeg({ quality: 88, mozjpeg: true }).toFile(file);
@@ -48,10 +50,10 @@ for (const [id, m] of Object.entries(cfg.materials)) {
 // Top-down decals (Part B): lake bank strips, resized to what they are drawn at
 // (a 30-unit strip at the normal zoom of about 37 px per unit).
 const decals = { ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map(i => [`lake_edge_${i}`, 768])) };   // river_ford: the W3.9 copy (1024 px) is used as is
-for (const [name, px] of Object.entries(decals)) {
+for (const [name, px] of Object.entries(selected.size ? {} : decals)) {
   const file = `game/art/props/${name}.png`;
   await sharp(`assets/environment/island/${name}.png`).ensureAlpha().resize(px, px, { kernel: 'lanczos3' }).png({ compressionLevel: 9, palette: true, quality: 90 }).toFile(file + '.tmp');
   fs.renameSync(file + '.tmp', file);
   total += fs.statSync(file).size;
 }
-console.log(`import_island_ground: ${Object.keys(cfg.materials).length} textures (${size}px) + ${Object.keys(decals).length} decals, ${(total / 1048576).toFixed(1)} MB`);
+console.log(`import_island_ground: ${selected.size || Object.keys(cfg.materials).length} textures (${size}px) + ${selected.size ? 0 : Object.keys(decals).length} decals, ${(total / 1048576).toFixed(1)} MB`);

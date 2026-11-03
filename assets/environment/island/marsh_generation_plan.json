@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "status": "Three prop sheets generated and cut; 18 props imported and wired to marsh. Three ground textures generated and integrated.",
+  "outputRoot": "assets/environment/island/marsh/sheets/",
+  "references": [
+    "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+    "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png",
+    "assets/environment/island/biome_props/cutouts/forest_root_covered_shrine.png"
+  ],
+  "sharedStyle": "Muted finely painted isometric 2.5D environment sprites for the existing 1870s Japanese island game. Match the actual reference images' brushwork, bark, stone and foliage texture, restrained detail and saturation, soft upper-left diffuse illumination, consistent elevated three-quarter camera, and believable scale. Marsh atmosphere: damp, quiet, overgrown, natural, and grounded in temperate Japanese wetland plants and weathered local timber and stone. No photorealism, cartoon outlines, neon saturation, fantasy lettering, modern objects, dramatic cast shadows, floor rectangles, background scenery, water horizons, fog halos or painted glow. Every subject is a complete standalone sprite with a clean genuine transparent silhouette and only minimal attached ground or water at its base. One sheet groups six independent sprites, not one continuous scene.",
+  "sheetContract": "Transparent PNG, 3 columns by 2 rows, six isolated complete subjects in reading order. Generous transparent outer margins and gutters; no overlap, clipping, labels, frames or continuous landscape. Keep every frond, reed tip, branch, root, boat end and ruin detail inside its own region. Consistent camera and diffuse light across the sheet.",
+  "sheets": [
+    {
+      "file": "marsh_vegetation_3x2_v01.png",
+      "items": [
+        "marsh_tall_reeds",
+        "marsh_cattails",
+        "marsh_rushes",
+        "marsh_sedge_tussock",
+        "marsh_lily_pads",
+        "marsh_duckweed"
+      ],
+      "prompt": "Create one transparent 3-column by 2-row sheet of SIX separate Japanese temperate marsh vegetation props. Top row: (1) upright clump of tall narrow wetland reeds with varied natural stalk heights; (2) distinct cattail clump with several recognizable brown seed heads; (3) low dense rush clump with thin round stems and a compact base. Bottom row: (4) broad irregular sedge tussock with arching blade leaves; (5) small loose cluster of floating round lily pads, a few naturally curled or notched, with no flowers; (6) low irregular duckweed and tiny floating leaf patch, sparse enough to remain readable as an isolated water-surface prop. Make each clump's species and silhouette clearly distinct. Muted olive, reed green and straw accents, damp stems, restrained detail. The lily pads and duckweed are self-contained floating clumps with no opaque water square or painted ripple backdrop. No trees, mushrooms, rocks, structures or extra plants mixed into a subject. Apply sharedStyle and sheetContract."
+    },
+    {
+      "file": "marsh_woodland_edges_3x2_v01.png",
+      "items": [
+        "marsh_leaning_willow",
+        "marsh_stunted_wetland_tree",
+        "marsh_dead_snag",
+        "marsh_waterlogged_stump",
+        "marsh_fallen_rotting_trunk",
+        "marsh_exposed_root_clump"
+      ],
+      "prompt": "Create one transparent 3-column by 2-row sheet of SIX separate wooded-marsh edge props for a temperate Japanese island. Top row: (1) graceful leaning willow with sparse drooping branchlets and muted leaves, compact readable crown; (2) short stunted wetland broadleaf tree with a crooked trunk, sparse damp foliage and a distinct squat silhouette; (3) bare weathered dead snag with a few broken limbs and no leaves. Bottom row: (4) old waterlogged stump with dark weathered wood, moss low on the bark and a complete contained base; (5) fallen rotting trunk with a hollow or split end and restrained moss, compact standalone length; (6) low exposed-root clump, tangled fine roots and a few small moss patches, no attached standing tree. Keep forms small enough to place as individual sprites near the boundary between open marsh and woodland. Silhouettes must be distinct and complete. Weathered brown and gray timber, muted moss and olive leaves. No swamp panorama, standing water slab, scenery, extra objects or giant fantasy tree. Apply sharedStyle and sheetContract."
+    },
+    {
+      "file": "marsh_oddities_3x2_v01.png",
+      "items": [
+        "marsh_half_sunken_shrine",
+        "marsh_reed_cutters_shelter",
+        "marsh_stranded_wooden_boat",
+        "marsh_collapsed_fishing_platform",
+        "marsh_drowned_grove",
+        "marsh_old_stone_sluice"
+      ],
+      "prompt": "Create one transparent 3-column by 2-row sheet of SIX separate rare marsh landmarks for an 1870s Japanese island setting. Top row: (1) small weathered local stone shrine partly sunk into marsh earth, moss and a few reeds at the base, recognizable shrine form, no legible writing; (2) abandoned reed-cutter's shelter, a modest decayed timber frame with a sagging thatch roof, self-contained silhouette; (3) stranded old wooden skiff, weathered and slightly tilted in a compact patch of mud and reeds, no people or cargo. Bottom row: (4) collapsed small fishing platform with broken posts, a few planks and old rope, no large dock or bridge span; (5) drowned grove landmark, a compact cluster of three thin bare or sparsely leafed trunks growing from one contained root-and-moss base, one subject rather than separate trees; (6) old low stone sluice with a small timber gate, cracked mossy masonry and restrained reeds, complete isolated structure. Give every landmark its own clear silhouette and region. Weathered stone and timber, damp earth, sparse attached marsh vegetation that does not hide the subject. No continuous waterway, landscape rectangle, monumental foreign architecture, fantasy lettering, modern equipment or extra props outside the six subjects. Apply sharedStyle and sheetContract."
+    }
+  ],
+  "generation": {
+    "tool": "Built-in image_gen",
+    "transparentBackground": true,
+    "nativeDimensions": "1536x1024",
+    "perSheet": [
+      {
+        "file": "marsh/sheets/marsh_vegetation_3x2_v01.png",
+        "width": 1536,
+        "height": 1024,
+        "pngHasAlpha": true,
+        "alphaMin": 0,
+        "alphaMax": 254,
+        "fullyTransparentPixels": 739383,
+        "totalPixels": 1572864,
+        "visuallyReviewed": true
+      },
+      {
+        "file": "marsh/sheets/marsh_woodland_edges_3x2_v01.png",
+        "width": 1536,
+        "height": 1024,
+        "pngHasAlpha": true,
+        "alphaMin": 0,
+        "alphaMax": 254,
+        "fullyTransparentPixels": 606231,
+        "totalPixels": 1572864,
+        "visuallyReviewed": true
+      },
+      {
+        "file": "marsh/sheets/marsh_oddities_3x2_v01.png",
+        "width": 1536,
+        "height": 1024,
+        "pngHasAlpha": true,
+        "alphaMin": 0,
+        "alphaMax": 254,
+        "fullyTransparentPixels": 685535,
+        "totalPixels": 1572864,
+        "visuallyReviewed": true
+      }
+    ]
+  },
+  "integration": {
+    "sourceCutouts": "assets/environment/island/marsh/cutouts/",
+    "runtimeArt": "game/art/props/",
+    "artCatalog": "game/data/art.json",
+    "cutoutCatalog": "game/art/cutouts.json",
+    "spawnRules": "game/data/biome_props.json",
+    "waterPlacement": "water and surface props favor nearby water; wooded props favor forest transitions",
+    "oddities": "all six available in marsh"
+  },
+  "groundTextures": [
+    {
+      "source": "assets/environment/island/marsh/textures/marsh_reed_litter_tile_v01.png",
+      "runtime": "game/art/ground/island/marsh_reed_litter.jpg",
+      "nativeDimensions": "1254x1254",
+      "opaque": true,
+      "tool": "Built-in image_gen"
+    },
+    {
+      "source": "assets/environment/island/marsh/textures/marsh_sedge_mud_tile_v01.png",
+      "runtime": "game/art/ground/island/marsh_sedge_mud.jpg",
+      "nativeDimensions": "1254x1254",
+      "opaque": true,
+      "tool": "Built-in image_gen"
+    },
+    {
+      "source": "assets/environment/island/marsh/textures/marsh_shallow_wet_earth_tile_v01.png",
+      "runtime": "game/art/ground/island/marsh_shallow_wet_earth.jpg",
+      "nativeDimensions": "1254x1254",
+      "opaque": true,
+      "tool": "Built-in image_gen"
+    }
+  ]
+}

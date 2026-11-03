@@ -405,7 +405,8 @@ for i,j in cells:
 world={"version":VER,"note":"World blueprint (design). W1.3's generator follows this; W1.4 overrides refine it.",
  "size":{"w":W,"h":H},"cell":CELL,"capital":CAPITAL,
  "coast":[[round(x),round(z)] for x,z in coast[::2]],"islets":[{"name":n,"x":x,"z":z,"r":r} for n,x,z,r in ISLETS],
- "regions":regions,"ranges":[{"id":a,"name":b,"spine":[list(p) for p in c],"halfWidth":d} for a,b,c,d,_ in RANGES],
+ "biomeAreas":[{"region":"23","biome":"jungle","terrainCodes":["p","f","h","b"],"label":"Jungle forest"},{"region":"C6","biome":"jungle","terrainCodes":["f"],"label":"Jungle forest"},{"region":"C12","biome":"jungle","terrainCodes":["f"],"label":"Jungle forest"}],
+ "regions":regions,"ranges":[{"id":a,"name":b,"spine":[list(p) for p in c],"halfWidth":d,**({"biome":"dry"} if a=="R4" else {})} for a,b,c,d,_ in RANGES],
  "passes":passes,"rivers":rivers,"fords":fords,"lakes":[{"id":a,"name":b,"x":c,"z":d,"r":e} for a,b,c,d,e in LAKES],
  "floodplain":{"name":"Sallow Floodplain","x":SOUTH_BAY["head"][0],"z":SOUTH_BAY["head"][1],"r":1500},"riverSources":sources,"streams":streams,"sites":sites,"nodes":nodes,"camps":camps,"setPieces":setpieces,"nativeVillageSlots":natives,"seaLanes":lanes,
  "terrain":{"codes":{"p":"plain","f":"forest","h":"hills","m":"mountain","w":"water","d":"dry","n":"snow","b":"bamboo","k":"marsh","r":"river"},
@@ -487,7 +488,7 @@ def L_mountains(dr):
     for p in passes:
         px,pz=X(p['x']),Z(p['z']); dr.line([(px-6,pz-6),(px+6,pz+6)],fill=(200,40,30),width=3); dr.line([(px-6,pz+6),(px+6,pz-6)],fill=(200,40,30),width=3)
     for rr in RANGES:
-        a=at_frac(rr[2],.4); label(dr,X(a[0])+14,Z(a[1]),rr[1],F(11,True),(70,40,30))
+        a=at_frac(rr[2],.4); label(dr,X(a[0])+14,Z(a[1]),rr[1]+(' (dry mountains)' if rr[0]=='R4' else ''),F(11,True),(70,40,30))
 def L_sites(dr,lanes_on=True):
     if lanes_on:
         for l in lanes:

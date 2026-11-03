@@ -1,0 +1,155 @@
+{
+  "sourceAlphaPreserved": true,
+  "assets": [
+    {
+      "id": "jungle_strangler_root_staircase",
+      "sourceSheet": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "region": [
+        0,
+        0,
+        535,
+        500
+      ],
+      "trim": {
+        "left": 10,
+        "top": 27,
+        "width": 513,
+        "height": 469
+      },
+      "groundAnchor": [
+        220,
+        464
+      ],
+      "footprint": [
+        7,
+        7
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_overgrown_stone_cistern",
+      "sourceSheet": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "region": [
+        535,
+        0,
+        1055,
+        500
+      ],
+      "trim": {
+        "left": 11,
+        "top": 66,
+        "width": 502,
+        "height": 413
+      },
+      "groundAnchor": [
+        176,
+        408
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_giant_termite_mound",
+      "sourceSheet": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "region": [
+        1055,
+        0,
+        1536,
+        500
+      ],
+      "trim": {
+        "left": 16,
+        "top": 11,
+        "width": 455,
+        "height": 477
+      },
+      "groundAnchor": [
+        244,
+        472
+      ],
+      "footprint": [
+        4,
+        4
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_fallen_giant",
+      "sourceSheet": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "region": [
+        0,
+        500,
+        535,
+        1024
+      ],
+      "trim": {
+        "left": 7,
+        "top": 19,
+        "width": 520,
+        "height": 455
+      },
+      "groundAnchor": [
+        377,
+        450
+      ],
+      "footprint": [
+        8,
+        8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_abandoned_expedition_camp",
+      "sourceSheet": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "region": [
+        535,
+        500,
+        1050,
+        1024
+      ],
+      "trim": {
+        "left": 0,
+        "top": 89,
+        "width": 509,
+        "height": 389
+      },
+      "groundAnchor": [
+        188,
+        384
+      ],
+      "footprint": [
+        6,
+        6
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_ruined_tree_lookout",
+      "sourceSheet": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "region": [
+        1050,
+        500,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 9,
+        "top": 0,
+        "width": 461,
+        "height": 506
+      },
+      "groundAnchor": [
+        268,
+        501
+      ],
+      "footprint": [
+        6,
+        6
+      ],
+      "opaqueBoundaryPixels": 0
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "sourceAlphaPreserved": true,
+  "assets": [
+    {
+      "id": "jungle_large_buttress_tree",
+      "sourceSheet": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "region": [
+        0,
+        0,
+        520,
+        512
+      ],
+      "trim": {
+        "left": 34,
+        "top": 13,
+        "width": 455,
+        "height": 481
+      },
+      "groundAnchor": [
+        266,
+        476
+      ],
+      "footprint": [
+        8,
+        8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_large_broad_canopy_tree",
+      "sourceSheet": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "region": [
+        520,
+        0,
+        1030,
+        512
+      ],
+      "trim": {
+        "left": 45,
+        "top": 43,
+        "width": 446,
+        "height": 445
+      },
+      "groundAnchor": [
+        165,
+        440
+      ],
+      "footprint": [
+        8,
+        8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_large_banyan_tree",
+      "sourceSheet": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "region": [
+        1030,
+        0,
+        1536,
+        512
+      ],
+      "trim": {
+        "left": 6,
+        "top": 48,
+        "width": 485,
+        "height": 432
+      },
+      "groundAnchor": [
+        206,
+        427
+      ],
+      "footprint": [
+        8,
+        8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_medium_palm",
+      "sourceSheet": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "region": [
+        0,
+        512,
+        500,
+        1024
+      ],
+      "trim": {
+        "left": 123,
+        "top": 58,
+        "width": 294,
+        "height": 373
+      },
+      "groundAnchor": [
+        151,
+        368
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_medium_broadleaf_tree",
+      "sourceSheet": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "region": [
+        500,
+        512,
+        1020,
+        1024
+      ],
+      "trim": {
+        "left": 58,
+        "top": 61,
+        "width": 421,
+        "height": 375
+      },
+      "groundAnchor": [
+        200,
+        370
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_small_sapling",
+      "sourceSheet": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "region": [
+        1020,
+        512,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 162,
+        "top": 151,
+        "width": 192,
+        "height": 275
+      },
+      "groundAnchor": [
+        72,
+        270
+      ],
+      "footprint": [
+        2.5,
+        2.5
+      ],
+      "opaqueBoundaryPixels": 0
+    }
+  ]
+}

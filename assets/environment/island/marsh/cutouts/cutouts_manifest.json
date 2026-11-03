@@ -1,0 +1,545 @@
+{
+  "sourceSheetsUnchanged": true,
+  "assets": [
+    {
+      "id": "marsh_tall_reeds",
+      "sourceSheet": "marsh_vegetation_3x2_v01.png",
+      "cell": [
+        0,
+        0
+      ],
+      "region": [
+        0,
+        0,
+        512,
+        525
+      ],
+      "trim": {
+        "left": 60,
+        "top": 15,
+        "width": 438,
+        "height": 510
+      },
+      "groundAnchor": [
+        204,
+        505
+      ],
+      "footprint": [
+        2.4,
+        2.4
+      ],
+      "transparentPixelsInRegion": 96334,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_cattails",
+      "sourceSheet": "marsh_vegetation_3x2_v01.png",
+      "cell": [
+        0,
+        1
+      ],
+      "region": [
+        512,
+        0,
+        1024,
+        525
+      ],
+      "trim": {
+        "left": 48,
+        "top": 12,
+        "width": 426,
+        "height": 512
+      },
+      "groundAnchor": [
+        233,
+        507
+      ],
+      "footprint": [
+        2.2,
+        2.2
+      ],
+      "transparentPixelsInRegion": 109683,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_rushes",
+      "sourceSheet": "marsh_vegetation_3x2_v01.png",
+      "cell": [
+        0,
+        2
+      ],
+      "region": [
+        1024,
+        0,
+        1536,
+        525
+      ],
+      "trim": {
+        "left": 8,
+        "top": 154,
+        "width": 466,
+        "height": 371
+      },
+      "groundAnchor": [
+        226,
+        366
+      ],
+      "footprint": [
+        1.8,
+        1.8
+      ],
+      "transparentPixelsInRegion": 126486,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_sedge_tussock",
+      "sourceSheet": "marsh_vegetation_3x2_v01.png",
+      "cell": [
+        0,
+        3
+      ],
+      "region": [
+        0,
+        525,
+        550,
+        1024
+      ],
+      "trim": {
+        "left": 10,
+        "top": 61,
+        "width": 536,
+        "height": 394
+      },
+      "groundAnchor": [
+        379,
+        389
+      ],
+      "footprint": [
+        2.5,
+        2.5
+      ],
+      "transparentPixelsInRegion": 104099,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_lily_pads",
+      "sourceSheet": "marsh_vegetation_3x2_v01.png",
+      "cell": [
+        0,
+        4
+      ],
+      "region": [
+        550,
+        525,
+        1000,
+        1024
+      ],
+      "trim": {
+        "left": 32,
+        "top": 110,
+        "width": 414,
+        "height": 277
+      },
+      "groundAnchor": [
+        177,
+        272
+      ],
+      "footprint": [
+        2.4,
+        2.4
+      ],
+      "transparentPixelsInRegion": 128031,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_duckweed",
+      "sourceSheet": "marsh_vegetation_3x2_v01.png",
+      "cell": [
+        0,
+        5
+      ],
+      "region": [
+        1000,
+        525,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 53,
+        "top": 149,
+        "width": 449,
+        "height": 217
+      },
+      "groundAnchor": [
+        158,
+        212
+      ],
+      "footprint": [
+        2.2,
+        2.2
+      ],
+      "transparentPixelsInRegion": 174750,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_leaning_willow",
+      "sourceSheet": "marsh_woodland_edges_3x2_v01.png",
+      "cell": [
+        1,
+        0
+      ],
+      "region": [
+        0,
+        0,
+        525,
+        525
+      ],
+      "trim": {
+        "left": 41,
+        "top": 38,
+        "width": 481,
+        "height": 460
+      },
+      "groundAnchor": [
+        142,
+        455
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "transparentPixelsInRegion": 71968,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_stunted_wetland_tree",
+      "sourceSheet": "marsh_woodland_edges_3x2_v01.png",
+      "cell": [
+        1,
+        1
+      ],
+      "region": [
+        525,
+        0,
+        1030,
+        525
+      ],
+      "trim": {
+        "left": 25,
+        "top": 95,
+        "width": 480,
+        "height": 401
+      },
+      "groundAnchor": [
+        183,
+        396
+      ],
+      "footprint": [
+        4.5,
+        4.5
+      ],
+      "transparentPixelsInRegion": 75228,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_dead_snag",
+      "sourceSheet": "marsh_woodland_edges_3x2_v01.png",
+      "cell": [
+        1,
+        2
+      ],
+      "region": [
+        1030,
+        0,
+        1536,
+        525
+      ],
+      "trim": {
+        "left": 79,
+        "top": 30,
+        "width": 336,
+        "height": 470
+      },
+      "groundAnchor": [
+        201,
+        465
+      ],
+      "footprint": [
+        3.2,
+        3.2
+      ],
+      "transparentPixelsInRegion": 124993,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_waterlogged_stump",
+      "sourceSheet": "marsh_woodland_edges_3x2_v01.png",
+      "cell": [
+        1,
+        3
+      ],
+      "region": [
+        0,
+        525,
+        490,
+        1024
+      ],
+      "trim": {
+        "left": 34,
+        "top": 58,
+        "width": 436,
+        "height": 349
+      },
+      "groundAnchor": [
+        227,
+        344
+      ],
+      "footprint": [
+        2.8,
+        2.8
+      ],
+      "transparentPixelsInRegion": 99145,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_fallen_rotting_trunk",
+      "sourceSheet": "marsh_woodland_edges_3x2_v01.png",
+      "cell": [
+        1,
+        4
+      ],
+      "region": [
+        490,
+        525,
+        1000,
+        1024
+      ],
+      "trim": {
+        "left": 39,
+        "top": 97,
+        "width": 452,
+        "height": 293
+      },
+      "groundAnchor": [
+        74,
+        288
+      ],
+      "footprint": [
+        4.5,
+        4.5
+      ],
+      "transparentPixelsInRegion": 107011,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_exposed_root_clump",
+      "sourceSheet": "marsh_woodland_edges_3x2_v01.png",
+      "cell": [
+        1,
+        5
+      ],
+      "region": [
+        1000,
+        525,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 38,
+        "top": 140,
+        "width": 470,
+        "height": 253
+      },
+      "groundAnchor": [
+        221,
+        248
+      ],
+      "footprint": [
+        2.7,
+        2.7
+      ],
+      "transparentPixelsInRegion": 127886,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_half_sunken_shrine",
+      "sourceSheet": "marsh_oddities_3x2_v01.png",
+      "cell": [
+        2,
+        0
+      ],
+      "region": [
+        0,
+        0,
+        500,
+        480
+      ],
+      "trim": {
+        "left": 46,
+        "top": 69,
+        "width": 433,
+        "height": 400
+      },
+      "groundAnchor": [
+        182,
+        395
+      ],
+      "footprint": [
+        4,
+        4
+      ],
+      "transparentPixelsInRegion": 103220,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_reed_cutters_shelter",
+      "sourceSheet": "marsh_oddities_3x2_v01.png",
+      "cell": [
+        2,
+        1
+      ],
+      "region": [
+        500,
+        0,
+        1000,
+        480
+      ],
+      "trim": {
+        "left": 14,
+        "top": 44,
+        "width": 485,
+        "height": 415
+      },
+      "groundAnchor": [
+        192,
+        410
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "transparentPixelsInRegion": 78374,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_stranded_wooden_boat",
+      "sourceSheet": "marsh_oddities_3x2_v01.png",
+      "cell": [
+        2,
+        2
+      ],
+      "region": [
+        1000,
+        0,
+        1536,
+        480
+      ],
+      "trim": {
+        "left": 21,
+        "top": 169,
+        "width": 495,
+        "height": 307
+      },
+      "groundAnchor": [
+        210,
+        302
+      ],
+      "footprint": [
+        4,
+        4
+      ],
+      "transparentPixelsInRegion": 131388,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_collapsed_fishing_platform",
+      "sourceSheet": "marsh_oddities_3x2_v01.png",
+      "cell": [
+        2,
+        3
+      ],
+      "region": [
+        0,
+        480,
+        480,
+        1024
+      ],
+      "trim": {
+        "left": 16,
+        "top": 139,
+        "width": 460,
+        "height": 349
+      },
+      "groundAnchor": [
+        271,
+        344
+      ],
+      "footprint": [
+        4,
+        4
+      ],
+      "transparentPixelsInRegion": 130114,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_drowned_grove",
+      "sourceSheet": "marsh_oddities_3x2_v01.png",
+      "cell": [
+        2,
+        4
+      ],
+      "region": [
+        480,
+        480,
+        960,
+        1024
+      ],
+      "trim": {
+        "left": 15,
+        "top": 1,
+        "width": 465,
+        "height": 489
+      },
+      "groundAnchor": [
+        262,
+        484
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "transparentPixelsInRegion": 87856,
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "marsh_old_stone_sluice",
+      "sourceSheet": "marsh_oddities_3x2_v01.png",
+      "cell": [
+        2,
+        5
+      ],
+      "region": [
+        960,
+        480,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 5,
+        "top": 136,
+        "width": 558,
+        "height": 339
+      },
+      "groundAnchor": [
+        220,
+        334
+      ],
+      "footprint": [
+        5,
+        5
+      ],
+      "transparentPixelsInRegion": 154583,
+      "opaqueBoundaryPixels": 0
+    }
+  ]
+}

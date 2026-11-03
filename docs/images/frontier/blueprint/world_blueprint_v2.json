@@ -1359,6 +1359,7 @@
    "r": 190
   }
  ],
+ "biomeAreas": [{"region":"23","biome":"jungle","terrainCodes":["p","f","h","b"],"_note":"Green Fever Canopy lowlands; preserve mountains and water."},{"region":"C6","biome":"jungle","terrainCodes":["f"],"label":"Jungle forest"},{"region":"C12","biome":"jungle","terrainCodes":["f"],"label":"Jungle forest"}],
  "regions": [
   {
    "id": "01",
@@ -1835,29 +1836,7 @@
    ],
    "halfWidth": 260
   },
-  {
-   "id": "R4",
-   "name": "Red Mesa Walls",
-   "spine": [
-    [
-     1700,
-     2300
-    ],
-    [
-     2350,
-     3300
-    ],
-    [
-     2150,
-     4500
-    ],
-    [
-     2700,
-     5700
-    ]
-   ],
-   "halfWidth": 230
-  },
+  {"id":"R4","name":"Red Mesa Walls","spine":[[1700,2300],[2350,3300],[2150,4500],[2700,5700]],"halfWidth":230,"biome":"dry"},
   {
    "id": "R5",
    "name": "Mistfall Ridges",

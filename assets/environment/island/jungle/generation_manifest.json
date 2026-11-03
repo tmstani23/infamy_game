@@ -1,0 +1,180 @@
+{
+  "date": "2026-11-03",
+  "scope": "jungle generation-only batch",
+  "outputs": [
+    {
+      "path": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate tropical jungle trees. Top row: (1) large majestic tropical hardwood with tall thick trunk and spreading buttress roots; (2) large broad umbrella-canopy rainforest tree with a contrasting branching silhouette; (3) large banyan-like tree with hanging aerial roots. Bottom row: (4) medium palm with a readable arching frond crown; (5) medium dense broadleaf jungle tree with layered foliage; (6) small young tropical sapling with a few broad leaves. Three large, two medium, one small: preserve this relative scale; large trees must have enough canvas space without clipping. Distinct useful silhouettes. Sparse restrained vines on selected trees, muted deep and olive greens, weathered brown bark. No surrounding forest scene or ground tile. Apply propStyle and isolation contract.\n\nMuted finely painted isometric 2.5D environment sprites for the existing 1870s Japanese island game. Match reference brushwork, bark/stone/leaves, restrained detail and saturation, soft upper-left diffuse illumination, consistent elevated three-quarter camera and believable scale. No photorealism, cartoon outlines, neon saturation, modern objects, dramatic cast shadows, floor rectangles, background scenery or fog halos. Each object is a complete standalone sprite with a clean transparent silhouette and minimal attached ground at its base. A sheet groups independent sprites, not one continuous scene.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png"
+      ],
+      "native_dimensions": "1536x1024",
+      "alpha_checked": {
+        "min": 0,
+        "max": 254,
+        "pixels_below_255": 1572864
+      },
+      "png_color_type": 6,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": [
+        {
+          "position": "row1_col1",
+          "item_id": "jungle_large_buttress_tree"
+        },
+        {
+          "position": "row1_col2",
+          "item_id": "jungle_large_broad_canopy_tree"
+        },
+        {
+          "position": "row1_col3",
+          "item_id": "jungle_large_banyan_tree"
+        },
+        {
+          "position": "row2_col1",
+          "item_id": "jungle_medium_palm"
+        },
+        {
+          "position": "row2_col2",
+          "item_id": "jungle_medium_broadleaf_tree"
+        },
+        {
+          "position": "row2_col3",
+          "item_id": "jungle_small_sapling"
+        }
+      ],
+      "visual_qa": "Reviewed rendered sheet: six separated subjects, no apparent clipping or overlap; pixel alpha statistics recorded above."
+    },
+    {
+      "path": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate tropical understory props. Top row: (1) irregular clump of large banana-like leaves; (2) low fan-palm clump; (3) spreading large jungle fern clump. Bottom row: (4) low coiled woody vine and exposed-root tangle suitable for the ground; (5) dense low tropical broadleaf shrub; (6) uneven clump of long damp jungle grasses. Each is an independent compact plant patch with its own fully visible base and loose organic outline. Distinct silhouettes and leaf structure, deep muted green, restrained yellowed leaf accents. No flowers needed, no forest mushrooms, no standing tree, no rectangular soil tile. Apply propStyle and isolation contract.\n\nMuted finely painted isometric 2.5D environment sprites for the existing 1870s Japanese island game. Match reference brushwork, bark/stone/leaves, restrained detail and saturation, soft upper-left diffuse illumination, consistent elevated three-quarter camera and believable scale. No photorealism, cartoon outlines, neon saturation, modern objects, dramatic cast shadows, floor rectangles, background scenery or fog halos. Each object is a complete standalone sprite with a clean transparent silhouette and minimal attached ground at its base. A sheet groups independent sprites, not one continuous scene.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png"
+      ],
+      "native_dimensions": "1536x1024",
+      "alpha_checked": {
+        "min": 0,
+        "max": 254,
+        "pixels_below_255": 1572864
+      },
+      "png_color_type": 6,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": [
+        {
+          "position": "row1_col1",
+          "item_id": "jungle_broadleaf_clump"
+        },
+        {
+          "position": "row1_col2",
+          "item_id": "jungle_fan_palm_clump"
+        },
+        {
+          "position": "row1_col3",
+          "item_id": "jungle_large_fern_clump"
+        },
+        {
+          "position": "row2_col1",
+          "item_id": "jungle_vine_root_tangle"
+        },
+        {
+          "position": "row2_col2",
+          "item_id": "jungle_low_dense_shrub"
+        },
+        {
+          "position": "row2_col3",
+          "item_id": "jungle_tall_grass_clump"
+        }
+      ],
+      "visual_qa": "Reviewed rendered sheet: six separated subjects, no apparent clipping or overlap; pixel alpha statistics recorded above."
+    },
+    {
+      "path": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate rare jungle landmarks. Top row: (1) STRANGLER-ROOT STAIRCASE, massive intertwined roots swallowing a short ancient weathered stone stairway, self-contained ruin fragment; (2) OVERGROWN STONE CISTERN, cracked old rainwater basin with damp interior, vines and broad leaves; (3) GIANT TERMITE MOUND, tall irregular weathered earthen mound with exposed tunnel openings and sparse basal plants. Bottom row: (4) FALLEN JUNGLE GIANT, huge hollow fallen tropical trunk with exposed root fan and plants growing through it; (5) ABANDONED EXPEDITION CAMP, collapsed faded canvas shelter with broken wooden crates, old rope and rusted nineteenth-century equipment, no people or modern gear; (6) RUINED TREE LOOKOUT, decaying small wooden observation platform nestled in a self-contained buttress-root tree fragment, broken ladder, hanging vines, complete contained silhouette. Match Japanese island game's existing ruin/tree props; no foreign monumental architecture or fantasy lettering. Sparse attached foliage identifies jungle without hiding the subject. No surrounding scene, landscape rectangle, bridge span or extra objects outside each region. Apply propStyle and isolation contract.\n\nMuted finely painted isometric 2.5D environment sprites for the existing 1870s Japanese island game. Match reference brushwork, bark/stone/leaves, restrained detail and saturation, soft upper-left diffuse illumination, consistent elevated three-quarter camera and believable scale. No photorealism, cartoon outlines, neon saturation, modern objects, dramatic cast shadows, floor rectangles, background scenery or fog halos. Each object is a complete standalone sprite with a clean transparent silhouette and minimal attached ground at its base. A sheet groups independent sprites, not one continuous scene.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png"
+      ],
+      "native_dimensions": "1536x1024",
+      "alpha_checked": {
+        "min": 0,
+        "max": 254,
+        "pixels_below_255": 1572864
+      },
+      "png_color_type": 6,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": [
+        {
+          "position": "row1_col1",
+          "item_id": "jungle_strangler_root_staircase"
+        },
+        {
+          "position": "row1_col2",
+          "item_id": "jungle_overgrown_stone_cistern"
+        },
+        {
+          "position": "row1_col3",
+          "item_id": "jungle_giant_termite_mound"
+        },
+        {
+          "position": "row2_col1",
+          "item_id": "jungle_fallen_giant"
+        },
+        {
+          "position": "row2_col2",
+          "item_id": "jungle_abandoned_expedition_camp"
+        },
+        {
+          "position": "row2_col3",
+          "item_id": "jungle_ruined_tree_lookout"
+        }
+      ],
+      "visual_qa": "Reviewed rendered sheet: six separated subjects, no apparent clipping or overlap; pixel alpha statistics recorded above."
+    },
+    {
+      "path": "jungle/textures/jungle_leaf_litter_tile_v01.png",
+      "prompt": "Create one seamless square tropical jungle leaf-litter ground texture: layered damp decaying broad leaves in muted olive/brown, small torn leaf fragments, dark humus, tiny twigs, occasional fine roots and subdued moss. Fine varied painterly detail, no large repeated central leaves, no flowers, creatures or tall plants. Apply textureStyle.\n\nStrict orthographic top-down flat ground material for the same muted painterly island art. Diffuse neutral light, consistent small detail scale, subtle tonal variation. Seamless left/right and top/bottom, no border, padding, perspective, vignette, spotlight, tall plants, standing objects or major landmarks. One full-bleed square opaque texture, no panels. Reference props supply material style only; do not copy their camera or silhouettes.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png"
+      ],
+      "native_dimensions": "1254x1254",
+      "alpha_checked": null,
+      "png_color_type": 2,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": null,
+      "visual_qa": "Reviewed rendered square texture; full-bleed appearance, seam continuity not pixel-tested."
+    },
+    {
+      "path": "jungle/textures/jungle_damp_soil_roots_tile_v01.png",
+      "prompt": "Create one seamless square damp tropical soil ground texture: deep weathered brown earth, fine pebbles, irregular darker moisture patches, thin winding surface roots, sparse decomposed leaf fragments. Subtle small-scale relief and neutral light, no dramatic cracks, puddle shorelines or big raised roots. Compatible in scale and palette with jungle leaf litter. Apply textureStyle.\n\nStrict orthographic top-down flat ground material for the same muted painterly island art. Diffuse neutral light, consistent small detail scale, subtle tonal variation. Seamless left/right and top/bottom, no border, padding, perspective, vignette, spotlight, tall plants, standing objects or major landmarks. One full-bleed square opaque texture, no panels. Reference props supply material style only; do not copy their camera or silhouettes.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png"
+      ],
+      "native_dimensions": "1254x1254",
+      "alpha_checked": null,
+      "png_color_type": 2,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": null,
+      "visual_qa": "Reviewed rendered square texture; full-bleed appearance, seam continuity not pixel-tested."
+    },
+    {
+      "path": "jungle/textures/jungle_low_green_groundcover_tile_v01.png",
+      "prompt": "Create one seamless square low tropical groundcover texture: irregular patches of tiny flat green leaves, fine short grass, muted moss and glimpses of damp earth/leaf litter. Restrained deep and olive green, occasional yellowing fragments. Strictly low flat coverage, no tall ferns, palms, flowers or shrubs. Compatible in scale and palette with jungle leaf litter and damp soil. Apply textureStyle.\n\nStrict orthographic top-down flat ground material for the same muted painterly island art. Diffuse neutral light, consistent small detail scale, subtle tonal variation. Seamless left/right and top/bottom, no border, padding, perspective, vignette, spotlight, tall plants, standing objects or major landmarks. One full-bleed square opaque texture, no panels. Reference props supply material style only; do not copy their camera or silhouettes.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png"
+      ],
+      "native_dimensions": "1254x1254",
+      "alpha_checked": null,
+      "png_color_type": 2,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": null,
+      "visual_qa": "Reviewed rendered square texture; full-bleed appearance, seam continuity not pixel-tested."
+    }
+  ]
+}

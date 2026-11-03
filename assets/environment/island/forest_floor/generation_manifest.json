@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-03",
+  "scope": "forest_floor generation-only batch",
+  "outputs": [
+    {
+      "path": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate temperate forest-floor props, distinct from the tropical jungle set. Top row: (1) small organic group of brown woodland mushrooms of varied heights; (2) tight low colony of tiny cream mushrooms; (3) loose group of russet red-orange capped mushrooms. Bottom row: (4) rare subtly bioluminescent blue-green mushrooms with restrained luminous cap/gill accents only, no painted aura, fog or opaque glow backdrop; (5) broad woodland fern with arching divided fronds and a few curled young shoots; (6) delicate feathery fern with a noticeably different airy silhouette. Four mushroom varieties and two fern varieties total. Compact natural clumps, tiny hints of leaf litter only at bases, no ground slabs, no logs or forest oddities. Painted glow must remain readable in daylight; game may add nighttime glow later. Apply propStyle and isolation contract.\n\nMuted finely painted isometric 2.5D environment sprites for the existing 1870s Japanese island game. Match reference brushwork, bark/stone/leaves, restrained detail and saturation, soft upper-left diffuse illumination, consistent elevated three-quarter camera and believable scale. No photorealism, cartoon outlines, neon saturation, modern objects, dramatic cast shadows, floor rectangles, background scenery or fog halos. Each object is a complete standalone sprite with a clean transparent silhouette and minimal attached ground at its base. A sheet groups independent sprites, not one continuous scene.",
+      "style_reference_paths": [
+        "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+        "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+        "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png"
+      ],
+      "native_dimensions": "1536x1024",
+      "alpha_checked": {
+        "min": 0,
+        "max": 254,
+        "pixels_below_255": 1572864
+      },
+      "png_color_type": 6,
+      "tool_provenance": "Built-in image_gen; native PNG copied unmodified into workspace.",
+      "sheet_slots": [
+        {
+          "position": "row1_col1",
+          "item_id": "forest_brown_mushrooms"
+        },
+        {
+          "position": "row1_col2",
+          "item_id": "forest_cream_mushrooms"
+        },
+        {
+          "position": "row1_col3",
+          "item_id": "forest_russet_mushrooms"
+        },
+        {
+          "position": "row2_col1",
+          "item_id": "forest_glowing_mushrooms"
+        },
+        {
+          "position": "row2_col2",
+          "item_id": "forest_broad_fern"
+        },
+        {
+          "position": "row2_col3",
+          "item_id": "forest_feathery_fern"
+        }
+      ],
+      "visual_qa": "Reviewed rendered sheet: six separated subjects, no apparent clipping or overlap; pixel alpha statistics recorded above."
+    }
+  ]
+}

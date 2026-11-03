@@ -216,7 +216,7 @@
 {"id":"R1","name":"Sutra Spine","spine":[[5500,800],[5850,2100],[6250,3400],[6600,4650],[6950,5700],[7100,6500]],"halfWidth":380},
 {"id":"R2","name":"Bellfrost Range","spine":[[2500,1250],[3500,1450],[4500,1250],[5100,1150]],"halfWidth":280},
 {"id":"R3","name":"Bellfrost East","spine":[[6300,1250],[7300,1350],[8300,1150],[9300,1250]],"halfWidth":260},
-{"id":"R4","name":"Red Mesa Walls","spine":[[1700,2300],[2350,3300],[2150,4500],[2700,5700]],"halfWidth":230},
+{"id":"R4","name":"Red Mesa Walls","spine":[[1700,2300],[2350,3300],[2150,4500],[2700,5700]],"halfWidth":230,"biome":"dry"},
 {"id":"R5","name":"Mistfall Ridges","spine":[[4100,5800],[4900,6250],[5700,6200],[6300,6750]],"halfWidth":230},
 {"id":"R6","name":"Kite-Tail Hills","spine":[[10100,6300],[10800,6550],[11500,6250]],"halfWidth":200}
 ],

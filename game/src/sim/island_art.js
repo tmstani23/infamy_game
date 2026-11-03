@@ -2,6 +2,15 @@
 import {terrainAt,passable} from './world_data.js';
 
 export function islandBiome(world,x,z){
+  // Explicit range art survives the surrounding lowlands' majority biome.
+  let nearest=null, distance=Infinity;
+  for(const range of world.ranges||[]) for(let i=1;i<range.spine.length;i++){
+    const [ax,az]=range.spine[i-1],[bx,bz]=range.spine[i],dx=bx-ax,dz=bz-az;
+    const t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz||1)));
+    const d=Math.hypot(x-ax-t*dx,z-az-t*dz);
+    if(d<distance){distance=d;nearest=range;}
+  }
+  if(nearest?.biome&&distance<=nearest.halfWidth+350)return nearest.biome;
   const region=world.regions?.find(r=>x>=r.box[0]&&x<r.box[2]&&z>=r.box[1]&&z<r.box[3]);
   return region?.biome==='snow'?'snow':region?.biome==='dry'?'dry':'forest';
 }
@@ -33,6 +42,11 @@ export function islandArt(world,cfg,cx,cz){
   const mountain=(x,z)=>terrainAt(world,x,z)==='m';
   const owns=(x,z)=>x>=x0&&x<x0+S&&z>=z0&&z<z0+S;
   const add=(art,x,z,extra={})=>{if(owns(x,z))out.push({kind:'island_art',art,x,z,...extra});};
+  const dryTop=cfg.islandArt.dryTop || {};
+  const chance=(ix,iz,salt)=>{
+    let v=Math.imul(ix,73856093)^Math.imul(iz,19349663)^Math.imul((world.seed||1)+salt,83492791);
+    v=Math.imul(v^(v>>>16),2246822519);return ((v^(v>>>13))>>>0)/4294967296;
+  };
   // One-cell halo lets the owning chunk emit shared vertices just once.
   for(let z=z0-T;z<z0+S;z+=T)for(let x=x0-T;x<x0+S;x+=T){
     if(!mountain(x+T/2,z+T/2))continue;
@@ -48,6 +62,15 @@ export function islandArt(world,cfg,cx,cz){
     if(south&&east)add(`corner_out_${b}`,x+T,z+T,{corner:true});
     if(!south&&!east&&!mountain(x+1.5*T,z+1.5*T))add(`corner_in_${b}`,x+T,z+T,{corner:true});
     if((south||east)&&(x%S===0||z%S===0))add(`outcrop_${b==='forest'?'moss':b}`,x+T*.85,z+T*.85);
+    if(b==='dry'&&mountain(x-T/2,z+T/2)&&mountain(x+T/2,z-T/2)&&mountain(x+1.5*T,z+T/2)&&mountain(x+T/2,z+1.5*T)){
+      const ix=x/T,iz=z/T,p=chance(ix,iz,61),ox=x+T*(.3+.4*chance(ix,iz,62)),oz=z+T*(.3+.4*chance(ix,iz,63));
+      let sum=0;
+      for(const entry of dryTop.props||[]){sum+=entry.chance;if(p<sum){add(entry.art,ox,oz,{top:true,s:entry.scale||1});break;}}
+      if(chance(ix,iz,64)<(dryTop.oddityChance||0)){
+        const names=dryTop.oddities||[];
+        if(names.length)add(names[Math.floor(chance(ix,iz,65)*names.length)],x+T*.5,z+T*.5,{top:true,s:.85});
+      }
+    }
     if(b==='forest'&&!south&&!east&&mountain(x-T/2,z+T/2)&&mountain(x+T/2,z-T/2)){
       for(let k=0;k<(cfg.islandArt.topPinesPerCell||0);k++)add('pine_tree',x+T*(.3+k*.22),z+T*.4,{top:true});
     }

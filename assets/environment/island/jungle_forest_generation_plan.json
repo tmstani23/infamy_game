@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "date": "2026-11-03",
+  "status": "Completed generation/cutting/import and biome integration authorized directly by Tim; jungle, regular forest-floor props and ground textures integrated 2026-11-03. See runtime configs for current sizing/density.",
+  "outputRoot": "assets/environment/island/",
+  "references": [
+    "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
+    "assets/environment/island/biome_props/cutouts/forest_moss_covered_ruins.png",
+    "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png"
+  ],
+  "instructions": [
+    "Read imagegen skill; use built-in image_gen. Inspect references and provide actual reference images to generation, not just their filenames. No CLI/API fallback unless Tim authorizes it.",
+    "Generate all seven outputs below, one tool call per sheet/texture. Props have genuine transparent alpha (transparent_background=true); ground tiles are opaque (false).",
+    "Save unmodified generated native PNGs in the specified workspace folders; highest supported native detail, record actual dimensions. Never upscale or overwrite accepted art; choose next _v02, _v03 suffix if a filename exists.",
+    "Four prop sheets use three columns by two rows with six isolated subjects in reading order. Generous blank transparent gutters and outside margins, every leaf/root/frond inside its own region, no overlaps or labels. Do not crop, cut, resize, remove backgrounds, build previews, import into game, edit code/docs, or commit.",
+    "Record a generation_manifest.json separately in jungle/ and forest_floor/: output relative path, generation prompt, style reference paths, native dimensions, alpha checked, tool provenance, six item IDs/positions for each sheet, visual QA status. Update after each saved output so work survives usage limits.",
+    "Only create jungle/{sheets,textures}/, forest_floor/sheets/ and their manifests. Keep jungle and forest distinct. Forest has mushrooms/ferns only; no new forest oddities. Bridges are another phase.",
+    "Inspect each result for full silhouettes, real transparency and subject count. Record any issue honestly; don't silently substitute a white/checkerboard background. Report saved files and pending issues."
+  ],
+  "propStyle": "Muted finely painted isometric 2.5D environment sprites for the existing 1870s Japanese island game. Match reference brushwork, bark/stone/leaves, restrained detail and saturation, soft upper-left diffuse illumination, consistent elevated three-quarter camera and believable scale. No photorealism, cartoon outlines, neon saturation, modern objects, dramatic cast shadows, floor rectangles, background scenery or fog halos. Each object is a complete standalone sprite with a clean transparent silhouette and minimal attached ground at its base. A sheet groups independent sprites, not one continuous scene.",
+  "textureStyle": "Strict orthographic top-down flat ground material for the same muted painterly island art. Diffuse neutral light, consistent small detail scale, subtle tonal variation. Seamless left/right and top/bottom, no border, padding, perspective, vignette, spotlight, tall plants, standing objects or major landmarks. One full-bleed square opaque texture, no panels. Reference props supply material style only; do not copy their camera or silhouettes.",
+  "outputs": [
+    {
+      "file": "jungle/sheets/jungle_trees_3x2_v01.png",
+      "transparentBackground": true,
+      "items": [
+        "jungle_large_buttress_tree",
+        "jungle_large_broad_canopy_tree",
+        "jungle_large_banyan_tree",
+        "jungle_medium_palm",
+        "jungle_medium_broadleaf_tree",
+        "jungle_small_sapling"
+      ],
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate tropical jungle trees. Top row: (1) large majestic tropical hardwood with tall thick trunk and spreading buttress roots; (2) large broad umbrella-canopy rainforest tree with a contrasting branching silhouette; (3) large banyan-like tree with hanging aerial roots. Bottom row: (4) medium palm with a readable arching frond crown; (5) medium dense broadleaf jungle tree with layered foliage; (6) small young tropical sapling with a few broad leaves. Three large, two medium, one small: preserve this relative scale; large trees must have enough canvas space without clipping. Distinct useful silhouettes. Sparse restrained vines on selected trees, muted deep and olive greens, weathered brown bark. No surrounding forest scene or ground tile. Apply propStyle and isolation contract."
+    },
+    {
+      "file": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "transparentBackground": true,
+      "items": [
+        "jungle_broadleaf_clump",
+        "jungle_fan_palm_clump",
+        "jungle_large_fern_clump",
+        "jungle_vine_root_tangle",
+        "jungle_low_dense_shrub",
+        "jungle_tall_grass_clump"
+      ],
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate tropical understory props. Top row: (1) irregular clump of large banana-like leaves; (2) low fan-palm clump; (3) spreading large jungle fern clump. Bottom row: (4) low coiled woody vine and exposed-root tangle suitable for the ground; (5) dense low tropical broadleaf shrub; (6) uneven clump of long damp jungle grasses. Each is an independent compact plant patch with its own fully visible base and loose organic outline. Distinct silhouettes and leaf structure, deep muted green, restrained yellowed leaf accents. No flowers needed, no forest mushrooms, no standing tree, no rectangular soil tile. Apply propStyle and isolation contract."
+    },
+    {
+      "file": "jungle/sheets/jungle_oddities_3x2_v01.png",
+      "transparentBackground": true,
+      "items": [
+        "jungle_strangler_root_staircase",
+        "jungle_overgrown_stone_cistern",
+        "jungle_giant_termite_mound",
+        "jungle_fallen_giant",
+        "jungle_abandoned_expedition_camp",
+        "jungle_ruined_tree_lookout"
+      ],
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate rare jungle landmarks. Top row: (1) STRANGLER-ROOT STAIRCASE, massive intertwined roots swallowing a short ancient weathered stone stairway, self-contained ruin fragment; (2) OVERGROWN STONE CISTERN, cracked old rainwater basin with damp interior, vines and broad leaves; (3) GIANT TERMITE MOUND, tall irregular weathered earthen mound with exposed tunnel openings and sparse basal plants. Bottom row: (4) FALLEN JUNGLE GIANT, huge hollow fallen tropical trunk with exposed root fan and plants growing through it; (5) ABANDONED EXPEDITION CAMP, collapsed faded canvas shelter with broken wooden crates, old rope and rusted nineteenth-century equipment, no people or modern gear; (6) RUINED TREE LOOKOUT, decaying small wooden observation platform nestled in a self-contained buttress-root tree fragment, broken ladder, hanging vines, complete contained silhouette. Match Japanese island game's existing ruin/tree props; no foreign monumental architecture or fantasy lettering. Sparse attached foliage identifies jungle without hiding the subject. No surrounding scene, landscape rectangle, bridge span or extra objects outside each region. Apply propStyle and isolation contract."
+    },
+    {
+      "file": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "transparentBackground": true,
+      "items": [
+        "forest_brown_mushrooms",
+        "forest_cream_mushrooms",
+        "forest_russet_mushrooms",
+        "forest_glowing_mushrooms",
+        "forest_broad_fern",
+        "forest_feathery_fern"
+      ],
+      "prompt": "Create a transparent 3-column by 2-row sheet of SIX separate temperate forest-floor props, distinct from the tropical jungle set. Top row: (1) small organic group of brown woodland mushrooms of varied heights; (2) tight low colony of tiny cream mushrooms; (3) loose group of russet red-orange capped mushrooms. Bottom row: (4) rare subtly bioluminescent blue-green mushrooms with restrained luminous cap/gill accents only, no painted aura, fog or opaque glow backdrop; (5) broad woodland fern with arching divided fronds and a few curled young shoots; (6) delicate feathery fern with a noticeably different airy silhouette. Four mushroom varieties and two fern varieties total. Compact natural clumps, tiny hints of leaf litter only at bases, no ground slabs, no logs or forest oddities. Painted glow must remain readable in daylight; game may add nighttime glow later. Apply propStyle and isolation contract."
+    },
+    {
+      "file": "jungle/textures/jungle_leaf_litter_tile_v01.png",
+      "transparentBackground": false,
+      "prompt": "Create one seamless square tropical jungle leaf-litter ground texture: layered damp decaying broad leaves in muted olive/brown, small torn leaf fragments, dark humus, tiny twigs, occasional fine roots and subdued moss. Fine varied painterly detail, no large repeated central leaves, no flowers, creatures or tall plants. Apply textureStyle."
+    },
+    {
+      "file": "jungle/textures/jungle_damp_soil_roots_tile_v01.png",
+      "transparentBackground": false,
+      "prompt": "Create one seamless square damp tropical soil ground texture: deep weathered brown earth, fine pebbles, irregular darker moisture patches, thin winding surface roots, sparse decomposed leaf fragments. Subtle small-scale relief and neutral light, no dramatic cracks, puddle shorelines or big raised roots. Compatible in scale and palette with jungle leaf litter. Apply textureStyle."
+    },
+    {
+      "file": "jungle/textures/jungle_low_green_groundcover_tile_v01.png",
+      "transparentBackground": false,
+      "prompt": "Create one seamless square low tropical groundcover texture: irregular patches of tiny flat green leaves, fine short grass, muted moss and glimpses of damp earth/leaf litter. Restrained deep and olive green, occasional yellowing fragments. Strictly low flat coverage, no tall ferns, palms, flowers or shrubs. Compatible in scale and palette with jungle leaf litter and damp soil. Apply textureStyle."
+    }
+  ]
+}

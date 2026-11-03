@@ -1264,7 +1264,7 @@ Tim said the coast art looks good, then requested rounding, inland transition an
 
 Water-motion follow-up (2026-11-03): Tim reported magma-like motion and authorized continued water work. [Water surface plan](../assets/environment/island/water_surface_plan.json) records primary Three.js r186 Water2 / NVIDIA GPU Gems research and the implementation: plain uniform packing, four seam-safe phase samples with explicit gradients, two broad/two fine analytical waves driving normals/highlights, and subdued color drift. Accepted coast geometry/masks/collision and original art are unchanged; no new targets, libraries or art. Syntax, finite config/wave checks, scoped diff and P3 edges passed. No GPU compilation, new-motion appearance or performance approval; Tim must refresh and judge motion.
 
-Groundcover remains planning only: 28 named candidates / 12 placement profiles, singles plus varied clumps, unchanged other props, density budget and an independent deterministic pass across jungle/forest/marsh. No clustering code.
+Groundcover v4 remains planning only: all ordinary props, five footprint sizes, three relative height tiers, baseline current display scale, measured spawn-count increases and independent patch-center tuning to avoid gaps. Preserve singles and rarity; no clustering code. See [plan](../assets/environment/island/groundcover_clustering_plan.json).
 
 #### P4 Coast cliffs and dry range — not built; no build approval
 - Mark coast cells and line most of the coast with the existing cliff/rim/corner art; keep harbours and landings open [4b].
@@ -1280,6 +1280,8 @@ Groundcover remains planning only: 28 named candidates / 12 placement profiles, 
 - [ ] Tim reviews the new water-motion pass after refresh. Coastline/blending look approved across biomes; diagonals confirmed gone. No walking/performance claim.
 - [x] Approve eight shoreline orientations and distinct biome material/silhouette families for planning; beach banks and coastal cliffs are separate geometry families. Exact endpoints, land/water sides, corners, connectors and spans await later water design; existing eight lake images do not complete a coast kit.
 - [ ] Bridges, lakes, river sources and capital silhouette remain deferred; no copy-ready prompts are approved for them. See the [island playtest notes](island_playtest_notes_2026-11-02.md) for the W3.10 walkthrough handoff.
+
+Completed biome integration (2026-11-03): jungle, regular forest mushrooms/ferns, marsh props/textures, dry-mountain art selection, coverage map and sizing/density/ground processing are saved. [Owner record](../assets/image_prompts.md#jungle-regular-forest-and-marsh-integration-2026-11-03). The newer reflection-water pass is active separately; no new motion visual approval implied.
 
 #### Later (Tim OK'd)
 - Chunk build and ground-paint speed-up after the main build [8].

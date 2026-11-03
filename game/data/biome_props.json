@@ -1,20 +1,478 @@
 {
   "version": 1,
   "_note": "Runtime art selection and decorative placement for the transparent island biome props. All items are art-only; movement and collision stay unchanged.",
-  "visualScaleByKind": { "snow_pine": 0.75, "snow_cedar": 0.65 },
+  "visualScaleByKind": {
+    "snow_pine": 0.75,
+    "snow_cedar": 0.65,
+    "cliff_dry_a": 1.15,
+    "cliff_dry_b": 1.15,
+    "marsh_leaning_willow": 0.661,
+    "marsh_stunted_wetland_tree": 0.707,
+    "marsh_dead_snag": 0.775,
+    "marsh_waterlogged_stump": 0.798,
+    "marsh_fallen_rotting_trunk": 0.798,
+    "marsh_exposed_root_clump": 0.627,
+    "jungle_large_buttress_tree": 0.53,
+    "jungle_large_broad_canopy_tree": 0.56,
+    "jungle_large_banyan_tree": 0.53,
+    "jungle_medium_palm": 0.68,
+    "jungle_medium_broadleaf_tree": 0.68,
+    "jungle_small_sapling": 0.78,
+    "jungle_broadleaf_clump": 0.72,
+    "jungle_fan_palm_clump": 0.72,
+    "jungle_large_fern_clump": 0.72,
+    "jungle_vine_root_tangle": 0.72,
+    "jungle_low_dense_shrub": 0.72,
+    "jungle_tall_grass_clump": 0.72,
+    "jungle_strangler_root_staircase": 0.63,
+    "jungle_overgrown_stone_cistern": 0.72,
+    "jungle_giant_termite_mound": 0.72,
+    "jungle_fallen_giant": 0.63,
+    "jungle_abandoned_expedition_camp": 0.8,
+    "jungle_ruined_tree_lookout": 0.65,
+    "marsh_tall_reeds": 0.889,
+    "marsh_cattails": 0.889,
+    "marsh_rushes": 0.889,
+    "marsh_sedge_tussock": 0.889,
+    "marsh_lily_pads": 0.855,
+    "marsh_duckweed": 0.855,
+    "marsh_half_sunken_shrine": 0.889,
+    "marsh_reed_cutters_shelter": 0.889,
+    "marsh_stranded_wooden_boat": 0.889,
+    "marsh_collapsed_fishing_platform": 0.889,
+    "marsh_drowned_grove": 0.889,
+    "marsh_old_stone_sluice": 0.889,
+    "forest_broad_fern": 0.55,
+    "forest_feathery_fern": 0.55,
+    "forest_brown_mushrooms": 0.55,
+    "forest_cream_mushrooms": 0.55,
+    "forest_russet_mushrooms": 0.55,
+    "forest_glowing_mushrooms": 0.55
+  },
   "replaceByBiome": {
-    "snow": { "pine": "snow_pine", "boulder": "snow_boulders", "bush": "snow_bush" },
-    "plain": { "bush": "meadow_grass", "ferns": "meadow_flowers", "cherry": "meadow_broadleaf_tree" },
-    "hills": { "bush": "hill_heather" },
-    "dry": { "bush": "dry_scrub", "small_rocks": "sandstone_stones" }
+    "snow": {
+      "pine": "snow_pine",
+      "boulder": "snow_boulders",
+      "bush": "snow_bush"
+    },
+    "plain": {
+      "bush": "meadow_grass",
+      "ferns": "meadow_flowers",
+      "cherry": "meadow_broadleaf_tree"
+    },
+    "hills": {
+      "bush": "hill_heather"
+    },
+    "dry": {
+      "bush": "dry_scrub",
+      "small_rocks": "sandstone_stones"
+    },
+    "forest": {
+      "ferns": "forest_broad_fern"
+    },
+    "marsh": {
+      "ferns": "marsh_sedge_tussock",
+      "bush": "marsh_rushes"
+    }
   },
   "additional": [
-    { "kind": "snow_cedar", "biome": "snow", "per1000": 0.8, "scale": [0.85, 1.1], "block": 0, "grove": "in" },
-    { "kind": "snow_fallen_log", "biome": "snow", "per1000": 0.3, "scale": [0.9, 1.1], "block": 0, "grove": "any" },
-    { "kind": "snow_stump", "biome": "snow", "per1000": 0.4, "scale": [0.9, 1.1], "block": 0, "grove": "any" },
-    { "kind": "snow_drift", "biome": "snow", "per1000": 0.8, "scale": [0.85, 1.15], "block": 0, "grove": "any" },
-    { "kind": "sandstone_stones", "biome": "dry", "per1000": 0.25, "scale": [0.9, 1.1], "block": 0, "grove": "any" },
-    { "kind": "dry_grass_tussock", "biome": "dry", "per1000": 0.8, "scale": [0.9, 1.1], "block": 0, "grove": "any" }
+    {
+      "kind": "snow_cedar",
+      "biome": "snow",
+      "per1000": 0.8,
+      "scale": [
+        0.85,
+        1.1
+      ],
+      "block": 0,
+      "grove": "in"
+    },
+    {
+      "kind": "snow_fallen_log",
+      "biome": "snow",
+      "per1000": 0.3,
+      "scale": [
+        0.9,
+        1.1
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "snow_stump",
+      "biome": "snow",
+      "per1000": 0.4,
+      "scale": [
+        0.9,
+        1.1
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "snow_drift",
+      "biome": "snow",
+      "per1000": 0.8,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "sandstone_stones",
+      "biome": "dry",
+      "per1000": 0.25,
+      "scale": [
+        0.9,
+        1.1
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "dry_grass_tussock",
+      "biome": "dry",
+      "per1000": 0.8,
+      "scale": [
+        0.9,
+        1.1
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_large_buttress_tree",
+      "biome": "jungle",
+      "per1000": 1.6,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "in"
+    },
+    {
+      "kind": "jungle_large_broad_canopy_tree",
+      "biome": "jungle",
+      "per1000": 1.6,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "in"
+    },
+    {
+      "kind": "jungle_large_banyan_tree",
+      "biome": "jungle",
+      "per1000": 1.2,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "in"
+    },
+    {
+      "kind": "jungle_medium_palm",
+      "biome": "jungle",
+      "per1000": 1.44,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_medium_broadleaf_tree",
+      "biome": "jungle",
+      "per1000": 2,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_small_sapling",
+      "biome": "jungle",
+      "per1000": 1.2,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_broadleaf_clump",
+      "biome": "jungle",
+      "per1000": 1.12,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_fan_palm_clump",
+      "biome": "jungle",
+      "per1000": 0.96,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_large_fern_clump",
+      "biome": "jungle",
+      "per1000": 1.44,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_vine_root_tangle",
+      "biome": "jungle",
+      "per1000": 0.48,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_low_dense_shrub",
+      "biome": "jungle",
+      "per1000": 1.2,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "jungle_tall_grass_clump",
+      "biome": "jungle",
+      "per1000": 0.96,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "forest_brown_mushrooms",
+      "biome": "forest",
+      "per1000": 0.5,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "forest_cream_mushrooms",
+      "biome": "forest",
+      "per1000": 0.5,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "forest_russet_mushrooms",
+      "biome": "forest",
+      "per1000": 0.5,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "forest_glowing_mushrooms",
+      "biome": "forest",
+      "per1000": 0.12,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "forest_feathery_fern",
+      "biome": "forest",
+      "per1000": 1.2,
+      "scale": [
+        0.85,
+        1.15
+      ],
+      "block": 0,
+      "grove": "any"
+    },
+    {
+      "kind": "marsh_tall_reeds",
+      "biome": "marsh",
+      "per1000": 1.2,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "water"
+    },
+    {
+      "kind": "marsh_cattails",
+      "biome": "marsh",
+      "per1000": 0.8,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "water"
+    },
+    {
+      "kind": "marsh_rushes",
+      "biome": "marsh",
+      "per1000": 0.7,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "water"
+    },
+    {
+      "kind": "marsh_sedge_tussock",
+      "biome": "marsh",
+      "per1000": 0.9,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "water"
+    },
+    {
+      "kind": "marsh_lily_pads",
+      "biome": "marsh",
+      "per1000": 0.4,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "surface"
+    },
+    {
+      "kind": "marsh_duckweed",
+      "biome": "marsh",
+      "per1000": 0.4,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "surface"
+    },
+    {
+      "kind": "marsh_leaning_willow",
+      "biome": "marsh",
+      "per1000": 0.3,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "wooded"
+    },
+    {
+      "kind": "marsh_stunted_wetland_tree",
+      "biome": "marsh",
+      "per1000": 0.2,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "wooded"
+    },
+    {
+      "kind": "marsh_dead_snag",
+      "biome": "marsh",
+      "per1000": 0.25,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "wooded"
+    },
+    {
+      "kind": "marsh_waterlogged_stump",
+      "biome": "marsh",
+      "per1000": 0.25,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "wooded"
+    },
+    {
+      "kind": "marsh_fallen_rotting_trunk",
+      "biome": "marsh",
+      "per1000": 0.2,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "wooded"
+    },
+    {
+      "kind": "marsh_exposed_root_clump",
+      "biome": "marsh",
+      "per1000": 0.35,
+      "scale": [
+        0.9,
+        1.08
+      ],
+      "block": 0,
+      "grove": "any",
+      "marshZone": "wooded"
+    }
   ],
   "coast": {
     "grid": 10,
@@ -26,16 +484,170 @@
     "grid": 32,
     "chance": 0.16,
     "minSpacing": 24,
-    "scale": [0.92, 1.08],
+    "scale": [
+      0.92,
+      1.08
+    ],
     "byBiome": {
-      "snow": ["snow_half_buried_shrine", "snow_icicle_grotto", "snow_frost_covered_standing_stones", "snow_giant_broken_cedar", "snow_frozen_well", "snow_ruined_shed", "snow_stone_lantern", "snow_fence_x", "snow_fence_z", "trail_cairn"],
-      "plain": ["plains_abandoned_farmstead", "plains_ruined_granary", "plains_overgrown_cemetery", "plains_collapsed_watchtower", "plains_neglected_orchard", "plains_roadside_shrine", "trail_cairn"],
-      "hills": ["hills_abandoned_mine_entrance", "hills_ruined_signal_tower", "hills_old_quarry_workings", "hills_cliff_grotto", "hills_hermits_hut", "hills_weathered_stone_circle", "trail_cairn"],
-      "dry": ["dry_exposed_dinosaur_rib_cage", "dry_fossil_skull_in_sandstone", "dry_ruined_plaster_and_timber_building", "dry_ancient_dry_well", "dry_abandoned_caravan_camp", "dry_shaded_rock_grotto", "trail_cairn"],
-      "forest": ["forest_root_covered_shrine", "forest_giant_hollow_cedar", "forest_moss_covered_ruins", "forest_old_charcoal_kiln", "forest_collapsed_woodland_gate", "forest_fern_lined_grotto", "trail_cairn"]
+      "snow": [
+        "snow_half_buried_shrine",
+        "snow_icicle_grotto",
+        "snow_frost_covered_standing_stones",
+        "snow_giant_broken_cedar",
+        "snow_frozen_well",
+        "snow_ruined_shed",
+        "snow_stone_lantern",
+        "snow_fence_x",
+        "snow_fence_z",
+        "trail_cairn"
+      ],
+      "plain": [
+        "plains_abandoned_farmstead",
+        "plains_ruined_granary",
+        "plains_overgrown_cemetery",
+        "plains_collapsed_watchtower",
+        "plains_neglected_orchard",
+        "plains_roadside_shrine",
+        "trail_cairn"
+      ],
+      "hills": [
+        "hills_abandoned_mine_entrance",
+        "hills_ruined_signal_tower",
+        "hills_old_quarry_workings",
+        "hills_cliff_grotto",
+        "hills_hermits_hut",
+        "hills_weathered_stone_circle",
+        "trail_cairn"
+      ],
+      "dry": [
+        "dry_exposed_dinosaur_rib_cage",
+        "dry_fossil_skull_in_sandstone",
+        "dry_ruined_plaster_and_timber_building",
+        "dry_ancient_dry_well",
+        "dry_abandoned_caravan_camp",
+        "dry_shaded_rock_grotto",
+        "trail_cairn"
+      ],
+      "forest": [
+        "forest_root_covered_shrine",
+        "forest_giant_hollow_cedar",
+        "forest_moss_covered_ruins",
+        "forest_old_charcoal_kiln",
+        "forest_collapsed_woodland_gate",
+        "forest_fern_lined_grotto",
+        "trail_cairn"
+      ],
+      "jungle": [
+        "jungle_strangler_root_staircase",
+        "jungle_overgrown_stone_cistern",
+        "jungle_giant_termite_mound",
+        "jungle_fallen_giant",
+        "jungle_abandoned_expedition_camp",
+        "jungle_ruined_tree_lookout"
+      ],
+      "marsh": [
+        "marsh_half_sunken_shrine",
+        "marsh_reed_cutters_shelter",
+        "marsh_stranded_wooden_boat",
+        "marsh_collapsed_fishing_platform",
+        "marsh_drowned_grove",
+        "marsh_old_stone_sluice"
+      ]
     },
-    "coast": ["coast_broken_shipwreck_hull", "coast_ruined_coastal_lookout", "coast_washed_up_cargo_cache", "coast_sea_cave", "coast_abandoned_fishermans_shack", "coast_seaside_memorial"],
-    "requireMountainNearby": ["snow_icicle_grotto", "hills_abandoned_mine_entrance", "hills_old_quarry_workings", "hills_cliff_grotto", "dry_exposed_dinosaur_rib_cage", "dry_fossil_skull_in_sandstone", "dry_shaded_rock_grotto"],
-    "requireCoast": ["coast_broken_shipwreck_hull", "coast_ruined_coastal_lookout", "coast_washed_up_cargo_cache", "coast_sea_cave", "coast_abandoned_fishermans_shack", "coast_seaside_memorial"]
+    "coast": [
+      "coast_broken_shipwreck_hull",
+      "coast_ruined_coastal_lookout",
+      "coast_washed_up_cargo_cache",
+      "coast_sea_cave",
+      "coast_abandoned_fishermans_shack",
+      "coast_seaside_memorial"
+    ],
+    "requireMountainNearby": [
+      "snow_icicle_grotto",
+      "hills_abandoned_mine_entrance",
+      "hills_old_quarry_workings",
+      "hills_cliff_grotto",
+      "dry_exposed_dinosaur_rib_cage",
+      "dry_fossil_skull_in_sandstone",
+      "dry_shaded_rock_grotto"
+    ],
+    "requireCoast": [
+      "coast_broken_shipwreck_hull",
+      "coast_ruined_coastal_lookout",
+      "coast_washed_up_cargo_cache",
+      "coast_sea_cave",
+      "coast_abandoned_fishermans_shack",
+      "coast_seaside_memorial"
+    ]
+  },
+  "marshSupplement": {
+    "grid": 6,
+    "chance": 0.29,
+    "scale": [
+      0.9,
+      1.08
+    ],
+    "items": [
+      {
+        "kind": "marsh_tall_reeds",
+        "weight": 16,
+        "zone": "water"
+      },
+      {
+        "kind": "marsh_cattails",
+        "weight": 11,
+        "zone": "water"
+      },
+      {
+        "kind": "marsh_rushes",
+        "weight": 14,
+        "zone": "water"
+      },
+      {
+        "kind": "marsh_sedge_tussock",
+        "weight": 17,
+        "zone": "water"
+      },
+      {
+        "kind": "marsh_lily_pads",
+        "weight": 2,
+        "zone": "surface"
+      },
+      {
+        "kind": "marsh_duckweed",
+        "weight": 2,
+        "zone": "surface"
+      },
+      {
+        "kind": "marsh_leaning_willow",
+        "weight": 8,
+        "zone": "wooded"
+      },
+      {
+        "kind": "marsh_stunted_wetland_tree",
+        "weight": 7,
+        "zone": "wooded"
+      },
+      {
+        "kind": "marsh_dead_snag",
+        "weight": 6,
+        "zone": "wooded"
+      },
+      {
+        "kind": "marsh_waterlogged_stump",
+        "weight": 6,
+        "zone": "wooded"
+      },
+      {
+        "kind": "marsh_fallen_rotting_trunk",
+        "weight": 5,
+        "zone": "wooded"
+      },
+      {
+        "kind": "marsh_exposed_root_clump",
+        "weight": 6,
+        "zone": "wooded"
+      }
+    ]
   }
 }

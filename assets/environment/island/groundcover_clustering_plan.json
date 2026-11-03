@@ -1,8 +1,8 @@
 {
-  "version": 2,
+  "version": 4,
   "date": "2026-11-03",
-  "status": "Planning draft requested by Tim. No clustering code or runtime density changes made. Implementation waits for plan acceptance and the coast/smoothing review.",
-  "scope": "Biome-specific patches using the existing and newly generated transparent assets. Include rainforest/jungle, temperate forest-floor and all marsh candidates. Ground textures remain the underlying continuous cover.",
+  "status": "Revised design requested by Tim. No clustering code or runtime density changes made. Coast/blending visual review is complete; refresh asset and density measurements before implementation.",
+  "scope": "All ordinary procedural island props, including trees, brush, fungi, grasses, rocks, logs, stumps and driftwood. Oddities and fixed terrain art are excluded. Ground textures remain the underlying continuous cover.",
   "prerequisites": [
     {
       "task": "P3 coast/water code",
@@ -10,20 +10,30 @@
     },
     {
       "task": "Asset cut/scale audit",
-      "state": "refresh before implementation; jungle/forest integration and marsh importing are active in another chat"
+      "state": "Jungle, forest-floor and marsh assets are imported; refresh actual displayed footprints after recent scaling changes before implementation"
     },
     {
       "task": "Tim accepts clustering design",
-      "state": "pending"
+      "state": "Tim requested the revised all-normal-props, five-footprint-size and three-height-tier design; visual tuning remains pending"
     }
   ],
   "recommendation": {
-    "approach": "Generate irregular arrangements of existing normal-sized sprites in code. Keep some singles and open spaces. No additional generated sheets or pre-baked cluster PNGs needed for the initial pass.",
-    "density": "Redistribute the existing ground-cover budget into singles and clusters. Do not add clustered copies on top of the old single scatter. Rates count final sprite clumps, not individual stems/leaves/caps painted inside a sprite.",
+    "approach": "Generate irregular arrangements of existing sprites in code, using the current biome field, grove noise, wetness, coast, trail and clearing rules. Keep singles and open spaces. No pre-baked cluster PNGs needed.",
+    "density": "Clumping a fixed sprite count increases empty space between groups. Replace each family's old scatter emission with a measured mix of singles and clusters, then allow a controlled increase in final emitted sprites and patch centers where coverage is too sparse. Do not double-spawn old and new passes. Preserve biome and rarity intent. Rates count final sprites, not stems/leaves/caps painted inside a sprite.",
+    "densityTuning": {
+      "principle": "Tune patch-center frequency and final member count separately. More members in the same few clumps makes those clumps denser but does not fill the gaps; more centers and a retained single-sprite share address coverage.",
+      "startingMultipliersVsMeasuredCurrent": {
+        "lowVegetation": [1.25, 1.5],
+        "mediumBrushAndWood": [1.1, 1.3],
+        "treesAndBlockingRocks": [1, 1.15],
+        "rareOrSpecial": [1, 1]
+      },
+      "note": "Provisional visual-tuning ranges, not fixed implementation targets. Measure accepted current counts by biome and family first, then adjust for actual visible gaps, traversable space and frame cost. Keep glowing mushrooms and rare props at their existing overall rarity. Marsh already has a dense supplement pass, so compare its actual accepted count before raising it further."
+    },
     "initialSplit": {
       "singles": 0.3,
       "clusteredMembers": 0.7,
-      "note": "Provisional fraction of the final sprite budget, not a probability per patch center; allow biome/family overrides."
+      "note": "Provisional groundcover split only. Trees, boulders, logs and other large or blocking props need more singles and smaller, looser groups. Fractions are final emitted-sprite budgets, not center probabilities."
     },
     "layouts": [
       "compact irregular clump",
@@ -32,44 +42,55 @@
     ],
     "sizing": [
       {
+        "size": "tiny",
+        "members": [2, 2],
+        "diameterUnits": [3, 6]
+      },
+      {
         "size": "small",
-        "members": [
-          2,
-          3
-        ],
-        "diameterUnits": [
-          6,
-          10
-        ]
+        "members": [2, 3],
+        "diameterUnits": [6, 10]
       },
       {
         "size": "medium",
-        "members": [
-          4,
-          6
-        ],
-        "diameterUnits": [
-          10,
-          16
-        ]
+        "members": [4, 6],
+        "diameterUnits": [10, 16]
       },
       {
         "size": "large",
-        "members": [
-          7,
-          10
-        ],
-        "diameterUnits": [
-          16,
-          24
-        ]
+        "members": [6, 8],
+        "diameterUnits": [16, 24]
+      },
+      {
+        "size": "expansive",
+        "members": [8, 11],
+        "diameterUnits": [24, 34]
       }
     ],
-    "sizingNote": "Starting ranges, measured around member footprints. A sprite may already contain many plants. Mushroom colonies and low drifts get smaller layouts and lower member caps; avoid scaling up one sprite to stand in for a whole patch.",
-    "memberVariation": "Use a main species with sparse companion species, uneven spacing, modest scale jitter around approved current scales, and limited silhouette overlap. Preserve painted camera/light; do not rotate upright sprites. Mirror only assets whose style supports it.",
+    "sizingNote": "Five footprint presets are available, but each family selects an allowed subset. Values are starting ranges around member footprints, not universal radii. Fungi and driftwood use the small presets; large trees and boulders use few members with wider spacing. No uniform enlargement of one sprite to represent a wider patch.",
+    "heightTiers": {
+      "short": 0.88,
+      "baseline": 1.0,
+      "tall": 1.12,
+      "meaning": "Three relative silhouette-height tiers inside each cluster, applied as modest uniform sprite scale factors. Baseline 1.0 is exactly the size the current generator/render path gives that prop: sampled rule scale times visualScaleByKind and catalog art scale. Do not replace or reset current per-kind tuning, including smaller forest fungi and jungle trees.",
+      "distribution": "A weighted mix, usually baseline-dominant, with at least two tiers represented when the cluster has enough members. Family-specific caps keep large trees, mushrooms and rocks believable. Anchor feet stay on terrain; never fake height by lifting sprites above ground.",
+      "collision": "Scale any navigation blocker and footprint with the same final visual factor; reject overlaps that close paths. Decorative props keep their existing nonblocking status."
+    },
+    "memberVariation": "Use a main species with sparse biome-compatible companions, uneven spacing and limited silhouette overlap. Keep baseline size dominant. Preserve painted camera/light; do not rotate upright sprites. Mirror only assets whose style supports it.",
     "lighting": "Keep glowing mushrooms rare at their existing overall rarity. Clustering does not add a point light for every mushroom; any new glow behavior is a separately reviewed renderer change."
   },
   "families": {
+    "forestTrees": ["cedar", "pine"],
+    "plainTrees": ["pine", "meadow_broadleaf_tree"],
+    "hillTrees": ["pine", "twisted_pine"],
+    "dryTrees": ["twisted_pine"],
+    "snowTrees": ["snow_pine", "snow_cedar"],
+    "jungleTrees": ["jungle_large_buttress_tree", "jungle_large_broad_canopy_tree", "jungle_large_banyan_tree", "jungle_medium_palm", "jungle_medium_broadleaf_tree", "jungle_small_sapling"],
+    "marshTreesAndWood": ["marsh_leaning_willow", "marsh_stunted_wetland_tree", "marsh_dead_snag", "marsh_waterlogged_stump", "marsh_fallen_rotting_trunk"],
+    "forestWood": ["stump", "fallen_log"],
+    "rockAndOutcrops": ["boulder", "small_rocks", "sandstone_stones", "snow_boulders", "outcrop_moss", "outcrop_dry", "outcrop_snow"],
+    "bamboo": ["bamboo"],
+    "coastWood": ["coastal_driftwood"],
     "meadow": [
       "meadow_grass",
       "meadow_flowers"
@@ -127,7 +148,7 @@
       "companions": [
         "meadow_flowers"
       ],
-      "layout": "All three sizes; most patches grass-dominant, occasional flower-rich subpatches; retain open meadow."
+      "layout": "Use allowed footprint sizes from the five presets; most patches grass-dominant, occasional flower-rich subpatches; retain open meadow."
     },
     {
       "id": "hills_heather",
@@ -214,7 +235,7 @@
         "jungle_low_dense_shrub",
         "jungle_vine_root_tangle"
       ],
-      "layout": "All sizes, fern-led, broadleaf-led and grass-led mixtures. Dense cores and loose edges with clearings; companion fans/shrubs used sparingly so scale stays readable. Trees keep their existing independent placement."
+      "layout": "Use allowed footprint sizes from the five presets, with fern-led, broadleaf-led and grass-led mixtures. Dense cores and loose edges with clearings; companion fans/shrubs used sparingly. Jungle trees use their own looser tree profile and current display scales."
     },
     {
       "id": "marsh_reedbeds",
@@ -239,7 +260,7 @@
         "marsh_rushes",
         "marsh_sedge_tussock"
       ],
-      "layout": "Small sparse root-led patches near wooded marsh margins; maintain access around tree bases. Logs/stumps/snags stay independent."
+      "layout": "Small sparse root-led patches near wooded marsh margins; maintain access around tree bases. Wood and trees use a separate loose marsh tree/wood profile with more singles."
     },
     {
       "id": "marsh_floating_leaves",
@@ -254,33 +275,43 @@
       "state": "Design reserved; only implement once the water classification and imported assets are ready."
     }
   ],
+  "ordinaryPropProfilePolicy": {
+    "coverage": "Every normal procedural kind from world_paint.props, biomeProps.additional, the bamboo pass, marshSupplement and the coast pass must be mapped to a family; replacement kinds use their displayed art names. Audit this mapping before implementation.",
+    "tallOrBlocking": "Trees, bamboo, boulders, outcrops, logs and stumps use tiny/small/medium footprint presets, usually 2-4 members and wider spacing than groundcover. Honor current block values; do not pack trunks or rocks into an impassable belt.",
+    "mediumDecorative": "Bushes, broad ferns, scrub and root clumps may use tiny through large presets with density and companion weights by biome.",
+    "lowCover": "Grass, reeds, flowers, heather, ferns and mushrooms may use up to expansive presets where their footprint and density support it. Fungi use only tiny/small colonies. Keep a meaningful single-sprite share in every family.",
+    "height": "Each cluster independently samples short, baseline and tall tier weights around that kind's current displayed scale. The three tiers vary members within a cluster; cluster footprint size and member height are separate controls.",
+    "specialSurface": "Lily pads and duckweed remain in scope as ordinary props, but true water-surface clustering requires verified inland still-water classification and a suitable flat rendering mode. Until then retain their current land-mode behavior rather than claiming a water placement implementation."
+  },
   "placementRules": [
     "Check every member footprint against the final biome field, rounded terrain, water classification and clearing masks, not only its patch center. A center on land does not make all of a wide patch valid.",
     "Keep ordinary ground cover out of water, cliffs, city bounds, trails, sites, entrances and clearing-stamp cores. Use an irregular fade at valid patch edges rather than hard rectangles or a regular lattice.",
     "Forest and jungle are separate families. Marsh floating leaves cannot spawn on wet-looking land or arbitrary water; shore distance alone is not an inland-water classifier.",
     "Favor appropriate nearby trees, logs and rocks where useful, using bounded world-space neighbor queries with the same halo. Avoid a dependency cycle where a prop must query a chunk that in turn generates the same prop.",
-    "Leave trees, blocking rocks, logs/stumps and rare oddities on their existing placement systems. Ground-cover patches remain decorative and do not introduce movement blockers.",
+    "Include ordinary trees, blocking rocks, logs/stumps, bamboo and driftwood in clustering, with looser layouts, more singles, footprint-aware spacing and stable blockers. Keep rare oddities, fixed cliffs and authored sites on their existing systems.",
+    "Treat existing grove noise and marsh wet/wooded bias as center preferences, then validate every member against the same biome and clearance rules. Do not place a whole cluster only because its center passes.",
     "Keep members individually addressable and individually culled so long patches do not pop in/out as a single object. Avoid new per-frame scans of the whole island."
   ],
   "generatorDesign": {
     "currentObservedCandidateProbability": 1.0296,
     "probabilityNote": "Snapshot only; marsh integration can change rates. Existing paintProps uses one cumulative candidate draw across all rules and throws above 1. Do not append patch rates to that distribution.",
-    "proposal": "A separate pure deterministic ground-cover generator plus data profiles, called from paintProps. Reuse createPaint masks and the same authoritative terrain queries. Keep the current scalar prop output format initially; optimize rendering only if measured cost requires it.",
-    "oldScatterMigration": "Identify replaced rules by stable family/kind IDs. Preserve their existing selection slots/cumulative rates but suppress their old ground-cover emissions when clustering is enabled. Removing slots or reordering cumulative rates would reshuffle existing trees, rocks and logs. Separate patch generation uses its own seed namespace. Coast dune grass uses a separate existing pass: suppress only its old emission, keeping driftwood selection and other coast placements unchanged.",
-    "budget": "Measure accepted baseline ground-cover sprites per 1000 units in representative biome interiors and edges. Start with the same total budget, split into singles and clustered members. Estimate center rate from the clustered-member target divided by measured accepted members per patch; tune after member rejection, not by multiplying old per1000 by patch size.",
+    "proposal": "A separate pure deterministic ordinary-prop clustering helper plus data profiles, called from paintProps. Reuse createPaint masks, grove field, marsh wetness, coast distance, trail/stamp clearances and terrain queries. Keep the current scalar prop output format and blocker format initially; optimize rendering only if measured cost requires it.",
+    "oldScatterMigration": "Tag every existing ordinary prop rule by stable family and source pass: painted candidate rules, additional biome rules, bamboo, marsh supplement and coast. In cluster mode, suppress each selected family's old emission and generate its singles and cluster members from a separate seed namespace. Exclude only biome_oddity and fixed terrain/island art. Never double-spawn marsh or dune grass from their dedicated passes. Preserve their old mode behind a switch for same-seed visual comparison.",
+    "budget": "Measure accepted baseline emitted sprites per 1000 units by family and biome, including the marsh supplement and coast pass. Use the provisional per-family multiplier ranges in densityTuning as starting experiments, then tune patch-center rate, member count and single share against coverage, local gaps, navigation and performance. Estimate center rates from accepted members per patch and adjust for rejection. Avoid blindly multiplying existing per1000 by patch member count; the shared one-candidate sampler cannot absorb extra rates.",
     "determinism": "Derive centers from a global world-space grid, with stable named seeds for family, patch, layout and member. Choose the same centers from adjacent chunks and emit a member only in the chunk containing its final coordinates. No Math.random, time-dependent layouts, chunk-local seeds or generation-order dependence.",
     "halo": "Enumerate patch centers outside each chunk by maximum member offset plus maximum sprite footprint and any neighbor-query reach. A center belongs to one family, but its members may belong to multiple owning chunks. Prevent duplicate emission by stable member IDs.",
-    "limits": "Cap members per patch (initial maximum 10; smaller caps for fungi/drifts) and neighbor-query reach. Set a measured stable local density limit if needed, resolved by world-space ownership and hash priority, never by chunk iteration order or current camera position.",
-    "data": "Proposed runtime file game/data/groundcover.json: enabled/version/seed, per-family assets, member-count and radius ranges, mixture weights, surface/biome filters, density targets, clearances and stable IDs. Do not create this runtime config until implementation is approved.",
-    "fallback": "Keep a config switch for current single scatter versus patch placement, for the same saved world/seed in manual review. Switching ground-cover mode must preserve non-ground-cover prop records and navigation."
+    "limits": "Cap members per patch by family (five presets top out at 11 only for light vegetation), cap neighbor-query reach, and use world-space hash priority for any local density limit. Blocking trees/rocks use tighter member caps and path-preserving spacing. Never resolve by chunk iteration order or camera position.",
+    "data": "Proposed runtime file game/data/prop_clustering.json: enabled/version/seed, per-family source rules, eligible footprint presets, height-tier weights/caps, mixture weights, surface/biome filters, density targets, clearances and stable IDs.",
+    "fallback": "Keep a switch for current ordinary-prop scatter versus clustered mode for the same saved world/seed in manual review. Oddities, fixed island art and authored sites remain identical. Ordinary prop positions and blockers may intentionally change, so validate navigation and access after switching."
   },
   "excluded": [
-    "Tree clustering or tree density/size changes",
     "Clustering rare oddities into repeated landmarks",
     "New bridge art or bridge rules",
     "River-source/lake redesign",
     "New texture generation or another art batch",
     "A new lighting system for glowing mushrooms",
+    "Changing the current per-kind baseline display scale; height tiers are relative multipliers",
+    "Moving props vertically off the ground to simulate height",
     "Renderer batching/atlasing without evidence it is needed"
   ],
   "phases": [
@@ -291,17 +322,17 @@
     },
     {
       "id": "B",
-      "task": "After coast review and plan acceptance, implement deterministic patch helper/config with old-scatter fallback. Pilot meadow, forest ferns/fungi and snow; establish baseline and emitted-member budgets.",
+      "task": "Implement deterministic ordinary-prop helper/config with old-scatter fallback. Pilot meadow, forest trees/ferns/fungi and snow trees/drifts; establish baseline emitted-member budgets and blocker validation.",
       "done": false
     },
     {
       "id": "C",
-      "task": "Apply hills, dry, coast and rainforest profiles. Add marsh land vegetation once its import/spawn rules are stable; then separately validate the still-water leaf branch.",
+      "task": "Apply hills, dry, coast, jungle and marsh ordinary-prop profiles, including trees, rocks, wood and the marsh supplement. Separately validate the still-water leaf branch before moving it off land.",
       "done": false
     },
     {
       "id": "D",
-      "task": "Tim compares the same seeded locations across small/medium/large patches, clearings, biome edges, coast and trails. Tune local sizes, mixtures and density without tree/landmark reshuffles.",
+      "task": "Tim compares the same seeded locations across five footprint presets and three relative height tiers, plus clearings, biome edges, coast and trails. Tune mixtures and density while keeping oddities and fixed art unchanged.",
       "done": false
     },
     {
@@ -312,13 +343,14 @@
   ],
   "acceptance": [
     "Repeated generation is identical; four neighboring chunks match one combined area, including patches centered outside the chunk. No duplicated IDs or truncated border patches.",
-    "Non-ground-cover props and all blockers match the old-scatter mode for the same world/seed. Member surface, biome, clearing and trail constraints hold at the footprint level.",
-    "Expected asset families appear in appropriate biomes; glowing mushrooms remain rare, no ordinary ferns in jungle-only profiles, no floating leaves on land/open sea/flowing crossings.",
-    "Final sprite counts stay within the agreed biome budgets, with bounded patch sizes and readable open spaces. Camera-local cost is measured rather than inferred from total island count.",
+    "Oddities, fixed art and authored sites match old-scatter mode for the same world/seed. Ordinary props and their blockers are deterministic, consistent across chunk borders and retain traversable paths, entrances and clearings. Member surface, biome, clearing and trail constraints hold at the footprint level.",
+    "All ordinary procedural prop families are accounted for; no family double-spawns from painted, additional, bamboo, marsh-supplement or coast passes. Existing visualScaleByKind and per-rule scale remain the baseline tier.",
+    "Expected asset families appear in appropriate biomes; glowing mushrooms remain rare and regular-forest ferns do not enter jungle-only profiles. Before enabling water-surface mode, floating leaves must stay off land, open sea and flowing crossings.",
+    "Five configurable footprint sizes and three relative height tiers are represented where their family permits them. Final sprite counts may rise above the current baseline within agreed per-family biome budgets. Compare cluster-center spacing, largest empty gaps and camera-visible coverage at the same seeded locations; retain readable open spaces. Camera-local cost is measured rather than inferred from total island count.",
     "Manual review covers individual silhouettes, overlaps, painted lighting, pattern repetition, walk readability, chunk crossings and day/night appearance using the existing canonical playtest setup. No browser automation."
   ],
   "inventorySnapshot": {
-    "note": "Read-only catalog/runtime snapshot, not visual crop approval or an assertion that all sources are wired. Other art chats are actively importing; refresh before implementation.",
+    "note": "Version-2 groundcover-only snapshot retained for reference. It is incomplete for the version-4 all-ordinary-prop scope and predates recent marsh, jungle and forest scale changes. Refresh inventory, displayed footprints and measured counts before implementation.",
     "cataloguedWithRuntimeCutout": [
       "meadow_grass",
       "meadow_flowers",
@@ -361,7 +393,7 @@
       "marshLand": 7.95,
       "marshStillWater": 0.8
     },
-    "rateNote": "Configured counts before biome/grove/clearance rejection, not measured final density. Snapshot only; refresh after ongoing marsh integration.",
+    "rateNote": "Legacy groundcover-only configured counts before biome/grove/clearance rejection, not measured final density. Refresh for every ordinary prop family, including dedicated marsh and coast passes.",
     "sources": [
       "game/data/art.json",
       "game/art/cutouts.json",

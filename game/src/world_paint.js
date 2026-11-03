@@ -5,7 +5,7 @@
 // so the same spot looks the same in every chunk, on every machine.
 //   createPaint(world, cfg) -> { fieldAt, grove, trailAt, stampsIn, paintChunk, ... }  (cached per cfg)
 import { islandBiome } from './sim/island_art.js';
-import { oceanTopology } from './sim/shoreline.js';
+import { shorelineTopology } from './sim/shoreline.js';
 
 // ---------- seeded value noise (no tables, so it is the same in every chunk) ----------
 export function hash2(ix, iz, seed) {
@@ -39,21 +39,27 @@ export function createPaint(world, cfg) {
   const F = cfg.field, NB = cfg.biomes.length, B = Object.fromEntries(cfg.biomes.map((n, i) => [n, i]));
   const matIds = Object.keys(cfg.materials), NM = matIds.length, M = Object.fromEntries(matIds.map((n, i) => [n, i]));
   const t = world.terrain, tc = t.cell, nx = t.rows[0].length, nz = t.rows.length;
-  const shore = world.terrain.shoreline?.radius || cfg.coastTransition?.enabled ? oceanTopology(world) : null;
+  const shore = world.terrain.shoreline?.radius || cfg.coastTransition?.enabled ? shorelineTopology(world) : null;
 
   // terrain cell -> biome id (grid built once). Mountain cells take their range's top, water is `bank`.
   const grid = new Int8Array(nx * nz);
   const BLOCKED_BIOME = new Set([B.top_forest, B.top_snow, B.top_dry, B.bank]);
   const CODE = { f: 'forest', b: 'forest', p: 'plain', h: 'hills', k: 'marsh', d: 'dry', n: 'snow', w: 'bank', r: 'bank' };
+  // Authored biome overlays change ground/vegetation, preserving terrain and navigation.
+  const areas = (cfg.biomeAreas || []).map(a => ({ ...a, box: a.box || world.regions.find(r => r.id === a.region)?.box })).filter(a => a.box);
+  const biomeAt = (code, x, z) => {
+    const area = areas.find(a => (a.terrainCodes || ['p','f','h','b']).includes(code) && x >= a.box[0] && z >= a.box[1] && x < a.box[2] && z < a.box[3]);
+    return area?.biome || CODE[code] || 'plain';
+  };
   for (let i = 0; i < nz; i++) for (let j = 0; j < nx; j++) {
     const code = t.rows[i][j];
-    grid[i * nx + j] = code === 'm' ? B['top_' + islandBiome(world, (j + 0.5) * tc, (i + 0.5) * tc)] : B[CODE[code] ?? 'plain'];
+    grid[i * nx + j] = code === 'm' ? B['top_' + islandBiome(world, (j + 0.5) * tc, (i + 0.5) * tc)] : B[biomeAt(code, (j + 0.5) * tc, (i + 0.5) * tc)];
   }
   const gridAt = (x, z) => {
     const i = Math.floor(z / tc), j = Math.floor(x / tc);
     if (i < 0 || j < 0 || i >= nz || j >= nx) return B.bank;
     const original = t.rows[i][j], code = shore ? shore.codeAt(x, z, original) : original;
-    return code === original ? grid[i * nx + j] : B[CODE[code] ?? 'plain'];
+    return code === original ? grid[i * nx + j] : B[biomeAt(code,x,z)];
   };
 
   // layer 1: the biome field. Out = weights per biome (sum 1). Borders wander: the point is pushed

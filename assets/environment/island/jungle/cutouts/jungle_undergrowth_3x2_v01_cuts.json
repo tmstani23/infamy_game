@@ -1,0 +1,155 @@
+{
+  "sourceAlphaPreserved": true,
+  "assets": [
+    {
+      "id": "jungle_broadleaf_clump",
+      "sourceSheet": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "region": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "trim": {
+        "left": 22,
+        "top": 18,
+        "width": 490,
+        "height": 460
+      },
+      "groundAnchor": [
+        181,
+        455
+      ],
+      "footprint": [
+        2.8,
+        2.8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_fan_palm_clump",
+      "sourceSheet": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "region": [
+        512,
+        0,
+        1010,
+        512
+      ],
+      "trim": {
+        "left": 8,
+        "top": 106,
+        "width": 461,
+        "height": 367
+      },
+      "groundAnchor": [
+        243,
+        362
+      ],
+      "footprint": [
+        2.8,
+        2.8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_large_fern_clump",
+      "sourceSheet": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "region": [
+        1010,
+        0,
+        1536,
+        512
+      ],
+      "trim": {
+        "left": 3,
+        "top": 82,
+        "width": 503,
+        "height": 387
+      },
+      "groundAnchor": [
+        247,
+        382
+      ],
+      "footprint": [
+        3.2,
+        3.2
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_vine_root_tangle",
+      "sourceSheet": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "region": [
+        0,
+        512,
+        500,
+        1024
+      ],
+      "trim": {
+        "left": 18,
+        "top": 128,
+        "width": 463,
+        "height": 309
+      },
+      "groundAnchor": [
+        161,
+        304
+      ],
+      "footprint": [
+        3,
+        3
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_low_dense_shrub",
+      "sourceSheet": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "region": [
+        500,
+        512,
+        1015,
+        1024
+      ],
+      "trim": {
+        "left": 1,
+        "top": 72,
+        "width": 501,
+        "height": 351
+      },
+      "groundAnchor": [
+        205,
+        346
+      ],
+      "footprint": [
+        2.8,
+        2.8
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "jungle_tall_grass_clump",
+      "sourceSheet": "jungle/sheets/jungle_undergrowth_3x2_v01.png",
+      "region": [
+        1015,
+        512,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 5,
+        "top": 73,
+        "width": 498,
+        "height": 349
+      },
+      "groundAnchor": [
+        140,
+        344
+      ],
+      "footprint": [
+        2.5,
+        2.5
+      ],
+      "opaqueBoundaryPixels": 0
+    }
+  ]
+}

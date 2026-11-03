@@ -1,0 +1,155 @@
+{
+  "sourceAlphaPreserved": true,
+  "assets": [
+    {
+      "id": "forest_brown_mushrooms",
+      "sourceSheet": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "region": [
+        0,
+        0,
+        512,
+        480
+      ],
+      "trim": {
+        "left": 95,
+        "top": 84,
+        "width": 350,
+        "height": 347
+      },
+      "groundAnchor": [
+        194,
+        342
+      ],
+      "footprint": [
+        1.2,
+        1.2
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "forest_cream_mushrooms",
+      "sourceSheet": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "region": [
+        512,
+        0,
+        1024,
+        480
+      ],
+      "trim": {
+        "left": 50,
+        "top": 210,
+        "width": 366,
+        "height": 212
+      },
+      "groundAnchor": [
+        164,
+        207
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "forest_russet_mushrooms",
+      "sourceSheet": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "region": [
+        1024,
+        0,
+        1536,
+        480
+      ],
+      "trim": {
+        "left": 6,
+        "top": 91,
+        "width": 411,
+        "height": 338
+      },
+      "groundAnchor": [
+        267,
+        333
+      ],
+      "footprint": [
+        1.2,
+        1.2
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "forest_glowing_mushrooms",
+      "sourceSheet": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "region": [
+        0,
+        480,
+        375,
+        1024
+      ],
+      "trim": {
+        "left": 80,
+        "top": 106,
+        "width": 249,
+        "height": 323
+      },
+      "groundAnchor": [
+        114,
+        318
+      ],
+      "footprint": [
+        1.2,
+        1.2
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "forest_broad_fern",
+      "sourceSheet": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "region": [
+        375,
+        480,
+        1000,
+        1024
+      ],
+      "trim": {
+        "left": 9,
+        "top": 53,
+        "width": 612,
+        "height": 401
+      },
+      "groundAnchor": [
+        520,
+        396
+      ],
+      "footprint": [
+        2.7,
+        2.7
+      ],
+      "opaqueBoundaryPixels": 0
+    },
+    {
+      "id": "forest_feathery_fern",
+      "sourceSheet": "forest_floor/sheets/forest_mushrooms_ferns_3x2_v01.png",
+      "region": [
+        1000,
+        480,
+        1536,
+        1024
+      ],
+      "trim": {
+        "left": 3,
+        "top": 27,
+        "width": 501,
+        "height": 413
+      },
+      "groundAnchor": [
+        240,
+        408
+      ],
+      "footprint": [
+        2.4,
+        2.4
+      ],
+      "opaqueBoundaryPixels": 0
+    }
+  ]
+}

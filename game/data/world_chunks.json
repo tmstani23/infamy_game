@@ -274,6 +274,11 @@
     "enabled": true,
     "_note": "W3.9 art calibration only; tune after visual review. Navigation stays terrain-cell based.",
     "topPinesPerCell": 2,
+    "dryTop": {
+      "props": [{"art":"dry_scrub","chance":0.08},{"art":"dry_grass_tussock","chance":0.08},{"art":"dead_tree","chance":0.025,"scale":0.7},{"art":"sandstone_stones","chance":0.05}],
+      "oddityChance": 0.007,
+      "oddities": ["dry_shaded_rock_grotto","dry_fossil_skull_in_sandstone","dry_ancient_dry_well"]
+    },
     "topTile": 28,
     "cornerSlip": 0.6
   }
