@@ -386,6 +386,10 @@ Prompt source: [`snow_ground_prompts.json`](environment/island/snow_ground_promp
 
 Each B file is a separately generated alternate arrangement matching its A texture's colour and feature scale, with stronger instructions to avoid directional patterning. No extra snow high-ground E variant was requested or generated. Whole-region snow-ground rendering and thaw blending still require code integration.
 
+## Atlas illustration reference (2026-11-03)
+
+Step 1 complete; illustration/prompt generation is the next separate step. [Current blueprint review](environment/island/atlas/atlas_review_v1.png) shows the combined runtime geography and all source features. Use [clean terrain](environment/island/atlas/atlas_blueprint_v1.png) as the future artwork target; the review sheet's header is not part of the map. [Manifest](environment/island/atlas/atlas_reference_manifest_v1.json) records alignment, hashes and artifact roles. Run `node tools/prepare_atlas_reference.mjs --check` before generation. Source/edit workflow and atlas phases: [frontier plan](../docs/frontier_build_steps.md#atlas-reference-checkpoint-2026-11-03).
+
 ## P5 biome art plan only (2026-11-02)
 
 Completed (Tim, 2026-11-02): ten accepted transparent sheets and 57 named sprites, cut, imported and integrated. Tim reviewed the repaired previews and said they look awesome. Original approved prompt wording follows as the source brief; units are rough fitting guidance, not exact generator output.

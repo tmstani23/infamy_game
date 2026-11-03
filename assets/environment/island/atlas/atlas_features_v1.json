@@ -1,0 +1,5792 @@
+{
+  "coordinates": "World x east, z south; pixel x=x*0.2, y=z*0.2. No crop, margin or rotation.",
+  "routes": [
+    {
+      "id": "C1",
+      "kind": "road",
+      "points": [
+        [
+          5975,
+          575
+        ],
+        [
+          7025,
+          725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C2",
+      "kind": "road",
+      "points": [
+        [
+          2825,
+          725
+        ],
+        [
+          3175,
+          975
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C3",
+      "kind": "road",
+      "points": [
+        [
+          2825,
+          725
+        ],
+        [
+          2375,
+          925
+        ],
+        [
+          1925,
+          1375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C4",
+      "kind": "road",
+      "points": [
+        [
+          4925,
+          725
+        ],
+        [
+          4875,
+          825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C5",
+      "kind": "road",
+      "points": [
+        [
+          7025,
+          725
+        ],
+        [
+          7625,
+          825
+        ],
+        [
+          8075,
+          825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C6",
+      "kind": "road",
+      "points": [
+        [
+          4875,
+          825
+        ],
+        [
+          4825,
+          875
+        ],
+        [
+          4775,
+          1325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C7",
+      "kind": "road",
+      "points": [
+        [
+          4875,
+          825
+        ],
+        [
+          4375,
+          875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C8",
+      "kind": "road",
+      "points": [
+        [
+          8075,
+          825
+        ],
+        [
+          8975,
+          875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C9",
+      "kind": "road",
+      "points": [
+        [
+          8075,
+          825
+        ],
+        [
+          7925,
+          975
+        ],
+        [
+          7925,
+          1325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C10",
+      "kind": "road",
+      "points": [
+        [
+          3875,
+          875
+        ],
+        [
+          3375,
+          1025
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C11",
+      "kind": "road",
+      "points": [
+        [
+          3875,
+          875
+        ],
+        [
+          4375,
+          875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C12",
+      "kind": "road",
+      "points": [
+        [
+          4375,
+          875
+        ],
+        [
+          4475,
+          975
+        ],
+        [
+          4775,
+          1325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C13",
+      "kind": "road",
+      "points": [
+        [
+          8975,
+          875
+        ],
+        [
+          9875,
+          875
+        ],
+        [
+          10475,
+          1475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C14",
+      "kind": "road",
+      "points": [
+        [
+          3175,
+          975
+        ],
+        [
+          3175,
+          1225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C15",
+      "kind": "road",
+      "points": [
+        [
+          3175,
+          975
+        ],
+        [
+          3375,
+          1025
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C16",
+      "kind": "road",
+      "points": [
+        [
+          3375,
+          1025
+        ],
+        [
+          3175,
+          1225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C17",
+      "kind": "road",
+      "points": [
+        [
+          3175,
+          1225
+        ],
+        [
+          3075,
+          1625
+        ],
+        [
+          3125,
+          1925
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C18",
+      "kind": "road",
+      "points": [
+        [
+          1925,
+          1325
+        ],
+        [
+          1925,
+          1375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C19",
+      "kind": "road",
+      "points": [
+        [
+          4775,
+          1325
+        ],
+        [
+          4475,
+          2325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C20",
+      "kind": "road",
+      "points": [
+        [
+          7925,
+          1325
+        ],
+        [
+          8075,
+          2375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C21",
+      "kind": "road",
+      "points": [
+        [
+          10475,
+          1325
+        ],
+        [
+          10475,
+          1475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C22",
+      "kind": "road",
+      "points": [
+        [
+          1925,
+          1375
+        ],
+        [
+          1925,
+          1925
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C23",
+      "kind": "road",
+      "points": [
+        [
+          10475,
+          1475
+        ],
+        [
+          10575,
+          2175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C24",
+      "kind": "road",
+      "points": [
+        [
+          11825,
+          1475
+        ],
+        [
+          12075,
+          2275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C25",
+      "kind": "road",
+      "points": [
+        [
+          12875,
+          1475
+        ],
+        [
+          12075,
+          2275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C26",
+      "kind": "road",
+      "points": [
+        [
+          1025,
+          1775
+        ],
+        [
+          1925,
+          1925
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C27",
+      "kind": "road",
+      "points": [
+        [
+          1925,
+          1925
+        ],
+        [
+          2775,
+          2775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C28",
+      "kind": "road",
+      "points": [
+        [
+          3125,
+          1925
+        ],
+        [
+          3075,
+          3075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C29",
+      "kind": "road",
+      "points": [
+        [
+          4175,
+          1925
+        ],
+        [
+          4475,
+          2325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C30",
+      "kind": "road",
+      "points": [
+        [
+          6875,
+          1925
+        ],
+        [
+          7875,
+          2875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C31",
+      "kind": "road",
+      "points": [
+        [
+          9725,
+          2075
+        ],
+        [
+          10075,
+          2275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C32",
+      "kind": "road",
+      "points": [
+        [
+          10575,
+          2175
+        ],
+        [
+          10725,
+          2325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C33",
+      "kind": "road",
+      "points": [
+        [
+          10575,
+          2175
+        ],
+        [
+          10525,
+          2325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C34",
+      "kind": "road",
+      "points": [
+        [
+          10075,
+          2275
+        ],
+        [
+          10525,
+          2325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C35",
+      "kind": "road",
+      "points": [
+        [
+          10075,
+          2275
+        ],
+        [
+          10175,
+          2675
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C36",
+      "kind": "road",
+      "points": [
+        [
+          12075,
+          2275
+        ],
+        [
+          12075,
+          2575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C37",
+      "kind": "road",
+      "points": [
+        [
+          4475,
+          2325
+        ],
+        [
+          4875,
+          2725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C38",
+      "kind": "road",
+      "points": [
+        [
+          10525,
+          2325
+        ],
+        [
+          10725,
+          2325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C39",
+      "kind": "road",
+      "points": [
+        [
+          10525,
+          2325
+        ],
+        [
+          10175,
+          2675
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C40",
+      "kind": "road",
+      "points": [
+        [
+          10725,
+          2325
+        ],
+        [
+          10925,
+          2525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C41",
+      "kind": "road",
+      "points": [
+        [
+          8075,
+          2375
+        ],
+        [
+          7875,
+          2875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C42",
+      "kind": "road",
+      "points": [
+        [
+          5225,
+          2525
+        ],
+        [
+          4875,
+          2725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C43",
+      "kind": "road",
+      "points": [
+        [
+          10925,
+          2525
+        ],
+        [
+          11025,
+          2625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C44",
+      "kind": "road",
+      "points": [
+        [
+          10925,
+          2525
+        ],
+        [
+          10625,
+          3225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C45",
+      "kind": "road",
+      "points": [
+        [
+          12075,
+          2575
+        ],
+        [
+          12525,
+          3075
+        ],
+        [
+          12625,
+          3175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C46",
+      "kind": "road",
+      "points": [
+        [
+          12075,
+          2575
+        ],
+        [
+          11925,
+          2625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C47",
+      "kind": "road",
+      "points": [
+        [
+          11025,
+          2625
+        ],
+        [
+          11475,
+          3075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C48",
+      "kind": "road",
+      "points": [
+        [
+          11025,
+          2625
+        ],
+        [
+          11925,
+          2625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C49",
+      "kind": "road",
+      "points": [
+        [
+          11925,
+          2625
+        ],
+        [
+          11475,
+          3075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C50",
+      "kind": "road",
+      "points": [
+        [
+          10175,
+          2675
+        ],
+        [
+          10125,
+          2725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C51",
+      "kind": "road",
+      "points": [
+        [
+          10175,
+          2675
+        ],
+        [
+          10175,
+          2775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C52",
+      "kind": "road",
+      "points": [
+        [
+          4875,
+          2725
+        ],
+        [
+          4575,
+          3525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C53",
+      "kind": "road",
+      "points": [
+        [
+          10125,
+          2725
+        ],
+        [
+          9575,
+          3275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C54",
+      "kind": "road",
+      "points": [
+        [
+          10125,
+          2725
+        ],
+        [
+          10175,
+          2775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C55",
+      "kind": "road",
+      "points": [
+        [
+          2775,
+          2775
+        ],
+        [
+          3075,
+          3075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C56",
+      "kind": "road",
+      "points": [
+        [
+          2775,
+          2775
+        ],
+        [
+          2375,
+          2825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C57",
+      "kind": "road",
+      "points": [
+        [
+          10175,
+          2775
+        ],
+        [
+          10625,
+          3225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C58",
+      "kind": "road",
+      "points": [
+        [
+          875,
+          2825
+        ],
+        [
+          1425,
+          3375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C59",
+      "kind": "road",
+      "points": [
+        [
+          2375,
+          2825
+        ],
+        [
+          1975,
+          3125
+        ],
+        [
+          1775,
+          3325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C60",
+      "kind": "road",
+      "points": [
+        [
+          7875,
+          2875
+        ],
+        [
+          8575,
+          3575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C61",
+      "kind": "road",
+      "points": [
+        [
+          4025,
+          2975
+        ],
+        [
+          4425,
+          3675
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C62",
+      "kind": "road",
+      "points": [
+        [
+          3075,
+          3075
+        ],
+        [
+          3775,
+          3825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C63",
+      "kind": "road",
+      "points": [
+        [
+          11475,
+          3075
+        ],
+        [
+          11525,
+          3175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C64",
+      "kind": "road",
+      "points": [
+        [
+          11525,
+          3175
+        ],
+        [
+          12625,
+          3175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C65",
+      "kind": "road",
+      "points": [
+        [
+          11525,
+          3175
+        ],
+        [
+          11325,
+          3375
+        ],
+        [
+          10825,
+          3375
+        ],
+        [
+          10675,
+          3325
+        ],
+        [
+          10625,
+          3275
+        ],
+        [
+          10625,
+          3225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C66",
+      "kind": "road",
+      "points": [
+        [
+          12625,
+          3175
+        ],
+        [
+          12975,
+          3425
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C67",
+      "kind": "road",
+      "points": [
+        [
+          1775,
+          3325
+        ],
+        [
+          1775,
+          3725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C68",
+      "kind": "road",
+      "points": [
+        [
+          1775,
+          3325
+        ],
+        [
+          1425,
+          3375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C69",
+      "kind": "road",
+      "points": [
+        [
+          1425,
+          3375
+        ],
+        [
+          1775,
+          3725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C70",
+      "kind": "both",
+      "points": [
+        [
+          12975,
+          3425
+        ],
+        [
+          12075,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C71",
+      "kind": "road",
+      "points": [
+        [
+          12975,
+          3425
+        ],
+        [
+          13525,
+          4825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C72",
+      "kind": "road",
+      "points": [
+        [
+          4575,
+          3525
+        ],
+        [
+          4425,
+          3675
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C73",
+      "kind": "road",
+      "points": [
+        [
+          4575,
+          3525
+        ],
+        [
+          4625,
+          3575
+        ],
+        [
+          4925,
+          3575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C74",
+      "kind": "road",
+      "points": [
+        [
+          6875,
+          3575
+        ],
+        [
+          8575,
+          3575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C75",
+      "kind": "road",
+      "points": [
+        [
+          8575,
+          3575
+        ],
+        [
+          8825,
+          3825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C76",
+      "kind": "road",
+      "points": [
+        [
+          4425,
+          3675
+        ],
+        [
+          4125,
+          4175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C77",
+      "kind": "road",
+      "points": [
+        [
+          1775,
+          3725
+        ],
+        [
+          2475,
+          3875
+        ],
+        [
+          2975,
+          3875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C78",
+      "kind": "road",
+      "points": [
+        [
+          1775,
+          3725
+        ],
+        [
+          1725,
+          3775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C79",
+      "kind": "road",
+      "points": [
+        [
+          1775,
+          3725
+        ],
+        [
+          1775,
+          3825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C80",
+      "kind": "road",
+      "points": [
+        [
+          2825,
+          3725
+        ],
+        [
+          2975,
+          3875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C81",
+      "kind": "road",
+      "points": [
+        [
+          10475,
+          3725
+        ],
+        [
+          11075,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C82",
+      "kind": "road",
+      "points": [
+        [
+          1725,
+          3775
+        ],
+        [
+          575,
+          4025
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C83",
+      "kind": "road",
+      "points": [
+        [
+          1725,
+          3775
+        ],
+        [
+          1775,
+          3825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C84",
+      "kind": "road",
+      "points": [
+        [
+          1775,
+          3825
+        ],
+        [
+          1775,
+          4575
+        ],
+        [
+          2275,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C85",
+      "kind": "both",
+      "points": [
+        [
+          3775,
+          3825
+        ],
+        [
+          4075,
+          4125
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C86",
+      "kind": "road",
+      "points": [
+        [
+          3775,
+          3825
+        ],
+        [
+          2975,
+          3875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C87",
+      "kind": "road",
+      "points": [
+        [
+          8825,
+          3825
+        ],
+        [
+          9325,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C88",
+      "kind": "road",
+      "points": [
+        [
+          8825,
+          3825
+        ],
+        [
+          8675,
+          3875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C89",
+      "kind": "road",
+      "points": [
+        [
+          5825,
+          4025
+        ],
+        [
+          5225,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C90",
+      "kind": "both",
+      "points": [
+        [
+          4075,
+          4125
+        ],
+        [
+          4125,
+          4175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C91",
+      "kind": "road",
+      "points": [
+        [
+          4075,
+          4125
+        ],
+        [
+          4025,
+          4175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C92",
+      "kind": "both",
+      "points": [
+        [
+          4125,
+          4175
+        ],
+        [
+          4175,
+          4225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C93",
+      "kind": "both",
+      "points": [
+        [
+          4175,
+          4225
+        ],
+        [
+          4225,
+          4275
+        ],
+        [
+          4225,
+          4575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C94",
+      "kind": "road",
+      "points": [
+        [
+          4175,
+          4225
+        ],
+        [
+          4075,
+          4275
+        ],
+        [
+          3825,
+          4525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C95",
+      "kind": "both",
+      "points": [
+        [
+          9325,
+          4325
+        ],
+        [
+          9075,
+          4475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C96",
+      "kind": "both",
+      "points": [
+        [
+          9325,
+          4325
+        ],
+        [
+          10175,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C97",
+      "kind": "both",
+      "points": [
+        [
+          10175,
+          4325
+        ],
+        [
+          11075,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C98",
+      "kind": "road",
+      "points": [
+        [
+          10175,
+          4325
+        ],
+        [
+          9925,
+          5725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C99",
+      "kind": "both",
+      "points": [
+        [
+          11075,
+          4325
+        ],
+        [
+          11525,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C100",
+      "kind": "both",
+      "points": [
+        [
+          11525,
+          4325
+        ],
+        [
+          12075,
+          4325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C101",
+      "kind": "road",
+      "points": [
+        [
+          11525,
+          4325
+        ],
+        [
+          11225,
+          4625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C102",
+      "kind": "road",
+      "points": [
+        [
+          12075,
+          4325
+        ],
+        [
+          12125,
+          5225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C103",
+      "kind": "road",
+      "points": [
+        [
+          7625,
+          4425
+        ],
+        [
+          7575,
+          4475
+        ],
+        [
+          7575,
+          4525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C104",
+      "kind": "road",
+      "points": [
+        [
+          7625,
+          4425
+        ],
+        [
+          9025,
+          4525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C105",
+      "kind": "road",
+      "points": [
+        [
+          7625,
+          4425
+        ],
+        [
+          7425,
+          4475
+        ],
+        [
+          7575,
+          4525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C106",
+      "kind": "both",
+      "points": [
+        [
+          9075,
+          4475
+        ],
+        [
+          9025,
+          4525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C107",
+      "kind": "road",
+      "points": [
+        [
+          9075,
+          4475
+        ],
+        [
+          9125,
+          4925
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C108",
+      "kind": "road",
+      "points": [
+        [
+          3825,
+          4525
+        ],
+        [
+          3625,
+          4725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C109",
+      "kind": "road",
+      "points": [
+        [
+          3825,
+          4525
+        ],
+        [
+          4225,
+          4575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C110",
+      "kind": "road",
+      "points": [
+        [
+          7575,
+          4525
+        ],
+        [
+          7675,
+          4625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C111",
+      "kind": "both",
+      "points": [
+        [
+          9025,
+          4525
+        ],
+        [
+          8425,
+          5025
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C112",
+      "kind": "both",
+      "points": [
+        [
+          4225,
+          4575
+        ],
+        [
+          4675,
+          5025
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C113",
+      "kind": "road",
+      "points": [
+        [
+          7675,
+          4625
+        ],
+        [
+          7825,
+          4775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C114",
+      "kind": "road",
+      "points": [
+        [
+          7675,
+          4625
+        ],
+        [
+          7625,
+          4775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C115",
+      "kind": "road",
+      "points": [
+        [
+          11225,
+          4625
+        ],
+        [
+          11075,
+          5825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C116",
+      "kind": "road",
+      "points": [
+        [
+          3625,
+          4725
+        ],
+        [
+          2975,
+          4925
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C117",
+      "kind": "road",
+      "points": [
+        [
+          3625,
+          4725
+        ],
+        [
+          3575,
+          5375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C118",
+      "kind": "road",
+      "points": [
+        [
+          4925,
+          4775
+        ],
+        [
+          5075,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C119",
+      "kind": "road",
+      "points": [
+        [
+          7625,
+          4775
+        ],
+        [
+          7825,
+          4775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C120",
+      "kind": "road",
+      "points": [
+        [
+          7825,
+          4775
+        ],
+        [
+          8425,
+          5025
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C121",
+      "kind": "road",
+      "points": [
+        [
+          13525,
+          4825
+        ],
+        [
+          13625,
+          4925
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C122",
+      "kind": "road",
+      "points": [
+        [
+          13525,
+          4825
+        ],
+        [
+          13175,
+          5175
+        ],
+        [
+          13175,
+          5725
+        ],
+        [
+          13325,
+          6275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C123",
+      "kind": "road",
+      "points": [
+        [
+          2975,
+          4925
+        ],
+        [
+          2275,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C124",
+      "kind": "both",
+      "points": [
+        [
+          4675,
+          5025
+        ],
+        [
+          5075,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C125",
+      "kind": "road",
+      "points": [
+        [
+          4675,
+          5025
+        ],
+        [
+          3875,
+          5175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C126",
+      "kind": "both",
+      "points": [
+        [
+          8425,
+          5025
+        ],
+        [
+          7675,
+          5775
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C127",
+      "kind": "road",
+      "points": [
+        [
+          875,
+          5075
+        ],
+        [
+          1925,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C128",
+      "kind": "road",
+      "points": [
+        [
+          1925,
+          5075
+        ],
+        [
+          2125,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C129",
+      "kind": "road",
+      "points": [
+        [
+          1925,
+          5075
+        ],
+        [
+          2025,
+          5175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C130",
+      "kind": "road",
+      "points": [
+        [
+          2125,
+          5075
+        ],
+        [
+          2275,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C131",
+      "kind": "road",
+      "points": [
+        [
+          2125,
+          5075
+        ],
+        [
+          2025,
+          5175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C132",
+      "kind": "both",
+      "points": [
+        [
+          5075,
+          5075
+        ],
+        [
+          5225,
+          5075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C133",
+      "kind": "both",
+      "points": [
+        [
+          5225,
+          5075
+        ],
+        [
+          5625,
+          5475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C134",
+      "kind": "road",
+      "points": [
+        [
+          2025,
+          5175
+        ],
+        [
+          1825,
+          5375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C135",
+      "kind": "road",
+      "points": [
+        [
+          2025,
+          5175
+        ],
+        [
+          2075,
+          5425
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C136",
+      "kind": "road",
+      "points": [
+        [
+          3875,
+          5175
+        ],
+        [
+          3875,
+          5375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C137",
+      "kind": "road",
+      "points": [
+        [
+          3875,
+          5175
+        ],
+        [
+          3675,
+          5375
+        ],
+        [
+          3575,
+          5375
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C138",
+      "kind": "road",
+      "points": [
+        [
+          1825,
+          5375
+        ],
+        [
+          1175,
+          6275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C139",
+      "kind": "road",
+      "points": [
+        [
+          1825,
+          5375
+        ],
+        [
+          2075,
+          5425
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C140",
+      "kind": "road",
+      "points": [
+        [
+          3575,
+          5375
+        ],
+        [
+          3225,
+          5975
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C141",
+      "kind": "road",
+      "points": [
+        [
+          6125,
+          5375
+        ],
+        [
+          6025,
+          5625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C142",
+      "kind": "road",
+      "points": [
+        [
+          2075,
+          5425
+        ],
+        [
+          2625,
+          5975
+        ],
+        [
+          3225,
+          5975
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C143",
+      "kind": "both",
+      "points": [
+        [
+          5625,
+          5475
+        ],
+        [
+          6025,
+          5625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C144",
+      "kind": "road",
+      "points": [
+        [
+          5625,
+          5475
+        ],
+        [
+          5275,
+          5525
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C145",
+      "kind": "road",
+      "points": [
+        [
+          5275,
+          5525
+        ],
+        [
+          5175,
+          5525
+        ],
+        [
+          4275,
+          6425
+        ],
+        [
+          4175,
+          6725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C146",
+      "kind": "road",
+      "points": [
+        [
+          5275,
+          5525
+        ],
+        [
+          5225,
+          5825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C147",
+      "kind": "both",
+      "points": [
+        [
+          6025,
+          5625
+        ],
+        [
+          6675,
+          6075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C148",
+      "kind": "road",
+      "points": [
+        [
+          9925,
+          5725
+        ],
+        [
+          10025,
+          5825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C149",
+      "kind": "road",
+      "points": [
+        [
+          9925,
+          5725
+        ],
+        [
+          9825,
+          6325
+        ],
+        [
+          10025,
+          6875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C150",
+      "kind": "both",
+      "points": [
+        [
+          7675,
+          5775
+        ],
+        [
+          7325,
+          5825
+        ],
+        [
+          6725,
+          6025
+        ],
+        [
+          6675,
+          6075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C151",
+      "kind": "road",
+      "points": [
+        [
+          7675,
+          5775
+        ],
+        [
+          7625,
+          5825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C152",
+      "kind": "road",
+      "points": [
+        [
+          7625,
+          5825
+        ],
+        [
+          7475,
+          6625
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C153",
+      "kind": "road",
+      "points": [
+        [
+          11075,
+          5825
+        ],
+        [
+          11025,
+          6075
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C154",
+      "kind": "road",
+      "points": [
+        [
+          3225,
+          5975
+        ],
+        [
+          3125,
+          6125
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C155",
+      "kind": "road",
+      "points": [
+        [
+          6675,
+          6075
+        ],
+        [
+          6525,
+          6225
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C156",
+      "kind": "road",
+      "points": [
+        [
+          11025,
+          6075
+        ],
+        [
+          11075,
+          6725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C157",
+      "kind": "road",
+      "points": [
+        [
+          11025,
+          6075
+        ],
+        [
+          11075,
+          6725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C158",
+      "kind": "road",
+      "points": [
+        [
+          3125,
+          6125
+        ],
+        [
+          2225,
+          6575
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C159",
+      "kind": "road",
+      "points": [
+        [
+          6525,
+          6225
+        ],
+        [
+          6325,
+          6425
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C160",
+      "kind": "road",
+      "points": [
+        [
+          6525,
+          6225
+        ],
+        [
+          6575,
+          6275
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C161",
+      "kind": "road",
+      "points": [
+        [
+          6575,
+          6275
+        ],
+        [
+          6575,
+          6475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C162",
+      "kind": "road",
+      "points": [
+        [
+          13325,
+          6275
+        ],
+        [
+          12825,
+          6975
+        ],
+        [
+          12725,
+          7175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C163",
+      "kind": "road",
+      "points": [
+        [
+          6325,
+          6425
+        ],
+        [
+          5775,
+          6625
+        ],
+        [
+          5675,
+          6725
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C164",
+      "kind": "road",
+      "points": [
+        [
+          6325,
+          6425
+        ],
+        [
+          6575,
+          6475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C165",
+      "kind": "road",
+      "points": [
+        [
+          6575,
+          6475
+        ],
+        [
+          6925,
+          6825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C166",
+      "kind": "road",
+      "points": [
+        [
+          7475,
+          6625
+        ],
+        [
+          7475,
+          6875
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C167",
+      "kind": "road",
+      "points": [
+        [
+          7475,
+          6625
+        ],
+        [
+          7225,
+          6875
+        ],
+        [
+          7025,
+          6875
+        ],
+        [
+          6925,
+          6825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C168",
+      "kind": "road",
+      "points": [
+        [
+          4175,
+          6725
+        ],
+        [
+          3275,
+          7325
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C169",
+      "kind": "road",
+      "points": [
+        [
+          4175,
+          6725
+        ],
+        [
+          4925,
+          7475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C170",
+      "kind": "road",
+      "points": [
+        [
+          5675,
+          6725
+        ],
+        [
+          4925,
+          7475
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C171",
+      "kind": "road",
+      "points": [
+        [
+          5675,
+          6725
+        ],
+        [
+          6025,
+          6925
+        ],
+        [
+          6225,
+          6975
+        ],
+        [
+          6775,
+          6975
+        ],
+        [
+          6925,
+          6825
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C172",
+      "kind": "road",
+      "points": [
+        [
+          11075,
+          6725
+        ],
+        [
+          11225,
+          7175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    },
+    {
+      "id": "C173",
+      "kind": "road",
+      "points": [
+        [
+          10025,
+          6875
+        ],
+        [
+          11225,
+          7175
+        ]
+      ],
+      "type": "authored corridor; not a claim of constructed road"
+    }
+  ],
+  "extraTrails": [
+    [
+      [
+        13058,
+        3278
+      ],
+      [
+        13082,
+        3318
+      ],
+      [
+        13066,
+        3392
+      ],
+      [
+        12975,
+        3425
+      ]
+    ]
+  ],
+  "markers": [
+    {
+      "type": "capital",
+      "x": 12950,
+      "z": 3420,
+      "name": "The Capital (existing port city)",
+      "port": {
+        "x": 12925,
+        "z": 3225
+      },
+      "cityOffset": {
+        "x": 0,
+        "z": -150,
+        "_note": "W3.5: the city sits 150 units north of the capital point, so its harbour meets the island coast"
+      }
+    },
+    {
+      "id": "S01",
+      "x": 1925,
+      "z": 1325,
+      "region": "01",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 2025,
+        "z": 875
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 16892,
+      "type": "site"
+    },
+    {
+      "id": "S02",
+      "x": 3125,
+      "z": 1925,
+      "region": "01",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "lake",
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 15595,
+      "type": "site"
+    },
+    {
+      "id": "S03",
+      "x": 5225,
+      "z": 2525,
+      "region": "02",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "river",
+        "pass",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 14833,
+      "type": "site"
+    },
+    {
+      "id": "S04",
+      "x": 4175,
+      "z": 1925,
+      "region": "02",
+      "terrain": "h",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "lake",
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 15195,
+      "type": "site"
+    },
+    {
+      "id": "S05",
+      "x": 6875,
+      "z": 1925,
+      "region": "03",
+      "terrain": "h",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "river",
+        "pass",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 7188,
+      "type": "site"
+    },
+    {
+      "id": "S06",
+      "x": 8075,
+      "z": 2375,
+      "region": "04",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 5530,
+      "type": "site"
+    },
+    {
+      "id": "S07",
+      "x": 7925,
+      "z": 1325,
+      "region": "04",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 7675,
+        "z": 825
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 6503,
+      "type": "site"
+    },
+    {
+      "id": "S08",
+      "x": 9725,
+      "z": 2075,
+      "region": "05",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 3933,
+      "type": "site"
+    },
+    {
+      "id": "S09",
+      "x": 10475,
+      "z": 1325,
+      "region": "05",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 10575,
+        "z": 825
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 3531,
+      "type": "site"
+    },
+    {
+      "id": "S10",
+      "x": 10925,
+      "z": 2525,
+      "region": "06",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 1
+      },
+      "tags": [],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 2548,
+      "type": "site"
+    },
+    {
+      "id": "S11",
+      "x": 11825,
+      "z": 1475,
+      "region": "06",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 12075,
+        "z": 1025
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 2621,
+      "type": "site"
+    },
+    {
+      "id": "S12",
+      "x": 2375,
+      "z": 2825,
+      "region": "07",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 15146,
+      "type": "site"
+    },
+    {
+      "id": "S13",
+      "x": 1775,
+      "z": 3725,
+      "region": "07",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 15347,
+      "type": "site"
+    },
+    {
+      "id": "S14",
+      "x": 4925,
+      "z": 3575,
+      "region": "08",
+      "terrain": "f",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 13067,
+      "type": "site"
+    },
+    {
+      "id": "S15",
+      "x": 4025,
+      "z": 2975,
+      "region": "08",
+      "terrain": "d",
+      "traits": {
+        "soil": 1,
+        "water": 2,
+        "defense": 1
+      },
+      "tags": [],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 14131,
+      "type": "site"
+    },
+    {
+      "id": "S16",
+      "x": 6875,
+      "z": 3575,
+      "region": "09",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 6827,
+      "type": "site"
+    },
+    {
+      "id": "S17",
+      "x": 8675,
+      "z": 3875,
+      "region": "10",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 1
+      },
+      "tags": [],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 4484,
+      "type": "site"
+    },
+    {
+      "id": "S18",
+      "x": 9575,
+      "z": 3275,
+      "region": "11",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 3561,
+      "type": "site"
+    },
+    {
+      "id": "S19",
+      "x": 10475,
+      "z": 3725,
+      "region": "11",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 2623,
+      "type": "site"
+    },
+    {
+      "id": "S20",
+      "x": 2975,
+      "z": 4925,
+      "region": "13",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 13983,
+      "type": "site"
+    },
+    {
+      "id": "S21",
+      "x": 1925,
+      "z": 5075,
+      "region": "13",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 15095,
+      "type": "site"
+    },
+    {
+      "id": "S22",
+      "x": 3875,
+      "z": 5375,
+      "region": "14",
+      "terrain": "h",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "river",
+        "pass",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 12944,
+      "type": "site"
+    },
+    {
+      "id": "S23",
+      "x": 4025,
+      "z": 4175,
+      "region": "14",
+      "terrain": "d",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 12990,
+      "type": "site"
+    },
+    {
+      "id": "S24",
+      "x": 6125,
+      "z": 5375,
+      "region": "15",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 10240,
+      "type": "site"
+    },
+    {
+      "id": "S25",
+      "x": 5825,
+      "z": 4025,
+      "region": "15",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 12760,
+      "type": "site"
+    },
+    {
+      "id": "S26",
+      "x": 7625,
+      "z": 4775,
+      "region": "16",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "river",
+        "pass",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 6085,
+      "type": "site"
+    },
+    {
+      "id": "S27",
+      "x": 9125,
+      "z": 4925,
+      "region": "17",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast",
+        "crossing"
+      ],
+      "harbor": {
+        "x": 9025,
+        "z": 5125
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 4465,
+      "type": "site"
+    },
+    {
+      "id": "S28",
+      "x": 11225,
+      "z": 4625,
+      "region": "18",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 1
+      },
+      "tags": [],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 2242,
+      "type": "site"
+    },
+    {
+      "id": "S29",
+      "x": 12125,
+      "z": 5225,
+      "region": "18",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 1,
+        "defense": 1
+      },
+      "tags": [],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 2148,
+      "type": "site"
+    },
+    {
+      "id": "S30",
+      "x": 3125,
+      "z": 6125,
+      "region": "19",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "river",
+        "crossing"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 14290,
+      "type": "site"
+    },
+    {
+      "id": "S31",
+      "x": 2225,
+      "z": 6575,
+      "region": "19",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 2,
+        "defense": 2
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 2225,
+        "z": 7225
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 15363,
+      "type": "site"
+    },
+    {
+      "id": "S32",
+      "x": 4175,
+      "z": 6725,
+      "region": "20",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 2,
+        "defense": 2
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 4175,
+        "z": 7325
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 13634,
+      "type": "site"
+    },
+    {
+      "id": "S33",
+      "x": 5225,
+      "z": 5825,
+      "region": "20",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 11354,
+      "type": "site"
+    },
+    {
+      "id": "S34",
+      "x": 5675,
+      "z": 6725,
+      "region": "21",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 5675,
+        "z": 7275
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 10922,
+      "type": "site"
+    },
+    {
+      "id": "S35",
+      "x": 6575,
+      "z": 6275,
+      "region": "21",
+      "terrain": "h",
+      "traits": {
+        "soil": 1,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 8871,
+      "type": "site"
+    },
+    {
+      "id": "S36",
+      "x": 7625,
+      "z": 5825,
+      "region": "22",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 8075,
+        "z": 5925
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 6434,
+      "type": "site"
+    },
+    {
+      "id": "S37",
+      "x": 10025,
+      "z": 5825,
+      "region": "23",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 2,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 9575,
+        "z": 5975
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 4454,
+      "type": "site"
+    },
+    {
+      "id": "S38",
+      "x": 11075,
+      "z": 5825,
+      "region": "24",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 3374,
+      "type": "site"
+    },
+    {
+      "id": "S39",
+      "x": 2825,
+      "z": 725,
+      "region": "C1",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 2825,
+        "z": 575
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 17492,
+      "type": "site"
+    },
+    {
+      "id": "S40",
+      "x": 8975,
+      "z": 875,
+      "region": "C2",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 8975,
+        "z": 775
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 5486,
+      "type": "site"
+    },
+    {
+      "id": "S41",
+      "x": 3275,
+      "z": 7325,
+      "region": "C4",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "river",
+        "coast",
+        "crossing"
+      ],
+      "harbor": {
+        "x": 3325,
+        "z": 7625
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 14734,
+      "type": "site"
+    },
+    {
+      "id": "S42",
+      "x": 7475,
+      "z": 6875,
+      "region": "C5",
+      "terrain": "h",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 7625,
+        "z": 6975
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 8168,
+      "type": "site"
+    },
+    {
+      "id": "S43",
+      "x": 10025,
+      "z": 6875,
+      "region": "C6",
+      "terrain": "h",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 9825,
+        "z": 6975
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 6039,
+      "type": "site"
+    },
+    {
+      "id": "S44",
+      "x": 1025,
+      "z": 1775,
+      "region": "C7",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 925,
+        "z": 1775
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 17069,
+      "type": "site"
+    },
+    {
+      "id": "S45",
+      "x": 575,
+      "z": 4025,
+      "region": "C8",
+      "terrain": "d",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 375,
+        "z": 4025
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 16424,
+      "type": "site"
+    },
+    {
+      "id": "S46",
+      "x": 1175,
+      "z": 6275,
+      "region": "C9",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 1075,
+        "z": 6375
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 16382,
+      "type": "site"
+    },
+    {
+      "id": "S47",
+      "x": 12875,
+      "z": 1475,
+      "region": "C10",
+      "terrain": "p",
+      "traits": {
+        "soil": 3,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 12925,
+        "z": 1325
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 2560,
+      "type": "site"
+    },
+    {
+      "id": "S48",
+      "x": 13625,
+      "z": 4925,
+      "region": "C11",
+      "terrain": "p",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 13625,
+        "z": 5025
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 1766,
+      "type": "site"
+    },
+    {
+      "id": "S49",
+      "x": 13325,
+      "z": 6275,
+      "region": "C12",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 13525,
+        "z": 6325
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 3474,
+      "type": "site"
+    },
+    {
+      "id": "S50",
+      "x": 7025,
+      "z": 725,
+      "region": "C2",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 7075,
+        "z": 575
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 7954,
+      "type": "site"
+    },
+    {
+      "id": "S51",
+      "x": 4925,
+      "z": 7475,
+      "region": "C5",
+      "terrain": "p",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 4825,
+        "z": 7575
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 12631,
+      "type": "site"
+    },
+    {
+      "id": "S52",
+      "x": 3875,
+      "z": 875,
+      "region": "C1",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 3875,
+        "z": 725
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 17150,
+      "type": "site"
+    },
+    {
+      "id": "S53",
+      "x": 11225,
+      "z": 7175,
+      "region": "C6",
+      "terrain": "f",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 11325,
+        "z": 7275
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 6174,
+      "type": "site"
+    },
+    {
+      "id": "S54",
+      "x": 4925,
+      "z": 725,
+      "region": "C2",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 4975,
+        "z": 525
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 16722,
+      "type": "site"
+    },
+    {
+      "id": "S55",
+      "x": 5975,
+      "z": 575,
+      "region": "C2",
+      "terrain": "n",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 3
+      },
+      "tags": [
+        "coast",
+        "pass"
+      ],
+      "harbor": {
+        "x": 5875,
+        "z": 425
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 9292,
+      "type": "site"
+    },
+    {
+      "id": "S56",
+      "x": 875,
+      "z": 2825,
+      "region": "C7",
+      "terrain": "d",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 2
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 675,
+        "z": 2875
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 16616,
+      "type": "site"
+    },
+    {
+      "id": "S57",
+      "x": 12725,
+      "z": 7175,
+      "region": "C6",
+      "terrain": "f",
+      "traits": {
+        "soil": 2,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 12625,
+        "z": 7325
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 4802,
+      "type": "site"
+    },
+    {
+      "id": "S58",
+      "x": 875,
+      "z": 5075,
+      "region": "C9",
+      "terrain": "d",
+      "traits": {
+        "soil": 1,
+        "water": 3,
+        "defense": 1
+      },
+      "tags": [
+        "coast"
+      ],
+      "harbor": {
+        "x": 725,
+        "z": 5175
+      },
+      "routesToCapital": 3,
+      "travelCostToCapital": 16145,
+      "type": "site"
+    },
+    {
+      "id": "S59",
+      "x": 2825,
+      "z": 3725,
+      "region": "07",
+      "terrain": "h",
+      "traits": {
+        "soil": 1,
+        "water": 1,
+        "defense": 3
+      },
+      "tags": [
+        "pass"
+      ],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 14297,
+      "type": "site"
+    },
+    {
+      "id": "S60",
+      "x": 4925,
+      "z": 4775,
+      "region": "14",
+      "terrain": "b",
+      "traits": {
+        "soil": 2,
+        "water": 1,
+        "defense": 1
+      },
+      "tags": [],
+      "harbor": null,
+      "routesToCapital": 3,
+      "travelCostToCapital": 11733,
+      "type": "site"
+    },
+    {
+      "id": "N001",
+      "kind": "quarry",
+      "x": 7175,
+      "z": 7275,
+      "region": "C5",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N002",
+      "kind": "forest",
+      "x": 4275,
+      "z": 7175,
+      "region": "C4",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N003",
+      "kind": "fertile",
+      "x": 10175,
+      "z": 4175,
+      "region": "17",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N004",
+      "kind": "forest",
+      "x": 6575,
+      "z": 375,
+      "region": "C2",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N005",
+      "kind": "fertile",
+      "x": 12175,
+      "z": 1675,
+      "region": "06",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N006",
+      "kind": "forest",
+      "x": 2175,
+      "z": 6175,
+      "region": "19",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N007",
+      "kind": "quarry",
+      "x": 9475,
+      "z": 875,
+      "region": "C3",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N008",
+      "kind": "quarry",
+      "x": 3775,
+      "z": 1475,
+      "region": "02",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N009",
+      "kind": "quarry",
+      "x": 6875,
+      "z": 1275,
+      "region": "03",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N010",
+      "kind": "forest",
+      "x": 12375,
+      "z": 6075,
+      "region": "C12",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N011",
+      "kind": "quarry",
+      "x": 3275,
+      "z": 3275,
+      "region": "07",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N012",
+      "kind": "ore",
+      "x": 5675,
+      "z": 3375,
+      "region": "09",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N013",
+      "kind": "quarry",
+      "x": 3225,
+      "z": 725,
+      "region": "C1",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N014",
+      "kind": "quarry",
+      "x": 4075,
+      "z": 3575,
+      "region": "08",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N015",
+      "kind": "quarry",
+      "x": 4875,
+      "z": 2975,
+      "region": "08",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N016",
+      "kind": "quarry",
+      "x": 4875,
+      "z": 6475,
+      "region": "20",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N017",
+      "kind": "quarry",
+      "x": 3475,
+      "z": 5275,
+      "region": "13",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N018",
+      "kind": "quarry",
+      "x": 1975,
+      "z": 1875,
+      "region": "01",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N019",
+      "kind": "fertile",
+      "x": 10075,
+      "z": 1575,
+      "region": "05",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N020",
+      "kind": "forest",
+      "x": 7075,
+      "z": 2575,
+      "region": "04",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N021",
+      "kind": "fertile",
+      "x": 10475,
+      "z": 2175,
+      "region": "05",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N022",
+      "kind": "fertile",
+      "x": 11475,
+      "z": 1975,
+      "region": "06",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N023",
+      "kind": "quarry",
+      "x": 4575,
+      "z": 5075,
+      "region": "14",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N024",
+      "kind": "quarry",
+      "x": 1375,
+      "z": 4875,
+      "region": "C8",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N025",
+      "kind": "quarry",
+      "x": 6175,
+      "z": 1475,
+      "region": "03",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N026",
+      "kind": "forest",
+      "x": 1575,
+      "z": 1075,
+      "region": "C1",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N027",
+      "kind": "quarry",
+      "x": 10475,
+      "z": 5975,
+      "region": "23",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N028",
+      "kind": "fertile",
+      "x": 10875,
+      "z": 1275,
+      "region": "06",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N029",
+      "kind": "forest",
+      "x": 11575,
+      "z": 5275,
+      "region": "18",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N030",
+      "kind": "quarry",
+      "x": 9275,
+      "z": 1775,
+      "region": "05",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N031",
+      "kind": "fertile",
+      "x": 12875,
+      "z": 4975,
+      "region": "C12",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N032",
+      "kind": "quarry",
+      "x": 5875,
+      "z": 7175,
+      "region": "C5",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N033",
+      "kind": "ore",
+      "x": 2275,
+      "z": 2475,
+      "region": "01",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N034",
+      "kind": "fertile",
+      "x": 10875,
+      "z": 3875,
+      "region": "12",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N035",
+      "kind": "fertile",
+      "x": 8675,
+      "z": 3375,
+      "region": "10",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N036",
+      "kind": "fertile",
+      "x": 8375,
+      "z": 4975,
+      "region": "16",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N037",
+      "kind": "fertile",
+      "x": 12075,
+      "z": 4675,
+      "region": "18",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N038",
+      "kind": "quarry",
+      "x": 10675,
+      "z": 7075,
+      "region": "C6",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N039",
+      "kind": "quarry",
+      "x": 1675,
+      "z": 4275,
+      "region": "C8",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N040",
+      "kind": "forest",
+      "x": 7275,
+      "z": 4075,
+      "region": "16",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N041",
+      "kind": "forest",
+      "x": 13175,
+      "z": 5875,
+      "region": "C12",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N042",
+      "kind": "quarry",
+      "x": 7525,
+      "z": 725,
+      "region": "C2",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N043",
+      "kind": "fertile",
+      "x": 7975,
+      "z": 3275,
+      "region": "10",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N044",
+      "kind": "forest",
+      "x": 4975,
+      "z": 1675,
+      "region": "02",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N045",
+      "kind": "forest",
+      "x": 5575,
+      "z": 4575,
+      "region": "15",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N046",
+      "kind": "quarry",
+      "x": 1375,
+      "z": 5575,
+      "region": "C9",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N047",
+      "kind": "fertile",
+      "x": 9475,
+      "z": 4775,
+      "region": "17",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N048",
+      "kind": "forest",
+      "x": 7775,
+      "z": 2175,
+      "region": "04",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N049",
+      "kind": "fertile",
+      "x": 10075,
+      "z": 2975,
+      "region": "11",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N050",
+      "kind": "quarry",
+      "x": 5975,
+      "z": 6475,
+      "region": "21",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N051",
+      "kind": "forest",
+      "x": 8675,
+      "z": 1175,
+      "region": "C2",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N052",
+      "kind": "fertile",
+      "x": 12975,
+      "z": 1975,
+      "region": "C10",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N053",
+      "kind": "quarry",
+      "x": 2775,
+      "z": 4075,
+      "region": "13",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N054",
+      "kind": "fertile",
+      "x": 9275,
+      "z": 2975,
+      "region": "11",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N055",
+      "kind": "ore",
+      "x": 7275,
+      "z": 5375,
+      "region": "16",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N056",
+      "kind": "fertile",
+      "x": 11275,
+      "z": 3175,
+      "region": "12",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N057",
+      "kind": "fertile",
+      "x": 11875,
+      "z": 2575,
+      "region": "06",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N058",
+      "kind": "forest",
+      "x": 2475,
+      "z": 7175,
+      "region": "C4",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N059",
+      "kind": "quarry",
+      "x": 7075,
+      "z": 6175,
+      "region": "22",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N060",
+      "kind": "quarry",
+      "x": 7675,
+      "z": 6475,
+      "region": "22",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N061",
+      "kind": "fertile",
+      "x": 8175,
+      "z": 3975,
+      "region": "10",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N062",
+      "kind": "fertile",
+      "x": 8775,
+      "z": 4275,
+      "region": "17",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N063",
+      "kind": "ore",
+      "x": 2375,
+      "z": 875,
+      "region": "C1",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N064",
+      "kind": "quarry",
+      "x": 6575,
+      "z": 6875,
+      "region": "C5",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N065",
+      "kind": "forest",
+      "x": 4975,
+      "z": 4175,
+      "region": "14",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N066",
+      "kind": "quarry",
+      "x": 2375,
+      "z": 5075,
+      "region": "13",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N067",
+      "kind": "fertile",
+      "x": 9875,
+      "z": 5475,
+      "region": "23",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N068",
+      "kind": "quarry",
+      "x": 3475,
+      "z": 2475,
+      "region": "01",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N069",
+      "kind": "fishing",
+      "x": 10225,
+      "z": 825,
+      "region": "C3",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N070",
+      "kind": "fertile",
+      "x": 9475,
+      "z": 4075,
+      "region": "17",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N071",
+      "kind": "fishing",
+      "x": 575,
+      "z": 4825,
+      "region": "C8",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N072",
+      "kind": "ore",
+      "x": 1375,
+      "z": 2375,
+      "region": "C7",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N073",
+      "kind": "fishing",
+      "x": 11575,
+      "z": 7225,
+      "region": "C6",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N074",
+      "kind": "forest",
+      "x": 12275,
+      "z": 6975,
+      "region": "C6",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N075",
+      "kind": "fertile",
+      "x": 11775,
+      "z": 875,
+      "region": "C3",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N076",
+      "kind": "ore",
+      "x": 6175,
+      "z": 4975,
+      "region": "15",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N077",
+      "kind": "forest",
+      "x": 5175,
+      "z": 5375,
+      "region": "14",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N078",
+      "kind": "fishing",
+      "x": 9675,
+      "z": 6475,
+      "region": "23",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N079",
+      "kind": "quarry",
+      "x": 2875,
+      "z": 1375,
+      "region": "01",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N080",
+      "kind": "forest",
+      "x": 3475,
+      "z": 6875,
+      "region": "C4",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N081",
+      "kind": "forest",
+      "x": 875,
+      "z": 6075,
+      "region": "C9",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N082",
+      "kind": "quarry",
+      "x": 3875,
+      "z": 5975,
+      "region": "20",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N083",
+      "kind": "forest",
+      "x": 1575,
+      "z": 6775,
+      "region": "C9",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N084",
+      "kind": "fertile",
+      "x": 11775,
+      "z": 4075,
+      "region": "18",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N085",
+      "kind": "quarry",
+      "x": 4575,
+      "z": 5775,
+      "region": "20",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N086",
+      "kind": "ore",
+      "x": 2175,
+      "z": 3775,
+      "region": "07",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N087",
+      "kind": "fertile",
+      "x": 8475,
+      "z": 2475,
+      "region": "04",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N088",
+      "kind": "fertile",
+      "x": 2875,
+      "z": 6375,
+      "region": "19",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N089",
+      "kind": "fishing",
+      "x": 625,
+      "z": 2325,
+      "region": "C7",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N090",
+      "kind": "quarry",
+      "x": 6375,
+      "z": 5875,
+      "region": "21",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N091",
+      "kind": "forest",
+      "x": 7275,
+      "z": 3275,
+      "region": "10",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N092",
+      "kind": "fertile",
+      "x": 7975,
+      "z": 5575,
+      "region": "22",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N093",
+      "kind": "forest",
+      "x": 10875,
+      "z": 5375,
+      "region": "18",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N094",
+      "kind": "fishing",
+      "x": 675,
+      "z": 1225,
+      "region": "C7",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N095",
+      "kind": "ore",
+      "x": 6475,
+      "z": 2875,
+      "region": "09",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N096",
+      "kind": "quarry",
+      "x": 10975,
+      "z": 6475,
+      "region": "24",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N097",
+      "kind": "forest",
+      "x": 8375,
+      "z": 1775,
+      "region": "04",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N098",
+      "kind": "quarry",
+      "x": 1875,
+      "z": 3175,
+      "region": "07",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N099",
+      "kind": "quarry",
+      "x": 2575,
+      "z": 3175,
+      "region": "07",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N100",
+      "kind": "fertile",
+      "x": 13475,
+      "z": 4575,
+      "region": "C11",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N101",
+      "kind": "quarry",
+      "x": 5675,
+      "z": 5875,
+      "region": "21",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N102",
+      "kind": "quarry",
+      "x": 6475,
+      "z": 2075,
+      "region": "03",
+      "richness": 3,
+      "type": "resource"
+    },
+    {
+      "id": "N103",
+      "kind": "forest",
+      "x": 7575,
+      "z": 1375,
+      "region": "04",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N104",
+      "kind": "fertile",
+      "x": 10875,
+      "z": 4575,
+      "region": "18",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "N105",
+      "kind": "quarry",
+      "x": 4275,
+      "z": 4475,
+      "region": "14",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N106",
+      "kind": "fishing",
+      "x": 3700,
+      "z": 2378,
+      "region": "02",
+      "richness": 2,
+      "type": "resource"
+    },
+    {
+      "id": "N107",
+      "kind": "fishing",
+      "x": 10450,
+      "z": 5198,
+      "region": "17",
+      "richness": 1,
+      "type": "resource"
+    },
+    {
+      "id": "K01",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 2075,
+      "z": 5775,
+      "region": "19",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K02",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 13425,
+      "z": 7225,
+      "region": "C6",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K03",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 12575,
+      "z": 6375,
+      "region": "C12",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K04",
+      "kind": "bandit",
+      "tier": 3,
+      "x": 6075,
+      "z": 1375,
+      "region": "03",
+      "strength": 3,
+      "type": "camp"
+    },
+    {
+      "id": "K05",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 8875,
+      "z": 1575,
+      "region": "05",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K06",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 8675,
+      "z": 2775,
+      "region": "10",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K07",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 9675,
+      "z": 4475,
+      "region": "17",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K08",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 7775,
+      "z": 3475,
+      "region": "10",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K09",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 9775,
+      "z": 1175,
+      "region": "C3",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K10",
+      "kind": "bandit",
+      "tier": 3,
+      "x": 6675,
+      "z": 7175,
+      "region": "C5",
+      "strength": 3,
+      "type": "camp"
+    },
+    {
+      "id": "K11",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 8275,
+      "z": 5075,
+      "region": "16",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K12",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 1475,
+      "z": 4375,
+      "region": "C8",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K13",
+      "kind": "bandit",
+      "tier": 4,
+      "x": 4875,
+      "z": 6675,
+      "region": "20",
+      "strength": 4,
+      "type": "camp"
+    },
+    {
+      "id": "K14",
+      "kind": "bandit",
+      "tier": 4,
+      "x": 3275,
+      "z": 2875,
+      "region": "07",
+      "strength": 4,
+      "type": "camp"
+    },
+    {
+      "id": "K15",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 1675,
+      "z": 2675,
+      "region": "C7",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K16",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 11975,
+      "z": 7275,
+      "region": "C6",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K17",
+      "kind": "bandit",
+      "tier": 3,
+      "x": 8225,
+      "z": 575,
+      "region": "C2",
+      "strength": 3,
+      "type": "camp"
+    },
+    {
+      "id": "K18",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 10475,
+      "z": 7475,
+      "region": "C6",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K19",
+      "kind": "bandit",
+      "tier": 3,
+      "x": 7075,
+      "z": 4275,
+      "region": "16",
+      "strength": 3,
+      "type": "camp"
+    },
+    {
+      "id": "K20",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 725,
+      "z": 1025,
+      "region": "C1",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K21",
+      "kind": "bandit",
+      "tier": 4,
+      "x": 4475,
+      "z": 5775,
+      "region": "20",
+      "strength": 4,
+      "type": "camp"
+    },
+    {
+      "id": "K22",
+      "kind": "bandit",
+      "tier": 3,
+      "x": 5675,
+      "z": 4775,
+      "region": "15",
+      "strength": 3,
+      "type": "camp"
+    },
+    {
+      "id": "K23",
+      "kind": "bandit",
+      "tier": 3,
+      "x": 5675,
+      "z": 3075,
+      "region": "09",
+      "strength": 3,
+      "type": "camp"
+    },
+    {
+      "id": "K24",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 2375,
+      "z": 1975,
+      "region": "01",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K25",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 1625,
+      "z": 6925,
+      "region": "C4",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K26",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 10275,
+      "z": 2875,
+      "region": "11",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K27",
+      "kind": "bandit",
+      "tier": 2,
+      "x": 11175,
+      "z": 875,
+      "region": "C3",
+      "strength": 2,
+      "type": "camp"
+    },
+    {
+      "id": "K28",
+      "kind": "bandit",
+      "tier": 5,
+      "x": 2575,
+      "z": 7275,
+      "region": "C4",
+      "strength": 5,
+      "type": "camp"
+    },
+    {
+      "id": "K29",
+      "kind": "ruin",
+      "tier": 2,
+      "x": 10875,
+      "z": 6475,
+      "region": "24",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K30",
+      "kind": "ruin",
+      "tier": 5,
+      "x": 1075,
+      "z": 5675,
+      "region": "C9",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K31",
+      "kind": "cache",
+      "tier": 4,
+      "x": 4775,
+      "z": 1575,
+      "region": "02",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K32",
+      "kind": "cache",
+      "tier": 1,
+      "x": 13075,
+      "z": 5675,
+      "region": "C12",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K33",
+      "kind": "ruin",
+      "tier": 5,
+      "x": 975,
+      "z": 3475,
+      "region": "C8",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K34",
+      "kind": "ruin",
+      "tier": 3,
+      "x": 7775,
+      "z": 4175,
+      "region": "16",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K35",
+      "kind": "cache",
+      "tier": 5,
+      "x": 1625,
+      "z": 825,
+      "region": "C1",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K36",
+      "kind": "ruin",
+      "tier": 1,
+      "x": 11075,
+      "z": 1675,
+      "region": "06",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K37",
+      "kind": "cache",
+      "tier": 4,
+      "x": 3575,
+      "z": 4675,
+      "region": "14",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K38",
+      "kind": "ruin",
+      "tier": 4,
+      "x": 3775,
+      "z": 3575,
+      "region": "08",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K39",
+      "kind": "ruin",
+      "tier": 1,
+      "x": 10975,
+      "z": 4075,
+      "region": "18",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K40",
+      "kind": "cache",
+      "tier": 4,
+      "x": 5175,
+      "z": 4175,
+      "region": "14",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K41",
+      "kind": "cache",
+      "tier": 3,
+      "x": 7375,
+      "z": 2275,
+      "region": "04",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K42",
+      "kind": "ruin",
+      "tier": 2,
+      "x": 11825,
+      "z": 875,
+      "region": "C3",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K43",
+      "kind": "cache",
+      "tier": 5,
+      "x": 1675,
+      "z": 1975,
+      "region": "C7",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K44",
+      "kind": "ruin",
+      "tier": 4,
+      "x": 3575,
+      "z": 6775,
+      "region": "20",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K45",
+      "kind": "ruin",
+      "tier": 4,
+      "x": 3275,
+      "z": 5475,
+      "region": "19",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K46",
+      "kind": "ruin",
+      "tier": 2,
+      "x": 10375,
+      "z": 1975,
+      "region": "05",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K47",
+      "kind": "cache",
+      "tier": 1,
+      "x": 11675,
+      "z": 5675,
+      "region": "24",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K48",
+      "kind": "cache",
+      "tier": 5,
+      "x": 625,
+      "z": 2325,
+      "region": "C7",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K49",
+      "kind": "ruin",
+      "tier": 2,
+      "x": 9375,
+      "z": 2575,
+      "region": "05",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K50",
+      "kind": "ruin",
+      "tier": 4,
+      "x": 4275,
+      "z": 7375,
+      "region": "C4",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K51",
+      "kind": "cache",
+      "tier": 4,
+      "x": 5975,
+      "z": 7175,
+      "region": "C5",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "K52",
+      "kind": "ruin",
+      "tier": 3,
+      "x": 5875,
+      "z": 6075,
+      "region": "21",
+      "strength": 0,
+      "type": "camp"
+    },
+    {
+      "id": "V1-F1",
+      "river": "V1",
+      "x": 7216,
+      "z": 1868,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V1-F2",
+      "river": "V1",
+      "x": 7904,
+      "z": 2601,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V1-F3",
+      "river": "V1",
+      "x": 8732,
+      "z": 3099,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V1-F4",
+      "river": "V1",
+      "x": 9645,
+      "z": 3463,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V1-F5",
+      "river": "V1",
+      "x": 10538,
+      "z": 3344,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V1-F6",
+      "river": "V1",
+      "x": 11490,
+      "z": 3133,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V1-F7",
+      "river": "V1",
+      "x": 12486,
+      "z": 2947,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V2-F1",
+      "river": "V2",
+      "x": 9552,
+      "z": 1851,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V2-F2",
+      "river": "V2",
+      "x": 8985,
+      "z": 2731,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V3-F1",
+      "river": "V3",
+      "x": 7476,
+      "z": 4416,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V3-F2",
+      "river": "V3",
+      "x": 8468,
+      "z": 4915,
+      "kind": "bridge",
+      "type": "crossing"
+    },
+    {
+      "id": "V4-F1",
+      "river": "V4",
+      "x": 5172,
+      "z": 2862,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V4-F2",
+      "river": "V4",
+      "x": 4549,
+      "z": 3647,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V4-F3",
+      "river": "V4",
+      "x": 3935,
+      "z": 4463,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V4-F4",
+      "river": "V4",
+      "x": 3670,
+      "z": 5451,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V4-F5",
+      "river": "V4",
+      "x": 3329,
+      "z": 6410,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "V4-F6",
+      "river": "V4",
+      "x": 3088,
+      "z": 7389,
+      "kind": "ford",
+      "type": "crossing"
+    },
+    {
+      "id": "R1-P1",
+      "range": "R1",
+      "x": 5670,
+      "z": 1474,
+      "type": "pass"
+    },
+    {
+      "id": "R1-P2",
+      "range": "R1",
+      "x": 6094,
+      "z": 2625,
+      "type": "pass"
+    },
+    {
+      "id": "R1-P3",
+      "range": "R1",
+      "x": 6360,
+      "z": 3730,
+      "type": "pass"
+    },
+    {
+      "id": "R1-P4",
+      "range": "R1",
+      "x": 6712,
+      "z": 4878,
+      "type": "pass"
+    },
+    {
+      "id": "R1-P5",
+      "range": "R1",
+      "x": 6988,
+      "z": 5907,
+      "type": "pass"
+    },
+    {
+      "id": "R2-P1",
+      "range": "R2",
+      "x": 3047,
+      "z": 1308,
+      "type": "pass"
+    },
+    {
+      "id": "R2-P2",
+      "range": "R2",
+      "x": 3952,
+      "z": 1396,
+      "type": "pass"
+    },
+    {
+      "id": "R2-P3",
+      "range": "R2",
+      "x": 4696,
+      "z": 1136,
+      "type": "pass"
+    },
+    {
+      "id": "R3-P1",
+      "range": "R3",
+      "x": 6763,
+      "z": 1287,
+      "type": "pass"
+    },
+    {
+      "id": "R3-P2",
+      "range": "R3",
+      "x": 7826,
+      "z": 1256,
+      "type": "pass"
+    },
+    {
+      "id": "R3-P3",
+      "range": "R3",
+      "x": 8876,
+      "z": 1185,
+      "type": "pass"
+    },
+    {
+      "id": "R4-P1",
+      "range": "R4",
+      "x": 2053,
+      "z": 2876,
+      "type": "pass"
+    },
+    {
+      "id": "R4-P2",
+      "range": "R4",
+      "x": 2216,
+      "z": 3998,
+      "type": "pass"
+    },
+    {
+      "id": "R4-P3",
+      "range": "R4",
+      "x": 2465,
+      "z": 5109,
+      "type": "pass"
+    },
+    {
+      "id": "R5-P1",
+      "range": "R5",
+      "x": 4525,
+      "z": 6054,
+      "type": "pass"
+    },
+    {
+      "id": "R5-P2",
+      "range": "R5",
+      "x": 5246,
+      "z": 6215,
+      "type": "pass"
+    },
+    {
+      "id": "R5-P3",
+      "range": "R5",
+      "x": 5876,
+      "z": 6479,
+      "type": "pass"
+    },
+    {
+      "id": "R6-P1",
+      "range": "R6",
+      "x": 10360,
+      "z": 6481,
+      "type": "pass"
+    },
+    {
+      "id": "R6-P2",
+      "range": "R6",
+      "x": 10887,
+      "z": 6463,
+      "type": "pass"
+    },
+    {
+      "id": "R6-P3",
+      "range": "R6",
+      "x": 11398,
+      "z": 6372,
+      "type": "pass"
+    }
+  ],
+  "discovery": "Review reference includes all records. Game atlas must filter undiscovered sites/features; no live units or camera quad."
+}

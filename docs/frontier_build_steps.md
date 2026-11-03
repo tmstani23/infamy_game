@@ -16,7 +16,17 @@ Settled (Tim, 2026-11-03):
 - Review the combined effective blueprint, including overrides and generator adjustments. Apply approved structural changes through `tools/seed_world.mjs`, validate, then refresh world/atlas references together. An old design preview is not evidence of the current world.
 - Presentation: illustration, textures, decorative prop density, labels and UI styling follow the structure. Changes to walkability or gameplay behavior belong to structure/simulation even when prompted by an art issue. Preserve exact coordinate registration; never move gameplay features to fit a painting.
 - Simulation owns rules and live state. Rendering/UI read them; an illustration is not a second source of geometry, locations or discovery state.
-- Derived references must identify their source version and be refreshed after relevant source changes. Until the combined preview/freshness workflow is automated, verify those inputs explicitly before art generation or map integration.
+- Current effective blueprint reference: run `node tools/prepare_atlas_reference.mjs` after applying approved source edits. It checks that blueprint + overrides + generator reproduce the current world, then exports the terrain, exact feature layer, structural snapshot and human review sheet in `assets/environment/island/atlas/`. It does not change runtime files. The older `v2_*.png` design previews are historical, not this combined current view.
+- Before art generation or map integration, run `node tools/prepare_atlas_reference.mjs --check`. It fails for changed inputs, missing/modified exports or blueprint/world disagreement. `node tools/seed_world.mjs --check` checks only the blueprint/world match, without writing the world or preview. Both checks ignore JSON key ordering during world comparison. References fingerprint blueprint/config/generator/helper inputs and export content; they do not automatically update an existing illustration.
+
+### Atlas reference checkpoint (2026-11-03)
+
+- [x] Step 1: combined current blueprint preview and freshness gate; 14,000 × 8,000 world units map to a north-up 2,800 × 1,600 artwork rectangle with no padding or crop (5 units/pixel).
+- [ ] Step 2: illustration prompt/trial and registered geography review. No illustration generated yet.
+- [ ] Step 3: atlas layout/layers, existing square/coordinate hover plus biome/features, accurate shared legend/markers, terrain visible with site discovery respected, no live units/camera footprint.
+- [ ] Linked crossing phase: actual bridge/ford art and world fitting; reference records 9 bridges and 8 fords, without claiming those 17 records have been fitted or validated as usable crossings.
+
+Reference roles: `atlas_blueprint_v1.png` is the clean artwork input; `atlas_registration_v1.png` adds data features in the same rectangle. `atlas_review_v1.png` has a separate 240px header/legend and must not be used as the artwork target. `atlas_effective_blueprint_v1.json` is a generated combined structural snapshot, not an editable second source. `atlas_features_v1.json/.svg` preserve exact positions for later overlays. Full terrain/feature review references include undiscovered records; that does not authorize exposing undiscovered sites in the game UI.
 
 ## Progress checklist
 
@@ -43,13 +53,13 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last completed: P3 water, P4 coast/dry range and current P5 biome art/clustering (Tim accepted 2026-11-03). Next: W4 wilderness readiness/rules review before building. Recheck clustering performance under mobs/camps load; F1.7 remains deferred.
+Last completed: P3 water, P4 coast/dry range and current P5 biome art/clustering (Tim accepted 2026-11-03); atlas step 1 current blueprint/reference and freshness gate. Next: atlas illustration prompt/trial and alignment review, then atlas UI/layers and bridge/ford work before returning to W4 wilderness. Recheck clustering performance under mobs/camps load; F1.7 remains deferred.
 
 ## Next coordinator handoff (Tim, 2026-11-03)
 
 - P3 water/reflection/inland banks, P4 coast cliffs/dry range and current biome art/clustering are complete and visually accepted. Tim completed the coastal playtest: all looks great.
 - Clustering performance seems good in the current world; recheck measured camera-visible cost once mobs/camps add representative load. No final performance-budget claim.
-- Next is W4 wilderness readiness and the existing W4.1 rules, then Tim's approval before building. Read START_HERE.md, this full plan and step_runner_guide.md first.
+- Current priority is the atlas rebuild and bridge/ford work; atlas step 1 is complete (see checkpoint above). Next: illustration prompt/trial and alignment review, then atlas UI/layers. W4 wilderness readiness follows afterward. Read START_HERE.md, this full plan and step_runner_guide.md before an actual game build.
 - Retain P4's reported river-corner snag at 4200,4275, 34 harbor/17 mountain corners unrounded, Settings manual cross-save check and deferred F1.7. Bridges and source/lake shape redesign remain separate.
 - Keep Docs keeper available. A fresh coordinator can use this handoff. Obsolete paused-water checkpoint is archived under to_delete/; source art remains preserved.
 

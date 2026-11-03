@@ -1,11 +1,13 @@
 // Seed the island (frontier W1.3): blueprint v2 + overrides -> game/data/world.json (+ preview PNG).
 // Run from the repo root:  node tools/seed_world.mjs [--preview <png path>]
+// Or: node tools/seed_world.mjs --check (validate/reproduce only; writes nothing).
 // Deterministic: no randomness, same inputs give byte-identical output.
 // Order: blueprint -> world_overrides.json (hand choices, applied to the raw layout) -> fixes
 // (snap stray points, shore port, sea lanes over water) -> derived data (corridors, node richness,
 // camp strength, region biomes, routes) -> validateWorld.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { buildGrids, countRoutes, onIsland, passable, terrainAt, validateWorld } from '../game/src/sim/world_data.js';
 import { islandBiome } from '../game/src/sim/island_art.js';
 
@@ -317,6 +319,19 @@ w.stats = { sites: w.sites.length, harbors: w.sites.filter(s => s.harbor).length
 // Apply after layout repairs so the topology cache sees the final terrain rows.
 if (ov.shoreline) w.terrain.shoreline = { ...ov.shoreline };
 const problems = validateWorld(w);
+// Read-only provenance check: reproduce the effective blueprint, but never
+// write the runtime world or preview. JSON formatting/key order are irrelevant.
+if (args.includes('--check')) {
+  const changed = [...new Set([...Object.keys(w), ...Object.keys(prev)])]
+    .filter(k => !isDeepStrictEqual(w[k], prev[k]));
+  if (problems.length || changed.length) {
+    console.error(`World is not synchronized with blueprint + overrides. Changed sections: ${changed.join(', ') || 'none'}`);
+    for (const p of problems) console.error(p);
+    process.exit(1);
+  }
+  console.log('World matches blueprint + overrides + generator; validation passed (read-only).');
+  process.exit(0);
+}
 const lines = Object.entries(w).map(([k, v]) => {
   if (k === 'terrain') return `"terrain": {"cell": ${v.cell}, "codes": ${JSON.stringify(v.codes)}, ${v.shoreline ? `"shoreline": ${JSON.stringify(v.shoreline)}, ` : ''}"rows": [\n${v.rows.map(r => JSON.stringify(r)).join(',\n')}\n]}`;
   if (Array.isArray(v) && v.length && typeof v[0] === 'object' && !Array.isArray(v[0])) return `${JSON.stringify(k)}: [\n${v.map(o => JSON.stringify(o)).join(',\n')}\n]`;
