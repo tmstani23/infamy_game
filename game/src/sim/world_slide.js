@@ -4,7 +4,24 @@ const EPS=1e-4;
 const overlaps=(x,z,r,b)=>x+r>b.minX&&x-r<b.maxX&&z+r>b.minZ&&z-r<b.maxZ;
 export function slideWorld(x,z,r,dx,dz,near,slip=.6){
   if(!dx&&!dz)return [x,z];
-  if(dx&&dz){const a=slideWorld(x,z,r,dx,0,near,slip);return slideWorld(...a,r,0,dz,near,slip);}
+  if(dx&&dz){
+    // Follow the tangent first at a fillet, on either orientation. Otherwise a
+    // fixed X-first split can undo a Z-first corner escape on every frame.
+    let zFirst=false,best=Infinity;
+    for(const box of near(x-r-slip,z-r-slip,x+r+slip,z+r+slip))for(const c of box.shoreCorners||[]){
+      const qx=(x-c.x)*c.sx,qz=(z-c.z)*c.sz;
+      if(qx<-r-slip||qz<-r-slip||qx>c.radius+r+slip||qz>c.radius+r+slip)continue;
+      const d=Math.abs(Math.hypot(x-c.cx,z-c.cz)-c.radius);
+      if(d<best&&d<r+slip+Math.hypot(dx,dz)){best=d;zFirst=Math.abs(x-c.cx)>Math.abs(z-c.cz);}
+    }
+    const a=zFirst?slideWorld(x,z,r,0,dz,near,slip):slideWorld(x,z,r,dx,0,near,slip);
+    // A corner nudge can oppose the other requested axis. Applying that axis
+    // immediately would undo the nudge every tick and pin units on fine stairs.
+    if(Math.abs(zFirst?a[0]-x:a[1]-z)>EPS)return a;
+    const b=zFirst?slideWorld(...a,r,dx,0,near,slip):slideWorld(...a,r,0,dz,near,slip);
+    if(Math.abs(zFirst?b[1]-a[1]:b[0]-a[0])>EPS&&Math.abs(zFirst?a[1]-z:a[0]-x)>EPS)return a;
+    return b;
+  }
   const query=near(Math.min(x,x+dx)-r-slip,Math.min(z,z+dz)-r-slip,Math.max(x,x+dx)+r+slip,Math.max(z,z+dz)+r+slip);
   let nx=x+dx,nz=z+dz;const hit=[];
   for(const b of query){

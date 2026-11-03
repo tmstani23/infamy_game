@@ -4,6 +4,7 @@ import { RUNE_GLSL } from './rune_patterns.js';
 import * as THREE from 'three';
 import { VIEW_DIR, CAM_UP, CAM_RIGHT } from './iso.js';
 import { SPRITE_SAMPLE } from './packed_sheets.js';
+import { WATER_SAMPLE_GLSL, WATER_WINDOW } from './water_sampling.js';
 
 export const MAX_LIGHTS = 24;
 
@@ -444,6 +445,8 @@ ${LIGHTING}
 precision highp sampler2DArray;
 uniform sampler2DArray tMats;
 uniform sampler2D uSplatA, uSplatB, uSplatC, uSplatD, uOver, tWater;
+uniform vec3 uWetCoastColor, uDryCoastColor, uSnowCoastColor;
+${WATER_SAMPLE_GLSL}
 uniform vec4 uBounds;
 uniform float uLayer[16];
 uniform float uTileSize[16];
@@ -484,6 +487,7 @@ vec3 stoch(float layer, float tile, vec2 p) {
 
 void main() {
   vec2 p = vWorld.xz, suv = (p - uBounds.xy) / uBounds.zw;
+  vec4 over = texture2D(uOver, suv);
   vec4 A = texture2D(uSplatA, suv), B = texture2D(uSplatB, suv), C = texture2D(uSplatC, suv), D = texture2D(uSplatD, suv);
   float w[16] = float[16](A.r, A.g, A.b, A.a, B.r, B.g, B.b, B.a, C.r, C.g, C.b, C.a, D.r, D.g, D.b, D.a);
   vec3 col[16]; float sc[16]; float best = -1.0;
@@ -495,23 +499,29 @@ void main() {
       best = max(best, sc[i]);
     }
   }
-  vec3 ground = vec3(0.0); float tot = 0.0;
+  vec3 ground = vec3(0.0), meanGround = vec3(0.0); float tot = 0.0;
   for (int i = 0; i < 16; i++) if (sc[i] >= 0.0) {
     float a = clamp((sc[i] - (best - uMosaic.y)) / uMosaic.y, 0.0, 1.0);
     ground += col[i] * a; tot += a;
+    if (over.g > 0.001) meanGround += textureLod(tMats, vec3(0.5, 0.5, uLayer[i]), 9.0).rgb * a;
   }
   ground /= max(tot, 0.0001);
+  if (over.g > 0.001) {
+    meanGround /= max(tot, 0.0001);
+    vec3 coastTone = uWetCoastColor * max(0.0, 1.0 - over.b - over.a) + uDryCoastColor * over.b + uSnowCoastColor * over.a;
+    vec3 detail = clamp(ground / max(meanGround, vec3(0.06)), vec3(0.45), vec3(1.8));
+    ground = mix(ground, coastTone * detail, over.g);
+  }
   float n1 = vnz(p / uMacro.x, 11u), n2 = vnz(p / (uMacro.x * 1.7), 12u);
   ground *= 1.0 + (n1 - 0.5) * 2.0 * uMacro.y;
   ground *= vec3(1.0 + (n2 - 0.5) * uMacro.z, 1.0, 1.0 - (n2 - 0.5) * uMacro.z);
 
   // water (lakes, rivers, sea): the drifting dark layers of the city ground; the shore is the weight map's 0.5 line
-  float wm = smoothstep(0.42, 0.58, texture2D(uOver, suv).r);
-  // W3.11 P1: the mirrored water texture creased in a regular diagonal grid; a slow noise warp and a second
-  // layer turned by about 37 degrees keep the fold lines of the two layers from lining up
+  float wm = smoothstep(0.42, 0.58, over.r);
+  // P3: one flowing orientation, no crossing rotated layers. Independent phase
+  // blending hides both cropped source wraps without copying rocks into water.
   vec2 uv = p / vec2(5.6, 3.6) + (vec2(vnz(p / 23.0, 21u), vnz(p / 23.0, 22u)) - 0.5) * 1.4;
-  vec2 uv2 = mat2(0.8, -0.6, 0.6, 0.8) * uv;
-  vec3 water = (texture2D(tWater, uv * 0.6 + vec2(uTime * 0.012, uTime * 0.02)).rgb + texture2D(tWater, uv2 * 0.9 - vec2(uTime * 0.017, -uTime * 0.008)).rgb) * 0.5;
+  vec3 water = continuousWater(uv * 0.6 + vec2(uTime * 0.012, uTime * 0.02));
   water = mix(water, vec3(0.04, 0.07, 0.09), 0.35);
   vec3 col0 = mix(ground, water, wm);
 
@@ -521,11 +531,15 @@ void main() {
   gl_FragColor = vec4(fogged(g, p), 1.0);
 }`;
 
-export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic }) {
+export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic, coastTransition }) {
   return new THREE.ShaderMaterial({
     uniforms: {
       ...shared,
       tMats: { value: mats }, tWater: { value: water },
+      uWaterWindow: { value: new THREE.Vector4(...WATER_WINDOW) },
+      uWetCoastColor: { value: new THREE.Vector3(...(coastTransition?.wetColor || [0.38, 0.39, 0.30])) },
+      uDryCoastColor: { value: new THREE.Vector3(...(coastTransition?.dryColor || [0.56, 0.49, 0.37])) },
+      uSnowCoastColor: { value: new THREE.Vector3(...(coastTransition?.snowColor || [0.68, 0.70, 0.69])) },
       uSplatA: { value: splats[0] }, uSplatB: { value: splats[1] }, uSplatC: { value: splats[2] }, uSplatD: { value: splats[3] }, uOver: { value: over },
       uBounds: { value: new THREE.Vector4(...bounds) },
       uLayer: { value: layers }, uTileSize: { value: tiles },

@@ -270,9 +270,11 @@ w.stats = { sites: w.sites.length, harbors: w.sites.filter(s => s.harbor).length
   minRoutesToCapital: Math.min(...w.sites.map(s => s.routesToCapital)) };
 
 // ---------- 5. validate, write ----------
+// Apply after layout repairs so the topology cache sees the final terrain rows.
+if (ov.shoreline) w.terrain.shoreline = { ...ov.shoreline };
 const problems = validateWorld(w);
 const lines = Object.entries(w).map(([k, v]) => {
-  if (k === 'terrain') return `"terrain": {"cell": ${v.cell}, "codes": ${JSON.stringify(v.codes)}, "rows": [\n${v.rows.map(r => JSON.stringify(r)).join(',\n')}\n]}`;
+  if (k === 'terrain') return `"terrain": {"cell": ${v.cell}, "codes": ${JSON.stringify(v.codes)}, ${v.shoreline ? `"shoreline": ${JSON.stringify(v.shoreline)}, ` : ''}"rows": [\n${v.rows.map(r => JSON.stringify(r)).join(',\n')}\n]}`;
   if (Array.isArray(v) && v.length && typeof v[0] === 'object' && !Array.isArray(v[0])) return `${JSON.stringify(k)}: [\n${v.map(o => JSON.stringify(o)).join(',\n')}\n]`;
   return `${JSON.stringify(k)}: ${JSON.stringify(v)}`;
 });

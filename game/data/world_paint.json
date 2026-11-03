@@ -13,6 +13,18 @@
   "bank": 4
  },
  "res": 0.4,
+ "coastTransition": {
+  "_note": "P3: recolor the existing biome mosaic near ocean banks. Distances/raggedness in world units; colors are ungraded painted RGB, not flat replacement tiles.",
+  "enabled": true,
+  "start": 5,
+  "end": 23,
+  "strength": 0.7,
+  "ragged": 3,
+  "noiseScale": 8,
+  "wetColor": [0.38, 0.39, 0.30],
+  "dryColor": [0.56, 0.49, 0.37],
+  "snowColor": [0.68, 0.70, 0.69]
+ },
  "maxMaterials": 16,
  "mosaic": {
   "_note": "layers 3 and 4: height blend (score = weight + brightness * gain, show those within band of the best) and cell size for the shader's random tiling; macro = slow brightness/warmth drift; perPoint = most materials one spot mixes (shader cost per pixel); maxMaterials = per chunk (4 per weight map)",

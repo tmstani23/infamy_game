@@ -28,8 +28,9 @@ export function createIslandPainter({ world, cfg, renderer, groundTex }) {
   const pc = cfg.paint, paint = createPaint(world, pc), M = pc.mosaic;
   let array = null, failed = false;
   loadMaterialArray(pc, renderer).then(t => { array = t; }).catch(e => { failed = true; console.error('Island ground textures:', e); });
-  // the island's own edge-blended water (tools/import_island_ground.mjs); plain repeat, so no mirror creases (W3.11 P1)
-  const water = new THREE.TextureLoader().load('art/ground/island/water.jpg');
+  // P3 samples the source's open-water interior. The old processed copy has
+  // cross seams baked into it; keep it preserved but do not use it here.
+  const water = new THREE.TextureLoader().load('art/ground/water.jpg');
   water.wrapS = water.wrapT = THREE.RepeatWrapping; water.colorSpace = groundTex.tWater.colorSpace;
   water.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const dt = (d, n) => { const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return t; };
@@ -46,7 +47,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex }) {
       const tiles = Array.from({ length: 16 }, (_, i) => c.mats[i] != null ? pc.materials[c.mats[i]].tile : 8);
       const splats = Array.from({ length: 4 }, (_, i) => dt(c.maps[i] || new Uint8Array(c.N * c.N * 4), c.N));
       const bounds = [gen.x0 - c.h, gen.z0 - c.h, S + 2 * c.h, S + 2 * c.h];
-      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M });
+      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(gen.x0 + S / 2, 0, gen.z0 + S / 2);

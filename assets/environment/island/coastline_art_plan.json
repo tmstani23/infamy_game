@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-02",
-  "status": "Implementation complete 2026-11-03; wet v2/dry v1/snow v1 imported unchanged and rendered on authoritative terrain boundary. Tim in-game visual review PENDING; appearance/tile joins not approved.",
+  "status": "Tim likes the coastline art (2026-11-03). Follow-up corner rounding, biome-ground transition and water sampling repair implemented in p3_water_finishing_plan.json; their in-game review is pending.",
   "decision": {
     "recommended": "Three flat, neutral-lit shoreline texture strips, wet/dry/snow. Continuous fitting around the coastline; eight directions are placement directions, not eight new paintings per family.",
     "promptCount": 3,
@@ -414,8 +414,8 @@
         "done": true
       }
     ],
-    "boundaryPolicy": "Follow the exact authoritative terrain sea contour with mitered ribbon joins and feathered material edges. No water or collision boundary shifts. Broader blueprint/coast smoothing remains a separate task.",
+    "boundaryPolicy": "Initial ribbons followed the terrain grid. Approved P3 now shares restrained circular ocean corner fillets between terrain queries, blockers, water paint and ribbon geometry; original terrain rows retained. See p3_water_finishing_plan.json.",
     "validation": "game/tools/test_world_coast.mjs passes: orientation, nonfolded joins, lakes, cliff/mouth exclusions, harbor fading, chunk halos, deterministic output and byte-identical imports. JS syntax and git diff checks pass; no browser visual test performed.",
-    "remaining": "Tim's in-game review of strip width, repetition, corner appearance, biome blending and existing water transition. Earlier fitting/review phases remain open until that review."
+    "remaining": "Tim's in-game review of the P3 rounded corners, biome-ground coastal transition and revised water sampling. Wider river/lake redesign remains separate."
   }
 }

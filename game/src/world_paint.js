@@ -5,6 +5,7 @@
 // so the same spot looks the same in every chunk, on every machine.
 //   createPaint(world, cfg) -> { fieldAt, grove, trailAt, stampsIn, paintChunk, ... }  (cached per cfg)
 import { islandBiome } from './sim/island_art.js';
+import { oceanTopology } from './sim/shoreline.js';
 
 // ---------- seeded value noise (no tables, so it is the same in every chunk) ----------
 export function hash2(ix, iz, seed) {
@@ -38,6 +39,7 @@ export function createPaint(world, cfg) {
   const F = cfg.field, NB = cfg.biomes.length, B = Object.fromEntries(cfg.biomes.map((n, i) => [n, i]));
   const matIds = Object.keys(cfg.materials), NM = matIds.length, M = Object.fromEntries(matIds.map((n, i) => [n, i]));
   const t = world.terrain, tc = t.cell, nx = t.rows[0].length, nz = t.rows.length;
+  const shore = world.terrain.shoreline?.radius || cfg.coastTransition?.enabled ? oceanTopology(world) : null;
 
   // terrain cell -> biome id (grid built once). Mountain cells take their range's top, water is `bank`.
   const grid = new Int8Array(nx * nz);
@@ -49,7 +51,9 @@ export function createPaint(world, cfg) {
   }
   const gridAt = (x, z) => {
     const i = Math.floor(z / tc), j = Math.floor(x / tc);
-    return i < 0 || j < 0 || i >= nz || j >= nx ? B.bank : grid[i * nx + j];
+    if (i < 0 || j < 0 || i >= nz || j >= nx) return B.bank;
+    const original = t.rows[i][j], code = shore ? shore.codeAt(x, z, original) : original;
+    return code === original ? grid[i * nx + j] : B[CODE[code] ?? 'plain'];
   };
 
   // layer 1: the biome field. Out = weights per biome (sum 1). Borders wander: the point is pushed
@@ -192,6 +196,19 @@ export function createPaint(world, cfg) {
       materialsAt(x, z, w, near.segs, near.stamps);
       for (let mi = 0; mi < NM; mi++) { px[k * NM + mi] = w[mi]; cover[mi] += w[mi]; }
       O[k * 4] = Math.round(waterAt(x, z) * 255);
+      // Reuse the actual local ground mosaic; this mask only adjusts its tone.
+      const CT = cfg.coastTransition;
+      if (CT?.enabled && !BLOCKED_BIOME.has(gridAt(x, z))) {
+        const d = shore.distanceAt(x, z, CT.end + CT.ragged);
+        const ragged = (vnoise(x, z, CT.noiseScale, seed + 61) - 0.5) * 2 * CT.ragged;
+        const amount = (1 - smooth(CT.start, CT.end, d + ragged)) * CT.strength;
+        if (amount > 0) {
+          fieldAt(x, z, F0);
+          O[k * 4 + 1] = Math.round(amount * 255);
+          O[k * 4 + 2] = Math.round(F0[B.dry] * 255);
+          O[k * 4 + 3] = Math.round(F0[B.snow] * 255);
+        }
+      }
     }
     const order = [...cover.keys()].sort((a, b) => cover[b] - cover[a]).slice(0, cfg.maxMaterials).filter(mi => cover[mi] > 0);
     const maps = Array.from({ length: Math.ceil(cfg.maxMaterials / 4) }, () => new Uint8Array(N * N * 4));

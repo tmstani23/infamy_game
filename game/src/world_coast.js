@@ -1,79 +1,43 @@
-// Pure render geometry derived from terrain, not gameplay rules. Ocean-connected
+// Render ribbon derived from the shared terrain/fillet geometry. Ocean-connected
 // water only: lakes, rivers, cliff faces and harbor approaches keep their own art.
 import { terrainAt } from './sim/world_data.js';
 
-const key = p => `${p[0]},${p[1]}`;
+import { oceanTopology } from './sim/shoreline.js';
+export const seaContours = world => oceanTopology(world).loops;
+const key = p => p.join(',');
 const unit = (x, z) => { const d = Math.hypot(x, z) || 1; return [x / d, z / d]; };
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-export function seaContours(world) {
-  const { rows, cell: T } = world.terrain, H = rows.length, W = rows[0].length;
-  const sea = new Uint8Array(W * H), queue = new Int32Array(W * H);
-  let head = 0, tail = 0;
-  const push = (x, z) => {
-    if (x < 0 || z < 0 || x >= W || z >= H) return;
-    const i = z * W + x;
-    if (!sea[i] && rows[z][x] === 'w') { sea[i] = 1; queue[tail++] = i; }
-  };
-  for (let x = 0; x < W; x++) { push(x, 0); push(x, H - 1); }
-  for (let z = 0; z < H; z++) { push(0, z); push(W - 1, z); }
-  while (head < tail) {
-    const i = queue[head++], x = i % W, z = Math.floor(i / W);
-    push(x - 1, z); push(x + 1, z); push(x, z - 1); push(x, z + 1);
-  }
-  const ocean = (x, z) => x < 0 || z < 0 || x >= W || z >= H || !!sea[z * W + x];
-  const edges = [], outgoing = new Map();
-  const add = (a, b) => {
-    const e = { a, b, used: false };
-    edges.push(e);
-    const k = key(a); if (!outgoing.has(k)) outgoing.set(k, []);
-    outgoing.get(k).push(e);
-  };
-  // Clockwise around land: the right-hand normal (-dz, dx) always points inland.
-  for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
-    if (rows[z][x] === 'w') continue;
-    if (ocean(x, z - 1)) add([x, z], [x + 1, z]);
-    if (ocean(x + 1, z)) add([x + 1, z], [x + 1, z + 1]);
-    if (ocean(x, z + 1)) add([x + 1, z + 1], [x, z + 1]);
-    if (ocean(x - 1, z)) add([x, z + 1], [x, z]);
-  }
-  const loops = [];
-  for (const first of edges) {
-    if (first.used) continue;
-    const loop = [], start = key(first.a);
-    let e = first;
-    while (e && !e.used) {
-      e.used = true; loop.push(e.a.map(v => v * T));
-      if (key(e.b) === start) break;
-      const dx = e.b[0] - e.a[0], dz = e.b[1] - e.a[1];
-      // At diagonal contacts, turn right to keep each land component separate.
-      const options = (outgoing.get(key(e.b)) || []).filter(n => !n.used);
-      const angle = n => { const nx = n.b[0] - n.a[0], nz = n.b[1] - n.a[1]; return Math.atan2(dx * nz - dz * nx, dx * nx + dz * nz); };
-      options.sort((a, b) => angle(b) - angle(a));
-      e = options[0];
-      if (!e) throw new Error('Open ocean contour in terrain data');
-    }
-    if (loop.length >= 4) loops.push(loop);
-  }
-  return loops;
-}
-
-function sampleLoop(loop, cfg) {
-  // Join the offsets BEFORE subdividing. Offsetting a densely sampled tiny
-  // corner curve would fold the ten-unit inland band over itself.
+function sampleLoop(loop, cfg, corners) {
+  // Shared circular fillets have enough radius for the bank. Unrounded corners
+  // keep mitered offsets joined before subdivision so their bands cannot fold.
   const nodes = loop.filter((p, i) => {
     const a = loop[(i + loop.length - 1) % loop.length], b = loop[(i + 1) % loop.length];
     return Math.abs((p[0] - a[0]) * (b[1] - p[1]) - (p[1] - a[1]) * (b[0] - p[0])) > 0.001;
   });
   let length = 0;
-  const joined = nodes.map((p, i) => {
-    const prev = nodes[(i + nodes.length - 1) % nodes.length], next = nodes[(i + 1) % nodes.length];
+  const joined = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const p = nodes[i], prev = nodes[(i + nodes.length - 1) % nodes.length], next = nodes[(i + 1) % nodes.length];
     const incoming = unit(p[0] - prev[0], p[1] - prev[1]), outgoing = unit(next[0] - p[0], next[1] - p[1]);
-    const tangent = unit(incoming[0] + outgoing[0], incoming[1] + outgoing[1]);
-    const normal = [-tangent[1], tangent[0]];
-    const miter = Math.min(cfg.miterLimit, 1 / Math.max(0.1, normal[0] * -outgoing[1] + normal[1] * outgoing[0]));
-    return { p, offset: normal.map(v => v * miter) };
-  });
+    const corner = corners.get(key(p));
+    if (corner) {
+      const R = corner.radius, sign = corner.convex ? 1 : -1;
+      const entry = [p[0] - incoming[0] * R, p[1] - incoming[1] * R];
+      const center = [entry[0] - incoming[1] * sign * R, entry[1] + incoming[0] * sign * R];
+      const angle = Math.atan2(entry[1] - center[1], entry[0] - center[0]);
+      const count = Math.max(2, Math.ceil(Math.PI * R / (2 * cfg.sampleStep)));
+      for (let j = 0; j <= count; j++) {
+        const t = angle + sign * Math.PI / 2 * j / count, nx = -Math.cos(t) * sign, nz = -Math.sin(t) * sign;
+        joined.push({ p: [center[0] + Math.cos(t) * R, center[1] + Math.sin(t) * R], offset: [nx, nz] });
+      }
+    } else {
+      const tangent = unit(incoming[0] + outgoing[0], incoming[1] + outgoing[1]);
+      const normal = [-tangent[1], tangent[0]];
+      const miter = Math.min(cfg.miterLimit, 1 / Math.max(0.1, normal[0] * -outgoing[1] + normal[1] * outgoing[0]));
+      joined.push({ p, offset: normal.map(v => v * miter) });
+    }
+  }
   const out = [];
   for (let i = 0; i < joined.length; i++) {
     const a = joined[i], b = joined[(i + 1) % joined.length], d = Math.hypot(b.p[0] - a.p[0], b.p[1] - a.p[1]);
@@ -89,7 +53,8 @@ function sampleLoop(loop, cfg) {
 }
 
 export function createCoastline(world, cfg, paint, chunkSize) {
-  const loops = seaContours(world).map(loop => sampleLoop(loop, cfg)), bins = new Map();
+  const topology = oceanTopology(world);
+  const loops = topology.loops.map(loop => sampleLoop(loop, cfg, topology.corners)), bins = new Map();
   const reach = Math.max(cfg.landWidth, cfg.waterWidth) * cfg.miterLimit;
   for (const loop of loops) for (let i = 0; i < loop.points.length; i++) {
     const a = loop.points[i], next = loop.points[(i + 1) % loop.points.length];

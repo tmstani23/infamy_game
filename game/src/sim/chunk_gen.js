@@ -10,6 +10,7 @@
 // cfg is game/data/world_chunks.json. city (optional) = { minX, maxX, minZ, maxZ } in island
 // coordinates: the walled city is a blocker on the island (the way in is its gate, W3.5).
 import { terrainAt, passable } from './world_data.js';
+import { oceanTopology } from './shoreline.js';
 import {islandArt} from './island_art.js';
 import { createPaint, trailSegments, hash2 } from '../world_paint.js';
 
@@ -57,15 +58,39 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   }
   // blocked terrain cells, merged into runs along each row
   const blockers = [];
+  const shore = world.terrain.shoreline?.radius ? oceanTopology(world) : null;
   for (let i = 0; i < n; i++) {
     let start = -1;
     for (let j = 0; j <= n; j++) {
-      const blocked = j < n && !passable(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
+      const blocked = j < n && !shore?.affectedCell(x0 / tc + j, z0 / tc + i) && !passable(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
       if (blocked && start < 0) start = j;
       if (!blocked && start >= 0) {
         blockers.push({ minX: x0 + start * tc, maxX: x0 + j * tc, minZ: z0 + i * tc, maxZ: z0 + (i + 1) * tc, kind: 'terrain' });
         start = -1;
       }
+    }
+  }
+  // Only cells touched by a rounded ocean corner need fine rectangles. They feed
+  // both live sliding and the nav grid. Half-unit steps remain within the
+  // existing corner-slip distance so movement cannot snag on a raster stair.
+  if (shore) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    if (!shore.affectedCell(x0 / tc + j, z0 / tc + i)) continue;
+    const count = Math.ceil(tc / Math.min(cfg.navCell || 1, 0.5)), pitch = tc / count;
+    const ax = x0 + j * tc, az = z0 + i * tc;
+    let previous = new Map();
+    for (let row = 0; row < count; row++) {
+      const current = new Map(); let start = -1;
+      for (let col = 0; col <= count; col++) {
+        const blocked = col < count && !passable(world, ax + (col + 0.5) * pitch, az + (row + 0.5) * pitch);
+        if (blocked && start < 0) start = col;
+        if (!blocked && start >= 0) {
+          const k = `${start},${col}`, old = previous.get(k);
+          if (old) old.maxZ = az + (row + 1) * pitch;
+          const b = old || { minX: ax + start * pitch, maxX: ax + col * pitch, minZ: az + row * pitch, maxZ: az + (row + 1) * pitch, kind: 'terrain', shoreCorners: shore.cellCorners(x0 / tc + j, z0 / tc + i) };
+          if (!old) blockers.push(b); current.set(k, b); start = -1;
+        }
+      }
+      previous = current;
     }
   }
   if (city && city.maxX > x0 && city.minX < x0 + size && city.maxZ > z0 && city.minZ < z0 + size)

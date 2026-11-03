@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "date": "2026-11-03",
+  "status": "Planning only. Tim wants the full asset inventory and clustering rules re-analyzed after coastline and smoothing are figured out. Do not implement clustering yet.",
+  "dependsOn": ["P3 coast/water finishing and Tim's visual review", "Current rainforest and marshland asset batches inventoried"],
+  "scope": "All existing and newly generated patch-like props across every biome, including rainforest/jungle, temperate forest mushrooms/ferns and the marshland assets now being generated.",
+  "familiesToInventory": {
+    "meadow": ["meadow_grass", "meadow_flowers"],
+    "hills": ["hill_heather"],
+    "dry": ["dry_scrub", "dry_grass_tussock"],
+    "coast": ["dune_grass"],
+    "snow": ["snow_drift", "snow_bush"],
+    "forest": ["existing bushes", "four mushroom varieties including restrained glowing variety", "two fern varieties"],
+    "jungle": ["rainforest broadleaf clumps", "fan palms", "large ferns", "vine/root tangles", "low shrubs", "tall grasses"],
+    "marsh": ["Inventory accepted marshland outputs when ready; include their groundcover, reeds/rushes/sedges and other patch-like assets as applicable"]
+  },
+  "designQuestions": [
+    "Small/medium/large irregular arrangements, mixed species and some isolated singles; vary within each biome rather than repeating one enlarged sprite.",
+    "Rebalance the total density when clustering, so patches create clearings and visual rhythm without simply multiplying sprite count.",
+    "Respect local ground, dry/wet zones, coasts, trails, clearing stamps, entrances and landmarks; water-surface assets need distinct placement rules.",
+    "Stable seeded placements and matching chunk halos; choose a rendering strategy that keeps draw cost controlled.",
+    "Match sprite scale and lighting; avoid arbitrary rotations of upright isometric sprites.",
+    "Decide which arrangements should be generated in code and whether any genuinely need additional artwork only after all new assets are reviewed."
+  ],
+  "checklist": [
+    { "task": "Finish and visually review coast/water smoothing", "done": false },
+    { "task": "Audit all patch-like assets including new rainforest, forest-floor and marsh batches", "done": false },
+    { "task": "Agree biome-specific patch mixtures, sizes, density and placement rules", "done": false },
+    { "task": "Implement and playtest clustering after approval", "done": false }
+  ]
+}

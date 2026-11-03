@@ -22,7 +22,7 @@ for(const p of sample)for(let d=0;d<8;d++){
   let [x,z]=[p.x,p.z];const dx=Math.cos(d*Math.PI/4)*.3,dz=Math.sin(d*Math.PI/4)*.3;
   for(let k=0;k<60;k++){[x,z]=slideWorld(x,z,r,dx,dz,boxes,cfg.islandArt.cornerSlip);assert.ok(!blocked(x,z),'never enters blocked terrain');}
   const inward=dx*p.dx+dz*p.dz<-.01,tangent=Math.abs(dx*p.dz-dz*p.dx)>.01;
-  if(inward&&tangent)assert.ok(Math.hypot(x-p.x,z-p.z)>=6*.5*3-.05,'diagonal wall press keeps at least half run speed');
+  if(inward&&tangent)assert.ok(Math.hypot(x-p.x,z-p.z)>=6*.5*3-.05,`diagonal wall press keeps at least half run speed: ${JSON.stringify({p,d,x,z})}`);
   const before=[x,z];for(let k=0;k<20;k++){[x,z]=slideWorld(x,z,r,p.dx*.3,p.dz*.3,boxes,cfg.islandArt.cornerSlip);assert.ok(!blocked(x,z));}
   assert.ok(Math.hypot(x-before[0],z-before[1])>5.5,'clears away within one second');
 }
