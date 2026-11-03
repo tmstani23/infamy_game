@@ -1226,6 +1226,7 @@ As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcro
 - Mock first: world map north-up, fitting the screen width, no stretching; minimap in the same orientation [2b].
 - Grid labels (letters across, numbers down), hover readout like "C24" plus coordinates, your own square on the map and minimap [2c].
 - Sharper minimap and world map (devicePixelRatio, smoother terrain layer) [1].
+- Bug (Tim 2026-11-03): the camera box on the minimap and World map does not follow the hero after test travel, and sometimes not while running around the island; it also needs the right orientation (match the map it sits on).
 
 #### P3 Edges and water (shader and paint code; Opus suggested)
 - Feather mountain tops into the ground under the rim/cliff art; wider thaw band between snow textures [6c].
