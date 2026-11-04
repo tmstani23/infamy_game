@@ -20,10 +20,11 @@ export function createGameSettings({button,sound,saves=null,onOpen=()=>{},onClos
   let list;try{list=sortSaves(await saves.list());}catch(e){note('Could not read saves: '+e.message);return;}
   $('.save-name').placeholder=defaultLabel(saves.meta().day,saves.meta().clan);
   for(const h of list){const row=document.createElement('div');row.className='save-item';const t=document.createElement('span');t.textContent=rowText(h);
-   const load=document.createElement('button');load.type='button';load.textContent='Load';const del=document.createElement('button');del.type='button';del.textContent='Delete';
+   const load=document.createElement('button');load.type='button';load.textContent='Load';const ow=document.createElement('button');ow.type='button';ow.textContent='Overwrite';ow.title='Replace this save with the current match';const del=document.createElement('button');del.type='button';del.textContent='Delete';
    load.addEventListener('click',async()=>{if(armed!==h.name+'L'){armed=h.name+'L';load.textContent='Click again';note('Loading replaces the current match.');return;}load.disabled=true;load.textContent='Loading…';note('Loading the save, the page will reload…');try{await saves.load(h.name);}catch(e){armed=null;load.disabled=false;load.textContent='Load';note(e.message);console.error('Load failed',e);}});
+   ow.addEventListener('click',async()=>{if(armed!==h.name+'O'){armed=h.name+'O';ow.textContent='Sure?';note('Overwrite replaces "'+rowText(h)+'" with the current match.');return;}ow.disabled=true;try{await saves.save(h.name,h.label||h.name);await refreshSaves();note('Overwrote '+h.name+'.');}catch(e){armed=null;ow.disabled=false;ow.textContent='Overwrite';note('Overwrite failed: '+e.message);}});
    del.addEventListener('click',async()=>{if(armed!==h.name+'D'){armed=h.name+'D';del.textContent='Sure?';note('Delete moves it to saves/_trash.');return;}try{await saves.remove(h.name);refreshSaves();}catch(e){note(e.message);}});
-   row.append(t,load,del);box.append(row);}
+   row.append(t,load,ow,del);box.append(row);}
   if(!list.length)note('No saves yet.');
  }
  $('.save-game').addEventListener('click',async()=>{

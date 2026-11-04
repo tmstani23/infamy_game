@@ -71,11 +71,16 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       if (!all.length) return;
       let sorted = sortSaves(all);
       box.hidden = false;
-      box.querySelector('.start-continue').addEventListener('click', () => begin(newest(sorted).name));
+      // Loading needs a second click (Tim 2026-11-04): the first click arms the button, any other click disarms it.
+      let armed = null;
+      const confirmed = (btn, key, text, say, go) => { if (armed?.key === key) { go(); return; } disarm(); armed = { key, btn, text: btn.textContent }; btn.textContent = text; note.textContent = say; };
+      const disarm = () => { if (armed) { armed.btn.textContent = armed.text; armed = null; note.textContent = ''; } };
+      const cont = box.querySelector('.start-continue');
+      cont.addEventListener('click', () => confirmed(cont, '*', 'Click again to continue', 'Continue loads your newest save.', () => begin(newest(sorted).name)));
       box.querySelector('.start-load').addEventListener('click', () => {
         listEl.hidden = !listEl.hidden; if (!listEl.hidden && !listEl.children.length) for (const h of sorted) {
           const li = document.createElement('li'), b = document.createElement('button'), del = document.createElement('button');
-          b.type = 'button'; b.className = 'start-save-pick'; b.textContent = rowText(h); b.addEventListener('click', () => begin(h.name));
+          b.type = 'button'; b.className = 'start-save-pick'; b.textContent = rowText(h); b.addEventListener('click', () => confirmed(b, h.name, 'Click again to load', 'Click again to load this save.', () => begin(h.name)));
           del.type = 'button'; del.className = 'start-save-delete'; del.textContent = 'Delete'; del.title = 'Delete this save (kept in saves/_trash)';
           del.addEventListener('click', async () => {
             if (li.querySelector('.start-save-ask')) return;
