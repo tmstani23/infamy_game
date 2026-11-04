@@ -19,7 +19,7 @@ import { cameraDiscontinuity } from '../camera_tracking.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
@@ -81,7 +81,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   for (const d of rings) scene.add(d);
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
-  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street') }) : null;
+  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), resourceSpots, spotConfig }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);
@@ -382,7 +382,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = shakeAmp * shakeT / 0.18;
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
-    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt);
+    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner]);
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);

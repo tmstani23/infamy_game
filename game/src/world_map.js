@@ -2,6 +2,15 @@
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
+import { makeSpotIndex } from './sim/resource_spots.js';
+import { visibleSpots } from './resource_spot_props.js';
+// Extend the map UI without changing the accepted atlas or its glyph system.
+export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on: false }];
+export const worldFeatureName = it => it?.kind === 'spot' ? `${it.featureKind} spot · ${it.id}` : atlasFeatureName(it);
+export function drawSpotMarker(ctx, x, y, kind) {
+  ctx.fillStyle = { timber: '#a0c586', stone: '#c9c2b5', fish: '#8bc6db', forage: '#d2ba7b' }[kind];
+  ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+}
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;
 export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
@@ -75,9 +84,10 @@ export function rulerLabels(count, position, label, measure, min, max, gap = 8) 
 
 // state (all optional): { discovered: '0101…' | null (null = all known), towns: [{id,x,z,name}], hero: {x,z},
 //   scoutedSites: array of ids, pins: [{id,x,z,note}] }
-export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig = null, onHover = () => {}, getState = () => ({}) }) {
+export function createWorldMap({ canvas, world, resourceSpots = null, paintConfig = null, atlasConfig = null, onHover = () => {}, getState = () => ({}) }) {
   const ctx = canvas.getContext('2d');
-  const layers = Object.fromEntries([...ATLAS_LAYERS, ...ATLAS_DEV_LAYERS].map(l => [l.id,l.on])), biomes = createAtlasBiomes(world,paintConfig);
+  const layers = Object.fromEntries([...WORLD_LAYERS, ...ATLAS_DEV_LAYERS].map(l => [l.id,l.on])), biomes = createAtlasBiomes(world,paintConfig);
+  const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
   let dpr = 1, view = fitView(world, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height), cache = null, dirty = true, drag = null, hover = null, lastMoved = false, rev = -1, illustration = null, biomeCache = null;
   if (atlasConfig?.image && atlasConfig.size?.w === world.size.w && atlasConfig.size?.h === world.size.h && typeof Image !== 'undefined') {
     const img = new Image(); img.onload = () => { illustration=img; dirty=true; }; img.onerror = () => { dirty=true; };
@@ -94,7 +104,8 @@ export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig 
   // One feature list serves drawing, the key and hit testing.
   function hitItems() {
     const st = getState(), grid = st.discovered ?? null, known = (x, z) => layers.revealAll || isDiscovered(world, grid, x, z);
-    return atlasItems(world,st,layers,known);
+    const spots = layers.spots ? visibleSpots(spotIndex, { x: view.cx, z: view.cz, radius: Math.hypot(view.w, view.h) / (2 * view.scale), known }) : [];
+    return [...atlasItems(world,st,layers,known), ...spots.map(s => ({ ...s, featureKind: s.kind, kind: 'spot' }))];
   }
   function path(points) { ctx.beginPath(); points.forEach(([x, z], k) => { const p = worldToCanvas(x, z, view); k ? ctx.lineTo(p.px, p.py) : ctx.moveTo(p.px, p.py); }); ctx.stroke(); }
   function draw() {
@@ -133,7 +144,7 @@ export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig 
       for (const label of labels) label.lines.forEach((line,i)=>{const y=label.py+(i-(label.lines.length-1)/2)*label.lineHeight;ctx.strokeText(line,label.px,y);ctx.fillText(line,label.px,y);});
       ctx.restore();
     }
-    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
+    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.featureKind); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     ctx.restore(); cssTransform();
     // Fixed rulers stay legible while the map pans/zooms underneath them.
@@ -145,7 +156,7 @@ export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig 
     const label = hover && canvasToWorld(hover.px, hover.py, view);
     if (label && hover.px>=MARGIN && hover.py>=MARGIN && inWorld(label)) {
       const feature=hitTest(items,hover.px,hover.py,view,10);
-      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:atlasFeatureName(feature) });
+      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:worldFeatureName(feature) });
     } else onHover(null);
     dirty = false;
   }

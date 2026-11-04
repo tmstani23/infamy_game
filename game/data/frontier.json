@@ -89,7 +89,28 @@
     "stockade": "watch_post",
     "zone:h": "townhouse",
     "zone:f": "haystack",
-    "zone:k": "blacksmith"
+    "zone:k": "blacksmith",
+    "_zones": {
+      "_note": "placeholder, Tim to tune (L3.7): existing cutouts by zone growth stage; one farmhouse per houseEvery cells.",
+      "h": { "kind": "housing", "stages": ["thatched_hut", "townhouse", "longhouse"] },
+      "f": { "kind": "farm", "stages": ["thatched_hut"], "field": true, "houseEvery": 6 },
+      "k": { "kind": "work", "stages": ["blacksmith"] }
+    },
+    "_ground": {
+      "_note": "placeholder, Tim to tune (L3.7): art-only dirt foundation, road and crop decals; sizes are fractions of a town cell except foundationRadius (world units).",
+      "foundationRadius": 44, "roadWidth": 0.4, "fieldSize": 0.9, "cropRows": 5, "cropWidth": 0.045,
+      "clearTint": "#b0a18a", "roadTint": "#ddc5a2", "fieldTint": "#765439", "fieldTexture": "art/ground/island/dirt_trail.jpg", "cropTint": "#6b8545", "abandonedTint": "#686054"
+    },
+    "_walls": {
+      "_note": "placeholder, Tim to tune (L3.7): existing fence segments and an open gate stand-in; no collision changes.",
+      "w": { "art": "bamboo_fence", "count": 4, "scale": 1 },
+      "g": { "art": "village_gate", "count": 1, "scale": 0.7 }
+    },
+    "_spots": {
+      "_note": "placeholder, Tim to tune (L3.7): art scale by full/harvested/sapling stage, nearby display and minimap threshold; does not change harvesting or collision.",
+      "scales": { "timber": { "f": 1, "h": 0.65, "s": 0.3 }, "stone": { "f": 1, "h": 0.65, "s": 0.35 }, "fish": { "f": 0.5, "h": 0.3, "s": 0.4 }, "forage": { "f": 1, "h": 0.35, "s": 0.65 } },
+      "clearance": 4, "pieceReach": 30, "minimapZoom": 1.5, "hoverRadius": 5, "twinkleSize": 4, "twinklePeriodMs": 150, "twinklePulse": 0.2
+    }
   },
   "forage": {
     "_note": "placeholder, Tim to tune: a founded town with no lumber camp gathers timberPerIdle per idle person per economy tick by hand, up to cap in stock, so it can never be stuck at 0 timber",

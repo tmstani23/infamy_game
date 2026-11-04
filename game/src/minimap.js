@@ -11,7 +11,9 @@ import { mapTerrain, createMapRaster } from './map_raster.js';
 import { drawWatchMarkers } from './watch_markers.js';
 import { contractMapLocation } from './contract_map_marker.js';
 import { featureTip } from './world_features.js';
-import { worldTerrainCache, worldToCanvas, gridLabel } from './world_map.js';
+import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMarker } from './world_map.js';
+import { makeSpotIndex } from './sim/resource_spots.js';
+import { visibleSpots, spotInfo } from './resource_spot_props.js';
 
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
@@ -21,7 +23,7 @@ export function policeMapColor(officer, clan, state) {
   return (officer.angry?.[clan] ?? -1) > state.tick || target?.owner === clan ? '#ff4632' : '#72aaff';
 }
 
-export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send, big = false, world = null, atlasConfig = null,
+export function createMinimap({ canvas, game, district, view, fog, heroId, clan = 'player', selected, send, big = false, world = null, resourceSpots = null, spotConfig = null, atlasConfig = null,
   layers = { territory: true, businesses: true, police: true, units: true }, onHover = null, onPick = null, overlay = null }) {
   const g = game.vision.grid(clan);
   const midX = g.minX + g.w / 2, midZ = g.minZ + g.h / 2;
@@ -121,12 +123,13 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     let best = null, bd = Infinity;
     for (const h of islandHits) { const d = (h[0] - mx) ** 2 + (h[1] - my) ** 2; if (d < h[2] * h[2] && d < bd) { bd = d; best = h; } }
     if (!best) { tipBox.style.display = 'none'; return; }
-    const t = featureTip(best[3], best[4], best[5]);
+    const t = best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
     tipBox.innerHTML = `<b>${t.title}</b>` + t.lines.map(l => `<div>${l}</div>`).join('');
     tipBox.style.left = `${e.clientX - 250}px`; tipBox.style.top = `${e.clientY + 14}px`; tipBox.style.display = 'block';
   });
   canvas.addEventListener('mouseleave', () => { tipBox.style.display = 'none'; });
   const ISLAND_SPAN = 450;   // units from the middle of the minimap to its edge
+  const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
   function paintIsland(state) {
     const me = game.state.entities[heroId];
     if (!islandImg) islandImg = worldTerrainCache(world);
@@ -155,6 +158,12 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const near = list => list.filter(f => Math.abs(f.x - me.x) < reach && Math.abs(f.z - me.z) < reach);
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)';
     islandHits = []; const tipCtx = { camps, scouted: state.world?.scouted?.[clan] || [], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world };
+    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: me.x, z: me.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: spotConfig.minimapZoom,
+      known: (x, z) => isDiscovered(world, game.state.world?.discovered?.[clan] ?? '0', x, z) })) {
+      const [u, v] = at(spot.x, spot.z);
+      if (u < 0 || v < 0 || u > size || v > size) continue;
+      drawSpotMarker(ctx, u, v, spot.kind); islandHits.push([u, v, 5, 'spot', spot, tipCtx]);
+    }
     for (const n of near(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 5, 'node', n, tipCtx]); ctx.fillStyle = '#9fc7a1'; ctx.fillRect(u - 2, v - 2, 4, 4); }
     for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill(); ctx.stroke(); }
     for (const f of near(world.fords || [])) {   // bridges (brown bar) and fords (pale x)

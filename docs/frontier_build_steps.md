@@ -314,7 +314,7 @@ Done note: "L3.6 workers walk when someone is near."
 
 Built (2026-11-04): workers wake as non-fighting laborers near activity, walk cached fine paths, and suspend with trip, cargo and wounds preserved. A loaded casualty removes one record. `areas.js` also needed worker residency exclusion and path planning for sleeping trips; workers cannot keep chunks awake. The worker test covers proximity, navigation, near/away production parity, save/load, clearing, rerouting and casualties. Relevant frontier, areas, camps, combat, inventory, business, bot, worker and settings checks passed. `test_crew.mjs:97` failed identically before and after (teahouse vs street). Visual verification remains open; next L3.7.
 
-#### L3.7. Drawing the town and the spots  [STRONG]
+#### L3.7. Drawing the town and the spots  [STRONG] — [x] Node checks passed; visual check pending
 Needs: L3.3, L3.4, L3.0 mock OK
 Files: `game/src/town_props.js`, `game/src/render/world_ground.js`, `game/src/minimap.js`,
 `game/src/world_map.js` (Spots layer toggle), `game/data/art.json` (stand-in pieces and stages),
@@ -327,6 +327,8 @@ layer; discovery and fog apply. Render reads the snapshot only.
 Check (pass/fail): `.mjs` syntax copies pass; a pure helper `townCellsToProps(grid)` is tested.
 In game (Tim): the town, its fields and its spots read clearly; harvested trees show stumps.
 Done note: "L3.7 town and spots drawn."
+
+Built (2026-11-04): grid-derived town, construction and zone-stage art; resource pieces by harvest stage, hover twinkle and card, discovered/zoomed minimap spots and World Spots layer. Snapshot sends the own town grid and discovered changed spot states. Existing art only; no navigation or harvesting changes. `test_town_drawing.mjs` and relevant worker, frontier, map and sim checks pass; syntax/diff checks pass. Pre-existing failures: `test_crew.mjs:97` (teahouse vs street) and `test_town_world.mjs:20` (`zone:h` art assertion), both reproduced before and after. Visual review remains pending with L3.6; next L3.8. The card's file list omitted main/view/game-map wiring and the snapshot seam.
 
 #### L3.8. Build bar, tooltips and worker orders  [STRONG]
 Needs: L3.2, L3.3, L3.5, L3.0 mock OK

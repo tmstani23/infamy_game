@@ -21,6 +21,9 @@ import { createIslandPainter } from './island_ground.js';
 import { createCoastlineRenderer } from './coastline.js';
 import { createWaterEffects } from './water_effects.js';
 import { campPropsInChunk, findPropsInChunk, crossingPropsInChunk, nodePropsInChunk, sitePropsInChunk } from '../world_features.js';
+import { makeSpotIndex } from '../sim/resource_spots.js';
+import { spotPiecesToProps, visibleSpots, coveredBySpot } from '../resource_spot_props.js';
+import { isDiscovered } from '../world_map.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
 // mountain art is cut in, W3.4b)
@@ -39,12 +42,14 @@ const GROUND = {
 const SPLAT_RES = 0.5;   // weight-map pixels per world unit
 const TRAIL = 3;         // half width of a corridor trail
 
-export function createWorldGround({ scene, renderer, world, cfg, catalog, cutouts, bounds, gate }) {
+export function createWorldGround({ scene, renderer, world, cfg, catalog, cutouts, bounds, gate, resourceSpots, spotConfig }) {
   const S = cfg.chunk, seed = world.seed ?? 1, city = cityOnIsland(world, bounds);
   const cols = Math.ceil(world.size.w / S), rows = Math.ceil(world.size.h / S);
   const loaded = new Map();     // 'cx,cz' -> { gen, mesh, used }
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
+  const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
+  let spotRevision = '', snapshot = null;
   const coastline = createCoastlineRenderer({ world, cfg, renderer });
   const waterEffects = createWaterEffects({ world, cfg, renderer, scene });
   const reflectionFrustum = new THREE.Frustum(), reflectionProjection = new THREE.Matrix4(), waterBox = new THREE.Box3();
@@ -125,11 +130,14 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   }
   function makeThing(p) {
     if (p.dirt) {   // E5: an unbuilt project is a flat patch of trodden dirt (island ground texture, lit like the ground)
-      const tex = textureFor('art/ground/island/dirt_trail.jpg');
+      const tex = textureFor(p.texture || 'art/ground/island/dirt_trail.jpg');
       if (!tex) return undefined;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width, p.height), spriteMaterial(tex));
-      mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x, 0.02, p.z); mesh.renderOrder = -0.4;
+      mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x, 0.02, p.z);
+      mesh.renderOrder = p.key?.includes(':crop:') ? -0.4 : p.key?.includes(':road') || p.key?.endsWith(':field') ? -0.42 : -0.45;
       mesh.material.uniforms.uFogAt.value.set(p.x, p.z, 0, 1);
+      if (p.tint) mesh.material.uniforms.uTint.value.set(p.tint);
+      mesh.position.y = p.key?.includes(':crop:') ? 0.026 : p.key?.includes(':road') || p.key?.endsWith(':field') ? 0.024 : 0.02;
       return { mesh, extras: [], lights: [], decal: true };
     }
     const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || (catalog.items[p.kind] ? [p.kind, 1] : []);
@@ -151,6 +159,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       piece.foot = sc(piece.foot);
     }
     const thing = cutoutThing(piece, tex);
+    if (p.tint) thing.mesh.material.uniforms.uTint.value.set(p.tint);
+    if (p.noLights) { for (const e of thing.extras) e.material.dispose(); thing.extras = []; thing.lights = []; }
     if (p.opacity !== undefined && thing?.mesh.material.uniforms?.uOpacity) thing.mesh.material.uniforms.uOpacity.value = p.opacity;
     return thing;
   }
@@ -159,12 +169,16 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (!t) return;
     scene.remove(t.mesh, ...t.extras);
     t.mesh.material.dispose();
+    for (const e of t.extras) e.material.dispose();
     if(t.decal)t.mesh.geometry.dispose();
     sprites.delete(key);
   }
 
   // Each frame: (camera x, z), whether the followed hero is on the island, frame time
-  function update(x, z, active, dt) {
+  function update(x, z, active, dt, frontier, discovered) {
+    snapshot = frontier;
+    const revision = `${JSON.stringify(frontier?.spots || {})}|${discovered}`;
+    if (revision !== spotRevision) { spotRevision = revision; propAt = null; }
     if (!active) {
       if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; }
       return;
@@ -194,6 +208,11 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < 4) return;
     propAt = [x, z];
     const want = new Map();
+    const spots = spotConfig ? visibleSpots(spotIndex, { x, z, radius: R + spotConfig.pieceReach, known: (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz) }) : [];
+    const patches = towns.filter(p => p.dirt && Math.hypot(p.x - x, p.z - z) < R + p.width);
+    const cleared = p => patches.some(t => Math.abs(p.x - t.x) < t.width / 2 && Math.abs(p.z - t.z) < t.height / 2);
+    for (const spot of spots) for (const p of spotPiecesToProps(spot, snapshot?.spots?.[spot.id], catalog.spotArt, spotConfig))
+      if (Math.hypot(p.x - x, p.z - z) < R && !cleared(p)) want.set(p.key, p);
     if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gate.x,z:gate.z});
     for (const p of towns) if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`town:${p.key}`, p);
     wall.forEach((p, i) => { if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`city-wall:${i}`, p); });
@@ -201,16 +220,22 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       if (Math.abs(c.gen.x0 + S / 2 - x) > S / 2 + R + 40 + 120 || Math.abs(c.gen.z0 + S / 2 - z) > S / 2 + R + 40 + 120) continue;
       const near = propsInView(c.gen.props, x, z, R);
       for(const [i,p]of (c.gen.art||[]).entries())if(Math.hypot(p.x-x,p.z-z)<R+60)want.set(`${c.gen.id}:art:${i}`,p);
-      for (const p of near) want.set(`${c.gen.id}:${c.gen.props.indexOf(p)}`, p);
+      for (const p of near) {
+        // Authored camp/site props stay; only generated decorative props are covered by resource pieces.
+        if (cleared(p) || (spotConfig && !p.art && !p.feature && coveredBySpot(p, spots, spotConfig.clearance))) continue;
+        want.set(`${c.gen.id}:${c.gen.props.indexOf(p)}`, p);
+      }
     }
     let changed = false, pending = false;
     for (const k of [...sprites.keys()]) if (!want.has(k)) { removeThing(k); changed = true; }
     for (const [k, p] of want) {
+      if (sprites.has(k) && sprites.get(k).drawSignature !== JSON.stringify(p)) { removeThing(k); changed = true; }
       if (sprites.has(k)) continue;
       const t = makeThing(p);
       if (t === undefined) { pending = true; continue; }
       if (!t) continue;
       scene.add(t.mesh, ...t.extras);
+      t.drawSignature = JSON.stringify(p);
       sprites.set(k, t); changed = true;
     }
     if (pending) propAt = null;

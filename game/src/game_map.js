@@ -8,15 +8,16 @@ import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
-import { createWorldMap, canvasToWorld, gridLabel } from './world_map.js';
-import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, ATLAS_MARKERS, atlasGlyphSVG, atlasFeatureName } from './world_atlas.js';
+import { createWorldMap, canvasToWorld, gridLabel, WORLD_LAYERS as ATLAS_LAYERS, worldFeatureName as atlasFeatureName } from './world_map.js';
+import { ATLAS_DEV_LAYERS, ATLAS_MARKERS, atlasGlyphSVG } from './world_atlas.js';
+import { spotInfo } from './resource_spot_props.js';
 import { siteReport, placeNo, featureTip } from './world_features.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ openTown = () => {}, root, deploymentRoot, game, district, world = null, paintConfig = null, atlasConfig = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
+export function createGameMap({ openTown = () => {}, root, deploymentRoot, game, district, world = null, resourceSpots = null, spotConfig = null, paintConfig = null, atlasConfig = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
@@ -287,7 +288,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const counts = {};
     for (const it of worldMap.items()) counts[it.kind]=(counts[it.kind] || 0)+1;
     if (worldState().hero) counts.hero=1;
-    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ' · hollow: unscouted' : ''}</small></span>`).join('');
+    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ' · hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>• Spots <small>${counts.spot} in view · green timber · grey stone · blue fish · tan forage</small></span>` : '');
     if (el.innerHTML !== html) el.innerHTML=html;
   }
   function ensureWorldMap() {
@@ -299,7 +300,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       if (b.hasAttribute('data-locate')) worldMap.centerOn(worldState().hero);
       if (b.dataset.atlasLayer) {
         const id=b.dataset.atlasLayer, on=!worldMap.layers[id]; worldMap.setLayer(id,on); b.setAttribute('aria-pressed',String(on));
-        if (picked && ATLAS_MARKERS[picked.kind]?.layer===id && !on) { picked=null; drawWorldSide(); }
+        if (picked && (ATLAS_MARKERS[picked.kind]?.layer===id || picked.kind === 'spot' && id === 'spots') && !on) { picked=null; drawWorldSide(); }
         updateWorldLegend();
       }
       b.blur();
@@ -307,7 +308,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     worldCanvas = document.createElement('canvas'); worldCanvas.className = 'worldcanvas'; worldCanvas.setAttribute('aria-label', 'World map');
     canvas.after(worldCanvas);
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
-    worldMap = createWorldMap({ canvas: worldCanvas, world, paintConfig, atlasConfig, getState: worldState, onHover: info => {
+    worldMap = createWorldMap({ canvas: worldCanvas, world, resourceSpots, paintConfig, atlasConfig, getState: worldState, onHover: info => {
       const el=worldSide.querySelector('.atlas-hover'); if (!el) return;
       const text=info ? `${info.feature ? info.feature + ' · ' : ''}${info.zone ? info.zone + ' · ' : ''}${info.biome} · ${info.grid} · x ${Math.floor(info.x).toLocaleString('en-US')} z ${Math.floor(info.z).toLocaleString('en-US')}` : 'Hover the map for zone, biome, grid square and coordinates.';
       if (el.textContent!==text) el.textContent=text;
@@ -319,6 +320,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     worldCanvas.addEventListener('mousemove', e => {
       const [px, py] = local(e), hit = worldMap.hit(px, py);
       let c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
+      if (hit?.kind === 'spot') { const t = spotInfo({ ...hit, kind: hit.featureKind }, game.state.frontier?.spots?.[hit.id]); c = { title: t.title, sub: '', lines: t.lines.map(l => ['', l]) }; }
       const tipKind = { site: 'site', resource: 'node', camp: 'camp', bridge: 'bridge', ford: 'ford', pass: 'pass' }[hit?.kind];
       if (!c && tipKind) {   // stats on hover for sites, nodes, camps and crossings (same text as the minimap)
         const w = game.state.world, t = featureTip(tipKind, { ...hit, kind: hit.featureKind }, { camps: w?.camps, scouted: worldMap.layers.revealAll ? world.sites.map(s => s.id) : [...scouted0()], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world });

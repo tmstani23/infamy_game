@@ -23,13 +23,17 @@ export function reconcile(target, source) {
 // { id, name, owner, region, site } for towns on discovered ground, roads with their state, its own
 // shipments, its own receipts. Never the 500-entry ledger, totals or rival stock.
 export const FRONTIER_EVERY = 5;
-export function frontierFor(f, clan, discovery, recent) {
+export function frontierFor(f, clan, discovery, recent, spotIndex) {
   const settlements = {};
   for (const [id, s] of Object.entries(f.settlements || {})) {
-    if (s.owner === clan) settlements[id] = s.grid ? { ...s, grid: { n: s.grid.n, cell: s.grid.cell } } : s;   // L3.1: the grid strings stay in the sim until the build bar needs them
+    if (s.owner === clan) settlements[id] = s;   // L3.7: draw the authoritative grid and zone stages
     else if (s.capital || discovery?.siteDiscovered?.(clan, s.site)) settlements[id] = { id: s.id, name: s.name, owner: s.owner, region: s.region, site: s.site };
   }
-  return { version: f.version, econTick: f.econTick, settlements,
+  const spots = Object.fromEntries(Object.entries(f.spots || {}).filter(([id]) => {
+    const p = spotIndex?.get(id);
+    return p && discovery?.isDiscovered?.(clan, p.x, p.z);
+  }));
+  return { version: f.version, econTick: f.econTick, settlements, spots,
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
     receipts: recent || (f.receipts || []).filter(r => r.clan === clan) };
@@ -49,7 +53,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
     if (st.frontier) {
-      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts)); /* a copy, so it stays still between refreshes */ frontierAt = st.tick; }
+      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, game.frontier?.modules?.find(m => m.name === 'workers')?.workers.index)); /* a copy, so it stays still between refreshes */ frontierAt = st.tick; }
       roots.frontier = frontierView;
     }
     if (map) {

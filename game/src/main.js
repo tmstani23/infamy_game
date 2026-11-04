@@ -24,6 +24,9 @@ import { createFrontierPanel } from './frontier_panel.js';
 import { createFoundButton } from './found_button.js';
 import { drawableTowns, townSignature, townProps } from './town_props.js';
 import { createTownHover } from './town_hover.js';
+import { makeSpotIndex } from './sim/resource_spots.js';
+import { visibleSpots, spotInfo } from './resource_spot_props.js';
+import { isDiscovered } from './world_map.js';
 import { createTownsOverview } from './towns_overview.js';
 import { createRyoBadge } from './ryo_badge.js';
 import { createLootNotice } from './loot_notice.js';
@@ -113,7 +116,7 @@ async function start() {
   let view;
   try {
     view = await createView({
-      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world, worldChunks, cutouts,
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world, worldChunks, cutouts, resourceSpots, spotConfig: frontier?.townArt?._spots,
       doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || game.state.match?.mode === 'campaign')), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
@@ -216,6 +219,36 @@ async function start() {
   const shop=createShopUI({game,heroId,view,send:c=>pending.push(c),hidden:()=>gameMap.isOpen()||hudLayout.isEditing(),onOpen:()=>{characterPanel.close();hqStash.close();setGameplayInput(false);},onClose:()=>setGameplayInput(true)});
   // Hire menu: only reads the state and sends 'hire' commands, like a bot would
   let townSig = '';
+  const spotIndex = makeSpotIndex(resourceSpots), spotConfig = frontier?.townArt?._spots;
+  const spotTip = document.createElement('div'), twinkle = document.createElement('div');
+  spotTip.className = 'townhover'; spotTip.hidden = twinkle.hidden = true;
+  twinkle.textContent = '✦';
+  twinkle.style.cssText = 'position:fixed;pointer-events:none;color:#fff0bd;z-index:12;line-height:1';
+  document.body.append(spotTip, twinkle);
+  let spotMouse = null;
+  addEventListener('mousemove', e => { spotMouse = e.target?.closest?.('canvas#view') ? { x: e.clientX, y: e.clientY } : null; });
+  addEventListener('blur', () => { spotMouse = null; });
+  function updateSpotHover() {
+    const hero = game.state.entities[heroId];
+    spotTip.hidden = twinkle.hidden = true;
+    if (!spotMouse || !spotConfig || hero?.place !== 'world' || gameMap.isOpen() || !$('controls').hidden) return;
+    const point = view.screenToGround(spotMouse.x, spotMouse.y);
+    if (!point) return;
+    const candidates = visibleSpots(spotIndex, { ...point, radius: spotConfig.pieceReach,
+      known: (x, z) => isDiscovered(world, game.state.world?.discovered?.[hero.owner] ?? '0', x, z) });
+    let picked = null, best = spotConfig.hoverRadius;
+    for (const spot of candidates) for (const [dx, dz] of spot.pieces) {
+      const distance = Math.hypot(point.x - spot.x - dx, point.z - spot.z - dz);
+      if (distance < best) { best = distance; picked = { spot, x: spot.x + dx, z: spot.z + dz }; }
+    }
+    if (!picked) return;
+    const info = spotInfo(picked.spot, game.state.frontier?.spots?.[picked.spot.id]);
+    spotTip.textContent = `${info.title}: ${info.lines.join(' · ')}`;
+    Object.assign(spotTip.style, { left: `${Math.min(innerWidth - 260, spotMouse.x + 16)}px`, top: `${Math.min(innerHeight - 110, spotMouse.y + 16)}px` });
+    const screen = view.unitToScreen(picked.x, picked.z, 1);
+    Object.assign(twinkle.style, { left: `${screen.x}px`, top: `${screen.y}px`, fontSize: `${spotConfig.twinkleSize * (1 + spotConfig.twinklePulse * Math.sin(performance.now() / spotConfig.twinklePeriodMs))}px` });
+    spotTip.hidden = twinkle.hidden = false;
+  }
   const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, send: c => pending.push(c) });
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
@@ -336,7 +369,7 @@ async function start() {
     else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
     else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
   } });
-  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world, atlasConfig: worldAtlas, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world, resourceSpots, spotConfig, atlasConfig: worldAtlas, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const mapZoom = factor => {
     const level = minimap.zoomBy(factor);
     $('minimapout').disabled = level <= 1;
@@ -347,7 +380,7 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
+  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
@@ -545,7 +578,7 @@ async function start() {
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
       stealthBadge.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
-      hireMenu.update(); foundButton.update();
+      hireMenu.update(); foundButton.update(); updateSpotHover();
       { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), sig = townSignature(towns);   // E5: founded towns follow their records
         if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); } }
       clinicMenu.update();

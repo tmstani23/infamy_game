@@ -5,7 +5,11 @@
 import { townSlot } from './sim/frontier/town_layout.js';
 import { cellOffset } from './sim/frontier/town_grid.js';
 // grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
-const slotOf = (s, c) => (s.grid ? cellOffset(s, c) : townSlot(c));
+const slotOf = (s, c, cells) => {
+  if (!s.grid) return townSlot(c);
+  const offsets = (cells?.length ? cells : [c]).map(i => cellOffset(s, i));
+  return offsets.reduce(([x, z], [dx, dz]) => [x + dx / offsets.length, z + dz / offsets.length], [0, 0]);
+};
 
 // Which towns to draw: your own (full records, with a position) from the frontier snapshot.
 export function drawableTowns(frontier, clan) {
@@ -14,30 +18,81 @@ export function drawableTowns(frontier, clan) {
 
 // A short string that changes whenever a drawn thing would change (so the renderer only rebuilds then).
 export function townSignature(towns) {
-  return towns.map(s => `${s.id}@${s.x},${s.z}:${s.buildings.map(b => `${b.type}${b.cell}${b.stage}`).join('/')}|${s.projects.map(p => `${p.type}${p.cell}${p.paid ? (p.progress > 0 ? 'f' : 'p') : 'u'}`).join('/')}|${s.grid?.zone ?? ''}${s.grid?.stage ?? ''}`).join(';');
+  return JSON.stringify(towns.map(s => [s.id, s.x, s.z,
+    s.buildings.map(b => [b.id, b.type, b.cell, b.cells, b.stage]),
+    s.projects.map(p => [p.id, p.type, p.cell, p.cells, p.phase, p.paid, p.progress > 0]), s.grid,
+    Object.entries(s.zones || {}).map(([kind, z]) => [kind, !!z.abandoned])]));
+}
+
+// Local drawing instructions only. No clearing, growth or placement rules run here.
+export function townCellsToProps(grid, art = {}, zones = {}) {
+  if (!grid?.ground || !grid.use || !grid.zone || !grid.stage) return [];
+  const out = [], mid = (grid.n - 1) / 2, G = art._ground;
+  const definitions = art._zones || {};
+  for (let i = 0; i < grid.n * grid.n; i++) {
+    if (grid.ground[i] === 'x') continue;
+    const x = (i % grid.n - mid) * grid.cell, z = (Math.floor(i / grid.n) - mid) * grid.cell;
+    const use = grid.use[i], zone = grid.zone[i], stage = Number(grid.stage[i]);
+    const base = { cell: i, x, z };
+    const patch = (key, width, height, tint, texture) => out.push({ ...base, key: `${i}:${key}`, dirt: true, width, height, tint, texture });
+    // Open plains are already cleared in the sim; only the foundation and used cells need a dirt decal.
+    if (G && grid.ground[i] === 'c' && (use !== '.' || zone !== '.' || Math.hypot(x, z) <= G.foundationRadius))
+      patch('clear', grid.cell, grid.cell, G.clearTint);
+    if (G && (use === 'r' || use === 'g')) {
+      const width = grid.cell * G.roadWidth;
+      patch('road', width, width, G.roadTint);
+      for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        const col = i % grid.n + dc, row = Math.floor(i / grid.n) + dr;
+        if (col < 0 || row < 0 || col >= grid.n || row >= grid.n || !'rgB'.includes(grid.use[row * grid.n + col])) continue;
+        out.push({ ...base, key: `${i}:road:${dc}:${dr}`, dirt: true, width: dc ? grid.cell / 2 : width, height: dr ? grid.cell / 2 : width,
+          x: x + dc * grid.cell / 4, z: z + dr * grid.cell / 4, tint: G.roadTint });
+      }
+    }
+    if (use === 'w' || use === 'g') {
+      const col = i % grid.n, row = Math.floor(i / grid.n);
+      const joins = (dc, dr) => col + dc >= 0 && col + dc < grid.n && row + dr >= 0 && row + dr < grid.n && 'wg'.includes(grid.use[(row + dr) * grid.n + col + dc]);
+      const alongX = joins(-1, 0) || joins(1, 0), alongZ = joins(0, -1) || joins(0, 1);
+      const axes = use === 'w' && alongX && alongZ ? [false, true] : [alongZ];
+      const wall = art._walls?.[use];
+      if (wall) for (const vertical of axes) for (let k = 0; k < wall.count; k++) {
+        const d = ((k + 0.5) / wall.count - 0.5) * grid.cell;
+        out.push({ ...base, key: `${i}:${use}:${vertical}:${k}`, x: x + (vertical ? 0 : d), z: z + (vertical ? d : 0), art: wall.art, flip: vertical, s: wall.scale, noLights: true });
+      }
+    }
+    const def = definitions[zone];
+    if (!def || !stage || grid.ground[i] !== 'c') continue;
+    const abandoned = !!zones[def.kind]?.abandoned, tint = abandoned ? G?.abandonedTint : undefined;
+    if (def.field && G) {
+      patch('field', grid.cell * G.fieldSize, grid.cell * G.fieldSize, abandoned ? G.abandonedTint : G.fieldTint, G.fieldTexture);
+      if (!abandoned) for (let row = 0; row < G.cropRows; row++) out.push({ ...base, key: `${i}:crop:${row}`, dirt: true, width: grid.cell * G.fieldSize, height: grid.cell * G.cropWidth, z: z + (row - (G.cropRows - 1) / 2) * grid.cell * G.fieldSize / G.cropRows, tint: G.cropTint });
+      if (i % def.houseEvery !== 0) continue;
+    }
+    const name = def.stages[Math.min(stage, def.stages.length) - 1];
+    if (name) out.push({ ...base, key: `${i}:zone:${stage}:${abandoned}`, art: name, tint, noLights: abandoned });
+  }
+  return out;
 }
 
 export function townProps(towns, townArt, townLights = {}) {
   const out = [];
   for (const s of towns) {
     s.buildings.forEach((b, i) => {
-      const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i);
+      const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i, b.cells);
       if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5 });
       // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
       if (b.stage === 'built') for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
     });
-    // L3.3 stand-in until L3.7 draws zone stages: a grown zone cell (stage 1+) shows townArt["zone:<letter>"]
-    if (s.grid) for (let i = 0; i < s.grid.zone.length; i++) {
-      const art = s.grid.stage[i] !== '0' && townArt[`zone:${s.grid.zone[i]}`];
-      if (!art) continue;
-      const [ox, oz] = cellOffset(s, i);
-      out.push({ key: `${s.id}:z${i}`, art, x: s.x + ox, z: s.z + oz, opacity: 1 });
-    }
+    for (const p of townCellsToProps(s.grid, townArt, s.zones)) out.push({ ...p, key: `${s.id}:${p.key}`, x: s.x + p.x, z: s.z + p.z });
     s.projects.forEach((p, i) => {
-      const art = townArt[p.type], [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i);
+      const art = townArt[p.type], [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells);
       const x = s.x + ox, z = s.z + oz;
       if (p.paid && p.progress > 0 && art) out.push({ key: `${s.id}:${p.id}:frame`, art, x, z, opacity: 0.5 });
-      else out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width: 8, height: 6, x, z });
+      else if (p.phase !== 'clearing') {
+        const offsets = p.cells?.map(c => cellOffset(s, c));
+        const width = offsets ? Math.max(...offsets.map(p => p[0])) - Math.min(...offsets.map(p => p[0])) + s.grid.cell : 8;
+        const height = offsets ? Math.max(...offsets.map(p => p[1])) - Math.min(...offsets.map(p => p[1])) + s.grid.cell : 6;
+        out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width, height, x, z });
+      }
     });
   }
   return out;
@@ -48,8 +103,8 @@ export function townProps(towns, townArt, townLights = {}) {
 export function townPlots(towns) {
   const out = [];
   for (const s of towns) {
-    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i); out.push({ town: s.id, kind: 'building', id: b.id, x: s.x + ox, z: s.z + oz }); });
-    s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz }); });
+    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i, b.cells); out.push({ town: s.id, kind: 'building', id: b.id, x: s.x + ox, z: s.z + oz }); });
+    s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz }); });
   }
   return out;
 }
