@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const d = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
-assert.equal(d.version, 2);
+assert.equal(d.version, 4);
 assert.ok(d.cadenceTicks > 0);
 for (const k of ['resources', 'rates', 'buildings', 'regions', 'settlements', 'roads']) assert.ok(d[k], `has ${k}`);
 

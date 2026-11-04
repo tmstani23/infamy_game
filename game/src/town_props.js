@@ -14,7 +14,7 @@ export function drawableTowns(frontier, clan) {
 
 // A short string that changes whenever a drawn thing would change (so the renderer only rebuilds then).
 export function townSignature(towns) {
-  return towns.map(s => `${s.id}@${s.x},${s.z}:${s.buildings.map(b => `${b.type}${b.cell}${b.stage}`).join('/')}|${s.projects.map(p => `${p.type}${p.cell}${p.paid ? (p.progress > 0 ? 'f' : 'p') : 'u'}`).join('/')}`).join(';');
+  return towns.map(s => `${s.id}@${s.x},${s.z}:${s.buildings.map(b => `${b.type}${b.cell}${b.stage}`).join('/')}|${s.projects.map(p => `${p.type}${p.cell}${p.paid ? (p.progress > 0 ? 'f' : 'p') : 'u'}`).join('/')}|${s.grid?.zone ?? ''}${s.grid?.stage ?? ''}`).join(';');
 }
 
 export function townProps(towns, townArt, townLights = {}) {
@@ -26,6 +26,13 @@ export function townProps(towns, townArt, townLights = {}) {
       // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
       if (b.stage === 'built') for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
     });
+    // L3.3 stand-in until L3.7 draws zone stages: a grown zone cell (stage 1+) shows townArt["zone:<letter>"]
+    if (s.grid) for (let i = 0; i < s.grid.zone.length; i++) {
+      const art = s.grid.stage[i] !== '0' && townArt[`zone:${s.grid.zone[i]}`];
+      if (!art) continue;
+      const [ox, oz] = cellOffset(s, i);
+      out.push({ key: `${s.id}:z${i}`, art, x: s.x + ox, z: s.z + oz, opacity: 1 });
+    }
     s.projects.forEach((p, i) => {
       const art = townArt[p.type], [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i);
       const x = s.x + ox, z = s.z + oz;

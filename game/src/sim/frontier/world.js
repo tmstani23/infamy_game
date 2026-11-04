@@ -38,7 +38,7 @@ export function createFrontierWorld({ state, data }) {
   function housingOf(s, d = data) {
     let n = 0;
     for (const b of s.buildings) if (b.stage === 'built') n += d.buildings[b.type]?.housing || 0;
-    return n;
+    return n + (s.zoneHousing || 0);   // L3.3: housing zones (zones.js keeps zoneHousing)
   }
   // A town founded in play (E3): the one door for new settlement records. Starts with the given
   // stock, so the totals invariant (start + in - out = stock) holds from the first tick.

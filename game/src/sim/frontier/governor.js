@@ -12,7 +12,7 @@
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
 
-export function createGovernor({ state, data, world, economy, construction }) {
+export function createGovernor({ state, data, world, economy, construction, zones = null }) {
   const G = data.governor, f = () => state.frontier;
 
   function init(s) {
@@ -27,7 +27,13 @@ export function createGovernor({ state, data, world, economy, construction }) {
   const pending = (s, type) => s.projects.some(p => p.type === type && !p.replaces) || s.suggestions.some(x => x.type === type);
   const has = (s, type) => s.buildings.some(b => b.type === type);
 
+  // L3.3: in grid towns house/farm/workshop are zones. The governor zones free untouched cells itself
+  // (autoBuild) or suggests it; it waits while that kind is still growing, so it never over-zones.
+  const zoneKind = (s, type) => (zones?.on(s) && data.zones.fromBuilding?.[type]) || null;
   function suggest(s, type, reason) {
+    const zk = zoneKind(s, type);
+    if (zk && zones.busy(s, zk)) return true;
+    if (zk && s.autoBuild) { const r = zones.autoZone(s, zk); if (!r.ok) s.report.next = `${reason} (${r.reason})`; return true; }
     if (pending(s, type) || s.suggestions.length >= G.maxSuggestions) return true;   // already on the list: this rule has fired
     s.suggestions.push({ type, reason });
     return true;
@@ -67,6 +73,8 @@ export function createGovernor({ state, data, world, economy, construction }) {
   function promote(s) {
     if (!s.autoBuild || s.projects.length || !s.suggestions.length) return;
     const sg = s.suggestions.shift();
+    const zk = zoneKind(s, sg.type);
+    if (zk) { zones.autoZone(s, zk); return; }
     const pid = construction.queue(s.id, sg.type, null);
     if (!pid) return;
     const cost = value(construction.find(pid).project.cost);
@@ -108,6 +116,8 @@ export function createGovernor({ state, data, world, economy, construction }) {
     init(s);
     const sg = s.suggestions[index];
     if (!sg) return false;
+    const zk = zoneKind(s, sg.type);
+    if (zk) { if (!zones.autoZone(s, zk).ok) return false; s.suggestions.splice(index, 1); return true; }
     const pid = construction.queue(s.id, sg.type, null);
     if (!pid) return false;
     construction.authorize(pid);

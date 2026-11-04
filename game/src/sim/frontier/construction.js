@@ -33,6 +33,11 @@ export function createConstruction({ state, data, world }) {
     }
     const p = { id: world.newId('p'), type, cell, cost: { ...t.cost }, paid: false, progress: 0, need: t.buildTicks, authorized: false };
     if (opts.replaces) p.replaces = opts.replaces;
+    if (opts.cells) {   // L3.2: a placed building may cover several cells (2x2); `cell` stays the anchor
+      p.cells = opts.cells.slice();
+      for (const i of p.cells) if (s.grid.use[i] === '.') setUse(s, i, 'B');
+      p.phase = p.cells.every(i => s.grid.ground[i] === 'c') ? 'cleared' : 'clearing';   // cleared -> frame -> finished
+    }
     s.projects.push(p);
     return p.id;
   }
@@ -50,7 +55,7 @@ export function createConstruction({ state, data, world }) {
     if (!hit) return false;
     const { settlement: s, project: p, index } = hit;
     if (p.paid && p.progress === 0) for (const [r, n] of Object.entries(p.cost)) world.change(s.id, r, n, 'refund');
-    if (s.grid && p.cell !== null && !s.buildings.some(b => b.cell === p.cell)) setUse(s, p.cell, '.');
+    if (s.grid && p.cell !== null && !s.buildings.some(b => b.cell === p.cell)) for (const i of p.cells || [p.cell]) setUse(s, i, '.');
     s.projects.splice(index, 1);
     return true;
   }
@@ -58,7 +63,7 @@ export function createConstruction({ state, data, world }) {
   function finish(s, p) {
     const rebuilt = p.replaces && s.buildings.find(b => b.id === p.replaces);
     if (rebuilt) rebuilt.stage = 'built';
-    else s.buildings.push({ id: world.newId('b'), type: p.type, cell: p.cell, stage: 'built', workers: 0 });
+    else s.buildings.push({ id: world.newId('b'), type: p.type, cell: p.cell, ...(p.cells ? { cells: p.cells } : {}), stage: 'built', workers: 0 });
     s.projects.splice(s.projects.indexOf(p), 1);
     world.recount(s.id);
   }
@@ -70,11 +75,16 @@ export function createConstruction({ state, data, world }) {
     const auth = s.projects.filter(x => x.authorized);
     const p = auth.find(x => x.paid) || auth.find(x => Object.entries(x.cost).every(([r, n]) => s.stock[r] + EPS >= n)) || auth[0];
     if (!p) return;
+    if (p.phase === 'clearing') {   // L3.3 replaces this with a worker order; until then the ground clears at once
+      for (const i of p.cells) s.grid.ground = s.grid.ground.slice(0, i) + 'c' + s.grid.ground.slice(i + 1);
+      p.phase = 'cleared';
+    }
     if (!p.paid) {
       const missing = Object.entries(p.cost).filter(([r, n]) => s.stock[r] + EPS < n).map(([r]) => r);
       if (missing.length) { for (const r of missing) wait(s, r); return; }
       for (const [r, n] of Object.entries(p.cost)) world.change(s.id, r, -n, 'build');
       p.paid = true;
+      if (p.phase) p.phase = 'frame';
       return;
     }
     if (!s.builders) { wait(s, 'builders'); return; }

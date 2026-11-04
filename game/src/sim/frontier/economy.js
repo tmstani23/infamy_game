@@ -7,7 +7,7 @@
 // lazily by init(), so older saves without these fields still run.
 const EPS = 1e-9;
 
-export function createEconomy({ state, data, world }) {
+export function createEconomy({ state, data, world, zones = null }) {
   const f = () => state.frontier;
   const rates = data.rates, M = data.mood;
   const type = b => data.buildings[b.type];
@@ -40,21 +40,28 @@ export function createEconomy({ state, data, world }) {
     let free = s.workforce = s.pop;
     const slots = built(s).filter(b => (type(b)?.jobs || 0) > 0);
     for (const b of s.buildings) b.workers = 0;
-    const fill = pred => {
+    const zs = zones?.on(s) ? zones.slots(s) : [];   // L3.3: zone jobs fill beside building jobs
+    const fill = (pred, zpred = () => false) => {
       for (const b of slots) {
         if (!pred(b)) continue;
         const n = Math.min(type(b).jobs - b.workers, free);
         b.workers += n; free -= n;
       }
+      for (const z of zs) {
+        if (!zpred(z)) continue;
+        const n = Math.min(z.jobs - z.workers, free);
+        z.workers += n; free -= n;
+      }
     };
-    if (foodShort(s)) fill(b => type(b).output?.food);
+    if (foodShort(s)) fill(b => type(b).output?.food, z => z.food);
     const wantBuilders = s.projects.some(p => p.paid && p.progress < p.need);
     s.builders = wantBuilders ? Math.min(rates.maxBuilders, free) : 0;
     free -= s.builders;
-    for (const kind of data.priorities[s.priority] || []) fill(b => b.type === kind);
-    fill(() => true);
+    for (const kind of data.priorities[s.priority] || []) fill(b => b.type === kind, z => z.as.includes(kind));
+    fill(() => true, () => true);
     s.report.idle = free;
-    s.report.unfilled = slots.reduce((n, b) => n + type(b).jobs - b.workers, 0);
+    s.report.unfilled = slots.reduce((n, b) => n + type(b).jobs - b.workers, 0) + zs.reduce((n, z) => n + z.jobs - z.workers, 0);
+    if (zs.length) zones.setWorkers(s, zs);
   }
 
   // ---- site traits (E4): soil scales farms, nearby nodes enable and scale camps and quarries ----
@@ -180,9 +187,11 @@ export function createEconomy({ state, data, world }) {
   function econTick(s) {
     init(s);
     s.report.waiting = [];
+    if (zones?.on(s)) zones.migrate(s);   // L3.3: old house/farm/workshop buildings become zones
     assignJobs(s);
     const before = { ...s.stock };
     produce(s);
+    if (zones?.on(s)) zones.tick(s);      // L3.3: zone health, growth, output and housing
     forage(s);
     eat(s);
     // net stock change per second from production and eating (not spending), for the town panel's "how long" hints

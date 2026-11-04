@@ -194,7 +194,7 @@ survives save/load; `queue` never picks an `x` or used cell.
 In game (Tim): the town looks the same as before.
 Done note: "L3.1 town grid in."
 
-#### L3.2. Place and remove, with the trap check  [SMALL]
+#### L3.2. Place and remove, with the trap check  [SMALL] — [x] done 2026-11-04 (Tim: "perfect")
 Needs: L3.1
 Files: new `game/src/sim/frontier/placement.js` (module in `frontier.js` `modules`),
 `commands.js` (route the actions), `frontier.json` (`size` per building, `placeCosts`), new
@@ -217,7 +217,7 @@ is accepted; a dry run changes no state (deep-equal before and after); a road cu
 house is refused; a 2x2 building over one used cell is refused; every refusal changes nothing.
 Done note: "L3.2 placement and trap check in."
 
-#### L3.3. Zones, health and growth  [STRONG]
+#### L3.3. Zones, health and growth  [STRONG] — [x] done 2026-11-04 (Tim: "perfect")
 Needs: L3.2
 Files: new `game/src/sim/frontier/zones.js` (module), `economy.js` (zone output replaces
 house/farm/workshop building output), `world.js` (migration), `governor.js` (auto-zone),
@@ -245,6 +245,7 @@ output to 0, and refeeding it recovers it; the governor never changes a `p` cell
 save keeps pop, food and goods totals within 5% over 100 economy ticks; no zone kind or number is
 hard-coded.
 Done note: "L3.3 zones, health and growth in."
+Built notes (2026-11-04): the town hall counts as a road for zone growth (`hallIsRoad` in `frontier.json`); farm zones skip the food need; ground clearing for placed buildings is still instant in `construction.js` until the L3.5 worker order.
 
 #### L3.4. Resource spots tool  [SMALL, then TIM numbers]
 Needs: none (can run beside L3.1–L3.3)

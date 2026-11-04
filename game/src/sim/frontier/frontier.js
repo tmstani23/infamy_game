@@ -12,6 +12,8 @@ import { createCommands } from './commands.js';
 import { createAlerts } from './alerts.js';
 import { createFounding } from './founding.js';
 import { ensureGrid } from './town_grid.js';
+import { createPlacement } from './placement.js';
+import { createZones } from './zones.js';
 
 export function createFrontier({ state, data, world: worldData = null, removeUnit = () => {} }) {
   let world = createFrontierWorld({ state, data });
@@ -27,14 +29,17 @@ export function createFrontier({ state, data, world: worldData = null, removeUni
   }
   // modules follow the current world records even after a save load swaps them (ensure)
   const live = new Proxy({}, { get: (_, k) => ensure()[k] });
-  const economy = createEconomy({ state, data, world: live });
+  const zones = createZones({ state, data, world: live });   // L3.3: zones, health and growth
+  const economy = createEconomy({ state, data, world: live, zones });
   const construction = createConstruction({ state, data, world: live });
-  const governor = createGovernor({ state, data, world: live, economy, construction });
+  const governor = createGovernor({ state, data, world: live, economy, construction, zones });
   const modules = [{ name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit }) : null;
-  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData });
+  const placement = createPlacement({ state, data, world: live, construction });   // L3.2: place/remove with the trap check
+  modules.push({ name: 'placement', placement }, { name: 'zones', zones });
+  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {

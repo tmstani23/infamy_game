@@ -1,8 +1,18 @@
 {
-  "version": 2,
+  "version": 4,
   "_note": "Frontier economy numbers (F2). F0.2 values approved by Tim 2026-11-02; everything else is a placeholder for Tim to tune. Time units: 'ticks' = economy ticks (1 per cadenceTicks sim ticks).",
   "cadenceTicks": 20,
   "townGrid": { "_note": "placeholder, Tim to tune (L3.1): cellSize = world units per cell; radius = the town work range the grid covers; coreRadius = starting core where housing and work zones may go; corePerTier = core growth per town hall tier above 1; clearedRadius = cells round the hall that start cleared", "cellSize": 11, "radius": 600, "coreRadius": 250, "corePerTier": 100, "clearedRadius": 4 },
+  "placeCosts": { "_note": "placeholder, Tim to tune (L3.2): per cell, paid at once when a road, wall or gate is placed; buildings use their own cost and queue as projects", "road": { "timber": 1 }, "wall": { "timber": 2 }, "gate": { "timber": 5 } },
+  "zones": {
+    "_note": "placeholder, Tim to tune (L3.3, numbers from the approved L3.0 table): per kind char = grid letter; coreOnly = core cells only; stages = looks per level (stage 0 = zoned, empty); needs: food = needs the town fed, workersPerCell = workers each grown cell wants, roadReach = a road (or the hall, hallIsRoad) within this many cells to grow; housing = people per cell per level; output = per cell per level per economy tick; inputs = paid per unit made; trait = traitEffects factor (fertile soil); growTicks = healthy economy ticks per stage; abandonTicks = short ticks before abandoned; governorCells = cells the governor zones at once. healthyAt = health needed to grow; shortBelow = health that counts as short; clearTicks = healthy ticks to clear an overgrown zoned cell. fromBuilding = old building types that migrate to zones (and what the governor's house/farm/workshop rules mean in grid towns).",
+    "healthyAt": 0.9,
+    "shortBelow": 0.5,
+    "clearTicks": 10,
+    "hallIsRoad": true,
+    "fromBuilding": { "house": "housing", "farm": "farm", "workshop": "work" },
+    "kinds": { "housing": { "char": "h", "coreOnly": true, "stages": ["hut", "house", "large_house"], "needs": { "food": true, "workersPerCell": 0, "roadReach": 3 }, "housing": 2, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 }, "farm": { "char": "f", "coreOnly": false, "stages": ["field"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "food": 0.03 }, "trait": "soil", "growTicks": 60, "abandonTicks": 40, "governorCells": 4 }, "work": { "char": "k", "coreOnly": true, "stages": ["workshop"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "goods": 0.25 }, "inputs": { "timber": 0.5, "stone": 0.25 }, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 } }
+  },
   "resources": ["food", "timber", "stone", "goods", "ryo"],
   "rates": {
     "food": 0.01,
@@ -61,8 +71,17 @@
   },
   "townArt": {
     "_note": "E5 placeholders, Tim to tune: which existing building cutout (data/art.json) draws each frontier building type until town art exists",
-    "town_hall": "manor", "house": "townhouse", "farm": "haystack", "lumber_camp": "firewood", "quarry": "hills_old_quarry_workings",
-    "workshop": "blacksmith", "storehouse": "handcart", "stockade": "watch_post"
+    "town_hall": "manor",
+    "house": "townhouse",
+    "farm": "haystack",
+    "lumber_camp": "firewood",
+    "quarry": "hills_old_quarry_workings",
+    "workshop": "blacksmith",
+    "storehouse": "handcart",
+    "stockade": "watch_post",
+    "zone:h": "townhouse",
+    "zone:f": "haystack",
+    "zone:k": "blacksmith"
   },
   "forage": {
     "_note": "placeholder, Tim to tune: a founded town with no lumber camp gathers timberPerIdle per idle person per economy tick by hand, up to cap in stock, so it can never be stuck at 0 timber",
@@ -89,14 +108,14 @@
     }
   },
   "buildings": {
-    "town_hall":   { "cost": { "timber": 30 }, "jobs": 0, "housing": 6, "buildTicks": 1, "tier": 1, "_note": "E3 placeholder, Tim to tune: tier 1 town hall, built at founding (F6.1 grows it); houses the first settlers" },
-    "house":       { "cost": { "timber": 15 }, "jobs": 0, "housing": 6, "buildTicks": 30, "_note": "F0.2: housing 6, cost 15 timber; buildTicks placeholder, Tim to tune" },
-    "farm":        { "cost": { "timber": 20 }, "jobs": 4, "housing": 0, "output": { "food": 0.03 }, "buildTicks": 40, "_note": "F0.2: 0.03 food per worker per tick; cost and jobs placeholder, Tim to tune" },
-    "lumber_camp": { "cost": { "timber": 15 }, "jobs": 4, "housing": 0, "output": { "timber": 0.02 }, "buildTicks": 40, "_note": "F0.2: 0.02 timber per worker per tick; cost and jobs placeholder, Tim to tune" },
-    "quarry":      { "cost": { "timber": 25 }, "jobs": 4, "housing": 0, "output": { "stone": 0.015 }, "buildTicks": 50, "_note": "F0.2: 0.015 stone per worker per tick; cost and jobs placeholder, Tim to tune" },
-    "workshop":    { "cost": { "timber": 25, "stone": 5 }, "jobs": 2, "housing": 0, "recipe": { "in": { "timber": 1, "stone": 0.5 }, "out": { "goods": 1 }, "everyTicks": 2 }, "buildTicks": 50, "_note": "F0.2: 1 timber + 0.5 stone into 1 goods every 40 sim ticks (2 economy ticks) with 2 workers; cost placeholder, Tim to tune" },
-    "storehouse":  { "cost": { "timber": 20 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
-    "stockade":    { "cost": { "timber": 40 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "placeholder, Tim to tune; defence rules come with F6/F7" }
+    "town_hall": { "cost": { "timber": 30 }, "jobs": 0, "housing": 6, "buildTicks": 1, "tier": 1, "_note": "E3 placeholder, Tim to tune: tier 1 town hall, built at founding (F6.1 grows it); houses the first settlers" },
+    "house": { "size": 1, "coreOnly": true, "cost": { "timber": 15 }, "jobs": 0, "housing": 6, "buildTicks": 30, "_note": "F0.2: housing 6, cost 15 timber; buildTicks placeholder, Tim to tune" },
+    "farm": { "size": 2, "cost": { "timber": 20 }, "jobs": 4, "housing": 0, "output": { "food": 0.03 }, "buildTicks": 40, "_note": "F0.2: 0.03 food per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "lumber_camp": { "size": 1, "cost": { "timber": 15 }, "jobs": 4, "housing": 0, "output": { "timber": 0.02 }, "buildTicks": 40, "_note": "F0.2: 0.02 timber per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "quarry": { "size": 2, "cost": { "timber": 25 }, "jobs": 4, "housing": 0, "output": { "stone": 0.015 }, "buildTicks": 50, "_note": "F0.2: 0.015 stone per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "workshop": { "size": 2, "coreOnly": true, "cost": { "timber": 25, "stone": 5 }, "jobs": 2, "housing": 0, "recipe": { "in": { "timber": 1, "stone": 0.5 }, "out": { "goods": 1 }, "everyTicks": 2 }, "buildTicks": 50, "_note": "F0.2: 1 timber + 0.5 stone into 1 goods every 40 sim ticks (2 economy ticks) with 2 workers; cost placeholder, Tim to tune" },
+    "storehouse": { "size": 1, "cost": { "timber": 20 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
+    "stockade": { "size": 1, "cost": { "timber": 40 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "placeholder, Tim to tune; defence rules come with F6/F7" }
   },
   "regions": {
     "capital":    { "name": "The Capital", "_note": "the existing port city" },

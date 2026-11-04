@@ -74,12 +74,12 @@ export function ensureGrid(s, worldData, data) {
   return true;
 }
 
-// Nearest free cleared cell in the core (ties go to the lower index), or null when there is none.
+// Nearest free, unzoned (L3.3) cleared cell in the core (ties go to the lower index), or null when there is none.
 export function freeCell(s, data) {
   const g = s.grid, taken = new Set([...s.buildings, ...s.projects].map(b => b.cell));
   let best = null, bestD = Infinity;
   for (let i = 0; i < g.n * g.n; i++) {
-    if (g.ground[i] !== 'c' || g.use[i] !== '.' || taken.has(i) || !inCore(s, i, data)) continue;
+    if (g.ground[i] !== 'c' || g.use[i] !== '.' || g.zone[i] !== '.' || taken.has(i) || !inCore(s, i, data)) continue;
     const [ox, oz] = cellOffset(s, i), d = ox * ox + oz * oz;
     if (d < bestD) { bestD = d; best = i; }
   }

@@ -6,9 +6,9 @@
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found'];
+const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone'];
 
-export function createCommands({ state, data, world, economy, construction, governor, founding, worldData }) {
+export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones }) {
   const f = () => state.frontier;
 
   function receipt(e, c, ok, reason = '') {
@@ -45,6 +45,19 @@ export function createCommands({ state, data, world, economy, construction, gove
       if (!ok) return reject(e, c, 'order must list each of your towns once');
       world.setTownOrder(e.owner, c.order);
       return receipt(e, c, true);
+    }
+    if (c.action === 'place' || c.action === 'remove' || c.action === 'zone') {   // L3.2/L3.3: build bar actions, named by `town`
+      const t = typeof c.town === 'string' ? world.settlement(c.town) : null;
+      if (!t) return reject(e, c, 'no such settlement');
+      if (t.capital) return reject(e, c, 'the capital has no frontier economy');
+      if (t.owner == null || t.owner !== e.owner) return reject(e, c, 'not your settlement');
+      if (c.dryRun) { placement.lastDryRun = c.action === 'place' ? placement.check(t, c) : c.action === 'zone' ? zones.zone(t, { ...c, dryRun: true }) : null; return true; }   // changes nothing, not even receipts
+      const by = c.by === 'g' ? 'g' : 'p';
+      const r = c.action === 'place' ? placement.place(t, { ...c, by }) : c.action === 'zone' ? zones.zone(t, { kind: c.kind, rect: c.rect, cells: c.cells, by }) : placement.remove(t, c);
+      const fr = f();
+      fr.receiptSeq = (fr.receiptSeq || 0) + 1;
+      fr.receipts.push({ seq: fr.receiptSeq, tick: state.tick ?? 0, clan: e.owner ?? null, action: c.action, ok: r.ok, reason: r.reason, cost: r.cost, cells: r.cells });
+      return true;
     }
     // projects name their town through the project id; everything else names the settlement
     let s, hit;
