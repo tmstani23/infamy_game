@@ -12,7 +12,7 @@
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
 
-export function createGovernor({ state, data, world, economy, construction, zones = null }) {
+export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null }) {
   const G = data.governor, f = () => state.frontier;
 
   function init(s) {
@@ -92,6 +92,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
 
   function review(s) {
     init(s);
+    workers?.assignIdle(s);
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again
     const nBuilt = s.buildings.filter(b => b.stage === 'built').length;

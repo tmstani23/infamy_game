@@ -14,8 +14,9 @@ import { createFounding } from './founding.js';
 import { ensureGrid } from './town_grid.js';
 import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
+import { createWorkers, ensureWorkers } from './workers.js';
 
-export function createFrontier({ state, data, world: worldData = null, removeUnit = () => {} }) {
+export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {} }) {
   let world = createFrontierWorld({ state, data });
   const cadence = Math.max(1, data.cadenceTicks || 20);
   const ctx = { state, data, world };
@@ -24,28 +25,30 @@ export function createFrontier({ state, data, world: worldData = null, removeUni
   function ensure() {
     if (state.frontier !== world.frontier) ctx.world = world = createFrontierWorld({ state, data });
     // L3.1: every positioned town gets its grid (old saves and addTown towns migrate here; spiral slots become grid cells)
-    for (const s of Object.values(state.frontier.settlements)) if (!s.grid) ensureGrid(s, worldData, data);
+    for (const s of Object.values(state.frontier.settlements)) { if (!s.grid) ensureGrid(s, worldData, data); ensureWorkers(s); }
     return world;
   }
   // modules follow the current world records even after a save load swaps them (ensure)
   const live = new Proxy({}, { get: (_, k) => ensure()[k] });
   const zones = createZones({ state, data, world: live });   // L3.3: zones, health and growth
-  const economy = createEconomy({ state, data, world: live, zones });
+  const workers = createWorkers({state,data,world:live,spotData,spotRules});
+  const economy = createEconomy({ state, data, world: live, zones, workers });
   const construction = createConstruction({ state, data, world: live });
-  const governor = createGovernor({ state, data, world: live, economy, construction, zones });
-  const modules = [{ name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
+  const governor = createGovernor({ state, data, world: live, economy, construction, zones, workers });
+  const modules = [{ name: 'workers', workers, econTick: () => workers.econTick() }, { name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit }) : null;
   const placement = createPlacement({ state, data, world: live, construction });   // L3.2: place/remove with the trap check
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
-  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones });
+  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
     ensure();
     commands.clearOldReceipts();   // receipts live one tick
     world.syncCapital();           // the capital's ryo mirrors the clan treasury
+    workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
     if ((state.tick ?? 0) % cadence !== cadence - 1) return;
     state.frontier.econTick++;

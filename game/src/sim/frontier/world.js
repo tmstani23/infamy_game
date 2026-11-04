@@ -6,6 +6,7 @@
 // Ids: `${prefix}${state.frontier.nextId++}`, e.g. 'p1' project, 'b2' building, 'h3' shipment.
 // Data keys that start with '_' are notes and are ignored.
 import { debitRyo, creditRyo } from '../treasury.js';
+import { ensureWorkers } from './workers.js';
 const LEDGER_MAX = 500;
 const EPS = 1e-6;
 const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('_')));
@@ -13,6 +14,7 @@ const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.start
 export function createFrontierWorld({ state, data }) {
   if (!state.frontier) state.frontier = build(data);
   const f = state.frontier;
+  for (const s of Object.values(f.settlements)) ensureWorkers(s);   // additive L3.5 migration; retain saved trips/queues
 
   function build(d) {
     const fr = { version: 1, nextId: 1, econTick: 0, settlements: {}, roads: {}, shipments: {}, armies: {}, totals: {}, ledger: [], receipts: [] };
@@ -22,7 +24,7 @@ export function createFrontierWorld({ state, data }) {
         pop: s.pop || 0, housing: 0, workforce: s.pop || 0,
         stock: Object.fromEntries(d.resources.map(r => [r, s.stock?.[r] || 0])),
         buildings: (s.buildings || []).map((b, i) => ({ id: `${id}:${i}`, type: b.type, cell: b.cell ?? null, stage: b.stage || 'built', workers: 0 })),
-        projects: [], priority: s.priority || 'grow', budget: { ryo: 0 },
+        projects: [], workers: [], workerTraining: [], priority: s.priority || 'grow', budget: { ryo: 0 },
         report: { doing: '', next: '', waiting: [] }, grid: null
       };
       rec.housing = housingOf(rec, d);
@@ -49,7 +51,7 @@ export function createFrontierWorld({ state, data }) {
       pop, housing: 0, workforce: pop,
       stock: Object.fromEntries(data.resources.map(r => [r, stock?.[r] || 0])),
       buildings: buildings.map((b, i) => ({ id: `${id}:${i}`, type: b.type, cell: b.cell ?? null, stage: b.stage || 'built', workers: 0 })),
-      projects: [], priority: 'grow', budget: { ryo: 0 },
+      projects: [], workers: [], workerTraining: [], priority: 'grow', budget: { ryo: 0 },
       report: { doing: '', next: '', waiting: [] }, grid: null
     };
     rec.housing = housingOf(rec, data);

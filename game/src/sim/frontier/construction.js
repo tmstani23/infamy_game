@@ -75,10 +75,7 @@ export function createConstruction({ state, data, world }) {
     const auth = s.projects.filter(x => x.authorized);
     const p = auth.find(x => x.paid) || auth.find(x => Object.entries(x.cost).every(([r, n]) => s.stock[r] + EPS >= n)) || auth[0];
     if (!p) return;
-    if (p.phase === 'clearing') {   // L3.3 replaces this with a worker order; until then the ground clears at once
-      for (const i of p.cells) s.grid.ground = s.grid.ground.slice(0, i) + 'c' + s.grid.ground.slice(i + 1);
-      p.phase = 'cleared';
-    }
+    if (p.phase === 'clearing') { wait(s, 'workers'); return; }   // L3.5 workers clear the footprint over time
     if (!p.paid) {
       const missing = Object.entries(p.cost).filter(([r, n]) => s.stock[r] + EPS < n).map(([r]) => r);
       if (missing.length) { for (const r of missing) wait(s, r); return; }

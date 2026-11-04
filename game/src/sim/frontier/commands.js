@@ -6,9 +6,9 @@
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone'];
+const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign'];
 
-export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones }) {
+export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers }) {
   const f = () => state.frontier;
 
   function receipt(e, c, ok, reason = '') {
@@ -45,6 +45,15 @@ export function createCommands({ state, data, world, economy, construction, gove
       if (!ok) return reject(e, c, 'order must list each of your towns once');
       world.setTownOrder(e.owner, c.order);
       return receipt(e, c, true);
+    }
+    if(c.action==='train' || c.action==='assign') {
+      const s=typeof c.town==='string' ? world.settlement(c.town):null;
+      if(!s)return reject(e,c,'no such settlement');
+      if(s.capital)return reject(e,c,'the capital has no frontier economy');
+      if(s.owner==null || s.owner!==e.owner)return reject(e,c,'not your settlement');
+      if(!workers)return reject(e,c,'workers unavailable');
+      const r=c.action==='train' ? workers.train(s,c.count):workers.assign(s,c.workers,c.spot);
+      return r.ok ? receipt(e,c,true):reject(e,c,r.reason);
     }
     if (c.action === 'place' || c.action === 'remove' || c.action === 'zone') {   // L3.2/L3.3: build bar actions, named by `town`
       const t = typeof c.town === 'string' ? world.settlement(c.town) : null;

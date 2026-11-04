@@ -7,7 +7,7 @@
 // lazily by init(), so older saves without these fields still run.
 const EPS = 1e-9;
 
-export function createEconomy({ state, data, world, zones = null }) {
+export function createEconomy({ state, data, world, zones = null, workers = null }) {
   const f = () => state.frontier;
   const rates = data.rates, M = data.mood;
   const type = b => data.buildings[b.type];
@@ -38,7 +38,7 @@ export function createEconomy({ state, data, world, zones = null }) {
   function assignJobs(s) {
     init(s);
     let free = s.workforce = s.pop;
-    const slots = built(s).filter(b => (type(b)?.jobs || 0) > 0);
+    const slots = built(s).filter(b => (type(b)?.jobs || 0) > 0 && !(workers?.has(s) && data.workers?.gatherBuildings.includes(b.type)));
     for (const b of s.buildings) b.workers = 0;
     const zs = zones?.on(s) ? zones.slots(s) : [];   // L3.3: zone jobs fill beside building jobs
     const fill = (pred, zpred = () => false) => {
@@ -101,7 +101,7 @@ export function createEconomy({ state, data, world, zones = null }) {
   // hand up to a small cap (frontier.json forage; fixture towns are not affected). Placeholder, Tim to tune.
   function forage(s) {
     const fg = data.forage;
-    if (!fg || s.founded === undefined || built(s).some(b => b.type === 'lumber_camp')) return;
+    if (!fg || workers?.has(s) || s.founded === undefined || built(s).some(b => b.type === 'lumber_camp')) return;
     const room = fg.cap - s.stock.timber, idle = s.report.idle || 0;
     if (room > 0 && idle > 0) world.change(s.id, 'timber', Math.min(room, fg.timberPerIdle * idle), 'forage');
   }
@@ -196,7 +196,9 @@ export function createEconomy({ state, data, world, zones = null }) {
     eat(s);
     // net stock change per second from production and eating (not spending), for the town panel's "how long" hints
     const secs = (data.cadenceTicks || 20) / 20;
-    s.report.rate = Object.fromEntries(Object.keys(s.stock).map(r => [r, (s.stock[r] - before[r]) / secs]));
+    const gathered=s.workerIncome || {};
+    s.report.rate = Object.fromEntries(Object.keys(s.stock).map(r => [r, (s.stock[r] - before[r] + (gathered[r] || 0)) / secs]));
+    s.workerIncome={};
     grow(s);
     if (f().econTick % M.reviewTicks === 0) review(s);
   }

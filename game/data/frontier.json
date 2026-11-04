@@ -1,7 +1,14 @@
 {
-  "version": 4,
+  "version": 5,
   "_note": "Frontier economy numbers (F2). F0.2 values approved by Tim 2026-11-02; everything else is a placeholder for Tim to tune. Time units: 'ticks' = economy ticks (1 per cadenceTicks sim ticks).",
   "cadenceTicks": 20,
+  "workers": {
+    "_note": "placeholder, Tim to tune (L3.5). Costs come from town stock and population when ordered. trainTicks, harvestTicks and clearTicks are sim ticks (20/second); training is sequential at the hall. load is stock per trip; harvested spots take longer to work as their pieces regrow. range is measured from the town hall. Worker records do not become units until L3.6.",
+    "cost": 10, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 1, "range": 600, "clearTicks": 200,
+    "dropoffs": ["town_hall", "storehouse", "lumber_camp", "quarry"],
+    "gatherBuildings": ["lumber_camp", "quarry"],
+    "resources": { "timber": "timber", "stone": "stone", "fish": "food", "forage": "food" }
+  },
   "townGrid": { "_note": "placeholder, Tim to tune (L3.1): cellSize = world units per cell; radius = the town work range the grid covers; coreRadius = starting core where housing and work zones may go; corePerTier = core growth per town hall tier above 1; clearedRadius = cells round the hall that start cleared", "cellSize": 11, "radius": 600, "coreRadius": 250, "corePerTier": 100, "clearedRadius": 4 },
   "placeCosts": { "_note": "placeholder, Tim to tune (L3.2): per cell, paid at once when a road, wall or gate is placed; buildings use their own cost and queue as projects", "road": { "timber": 1 }, "wall": { "timber": 2 }, "gate": { "timber": 5 } },
   "zones": {

@@ -270,7 +270,7 @@ within 2 cells of water; every node has exactly one deposit spot; `spotYield` is
 In game (Tim): read the coverage report and OK the numbers.
 Done note: "L3.4 resource spots data in (coverage report attached)."
 
-#### L3.5. Workers (records and trip math)  [SMALL]
+#### L3.5. Workers (records and trip math)  [SMALL] — [x] done 2026-11-04
 Needs: L3.1, L3.4
 Files: new `game/src/sim/frontier/workers.js` (module), `commands.js`, `economy.js` (gathering
 output comes from workers; `forage` stops once a town has a worker, Tim OK), `governor.js`
@@ -289,6 +289,8 @@ Check (pass/fail): a worker twice as far delivers half as many loads (within 1);
 equals loads x `load` (conservation); save mid-trip and load, then the same tick delivers as a
 straight run; `assign` to an unknown or far spot is refused and changes nothing.
 Done note: "L3.5 workers in (records and trip math)."
+
+Built (2026-11-04): sequential training reserves ryo/population; saved integer-tick trips carry stock to the nearest finished drop-off and ledger it as `gather`. Governor assigns idle workers; worker records clear placed-building footprints over time; forage and passive node-camp output stop once workers exist. Added startup spot-data wiring and additive worker-state migration; frontier.json version 5 (Tim approved updating the existing version assertion). Workers remain records; no new UI controls until L3.8. `test_frontier_workers.mjs` and 12 affected frontier/founding tests pass; browser entry/game syntax checks pass. Next: L3.6, preserving trip/cargo timing and clearing behavior.
 
 #### L3.6. Workers become units near players  [STRONG]
 Needs: L3.5, W3 areas

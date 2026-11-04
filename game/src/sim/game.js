@@ -172,7 +172,7 @@ export function createGame(options) {
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
-  const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, removeUnit }) : null;   // settlement economy (sim/frontier/, F2.3)
+  const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit }) : null;   // settlement economy (sim/frontier/, F2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
