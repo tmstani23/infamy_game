@@ -1,25 +1,46 @@
 # Infamy
 
-A browser game about building a crime empire in 1870s Japan. You play one hero, recruit a crew, and grow a clan that fights rival clans for territory, with raids at night. Seasons last two weeks in a shared persistent city.
+Infamy is an in-development browser strategy game set in 1870s Japan. Lead a clan through a contested port town: recruit and command a crew, build a criminal operation, fight rivals and deal with the police. Beyond the city lies an island frontier to explore and settle.
 
-**New here? Read [START_HERE.md](START_HERE.md) first** (working rules, usage rules, key docs).
+![Infamy's clan and difficulty selection screen](screenshots/start-screen.png)
 
-Hobby project, built with AI in the evenings. Built in playable layers: a tiny single-player version first, then small multiplayer, then the full city.
+*Choose a clan and difficulty at the start screen.*
 
-## Status
+**New here?** Start with [START_HERE.md](START_HERE.md) for project rules and links, and see [game controls](docs/controls.md) for the current controls.
 
-As of 2026-10-26:
+## Play locally
 
-- Playable port-town district in `game/` (run `start_game.bat`) with a start menu: pick your clan (Yakuza or Shinobi) and difficulty. No load/save yet.
-- Three clans (Yakuza, Shinobi, Kuroda); the two you don't play are bots, with adaptive AI and balance.
-- Yakuza: crew hiring and orders (groups, indoor patrols, services, dismissal), businesses with dawn payouts, attacks and War Lantern raids, territory, quarters and a season score; the Kuroda boss kit.
-- Shinobi: contracts from the village board, stealth, the leader kit (Shadow Step, Caltrops, Smoke Bomb, Assassinate, Vanish), tanto recruits, dodge, board refills and forest crossings.
-- World: police (heat tiers, arrests, bail, bribes, day patrols, HQ camping penalties), townsfolk, night bandits, the clinic, fog of war, the M game map, 3D interiors with props, combat UI.
-- Not committed yet: the Shinobi HQ raid (awaiting playtest) and the Phase 4 plan.
-- Next: the [architecture and maintenance pass](docs/roadmap.md#architecture-and-maintenance-pass-tim-2026-10-21), then load/save, then inventory and loot. See [the roadmap](docs/roadmap.md).
-- The sprite pipeline works end to end for the whole cast.
+1. Install [Node.js](https://nodejs.org/) and use an internet connection for the browser's three.js modules.
+2. On Windows, double-click `start_game.bat`. It starts the local server and opens the game in your browser. Leave its window open while playing.
+3. Choose Yakuza, Kuroda or Shinobi and a difficulty, then start. Use Continue or Load game on the start screen to return to a save.
 
-See [START_HERE.md](START_HERE.md) for details and links.
+The server can also be started from the repository root with `node game/server.mjs --open`; it normally opens `http://localhost:8137/game/` and chooses a nearby port if needed. See [test setups](docs/test_params.md) for development playtests and [controls](docs/controls.md) for save, movement and map commands.
+
+## Current state
+
+**Playable development build, updated 2026-11-04.** The city game is playable against bots; the frontier campaign is an active build, with some features available through development saves and playtest setups. The normal start screen currently starts the city game.
+
+- **City and clans:** Three playable clans, rival bots, crew recruitment and orders, businesses, territory, combat and night raids. Shinobi also have stealth and contracts; police, civilians, clinics and interiors are present.
+- **Island frontier:** Travel out of the capital in a campaign, explore a walkable island, scout sites and encounter bandit camps. The illustrated World atlas has named regions, coordinates, biome hover, discovered locations and switchable layers.
+- **Expeditions and towns:** The founding slice supports settlers, founding on suitable land and persistent town records. The frontier economy and town panels provide an early foundation for production and management; some town art is still a stand-in.
+- **Gathering and building:** Town grids, zones, resource spots, workers, a build bar and worker orders are implemented. The full town-building loop and recent town and worker visuals await playtesting.
+- **Saves:** Local save/load and dawn autosaves are available. Multiplayer is a design goal; the current build runs single-player with bots.
+
+The current checkpoint and outstanding playtests live in the [frontier build plan](docs/frontier_build_steps.md). The [roadmap](docs/roadmap.md) covers the wider project.
+
+## Screenshots
+
+| City combat | City map and deployment |
+|---|---|
+| ![Crew fighting in the port town at night](screenshots/city-combat.png) | ![City sectors and crew deployment](screenshots/city-deployment.png) |
+| **Island atlas** | **Founding on the frontier** |
+| ![Illustrated world atlas with named regions and crossings](screenshots/island-atlas.png) | ![An expedition with settlers at a frontier founding site](screenshots/frontier-founding.png) |
+
+**Inside the inn hideout**
+
+![A crew and settlers inside the inn hideout](screenshots/inn-interior.png)
+
+These screenshots are from a development build; the atlas image includes a test-only control.
 
 ## Repo layout
 
@@ -28,6 +49,7 @@ See [START_HERE.md](START_HERE.md) for details and links.
 | `docs/` | Design and tech docs (listed in [START_HERE.md](START_HERE.md)) |
 | `game/` | The game: sim, render, data (see `docs/architecture.md`) |
 | `look_tests/` | Standalone HTML experiments. Open any file in a browser. |
+| `screenshots/` | Development screenshots used in this README |
 | `assets/` | Concepts, environment sheets, models, animations, sprites and prompt files (see `docs/art_direction.md`) |
 | `tools/export_sprites.mjs` | Batch-exports each model with its animation set to `assets/sprites` |
 
@@ -67,7 +89,7 @@ Held items (weapons, props) go in `assets/models/items/` as `.glb` (or `.fbx`), 
 
 ## Tech
 
-Browser game built on the latest three.js (ES modules). Multiplayer planned with Colyseus. Art is isometric sprites rendered from 3D. The look tests show the rendering techniques (wet reflections, lit rain, bloom, anime shading, see-through cutaway).
+The browser client uses JavaScript ES modules and three.js, with isometric character sprites rendered from 3D models. The simulation owns game rules and state; the client sends commands and renders the results. A local Node server serves the game and saves. The architecture is designed for multiplayer later; a networked multiplayer release is not built yet. See [architecture](docs/architecture.md) and [art direction](docs/art_direction.md).
 
 ## Name
 
