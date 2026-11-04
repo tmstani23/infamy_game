@@ -123,6 +123,247 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
 
 **Still open (placeholders, not blockers):** numbers (worker cost and training time, core size, zone growth speed, spot yields, tier goals); art (spot and deposit pieces with harvest stages; stand-ins from existing props until then); the build bar mock.
 
+### Loop 3 build cards (Tim OK, 2026-11-04)
+
+Built from the Loop 3 design above. These cards replace the old F5.1–F5.4 and F5.x detail for this loop; F5 keeps its later cards (F5.5 art, F5.7 work camps). Tim's answers (2026-11-04): once a town has workers, idle `forage` stops (L3.5); old towns migrate to the grid (L3.1, L3.3); the test starter frontier towns are removed from real games (L3.1b). Card format and rules: `docs/step_runner_guide.md`.
+
+#### Shared for every Loop 3 card
+
+**Reads:** START_HERE.md, docs/usage.md, step_runner_guide.md, the whole plan, the card, and the
+files the card names. Function lists only (grep `^export\|function `) for anything else.
+
+**Code that exists today (verified 2026-11-04):**
+- Hub `game/src/sim/frontier/frontier.js` `createFrontier`: `modules` list, each with
+  `econTick(ctx)` and/or `command(e, c, ctx)`; economy runs every `data.cadenceTicks` sim ticks.
+- `construction.js`: `queue(sid, type, cell, opts)`, `authorize`, `cancel`, `finish`, `econTick`
+  (one project at a time, pays stock, then `progress += s.builders`).
+- `economy.js`: `assignJobs`, `produce` (output per worker x `traitFactor`), `forage`, `eat`,
+  `grow`, `review`. `governor.js`: `rules`, `promote`, `review`, `approve`.
+- `commands.js` actions: `setPriority setBudget setAutoBuild approveSuggestion setTax authorize
+  cancel queue`. `founding.js`: `siteTraits`, `createFounding`.
+- `town_layout.js` `townSlot(i)` spiral, spacing 11 units, used by `construction.queue` (cell = int)
+  and `game/src/town_props.js` (`townProps`, `townPlots`, `plotInfo`).
+- `game/src/sim/camps.js` `suspend(rec)` / `wake(c, rec)`: the pattern for records that become
+  units when their chunk is active (`areas.js` `loadRadius`). `game/src/world_features.js`
+  `nodePropsInChunk`, `siteReport`, `featureTip`.
+- `frontier.json` buildings: town_hall house farm lumber_camp quarry workshop storehouse stockade.
+- Controls panel: `game/index.html` line ~508, section `<h4>Frontier towns</h4>`.
+- Screen width is about 52 world units, so "3 screens" is about 160 units.
+
+**Do not touch (any Loop 3 card):** `world.json` (generated; nodes are read, never edited),
+`world_paint.json`, `biome_props.json` and `sim/prop_clusters.js` (natural props stay as they
+are), `sim/camps.js` (copy its pattern, don't edit it), combat, bandits, city code, the atlas and
+shaders, the capital save. `sim/game.js`: one hook line per card at most, named in the card.
+
+**Every checkpoint:** game starts, the card's test passes, the regression set has no new failures,
+changed browser files pass the `.mjs` syntax copy, and a one-line done note goes to the
+coordinator. All new numbers go in `frontier.json` with `"_note": "placeholder, Tim to tune"`.
+
+**Save shape:** bump `frontier.json` `version`. `world.js` migrates old towns when it loads (spiral
+slot -> grid cell at the same world spot; house/farm/workshop -> 1-cell zones; L3.3).
+
+
+#### L3.0. Build bar mock and numbers  [TIM]
+A SMALL thread makes one mock image of the town panel build bar (Road, Wall, Gate, Housing, Farm,
+Work, Eraser, placed-building picker), a ghost rectangle (green and red with a reason), the zone
+health tint, and a building tooltip. It also lists every placeholder number from L3.1–L3.6 in one
+table. Tim approves the mock and the numbers before L3.7/L3.8. L3.1–L3.6 can start before this.
+
+#### L3.1. Town grid  [SMALL]
+Needs: Loop 2
+Files: new `game/src/sim/frontier/town_grid.js` (pure), `construction.js` (`queue` default cell),
+`world.js` (migration), `founding.js` (grid at founding), `game/src/town_props.js` (positions),
+`frontier.json` (`townGrid`), new `game/tools/test_town_grid.mjs`.
+Do:
+  1. `frontier.json` `townGrid: { cellSize: 11, radius: 600, coreRadius: 250, corePerTier: 100 }`.
+  2. `town_grid.js` exports `gridSize(data)` (cells per side), `cellToWorld(s, i)`,
+     `worldToCell(s, x, z)`, `inCore(s, i, data)`, `makeGrid(s, worldData, data)`.
+  3. `settlement.grid = { n, ground, use, zone, by, stage }`. Each is a string of `n*n` chars:
+     ground `x` unbuildable, `o` overgrown, `c` cleared; use `.` free, `r` road, `w` wall, `g` gate,
+     `B` building; zone `.`, `h` housing, `f` farm, `k` work; by `.` none, `p` player, `g` governor;
+     stage `0`–`3`. Strings, not arrays, keep saves small.
+  4. Founding calls `makeGrid`, which marks water, mountain, river and marsh cells `x`. The town
+     hall takes the centre cell (`B`).
+  5. Buildings and projects keep `cell` as a grid index. `queue` without a cell takes the nearest
+     free cleared core cell. `town_props.js` uses `cellToWorld` in place of `townSlot`.
+  6. Migration: an old town's spiral cells are moved to the grid cell under the same world spot.
+     `town_layout.js` stays for that migration only.
+Check (pass/fail): `cellToWorld`/`worldToCell` round-trip; founding over a lake edge marks those
+cells `x`; a migrated old save draws every building within half a cell of its old spot; the grid
+survives save/load; `queue` never picks an `x` or used cell.
+In game (Tim): the town looks the same as before.
+Done note: "L3.1 town grid in."
+
+#### L3.1b. Remove the test starter towns from real games  [SMALL]
+Needs: L3.1
+Files: `game/data/frontier.json` (`settlements`, `roads`), new `game/tools/fixtures/frontier_fixture.json`,
+the frontier tests that load `frontier.json` (about 16 in `game/tools/`; grep first), `game/tools/make_dev_save.mjs`.
+Do (Tim 2026-11-04: the starter frontier town was only a test):
+  1. Move the fixture towns `s_frontier_1` ("First Frontier") and `s_frontier_2`, and the
+     fixture roads `r1`/`r2`, into `frontier_fixture.json`. Tests merge it over `frontier.json`
+     with a small `withFixture(data)` helper. No test assertion changes.
+  2. A real campaign then starts with only the capital, and towns come from founding. The rival
+     bot town returns with E6 bot expeditions; until then rivals have no frontier town (say so in
+     the done note).
+  3. `dev_frontier` keeps working: it founds its town through the normal `found` command.
+Check (pass/fail): every frontier test passes unchanged with the fixture; a fresh campaign game has
+exactly one settlement (the capital); `make_dev_save.mjs` rebuilds `dev_frontier` with a founded town.
+Done note: "L3.1b test starter towns removed from real games."
+
+#### L3.2. Place and remove, with the trap check  [SMALL]
+Needs: L3.1
+Files: new `game/src/sim/frontier/placement.js` (module in `frontier.js` `modules`),
+`commands.js` (route the actions), `frontier.json` (`size` per building, `placeCosts`), new
+`game/tools/test_frontier_place.mjs`.
+Do:
+  1. Action `{ type: 'frontier', action: 'place', town, kind, cells: [i, ...], dryRun }`. `kind`
+     is `road`, `wall`, `gate` or a placed building type (`size` 1 or 2 means 1x1 or 2x2).
+  2. Receipt `{ ok, reason, cost, cells }`. Reasons: `outside grid`, `unbuildable`, `occupied`,
+     `core only`, `would trap`, `cannot afford`. `dryRun` changes nothing.
+  3. Trap check: flood-fill from the gates (and from the grid edge while there are no walls) over
+     roads, gates and free cells. Reject if any building or zoned cell loses every path.
+  4. Overgrown cells are cleared by workers as part of the job (L3.3 work order), never by hand.
+  5. A placed building queues a normal project (`construction.queue` with the cell). Its phases
+     are cleared, frame, finished (`project.phase`), with stock paid at the start (unchanged).
+  6. Action `remove { town, cells }` (the eraser): it removes roads, walls, gates, zones or an
+     unbuilt project (refund rule unchanged), and never the town hall.
+  7. The governor's placements use these same actions, with `by = 'g'`.
+Check (pass/fail): a wall ring with no gate is refused (`would trap`) and the same ring with a gate
+is accepted; a dry run changes no state (deep-equal before and after); a road cut that strands a
+house is refused; a 2x2 building over one used cell is refused; every refusal changes nothing.
+Done note: "L3.2 placement and trap check in."
+
+#### L3.3. Zones, health and growth  [STRONG]
+Needs: L3.2
+Files: new `game/src/sim/frontier/zones.js` (module), `economy.js` (zone output replaces
+house/farm/workshop building output), `world.js` (migration), `governor.js` (auto-zone),
+`frontier.json` (`zones` block), new `game/tools/test_frontier_zones.mjs`.
+Do:
+  1. Action `zone { town, kind: 'housing'|'farm'|'work', rect: [c0, r0, c1, r1] }`. Housing and
+     work go in the core only; farm goes anywhere in the grid. Cells are on buildable ground and
+     not used. `by = 'p'`. The eraser (`remove`) unzones.
+  2. `frontier.json` `zones`: per kind, `needs` (food, workers per cell, road within `roadReach`
+     cells), `output` per cell per level (housing: people; farm: food; work: goods recipe),
+     `stages` (housing: hut, house, large_house), `growTicks`, `abandonTicks`, fertile bonus.
+  3. Each review, per zone kind: health 0–1 from needs met. A cell grows one stage after
+     `growTicks` healthy economy ticks. After `abandonTicks` short, the cell is abandoned: no output
+     or housing, `stage` kept, recovers when needs return. Nothing is destroyed.
+  4. Output = sum over cells of (stage level x health x per-cell rate x trait factor). The farm
+     fertile bonus uses `traitEffects`. Cells with no road within `roadReach` stay at stage 0 with
+     `waiting: 'needs road'`.
+  5. Migration: an old `house`, `farm` or `workshop` building becomes its zone kind on its cell at
+     the matching stage, so a migrated town gives the same totals within 5%.
+  6. The governor zones cells (`by = 'g'`) only where `by == '.'`, never over `p` cells, near
+     roads, following its existing priority rules.
+Check (pass/fail): a housing zone next to a road grows hut -> house -> large_house, while one
+with no road stays at stage 0 with `needs road`; starving a farm zone for `abandonTicks` sets its
+output to 0, and refeeding it recovers it; the governor never changes a `p` cell; a migrated old
+save keeps pop, food and goods totals within 5% over 100 economy ticks; no zone kind or number is
+hard-coded.
+Done note: "L3.3 zones, health and growth in."
+
+#### L3.4. Resource spots tool  [SMALL, then TIM numbers]
+Needs: none (can run beside L3.1–L3.3)
+Files: new `tools/seed_resource_spots.mjs`, generated `game/data/world_spots.json`, new
+`game/src/sim/resource_spots.js` (pure lookups), new `game/tools/test_resource_spots.mjs`.
+Do:
+  1. A seeded tool reads `world.json` (terrain, biomes, nodes) and writes `world_spots.json`:
+     `{ version, seed, chunkSize, spots: [{ id, kind: 'timber'|'stone'|'fish'|'forage', x, z,
+     pieces: [[dx, dz, variant], ...], deposit: <nodeId>|null }], byChunk: { <chunkId>: [ids] } }`.
+  2. Sizes: timber 5–20, stone 2–5, fish 2–4 (shore cells only), forage 3–6. Each of the 107 nodes
+     becomes a deposit spot (timber 20–40, stone 6–10, ore, fertile, fishing) at its position.
+     Density and biome rules go in a `spots` block in the tool's config, for Tim to OK.
+  3. Coverage report printed by the tool: the share of buildable land with timber and with stone
+     within 600 units, by biome. The tool never places on unbuildable cells or on roads/passes.
+  4. `resource_spots.js`: `spotsInChunk(id)`, `spotsNear(x, z, r)`, `spotYield(spot, stateStr)`.
+     Worked spots save as `state.frontier.spots[id] = '<one stage char per piece>'`; unworked spots
+     save nothing. Each piece is `f` full, `h` harvested, `s` sapling (rubble for stone). It
+     regrows each economy tick at a data rate. The last piece never drops below a trickle.
+Check (pass/fail): two runs give byte-identical output; no spot sits on an `x` cell; fish spots are
+within 2 cells of water; every node has exactly one deposit spot; `spotYield` is never 0;
+`tools/seed_world.mjs --check` still passes (world.json untouched).
+In game (Tim): read the coverage report and OK the numbers.
+Done note: "L3.4 resource spots data in (coverage report attached)."
+
+#### L3.5. Workers (records and trip math)  [SMALL]
+Needs: L3.1, L3.4
+Files: new `game/src/sim/frontier/workers.js` (module), `commands.js`, `economy.js` (gathering
+output comes from workers; `forage` stops once a town has a worker, Tim OK), `governor.js`
+(assign idle workers), `frontier.json` (`workers` block), new `game/tools/test_frontier_workers.mjs`.
+Do:
+  1. Action `train { town, count }` at the town hall: costs ryo and takes 1 person each (data); the
+     worker is ready after `trainTicks`.
+  2. Record `settlement.workers[] = { id, spot, dropoff, phase, carrying, entity: null }`. The
+     drop-off is the nearest placed town hall, storehouse or node camp. Phase 0–1 is one round trip:
+     walk out, harvest `harvestTicks`, walk back, unload `load` into stock (ledger reason `gather`).
+  3. Each sim tick off screen, `phase += dt / roundTripSeconds`, where roundTrip =
+     `2 * dist / speed + harvest`. Integer math on ticks keeps it deterministic.
+  4. Action `assign { town, workers: [ids], spot }` (the player's RTS order). The governor assigns
+     idle workers to the nearest spot of the kind the town is shortest on.
+Check (pass/fail): a worker twice as far delivers half as many loads (within 1); stock gained
+equals loads x `load` (conservation); save mid-trip and load, then the same tick delivers as a
+straight run; `assign` to an unknown or far spot is refused and changes nothing.
+Done note: "L3.5 workers in (records and trip math)."
+
+#### L3.6. Workers become units near players  [STRONG]
+Needs: L3.5, W3 areas
+Files: `workers.js` (`wake` / `suspend`, the pattern copied from `sim/camps.js`), `sim/game.js`
+(one hook line next to the `createWorldCamps` setup), `frontier.json` `workers.spawnRadius`
+(placeholder 160 units, about 3 screens), `game/tools/test_frontier_workers.mjs`.
+Do:
+  1. When any player unit, bot army or raid is within `spawnRadius` of a town or spot, its workers
+     become real units (non-fighting, a civilian sheet, `e.worker = <id>`). They start at the
+     position and load their `phase` gives along the cached path, at most `spawnPerTick` per tick.
+  2. They walk with `areas.nav`. On arrival they update `phase` and `carrying` from the unit, and
+     unloading credits stock exactly as the math does.
+  3. When nothing is near, the unit turns back into its record with its phase (`suspend`).
+  4. A loaded worker can be hit. One that is knocked out is removed from the record (gone, like a
+     settler). An unloaded record can never be hit.
+Check (pass/fail): 200 economy ticks with the hero standing in the town and 200 with the hero away
+give the same stock (within 1 load per worker); suspend then wake puts each worker within 1 unit of
+its path position; no unit exists when nobody is within `spawnRadius`; a killed loaded worker
+removes exactly one record.
+Done note: "L3.6 workers walk when someone is near."
+
+#### L3.7. Drawing the town and the spots  [STRONG]
+Needs: L3.3, L3.4, L3.0 mock OK
+Files: `game/src/town_props.js`, `game/src/render/world_ground.js`, `game/src/minimap.js`,
+`game/src/world_map.js` (Spots layer toggle), `game/data/art.json` (stand-in pieces and stages),
+`frontier.json` `townArt` (stages per zone kind).
+Do: draw the cleared patch, roads, walls, gates and crop fields from `settlement.grid`; zone
+buildings by stage from existing cutouts; abandoned cells drawn run-down (a darker tint and no
+lights); spot pieces by stage using existing tree/rock props as stand-ins; a small twinkle on hover
+(no glow). The minimap shows spots within its view only when zoomed in; the World map gets a Spots
+layer; discovery and fog apply. Render reads the snapshot only.
+Check (pass/fail): `.mjs` syntax copies pass; a pure helper `townCellsToProps(grid)` is tested.
+In game (Tim): the town, its fields and its spots read clearly; harvested trees show stumps.
+Done note: "L3.7 town and spots drawn."
+
+#### L3.8. Build bar, tooltips and worker orders  [STRONG]
+Needs: L3.2, L3.3, L3.5, L3.0 mock OK
+Files: new `game/src/frontier_build_ui.js`, `game/src/frontier_panel.js` (bar host),
+`game/src/input.js` (pointer handlers only), `game/index.html` (Controls rows), `game/src/frontier_tips.js`.
+Do: the build bar per the mock. Drag a rectangle to get a ghost from `place`/`zone` dry runs,
+green or red with the reason under the cursor. Right click or Esc cancels. The zone tint and health
+overlay show only while the bar is open. Clicking a town building or zone cell shows a tooltip
+(what it is, zone, its state, zone state). Clicking a spot shows its kind, amount left, state and
+workers. Workers can be selected like crew; right-clicking a spot sends `assign`.
+Controls rows (Frontier towns section):
+- "Build bar (town panel)": Road, Wall, Gate, zone brushes, Eraser and buildings; drag a rectangle,
+  green = allowed, red shows why; right click or Esc cancels.
+- "Click a town building": what it is, its zone, its state and the zone's health.
+- "Select workers, right-click a resource spot": send them to harvest there; they shuttle by themselves.
+Check (pass/fail): syntax copies pass; dry runs are covered in `test_frontier_place.mjs`.
+Done note: "L3.8 build bar in (controls.md lines needed)."
+
+#### L3.9. Playtest  [TIM]
+Found a town, paint housing and farm zones, lay roads, ring it with a stockade and a gate, try to
+wall yourself in (it should refuse), train workers and send some to a timber spot, walk away and
+come back, and watch zones grow, then starve and recover.
+
+**Loop end:** tests pass; Docs keeper commits "Loop 3: gather and build" and ticks the F5 steps it
+closed (F5.1 grid, F5.2 placement, F5.3 zones, F5.4 controls, the F5.x zones card).
+
 ## Progress checklist
 
 Tick a box (`[x]`) only when the step's check passes. A phase box is ticked after its commit and
@@ -1745,7 +1986,7 @@ shipments"; Tim playtest: watch a cart reach the city and the ryo arrive.
 
 Goal: the player zones land (housing, farm, work), places buildings, roads, walls and gates, and the
 governor fills what the player leaves. Design: [Loop 3 design](#loop-3-design-tim-2026-11-04) (Tim, 2026-11-04);
-Loop 3 builds the first slice of these steps. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
+Loop 3 builds the first slice: cards L3.1–L3.8 replace the F5.1–F5.4 detail for that loop (Tim, 2026-11-04); F5.1–F5.4 below stay as the outline for the later deepen pass. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
 
 ### F5.1. Town grid and clearing  [SMALL]
 Needs: E done
@@ -2233,6 +2474,7 @@ backlog. If neither looks right, crude static cutouts ship first and get replace
 These parts of the campaign plan are not stepped yet because their open choices decide the code.
 Each becomes its own phase after a short design session with Tim:
 
+- **Classic / Campaign select in the main menu** (Tim, 2026-11-04): a proper mode select button on the start screen. Not part of Loop 3.
 - **Forts and conquest** (plan step 6; core now in F6 and F7): further center tiers, siege stages, garrison buildings, damage and
   repair. Needs: stage gates, control duration, garrison capacity.
 - **Exploration rewards** (plan step 5a, frontier part; now Phase W5): ruins and caches with first-clear claim
