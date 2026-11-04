@@ -125,7 +125,7 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
 
 ### Loop 3 build cards (Tim OK, 2026-11-04)
 
-Built from the Loop 3 design above. These cards replace the old F5.1–F5.4 and F5.x detail for this loop; F5 keeps its later cards (F5.5 art, F5.7 work camps). Tim's answers (2026-11-04): once a town has workers, idle `forage` stops (L3.5); old towns migrate to the grid (L3.1, L3.3); the test starter frontier towns are removed from real games (L3.1b). Card format and rules: `docs/step_runner_guide.md`.
+Built from the Loop 3 design above. These cards replace the old F5.1–F5.4 and F5.x detail for this loop; F5 keeps its later cards (F5.5 art, F5.7 work camps). Tim's answers (2026-11-04): once a town has workers, idle `forage` stops (L3.5); old towns migrate to the grid (L3.1, L3.3); the test starter frontier towns stay for now and are removed after E6 (card E6b). Card format and rules: `docs/step_runner_guide.md`.
 
 #### Shared for every Loop 3 card
 
@@ -193,22 +193,6 @@ cells `x`; a migrated old save draws every building within half a cell of its ol
 survives save/load; `queue` never picks an `x` or used cell.
 In game (Tim): the town looks the same as before.
 Done note: "L3.1 town grid in."
-
-#### L3.1b. Remove the test starter towns from real games  [SMALL]
-Needs: L3.1
-Files: `game/data/frontier.json` (`settlements`, `roads`), new `game/tools/fixtures/frontier_fixture.json`,
-the frontier tests that load `frontier.json` (about 16 in `game/tools/`; grep first), `game/tools/make_dev_save.mjs`.
-Do (Tim 2026-11-04: the starter frontier town was only a test):
-  1. Move the fixture towns `s_frontier_1` ("First Frontier") and `s_frontier_2`, and the
-     fixture roads `r1`/`r2`, into `frontier_fixture.json`. Tests merge it over `frontier.json`
-     with a small `withFixture(data)` helper. No test assertion changes.
-  2. A real campaign then starts with only the capital, and towns come from founding. The rival
-     bot town returns with E6 bot expeditions; until then rivals have no frontier town (say so in
-     the done note).
-  3. `dev_frontier` keeps working: it founds its town through the normal `found` command.
-Check (pass/fail): every frontier test passes unchanged with the fixture; a fresh campaign game has
-exactly one settlement (the capital); `make_dev_save.mjs` rebuilds `dev_frontier` with a founded town.
-Done note: "L3.1b test starter towns removed from real games."
 
 #### L3.2. Place and remove, with the trap check  [SMALL]
 Needs: L3.1
@@ -382,7 +366,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
-- [ ] **E** Founding: [ ] E1 rules · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E7 playtest
+- [ ] **E** Founding: [ ] E1 rules · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E6b · [ ] E7 playtest
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
 - [ ] **F6** Armies: [ ] 6.1 choices · [ ] 6.2 · [ ] 6.3a · [ ] 6.3b · [ ] 6.3c · [ ] 6.4 · [ ] 6.5 · [ ] 6.6 · [ ] 6.7 playtest · [ ] 6.8 second slice
@@ -1867,6 +1851,21 @@ using the same commands as the player. It respects difficulty settings.
 Check (pass/fail): an all-bot Node run founds one bot town by the set day; the bot never issues a
 rejected `found`.
 Done note: "E6 bot expeditions in."
+
+### E6b. Remove the test starter towns from real games  [SMALL]
+Needs: E6, L3.1
+Note (Tim, 2026-11-04): the test starter towns stay until E6 bot expeditions are complete, then this card removes them.
+Files: `game/data/frontier.json` (`settlements`, `roads`), new `game/tools/fixtures/frontier_fixture.json`,
+the frontier tests that load `frontier.json` (about 16 in `game/tools/`; grep first), `game/tools/make_dev_save.mjs`.
+Do:
+  1. Move the fixture towns `s_frontier_1` ("First Frontier") and `s_frontier_2`, and the
+     fixture roads `r1`/`r2`, into `frontier_fixture.json`. Tests merge it over `frontier.json`
+     with a small `withFixture(data)` helper. No test assertion changes.
+  2. A real campaign then starts with only the capital, and towns come from founding. Rival towns now come from E6 bot expeditions.
+  3. `dev_frontier` keeps working: it founds its town through the normal `found` command.
+Check (pass/fail): every frontier test passes unchanged with the fixture; a fresh campaign game has
+exactly one settlement (the capital); `make_dev_save.mjs` rebuilds `dev_frontier` with a founded town.
+Done note: "E6b test starter towns removed from real games."
 
 ### E7. Playtest  [TIM]
 Hire settlers, pick a site, walk the expedition there (fighting off bandits on the way), found the
