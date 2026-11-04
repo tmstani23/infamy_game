@@ -27,6 +27,7 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contra
       if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);
       if(n.kind==='shakedownPaid'&&n.clan===me)callout(`Shakedown paid: +${n.ryo} ryo`,'win');
       if (n.kind === 'town' && n.clan === me) townAlert(n);   // frontier town alerts (sim/frontier/alerts.js, F4.4c)
+      if (n.kind === 'worldCampCleared' && n.clan === me) callout(`Bandit camp no. ${parseInt(String(n.camp).replace(/\D+/g,''),10)||n.camp} cleared · +${n.ryo} ryo${n.first ? ' · first clear' : ''}`, 'win');
       if (n.kind === 'renown' && n.clan === me && n.amount > 0) callout(`${n.reason || 'Renown earned'} · +${n.amount} Renown`, 'win');
       if (n.kind === 'leaderBounty' && n.clan === me) callout(`${n.reason} · +${n.amount} ryo`, 'win');
       if (n.kind === 'unstuck' && n.clan === me) { console.info('[stuck spot]', n.place, n.x.toFixed(1), n.z.toFixed(1)); callout('Back inside your HQ', 'win'); }

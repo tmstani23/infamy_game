@@ -1,7 +1,7 @@
 // World atlas: registered illustration with data overlays, feature discovery and exact hover.
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
-import { ATLAS_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
+import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;
 export const TERRAIN = { p: '#c4b88c', f: '#6e825c', h: '#aa9670', m: '#70685f', w: '#1e2c52', d: '#ceaa78', n: '#e2e4e8', b: '#889e68', k: '#76826e', r: '#344e80' };
@@ -77,7 +77,7 @@ export function rulerLabels(count, position, label, measure, min, max, gap = 8) 
 //   scoutedSites: array of ids, pins: [{id,x,z,note}] }
 export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig = null, onHover = () => {}, getState = () => ({}) }) {
   const ctx = canvas.getContext('2d');
-  const layers = Object.fromEntries(ATLAS_LAYERS.map(l => [l.id,l.on])), biomes = createAtlasBiomes(world,paintConfig);
+  const layers = Object.fromEntries([...ATLAS_LAYERS, ...ATLAS_DEV_LAYERS].map(l => [l.id,l.on])), biomes = createAtlasBiomes(world,paintConfig);
   let dpr = 1, view = fitView(world, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height), cache = null, dirty = true, drag = null, hover = null, lastMoved = false, rev = -1, illustration = null, biomeCache = null;
   if (atlasConfig?.image && atlasConfig.size?.w === world.size.w && atlasConfig.size?.h === world.size.h && typeof Image !== 'undefined') {
     const img = new Image(); img.onload = () => { illustration=img; dirty=true; }; img.onerror = () => { dirty=true; };
@@ -93,7 +93,7 @@ export function createWorldMap({ canvas, world, paintConfig = null, atlasConfig 
   const inWorld = p => p.x >= 0 && p.z >= 0 && p.x < world.size.w && p.z < world.size.h;
   // One feature list serves drawing, the key and hit testing.
   function hitItems() {
-    const st = getState(), grid = st.discovered ?? null, known = (x, z) => isDiscovered(world, grid, x, z);
+    const st = getState(), grid = st.discovered ?? null, known = (x, z) => layers.revealAll || isDiscovered(world, grid, x, z);
     return atlasItems(world,st,layers,known);
   }
   function path(points) { ctx.beginPath(); points.forEach(([x, z], k) => { const p = worldToCanvas(x, z, view); k ? ctx.lineTo(p.px, p.py) : ctx.moveTo(p.px, p.py); }); ctx.stroke(); }

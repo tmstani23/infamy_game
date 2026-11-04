@@ -15,6 +15,17 @@
     "ryoSpread": 0,
     "lootSeconds": 60
   },
+  "worldCamps": {
+    "_note": "W4 functional pass: placeholder strength, rewards and spacing, Tim to tune. Five-day recovery is approved. Existing authored tiers get increasing resident counts. First-clear bonus is once per camp across all clans; ordinary body loot still uses bandit rules.",
+    "enabled": true,
+    "respawnDays": 5,
+    "firstClearRyo": 40,
+    "repeatClearRyo": 10,
+    "spawnRadius": 3,
+    "leash": 14,
+    "corpseSeconds": 60,
+    "membersByTier": [["bandit","bandit"],["bandit","bandit","bandit"],["bandit","bandit","night_brute"],["bandit","bandit","bandit","night_brute"],["bandit","bandit","bandit","night_brute","night_brute"]]
+  },
   "types": {
     "bandit":      { "weight": 2, "ryo": 25, "roamerStats": { "hp": 240, "damage": 9 } },
     "night_brute": { "weight": 1, "ryo": 50, "roamerStats": { "hp": 432, "damage": 16 } }

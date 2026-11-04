@@ -6,6 +6,7 @@
 //   createPaint(world, cfg) -> { fieldAt, grove, trailAt, stampsIn, paintChunk, ... }  (cached per cfg)
 import { islandBiome } from './sim/island_art.js';
 import { shorelineTopology } from './sim/shoreline.js';
+import { riverDirection } from './world_features.js';
 
 // ---------- seeded value noise (no tables, so it is the same in every chunk) ----------
 export function hash2(ix, iz, seed) {
@@ -143,6 +144,22 @@ export function createPaint(world, cfg) {
     return { clear, material: mat, amount: ma };
   }
 
+  // Loop 1 fords: a gravel bar across the river bed with a ragged edge, and shallower, clearer water over
+  // it. Pure drawing; walking is decided by world_data.js (river cells within fordRadius of a crossing).
+  const FD = cfg.fordBed || {};
+  const fordZones = FD.enabled !== true ? [] : (world.fords || []).filter(f => f.kind === 'ford').map(f => ({ x: f.x, z: f.z, ...riverDirection(world, f) }));
+  function fordAt(x, z) {
+    let best = 0;
+    for (const f of fordZones) {
+      const dx = x - f.x, dz = z - f.z;
+      if (Math.abs(dx) > FD.along * 1.5 || Math.abs(dz) > FD.along * 1.5) continue;
+      const u = dx * f.tx + dz * f.tz, v = -dx * f.tz + dz * f.tx;
+      const d = Math.hypot(u / FD.along, v / FD.across) + (vnoise(x, z, FD.noiseScale, seed + 71) - 0.5) * 2 * FD.ragged;
+      best = Math.max(best, 1 - smooth(FD.solid, 1, d));
+    }
+    return best;
+  }
+
   // layers 2-3 and 5: the material weights of one point (sum 1) into w[0..NM). Returns the forest weight.
   const byBiome = cfg.biomes.map(() => []);
   matIds.forEach((id, mi) => { const m = cfg.materials[id]; for (const [b, v] of Object.entries(m.w)) if (v > 0 && B[b] != null) byBiome[B[b]].push([mi, v]); });
@@ -174,6 +191,7 @@ export function createPaint(world, cfg) {
     const forest = F0[B.forest];
     const st = stampAt(stampList, x, z);
     if (st.material) { const a = st.amount; for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - a; w[M[st.material]] += a; }
+    if (fordZones.length) { const fd = fordAt(x, z) * FD.amount; if (fd > 0) { for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - fd; w[M[FD.material]] += fd; } }
     const [tr, vg] = trailAt(segs, x, z);
     if (tr > 0 || vg > 0) {
       const kv = vg * (1 - tr) * T.verged;
@@ -208,7 +226,10 @@ export function createPaint(world, cfg) {
       const x = x0 - h + (i + 0.5) * pitch, z = z0 - h + (j + 0.5) * pitch, k = j * N + i;
       materialsAt(x, z, w, near.segs, near.stamps);
       for (let mi = 0; mi < NM; mi++) { px[k * NM + mi] = w[mi]; cover[mi] += w[mi]; }
-      O[k * 4] = Math.round(waterAt(x, z) * 255);
+      let wet = waterAt(x, z);
+      const fd = fordZones.length ? fordAt(x, z) : 0;
+      if (fd > 0 && wet > FD.waterLevel) wet += (FD.waterLevel - wet) * fd;   // thin water: the gravel shows through
+      O[k * 4] = Math.round(wet * 255);
       // Reuse the actual local ground mosaic; this mask only adjusts its tone.
       const CT = cfg.coastTransition;
       if (CT?.enabled && !BLOCKED_BIOME.has(gridAt(x, z))) {
@@ -223,6 +244,7 @@ export function createPaint(world, cfg) {
           O[k * 4 + 3] = Math.round(F0[B.snow] * 255);
         }
       }
+      if (fd > 0) O[k * 4 + 1] = Math.max(O[k * 4 + 1], Math.round(fd * FD.shallow * 255));   // clearer, greener shallows
     }
     // W3.11 P4: materials seen on the shared border pixels go first, so a busy chunk (coast cliffs + lowland mosaic)
     // never drops a material its neighbour keeps; the rest rank by coverage.
@@ -245,7 +267,7 @@ export function createPaint(world, cfg) {
 
   const paint = {
     cfg, seed, biomes: cfg.biomes, blockedAt, B, matIds, M, gridAt, fieldAt, waterAt, waterFrac, trailAt, trailDist, trailClear, grove,
-    stampsIn, stampAt, stampClear, materialsAt, paintChunk, NB, NM,
+    stampsIn, stampAt, stampClear, materialsAt, paintChunk, fordAt, NB, NM,
   };
   made.set(cfg, { world, paint });
   return paint;

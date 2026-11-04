@@ -16,9 +16,11 @@ import { placePiece } from '../sim/geometry.js';
 import { groundMaterial } from './shading.js';
 import { loadTex, cutoutThing, loadGroundTextures, GROUND_CHANNELS } from './scenery.js';
 import { chunksToDraw, planChunks, propsInView } from '../world_stream.js';
+import { createPaint } from '../world_paint.js';
 import { createIslandPainter } from './island_ground.js';
 import { createCoastlineRenderer } from './coastline.js';
 import { createWaterEffects } from './water_effects.js';
+import { campPropsInChunk, findPropsInChunk, crossingPropsInChunk, nodePropsInChunk, sitePropsInChunk } from '../world_features.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
 // mountain art is cut in, W3.4b)
@@ -168,6 +170,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       for (const k of plan.drop) dropChunk(k);
       for (const [a, b] of plan.build) {
         const gen = buildChunk(world, cfg, a, b, seed, { city }), mesh = groundMesh(gen);
+        gen.props.push(...campPropsInChunk(world,gen.x0,gen.z0,gen.size),...findPropsInChunk(world,gen.x0,gen.z0,gen.size),...crossingPropsInChunk(world,gen.x0,gen.z0,gen.size,cfg.paint?.bridge,cfg.paint?.enabled?createPaint(world,cfg.paint).waterAt:null),...nodePropsInChunk(world,gen.x0,gen.z0,gen.size),...sitePropsInChunk(world,gen.x0,gen.z0,gen.size));
         scene.add(mesh);
         const coastMesh = coastline?.mesh(gen);
         if (coastMesh) scene.add(coastMesh);
@@ -183,7 +186,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gate.x,z:gate.z});
     wall.forEach((p, i) => { if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`city-wall:${i}`, p); });
     for (const c of loaded.values()) {
-      if (Math.abs(c.gen.x0 + S / 2 - x) > S / 2 + R + 40 || Math.abs(c.gen.z0 + S / 2 - z) > S / 2 + R + 40) continue;
+      if (Math.abs(c.gen.x0 + S / 2 - x) > S / 2 + R + 40 + 120 || Math.abs(c.gen.z0 + S / 2 - z) > S / 2 + R + 40 + 120) continue;
       const near = propsInView(c.gen.props, x, z, R);
       for(const [i,p]of (c.gen.art||[]).entries())if(Math.hypot(p.x-x,p.z-z)<R+60)want.set(`${c.gen.id}:art:${i}`,p);
       for (const p of near) want.set(`${c.gen.id}:${c.gen.props.indexOf(p)}`, p);

@@ -34,5 +34,5 @@ export function planChunks(loaded, wanted, { limit, perFrame = 1 }) {
 
 // Props near the camera (only these get a sprite): within r units, big ones (mountains) a bit further
 export function propsInView(props, x, z, r, bigR = r + 30) {
-  return props.filter(p => { const d = Math.hypot(p.x - x, p.z - z); return d <= (p.kind === 'mountain' ? bigR : r); });
+  return props.filter(p => { const d = Math.hypot(p.x - x, p.z - z); return d <= (p.kind === 'mountain' ? bigR : r) + (p.reach || 0); });
 }

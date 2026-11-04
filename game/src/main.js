@@ -68,12 +68,12 @@ const getJSON = async url => {
 async function start() {
   setGameplayInput(false);
   status('Loading the district…');
-  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier, worldChunksFile, worldPaint, biomeProps, coastline, worldAtlas] = await Promise.all([
+  const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier, worldChunksFile, worldPaint, crossings, biomeProps, coastline, worldAtlas] = await Promise.all([
     getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
-    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json'), getJSON('data/world_chunks.json'), getJSON('data/world_paint.json'), getJSON('data/biome_props.json'), getJSON('data/coastline.json'), getJSON('data/world_atlas.json')]);
+    getJSON('data/room_recipes.json'), getJSON('data/units.json'), getJSON('data/civilians.json'), getJSON('data/bandits.json'), getJSON('data/buildings.json'), getJSON('data/police.json'), getJSON('data/settings.json'), getJSON('data/bots.json'), getJSON('data/world.json'), getJSON('data/frontier.json'), getJSON('data/world_chunks.json'), getJSON('data/world_paint.json'), getJSON('data/world_crossings.json'), getJSON('data/biome_props.json'), getJSON('data/coastline.json'), getJSON('data/world_atlas.json')]);
 
-  const worldChunks = { ...worldChunksFile, paint: worldPaint, biomeProps, coastline };   // island art and painting settings
+  const worldChunks = { ...worldChunksFile, paint: { ...worldPaint, ...crossings }, biomeProps, coastline };   // island art and painting settings
 
   // No sim, bot or game clock runs until Start is pressed. Test presets still boot directly.
   const startSaves = createSaveStore(serverBackend('/saves'));
@@ -331,7 +331,7 @@ async function start() {
     else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
     else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
   } });
-  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world, atlasConfig: worldAtlas, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const mapZoom = factor => {
     const level = minimap.zoomBy(factor);
     $('minimapout').disabled = level <= 1;

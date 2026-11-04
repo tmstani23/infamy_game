@@ -10,7 +10,7 @@ export const WILD = 'bandits';     // the owner every bandit has (not a clan: no
 
 // state: the game state; data: bandits.json; units: units.json; pois / edges: the district's
 // spots and its way-in spots; spawn / moveTo / stopPath / remove / fightStep / statsOf come from the game rules
-export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, forcedStep = () => false, seed = 4242 }) {
+export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, navFor = () => nav, campFor = () => null, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, forcedStep = () => false, seed = 4242 }) {
   const R = data?.rules || {}, types = data?.types || {};
   const secs = s => Math.round(s / DT);
   const snap = ([x, z]) => nav.nearestFree(x, z) || [x, z];
@@ -61,7 +61,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     if (m.until != null && state.tick < m.until) { e.anim = 'idle'; return; }
     if (!m.spot) {
       const angle = rng() * Math.PI * 2, radius = 1.5 + rng() * 2;
-      const point = nav.nearestFree(c.x + Math.cos(angle) * radius, c.z + Math.sin(angle) * radius);
+      const point = navFor(e)?.nearestFree(c.x + Math.cos(angle) * radius, c.z + Math.sin(angle) * radius);
       if (!point) return;
       goTo(e, m, { id: 'camp', x: point[0], z: point[1] });
     }
@@ -129,7 +129,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
       }
       if (!Object.keys(e.angry).length) { delete e.angry; delete e.swing; stopPath(e); }
     }
-    const camp = campOf[m.camp];
+    const camp = e.worldCamp ? campFor(m.camp) : campOf[m.camp];
     if (camp && Math.hypot(e.x - camp.x, e.z - camp.z) > (camp.leash ?? 10)) {
       delete e.angry; delete e.swing; m.spot = null; m.until = null;
       moveTo(e, statsOf(e), camp.x, camp.z, true);

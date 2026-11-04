@@ -77,7 +77,7 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   function update(entities) {
     const want = new Map();
     for (const e of entities) {
-      if (e.place !== 'world' || e.dead) continue;
+      if (e.place !== 'world' || e.dead || e.worldCamp) continue;
       const ecx = Math.floor(e.x / S), ecz = Math.floor(e.z / S);
       for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) {
         const cx = ecx + dx, cz = ecz + dz, k = keyOf(cx, cz);

@@ -10,6 +10,7 @@ import { createClans } from './clans.js';
 import { createNav, ROOM_NAV } from './nav.js';
 import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
+import { createWorldCamps } from './camps.js';
 import { createRewards } from './rewards.js';
 import { gearFlat, createInventory } from './inventory.js';
 import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
@@ -568,10 +569,12 @@ export function createGame(options) {
     if (fight[e.id]) delete fight[e.id].target;
     return false;
   }
+  let worldCamps=null;
   const bandits = createBandits({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
     state, data: banditData, units, camps: district.banditCamps, pois: district.pois, edges: district.edges, nav, spawn, moveTo, fightStep, statsOf,
-    canSee: (e, t) => sees(e, t) && nav.clearLine(e.x, e.z, t.x, t.z),
+    canSee: (e, t) => sees(e, t) && !!navOf(e.place)?.clearLine(e.x, e.z, t.x, t.z),
+    navFor:e=>navOf(e.place),campFor:id=>worldCamps?.campFor(id),
     stopPath: e => { delete paths[e.id]; },
     remove: id => { delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id]; },
     seed: (options.seed ?? 12345) ^ 0xba7d,
@@ -582,6 +585,7 @@ export function createGame(options) {
     delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id];
     for (const u of Object.values(state.entities)) if (u.order?.target === id && u.order.kind === 'attack') endAttack(u);
   }
+  worldCamps=createWorldCamps({state,world:options.world,areas,rules:banditData?.worldCamps,spawn,remove:removeUnit,ai:bandits,spriteFor:type=>statsOf(type).sprite || type,known:(clan,x,z)=>discovery.isDiscovered(clan,x,z)});
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -857,6 +861,7 @@ export function createGame(options) {
     civilians.tick();
     shakedown.civilianStep();
     bandits.tick();
+    worldCamps.tick();
     hqCamping?.tick();
     police?.tick();
     businesses?.tick();
@@ -984,7 +989,7 @@ export function createGame(options) {
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
-  const combat = createCombat({ onDefeat:(a,t)=>itemServices.defeat(a,t), clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const combat = createCombat({ onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
   // Closure state that lives outside game.state. Values are copied by the save encoder.
@@ -1003,5 +1008,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier };
+  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier };
 }

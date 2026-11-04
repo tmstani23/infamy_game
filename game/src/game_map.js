@@ -9,7 +9,8 @@ import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
 import { createWorldMap, canvasToWorld, gridLabel } from './world_map.js';
-import { ATLAS_LAYERS, ATLAS_MARKERS, atlasGlyphSVG, atlasFeatureName } from './world_atlas.js';
+import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, ATLAS_MARKERS, atlasGlyphSVG, atlasFeatureName } from './world_atlas.js';
+import { siteReport, placeNo } from './world_features.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
@@ -238,25 +239,30 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   }
   const TRAIT = v => '●'.repeat(v) + '○'.repeat(Math.max(0, 3 - v));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // W4.4: scouting report lines (nodes within 600 units, nearest bandit camp)
+  function siteReportHtml(site) {
+    const r = siteReport(world, site), parts = Object.entries(r.nodes).map(([k, n]) => `${n} ${esc(k)}`).join(', ');
+    return `<div class="key">Within 600: ${parts || 'no resource nodes'}</div>` + (r.camp ? `<div class="key">Nearest bandit camp ${placeNo(r.camp.id)} (tier ${r.camp.tier}), ${r.camp.distance} away</div>` : '');
+  }
   function drawWorldSide() {
     if (pinDraft) pinDraft.note=worldSide.querySelector('.pinnote')?.value ?? pinDraft.note ?? '';
     const st = worldState(), scouted = new Set(st.scoutedSites);
     let box = '<span class="atlas-hint">Click a marked feature for details.</span>';
     if (picked?.kind === 'site') {
       const region = world.regions.find(r => r.id === picked.region);
-      box = `<h4>Site ${esc(picked.id)}</h4><div class="key">${esc(region?.name || 'Region ' + picked.region)} · ${picked.tags.includes('coast') ? 'coast' : 'inland'}</div>`
-        + (scouted.has(picked.id) ? Object.entries(picked.traits).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${TRAIT(v)}</b></div>`).join('')
-          + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ' · harbor' : ''}</div>` : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
+      box = `<h4>Site ${placeNo(picked.id)}</h4><div class="key">${esc(region?.name || 'Region ' + picked.region)} · ${picked.tags.includes('coast') ? 'coast' : 'inland'}</div>`
+        + (scouted.has(picked.id) || worldMap.layers.revealAll ? Object.entries(picked.traits).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${TRAIT(v)}</b></div>`).join('')
+          + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ' · harbor' : ''}</div>` + siteReportHtml(picked) : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
     } else if (picked?.kind === 'capital') box = `<h4>The Capital</h4><div class="key">Your home port city.</div>`;
-    else if (picked?.kind === 'camp') box = `<h4>${picked.featureKind === 'bandit' ? 'Bandit camp' : picked.featureKind === 'ruin' ? 'Ruin' : 'Cache'}</h4><div class="key">Tier ${picked.tier}</div>`;
+    else if (picked?.kind === 'camp') box = `<h4>${picked.featureKind === 'bandit' ? 'Bandit camp' : picked.featureKind === 'ruin' ? 'Ruin' : 'Cache'} ${placeNo(picked.id)}</h4><div class="key">Tier ${picked.tier}${game.state.world?.camps?.[picked.id]?.cleared ? ' · Cleared on day '+game.state.world.camps[picked.id].clearedDay : ''}</div>`;
     else if (picked?.kind === 'pin') box = `<h4>Your pin</h4><div class="key">${esc(picked.note || '(no note)')}</div><div class="key">Right-click it to remove.</div>`;
     else if (picked) box = `<h4>${esc(atlasFeatureName(picked))}</h4>` + (picked.kind === 'resource' ? `<div class="key">${esc(picked.featureKind)} · richness ${esc(picked.richness)}</div>` : '');
     if (picked) box += `<div class="key">${esc(gridLabel(picked.x,picked.z))} · x ${Math.round(picked.x).toLocaleString('en-US')} z ${Math.round(picked.z).toLocaleString('en-US')} · ${esc(worldMap.biomeAt(picked.x,picked.z).name)}</div>`;
     const form = pinDraft ? `<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)" value="${esc(pinDraft.note)}"><div class="atlas-actions"><button type="button" class="pinsave">Save pin</button><button type="button" class="pincancel">Cancel</button></div>` : '';
     const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">${travelTo.city ? 'The Capital' : `${gridLabel(travelTo.x,travelTo.z)} · x ${travelTo.x.toLocaleString('en-US')} z ${travelTo.z.toLocaleString('en-US')}`} · Hero and following or selected crew</div><div class="atlas-actions"><button type="button" class="travelgo">Travel</button><button type="button" class="travelcancel">Cancel</button></div>` : '';
     const zoom = '<div class="atlas-navigation"><button type="button" data-locate title="Center on your location">Your location</button><button type="button" data-zoom="0.714" aria-label="Zoom out">−</button><button type="button" data-zoom="1.4" aria-label="Zoom in">+</button><button type="button" data-fit>Fit island</button></div>';
-    const toggles = ATLAS_LAYERS.map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('');
-    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel || (picked ? box : '')}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up · 500-unit squares · Drag to pan · Wheel to zoom · Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
+    const toggles = [...ATLAS_LAYERS, ...(devTravel ? ATLAS_DEV_LAYERS : [])].map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('');
+    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel}${picked && !travelTo?.city ? box : ''}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up · 500-unit squares · Drag to pan · Wheel to zoom · Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
     updateWorldLocation(); updateWorldLegend();
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
@@ -322,7 +328,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       if (worldMap.wasDrag()) return;
       picked = worldMap.hit(...local(e));
       const p=canvasToWorldPoint(...local(e));
-      travelTo = !canTravel() ? null : picked?.kind === 'capital' ? { city: true } : !picked ? p : null;
+      // clicking a marked place travels to it, landing about half a screen (26 units) away on the screen-lower side, never on top
+      travelTo = !canTravel() ? null : picked?.kind === 'capital' ? { city: true } : !picked ? p : (Number.isFinite(picked.x) && Number.isFinite(picked.z) ? { x: Math.round(picked.x + 18), z: Math.round(picked.z + 18) } : null);
       if (picked?.kind === 'town' && picked.owner === clan && picked.stock) { card.hidden = true; openTown(picked.id); return; }   // your town: the full panel (F4.4d)
       drawWorldSide();
     });

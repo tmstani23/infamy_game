@@ -13,6 +13,8 @@ export const ATLAS_LAYERS = [
   { id: 'biomes', label: 'Biome tint', on: false },
   { id: 'grid', label: 'Grid', on: false },
 ];
+// Dev builds only, view only (no sim state): shows every feature regardless of fog. Remove when exploring is tuned.
+export const ATLAS_DEV_LAYERS = [{ id: 'revealAll', label: 'Show everything (test)', on: false }];
 const circle = r => ({ circle: r });
 const line = (...points) => ({ points });
 const polygon = (...points) => ({ points, closed: true });
@@ -52,13 +54,13 @@ const titleCase = s => String(s).replaceAll('_', ' ').replace(/\b\w/g, c => c.to
 export function atlasFeatureName(it) {
   if (!it) return '';
   if (it.kind === 'pin') return it.note || 'Your pin';
-  if (it.kind === 'resource') return `${titleCase(it.featureKind)} · ${it.id}`;
-  if (it.kind === 'camp') return `${it.featureKind === 'bandit' ? 'Bandit camp' : titleCase(it.featureKind)} · ${it.id}`;
+  if (it.kind === 'resource') return `${titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
+  if (it.kind === 'camp') return `${it.featureKind === 'bandit' ? 'Bandit camp' : titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
   return it.name || `${ATLAS_MARKERS[it.kind]?.label || titleCase(it.kind)}${it.id ? ' · ' + it.id : ''}`;
 }
 export function atlasItems(world, st, layers, known) {
   const records = [];
-  const add = (list, kind) => { if (!layers[ATLAS_MARKERS[kind].layer]) return; for (const it of list || []) if (known(it.x,it.z)) records.push({ ...it, featureKind: it.kind, kind }); };
+  const add = (list, kind) => { if (!layers[ATLAS_MARKERS[kind].layer] && !layers.revealAll) return; for (const it of list || []) if (known(it.x,it.z)) records.push({ ...it, featureKind: it.kind, kind }); };
   add(world.sites, 'site'); add(world.nodes, 'resource'); add(world.camps, 'camp');
   // Geographic crossings are part of the full atlas, independent of site exploration.
   // Keep them in this shared list so the symbols, key and hover all agree.
