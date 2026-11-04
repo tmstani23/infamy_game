@@ -247,7 +247,7 @@ hard-coded.
 Done note: "L3.3 zones, health and growth in."
 Built notes (2026-11-04): the town hall counts as a road for zone growth (`hallIsRoad` in `frontier.json`); farm zones skip the food need; ground clearing for placed buildings is still instant in `construction.js` until the L3.5 worker order.
 
-#### L3.4. Resource spots tool  [SMALL, then TIM numbers]
+#### L3.4. Resource spots tool  [SMALL, then TIM numbers] — [x] done 2026-11-04 (Tim OK'd the numbers as they are)
 Needs: none (can run beside L3.1–L3.3)
 Files: new `tools/seed_resource_spots.mjs`, generated `game/data/world_spots.json`, new
 `game/src/sim/resource_spots.js` (pure lookups), new `game/tools/test_resource_spots.mjs`.
