@@ -154,7 +154,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const reach = ISLAND_SPAN / islandZoom * 1.25, camps = state.world?.camps || {};
     const near = list => list.filter(f => Math.abs(f.x - me.x) < reach && Math.abs(f.z - me.z) < reach);
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)';
-    islandHits = []; const tipCtx = { camps, scouted: state.world?.scouted?.[clan] || [], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers };
+    islandHits = []; const tipCtx = { camps, scouted: state.world?.scouted?.[clan] || [], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world };
     for (const n of near(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 5, 'node', n, tipCtx]); ctx.fillStyle = '#9fc7a1'; ctx.fillRect(u - 2, v - 2, 4, 4); }
     for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill(); ctx.stroke(); }
     for (const f of near(world.fords || [])) {   // bridges (brown bar) and fords (pale x)

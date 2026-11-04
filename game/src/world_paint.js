@@ -147,14 +147,20 @@ export function createPaint(world, cfg) {
   // Loop 1 fords: a gravel bar across the river bed with a ragged edge, and shallower, clearer water over
   // it. Pure drawing; walking is decided by world_data.js (river cells within fordRadius of a crossing).
   const FD = cfg.fordBed || {};
-  const fordZones = FD.enabled !== true ? [] : (world.fords || []).filter(f => f.kind === 'ford').map(f => ({ x: f.x, z: f.z, ...riverDirection(world, f) }));
+  // The bar is only as wide as the painted water there (plus a small bank margin), so it never covers the banks.
+  const fordZones = FD.enabled !== true ? [] : (world.fords || []).filter(f => f.kind === 'ford').map(f => {
+    const d = riverDirection(world, f), nx = -d.tz, nz = d.tx;
+    let half = 0;
+    for (const sign of [-1, 1]) { let last = 0, dry = 0; for (let s = 0; s <= 150; s += 2) { if (waterAt(f.x + nx * s * sign, f.z + nz * s * sign) > 0.5) { last = s; dry = 0; } else if ((dry += 2) > 12 && s > 12) break; } half = Math.max(half, last); }
+    return { x: f.x, z: f.z, ...d, across: Math.max(FD.acrossMin, half + FD.bankMargin) };
+  });
   function fordAt(x, z) {
     let best = 0;
     for (const f of fordZones) {
       const dx = x - f.x, dz = z - f.z;
       if (Math.abs(dx) > FD.along * 1.5 || Math.abs(dz) > FD.along * 1.5) continue;
       const u = dx * f.tx + dz * f.tz, v = -dx * f.tz + dz * f.tx;
-      const d = Math.hypot(u / FD.along, v / FD.across) + (vnoise(x, z, FD.noiseScale, seed + 71) - 0.5) * 2 * FD.ragged;
+      const d = Math.hypot(u / FD.along, v / f.across) + (vnoise(x, z, FD.noiseScale, seed + 71) - 0.5) * 2 * FD.ragged;
       best = Math.max(best, 1 - smooth(FD.solid, 1, d));
     }
     return best;
@@ -191,7 +197,14 @@ export function createPaint(world, cfg) {
     const forest = F0[B.forest];
     const st = stampAt(stampList, x, z);
     if (st.material) { const a = st.amount; for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - a; w[M[st.material]] += a; }
-    if (fordZones.length) { const fd = fordAt(x, z) * FD.amount; if (fd > 0) { for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - fd; w[M[FD.material]] += fd; } }
+    if (fordZones.length) {
+      const fd = fordAt(x, z) * FD.amount;
+      if (fd > 0) {   // a patchy mix of bed materials, so no single texture covers the whole ford
+        const n = vnoise(x, z, FD.patchScale, seed + 72), set = FD.mix;
+        let tot = 0; const wt = set.map((m, k) => { const c = (k + 0.5) / set.length, v = Math.max(0, 1 - Math.abs(n - c) / FD.patchWidth) * m.weight; tot += v; return v; });
+        if (tot > 0) { for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - fd; set.forEach((m, k) => { w[M[m.id]] += fd * wt[k] / tot; }); }
+      }
+    }
     const [tr, vg] = trailAt(segs, x, z);
     if (tr > 0 || vg > 0) {
       const kv = vg * (1 - tr) * T.verged;

@@ -46,7 +46,7 @@ import { bindControlTooltips } from './control_tooltips.js';
 import { createDeploymentPanel } from './deployment_panel.js';
 import { createCharacterPanel } from './character_panel.js';
 import { createGameSettings } from './game_settings.js';
-import { createSaveStore, serverBackend, usable } from './save_store.js';
+import { createSaveStore, serverBackend, usable as usableSave } from './save_store.js';
 import { saveLoadURL, saveFromURL } from './save_menu.js';
 import { createGameMusic } from './game_music.js';
 import { bindGameShell } from './game_shell.js';
@@ -274,7 +274,7 @@ async function start() {
     async save(name,label){await saveStore.write(name,await simClient.save(),{...saveMeta(),label});},
     async load(name){const file=await saveStore.read(name);
       const hero=Object.values(file.state?.entities||{}).find(e=>e.type==='hero'&&e.owner==='player')?.id;
-      const check=usable(file);if(!check.ok)throw new Error(check.message);
+      const check=usableSave(file);if(!check.ok)throw new Error(check.message);
       if(!hero||!file.state?.clans?.player)throw new Error('This save has no player hero');
       location.assign(saveLoadURL(name,location.href));}};
   const gameSettings=createGameSettings({button:$('settingsbtn'),sound,saves,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});

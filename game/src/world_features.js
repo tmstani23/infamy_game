@@ -96,13 +96,18 @@ export function featureTip(kind, f, ctx = {}) {
     if (f.kind !== 'bandit') return { title: `${KIND_NAME[f.kind] || f.kind} ${placeNo(f.id)}`, lines: ['One-time find (reward not built yet)'] };
     return { title: `${KIND_NAME.bandit} ${placeNo(f.id)}`, lines: [`Tier ${f.tier}${guards ? ` · ${guards} guards` : ''}`,
       rec?.cleared ? `Cleared on day ${rec.clearedDay}; returns after ${ctx.rules?.respawnDays ?? 5} days` : 'Guarded',
+      ctx.world ? `${Math.round(Math.hypot(f.x - ctx.world.capital.x, f.z - ctx.world.capital.z))} units from the capital` : '',
       ctx.rules ? `Reward: ${(rec?.claimed ? ctx.rules.repeatClearRyo : ctx.rules.firstClearRyo) * (f.tier || 1)} ryo${rec?.claimed ? '' : ' (first clear)'}` : ''].filter(Boolean) };
   }
   if (kind === 'site') {
     const known = ctx.scouted?.includes(f.id);
-    return { title: `Site ${placeNo(f.id)}`, lines: known ? [`Soil ${f.traits.soil} · Water ${f.traits.water} · Defence ${f.traits.defense}`, `${f.routesToCapital} routes to the capital${f.harbor ? ' · harbor' : ''}`] : ['A place to found a town', 'Not scouted: walk close to learn its traits'] };
+    return { title: `Site ${placeNo(f.id)}`, lines: known ? [`Soil ${f.traits.soil} · Water ${f.traits.water} · Defence ${f.traits.defense}`, `${f.routesToCapital} routes to the capital${f.harbor ? ' · harbor' : ''}`, ...(ctx.world ? (() => { const r = siteReport(ctx.world, f); return [`Within 600: ${Object.entries(r.nodes).map(([k, n]) => `${n} ${k}`).join(', ') || 'no resource nodes'}`, r.camp ? `Nearest bandit camp ${placeNo(r.camp.id)} (tier ${r.camp.tier}), ${r.camp.distance} away` : '']; })() : [])].filter(Boolean) : ['A place to found a town', 'Not scouted: walk close to learn its traits'] };
   }
-  if (kind === 'node') return { title: KIND_NAME[f.kind] || f.kind, lines: [`Richness ${f.richness} of 3`, 'Gathering comes with town building'] };
+  if (kind === 'node') {
+    let near = null;
+    for (const t of ctx.world?.sites || []) { const d = Math.hypot(t.x - f.x, t.z - f.z); if (!near || d < near.d) near = { id: t.id, d: Math.round(d) }; }
+    return { title: KIND_NAME[f.kind] || f.kind, lines: [`Richness ${f.richness} of 3`, near ? `Nearest site ${placeNo(near.id)}, ${near.d} away${near.d <= 600 ? ' (a town there could work it)' : ''}` : '', 'Gathering comes with town building'].filter(Boolean) };
+  }
   if (kind === 'bridge' || kind === 'ford') return { title: `${kind === 'bridge' ? 'Bridge' : 'Ford'} ${f.id}`, lines: [`Crosses the ${(ctx.rivers || []).find(r => r.id === f.river)?.name || 'river'}`] };
   if (kind === 'pass') return { title: `Mountain pass ${f.id}`, lines: ['A way through the range'] };
   return { title: String(f.id || kind), lines: [] };

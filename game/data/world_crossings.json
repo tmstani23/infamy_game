@@ -1,12 +1,15 @@
 {
  "_note": "Loop 1 crossings (placeholder, Tim to tune). Drawing only: walking is decided by world.json fords + rules.fordRadius. Kept out of world_paint.json because the atlas registration hashes that file. Merged into the paint settings in src/main.js.",
  "fordBed": {
-  "_note": "Gravel bar painted into the river bed at each of the 8 fords (units). along/across = half-size of the bar along/across the river; solid = share kept fully gravel before the ragged edge fades; waterLevel = water mask over the bar (0.455 hides water, 0.545 full water); shallow = strength of the clear shallow-water look.",
+  "_note": "Gravel bar painted into the river bed at each of the 8 fords (units). along = half length of the bar along the river; across follows the painted water width plus bankMargin (at least acrossMin); solid = share kept fully gravel before the ragged edge fades; waterLevel = water mask over the bar (0.455 hides water, 0.545 full water); mix = bed materials blended in patches (patchScale units, patchWidth blend softness); shallow = strength of the clear shallow-water look.",
   "enabled": true,
-  "material": "pebbles_soil",
-  "amount": 0.92,
+  "mix": [{ "id": "pebbles_soil", "weight": 1 }, { "id": "sand", "weight": 0.8 }, { "id": "mossy_stones", "weight": 1 }, { "id": "muddy_bank", "weight": 0.6 }],
+  "patchScale": 13,
+  "patchWidth": 0.3,
+  "amount": 0.75,
   "along": 105,
-  "across": 62,
+  "acrossMin": 14,
+  "bankMargin": 5,
   "solid": 0.55,
   "ragged": 0.16,
   "noiseScale": 9,
@@ -16,6 +19,6 @@
  "bridge": {
   "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water.",
   "overhang": 6,
-  "width": 3
+  "width": 7
  }
 }

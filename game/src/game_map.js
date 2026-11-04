@@ -10,7 +10,7 @@ import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
 import { createWorldMap, canvasToWorld, gridLabel } from './world_map.js';
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, ATLAS_MARKERS, atlasGlyphSVG, atlasFeatureName } from './world_atlas.js';
-import { siteReport, placeNo } from './world_features.js';
+import { siteReport, placeNo, featureTip } from './world_features.js';
 
 const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Nagaya tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box',
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
@@ -313,11 +313,17 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       if (el.textContent!==text) el.textContent=text;
     } }); worldMap.attach();
     const local = e => { const r = worldCanvas.getBoundingClientRect(); return [(e.clientX - r.left) * worldMap.view.w / r.width, (e.clientY - r.top) * worldMap.view.h / r.height]; };
+    const scouted0 = () => worldState().scoutedSites || [];
     const card = document.createElement('div'); card.className = 'townhover'; card.hidden = true; root.appendChild(card);
     const esc2 = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     worldCanvas.addEventListener('mousemove', e => {
       const [px, py] = local(e), hit = worldMap.hit(px, py);
-      const c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
+      let c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
+      const tipKind = { site: 'site', resource: 'node', camp: 'camp', bridge: 'bridge', ford: 'ford', pass: 'pass' }[hit?.kind];
+      if (!c && tipKind) {   // stats on hover for sites, nodes, camps and crossings (same text as the minimap)
+        const w = game.state.world, t = featureTip(tipKind, { ...hit, kind: hit.featureKind }, { camps: w?.camps, scouted: worldMap.layers.revealAll ? world.sites.map(s => s.id) : [...scouted0()], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world });
+        c = { title: t.title, sub: '', lines: t.lines.map(l => ['', l]) };
+      }
       if (!c) { card.hidden = true; return; }
       card.innerHTML = `<b>${esc2(c.title)}</b><i>${esc2(c.sub)}</i>` + c.lines.map(([k, v]) => `<div><span>${esc2(k)}</span>${esc2(v)}</div>`).join('');
       const r = root.getBoundingClientRect();
