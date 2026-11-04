@@ -87,6 +87,10 @@ for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
   assert.equal(clan.queue.length, 1);
   assert.equal(crew(clanId).length, 0);
 
+  // Wait outside while checking arrival: bot recruits Follow immediately, including
+  // through doors, so leaving the leader inside would already bring the recruit in.
+  run(1, [{ id: hero, type: 'use' }]);
+  assert.equal(g.state.entities[hero].place, 'street');
   // Arrives at the teahouse door when the timer ends, owned by the clan
   run(ticks(units.types.thug.hireSeconds));
   assert.equal(clan.queue.length, 0);
@@ -96,6 +100,12 @@ for (const [clanId, bot] of [['player', false], ['kuroda', true]]) {
   assert.equal(t[0].hp, units.types.thug.hp);
   assert.equal(t[0].place, 'street');
   assert.ok(Math.hypot(t[0].x - teaB.door[0], t[0].z - teaB.door[1]) > 0.5, 'steps out of the doorway');
+
+  // Go back in for the remaining hires. Only the bot recruit follows automatically;
+  // the player's new recruit holds outside until explicitly ordered.
+  run(2, [{ id: hero, type: 'use' }]);
+  assert.equal(g.state.entities[hero].place, teaB.room);
+  assert.equal(t[0].place, bot ? teaB.room : 'street');
 
   // Locked types refused; cap counts waiting hires; money runs out
   run(1, [{ id: hero, type: 'hire', business: teaId, unit: 'rifleman' }]);

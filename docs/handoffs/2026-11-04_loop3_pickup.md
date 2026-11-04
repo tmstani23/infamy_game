@@ -15,21 +15,24 @@ Handoff for picking up Loop 3 (gather and build) outside Claude, e.g. in ChatGPT
 - L3.5 worker records and trip math: `00bec11`. Training/assign commands, nearest drop-offs, deterministic cargo/ledger, governor assignment, timed clearing and forage shutdown are built. Frontier data version is 5; worker defaults migrate additively. The main/worker startup now supplies `resourceSpots` and `resourceSpotRules` to the frontier hub.
 - L3.6 workers wake as non-fighting laborers near activity and suspend with saved trip/cargo/wounds; loaded casualties remove one record. Node checks pass; visual verification remains pending. The necessary `areas.js` seam adds worker residency exclusion and fine path planning. Commit recorded in Git history with this update.
 - L3.7 town grid and resource spots drawn using existing art; minimap, atlas Spots layer, hover and snapshot integration added. Node checks pass; visual review pending. Commit recorded in Git history with this update.
+- L3.8 build bar, inspectors, worker training and orders: Node checks pass; in-game visual/interaction playtest pending. The old crew-test arrival fixture was corrected without removing assertions; `test_crew.mjs` now passes.
 
 ## Next
-1. **L3.8** Build bar, tooltips and worker orders. Read its card and shared restrictions first.
-2. **L3.9** Tim playtest, including L3.6 worker movement and L3.7 town/spot visuals.
+1. **L3.9** Tim playtest: founding, zoning, roads and gated stockade, trap rejection, worker training/orders, walk away/return, zone growth and recovery. Include L3.6 worker movement and L3.7 town/spot visuals.
+2. After Tim accepts Loop 3, update only the phase boxes actually completed, then continue Loop 4.
 
 L3.5 validation: `node game/tools/test_frontier_workers.mjs` passes (distance, conservation, save timing, rejected orders, training, clearing, forage and real game/save integration). Also passed frontier guards/snapshot/commands/construction/economy/governor/place/zones/world/data, town grid and founding tests; main.js/game.js syntax checks pass. No browser automation or visual acceptance claimed.
 
-L3.6 validation: the worker test passes near/away production parity, paths, wake/suspend, chunk residency, wounds, casualties, clearing, rerouting and actual combat/save-load. Related frontier, areas, camp, combat, inventory, business, bot, sim-worker and settings tests pass. `test_crew.mjs:97` fails identically before and after (actual teahouse, expected street); pre-existing. Syntax and diff checks pass.
+L3.6 validation: the worker test passes near/away production parity, paths, wake/suspend, chunk residency, wounds, casualties, clearing, rerouting and actual combat/save-load. Related frontier, areas, camp, combat, inventory, business, bot, sim-worker and settings tests pass. Its old crew-test fixture failure was fixed during L3.8; syntax and diff checks pass.
 
-L3.7 validation: `test_town_drawing.mjs` and relevant frontier, worker, resource, town, map and sim checks pass. `test_town_world.mjs:20` (`zone:h` art assertion) and `test_crew.mjs:97` fail identically before and after; both pre-existing. Visual acceptance pending.
+L3.7 validation: `test_town_drawing.mjs` and relevant frontier, worker, resource, town, map and sim checks pass. `test_town_world.mjs:20` (`zone:h` art assertion) remains a pre-existing failure. Visual acceptance pending.
+
+L3.8 validation: build UI, frontier placement/panel/guards/zones/workers, town hover/drawing, target controls, HUD drag, shared sim and crew tests pass. The crew fixture fix preserves the old assertions. `test_town_world.mjs:20` was not rerun in L3.8. No browser automation or visual acceptance claimed.
 
 ## Rules
 - All game rules live in `game/src/sim`; players and bots use the same commands.
 - Run only the Node tests relevant to the card (the full suite times out in the cloud shell).
 - New controls go in the Controls (?) panel.
 - Nothing is pushed; Tim pushes himself.
-- Tim authorized the L3.6 local commit and this doc update. Ask before future doc edits and commits; never push. New UI controls must be listed in the in-game Controls panel.
+- Tim authorized the L3.8 local commit and this doc update. Ask before future doc edits and commits; never push. New UI controls must be listed in the in-game Controls panel.
 - The test starter frontier towns stay until card E6b.

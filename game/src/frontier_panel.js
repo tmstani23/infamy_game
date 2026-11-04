@@ -12,7 +12,7 @@ export function ownTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && s.stock);
 }
 
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, onOpen = () => {}, onClose = () => {} }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, onOpen = () => {}, onClose = () => {} }) {
   let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
@@ -58,6 +58,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
     let paged = null;
     if (mode !== 'talk') { const full = page1 + h; paged = (page === 0 ? page1 : head + `<h1>${esc(rows.title)}</h1>` + h) + `<div class="pager"><button data-act="page" data-id="${page === 0 ? 1 : 0}">${page === 0 ? 'More: projects &amp; steering ›' : '‹ Back to overview'}</button></div>`; h = full; }
+    const build = mode === 'talk' ? '' : buildUI?.html(s) || '';
+    h = build + h;
+    if (paged) paged = build + paged;
     if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
     const key = h + page;
     if (key !== lastHtml) {
@@ -66,9 +69,12 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       if (paged && root.scrollHeight > root.clientHeight + 1) root.innerHTML = paged;
     }
   }
+  root.addEventListener('mousedown', e => e.stopPropagation());
   root.addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const s = pick(), id = b.dataset.id, sid = s?.id;
+    if (s && buildUI?.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
+    if (b.dataset.act === 'talk') buildUI?.close();
     switch (b.dataset.act) {
       case 'town': selected = id; mode = 'town'; break;
       case 'page': page = Number(id); break;
@@ -89,6 +95,6 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   }
   setInterval(() => { watchReceipts(); render(); }, 1000);
   function open(id) { if (id) selected = id; mode = 'town'; page = 0; root.hidden = false; lastHtml = ''; render(); onOpen(); }
-  function close() { if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
+  function close() { buildUI?.close(); if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); mode = 'talk'; render(); }, render };
 }

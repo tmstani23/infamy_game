@@ -252,6 +252,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   });
 
   return {
+    cancelPointer() { drag = null; box.hidden = true; },
     // Tab changes the selected target only; explicit attack input is separate.
     tab() {
       const place = commandPlace(), focus = mine().map(id => game.state.entities[id]).find(e => e?.place === place) || (place === hero()?.place ? hero() : view.audioFocus(game.state, heroId));

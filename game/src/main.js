@@ -21,6 +21,7 @@ import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { frontierReport } from './frontier_report.js';
 import { createFrontierPanel } from './frontier_panel.js';
+import { createFrontierBuildUI } from './frontier_build_ui.js';
 import { createFoundButton } from './found_button.js';
 import { drawableTowns, townSignature, townProps } from './town_props.js';
 import { createTownHover } from './town_hover.js';
@@ -427,9 +428,14 @@ async function start() {
     destination:()=>deploymentPanel.isOpen()?deploymentCards:gameMap.isOpen()?mapCards:null,onRestore:()=>unitFrames.clearInspection()});
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
+  let frontierBuildUI = null;
   // Town panel (frontier F4.4, replaces the F2.4b dev text box): key O. The console helper stays in the dev build.
   if (game.state.frontier) {
-    const townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c) });
+    frontierBuildUI = createFrontierBuildUI({ game, view, heroId, data: frontier, spotIndex, spotRules: resourceSpotRules,
+      known: (x,z) => isDiscovered(world, game.state.world?.discovered?.[game.state.entities[heroId]?.owner] ?? '0', x,z),
+      send: c => pending.push(c), crewInput,
+      blocked: () => gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
+    const townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onKey('KeyO', () => townPanel.toggle());
     onKey('KeyY', () => overview.toggle());
@@ -606,6 +612,7 @@ async function start() {
     presentation.measure('world',()=>view.render(fog.seen(game.state), prev, clock.alpha(), dt, now, heroId));
     crewInput.drawMarkers($('lock'));
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
+    frontierBuildUI?.update();
     { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];
       el.hidden = !hoverLamp;
       if (hoverLamp) { const n = game.stealth.snuffsLeft(h.owner), t = n ? `Snuff (${n} left tonight)` : 'No snuffs left tonight';
@@ -613,6 +620,7 @@ async function start() {
     minimap.update();
     }else{
       $('snuffhint').hidden=true;
+      frontierBuildUI?.update();
       view.updateCamera(game.state, heroId, dt);   // live map footprint; scene painting stays suspended
       presentation.measure('map',()=>gameMap.update());
     }

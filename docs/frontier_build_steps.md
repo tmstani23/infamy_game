@@ -330,7 +330,7 @@ Done note: "L3.7 town and spots drawn."
 
 Built (2026-11-04): grid-derived town, construction and zone-stage art; resource pieces by harvest stage, hover twinkle and card, discovered/zoomed minimap spots and World Spots layer. Snapshot sends the own town grid and discovered changed spot states. Existing art only; no navigation or harvesting changes. `test_town_drawing.mjs` and relevant worker, frontier, map and sim checks pass; syntax/diff checks pass. Pre-existing failures: `test_crew.mjs:97` (teahouse vs street) and `test_town_world.mjs:20` (`zone:h` art assertion), both reproduced before and after. Visual review remains pending with L3.6; next L3.8. The card's file list omitted main/view/game-map wiring and the snapshot seam.
 
-#### L3.8. Build bar, tooltips and worker orders  [STRONG]
+#### L3.8. Build bar, tooltips and worker orders  [STRONG] — [x] Node checks passed; visual check pending
 Needs: L3.2, L3.3, L3.5, L3.0 mock OK
 Files: new `game/src/frontier_build_ui.js`, `game/src/frontier_panel.js` (bar host),
 `game/src/input.js` (pointer handlers only), `game/index.html` (Controls rows), `game/src/frontier_tips.js`.
@@ -346,6 +346,8 @@ Controls rows (Frontier towns section):
 - "Select workers, right-click a resource spot": send them to harvest there; they shuttle by themselves.
 Check (pass/fail): syntax copies pass; dry runs are covered in `test_frontier_place.mjs`.
 Done note: "L3.8 build bar in (controls.md lines needed)."
+
+Built (2026-11-04): build-bar tools, simulation-backed placement previews, zone/health overlay, inspectors, worker training and selection/assignment. Controls are in the in-game panel and controls.md. `test_frontier_build_ui.mjs` and relevant frontier, worker, input and shared sim checks pass; syntax/diff checks pass. The old `test_crew.mjs:97` failure is resolved by correcting its arrival fixture, with existing assertions retained. `test_town_world.mjs:20` remains a pre-existing `zone:h` art assertion failure. L3.9 visual playtest is pending. Pointer wiring required main.js and a small crew_input cancellation seam beyond the card's file list.
 
 #### L3.9. Playtest  [TIM]
 Found a town, paint housing and farm zones, lay roads, ring it with a stockade and a gate, try to
