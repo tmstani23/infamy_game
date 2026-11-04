@@ -78,7 +78,8 @@ assert.equal(town.owner, 'player'); assert.equal(town.pop, 5); assert.equal(town
 assert.ok(town.traits.soil >= 1 && town.traits.soil <= 3 && town.traits.water >= 1 && town.traits.defense >= 1, 'traits computed');
 assert.deepEqual(town.buildings.map(b => b.type), ['town_hall', 'lumber_camp', 'farm']); assert.equal(town.housing, 6);
 assert.deepEqual(town.projects.map(p => [p.type, p.authorized]), [['stockade', false]]);
-assert.equal(town.projects[0].cell, 3);
+assert.ok(town.grid && !town.buildings.some(b => b.cell === town.projects[0].cell) && town.grid.use[town.projects[0].cell] === 'B' && town.grid.ground[town.projects[0].cell] === 'c', 'first project on a free cleared grid cell (L3.1)');
+assert.equal(town.buildings[0].cell, (town.grid.n * town.grid.n - 1) / 2, 'town hall takes the centre cell');
 assert.notDeepEqual(townSlot(0), townSlot(1)); assert.equal(new Set([...Array(40).keys()].map(i => townSlot(i).join())).size, 40, 'slots are all different');
 g.frontier.world.checkInvariants();
 // a second town too close to the first is refused

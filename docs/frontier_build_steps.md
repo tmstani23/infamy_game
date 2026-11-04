@@ -163,13 +163,13 @@ coordinator. All new numbers go in `frontier.json` with `"_note": "placeholder, 
 slot -> grid cell at the same world spot; house/farm/workshop -> 1-cell zones; L3.3).
 
 
-#### L3.0. Build bar mock and numbers  [TIM]
+#### L3.0. Build bar mock and numbers  [TIM] — [x] done 2026-11-04 (Tim: "all perfect")
 A SMALL thread makes one mock image of the town panel build bar (Road, Wall, Gate, Housing, Farm,
 Work, Eraser, placed-building picker), a ghost rectangle (green and red with a reason), the zone
 health tint, and a building tooltip. It also lists every placeholder number from L3.1–L3.6 in one
 table. Tim approves the mock and the numbers before L3.7/L3.8. L3.1–L3.6 can start before this.
 
-#### L3.1. Town grid  [SMALL]
+#### L3.1. Town grid  [SMALL] — [x] done 2026-11-04 (Tim: "all perfect")
 Needs: Loop 2
 Files: new `game/src/sim/frontier/town_grid.js` (pure), `construction.js` (`queue` default cell),
 `world.js` (migration), `founding.js` (grid at founding), `game/src/town_props.js` (positions),

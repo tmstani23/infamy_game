@@ -3,6 +3,9 @@
 // project is a flat dirt footprint; a project with work done is its building at half opacity; a
 // finished building is drawn as normal. Art names come from data/frontier.json "townArt".
 import { townSlot } from './sim/frontier/town_layout.js';
+import { cellOffset } from './sim/frontier/town_grid.js';
+// grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
+const slotOf = (s, c) => (s.grid ? cellOffset(s, c) : townSlot(c));
 
 // Which towns to draw: your own (full records, with a position) from the frontier snapshot.
 export function drawableTowns(frontier, clan) {
@@ -18,13 +21,13 @@ export function townProps(towns, townArt, townLights = {}) {
   const out = [];
   for (const s of towns) {
     s.buildings.forEach((b, i) => {
-      const art = townArt[b.type], [ox, oz] = townSlot(b.cell ?? i);
+      const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i);
       if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5 });
       // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
       if (b.stage === 'built') for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
     });
     s.projects.forEach((p, i) => {
-      const art = townArt[p.type], [ox, oz] = townSlot(p.cell ?? s.buildings.length + i);
+      const art = townArt[p.type], [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i);
       const x = s.x + ox, z = s.z + oz;
       if (p.paid && p.progress > 0 && art) out.push({ key: `${s.id}:${p.id}:frame`, art, x, z, opacity: 0.5 });
       else out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width: 8, height: 6, x, z });
@@ -38,8 +41,8 @@ export function townProps(towns, townArt, townLights = {}) {
 export function townPlots(towns) {
   const out = [];
   for (const s of towns) {
-    s.buildings.forEach((b, i) => { const [ox, oz] = townSlot(b.cell ?? i); out.push({ town: s.id, kind: 'building', id: b.id, x: s.x + ox, z: s.z + oz }); });
-    s.projects.forEach((p, i) => { const [ox, oz] = townSlot(p.cell ?? s.buildings.length + i); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz }); });
+    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i); out.push({ town: s.id, kind: 'building', id: b.id, x: s.x + ox, z: s.z + oz }); });
+    s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz }); });
   }
   return out;
 }

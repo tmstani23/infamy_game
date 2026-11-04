@@ -26,7 +26,7 @@ export const FRONTIER_EVERY = 5;
 export function frontierFor(f, clan, discovery, recent) {
   const settlements = {};
   for (const [id, s] of Object.entries(f.settlements || {})) {
-    if (s.owner === clan) settlements[id] = s;
+    if (s.owner === clan) settlements[id] = s.grid ? { ...s, grid: { n: s.grid.n, cell: s.grid.cell } } : s;   // L3.1: the grid strings stay in the sim until the build bar needs them
     else if (s.capital || discovery?.siteDiscovered?.(clan, s.site)) settlements[id] = { id: s.id, name: s.name, owner: s.owner, region: s.region, site: s.site };
   }
   return { version: f.version, econTick: f.econTick, settlements,

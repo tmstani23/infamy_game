@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "_note": "Frontier economy numbers (F2). F0.2 values approved by Tim 2026-11-02; everything else is a placeholder for Tim to tune. Time units: 'ticks' = economy ticks (1 per cadenceTicks sim ticks).",
   "cadenceTicks": 20,
+  "townGrid": { "_note": "placeholder, Tim to tune (L3.1): cellSize = world units per cell; radius = the town work range the grid covers; coreRadius = starting core where housing and work zones may go; corePerTier = core growth per town hall tier above 1; clearedRadius = cells round the hall that start cleared", "cellSize": 11, "radius": 600, "coreRadius": 250, "corePerTier": 100, "clearedRadius": 4 },
   "resources": ["food", "timber", "stone", "goods", "ryo"],
   "rates": {
     "food": 0.01,

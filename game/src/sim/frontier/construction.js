@@ -5,6 +5,7 @@
 // 'build'), then gains `progress` equal to the town's builders each economy tick until `need`,
 // and becomes a building. `replaces` (a building id) repairs or rebuilds that building on its spot.
 // Plain data only, so a half-built project survives save/load and structuredClone.
+import { freeCell, setUse } from './town_grid.js';
 const EPS = 1e-9;
 
 export function createConstruction({ state, data, world }) {
@@ -23,7 +24,10 @@ export function createConstruction({ state, data, world }) {
   function queue(sid, type, cell = null, opts = {}) {
     const s = world.settlement(sid), t = data.buildings[type];
     if (!s || !t) return null;
-    if (cell === null && s.x !== undefined) {   // founded towns lay out on slots (town_layout.js): first free one
+    if (cell === null && s.grid) cell = freeCell(s, data);   // grid towns (L3.1): nearest free cleared core cell
+    if (cell === null && s.grid) return null;                   // the core is full
+    if (cell !== null && s.grid && s.grid.use[cell] === '.') setUse(s, cell, 'B');
+    if (cell === null && s.x !== undefined) {   // towns not on a grid yet lay out on spiral slots (town_layout.js): first free one
       const used = new Set([...s.buildings, ...s.projects].map(b => b.cell));
       cell = 1; while (used.has(cell)) cell++;
     }
@@ -46,6 +50,7 @@ export function createConstruction({ state, data, world }) {
     if (!hit) return false;
     const { settlement: s, project: p, index } = hit;
     if (p.paid && p.progress === 0) for (const [r, n] of Object.entries(p.cost)) world.change(s.id, r, n, 'refund');
+    if (s.grid && p.cell !== null && !s.buildings.some(b => b.cell === p.cell)) setUse(s, p.cell, '.');
     s.projects.splice(index, 1);
     return true;
   }

@@ -5,6 +5,7 @@
 // All numbers live in data/frontier.json "founding". Players, bots and governors use the same
 // command: { id: <hero id>, type: 'frontier', action: 'found', name? } (hero's own spot).
 import { terrainAt, buildable, passable } from '../world_data.js';
+import { ensureGrid } from './town_grid.js';
 
 const level = (v, [lo, hi]) => (v >= hi ? 3 : v >= lo ? 2 : 1);
 
@@ -86,6 +87,7 @@ export function createFounding({ state, data, world, removeUnit }) {
       traits: siteTraits(wd, hero.x, hero.z, D.traits), pop: settlers.length, stock: D.startStock,
       buildings: (D.startBuildings || [D.townHall]).map((type, i) => ({ type, stage: 'built', cell: i })),
     });
+    ensureGrid(town, wd, data);   // L3.1: the town grid, water and mountain cells marked x; the hall takes the centre
     w.payFounding(clan, D.cost, town.id);
     for (const u of settlers) removeUnit(u.id);
     construction.queue(id, D.firstProject);
