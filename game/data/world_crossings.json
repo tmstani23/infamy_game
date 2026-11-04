@@ -17,9 +17,9 @@
   "shallow": 0.85
  },
  "ford": {
-  "_note": "Overrides world_paint.json ford (replaces the whole object): size of the river_ford stepping-stone art in world units, shrunk from 70 to 14 (Tim: 80% smaller), and the widest river that gets stones.",
+  "_note": "Overrides world_paint.json ford (replaces the whole object): size of the river_ford stepping-stone art in world units, shrunk from 70 to 14 (Tim: 80% smaller), and the widest river that gets stones (0 = no stones; Tim 2026-11-04: they looked out of place, the gravel bar alone marks the ford).",
   "size": 14,
-  "maxWidth": 130
+  "maxWidth": 0
  },
  "bridge": {
   "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water.",
