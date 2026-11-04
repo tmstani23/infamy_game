@@ -85,6 +85,14 @@ Tim approved a broad functional **explore → found → gather → build → fig
 
 Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6/F7 are complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for Tim's review. Reuse the existing save and test setup; do not reset the capital save.
 
+### Loop 3 design notes (Tim OK 2026-11-04)
+
+- **Design session first [TIM]: "Design session: manual and automatic town building".** Loop 3 does not build until Tim answers: how manual placement and the governor coexist (per-town toggle, or the governor fills what the player hasn't placed), what zones do and whether buildings grow by stages inside a zone, what abandonment means, and gathering by sent workers. See also the F5.x card in the Loop table.
+- **Resource node count (Loop 3 prerequisite).** The island has only 107 resource nodes. Options: (a) raise node density in the blueprint (`tools/seed_world.mjs` + `world_overrides.json`, Tim OKs the numbers); (b) forest terrain counts as timber supply. Core resources now work at full speed anywhere; nodes only add up to +60% each (done in the Loop 2 follow-up).
+- **Hands-on build mode alongside the governor (F5 card).** Build picker, drop a building with a ghost preview and placement check, 3 construction phases, select a finished building for its own function menu. It sends the same queue command as the governor with a chosen cell, so bots follow the same rules. It replaces fixed plots with grid positions. Mock first; Tim approves before building.
+- **Cleared land (F5/zones card and art backlog).** Founding paints a cleared-ground patch under the new town. A "clearing" texture shows while workers clear trees before a building goes down. The current dirt-trail ground texture patch is the stand-in.
+- **Settlers-style feel (placeholder for a brainstorm).** Visible workers carrying goods, production chains, builders walking to sites. Tim's idea: workers walk out to resource nodes and harvest.
+
 ## Progress checklist
 
 Tick a box (`[x]`) only when the step's check passes. A phase box is ticked after its commit and
