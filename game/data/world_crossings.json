@@ -16,6 +16,11 @@
   "waterLevel": 0.49,
   "shallow": 0.85
  },
+ "ford": {
+  "_note": "Overrides world_paint.json ford (replaces the whole object): size of the river_ford stepping-stone art in world units, shrunk from 70 to 14 (Tim: 80% smaller), and the widest river that gets stones.",
+  "size": 14,
+  "maxWidth": 130
+ },
  "bridge": {
   "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water.",
   "overhang": 6,

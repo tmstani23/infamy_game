@@ -25,13 +25,12 @@ export function terrainName(world, x, z) {
   return world.terrain.codes[terrainAt(world, x, z)] || 'unknown';
 }
 
-// Fords are wadeable along rules.fordRadius of river. A bridge only opens the river cells right at its
-// deck (BRIDGE_RADIUS, about the centre cell and its four neighbours on the 50-unit grid), so the water
-// beside a bridge stays blocked. Placeholder, Tim to tune.
-const BRIDGE_RADIUS = 70;
+// River cells within rules.fordRadius of a crossing count as walkable (route graph and walk grid, 50-unit
+// cells), bridges included, so the water beside a bridge is walkable too. Deck-only walking is parked:
+// see to_delete/bridge_deck_attempt/NOTES.md.
 function nearFord(world, x, z) {
   const r = world.rules.fordRadius;
-  return (world.fords || []).some(f => Math.hypot(f.x - x, f.z - z) < (f.kind === 'bridge' ? Math.min(r, BRIDGE_RADIUS) : r));
+  return (world.fords || []).some(f => Math.hypot(f.x - x, f.z - z) < r);
 }
 
 // Walkable on foot: not mountain or water; river only at a ford or bridge.

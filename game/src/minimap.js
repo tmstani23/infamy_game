@@ -184,7 +184,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       corners.forEach((p, i) => { const [u, v] = at(p.x, p.z); i ? ctx.lineTo(u, v) : ctx.moveTo(u, v); });
       ctx.closePath(); ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
     }
-    ctx.font = '600 12px sans-serif'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
+    ctx.font = '600 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
     ctx.fillStyle = '#f3dfae'; ctx.fillText(`World · ${gridLabel(me.x, me.z)}`, 10, size - 10);
   }
 
