@@ -78,20 +78,50 @@ Tim approved a broad functional **explore → found → gather → build → fig
 |---|---|---|
 | [x] Loop 1: usable wilderness (built 2026-11-04, Tim OK to commit) | Finish the atlas refresh check and basic crossing fitting; add authored W4 camps, node/site props and scouting with existing assets. Carry required campaign city-away safeguards from C into the prerequisite work. | Explore, cross rivers/passes, find resources and scout a founding location; camp claims survive unloading/save-load. |
 | [x] Loop 2: expedition and founding (built 2026-11-04, Tim OK to commit; E5 stand-in art) | E2–E5: hire settlers at HQ, escort them, found on valid buildable ground using the settled E1 rules, and draw a starter town from its real settlement record. | One real expedition creates a persistent owned town; invalid founding changes nothing. |
-| [ ] Loop 3: gather and build | Connect E4 traits and the minimum F5 clearing/placement/worker loop to F2/F4: housing, food, timber, stone, workshop/storage and basic roads/gates/stockade. Include actual route prerequisites needed by these rules. | Workers produce stock; construction spends stock and work; finished buildings change town output/capacity. No manual resource grind. |
-| [ ] F5.x Zones and growth [TIM then STRONG] (card under Loop 3, Tim OK 2026-11-04) | (1) Player paints zones in a founded town (housing, farm, work; slots from `sim/frontier/town_layout.js`). (2) Buildings grow in stages (hut, house, larger house) while the zone's needs are met: food, workers, safety, later water. (3) A zone short of needs for N economy ticks goes abandoned: buildings stand empty, output and housing stop, drawn run down; they recover when supply returns, nothing destroyed. (4) Rules in the sim, numbers in `frontier.json`, so bots and governors use the same commands. | (5) Construction phases (Tim 2026-11-04, "maybe 3"): every building is built in 3 visible phases: 1 dirt footprint, 2 frame at 50% opacity, 3 nearly finished, then the finished building. Phase comes from project progress (thirds of the `need` value in `frontier.json`); the phase count (3) is a number in `frontier.json`. Today only dirt, frame and finished are drawn, so phase 3 adds a draw state in `town_props.js` and the renderer. Node test: a starved zone abandons and recovers; economy invariants hold. Prerequisite: Tim approves mock and numbers first; Loop 2 already gives dirt, frame and built draw stages. |
+| [ ] Loop 3: gather and build | Build the town design in [Loop 3 design](#loop-3-design-tim-2026-11-04): town grid with a big core, housing/farm/work zones with health and housing growth stages, placed buildings (town hall, storehouse, node camps, stockade, gates), town roads and the trap check, workers as shuttle records, small resource spots plus rich deposits, and the build bar (mock first). Step cards are written in detail just before the loop is built. | Workers carry stock from spots to drop-offs; construction spends stock and work; zones grow, abandon and recover; finished buildings change town output/capacity. No manual resource grind. |
 | [ ] Loop 4: complete the playthrough | Use existing hero/crew combat against W4 camps, persistent rewards, resupply and basic town defence. Exercise departure, founding, production, construction and fighting in one save. | Complete the loop through ordinary commands; save/load and walk away/return preserve outcomes. Players and bots use the same rules. |
 | [ ] Loop 5: scale the functional world | Increase representative active camps/units and founded towns in the canonical playtest setup; measure sim, chunk/render cost and UI responsiveness. | Report measured limits and fix the first actual bottleneck before increasing load again. Distant towns keep correct economy without permanently active chunks. |
 
 Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6/F7 are complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for Tim's review. Reuse the existing save and test setup; do not reset the capital save.
 
-### Loop 3 design notes (Tim OK 2026-11-04)
+**Build order (Tim, 2026-11-04):** finish Loops 3 and 4 first (one playable save). After each loop, tick the phase steps it really closed. Then continue the phases as "deepen" passes (F3, rest of F5, F6, F7). Loop 5 (scale) runs after F3.
 
-- **Design session first [TIM]: "Design session: manual and automatic town building".** Loop 3 does not build until Tim answers: how manual placement and the governor coexist (per-town toggle, or the governor fills what the player hasn't placed), what zones do and whether buildings grow by stages inside a zone, what abandonment means, and gathering by sent workers. See also the F5.x card in the Loop table.
-- **Resource node count (Loop 3 prerequisite).** The island has only 107 resource nodes. Options: (a) raise node density in the blueprint (`tools/seed_world.mjs` + `world_overrides.json`, Tim OKs the numbers); (b) forest terrain counts as timber supply. Core resources now work at full speed anywhere; nodes only add up to +60% each (done in the Loop 2 follow-up).
-- **Hands-on build mode alongside the governor (F5 card).** Build picker, drop a building with a ghost preview and placement check, 3 construction phases, select a finished building for its own function menu. It sends the same queue command as the governor with a chosen cell, so bots follow the same rules. It replaces fixed plots with grid positions. Mock first; Tim approves before building.
-- **Cleared land (F5/zones card and art backlog).** Founding paints a cleared-ground patch under the new town. A "clearing" texture shows while workers clear trees before a building goes down. The current dirt-trail ground texture patch is the stand-in.
-- **Settlers-style feel (placeholder for a brainstorm).** Visible workers carrying goods, production chains, builders walking to sites. Tim's idea: workers walk out to resource nodes and harvest.
+### Loop 3 design (Tim, 2026-11-04)
+
+Settled in the design session "Add build detail to frontier plan" (Tim: "yes that is everything all perfect"). Replaces the earlier Loop 3 design notes; the node-count question is answered by Resources below. Numbers are placeholders in `frontier.json`.
+
+**Town building**
+1. **Core rule.** Zones decide HOW MUCH a town makes; placed buildings decide WHAT it can do.
+   - Zones (grown): housing, farm, work for now (more kinds later). Output = painted cells × zone level × zone health. Buildings in a zone are its look (stage and variety), not separate rules.
+   - Placed (one by one, RTS style): town hall, storehouse and drop-offs, node camps, walls, gates, stockade, and anything with a menu (barracks, market, shrine, clinic). Click one to train workers or units, upgrade its tier or research tech. Warfare uses the same placed pattern.
+   - The governor fills whatever the player hasn't placed or zoned, and never repaints the player's cells.
+   - Today's types map to: house → housing zone, farm → farm zone, workshop → work zone; lumber_camp and quarry → placed node camps (drop-offs); town_hall, storehouse and stockade are placed.
+2. **Zone health** = needs met (food, workers, road access). Healthy zones grow; only housing grows in stages for now (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned: empty, no output; it recovers when needs return, nothing is destroyed. Building looks show zone health. Later, a zone's level unlocks options when clicked.
+3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6.1 tiers). The core area and grid grow with the tier.
+4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Housing and work zones go only inside a core around the hall; the starting core is pretty big, so layouts vary and the town isn't just a clump. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
+5. **Construction phases:** cleared → frame → finished. Stock is paid at the start, then workers and time. Overgrown cells are cleared by workers automatically. Founding paints a cleared-ground patch under the new town; the current dirt-trail ground patch is the stand-in for the clearing texture.
+6. **Build bar (town panel).** Roads, walls, zone brushes (housing, farm, work), eraser, plus the placed buildings. Click-drag rectangles; the ghost is green (allowed) or red with the reason; right click or Esc cancels. Buildable ground only, not road or water. Zone cells grow only within a few cells of a town road ("needs road" otherwise). Farm cells become crop fields with a farmhouse every few cells. The zone tint shows only while the build bar is open, plus a health tint overlay. Clicking a building shows a tooltip: what it is, its zone, its state and the zone's state. Mock first, Tim approves before building.
+7. **Roads and walls for Loop 3:** town roads, stockade ring, gates and the "would trap" check. World roads wait for F3.
+
+**Workers**
+8. Houses give people; the town hall trains workers. Each worker is a saved record `{ node, dropoff, phase 0-1, carrying }` shuttling between a resource spot and the nearest drop-off (town hall, storehouse, node camp). Output = loads per round trip, so distance matters.
+9. Off screen the sim advances `phase` with math. When a player, bot army or raid comes within about 3 screens (number in data), records become real walking units at their phase and carrying state, so they are already there on arrival; they turn back into records when everyone leaves. Many workers can spawn over a few ticks, or one record can stand for a small group. Same records for every player and bot.
+10. Workers can only be attacked while their area is loaded.
+11. The governor sends idle workers to the nearest needed spot. Player RTS control (select workers, right-click a spot) is built early, for when the player manages the town.
+
+**Resources**
+12. Two layers:
+    - **Small spots everywhere** (new): timber 5-20 trees, stone 2-5 rocks, fish 2-4 shore markers, optional forage 3-6 bushes. Real added props, auto-clustered by a seeded tool and placed on top of the existing art (the tool clears natural props under each cluster; other natural props stay as they are). Size = amount. Fixed all over the map (not spawned at founding), drawn only in nearby chunks.
+    - **Rich deposits** = the existing 107 nodes: much higher yield, worth far work camps and fighting over; ore (gold later) comes only from deposits. Same piece system with bigger, rarer art (old-growth forest 20-40 trees, quarry face 6-10 rocks); always on the maps once discovered.
+    - Food comes mainly from farm zones (fertile bonus) plus fishing.
+13. Harvest stages per piece: tree full → stump → sapling → full; rock full → chipped → rubble → slowly back. The last piece never drops below a trickle (never runs dry, no grind).
+14. The tool writes a generated data file the sim reads (the sim owns locations, art follows). It prints a coverage report (every buildable spot has some timber and stone within 600 units, less timber in dry lands); Tim OKs the numbers. Only worked spots are saved (changes-only list).
+15. Hover: a small twinkle (not a glow) and a tooltip (kind, amount left, state, who works it). The minimap shows spots only nearby or zoomed in; the World map has a layer toggle; fog applies.
+16. Until the tool exists, forest terrain counts as timber anywhere, plus a small node bump. Core resources already work at full speed anywhere and nodes add up to +60% each (Loop 2 follow-up). Later pass: a fuller RTS resource system (gold, ore, more kinds).
+
+**Feel (later brainstorm):** visible workers carrying goods, production chains and builders walking to sites, Settlers style.
+
+**Still open (placeholders, not blockers):** numbers (worker cost and training time, core size, zone growth speed, spot yields, tier goals); art (spot and deposit pieces with harvest stages; stand-ins from existing props until then); the build bar mock.
 
 ## Progress checklist
 
@@ -113,7 +143,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E7 playtest
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
-- [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.3b · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
+- [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
 - [ ] **F6** Armies: [ ] 6.1 choices · [ ] 6.2 · [ ] 6.3a · [ ] 6.3b · [ ] 6.3c · [ ] 6.4 · [ ] 6.5 · [ ] 6.6 · [ ] 6.7 playtest · [ ] 6.8 second slice
 - [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
@@ -535,8 +565,9 @@ are drafts pending the `world_names.json` review. The earlier choices below stay
   them, capital on the east coast.
 - About 60 settlement sites to start (2 to 3 per full region, at least 1,000 units apart), so there
   is real choice.
-- Resource node kinds: forest (timber), quarry (stone), fertile land (food), fishing grounds (food),
-  ore (later goods input). Starter economy stays at the 5 resources.
+- Resources (updated Tim, 2026-11-04): small resource spots everywhere (timber, stone, fish,
+  forage) plus the 107 W1 nodes as rich deposits; ore only from deposits. See
+  [Loop 3 design](#loop-3-design-tim-2026-11-04). Starter economy stays at the 5 resources.
 - Camp kinds: bandit camps (hostile), ruins and caches (one-time rewards), native villages
   (neutral, trading or hostile by relation: decided, see W4.1).
 - **Roads can go almost anywhere (decided, Tim 2026-11-02: never only 1 or 2 road options).** The
@@ -1388,10 +1419,11 @@ first clear gives the better reward with a claim record so reloads can't reroll 
 rewards. **Decided (Tim, 2026-11-01): native villages start neutral and can trade or turn hostile**
 (a per-clan relation value that trades raise and attacks lower; hostile below a threshold). Richer
 dynamics come later. W4.2 adds the relation record; trading itself waits for F3.
-**Nodes (decided, Tim 2026-11-02; no grind):** a town works any node within 600 units that its roads
-reach; a farther node needs a small **work camp** (lumber camp, quarry, mine) linked by road (F5.7),
-which makes spots worth fighting over. Nodes never run dry: they slow to a trickle, and forests
-regrow. **Iron** from ore nodes becomes a 6th resource, used only for rifles, cannons and armory
+**Resources (updated Tim, 2026-11-04; no grind):** small resource spots everywhere plus the 107 nodes
+as rich deposits ([Loop 3 design](#loop-3-design-tim-2026-11-04)). A town's workers work spots and
+deposits within 600 units; a farther deposit needs a placed **work camp** (drop-off) linked by road
+(F5.7), which makes deposits worth fighting over. Pieces never run dry: they go through harvest
+stages, slow to a trickle and grow back. **Iron** from ore deposits becomes a 6th resource, used only for rifles, cannons and armory
 upgrades (arrives with F6.8; the early economy stays at 5), and the governor fetches it by itself.
 **Camps (decided, Tim 2026-11-02):** bandit camps are weaker near the capital and stronger farther
 out; a cleared camp stays clear for 5 days, then may return somewhere nearby; the first clear gives
@@ -1565,7 +1597,7 @@ Done note: "E3 founding in."
 ### E4. Site traits change output  [SMALL]
 Needs: E3
 Files: `game/src/sim/frontier/economy.js`, `game/data/frontier.json`, `game/tools/test_frontier_economy.mjs`.
-Do: soil scales farm output, nodes within range enable and scale lumber camps and quarries, water
+Do: soil scales farm output, resource spots and deposits within range scale timber and stone (updated Tim, 2026-11-04: lumber camps and quarries become placed node camps, see Loop 3 design), water
 caps the housing per well, and defence gives the stockade a bonus. All factors live in `frontier.json`.
 Check (pass/fail): two towns with different traits and identical buildings produce different
 amounts in the expected direction; no factor is hard-coded.
@@ -1711,22 +1743,26 @@ shipments"; Tim playtest: watch a cart reach the city and the ryo arrive.
 
 ## Phase F5: Build your town
 
-Goal: the player clears land, zones it, and places roads, walls and gates, with the governor filling
-zones. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
+Goal: the player zones land (housing, farm, work), places buildings, roads, walls and gates, and the
+governor fills what the player leaves. Design: [Loop 3 design](#loop-3-design-tim-2026-11-04) (Tim, 2026-11-04);
+Loop 3 builds the first slice of these steps. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
 
-### F5.1. Site grid and clearing  [SMALL]
+### F5.1. Town grid and clearing  [SMALL]
 Needs: E done
-Files: `game/src/sim/frontier/construction.js`, `game/data/world.json` (each site's build rectangle, `sites[].rect`),
+Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/town_layout.js`,
 `game/tools/test_frontier_grid.mjs`.
-Do: the site is a grid of 4 × 4 unit cells, each with `stage` overgrown → cleared → built (decided,
-Tim 2026-11-02: three stages, no chore). Workers clear any zoned or placed cell by themselves; a
-`clear { cells }` command also lets the player clear ahead for planning (cost: workers and time
-only, from data). Each stage advance is ledgered as work, not resources. Store the grid as a flat
-array of short strings in `settlement.grid` (plain data).
+Do (updated Tim, 2026-11-04): the grid comes from the settlement record, centred on the town hall
+(players found anywhere, so not from `world.json` sites). 1 cell = 1 small building; big buildings
+take 2 × 2. The grid covers the 600-unit work range, with a pretty big core for housing and work
+zones that grows with the town hall tier. It replaces the spiral slots. Each cell has `stage`
+overgrown → cleared → built (decided, Tim 2026-11-02: no chore). Workers clear any zoned or placed
+cell by themselves; a `clear { cells }` command also lets the player clear ahead (cost: workers and
+time only, from data), ledgered as work, not resources. Store the grid as plain data in
+`settlement.grid`.
 Check (pass/fail): a cell goes through the three stages in order and never skips; a zoned overgrown
-cell gets cleared without a `clear` command; the grid survives
-save/load; clearing uses only assigned workers.
-Done note: "F5.1 site grid and clearing in."
+cell gets cleared without a `clear` command; the grid survives save/load; clearing uses only
+assigned workers.
+Done note: "F5.1 town grid and clearing in."
 
 ### F5.2. Roads, walls, gates and the trap check  [SMALL]
 Needs: F5.1
@@ -1742,64 +1778,59 @@ storehouse cut off from the gates stops shipping and resumes when reconnected; a
 cut that strands a house is rejected; rejections change nothing.
 Done note: "F5.2 placement rules in."
 
-### F5.3. Zones that fill themselves  [SMALL]
+### F5.3. Zones, health and growth  [STRONG]
 Needs: F5.2
-Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/governor.js`,
-`game/tools/test_frontier_grid.mjs`.
-Do: `zone { cells, kind: 'residential' | 'commercial' | 'workshop' | 'military' }`. Each zone holds
-several building types (decided, Tim 2026-11-02), listed per zone in `frontier.json` with what
-they need and give: residential (hut, row house, merchant home; size by desirability, F5.3b),
-commercial (market stall, teahouse, shop, storehouse), workshop (carpenter, smithy, kiln, and
-lumber camp or quarry next to a node), military (barracks, rifle range, clan hall, stables, foundry,
-armory, watchtower, supply depot; F6.1 has the list and tiers). In `review`, the governor picks a cleared, zoned, road-adjacent free cell
-and the type the town needs most (unmet need first, then variety), within budget. Buildings use one
-fixed facing.
-Check (pass/fail): zoned cells next to a road fill; zoned cells away from roads stay empty with
-`waiting` "no road access"; never two buildings on one cell; a town short of storage gets a
-storehouse before a second teahouse; no type is hard-coded outside `frontier.json`.
-Done note: "F5.3 zone autofill in."
-
-### F5.3b. Planning matters (desirability)  [SMALL]
-Needs: F5.3, F2.5b
 Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/economy.js`,
-`game/data/frontier.json`, `game/tools/test_frontier_grid.mjs`.
-Do: homes grow on their own in residential zones (F5.3); this step decides how well. Each
-residential cell gets a simple desirability from neighbours within 3 cells: road access and a
-market, shrine or clinic nearby raise it; workshops, quarries and barracks right next door lower it.
-Desirable cells fill first and hold bigger homes (more people, so more tax); poor cells fill slowly
-with small homes. It is not a mood factor, so mood stays three simple numbers. The build
-overlay (F5.4) shows a green-to-red tint on residential zones so good and bad spots are obvious at a
-glance.
-Check (pass/fail): homes next to a quarry score lower than homes next to a market; desirable cells
-fill before poor ones and hold more people; moving a workshop away raises nearby desirability; the calculation runs per review, not per tick.
-Done note: "F5.3b desirability in."
+`game/src/sim/frontier/governor.js`, `game/data/frontier.json`, `game/tools/test_frontier_grid.mjs`.
+Do (updated Tim, 2026-11-04): `zone { cells, kind: 'housing' | 'farm' | 'work' }` (more kinds
+later). Zone output = painted cells × zone level × zone health; buildings inside a zone are its look,
+not separate rules. Health = needs met (food, workers, road access). Healthy zones grow; housing grows
+in stages (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned (empty,
+no output) and recovers when needs return; nothing is destroyed. Zone cells grow only within a few
+cells of a town road (`waiting` "needs road"). Farm cells become crop fields with a farmhouse every
+few cells. Commercial and military buildings are placed, not zoned (F5.4, F6.1). The governor zones
+and places only what the player hasn't, and never repaints the player's cells. Rules in the sim,
+numbers in `frontier.json`, same commands for players, bots and governors.
+Check (pass/fail): zoned cells next to a road grow; cells away from roads stay empty with "needs road";
+a starved zone abandons and recovers; the governor never overwrites a player cell; economy invariants
+hold; no number is hard-coded outside `frontier.json`.
+Done note: "F5.3 zones and growth in."
 
-### F5.4. Placement controls  [STRONG]
+~~F5.3b Planning matters (desirability)~~ Removed (Tim, 2026-11-04): folded into zone health (F5.3).
+
+### F5.4. Build bar and placement  [STRONG]
 Needs: F5.3
 Files: new `game/src/frontier_build_ui.js`, `game/src/input.js`, `game/src/render/view.js`, the
 Controls panel source.
-Do: a build bar in the town panel (Clear, Road, Wall, Gate, and four zone brushes); click-drag paints
-cells with a ghost overlay coloured green (allowed) or red (with the reject reason under the cursor,
-asked of the sim through a dry-run `place` action that returns a receipt and changes nothing). Right
-click or Escape cancels. All new keys and clicks go in the Controls panel.
+Do (updated Tim, 2026-11-04): a build bar in the town panel with roads, walls, gates, zone brushes
+(housing, farm, work), an eraser, and the placed buildings (town hall upgrades, storehouse, node
+camps, stockade, and buildings with menus). Click-drag rectangles with a ghost coloured green
+(allowed) or red (with the reject reason, asked of the sim through a dry-run action that returns a
+receipt and changes nothing). Buildable ground only, not road or water. Right click or Escape
+cancels. The zone tint shows only while the bar is open, plus a zone health overlay. Clicking a
+building shows a tooltip (what it is, its zone, its state, the zone's state); placed buildings open
+their own menu. Player RTS control of workers (select, right-click a spot) comes with this step.
+Mock first; Tim approves before building. All new keys and clicks go in the Controls panel.
 Check (pass/fail): the dry-run action is covered in `test_frontier_grid.mjs` (no state change);
 syntax copies pass.
-Done note: "F5.4 placement controls in (controls.md lines needed)."
+Done note: "F5.4 build bar in (controls.md lines needed)."
 
 ### F5.5. Building art list  [TIM]
 A SMALL thread lists which existing building cutouts can stand in for each building type (every
-type in the four zone lists from F5.3, plus gates, walls and the stockade) and which have none. Tim decides whether to make new art
+zone look per stage in F5.3, each placed building, plus gates, walls and the stockade) and which have none. Tim decides whether to make new art
 (image prompts follow the project rules). New art never blocks the rules; placeholders are fine.
 
-### F5.7. Work camps on far nodes  [SMALL]
+### F5.7. Work camps and farmsteads  [SMALL]
 Needs: F5.3, F3.1
 Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/economy.js`,
 `game/data/frontier.json`, `game/tools/test_frontier_economy.mjs`.
-Do: `place { kind: 'workcamp', node }` on a node outside every town's 600-unit range, linked to a
-town by a road. Its output ships to that town like a shipment (F3.2); the governor staffs it from the
-town's workers. Nodes slow to a trickle but never hit zero; forests regrow (rates in data).
+Do (updated Tim, 2026-11-04): `place { kind: 'workcamp', node }` puts a drop-off by a deposit or
+spot outside every town's 600-unit range, linked to a town by a road; workers shuttle to it and its
+stock ships to that town like a shipment (F3.2). A **farmstead camp** does the same for farms beyond
+600 units. The governor staffs both from the town's workers. Pieces slow to a trickle but never hit
+zero, and grow back (rates in data).
 Check (pass/fail): a work camp without a road link is refused; its output arrives at the linked town;
-a node's yield never reaches zero; an unlinked camp stops shipping and resumes when relinked.
+a deposit's yield never reaches zero; an unlinked camp stops shipping and resumes when relinked.
 Done note: "F5.7 work camps in."
 
 ### F5.6. Playtest  [TIM]
