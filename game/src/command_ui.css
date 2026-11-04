@@ -99,3 +99,9 @@
 #controls .cols > section > h4 {grid-column:1/-1;}
 #controls .cols > section > .row {margin:2px 0;}
 #controls .cols > section > .row kbd {padding:3px 7px;}
+/* title bars of movable windows (hud_layout.js live move) */
+#hire h3,#clinic h3,#police h3,#contracts h3,#townpanel h1,#townsoverview h1,#controls h3,#gamesettings header,#characterpage header,#hqstash header,#blacksmithshop header {cursor:move;}
+/* grip strip at the top of the frequently used windows: shows where to drag (hud_layout.js live move) */
+#hire::before,#clinic::before,#police::before,#contracts::before,#townpanel::before,#townsoverview::before,#controls::before {content:"";display:block;height:10px;margin:-2px 0 6px;cursor:move;opacity:.6;background:radial-gradient(circle,#c9a96a 1.3px,transparent 1.7px) center/9px 10px repeat-x;}
+#hire:hover::before,#clinic:hover::before,#police:hover::before,#contracts:hover::before,#townpanel:hover::before,#townsoverview:hover::before,#controls:hover::before {opacity:1;}
+#townpanel .pager { margin-top: 12px; text-align: center; } #townpanel .pager button { padding: 6px 14px; }

@@ -82,6 +82,7 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | Click a group header in the Crew frame | Select that whole group |
 | Home, or double-click the hero frame | Camera back to the hero |
 | Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. Sector and Hero group targets also accept transfers. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
+| Drag title bar (or the dot strip at the top) | Move the hire, clinic, police, contracts, town, towns overview, settings, stash, character and shop windows; resizing stays in Edit layout (Tim 2026-11-04). |
 | C | Select hero party, or active Rally force; replace sector selection |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
@@ -147,7 +148,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | M map → World tab, hover or click a town | Hover shows a town card; click opens its details. |
 | Settings → Save game | Save the city now under a name (any time). |
 | Settings → saved games list | Load any saved clan or Classic/campaign match, or Delete a save (moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
-| Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. The Load list also has Delete, with an in-game confirmation (checked by Tim 2026-11-02). |
+| Settings → saved games list → Overwrite | Replace that save with the current game. Click twice to confirm (the first click shows "Sure?") (Tim 2026-11-04). |
+| Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. Both need a second click to confirm (the first click arms the button; any other click disarms it) (Tim 2026-11-04). The Load list also has Delete, with an in-game confirmation (checked by Tim 2026-11-02). |
 | Alt+Enter / fullscreen | Fullscreen toggle; short Escape stays with game UI only where Keyboard Lock is supported/allowed. Browser long-Escape exit remains. [Capability limits](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |

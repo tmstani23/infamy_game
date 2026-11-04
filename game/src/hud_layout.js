@@ -1,13 +1,13 @@
 // Shared UI layout registry and transactional editor. Game rules remain running.
 import { createLayoutPages } from './layout_pages.js';
-export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','crewcommands','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel','townpanel','townsoverview'];
+export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','crewcommands','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel','townpanel','townsoverview','foundtown','townalerts','townhover','townflash'];
 const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','height','minHeight'];
 // fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
 const UNIFORM=new Set(['ryo','minimap','heat','stealth','raidalarm','uself','utarget','uhover','prompt','attackbar','knockbar']);
-const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',townpanel:'Town window',townsoverview:'Towns overview window',gamesettings:'Settings window',blacksmithshop:'Blacksmith shop',hqstash:'HQ stash',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip'};
+const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',townpanel:'Town window',townsoverview:'Towns overview window',foundtown:'Found settlement button',townalerts:'Town alerts',townhover:'Town hover card',townflash:'Town notice',fptip:'Town info tooltip',gamesettings:'Settings window',blacksmithshop:'Blacksmith shop',hqstash:'HQ stash',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip'};
 export function layoutCategory(id){
- if(/tooltip|hint|uhover/.test(id))return 'tooltips';
- if(['raidalarm','attackbar','knockbar','campingnotice','lostcops','callout','pausedbanner','snap','jail'].includes(id))return 'alerts';
+ if(/tooltip|hint|uhover|townhover|fptip/.test(id))return 'tooltips';
+ if(['raidalarm','attackbar','knockbar','campingnotice','lostcops','callout','pausedbanner','snap','jail','townalerts','townflash'].includes(id))return 'alerts';
  if(['hire','clinic','police','contracts','deploymentpanel','townpanel','townsoverview','gamesettings','blacksmithshop','hqstash','characterpage','controls','seasonend'].includes(id))return 'windows';
  return 'main';
 }
@@ -103,6 +103,28 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
    Object.assign(p.handle.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
   }
  }
+ // Live move (Tim 2026-11-04): frequently used windows can be dragged by their title bar outside Edit layout. Move only; resizing stays in Edit layout.
+ const MOVABLE=new Set(['hire','clinic','police','contracts','townpanel','townsoverview','gamesettings','characterpage','hqstash','blacksmithshop','controls']);
+ let live=null;
+ addEventListener('mousedown',e=>{
+  if(editing||e.button!==0||!e.target?.closest)return;
+  if(e.target.closest('button,input,select,textarea,a,th,[data-tip]'))return;
+  const head=e.target.closest('h1,h2,h3,header');
+  for(const p of panels.values()){
+   if(!MOVABLE.has(p.id)||!p.el.contains(head||e.target))continue;
+   const r=p.el.getBoundingClientRect();if(!r.width)return;
+   if(!head&&!(e.clientY-r.top<48))return;   // otherwise only the top strip (tab rows, padding) also drags
+   e.preventDefault();e.stopPropagation?.();e.stopImmediatePropagation?.();live={p,x:e.clientX,y:e.clientY,left:r.left,top:r.top,moved:false};return;
+  }
+ },true);
+ addEventListener('mousemove',e=>{
+  if(!live||editing)return;
+  if(typeof e.buttons==='number'&&!(e.buttons&1)){live=null;return;}
+  const dx=e.clientX-live.x,dy=e.clientY-live.y;if(!live.moved&&Math.abs(dx)+Math.abs(dy)<4)return;
+  live.moved=true;keep(live.p,live.left+dx,live.top+dy,saved[live.p.id]?.s||1);
+ });
+ const endLive=()=>{if(live?.moved)store(saved);live=null;};
+ addEventListener('mouseup',endLive,{capture:true});addEventListener('blur',endLive);
  function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);}before=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
  function begin(){if(editing)return;before=clone(saved);editing=true;layer.hidden=false;onBegin();update();actions.done.focus();}
  function reset(){drag=null;toolbarDrag=null;saved={};toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';for(const p of panels.values())place(p);if(!editing)store(saved);update();}

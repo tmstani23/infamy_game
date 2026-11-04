@@ -12,7 +12,7 @@ class Element {
   classes=new Set();classList={toggle:(name,on)=>on?this.classes.add(name):this.classes.delete(name),contains:name=>this.classes.has(name),remove:name=>this.classes.delete(name)};
   addEventListener(type,fn,options={}){(this.handlers[type]||=[]).push({fn,capture:options===true||!!options.capture});}
   append(...children){this.children.push(...children);}
-  appendChild(child){this.append(child);}
+  appendChild(child){this.append(child);} after(){}
   setAttribute(k,v){this.attributes[k]=v;} focus(){} blur(){} querySelector(){return null;} querySelectorAll(){return [];}
   getBoundingClientRect(){if(this.hidden||this.hiddenAncestor)return {left:0,top:0,width:0,height:0};const s=Number(this.style.scale)||1,width=this.offsetWidth*s,height=this.offsetHeight*s,left=(parseFloat(this.style.left)||100)+(this.offsetWidth-width)/2,top=(parseFloat(this.style.top)||100)+(this.offsetHeight-height)/2;return {left,top,width,height,right:left+width,bottom:top+height};}
 }
@@ -179,4 +179,25 @@ try {
   layout.reset();layout.cancel();assert.equal(contract.style.width,'300px');assert.equal(controls.style.minHeight,'140px');
   console.log('Hidden contract/Controls sizing: zero measurements, scaled width/height, fixed corner, population and saved restoration passed');
  } finally {for(const k of globals){if(previous[k]===undefined)delete globalThis[k];else globalThis[k]=previous[k];}}
+}
+// Live title-bar move (2026-11-04): outside Edit layout a window header drag moves and saves; buttons do not drag.
+{
+ const names=['document','localStorage','fetch','addEventListener','ResizeObserver','innerWidth','innerHeight'],prev=Object.fromEntries(names.map(k=>[k,globalThis[k]]));
+ try{
+  const win=new Element(),body=new Element(),panel=new Element('hire'),head=new Element(),btn=new Element();
+  head.closest=sel=>/h3/.test(sel)&&!/^button/.test(sel)?head:null;btn.closest=sel=>sel.startsWith('button')?btn:head;
+  panel.contains=n=>n===head||n===btn;body.children.push(panel);
+  let stored;
+  globalThis.document={body,getElementById:id=>id==='hire'?panel:null,createElement:()=>new Element()};
+  globalThis.localStorage={getItem:()=>null,setItem(k,v){stored=JSON.parse(v);}};globalThis.fetch=async()=>({ok:true});
+  globalThis.addEventListener=(...a)=>win.addEventListener(...a);globalThis.ResizeObserver=class{observe(){}};
+  globalThis.innerWidth=1200;globalThis.innerHeight=900;
+  createHudLayout({fromFile:{}});
+  const fire=(n,t,x={})=>{for(const h of win.handlers[t]||[])h.fn({button:0,buttons:1,clientX:100,clientY:100,target:n,preventDefault(){},...x});};
+  fire(btn,'mousedown');fire(win,'mousemove',{clientX:200,clientY:200});fire(win,'mouseup');
+  assert.equal(stored,undefined,'buttons do not start a drag');
+  fire(head,'mousedown');fire(win,'mousemove',{clientX:150,clientY:130});fire(win,'mouseup');
+  assert.equal(panel.getBoundingClientRect().left,150);assert.equal(stored.hire.dx,150);
+  console.log('Live window move by title bar passed');
+ }finally{for(const k of names){if(prev[k]===undefined)delete globalThis[k];else globalThis[k]=prev[k];}}
 }
