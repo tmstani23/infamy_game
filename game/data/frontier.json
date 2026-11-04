@@ -53,19 +53,23 @@
     "growthMinSpeed": 0.25
   },
   "traitEffects": {
-    "_note": "E4 placeholders, Tim to tune. soil: farm output factor by soil level; nodeKinds: which resource node kind a building type needs within the town's traits.nodes; noNodeFactor: output factor with no such node (0 would switch the camp off); each extra node adds nodeBonus up to nodeMax. Water (housing per well) and defence (stockade bonus) wait for wells and the F6/F7 defence rules.",
+    "_note": "E4 placeholders, Tim to tune. soil: farm output factor by soil level; nodeKinds: which resource node kind a building type needs within the town's traits.nodes; noNodeFactor: output factor with no such node (1 = core resources work anywhere, Tim 2026-11-04: nodes are a bonus only; lower it to make nodes required); each extra node adds nodeBonus up to nodeMax. Water (housing per well) and defence (stockade bonus) wait for wells and the F6/F7 defence rules.",
     "soil": { "1": 0.7, "2": 1, "3": 1.3 },
     "nodeKinds": { "lumber_camp": "forest", "quarry": "quarry" },
-    "noNodeFactor": 0.25, "nodeBonus": 0.15, "nodeMax": 1.6
+    "noNodeFactor": 1, "nodeBonus": 0.15, "nodeMax": 1.6
   },
   "townArt": {
     "_note": "E5 placeholders, Tim to tune: which existing building cutout (data/art.json) draws each frontier building type until town art exists",
-    "town_hall": "manor", "house": "townhouse", "farm": "rice_storehouse", "lumber_camp": "forest_hut", "quarry": "warehouse",
-    "workshop": "blacksmith", "storehouse": "storehouse", "stockade": "watch_post"
+    "town_hall": "manor", "house": "townhouse", "farm": "haystack", "lumber_camp": "firewood", "quarry": "hills_old_quarry_workings",
+    "workshop": "blacksmith", "storehouse": "handcart", "stockade": "watch_post"
   },
   "forage": {
     "_note": "placeholder, Tim to tune: a founded town with no lumber camp gathers timberPerIdle per idle person per economy tick by hand, up to cap in stock, so it can never be stuck at 0 timber",
     "timberPerIdle": 0.02, "cap": 40
+  },
+  "townLights": {
+    "_note": "E5 placeholder, Tim to tune: stone lanterns (data/art.json) set beside each finished building of this type, how many (max 2). They glow at night. Houses, the town hall and the stockade already have lit windows in their art.",
+    "art": "stone_lantern", "town_hall": 2, "house": 1, "farm": 1, "lumber_camp": 1, "quarry": 1, "workshop": 1, "storehouse": 1, "stockade": 2
   },
   "founding": {
     "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital; bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",

@@ -59,7 +59,11 @@ export function createConstruction({ state, data, world }) {
   }
 
   function econTick(s) {
-    const p = s.projects.find(x => x.authorized);
+    // One project moves at a time: one already paid for, else the first that the stock can pay now,
+    // else the first in line (which then waits for its materials). A costly project waiting for timber
+    // must not block a cheap one that can be built (Tim's playtest 2026-11-04).
+    const auth = s.projects.filter(x => x.authorized);
+    const p = auth.find(x => x.paid) || auth.find(x => Object.entries(x.cost).every(([r, n]) => s.stock[r] + EPS >= n)) || auth[0];
     if (!p) return;
     if (!p.paid) {
       const missing = Object.entries(p.cost).filter(([r, n]) => s.stock[r] + EPS < n).map(([r]) => r);

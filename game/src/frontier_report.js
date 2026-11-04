@@ -32,6 +32,18 @@ export const TIPS = {
   jobs: 'Workers in each building. Idle people have no job; free jobs have no worker.'
 };
 const dir = (now, then) => then === undefined || Math.abs(now - then) < 0.05 ? 'flat' : now > then ? 'up' : 'down';
+// What a "Waiting for <resource>" chip can say: how full it is and how long it will take (frontier E5 polish, Tim 2026-11-04).
+// Looks at the first authorized, unpaid project that is short of that resource; rate comes from the sim (report.rate, per second).
+export function waitInfo(s, w) {
+  const res = RES.find(r => r === w);
+  const p = res && (s.projects || []).find(x => x.authorized && !x.paid && (x.cost?.[res] ?? 0) > (s.stock?.[res] ?? 0));
+  if (!p) return null;
+  const f = n => Math.round(n * 10) / 10;
+  const need = p.cost[res], have = s.stock[res], short = need - have, rate = s.report?.rate?.[res] ?? 0;
+  const eta = rate > 0.0001 ? `At +${rate.toFixed(2)} ${res} a second: about ${Math.ceil(short / rate)} s.` : `No ${res} is coming in right now.`;
+  return { fill: Math.max(0, Math.min(1, have / need)), tip: `${name(p.type)} needs ${need} ${res}: ${f(have)} in stock, ${f(short)} short. ${eta}` };
+}
+
 export function reportRows(s, prev) {
   if (!s || !s.stock) return null;   // rival towns arrive as name only
   const f = n => Math.round(n * 10) / 10;
@@ -55,7 +67,7 @@ export function reportRows(s, prev) {
     pop: { pop: s.pop, housing: s.housing, text: `Pop ${s.pop} / ${s.housing}`, fill: s.housing ? Math.min(1, s.pop / s.housing) : 0 },
     jobs, jobsTip: TIPS.jobs, idle: r.idle || 0, unfilled: r.unfilled || 0,
     jobsText: `Jobs ${jobs.reduce((n, j) => n + j.workers, 0)} filled · ${r.unfilled || 0} free · ${r.idle || 0} idle`,
-    doing: r.doing || '', next: r.next || '', waiting,
+    doing: r.doing || '', next: r.next || '', waiting, waitingInfo: (r.waiting || []).map(w => waitInfo(s, w)),
     projects, suggestions, suggestionsTip: TIPS.suggestions,
     steer: { priority: s.priority, tax: s.taxLevel, taxLocked: !!s.taxLocked, autoBuild: !!s.autoBuild, tips: { focus: TIPS.focus, tax: TIPS.tax, initiative: TIPS.initiative } }
   };

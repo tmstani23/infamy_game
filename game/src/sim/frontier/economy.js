@@ -67,7 +67,7 @@ export function createEconomy({ state, data, world }) {
     const kind = te.nodeKinds?.[b.type];
     if (kind) {
       const n = s.traits.nodes?.[kind] || 0;
-      if (!n) { wait(s, `${kind} node`); k *= te.noNodeFactor ?? 0; }
+      if (!n) { if ((te.noNodeFactor ?? 0) < 1) wait(s, `${kind} node`); k *= te.noNodeFactor ?? 0; }
       else k *= Math.min(te.nodeMax ?? 1, 1 + (te.nodeBonus ?? 0) * (n - 1));
     }
     return k;
@@ -181,9 +181,13 @@ export function createEconomy({ state, data, world }) {
     init(s);
     s.report.waiting = [];
     assignJobs(s);
+    const before = { ...s.stock };
     produce(s);
     forage(s);
     eat(s);
+    // net stock change per second from production and eating (not spending), for the town panel's "how long" hints
+    const secs = (data.cadenceTicks || 20) / 20;
+    s.report.rate = Object.fromEntries(Object.keys(s.stock).map(r => [r, (s.stock[r] - before[r]) / secs]));
     grow(s);
     if (f().econTick % M.reviewTicks === 0) review(s);
   }

@@ -14,12 +14,14 @@ export function townSignature(towns) {
   return towns.map(s => `${s.id}@${s.x},${s.z}:${s.buildings.map(b => `${b.type}${b.cell}${b.stage}`).join('/')}|${s.projects.map(p => `${p.type}${p.cell}${p.paid ? (p.progress > 0 ? 'f' : 'p') : 'u'}`).join('/')}`).join(';');
 }
 
-export function townProps(towns, townArt) {
+export function townProps(towns, townArt, townLights = {}) {
   const out = [];
   for (const s of towns) {
     s.buildings.forEach((b, i) => {
       const art = townArt[b.type], [ox, oz] = townSlot(b.cell ?? i);
       if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5 });
+      // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
+      if (b.stage === 'built') for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
     });
     s.projects.forEach((p, i) => {
       const art = townArt[p.type], [ox, oz] = townSlot(p.cell ?? s.buildings.length + i);

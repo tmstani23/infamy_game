@@ -39,8 +39,9 @@ function game(heroAt) {
   // queue a stockade through the command path and watch it go from dirt to frame to building
   const hero = Object.values(g.state.entities).find(e => e.type === 'hero');
   g.step([{ id: hero.id, type: 'frontier', action: 'queue', settlement: 'tw', building: 'stockade' }]);
-  let props = townProps(snap(), frontier.townArt);
-  assert.deepEqual(props.filter(p => !p.dirt).map(p => [p.art, p.opacity]), [['manor', 1], ['rice_storehouse', 1], ['forest_hut', 1]]);
+  let props = townProps(snap(), frontier.townArt, frontier.townLights);
+  assert.ok(props.filter(p => p.art === 'stone_lantern').length >= 4, 'lanterns beside the finished buildings');
+  assert.deepEqual(props.filter(p => !p.dirt && p.art !== 'stone_lantern').map(p => [p.art, p.opacity]), [['manor', 1], ['haystack', 1], ['firewood', 1]]);
   assert.equal(props.filter(p => p.dirt).length, 1, 'the unbuilt project is a dirt footprint');
   const sig0 = townSignature(snap());
   g.step([{ id: hero.id, type: 'frontier', action: 'authorize', project: t.projects[0].id }]);

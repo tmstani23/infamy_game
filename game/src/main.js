@@ -547,7 +547,7 @@ async function start() {
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update();
       { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), sig = townSignature(towns);   // E5: founded towns follow their records
-        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {})); } }
+        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); } }
       clinicMenu.update();
       policeMenu.update();
       contractMenu.update();

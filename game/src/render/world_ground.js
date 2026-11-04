@@ -124,9 +124,12 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     return null;
   }
   function makeThing(p) {
-    if (p.dirt) {   // E5: an unbuilt project is a flat dirt footprint
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width, p.height), new THREE.MeshBasicMaterial({ color: 0x5b4630, transparent: true, opacity: 0.85, depthWrite: false }));
+    if (p.dirt) {   // E5: an unbuilt project is a flat patch of trodden dirt (island ground texture, lit like the ground)
+      const tex = textureFor('art/ground/island/dirt_trail.jpg');
+      if (!tex) return undefined;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width, p.height), spriteMaterial(tex));
       mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x, 0.02, p.z); mesh.renderOrder = -0.4;
+      mesh.material.uniforms.uFogAt.value.set(p.x, p.z, 0, 1);
       return { mesh, extras: [], lights: [], decal: true };
     }
     const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || (catalog.items[p.kind] ? [p.kind, 1] : []);

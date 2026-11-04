@@ -13,7 +13,7 @@ export function ownTowns(frontier, clan) {
 }
 
 export function createFrontierPanel({ root, game, heroId, clan = 'player', send, onOpen = () => {}, onClose = () => {} }) {
-  let selected = null, mode = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
+  let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
   const towns = () => ownTowns(game.state.frontier, clan);
@@ -31,8 +31,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (now - prevAt > 1000) { prevAt = now; prevStock[s.id] = { prev: prevStock[s.id]?.cur, cur: structuredClone(s) }; }
     const rows = reportRows(s, prevStock[s.id]?.prev);
     const list = towns();
-    let h = '';
+    let h = '', page1 = '', head = '';
     if (list.length > 1) h += '<div class="tabs">' + list.map(t => `<button data-act="town" data-id="${t.id}" class="${t.id === s.id ? 'on' : ''}">${esc(t.name)}</button>`).join('') + '</div>';
+    head = h;
     if (mode === 'talk') {
       const say = governorSays(rows);
       h += `<h1>Governor</h1><div class="sub">${esc(rows.title)}</div><div class="chat">“${esc(say.text)}”</div><div class="choices">`
@@ -45,7 +46,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div class="row" style="margin-top:5px"><span>Mood</span><span class="dim">${mood.why.length ? esc(mood.why.map(w => w.text).join(' · ')) : 'Content'}</span></div><div class="bar m"><i style="width:${mood.value}%"></i></div>`;
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(' · ')) + '</div>';
       h += `<div class="lab">Governor says</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
-        + rows.waiting.map(w => `<span class="pill red">${esc(w)}</span>`).join(' ');
+        + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ');
+      page1 = h; h = '';
       if (rows.projects.length) h += '<div class="lab">Projects</div>' + rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">· ${esc(p.status)}${p.canAuthorize ? ' · ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
       if (rows.suggestions.length) h += `<div class="lab"${tip(rows.suggestionsTip)}>Suggestions</div>` + rows.suggestions.map(x => `<div class="row"><span>${esc(x.label)} <span class="dim">· ${esc(x.reason)}</span></span><button data-act="approve" data-id="${x.index}">Approve</button></div>`).join('');
       const st = rows.steer, b = (act, val, label, on) => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}">${label}</button>`;
@@ -54,14 +56,22 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div class="row"><span${tip(st.tips.tax)}>Taxes</span><span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p)).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked)}</span></div>`;
       h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild)} ${b('auto', 'on', 'On', st.autoBuild)}</span></div>`;
     }
+    let paged = null;
+    if (mode !== 'talk') { const full = page1 + h; paged = (page === 0 ? page1 : head + `<h1>${esc(rows.title)}</h1>` + h) + `<div class="pager"><button data-act="page" data-id="${page === 0 ? 1 : 0}">${page === 0 ? 'More: projects &amp; steering ›' : '‹ Back to overview'}</button></div>`; h = full; }
     if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
-    if (h !== lastHtml) { root.innerHTML = h; lastHtml = h; }
+    const key = h + page;
+    if (key !== lastHtml) {
+      root.innerHTML = h; lastHtml = key;
+      // everything on one pane; only when it does not fit, buttons switch between two pages
+      if (paged && root.scrollHeight > root.clientHeight + 1) root.innerHTML = paged;
+    }
   }
   root.addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const s = pick(), id = b.dataset.id, sid = s?.id;
     switch (b.dataset.act) {
       case 'town': selected = id; mode = 'town'; break;
+      case 'page': page = Number(id); break;
       case 'talk': if (id && s) { const c = id === 'close' ? null : talkCommand(id, reportRows(s)); if (c) cmd(c); mode = id === 'close' ? 'town' : 'talk'; } else mode = mode === 'talk' ? 'town' : 'talk'; break;
       case 'authorize': cmd({ action: 'authorize', project: id }); break;
       case 'cancel': cmd({ action: 'cancel', project: id }); break;
@@ -78,7 +88,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     for (const r of game.state.frontier?.receipts || []) if (r.clan === clan && r.seq > seen) { seen = r.seq; if (!r.ok) failure = { text: `Not possible: ${r.reason}`, at: Date.now() }; }
   }
   setInterval(() => { watchReceipts(); render(); }, 1000);
-  function open(id) { if (id) selected = id; mode = 'town'; root.hidden = false; lastHtml = ''; render(); onOpen(); }
+  function open(id) { if (id) selected = id; mode = 'town'; page = 0; root.hidden = false; lastHtml = ''; render(); onOpen(); }
   function close() { if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); mode = 'talk'; render(); }, render };
 }

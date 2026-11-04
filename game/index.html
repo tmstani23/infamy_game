@@ -196,7 +196,7 @@
   #bldpanel .why { font: 11px/13px system-ui, sans-serif; color: #b8b0a0; }
   #bldpanel .notice { margin-top: 4px; font: 600 11px/14px system-ui, sans-serif; color: #e9c27a; }
   /* town panel (src/frontier_panel.js, frontier F4.4): same look as the building panel */
-  #townpanel { position: fixed; left: 14px; top: 96px; width: 350px; max-height: calc(100vh - 260px); overflow: auto; box-sizing: border-box; padding: 10px; z-index: 6;
+  #townpanel { position: fixed; left: 14px; top: 96px; width: 350px; min-height: 560px; max-height: calc(100vh - 28px); overflow: auto; box-sizing: border-box; padding: 10px; z-index: 33;
     background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; font: 12px/16px system-ui, sans-serif; color: #dcd6c8; }
   #townpanel[hidden] { display: none; }
   #townpanel h1 { margin: 0; font: 700 16px/20px system-ui, sans-serif; color: #e9d6a8; }
@@ -220,7 +220,7 @@
   #fptip { position: fixed; z-index: 100; max-width: 260px; padding: 8px 10px; border: 1px solid rgba(233,194,122,.65); border-radius: 7px; background: rgba(10,12,16,.98); color: #e7dfce; box-shadow: 0 6px 24px rgba(0,0,0,.65); font: 12px/1.45 system-ui, sans-serif; pointer-events: none; }
   #fptip[hidden] { display: none; }
   /* all-towns overview (src/towns_overview.js, frontier F4.4b) */
-  #townsoverview { position: fixed; left: 380px; top: 96px; max-width: calc(100vw - 400px); overflow: auto; box-sizing: border-box; padding: 10px; z-index: 6;
+  #townsoverview { position: fixed; left: 380px; top: 96px; max-width: calc(100vw - 400px); overflow: auto; box-sizing: border-box; padding: 10px; z-index: 33;
     background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; font: 12px/16px system-ui, sans-serif; color: #dcd6c8; }
   #townsoverview[hidden] { display: none; }
   #townsoverview h1 { margin: 0 0 6px; font: 700 16px/20px system-ui, sans-serif; color: #e9d6a8; }
