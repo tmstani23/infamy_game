@@ -37,7 +37,9 @@ export function createClans(state, units, opts = {}) {
   }
 
   // Crew a clan has now (everything it owns except its hero and its house guards)
-  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && !e.guard);
+  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && e.type !== 'settler' && !e.guard);
+  // settlers (frontier E2) are not crew: no cap, no deployment, no clinic
+  const settlersOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type === 'settler' && !e.dead);
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
   const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0) + (state.clans[id]?.respawning?.length || 0);
 
@@ -55,10 +57,12 @@ export function createClans(state, units, opts = {}) {
   function hirePrice(id, type) {
     const t = types[type];
     if (!t || t.later || !t.price) return null;
+    if (t.campaignOnly && state.match?.mode !== 'campaign') return null;   // settlers: campaign only (E2)
+    if (t.settler) return t.price;   // flat price, no crew-size step (E1)
     if ((t.clan || 'yakuza') !== (state.clans[id]?.kind || 'yakuza')) return null;   // ninja crew for the Shinobi clan only, and the other way round
     const faction = state.clans[id]?.faction;
     if ((t.faction && t.faction !== faction) || t.excludeFactions?.includes(faction)) return null;
-    const have = crewCount(id) + (state.clans[id]?.queue.length || 0);
+    const have = crewCount(id) + (state.clans[id]?.queue.filter(q => !types[q.unit]?.settler).length || 0);
     return Math.round(t.price * (1 + rules.priceStepPerCrew * have) * (opts.priceFactor?.(id) ?? 1));   // underdog discount (sim/leader.js)
   }
 
@@ -81,8 +85,10 @@ export function createClans(state, units, opts = {}) {
     if (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
     const price = hirePrice(clan.id, type);
     if (price === null) return say(clan, 'Nobody here for that job yet');
-    if (crewCount(clan.id) + clan.queue.length >= crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
-    if (clan.queue.length >= rules.maxQueue) return say(clan, 'Too many hires waiting');
+    const settler = !!types[type]?.settler, queued = n => clan.queue.filter(q => !!types[q.unit]?.settler === n).length;
+    if (settler) { if (queued(true) >= (rules.settlers?.maxQueue ?? 10)) return say(clan, 'Too many settlers waiting'); }
+    else if (crewCount(clan.id) + queued(false) >= crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
+    if (!settler && queued(false) >= rules.maxQueue) return say(clan, 'Too many hires waiting');
     if (clan.ryo < price) return say(clan, `Not enough ryo (${price} needed)`);
     debitRyo(state, clan, price, 'Crew hired', { target: type });
     clan.queue.push({ unit: type, business: b.id, left: types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1) });
@@ -231,10 +237,10 @@ export function createClans(state, units, opts = {}) {
       // Player recruits hold at the hiring site until explicitly ordered to Follow.
       const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(h.unit, types[h.unit].sprite, state.businesses[h.business],
-        { owner: clan.id, hp: types[h.unit].hp, ...(clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
+        { owner: clan.id, hp: types[h.unit].hp, ...(types[h.unit].settler ? { holdFire: true, order: hero ? { kind: 'follow', target: hero.id } : undefined } : {}), ...(!types[h.unit].settler && clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
       say(clan, `Your ${h.unit} is here`);
     }
   }
 
-  return { addClan, hallOf, crewOf, crewCount, crewCap, hirePrice, setOwner, hire, dismiss, dismissRefund: type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE), tick, carryOff, checkIn, clinicOf, clinicMenu, releasePatient, reviveCost, healCost, hitWait };
+  return { addClan, hallOf, crewOf, settlersOf, crewCount, crewCap, hirePrice, setOwner, hire, dismiss, dismissRefund: type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE), tick, carryOff, checkIn, clinicOf, clinicMenu, releasePatient, reviveCost, healCost, hitWait };
 }

@@ -23,6 +23,10 @@ export function createConstruction({ state, data, world }) {
   function queue(sid, type, cell = null, opts = {}) {
     const s = world.settlement(sid), t = data.buildings[type];
     if (!s || !t) return null;
+    if (cell === null && s.x !== undefined) {   // founded towns lay out on slots (town_layout.js): first free one
+      const used = new Set([...s.buildings, ...s.projects].map(b => b.cell));
+      cell = 1; while (used.has(cell)) cell++;
+    }
     const p = { id: world.newId('p'), type, cell, cost: { ...t.cost }, paid: false, progress: 0, need: t.buildTicks, authorized: false };
     if (opts.replaces) p.replaces = opts.replaces;
     s.projects.push(p);

@@ -483,6 +483,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let resumingPresentation=false;
   return {
     render, renderer, scene, addHits, addCasts, updateCamera,
+    setTowns: list => worldGround?.setTowns(list),
     setPresentationActive(active){
       fxLayer.hidden=!active;
       resumingPresentation=active;

@@ -31,7 +31,7 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
     if (sectorCleanup.step(e,unit)) return;
     if (shinobiAssignments.step(e, unit)) return;
     if (!rally.participating(e) && assignments.step(e, unit)) return;
-    if (state.deployment.restrictionsEnabled && e.order?.kind === 'follow' && e.deployment?.group !== 'hero' && !rally.participating(e) && !e.lootEscort) {
+    if (state.deployment.restrictionsEnabled && e.type !== 'settler' && e.order?.kind === 'follow' && e.deployment?.group !== 'hero' && !rally.participating(e) && !e.lootEscort) {
       e.order = { kind: 'move', x: e.x, z: e.z, arrived: true }; delete paths[e.id];
     }
     const finished = e.order?.kind === 'attack' && state.entities[e.order.target];

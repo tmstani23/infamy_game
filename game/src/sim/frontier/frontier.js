@@ -10,8 +10,9 @@ import { createConstruction } from './construction.js';
 import { createGovernor } from './governor.js';
 import { createCommands } from './commands.js';
 import { createAlerts } from './alerts.js';
+import { createFounding } from './founding.js';
 
-export function createFrontier({ state, data }) {
+export function createFrontier({ state, data, world: worldData = null, removeUnit = () => {} }) {
   let world = createFrontierWorld({ state, data });
   const cadence = Math.max(1, data.cadenceTicks || 20);
   const ctx = { state, data, world };
@@ -29,7 +30,8 @@ export function createFrontier({ state, data }) {
   const modules = [{ name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
-  const commands = createCommands({ state, data, world: live, economy, construction, governor });
+  const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit }) : null;
+  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
@@ -49,5 +51,5 @@ export function createFrontier({ state, data }) {
     return false;
   }
 
-  return { get world() { return ensure(); }, tick, command, modules, data };
+  return { get world() { return ensure(); }, tick, command, modules, data, founding };
 }

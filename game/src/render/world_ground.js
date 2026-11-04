@@ -48,6 +48,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const coastline = createCoastlineRenderer({ world, cfg, renderer });
   const waterEffects = createWaterEffects({ world, cfg, renderer, scene });
   const reflectionFrustum = new THREE.Frustum(), reflectionProjection = new THREE.Matrix4(), waterBox = new THREE.Box3();
+  let towns = [];   // founded towns' things (src/town_props.js), set by setTowns
   let painter = null, groundTex = null, frame = 0, last = null, list = [], shown = false, propAt = null;
   loadGroundTextures(renderer).then(async t => {
     if(cfg.islandArt?.enabled){const tops=await Promise.all(['forest','snow','dry'].map(b=>loadTex(`art/ground/top_${b}.png`)));tops.forEach(tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();});t={...t,tTopForest:tops[0],tTopSnow:tops[1],tTopDry:tops[2]};}
@@ -123,6 +124,11 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     return null;
   }
   function makeThing(p) {
+    if (p.dirt) {   // E5: an unbuilt project is a flat dirt footprint
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width, p.height), new THREE.MeshBasicMaterial({ color: 0x5b4630, transparent: true, opacity: 0.85, depthWrite: false }));
+      mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x, 0.02, p.z); mesh.renderOrder = -0.4;
+      return { mesh, extras: [], lights: [], decal: true };
+    }
     const [name, f] = p.art ? [p.art, 1] : ART[p.kind] || (catalog.items[p.kind] ? [p.kind, 1] : []);
     if (!name) return null;
     if(p.decal){
@@ -141,7 +147,9 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       const sc = r => ({ minX: p.x + (r.minX - p.x) * s, maxX: p.x + (r.maxX - p.x) * s, minZ: p.z + (r.minZ - p.z) * s, maxZ: p.z + (r.maxZ - p.z) * s });
       piece.foot = sc(piece.foot);
     }
-    return cutoutThing(piece, tex);
+    const thing = cutoutThing(piece, tex);
+    if (p.opacity !== undefined && thing?.mesh.material.uniforms?.uOpacity) thing.mesh.material.uniforms.uOpacity.value = p.opacity;
+    return thing;
   }
   function removeThing(key) {
     const t = sprites.get(key);
@@ -184,6 +192,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     propAt = [x, z];
     const want = new Map();
     if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gate.x,z:gate.z});
+    for (const p of towns) if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`town:${p.key}`, p);
     wall.forEach((p, i) => { if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`city-wall:${i}`, p); });
     for (const c of loaded.values()) {
       if (Math.abs(c.gen.x0 + S / 2 - x) > S / 2 + R + 40 + 120 || Math.abs(c.gen.z0 + S / 2 - z) > S / 2 + R + 40 + 120) continue;
@@ -224,5 +233,6 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     for (const t of sprites.values()) if (t.decal) hidden.push(t.mesh);
     waterEffects.capture(camera, time, waterVisible, hidden);
   }
-  return { update, captureWater, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
+  function setTowns(list) { towns = list; propAt = null; }
+  return { update, setTowns, captureWater, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
 }

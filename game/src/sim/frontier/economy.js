@@ -57,12 +57,28 @@ export function createEconomy({ state, data, world }) {
     s.report.unfilled = slots.reduce((n, b) => n + type(b).jobs - b.workers, 0);
   }
 
+  // ---- site traits (E4): soil scales farms, nearby nodes enable and scale camps and quarries ----
+  // Towns without traits (the fixtures) run at factor 1. All numbers: frontier.json traitEffects.
+  function traitFactor(s, b) {
+    const te = data.traitEffects;
+    if (!te || !s.traits) return 1;
+    let k = 1;
+    if (data.buildings[b.type]?.output?.food) k *= te.soil?.[s.traits.soil] ?? 1;
+    const kind = te.nodeKinds?.[b.type];
+    if (kind) {
+      const n = s.traits.nodes?.[kind] || 0;
+      if (!n) { wait(s, `${kind} node`); k *= te.noNodeFactor ?? 0; }
+      else k *= Math.min(te.nodeMax ?? 1, 1 + (te.nodeBonus ?? 0) * (n - 1));
+    }
+    return k;
+  }
+
   // ---- production and food (F2.4) ----
   function produce(s) {
     for (const b of built(s)) {
       const t = type(b);
       if (!t || !b.workers) continue;
-      if (t.output) for (const [res, per] of Object.entries(t.output)) world.change(s.id, res, per * b.workers, b.type);
+      if (t.output) { const k = traitFactor(s, b); for (const [res, per] of Object.entries(t.output)) world.change(s.id, res, per * b.workers * k, b.type); }
       if (t.recipe && f().econTick % (t.recipe.everyTicks || 1) === 0) {
         const runs = Math.floor(b.workers / (t.jobs || 1));   // one run per full crew
         for (let i = 0; i < runs; i++) {
@@ -72,6 +88,15 @@ export function createEconomy({ state, data, world }) {
         }
       }
     }
+  }
+
+  // Founded towns never get stuck without timber: with no lumber camp, idle people gather a little by
+  // hand up to a small cap (frontier.json forage; fixture towns are not affected). Placeholder, Tim to tune.
+  function forage(s) {
+    const fg = data.forage;
+    if (!fg || s.founded === undefined || built(s).some(b => b.type === 'lumber_camp')) return;
+    const room = fg.cap - s.stock.timber, idle = s.report.idle || 0;
+    if (room > 0 && idle > 0) world.change(s.id, 'timber', Math.min(room, fg.timberPerIdle * idle), 'forage');
   }
 
   function eat(s) {
@@ -157,6 +182,7 @@ export function createEconomy({ state, data, world }) {
     s.report.waiting = [];
     assignJobs(s);
     produce(s);
+    forage(s);
     eat(s);
     grow(s);
     if (f().econTick % M.reviewTicks === 0) review(s);

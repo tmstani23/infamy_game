@@ -52,7 +52,39 @@
     "growthFullAt": 70,
     "growthMinSpeed": 0.25
   },
+  "traitEffects": {
+    "_note": "E4 placeholders, Tim to tune. soil: farm output factor by soil level; nodeKinds: which resource node kind a building type needs within the town's traits.nodes; noNodeFactor: output factor with no such node (0 would switch the camp off); each extra node adds nodeBonus up to nodeMax. Water (housing per well) and defence (stockade bonus) wait for wells and the F6/F7 defence rules.",
+    "soil": { "1": 0.7, "2": 1, "3": 1.3 },
+    "nodeKinds": { "lumber_camp": "forest", "quarry": "quarry" },
+    "noNodeFactor": 0.25, "nodeBonus": 0.15, "nodeMax": 1.6
+  },
+  "townArt": {
+    "_note": "E5 placeholders, Tim to tune: which existing building cutout (data/art.json) draws each frontier building type until town art exists",
+    "town_hall": "manor", "house": "townhouse", "farm": "rice_storehouse", "lumber_camp": "forest_hut", "quarry": "warehouse",
+    "workshop": "blacksmith", "storehouse": "storehouse", "stockade": "watch_post"
+  },
+  "forage": {
+    "_note": "placeholder, Tim to tune: a founded town with no lumber camp gathers timberPerIdle per idle person per economy tick by hand, up to cap in stock, so it can never be stuck at 0 timber",
+    "timberPerIdle": 0.02, "cap": 40
+  },
+  "founding": {
+    "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital; bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
+    "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1000, "botSiteRadius": 30,
+    "startStock": { "food": 60, "timber": 40, "stone": 10 },
+    "startBuildings": ["town_hall", "lumber_camp", "farm"],
+    "townHall": "town_hall", "firstProject": "stockade",
+    "traits": {
+      "_note": "Computed from the terrain round the spot (sim/frontier/founding.js siteTraits). soilWeight/defenseWeight = what each terrain code adds per sample (average over the circle), then soilShare/defenseShare = [level 2 from, level 3 from]; water = distance to the nearest river, lake or sea: waterNear = [level 3 up to, level 2 up to]; nodes counts resource nodes within nodeRadius.",
+      "radius": 400, "step": 100, "waterStep": 50, "waterSearch": 1000, "nodeRadius": 600,
+      "soilWeight": { "p": 1, "b": 0.5, "f": 0.4, "h": 0.2, "k": 0.3 },
+      "soilShare": [0.25, 0.5],
+      "defenseWeight": { "h": 0.7, "m": 1, "f": 0.3, "r": 0.4, "k": 0.2, "b": 0.3, "n": 0.5 },
+      "defenseShare": [0.2, 0.4],
+      "waterNear": [300, 700]
+    }
+  },
   "buildings": {
+    "town_hall":   { "cost": { "timber": 30 }, "jobs": 0, "housing": 6, "buildTicks": 1, "tier": 1, "_note": "E3 placeholder, Tim to tune: tier 1 town hall, built at founding (F6.1 grows it); houses the first settlers" },
     "house":       { "cost": { "timber": 15 }, "jobs": 0, "housing": 6, "buildTicks": 30, "_note": "F0.2: housing 6, cost 15 timber; buildTicks placeholder, Tim to tune" },
     "farm":        { "cost": { "timber": 20 }, "jobs": 4, "housing": 0, "output": { "food": 0.03 }, "buildTicks": 40, "_note": "F0.2: 0.03 food per worker per tick; cost and jobs placeholder, Tim to tune" },
     "lumber_camp": { "cost": { "timber": 15 }, "jobs": 4, "housing": 0, "output": { "timber": 0.02 }, "buildTicks": 40, "_note": "F0.2: 0.02 timber per worker per tick; cost and jobs placeholder, Tim to tune" },

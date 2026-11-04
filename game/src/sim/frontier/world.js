@@ -40,6 +40,28 @@ export function createFrontierWorld({ state, data }) {
     for (const b of s.buildings) if (b.stage === 'built') n += d.buildings[b.type]?.housing || 0;
     return n;
   }
+  // A town founded in play (E3): the one door for new settlement records. Starts with the given
+  // stock, so the totals invariant (start + in - out = stock) holds from the first tick.
+  function addTown({ id, name, region, owner, x, z, site, traits, pop, stock, buildings }) {
+    if (f.settlements[id]) throw new Error(`[frontier] addTown: ${id} exists`);
+    const rec = {
+      id, name, region, owner, site: site ?? null, capital: false, x, z, traits, founded: state.tick ?? 0,
+      pop, housing: 0, workforce: pop,
+      stock: Object.fromEntries(data.resources.map(r => [r, stock?.[r] || 0])),
+      buildings: buildings.map((b, i) => ({ id: `${id}:${i}`, type: b.type, cell: b.cell ?? null, stage: b.stage || 'built', workers: 0 })),
+      projects: [], priority: 'grow', budget: { ryo: 0 },
+      report: { doing: '', next: '', waiting: [] }, grid: null
+    };
+    rec.housing = housingOf(rec, data);
+    f.settlements[id] = rec;
+    f.totals[id] = Object.fromEntries(data.resources.map(r => [r, { in: 0, out: 0, start: rec.stock[r] }]));
+    return rec;
+  }
+  // The founding fee comes out of the clan's treasury (the capital's ryo mirrors it).
+  function payFounding(clan, cost, sid) {
+    debitRyo(state, clan, cost, `Founded ${sid}`);
+    syncCapital();
+  }
   const nameOf = s => (typeof s === 'string' ? s : s.id);
   const settlement = id => f.settlements[nameOf(id)] || null;
   const newId = prefix => `${prefix}${f.nextId++}`;
@@ -168,5 +190,5 @@ export function createFrontierWorld({ state, data }) {
     try { return checkInvariants(); } catch (err) { console.error(err.message); return false; }
   }
 
-  return { frontier: f, newId, settlement, ledgerAdd, change, changePop, setOwner, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
+  return { frontier: f, newId, addTown, payFounding, settlement, ledgerAdd, change, changePop, setOwner, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
 }

@@ -21,6 +21,9 @@ import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
 import { frontierReport } from './frontier_report.js';
 import { createFrontierPanel } from './frontier_panel.js';
+import { createFoundButton } from './found_button.js';
+import { drawableTowns, townSignature, townProps } from './town_props.js';
+import { createTownHover } from './town_hover.js';
 import { createTownsOverview } from './towns_overview.js';
 import { createRyoBadge } from './ryo_badge.js';
 import { createLootNotice } from './loot_notice.js';
@@ -212,6 +215,8 @@ async function start() {
     onOpen:() => {characterPanel.close();setGameplayInput(false);}, onClose:() => setGameplayInput(true)});
   const shop=createShopUI({game,heroId,view,send:c=>pending.push(c),hidden:()=>gameMap.isOpen()||hudLayout.isEditing(),onOpen:()=>{characterPanel.close();hqStash.close();setGameplayInput(false);},onClose:()=>setGameplayInput(true)});
   // Hire menu: only reads the state and sends 'hire' commands, like a bot would
+  let townSig = '';
+  const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, send: c => pending.push(c) });
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -318,7 +323,7 @@ async function start() {
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
   $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
-  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','ctlbtn','daynight'].map($)});
+  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput });
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
@@ -395,7 +400,9 @@ async function start() {
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onKey('KeyO', () => townPanel.toggle());
     onKey('KeyY', () => overview.toggle());
+    for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
+    createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier });
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
     townAlertHook = n => {
@@ -538,7 +545,9 @@ async function start() {
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
       stealthBadge.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
-      hireMenu.update();
+      hireMenu.update(); foundButton.update();
+      { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), sig = townSignature(towns);   // E5: founded towns follow their records
+        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {})); } }
       clinicMenu.update();
       policeMenu.update();
       contractMenu.update();

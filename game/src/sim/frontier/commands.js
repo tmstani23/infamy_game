@@ -6,9 +6,9 @@
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState'];
+const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found'];
 
-export function createCommands({ state, data, world, economy, construction, governor }) {
+export function createCommands({ state, data, world, economy, construction, governor, founding, worldData }) {
   const f = () => state.frontier;
 
   function receipt(e, c, ok, reason = '') {
@@ -32,6 +32,12 @@ export function createCommands({ state, data, world, economy, construction, gove
       if (!world.frontier.roads[c.road] || !['working', 'blocked'].includes(c.state)) return reject(e, c, 'no such road');
       world.setRoadState(c.road, c.state);
       return receipt(e, c, true);
+    }
+    if (c.action === 'found') {   // E3: found a town at the hero's own spot with the settlers standing round him
+      if (e.type !== 'hero' || !founding) return reject(e, c, 'only a hero can found a town');
+      const r = founding.found(e, c.name, worldData, world, construction);
+      if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
+      return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
     }
     if (c.action === 'setTownOrder') {   // clan-wide: the full list of your towns, in your order
       const mine = world.townOrder(e.owner);

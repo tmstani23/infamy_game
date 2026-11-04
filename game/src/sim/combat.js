@@ -317,7 +317,7 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     // an officer knocked out is taken away (the HQ sends another)
     if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
     // house guards (sim/businesses.js) die outright; the business sends a new one later
-    if (t.guard) { t.dead = true; t.diedAt = state.tick; return; }
+    if (t.guard || t.type === 'settler') { t.dead = true; t.diedAt = state.tick; return; }   // settlers who fall are gone for good (frontier E1)
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
     if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; leader.downed(a, t); return; }
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)

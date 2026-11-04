@@ -41,8 +41,9 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
   function update() {
     const c = clan();
     if (!c) return;
-    const crew = game.clans.crewOf(c.id).length, cap = game.clans.crewCap(c.id);
-    money.textContent = `crew ${crew + c.queue.length}/${cap}`;
+    const isSettler = k => !!units.types[k]?.settler, crewQueued = c.queue.filter(q => !isSettler(q.unit)).length, settlerQueued = c.queue.length - crewQueued;
+    const crew = game.clans.crewOf(c.id).length, cap = game.clans.crewCap(c.id), settlers = game.clans.settlersOf(c.id).length;
+    money.textContent = `crew ${crew + crewQueued}/${cap}${settlers || settlerQueued ? ` · settlers ${settlers + settlerQueued}` : ''}`;
 
     const b = teahouse();
     if (!b || b.kind !== 'hideout') { armedDismiss = null; dismissView = false; }
@@ -51,8 +52,8 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
     if (!open) return;
     const rows = hireable.map((k, i) => {
       const t = units.types[k], price = game.clans.hirePrice(c.id, k);
-      const can = price !== null && c.ryo >= price && crew + c.queue.length < cap && c.queue.length < units.rules.maxQueue;
-      return `<div class="row"><span>${i + 1}. ${t.name || title(k)}<br><small>${t.hp} hp · hire ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s<br>${hireStatsHtml(k, t)}</small></span>` +
+      const can = price !== null && c.ryo >= price && (t.settler ? settlerQueued < (units.rules.settlers?.maxQueue ?? 10) : crew + crewQueued < cap && crewQueued < units.rules.maxQueue);
+      return `<div class="row"><span>${i + 1}. ${t.name || title(k)}<br><small>${t.hp} hp · hire ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s<br>${t.settler ? 'unarmed · follows you · 5 are needed to found a town' : hireStatsHtml(k, t)}</small></span>` +
         `<button data-pick="${i}" ${can ? '' : 'disabled'}>${price} ryo</button></div>`;
     }).join('');
     const h = c.queue[0];

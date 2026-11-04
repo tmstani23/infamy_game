@@ -1,5 +1,5 @@
 // Existing buttons keep their handlers and live labels. Only presentation moves.
-const ICONS = { deploymentbtn:'▧',characterbtn:'♙',inventorybtn:'▦',settingsbtn:'⚙',unstuckbtn:'⌂',pausebtn:'Ⅱ',mutebtn:'♫',fullscreenbtn:'⛶',ctlbtn:'?',daynight:'☀' };
+const ICONS = { deploymentbtn:'▧',characterbtn:'♙',inventorybtn:'▦',settingsbtn:'⚙',unstuckbtn:'⌂',pausebtn:'Ⅱ',mutebtn:'♫',fullscreenbtn:'⛶',ctlbtn:'?',townbtn:'⌂⌂',townsbtn:'☰',daynight:'☀' };
 export function createUtilityMenu({ root, anchor, buttons, win = window }) {
   root.setAttribute('aria-label','Game menu');
   for (const b of buttons) { b.classList.add('utility-button');b.dataset.icon=ICONS[b.id]||'•';root.appendChild(b); }
