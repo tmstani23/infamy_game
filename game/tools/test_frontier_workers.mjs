@@ -5,6 +5,7 @@ import {createFrontier} from '../src/sim/frontier/frontier.js';
 import {centreCell} from '../src/sim/frontier/town_grid.js';
 import {createGame} from '../src/sim/game.js';
 import {makeSave,loadSave} from '../src/sim/save.js';
+import {createAreas} from '../src/sim/areas.js';
 const read=f=>JSON.parse(readFileSync(new URL('../'+f,import.meta.url)));
 const base=read('data/frontier.json');
 function fixture({saved=null,changes={},spots=null,stages=null}={}) {
@@ -134,4 +135,109 @@ function fixture({saved=null,changes={},spots=null,stages=null}={}) {
   const save=makeSave(g),h=createGame(options);loadSave(h,JSON.parse(JSON.stringify(save)));
   for(let i=0;i<50;i++){g.step([]);h.step([]);assert.deepEqual(h.state.frontier.settlements.t.workers,s.workers);assert.deepEqual(h.state.frontier.settlements.t.stock,s.stock);}
 }
-console.log('test_frontier_workers: training, distance/conservation, rejections, save timing, drop-offs, governor, clearing and forage passed');
+// L3.6 uses the real fine navigation grid, including a wall across the direct shuttle line.
+const island={seed:31,size:{w:2000,h:2000},capital:{x:100,z:100},terrain:{cell:50,rows:Array(40).fill('p'.repeat(40))},sites:[],nodes:[],corridors:[],rules:{fordRadius:0}};
+const chunks={chunk:250,navCell:1,navPad:.4,loadRadius:1,keepChunks:50,clear:{},props:{},sight:{range:26,fireRadius:18,fireRange:40}};
+const wall={minX:1004,maxX:1006,minZ:998,maxZ:1002};
+function walking({saved=null,near=true,obstacle=true}={}) {
+  const f=fixture({saved,changes:{harvestTicks:4,spawnPerTick:2}});
+  f.state.entities ||= {hero:{id:'hero',type:'hero',owner:'p',place:'world',x:1000,z:1000}};
+  f.state.match={mode:'campaign'};
+  const areas=createAreas({world:island,cfg:chunks,city:obstacle?wall:null});
+  let next=1;
+  f.workers.attach({areas,spawn:(type,model,x,z,extra)=>{
+    let id;do{id=`live${next++}`;}while(f.state.entities[id]);
+    f.state.entities[id]={id,type,model,x,z,...extra};return id;
+  },remove:id=>delete f.state.entities[id]});
+  const run=n=>{for(let i=0;i<n;i++){
+    const previous=Object.fromEntries(Object.values(f.state.entities).filter(e=>e.worker).map(e=>[e.id,[e.x,e.z]]));
+    areas.update(Object.values(f.state.entities));f.run(1);
+    for(const e of Object.values(f.state.entities))if(e.worker && previous[e.id])assert.ok(Math.hypot(e.x-previous[e.id][0],e.z-previous[e.id][1])<=f.data.workers.speed/20+1e-8,'loaded navigation never teleports or exceeds worker speed');
+  }};
+  f.state.entities.hero.x=near?1000:1800;
+  const train=count=>{f.send({action:'train',count});run(count*f.data.workers.trainTicks);return f.s.workers;};
+  return {...f,areas,run,train};
+}
+const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
+{
+  const a=walking(),b=walking({near:false});
+  for(const f of [a,b]) {const ws=f.train(3);f.send({action:'assign',workers:ws.map(w=>w.id),spot:'near'});}
+  const before=a.s.stock.timber;
+  for(let i=0;i<200*a.data.cadenceTicks;i++) {
+    a.run(1);b.run(1);
+    assert.ok(units(a).length<=3);assert.equal(units(b).length,0);
+    for(const w of a.s.workers) {
+      const e=a.state.entities[w.entity],p=a.workers.position(w);
+      if(e && p) {assert.ok(Math.hypot(e.x-p[0],e.z-p[1])<1e-8);assert.ok(a.areas.nav.free(e.x,e.z));assert.equal(e.carrying,w.carrying);assert.equal(e.phase,w.phase);assert.equal(e.type,'civilian');assert.equal(e.owner,undefined,'workers never fight or scout as clan troops');}
+    }
+  }
+  assert.ok(a.s.stock.timber>before,'loaded units actually deliver');
+  assert.ok(Math.abs(a.s.stock.timber-b.s.stock.timber)<=a.data.workers.load*3);
+  assert.deepEqual(a.state.frontier.totals,b.state.frontier.totals,'loaded and sleeping routes conserve identical stock');
+  assert.ok(a.s.workers[0].trip.outPath.length>2,'fine navigation detours around the wall');
+  assert.equal(a.fr.world.checkInvariants(),true);assert.equal(b.fr.world.checkInvariants(),true);
+}
+{
+  const f=walking(),ws=f.train(5);f.send({action:'assign',workers:ws.map(w=>w.id),spot:'near'});f.run(5);
+  f.state.entities.hero.place='street';f.run(1);assert.equal(units(f).length,0);
+  f.areas.update(Object.values(f.state.entities));assert.deepEqual(f.areas.activeIds(),[],'workers do not keep chunks awake');
+  f.run(3);const saved=JSON.parse(JSON.stringify(f.state)),g=walking({saved});
+  for(const h of [f,g]) {h.state.entities.hero.place='world';h.run(1);assert.equal(units(h).length,2,'global spawn budget');
+    for(const w of h.s.workers.filter(w=>w.entity!==null)) {const e=h.state.entities[w.entity],p=h.workers.position(w);assert.ok(Math.hypot(e.x-p[0],e.z-p[1])<=1);}
+    h.run(2);assert.equal(units(h).length,5);}
+  assert.deepEqual(g.s.stock,f.s.stock);
+  const victim=f.s.workers[0],survivors=f.s.workers.slice(1).map(w=>w.id),entity=f.state.entities[victim.entity];
+  entity.downed=true;entity.hp=0;f.state.entities.hero.place='street';f.run(1);
+  assert.deepEqual(f.s.workers.map(w=>w.id),survivors,'one loaded casualty removes exactly one record even during suspension');
+  assert.equal(f.state.entities[entity.id],undefined);assert.equal(units(f).length,0);
+  f.state.entities.hero.place='world';f.run(4);assert.equal(f.s.workers.length,4);assert.ok(!f.s.workers.some(w=>w.id===victim.id));
+  const e=units(f)[0];e.hp=17;f.state.entities.hero.place='street';f.run(1);f.state.entities.hero.place='world';f.run(3);
+  assert.equal(units(f).find(u=>u.worker===e.worker).hp,17,'suspension never heals wounds');
+}
+// Loaded workers still clear footprints, preserve reassigned cargo and reroute a lost drop-off.
+{
+  const f=walking({obstacle:false}),[w]=f.train(1),c=centreCell(f.s.grid.n),cell=c+6;
+  f.s.grid.ground=f.s.grid.ground.slice(0,cell)+'o'+f.s.grid.ground.slice(cell+1);
+  f.send({action:'place',kind:'storehouse',cells:[cell]});const project=f.s.projects[0];
+  f.send({action:'authorize',project:project.id});f.run(5);assert.equal(f.s.grid.ground[cell],'c');assert.equal(project.phase,'cleared');
+  f.s.buildings.push({id:'drop',type:'storehouse',stage:'built',cell:c+2,workers:0});
+  f.send({action:'assign',workers:[w.id],spot:'far'});
+  for(let i=0;i<100 && !w.carrying;i++)f.run(1);
+  assert.equal(w.carrying,3);assert.notEqual(w.entity,null);
+  f.send({action:'assign',workers:[w.id],spot:'fish'});const timber=f.s.stock.timber;
+  f.s.buildings=f.s.buildings.filter(b=>b.id!=='drop');f.run(1);assert.equal(w.carrying,3);assert.notEqual(w.dropoff,'drop');
+  f.run(25);assert.equal(f.s.stock.timber,timber+3);assert.equal(w.spot,'fish');
+  for(let i=0;i<100 && !w.carrying;i++)f.run(1);
+  assert.equal(w.carrying,3);
+  const count=f.s.workers.length,id=w.entity;f.state.entities[id].dead=true;f.run(1);
+  assert.equal(f.s.workers.length,count-1);assert.equal(f.state.entities[id],undefined,'carried cargo dies with its worker');
+  assert.equal(f.fr.world.checkInvariants(),true);
+}
+// A real game starts, restores walking entities without duplicating them, and normal combat
+// can remove a worker through the existing civilian knockout path (no combat special case).
+{
+  const f=fixture(),options={district:read('data/waterfront.json'),catalog:read('data/art.json'),cutouts:read('art/cutouts.json'),interiors:read('data/interiors.json'),parts:read('data/interior_parts.json'),recipes:read('data/room_recipes.json'),units:read('data/units.json'),frontier:f.data,resourceSpots:f.spotData,world:island,worldChunks:chunks};
+  const g=createGame(options);g.state.match={mode:'campaign'};g.clans.addClan('p');
+  const id=g.spawn('hero','ronin',1000,1000,{owner:'p',place:'world',holdFire:true});
+  g.frontier.world.addTown({id:'t',owner:'p',x:1000,z:1000,pop:8,stock:{food:100,timber:100,stone:100,ryo:100},buildings:[{type:'town_hall',cell:0}]});
+  g.step([{id,type:'frontier',town:'t',action:'train',count:2}]);for(let i=0;i<5;i++)g.step([]);
+  const s=g.state.frontier.settlements.t;
+  g.step([{id,type:'frontier',town:'t',action:'assign',workers:s.workers.map(w=>w.id),spot:'near'}]);
+  for(let i=0;i<15;i++)g.step([]);
+  assert.equal(units({state:g.state}).length,2);assert.ok(s.workers.some(w=>w.carrying));
+  const h=createGame(options);loadSave(h,JSON.parse(JSON.stringify(makeSave(g))));
+  for(let i=0;i<60;i++) {g.step([]);h.step([]);assert.deepEqual(h.state.frontier.settlements.t.workers,s.workers);assert.deepEqual(h.state.frontier.settlements.t.stock,s.stock);assert.equal(units({state:h.state}).length,2);}
+  const victim=s.workers[0],e=g.state.entities[victim.entity];
+  victim.spot=null;victim.trip=null;victim.carrying=0;Object.assign(e,{hp:1,x:1000.5,z:1000});
+  g.step([{id,type:'attack',target:e.id}]);for(let i=0;i<80 && s.workers.includes(victim);i++)g.step([]);
+  assert.equal(s.workers.length,1,'real combat knockout removes one worker record');assert.equal(g.state.entities[e.id],undefined);
+}
+{
+  const f=walking({near:false});const active=f.areas.activeIds(),cached=f.areas.cached();
+  const p=f.areas.nav.workerPath(1000,1000,1010,1000);
+  assert.ok(p.length>2);assert.deepEqual(f.areas.activeIds(),active);assert.equal(f.areas.cached(),cached,'offscreen planning retains no chunks');
+  f.areas.update([{type:'civilian',worker:'w1',place:'world',x:1000,z:1000}]);assert.deepEqual(f.areas.activeIds(),[]);
+  f.state.entities.hero={id:'hero',type:'thug',owner:'bot',place:'world',x:1000,z:1000};
+  f.train(1);f.run(1);assert.equal(units(f).length,1,'a bot army wakes workers too');
+}
+console.log('test_frontier_workers: L3.5 conservation/save/clearing and L3.6 proximity, navigation, parity, lifecycle and casualties passed');

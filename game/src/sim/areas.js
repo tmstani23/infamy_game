@@ -38,6 +38,7 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   const B = 10, NB = Math.ceil(S / B);   // blocker buckets for tryMove, B units square
   const cache = new Map();               // chunk key -> { key, cx, cz, gen, grid, buckets, used }
   let active = new Map();                // chunk key -> cached chunk, for chunks units stand in or next to
+  let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let clock = 0, stats = { built: 0, buildMs: 0, worstMs: 0 };
   const keyOf = (cx, cz) => cz * CX + cx;
   const inRange = (cx, cz) => cx >= 0 && cz >= 0 && cx < CX && cz < CZ;
@@ -77,7 +78,7 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   function update(entities) {
     const want = new Map();
     for (const e of entities) {
-      if (e.place !== 'world' || e.dead || e.worldCamp) continue;
+      if (e.place !== 'world' || e.dead || e.worldCamp || e.worker) continue;
       const ecx = Math.floor(e.x / S), ecz = Math.floor(e.z / S);
       for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) {
         const cx = ecx + dx, cz = ecz + dz, k = keyOf(cx, cz);
@@ -97,7 +98,10 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   const centre = (i, j) => [(i + 0.5) * CELL, (j + 0.5) * CELL];
   function free(i, j) {
     const cx = Math.floor(i / N), cz = Math.floor(j / N);
-    const c = active.get(keyOf(cx, cz));
+    if (!inRange(cx, cz)) return false;
+    const key = keyOf(cx, cz);
+    if (planning && !planning.has(key)) planning.set(key, cache.get(key) || build(cx, cz));
+    const c = planning ? planning.get(key) : active.get(key);
     if (!c || !inRange(cx, cz)) return false;
     return !c.grid[(j - cz * N) * N + (i - cx * N)];
   }
@@ -125,6 +129,7 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   }
   // bounds of the active chunks, in fine cells
   function activeBox() {
+    if (planning) return [0, 0, CX * N - 1, CZ * N - 1];
     let i0 = Infinity, j0 = Infinity, i1 = -Infinity, j1 = -Infinity;
     for (const c of active.values()) { i0 = Math.min(i0, c.cx * N); j0 = Math.min(j0, c.cz * N); i1 = Math.max(i1, c.cx * N + N - 1); j1 = Math.max(j1, c.cz * N + N - 1); }
     return [i0, j0, i1, j1];
@@ -450,7 +455,21 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
     return out;
   }
 
-  const nav = { beginPath, findPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
+  // Full fine path for a saved worker trip, identical whether its chunks are awake or asleep.
+  // Temporary grids are discarded after the search; neither residency nor cache size changes.
+  function workerPath(ax, az, bx, bz) {
+    planning = new Map();
+    try {
+      const start = nearestFreeCell(ax, az), end = nearestFreeCell(bx, bz);
+      if (!start || !end) return null;
+      const a = free(...cellOf(ax, az)) ? [ax, az] : centre(...start);
+      const b = free(...cellOf(bx, bz)) ? [bx, bz] : centre(...end);
+      const job = localPath(...a, ...b); let next;
+      do { next = job.next(); } while (!next.done);
+      return next.value && [a, ...next.value];
+    } finally { planning = null; }
+  }
+  const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   return {
     nav, update, route, editChunk, portalsOf, blockersNear, lightsNear, ensureGraph,
     chunkSize: S, chunkOf: (x, z) => [Math.floor(x / S), Math.floor(z / S)], chunkId,

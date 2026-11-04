@@ -3,8 +3,9 @@
   "_note": "Frontier economy numbers (F2). F0.2 values approved by Tim 2026-11-02; everything else is a placeholder for Tim to tune. Time units: 'ticks' = economy ticks (1 per cadenceTicks sim ticks).",
   "cadenceTicks": 20,
   "workers": {
-    "_note": "placeholder, Tim to tune (L3.5). Costs come from town stock and population when ordered. trainTicks, harvestTicks and clearTicks are sim ticks (20/second); training is sequential at the hall. load is stock per trip; harvested spots take longer to work as their pieces regrow. range is measured from the town hall. Worker records do not become units until L3.6.",
+    "_note": "placeholder, Tim to tune (L3.5/L3.6). Costs come from town stock and population when ordered. trainTicks, harvestTicks and clearTicks are sim ticks (20/second); training is sequential at the hall. load is stock per trip; harvested spots take longer to work as their pieces regrow. range is measured from the town hall. spawnRadius is proximity in world units; spawnPerTick bounds new entities globally; pathCacheSize bounds reusable navigation paths. hp and model are civilian stand-ins.",
     "cost": 10, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 1, "range": 600, "clearTicks": 200,
+    "spawnRadius": 160, "spawnPerTick": 4, "pathCacheSize": 128, "hp": 60, "model": "laborer",
     "dropoffs": ["town_hall", "storehouse", "lumber_camp", "quarry"],
     "gatherBuildings": ["lumber_camp", "quarry"],
     "resources": { "timber": "timber", "stone": "stone", "fish": "food", "forage": "food" }

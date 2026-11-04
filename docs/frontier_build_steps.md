@@ -292,7 +292,7 @@ Done note: "L3.5 workers in (records and trip math)."
 
 Built (2026-11-04): sequential training reserves ryo/population; saved integer-tick trips carry stock to the nearest finished drop-off and ledger it as `gather`. Governor assigns idle workers; worker records clear placed-building footprints over time; forage and passive node-camp output stop once workers exist. Added startup spot-data wiring and additive worker-state migration; frontier.json version 5 (Tim approved updating the existing version assertion). Workers remain records; no new UI controls until L3.8. `test_frontier_workers.mjs` and 12 affected frontier/founding tests pass; browser entry/game syntax checks pass. Next: L3.6, preserving trip/cargo timing and clearing behavior.
 
-#### L3.6. Workers become units near players  [STRONG]
+#### L3.6. Workers become units near players  [STRONG] — [x] Node checks passed 2026-11-04; visual check pending
 Needs: L3.5, W3 areas
 Files: `workers.js` (`wake` / `suspend`, the pattern copied from `sim/camps.js`), `sim/game.js`
 (one hook line next to the `createWorldCamps` setup), `frontier.json` `workers.spawnRadius`
@@ -311,6 +311,8 @@ give the same stock (within 1 load per worker); suspend then wake puts each work
 its path position; no unit exists when nobody is within `spawnRadius`; a killed loaded worker
 removes exactly one record.
 Done note: "L3.6 workers walk when someone is near."
+
+Built (2026-11-04): workers wake as non-fighting laborers near activity, walk cached fine paths, and suspend with trip, cargo and wounds preserved. A loaded casualty removes one record. `areas.js` also needed worker residency exclusion and path planning for sleeping trips; workers cannot keep chunks awake. The worker test covers proximity, navigation, near/away production parity, save/load, clearing, rerouting and casualties. Relevant frontier, areas, camps, combat, inventory, business, bot, worker and settings checks passed. `test_crew.mjs:97` failed identically before and after (teahouse vs street). Visual verification remains open; next L3.7.
 
 #### L3.7. Drawing the town and the spots  [STRONG]
 Needs: L3.3, L3.4, L3.0 mock OK
