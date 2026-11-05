@@ -38,7 +38,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const live = new Proxy({}, { get: (_, k) => ensure()[k] });
   const workers = createWorkers({state,data,world:live,spotData,spotRules});
   const zones = createZones({ state, data, world: live,resourceIndex:workers.index });
-  const economy = createEconomy({ state, data, world: live, zones, workers });
+  const trade = {};   // C4 Influence hooks (export price, trade volume), filled by attach()
+  const economy = createEconomy({ state, data, world: live, zones, workers, trade });
   const construction = createConstruction({ state, data, world: live,resourceIndex:workers.index });
   const governor = createGovernor({ state, data, world: live, economy, construction, zones, workers });
   const modules = [{ name: 'workers', workers, econTick: () => workers.econTick() }, { name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
@@ -84,6 +85,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;workers.attach(services);arrivals.attach(services);founding?.attach(services);}
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);founding?.attach(services);}
   return { get world() { return ensure(); }, tick, command, modules, data, founding, attach };
 }

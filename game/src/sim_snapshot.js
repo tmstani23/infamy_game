@@ -41,7 +41,8 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   return { version: f.version, econTick: f.econTick, settlements, spots,
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
-    receipts: recent || (f.receipts || []).filter(r => r.clan === clan) };
+    receipts: recent || (f.receipts || []).filter(r => r.clan === clan),
+    siteClaims: f.siteClaims || {} };   // E1: claimed sites are shut in everyone's Choose site menu
 }
 
 export function createSnapshotEncoder(game, clan = 'player') {
@@ -57,6 +58,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []}, camps:game.worldCamps?.viewFor(clan) || {} };
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
+    if (st.influence) roots.influence = { [clan]: st.influence[clan] || null };   // C4: own Influence only
     if (st.frontier) {
       if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position)); frontierAt = st.tick; }
       roots.frontier = frontierView;

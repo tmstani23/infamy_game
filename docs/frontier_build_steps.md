@@ -466,7 +466,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
 - [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
-- [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
+- [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [ ] C2 · [ ] C3 · [x] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [x] E1 rules (updated 2026-11-05) · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [x] E6 · [x] E6b · [ ] E7 playtest
 - [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
@@ -1862,6 +1862,7 @@ town permits, import discount, Market export bonus per tier). Classic mode is un
 Check (pass/fail): Classic matches today's season tests exactly; in campaign mode Influence rises
 with the listed sources and unlocks fire once per threshold.
 Done note: "C4 Influence in (campaign mode)."
+**Built 2026-11-05 (campaign checkpoint 2):** C4 Influence in (campaign mode). Influence = Renown + 10 per business held at each dawn + 0.05 per good a town Market sells. Tiers at 400 / 700 / 1100 / 1600: each tier +10% Market export price and -5% import price (imports apply once F3 shipments exist); 700 unlocks the 2nd town permit, 1600 the 3rd. Each tier fires once (news + notice). Classic has no Influence. Bots stay at one town for now. All numbers are placeholders in `settings.json` `influence`. Influence shows in the Land Office window for now (no top-bar readout yet).
 
 ### C5. City ops hit rival income  [SMALL]
 Needs: C4, F3

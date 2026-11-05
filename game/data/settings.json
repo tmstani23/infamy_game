@@ -72,6 +72,16 @@
     "quarterBonus": 0.25,
     "intruderAlertSeconds": 30
   },
+  "influence": {
+    "_note": "C4 (Tim 2026-11-05), campaign only, placeholders to tune. Influence = Renown + perBusinessDay for each business held at every dawn + perGoodSold for each good a town Market sells. Every tier raises Market export prices by exportBonusPerTier and cuts import prices by importDiscountPerTier (imports take effect once F3 shipments exist); tiers with unlock 'permit' allow one more founded town (2nd and 3rd). Renown itself is unchanged.",
+    "perBusinessDay": 10, "perGoodSold": 0.05, "exportBonusPerTier": 0.1, "importDiscountPerTier": 0.05,
+    "tiers": [
+      { "at": 400, "label": "Market prices +10%, imports -5%" },
+      { "at": 700, "unlock": "permit", "label": "2nd town permit" },
+      { "at": 1100, "label": "Market prices +10%, imports -5%" },
+      { "at": 1600, "unlock": "permit", "label": "3rd town permit" }
+    ]
+  },
   "season": {
     "_note": "the season ends after this many day/night cycles (dawns); the clan with the highest score wins (business scores above; Shinobi Renown: renownPerPoint Renown = 1 point; Tim 2026-10-21: 50, so a good Shinobi season is about 5 points)",
     "cycles": 10,

@@ -57,6 +57,7 @@ import { createCombat } from './combat.js';
 import { createDiscovery } from './discovery.js';
 import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
+import { createInfluence } from './influence/influence.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -657,8 +658,10 @@ export function createGame(options) {
   worldCamps=createWorldCamps({state,world:options.world,areas,rules:banditData?.worldCamps,spawn,remove:removeUnit,ai:bandits,spriteFor:type=>statsOf(type).sprite || type,known:(clan,x,z)=>discovery.isDiscovered(clan,x,z)});
   // the Land Office, the expedition out of the gate and the new-town grace (frontier E1/E6)
   const dayTicks = dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000;
-  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, dayTicks }) : null;
-  frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id)}); // worker routes and hall clearance
+  // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
+  const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
+  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
+  frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -883,6 +886,7 @@ export function createGame(options) {
     kuroda.tick();
     unstuck.tick();
     clans?.tick(DT, spawnOutside);
+    influence.tick();   // C4: campaign Influence, after this tick's dawn (no-op in Classic)
     syncCrewAttacks();
     shakedown.tick();
     sweep.tick();
@@ -1086,5 +1090,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, dayTicks };
 }

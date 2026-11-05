@@ -12,7 +12,7 @@ import { noteArrival, noteTierUp } from './arrivals.js';
 import { foldFlow } from './flow.js';
 const EPS = 1e-9;
 
-export function createEconomy({ state, data, world, zones = null, workers = null }) {
+export function createEconomy({ state, data, world, zones = null, workers = null, trade = {} }) {
   const f = () => state.frontier;
   const rates = data.rates, M = data.mood;
   const type = b => data.buildings[b.type];
@@ -245,7 +245,9 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     const keep = s.marketKeep ?? mk.keep, sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
     if (sell <= EPS) return;
     world.change(s.id, 'goods', -sell, 'market');
-    world.change(s.id, 'ryo', sell * mk.price, 'market');
+    // C4: each Influence tier of the owner raises the export price; sales count as frontier trade
+    world.change(s.id, 'ryo', sell * mk.price * (s.owner && trade.exportFactor ? trade.exportFactor(s.owner) : 1), 'market');
+    if (s.owner) trade.sold?.(s.owner, sell);
   }
   function setMarketKeep(sid, keep) {
     const s = world.settlement(sid); init(s);
