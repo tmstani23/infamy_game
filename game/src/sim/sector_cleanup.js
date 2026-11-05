@@ -1,6 +1,6 @@
 // Local opportunistic work between duties, shared by player and bot sectors.
 // Reuse the ordinary execution/loot rules, rewards and physical navigation.
-export function createSectorCleanup({state,deployment,rally,navigation,sees,downedFoe,lootable,startExecute,executeStep,lootStep,inCombat,stopPath}) {
+export function createSectorCleanup({state,deployment,rally,navigation,sees,downedFoe,lootable,startExecute,executeStep,lootStep,inCombat,stopPath,thinksNow=()=>true}) {
   const radius=6;
   function cancel(e){
     const work=e.deployment?.cleanup;if(!work)return;
@@ -26,6 +26,7 @@ export function createSectorCleanup({state,deployment,rally,navigation,sees,down
     }
     // Existing explicit channels/jobs always have priority over automatic work.
     if(e.execute||e.lootTarget||['loot','heal','enter'].includes(e.order?.kind))return false;
+    if(!thinksNow(e))return false;   // looking for new work: lower rate while no player is in the city
     const claimed=new Set(Object.values(state.entities).filter(u=>u.id!==e.id&&!u.dead&&!u.downed&&!u.jailed).map(u=>u.execute?.target||u.lootTarget||u.deployment?.cleanup?.target||(u.order?.kind==='loot'?u.order.target:null)).filter(Boolean));
     const grid=navigation(e);
     const targets=Object.values(state.entities).filter(t=>!claimed.has(t.id)&&local(t)

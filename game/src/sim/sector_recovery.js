@@ -11,7 +11,7 @@ export function withdrawalReason(entities, ids, firstCasualty = false) {
   return null;
 }
 
-export function createSectorRecovery({ state, deployment, rally, vision, clearCombat, inCombat = () => false, attackStep = () => {}, hostile = (a, b) => a.owner !== b.owner && !b.cop && !b.wild }) {
+export function createSectorRecovery({ state, deployment, rally, vision, cityAway = () => false, clearCombat, inCombat = () => false, attackStep = () => {}, hostile = (a, b) => a.owner !== b.owner && !b.cop && !b.wild }) {
   const available = e => e && !e.dead && !e.downed && !e.jailed;
   const automated = e => !!e.deployment && !e.deployment.transfer && !e.deployment.scattered && !e.deployment.duty?.manual && !rally.participating(e);
   const roster = (clan, id) => deployment.members(clan, id).filter(automated);
@@ -22,7 +22,12 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
     return b?.ring ? { x: b.ring[0], z: b.ring[1] } : null;
   };
   // members looked up once and the cheap hostile test runs before the costly vision test
-  const threats = clan => { const mine = deployment.members(clan).filter(available); if (!mine.length) return [];
+  // while no player is in the city the list is worked out once per clan per tick (lag step 1)
+  const threatMemo = new Map();
+  const threats = clan => { if (!cityAway()) return findThreats(clan);
+    const m = threatMemo.get(clan); if (m?.tick === state.tick) return m.list;
+    const list = findThreats(clan); threatMemo.set(clan, { tick: state.tick, list }); return list; };
+  const findThreats = clan => { const mine = deployment.members(clan).filter(available); if (!mine.length) return [];
     return Object.values(state.entities).filter(e => available(e) && e.owner && e.owner !== clan
       && e.type !== 'civilian' && !e.hidden && mine.some(u => hostile(u, e)) && vision.canSee(clan, e)); };
   function request(clan, id, reason = 'Retreat ordered') {

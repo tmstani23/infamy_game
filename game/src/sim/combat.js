@@ -4,7 +4,7 @@ import { charmProtected } from './charm_rules.js';
 import { dirIndex } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true, onDefeat=()=>{} }) {
+export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true, onDefeat=()=>{} }) {
   state.projectiles||=[];
   function launch(e,t,unit){
     const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian';
@@ -121,6 +121,10 @@ export function createCombat({ options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECO
     // a plain move ignores enemies until it arrives (RTS rule); everything else fights back
     if (o.kind === 'move' && !o.arrived) return null;
     if ((o.kind === 'heal' || o.kind === 'enter') && Math.hypot(o.x - e.x, o.z - e.z) > 0.6) return null;
+    // the search itself runs at a lower rate while no player is in the city (game.js decide)
+    return decide('crewTarget', e, () => searchTarget(e, o), t => t.place === e.place && hostile(e, t) && sees(e, t));
+  }
+  function searchTarget(e, o) {
     // first stop anyone finishing off one of our downed crew nearby
     const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t) && !cop(t)
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);

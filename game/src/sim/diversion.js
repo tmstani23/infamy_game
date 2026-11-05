@@ -1,6 +1,6 @@
 // Geisha: a defensive charm takes priority over melee; other crew use ordinary combat.
 export const DIVERSION={radius:6,durationTicks:120,cooldownTicks:200,castTicks:20,snareSpeed:.25,castLeash:1.5};
-export function createDiversion({state,deployment,vision,reveal,clearCombat,hostile=()=>false,
+export function createDiversion({state,deployment,vision,thinksNow=()=>true,decide=(k,e,search)=>search(),reveal,clearCombat,hostile=()=>false,
   attackStep=()=>{},moveTo=()=>false,nearestFree=(x,z)=>[x,z],fightTarget=()=>null,clearLine=()=>true,onCharmed=()=>{}}){
   const alive=e=>e&&!e.dead&&!e.downed&&!e.jailed;
   const geisha=e=>e?.type==='shinobi_geisha';
@@ -61,8 +61,8 @@ export function createDiversion({state,deployment,vision,reveal,clearCombat,host
       t.distracted={source:e.id,clan:e.owner,x:t.x,z:t.z,place:t.place,at:state.tick,until:state.tick+DIVERSION.durationTicks,prevOrder:t.order?structuredClone(t.order):null};
       t.order={kind:'stop',charmed:state.tick};onCharmed(t,e.owner);return true;
     }
-    if((e.lure?.readyAt??0)<=state.tick&&begin(e))return true;
-    if(e.order?.kind!=='attack'){const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));if(foes[0]){attackStep(e,unit,foes[0]);return true;}}
+    if((e.lure?.readyAt??0)<=state.tick&&thinksNow(e)&&begin(e))return true;
+    if(e.order?.kind!=='attack'){const foe=decide('geishaFoe',e,()=>{const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));return foes[0]||null;},t=>alive(t)&&t.place===e.place&&hostile(e,t));if(foe){attackStep(e,unit,foe);return true;}}
     return false;
   }
   function tick(){for(const e of Object.values(state.entities)){

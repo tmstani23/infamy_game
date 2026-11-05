@@ -254,7 +254,7 @@ export function createGame(options) {
       for (const h of Object.values(state.entities)) if (h.assistCrew) h.assistCrew = h.assistCrew.filter(id => id !== e.id); } });
   const rally = createDeploymentRally({ state, deployment });
   const shinobiIntelligence = createShinobiIntelligence({ state, deployment, vision });
-  const sectorRecovery = createSectorRecovery({ state, deployment, rally, vision,
+  const sectorRecovery = createSectorRecovery({ state, deployment, rally, vision, cityAway: () => cityAway,
     hostile: (a, b) => hostile(a, b),
     inCombat: e => !!fight[e.id]?.target,
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
@@ -264,7 +264,7 @@ export function createGame(options) {
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; },
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, executeStep,
     finishTarget: (clan, target, ids) => { const h = Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero'); if (h) startExecute(h, { target, units: ids, crewOnly: true }, true); } });
-  const diversion = createDiversion({ state, deployment, vision, reveal: (e, attack) => stealth.reveal(e, attack),
+  const diversion = createDiversion({ state, deployment, vision, thinksNow: e => thinksNow(e), decide: (key, e, search, keep) => decide(key, e, search, keep), reveal: (e, attack) => stealth.reveal(e, attack),
     attackStep:(e,unit,t)=>{if(!swingStep(e,unit))engage(e,unit,t);},
     hostile: (a, b) => hostile(a, b) && sees(a, b),
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), fightTarget: id => fight[id]?.target,
@@ -343,6 +343,36 @@ export function createGame(options) {
   const sees = (a, b) => !(b?.hidden && b.owner !== a.owner) && !(b && blind(a, b)) && (!state.clans?.[a.owner] || vision.canSee(a.owner, b));
   const reachOf = (a, b) => (statsOf(a).attackRange || 1) + statsOf(b).radius;
 
+  // City decisions at a lower rate while no player is in the city (lag step 1, Tim 2026-11-05).
+  // Away = no hero of a non-bot clan anywhere but the island ('world'); checked at the start of
+  // every tick, so walking, travel, Unstuck or a load into the city is full rate on that tick.
+  // Only searches (who to fight, whom to chase) slow down; movement and swings stay at 20 Hz.
+  // settings.json cityDecisions.awayHz: 0 (or 20) turns it off.
+  const awayHz = options.settings?.cityDecisions?.awayHz ?? 2;
+  const thinkEvery = awayHz > 0 && awayHz < TICK_RATE ? Math.round(TICK_RATE / awayHz) : 1;
+  let cityAway = false;
+  const updateCityAway = () => { cityAway = thinkEvery > 1 && !Object.values(state.entities).some(e => e.type === 'hero' && e.place !== 'world' && state.clans?.[e.owner] && !state.clans[e.owner].bot);
+    if (!cityAway && thinkCache.size) thinkCache.clear(); };
+  const thinkSlot = new Map();   // unit id -> its tick slot, so units spread their thinking over the period
+  // true when this city unit searches this tick (always, unless the city is away)
+  const thinksNow = e => {
+    if (!cityAway || e.place === 'world') return true;
+    let k = thinkSlot.get(e.id);
+    if (k === undefined) { k = 0; for (const ch of String(e.id)) k = (k * 31 + ch.charCodeAt(0)) >>> 0; k %= thinkEvery; thinkSlot.set(e.id, k); }
+    return state.tick % thinkEvery === k;
+  };
+  // A unit's search result (key = which search), reused until its next thinking tick while the city
+  // is away. keep(t) re-checks a cached target every tick: a target that died or left is searched for again at once.
+  const thinkCache = new Map();
+  function decide(key, e, search, keep) {
+    let m = thinkCache.get(key); if (!m) thinkCache.set(key, m = new Map());
+    const c = m.get(e.id);
+    if (c && cityAway && state.tick - c.tick < thinkEvery && !thinksNow(e) && (!c.t || keep(c.t))) return c.t;
+    const t = search();
+    if (cityAway) m.set(e.id, { t, tick: state.tick });
+    return t;
+  }
+
   // Officers are never picked on their own: hitting police (+heat) is always the player's
   // (or bot's) own order, so standing still next to a squad doesn't spiral the heat.
   // Business attack-wave officers add no infamy per hit and remain automatic targets.
@@ -386,7 +416,7 @@ export function createGame(options) {
   function startExecute(...a) { return lootExecute.startExecute(...a); }
   function startLoot(...a) { return lootExecute.startLoot(...a); }
   const sectorCleanup=createSectorCleanup({state,deployment,rally,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,downedFoe,lootable,
-    startExecute,executeStep,lootStep,inCombat:e=>!!crewTarget(e),stopPath:e=>{delete paths[e.id];}});
+    startExecute,executeStep,lootStep,inCombat:e=>!!crewTarget(e),thinksNow:e=>thinksNow(e),stopPath:e=>{delete paths[e.id];}});
   crewJobs=createCrewJobs({state,heroLoot:(h,c)=>{if(h.dead||h.downed||h.jailed||h.execute||!lootable(h,state.entities[c.target]))return false;startLoot(h,{...c,units:[],crewJob:false});return h.lootTarget===c.target;},deployment,rally,manual:manualCrew,navigation:e=>deployment.navFor(e)||navOf(e.place),sees,lootable,downedFoe,startExecute,executeStep,lootStep,giveOrder,resumeDuty:assignments.resume,freeSlot,
     clearCombat:e=>{delete e.swing;delete e.execute;delete e.attackTarget;delete e.lootTarget;delete paths[e.id];if(fight[e.id])delete fight[e.id].target;}});
 
@@ -593,6 +623,7 @@ export function createGame(options) {
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
     state, data: policeData, units, district, nav, doors, spawn, spawnOutside, moveTo, statsOf, remove: removeUnit,
+    decide: (key, e, search, keep) => decide(key, e, search, keep),
     stopPath: e => { delete paths[e.id]; },
     act: {
       swing: e => swingStep(e, statsOf(e)),
@@ -691,6 +722,7 @@ export function createGame(options) {
   // or [{ id, type: 'order', units: [ids], kind: 'follow' | 'move' | 'station' | 'attackmove', x, z }]
   // and [{ id, type: 'order', units: [ids], kind: 'attack', target }] sent by a hero
   function step(commands = []) {
+    updateCityAway();
     rally.tick();
     rally.cleanBuffs();
     const lastNews = state.news || [];
@@ -993,7 +1025,7 @@ export function createGame(options) {
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
-  const combat = createCombat({ onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const combat = createCombat({ decide, onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
   // Closure state that lives outside game.state. Values are copied by the save encoder.
@@ -1012,5 +1044,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier };
 }

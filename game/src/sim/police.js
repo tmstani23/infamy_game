@@ -45,7 +45,7 @@ const DEFAULTS = {
 // state: the game state; data: police.json; units: units.json; district: the map;
 // spawn / spawnOutside / moveTo / stopPath / remove / statsOf / act come from the game rules.
 // act = { swing(e), arresting(e), arrest(e, t), engage(e, t), hostile(a, b) }
-export function createPolice({ state, data, units, district, nav, doors = [], spawn, spawnOutside, moveTo, stopPath, remove, statsOf, act, forcedStep = () => false, seed = 7171 }) {
+export function createPolice({ state, data, units, district, nav, doors = [], spawn, spawnOutside, moveTo, stopPath, remove, statsOf, act, forcedStep = () => false, decide = (k, e, search) => search(), seed = 7171 }) {
   const R = { ...DEFAULTS, ...(data?.rules || {}) };
   const secs = s => Math.round(s / DT);
   const types = units?.types || {};
@@ -517,9 +517,10 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     if (close) { act.engage(e, close); m.x = null; return; }
     if (hero && hero.place !== e.place) { if (!goThrough(e, hero.place, unit)) e.anim = 'idle'; return; }
     if (!m.leaving) {
-      const down = arrestable(e);
+      // searches at a lower rate while no player is in the city (game.js decide)
+      const down = decide('arrestable', e, () => arrestable(e), t => t.downed && !t.dead && t.place === e.place);
       if (down) { act.arrest(e, down); if (e.execute) { e.execute.len = secs(R.arrestSeconds); e.execute.arrest = true; return; } }
-      const t = targetOf(e);
+      const t = decide('policeTarget', e, () => targetOf(e), t => !t.dead && !t.downed && !t.jailed && t.place === e.place);
       if (t) { act.engage(e, t); m.x = null; return; }
     }
     // called in to defend a business (sim/businesses.js): wait in the room for the attackers
