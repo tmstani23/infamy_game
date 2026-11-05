@@ -98,6 +98,10 @@ The batch contains 226 unique source textures across 157 animation stems, with 5
 
 Tim reported smoother midgame map movement and animations after the catalog batch, and confirmed the Iron Formation visual fix looked correct. Manual Firefox RAM/FPS measurement and the full-roster visual comparison remain open. The small PNG files hid very large decoded texture allocations; packing empty canvas space while preserving source pixels reduced the estimated allocation. The outline/ghost incident showed that every secondary sampler must carry packed crop bounds, not just the main sprite shader. Future sprite batches should verify backup hashes, pack unique sources, roundtrip-check pixels, test UVs/effects/failure fallback, use a bounded shared decode cache, retain original-sheet fallback, then compare visuals and RAM in the browser. Original sheets remain active for `?sprites=original` and load failure; `catalog_v1` is the active packed set. The earlier `rival_yakuza_v1` packed trial and superseded Kuroda review previews are archived locally. Generated perf audit files remain locally because the packer reads them.
 
+## City decisions at 2 Hz while away (2026-11-05)
+
+Lag step 1 done: while no player hero is in the city, crew/police/geisha target searches, sector cleanup and recovery threat scans run at 2 Hz (`settings.json` `cityDecisions.awayHz`, 0 = off); movement and swings stay at 20 Hz. Measured 12.2 → 9.1 ms per tick. Guard test `game/tools/test_city_decisions.mjs`. Step 2 (spatial grid for vision and targets) is still parked. See the lag note in L3.9 of `frontier_build_steps.md`.
+
 ## Remaining diagnosis
 
 During the final playtest, compare map/input responsiveness while paused versus running, exercise normal movement and bot contracts, and capture a Firefox performance profile if the lag is present. The Node harness excludes browser events, DOM/layout, paint, GPU and frame presentation. Manual browser checks remain pending. Workers cannot directly access the DOM and require message-based data transfer.

@@ -155,6 +155,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Settings → Save game | Save the city now under a name (any time). |
 | Settings → saved games list | Load any saved clan or Classic/campaign match, or Delete a save (moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |
 | Settings → saved games list → Overwrite | Replace that save with the current game. Click twice to confirm (the first click shows "Sure?") (Tim 2026-11-04). |
+| Start screen → Mode | Classic: the city only, with the season and Renown. Campaign (early): the city plus the island (gate, camps, towns, settlers), no season end. Chosen once per match; saves remember it (2026-11-05). |
 | Start screen → Continue / Load game | Continue loads the newest save; Load game opens the saved-games list. Both need a second click to confirm (the first click arms the button; any other click disarms it) (Tim 2026-11-04). The Load list also has Delete, with an in-game confirmation (checked by Tim 2026-11-02). |
 | Alt+Enter / fullscreen | Fullscreen toggle; short Escape stays with game UI only where Keyboard Lock is supported/allowed. Browser long-Escape exit remains. [Capability limits](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) |
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |

@@ -38,6 +38,14 @@ Multiplayer later: the sim box moves to the server; browsers send commands up an
 3. `createView()` builds the three.js scene from the sim's scenery, rooms and doors.
 4. Every frame: add elapsed time; while a full tick (1/20 s) has built up, copy the state as `prev` and call `game.step(commands)` with the hero's move command plus any queued clicks and keys. Then `view.render(state, prev, alpha)` draws, blending positions between `prev` and `state` so movement looks smooth at any frame rate.
 
+## Match modes (2026-11-05)
+
+A match is Classic or Campaign, chosen once on the start screen and kept in saves (`state.match.mode`).
+- **Rule sets** live in `game/src/sim/modes/` (`classic.js`, `campaign.js`, `index.js`). Each is a frozen list of capabilities: `seasonEnds`, `island`, `founding`.
+- **`modeRules(state)`** is the one place a mode becomes rules. Core and UI code ask `modeRules(state).<capability>` and never compare the mode name.
+- **Lean Classic:** a match without the island never builds the island, its camps or the frontier, in the sim or the view (`main.js` decides once at boot). Classic imports nothing from `sim/frontier`.
+- **Guard tests:** `test_mode_separation.mjs` (Classic stays free of frontier code), `test_mode_baseline.mjs` with `mode_baseline.json` (Classic behaviour unchanged), `test_lean_classic.mjs` (nothing island-side is built in Classic).
+
 ## Features: where the docs and code are
 
 | Feature | Spec doc | Main code |

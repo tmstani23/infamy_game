@@ -97,8 +97,8 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
    - The governor fills whatever the player hasn't placed or zoned, and never repaints the player's cells.
    - Today's types map to: house → housing zone, farm → farm zone, workshop → work zone; lumber_camp and quarry → placed node camps (drop-offs); town_hall, storehouse and stockade are placed.
 2. **Zone health** = needs met (food, workers, road access). Healthy zones grow; only housing grows in stages for now (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned: empty, no output; it recovers when needs return, nothing is destroyed. Building looks show zone health. Later, a zone's level unlocks options when clicked.
-3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6.1 tiers). The core area and grid grow with the tier.
-4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Housing and work zones go only inside a core around the hall; the starting core is pretty big, so layouts vary and the town isn't just a clump. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
+3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6.1 tiers). **Updated (Tim, 2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b6).
+4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Zones, town buildings, walls and gates go only inside the tier's build ring (150 / 300 / 600 units; Tim, 2026-11-05, replaces the separate core); only roads and work camps may go outside. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
 5. **Construction phases:** cleared → frame → finished. Stock is paid at the start, then workers and time. Overgrown cells are cleared by workers automatically. Founding paints a cleared-ground patch under the new town; the current dirt-trail ground patch is the stand-in for the clearing texture.
 6. **Build bar (town panel).** Roads, walls, zone brushes (housing, farm, work), eraser, plus the placed buildings. Click-drag rectangles; the ghost is green (allowed) or red with the reason; right click or Esc cancels. Buildable ground only, not road or water. Zone cells grow only within a few cells of a town road ("needs road" otherwise). Farm cells become crop fields with a farmhouse every few cells. The zone tint shows only while the build bar is open, plus a health tint overlay. Clicking a building shows a tooltip: what it is, its zone, its state and the zone's state. Mock first, Tim approves before building.
 7. **Roads and walls for Loop 3:** town roads, stockade ring, gates and the "would trap" check. World roads wait for F3.
@@ -327,6 +327,7 @@ layer; discovery and fog apply. Render reads the snapshot only.
 Check (pass/fail): `.mjs` syntax copies pass; a pure helper `townCellsToProps(grid)` is tested.
 In game (Tim): the town, its fields and its spots read clearly; harvested trees show stumps.
 Done note: "L3.7 town and spots drawn."
+Built notes (2026-11-05): town roads use 16 neighbour-mask road tiles (`game/art/ground/road/`, made by `game/tools/build_road_tiles.py`); crop fields use a seamless fields texture; `townGrid.cliffMargin` (1 cell) keeps town cells off cliff edges.
 
 Built (2026-11-04): grid-derived town, construction and zone-stage art; resource pieces by harvest stage, hover twinkle and card, discovered/zoomed minimap spots and World Spots layer. Snapshot sends the own town grid and discovered changed spot states. Existing art only; no navigation or harvesting changes. `test_town_drawing.mjs` and relevant worker, frontier, map and sim checks pass; syntax/diff checks pass. Pre-existing failures: `test_crew.mjs:97` (teahouse vs street) and `test_town_world.mjs:20` (`zone:h` art assertion), both reproduced before and after. Visual review remains pending with L3.6; next L3.8. The card's file list omitted main/view/game-map wiring and the snapshot seam.
 
@@ -375,7 +376,7 @@ Stock hover and Usage now show supply, consumption, full demand, pending constru
 
 **Fix validation reported by implementation chat:** `test_building_safety`, `test_frontier_fix_phase`, extended workers/build UI/panel tests, founding, frontier placement/construction/zones/economy/governor/snapshot/commands/data/world/guards/followup, town drawing/ground, areas, crew, Shinobi HQ, sim worker and target controls passed. Syntax checks passed for 39 changed/new JS/MJS files and diff check passed. `test_realtime_loop.mjs:34` expects a clock loop already absent at baseline `7fac466`; not changed. Previously documented dismissal/town_world failures were not rerun. No full suite, browser automation or visual acceptance claimed.
 
-**Performance: lag bug FIXED (2026-11-05, Tim OK).** Severe stutter and freezes in the city and near workers came from the sim falling behind, not drawing. Root causes and fixes: (a) a stuck worker's reroute cleared the shared path cache on every retry: `workers.js` now replans at most once a second, never clears the global cache, snaps a stuck worker loose and shows a 'Stuck' status; (b) patrol map builds: `deployment.js` uses a patrol mask table with a bbox pre-check, and `warmNavs` prebuilds the patrol navs at match load (called from `game.js`); (c) catch-up bursts: `fixed_step_clock` `maxBacklog` and `sim_worker_runtime` `maxSteps` 2. Also fixed: `world_ground.js` harvest-art refresh batched (max 2 per second, cached prop keys); `sector_recovery.js` checks threats before `vision.canSee`; `main.js` `status()` null-safe; the P readout has a Sim line (`fps.js`, `main.js`); the Workers pane has an Idle tab plus a Controls row. **Parked:** step 1, city decisions at 2 Hz while the hero is away (crew is 35% and police 26% of tick time); step 2, a spatial grid for vision and targets. Profile tool: `node --cpu-prof to_delete/_chk/probe_save.mjs <save> <ticks>`.
+**Performance: lag bug FIXED (2026-11-05, Tim OK).** Severe stutter and freezes in the city and near workers came from the sim falling behind, not drawing. Root causes and fixes: (a) a stuck worker's reroute cleared the shared path cache on every retry: `workers.js` now replans at most once a second, never clears the global cache, snaps a stuck worker loose and shows a 'Stuck' status; (b) patrol map builds: `deployment.js` uses a patrol mask table with a bbox pre-check, and `warmNavs` prebuilds the patrol navs at match load (called from `game.js`); (c) catch-up bursts: `fixed_step_clock` `maxBacklog` and `sim_worker_runtime` `maxSteps` 2. Also fixed: `world_ground.js` harvest-art refresh batched (max 2 per second, cached prop keys); `sector_recovery.js` checks threats before `vision.canSee`; `main.js` `status()` null-safe; the P readout has a Sim line (`fps.js`, `main.js`); the Workers pane has an Idle tab plus a Controls row. **Step 1 done (2026-11-05):** while no player hero is in the city, crew/police/geisha target searches, sector cleanup and recovery threat scans run at 2 Hz (`settings.json` `cityDecisions.awayHz`, 0 = off); movement and swings stay at 20 Hz; guard test `test_city_decisions.mjs`. Step 2 (spatial grid) still parked. Profile tool: `node --cpu-prof to_delete/_chk/probe_save.mjs <save> <ticks>`.
 
 **Further playtest and delivery-log follow-up (2026-11-04; uncommitted):** Tim likes the overhead collection/cargo icons and resource/amount labels, confirms the minimap fixes work well and reports timber and stone balance well. Goods accumulate excessively; numbers/balance tuning is explicitly deferred, so production rates stay as they are for this pass. Routine worker-delivery town/news popups were replaced by a bounded per-town saved worker log (last 64 by default, configurable via `workers.logEntries`) recording tick, worker ID, resource, amount and drop-off. The Workers pane has Workers and newest-first Log tabs with match time and paging; older saves without history are supported. Cargo icons and minimap code are unchanged; Controls includes Workers → Log. Targeted `test_frontier_workers`, `test_frontier_build_ui`, `test_frontier_snapshot` and `test_frontier_panel` passed, including history bounds/save-load/conservation, absence of delivery alerts and log tab/paging checks. Full Loop 3 acceptance remains open.
 
@@ -393,6 +394,47 @@ Stock hover and Usage now show supply, consumption, full demand, pending constru
 
 **Loop end:** tests pass; Docs keeper commits "Loop 3: gather and build" and ticks the F5 steps it
 closed (F5.1 grid, F5.2 placement, F5.3 zones, F5.4 controls, the F5.x zones card).
+
+## Economy balance pass (B0-B6)
+
+Agreed with Tim on 2026-11-05 (thread "Plan harvest system balancing"); Tim OK'd it for the plan. Nothing is built yet. All numbers are placeholders in `game/data/frontier.json` with `"_note": "placeholder, Tim to tune"`.
+
+**Problem.** Towns pile up huge stocks (the playtest town had 10,658 food, 14,588 stone and 7,290 goods at 27 pop) and can expand forever. The only steady sink is food eaten by townspeople, and trained workers eat nothing (food is eaten only by `s.pop`).
+
+**Design (Tim, 2026-11-05)**
+1. **Storage caps, set fairly high.** Each resource has a cap set by the hall tier; storehouses raise it. A full resource idles its workers and alerts the governor; with initiative On the governor moves them, with Ask first it only alerts. Ryo has no cap (Tim to confirm).
+2. **Upkeep.** Grown zones and placed buildings use a little timber and stone; workers and troops eat food and draw ryo wages. Upkeep grows with town size; a small town pays nothing.
+3. **Goods needs by housing level.** Level 1 housing needs only food; level 2+ needs a trickle of goods. Without goods housing stops leveling (no decline, a small mood dip). A small work zone is allowed at tier 1 and the founding stock brings a few goods. No firewood.
+4. **Town hall tiers** limit the build ring, the number of placed buildings and the cells per zone type (the build bar shows e.g. "Farm 16 / 24 cells"; painting past it gives a red ghost "Town hall tier limit"). Upgrading costs a big chunk of stock and a minimum population. The governor suggests upgrades; the player decides.
+5. **One build ring per tier: 150, 300, 600 units** (a City tier later). Every zone, town building, wall and gate sits inside it; only roads and work camps go outside. Replaces the separate core (`coreRadius` + `corePerTier` in `town_grid.js`).
+6. **Fewer, bigger towns.** Founding `minSpacing` goes from 1,000 to 1,600 so 600-unit rings never overlap. All 60 sites stay; bots skip sites too close to a town, so whoever founds first claims the area.
+
+Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left for the raid and cart work).
+
+**Starting numbers (placeholders)**
+
+| | Tier 1 Camp | Tier 2 Village | Tier 3 Town |
+|---|---|---|---|
+| Build ring (units) | 150 | 300 | 600 |
+| Housing / farm / work cells | 24 / 16 / 4 | 60 / 40 / 12 | 120 / 80 / 30 |
+| Storage cap per resource | 1,000 | 3,000 | 8,000 |
+| Storehouses (+500 cap each) | 1 | 2 | 4 |
+| Work camps (lumber, quarry, fishing, farmstead) | 2 | 4 | 8 |
+| Unlocks | hall, houses, farms, small work zone, storehouse, camps | market, stockade | barracks, walls (F6) |
+| Upgrade to this tier | at founding | pop 20; timber 300, stone 150, goods 40 | pop 60; timber 1,200, stone 800, goods 250 |
+
+Farmsteads count against the farm cell limit. Upkeep per economy tick (1 s), only for cells above a free 12 per town: housing 0.003 timber per level; farm 0.002 timber; work 0.003 timber + 0.002 stone; storehouse 0.01 timber; stockade 0.02 stone; wall or gate cell 0.002 stone; workers 0.01 food each plus 0.002 ryo. Unpaid upkeep lowers zone health (existing health and abandon rules); placed buildings stop until paid. Goods: 0.002 per housing cell at level 2, 0.004 at level 3; short on goods = no level-ups and mood factor 90; founding `startStock` gains 10 goods. Ballpark: a capped tier 2 town (~140 cells) needs about 20 timber and 12 goods per minute.
+
+**Phases** (each is a checkpoint: the game runs and Node tests pass)
+- **B0. Baseline soak test.** New `game/tools/test_economy_soak.mjs`: a founded town with the governor On for about 3 in-game hours of economy ticks, logging stock, pop, workers and cells. Today it shows unbounded growth; later phases flip that.
+- **B1. Workers eat.** Food eaten = `rates.food * (pop + workers)` in `economy.js`; food report and alerts count workers. Test: workers and no farms runs short on food.
+- **B2. Storage caps.** `world.change` clamps every resource except ryo (excess logged as `'overflow'`); in `workers.js` a worker whose resource is full holds at the drop-off as "Store full" (counts as idle); the governor reassigns with initiative On; `alerts.js` adds a `full` alert; the town panel shows value / cap. Test: `test_frontier_storage.mjs`.
+- **B3. Town hall tiers and the ring.** `tiers` data in `frontier.json`; `inCore` becomes `inRing` for zones, placed town buildings, walls and gates (roads and work camps exempt); per-kind cell caps and placed counts; an `upgradeHall` command (cost, pop, build time) for players and bots alike; the governor suggests upgrades; the build bar shows cell counts and the ring. Old saves start at tier 1 and keep cells beyond the limits, but can't add more. Test: `test_frontier_tiers.mjs`.
+- **B4. Founding spacing.** `founding.minSpacing` 1600; bot founding skips sites within 1,600 of a town. Test: extend the founding tests.
+- **B5. Upkeep and goods needs.** An `upkeep` step in `economy.js` charges cells, buildings and wages after the free allowance; unpaid lowers health; housing level-up checks goods. Tests: `test_frontier_upkeep.mjs`, `test_frontier_needs.mjs`.
+- **B6. Tune with the soak test** for a governor-on town and a bot town. Pass: no resource sits at its cap for more than about 20% of the run (unless the player chose it); a new town gets its first house and farm with no shortage in the first 10 minutes; tier 2 in about 30 to 45 minutes. Then Tim playtests.
+
+**Avoid:** the lag work owns `game.js` city decisions and the crew and police files; this pass doesn't touch them. New controls (upgrade button, ring display) go in the Controls panel in the same change.
 
 ## Progress checklist
 
@@ -413,6 +455,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E6b · [ ] E7 playtest
+- [ ] **B** Economy balance: [ ] B0 soak test · [ ] B1 workers eat · [ ] B2 storage caps · [ ] B3 hall tiers and ring · [ ] B4 founding spacing · [ ] B5 upkeep and goods needs · [ ] B6 tune
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
 - [ ] **F6** Armies: [ ] 6.1 choices · [ ] 6.2 · [ ] 6.3a · [ ] 6.3b · [ ] 6.3c · [ ] 6.4 · [ ] 6.5 · [ ] 6.6 · [ ] 6.7 playtest · [ ] 6.8 second slice
@@ -1838,7 +1881,7 @@ settlers and optional riflemen. Settlers cost 60 ryo each (placeholder), are hir
 mode only and don't count against the crew cap. Founding costs 500 ryo (placeholder), paid at
 founding. More towns can be founded later, each with a new expedition. ~~Founding is allowed only on a
 scouted site (one of the ~60 W1 sites).~~ **Updated (Tim, 2026-11-02):** the player can found a town
-anywhere buildable, at least 1,000 units from other towns; the 60 sites are hint spots with known
+anywhere buildable, at least 1,600 units from other towns (Tim, 2026-11-05, B4; 1,000 until B4 is built); the 60 sites are hint spots with known
 traits. Bots found only on the 60 sites. Traits are computed for any spot from the terrain. Losses on the way: a settler who dies is gone for good; if
 the hero is knocked out, he wakes in the city and the rest of the party walks home.
 
@@ -1856,12 +1899,12 @@ Done note: "E2 settler unit in."
 Needs: E2, F2 done, W4.4
 Files: `game/src/sim/frontier/commands.js`, `game/src/sim/frontier/world.js`, new `game/tools/test_founding.mjs`.
 Do: action `found { site }` is valid when the hero and at least the E1 number of settlers stand
-on a buildable spot at least 1,000 units from other towns (bots: within 30 units of an unclaimed
+on a buildable spot at least `founding.minSpacing` (1,600 from B4) units from other towns (bots: within 30 units of an unclaimed
 W1 site) in campaign mode. It pays the founding cost, turns the
 settlers into the town's first people, creates a settlement record (Shared design shape) with the
 spot's traits (computed from terrain), sets the owner, places a tier 1 town hall (F6.1) and queues a stockade project.
 Check (pass/fail): a valid found creates exactly one settlement and removes exactly those settler
-entities; founding on unbuildable ground, within 1,000 units of a town, or with too few settlers, is rejected and changes
+entities; founding on unbuildable ground, too close to a town, or with too few settlers, is rejected and changes
 nothing; a founded town survives save/load.
 Done note: "E3 founding in."
 
