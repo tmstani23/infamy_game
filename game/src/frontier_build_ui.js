@@ -7,9 +7,17 @@ import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
 import { spotYield } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
+import { workerPanelHTML } from './worker_panel.js';
+import { buildTooltip } from './build_tooltips.js';
+import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const costs = cost => Object.entries(cost || {}).map(([r, n]) => `${n} ${r}`).join(', ') || 'free';
+
+export function resourceRequirements(s, cost = {}, people = 0) {
+  return [...Object.entries(cost).map(([r,n]) => `${townName(r)}: need ${n}, have ${Math.floor((s.stock?.[r] || 0)*100)/100}${(s.stock?.[r] || 0)<n ? ` · missing ${Math.ceil((n-(s.stock?.[r] || 0))*100)/100}` : ''}`),
+    ...(people ? [`People: need ${people}, have ${s.pop}${s.pop<people ? ` · missing ${people-s.pop}` : ''}`] : [])].join('\n') || 'No resource cost';
+}
+export const affordable = (s, cost) => Object.entries(cost || {}).every(([r,n]) => (s.stock?.[r] || 0) >= n);
 
 export function rectangleCells(s, first, last) {
   const n = s.grid.n;
@@ -33,7 +41,7 @@ export function buildPreview(s, request, data) {
   const placement = createPlacement({ data, construction: { cancel() {} } });
   const zones = createZones({ data });
   const result = request.action === 'zone' ? zones.zone(s, { ...request, dryRun: true })
-    : request.action === 'remove' ? placement.remove(structuredClone(s), request) : placement.check(s, request);
+    : request.action === 'remove' ? placement.remove(s, {...request,dryRun:true}) : placement.check(s, request);
   if (result.ok && request.action === 'zone') {
     const reach = data.zones.kinds[request.kind].needs?.roadReach;
     if (result.cells.some(i => !zones.roadNear(s, i, reach))) return { ...result, warning: 'Needs road to grow' };
@@ -45,13 +53,18 @@ export function buildPreview(s, request, data) {
   return result;
 }
 
-export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, blocked = () => false }) {
+export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, blocked = () => false }) {
   let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null;
+  let inspectionHtml = '', inspectionPressed = false;
+  let pendingPlan = null, reviewHtml = '', reviewPressed = false;
+  let workerPage = 0;
+  let workersOpen = false;
   let lastPreview = '', preview = null, seen = 0, messageUntil = 0;
   const overlay = document.createElement('canvas'), hint = document.createElement('div'), card = document.createElement('div');
+  const review = document.createElement('div'); review.id = 'townbuildreview'; review.hidden = true;
   overlay.id = 'townbuildoverlay'; hint.id = 'townbuildhint'; card.id = 'towninspect';
   hint.hidden = card.hidden = true; overlay.hidden = true;
-  document.body.append(overlay, hint, card);
+  document.body.append(overlay, hint, card, review);
   const hero = () => game.state.entities[heroId];
   const towns = () => Object.values(game.state.frontier?.settlements || {}).filter(s => !s.capital && s.owner === hero()?.owner && s.grid);
   const current = () => towns().find(s => s.id === town);
@@ -61,9 +74,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const selectedLive = () => towns().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
-  function cancel() { tool = null; drag = null; mouse = null; preview = null; lastPreview = ''; hint.hidden = true; crewInput.cancelPointer(); }
-  function close() { cancel(); opened = false; }
-  function say(text) { hint.textContent = text; delete hint.dataset.ok; hint.hidden = false; messageUntil = Date.now() + 5000; }
+  function cancel() { tool = null; drag = null; pendingPlan = null; review.hidden = true; mouse = null; preview = null; lastPreview = ''; hint.hidden = true; crewInput.cancelPointer(); }
+  function close() { cancel(); opened = false; workersOpen = false; }
+  function say(text) { hint.textContent = text; delete hint.dataset.ok; hint.hidden = false; hint.style.left = '24px'; hint.style.top = '130px'; messageUntil = Date.now() + 5000; }
   function spotAt(x, y) {
     const p = view.screenToGround(x, y), cfg = data.townArt._spots;
     if (!p) return null;
@@ -97,7 +110,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function select(ids) {
     selected = ids;
-    if (ids.length) { crewInput.cancelPointer(); crewInput.clear(); }
+    if (ids.length) { cancel(); crewInput.clear(); }
     inspect = null; card.hidden = true;
   }
   function assign(spot) {
@@ -107,6 +120,16 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     say(`Harvest order: ${townName(spot.kind)}`);
   }
+  function orderSelected(kind,position={}) {
+    for(const s of towns()) {
+      const ids=selectedLive().filter(p=>p.s.id===s.id).map(p=>p.w.id);
+      if(ids.length)command({action:'workerOrder',town:s.id,workers:ids,kind,...position});
+    }
+    say(kind==='hold'?'Workers: stand here':'Worker move order sent');
+  }
+  function requestTraining(id) {cancel();pendingPlan={tool:'worker training',request:{action:'train',town:id,count:1}};}
+  const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost},data.workers.personCost)
+    + `\nTrains a selectable worker for harvesting and ground clearing.\nRequires a finished town hall. Training: ${data.workers.trainTicks / 20} seconds. Keep ${data.opening?.reservePeople || 0} townsperson for food/building.\nTechnology: none.\nEnables manual move, stop, group and resource orders.`;
   function showInspection() {
     if (!inspect || !outdoors() || blocked()) { card.hidden = true; return; }
     let info, trainTown;
@@ -124,34 +147,65 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!info) { card.hidden = true; return; }
     const html = `<button data-close aria-label="Close inspection">×</button><b>${esc(info.title)}</b>`
       + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
-      + (info.hall ? `<button data-train="${esc(trainTown.id)}">Train worker · ${data.workers.cost} ryo, ${data.workers.personCost} person</button>` : '');
-    if (card.innerHTML !== html) card.innerHTML = html;
+      + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo, ${data.workers.personCost} person</button><div data-worker-training></div>` : '');
+    // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
+    if (inspectionHtml !== html && !inspectionPressed) { card.innerHTML = html; inspectionHtml = html; }
+    const training=card.querySelector?.('[data-worker-training]');
+    if(training && info.hall)training.innerHTML=workerTrainingHTML(trainTown,game.state.tick,data);
     card.hidden = false;
   }
   card.addEventListener('click', e => {
+    inspectionPressed = false;
     const b = e.target.closest('button');
-    if (b?.dataset.train) command({ action: 'train', town: b.dataset.train, count: 1 });
+    if (b?.dataset.train) requestTraining(b.dataset.train);
+    if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }
     if (b?.hasAttribute('data-close')) { inspect = null; card.hidden = true; }
   });
-  card.addEventListener('mousedown', e => e.stopPropagation());
+  card.addEventListener('mousedown', e => { inspectionPressed = true; e.stopPropagation(); });
+  review.addEventListener('mousedown', e => { reviewPressed = true; e.stopPropagation(); });
+  review.addEventListener('click', e => {
+    reviewPressed = false;
+    const b = e.target.closest('button');
+    if (!b || !pendingPlan) return;
+    if(b.dataset?.trainingCount) {pendingPlan.request.count=Math.max(1,pendingPlan.request.count+Number(b.dataset.trainingCount));return;}
+    if (b.hasAttribute('data-confirm')) {
+      const s = towns().find(s => s.id === pendingPlan.request.town);
+      const result = s && (pendingPlan.request.action==='train'?workerTrainingPreview(s,pendingPlan.request.count,data):buildPreview(s,pendingPlan.request,data));
+      if (!result?.ok || !affordable(s,result.cost)) { say(result?.reason || 'Resources changed; review the requirements'); return; }
+      command(pendingPlan.request); say(`${townName(pendingPlan.tool)}: ordered`);
+    }
+    pendingPlan = null; review.hidden = true;
+  });
+  addEventListener('mouseup', () => { inspectionPressed = false; reviewPressed = false; });
   addEventListener('keydown', e => {
+    if(e.code==='KeyZ' && selected.length && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
+      orderSelected('hold');consume(e);return;
+    }
     if (e.code !== 'Escape' || e.target?.closest?.('input, select, textarea')) return;
-    const active = outdoors() && !blocked() && (!!tool || !!drag);
+    const active = outdoors() && !blocked() && (!!tool || !!drag || !!pendingPlan);
     cancel(); selected = []; inspect = null; card.hidden = true;
     // First Escape cancels a brush; a second follows the normal close-menu shortcut.
     if (active) consume(e);
   }, { capture: true });
   addEventListener('blur', cancel);
   addEventListener('mousedown', e => {
+    if (e.button === 0 && !e.target?.closest?.('#towninspect')) { inspect = null; card.hidden = true; }
     if (!canvasEvent(e)) return;
+    if (e.button === 0) { pendingPlan = null; review.hidden = true; }
     if (e.button === 2 && tool) { cancel(); consume(e); return; }
     const spot = e.button === 2 && selectedLive().length ? spotAt(e.clientX, e.clientY) : null;
     if (spot) { assign(spot); consume(e); return; }
+    if(e.button===2 && selectedLive().length) {
+      const point=view.screenToGround(e.clientX,e.clientY);
+      if(point)orderSelected('move',point);
+      consume(e);return;
+    }
     if (e.button !== 0) return;
     const cell = cellAt(e.clientX, e.clientY);
-    drag = { x: e.clientX, y: e.clientY, first: cell, build: opened && !!tool };
+    const workerHit = !tool && workers().some(p => bodyDistance(view, p.e, e.clientX, e.clientY) < 22);
+    drag = { x: e.clientX, y: e.clientY, first: cell, build: opened && !!tool && !workerHit };
     if (drag.build) { consume(e); return; }
-    if (workers().some(p => bodyDistance(view, p.e, e.clientX, e.clientY) < 22)) consume(e);
+    if (workerHit) consume(e);
   }, { capture: true });
   addEventListener('mousemove', e => {
     mouse = canvasEvent(e) ? { x: e.clientX, y: e.clientY } : null;
@@ -164,8 +218,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const s = current(), last = cellAt(e.clientX, e.clientY);
       if (s && d.first >= 0 && last >= 0) {
         const request = buildRequest(s, tool, d.first, last, data), result = buildPreview(s, request, data);
-        if (result.ok) command(request);
-        say(result.ok ? `${townName(tool)}: ordered${result.warning ? ' · ' + result.warning : ''}` : result.reason);
+        if (data.buildUI?.confirmDrag) { pendingPlan = { request, tool }; }
+        else if (result.ok) command(request);
+        say(result.ok ? data.buildUI?.confirmDrag ? 'Review requirements, then Confirm or Cancel' : `${townName(tool)}: ordered${result.warning ? ' · ' + result.warning : ''}` : result.reason);
       } else say('Outside town grid');
       crewInput.cancelPointer(); consume(e); return;
     }
@@ -186,15 +241,23 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (spot || hit) {
       inspect = spot ? { spot: spot.id } : { town: hit.s.id, cell: hit.cell };
       showInspection(); crewInput.cancelPointer(); consume(e);
-    } else selected = [];
+    } else { selected = []; inspect = null; card.hidden = true; }
   }, { capture: true });
 
-  function polygon(ctx, s, i, color) {
+  function polygon(ctx, s, i, color, status = null) {
     const [x, z] = cellToWorld(s, i), r = s.grid.cell / 2;
     const points = [[x-r,z-r], [x+r,z-r], [x+r,z+r], [x-r,z+r]].map(([a,b]) => view.unitToScreen(a,b,0.08));
     if (points.every(p => p.x < 0) || points.every(p => p.x > innerWidth) || points.every(p => p.y < 0) || points.every(p => p.y > innerHeight)) return;
-    ctx.beginPath(); points.forEach((p,j) => j ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y)); ctx.closePath();
-    ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.stroke();
+    const round=data.buildUI?.cornerRoundness || 0.08;
+    ctx.beginPath();
+    points.forEach((p,j)=>{
+      const prev=points[(j+3)%4],next=points[(j+1)%4];
+      const incoming={x:p.x+(prev.x-p.x)*round,y:p.y+(prev.y-p.y)*round};
+      const outgoing={x:p.x+(next.x-p.x)*round,y:p.y+(next.y-p.y)*round};
+      if(j)ctx.lineTo(incoming.x,incoming.y);else ctx.moveTo(incoming.x,incoming.y);
+      ctx.quadraticCurveTo(p.x,p.y,outgoing.x,outgoing.y);
+    });ctx.closePath();
+    ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = status || 'rgba(245,237,208,.45)'; ctx.lineWidth = status ? 2 : 1; ctx.stroke();
   }
   function visibleCells(s) {
     const corners = [[0,0],[innerWidth,0],[innerWidth,innerHeight],[0,innerHeight]].map(([x,y]) => view.screenToGround(x,y)).filter(Boolean);
@@ -209,14 +272,28 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function update() {
     for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) {
       seen = r.seq;
-      if (!r.ok && ['place', 'remove', 'zone', 'assign', 'train'].includes(r.action)) say(`Not possible: ${r.reason}`);
+      if (!r.ok && ['place', 'remove', 'zone', 'assign', 'train', 'workerOrder'].includes(r.action)) say(`Not possible: ${r.reason}`);
     }
     selected = selectedLive().map(p => p.w.id);
     if (crewInput.selected().length) selected = [];
     const s = current(), show = outdoors() && !blocked();
     if (!show && drag) { cancel(); }
-    overlay.hidden = !show || (!opened && !selected.length && !drag);
+    overlay.hidden = !show || (!opened && !selected.length && !drag && !pendingPlan);
     showInspection();
+    review.hidden = !show || !pendingPlan;
+    if (show && pendingPlan) {
+      const plannedTown = towns().find(t => t.id === pendingPlan.request.town);
+      if (!plannedTown) { pendingPlan = null; review.hidden = true; }
+      else {
+        const isTraining=pendingPlan.request.action==='train';
+        const result = isTraining?workerTrainingPreview(plannedTown,pendingPlan.request.count,data):buildPreview(plannedTown,pendingPlan.request,data), enough = affordable(plannedTown,result.cost);
+        const requirements=pendingPlan.request.action==='remove' ? '100% refund: '+(Object.entries(result.refund || {}).map(([r,n])=>`${n} ${r}`).join(', ') || 'no paid resources') : resourceRequirements(plannedTown,result.cost,isTraining?result.people:0);
+        const quantity=isTraining?`<div><button data-training-count="-1">−</button> ${pendingPlan.request.count} workers <button data-training-count="1">+</button></div><div>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. Training time: ${pendingPlan.request.count*data.workers.trainTicks/20}s, plus existing queue.</div>`:'';
+        const html = `<b>${esc(townName(pendingPlan.tool))}${isTraining?'':' · '+(result.cells?.length || pendingPlan.request.cells.length)+' cell(s)'}</b>${quantity}<div class="requirements">${esc(requirements)}</div>`
+          + `<div>${esc(result.reason || result.warning || '')}</div><button data-confirm ${result.ok && enough ? '' : 'disabled'}>Confirm</button><button data-cancel>Cancel</button>`;
+        if (html !== reviewHtml && !reviewPressed) { review.innerHTML = html; reviewHtml = html; }
+      }
+    }
     if (!show) { hint.hidden = true; return; }
     if (!s && opened) close();
     if ((!tool || !mouse) && Date.now() > messageUntil) hint.hidden = true;
@@ -226,19 +303,25 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (opened && s) {
       const visible = visibleCells(s), definitions = Object.fromEntries(Object.entries(data.zones.kinds).map(([kind,k]) => [k.char,kind]));
       for (const i of visible) {
+        if (s.grid.ground[i] !== 'x') polygon(ctx,s,i,'rgba(235,225,200,.025)');
         const entry = definitions[s.grid.zone[i]];
         if (!entry) continue;
-        const z = s.zones?.[entry], color = z?.abandoned ? 'rgba(160,55,50,.45)' : (z?.health ?? 1) < data.zones.healthyAt ? 'rgba(230,160,40,.35)' : ({ h:'rgba(90,160,240,.3)',f:'rgba(100,200,100,.3)',k:'rgba(190,120,230,.3)' }[s.grid.zone[i]]);
-        polygon(ctx,s,i,color);
+        const z = s.zones?.[entry], color = data.buildUI?.zoneColors?.[entry] || ({h:'#5aa0f0',f:'#64c864',k:'#be78e6'}[s.grid.zone[i]]);
+        const status = z?.abandoned ? '#ff635a' : (z?.health ?? 1) < data.zones.healthyAt ? '#ffbe48' : null;
+        polygon(ctx,s,i,color + '30',status || color);
       }
-      if (tool && mouse) {
-        const last = cellAt(mouse.x,mouse.y), first = drag?.build ? drag.first : last;
-        const request = buildRequest(s,tool,first,last,data), key = JSON.stringify([game.state.tick,s.id,request]);
+      if (pendingPlan && pendingPlan.request.action!=='train' || !pendingPlan && tool && mouse) {
+        const last = mouse ? cellAt(mouse.x,mouse.y) : -1, first = drag?.build ? drag.first : last;
+        const request = pendingPlan?.request || buildRequest(s,tool,first,last,data), key = JSON.stringify([game.state.tick,s.id,request]);
         if (key !== lastPreview) { lastPreview = key; preview = buildPreview(s,request,data); }
         const cells = new Set(preview.cells?.length ? preview.cells : request.cells);
-        for (const i of visible) if (cells.has(i)) polygon(ctx,s,i,preview.ok ? 'rgba(80,235,120,.45)' : 'rgba(245,70,60,.5)');
+        const zoneColor = data.buildUI?.zoneColors?.[pendingPlan?.tool || tool];
+        for (const i of visible) if (cells.has(i)) {
+          if(preview.reason==='occupied' && s.grid.zone[i]!=='.')continue;
+          polygon(ctx,s,i,preview.ok ? zoneColor ? zoneColor + '66' : 'rgba(80,235,120,.4)' : 'rgba(245,70,60,.4)');
+        }
         if (Date.now() > messageUntil) {
-          hint.textContent = preview.ok ? `${townName(tool)} · ${costs(preview.cost)}${preview.warning ? ' · ' + preview.warning : ''}` : preview.reason;
+          hint.textContent = preview.ok ? `${townName(pendingPlan?.tool || tool)} · ${resourceRequirements(s,preview.cost)}${preview.warning ? ' · ' + preview.warning : ''}` : `${preview.reason} · ${resourceRequirements(s,preview.cost)}`;
           hint.hidden = false; hint.dataset.ok = String(preview.ok);
         }
       }
@@ -252,21 +335,42 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function html(s) {
     if (town !== s.id) { close(); town = s.id; }
-    const button = (id, label) => `<button data-act="build-tool" data-id="${esc(id)}" class="${tool === id ? 'on' : ''}" aria-pressed="${tool === id}">${esc(label)}</button>`;
+    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{selected,index:spotIndex,data,page:workerPage,known})}</div>`;
+    const button = (id, label) => {
+      const color = data.buildUI?.zoneColors?.[id],text=buildTooltip(id,s,data,resourceRequirements);
+      return `<button data-act="build-tool" data-id="${esc(id)}" data-tip="${esc(text)}" ${color ? `style="border-color:${color};color:${color}"` : ''} class="${tool === id ? 'on' : ''}" aria-pressed="${tool === id}">${esc(label)}</button>`;
+    };
+    const steps = [[s.grid.zone.includes('h'),'Housing'],[s.grid.zone.includes('f'),'Farms'],[/[rg]/.test(s.grid.use),'Roads'],[!!s.workers?.length,'Train worker'],[(s.workers || []).some(w=>spotIndex.get(w.spot)?.kind==='timber'),'Assign timber']];
+    const guide = steps.map(([done,label])=>`${done ? '✓' : '○'} ${label}`).join(' → ');
     return `<div class="townbuild"><button data-act="build-toggle" aria-expanded="${opened}">${opened ? 'Close build bar' : 'Build bar'}</button>`
+      + `<button data-act="build-workers">Workers (${s.workers?.length || 0})</button>`
       + (opened ? `<div class="buildtools">${['road','wall','gate','housing','farm','work','eraser'].map(t => button(t,townName(t))).join('')}`
         + Object.entries(data.buildings).filter(([k,v]) => v.size && !data.zones.fromBuilding[k]).map(([k]) => button(k,townName(k))).join('')
-        + `</div><div class="hint">Drag a rectangle · green allowed · red shows why · right click / Esc cancels.<br>Zones: blue housing, green farm, purple work; amber short, red abandoned.</div>` : '')
-      + `<div class="row"><button data-act="build-train">Train worker · ${data.workers.cost} ryo</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
+        + `</div><div class="hint">Drag, release, review requirements, then Confirm or Cancel. Right click / Esc cancels.<br>Zone previews match their buttons; amber border = short, red border = abandoned.</div>` : '')
+      + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
+      + workerTrainingHTML(s,game.state.tick,data)
+      + `<div class="hint">${guide}<br>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. The hall is a drop-off; a lumber camp is optional.</div>`
       + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';
   }
-  return { update, html, close, cancel, isBuilding: () => opened && !!tool,
+  return { update, html, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen,
     click(ds, s) {
       if (!ds.act.startsWith('build-')) return false;
       if (ds.act === 'build-toggle') { if (opened) close(); else { town = s.id; opened = true; } }
       if (ds.act === 'build-tool') { cancel(); tool = ds.id; }
-      if (ds.act === 'build-train') command({ action: 'train', town: s.id, count: 1 });
+      if (ds.act === 'build-train') requestTraining(s.id);
+      if (ds.act === 'build-workers') {cancel();opened=false;workersOpen=!workersOpen;}
+      if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id]);
+      if (ds.act === 'build-worker-all')select((s.workers || []).map(w=>w.id));
+      if (ds.act === 'build-worker-group')select((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));
+      if (ds.act === 'build-worker-stop')orderSelected('hold');
+      if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
+      if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}
       return true;
+    },
+    change(ds,value,s) {
+      const ids=ds.act==='build-worker-assign'?[ds.id]:ds.act==='build-worker-assign-selected'?(s.workers || []).filter(w=>selected.includes(w.id)).map(w=>w.id):[];
+      if(!ids.length || value==='')return false;
+      command({action:'workerOrder',town:s.id,workers:ids,kind:'group',group:Number(value)});return true;
     }
   };
 }

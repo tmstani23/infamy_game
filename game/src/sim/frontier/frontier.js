@@ -25,7 +25,10 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   function ensure() {
     if (state.frontier !== world.frontier) ctx.world = world = createFrontierWorld({ state, data });
     // L3.1: every positioned town gets its grid (old saves and addTown towns migrate here; spiral slots become grid cells)
-    for (const s of Object.values(state.frontier.settlements)) { if (!s.grid) ensureGrid(s, worldData, data); ensureWorkers(s); }
+    for (const s of Object.values(state.frontier.settlements)) {
+      if (!s.grid) ensureGrid(s, worldData, data); ensureWorkers(s);
+      if(s.founded!==undefined)s.roadReserve ??= data.townGrid?.hallRoadReserve || 0;
+    }
     return world;
   }
   // modules follow the current world records even after a save load swaps them (ensure)

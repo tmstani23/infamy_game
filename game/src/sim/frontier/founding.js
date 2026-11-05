@@ -85,12 +85,13 @@ export function createFounding({ state, data, world, removeUnit }) {
       region: region?.id ?? null, owner: clan.id, x: Math.round(hero.x), z: Math.round(hero.z),
       site: (wd.sites || []).find(si => Math.hypot(hero.x - si.x, hero.z - si.z) <= D.botSiteRadius)?.id ?? null,
       traits: siteTraits(wd, hero.x, hero.z, D.traits), pop: settlers.length, stock: D.startStock,
+      roadReserve: data.townGrid?.hallRoadReserve || 0,
       buildings: (D.startBuildings || [D.townHall]).map((type, i) => ({ type, stage: 'built', cell: i })),
     });
     ensureGrid(town, wd, data);   // L3.1: the town grid, water and mountain cells marked x; the hall takes the centre
     w.payFounding(clan, D.cost, town.id);
     for (const u of settlers) removeUnit(u.id);
-    construction.queue(id, D.firstProject);
+    if (D.firstProject) construction.queue(id, D.firstProject);
     return { ok: true, id };
   }
 

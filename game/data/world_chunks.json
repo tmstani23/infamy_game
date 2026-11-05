@@ -8,6 +8,7 @@
   "keepChunks": 50,
   "updateTicks": 5,
   "refineAhead": 200,
+  "workerRefineStep": 100,
   "maxSearchCells": 250000,
   "maxSearchSteps": 20000,
   "drawRadius": 1,

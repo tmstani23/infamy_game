@@ -36,6 +36,31 @@ export function inCore(s, i, data) {
   return Math.hypot(ox, oz) <= g.coreRadius + g.corePerTier * ((s.tier || 1) - 1);
 }
 
+// A reserved ring is open for roads and gates, never zones or solid structures.
+export function hallRoadCell(s, i) {
+  if (!s.grid || !s.roadReserve) return false;
+  const [x, z] = cellOffset(s, i);
+  return Math.max(Math.abs(x), Math.abs(z)) <= s.grid.cell * s.roadReserve && (x !== 0 || z !== 0);
+}
+
+// Live collision comes from completed placed structures. Zones and unfinished projects stay open.
+export function townBlockersIn(frontier,x0,z0,x1,z1) {
+  const out=[];
+  for(const s of Object.values(frontier?.settlements || {})) {
+    const g=s.grid;if(!g || !Number.isFinite(s.x))continue;
+    const mid=(g.n-1)/2,half=g.cell/2;
+    const col0=Math.max(0,Math.ceil((x0-s.x-half)/g.cell+mid)),col1=Math.min(g.n-1,Math.floor((x1-s.x+half)/g.cell+mid));
+    const row0=Math.max(0,Math.ceil((z0-s.z-half)/g.cell+mid)),row1=Math.min(g.n-1,Math.floor((z1-s.z+half)/g.cell+mid));
+    for(let r=row0;r<=row1;r++)for(let c=col0;c<=col1;c++) {
+      const i=r*g.n+c;
+      if(g.use[i]!=='w' && !(g.use[i]==='B' && s.buildings.some(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i))))continue;
+      const x=s.x+(c-mid)*g.cell,z=s.z+(r-mid)*g.cell;
+      out.push({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
+    }
+  }
+  return out;
+}
+
 const fill = (n, ch) => ch.repeat(n * n);
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
@@ -79,7 +104,7 @@ export function freeCell(s, data) {
   const g = s.grid, taken = new Set([...s.buildings, ...s.projects].map(b => b.cell));
   let best = null, bestD = Infinity;
   for (let i = 0; i < g.n * g.n; i++) {
-    if (g.ground[i] !== 'c' || g.use[i] !== '.' || g.zone[i] !== '.' || taken.has(i) || !inCore(s, i, data)) continue;
+    if (g.ground[i] !== 'c' || g.use[i] !== '.' || g.zone[i] !== '.' || taken.has(i) || !inCore(s, i, data) || hallRoadCell(s, i)) continue;
     const [ox, oz] = cellOffset(s, i), d = ox * ox + oz * oz;
     if (d < bestD) { bestD = d; best = i; }
   }

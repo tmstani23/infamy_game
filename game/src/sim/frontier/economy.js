@@ -108,6 +108,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
 
   function eat(s) {
     const need = rates.food * s.pop, have = s.stock.food;
+    s.foodShortage=have+EPS<need;
     if (have + EPS >= need) { world.change(s.id, 'food', -Math.min(need, have), 'eat'); return; }
     if (have > 0) world.change(s.id, 'food', -have, 'eat');
     wait(s, 'food');
@@ -128,13 +129,14 @@ export function createEconomy({ state, data, world, zones = null, workers = null
       else { s.growthBlock = null; world.changePop(s.id, 1, 'growth'); }
     }
     if (s.growthBlock === 'housing' && s.pop < s.housing) s.growthBlock = null;
-    if (s.growthBlock) wait(s, s.growthBlock);
+    if (s.growthBlock === 'food' && (s.report.rate?.food || 0)>EPS) s.growthBlock=null;
+    if (s.growthBlock) wait(s, s.growthBlock==='food'?'population growth surplus':s.growthBlock);
   }
 
   // ---- mood and taxes (F2.5b) ----
   function factors(s) {
     const eating = rates.food * s.pop;
-    const food = s.report.waiting.includes('food') ? M.foodFactor.out
+    const food = s.foodShortage ? M.foodFactor.out
       : s.stock.food < eating * M.foodLowTicks ? M.foodFactor.low : M.foodFactor.ok;
     s.moodFactors = { food, safety: s.safety, taxes: M.taxFactor[s.taxLevel] };
     const w = M.weights;
@@ -147,8 +149,19 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     taxes: () => ['Taxes high', 'Lower taxes']
   };
   function why(s) {
+    const round=n=>Math.round(n*100)/100,normalFood=rates.food*s.pop*M.foodLowTicks,missing=Math.max(0,normalFood-s.stock.food);
+    const rate=s.report.rate?.food || 0;
+    s.report.statusTips={
+      food:`Food: ${round(s.stock.food)} in stock. Normal reserve: ${round(normalFood)}. Missing: ${round(missing)}. Consumption: ${round(rates.food*s.pop)} per economy tick. Net change: ${round(rate)} per second.${missing && rate>0?' About '+Math.ceil(missing/rate)+' seconds to recover.':''}`,
+      housing:`Housing: ${s.pop} people / ${s.housing} capacity. Need ${Math.max(0,s.pop+1-s.housing)} additional capacity for the next person.`,
+      safety:`Safety: ${round(s.safety)} / 100. Normal status starts at 70; missing ${round(Math.max(0,70-s.safety))} points. Recovers ${M.safetyRecover} points per review.`,
+      taxes:`Taxes: ${s.taxLevel}. Tax mood factor: ${M.taxFactor[s.taxLevel]} / 100. Normal status starts at 70. ${Object.entries(M.taxFactor).filter(([,v])=>v>=70).map(([k,v])=>`${k}: ${v}`).join('; ')}.`,
+      builders:`Builders: ${s.builders || 0}. Need at least 1 available townsperson; ${s.report.idle || 0} currently idle.`,
+      'population growth surplus':`Population growth needs a positive food surplus across its growth period. Current food: ${round(s.stock.food)}; comparison stock: ${round(s.growthFood0)}; net change: ${round(rate)} per second.`,
+      'needs road':`Road access is missing for ${Object.values(s.zones || {}).reduce((n,z)=>n+(z.noRoad || 0),0)} zoned cells. Add a nearby road or gate.`
+    };
     const worst = Object.entries(s.moodFactors).filter(([, v]) => v < 70).sort((a, b) => a[1] - b[1]).slice(0, 3);
-    s.report.moodWhy = worst.map(([k, v]) => { const [text, hint] = WHY[k](v); return { factor: k, text, hint }; });
+    s.report.moodWhy = worst.map(([k, v]) => { const [text, hint] = WHY[k](v); return { factor: k, text, hint, tip:s.report.statusTips[k]+'\n'+hint }; });
   }
 
   // One review: compute mood from the three factors, collect taxes, apply gentle decline, let
@@ -200,6 +213,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     s.report.rate = Object.fromEntries(Object.keys(s.stock).map(r => [r, (s.stock[r] - before[r] + (gathered[r] || 0)) / secs]));
     s.workerIncome={};
     grow(s);
+    factors(s);why(s); // report recovery now; taxes and population reviews keep their normal cadence
     if (f().econTick % M.reviewTicks === 0) review(s);
   }
 

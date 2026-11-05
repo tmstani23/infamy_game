@@ -18,8 +18,10 @@ Handoff for picking up Loop 3 (gather and build) outside Claude, e.g. in ChatGPT
 - L3.8 build bar, inspectors, worker training and orders: Node checks pass; in-game visual/interaction playtest pending. The old crew-test arrival fixture was corrected without removing assertions; `test_crew.mjs` now passes.
 
 ## Next
-1. **L3.9** Tim playtest: founding, zoning, roads and gated stockade, trap rejection, worker training/orders, walk away/return, zone growth and recovery. Include L3.6 worker movement and L3.7 town/spot visuals.
+1. **L3.9 remains open.** Founding can trap the hero inside the new hall because the hall is placed at the hero's coordinates and completed buildings now block movement. Tim requested a mouse-following hall-placement ghost with terrain/footprint/escape validation; not implemented. Fix that and prevent completed buildings from sealing units inside before claiming safe founding.
 2. After Tim accepts Loop 3, update only the phase boxes actually completed, then continue Loop 4.
+
+Current playtest checkpoint: Tim accepted plot spacing, clearing appearance, inspector dismissal, build review/confirm and fence placement except corners; full loop acceptance is pending. Worker groups/move/hold, route recovery, full Eraser refunds, food-warning fixes, building collision and quantity-based training/hiring are in this checkpoint; latest interactions need focused and manual QA. See the L3.9 card for remaining checks and deferred road/fence/ford/bridge art. No save was reset or written during diagnostics.
 
 L3.5 validation: `node game/tools/test_frontier_workers.mjs` passes (distance, conservation, save timing, rejected orders, training, clearing, forage and real game/save integration). Also passed frontier guards/snapshot/commands/construction/economy/governor/place/zones/world/data, town grid and founding tests; main.js/game.js syntax checks pass. No browser automation or visual acceptance claimed.
 
@@ -28,6 +30,8 @@ L3.6 validation: the worker test passes near/away production parity, paths, wake
 L3.7 validation: `test_town_drawing.mjs` and relevant frontier, worker, resource, town, map and sim checks pass. `test_town_world.mjs:20` (`zone:h` art assertion) remains a pre-existing failure. Visual acceptance pending.
 
 L3.8 validation: build UI, frontier placement/panel/guards/zones/workers, town hover/drawing, target controls, HUD drag, shared sim and crew tests pass. The crew fixture fix preserves the old assertions. `test_town_world.mjs:20` was not rerun in L3.8. No browser automation or visual acceptance claimed.
+
+L3.9 checkpoint: followup, Eraser refund, build UI, worker, crew, founding and Shinobi HQ tests pass; some earlier related checks predate the latest collision/training edits. `test_dismissal.mjs:61` fails on an Instant Taunt text expectation; baseline not investigated. No full-suite claim.
 
 ## Rules
 - All game rules live in `game/src/sim`; players and bots use the same commands.

@@ -12,27 +12,25 @@ export function ownTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && s.stock);
 }
 
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, onOpen = () => {}, onClose = () => {} }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, onOpen = () => {}, onClose = () => {} }) {
   let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
   const towns = () => ownTowns(game.state.frontier, clan);
   function pick() {
     const list = towns();
-    if (!list.find(s => s.id === selected)) selected = list[0]?.id ?? null;
+    if (!list.find(s => s.id === selected)) selected = nearbyTown ? nearbyTown() : list[0]?.id ?? null;
     return list.find(s => s.id === selected) || null;
   }
   function render() {
     if (root.hidden) return;
     const s = pick();
-    if (!s) { root.innerHTML = '<h1>Towns</h1><div class="sub">You have no town yet.</div>'; return; }
+    if (!s) { root.innerHTML = '<h1>Town</h1><div class="sub">Go near your town, or choose one in Towns (Y) or the World map.</div>'; return; }
     // arrows compare with the numbers from about a second ago
     const now = Date.now();
     if (now - prevAt > 1000) { prevAt = now; prevStock[s.id] = { prev: prevStock[s.id]?.cur, cur: structuredClone(s) }; }
     const rows = reportRows(s, prevStock[s.id]?.prev);
-    const list = towns();
     let h = '', page1 = '', head = '';
-    if (list.length > 1) h += '<div class="tabs">' + list.map(t => `<button data-act="town" data-id="${t.id}" class="${t.id === s.id ? 'on' : ''}">${esc(t.name)}</button>`).join('') + '</div>';
     head = h;
     if (mode === 'talk') {
       const say = governorSays(rows);
@@ -43,7 +41,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div class="row"><div><h1>${esc(rows.title)}</h1><div class="sub">Yours · mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div><button data-act="talk"${tip('Talk to the governor: his report, and ways to steer the town.')}>Governor</button></div>`;
       h += '<div class="lab">Stock</div><div class="stock">' + rows.stock.map(r => `<div${tip(r.tip)}>${esc(r.label)}<b>${r.value}</b>${arrow[r.arrow]}</div>`).join('') + '</div>';
       h += `<div class="lab">People</div><div class="row"><span>${esc(rows.pop.text)}</span><span class="dim"${tip(rows.jobsTip)}>${esc(rows.jobsText)}</span></div><div class="bar"><i style="width:${Math.round(rows.pop.fill * 100)}%"></i></div>`;
-      h += `<div class="row" style="margin-top:5px"><span>Mood</span><span class="dim">${mood.why.length ? esc(mood.why.map(w => w.text).join(' · ')) : 'Content'}</span></div><div class="bar m"><i style="width:${mood.value}%"></i></div>`;
+      h += `<div class="row" style="margin-top:5px"><span>Mood</span><span class="dim"${tip(mood.why.map(w=>w.tip).join('\n'))}>${mood.why.length ? esc(mood.why.map(w => w.text).join(' · ')) : 'Content'}</span></div><div class="bar m"><i style="width:${mood.value}%"></i></div>`;
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(' · ')) + '</div>';
       h += `<div class="lab">Governor says</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
         + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ');
@@ -61,6 +59,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const build = mode === 'talk' ? '' : buildUI?.html(s) || '';
     h = build + h;
     if (paged) paged = build + paged;
+    if(buildUI?.isRosterOpen?.()) {h=build;paged=null;}
     if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
     const key = h + page;
     if (key !== lastHtml) {
@@ -70,6 +69,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
   }
   root.addEventListener('mousedown', e => e.stopPropagation());
+  root.addEventListener('change', e => {
+    const s=pick();if(s && buildUI?.change?.(e.target.dataset,e.target.value,s)) {lastHtml='';render();}
+  });
   root.addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const s = pick(), id = b.dataset.id, sid = s?.id;
@@ -94,7 +96,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     for (const r of game.state.frontier?.receipts || []) if (r.clan === clan && r.seq > seen) { seen = r.seq; if (!r.ok) failure = { text: `Not possible: ${r.reason}`, at: Date.now() }; }
   }
   setInterval(() => { watchReceipts(); render(); }, 1000);
-  function open(id) { if (id) selected = id; mode = 'town'; page = 0; root.hidden = false; lastHtml = ''; render(); onOpen(); }
+  function open(id) { if (id) selected = id; else if (nearbyTown) selected = nearbyTown(); mode = 'town'; page = 0; root.hidden = false; lastHtml = ''; render(); onOpen(); }
   function close() { buildUI?.close(); if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); mode = 'talk'; render(); }, render };
 }

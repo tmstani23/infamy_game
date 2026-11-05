@@ -4,13 +4,15 @@
   "cadenceTicks": 20,
   "workers": {
     "_note": "placeholder, Tim to tune (L3.5/L3.6). Costs come from town stock and population when ordered. trainTicks, harvestTicks and clearTicks are sim ticks (20/second); training is sequential at the hall. load is stock per trip; harvested spots take longer to work as their pieces regrow. range is measured from the town hall. spawnRadius is proximity in world units; spawnPerTick bounds new entities globally; pathCacheSize bounds reusable navigation paths. hp and model are civilian stand-ins.",
-    "cost": 10, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 1, "range": 600, "clearTicks": 200,
-    "spawnRadius": 160, "spawnPerTick": 4, "pathCacheSize": 128, "hp": 60, "model": "laborer",
+    "cost": 10, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 1, "range": 600, "clearTicks": 200, "spawnSearchCells": 3,
+    "spawnRadius": 160, "spawnPerTick": 4, "pathCacheSize": 128, "hp": 60, "model": "laborer", "groups": 4, "panelRows": 6, "retryTicks": 100,
     "dropoffs": ["town_hall", "storehouse", "lumber_camp", "quarry"],
     "gatherBuildings": ["lumber_camp", "quarry"],
     "resources": { "timber": "timber", "stone": "stone", "fish": "food", "forage": "food" }
   },
-  "townGrid": { "_note": "placeholder, Tim to tune (L3.1): cellSize = world units per cell; radius = the town work range the grid covers; coreRadius = starting core where housing and work zones may go; corePerTier = core growth per town hall tier above 1; clearedRadius = cells round the hall that start cleared", "cellSize": 11, "radius": 600, "coreRadius": 250, "corePerTier": 100, "clearedRadius": 4 },
+  "townGrid": { "_note": "placeholder, Tim to tune (L3.1): cellSize = world units per cell; radius = the town work range the grid covers; coreRadius = starting core where housing and work zones may go; corePerTier = core growth per town hall tier above 1; clearedRadius = cells round the hall that start cleared; hallRoadReserve = cells reserved around the hall for roads", "cellSize": 11, "radius": 600, "coreRadius": 250, "corePerTier": 100, "clearedRadius": 4, "hallRoadReserve": 1 },
+  "opening": { "_note": "placeholder, Tim to tune: preserve a townsperson for food/building and the first worker's training ryo when paying for projects", "reservePeople": 1 },
+  "buildUI": { "_note": "presentation settings; zone buttons, overlays and valid drag previews share these colors", "confirmDrag": true, "cornerRoundness": 0.08, "zoneColors": { "housing": "#5aa0f0", "farm": "#64c864", "work": "#be78e6" } },
   "placeCosts": { "_note": "placeholder, Tim to tune (L3.2): per cell, paid at once when a road, wall or gate is placed; buildings use their own cost and queue as projects", "road": { "timber": 1 }, "wall": { "timber": 2 }, "gate": { "timber": 5 } },
   "zones": {
     "_note": "placeholder, Tim to tune (L3.3, numbers from the approved L3.0 table): per kind char = grid letter; coreOnly = core cells only; stages = looks per level (stage 0 = zoned, empty); needs: food = needs the town fed, workersPerCell = workers each grown cell wants, roadReach = a road (or the hall, hallIsRoad) within this many cells to grow; housing = people per cell per level; output = per cell per level per economy tick; inputs = paid per unit made; trait = traitEffects factor (fertile soil); growTicks = healthy economy ticks per stage; abandonTicks = short ticks before abandoned; governorCells = cells the governor zones at once. healthyAt = health needed to grow; shortBelow = health that counts as short; clearTicks = healthy ticks to clear an overgrown zoned cell. fromBuilding = old building types that migrate to zones (and what the governor's house/farm/workshop rules mean in grid towns).",
@@ -98,8 +100,9 @@
     },
     "_ground": {
       "_note": "placeholder, Tim to tune (L3.7): art-only dirt foundation, road and crop decals; sizes are fractions of a town cell except foundationRadius (world units).",
-      "foundationRadius": 44, "roadWidth": 0.4, "fieldSize": 0.9, "cropRows": 5, "cropWidth": 0.045,
-      "clearTint": "#b0a18a", "roadTint": "#ddc5a2", "fieldTint": "#765439", "fieldTexture": "art/ground/island/dirt_trail.jpg", "cropTint": "#6b8545", "abandonedTint": "#686054"
+      "foundationRadius": 44, "roadWidth": 0.4, "fieldSize": 0.9, "cropRows": 5, "cropWidth": 0.045, "zoneFootprint": 0.8,
+      "clearTexture": "art/ground/dirt.jpg", "textureTile": 5.5, "edgeFade": 1.4, "clearOpacity": 0.9, "tileRoundness": 0.08,
+      "clearTint": "#ffffff", "roadTint": "#ddc5a2", "fieldTint": "#bca388", "fieldTexture": "art/ground/island/wet_soil.jpg", "cropTint": "#9eb877", "abandonedTint": "#686054"
     },
     "_walls": {
       "_note": "placeholder, Tim to tune (L3.7): existing fence segments and an open gate stand-in; no collision changes.",
@@ -118,14 +121,15 @@
   },
   "townLights": {
     "_note": "E5 placeholder, Tim to tune: stone lanterns (data/art.json) set beside each finished building of this type, how many (max 2). They glow at night. Houses, the town hall and the stockade already have lit windows in their art.",
-    "art": "stone_lantern", "town_hall": 2, "house": 1, "farm": 1, "lumber_camp": 1, "quarry": 1, "workshop": 1, "storehouse": 1, "stockade": 2
+    "art": "stone_lantern", "town_hall": 2, "house": 1, "farm": 1, "lumber_camp": 1, "quarry": 1, "workshop": 1, "storehouse": 1, "stockade": 2,
+    "automatic": { "_note": "placeholder, Tim to tune: decorative lights at regular developed grid corners; no cost, collision or build-cell use", "art": "lantern_post", "spacingCells": 2, "radius": 18 }
   },
   "founding": {
     "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital; bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
     "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1000, "botSiteRadius": 30,
-    "startStock": { "food": 60, "timber": 40, "stone": 10 },
-    "startBuildings": ["town_hall", "lumber_camp", "farm"],
-    "townHall": "town_hall", "firstProject": "stockade",
+    "startStock": { "food": 60, "timber": 40, "stone": 10, "ryo": 20 },
+    "startBuildings": ["town_hall"],
+    "townHall": "town_hall", "firstProject": null,
     "traits": {
       "_note": "Computed from the terrain round the spot (sim/frontier/founding.js siteTraits). soilWeight/defenseWeight = what each terrain code adds per sample (average over the circle), then soilShare/defenseShare = [level 2 from, level 3 from]; water = distance to the nearest river, lake or sea: waterNear = [level 3 up to, level 2 up to]; nodes counts resource nodes within nodeRadius.",
       "radius": 400, "step": 100, "waterStep": 50, "waterSearch": 1000, "nodeRadius": 600,

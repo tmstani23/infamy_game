@@ -21,7 +21,7 @@ export function createAlerts({ state, data }) {
       const say = (event) => {
         if (st.at[event] !== undefined && f.econTick - st.at[event] < cooldown) return;
         st.at[event] = f.econTick;
-        (state.news ||= []).push({ kind: 'town', event, clan: s.owner, settlement: s.id, name: s.name, text: `${s.name} ${TEXT[event]}`, urgent: urgentKinds.has(event) });
+        (state.news ||= []).push({ kind: 'town', event, clan: s.owner, settlement: s.id, name: s.name, text: `${s.name} ${TEXT[event]}`, tip:s.report?.statusTips?.[event] || s.report?.moodWhy?.map(w=>w.tip).join('\n') || 'Open this town for current requirements and status.', urgent: urgentKinds.has(event) });
       };
       const cond = (event, active) => { if (active && !st.on[event]) say(event); st.on[event] = active; };
       const road = Object.values(f.roads || {}).some(r => (r.from === s.id || r.to === s.id) && r.state === 'blocked');

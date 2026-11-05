@@ -29,15 +29,24 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
   if (!grid?.ground || !grid.use || !grid.zone || !grid.stage) return [];
   const out = [], mid = (grid.n - 1) / 2, G = art._ground;
   const definitions = art._zones || {};
+  const cleared = i => {
+    if (i < 0 || i >= grid.n * grid.n || grid.ground[i] !== 'c') return false;
+    const x = (i % grid.n - mid) * grid.cell, z = (Math.floor(i / grid.n) - mid) * grid.cell;
+    return grid.use[i] !== '.' || grid.zone[i] !== '.' || Math.hypot(x, z) <= G.foundationRadius;
+  };
   for (let i = 0; i < grid.n * grid.n; i++) {
     if (grid.ground[i] === 'x') continue;
     const x = (i % grid.n - mid) * grid.cell, z = (Math.floor(i / grid.n) - mid) * grid.cell;
     const use = grid.use[i], zone = grid.zone[i], stage = Number(grid.stage[i]);
     const base = { cell: i, x, z };
-    const patch = (key, width, height, tint, texture) => out.push({ ...base, key: `${i}:${key}`, dirt: true, width, height, tint, texture });
+    const patch = (key, width, height, tint, texture) => out.push({ ...base, key: `${i}:${key}`, dirt: true, width, height, tint, texture, cornerRadius:Math.min(width,height)*(G?.tileRoundness || 0) });
     // Open plains are already cleared in the sim; only the foundation and used cells need a dirt decal.
-    if (G && grid.ground[i] === 'c' && (use !== '.' || zone !== '.' || Math.hypot(x, z) <= G.foundationRadius))
-      patch('clear', grid.cell, grid.cell, G.clearTint);
+    if (G && cleared(i)) {
+      patch('clear', grid.cell, grid.cell, G.clearTint, G.clearTexture);
+      // Fade only the clearing's perimeter; adjoining cells share uninterrupted earth.
+      Object.assign(out[out.length - 1], { tile: G.textureTile, edgeFade: G.edgeFade, opacity: G.clearOpacity,
+        edges: [i % grid.n === 0 || !cleared(i - 1), i % grid.n === grid.n - 1 || !cleared(i + 1), !cleared(i - grid.n), !cleared(i + grid.n)].map(Number) });
+    }
     if (G && (use === 'r' || use === 'g')) {
       const width = grid.cell * G.roadWidth;
       patch('road', width, width, G.roadTint);
@@ -68,7 +77,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       if (i % def.houseEvery !== 0) continue;
     }
     const name = def.stages[Math.min(stage, def.stages.length) - 1];
-    if (name) out.push({ ...base, key: `${i}:zone:${stage}:${abandoned}`, art: name, tint, noLights: abandoned });
+    if (name) out.push({ ...base, key: `${i}:zone:${stage}:${abandoned}`, art: name, tint, noLights: abandoned, maxFootprint: grid.cell * (G?.zoneFootprint || 1) });
   }
   return out;
 }
@@ -76,6 +85,23 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
 export function townProps(towns, townArt, townLights = {}) {
   const out = [];
   for (const s of towns) {
+    const lighting = townLights.automatic;
+    if (lighting && s.grid) {
+      const g=s.grid, mid=(g.n-1)/2, corners=new Set();
+      for(let i=0;i<g.n*g.n;i++) {
+        if(g.ground[i]==='x' || g.use[i]==='.' && g.zone[i]==='.')continue;
+        const col=i%g.n, row=Math.floor(i/g.n);
+        for(const [dc,dr] of [[0,0],[1,0],[0,1],[1,1]]) {
+          const c=col+dc,r=row+dr;
+          // Align lights to a regular lattice; always mark the hall's corners as well.
+          if ((c-mid)%lighting.spacingCells===0 && (r-mid)%lighting.spacingCells===0 || g.use[i]==='B' && s.buildings.some(b=>b.type==='town_hall' && b.cell===i)) corners.add(`${c},${r}`);
+        }
+      }
+      for(const key of corners) {
+        const [c,r]=key.split(',').map(Number);
+        out.push({key:`${s.id}:auto-light:${key}`,art:lighting.art,x:s.x+(c-mid-.5)*g.cell,z:s.z+(r-mid-.5)*g.cell,lightRadius:lighting.radius});
+      }
+    }
     s.buildings.forEach((b, i) => {
       const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i, b.cells);
       if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5 });
@@ -91,7 +117,9 @@ export function townProps(towns, townArt, townLights = {}) {
         const offsets = p.cells?.map(c => cellOffset(s, c));
         const width = offsets ? Math.max(...offsets.map(p => p[0])) - Math.min(...offsets.map(p => p[0])) + s.grid.cell : 8;
         const height = offsets ? Math.max(...offsets.map(p => p[1])) - Math.min(...offsets.map(p => p[1])) + s.grid.cell : 6;
-        out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width, height, x, z });
+        out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width, height, x, z,
+          texture: townArt._ground?.clearTexture, tint: townArt._ground?.clearTint, tile: townArt._ground?.textureTile,
+          edgeFade: townArt._ground?.edgeFade, edges: [1, 1, 1, 1], opacity: townArt._ground?.clearOpacity,cornerRadius:Math.min(width,height)*(townArt._ground?.tileRoundness || 0) });
       }
     });
   }

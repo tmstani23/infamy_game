@@ -22,6 +22,7 @@ const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c)
 export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
+  const minZoom = place => place === 'world' ? 0.175 : 0.35;
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
   let zoomNow = zoom;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -382,7 +383,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = shakeAmp * shakeT / 0.18;
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
-    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner]);
+    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
@@ -471,7 +472,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     if (!camReady || camTarget.distanceTo(cameraPoint) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(cameraPoint); camReady = true; freeCam = null; }
     camTarget.lerp(freeCam || cameraPoint, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
     (heroPos ||= new THREE.Vector3()).copy(cameraPoint);
-    const wantZoom = !['street', 'world'].includes(cameraPlace(h)) ? INDOOR_ZOOM : zoom;
+    const place = cameraPlace(h);
+    const wantZoom = !['street', 'world'].includes(place) ? INDOOR_ZOOM : THREE.MathUtils.clamp(zoom, minZoom(place), 1.0);
     if (Math.abs(wantZoom - zoomNow) > 1e-3) { zoomNow += (wantZoom - zoomNow) * (1 - Math.exp(-dt * 5)); resize(); }
     const ppx = PPU * zoomNow * renderer.getPixelRatio(), s = toScreen(camTarget);
     camera.position.copy(camTarget)
@@ -557,6 +559,6 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     toggleNight() { nightTarget = nightTarget ? 0 : 1; return nightTarget === 1; },
     toggleDebug() { lines.visible = !lines.visible; },
     // 1.0 shows the sprites at their real size; closer than that just blurs them
-    zoomBy(f) { zoom = THREE.MathUtils.clamp(zoom * f, 0.35, 1.0); resize(); },
+    zoomBy(f) { zoom = THREE.MathUtils.clamp(zoom * f, minZoom(cameraPlace({ place: heroPlace })), 1.0); resize(); },
   };
 }

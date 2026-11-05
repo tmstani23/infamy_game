@@ -10,7 +10,7 @@
 // off from that flood. "New" matters: a town founded in an awkward pocket is never frozen by it.
 // A closed wall ring therefore needs a gate; the gate cell is passable and reaches outside.
 // Overgrown ground is allowed: a project on it starts in phase 'clearing' (L3.3's work order clears it).
-import { cellOffset, inCore, setUse } from './town_grid.js';
+import { cellOffset, inCore, setUse, hallRoadCell } from './town_grid.js';
 
 const LINES = { road: 'r', wall: 'w', gate: 'g' };
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
@@ -84,6 +84,7 @@ export function createPlacement({ state, data, world, construction }) {
     if (cells.some(i => i < 0 || i >= n * n)) return bad('outside grid', cells);
     const cover = footprint(s, kind, cells);
     if (!cover) return bad('outside grid', cells);
+    if (!['road', 'gate'].includes(kind) && cover.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', cover);
     if (cover.some(i => g.ground[i] === 'x')) return bad('unbuildable', cover);
     if (cover.some(i => g.use[i] !== '.' || g.zone[i] !== '.')) return bad('occupied', cover);
     const needsCore = !LINES[kind] && data.buildings[kind].coreOnly;
@@ -111,37 +112,51 @@ export function createPlacement({ state, data, world, construction }) {
     if (LINES[kind]) {
       for (const [res, v] of Object.entries(r.cost)) world.change(s.id, res, -v, 'build');
       for (const i of r.cells) { setUse(s, i, LINES[kind]); stamp(i); }
+      s.lineCosts ||= {};
+      for(const i of r.cells)s.lineCosts[i]={...data.placeCosts[kind]};
       return r;
     }
     for (const i of r.cells) { setUse(s, i, 'B'); stamp(i); }
     const pid = construction.queue(s.id, kind, r.cells[0], { cells: r.cells });
     if (!pid) { for (const i of r.cells) setUse(s, i, '.'); return bad('could not queue it', r.cells); }
+    if (by === 'p') construction.authorize?.(pid); // confirming a player placement is its build approval
     return { ...r, project: pid };
   }
 
-  // The eraser: roads, walls, gates and zones go at once; an unbuilt project is cancelled (refund
-  // rule of construction.cancel). Never the town hall, never a finished building.
-  function remove(s, { cells }) {
+  // Preview and execution share a de-duplicated plan. Eraser returns 100% of paid costs.
+  function remove(s, { cells, dryRun = false }) {
     if (!s?.grid) return bad('no grid');
     const g = s.grid, { n } = g;
     if (!Array.isArray(cells) || !cells.length || !cells.every(i => Number.isInteger(i) && i >= 0 && i < n * n)) return bad('outside grid', cells || []);
-    const plan = [];   // validate everything first so a refusal changes nothing
-    for (const i of cells) {
+    const plan = new Map(),refund={},covered=new Set();
+    const addRefund=cost=>{for(const [r,n] of Object.entries(cost || {}))refund[r]=(refund[r] || 0)+n;};
+    for (const i of new Set(cells)) {
       const hall = s.buildings.find(b => b.type === 'town_hall' && (b.cells || [b.cell]).includes(i));
       if (hall) return bad('town hall', cells);
-      if (s.buildings.some(b => (b.cells || [b.cell]).includes(i))) return bad('built building', cells);
+      const building=s.buildings.find(b => (b.cells || [b.cell]).includes(i));
+      if(building) {plan.set('b:'+building.id,{building});continue;}
       const proj = s.projects.find(p => (p.cells || [p.cell]).includes(i));
-      if (proj) { plan.push({ proj }); continue; }
-      if ('rwg'.includes(g.use[i]) && g.use[i] !== '.') { plan.push({ line: i }); continue; }
-      if (g.zone[i] !== '.') { plan.push({ zone: i }); continue; }
-      return bad('nothing there', cells);
+      if (proj) { plan.set('p:'+proj.id,{proj}); continue; }
+      if ('rwg'.includes(g.use[i]) && g.use[i] !== '.') { plan.set('l:'+i,{line:i}); continue; }
+      if (g.zone[i] !== '.') { plan.set('z:'+i,{zone:i}); continue; }
     }
-    for (const p of plan) {
-      if (p.proj) construction.cancel(p.proj.id);
-      else if (p.line !== undefined) { setUse(s, p.line, '.'); g.by = put(g.by, p.line, '.'); }
-      else { g.zone = put(g.zone, p.zone, '.'); g.stage = put(g.stage, p.zone, '0'); g.by = put(g.by, p.zone, '.'); }
+    if(!plan.size)return bad('nothing there',cells);
+    for(const p of plan.values()) {
+      if(p.building) {addRefund(p.building.paidCost || data.buildings[p.building.type]?.cost);for(const i of p.building.cells || [p.building.cell])covered.add(i);}
+      else if(p.proj) {if(p.proj.paid)addRefund(p.proj.cost);for(const i of p.proj.cells || [p.proj.cell])covered.add(i);}
+      else if(p.line!==undefined) {addRefund(s.lineCosts?.[p.line] || data.placeCosts[({r:'road',w:'wall',g:'gate'})[g.use[p.line]]]);covered.add(p.line);}
+      else covered.add(p.zone);
     }
-    return { ok: true, reason: '', cost: {}, cells };
+    if(!dryRun) {
+      for(const p of plan.values()) {
+        if(p.proj)construction.cancel(p.proj.id,{refund:false});
+        if(p.building)s.buildings.splice(s.buildings.indexOf(p.building),1);
+      }
+      for(const i of covered) {setUse(s,i,'.');g.zone=put(g.zone,i,'.');g.stage=put(g.stage,i,'0');g.by=put(g.by,i,'.');if(s.lineCosts)delete s.lineCosts[i];}
+      for(const [r,n] of Object.entries(refund))world.change(s.id,r,n,'refund');
+      world.recount?.(s.id);
+    }
+    return { ok: true, reason: '', cost: {}, refund, cells:[...covered] };
   }
 
   return { place, check, remove, trapped, footprint };

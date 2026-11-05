@@ -29,7 +29,7 @@ function heap() {
   };
 }
 
-export function createAreas({ world, cfg, seed = 1, city = null }) {
+export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [] }) {
   const S = cfg.chunk, CELL = cfg.navCell, N = Math.round(S / CELL), PAD = cfg.navPad ?? 0.4;
   const TC = world.terrain.cell, K = Math.round(S / TC);
   const NX = world.terrain.rows[0].length, NZ = world.terrain.rows.length;
@@ -39,6 +39,7 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   const cache = new Map();               // chunk key -> { key, cx, cz, gen, grid, buckets, used }
   let active = new Map();                // chunk key -> cached chunk, for chunks units stand in or next to
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
+  let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
   let clock = 0, stats = { built: 0, buildMs: 0, worstMs: 0 };
   const keyOf = (cx, cz) => cz * CX + cx;
   const inRange = (cx, cz) => cx >= 0 && cz >= 0 && cx < CX && cz < CZ;
@@ -97,6 +98,9 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
   const cellOf = (x, z) => [Math.floor(x / CELL), Math.floor(z / CELL)];
   const centre = (i, j) => [(i + 0.5) * CELL, (j + 0.5) * CELL];
   function free(i, j) {
+    if (planningBlocked?.(...centre(i, j))) return false;
+    const [x,z]=centre(i,j),pad=cfg.navPad || 0;
+    if(dynamicBlockers(x-pad,z-pad,x+pad,z+pad).length)return false;
     const cx = Math.floor(i / N), cz = Math.floor(j / N);
     if (!inRange(cx, cz)) return false;
     const key = keyOf(cx, cz);
@@ -437,7 +441,7 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
 
   // ---------- for tryMove and sight ----------
   function blockersNear(x0, z0, x1, z1) {
-    const out = [];
+    const out = [...dynamicBlockers(x0,z0,x1,z1)];
     for (let cz = Math.floor(z0 / S); cz <= Math.floor(z1 / S); cz++) for (let cx = Math.floor(x0 / S); cx <= Math.floor(x1 / S); cx++) {
       const c = active.get(keyOf(cx, cz));
       if (!c || !inRange(cx, cz)) { out.push({ minX: cx * S, maxX: cx * S + S, minZ: cz * S, maxZ: cz * S + S }); continue; }   // asleep or off the map: a wall
@@ -457,17 +461,34 @@ export function createAreas({ world, cfg, seed = 1, city = null }) {
 
   // Full fine path for a saved worker trip, identical whether its chunks are awake or asleep.
   // Temporary grids are discarded after the search; neither residency nor cache size changes.
-  function workerPath(ax, az, bx, bz) {
+  function workerPath(ax, az, bx, bz, blocked = null) {
     planning = new Map();
+    planningBlocked = blocked;
     try {
       const start = nearestFreeCell(ax, az), end = nearestFreeCell(bx, bz);
       if (!start || !end) return null;
       const a = free(...cellOf(ax, az)) ? [ax, az] : centre(...start);
       const b = free(...cellOf(bx, bz)) ? [bx, bz] : centre(...end);
-      const job = localPath(...a, ...b); let next;
-      do { next = job.next(); } while (!next.done);
-      return next.value && [a, ...next.value];
-    } finally { planning = null; }
+      // Start from the centre of the actual free cell. A diagonal legal from its
+      // centre can clip a blocked neighbour when started at an arbitrary fractional point.
+      const ac=centre(...start);
+      const finish=iterator=>{let next;do{next=iterator.next();}while(!next.done);return next.value;};
+      const direct=finish(localPath(...ac,...b));
+      if(direct)return [a,ac,...direct];
+      // Mountains can require leaving the straight-line search window. Follow the
+      // island route, fully refining each leg for both loaded and sleeping workers.
+      const coarse=route(...ac,...b);if(!coarse)return null;
+      const out=[a,ac];let here=ac;
+      for(const goal of coarse.points) {
+        const from=[...here],steps=Math.max(1,Math.ceil(Math.hypot(goal[0]-from[0],goal[1]-from[1])/(cfg.workerRefineStep || 100)));
+        for(let j=1;j<=steps;j++) {
+          const to=from.map((v,k)=>v+(goal[k]-v)*j/steps),part=finish(localPath(...here,...to));
+          if(!part)return null;
+          out.push(...part);here=out.at(-1);
+        }
+      }
+      return out;
+    } finally { planning = null; planningBlocked = null; }
   }
   const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   return {

@@ -91,6 +91,7 @@ function fixture({saved=null,changes={},spots=null,stages=null}={}) {
 // Governor assigns idle workers to the nearest spot for the town's scarcest gatherable resource.
 {
   const f=fixture(),[w]=f.train();f.s.stock.timber=1;f.s.stock.stone=20;f.s.stock.food=100;
+  f.s.autoBuild=true; // automatic assignment is explicitly enabled; Ask first keeps workers waiting
   f.run(100);assert.equal(w.spot,'near');assert.equal(w.by,'g');
 }
 

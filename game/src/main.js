@@ -431,11 +431,18 @@ async function start() {
   let frontierBuildUI = null;
   // Town panel (frontier F4.4, replaces the F2.4b dev text box): key O. The console helper stays in the dev build.
   if (game.state.frontier) {
+    let townPanel;
     frontierBuildUI = createFrontierBuildUI({ game, view, heroId, data: frontier, spotIndex, spotRules: resourceSpotRules,
       known: (x,z) => isDiscovered(world, game.state.world?.discovered?.[game.state.entities[heroId]?.owner] ?? '0', x,z),
-      send: c => pending.push(c), crewInput,
+      send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id),
       blocked: () => gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
-    const townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI });
+    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI,
+      nearbyTown: () => {
+        const h = game.state.entities[heroId];
+        if (h?.place !== 'world') return null;
+        return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
+          .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
+      } });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onKey('KeyO', () => townPanel.toggle());
     onKey('KeyY', () => overview.toggle());
@@ -446,6 +453,7 @@ async function start() {
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
     townAlertHook = n => {
       const b = document.createElement('button'); b.textContent = n.text; b.className = n.urgent ? 'urgent' : '';
+      b.title=n.tip || n.text;
       b.addEventListener('click', () => { townPanel.open(n.settlement); b.remove(); });
       $('townalerts').append(b); setTimeout(() => b.remove(), n.urgent ? 10000 : 6000);
       overview.alert(n.settlement, n.event, n.urgent);

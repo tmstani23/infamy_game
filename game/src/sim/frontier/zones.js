@@ -11,7 +11,7 @@
 // recovers as soon as its needs return. Nothing is destroyed.
 // Output = sum over cells of stage level x health x per-cell rate x trait factor.
 // Every kind, char and number comes from data/frontier.json "zones" (nothing is hard-coded here).
-import { cellOffset, inCore, centreCell } from './town_grid.js';
+import { cellOffset, inCore, centreCell, hallRoadCell } from './town_grid.js';
 
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
@@ -71,7 +71,8 @@ export function createZones({ state, data, world }) {
     if (list.some(i => i < 0 || i >= n * n)) return bad('outside grid', list);
     if (list.some(i => g.ground[i] === 'x')) return bad('unbuildable', list);
     if (k.coreOnly && list.some(i => !inCore(s, i, data))) return bad('core only', list);
-    const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.');
+    const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i));
+    if (!free.length && list.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', list);
     if (!free.length) return bad('occupied', list);
     if (!dryRun) {
       rec(s);
@@ -226,7 +227,7 @@ export function createZones({ state, data, world }) {
     if (!k) return bad('unknown zone kind');
     const cand = [];
     for (let i = 0; i < n * n; i++) {
-      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || (k.coreOnly && !inCore(s, i, data))) continue;
+      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || hallRoadCell(s, i) || (k.coreOnly && !inCore(s, i, data))) continue;
       const [ox, oz] = cellOffset(s, i);
       cand.push([ox * ox + oz * oz, i]);
     }

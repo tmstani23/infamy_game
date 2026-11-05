@@ -133,6 +133,30 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       const tex = textureFor(p.texture || 'art/ground/island/dirt_trail.jpg');
       if (!tex) return undefined;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width, p.height), spriteMaterial(tex));
+      if (p.tile || p.cornerRadius) {
+        if (p.tile && tex.wrapS !== THREE.MirroredRepeatWrapping) {
+          tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping; tex.needsUpdate = true;
+        }
+        const mat = mesh.material;
+        Object.assign(mat.uniforms, {
+          uGroundTile: { value: p.tile }, uGroundSize: { value: new THREE.Vector2(p.width, p.height) },
+          uGroundEdges: { value: new THREE.Vector4(...(p.edges || [0, 0, 0, 0])) }, uGroundFade: { value: p.edgeFade || 0.01 },
+          uCornerRadius:{value:p.cornerRadius || 0},uCornerEdges:{value:new THREE.Vector4(...(p.edges || [1,1,1,1]))}
+        });
+        mat.uniforms.uGroundTile.value ||= 1;
+        mat.fragmentShader = mat.fragmentShader.replace('varying vec2 vUv;',
+          'uniform float uGroundTile, uGroundFade, uCornerRadius; uniform vec2 uGroundSize; uniform vec4 uGroundEdges,uCornerEdges; varying vec2 vUv;')
+          .replace('vec4 t = spriteTex(vUv);', `vec4 t = ${p.tile?'texture2D(uMap, vWorld.xz / uGroundTile)':'spriteTex(vUv)'};
+            vec4 distanceToEdge = vec4(vUv.x, 1.0-vUv.x, 1.0-vUv.y, vUv.y) * uGroundSize.xxyy;
+            float roughness = 0.15 * sin(vWorld.x * 3.1 + sin(vWorld.z * 2.7));
+            vec4 fade = mix(vec4(1.0), smoothstep(vec4(0.0), vec4(uGroundFade), distanceToEdge + roughness), uGroundEdges);
+            float radius=uCornerRadius*(vUv.x<0.5?uCornerEdges.x:uCornerEdges.y)*(vUv.y>0.5?uCornerEdges.z:uCornerEdges.w);
+            vec2 q=abs((vUv-0.5)*uGroundSize)-uGroundSize*0.5+radius;
+            float rounded=length(max(q,vec2(0.0)))+min(max(q.x,q.y),0.0)-radius;
+            t.a *= fade.x * fade.y * fade.z * fade.w * (1.0-smoothstep(0.0,0.15,rounded));`)
+          .replace('grade(t.rgb, vWorld, true, uSelfLight)', 'grade(t.rgb, vWorld, false, uSelfLight)');
+      }
+      if (p.opacity !== undefined) mesh.material.uniforms.uOpacity.value = p.opacity;
       mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x, 0.02, p.z);
       mesh.renderOrder = p.key?.includes(':crop:') ? -0.4 : p.key?.includes(':road') || p.key?.endsWith(':field') ? -0.42 : -0.45;
       mesh.material.uniforms.uFogAt.value.set(p.x, p.z, 0, 1);
@@ -152,13 +176,15 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (!piece) return null;
     const tex = textureFor(piece.item.file);
     if (!tex) return undefined;   // still loading: try next pass
-    const s = (p.s || 1) * f * (cfg.biomeProps?.visualScaleByKind?.[p.art || p.kind] ?? 1);
+    const fit = p.maxFootprint ? Math.min(1, p.maxFootprint / (2 * Math.max(piece.fa, piece.fb))) : 1;
+    const s = (p.s || 1) * f * (cfg.biomeProps?.visualScaleByKind?.[p.art || p.kind] ?? 1) * fit;
     if (s !== 1) {   // scale the art and its footprint about the prop's spot
       piece.k *= s;
       const sc = r => ({ minX: p.x + (r.minX - p.x) * s, maxX: p.x + (r.maxX - p.x) * s, minZ: p.z + (r.minZ - p.z) * s, maxZ: p.z + (r.maxZ - p.z) * s });
       piece.foot = sc(piece.foot);
     }
     const thing = cutoutThing(piece, tex);
+    if (p.lightRadius) for (const light of thing.lights) light.radius = p.lightRadius;
     if (p.tint) thing.mesh.material.uniforms.uTint.value.set(p.tint);
     if (p.noLights) { for (const e of thing.extras) e.material.dispose(); thing.extras = []; thing.lights = []; }
     if (p.opacity !== undefined && thing?.mesh.material.uniforms?.uOpacity) thing.mesh.material.uniforms.uOpacity.value = p.opacity;
@@ -175,7 +201,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   }
 
   // Each frame: (camera x, z), whether the followed hero is on the island, frame time
-  function update(x, z, active, dt, frontier, discovered) {
+  function update(x, z, active, dt, frontier, discovered, viewScale = 1) {
     snapshot = frontier;
     const revision = `${JSON.stringify(frontier?.spots || {})}|${discovered}`;
     if (revision !== spotRevision) { spotRevision = revision; propAt = null; }
@@ -204,9 +230,9 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       }
     }
     // props: refresh when the camera has moved a few units (or a chunk came in)
-    const R = cfg.propRadius ?? 55;
-    if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < 4) return;
-    propAt = [x, z];
+    const R = (cfg.propRadius ?? 55) * viewScale;
+    if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < 4 && Math.abs(R - propAt[2]) < 1) return;
+    propAt = [x, z, R];
     const want = new Map();
     const spots = spotConfig ? visibleSpots(spotIndex, { x, z, radius: R + spotConfig.pieceReach, known: (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz) }) : [];
     const patches = towns.filter(p => p.dirt && Math.hypot(p.x - x, p.z - z) < R + p.width);

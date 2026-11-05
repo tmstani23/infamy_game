@@ -1,6 +1,7 @@
 // Hire panel and the crew count in the HUD (ryo has its own badge, src/ryo_badge.js). Reads the game state and sends
 // 'hire' commands only; the rules in sim/clans.js decide what actually happens.
 import { hireStatsHtml } from './hire_stats.js';
+import { trainingBar } from './training_ui.js';
 const title = s => s[0].toUpperCase() + s.slice(1);
 
 export function createHireMenu({ panel, money, game, units, heroId, send, openStash = () => {} }) {
@@ -8,6 +9,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
   const owner = game.state.entities[heroId]?.owner;
   const hireable = Object.keys(units.types).filter(type => game.clans.hirePrice(owner, type) !== null);
   let open = false, shown = '', armedDismiss = null, dismissView = false;
+  let planned = null,quantity = 1;
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
   // the teahouse (Shinobi: the village dojo) the hero is standing in, if any
@@ -17,7 +19,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
   function pick(i) {
     const b = teahouse();
     if (!open || dismissView || !b || !hireable[i]) return;
-    send({ id: heroId, type: 'hire', business: b.id, unit: hireable[i] });
+    planned=i;quantity=1;shown='';update();
   }
 
   function dismiss(id) {
@@ -29,6 +31,13 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
   }
 
   panel.addEventListener('click', e => {
+    const change=e.target.closest?.('[data-hire-quantity]')?.dataset.hireQuantity;
+    if(change) {quantity=Math.max(1,Math.min(Math.max(units.rules.maxQueue,units.rules.settlers?.maxQueue || 10),quantity+Number(change)));shown='';update();return;}
+    if(e.target.closest?.('[data-hire-cancel]')) {planned=null;shown='';update();return;}
+    if(e.target.closest?.('[data-hire-confirm]') && planned!==null) {
+      const b=teahouse();if(b)send({id:heroId,type:'hire',business:b.id,unit:hireable[planned],count:quantity});
+      planned=null;shown='';update();return;
+    }
     if (e.target.closest?.('[data-open-stash]')) {openStash(); return;}
     const view = e.target.closest?.('[data-crew-view]')?.dataset.crewView;
     if (view) { dismissView = view === 'dismiss'; armedDismiss = null; shown = ''; update(); return; }
@@ -56,8 +65,14 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
       return `<div class="row"><span>${i + 1}. ${t.name || title(k)}<br><small>${t.hp} hp · hire ${t.hireSeconds * (b.kind === 'hideout' ? units.rules.hideout?.hireTimeFactor ?? 1 : 1)}s<br>${t.settler ? 'unarmed · follows you · 5 are needed to found a town' : hireStatsHtml(k, t)}</small></span>` +
         `<button data-pick="${i}" ${can ? '' : 'disabled'}>${price} ryo</button></div>`;
     }).join('');
-    const h = c.queue[0];
-    const waiting = c.queue.length ? `<div class="waiting">Coming: ${c.queue.map(q => units.types[q.unit]?.name || q.unit).join(', ')} (next in ${Math.ceil(h.left)}s, at the door)</div>` : '';
+    const waiting = '<div data-hire-training></div>';
+    let confirmation='';
+    if(planned!==null) {
+      const unit=hireable[planned],t=units.types[unit],total=Array.from({length:quantity},(_,i)=>game.clans.hirePrice(c.id,unit,i)).reduce((n,v)=>n+v,0);
+      const limit=t.settler?(units.rules.settlers?.maxQueue || 10)-settlerQueued:Math.min(cap-crew-crewQueued,units.rules.maxQueue-crewQueued);
+      const seconds=t.hireSeconds*(b.kind==='hideout'?(units.rules.hideout?.hireTimeFactor || 1):1)*quantity;
+      confirmation=`<div class="hireconfirm"><b>Queue ${quantity} ${t.name || title(unit)}</b><div><button data-hire-quantity="-1">−</button> ${quantity} <button data-hire-quantity="1">+</button></div><div>Total: ${total} ryo · have ${Math.floor(c.ryo)}${c.ryo<total?' · missing '+Math.ceil(total-c.ryo):''}</div><div>Queue space: need ${quantity}, available ${limit}. Training: ${seconds}s plus existing queue. Technology: none.</div><button data-hire-confirm ${c.ryo>=total && quantity<=limit?'':'disabled'}>Confirm training</button><button data-hire-cancel>Cancel</button></div>`;
+    }
     const dismissRows = b.kind === 'hideout' ? game.clans.crewOf(c.id)
       .filter(u => !u.guard && !u.dead)
       .map(u => {
@@ -71,13 +86,15 @@ export function createHireMenu({ panel, money, game, units, heroId, send, openSt
     const dismiss = `<h3>DISMISS CREW · ALL ZONES</h3>${dismissRows || '<div class="waiting">No active crew</div>'}<div class="waiting">Healthy crew from any zone · click twice to confirm</div>`;
     const navigation = b.kind === 'hideout' ? `<div><button data-open-stash>HQ stash</button><button data-crew-view="hire">Hire crew</button><button data-crew-view="dismiss">Dismiss crew · all zones</button></div>` : '';
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
-    const html = `${navigation}${dismissView ? dismiss : `<h3>HIRE CREW</h3>${rows}${waiting}`}${notice}<div class="waiting">${dismissView ? 'Select crew above' : `1-${hireable.length} or click`} · H / Esc close</div>`;
+    const html = `${navigation}${dismissView ? dismiss : `<h3>HIRE CREW</h3>${rows}${confirmation}${waiting}`}${notice}<div class="waiting">${dismissView ? 'Select crew above' : `1-${hireable.length} or click, choose quantity, then confirm`} · H / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }
+    const progress=panel.querySelector?.('[data-hire-training]'),h=c.queue[0];
+    if(progress)progress.innerHTML=h?trainingBar(units.types[h.unit]?.name || h.unit,h.left,h.duration || units.types[h.unit].hireSeconds*(game.state.businesses[h.business]?.kind==='hideout'?(units.rules.hideout?.hireTimeFactor || 1):1))+`<div class="waiting">${c.queue.length-1} more queued</div>`:'';
   }
 
   return {
     update, pick, isOpen: () => open,
     toggle() { open = !open && !!teahouse(); update(); },
-    close() { open = false; update(); },
+    close() { open = false;planned=null; update(); },
   };
 }

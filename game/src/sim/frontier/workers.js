@@ -1,7 +1,7 @@
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
 import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spots.js';
-import { cellToWorld } from './town_grid.js';
+import { cellToWorld, worldToCell, townBlockersIn } from './town_grid.js';
 import { dirIndex } from '../geometry.js';
 const HZ=20;
 export function ensureWorkers(s) { s.workers ||= []; s.workerTraining ||= []; }
@@ -13,13 +13,35 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const R=data.workers, index=makeSpotIndex(spotData || {spots:[],byChunk:{},chunkSize:250});
   let runtime=null;
   const paths=new Map();
+  const townBlocked = (x,z) => townBlockersIn(state.frontier,x,z,x,z).length>0;
+  function waitingPoint(s,w,building=null) {
+    const origin=building ? point(s,building) : [s.x,s.z];
+    if (!runtime || !s.grid || !s.roadReserve && !townBlocked(...origin)) return origin;
+    const candidates=[];
+    const search=R.spawnSearchCells || 3;
+    for(let dz=-search;dz<=search;dz++)for(let dx=-search;dx<=search;dx++) {
+      const p=[origin[0]+dx*s.grid.cell,origin[1]+dz*s.grid.cell];
+      const i=worldToCell(s,...p);
+      if(i<0 || s.grid.ground[i]==='x' || s.grid.zone[i]!=='.' || townBlocked(...p))continue;
+      const occupied=s.workers.some(other=>other!==w && other.departure && distance(other.departure,p)<1);
+      candidates.push({p,d:dx*dx+dz*dz,occupied});
+    }
+    candidates.sort((a,b)=>Number(a.occupied)-Number(b.occupied) || a.d-b.d || b.p[1]-a.p[1] || b.p[0]-a.p[0]);
+    // Query the planning grid, not loaded chunks: the same town must choose the same
+    // waiting/drop-off point while asleep, including training ordered from the map.
+    return candidates.find(({p}) => {
+      const route=runtime.areas.nav.workerPath(...p,...p,townBlocked);
+      return route && distance(route[0],p)<1;
+    })?.p || origin;
+  }
   function attach(services) { runtime=services.areas ? services : null; }
   function path(a,b) {
     if(!runtime)return [a,b];
-    const key=JSON.stringify([a,b]);
+    const key=JSON.stringify([a,b,towns().map(s=>[s.grid?.use,s.buildings.map(b=>[b.id,b.stage])])]);
     if(paths.has(key))return paths.get(key);
-    const p=runtime.areas.nav.workerPath(...a,...b);
-    if(p) {paths.set(key,p);if(paths.size>R.pathCacheSize)paths.delete(paths.keys().next().value);}
+    let p=runtime.areas.nav.workerPath(...a,...b,townBlocked);
+    if(p && distance(a,p[0])>1e-6 && runtime.areas.nav.clearLine(...a,...p[0]))p=[a,...p];
+    paths.set(key,p);if(paths.size>R.pathCacheSize)paths.delete(paths.keys().next().value);
     return p;
   }
   const length=p=>p.slice(1).reduce((n,v,i)=>n+distance(p[i],v),0);
@@ -47,7 +69,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const point=(s,b)=>s.grid && Number.isInteger(b.cell) ? cellToWorld(s,b.cell) : [s.x,s.z];
   const dropoffs=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type));
   function nearestDropoff(s,spot) {
-    return dropoffs(s).map(b=>({b,p:point(s,b)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
+    return dropoffs(s).map(b=>({b,p:waitingPoint(s,null,b)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
   }
   function eligible(s,id) {
     const spot=index.get(id);
@@ -58,6 +80,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!Number.isSafeInteger(count) || count<1)return result('count must be a positive integer');
     if(!s.buildings.some(b=>b.type==='town_hall' && b.stage==='built'))return result('needs a town hall');
     if(s.pop<count*R.personCost)return result('not enough people');
+    if(s.pop-count*R.personCost < (data.opening?.reservePeople || 0))return result('keep one townsperson for food and construction');
     if(s.stock.ryo<count*R.cost)return result('cannot afford workers');
     ensureWorkers(s);
     world.change(s.id,'ryo',-count*R.cost,'train');world.changePop(s.id,-count*R.personCost,'train');
@@ -75,6 +98,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     // Finish a carried load before changing destinations; an order never destroys or duplicates cargo.
     for(const w of selected) {
       w.by=by;
+      delete w.order;delete w.nextOrder;delete w.status;delete w.retryAt;
       if(w.carrying>0)w.nextSpot=spot.id;
       else { w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);w.spot=spot.id;w.trip=null;w.elapsed=0;w.phase=0;w.dropoff=null;delete w.project; }
     }
@@ -85,7 +109,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const spots=index.spotsNear(s.x,s.z,R.range).filter(p=>R.resources[p.kind]);
     const resources=[...new Set(Object.values(R.resources))].sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
     for(const w of s.workers) {
-      if(w.spot || w.project)continue;
+      if(w.spot || w.project || w.order || w.by==='p')continue;
       const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
       if(spot)assign(s,[w.id],spot.id,'g');
     }
@@ -94,13 +118,72 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const drop=nearestDropoff(s,spot);if(!drop)return false;
     const backPath=path([spot.x,spot.z],drop.p);
     const outPath=path(w.departure || drop.p,[spot.x,spot.z]);
-    if(!outPath || !backPath)return false;
+    if(!outPath || !backPath) { w.status='No walking route to resource'; return false; }
     const out=walkTicks(length(outPath)),back=walkTicks(length(backPath));
     const stages=spotRules?.stages, saved=state.frontier.spots?.[spot.id];
     const harvest=stages ? Math.ceil(R.harvestTicks*spot.pieces.length/spotYield(spot,saved,stages)) : R.harvestTicks;
     w.trip={origin:backPath.at(-1),destination:outPath.at(-1),outPath,backPath,out,harvest,back,total:Math.max(1,out+back+harvest),resource:R.resources[spot.kind],load:R.load,harvested:false};
     delete w.departure;
     w.dropoff=drop.b.id;w.elapsed=0;w.phase=0;return true;
+  }
+  const currentPoint=w=>{
+    const e=state.entities?.[w.entity];
+    return e ? [e.x,e.z] : position(w) || w.departure;
+  };
+  function moveTrip(route) {
+    const target=route.at(-1),out=Math.max(1,walkTicks(length(route)));
+    return {kind:'move',origin:target,destination:target,outPath:route,backPath:[target,target],out,harvest:0,back:0,total:out,load:0,harvested:true};
+  }
+  function workerOrder(s,ids,kind,{x,z,group}={}) {
+    if(!Array.isArray(ids) || !ids.length || new Set(ids).size!==ids.length)return result('workers must list each id once');
+    const selected=ids.map(id=>s.workers?.find(w=>w.id===id));
+    if(selected.some(w=>!w))return result('unknown worker');
+    if(kind==='group') {
+      if(!Number.isInteger(group) || group<0 || group>(R.groups || 4))return result('invalid worker group');
+      for(const w of selected)w.group=group;
+      return result();
+    }
+    if(!['move','hold'].includes(kind))return result('unknown worker order');
+    if(kind==='move' && (!Number.isFinite(x) || !Number.isFinite(z)))return result('invalid move position');
+    const plans=selected.map(w=>{
+      const here=currentPoint(w) || [s.x,s.z];
+      return {w,here,route:kind==='move' ? path(here,[x,z]) : null};
+    });
+    if(kind==='move' && plans.some(p=>!p.route))return result('no walking route to that position');
+    for(const {w,here,route} of plans) {
+      w.by='p';delete w.project;delete w.nextSpot;delete w.status;delete w.retryAt;
+      if(kind==='hold') {w.order={kind:'hold'};delete w.nextOrder;w.departure=here;}
+      else if(w.carrying>0) {w.nextOrder={kind,x,z};delete w.order;}
+      else {
+        w.order={kind,target:route.at(-1)};w.spot=null;w.dropoff=null;delete w.nextOrder;
+        w.trip=moveTrip(route);w.elapsed=0;w.phase=0;w.departure=here;
+      }
+    }
+    return result();
+  }
+  // Replan a stalled saved route from the actual position. Preserve its harvested cargo.
+  function reroute(s,w) {
+    const here=currentPoint(w);if(!here)return false;
+    paths.clear();
+    if(w.order?.kind==='move') {
+      const route=path(here,w.order.target);if(!route)return false;
+      w.trip=moveTrip(route);w.elapsed=0;w.phase=0;return true;
+    }
+    if(w.carrying>0) {
+      const spot=index.get(w.spot),drop=spot && nearestDropoff(s,spot),route=drop && path(here,drop.p);
+      if(!route)return false;
+      const back=walkTicks(length(route));
+      w.trip={...w.trip,origin:route.at(-1),destination:here,outPath:null,backPath:route,out:0,harvest:0,back,total:Math.max(1,back),harvested:true};
+      w.dropoff=drop.b.id;w.elapsed=0;w.phase=0;return true;
+    }
+    w.departure=here;w.trip=null;w.elapsed=0;w.phase=0;
+    const spot=index.get(w.spot);return !!spot && start(s,w,spot);
+  }
+  function progress(s,w) {
+    if(w.retryAt>state.tick)return false;
+    if(walk(w,w.elapsed+1)) {delete w.status;return true;}
+    if(reroute(s,w) && walk(w,w.elapsed+1)) {delete w.status;return true;}
+    w.status='Route blocked';w.retryAt=state.tick+(R.retryTicks || 100);return false;
   }
   function position(w) {
     const t=w.trip;if(!t)return null;
@@ -140,7 +223,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   function gather(s,w) {
     const spot=eligible(s,w.spot);
     if(!spot) { if(!w.carrying) {w.spot=null;w.trip=null;w.phase=0;} return; }
-    if(!w.trip && !start(s,w,spot))return;
+    if(!w.trip) {
+      if(w.retryAt>state.tick)return;
+      if(!start(s,w,spot)) {w.retryAt=state.tick+(R.retryTicks || 100);return;}
+    }
     // Removing a storehouse reroutes a carried load; it never unloads into a vanished building.
     if(!dropoffs(s).some(b=>b.id===w.dropoff)) {
       if(!w.carrying) {w.trip=null;return;}
@@ -149,7 +235,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       const back=walkTicks(length(backPath));
       w.dropoff=drop.b.id;w.trip={...w.trip,origin:backPath.at(-1),destination:here,backPath,outPath:null,out:0,harvest:0,back,total:Math.max(1,back),harvested:true};w.elapsed=0;
     }
-    const t=w.trip;if(!walk(w,w.elapsed+1))return;w.elapsed++;
+    if(!progress(s,w))return;
+    const t=w.trip;w.elapsed++;
     if(!t.harvested && w.elapsed>=t.out+t.harvest) {harvest(spot);w.carrying=t.load;t.harvested=true;}
     w.phase=Math.min(1,w.elapsed/t.total);
     if(w.elapsed>=t.total) {
@@ -157,6 +244,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       w.deliveries=(w.deliveries || 0)+1;w.carrying=0;w.phase=0;w.elapsed=0;w.trip=null;
       if(runtime)w.departure=[...t.origin];
       if(w.nextSpot) {w.spot=w.nextSpot;delete w.nextSpot;}
+      if(w.nextOrder) {const next=w.nextOrder;delete w.nextOrder;workerOrder(s,[w.id],next.kind,next);}
     }
   }
   function clear(s) {
@@ -166,7 +254,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const cells=p.cells || [p.cell], over=()=>cells.filter(i=>s.grid.ground[i]==='o');
     if(!over().length) {p.phase='cleared';return new Set();}
     const selected=s.workers.filter(w=>w.project===p.id).slice(0,data.rates.maxBuilders);
-    for(const w of s.workers)if(selected.length<data.rates.maxBuilders && !selected.includes(w) && !w.carrying) {
+    for(const w of s.workers)if(selected.length<data.rates.maxBuilders && !selected.includes(w) && !w.carrying && !w.order) {
       w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);
       w.project=p.id;w.trip=null;w.phase=0;w.elapsed=0;selected.push(w);
     }
@@ -196,16 +284,27 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         return true;
       });
       while(s.workerTraining.length && s.workerTraining[0].readyAt<=(state.tick || 0)) {
-        const job=s.workerTraining.shift();s.workers.push({id:job.id,spot:null,dropoff:null,phase:0,carrying:0,entity:null,elapsed:0,trip:null});
+        const job=s.workerTraining.shift(),w={id:job.id,spot:null,dropoff:null,phase:0,carrying:0,entity:null,elapsed:0,trip:null};
+        if(enabled)w.departure=waitingPoint(s,w);
+        s.workers.push(w);
       }
       const busy=clear(s);
       for(const w of s.workers) {
+        if(enabled && s.roadReserve && !w.order && !w.trip && !w.spot && !w.project && (!w.departure || townBlocked(...w.departure))) {
+          w.departure=waitingPoint(s,w);
+          const e=state.entities?.[w.entity];if(e)[e.x,e.z]=w.departure;
+        }
         const project=s.projects.find(p=>p.id===w.project);
         const resting=w.departure || (project ? point(s,project) : [s.x,s.z]);
         const p=position(w) || resting,spot=index.get(w.spot);
-        const awake=enabled && near(p) && (near([s.x,s.z]) || spot && near([spot.x,spot.z]) || project && near(resting));
+        const awake=enabled && near(p) && (w.order || w.by==='p' || near([s.x,s.z]) || spot && near([spot.x,spot.z]) || project && near(resting));
         if(w.entity!==null && !awake)suspend(w);
-        if(!busy.has(w) && !w.project && w.spot)gather(s,w);
+        if(w.order?.kind==='move' && w.trip) {
+          if(progress(s,w)) {
+            w.elapsed++;w.phase=Math.min(1,w.elapsed/w.trip.total);
+            if(w.elapsed>=w.trip.total) {w.departure=[...w.trip.destination];w.trip=null;w.order={kind:'hold'};w.phase=0;}
+          }
+        } else if(!w.order && !busy.has(w) && !w.project && w.spot)gather(s,w);
         else if(state.entities?.[w.entity])state.entities[w.entity].anim='idle';
         const current=position(w) || resting,e=state.entities?.[w.entity];
         if(e) {
@@ -226,5 +325,5 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(next===null)delete state.frontier.spots[id];else state.frontier.spots[id]=next;
     }
   }
-  return {tick,econTick,train,assign,assignIdle,has,position,index,attach};
+  return {tick,econTick,train,assign,workerOrder,assignIdle,has,position,index,attach};
 }

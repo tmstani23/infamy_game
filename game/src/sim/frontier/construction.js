@@ -50,11 +50,11 @@ export function createConstruction({ state, data, world }) {
   }
 
   // First slice: refund everything if nothing has been built yet (progress 0), else nothing.
-  function cancel(pid) {
+  function cancel(pid, { refund = true } = {}) {
     const hit = find(pid);
     if (!hit) return false;
     const { settlement: s, project: p, index } = hit;
-    if (p.paid && p.progress === 0) for (const [r, n] of Object.entries(p.cost)) world.change(s.id, r, n, 'refund');
+    if (refund && p.paid && p.progress === 0) for (const [r, n] of Object.entries(p.cost)) world.change(s.id, r, n, 'refund');
     if (s.grid && p.cell !== null && !s.buildings.some(b => b.cell === p.cell)) for (const i of p.cells || [p.cell]) setUse(s, i, '.');
     s.projects.splice(index, 1);
     return true;
@@ -63,7 +63,7 @@ export function createConstruction({ state, data, world }) {
   function finish(s, p) {
     const rebuilt = p.replaces && s.buildings.find(b => b.id === p.replaces);
     if (rebuilt) rebuilt.stage = 'built';
-    else s.buildings.push({ id: world.newId('b'), type: p.type, cell: p.cell, ...(p.cells ? { cells: p.cells } : {}), stage: 'built', workers: 0 });
+    else s.buildings.push({ id: world.newId('b'), type: p.type, cell: p.cell, ...(p.cells ? { cells: p.cells } : {}), stage: 'built', workers: 0, paidCost: {...p.cost} });
     s.projects.splice(s.projects.indexOf(p), 1);
     world.recount(s.id);
   }
@@ -77,6 +77,8 @@ export function createConstruction({ state, data, world }) {
     if (!p) return;
     if (p.phase === 'clearing') { wait(s, 'workers'); return; }   // L3.5 workers clear the footprint over time
     if (!p.paid) {
+      const reserve = data.opening && !s.workers?.length && !s.workerTraining?.length ? data.workers.cost : 0;
+      if (p.cost.ryo && s.stock.ryo - p.cost.ryo < reserve) { wait(s, 'ryo reserved for first worker'); return; }
       const missing = Object.entries(p.cost).filter(([r, n]) => s.stock[r] + EPS < n).map(([r]) => r);
       if (missing.length) { for (const r of missing) wait(s, r); return; }
       for (const [r, n] of Object.entries(p.cost)) world.change(s.id, r, -n, 'build');

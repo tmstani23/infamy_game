@@ -92,13 +92,14 @@ export function createGovernor({ state, data, world, economy, construction, zone
 
   function review(s) {
     init(s);
-    workers?.assignIdle(s);
+    if (s.autoBuild) workers?.assignIdle(s);
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again
     const nBuilt = s.buildings.filter(b => b.stage === 'built').length;
     gov.falling = nBuilt === gov.nBuilt && s.stock.food < gov.foodLast - EPS ? gov.falling + 1 : 0;
     gov.nBuilt = nBuilt;
     gov.foodLast = s.stock.food;
+    if(gov.falling===0 && (s.report.rate?.food || 0)>0)s.suggestions=s.suggestions.filter(x=>!(x.type==='farm' && x.reason==='Farm: food falling'));
     if (++gov.window >= G.budgetWindowReviews) { gov.window = 0; s.budget.spent = 0; }
     s.report.next = '';
     maintain(s);

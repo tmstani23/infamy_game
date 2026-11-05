@@ -354,6 +354,12 @@ Found a town, paint housing and farm zones, lay roads, ring it with a stockade a
 wall yourself in (it should refuse), train workers and send some to a timber spot, walk away and
 come back, and watch zones grow, then starve and recover.
 
+**In-progress checkpoint (2026-11-04):** Tim accepted house/plot spacing, clearing look, inspector dismissal, build review/confirmation, fence placement except corners, night readability and town selection. Changes include worker groups/move/hold and stalled-route recovery, full Eraser refunds, food-warning fixes, completed-structure collision, training quantities and batch hiring. Some latest interactions still need targeted and manual QA. This is not Loop 3 acceptance.
+
+**First open issue:** founding currently places the completed hall at the hero's position; its new collision can trap the hero. Tim requested a mouse-following town-hall placement ghost after Found, with red invalid feedback for terrain, footprint and escape clearance; this is not implemented. Ensure any completed building cannot seal a unit inside. Until fixed, do not claim founding is safe. Final visual follow-ups: dirt/gravel road texture and fence-corner half-span joins; ford mosaic and bridge art remain separate.
+
+**Remaining checks:** fresh founding/egress after the fix; worker groups, movement, stone/timber, cargo and stumps; batch training/hiring totals, cancel and progress; Eraser refunds and hall protection; finished versus unfinished collision and gates; food warning recovery; rounded/translucent visuals; walk away/return, save/load and zone growth/starvation/recovery. `test_frontier_followup`, `test_eraser_refunds`, `test_frontier_build_ui`, `test_frontier_workers`, `test_crew`, `test_founding` and `test_shinobi_hq_raid` passed at this checkpoint. Earlier related checks preceded some latest edits. `test_dismissal.mjs:61` fails on an Instant Taunt text expectation; its baseline has not been investigated. No full-suite or visual-acceptance claim.
+
 **Loop end:** tests pass; Docs keeper commits "Loop 3: gather and build" and ticks the F5 steps it
 closed (F5.1 grid, F5.2 placement, F5.3 zones, F5.4 controls, the F5.x zones card).
 

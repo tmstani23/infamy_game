@@ -37,7 +37,7 @@ const dir = (now, then) => then === undefined || Math.abs(now - then) < 0.05 ? '
 export function waitInfo(s, w) {
   const res = RES.find(r => r === w);
   const p = res && (s.projects || []).find(x => x.authorized && !x.paid && (x.cost?.[res] ?? 0) > (s.stock?.[res] ?? 0));
-  if (!p) return null;
+  if (!p) return s.report?.statusTips?.[w] ? {fill:0,tip:s.report.statusTips[w]} : null;
   const f = n => Math.round(n * 10) / 10;
   const need = p.cost[res], have = s.stock[res], short = need - have, rate = s.report?.rate?.[res] ?? 0;
   const eta = rate > 0.0001 ? `At +${rate.toFixed(2)} ${res} a second: about ${Math.ceil(short / rate)} s.` : `No ${res} is coming in right now.`;
@@ -48,9 +48,10 @@ export function reportRows(s, prev) {
   if (!s || !s.stock) return null;   // rival towns arrive as name only
   const f = n => Math.round(n * 10) / 10;
   const stock = RES.map(r => ({ key: r, label: name(r), value: f(s.stock[r] ?? 0), arrow: dir(s.stock[r] ?? 0, prev?.stock?.[r]),
-    delta: prev?.stock ? f((s.stock[r] ?? 0) - (prev.stock[r] ?? 0)) : 0, tip: r === 'food' ? TIPS.food : undefined }));
+    delta: prev?.stock ? f((s.stock[r] ?? 0) - (prev.stock[r] ?? 0)) : 0, tip: r === 'food' ? s.report?.statusTips?.food || TIPS.food : undefined }));
   const byType = {};
   for (const b of s.buildings || []) if (b.stage === 'built' && b.workers) byType[b.type] = (byType[b.type] || 0) + b.workers;
+  for(const [kind,zone] of Object.entries(s.zones || {}))if(zone.workers)byType[`${kind} zone`]=(byType[`${kind} zone`] || 0)+zone.workers;
   const jobs = Object.entries(byType).map(([t, n]) => ({ label: name(t), workers: n }));
   const r = s.report || {};
   const waiting = (r.waiting || []).map(w => `Waiting for ${w}`);
@@ -62,7 +63,7 @@ export function reportRows(s, prev) {
   const suggestions = (s.suggestions || []).map((x, index) => ({ index, label: name(x.type), reason: x.reason }));
   return {
     id: s.id, title: s.name, owner: s.owner,
-    mood: { value: Math.round(s.mood ?? 0), factors: s.moodFactors || {}, why: (r.moodWhy || []).map(w => ({ text: w.text, hint: w.hint })), tip: TIPS.mood },
+    mood: { value: Math.round(s.mood ?? 0), factors: s.moodFactors || {}, why: (r.moodWhy || []).map(w => ({ text: w.text, hint: w.hint, tip:w.tip || w.hint })), tip: TIPS.mood },
     stock,
     pop: { pop: s.pop, housing: s.housing, text: `Pop ${s.pop} / ${s.housing}`, fill: s.housing ? Math.min(1, s.pop / s.housing) : 0 },
     jobs, jobsTip: TIPS.jobs, idle: r.idle || 0, unfilled: r.unfilled || 0,
@@ -116,6 +117,7 @@ export function overviewRows(frontier, clan, prev = {}, alerts = {}) {
     const proj = rep.projects[0];
     return { id: s.id, rank: i + 1, name: s.name, pop: `${s.pop}/${s.housing}`, popNum: s.pop,
       mood: rep.mood.value, moodWhy: rep.mood.why[0]?.text || '',
+      moodTip:rep.mood.why.map(w=>w.tip).join('\n') || TIPS.mood,foodTip:s.report?.statusTips?.food || TIPS.food,shortageTip:rep.waitingInfo[0]?.tip || '',
       food: rep.stock[0].arrow, foodValue: rep.stock[0].value,
       ryo: rep.stock[4].value, ryoArrow: rep.stock[4].arrow,
       shortage: rep.waiting[0] || '', project: proj ? `${proj.label} · ${proj.status}` : '',

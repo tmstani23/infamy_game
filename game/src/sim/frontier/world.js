@@ -14,7 +14,11 @@ const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.start
 export function createFrontierWorld({ state, data }) {
   if (!state.frontier) state.frontier = build(data);
   const f = state.frontier;
-  for (const s of Object.values(f.settlements)) ensureWorkers(s);   // additive L3.5 migration; retain saved trips/queues
+  for (const s of Object.values(f.settlements)) {
+    ensureWorkers(s);
+    // Reserve future placement without deleting anything from an existing town.
+    if (s.founded !== undefined) s.roadReserve ??= data.townGrid?.hallRoadReserve || 0;
+  }
 
   function build(d) {
     const fr = { version: 1, nextId: 1, econTick: 0, settlements: {}, roads: {}, shipments: {}, armies: {}, totals: {}, ledger: [], receipts: [] };
@@ -44,10 +48,10 @@ export function createFrontierWorld({ state, data }) {
   }
   // A town founded in play (E3): the one door for new settlement records. Starts with the given
   // stock, so the totals invariant (start + in - out = stock) holds from the first tick.
-  function addTown({ id, name, region, owner, x, z, site, traits, pop, stock, buildings }) {
+  function addTown({ id, name, region, owner, x, z, site, traits, pop, stock, buildings, roadReserve = 0 }) {
     if (f.settlements[id]) throw new Error(`[frontier] addTown: ${id} exists`);
     const rec = {
-      id, name, region, owner, site: site ?? null, capital: false, x, z, traits, founded: state.tick ?? 0,
+      id, name, region, owner, site: site ?? null, capital: false, x, z, traits, founded: state.tick ?? 0, roadReserve,
       pop, housing: 0, workforce: pop,
       stock: Object.fromEntries(data.resources.map(r => [r, stock?.[r] || 0])),
       buildings: buildings.map((b, i) => ({ id: `${id}:${i}`, type: b.type, cell: b.cell ?? null, stage: b.stage || 'built', workers: 0 })),

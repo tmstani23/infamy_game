@@ -17,6 +17,7 @@ import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
 import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
 import { createAreas } from './areas.js';
+import { townBlockersIn } from './frontier/town_grid.js';
 import { cityOnIsland } from './chunk_gen.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
@@ -155,7 +156,7 @@ export function createGame(options) {
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   // the island as a walkable place, e.place === 'world' (sim/areas.js, frontier W3.2); the city sits on it
   // at world.capital + cityOffset, as a blocker whose way in is the gate (W3.5)
-  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds) }) : null;
+  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box) }) : null;
   // the city gate out to the island (frontier W3.5, district.islandGate): a pair of doors, open in a
   // campaign match only. The island side stands just outside the city's west wall on the island.
   // The island side is the gate's spot on the island, pushed out past the nearest edge of the city.
@@ -751,7 +752,7 @@ export function createGame(options) {
         if (!spot) { Object.assign(e, old, { place: from }); const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'No dry land there to travel to' }; }
         else { [e.x, e.z] = spot; delete paths[e.id]; delete intents[e.id]; gateCrew(e, from, { x: old.x, z: old.z, to: { x: e.x, z: e.z }, place: 'world' }, c.units); }
       }
-      if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit);
+      if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit,c.count ?? 1);
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'frontier' && frontier) frontier.command(e, c);   // towns keep running while the hero is down
       if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}

@@ -26,8 +26,8 @@ export function createTownsOverview({ root, game, heroId, clan = 'player', send,
     for (const r of list) {
       const road = r.road === 'working' ? '<span class="up">OK</span>' : r.road === 'none' ? '<span class="dim">–</span>' : `<span class="dn">${esc(r.road)}</span>`;
       h += `<tr draggable="${sort === 'rank'}" data-id="${r.id}" class="${flash[r.id] > now ? 'flash' : ''}"><td>≡ ${r.rank}</td><td><b>${esc(r.name)}</b>${r.alerts.map(a => ` <span class="pill">${esc(a)}</span>`).join('')}</td><td>${r.pop}</td>`
-        + `<td class="${r.mood < 40 ? 'dn' : ''}">${r.mood}${r.moodWhy ? ` <span class="dim">${esc(r.moodWhy)}</span>` : ''}</td><td>${arrow[r.food]}</td><td>${r.ryo} ${arrow[r.ryoArrow]}</td>`
-        + `<td>${esc(r.shortage.replace('Waiting for ', ''))}</td><td>${esc(r.project)}</td><td>${road}</td><td>${r.garrison}</td>`
+        + `<td data-tip="${esc(r.moodTip)}" class="${r.mood < 40 ? 'dn' : ''}">${r.mood}${r.moodWhy ? ` <span class="dim">${esc(r.moodWhy)}</span>` : ''}</td><td data-tip="${esc(r.foodTip)}">${r.foodValue} ${arrow[r.food]}</td><td>${r.ryo} ${arrow[r.ryoArrow]}</td>`
+        + `<td data-tip="${esc(r.shortageTip)}">${esc(r.shortage.replace('Waiting for ', ''))}</td><td>${esc(r.project)}</td><td>${road}</td><td>${r.garrison}</td>`
         + `<td><select data-act="priority" data-id="${r.id}">${['grow', 'produce', 'trade', 'fortify'].map(p => `<option value="${p}"${p === r.priority ? ' selected' : ''}>${p[0].toUpperCase() + p.slice(1)}</option>`).join('')}</select></td>`
         + `<td><select data-act="tax" data-id="${r.id}">${['auto', 'low', 'normal', 'high'].map(p => `<option value="${p}"${p === r.tax ? ' selected' : ''}>${p[0].toUpperCase() + p.slice(1)}</option>`).join('')}</select></td></tr>`;
     }

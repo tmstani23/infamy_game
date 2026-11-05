@@ -54,7 +54,7 @@ export function createClans(state, units, opts = {}) {
   }
 
   // One-off price; each crew member you have or are waiting on makes the next one dearer
-  function hirePrice(id, type) {
+  function hirePrice(id, type, additional = 0) {
     const t = types[type];
     if (!t || t.later || !t.price) return null;
     if (t.campaignOnly && state.match?.mode !== 'campaign') return null;   // settlers: campaign only (E2)
@@ -62,7 +62,7 @@ export function createClans(state, units, opts = {}) {
     if ((t.clan || 'yakuza') !== (state.clans[id]?.kind || 'yakuza')) return null;   // ninja crew for the Shinobi clan only, and the other way round
     const faction = state.clans[id]?.faction;
     if ((t.faction && t.faction !== faction) || t.excludeFactions?.includes(faction)) return null;
-    const have = crewCount(id) + (state.clans[id]?.queue.filter(q => !types[q.unit]?.settler).length || 0);
+    const have = crewCount(id) + (state.clans[id]?.queue.filter(q => !types[q.unit]?.settler).length || 0) + additional;
     return Math.round(t.price * (1 + rules.priceStepPerCrew * have) * (opts.priceFactor?.(id) ?? 1));   // underdog discount (sim/leader.js)
   }
 
@@ -77,7 +77,7 @@ export function createClans(state, units, opts = {}) {
 
   // Hire command from a hero standing inside a teahouse. Pays now; the recruit
   // arrives at the teahouse door when the timer runs out. Returns the message shown.
-  function hire(hero, businessId, type) {
+  function hire(hero, businessId, type, count = 1) {
     const clan = state.clans[hero.owner], b = state.businesses[businessId];
     if (!clan || hero.type !== 'hero') return null;
     // in a teahouse (the Shinobi clan: the village dojo), or (slower) in your own hideout
@@ -85,14 +85,17 @@ export function createClans(state, units, opts = {}) {
     if (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
     const price = hirePrice(clan.id, type);
     if (price === null) return say(clan, 'Nobody here for that job yet');
+    if(!Number.isSafeInteger(count) || count<1 || count>Math.max(rules.maxQueue,rules.settlers?.maxQueue || 10))return say(clan,'Invalid hire quantity');
     const settler = !!types[type]?.settler, queued = n => clan.queue.filter(q => !!types[q.unit]?.settler === n).length;
-    if (settler) { if (queued(true) >= (rules.settlers?.maxQueue ?? 10)) return say(clan, 'Too many settlers waiting'); }
-    else if (crewCount(clan.id) + queued(false) >= crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
-    if (!settler && queued(false) >= rules.maxQueue) return say(clan, 'Too many hires waiting');
-    if (clan.ryo < price) return say(clan, `Not enough ryo (${price} needed)`);
-    debitRyo(state, clan, price, 'Crew hired', { target: type });
-    clan.queue.push({ unit: type, business: b.id, left: types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1) });
-    return say(clan, `Hired a ${types[type].name || type} for ${price} ryo`);
+    if (settler) { if (queued(true)+count > (rules.settlers?.maxQueue ?? 10)) return say(clan, 'Too many settlers waiting'); }
+    else if (crewCount(clan.id) + queued(false)+count > crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
+    if (!settler && queued(false)+count > rules.maxQueue) return say(clan, 'Too many hires waiting');
+    const total=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)).reduce((n,v)=>n+v,0);
+    if (clan.ryo < total) return say(clan, `Not enough ryo (${total} needed)`);
+    debitRyo(state, clan, total, 'Crew hired', { target: type });
+    const duration=types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1);
+    for(let i=0;i<count;i++)clan.queue.push({ unit: type, business: b.id, left:duration, duration });
+    return say(clan, count===1?`Hired a ${types[type].name || type} for ${total} ryo`:`Queued ${count} ${types[type].name || type} for ${total} ryo`);
   }
 
   // Dismiss a healthy crew member at their clan's own hideout for a small refund.
