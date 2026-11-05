@@ -19,9 +19,12 @@ Handoff for picking up Loop 3 (gather and build) outside Claude, e.g. in ChatGPT
 
 ## Next
 1. **L3.9 remains open.** Founding can trap the hero inside the new hall because the hall is placed at the hero's coordinates and completed buildings now block movement. Tim requested a mouse-following hall-placement ghost with terrain/footprint/escape validation; not implemented. Fix that and prevent completed buildings from sealing units inside before claiming safe founding.
-2. After Tim accepts Loop 3, update only the phase boxes actually completed, then continue Loop 4.
+2. Complete the dedicated fix phase in the L3.9 card before the next gameplay loop: safety/performance, worker travel, economy explanations, selection/navigation, cargo feedback, visual joins, then focused regression and manual acceptance. Preserve saves and make small Node-tested checkpoints.
+3. After Tim accepts Loop 3, update only the phase boxes actually completed, then continue Loop 4.
 
 Current playtest checkpoint: Tim accepted plot spacing, clearing appearance, inspector dismissal, build review/confirm and fence placement except corners; full loop acceptance is pending. Worker groups/move/hold, route recovery, full Eraser refunds, food-warning fixes, building collision and quantity-based training/hiring are in this checkpoint; latest interactions need focused and manual QA. See the L3.9 card for remaining checks and deferred road/fence/ford/bridge art. No save was reset or written during diagnostics.
+
+Additional manual playtest (2026-11-04): rounded plots, worker training/progress/confirmation, clear worker spawns, nearby spot listing, selection and movement, harvesting/returning, all three zone types growing, Eraser confirmation/refunds and resource/cutdown effects worked. Workers still disappear beyond town/grid and get stuck on buildings, so travel/visibility/pathing are not accepted. Abandonment and low health appear but need clear explanations. Safe founding and Loop 3 remain open. No new Node tests were run in this playtest; see L3.9 for the full fix sequence and current dropoff/economy behavior.
 
 L3.5 validation: `node game/tools/test_frontier_workers.mjs` passes (distance, conservation, save timing, rejected orders, training, clearing, forage and real game/save integration). Also passed frontier guards/snapshot/commands/construction/economy/governor/place/zones/world/data, town grid and founding tests; main.js/game.js syntax checks pass. No browser automation or visual acceptance claimed.
 
