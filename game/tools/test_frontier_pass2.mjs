@@ -11,7 +11,7 @@ import { storageCap } from '../src/sim/frontier/storage.js';
 
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
 assert.equal(data.workers.load, 2.5); assert.equal(data.zones.kinds.work.output.goods, 0.0625);
-for (const i of [1, 2]) for (const r of ['timber', 'stone', 'goods']) assert.equal(data.tiers.list[i].upgrade.cost[r], Math.round(data.storage.caps[i - 1] * 0.9), 'upgrade = 90% of the base cap');
+for (const i of [1, 2]) for (const r of ['timber', 'stone', 'goods']) assert.equal(data.tiers.list[i].upgrade.cost[r], Math.round(data.storage.caps[i - 1] * 0.75), 'upgrade = 75% of the base cap');
 for (const b of ['storehouse', 'lumber_camp', 'quarry']) assert.equal(data.buildings[b].cost.goods, 40);
 assert.equal(data.tiers.list[0].placed.market, 0); assert.equal(data.tiers.list[1].placed.market, 1);
 
