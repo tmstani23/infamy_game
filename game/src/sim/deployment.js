@@ -1,4 +1,4 @@
-import { groundZone, shapeDistance } from './geometry.js';
+import { groundZone, shapeDistance, shapeBox } from './geometry.js';
 import { createSectors } from './sectors.js';
 import { createNav } from './nav.js';
 import { isRallyParticipant } from './deployment_rally.js';
@@ -20,7 +20,22 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   clearCombat = () => {}, entryAllowed = () => true, inCombat = () => false }) {
   const geometry = createSectors(district, nav);
   const roads=(district.ground||[]).map(groundZone).filter(z=>['paving','gravel','planks'].includes(z.type)||z.type==='dirt'&&z.shape.line);
-  const patrolAllowed=(x,z)=>!district.quarters?.length||(district.quarters.some(q=>x>=q.box[0]&&x<=q.box[2]&&z>=q.box[1]&&z<=q.box[3])||roads.some(r=>shapeDistance(r.shape,x,z)>=0));
+  const roadBoxes=roads.map(r=>[r,shapeBox(r.shape)]);   // cheap box test before the exact road shape
+  // Patrol check: one table over the sector cell grid, filled once (road shape tests are costly);
+  // cell-centre points (local navs, patrol routes) read the table, other points are memoized.
+  let patrolMask=null;
+  const patrolMaskOf=()=>{
+    if(patrolMask)return patrolMask;
+    const {bounds,cell,w,h}=geometry.cellGrid();patrolMask=new Uint8Array(w*h);
+    for(let k=0;k<w*h;k++)patrolMask[k]=patrolTest(bounds.minX+(k%w+.5)*cell,bounds.minZ+(Math.floor(k/w)+.5)*cell)?1:0;
+    return patrolMask;
+  };
+  const patrolMemo=new Map(),patrolAllowed=(x,z)=>{
+    const {bounds,cell,w,h}=geometry.cellGrid(),i=Math.floor((x-bounds.minX)/cell),j=Math.floor((z-bounds.minZ)/cell);
+    if(i>=0&&j>=0&&i<w&&j<h&&Math.abs(bounds.minX+(i+.5)*cell-x)<1e-9&&Math.abs(bounds.minZ+(j+.5)*cell-z)<1e-9)return !!patrolMaskOf()[j*w+i];
+    const k=x+','+z;let v=patrolMemo.get(k);if(v===undefined)patrolMemo.set(k,v=patrolTest(x,z));return v;
+  };
+  const patrolTest=(x,z)=>!district.quarters?.length||(district.quarters.some(q=>x>=q.box[0]&&x<=q.box[2]&&z>=q.box[1]&&z<=q.box[3])||roadBoxes.some(([r,b])=>x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.maxZ&&shapeDistance(r.shape,x,z)>=0));
   state.deployment ||= { version: 1, restrictionsEnabled: false, heroLimit: 6, sectorLimit: 3,
     sectors: geometry.sectors, village: geometry.village, clans: {} };
   const D = state.deployment, sectorIds = D.sectors.map(s => s.id);
@@ -126,15 +141,29 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     const group = e.deployment.group, b = excursion(e), target = b?.targetSector;
     const patrol=!!e.order?.patrol||!!e.patrolPlanning||b?.kind==='sweep';
     const key = (b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group)+(patrol?':patrol':'');
-    if (!localNavs.has(key)) {
-      const { bounds, cell, w, cells } = geometry.cellGrid(), label = sectorIds.indexOf(group);
-      localNavs.set(key, createNav([], bounds, { cell, pad: 0, allowed: (x, z) => {
-        if (group === 'home') return nav.free(x, z) && canOccupy(e, x, z, 'street');
-        const k = Math.floor((z - bounds.minZ) / cell) * w + Math.floor((x - bounds.minX) / cell);
-        return (!patrol||patrolAllowed(x,z))&&(cells[k] === label || (b && cells[k] === sectorIds.indexOf(target)));
-      } }));
-    }
+    if (!localNavs.has(key)) localNavs.set(key, buildLocalNav(group, b ? target : null, patrol, e));
     return localNavs.get(key);
+  }
+  function buildLocalNav(group, target, patrol, e = null) {
+    const { bounds, cell, w, cells } = geometry.cellGrid(), label = sectorIds.indexOf(group), other = target == null ? -2 : sectorIds.indexOf(target);
+    const mask = patrol ? patrolMaskOf() : null;
+    return createNav([], bounds, { cell, pad: 0, allowed: (x, z) => {
+      if (group === 'home') return nav.free(x, z) && canOccupy(e, x, z, 'street');
+      const k = Math.floor((z - bounds.minZ) / cell) * w + Math.floor((x - bounds.minX) / cell);
+      return (!mask || mask[k] === 1) && (cells[k] === label || cells[k] === other);
+    } });
+  }
+  // Lag fix 3 (Tim 2026-11-05): build every sector/excursion patrol map in the first seconds after
+  // load, a couple per tick, so none is built mid-game. Home maps depend on the unit and stay lazy.
+  let warmKeys=null;
+  function warmNavs(perTick = 2) {
+    if (!D.restrictionsEnabled) return;
+    warmKeys ||= sectorIds.flatMap(g => [[g, null], ...sectorIds.filter(t => t !== g).map(t => [g, t])])
+      .flatMap(([g, t]) => [false, true].map(patrol => [g, t, patrol]));
+    for (let n = 0; n < perTick && warmKeys.length;) {
+      const [g, t, patrol] = warmKeys.shift(), key = (t == null ? g : `excursion:${g}:${t}`) + (patrol ? ':patrol' : '');
+      if (!localNavs.has(key)) { localNavs.set(key, buildLocalNav(g, t, patrol)); n++; }
+    }
   }
   function allowsOrder(e, c, leader, door) {
     if (!D.restrictionsEnabled) return true;
@@ -414,7 +443,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   sync();
   return { addClan, onSpawn, sync, members, counts, canAssign, nextAutomaticSector, sectorAt,
-    overflowAvailable: clan => full(counts(clan)), cellGrid: geometry.cellGrid, canOccupy, canActAt, navFor, patrolAllowed, allowsOrder,
+    overflowAvailable: clan => full(counts(clan)), cellGrid: geometry.cellGrid, canOccupy, canActAt, navFor, warmNavs, patrolAllowed, allowsOrder,
     canTransfer, command, travelStep, localTravel, destination, returnAfterRally, reserveStatus,
     needsFirstSector:clan=>!D.clans[clan]?.autoSector&&counts(clan).hero>=D.heroLimit&&members(clan,'home').some(e=>!e.downed&&!e.deployment.transfer&&!e.deployment.keepAtHQ&&healthy(e)&&idle(e)),
     enable: () => { D.restrictionsEnabled = true; } };

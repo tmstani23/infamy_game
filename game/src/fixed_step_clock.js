@@ -1,6 +1,7 @@
 // Bounded fixed-step catch-up: ordinary slow frames keep real time; extreme
 // stalls discard whole overdue steps, retaining only the interpolation fraction.
-export function createFixedStepClock({ tick = 1 / 20, maxSteps = 10 } = {}) {
+// maxBacklog: overdue steps kept for the next call instead of dropped (spreads catch-up out)
+export function createFixedStepClock({ tick = 1 / 20, maxSteps = 10, maxBacklog = 0 } = {}) {
   let acc = 0;
   const stats = { steps: 0, catchUpFrames: 0, droppedSteps: 0, cappedSeconds: 0 };
   function advance(elapsed, step, paused = false) {
@@ -14,7 +15,7 @@ export function createFixedStepClock({ tick = 1 / 20, maxSteps = 10 } = {}) {
     }
     if (steps > 1) stats.catchUpFrames++;
     stats.steps += steps;
-    const dropped = Math.floor((acc + 1e-9) / tick);
+    const dropped = Math.max(0, Math.floor((acc + 1e-9) / tick) - maxBacklog);
     if (dropped) { stats.droppedSteps += dropped; acc = Math.max(0, acc - dropped * tick); }
   }
   return { advance, alpha: () => acc / tick, diagnostics: () => ({ ...stats }) };

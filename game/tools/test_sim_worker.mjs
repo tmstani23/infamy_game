@@ -37,8 +37,8 @@ assert.equal(mirror.territory.score('player'),runtime.game.territory.score('play
 time+=250;runtime.pump();const before=runtime.game.state.tick;
 for(let i=0;i<12;i++){time+=50;runtime.pump();}
 assert.equal(messages.filter(m=>m.type==='snapshot').length,1);
-assert.equal(runtime.game.state.tick-before,12);consume();
-runtime.receive({type:'input',paused:true,map:true});consume();
+assert.ok(runtime.game.state.tick-before>=12);   // overdue steps are now caught up gradually, not droppedconsume();
+runtime.receive({type:'input',paused:true,map:true});consume();runtime.pump();consume();   // flush the last caught-up tick
 const frozen=runtime.game.state.tick;
 time+=500;runtime.pump();assert.equal(consume().length,0,'idle paused state sends no redundant packet');assert.equal(runtime.game.state.tick,frozen);
 runtime.receive({type:'input',paused:false,map:false,movement:{id:heroId,type:'move',right:1,down:0}});consume();

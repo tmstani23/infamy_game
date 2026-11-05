@@ -53,7 +53,8 @@ export function createWorkerRuntime({post,now=()=>performance.now()}) {
         bots=makeBots(game,match.rivals);commands.push(...match.previewCommands);
       }
       encoder=createSnapshotEncoder(game);
-      clock=createFixedStepClock({tick:1/TICK_RATE});last=now();
+      // at most 2 steps per 10 ms pump, so a slow tick never bursts 10 steps without a snapshot (freeze, then jump)
+      clock=createFixedStepClock({tick:1/TICK_RATE,maxSteps:2,maxBacklog:20});last=now();
       post({type:'ready',heroId:heroOf(game)});publish(true);
     }else if(m.type==='save'){
       // Between ticks, so a save is always a whole tick.

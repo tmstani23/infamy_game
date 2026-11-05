@@ -21,9 +21,10 @@ export function createSectorRecovery({ state, deployment, rally, vision, clearCo
     const b = Object.values(state.businesses).find(b => b.room === e.place);
     return b?.ring ? { x: b.ring[0], z: b.ring[1] } : null;
   };
-  const threats = clan => Object.values(state.entities).filter(e => available(e) && e.owner && e.owner !== clan
-    && e.type !== 'civilian' && !e.hidden && vision.canSee(clan, e)
-    && deployment.members(clan).some(u => available(u) && hostile(u, e)));
+  // members looked up once and the cheap hostile test runs before the costly vision test
+  const threats = clan => { const mine = deployment.members(clan).filter(available); if (!mine.length) return [];
+    return Object.values(state.entities).filter(e => available(e) && e.owner && e.owner !== clan
+      && e.type !== 'civilian' && !e.hidden && mine.some(u => hostile(u, e)) && vision.canSee(clan, e)); };
   function request(clan, id, reason = 'Retreat ordered') {
     const task = state.deployment.clans[clan]?.sectors[id];
     if (!task || !members(clan, id).length) return false;
