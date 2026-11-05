@@ -1,3 +1,5 @@
+import { workerCap } from './sim/frontier/tiers.js';
+import { workerCount } from './sim/frontier/people.js';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function trainingBar(label,left,total) {
   const fraction=Math.max(0,Math.min(1,left/Math.max(0.001,total)));
@@ -11,6 +13,7 @@ export function workerTrainingHTML(s,tick,data) {
 }
 export function workerTrainingPreview(s,count,data) {
   const cost={ryo:count*data.workers.cost},people=count*data.workers.personCost,reserve=data.opening?.reservePeople || 0;
-  const reason=!Number.isSafeInteger(count) || count<1?'Invalid training quantity':s.pop<people+reserve?`Need ${people} people plus ${reserve} reserved; have ${s.pop}`:(s.stock.ryo || 0)<cost.ryo?'Not enough ryo':'';
+  const cap=workerCap(s,data),have=workerCount(s);
+  const reason=!Number.isSafeInteger(count) || count<1?'Invalid training quantity':have+count>cap?`Town hall tier worker limit: ${have} / ${cap}`:s.pop<people+reserve?`Need ${people} people plus ${reserve} reserved; have ${s.pop}`:(s.stock.ryo || 0)<cost.ryo?'Not enough ryo':'';
   return {ok:!reason,reason,cost,people,cells:[]};
 }

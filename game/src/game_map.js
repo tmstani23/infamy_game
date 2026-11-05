@@ -233,11 +233,13 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap() };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
-  // (the snapshot only carries those). Placed at their world site.
+  // (the snapshot only carries those). Placed where the town hall actually stands (Tim 2026-11-05);
+  // records without a position (old fixture towns, rival name-only records) fall back to their world site.
   const siteXZ = Object.fromEntries((world?.sites || []).map(t => [t.id, t]));
   function townsOnMap() {
     const f = game.state.frontier; if (!f) return [];
-    return Object.values(f.settlements || {}).filter(t => !t.capital && siteXZ[t.site ?? ''] ).map(t => ({ ...t, x: siteXZ[t.site].x, z: siteXZ[t.site].z }));
+    const at = t => Number.isFinite(t.x) && Number.isFinite(t.z) ? { x: t.x, z: t.z } : siteXZ[t.site ?? ''] ? { x: siteXZ[t.site].x, z: siteXZ[t.site].z } : null;
+    return Object.values(f.settlements || {}).filter(t => !t.capital && at(t)).map(t => ({ ...t, ...at(t) }));
   }
   const TRAIT = v => '●'.repeat(v) + '○'.repeat(Math.max(0, 3 - v));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

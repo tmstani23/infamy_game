@@ -1,5 +1,6 @@
 // Read-only economy manifest: actual last zone output, active recipes and pending one-time costs.
 import {cellToWorld} from './town_grid.js';
+import {workerCount} from './people.js';
 export function resourceUsage(s,resource,data) {
   const seconds=(data.cadenceTicks || 20)/20,entries=[];
   const add=(id,name,rate,state,purpose,cell=null,once=0,demand=rate)=>{
@@ -7,6 +8,7 @@ export function resourceUsage(s,resource,data) {
     entries.push({id,name,rate,demand,state,purpose,once,x:p[0],z:p[1]});
   };
   if(resource==='food' && s.pop)add('people','Townspeople',data.rates.food*s.pop/seconds,s.foodShortage?'Short of food':'Fed',`Food for ${s.pop} townspeople`);
+  const crew=workerCount(s);if(resource==='food' && crew)add('workers','Workers',data.rates.food*crew/seconds,s.foodShortage?'Short of food':'Fed',`Food for ${crew} workers`);
   for(const [kind,def] of Object.entries(data.zones?.kinds || {}))if(def.inputs?.[resource] && s.grid) {
     const z=s.zones?.[kind],cells=[];
     for(let i=0;i<s.grid.zone.length;i++)if(s.grid.zone[i]===def.char && Number(s.grid.stage[i])>0)cells.push(i);

@@ -10,6 +10,7 @@
 import { terrainAt, buildable } from '../world_data.js';
 import { townSlot } from './town_layout.js';
 import {wallSegments} from './wall_segments.js';
+import { tierOf } from './tiers.js';
 
 const OVERGROWN = new Set(['f', 'b']);   // forest and bamboo start overgrown; open ground starts cleared
 
@@ -31,11 +32,19 @@ export function worldToCell(s, x, z) {
   const col = Math.round((x - s.x) / cell) + c, row = Math.round((z - s.z) / cell) + c;
   return col < 0 || row < 0 || col >= n || row >= n ? -1 : row * n + col;
 }
-// Housing and work zones go only in the core around the hall; it grows with the town hall tier.
-export function inCore(s, i, data) {
-  const g = data.townGrid, [ox, oz] = cellOffset(s, i);
-  return Math.hypot(ox, oz) <= g.coreRadius + g.corePerTier * ((s.tier || 1) - 1);
+// B3 (Tim 2026-11-05): one build ring per town hall tier (data.tiers) for every zone, town building,
+// wall and gate; roads and work camps may go outside. Without tier data the old core rule applies.
+export function ringRadius(s, data) {
+  const t = tierOf(s, data);
+  if (t) return t.ring;
+  const g = data.townGrid;
+  return g.coreRadius + g.corePerTier * ((s.tier || 1) - 1);
 }
+export function inCore(s, i, data) {
+  const [ox, oz] = cellOffset(s, i);
+  return Math.hypot(ox, oz) <= ringRadius(s, data);
+}
+export const inRing = inCore;
 
 // A reserved ring is open for roads and gates, never zones or solid structures.
 export function hallRoadCell(s, i) {

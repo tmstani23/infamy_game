@@ -7,6 +7,7 @@
 // Data keys that start with '_' are notes and are ignored.
 import { debitRyo, creditRyo } from '../treasury.js';
 import { ensureWorkers } from './workers.js';
+import { storageCap } from './storage.js';
 const LEDGER_MAX = 500;
 const EPS = 1e-6;
 const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('_')));
@@ -97,6 +98,12 @@ export function createFrontierWorld({ state, data }) {
       return s.stock.ryo;
     }
     if (s.stock[resource] + delta < -EPS) throw new Error(`[frontier] change: ${s.id} ${resource} would go negative`);
+    // B2 storage caps: a gain stops at the cap (stock already above it stays); the rest is lost as overflow.
+    if (delta > 0) {
+      const room = Math.max(0, storageCap(s, data, resource) - s.stock[resource]);
+      if (delta > room) { (s.overflow ||= {})[resource] = (s.overflow[resource] || 0) + delta - room; delta = room; }
+      if (delta <= 0) return s.stock[resource];
+    }
     s.stock[resource] = Math.max(0, s.stock[resource] + delta);
     ledgerAdd({ settlement: s.id, resource, delta, reason });
     return s.stock[resource];

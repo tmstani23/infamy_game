@@ -13,6 +13,7 @@
 import { cellOffset, inCore, setUse, hallRoadCell, nearCliff } from './town_grid.js';
 import { buildingSafety } from './building_safety.js';
 import { coversResources } from './resource_clearance.js';
+import { placedRoom } from './tiers.js';
 
 const LINES = { road: 'r', wall: 'w', gate: 'g' };
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
@@ -95,8 +96,10 @@ export function createPlacement({ state, data, world, construction, resourceInde
       const reason=buildingSafety(s,cover,state,data.founding?.unitClearance);
       if(reason)return bad(reason,cover);
     }
-    const needsCore = !LINES[kind] && data.buildings[kind].coreOnly;
-    if (needsCore && cover.some(i => !inCore(s, i, data))) return bad('core only', cover);
+    // B3: everything but roads and work camps stays inside the town hall tier's ring
+    const needsRing = kind !== 'road' && !data.tiers?.camps?.includes(kind);
+    if (needsRing && cover.some(i => !inCore(s, i, data))) return bad('outside the town ring', cover);
+    if (!LINES[kind] && placedRoom(s, kind, data) < 1) return bad('town hall tier limit', cover);
     // what-if: would the town lose a path?
     let use = g.use;
     const mark = LINES[kind] || 'B';

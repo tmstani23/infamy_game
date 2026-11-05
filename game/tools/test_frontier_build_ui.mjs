@@ -24,8 +24,8 @@ assert.deepEqual(request('quarry',at(3,3),at(4,4)).cells,[at(4,4)],'building use
 assert.equal(buildPreview(snapshot,request('road',at(3,3)),data).ok,true);
 assert.equal(buildPreview(snapshot,request('road',C),data).reason,'occupied');
 assert.equal(buildPreview(snapshot,request('quarry',n-1),data).reason,'outside grid');
-assert.equal(buildPreview(snapshot,request('housing',at(40,0)),data).reason,'core only');
-assert.match(buildPreview(snapshot,request('farm',at(10,10)),data).warning,/Needs road/);
+assert.equal(buildPreview(snapshot,request('housing',at(40,0)),data).reason,'outside the town ring');
+assert.match(buildPreview(snapshot,request('farm',at(8,8)),data).warning,/Needs road/);
 assert.equal(buildPreview(snapshot,request('eraser',C),data).reason,'town hall');
 assert.equal(JSON.stringify(snapshot),before,'queries accept frozen snapshots and never write');
 const ring = [];

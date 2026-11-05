@@ -43,6 +43,16 @@ assert.equal(g.clans.crewCount('player'), crewBefore, 'settlers are not crew');
 assert.equal(g.clans.crewOf('player').filter(u => u.type === 'settler').length, 0);
 assert.ok(settlers.every(u => u.holdFire && u.order?.kind === 'follow' && u.order.target === hero.id), 'settlers follow and never attack');
 assert.ok(!settlers[0].deployment, 'settlers are outside the deployment groups');
+// Regression (Tim 2026-11-05): right-clicking with settlers and crew selected while deployment rules are on
+// must not crash ("u.deployment is undefined"); settlers count as the hero group.
+{
+  const restricted = g.state.deployment.restrictionsEnabled;
+  g.state.deployment.restrictionsEnabled = true;
+  const units = [...settlers.map(u => u.id), ...g.clans.crewOf('player').map(u => u.id)];
+  for (const kind of ['move', 'follow', 'stop']) g.step([{ id: hero.id, type: 'order', place: hero.place, units, kind, x: hero.x + 3, z: hero.z + 3, target: hero.id }]);
+  g.state.deployment.restrictionsEnabled = restricted;
+  for (const u of settlers) u.order = { kind: 'follow', target: hero.id };
+}
 
 // --- E3: where it is allowed -------------------------------------------------------------
 const spot = (pred) => { for (let z = 100; z < world.size.h; z += 50) for (let x = 100; x < world.size.w; x += 50) if (pred(x, z)) return [x, z]; };

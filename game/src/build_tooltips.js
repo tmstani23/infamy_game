@@ -16,7 +16,12 @@ export function buildTooltip(id,s,data,requirements) {
   const [purpose,enables]=BUILD_DETAILS[id] || ['A placed town building.',''];
   const zone=data.zones.kinds[id],building=!zone && data.buildings[id],cost=zone?{}:data.placeCosts[id] || building?.cost || {};
   const needs=['Buildable town ground'];
-  if(zone?.coreOnly || building?.coreOnly)needs.push('inside town core');
+  // B3: everything but roads and work camps goes inside the town hall tier's ring; tiers cap cells and counts
+  if(id!=='road' && !data.tiers?.camps?.includes(id))needs.push('inside the town ring (grows with town hall tier)');
+  const tier=data.tiers?.list?.[Math.min(data.tiers.list.length,Math.max(1,s?.tier || 1))-1];
+  if(zone && tier?.cells?.[id]!==undefined)needs.push(`at most ${tier.cells[id]} ${id} cells at this tier`);
+  const group=data.tiers?.camps?.includes(id)?'camps':id;
+  if(!zone && tier?.placed?.[group]!==undefined)needs.push(`at most ${tier.placed[group]} ${group==='camps'?'work camps':id.replace('_',' ')+'s'} at this tier`);
   if(zone) {
     needs.push(`road within ${zone.needs.roadReach} cells to grow`);
     if(zone.needs.food)needs.push('food to remain healthy');

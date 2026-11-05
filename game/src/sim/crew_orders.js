@@ -48,7 +48,8 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
         && deployment.allowsOrder(u, c, hero, door));
     if(state.deployment.restrictionsEnabled){
-      const group=u=>rally.status(hero.owner).active&&(u.deployment.group==='hero'||rally.participating(u))?'rally':u.deployment.group;
+      // settlers (and other escorts) carry no deployment record: they travel with the hero group
+      const group=u=>{const g=u.deployment?.group ?? 'hero';return rally.status(hero.owner).active&&(g==='hero'||rally.participating(u))?'rally':g;};
       if(new Set(crew.map(group)).size>1)return;
     }
     const recalling = c.kind === 'move' || c.kind === 'follow';

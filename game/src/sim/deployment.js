@@ -167,6 +167,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   function allowsOrder(e, c, leader, door) {
     if (!D.restrictionsEnabled) return true;
+    if (!e.deployment) return true;   // settlers and other escorts have no group or sector: they go where they are told
     let ok = !e.deployment?.transfer && !e.deployment?.scattered;
     if (ok && c.kind === 'follow') ok = e.deployment.group === 'hero' || isRallyParticipant(state, e);
     else if (ok && c.kind === 'attack') {

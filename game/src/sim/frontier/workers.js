@@ -4,6 +4,9 @@ import { modeRules } from '../modes/index.js';
 import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spots.js';
 import { cellToWorld, worldToCell, townBlockersIn } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
+import { isFull } from './storage.js';
+import { workerCap } from './tiers.js';
+import { workerCount } from './people.js';
 const HZ=20;
 export function ensureWorkers(s) {
   s.workers ||= []; s.workerTraining ||= [];
@@ -99,6 +102,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(s.pop<count*R.personCost)return result('not enough people');
     if(s.pop-count*R.personCost < (data.opening?.reservePeople || 0))return result('keep one townsperson for food and construction');
     if(s.stock.ryo<count*R.cost)return result('cannot afford workers');
+    if(workerCount(s)+count>workerCap(s,data))return result('town hall tier worker limit');
     ensureWorkers(s);
     world.change(s.id,'ryo',-count*R.cost,'train');world.changePop(s.id,-count*R.personCost,'train');
     let readyAt=Math.max(state.tick || 0,s.workerTraining.at(-1)?.readyAt || 0);
@@ -129,9 +133,11 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   function assignIdle(s) {
     if(!on(s) || !has(s))return;
     const spots=index.spotsNear(s.x,s.z,R.range).filter(p=>R.resources[p.kind]);
-    const resources=[...new Set(Object.values(R.resources))].sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
+    const resources=[...new Set(Object.values(R.resources))].filter(r=>!isFull(s,data,r)).sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
     for(const w of s.workers) {
-      if(w.spot || w.project || w.order || w.by==='p')continue;
+      // B2: governor-placed workers on a full resource are moved; the player's own picks stay put.
+      const stuck=w.by==='g' && w.spot && !w.carrying && !w.trip && w.status==='Store full';
+      if((w.spot && !stuck) || w.project || w.order || w.by==='p')continue;
       const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
       if(spot)assign(s,[w.id],spot.id,'g');
     }
@@ -286,6 +292,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!spot && w.trip?.kind!=='return') { if(!w.carrying) {w.spot=null;w.trip=null;w.phase=0;} return; }
     if(!w.trip) {
       if(w.retryAt>state.tick)return;
+      // B2: a full store sends nobody out; the worker waits (Idle tab, governor may move it).
+      if(spot && isFull(s,data,R.resources[spot.kind])) {w.status='Store full';w.retryAt=state.tick+(R.retryTicks || 100);return;}
+      if(w.status==='Store full')delete w.status;
       if(!start(s,w,spot)) {w.retryAt=state.tick+(R.retryTicks || 100);return;}
     }
     // Removing a storehouse reroutes a carried load; it never unloads into a vanished building.

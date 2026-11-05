@@ -80,7 +80,7 @@ const ring = (r, gate) => {
   const r = send({ action: 'place', kind: 'quarry', cells: [at(4, 4)] });   // 2x2 covers (5,5)
   assert.equal(r.reason, 'occupied');
   assert.equal(send({ action: 'place', kind: 'road', cells: [C] }).reason, 'occupied', 'the hall cell');
-  assert.equal(send({ action: 'place', kind: 'house', cells: [at(0, 54)] }).reason, 'core only');
+  assert.equal(send({ action: 'place', kind: 'house', cells: [at(0, 54)] }).reason, 'outside the town ring');
   assert.equal(send({ action: 'place', kind: 'quarry', cells: [n - 1] }).reason, 'outside grid', '2x2 off the right edge');
   assert.equal(send({ action: 'place', kind: 'road', cells: [-1] }).reason, 'outside grid');
   s.grid.ground = s.grid.ground.slice(0, at(7, 7)) + 'x' + s.grid.ground.slice(at(7, 7) + 1);

@@ -1,3 +1,4 @@
+import { residents, workerCount } from './sim/frontier/people.js';
 // Dev-only town readout text (frontier plan F2.4b). Pure: reads a frontier snapshot, writes nothing.
 // F4 replaces this with the real town panel.
 const fix = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString();
@@ -47,7 +48,7 @@ export function waitInfo(s, w) {
 export function reportRows(s, prev) {
   if (!s || !s.stock) return null;   // rival towns arrive as name only
   const f = n => Math.round(n * 10) / 10;
-  const stock = RES.map(r => ({ key: r, label: name(r), value: f(s.stock[r] ?? 0), arrow: dir(s.stock[r] ?? 0, prev?.stock?.[r]),
+  const stock = RES.map(r => ({ key: r, label: name(r), value: f(s.stock[r] ?? 0), cap: s.storageCaps?.[r] ?? null, full: s.storageCaps?.[r] != null && (s.stock[r] ?? 0) >= s.storageCaps[r] - Math.max(1, s.storageCaps[r] * 0.01), arrow: dir(s.stock[r] ?? 0, prev?.stock?.[r]),
     delta: prev?.stock ? f((s.stock[r] ?? 0) - (prev.stock[r] ?? 0)) : 0, tip: r === 'food' ? s.report?.statusTips?.food || TIPS.food : undefined }));
   const byType = {};
   for (const b of s.buildings || []) if (b.stage === 'built' && b.workers) byType[b.type] = (byType[b.type] || 0) + b.workers;
@@ -65,7 +66,7 @@ export function reportRows(s, prev) {
     id: s.id, title: s.name, owner: s.owner,
     mood: { value: Math.round(s.mood ?? 0), factors: s.moodFactors || {}, why: (r.moodWhy || []).map(w => ({ text: w.text, hint: w.hint, tip:w.tip || w.hint })), tip: TIPS.mood },
     stock,
-    pop: { pop: s.pop, housing: s.housing, text: `Pop ${s.pop} / ${s.housing}`, fill: s.housing ? Math.min(1, s.pop / s.housing) : 0 },
+    pop: { pop: residents(s), housing: s.housing, text: `${s.pop} townsfolk + ${workerCount(s)} workers / ${Math.floor(s.housing)} beds`, growth: r.growth?.text || '', goodsWait: (r.waiting || []).includes('goods for housing'), fill: s.housing ? Math.min(1, residents(s) / s.housing) : 0 },
     jobs, jobsTip: TIPS.jobs, idle: r.idle || 0, unfilled: r.unfilled || 0,
     jobsText: `Jobs ${jobs.reduce((n, j) => n + j.workers, 0)} filled · ${r.unfilled || 0} free · ${r.idle || 0} idle`,
     doing: r.doing || '', next: r.next || '', waiting, waitingInfo: (r.waiting || []).map(w => waitInfo(s, w)),

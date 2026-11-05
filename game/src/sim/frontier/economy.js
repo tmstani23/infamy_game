@@ -5,6 +5,10 @@
 // No randomness: the same start always gives the same result. Nobody dies; unhappy people leave.
 // Per-town state is plain data on the settlement record (mood, safety, taxLevel, ...), created
 // lazily by init(), so older saves without these fields still run.
+import { residents } from './people.js';
+import { isFull, storageCap } from './storage.js';
+import { upgradeTick } from './tiers.js';
+import { noteArrival } from './arrivals.js';
 const EPS = 1e-9;
 
 export function createEconomy({ state, data, world, zones = null, workers = null }) {
@@ -31,7 +35,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   }
 
   // ---- jobs (F2.5) ----
-  const foodShort = s => s.stock.food < rates.food * s.pop * rates.foodShortTicks;
+  const foodShort = s => s.stock.food < rates.food * residents(s) * rates.foodShortTicks;
 
   // Fill order: farms when food is short, then builders for a paid project, then the town's
   // priority order, then anything left. Workers never exceed the population.
@@ -90,6 +94,8 @@ export function createEconomy({ state, data, world, zones = null, workers = null
         const runs = Math.floor(b.workers / (t.jobs || 1));   // one run per full crew
         for (let i = 0; i < runs; i++) {
           if (!Object.entries(t.recipe.in).every(([r, n]) => s.stock[r] + EPS >= n)) { wait(s, 'inputs'); break; }
+          const full = Object.keys(t.recipe.out).find(r => isFull(s, data, r));
+          if (full) { wait(s, `${full} store full`); break; }
           for (const [r, n] of Object.entries(t.recipe.in)) world.change(s.id, r, -n, b.type);
           for (const [r, n] of Object.entries(t.recipe.out)) world.change(s.id, r, n, b.type);
         }
@@ -107,7 +113,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   }
 
   function eat(s) {
-    const need = rates.food * s.pop, have = s.stock.food;
+    const need = rates.food * residents(s), have = s.stock.food;
     s.foodShortage=have+EPS<need;
     if (have + EPS >= need) { world.change(s.id, 'food', -Math.min(need, have), 'eat'); return; }
     if (have > 0) world.change(s.id, 'food', -have, 'eat');
@@ -122,25 +128,32 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     s.growthProgress += speed;
     if (s.growthProgress >= rates.growthTicks) {
       s.growthProgress = 0;
-      const surplus = s.stock.food > s.growthFood0 + EPS;
+      const surplus = s.stock.food > s.growthFood0 + EPS || isFull(s, data, 'food');   // B2: a full store counts as surplus
       s.growthFood0 = s.stock.food;
-      if (s.pop >= s.housing) s.growthBlock = 'housing';
+      if (residents(s) >= s.housing) s.growthBlock = 'housing';
       else if (!surplus) s.growthBlock = 'food';
-      else { s.growthBlock = null; world.changePop(s.id, 1, 'growth'); }
+      else { s.growthBlock = null; world.changePop(s.id, 1, 'growth'); noteArrival(s, data, state); }   // B7: someone walks in
     }
-    if (s.growthBlock === 'housing' && s.pop < s.housing) s.growthBlock = null;
+    if (s.growthBlock === 'housing' && residents(s) < s.housing) s.growthBlock = null;
     if (s.growthBlock === 'food' && (s.report.rate?.food || 0)>EPS) s.growthBlock=null;
     if (s.growthBlock) wait(s, s.growthBlock==='food'?'population growth surplus':s.growthBlock);
+    // B7: what the town panel says about growth (seconds until the next person, or what blocks it)
+    const secs = (data.cadenceTicks || 20) / 20;
+    s.report.growth = residents(s) >= s.housing ? { block: 'housing', text: 'Housing full: more housing lets the town grow' }
+      : s.growthBlock === 'food' ? { block: 'food', text: 'Food not rising: more farms let the town grow' }
+      : { block: null, eta: Math.ceil((rates.growthTicks - s.growthProgress) / Math.max(speed, 1e-9) * secs), text: '' };
+    if (!s.report.growth.block) s.report.growth.text = `Next person in ${s.report.growth.eta}s${speed < 1 ? ' (slowed by low mood)' : ''}`;
   }
 
   // ---- mood and taxes (F2.5b) ----
   function factors(s) {
-    const eating = rates.food * s.pop;
+    const eating = rates.food * residents(s);
     const food = s.foodShortage ? M.foodFactor.out
       : s.stock.food < eating * M.foodLowTicks ? M.foodFactor.low : M.foodFactor.ok;
     s.moodFactors = { food, safety: s.safety, taxes: M.taxFactor[s.taxLevel] };
     const w = M.weights;
     s.mood = s.moodFactors.food * w.food + s.moodFactors.safety * w.safety + s.moodFactors.taxes * w.taxes;
+    if (s.goodsShort) s.mood *= data.upkeep?.goodsShortMood ?? 1;   // B5: houses want goods to level up
   }
 
   const WHY = {
@@ -149,11 +162,11 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     taxes: () => ['Taxes high', 'Lower taxes']
   };
   function why(s) {
-    const round=n=>Math.round(n*100)/100,normalFood=rates.food*s.pop*M.foodLowTicks,missing=Math.max(0,normalFood-s.stock.food);
+    const round=n=>Math.round(n*100)/100,normalFood=rates.food*residents(s)*M.foodLowTicks,missing=Math.max(0,normalFood-s.stock.food);
     const rate=s.report.rate?.food || 0;
     s.report.statusTips={
-      food:`Food: ${round(s.stock.food)} in stock. Normal reserve: ${round(normalFood)}. Missing: ${round(missing)}. Consumption: ${round(rates.food*s.pop)} per economy tick. Net change: ${round(rate)} per second.${missing && rate>0?' About '+Math.ceil(missing/rate)+' seconds to recover.':''}`,
-      housing:`Housing: ${s.pop} people / ${s.housing} capacity. Need ${Math.max(0,s.pop+1-s.housing)} additional capacity for the next person.`,
+      food:`Food: ${round(s.stock.food)} in stock. Normal reserve: ${round(normalFood)}. Missing: ${round(missing)}. Consumption: ${round(rates.food*residents(s))} per economy tick. Net change: ${round(rate)} per second.${missing && rate>0?' About '+Math.ceil(missing/rate)+' seconds to recover.':''}`,
+      housing:`Housing: ${s.pop} people + ${residents(s)-s.pop} workers / ${s.housing} capacity. Need ${Math.max(0,residents(s)+1-s.housing)} additional capacity for the next person.`,
       safety:`Safety: ${round(s.safety)} / 100. Normal status starts at 70; missing ${round(Math.max(0,70-s.safety))} points. Recovers ${M.safetyRecover} points per review.`,
       taxes:`Taxes: ${s.taxLevel}. Tax mood factor: ${M.taxFactor[s.taxLevel]} / 100. Normal status starts at 70. ${Object.entries(M.taxFactor).filter(([,v])=>v>=70).map(([k,v])=>`${k}: ${v}`).join('; ')}.`,
       builders:`Builders: ${s.builders || 0}. Need at least 1 available townsperson; ${s.report.idle || 0} currently idle.`,
@@ -200,6 +213,9 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   function econTick(s) {
     init(s);
     s.report.waiting = [];
+    if (upgradeTick(s)) s.tierUpAt = f().econTick;   // B3: town hall upgrade finished (alerts announce it)
+    // B2: caps for the town panel (null = no cap); derived each economy tick, never read back by rules.
+    s.storageCaps = Object.fromEntries(data.resources.map(r => { const c = storageCap(s, data, r); return [r, Number.isFinite(c) ? c : null]; }));
     if (zones?.on(s)) zones.migrate(s);   // L3.3: old house/farm/workshop buildings become zones
     assignJobs(s);
     const before = { ...s.stock };

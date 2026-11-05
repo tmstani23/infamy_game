@@ -185,3 +185,22 @@ const crew = (s, kind) => s.buildings.filter(b => b.type === kind).reduce((n, b)
   assert.equal(JSON.stringify(a.state), JSON.stringify(b.state));
 }
 console.log('test_frontier_economy: ok');
+
+// Economy balance B1: workers (and workers in training) eat like townspeople and need a bed.
+{
+  const { step, s } = fresh(s => { s.workers = [{ id: 'w1' }, { id: 'w2' }]; s.workerTraining = [{ id: 'w3', readyAt: 1e9 }]; });
+  const food0 = s.stock.food;
+  step(1);
+  const farm = s.buildings.find(b => b.type === 'farm');
+  const expect = food0 + data.buildings.farm.output.food * farm.workers - data.rates.food * (s.pop + 3);
+  assert.ok(Math.abs(s.stock.food - expect) < 1e-9, 'workers eat');
+}
+{
+  // housing has room for townspeople but not once workers count: growth waits on housing
+  const { step, s } = fresh((s, world) => { s.workers = Array.from({ length: s.housing - s.pop }, (_, i) => ({ id: `w${i}` })); world.change(s.id, 'food', 1e6, 'test'); });
+  const pop0 = s.pop;
+  step(data.rates.growthTicks * 3);
+  assert.equal(s.pop, pop0, 'no growth while workers fill the beds');
+  assert.equal(s.growthBlock, 'housing');
+}
+console.log('B1 workers eat and need a bed: ok');

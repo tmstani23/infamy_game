@@ -26,6 +26,7 @@ import { createFrontierBuildUI } from './frontier_build_ui.js';
 import { createFoundButton } from './found_button.js';
 import {withWorkerPresentations} from './worker_details.js';
 import { drawableTowns, townSignature, townProps } from './town_props.js';
+import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
@@ -226,7 +227,7 @@ async function start() {
     onOpen:() => {characterPanel.close();setGameplayInput(false);}, onClose:() => setGameplayInput(true)});
   const shop=createShopUI({game,heroId,view,send:c=>pending.push(c),hidden:()=>gameMap.isOpen()||hudLayout.isEditing(),onOpen:()=>{characterPanel.close();hqStash.close();setGameplayInput(false);},onClose:()=>setGameplayInput(true)});
   // Hire menu: only reads the state and sends 'hire' commands, like a bot would
-  let townSig = '';
+  let townSig = '', townGrowthFx = null;
   const spotIndex = makeSpotIndex(resourceSpots), spotConfig = frontier?.townArt?._spots;
   const spotTip = document.createElement('div'), twinkle = document.createElement('div');
   spotTip.className = 'townhover'; spotTip.hidden = twinkle.hidden = true;
@@ -601,7 +602,8 @@ async function start() {
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update(); updateSpotHover();
       { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), sig = townSignature(towns);   // E5: founded towns follow their records
-        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); } }
+        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); }
+        if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
       contractMenu.update();

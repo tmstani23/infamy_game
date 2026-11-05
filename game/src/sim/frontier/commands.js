@@ -5,8 +5,9 @@
 // A rejected command changes nothing but the receipt list. Receipts of earlier ticks are dropped
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
+import { startUpgrade } from './tiers.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder'];
+const ACTIONS = ['setPriority', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall'];
 
 export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers }) {
   const f = () => state.frontier;
@@ -107,6 +108,10 @@ export function createCommands({ state, data, world, economy, construction, gove
       case 'cancel':
         construction.cancel(hit.project.id);
         return receipt(e, c, true);
+      case 'upgradeHall': {   // B3: pay now, the hall upgrades after next.upgrade.ticks economy ticks
+        const r = startUpgrade(s, data, world);
+        return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
+      }
       case 'queue':
         if (!data.buildings[c.building]) return reject(e, c, 'unknown building');
         return construction.queue(s.id, c.building, c.cell ?? null) ? receipt(e, c, true) : reject(e, c, 'could not queue it');

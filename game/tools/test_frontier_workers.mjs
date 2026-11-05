@@ -9,7 +9,7 @@ import {createAreas} from '../src/sim/areas.js';
 const read=f=>JSON.parse(readFileSync(new URL('../'+f,import.meta.url)));
 const base=read('data/frontier.json');
 function fixture({saved=null,changes={},spots=null,stages=null}={}) {
-  const data=structuredClone(base);data.settlements={};data.roads={};data.rates.food=0;data.rates.growthTicks=1e9;data.rates.maxBuilders=1;data.mood.reviewTicks=1e9;
+  const data=structuredClone(base);delete data.storage;data.settlements={};data.roads={};data.rates.food=0;data.rates.growthTicks=1e9;data.rates.maxBuilders=1;data.mood.reviewTicks=1e9;
   Object.assign(data.workers,{trainTicks:2,speed:20,harvestTicks:0,load:3,clearTicks:5},changes);
   const list=spots || [{id:'near',kind:'timber',x:1010,z:1000},{id:'far',kind:'timber',x:1020,z:1000},{id:'stone',kind:'stone',x:1010,z:1010},{id:'fish',kind:'fish',x:1000,z:1020},{id:'distant',kind:'timber',x:1700,z:1000}];
   const spotData={seed:31,chunkSize:250,spots:list.map(p=>({...p,pieces:[[0,0,0],[1,0,0],[2,0,0]],deposit:null})),byChunk:{}};

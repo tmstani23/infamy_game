@@ -16,6 +16,7 @@ import { livingWorldUnits } from './building_safety.js';
 import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
 import { createWorkers, ensureWorkers } from './workers.js';
+import { createArrivals } from './arrivals.js';
 
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {} }) {
   let world = createFrontierWorld({ state, data });
@@ -43,6 +44,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const modules = [{ name: 'workers', workers, econTick: () => workers.econTick() }, { name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
+  const arrivals = createArrivals({ state, data });
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index }) : null;
   const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
@@ -68,6 +70,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     commands.clearOldReceipts();   // receipts live one tick
     world.syncCapital();           // the capital's ryo mirrors the clan treasury
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
+    arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
     if ((state.tick ?? 0) % cadence !== cadence - 1) return;
     state.frontier.econTick++;
@@ -81,6 +84,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;workers.attach(services);founding?.attach(services);}
+  function attach(services) {runtime=services;workers.attach(services);arrivals.attach(services);founding?.attach(services);}
   return { get world() { return ensure(); }, tick, command, modules, data, founding, attach };
 }

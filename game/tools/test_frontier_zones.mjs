@@ -5,6 +5,7 @@ import { createFrontier } from '../src/sim/frontier/frontier.js';
 import { gridSize, centreCell } from '../src/sim/frontier/town_grid.js';
 
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
+delete data.tiers; delete data.upkeep;   // B3 tiers and B5 upkeep are covered by test_frontier_tiers.mjs / test_frontier_upkeep.mjs
 const Z = data.zones, K = Z.kinds, cad = data.cadenceTicks;
 const n = gridSize(data), C = centreCell(n);
 const at = (dx, dz) => C + dz * n + dx;
@@ -30,8 +31,8 @@ const housingMax = K.housing.stages.length;
 {
   const { s, send } = fresh();
   const far = at(Math.ceil(data.townGrid.coreRadius / data.townGrid.cellSize) + 3, 0);
-  assert.equal(send({ action: 'zone', kind: 'housing', rect: rectOf(far) }).reason, 'core only');
-  assert.equal(send({ action: 'zone', kind: 'farm', rect: rectOf(far) }).ok, true, 'farm anywhere in the grid');
+  assert.equal(send({ action: 'zone', kind: 'housing', rect: rectOf(far) }).reason, 'outside the town ring');
+  assert.equal(send({ action: 'zone', kind: 'farm', rect: rectOf(far) }).reason, 'outside the town ring', 'B3: farms stay inside the ring too');
   assert.equal(send({ action: 'zone', kind: 'nope', rect: rectOf(at(1, 1)) }).reason, 'unknown zone kind');
   const r = send({ action: 'zone', kind: 'housing', rect: rectOf(at(-1, -1), at(1, 1)) });
   assert.equal(r.ok, true); assert.equal(r.cells.length, 8, 'the hall cell is skipped');

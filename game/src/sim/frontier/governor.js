@@ -9,6 +9,10 @@
 // within budget is queued and authorized by itself. Never more than one governor project at a time.
 // Every rule fires only when its cause is the real limit, so it never loops.
 // createGovernor({ state, data, world, economy, construction }) -> { review, run, approve }
+import { residents } from './people.js';
+import { placedRoom, upgradeCheck, startUpgrade, tierOf, nextTier, zoneCells } from './tiers.js';
+import { isFull } from './storage.js';
+import { workerCount } from './people.js';
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
 
@@ -35,6 +39,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (zk && zones.busy(s, zk)) return true;
     if (zk && s.autoBuild) { const r = zones.autoZone(s, zk); if (!r.ok) s.report.next = `${reason} (${r.reason})`; return true; }
     if (pending(s, type) || s.suggestions.length >= G.maxSuggestions) return true;   // already on the list: this rule has fired
+    if (!zk && placedRoom(s, type, data) < 1) { s.report.next = `${reason} (town hall tier limit)`; return true; }   // B3
     s.suggestions.push({ type, reason });
     return true;
   }
@@ -48,7 +53,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       s.report.next = 'Food falling, need workers';
     }
     // 2. housing full and food not falling: a house
-    if (s.pop >= s.housing && s.gov.falling === 0) return suggest(s, 'house', 'House: no free housing');
+    if (residents(s) >= s.housing && s.gov.falling === 0) return suggest(s, 'house', 'House: no free housing');
     const spare = idle >= G.idleNeeded && unfilled === 0;
     // 3. priority produce: the building for the scarcest of timber, stone and goods
     if (s.priority === 'produce' && spare) {
@@ -109,6 +114,20 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const p = s.projects.find(x => x.authorized) || s.projects[0];
     s.report.doing = p ? `${p.replaces ? 'Rebuilding' : 'Building'} ${p.type.replace('_', ' ')}${p.paid ? ` (${p.progress}/${p.need})` : p.authorized ? ' (waiting for materials)' : ' (waiting for OK)'}` : 'Keeping the town running';
     if (!s.report.next && s.suggestions.length) s.report.next = s.suggestions[0].reason;
+    upgradeHint(s);
+  }
+
+  // B3: when the town presses on a tier limit and can afford the next tier, say so. The upgrade itself is
+  // the player's choice (town panel); towns owned by a bot clan with autoBuild upgrade on their own.
+  function upgradeHint(s) {
+    if (!data.tiers?.list || !upgradeCheck(s, data).ok) return;
+    const t = tierOf(s, data), atLimit = (zones?.on(s) && Object.entries(t.cells || {}).some(([k, cap]) => zoneCells(s, data.zones.kinds[k]?.char) >= cap))
+      || workerCount(s) >= t.workers || data.resources.some(r => isFull(s, data, r));
+    if (!atLimit) return;
+    if (s.autoBuild && s.owner && s.owner !== 'player') {
+      startUpgrade(s, data, world);
+      s.report.next = 'Upgrading the town hall';
+    } else s.report.next = `Upgrade the town hall to ${nextTier(s, data).name}: the town is at its tier limits`;
   }
 
   // The player's OK on a suggestion (also used by the F2.8 command): queue it and authorize it.

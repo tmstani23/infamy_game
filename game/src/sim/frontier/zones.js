@@ -13,6 +13,10 @@
 // Every kind, char and number comes from data/frontier.json "zones" (nothing is hard-coded here).
 import { cellOffset, inCore, centreCell, hallRoadCell, nearCliff } from './town_grid.js';
 import {coversResources} from './resource_clearance.js';
+import { residents } from './people.js';
+import { cellCap, zoneCells } from './tiers.js';
+import { payUpkeep } from './upkeep.js';
+import { noteLevelUp } from './arrivals.js';
 
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
@@ -73,10 +77,13 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (list.some(i => g.ground[i] === 'x')) return bad('unbuildable', list);
     if (k.cliffMargin && list.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', list);
     if(coversResources(s,list,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',list);
-    if (k.coreOnly && list.some(i => !inCore(s, i, data))) return bad('core only', list);
+    if (list.some(i => !inCore(s, i, data))) return bad('outside the town ring', list);
     const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i));
     if (!free.length && list.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', list);
     if (!free.length) return bad('occupied', list);
+    // B3: the town hall tier caps zoned cells per kind
+    const cap = cellCap(s, kind, data), have = zoneCells(s, k.char);
+    if (have + free.length > cap) return { ...bad('town hall tier limit', list), have, cap };
     if (!dryRun) {
       rec(s);
       const mark = by === 'g' ? 'g' : 'p';
@@ -161,8 +168,10 @@ export function createZones({ state, data, world,resourceIndex }) {
   function tick(s, housingOnly = false) {
     if (!on(s)) return;
     const zs = rec(s), g = s.grid, D = Z(), lists = cellsOf(s);
-    const eating = data.rates.food * s.pop, foodScore = eating > 0 ? Math.min(1, s.stock.food / eating) : 1;
+    const eating = data.rates.food * residents(s), foodScore = eating > 0 ? Math.min(1, s.stock.food / eating) : 1;
     let housing = 0;
+    const up = housingOnly ? { zone: {}, goods: 1 } : payUpkeep(s, data, world);   // B5 upkeep and goods
+    if (s.wagesShort) wait(s, 'wages');
     for (const [name, k] of kinds()) {
       const z = zs[name], cells = lists[name], max = k.stages.length, needs = k.needs || {};
       const levels = cells.reduce((sum, i) => sum + stageOf(s, i), 0);
@@ -171,6 +180,8 @@ export function createZones({ state, data, world,resourceIndex }) {
         const scores = [];
         if (needs.food) scores.push(foodScore);
         if (needs.workersPerCell) scores.push(z.wanted > 0 ? Math.min(1, z.workers / z.wanted) : 1);
+        if (up.zone[name] !== undefined) scores.push(up.zone[name]);   // B5: short upkeep lowers health
+        if (up.zone[name] !== undefined && up.zone[name] < 1) wait(s, 'upkeep');
         z.health = scores.length ? Math.min(...scores) : 1;
         if (z.health < D.shortBelow) { z.short++; if (z.short >= k.abandonTicks) z.abandoned = true; }
         else { z.short = 0; z.abandoned = false; }
@@ -185,12 +196,14 @@ export function createZones({ state, data, world,resourceIndex }) {
         if (st >= max) { delete s.zoneGrow[i]; continue; }
         if (!roadNear(s, i, needs.roadReach)) { z.noRoad++; continue; }
         if (z.abandoned || z.health < D.healthyAt) continue;
+        // B5: housing grows to stage 2+ only while its goods are paid (short goods never lower a level)
+        if (k.housing && st >= 1 && (data.upkeep?.goodsByStage?.[st] || 0) > 0 && (s.goodsShort || !(s.stock.goods > 0))) { wait(s, 'goods for housing'); continue; }
         const t = (s.zoneGrow[i] || 0) + 1;
         if (g.ground[i] === 'o') {
           if (t >= D.clearTicks) { g.ground = put(g.ground, i, 'c'); delete s.zoneGrow[i]; } else s.zoneGrow[i] = t;
           continue;
         }
-        if (t >= k.growTicks) { g.stage = put(g.stage, i, String(st + 1)); delete s.zoneGrow[i]; } else s.zoneGrow[i] = t;
+        if (t >= k.growTicks) { g.stage = put(g.stage, i, String(st + 1)); delete s.zoneGrow[i]; if (k.housing && st >= 1) noteLevelUp(s, i, st + 1, state); } else s.zoneGrow[i] = t;
       }
       if (z.noRoad) wait(s, 'needs road');
       // output (inputs, if any, are paid per unit made; short inputs scale it down)
@@ -230,7 +243,7 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (!k) return bad('unknown zone kind');
     const cand = [];
     for (let i = 0; i < n * n; i++) {
-      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || (k.cliffMargin && nearCliff(s, i, data)) || hallRoadCell(s, i) || (k.coreOnly && !inCore(s, i, data))) continue;
+      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || (k.cliffMargin && nearCliff(s, i, data)) || hallRoadCell(s, i) || !inCore(s, i, data)) continue;
       if(coversResources(s,[i],resourceIndex,data.founding?.unitClearance))continue;
       const [ox, oz] = cellOffset(s, i);
       cand.push([ox * ox + oz * oz, i]);

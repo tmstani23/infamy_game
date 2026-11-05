@@ -24,6 +24,25 @@
     "kinds": { "housing": { "char": "h", "coreOnly": true, "stages": ["hut", "house", "large_house"], "needs": { "food": true, "workersPerCell": 0, "roadReach": 3 }, "housing": 2, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 }, "farm": { "char": "f", "coreOnly": false, "cliffMargin": true, "stages": ["field"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "food": 0.03 }, "trait": "soil", "growTicks": 60, "abandonTicks": 40, "governorCells": 4 }, "work": { "char": "k", "coreOnly": true, "stages": ["workshop"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "goods": 0.25 }, "inputs": { "timber": 0.5, "stone": 0.25 }, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 } }
   },
   "resources": ["food", "timber", "stone", "goods", "ryo"],
+  "tiers": { "_note": "Economy balance B3, placeholder, Tim to tune: town hall tiers (tier 1 first, set at founding). ring = build radius in world units from the hall for every zone, town building, wall and gate (roads and work camps may go outside); cells = most zoned cells per zone kind; placed = most of each placed building type (camps counts lumber_camp + quarry together); workers = most workers incl. training; upgrade = what moving UP to this tier costs (pop counts townspeople + workers) and how many economy ticks it takes.",
+    "camps": ["lumber_camp", "quarry"],
+    "list": [
+      { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 4 }, "placed": { "storehouse": 1, "camps": 2, "stockade": 0 }, "workers": 12 },
+      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 12 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1 }, "workers": 35,
+        "upgrade": { "pop": 20, "cost": { "timber": 300, "stone": 150, "goods": 40 }, "ticks": 120 } },
+      { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 30 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 2 }, "workers": 90,
+        "upgrade": { "pop": 60, "cost": { "timber": 1200, "stone": 800, "goods": 250 }, "ticks": 300 } }
+    ] },
+  "upkeep": { "_note": "Economy balance B5, placeholder, Tim to tune: paid every economy tick. The first freeLevels grown zone levels of a town are free; above that, zones pay their rate per grown level (scaled by the share above the free allowance). Short zone upkeep lowers that zone's health (less output and housing; long shortages abandon it, then it recovers). buildings = per built placed building; lines = per wall (w) / gate (g) cell; workerWage = per worker incl. training (short wages show as waiting). goodsByStage = goods per housing cell at stage 1, 2, 3: housing levels up to stage 2+ only while goods are paid; short goods never lower a level, they cost goodsShortMood of mood.",
+    "freeLevels": 12,
+    "zones": { "housing": { "timber": 0.003 }, "farm": { "timber": 0.002 }, "work": { "timber": 0.003, "stone": 0.002 } },
+    "buildings": { "storehouse": { "timber": 0.01 }, "stockade": { "stone": 0.02 } },
+    "lines": { "w": { "stone": 0.002 }, "g": { "stone": 0.002 } },
+    "workerWage": { "ryo": 0.002 },
+    "goodsByStage": [0, 0.002, 0.004],
+    "goodsShortMood": 0.9 },
+  "arrivals": { "_note": "Economy balance B7, placeholder, Tim to tune: a new townsperson walks from the edge of the town ring to a house when the player's units are within workers.spawnRadius (else they just arrive). models = civilian looks picked in turn (workers use laborer); speed = units per second; fxTicks = how long the +1 and the level-up scaffold/dust show (sim ticks).", "models": ["old_woman", "merchant", "fisherman", "monk", "geisha", "sailor", "monk2"], "speed": 3, "maxWalkers": 3, "fxTicks": 80 },
+  "storage": { "_note": "Economy balance B2, placeholder, Tim to tune: most of each resource a town can hold. caps = by town hall tier (tier 1 first); each built storehouse adds perStorehouse; uncapped resources have no limit. Stock already above the cap stays but cannot grow; workers on a full resource wait (status Store full).", "caps": [1000, 3000, 8000], "perStorehouse": 500, "uncapped": ["ryo"] },
   "rates": {
     "food": 0.01,
     "_foodNote": "F0.2: food eaten per person per economy tick",
@@ -57,7 +76,7 @@
     "fortify": ["stockade", "lumber_camp", "quarry", "farm", "workshop", "storehouse"],
     "_note": "placeholder, Tim to tune: job fill order per settlement priority (after short food and builders)"
   },
-  "alerts": { "_note": "placeholder, Tim to tune (F4.4c)", "cooldownEcon": 20, "moodBelow": 40, "attackDrop": 20 },
+  "alerts": { "_note": "placeholder, Tim to tune (F4.4c). B7: growth alerts (town grew past a milestone of popMilestone people, housing full) share one cooldown of growthCooldownEcon economy ticks per town so they never spam", "cooldownEcon": 20, "moodBelow": 40, "attackDrop": 20, "growthCooldownEcon": 300, "popMilestone": 25 },
   "mood": {
     "_note": "placeholder, Tim to tune (F2.5b). mood 0-100 = weighted food, safety and taxes factors, reviewed every reviewTicks economy ticks",
     "reviewTicks": 5,
@@ -126,10 +145,10 @@
     "automatic": { "_note": "placeholder, Tim to tune: decorative lights at regular developed grid corners; no cost, collision or build-cell use", "art": "lantern_post", "spacingCells": 2, "radius": 18 }
   },
   "founding": {
-    "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital; bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
-    "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1000, "botSiteRadius": 30,
+    "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital (1600 from economy balance B4, Tim 2026-11-05: fewer, bigger towns; 600 rings never overlap); bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
+    "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1600, "botSiteRadius": 30,
     "placementRange": 60, "unitClearance": 1, "_placementNote": "placeholder, Tim to tune: hall placement reach from hero and unit escape clearance in world units",
-    "startStock": { "food": 60, "timber": 40, "stone": 10, "ryo": 20 },
+    "startStock": { "food": 60, "timber": 40, "stone": 10, "goods": 10, "ryo": 20 },
     "startBuildings": ["town_hall"],
     "townHall": "town_hall", "firstProject": null,
     "traits": {

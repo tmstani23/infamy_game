@@ -1,7 +1,7 @@
 // L3.8: local tools and selection. Rules are queried in sim modules; changes are commands only.
 import { createPlacement } from './sim/frontier/placement.js';
 import { createZones } from './sim/frontier/zones.js';
-import { cellToWorld, worldToCell } from './sim/frontier/town_grid.js';
+import { cellToWorld, worldToCell, ringRadius } from './sim/frontier/town_grid.js';
 import { bodyDistance } from './crew_input.js';
 import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
@@ -12,6 +12,8 @@ import {workerDetails,workerPresentation} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
 import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
+import { cellCap, zoneCells } from './sim/frontier/tiers.js';
+import { residents } from './sim/frontier/people.js';
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -341,9 +343,20 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         const entry = definitions[s.grid.zone[i]];
         if (!entry) continue;
         const z = s.zones?.[entry], color = data.buildUI?.zoneColors?.[entry] || ({h:'#5aa0f0',f:'#64c864',k:'#be78e6'}[s.grid.zone[i]]);
-        const status = z?.abandoned ? '#ff635a' : (z?.health ?? 1) < data.zones.healthyAt ? '#ffbe48' : null;
+        let status = z?.abandoned ? '#ff635a' : (z?.health ?? 1) < data.zones.healthyAt ? '#ffbe48' : null;
+        // B7 housing overlay: amber = no free beds, green = room for more, violet = waiting for goods to level up
+        const kdef = data.zones.kinds[entry];
+        if (!status && kdef.housing) {
+          const st = Number(s.grid.stage[i]) || 0, needsGoods = st > 0 && st < kdef.stages.length && (data.upkeep?.goodsByStage?.[st] || 0) > 0 && (s.goodsShort || !(s.stock.goods > 0));
+          status = needsGoods ? '#c58cff' : residents(s) >= s.housing ? '#ffbe48' : '#7be08a';
+        }
         polygon(ctx,s,i,color + '30',status || color);
       }
+      // B3: the town hall tier's build ring (everything but roads and work camps goes inside it)
+      { const R = ringRadius(s,data), pts = [];
+        for (let k = 0; k <= 72; k++) { const a = k / 72 * Math.PI * 2; pts.push(view.unitToScreen(s.x + Math.cos(a) * R, s.z + Math.sin(a) * R, 0.08)); }
+        ctx.save(); ctx.setLineDash([8,6]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(233,194,122,.55)';
+        ctx.beginPath(); pts.forEach((p,k) => k ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y)); ctx.stroke(); ctx.restore(); }
       if (pendingPlan?.request && pendingPlan.request.action!=='train' || !pendingPlan && tool && mouse) {
         const last = mouse ? cellAt(mouse.x,mouse.y) : -1, first = drag?.build ? drag.first : last;
         const request = pendingPlan?.request || buildRequest(s,tool,first,last,data), key = JSON.stringify([game.state.tick,s.id,request]);
@@ -355,7 +368,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
           polygon(ctx,s,i,preview.ok ? zoneColor ? zoneColor + '66' : 'rgba(80,235,120,.4)' : 'rgba(245,70,60,.4)');
         }
         if (Date.now() > messageUntil) {
-          hint.textContent = preview.ok ? `${townName(pendingPlan?.tool || tool)} · ${resourceRequirements(s,preview.cost)}${preview.warning ? ' · ' + preview.warning : ''}` : `${preview.reason} · ${resourceRequirements(s,preview.cost)}`;
+          const zk = data.zones.kinds[pendingPlan?.tool || tool], cap = zk ? cellCap(s,pendingPlan?.tool || tool,data) : Infinity;
+          const count = Number.isFinite(cap) ? ` · ${zoneCells(s,zk.char)} / ${cap} cells` : '';   // B3: tier cell cap
+          hint.textContent = (preview.ok ? `${townName(pendingPlan?.tool || tool)} · ${resourceRequirements(s,preview.cost)}${preview.warning ? ' · ' + preview.warning : ''}` : `${preview.reason} · ${resourceRequirements(s,preview.cost)}`) + count;
           hint.hidden = false; hint.dataset.ok = String(preview.ok);
         }
       }

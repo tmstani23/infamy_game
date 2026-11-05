@@ -1,5 +1,6 @@
 import { createZones } from './sim/frontier/zones.js';
 import {BUILD_DETAILS} from './build_tooltips.js';
+import { residents } from './sim/frontier/people.js';
 
 export const townName = value => String(value || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 
@@ -19,8 +20,15 @@ export function townCellTip(s, cell, data) {
   if (entry) {
     lines.push(`Zone state: ${zone?.abandoned ? 'abandoned' : 'active'} · health ${Math.round((zone?.health ?? 1) * 100)}%`);
     if (!createZones({ data }).roadNear(s, cell, def.needs?.roadReach)) lines.push('Needs road to grow');
-    if(def.needs?.food && (s.foodShortage || (s.stock.food || 0)<data.rates.food*s.pop))lines.push(`Needs food: ${Number((data.rates.food*s.pop).toFixed(2))} per economy tick for ${s.pop} people`);
+    if(def.needs?.food && (s.foodShortage || (s.stock.food || 0)<data.rates.food*residents(s)))lines.push(`Needs food: ${Number((data.rates.food*residents(s)).toFixed(2))} per economy tick for ${s.pop} people`);
     if(def.needs?.workersPerCell && (zone?.workers || 0)<(zone?.wanted || 0))lines.push(`Needs townspeople: ${zone?.workers || 0} / ${zone?.wanted || 0} zone jobs filled; trained gatherers are separate`);
+    if(def.housing) {   // B7: who lives here and what the next level needs
+      const st=Number(g.stage[cell]) || 0, beds=Math.round(def.housing*st*(zone?.abandoned?0:(zone?.health ?? 1))), fill=s.housing>0?Math.min(1,residents(s)/s.housing):0;
+      lines.push(`People: about ${Math.round(beds*fill)} / ${beds} (the town is ${Math.round(fill*100)}% full)`);
+      const goods=data.upkeep?.goodsByStage?.[st] || 0;
+      if(st>0 && st<def.stages.length)lines.push(goods>0?`Next level needs goods (${goods} per economy tick)${s.goodsShort || !(s.stock.goods>0)?' · missing':''}`:'Next level: road and healthy zone');
+      if(st>=def.stages.length)lines.push('Largest house');
+    }
     if(def.inputs)for(const [r,amount] of Object.entries(def.inputs))lines.push(`Input: ${amount} ${r} per goods produced${(s.stock[r] || 0)<=0?' · missing':''}`);
     if(g.ground[cell]==='o')lines.push('Needs ground clearing before growth');
     if(Number(g.stage[cell])<def.stages.length)lines.push(`Growth: ${s.zoneGrow?.[cell] || 0} / ${def.growTicks} healthy economy ticks`);

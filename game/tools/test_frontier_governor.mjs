@@ -7,6 +7,7 @@ import { createConstruction } from '../src/sim/frontier/construction.js';
 import { createGovernor } from '../src/sim/frontier/governor.js';
 
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
+delete data.tiers;   // B3 tier limits are covered by test_frontier_tiers.mjs
 const SID = 's_frontier_1', R = data.governor.reviewTicks;
 function fresh(edit) {
   const state = { tick: 0 };

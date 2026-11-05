@@ -29,7 +29,7 @@ assert.equal(JSON.stringify(state), before, 'reading writes nothing');
   const copy = JSON.stringify([s, prev]);
   const rows = reportRows(s, prev);
   assert.equal(JSON.stringify([s, prev]), copy, 'does not change its input');
-  assert.equal(rows.pop.text, 'Pop 8 / 12');
+  assert.equal(rows.pop.text, '8 townsfolk + 0 workers / 12 beds');
   assert.equal(rows.stock.find(r => r.key === 'food').arrow, 'down');
   assert.equal(rows.stock.find(r => r.key === 'timber').arrow, 'flat');
   assert.equal(rows.stock.find(r => r.key === 'food').delta, -10);
