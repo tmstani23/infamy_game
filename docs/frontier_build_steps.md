@@ -97,7 +97,7 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
    - The governor fills whatever the player hasn't placed or zoned, and never repaints the player's cells.
    - Today's types map to: house → housing zone, farm → farm zone, workshop → work zone; lumber_camp and quarry → placed node camps (drop-offs); town_hall, storehouse and stockade are placed.
 2. **Zone health** = needs met (food, workers, road access). Healthy zones grow; only housing grows in stages for now (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned: empty, no output; it recovers when needs return, nothing is destroyed. Building looks show zone health. Later, a zone's level unlocks options when clicked.
-3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6.1 tiers). **Updated (Tim, 2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b6).
+3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6.1 tiers). **Updated (Tim, 2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b7).
 4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Zones, town buildings, walls and gates go only inside the tier's build ring (150 / 300 / 600 units; Tim, 2026-11-05, replaces the separate core); only roads and work camps may go outside. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
 5. **Construction phases:** cleared → frame → finished. Stock is paid at the start, then workers and time. Overgrown cells are cleared by workers automatically. Founding paints a cleared-ground patch under the new town; the current dirt-trail ground patch is the stand-in for the clearing texture.
 6. **Build bar (town panel).** Roads, walls, zone brushes (housing, farm, work), eraser, plus the placed buildings. Click-drag rectangles; the ghost is green (allowed) or red with the reason; right click or Esc cancels. Buildable ground only, not road or water. Zone cells grow only within a few cells of a town road ("needs road" otherwise). Farm cells become crop fields with a farmhouse every few cells. The zone tint shows only while the build bar is open, plus a health tint overlay. Clicking a building shows a tooltip: what it is, its zone, its state and the zone's state. Mock first, Tim approves before building.
@@ -395,7 +395,7 @@ Stock hover and Usage now show supply, consumption, full demand, pending constru
 **Loop end:** tests pass; Docs keeper commits "Loop 3: gather and build" and ticks the F5 steps it
 closed (F5.1 grid, F5.2 placement, F5.3 zones, F5.4 controls, the F5.x zones card).
 
-## Economy balance pass (B0-B6)
+## Economy balance pass (B0-B7)
 
 Agreed with Tim on 2026-11-05 (thread "Plan harvest system balancing"); Tim OK'd it for the plan. Nothing is built yet. All numbers are placeholders in `game/data/frontier.json` with `"_note": "placeholder, Tim to tune"`.
 
@@ -408,6 +408,7 @@ Agreed with Tim on 2026-11-05 (thread "Plan harvest system balancing"); Tim OK'd
 4. **Town hall tiers** limit the build ring, the number of placed buildings and the cells per zone type (the build bar shows e.g. "Farm 16 / 24 cells"; painting past it gives a red ghost "Town hall tier limit"). Upgrading costs a big chunk of stock and a minimum population. The governor suggests upgrades; the player decides.
 5. **One build ring per tier: 150, 300, 600 units** (a City tier later). Every zone, town building, wall and gate sits inside it; only roads and work camps go outside. Replaces the separate core (`coreRadius` + `corePerTier` in `town_grid.js`).
 6. **Fewer, bigger towns.** Founding `minSpacing` goes from 1,000 to 1,600 so 600-unit rings never overlap. All 60 sites stay; bots skip sites too close to a town, so whoever founds first claims the area.
+7. **Workers eat, need a bed and are capped per tier** (Tim, 2026-11-05). Workers eat like townspeople, count against housing (pop + workers ≤ housing), and the hall caps how many can be trained per tier (shown on the Train button as "Workers 12 / 12").
 
 Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left for the raid and cart work).
 
@@ -420,6 +421,7 @@ Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left 
 | Storage cap per resource | 1,000 | 3,000 | 8,000 |
 | Storehouses (+500 cap each) | 1 | 2 | 4 |
 | Work camps (lumber, quarry, fishing, farmstead) | 2 | 4 | 8 |
+| Worker cap | 12 | 35 | 90 |
 | Unlocks | hall, houses, farms, small work zone, storehouse, camps | market, stockade | barracks, walls (F6) |
 | Upgrade to this tier | at founding | pop 20; timber 300, stone 150, goods 40 | pop 60; timber 1,200, stone 800, goods 250 |
 
@@ -427,14 +429,21 @@ Farmsteads count against the farm cell limit. Upkeep per economy tick (1 s), onl
 
 **Phases** (each is a checkpoint: the game runs and Node tests pass)
 - **B0. Baseline soak test.** New `game/tools/test_economy_soak.mjs`: a founded town with the governor On for about 3 in-game hours of economy ticks, logging stock, pop, workers and cells. Today it shows unbounded growth; later phases flip that.
-- **B1. Workers eat.** Food eaten = `rates.food * (pop + workers)` in `economy.js`; food report and alerts count workers. Test: workers and no farms runs short on food.
-- **B2. Storage caps.** `world.change` clamps every resource except ryo (excess logged as `'overflow'`); in `workers.js` a worker whose resource is full holds at the drop-off as "Store full" (counts as idle); the governor reassigns with initiative On; `alerts.js` adds a `full` alert; the town panel shows value / cap. Test: `test_frontier_storage.mjs`.
-- **B3. Town hall tiers and the ring.** `tiers` data in `frontier.json`; `inCore` becomes `inRing` for zones, placed town buildings, walls and gates (roads and work camps exempt); per-kind cell caps and placed counts; an `upgradeHall` command (cost, pop, build time) for players and bots alike; the governor suggests upgrades; the build bar shows cell counts and the ring. Old saves start at tier 1 and keep cells beyond the limits, but can't add more. Test: `test_frontier_tiers.mjs`.
+- **B1. Workers eat and need a bed.** Food eaten = `rates.food * (pop + workers)` in `economy.js`; growth and training check that `pop + workers` fits in housing; the food and housing reports count workers. Old saves with too many workers keep them, but growth waits until there's room. Test: workers and no farms runs short on food; training is refused when housing is full.
+- **B2. Storage caps.** `world.change` clamps every resource except ryo (excess logged as `'overflow'`); in `workers.js` a worker whose resource is full holds at the drop-off as "Store full" (counts as idle); the governor reassigns with initiative On; `alerts.js` adds a `full` alert; the town panel shows value / cap. The lag work's `workers.js` changes are already committed (2026-11-05), so `workers.js` is clean for B2. Test: `test_frontier_storage.mjs`.
+- **B3. Town hall tiers and the ring.** `tiers` data in `frontier.json`; `inCore` becomes `inRing` for zones, placed town buildings, walls and gates (roads and work camps exempt); per-kind cell caps and placed counts; a per-tier worker cap (training refused at the cap); an `upgradeHall` command (cost, pop, build time) for players and bots alike; the governor suggests upgrades; the build bar shows cell counts and the ring. Old saves start at tier 1 and keep cells beyond the limits, but can't add more. Test: `test_frontier_tiers.mjs`.
 - **B4. Founding spacing.** `founding.minSpacing` 1600; bot founding skips sites within 1,600 of a town. Test: extend the founding tests.
 - **B5. Upkeep and goods needs.** An `upkeep` step in `economy.js` charges cells, buildings and wages after the free allowance; unpaid lowers health; housing level-up checks goods. Tests: `test_frontier_upkeep.mjs`, `test_frontier_needs.mjs`.
 - **B6. Tune with the soak test** for a governor-on town and a bot town. Pass: no resource sits at its cap for more than about 20% of the run (unless the player chose it); a new town gets its first house and farm with no shortage in the first 10 minutes; tier 2 in about 30 to 45 minutes. Then Tim playtests.
+- **B7. Make housing and growth readable** (Tim, 2026-11-05: all five). Mostly UI; mock image first for the in-world parts.
+  1. Town panel growth line: "Next person in 42 s", or the blocker ("Housing full", "Food not rising", "Needs goods to level up") from the sim's `growthBlock`.
+  2. People split: "27 townsfolk + 52 workers / 222 beds".
+  3. House hover tooltip ("House, 4 / 4 people, next level needs goods") plus a housing overlay with the build bar open, tinted by state: space free, full, or ready to level.
+  4. Visible arrivals: a new townsperson walks from the nearest road edge to their house with a small "+1", and a house that levels up shows a brief scaffold or dust puff (render only; the sim emits the event).
+  5. Growth alerts on milestones ("Town grew to 50", "Housing full") through `alerts.js`, rate-limited: at most one growth alert per town every 300 economy ticks (placeholder), milestones only every 25 people.
+  Test: a report test for the growth line and blocker text, and an alert test checking the cooldown holds.
 
-**Avoid:** the lag work owns `game.js` city decisions and the crew and police files; this pass doesn't touch them. New controls (upgrade button, ring display) go in the Controls panel in the same change.
+**Avoid:** the lag work owns `game.js` city decisions and the crew and police files; this pass doesn't touch them (the lag work is committed, so B2 can edit `workers.js`). New controls (upgrade button, ring display) go in the Controls panel in the same change.
 
 ## Progress checklist
 
@@ -455,7 +464,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [ ] E1 rules · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E6b · [ ] E7 playtest
-- [ ] **B** Economy balance: [ ] B0 soak test · [ ] B1 workers eat · [ ] B2 storage caps · [ ] B3 hall tiers and ring · [ ] B4 founding spacing · [ ] B5 upkeep and goods needs · [ ] B6 tune
+- [ ] **B** Economy balance: [ ] B0 soak test · [ ] B1 workers eat and need a bed · [ ] B2 storage caps · [ ] B3 hall tiers and ring · [ ] B4 founding spacing · [ ] B5 upkeep and goods needs · [ ] B6 tune · [ ] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
 - [ ] **F6** Armies: [ ] 6.1 choices · [ ] 6.2 · [ ] 6.3a · [ ] 6.3b · [ ] 6.3c · [ ] 6.4 · [ ] 6.5 · [ ] 6.6 · [ ] 6.7 playtest · [ ] 6.8 second slice
