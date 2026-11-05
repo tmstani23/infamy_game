@@ -26,7 +26,14 @@ assert.deepEqual(view.settlements.t.grid, grid, 'the replica gets complete autho
 assert.equal(view.settlements.enemy, undefined, 'unknown rival towns stay hidden');
 assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stages cross the snapshot boundary');
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
-assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['thatched_hut', 'townhouse', 'longhouse']);
+assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'townhouse', 'longhouse']);
+// Housing build phases and ruins (Tim 2026-11-05): zoned stage 0 shows site 1, stage 1 site 2; abandoned swaps in ruin art
+const pre = townCellsToProps({ ...grid, zone: 'hhhh.' + grid.zone.slice(5), stage: '12300' + grid.stage.slice(5) }, art, town.zones);
+assert.equal(pre.find(p => p.key.startsWith('3:zone:'))?.art, 'house_construction_1', 'zoned housing cell shows the first building site');
+const ruins = townCellsToProps(grid, art, { housing: { abandoned: true }, farm: { abandoned: true }, work: { abandoned: true } });
+assert.deepEqual(ruins.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['abandoned_housing', 'abandoned_housing', 'abandoned_housing']);
+assert.ok(ruins.filter(p => p.art === 'abandoned_workshop').length === 1 && ruins.every(p => p.art !== 'abandoned_housing' || !p.tint), 'ruin art has no grey tint');
+for (const n of ['house_construction_1', 'house_construction_2', 'abandoned_housing', 'abandoned_workshop']) assert.ok(catalog.items[n] && cutouts[`buildings/${n}`] && existsSync(new URL(`../art/buildings/${n}.png`, import.meta.url)), n + ' is registered and cut');
 assert.ok(cells.some(p => p.key.includes(':clear') && p.cell === 12), 'founding clearing under the hall');
 const road16 = cells.find(p => p.key === '16:road');
 assert.ok(road16?.road && road16.width === grid.cell, 'a road cell is one whole-cell tile');
@@ -41,7 +48,8 @@ assert.equal(cells.some(p => p.cell === 24), false, 'unbuildable cells have no p
 assert.equal(townCellsToProps({ n: 5, cell: 11 }, art).length, 0, 'old partial replicas do not crash');
 const abandoned = structuredClone(town); abandoned.zones.housing.abandoned = true;
 const rundown = townCellsToProps(grid, art, abandoned.zones).filter(p => p.cell < 3 && p.art);
-assert.ok(rundown.every(p => p.noLights && p.tint === art._ground.abandonedTint), 'abandoned houses keep their stage, darken and have no lights');
+assert.ok(rundown.length === 3 && rundown.every(p => p.noLights && p.art === 'abandoned_housing'), 'abandoned houses show ruin art and have no lights');
+assert.ok(townCellsToProps(grid, art, { farm: { abandoned: true } }).filter(p => p.art === 'thatched_hut').every(p => p.tint === art._ground.abandonedTint), 'abandoned farmhouses keep the grey tint');
 assert.notEqual(townSignature([town]), townSignature([abandoned]), 'abandonment invalidates rendering without growth');
 const roadEdit = structuredClone(town); roadEdit.grid.use = 'r' + roadEdit.grid.use.slice(1);
 assert.notEqual(townSignature([town]), townSignature([roadEdit]), 'road edits invalidate rendering');

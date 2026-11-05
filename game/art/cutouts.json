@@ -2378,5 +2378,9 @@
 "props/marsh_stranded_wooden_boat": {"w":495,"h":307,"left":0,"right":494,"bottomX":210,"bottomY":302,"glows":[]},
 "props/marsh_collapsed_fishing_platform": {"w":460,"h":349,"left":0,"right":459,"bottomX":271,"bottomY":344,"glows":[]},
 "props/marsh_drowned_grove": {"w":465,"h":489,"left":0,"right":464,"bottomX":262,"bottomY":484,"glows":[]},
-"props/marsh_old_stone_sluice": {"w":558,"h":339,"left":0,"right":557,"bottomX":220,"bottomY":334,"glows":[]}
+"props/marsh_old_stone_sluice": {"w":558,"h":339,"left":0,"right":557,"bottomX":220,"bottomY":334,"glows":[]},
+ "buildings/house_construction_1": {"w":400,"h":270,"left":0,"right":399,"bottomX":226,"bottomY":269,"glows":[]},
+ "buildings/house_construction_2": {"w":400,"h":326,"left":0,"right":399,"bottomX":177,"bottomY":325,"glows":[]},
+ "buildings/abandoned_housing": {"w":400,"h":349,"left":0,"right":399,"bottomX":219,"bottomY":347,"glows":[]},
+ "buildings/abandoned_workshop": {"w":440,"h":293,"left":0,"right":438,"bottomX":208,"bottomY":292,"glows":[]}
 }

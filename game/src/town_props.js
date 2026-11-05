@@ -82,7 +82,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       }
     }
     const def = definitions[zone];
-    if (!def || !stage || grid.ground[i] !== 'c') continue;
+    if (!def || grid.ground[i] !== 'c' || (!stage && !def.zoned)) continue;
     const abandoned = !!zones[def.kind]?.abandoned, tint = abandoned ? G?.abandonedTint : undefined;
     if (def.field && G) {
       patch('field', grid.cell * G.fieldSize, grid.cell * G.fieldSize, abandoned ? G.abandonedTint : G.fieldTint, G.fieldTexture);
@@ -95,8 +95,10 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       if (!abandoned) for (let row = 0; row < G.cropRows; row++) out.push({ ...base, key: `${i}:crop:${row}`, dirt: true, width: grid.cell * G.fieldSize, height: grid.cell * G.cropWidth, opacity: G.cropOpacity ?? 1, z: z + (row - (G.cropRows - 1) / 2) * grid.cell * G.fieldSize / G.cropRows, tint: G.cropTint });
       if (i % def.houseEvery !== 0) continue;
     }
-    const name = def.stages[Math.min(stage, def.stages.length) - 1];
-    if (name) out.push({ ...base, key: `${i}:zone:${stage}:${abandoned}`, art: name, tint, noLights: abandoned, maxFootprint: grid.cell * (G?.zoneFootprint || 1) });
+    // Stage 0 shows def.zoned (the construction site just begun); an abandoned kind with its own ruin art swaps it in
+    // from the first built stage and drops the grey tint (farms have none, so they keep the tint).
+    const ruin = abandoned && stage > 0 && def.abandoned, name = ruin ? def.abandoned : stage ? def.stages[Math.min(stage, def.stages.length) - 1] : def.zoned;
+    if (name) out.push({ ...base, key: `${i}:zone:${stage}:${abandoned}`, art: name, tint: ruin ? undefined : tint, noLights: abandoned, maxFootprint: grid.cell * (G?.zoneFootprint || 1) });
   }
   return out;
 }

@@ -75,3 +75,7 @@ From `buildings5.png`, which is not an even grid, so each building was cut along
 ## Village crossings (Tim, 2026-10-22)
 
 Four stream crossings serve the Shinobi village: the original two, the retained third near (-81,-22), and the fourth near (-83,78) beside the village gate/watchtower and small `north_village` camp. Coordinates are world coordinates; camera rotation changes apparent direction. The fourth plank/walk opening is [-87.5,76.2,-78.5,79.8], edged by 12 decorative mushrooms. Clear trails connect village gravel road, small camp and far-bank forest trail (-72,47), then the existing town route.
+
+## Frontier housing stages (Tim, 2026-11-05)
+
+Housing zone cells show their growth in stages: a zoned cell shows `house_construction_1`, stage 1 shows `house_construction_2`, then `townhouse` and `longhouse`. Abandoned housing and work cells swap in ruin art (`abandoned_housing`, `abandoned_workshop`) with no grey tint; abandoned farms keep the grey tint. Cutouts are in `game/art/buildings/` (made by `tools/add_housing_stage_art.py`; large sources stay in `assets/environment/`, not in git); the stage list is `frontier.json` `townArt._zones`. Art only, no balance change.

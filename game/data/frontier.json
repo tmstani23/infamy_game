@@ -93,10 +93,10 @@
     "zone:f": "haystack",
     "zone:k": "blacksmith",
     "_zones": {
-      "_note": "placeholder, Tim to tune (L3.7): existing cutouts by zone growth stage; one farmhouse per houseEvery cells.",
-      "h": { "kind": "housing", "stages": ["thatched_hut", "townhouse", "longhouse"] },
+      "_note": "placeholder, Tim to tune (L3.7): cutouts by zone growth stage; one farmhouse per houseEvery cells. zoned = art on a zoned cell at stage 0 (housing: building site 1; stage 1 is site 2, then house, large house); abandoned = ruin art for an abandoned kind (farms keep the grey tint).",
+      "h": { "kind": "housing", "zoned": "house_construction_1", "stages": ["house_construction_2", "townhouse", "longhouse"], "abandoned": "abandoned_housing" },
       "f": { "kind": "farm", "stages": ["thatched_hut"], "field": true, "houseEvery": 6 },
-      "k": { "kind": "work", "stages": ["blacksmith"] }
+      "k": { "kind": "work", "stages": ["blacksmith"], "abandoned": "abandoned_workshop" }
     },
     "_ground": {
       "_note": "placeholder, Tim to tune (L3.7): art-only dirt foundation, road and crop decals; sizes are fractions of a town cell except foundationRadius (world units).",
