@@ -326,6 +326,52 @@ References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontie
 - Decide ownership, damage, salvage and civilian consequences of each choice.
 - Refugee flows are only a possible later feature and are deferred.
 
+## Endgame and campaign length (2026-11-05)
+
+Agreed with Tim on 2026-11-05 ("ok docs"). Nothing here is built yet.
+
+**Length**
+- A full campaign takes about 20 hours, over many sittings (save and return).
+- Later, an optional "quick" setting of 8 to 10 hours, done by speeding up growth.
+
+**Map and zones**
+- 12 zones (the 12 coastal regions already in the map plan). The capital's zone is number one.
+- Each zone has a rival town or fortified camp at its heart.
+- Early zones next to yours are easy; later zones are harder; the capitals come last.
+
+**Core loop:** grow your towns, build a crew, march on the next zone, win, repeat.
+
+**Taking a zone**
+- Beat the leader there: siege their town (F6/F7), or fight at the camp.
+- You found only 2 or 3 towns yourself (permits earned through Influence). The rest come from conquest.
+- Captured towns run themselves with the town governor; you steer only the ones you care about.
+
+**Winning**
+- Take 9 of the 11 rival zones, then the capitals open up. Capitals cannot be attacked before that.
+- Final fights are the capitals. Win condition = capitals taken (exact rule still open).
+
+**Damage and rebuilding**
+- Buildings are standing or ruined. No half states.
+- The attacker chooses how hard to hit: spare it, hit defences and hall only, or burn everything.
+- Ruined buildings become ruin sites; rebuilding uses the normal build phases at a fraction of the cost.
+- Houses lose their people, but the town keeps its tier.
+- More burning means less income and a bigger rebuild bill. No loyalty meter.
+- A taken town is fully yours. The old owner does not raid it back.
+
+**Surrender**
+- A defender can surrender: the town falls with little damage, the defender's hero and crew retreat to their nearest town.
+- Defender saves their army; attacker gets a cheap win but must fight that army again.
+
+**Travel**
+1. Horse for the hero (about 3 times faster; roads faster still).
+2. Fast travel between your own towns by rickshaw or boat, for a small fee. Shown as a short ride on the map (about 5 seconds), skippable with a key. The world keeps running during the ride.
+3. Crew mounts later, with the warfare phase.
+- Native tribe trade network: parked. Revisit only if travel still feels slow.
+
+**Open questions**
+- Exact win rule and zone difficulty curve.
+- Where this fits in the build order (after the campaign loop checkpoints and warfare F6/F7).
+
 ## Simulation and view independence — agreed constraints
 
 1. One world state owns all settlements, governors, armies, shipments and battles.

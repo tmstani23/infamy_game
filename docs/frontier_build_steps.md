@@ -1813,7 +1813,7 @@ through owned businesses (more and bigger businesses = better prices); Shakedown
 contracts hit the target clan's city income and trade prices; the lieutenant's standing orders and
 budget; what winning the campaign means (proposed: top Influence plus key businesses plus a share of
 the island; can stay open until the campaign-rules phase).
-**Decided (Tim, 2026-11-05):** Renown stays and is earned exactly as in Classic; it is not converted or spent. Influence = Renown + businesses held per day + frontier trade. Unlocks for now: 2nd and 3rd town permits; cheaper imports (towns buying goods in; takes effect once F3 shipments exist); better export prices (each Influence tier raises what town Markets get per good sold, placeholder +10% per tier in data; Market base price is 1 ryo today). Police leniency is dropped. Elite recruits (enforcer, archer, rifleman) move to the warfare phase (F6). The win condition stays open until the campaign-rules phase. The existing C2 and C3 cards are approved as written (Tim: "good on all").
+**Decided (Tim, 2026-11-05):** Renown stays and is earned exactly as in Classic; it is not converted or spent. Influence = Renown + businesses held per day + frontier trade. Unlocks for now: 2nd and 3rd town permits; cheaper imports (towns buying goods in; takes effect once F3 shipments exist); better export prices (each Influence tier raises what town Markets get per good sold, placeholder +10% per tier in data; Market base price is 1 ryo today). Police leniency is dropped. Elite recruits (enforcer, archer, rifleman) move to the warfare phase (F6). Win condition and campaign length: see [Endgame and campaign length (2026-11-05)](frontier_campaign_plan.md#endgame-and-campaign-length-2026-11-05). The existing C2 and C3 cards are approved as written (Tim: "good on all").
 
 ### C2. The lieutenant is the bot brain  [STRONG]
 Needs: C1, F1
@@ -2446,6 +2446,11 @@ through the town hall's rooms, hold the council room and capture it. Then defend
 **Phase end:** tests pass; Docs keeper commits "Sieges and conquest"; Tim playtest F7.6.
 
 ---
+
+**Future notes (Tim, 2026-11-05; no step cards yet; see [Endgame and campaign length](frontier_campaign_plan.md#endgame-and-campaign-length-2026-11-05)):**
+- **Travel:** a horse for the hero (about 3x faster, roads faster still); fast travel between your own towns by rickshaw or boat for a small fee, shown as a ~5 s skippable ride on the map while the world keeps running; crew mounts come later with warfare.
+- **Ruin and rebuild (F7):** buildings are standing or ruined, no half states. The attacker chooses spare / defences and hall only / burn everything. Ruins rebuild through the normal build phases at a fraction of the cost; houses lose their people but the town keeps its tier; no loyalty meter; a taken town is fully yours and the old owner does not raid it back.
+- **Surrender (F7):** a defender can surrender; the town falls with little damage and the defender's hero and crew retreat to their nearest town.
 
 ## Phase W5: Exploration and natives
 
