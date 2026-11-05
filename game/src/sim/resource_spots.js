@@ -8,7 +8,7 @@ export function makeSpotIndex(data) {
   const size = data.chunkSize;
   const chunkSpots = id => (data.byChunk[id] || []).map(i => byId.get(i));
   return {
-    byId, chunkSize: size,
+    byId, chunkSize: size, maxPieceReach: data.spots.reduce((m,s)=>Math.max(m,...s.pieces.map(([x,z])=>Math.hypot(x,z))),0),
     get: id => byId.get(id) || null,
     spotsInChunk: chunkSpots,
     // spots whose centre lies within r of (x, z)

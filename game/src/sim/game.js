@@ -1,3 +1,4 @@
+import { modeRules } from './modes/index.js';
 import {slideWorld} from './world_slide.js';
 import {separateUnits} from './separation.js';
 // The game rules. Holds the state and advances it one fixed tick at a time from
@@ -156,7 +157,7 @@ export function createGame(options) {
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   // the island as a walkable place, e.place === 'world' (sim/areas.js, frontier W3.2); the city sits on it
   // at world.capital + cityOffset, as a blocker whose way in is the gate (W3.5)
-  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box) }) : null;
+  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier) }) : null;
   // the city gate out to the island (frontier W3.5, district.islandGate): a pair of doors, open in a
   // campaign match only. The island side stands just outside the city's west wall on the island.
   // The island side is the gate's spot on the island, pushed out past the nearest edge of the city.
@@ -587,7 +588,7 @@ export function createGame(options) {
     for (const u of Object.values(state.entities)) if (u.order?.target === id && u.order.kind === 'attack') endAttack(u);
   }
   worldCamps=createWorldCamps({state,world:options.world,areas,rules:banditData?.worldCamps,spawn,remove:removeUnit,ai:bandits,spriteFor:type=>statsOf(type).sprite || type,known:(clan,x,z)=>discovery.isDiscovered(clan,x,z)});
-  frontier?.modules.find(m=>m.name==='workers').workers.attach({areas,spawn,remove:removeUnit}); // L3.6: nearby worker units
+  frontier?.attach({areas,spawn,remove:removeUnit}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -726,7 +727,7 @@ export function createGame(options) {
         if (stunned(e, state.tick) || e.brace || e.spearCombo) continue;
         const d = doorNear(c.id);
         // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
-        if (d?.gate && state.match?.mode !== 'campaign') { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The gate to the island opens in a campaign' }; }
+        if (d?.gate && !modeRules(state).island) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The gate to the island opens in a campaign' }; }
         else if (d?.to && deployment.canActAt(e, d.to.x, d.to.z, d.place) && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
           const from = e.place;
           e.x = d.to.x; e.z = d.to.z; e.place = d.place;
@@ -738,7 +739,7 @@ export function createGame(options) {
       if (c.type === 'world') discovery.command(e, c);   // island map pins (sim/discovery.js)
       // Dev-only instant travel (Tim 2026-11-02, for testing the island): campaign, dev build, hero on the
       // street or the island; the hero's group comes along like through the gate.
-      if (c.type === 'travel' && areas && options.frontier?.dev && state.match?.mode === 'campaign' && e.type === 'hero' && !e.dead && !e.downed
+      if (c.type === 'travel' && areas && options.frontier?.dev && modeRules(state).island && e.type === 'hero' && !e.dead && !e.downed
         && (e.place === 'street' || e.place === 'world') && (c.city ? gate : Number.isFinite(c.x) && Number.isFinite(c.z))) {
         const from = e.place, old = { x: e.x, z: e.z };
         if (c.city) {   // back into the city, just inside the gate (the capital on the World map)
@@ -813,6 +814,7 @@ export function createGame(options) {
     sweep.tick();
     assignments.tick();
     sectorRecovery.tick();
+    deployment.warmNavs?.();   // patrol maps built ahead, a couple per tick (lag fix 3)
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e);

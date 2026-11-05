@@ -148,7 +148,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Town panel → Build bar | Choose Road, Wall, Gate, Housing, Farm, Work, Eraser or a building; drag a rectangle (a building uses the release cell), then review and confirm or cancel. Green is allowed; red shows why. Eraser previews and refunds paid costs; the hall is protected. Right-click or Esc cancels the brush; Close build bar hides the tints. |
 | Click a town building, zone or resource spot | Inspect its kind and state; zones show health and spots show harvest amount, stages and your assigned workers. Esc or × closes the inspector. |
 | Town panel or town hall → Train worker | Choose a quantity, review total people and ryo requirements, then confirm or cancel; training shows remaining time. |
-| Town panel → Workers | View status and cargo, select individuals, all workers or a saved group, and assign selected workers to a group. Stop / stand (Z) holds selected workers. Nearby discovered resource buttons pan to the spot. |
+| Town panel → Workers | View status and cargo, select individuals, all workers or a saved group, and assign selected workers to a group. Stop / stand (Z) holds selected workers. Nearby discovered resource buttons pan to the spot. The Idle tab lists workers standing, waiting for orders or stuck; select them there (2026-11-05). |
 | Select workers, then right-click | Click workers to add/remove them or box-select them. Right-click a discovered resource spot to assign harvesting, or ground to move and stand. Esc clears the selection. |
 | Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |
 | M map → World tab, hover or click a town | Hover shows a town card; click opens its details. |

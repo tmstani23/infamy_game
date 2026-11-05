@@ -58,7 +58,7 @@ export function createVision(state, bounds, rules = {}, territory = null, island
   // in range of its standing units or businesses, in a room when one of the clan's units is in that room.
   function canSee(clan, e) {
     if (!e || !clan) return false;
-    if (e.owner === clan) return true;
+    if (e.owner === clan || e.workerOwner === clan) return true;
     if (e.hidden) return false;   // a hidden ninja (sim/stealth.js)
     if (e.place === 'world') {
       if (!island) return false;

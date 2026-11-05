@@ -274,6 +274,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen, commandPlace()); },
     tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { pruneTargets(); return looked; },
+    inspect(id) { looked=game.state.entities[id]?id:null; },
     hovered(px, py) {
       const h = hero();
       if (!h || drag) return null;

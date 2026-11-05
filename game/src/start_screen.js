@@ -1,4 +1,4 @@
-import { CLAN_CHOICES, DIFFICULTY_CHOICES, matchOptions } from './sim/match_options.js';
+import { CLAN_CHOICES, DIFFICULTY_CHOICES, MODE_CHOICES, matchOptions } from './sim/match_options.js';
 import { createMenuMusic } from './menu_music.js';
 import { sortSaves, rowText, newest } from './save_menu.js';
 
@@ -28,6 +28,9 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
     <fieldset class="start-difficulty"><legend>Difficulty</legend><div class="start-levels">${DIFFICULTY_CHOICES.map(d => `
       <label class="start-choice"><input type="radio" name="difficulty" value="${d.id}" ${initial.difficulty === d.id ? 'checked' : ''} required><span>${d.name}</span></label>`).join('')}</div>
       <p class="start-difficulty-note" aria-live="polite"></p></fieldset>
+    <fieldset class="start-difficulty"><legend>Mode</legend><div class="start-levels">${MODE_CHOICES.map(m => `
+      <label class="start-choice"><input type="radio" name="mode" value="${m.id}" ${initial.mode === m.id ? 'checked' : ''} required><span>${m.name}</span></label>`).join('')}</div>
+      <p class="start-mode-note" aria-live="polite"></p></fieldset>
     <div class="start-footer"><div><p class="start-loadout" aria-live="polite"></p><p class="start-season">${cycles}-day season · two rival clans</p></div>
       <button class="start-play" type="submit">Start game <span aria-hidden="true">→</span></button></div>
     <div class="start-saves" hidden><button type="button" class="start-continue">Continue</button> <button type="button" class="start-load">Load game</button>
@@ -57,6 +60,8 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
   function update() {
     const clan = CLAN_CHOICES.find(c => c.id === value('clan'));
     root.querySelector('.start-loadout').textContent = `${startRyo} ryo · 1 ${clan.kind === 'ninja' ? 'ninja' : 'crew member'} · HQ only`;
+    root.querySelector('.start-season').textContent = value('mode') === 'campaign' ? 'Open-ended campaign · two rival clans' : `${cycles}-day season · two rival clans`;
+    root.querySelector('.start-mode-note').textContent = MODE_CHOICES.find(m => m.id === value('mode')).about;
     root.querySelector('.start-difficulty-note').textContent = DIFFICULTY_CHOICES.find(d => d.id === value('difficulty')).about;
   }
   update();
@@ -102,7 +107,7 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
     }).catch(() => {});   // no save server: the buttons stay hidden
     form.addEventListener('submit', e => {
       e.preventDefault();
-      const options = matchOptions({ clan: value('clan'), difficulty: value('difficulty') });
+      const options = matchOptions({ clan: value('clan'), difficulty: value('difficulty'), mode: value('mode') });
       form.querySelector('button').disabled = true;
       try { sessionStorage.setItem(STORAGE, JSON.stringify(options)); } catch {}
       root.hidden = true; loading.hidden = false;

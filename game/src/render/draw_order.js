@@ -61,10 +61,6 @@ export function createSorter() {
 
   function build(statics) {
     const n = statics.length, after = Array.from({ length: n }, () => []), pend = new Int32Array(n);
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-      if (!overlaps(statics[i].screen, statics[j].screen)) continue;
-      if (behind(statics[i], statics[j])) { after[i].push(j); pend[j]++; } else { after[j].push(i); pend[i]++; }
-    }
     const cells = new Map();
     for (let k = 0; k < n; k++) {
       const s = statics[k].screen;
@@ -74,6 +70,21 @@ export function createSorter() {
           if (!cells.has(key)) cells.set(key, []);
           cells.get(key).push(k);
         }
+    }
+    // Harvest stages and camera streaming change the static list. Reuse its spatial
+    // buckets for rebuilds too, rather than comparing every city/tree pair again.
+    const visited=new Int32Array(n);
+    for(let i=0;i<n;i++) {
+      const s=statics[i].screen,candidates=[];
+      for(let x=Math.floor(s.x0/BUCKET);x<=Math.floor(s.x1/BUCKET);x++)
+        for(let y=Math.floor(s.y0/BUCKET);y<=Math.floor(s.y1/BUCKET);y++)
+          for(const j of cells.get(cellKey(x,y)) || [])if(j>i && visited[j]!==i+1){visited[j]=i+1;candidates.push(j);}
+      // Preserve the reference sort's pair order, including cycle-breaking ties.
+      candidates.sort((a,b)=>a-b);
+      for(const j of candidates) {
+        if(!overlaps(statics[i].screen,statics[j].screen))continue;
+        if(behind(statics[i],statics[j])){after[i].push(j);pend[j]++;}else{after[j].push(i);pend[i]++;}
+      }
     }
     cached = statics.slice(); cachedScreens = statics.map(t => t.screen);
     seen = new Int32Array(n); stamp = 0;

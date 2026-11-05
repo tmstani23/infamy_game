@@ -38,6 +38,29 @@ for (const [nStatic, nMovers, frames] of [[30, 6, 30], [400, 60, 15], [900, 120,
   }
 }
 
+// Harvest/regrowth replaces static sprites while workers keep moving. Preserve exact
+// ordering for clipped bucket boundaries, broad trees and streamed-in/out scenery.
+{
+  const fixed=Array.from({length:100},(_,i)=>thing(i%10*4-20,Math.floor(i/10)*4-20,i%11===0?12:1,i%7+1));
+  const workers=Array.from({length:12},(_,i)=>thing(i-6,0,.45,2)),sorter=createSorter();
+  for(let frame=0;frame<8;frame++) {
+    fixed[frame]=thing(frame-4,0,frame%2?1:8,frame%2?.4:7);
+    if(frame===3)fixed.push(thing(-4,4,16,12));
+    if(frame===5)fixed.splice(10,1);
+    sortThings([...fixed,...workers]);const expected=orders([...fixed,...workers]);sorter.sort(fixed,workers);
+    assert.deepEqual(orders([...fixed,...workers]),expected,'static harvest-stage refresh preserves draw order');
+  }
+}
+// A changed prop must not restart all-pairs comparisons over distant scenery.
+{
+  let reads=0;
+  const fixed=Array.from({length:1000},(_,i)=>{
+    const t=thing(i*10,0,.5,1),screen=t.screen;
+    Object.defineProperty(t,'screen',{get(){reads++;return screen;}});return t;
+  });
+  createSorter().sort(fixed,[]);
+  assert.ok(reads<fixed.length*20,`spatial rebuild bounded screen reads: ${reads}`);
+}
 // speed on a port-town-sized scene (695 props + 43 buildings + banners, ~120 units)
 const statics = Array.from({ length: 760 }, () => thing(rand() * 200 - 100, rand() * 150 - 50, 0.3 + rand() * 2, 1 + rand() * 5));
 const movers = Array.from({ length: 120 }, () => thing(rand() * 100 - 50, rand() * 100 - 50, 0.45, 2));

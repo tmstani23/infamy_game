@@ -1,4 +1,5 @@
 import { createZones } from './sim/frontier/zones.js';
+import {BUILD_DETAILS} from './build_tooltips.js';
 
 export const townName = value => String(value || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 
@@ -18,7 +19,14 @@ export function townCellTip(s, cell, data) {
   if (entry) {
     lines.push(`Zone state: ${zone?.abandoned ? 'abandoned' : 'active'} · health ${Math.round((zone?.health ?? 1) * 100)}%`);
     if (!createZones({ data }).roadNear(s, cell, def.needs?.roadReach)) lines.push('Needs road to grow');
+    if(def.needs?.food && (s.foodShortage || (s.stock.food || 0)<data.rates.food*s.pop))lines.push(`Needs food: ${Number((data.rates.food*s.pop).toFixed(2))} per economy tick for ${s.pop} people`);
+    if(def.needs?.workersPerCell && (zone?.workers || 0)<(zone?.wanted || 0))lines.push(`Needs townspeople: ${zone?.workers || 0} / ${zone?.wanted || 0} zone jobs filled; trained gatherers are separate`);
+    if(def.inputs)for(const [r,amount] of Object.entries(def.inputs))lines.push(`Input: ${amount} ${r} per goods produced${(s.stock[r] || 0)<=0?' · missing':''}`);
+    if(g.ground[cell]==='o')lines.push('Needs ground clearing before growth');
+    if(Number(g.stage[cell])<def.stages.length)lines.push(`Growth: ${s.zoneGrow?.[cell] || 0} / ${def.growTicks} healthy economy ticks`);
+    if(zone?.abandoned)lines.push('Recovery: restore food/workers to raise zone health; road access is required for growth');
   } else lines.push('Zone state: not zoned');
+  const details=BUILD_DETAILS[b?.type || p?.type];if(details)lines.push(...details);
   return { title: townName(b?.type || p?.type || kind || ({ r: 'road', w: 'wall', g: 'gate' }[g.use[cell]])), lines, hall: b?.type === 'town_hall' && b.stage === 'built' };
 }
 

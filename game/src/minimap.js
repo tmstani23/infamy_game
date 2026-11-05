@@ -1,3 +1,4 @@
+import { modeRules } from './sim/modes/index.js';
 // Minimap, top right: the district turned to match the screen, with the same fog of war,
 // a letter on each business (W warehouse, T teahouse, D den, C clinic, P police, H hideout, J the Shinobi dojo; on its owner's colour once seen),
 // dots for units your clan can see, your businesses outlined and a box for the camera's view.
@@ -14,6 +15,7 @@ import { featureTip } from './world_features.js';
 import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMarker } from './world_map.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
+import {workerLocation,workerDetails} from './worker_details.js';
 
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
@@ -123,7 +125,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     let best = null, bd = Infinity;
     for (const h of islandHits) { const d = (h[0] - mx) ** 2 + (h[1] - my) ** 2; if (d < h[2] * h[2] && d < bd) { bd = d; best = h; } }
     if (!best) { tipBox.style.display = 'none'; return; }
-    const t = best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
+    const w=best[3]==='worker'?best[4]:null,detail=w?workerDetails(w,spotIndex):null;
+    const t = w ? {title:`Worker ${w.id}`,lines:[detail.cargo?`Carrying ${detail.cargo} ${detail.resource}`:detail.harvesting?`Harvesting ${detail.resource} · ${detail.left}s remaining`:'Working / travelling',w.status || '']} : best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
     tipBox.innerHTML = `<b>${t.title}</b>` + t.lines.map(l => `<div>${l}</div>`).join('');
     tipBox.style.left = `${e.clientX - 250}px`; tipBox.style.top = `${e.clientY + 14}px`; tipBox.style.display = 'block';
   });
@@ -158,7 +161,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const near = list => list.filter(f => Math.abs(f.x - me.x) < reach && Math.abs(f.z - me.z) < reach);
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)';
     islandHits = []; const tipCtx = { camps, scouted: state.world?.scouted?.[clan] || [], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world };
-    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: me.x, z: me.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: spotConfig.minimapZoom,
+    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: me.x, z: me.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: Math.min(1,spotConfig.minimapZoom),
       known: (x, z) => isDiscovered(world, game.state.world?.discovered?.[clan] ?? '0', x, z) })) {
       const [u, v] = at(spot.x, spot.z);
       if (u < 0 || v < 0 || u > size || v > size) continue;
@@ -182,9 +185,16 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     }
     for (const e of Object.values(state.entities)) {
       if (e.place !== 'world' || e.dead) continue;
+      if(e.worker)continue;
       const [col, r] = colorOf(e, me.owner), [u, v] = at(e.x, e.z);
       ctx.beginPath(); ctx.arc(u, v, r * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
       ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.stroke();
+    }
+    for(const s of Object.values(game.state.frontier?.settlements || {}))if(s.owner===clan)for(const w of s.workers || []) {
+      const p=workerLocation(w,game.state.entities);if(!p)continue;
+      const [u,v]=at(...p);if(u<0 || v<0 || u>size || v>size)continue;
+      ctx.beginPath();ctx.arc(u,v,2.5,0,Math.PI*2);ctx.fillStyle='#60ddd0';ctx.fill();ctx.stroke();
+      islandHits.push([u,v,6,'worker',w]);
     }
     // what the camera sees (island coordinates)
     const corners = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y));
@@ -259,7 +269,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.restore();
     }
     // the island gate (W3.5, campaign only): a G at the end of the east trail
-    if (layers.businesses && game.gate && game.state.match?.mode === 'campaign') {
+    if (layers.businesses && game.gate && modeRules(game.state).island) {
       const [u, v] = toMap(game.gate.city[0], game.gate.city[1]);
       ctx.save(); ctx.font = `bold ${Math.round(fs * 1.3)}px sans-serif`;
       ctx.fillStyle = '#2c3a2a'; ctx.fillRect(u - bs * 0.65, v - bs * 0.65, bs * 1.3, bs * 1.3);
@@ -349,7 +359,13 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   // (scaled to the minimap's size on screen, which the movable HUD can change)
   let dirty = false;
   const draw=()=>{dirty=false;const start=performance.now();paintMap();const ms=performance.now()-start;metrics.drawMs+=ms;metrics.maxDrawMs=Math.max(metrics.maxDrawMs,ms);};
-  const at = e => { const r = canvas.getBoundingClientRect(); return toWorld((e.clientX - r.left) * size / r.width, (e.clientY - r.top) * size / r.height); };
+  const at = e => { const r = canvas.getBoundingClientRect(),u=(e.clientX-r.left)*size/r.width,v=(e.clientY-r.top)*size/r.height;
+    if(world && game.state.entities[heroId]?.place==='world') {
+      const me=game.state.entities[heroId],scale=size/2/ISLAND_SPAN*islandZoom;
+      return {x:me.x+(u-size/2)/scale,z:me.z+(v-size/2)/scale};
+    }
+    return toWorld(u,v);
+  };
   let dragging = false;
   // the business under a map point (for the big map's hover and click), within a few pixels
   const pxAt = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * size / r.width, (e.clientY - r.top) * size / r.height]; };
@@ -376,7 +392,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   canvas.addEventListener('mousedown', e => {
     e.stopPropagation();
     e.preventDefault();
-    if (world && game.state.entities[heroId]?.place === 'world') return;   // the island minimap only shows (W3.5)
+    if (world && game.state.entities[heroId]?.place === 'world') {if(e.button===0){dragging=true;const p=at(e);view.lookAt(p.x,p.z);}return;}
     const p = at(e);
     if (e.button === 0 && layers.deployment && overlay?.pick(p, e)) return;
     // big map: a click looks there (a business: its door) and closes the map
@@ -387,7 +403,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       if (units.length) send({ id: heroId, type: 'order', units, kind: e.ctrlKey ? 'station' : 'move', place: 'street', x: p.x, z: p.z });
     }
   });
-  addEventListener('mousemove', e => { if (dragging) { const p = at(e); view.lookAt(p.x, p.z); } });
+  addEventListener('mousemove', e => { if (dragging) { const p = at(e);view.lookAt(p.x,p.z); } });
   addEventListener('mouseup', () => { dragging = false; });
 
   let frame = 0;

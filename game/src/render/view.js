@@ -26,6 +26,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
   let zoomNow = zoom;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer.info.autoReset=false; // count all water/bloom/main passes together for diagnostics
+  let frameDrawMs=0,frameWorkers=0;
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -295,6 +297,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   // state: current tick; prev: the tick before; alpha: how far between them (0..1)
   function render(state, prev, alpha, dt, time, followId) {
+    const frameStart=performance.now();renderer.info.reset();
+    frameWorkers=Object.values(state.entities).filter(e=>e.worker).length;
     updateFlashes(dt);
     shared.uTime.value = time;
     shared.uNight.value = THREE.MathUtils.clamp(shared.uNight.value + Math.sign(nightTarget - shared.uNight.value) * dt / 1.2, 0, 1);
@@ -397,6 +401,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     fxShared.uPx.value = px;
     renderer.render(scene, camera);
     bloom.composite();
+    frameDrawMs=performance.now()-frameStart;
     resumingPresentation=false;
   }
 
@@ -486,6 +491,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   return {
     render, renderer, scene, addHits, addCasts, updateCamera,
     setTowns: list => worldGround?.setTowns(list),
+    graphicsStats:()=>({drawMs:frameDrawMs,calls:renderer.info.render.calls,sprites:sprites.size,workers:frameWorkers,
+      geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,programs:renderer.info.programs?.length || 0,
+      width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()}),
     setPresentationActive(active){
       fxLayer.hidden=!active;
       resumingPresentation=active;

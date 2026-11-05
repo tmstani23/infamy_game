@@ -11,11 +11,13 @@
 // A closed wall ring therefore needs a gate; the gate cell is passable and reaches outside.
 // Overgrown ground is allowed: a project on it starts in phase 'clearing' (L3.3's work order clears it).
 import { cellOffset, inCore, setUse, hallRoadCell } from './town_grid.js';
+import { buildingSafety } from './building_safety.js';
+import { coversResources } from './resource_clearance.js';
 
 const LINES = { road: 'r', wall: 'w', gate: 'g' };
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
-export function createPlacement({ state, data, world, construction }) {
+export function createPlacement({ state, data, world, construction, resourceIndex }) {
   const sizeOf = kind => (data.buildings[kind]?.size) | 0;
 
   // Cells a placement covers: a line kind covers each listed cell, a building its 1x1 or 2x2 footprint.
@@ -86,7 +88,12 @@ export function createPlacement({ state, data, world, construction }) {
     if (!cover) return bad('outside grid', cells);
     if (!['road', 'gate'].includes(kind) && cover.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', cover);
     if (cover.some(i => g.ground[i] === 'x')) return bad('unbuildable', cover);
+    if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
     if (cover.some(i => g.use[i] !== '.' || g.zone[i] !== '.')) return bad('occupied', cover);
+    if(kind==='wall' || !LINES[kind]) {
+      const reason=buildingSafety(s,cover,state,data.founding?.unitClearance);
+      if(reason)return bad(reason,cover);
+    }
     const needsCore = !LINES[kind] && data.buildings[kind].coreOnly;
     if (needsCore && cover.some(i => !inCore(s, i, data))) return bad('core only', cover);
     // what-if: would the town lose a path?

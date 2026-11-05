@@ -37,6 +37,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   const R = cfg.loadRadius ?? 1, KEEP = Math.max(cfg.keepChunks ?? 50, (2 * R + 1) ** 2);
   const B = 10, NB = Math.ceil(S / B);   // blocker buckets for tryMove, B units square
   const cache = new Map();               // chunk key -> { key, cx, cz, gen, grid, buckets, used }
+  const workerGrids = new Map();         // bounded planning cache; never activates remote chunks
   let active = new Map();                // chunk key -> cached chunk, for chunks units stand in or next to
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
@@ -104,7 +105,11 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     const cx = Math.floor(i / N), cz = Math.floor(j / N);
     if (!inRange(cx, cz)) return false;
     const key = keyOf(cx, cz);
-    if (planning && !planning.has(key)) planning.set(key, cache.get(key) || build(cx, cz));
+    if (planning && !planning.has(key)) {
+      let chunk=cache.get(key) || workerGrids.get(key);
+      if(!chunk) {chunk=build(cx,cz);workerGrids.set(key,chunk);if(workerGrids.size>KEEP)workerGrids.delete(workerGrids.keys().next().value);}
+      planning.set(key,chunk);
+    }
     const c = planning ? planning.get(key) : active.get(key);
     if (!c || !inRange(cx, cz)) return false;
     return !c.grid[(j - cz * N) * N + (i - cx * N)];
@@ -428,6 +433,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   // that chunk's portals and the walking costs of it and its four neighbours.
   // fn(set) with set(i, j, passable) for terrain cells (row i, column j) inside the chunk.
   function editChunk(cx, cz, fn) {
+    workerGrids.delete(keyOf(cx,cz));
     const g = ensureGraph(), [i0, i1, j0, j1] = cellsOfChunk(cx, cz);
     recent.clear();
     fn((i, j, v) => { if (i >= i0 && i <= i1 && j >= j0 && j <= j1) g.pass[tIdx(i, j)] = v ? 1 : 0; });
@@ -497,7 +503,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     activeIds: () => [...active.values()].map(c => c.id).sort(),
     active: () => [...active.values()],
     cached: () => cache.size,
-    stats: () => ({ ...stats, cached: cache.size, active: active.size, graphMs: graph?.ms ?? null }),
+    stats: () => ({ ...stats, cached: cache.size, planningCached:workerGrids.size, active: active.size, graphMs: graph?.ms ?? null }),
     city,
   };
 }

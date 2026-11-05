@@ -1,3 +1,4 @@
+import { modeRules } from './sim/modes/index.js';
 // The full game map (M, Tim 2026-10-20, docs/territory_plan.md): the whole district over the
 // screen with the same fog of war, territory (sim/territory.js) and switches for its layers.
 // The game keeps running underneath (no pause, as in multiplayer). Hover a business for its
@@ -210,7 +211,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key">Q · Pawnshop · A · Bathhouse</div><div class="key">K · Sake brewery · R · Manor</div><div class="key">U · Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
-    const html = `<h4>${st.match?.mode === 'campaign' ? `Campaign · day ${s.day}` : `Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}`}</h4>${rows}${quarters}${legend}`;
+    const html = `<h4>${!modeRules(st).seasonEnds ? `Campaign · day ${s.day}` : `Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}`}</h4>${rows}${quarters}${legend}`;
     if (side.innerHTML !== html) side.innerHTML = html;
   }
 
@@ -218,7 +219,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   // live units and camera geometry belong to the minimap/City view.
   let tab = 'city', worldMap = null, worldCanvas = null, pinDraft = null, picked = null;
   let travelTo = null;   // dev-only instant travel (Tim 2026-11-02): click empty ground on the World tab, then confirm
-  const canTravel = () => devTravel && game.state.match?.mode === 'campaign' && ['street', 'world'].includes(game.state.entities[heroId]?.place);
+  const canTravel = () => devTravel && modeRules(game.state).island && ['street', 'world'].includes(game.state.entities[heroId]?.place);
   const tabs = document.createElement('div'), worldSide = document.createElement('div');
   tabs.className = 'maptabs'; worldSide.className = 'worldside'; worldSide.hidden = true;
   if (world) {

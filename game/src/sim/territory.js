@@ -1,3 +1,4 @@
+import { modeRules } from './modes/index.js';
 import { refill } from './util.js';
 // Territory and the season (docs/territory_plan.md, Tim 2026-10-20): every business a clan owns
 // marks a circle of street around it as that clan's territory (where circles overlap, the
@@ -124,7 +125,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
     const s = state.season;
     if (state.dawn && !s.over) {
       s.day++;
-      if (s.day > s.cycles && state.match?.mode !== 'campaign') {   // a campaign has no season end (frontier F0.4, Tim 2026-11-01)
+      if (s.day > s.cycles && modeRules(state).seasonEnds) {   // a campaign has no season end (frontier F0.4, Tim 2026-11-01)
         s.over = true;
         s.final = standings();
         s.winner = s.final.length && (s.final.length < 2 || s.final[0].score > s.final[1].score) ? s.final[0].clan : null;   // null = a draw

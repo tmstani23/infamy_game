@@ -23,10 +23,15 @@ export function reconcile(target, source) {
 // { id, name, owner, region, site } for towns on discovered ground, roads with their state, its own
 // shipments, its own receipts. Never the 500-entry ledger, totals or rival stock.
 export const FRONTIER_EVERY = 5;
-export function frontierFor(f, clan, discovery, recent, spotIndex) {
+export function frontierFor(f, clan, discovery, recent, spotIndex, workerPosition) {
   const settlements = {};
   for (const [id, s] of Object.entries(f.settlements || {})) {
-    if (s.owner === clan) settlements[id] = s;   // L3.7: draw the authoritative grid and zone stages
+    if (s.owner === clan) settlements[id] = {...s,workers:(s.workers || []).map(w=>{
+      const {trip,...record}=w;
+      // Navigation paths belong to saves/simulation, never the 4 Hz presentation protocol.
+      const summary=trip && Object.fromEntries(Object.entries(trip).filter(([k])=>!['outPath','backPath'].includes(k)));
+      return {...record,...(trip?{trip:summary}:{}),...(workerPosition?{location:workerPosition(w) || w.departure || [s.x,s.z]}:{})};
+    })};
     else if (s.capital || discovery?.siteDiscovered?.(clan, s.site)) settlements[id] = { id: s.id, name: s.name, owner: s.owner, region: s.region, site: s.site };
   }
   const spots = Object.fromEntries(Object.entries(f.spots || {}).filter(([id]) => {
@@ -53,7 +58,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
     if (st.frontier) {
-      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, game.frontier?.modules?.find(m => m.name === 'workers')?.workers.index)); /* a copy, so it stays still between refreshes */ frontierAt = st.tick; }
+      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position)); frontierAt = st.tick; }
       roots.frontier = frontierView;
     }
     if (map) {
@@ -67,7 +72,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     }
     const records = new Map(Object.entries(roots).map(([k,v])=>['s:'+k,v]));
     for (const e of Object.values(st.entities)) {
-      if (!map || e.owner === clan || detail.has(e.id) && game.vision.canSee(clan,e)) records.set('e:'+e.id,e);
+      if (!map || e.owner === clan || e.workerOwner === clan || detail.has(e.id) && game.vision.canSee(clan,e)) records.set('e:'+e.id,e);
       else if (game.vision.canSee(clan,e)) records.set('e:'+e.id,pick(e,MARKER_FIELDS));
       // Contracts need rival hero identity, never their unobserved position.
       else if(e.type==='hero') records.set('e:'+e.id,pick(e,['id','type','model','owner','hidden','dead','downed','jailed']));

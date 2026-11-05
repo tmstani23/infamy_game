@@ -229,7 +229,8 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   const h=createGame(options);loadSave(h,JSON.parse(JSON.stringify(makeSave(g))));
   for(let i=0;i<60;i++) {g.step([]);h.step([]);assert.deepEqual(h.state.frontier.settlements.t.workers,s.workers);assert.deepEqual(h.state.frontier.settlements.t.stock,s.stock);assert.equal(units({state:h.state}).length,2);}
   const victim=s.workers[0],e=g.state.entities[victim.entity];
-  victim.spot=null;victim.trip=null;victim.carrying=0;Object.assign(e,{hp:1,x:1000.5,z:1000});
+  // Keep the combat fixture beside the hero's safe position, outside the solid hall.
+  victim.spot=null;victim.trip=null;victim.carrying=0;Object.assign(e,{hp:1,x:g.state.entities[id].x+0.5,z:g.state.entities[id].z});
   g.step([{id,type:'attack',target:e.id}]);for(let i=0;i<80 && s.workers.includes(victim);i++)g.step([]);
   assert.equal(s.workers.length,1,'real combat knockout removes one worker record');assert.equal(g.state.entities[e.id],undefined);
 }
@@ -241,4 +242,72 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   f.state.entities.hero={id:'hero',type:'thug',owner:'bot',place:'world',x:1000,z:1000};
   f.train(1);f.run(1);assert.equal(units(f).length,1,'a bot army wakes workers too');
 }
-console.log('test_frontier_workers: L3.5 conservation/save/clearing and L3.6 proximity, navigation, parity, lifecycle and casualties passed');
+// Delivery history is bounded and never broadcasts routine returns as town alerts.
+{
+  const f=fixture({changes:{logEntries:3}}),[w]=f.train();f.send({action:'assign',workers:[w.id],spot:'near'});f.run(200);
+  assert.ok(w.deliveries>3);assert.equal(f.s.workerLog.length,3);assert.ok(f.s.workerLog.every(e=>e.worker===w.id && e.amount===3 && e.resource==='timber'));
+  assert.ok(f.s.workerLog[0].tick<f.s.workerLog.at(-1).tick);
+  assert.ok(!(f.state.news || []).some(e=>e.event==='delivery'));
+}
+// Fix phase: cargo controls preserve stock and save timing; group destinations use crew spacing.
+{
+  const f=fixture({changes:{harvestTicks:20}}),[w,a,b]=f.train(3);
+  f.send({action:'workerOrder',workers:[a.id,b.id],kind:'move',x:1040,z:1040});
+  assert.ok(Math.hypot(a.order.target[0]-b.order.target[0],a.order.target[1]-b.order.target[1])>=1);
+  f.send({action:'assign',workers:[w.id],spot:'far'});
+  for(let i=0;i<100 && !w.carrying;i++)f.run(1);
+  assert.equal(w.carrying,3);
+  const stock=f.s.stock.timber;
+  assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'return'}).ok,true);
+  const saved=JSON.parse(JSON.stringify(f.state)),h=fixture({saved,changes:{harvestTicks:20}});
+  for(let i=0;i<100;i++){f.run(1);h.run(1);assert.deepEqual(h.s.workers,f.s.workers);assert.deepEqual(h.s.stock,f.s.stock);}
+  assert.equal(f.s.stock.timber,stock+3);assert.equal(w.order.kind,'hold');assert.equal(w.carrying,0);
+  assert.ok(f.s.workerLog.some(n=>n.worker===w.id && n.amount===3 && n.resource==='timber'));
+  assert.deepEqual(h.s.workerLog,f.s.workerLog,'delivery history survives save/load without duplication');
+  assert.ok(!(f.state.news || []).some(n=>n.event==='delivery'),'routine deliveries never create alert popups');
+  f.send({action:'assign',workers:[w.id],spot:'far'});for(let i=0;i<100 && !w.carrying;i++)f.run(1);
+  const loaded=JSON.stringify(w),before=f.s.stock.timber;
+  assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'drop'}).ok,false);assert.equal(JSON.stringify(w),loaded);
+  assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'drop',confirm:true}).ok,true);assert.equal(w.carrying,0);assert.equal(f.s.stock.timber,before);
+  assert.equal(f.send({action:'assign',workers:[w.id],spot:'stone'}).ok,true);assert.equal(w.spot,'stone');assert.equal(w.nextSpot,undefined,'discard permits immediate reassignment');
+  f.fr.world.checkInvariants();
+}
+// A manual Move interrupts the return, keeps cargo while moving/holding, and Return
+// must later unload from that position even after the old harvest trip is gone.
+for(const mode of ['normal return','explicit return','stopped carrier']) {
+  const f=walking(),[w]=f.train(1);f.send({action:'assign',workers:[w.id],spot:'far'});
+  for(let i=0;i<200 && !w.carrying;i++)f.run(1);
+  assert.equal(w.carrying,3,mode);assert.ok(w.entity,'exercise the physical walking unit');
+  if(mode==='explicit return')assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'return'}).ok,true);
+  if(mode==='stopped carrier')assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'hold'}).ok,true);
+  const before=f.s.stock.timber,logged=f.s.workerLog?.length || 0;
+  for(const x of [1040,1030]) {
+    assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'move',x,z:1040}).ok,true);
+    assert.equal(w.carrying,3,'a move order cannot discard cargo');
+  }
+  assert.equal(w.order.kind,'move');assert.equal(w.nextOrder,undefined);assert.equal(w.cargoResource,'timber');
+  f.run(5);
+  const restored=walking({saved:JSON.parse(JSON.stringify(f.state))});
+  for(let i=0;i<200;i++){f.run(1);restored.run(1);assert.deepEqual(restored.s.workers,f.s.workers);}
+  assert.equal(w.carrying,3);assert.equal(f.s.stock.timber,before,'moving a load does not drop or deposit it');
+  assert.equal(f.s.workerLog?.length || 0,logged);assert.equal(w.order.kind,'hold');
+  assert.deepEqual(w.departure,[1030,1040],'latest destination runs immediately with cargo');
+  assert.equal(w.trip,null);assert.equal(w.spot,null);assert.equal(w.cargoResource,'timber','cargo outlives the harvest and move trips');
+  for(const target of [f,restored])assert.equal(target.send({action:'workerOrder',workers:[w.id],kind:'return'}).ok,true);
+  for(let i=0;i<200;i++){f.run(1);restored.run(1);assert.deepEqual(restored.s.stock,f.s.stock);}
+  assert.equal(w.carrying,0);assert.equal(w.cargoResource,undefined);assert.equal(f.s.stock.timber,before+3);
+  assert.equal(f.s.workerLog.length,logged+1);assert.equal(w.order.kind,'hold');
+  f.fr.world.checkInvariants();
+}
+{
+  const f=walking({near:false});f.areas.nav.workerPath(1000,1000,1010,1000);const built=f.areas.stats().built;
+  f.areas.nav.workerPath(1000,1000,1010,1000);assert.equal(f.areas.stats().built,built,'remote planning reuses bounded grids');assert.equal(f.areas.activeIds().length,0);
+}
+{
+  const f=walking({near:false,obstacle:false}),[w]=f.train(1),spot=f.workers.index.get('far');spot.x=1400;
+  f.send({action:'assign',workers:[w.id],spot:'far'});w.by='g';f.run(1);
+  w.elapsed=Math.floor(w.trip.out/2);w.phase=w.elapsed/w.trip.total;
+  Object.assign(f.state.entities.hero,{x:1200,z:1000});f.run(1);
+  assert.equal(units(f).length,1,'a governor worker wakes mid-route even when both endpoints are far from the hero');
+}
+console.log('test_frontier_workers: conservation/save/clearing, proximity/navigation/parity, cargo controls, formations and bounded planning passed');

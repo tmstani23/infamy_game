@@ -74,7 +74,8 @@ const fr = g.state.frontier, town = Object.values(fr.settlements).find(s => s.fo
 assert.equal(Object.keys(fr.settlements).length, towns + 1, 'exactly one settlement');
 assert.ok(ids.every(id => !g.state.entities[id]), 'exactly those settlers are gone');
 assert.equal(clan.ryo, ryo0 - frontier.founding.cost);
-assert.equal(town.owner, 'player'); assert.equal(town.pop, 5); assert.equal(town.x, Math.round(plain[0]));
+assert.equal(town.owner, 'player'); assert.equal(town.pop, 5); assert.equal(town.x, Math.round(plain[0]+frontier.townGrid.cellSize*2));
+assert.ok(Math.abs(hero.x-town.x)>frontier.townGrid.cellSize/2,'legacy founding commands also leave the hero outside the hall');
 assert.ok(town.traits.soil >= 1 && town.traits.soil <= 3 && town.traits.water >= 1 && town.traits.defense >= 1, 'traits computed');
 assert.deepEqual(town.buildings.map(b => b.type), ['town_hall']); assert.equal(town.housing, 6);
 assert.deepEqual(town.projects, [], 'founding leaves the next construction choice to the player');

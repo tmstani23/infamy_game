@@ -14,6 +14,7 @@ const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.start
 export function createFrontierWorld({ state, data }) {
   if (!state.frontier) state.frontier = build(data);
   const f = state.frontier;
+  f.version=Math.max(f.version || 1,data.version || 1); // additive worker-order support; retain all saved records
   for (const s of Object.values(f.settlements)) {
     ensureWorkers(s);
     // Reserve future placement without deleting anything from an existing town.

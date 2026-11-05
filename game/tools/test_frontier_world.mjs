@@ -14,7 +14,7 @@ const fresh = () => { const state = { tick: 0 }; return { state, world: createFr
 {
   const { state, world } = fresh();
   const f = state.frontier;
-  assert.equal(f.version, 1);
+  assert.equal(f.version, data.version);
   assert.deepEqual(Object.keys(f.settlements).sort(), Object.keys(data.settlements).sort());
   const s = world.settlement('s_frontier_1');
   assert.equal(s.pop, 8);

@@ -30,6 +30,7 @@ export function frameTarget(state, heroId, selected, tabbed, seen = () => true, 
 // Who a unit is to the hero: { tag, kind } with kind 'you' | 'crew' | 'enemy' | 'neutral'
 export function relation(e, hero) {
   if (e.id === hero.id) return { tag: 'You', kind: 'you' };
+  if(e.workerOwner===hero.owner)return {tag:'Your worker',kind:'crew'};
   if (e.owner === POLICE) return { tag: 'Police', kind: 'enemy' };
   if (e.owner === WILD) return { tag: 'Bandit', kind: 'neutral' };
   if (!e.owner) return { tag: 'Townsfolk', kind: 'neutral' };
@@ -72,7 +73,7 @@ const STYLE = `
 `;
 const COLORS = { you: ['#e9c27a', '#6ebe5a'], crew: ['#6ebe5a', '#6ebe5a'], enemy: ['#c8463a', '#c8463a'], neutral: ['#e0b04a', '#d9a23c'] };
 
-export function createUnitFrames({ game, units, catalog, crewInput, heroId, view, where = () => '', jump = () => {}, send = () => {} }) {
+export function createUnitFrames({ game, units, catalog, crewInput, heroId, view, where = () => '', jump = () => {}, workerTarget=()=>null, send = () => {} }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.appendChild(style);
@@ -104,6 +105,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
   hover.tag = document.createElement('em');
   hover.name.after(hover.tag);
   target.c.addEventListener('click', () => {
+    const worker=workerTarget();if(worker){view.jumpTo?.(worker.x,worker.z);return;}
     const known = remembered && knownTarget();
     if (known) view.lookAt(known.x, known.z);
     else { const u = cached?.entity; if (u) jump(u); }
@@ -120,7 +122,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       f.pic.style.backgroundImage = url ? `url(${url})` : '';
       if (url) f.model = e.model;
     }
-    if (f.id !== e.id) { f.id = e.id; set(f.name, 'textContent', (e.shopkeeper && e.name) || unitName(units, e.type === 'hero' ? e.model : (e.civ || e.type))); }
+    if (f.id !== e.id) { f.id = e.id; set(f.name, 'textContent', (e.worker && (e.name || 'Worker '+e.worker)) || (e.shopkeeper && e.name) || unitName(units, e.type === 'hero' ? e.model : (e.civ || e.type))); }
     const r = relation(e, hero), [c, bar] = COLORS[r.kind];
     f.c.style.setProperty('--c', c);
     f.c.style.setProperty('--bar', bar);
@@ -157,9 +159,10 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     const focus=inspected||crewInput.looked?.()||crewInput.tabbed?.()||id;
     const live=focus&&S[focus],visible=live&&(!live.hidden||live.owner===h.owner)&&(!game.vision||game.vision.canSee(h.owner,live));
     cached=targetMemory.read(focus,live,visible,game.state.tick);
-    const shown = memory || cached?.entity;
+    const worker=workerTarget(),shown = worker || memory || cached?.entity;
     target.c.hidden = !shown; target.c.classList.toggle('known', !!memory);
-    if (memory) {
+    if(worker){const d=worker.workerDetail;fill(target,worker,h);target.status.textContent=d?.cargo?`Carrying ${d.cargo} ${d.resource}`:d?.harvesting?`Harvesting ${d.resource} · ${d.left}s left`:'Worker · use Workers pane for orders';}
+    else if (memory) {
       target.c.dataset.owner=memory.owner;
       target.id = memory.id;
       const url = portrait(catalog, memory.model, null, CROP); target.pic.style.backgroundImage = url ? `url(${url})` : '';

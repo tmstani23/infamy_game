@@ -1,3 +1,4 @@
+import { modeRules } from './sim/modes/index.js';
 import {createShopUI} from './shop_ui.js';
 import { createHQStash } from './inventory_ui.js';
 import {watchCrewGroup} from './crew_watch.js';
@@ -23,6 +24,7 @@ import { frontierReport } from './frontier_report.js';
 import { createFrontierPanel } from './frontier_panel.js';
 import { createFrontierBuildUI } from './frontier_build_ui.js';
 import { createFoundButton } from './found_button.js';
+import {withWorkerPresentations} from './worker_details.js';
 import { drawableTowns, townSignature, townProps } from './town_props.js';
 import { createTownHover } from './town_hover.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
@@ -65,7 +67,7 @@ const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
 bindGameShell();
 const controlTips = bindControlTooltips($('controls'));
-const status = msg => { $('loading').textContent = msg; };
+const status = msg => { const el = $('loading'); if (el) el.textContent = msg; };
 const getJSON = async url => {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Could not load ${url}`);
@@ -118,7 +120,7 @@ async function start() {
   try {
     view = await createView({
       canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world, worldChunks, cutouts, resourceSpots, spotConfig: frontier?.townArt?._spots,
-      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || game.state.match?.mode === 'campaign')), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
+      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');
@@ -250,7 +252,7 @@ async function start() {
     Object.assign(twinkle.style, { left: `${screen.x}px`, top: `${screen.y}px`, fontSize: `${spotConfig.twinkleSize * (1 + spotConfig.twinklePulse * Math.sin(performance.now() / spotConfig.twinklePeriodMs))}px` });
     spotTip.hidden = twinkle.hidden = false;
   }
-  const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, send: c => pending.push(c) });
+  const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, view, send: c => pending.push(c), onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();}, blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() });
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -329,7 +331,7 @@ async function start() {
   const togglePause = () => { paused = !paused; $('pausedbanner').hidden = !paused; $('pausebtn').textContent = paused ? 'Resume (`)' : 'Pause (`)'; $('pausebtn').setAttribute('aria-pressed', String(paused)); };
   onKey(['Backquote', 'Pause'], togglePause);
   $('pausebtn').addEventListener('click', e => { togglePause(); e.currentTarget.blur(); });
-  const fps = createFps();
+  const fps = createFps({diagnostics:()=>view.graphicsStats(),sim:()=>simClient.diagnostics()});
   onKey('KeyP', () => fps.toggle());
   // Controls panel: the button or ? opens it, Esc closes it
   const toggleControls = () => { controlTips.hide(); $('controls').hidden = !$('controls').hidden; };
@@ -363,7 +365,7 @@ async function start() {
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id) });
-  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, send: c => pending.push(c) });   // own + target frames, top middle
+  const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, workerTarget:()=>frontierBuildUI?.workerTarget(), send: c => pending.push(c) });
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
     if (menu === 'clinic' && !clinicMenu.isOpen()) clinicMenu.toggle();
@@ -397,7 +399,7 @@ async function start() {
     const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
     const timer = timeLeft == null ? '' : ` · ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
     const owner = game.state.entities[heroId]?.owner;
-    return `Crew ${game.clans.crewOf(owner).length} (cap ${game.clans.crewCap(owner)}) · ${game.state.match?.mode === 'campaign' ? `Campaign · Day ${s.day}` : `Day ${Math.min(s.day, s.cycles)}/${s.cycles}`}${timer} · ${parts.join(' · ')}`;
+    return `Crew ${game.clans.crewOf(owner).length} (cap ${game.clans.crewCap(owner)}) · ${!modeRules(game.state).seasonEnds ? `Campaign · Day ${s.day}` : `Day ${Math.min(s.day, s.cycles)}/${s.cycles}`}${timer} · ${parts.join(' · ')}`;
   };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
@@ -435,8 +437,8 @@ async function start() {
     frontierBuildUI = createFrontierBuildUI({ game, view, heroId, data: frontier, spotIndex, spotRules: resourceSpotRules,
       known: (x,z) => isDiscovered(world, game.state.world?.discovered?.[game.state.entities[heroId]?.owner] ?? '0', x,z),
       send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id),
-      blocked: () => gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
-    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI,
+      blocked: () => foundButton.isPlacing() || gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
+    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI, focus:(x,z)=>view.jumpTo(x,z),
       nearbyTown: () => {
         const h = game.state.entities[heroId];
         if (h?.place !== 'world') return null;
@@ -617,7 +619,7 @@ async function start() {
     // through the island gate (W3.5): a one-second fade from black
     { const place = game.state.entities[heroId]?.place;
       if (place !== gatePlace) { if (gatePlace && (place === 'world' || gatePlace === 'world')) { const f = $('gatefade'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); } gatePlace = place; } }
-    presentation.measure('world',()=>view.render(fog.seen(game.state), prev, clock.alpha(), dt, now, heroId));
+    presentation.measure('world',()=>view.render(withWorkerPresentations(fog.seen(game.state),frontier,{...view.audioFocus(game.state,heroId),owner:game.state.entities[heroId]?.owner}), prev, clock.alpha(), dt, now, heroId));
     crewInput.drawMarkers($('lock'));
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
     frontierBuildUI?.update();

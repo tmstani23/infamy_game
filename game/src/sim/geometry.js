@@ -125,6 +125,11 @@ export function shapeBox(shape) {
 }
 
 // A ground zone as { type, shape, blur }, whichever way it is written
+export function blockOffset(k,n,spacing=1.1) {
+  const side=Math.ceil(Math.sqrt(n)),rows=Math.ceil(n/side);
+  return [(k%side-(side-1)/2)*spacing,(Math.floor(k/side)-(rows-1)/2)*spacing];
+}
+
 export const groundZone = z => typeof z[1] === 'object'
   ? { type: z[0], shape: z[1], blur: z[2] ?? 0 }
   : { type: z[0], shape: [z[1], z[2], z[3], z[4]], blur: z[5] ?? 0 };

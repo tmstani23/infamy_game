@@ -33,9 +33,9 @@ export function createCommands({ state, data, world, economy, construction, gove
       world.setRoadState(c.road, c.state);
       return receipt(e, c, true);
     }
-    if (c.action === 'found') {   // E3: found a town at the hero's own spot with the settlers standing round him
+    if (c.action === 'found') {   // settlers gather at the hero; hall placement uses the validated world point
       if (e.type !== 'hero' || !founding) return reject(e, c, 'only a hero can found a town');
-      const r = founding.found(e, c.name, worldData, world, construction);
+      const r = founding.found(e, c.name, worldData, world, construction, c.x!==undefined || c.z!==undefined ? {x:c.x,z:c.z} : null);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
     }

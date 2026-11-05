@@ -1,3 +1,4 @@
+import { modeRules } from './modes/index.js';
 // W4: authoritative island camp lifecycle. No camera, graphics or random placement.
 // Chunk residency, casualties, wounds and first-clear claims survive saves and unloading.
 // Existing bandit AI/combat owns movement, attacks and corpse loot.
@@ -9,7 +10,7 @@ export function createWorldCamps({ state, world, areas, rules, spawn, remove, ai
   const records=()=>{state.world ||= {};return state.world.camps ||= {};};
   const resident=e=>e?.worldCamp && byId[e.camp];
   const alive=e=>e && !e.dead;
-  const ready=()=>enabled && state.match?.mode==='campaign';
+  const ready=()=>enabled && modeRules(state).island;
   function createRecord(c) {
     const tier=Math.max(1,Math.min(rules.membersByTier.length,c.tier || 1));
     return { version:1, cleared:false, clearedDay:null, claimed:false, generation:0,

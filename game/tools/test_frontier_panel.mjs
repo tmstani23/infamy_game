@@ -54,5 +54,17 @@ panel.close(); assert.equal(root.hidden, true);
   assert.match(oroot.innerHTML, /road blocked/); assert.match(oroot.innerHTML, /class="flash"/);
   ov.close(); assert.equal(oroot.hidden, true);
 }
+// Real stock buttons open Usage and consumers focus the authoritative world position.
+{
+  const t=fr.world.addTown({id:'manifest',name:'Manifest',owner:'player',x:3000,z:3000,pop:5,stock:{food:50,timber:20},buildings:[{type:'town_hall'}]});void fr.world;
+  t.projects.push({id:'invoice',type:'storehouse',cell:t.buildings[0].cell,cost:{timber:12},paid:false,authorized:true,progress:0,need:30});
+  const root=mkEl();let focus;
+  const manifest=createFrontierPanel({root,game:{state,frontier:fr},heroId:'h1',send(){},focus:(x,z)=>focus=[x,z]});manifest.open(t.id);
+  assert.match(root.innerHTML,/data-act="usage" data-id="timber"/);
+  const click=(act,id)=>handlers.click({target:{closest:()=>({dataset:{act,id}})}});
+  click('usage','timber');assert.match(root.innerHTML,/Stock usage/);assert.match(root.innerHTML,/pending construction: 12 once/);
+  click('usage-focus','project:invoice');assert.deepEqual(focus,[3000,3000]);
+  click('usage-back');assert.match(root.innerHTML,/data-act="usage"/);
+}
 console.log('test_frontier_panel: ok');
 process.exit(0);

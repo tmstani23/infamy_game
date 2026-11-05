@@ -1,3 +1,4 @@
+import { modeRules } from './modes/index.js';
 import { canInteract } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
@@ -57,7 +58,7 @@ export function createClans(state, units, opts = {}) {
   function hirePrice(id, type, additional = 0) {
     const t = types[type];
     if (!t || t.later || !t.price) return null;
-    if (t.campaignOnly && state.match?.mode !== 'campaign') return null;   // settlers: campaign only (E2)
+    if (t.campaignOnly && !modeRules(state).founding) return null;   // settlers: campaign only (E2)
     if (t.settler) return t.price;   // flat price, no crew-size step (E1)
     if ((t.clan || 'yakuza') !== (state.clans[id]?.kind || 'yakuza')) return null;   // ninja crew for the Shinobi clan only, and the other way round
     const faction = state.clans[id]?.faction;

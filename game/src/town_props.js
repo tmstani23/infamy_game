@@ -49,12 +49,13 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
     }
     if (G && (use === 'r' || use === 'g')) {
       const width = grid.cell * G.roadWidth;
-      patch('road', width, width, G.roadTint);
+      patch('road', width, width, G.roadTint,G.roadTexture);
+      Object.assign(out[out.length-1],{tile:G.roadTile || G.textureTile,cornerRadius:width/2,opacity:G.roadOpacity ?? 1});
       for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
         const col = i % grid.n + dc, row = Math.floor(i / grid.n) + dr;
         if (col < 0 || row < 0 || col >= grid.n || row >= grid.n || !'rgB'.includes(grid.use[row * grid.n + col])) continue;
         out.push({ ...base, key: `${i}:road:${dc}:${dr}`, dirt: true, width: dc ? grid.cell / 2 : width, height: dr ? grid.cell / 2 : width,
-          x: x + dc * grid.cell / 4, z: z + dr * grid.cell / 4, tint: G.roadTint });
+          x: x + dc * grid.cell / 4, z: z + dr * grid.cell / 4, tint: G.roadTint,texture:G.roadTexture,tile:G.roadTile || G.textureTile,cornerRadius:width/2,opacity:G.roadOpacity ?? 1 });
       }
     }
     if (use === 'w' || use === 'g') {
@@ -63,9 +64,22 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       const alongX = joins(-1, 0) || joins(1, 0), alongZ = joins(0, -1) || joins(0, 1);
       const axes = use === 'w' && alongX && alongZ ? [false, true] : [alongZ];
       const wall = art._walls?.[use];
-      if (wall) for (const vertical of axes) for (let k = 0; k < wall.count; k++) {
-        const d = ((k + 0.5) / wall.count - 0.5) * grid.cell;
-        out.push({ ...base, key: `${i}:${use}:${vertical}:${k}`, x: x + (vertical ? 0 : d), z: z + (vertical ? d : 0), art: wall.art, flip: vertical, s: wall.scale, noLights: true });
+      const turn=use==='w' && alongX && alongZ && [joins(-1,0),joins(1,0),joins(0,-1),joins(0,1)].filter(Boolean).length===2;
+      const bend=grid.cell*(art._walls?.cornerCut || 0.25);
+      if (wall) for (const vertical of axes) {
+        const corner=use==='w' && alongX && alongZ;
+        const low=corner && !joins(vertical?0:-1,vertical?-1:0)?turn?bend:0:-grid.cell/2;
+        const high=corner && !joins(vertical?0:1,vertical?1:0)?turn?-bend:0:grid.cell/2;
+        const count=Math.max(1,Math.round(wall.count*(high-low)/grid.cell));
+        for(let k=0;k<count;k++) {
+          const d=low+(k+.5)*(high-low)/count;
+          out.push({ ...base, key: `${i}:${use}:${vertical}:${k}`, x: x + (vertical ? 0 : d), z: z + (vertical ? d : 0), art: wall.art, flip: vertical, s: wall.scale, noLights: true });
+        }
+      }
+      if(wall && turn) {
+        const a=[joins(-1,0)?-bend:bend,0],b=[0,joins(0,-1)?-bend:bend],dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz),count=Math.max(1,Math.ceil(length/(grid.cell/wall.count)));
+        for(let k=0;k<count;k++)out.push({...base,key:`${i}:w:corner:${k}`,x:x+a[0]+dx*(k+.5)/count,z:z+a[1]+dz*(k+.5)/count,art:wall.art,flip:false,
+          fenceHeading:[dx,dz],fenceMinWidth:art._walls.cornerMinWidth,s:wall.scale*length/count/(grid.cell/wall.count),noLights:true});
       }
     }
     const def = definitions[zone];

@@ -12,7 +12,7 @@ import { buildChunk, cityOnIsland } from '../sim/chunk_gen.js';
 import {islandBiome} from '../sim/island_art.js';
 import {spriteMaterial} from './shading.js';
 import { terrainAt } from '../sim/world_data.js';
-import { placePiece } from '../sim/geometry.js';
+import { placePiece, ELEVATION } from '../sim/geometry.js';
 import { groundMaterial } from './shading.js';
 import { loadTex, cutoutThing, loadGroundTextures, GROUND_CHANNELS } from './scenery.js';
 import { chunksToDraw, planChunks, propsInView } from '../world_stream.js';
@@ -49,7 +49,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
-  let spotRevision = '', snapshot = null;
+  let spotRevision = '', snapshot = null, spotAppliedAt = -Infinity;
+  const sigs = new WeakMap(), sigOf = p => { let v = sigs.get(p); if (v === undefined) sigs.set(p, v = JSON.stringify(p)); return v; };
   const coastline = createCoastlineRenderer({ world, cfg, renderer });
   const waterEffects = createWaterEffects({ world, cfg, renderer, scene });
   const reflectionFrustum = new THREE.Frustum(), reflectionProjection = new THREE.Matrix4(), waterBox = new THREE.Box3();
@@ -174,6 +175,14 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     }
     const piece = placePiece({ name, x: p.x, z: p.z, flip: p.art ? !!p.flip : !cfg.biomeProps?.noMirror?.kinds?.includes(p.kind) && Math.floor(p.x * 7 + p.z * 3) % 2 === 0 }, catalog, cutouts);
     if (!piece) return null;
+    let fenceWidth=1;
+    if(p.fenceHeading) {
+      let [dx,dz]=p.fenceHeading;const length=Math.hypot(dx,dz);
+      if(dx-dz<0){dx=-dx;dz=-dz;}
+      // Reproject the existing fence's ground edge; its posts remain upright.
+      piece.shear=Math.sin(ELEVATION)*(1-(dx+dz)/length);
+      fenceWidth=Math.max(p.fenceMinWidth || 0,(dx-dz)/length);
+    }
     const tex = textureFor(piece.item.file);
     if (!tex) return undefined;   // still loading: try next pass
     const fit = p.maxFootprint ? Math.min(1, p.maxFootprint / (2 * Math.max(piece.fa, piece.fb))) : 1;
@@ -184,6 +193,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       piece.foot = sc(piece.foot);
     }
     const thing = cutoutThing(piece, tex);
+    if(p.fenceHeading)thing.mesh.scale.x*=fenceWidth;
     if (p.lightRadius) for (const light of thing.lights) light.radius = p.lightRadius;
     if (p.tint) thing.mesh.material.uniforms.uTint.value.set(p.tint);
     if (p.noLights) { for (const e of thing.extras) e.material.dispose(); thing.extras = []; thing.lights = []; }
@@ -204,7 +214,9 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   function update(x, z, active, dt, frontier, discovered, viewScale = 1) {
     snapshot = frontier;
     const revision = `${JSON.stringify(frontier?.spots || {})}|${discovered}`;
-    if (revision !== spotRevision) { spotRevision = revision; propAt = null; }
+    // Harvest stage changes are batched (max ~2/s) so many workers can't force a full prop + draw-order rebuild every tick
+    const nowMs = performance.now();
+    if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
     if (!active) {
       if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; }
       return;
@@ -249,19 +261,19 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       for (const p of near) {
         // Authored camp/site props stay; only generated decorative props are covered by resource pieces.
         if (cleared(p) || (spotConfig && !p.art && !p.feature && coveredBySpot(p, spots, spotConfig.clearance))) continue;
-        want.set(`${c.gen.id}:${c.gen.props.indexOf(p)}`, p);
+        want.set(`${c.gen.id}:${p._i ??= c.gen.props.indexOf(p)}`, p);
       }
     }
     let changed = false, pending = false;
     for (const k of [...sprites.keys()]) if (!want.has(k)) { removeThing(k); changed = true; }
     for (const [k, p] of want) {
-      if (sprites.has(k) && sprites.get(k).drawSignature !== JSON.stringify(p)) { removeThing(k); changed = true; }
+      if (sprites.has(k) && sprites.get(k).drawSignature !== sigOf(p)) { removeThing(k); changed = true; }
       if (sprites.has(k)) continue;
       const t = makeThing(p);
       if (t === undefined) { pending = true; continue; }
       if (!t) continue;
       scene.add(t.mesh, ...t.extras);
-      t.drawSignature = JSON.stringify(p);
+      t.drawSignature = sigOf(p);
       sprites.set(k, t); changed = true;
     }
     if (pending) propAt = null;

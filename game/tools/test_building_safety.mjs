@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createFrontier} from '../src/sim/frontier/frontier.js';
+import {centreCell,cellToWorld,townBlockersIn,setUse} from '../src/sim/frontier/town_grid.js';
+import {buildingSafety} from '../src/sim/frontier/building_safety.js';
+import {createFounding} from '../src/sim/frontier/founding.js';
+import {createFoundButton} from '../src/found_button.js';
+const data=JSON.parse(readFileSync(new URL('../data/frontier.json',import.meta.url)));
+const state={tick:0,entities:{h:{id:'h',type:'hero',owner:'player',place:'world',x:1000,z:1000}}};
+const fr=createFrontier({state,data});
+const s=fr.world.addTown({id:'t',name:'Town',owner:'player',x:1000,z:1000,pop:10,stock:{timber:500},buildings:[{type:'town_hall'}]});
+void fr.world;
+const C=centreCell(s.grid.n),at=(x,z)=>C+x+z*s.grid.n;
+const placement=fr.modules.find(m=>m.name==='placement').placement;
+const construction=fr.modules.find(m=>m.name==='construction');
+// Placement checks units, including neutrals and workers, rather than only town assets.
+const [x,z]=cellToWorld(s,at(4,0));Object.assign(state.entities.h,{x,z});
+assert.match(placement.check(s,{kind:'storehouse',cells:[at(4,0)]}).reason,/Unit/);
+assert.match(placement.check(s,{kind:'wall',cells:[at(4,0)]}).reason,/Unit/);
+// A project is passable until the occupant leaves; paid progress is retained while waiting.
+state.entities.h.x+=22;
+const p=placement.place(s,{kind:'storehouse',cells:[at(4,0)]});assert.ok(p.ok);
+const project=s.projects.find(q=>q.id===p.project);project.paid=true;project.progress=project.need;s.builders=1;
+Object.assign(state.entities.h,{x,z});construction.econTick();
+assert.ok(s.projects.includes(project));assert.equal(townBlockersIn(state.frontier,x,z,x,z).length,0);
+assert.ok(s.report.waiting.some(r=>/Unit/.test(r)));
+state.entities.h.x+=22;construction.econTick();
+assert.ok(!s.projects.includes(project));assert.equal(townBlockersIn(state.frontier,x,z,x,z).length,1);
+// Closing an otherwise empty courtyard must also protect a unit inside it.
+for(let dx=9;dx<=13;dx++)for(let dz=9;dz<=13;dz++)if(dx===9 || dx===13 || dz===9 || dz===13)setUse(s,at(dx,dz),'w');
+setUse(s,at(11,9),'.');[state.entities.h.x,state.entities.h.z]=cellToWorld(s,at(11,11));
+assert.match(buildingSafety(s,[at(11,9)],state),/escape route/);
+// Founding validation is read-only, validates the whole footprint, and rejects invalid coordinates.
+const island={size:{w:10000,h:10000},terrain:{cell:50,rows:Array(200).fill('p'.repeat(200))},capital:{x:0,z:0},sites:[],nodes:[]};
+const fs={match:{mode:'campaign'},frontier:{settlements:{}},clans:{player:{id:'player',ryo:5000}},entities:{h:{id:'h',type:'hero',owner:'player',place:'world',x:3000,z:3000}}};
+for(let i=0;i<5;i++)fs.entities['s'+i]={type:'settler',owner:'player',place:'world',x:3000+i,z:3001};
+const founding=createFounding({state:fs,data,world:island,removeUnit(){}}),hero=fs.entities.h;
+const before=JSON.stringify(fs);
+assert.match(founding.check(hero,island,hero).reason,/clearance/);
+assert.match(founding.check(hero,island,{x:NaN,z:3000}).reason,/position/);
+assert.match(founding.check(hero,island,{x:3100,z:3000}).reason,/too far/);
+assert.ok(founding.check(hero,island,{x:3022,z:3000}).ok);
+island.terrain.rows[60]=island.terrain.rows[60].slice(0,61)+'m'+island.terrain.rows[60].slice(62);
+assert.match(founding.check(hero,island,{x:3048,z:3000}).reason,/footprint/);
+assert.equal(JSON.stringify(fs),before);
+// Ghost click/cancel routing without browser automation.
+const handlers={},els=[];globalThis.innerWidth=1000;globalThis.innerHeight=800;
+globalThis.addEventListener=(n,f)=>(handlers[n] ||= []).push(f);
+const ctx=new Proxy({}, {get:(o,k)=>o[k] || (()=>{}),set:(o,k,v)=>(o[k]=v,true)});
+const element=()=>({style:{},hidden:true,listeners:{},addEventListener(n,f){this.listeners[n]=f;},blur(){},getContext:()=>ctx});
+globalThis.document={createElement:element,body:{append(...e){els.push(...e);}}};
+const root=element(),sent=[],view={screenToGround:(x,z)=>({x,z}),unitToScreen:(x,z)=>({x:x-2800,y:z-2800})};
+const button=createFoundButton({root,game:{state:fs,frontier:{founding}},heroId:'h',send:c=>sent.push(c),view});
+const emit=(name,x,z,extra={})=>{const e={button:0,clientX:x,clientY:z,target:{closest:()=>true},preventDefault(){},stopImmediatePropagation(){},...extra};for(const f of handlers[name] || [])f(e);};
+button.update();root.listeners.click();emit('mousemove',3000,3000);emit('mousedown',3000,3000);
+assert.equal(sent.length,0);assert.match(els.find(e=>e.id==='foundhint').textContent,/clearance/);
+emit('keydown',0,0,{code:'Escape'});assert.equal(button.isPlacing(),false);
+root.listeners.click();emit('mousedown',3022,3000);assert.deepEqual(sent[0],{id:'h',type:'frontier',action:'found',x:3022,z:3000});
+root.listeners.click();emit('mousedown',3022,3000,{button:2});assert.equal(button.isPlacing(),false);
+console.log('test_building_safety: ok');

@@ -7,10 +7,10 @@ export const BUILD_DETAILS={
   farm:['A cultivated zone for food production.','Enables food production with available townspeople; fertile soil improves output.'],
   work:['A workshop zone that consumes timber and stone.','Enables goods production with available townspeople.'],
   eraser:['Removes selected roads, walls, gates, zones and buildings.','Returns 100% of their resource cost; the town hall is protected.'],
-  lumber_camp:['A timber gathering camp and worker drop-off.','Enables a nearer place to unload timber. Workers can also unload at the hall.'],
-  quarry:['A stone gathering camp and worker drop-off.','Enables a nearer place to unload stone. Workers can also unload at the hall.'],
-  storehouse:['A local worker drop-off for gathered resources.','Enables shorter return trips when built near resource spots.'],
-  stockade:['A placed town stockade structure.','Adds the stockade structure; build Wall and Gate separately for an enclosing fence.']
+  lumber_camp:['A gathering camp and general worker drop-off; all cargo types accepted.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive timber production.'],
+  quarry:['A gathering camp and general worker drop-off; all cargo types accepted.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive stone production.'],
+  storehouse:['A general worker drop-off; all cargo types accepted. No storage cap is implemented.','Shortens return trips. Delivery credits town stock immediately; camps are optional alternatives.'],
+  stockade:['A placed solid stockade building, separate from the fence tools.','Build Wall and Gate for an enclosure. No defensive stat bonus is implemented yet.']
 };
 export function buildTooltip(id,s,data,requirements) {
   const [purpose,enables]=BUILD_DETAILS[id] || ['A placed town building.',''];

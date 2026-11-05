@@ -1,7 +1,7 @@
 // Crew orders: follow slots, giving orders, walking out of buildings and moving.
 // Moved out of sim/game.js (phase 7 split, 2026-10-29); game.js passes in what it shares.
 import { allowCharmAttack } from './charm_rules.js';
-import { dirIndex } from './geometry.js';
+import { dirIndex, blockOffset } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
 export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove }) {
@@ -22,10 +22,6 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     return k;
   }
   // A square block of places around a clicked point, one per unit
-  function blockOffset(k, n) {
-    const side = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / side), sp = 1.1;
-    return [(k % side - (side - 1) / 2) * sp, (Math.floor(k / side) - (rows - 1) / 2) * sp];
-  }
 
   // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)

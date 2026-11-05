@@ -9,6 +9,7 @@
 // data/frontier.json "townGrid". Cells are measured in world units from the town's x, z.
 import { terrainAt, buildable } from '../world_data.js';
 import { townSlot } from './town_layout.js';
+import {wallSegments} from './wall_segments.js';
 
 const OVERGROWN = new Set(['f', 'b']);   // forest and bamboo start overgrown; open ground starts cleared
 
@@ -43,19 +44,35 @@ export function hallRoadCell(s, i) {
   return Math.max(Math.abs(x), Math.abs(z)) <= s.grid.cell * s.roadReserve && (x !== 0 || z !== 0);
 }
 
-// Live collision comes from completed placed structures. Zones and unfinished projects stay open.
-export function townBlockersIn(frontier,x0,z0,x1,z1) {
+export function zoneStructureAt(s,i,data,stage=Number(s.grid.stage[i])) {
+  if(stage<1 || s.grid.ground[i]!=='c')return false;
+  const def=Object.values(data?.zones?.kinds || {}).find(k=>k.char===s.grid.zone[i]);
+  return !!def && (def.blocksMovement || def.buildingEvery>0 && i%def.buildingEvery===0);
+}
+// Completed structures block their physical footprints; fields and unfinished plots stay open.
+export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
   const out=[];
   for(const s of Object.values(frontier?.settlements || {})) {
     const g=s.grid;if(!g || !Number.isFinite(s.x))continue;
-    const mid=(g.n-1)/2,half=g.cell/2;
-    const col0=Math.max(0,Math.ceil((x0-s.x-half)/g.cell+mid)),col1=Math.min(g.n-1,Math.floor((x1-s.x+half)/g.cell+mid));
-    const row0=Math.max(0,Math.ceil((z0-s.z-half)/g.cell+mid)),row1=Math.min(g.n-1,Math.floor((z1-s.z+half)/g.cell+mid));
+    const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;
+    const col0=Math.max(0,Math.ceil((x0-s.x-half-pad)/g.cell+mid)),col1=Math.min(g.n-1,Math.floor((x1-s.x+half+pad)/g.cell+mid));
+    const row0=Math.max(0,Math.ceil((z0-s.z-half-pad)/g.cell+mid)),row1=Math.min(g.n-1,Math.floor((z1-s.z+half+pad)/g.cell+mid));
+    const add=b=>{if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)out.push(b);};
     for(let r=row0;r<=row1;r++)for(let c=col0;c<=col1;c++) {
       const i=r*g.n+c;
-      if(g.use[i]!=='w' && !(g.use[i]==='B' && s.buildings.some(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i))))continue;
       const x=s.x+(c-mid)*g.cell,z=s.z+(r-mid)*g.cell;
-      out.push({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
+      if(g.use[i]==='w') {
+        for(const [a,b] of wallSegments(g,i,data?.townArt?._walls?.cornerCut || 0)) {
+          const dx=b[0]-a[0],dz=b[1]-a[1],steps=dx && dz ? Math.max(1,Math.ceil(Math.hypot(dx,dz)/thickness)):1;
+          for(let k=0;k<steps;k++) {
+            const ax=x+a[0]+dx*k/steps,az=z+a[1]+dz*k/steps,bx=x+a[0]+dx*(k+1)/steps,bz=z+a[1]+dz*(k+1)/steps;
+            add({minX:Math.min(ax,bx)-pad,maxX:Math.max(ax,bx)+pad,minZ:Math.min(az,bz)-pad,maxZ:Math.max(az,bz)+pad});
+          }
+        }
+      } else if(g.use[i]==='B' && s.buildings.some(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i)))add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
+      else if(zoneStructureAt(s,i,data)) {
+        const h=half*data.townGrid.zoneFootprint;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});
+      }
     }
   }
   return out;

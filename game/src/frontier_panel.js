@@ -3,6 +3,7 @@
 // { type: 'frontier', action, ... } commands for the hero; rejections show the receipt's reason.
 // Talk to the governor is a button for now; the Space-at-the-town-hall version arrives with the town in the world (E5).
 import { bindTips } from './frontier_tips.js';
+import {resourceUsage} from './sim/frontier/resource_usage.js';
 import { reportRows, governorSays, talkCommand } from './frontier_report.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
@@ -12,9 +13,16 @@ export function ownTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && s.stock);
 }
 
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, onOpen = () => {}, onClose = () => {} }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, focus=()=>{}, onOpen = () => {}, onClose = () => {} }) {
   let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
+  const data=game.frontier?.data;
+  let usageResource='timber',usagePage=0;
+  const usageTip=(s,r)=>{
+    if(!data)return '';
+    const u=resourceUsage(s,r,data);
+    return `Stock ${u.stock.toFixed(2)} · actual consumption ${u.consumption.toFixed(3)}/s · full production needs ${u.demand.toFixed(3)}/s · estimated gathering ${u.gathering.toFixed(3)}/s · net production ${u.net.toFixed(3)}/s\n${u.entries.map(e=>`${e.name}: ${e.once?e.once+' once':e.rate.toFixed(3)+'/s'} · ${e.state}`).join('\n')}\nClick for Stock → Usage.`;
+  };
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
   const towns = () => ownTowns(game.state.frontier, clan);
   function pick() {
@@ -36,10 +44,18 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       const say = governorSays(rows);
       h += `<h1>Governor</h1><div class="sub">${esc(rows.title)}</div><div class="chat">“${esc(say.text)}”</div><div class="choices">`
         + say.choices.map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
+    } else if(mode==='usage' && data) {
+      const u=resourceUsage(s,usageResource,data),per=data.workers.panelRows || 6,pages=Math.max(1,Math.ceil(u.entries.length/per));usagePage=Math.max(0,Math.min(usagePage,pages-1));
+      h=`<h1>${esc(rows.title)} · Stock usage</h1><button data-act="usage-back">Back to town</button><div class="workergroups">${data.resources.map(r=>`<button data-act="usage" data-id="${r}">${esc(r)}</button>`).join('')}</div>`
+        +`<h3>${esc(usageResource)} · ${u.stock.toFixed(2)} in stock</h3><div>Actual consumption ${u.consumption.toFixed(3)}/s · full production needs ${u.demand.toFixed(3)}/s</div><div>Estimated worker delivery ${u.gathering.toFixed(3)}/s · pending construction: ${u.pending} once · production net ${u.net.toFixed(3)}/s</div>`
+        +u.entries.slice(usagePage*per,(usagePage+1)*per).map(e=>`<div class="row"><button data-act="usage-focus" data-id="${esc(e.id)}">${esc(e.name)}</button><span>${e.once?e.once+' once':e.rate.toFixed(3)+'/s'} · ${esc(e.state)}<small>${esc(e.purpose)}</small></span></div>`).join('')
+        +(!u.entries.length?'<div>No active consumers or pending construction costs.</div>':'')
+        +`<div class="hint">Click a consumer to focus its location. Use Build → Eraser to remove it. Rates describe production; construction is a separate one-time payment. Training is paid when ordered.</div>`
+        +(pages>1?`<button data-act="usage-page" data-id="${Math.max(0,usagePage-1)}">Previous</button> ${usagePage+1}/${pages} <button data-act="usage-page" data-id="${Math.min(pages-1,usagePage+1)}">Next</button>`:'');
     } else {
       const mood = rows.mood;
       h += `<div class="row"><div><h1>${esc(rows.title)}</h1><div class="sub">Yours · mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div><button data-act="talk"${tip('Talk to the governor: his report, and ways to steer the town.')}>Governor</button></div>`;
-      h += '<div class="lab">Stock</div><div class="stock">' + rows.stock.map(r => `<div${tip(r.tip)}>${esc(r.label)}<b>${r.value}</b>${arrow[r.arrow]}</div>`).join('') + '</div>';
+      h += '<div class="lab">Stock <button data-act="usage" data-id="timber">Usage</button></div><div class="stock">' + rows.stock.map(r => `<div${tip((r.tip || '')+'\n'+usageTip(s,r.key))}><button data-act="usage" data-id="${r.key}">${esc(r.label)}</button><b>${r.value}</b>${arrow[r.arrow]}</div>`).join('') + '</div>';
       h += `<div class="lab">People</div><div class="row"><span>${esc(rows.pop.text)}</span><span class="dim"${tip(rows.jobsTip)}>${esc(rows.jobsText)}</span></div><div class="bar"><i style="width:${Math.round(rows.pop.fill * 100)}%"></i></div>`;
       h += `<div class="row" style="margin-top:5px"><span>Mood</span><span class="dim"${tip(mood.why.map(w=>w.tip).join('\n'))}>${mood.why.length ? esc(mood.why.map(w => w.text).join(' · ')) : 'Content'}</span></div><div class="bar m"><i style="width:${mood.value}%"></i></div>`;
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(' · ')) + '</div>';
@@ -55,8 +71,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild)} ${b('auto', 'on', 'On', st.autoBuild)}</span></div>`;
     }
     let paged = null;
-    if (mode !== 'talk') { const full = page1 + h; paged = (page === 0 ? page1 : head + `<h1>${esc(rows.title)}</h1>` + h) + `<div class="pager"><button data-act="page" data-id="${page === 0 ? 1 : 0}">${page === 0 ? 'More: projects &amp; steering ›' : '‹ Back to overview'}</button></div>`; h = full; }
-    const build = mode === 'talk' ? '' : buildUI?.html(s) || '';
+    if (mode === 'town') { const full = page1 + h; paged = (page === 0 ? page1 : head + `<h1>${esc(rows.title)}</h1>` + h) + `<div class="pager"><button data-act="page" data-id="${page === 0 ? 1 : 0}">${page === 0 ? 'More: projects &amp; steering ›' : '‹ Back to overview'}</button></div>`; h = full; }
+    const build = mode !== 'town' ? '' : buildUI?.html(s) || '';
     h = build + h;
     if (paged) paged = build + paged;
     if(buildUI?.isRosterOpen?.()) {h=build;paged=null;}
@@ -69,6 +85,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
   }
   root.addEventListener('mousedown', e => e.stopPropagation());
+  root.addEventListener('dblclick',e=>{
+    const b=e.target.closest('button[data-act]'),s=pick();
+    if(b && s && buildUI?.doubleClick?.(b.dataset,s)){lastHtml='';render();}
+  });
   root.addEventListener('change', e => {
     const s=pick();if(s && buildUI?.change?.(e.target.dataset,e.target.value,s)) {lastHtml='';render();}
   });
@@ -78,6 +98,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (s && buildUI?.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (b.dataset.act === 'talk') buildUI?.close();
     switch (b.dataset.act) {
+      case 'usage': if(data && data.resources.includes(id)){usageResource=id;mode='usage';usagePage=0;buildUI?.close();}break;
+      case 'usage-back':mode='town';break;
+      case 'usage-page':usagePage=Number(id);break;
+      case 'usage-focus':{const e=data && resourceUsage(s,usageResource,data).entries.find(e=>e.id===id);if(e)focus(e.x,e.z);break;}
       case 'town': selected = id; mode = 'town'; break;
       case 'page': page = Number(id); break;
       case 'talk': if (id && s) { const c = id === 'close' ? null : talkCommand(id, reportRows(s)); if (c) cmd(c); mode = id === 'close' ? 'town' : 'talk'; } else mode = mode === 'talk' ? 'town' : 'talk'; break;

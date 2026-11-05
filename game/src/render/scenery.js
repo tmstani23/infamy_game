@@ -188,7 +188,7 @@ export function cutoutThing(s, tex) {
   if (s.angle) mesh.rotateZ(THREE.MathUtils.degToRad(s.angle));
   mesh.scale.set(meta.w * k, meta.h * k, 1);
   mesh.position.copy(px(meta.w / 2, meta.h / 2));
-  mesh.frustumCulled = false;
+  mesh.frustumCulled = true;
 
   const isBuilding = item.kind === 'buildings';
   const thing = new Thing(mesh, s.foot, isBuilding || (s.wall && !s.cut) || meta.h * k > 3.2, s.shear || 0, s.topShear || 0);

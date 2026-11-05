@@ -108,14 +108,14 @@ export class CharacterSprite {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
     mesh.quaternion.copy(CAM_QUAT);
     mesh.scale.set(this.cellWorld, this.cellWorld, 1);
-    mesh.frustumCulled = false;
+    mesh.frustumCulled = true;
     // in 3D rooms the sprite is hidden by furniture in front of it; a faint outline shows where it is
     this.material.depthTest = true;
     this.hidden = new THREE.Mesh(mesh.geometry, hiddenMaterial(this.material.uniforms, !!sheets.packing));
     this.hidden.quaternion.copy(CAM_QUAT);
     this.hidden.scale.copy(mesh.scale);
     this.hidden.renderOrder = 99500;
-    this.hidden.frustumCulled = false;
+    this.hidden.frustumCulled = true;
     this.thing = new Thing(mesh, { minX: 0, maxX: 0, minZ: 0, maxZ: 0 });
     this.shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), shadowMaterial);
     this.shadow.rotation.x = -Math.PI / 2;
@@ -134,7 +134,7 @@ export class CharacterSprite {
     this.fill.scale.set(BAR_W, BAR_H, 1);
     this.fill.position.z = 0.001;
     this.bar.add(back, this.fill);
-    for (const m of [back, this.fill]) m.frustumCulled = false;
+    for (const m of [back, this.fill]) m.frustumCulled = true;
     back.renderOrder = 99600;
     this.fill.renderOrder = 99601;
     this.bar.visible = false;
@@ -148,7 +148,7 @@ export class CharacterSprite {
     // Keep visible units' clickable labels above smoke (99810) and combat
     // particles. Visibility/stealth still decides whether a label exists.
     this.nameplate.renderOrder = 99860;
-    this.nameplate.frustumCulled = false;
+    this.nameplate.frustumCulled = true;
     this.nameplate.visible = false;
     this.pos = new THREE.Vector3();
     this.anim = 'idle';

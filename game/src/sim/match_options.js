@@ -15,6 +15,10 @@ export const DIFFICULTY_CHOICES = [
 // mode (frontier F0.4): 'classic' = today's city game with its season; 'campaign' = city plus the island
 // (the gate opens, W3.5). Only 'classic' is offered on the start screen until the campaign is playable.
 export const MODES = ['classic', 'campaign'];
+export const MODE_CHOICES = [
+  { id: 'classic', name: 'Classic', about: 'The city only: take businesses, win the season and earn Renown.' },
+  { id: 'campaign', name: 'Campaign (early)', about: 'The city plus the island: found towns, send out settlers and workers. No season end; still unfinished.' },
+];
 export function matchOptions({ clan = 'yakuza', difficulty = 'easy', mode = 'classic' } = {}) {
   if (!CLAN_CHOICES.some(c => c.id === clan)) throw new Error(`Unknown clan: ${clan}`);
   if (!DIFFICULTY_CHOICES.some(d => d.id === difficulty)) throw new Error(`Unknown difficulty: ${difficulty}`);
