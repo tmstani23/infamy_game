@@ -12,6 +12,7 @@ import { createAISupport } from './ai_support.js';
 import { isShinobiHQ } from './hq_raids.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 import { dist, refill } from './util.js';
+import { createBotExpedition } from './frontier/bot_expedition.js';
 
 export const BOT_DEFAULTS = {
   thinkSeconds: 2, reactSeconds: 1, reserve: 50, hireType: 'thug', stuckSeconds: 4,
@@ -34,6 +35,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   else if (state.clans[clan]?.faction === 'yakuza') B.special ??= 'yakuza_enforcer';
   const ai = createAISupport(game, clan, hero, B);
   const deploymentAI = createDeploymentAI(game, { clan, hero });
+  const expedition = createBotExpedition(game, { clan, hero, ai });   // E6: founding its frontier town (campaign only)
   // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
   if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
   if (B.hideoutGuards !== undefined && state.clans[clan]) state.clans[clan].hideoutGuards = B.hideoutGuards;
@@ -109,6 +111,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // fetch its downed crew from the clinic once they have recovered (cheapest then; Tim 2026-10-19)
     if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
     const income = biz().filter(b => b.owner === clan && !b.hideout).reduce((n, b) => n + (game.businesses.rules[b.kind]?.payout || 0), 0);
+    if (expedition?.saving()) return null;   // E6: saving up for permit, settlers and founding
     if (home() && income > 0 && crew().length < Math.min(3, B.escort) && canHireNow() && !ai.blocked(`hire:${home().id}`)) return { kind: 'hire', business: home().id };
     // Healthy squads invest by income/capacity per cost and actual travel time.
     // Unexplored public buildings are visits, not secret ownership knowledge.
@@ -373,6 +376,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     ai.plan();
     const out = deploymentAI.tick(), h = me();
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
+    if (expedition?.step(out)) { goal = null; return out; }   // E6: the expedition drives the boss
     if (state.tick % 10 === 0) look();
     for (const hit of state.hits) {
       const a = state.entities[hit.a], t = state.entities[hit.t];

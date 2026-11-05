@@ -10,7 +10,7 @@ export const WILD = 'bandits';     // the owner every bandit has (not a clan: no
 
 // state: the game state; data: bandits.json; units: units.json; pois / edges: the district's
 // spots and its way-in spots; spawn / moveTo / stopPath / remove / fightStep / statsOf come from the game rules
-export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, navFor = () => nav, campFor = () => null, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, forcedStep = () => false, seed = 4242 }) {
+export function createBandits({ state, data, units, camps = [], pois = [], edges = [], nav, navFor = () => nav, campFor = () => null, spares = () => false, spawn, moveTo, stopPath, remove, fightStep, statsOf, canSee = () => true, forcedStep = () => false, seed = 4242 }) {
   const R = data?.rules || {}, types = data?.types || {};
   const secs = s => Math.round(s / DT);
   const snap = ([x, z]) => nav.nearestFree(x, z) || [x, z];
@@ -140,6 +140,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
       if (!state.clans?.[t.owner] || t.owner === WILD || t.type === 'civilian' || t.dead || t.downed || t.jailed || t.place !== e.place) continue;
       if (Math.hypot(t.x - e.x, t.z - e.z) > (R.sightRange ?? 6)) continue;
       if (camp && Math.hypot(t.x - camp.x, t.z - camp.z) > (camp.leash ?? 10)) continue;
+      if (spares(e, t)) continue;   // a new frontier town's people in their grace days (E1)
       if (canSee(e, t)) (e.angry ||= {})[t.owner] = state.tick + secs(R.angrySeconds ?? 10);
     }
     if (fightStep(e, R.giveUpDistance ?? 6)) { m.spot = null; m.until = null; return; }

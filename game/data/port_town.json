@@ -129,7 +129,7 @@
     {"art":"pawnshop","x":0,"z":-0.5,"business":"pawnshop","interior":{"type":"pawnshop","seed":1},"door":[0,3.3]},
     {"art":"fish_market","x":-10,"z":-16},
     {"art":"customs_house","x":15,"z":-16,"business":"customs_house","interior":{"type":"customs_house","seed":1},"door":[15,-11.6]},
-    {"art":"telegraph_office","x":53,"z":-16},
+    {"art":"telegraph_office","x":53,"z":-16,"business":"land_office","door":[53,-11.6]},
     {"art":"blacksmith","x":-53,"z":-16},
     {"art":"rice_storehouse","x":-31,"z":-16},
     {"art":"boatbuilder","x":-60,"z":-31},

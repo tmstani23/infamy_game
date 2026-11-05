@@ -156,6 +156,22 @@
     "startWorkers": 2, "_startWorkersNote": "Tim 2026-11-05: free workers with every new town (on top of the settlers), in case there are no goods to train one",
     "startBuildings": ["town_hall"],
     "townHall": "town_hall", "firstProject": null,
+    "permit": {
+      "_note": "E1 2026-11-05 placeholders, Tim to tune. A founding permit is bought at the Land Office (telegraph_office) and used up by the next founding. Player needs renown, crew and businesses held; bots need none of these (bots: false). ryo = permit price. maxTowns = towns a clan may found for now (C4 Influence raises it for the 2nd and 3rd town).",
+      "renown": 250, "crew": 8, "businesses": 3, "ryo": 0, "maxTowns": 1
+    },
+    "graceDays": 2, "_graceNote": "E1 2026-11-05: camp bandits leave a new town's people alone for this many days (inside graceRadius of the hall)",
+    "graceRadius": 600,
+    "siteMenu": { "_note": "Choose-site menu at the island gate (E1): campWarn = warn when a bandit camp is this close to a site", "campWarn": 700 },
+    "bots": {
+      "_note": "E6 2026-11-05 placeholders, Tim to tune. Bots go once the player founds a first town, or by fallbackDay anyway. Departures are staggerDays apart per bot. Site score = traits (soil+water+defense) + clan taste - travel cost/travelScale + a seeded random roll up to randomRoll; a bot picks at random among the topPick best free sites. reserve = ryo kept back on top of permit, settlers and founding cost.",
+      "fallbackDay": 30, "staggerDays": 2, "topPick": 3, "randomRoll": 3, "travelScale": 6000, "reserve": 50,
+      "taste": {
+        "kuroda": { "tags": { "pass": 3 }, "terrain": { "h": 2, "m": 2 }, "traits": { "defense": 1 } },
+        "yakuza": { "tags": { "coast": 3, "crossing": 1, "river": 1 }, "traits": { "water": 1 } },
+        "shinobi": { "terrain": { "f": 4 }, "tags": { "river": 1 } }
+      }
+    },
     "traits": {
       "_note": "Computed from the terrain round the spot (sim/frontier/founding.js siteTraits). soilWeight/defenseWeight = what each terrain code adds per sample (average over the circle), then soilShare/defenseShare = [level 2 from, level 3 from]; water = distance to the nearest river, lake or sea: waterNear = [level 3 up to, level 2 up to]; nodes counts resource nodes within nodeRadius.",
       "radius": 400, "step": 100, "waterStep": 50, "waterSearch": 1000, "nodeRadius": 600,
@@ -190,7 +206,7 @@
       "_note": "its ryo is the owner clan's city treasury (F2.9); no frontier economy of its own"
     },
     "s_frontier_1": {
-      "name": "First Frontier", "region": "frontier_1", "owner": null, "startOwner": "player", "site": "S48", "priority": "grow",
+      "name": "First Frontier", "region": "frontier_1", "owner": null, "startOwner": "player", "fixture": true, "site": "S48", "priority": "grow",
       "pop": 8,
       "stock": { "food": 60, "timber": 40, "stone": 10, "goods": 0, "ryo": 0 },
       "buildings": [
@@ -201,7 +217,7 @@
       "_note": "fixture town for tests and the dev_frontier save only (site S48 of world.json); startOwner is resolved by world.assignStartOwners (F2.9)"
     },
     "s_frontier_2": {
-      "name": "Second Frontier", "region": "frontier_2", "owner": null, "startOwner": "bot", "site": "S29", "priority": "grow",
+      "name": "Second Frontier", "region": "frontier_2", "owner": null, "startOwner": "bot", "fixture": true, "site": "S29", "priority": "grow",
       "pop": 8,
       "stock": { "food": 60, "timber": 40, "stone": 10, "goods": 0, "ryo": 0 },
       "buildings": [

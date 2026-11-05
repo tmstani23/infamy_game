@@ -11,6 +11,7 @@ import { charmProtected } from './charm_rules.js';
 // target running off or two foes close, Q Shadow Step to close in, F Assassinate when hidden long enough.
 // Knobs per difficulty: bots.json shinobiLevels. tick() returns this tick's commands for game.step.
 import { createAISupport } from './ai_support.js';
+import { createBotExpedition } from './frontier/bot_expedition.js';
 import { contractLockoutUntil } from './hq_raids.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 import { dist } from './util.js';
@@ -28,6 +29,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const B = { ...NINJA_BOT_DEFAULTS, ...rules };
   const state = game.state, secs = s => Math.round(s * 20);
   const ai = createAISupport(game, clan, hero, B);
+  const expedition = createBotExpedition(game, { clan, hero, ai });   // E6: founding its frontier town (campaign only)
   const deploymentAI = createDeploymentAI(game, { clan, hero });
   const U = game.settings.units.rules;
   const F = game.settings.units.models?.ninja_leader?.abilities?.F || {};
@@ -326,6 +328,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     ai.plan();
     const out = deploymentAI.tick(), h = me();
     if (!h || h.dead || h.downed || h.jailed) { goal = null; ai.reset(); return out; }
+    if (expedition?.step(out)) { goal = null; return out; }   // E6: the expedition drives the boss
     if ((job()?.id ?? null) !== workingJob) {
       workingJob = job()?.id ?? null;
       jobUntil = state.tick + secs(B.jobSeconds);

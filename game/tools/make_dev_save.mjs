@@ -30,6 +30,7 @@ export function build(name, spec) {
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
   if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });
   // E2: settlers waiting round the hero, following him (dev travel on the World map takes them along), so founding can be tried at once.
+  if (spec.settlers) game.state.clans.player.permit = true;   // E1: founding needs a permit (Land Office); the dev save holds one
   if (spec.settlers) { const h = game.state.entities[m.heroId]; for (let i = 0; i < spec.settlers; i++) game.spawn('settler', 'laborer', h.x + 1.5 + i * 0.7, h.z + 1.5, { owner: 'player', holdFire: true, order: { kind: 'follow', target: h.id } }); }
   const save = makeSave(game, { bots });
   return makeFile(save, { clan: game.state.clans.player?.kind ?? spec.clan, mode: game.state.match.mode, label: `Dev: ${name}`, day: game.state.clock?.day });

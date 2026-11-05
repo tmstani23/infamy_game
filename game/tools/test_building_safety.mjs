@@ -32,7 +32,7 @@ setUse(s,at(11,9),'.');[state.entities.h.x,state.entities.h.z]=cellToWorld(s,at(
 assert.match(buildingSafety(s,[at(11,9)],state),/escape route/);
 // Founding validation is read-only, validates the whole footprint, and rejects invalid coordinates.
 const island={size:{w:10000,h:10000},terrain:{cell:50,rows:Array(200).fill('p'.repeat(200))},capital:{x:0,z:0},sites:[],nodes:[]};
-const fs={match:{mode:'campaign'},frontier:{settlements:{}},clans:{player:{id:'player',ryo:5000}},entities:{h:{id:'h',type:'hero',owner:'player',place:'world',x:3000,z:3000}}};
+const fs={match:{mode:'campaign'},frontier:{settlements:{}},clans:{player:{id:'player',ryo:5000,permit:true}},entities:{h:{id:'h',type:'hero',owner:'player',place:'world',x:3000,z:3000}}};
 for(let i=0;i<5;i++)fs.entities['s'+i]={type:'settler',owner:'player',place:'world',x:3000+i,z:3001};
 const founding=createFounding({state:fs,data,world:island,removeUnit(){}}),hero=fs.entities.h;
 const before=JSON.stringify(fs);

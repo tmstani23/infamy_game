@@ -25,7 +25,11 @@ export function createFrontierWorld({ state, data }) {
 
   function build(d) {
     const fr = { version: 1, nextId: 1, econTick: 0, settlements: {}, roads: {}, shipments: {}, armies: {}, totals: {}, ledger: [], receipts: [] };
+    // E6b (Tim 2026-11-05): fixture towns (tests, dev saves) are left out of real games (data.fixtureTowns === false);
+    // a real campaign starts with the capital only and towns come from founding.
+    const skip = id => d.fixtureTowns === false && d.settlements[id]?.fixture;
     for (const [id, s] of Object.entries(d.settlements || {})) {
+      if (skip(id)) continue;
       const rec = {
         id, name: s.name, region: s.region, owner: s.owner ?? null, site: s.site ?? null, capital: !!s.capital,
         pop: s.pop || 0, housing: 0, workforce: s.pop || 0,
@@ -39,6 +43,7 @@ export function createFrontierWorld({ state, data }) {
       fr.totals[id] = Object.fromEntries(d.resources.map(r => [r, { in: 0, out: 0, start: rec.stock[r] }]));
     }
     for (const [id, r] of Object.entries(d.roads || {})) {
+      if (skip(r.from) || skip(r.to)) continue;
       fr.roads[id] = { id, from: r.from, to: r.to, length: r.length, state: 'working', blockedAt: null };
     }
     return fr;

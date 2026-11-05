@@ -17,6 +17,8 @@ import { createHireMenu } from './hire_menu.js';
 import { interactionDoor as selectInteractionDoor } from './door_interaction.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
+import { createLandOfficeMenu } from './land_office_menu.js';
+import { createSiteMenu } from './site_menu.js';
 import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
@@ -100,8 +102,8 @@ async function start() {
   const bootFile = selected.loadSave ? await startSaves.read(selected.loadSave) : null;
   const island = modeRules(bootFile ? decode(bootFile.state) : { match: selected }).island;
   const islandOnly = v => island ? v : null;
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(DEV && frontier ? { ...frontier, dev: true } : frontier) };   // the worker gets the same options, frontier included
-  const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST };
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(frontier && { ...frontier, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
+  const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
   const game = createGame(simOptions);
@@ -167,6 +169,8 @@ async function start() {
     if (menu === 'clinic') clinicMenu.toggle();
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle(menu);
     else if (menu === 'contracts') contractMenu.toggle();
+    else if (menu === 'land_office') landOfficeMenu.toggle();   // E1: founding permit and settlers
+    else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // E1: out of the gate with a permit and settlers: Choose site
     else { pending.push({ id: heroId, type: 'use', units: crewInput.selected() }); sound.cue('use_1', 0.45); }   // selected crew come in too
   });
   // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
@@ -262,6 +266,8 @@ async function start() {
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
+  const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, view, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
@@ -308,8 +314,8 @@ async function start() {
   let openTownHook = () => {};   // opens a town panel (F4.4d)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
-  bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, contractMenu, hireMenu] });
+  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, siteMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
@@ -377,6 +383,7 @@ async function start() {
     if (menu === 'clinic' && !clinicMenu.isOpen()) clinicMenu.toggle();
     else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
     else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
+    else if (menu === 'land_office' && !landOfficeMenu.isOpen()) landOfficeMenu.toggle();
   } });
   const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, atlasConfig: worldAtlas, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const mapZoom = factor => {
@@ -597,7 +604,7 @@ async function start() {
       const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
       const shut = door?.to && game.businesses.entryStatus(game.state.entities[heroId], door.place);
       const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? `Space  ${door.label}`
+      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? `Space  ${door.gate && siteMenu.wanted() ? 'Choose a site or walk out' : door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
@@ -609,6 +616,7 @@ async function start() {
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
+      landOfficeMenu.update(); siteMenu.update();
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();

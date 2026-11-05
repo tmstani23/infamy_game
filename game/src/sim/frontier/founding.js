@@ -39,14 +39,15 @@ export function siteTraits(world, x, z, cfg) {
 
 export function createFounding({ state, data, world, removeUnit, resourceIndex }) {
   const D = data.founding, f = () => state.frontier;
-  let navigation = null;
-  const attach = ({areas}) => {navigation=areas?.nav;};
+  let navigation = null, afterFound = null;
+  const attach = ({areas, onFound}) => {navigation=areas?.nav; if (onFound) afterFound = onFound;};
 
   // Why a spot is not good, or null when it is. `clan` = the founding clan record, `hero` its hero.
   function whyNot(clan, hero, settlers, wd = world, point = hero) {
     if (!wd) return 'no island';
     if (!modeRules(state).founding) return 'Towns are founded in a campaign';
     if (!hero || hero.dead || hero.downed || hero.place !== 'world') return 'Found a town out on the island';
+    if (D.permit && !clan.permit) return 'Buy a founding permit at the Land Office';   // E1 2026-11-05
     if (settlers.length < D.minSettlers) return `Bring at least ${D.minSettlers} settlers (${settlers.length} with you)`;
     if (clan.ryo < D.cost) return `Founding costs ${D.cost} ryo`;
     if(!Number.isFinite(point?.x) || !Number.isFinite(point?.z))return 'Choose a hall position';
@@ -115,7 +116,10 @@ export function createFounding({ state, data, world, removeUnit, resourceIndex }
     // Economy pass 2 (Tim 2026-11-05): new towns start with free workers, ready on the next tick.
     town.workerTraining = [...(town.workerTraining || []), ...Array.from({ length: D.startWorkers || 0 }, () => ({ id: w.newId('w'), readyAt: state.tick || 0 }))];
     w.payFounding(clan, D.cost, town.id);
+    town.foundedTick = state.tick ?? 0;   // E1: the camp-bandit grace counts from here
+    if (D.permit) clan.permit = false;    // the permit is used up
     for (const u of settlers) removeUnit(u.id);
+    afterFound?.(clan.id, town);
     if (D.firstProject) construction.queue(id, D.firstProject);
     return { ok: true, id };
   }

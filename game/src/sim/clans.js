@@ -83,7 +83,13 @@ export function createClans(state, units, opts = {}) {
     if (!clan || hero.type !== 'hero') return null;
     // in a teahouse (the Shinobi clan: the village dojo), or (slower) in your own hideout
     const home = b?.kind === 'hideout' && b.owner === clan.id;
-    if (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
+    // Settlers are hired at the Land Office door (E1, Tim 2026-11-05), and only there
+    const office = b?.kind === 'land_office';
+    if (office) {
+      if (!types[type]?.settler) return say(clan, 'The Land Office hires settlers only');
+      if (hero.place !== 'street' || !b.ring || Math.hypot(hero.x - b.ring[0], hero.z - b.ring[1]) > (rules.buyReach ?? 2.5) + 0.5) return say(clan, 'Hire settlers at the Land Office door');
+    } else if (types[type]?.settler) return say(clan, 'Hire settlers at the Land Office');
+    if (!office && (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room)) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
     const price = hirePrice(clan.id, type);
     if (price === null) return say(clan, 'Nobody here for that job yet');
     if(!Number.isSafeInteger(count) || count<1 || count>Math.max(rules.maxQueue,rules.settlers?.maxQueue || 10))return say(clan,'Invalid hire quantity');
@@ -94,7 +100,7 @@ export function createClans(state, units, opts = {}) {
     const total=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)).reduce((n,v)=>n+v,0);
     if (clan.ryo < total) return say(clan, `Not enough ryo (${total} needed)`);
     debitRyo(state, clan, total, 'Crew hired', { target: type });
-    const duration=types[type].hireSeconds * (home ? rules.hideout?.hireTimeFactor ?? 1 : 1);
+    const duration=types[type].hireSeconds * (home && !office ? rules.hideout?.hireTimeFactor ?? 1 : 1);
     for(let i=0;i<count;i++)clan.queue.push({ unit: type, business: b.id, left:duration, duration });
     return say(clan, count===1?`Hired a ${types[type].name || type} for ${total} ryo`:`Queued ${count} ${types[type].name || type} for ${total} ryo`);
   }
@@ -238,10 +244,10 @@ export function createClans(state, units, opts = {}) {
       const h = clan.queue[0];
       if (!h || (h.left -= dt) > 1e-9) continue;
       clan.queue.shift();
-      // Player recruits hold at the hiring site until explicitly ordered to Follow.
+      // Player recruits (settlers too: they wait outside the Land Office, E1) hold at the hiring site until explicitly ordered to Follow.
       const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(h.unit, types[h.unit].sprite, state.businesses[h.business],
-        { owner: clan.id, hp: types[h.unit].hp, ...(types[h.unit].settler ? { holdFire: true, order: hero ? { kind: 'follow', target: hero.id } : undefined } : {}), ...(!types[h.unit].settler && clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
+        { owner: clan.id, hp: types[h.unit].hp, ...(types[h.unit].settler ? { holdFire: true, order: hero && clan.bot ? { kind: 'follow', target: hero.id } : undefined } : {}), ...(!types[h.unit].settler && clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
       say(clan, `Your ${h.unit} is here`);
     }
   }

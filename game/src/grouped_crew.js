@@ -45,8 +45,8 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       crewInput.select(crew.map(e=>e.id));
     });const note=document.createElement('div');note.className='crew-drop-note';el.append(head,list,note);root.appendChild(el);const s={el,head,list,label,note,headKey:''};sections.set(id,s);return s;
   };
-  const key=e=>crewCommandGroup(game.state,e);
-  const droppable=id=>id&&id!=='rally'&&id!=='medical';
+  const key=e=>e.type==='settler'?'settlers':crewCommandGroup(game.state,e);   // E1: settlers are their own group
+  const droppable=id=>id&&id!=='rally'&&id!=='medical'&&id!=='settlers';
   let dragged=null;
   const showDestinations=()=>{for(const [id,s]of sections)s.el.style.display=dragged&&droppable(id)?'block':s.count?'':'none';};
   root.addEventListener('dragstart',e=>{const id=e.target.closest?.('.mate')?.dataset.id;if(!id||!game.state.entities[id]){e.preventDefault();return;}
@@ -67,7 +67,7 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     send({id:heroId,type:'deployment',action:'transfer',units:ids,to});});
   function update(crew,clinic,jail){
     root.classList.add('grouped');
-    const names={rally:'Rally force',hero:'Hero group',...Object.fromEntries(game.state.deployment.sectors.map(s=>[s.id,s.name])),home:'HQ reserves'};
+    const names={rally:'Rally force',hero:'Hero group',settlers:'Settlers',...Object.fromEntries(game.state.deployment.sectors.map(s=>[s.id,s.name])),home:'HQ reserves'};
     const ordered=[],live=new Set(crew.map(e=>e.id)),selected=new Set(crewInput.selected());
     for(const [id,p]of pips)if(!live.has(id)){p.el.remove();pips.delete(id);}
     const sizes=[0,0,0,0];for(const e of crew){const g=crewInput.groupOf(e.id);if(g)sizes[g-1]++;}

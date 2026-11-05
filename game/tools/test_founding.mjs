@@ -1,4 +1,4 @@
-// Frontier E2 + E3 + E4: settlers are hired at HQ in a campaign, and five of them with the hero
+// Frontier E2 + E3 + E4: settlers are hired at the Land Office in a campaign (E1 2026-11-05: no longer at HQ), and five of them with the hero
 // found a town on buildable ground. Bad spots change nothing. A founded town survives save/load,
 // its traits change its output, and its economy runs the same whether or not anyone is near.
 import assert from 'node:assert/strict';
@@ -31,8 +31,12 @@ const { g, hero, clan } = match('campaign');
 assert.equal(g.clans.hirePrice('player', 'settler'), U.types.settler.price);
 const hq = Object.values(g.state.businesses).find(b => b.kind === 'hideout' && b.owner === 'player');
 hero.place = hq.room;
+g.step([{ id: hero.id, type: 'hire', business: hq.id, unit: 'settler' }]);
+assert.equal(clan.queue.length, 0, 'E1: no settlers at HQ any more');
+const office = Object.values(g.state.businesses).find(b => b.kind === 'land_office');
+Object.assign(hero, { place: 'street', x: office.ring[0], z: office.ring[1] });
 const crewBefore = g.clans.crewCount('player'), ryoBefore = clan.ryo;
-for (let i = 0; i < 5; i++) g.step([{ id: hero.id, type: 'hire', business: hq.id, unit: 'settler' }]);
+for (let i = 0; i < 5; i++) g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler' }]);
 assert.equal(clan.queue.length, 5);
 assert.equal(clan.ryo, ryoBefore - 5 * U.types.settler.price, 'flat price each');
 assert.equal(g.clans.hirePrice('player', 'settler'), U.types.settler.price, 'price does not climb');
@@ -41,7 +45,9 @@ const settlers = g.clans.settlersOf('player');
 assert.equal(settlers.length, 5);
 assert.equal(g.clans.crewCount('player'), crewBefore, 'settlers are not crew');
 assert.equal(g.clans.crewOf('player').filter(u => u.type === 'settler').length, 0);
-assert.ok(settlers.every(u => u.holdFire && u.order?.kind === 'follow' && u.order.target === hero.id), 'settlers follow and never attack');
+assert.ok(settlers.every(u => u.holdFire && u.order?.kind !== 'follow'), 'settlers wait outside the Land Office and never attack');
+assert.ok(settlers.every(u => Math.hypot(u.x - office.ring[0], u.z - office.ring[1]) < 8), 'they appear outside the Land Office');
+for (const u of settlers) u.order = { kind: 'follow', target: hero.id };
 assert.ok(!settlers[0].deployment, 'settlers are outside the deployment groups');
 // Regression (Tim 2026-11-05): right-clicking with settlers and crew selected while deployment rules are on
 // must not crash ("u.deployment is undefined"); settlers count as the hero group.
@@ -68,6 +74,8 @@ const snap = () => JSON.stringify([Object.keys(g.state.frontier.settlements), cl
 const found = () => { g.step([{ id: hero.id, type: 'frontier', action: 'found' }]); return g.state.frontier.receipts.find(r => r.action === 'found'); };
 const rejected = (why, re) => { const before = snap(), r = found(); assert.ok(r && !r.ok && re.test(r.reason), `${why}: ${r?.reason}`); assert.equal(snap(), before, `${why}: nothing changed`); };
 
+put(plain[0], plain[1]);                         rejected('no permit', /founding permit/);
+clan.permit = true;   // E1: bought at the Land Office (tools/test_land_office.mjs)
 put(plain[0], plain[1], 4);                      rejected('too few settlers', /at least 5/);
 put(mountain[0], mountain[1]);                   rejected('unbuildable ground', /cannot be built/);
 put(world.capital.x + 200, world.capital.z - 300); rejected('next to the capital', /capital/);
@@ -84,6 +92,8 @@ const fr = g.state.frontier, town = Object.values(fr.settlements).find(s => s.fo
 assert.equal(Object.keys(fr.settlements).length, towns + 1, 'exactly one settlement');
 assert.ok(ids.every(id => !g.state.entities[id]), 'exactly those settlers are gone');
 assert.equal(clan.ryo, ryo0 - frontier.founding.cost);
+assert.equal(clan.permit, false, 'the permit is used up');
+assert.equal(town.foundedTick, g.state.tick - 1, 'grace counts from founding');
 assert.equal(town.owner, 'player'); assert.equal(town.pop, 5); assert.equal(town.x, Math.round(plain[0]+frontier.townGrid.cellSize*2));
 assert.ok(Math.abs(hero.x-town.x)>frontier.townGrid.cellSize/2,'legacy founding commands also leave the hero outside the hall');
 assert.ok(town.traits.soil >= 1 && town.traits.soil <= 3 && town.traits.water >= 1 && town.traits.defense >= 1, 'traits computed');
@@ -97,7 +107,7 @@ assert.notDeepEqual(townSlot(0), townSlot(1)); assert.equal(new Set([...Array(40
 g.frontier.world.checkInvariants();
 // a second town too close to the first is refused
 const after = snap(); put(plain[0] + 400, plain[1]);
-hero.owner = 'player'; settlers.forEach(u => { u.dead = false; g.state.entities[u.id] = u; });
+hero.owner = 'player'; settlers.forEach(u => { u.dead = false; g.state.entities[u.id] = u; }); clan.permit = true;
 const r2 = found(); assert.ok(r2 && !r2.ok && /Too close to/.test(r2.reason), r2?.reason);
 
 // --- save / load keeps the town -----------------------------------------------------------

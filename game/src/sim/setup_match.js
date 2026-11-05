@@ -1,11 +1,12 @@
 import { startClan } from './start_clan.js';
+import { modeRules } from './modes/index.js';
 import { CLAN_CHOICES, matchOptions } from './match_options.js';
 import { stageShakedownPreview } from './shakedown_preview.js';
 import { stageAssignmentPreview } from './assignment_preview.js';
 
 // Players keep the local 'player' id, while clan identity determines their
 // leader, home and rivals. Bots and humans use the same fair clan initializer.
-export function setupMatch(game, { clan, difficulty, mode, bots, spawns = {}, test = {} }) {
+export function setupMatch(game, { clan, difficulty, mode, bots, spawns = {}, test = {}, seed = 1 }) {
   if (Object.keys(game.state.clans).length) throw new Error('Match setup requires a fresh game');
   const options = matchOptions({ clan, difficulty, mode });
   if (test.setup === 'bot') options.clan = 'yakuza';
@@ -32,6 +33,8 @@ export function setupMatch(game, { clan, difficulty, mode, bots, spawns = {}, te
       rules: (choice.kind === 'ninja' ? bots.shinobiLevels : bots.levels)[options.difficulty], seed: 4242 + rivals.length * 977 });
   }
   game.state.match = { ...options };
+  // E6 (Tim 2026-11-05): bot site picks vary per game; the screen passes a random seed, tests a fixed one
+  if (modeRules(game.state).founding) game.state.campaignSeed = Number.isFinite(seed) ? Math.floor(seed) : 1;
   game.deployment.enable();
   const previewCommands=test.setup==='assignments'?stageAssignmentPreview(game,heroId,rivals):test.setup==='shakedown'?stageShakedownPreview(game,heroId,rivals):[];
   return { heroId, rivals, options, previewCommands };

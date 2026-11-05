@@ -467,7 +467,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
-- [ ] **E** Founding: [x] E1 rules (updated 2026-11-05) · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E6b · [ ] E7 playtest
+- [ ] **E** Founding: [x] E1 rules (updated 2026-11-05) · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [x] E6 · [x] E6b · [ ] E7 playtest
 - [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
@@ -1898,6 +1898,7 @@ Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_gui
 - **Leaving the city:** going through the island gate with a permit and settlers in the group opens a **Choose site** menu: open sites with their traits, plus **Walk out** (explore on foot first). Choosing a site places the hero and settlers there; from there they may walk anywhere and found at any buildable spot at least 1,600 units from other towns (B4). The 60 sites are hint spots with known traits; traits are computed for any spot from the terrain. More towns can be founded later, each with a new permit.
 - **Camps:** camps never attack towns (already true in `sim/camps.js`; keep it for now). A newly founded town gets a 2-day grace in which camp bandits leave it alone. The site menu warns when a camp is close.
 - **Unchanged:** a settler who dies is gone for good; if the hero is knocked out, the hero wakes in the city and the settlers walk home.
+**Built 2026-11-05 (campaign checkpoint 1):** Land Office menu, permit, settlers group, Choose site menu, 2-day grace; numbers in `frontier.json` `founding.permit`, `graceDays`, `graceRadius`, `siteMenu`.
 
 ### E2. Settler unit  [SMALL]
 Needs: E1
@@ -1952,6 +1953,7 @@ Do (updated Tim, 2026-11-05): in campaign mode, a bot clan hires settlers and us
 Check (pass/fail): an all-bot Node run founds one bot town by the set day; the bot never issues a
 rejected `found`; no two clans claim the same site.
 Done note: "E6 bot expeditions in."
+**Built 2026-11-05 (campaign checkpoint 1):** E6 bot expeditions in (`sim/frontier/bot_expedition.js`, `test_bot_founding.mjs`; numbers in `frontier.json` `founding.bots`). After founding, the bot boss stays at its new town (C2: lieutenants run the city; built in checkpoint 3).
 
 ### E6b. Remove the test starter towns from real games  [SMALL]
 Needs: E6, L3.1
@@ -1967,6 +1969,7 @@ Do:
 Check (pass/fail): every frontier test passes unchanged with the fixture; a fresh campaign game has
 exactly one settlement (the capital); `make_dev_save.mjs` rebuilds `dev_frontier` with a founded town.
 Done note: "E6b test starter towns removed from real games."
+**Built 2026-11-05 (campaign checkpoint 1), with a change:** E6b test starter towns removed from real games. Instead of a separate fixture file, the fixture towns stay in `frontier.json` flagged `"fixture": true` and are dropped when the game passes `fixtureTowns: false` (`main.js`); tests unchanged. `dev_frontier` keeps the fixture towns and now holds a permit.
 
 ### E7. Playtest  [TIM]
 Hire settlers, pick a site, walk the expedition there (fighting off bandits on the way), found the

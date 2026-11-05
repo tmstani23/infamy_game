@@ -7,7 +7,7 @@ const title = s => s[0].toUpperCase() + s.slice(1);
 export function createHireMenu({ panel, money, game, units, heroId, send, openStash = () => {} }) {
   // what your clan may hire (units.json "clan": ninja crew for the Shinobi clan only)
   const owner = game.state.entities[heroId]?.owner;
-  const hireable = Object.keys(units.types).filter(type => game.clans.hirePrice(owner, type) !== null);
+  const hireable = Object.keys(units.types).filter(type => !units.types[type].settler && game.clans.hirePrice(owner, type) !== null);   // settlers: Land Office (E1 2026-11-05)
   let open = false, shown = '', armedDismiss = null, dismissView = false;
   let planned = null,quantity = 1;
   const hero = () => game.state.entities[heroId];
