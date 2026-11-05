@@ -77,7 +77,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const outdoors = () => (view.commandPlace?.(game.state, heroId) || hero()?.place) === 'world';
   const command = c => send({ id: heroId, type: 'frontier', ...c });
   const previewBuild=(s,r)=>buildPreview(s,r,data,{state:game.state,resourceIndex:spotIndex});
-  const workers = () => towns().flatMap(s => (s.workers || []).map(w => ({ s, w, e: workerPresentation(w,s,data,game.state.entities) })).filter(p => !p.e.dead && !p.e.downed));
+  const workers = () => towns().flatMap(s => (s.workers || []).map(w => ({ s, w, e: workerPresentation(w,s,data,game.state.entities,game.state.workerAt) })).filter(p => !p.e.dead && !p.e.downed));
   const selectedLive = () => towns().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
@@ -124,7 +124,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function focusWorkers(ids) {
     select(ids);
     const follow=()=>{
-      const entities=selectedLive().filter(p=>ids.includes(p.w.id)).map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities),owner:p.s.owner}));
+      const entities=selectedLive().filter(p=>ids.includes(p.w.id)).map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),owner:p.s.owner}));
       return watchCrewGroup({entities:Object.fromEntries(entities.map(e=>[e.id,e]))},hero()?.owner,null,entities.map(e=>e.id));
     };
     const p=follow();if(p){view.jumpTo?.(p.x,p.z);view.watch?.(follow);}
@@ -342,13 +342,13 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         if (s.grid.ground[i] !== 'x') polygon(ctx,s,i,'rgba(235,225,200,.025)');
         const entry = definitions[s.grid.zone[i]];
         if (!entry) continue;
-        const z = s.zones?.[entry], color = data.buildUI?.zoneColors?.[entry] || ({h:'#5aa0f0',f:'#64c864',k:'#be78e6'}[s.grid.zone[i]]);
+        const z = s.zones?.[entry], color = data.buildUI?.zoneColors?.[entry] || ({h:'#5aa0f0',f:'#64c864',k:'#f0923c'}[s.grid.zone[i]]);
         let status = z?.abandoned ? '#ff635a' : (z?.health ?? 1) < data.zones.healthyAt ? '#ffbe48' : null;
-        // B7 housing overlay: amber = no free beds, green = room for more, violet = waiting for goods to level up
+        // B7 housing overlay: white = no free beds, green = room for more, violet = waiting for goods to level up
         const kdef = data.zones.kinds[entry];
         if (!status && kdef.housing) {
           const st = Number(s.grid.stage[i]) || 0, needsGoods = st > 0 && st < kdef.stages.length && (data.upkeep?.goodsByStage?.[st] || 0) > 0 && (s.goodsShort || !(s.stock.goods > 0));
-          status = needsGoods ? '#c58cff' : residents(s) >= s.housing ? '#ffbe48' : '#7be08a';
+          status = needsGoods ? '#c58cff' : residents(s) >= s.housing ? '#f4f0e0' : '#7be08a';
         }
         polygon(ctx,s,i,color + '30',status || color);
       }
@@ -415,7 +415,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';
   }
   return { update, html, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen,
-    workerTarget:()=>{const p=selected.length===1 && selectedLive()[0];return p?{...workerPresentation(p.w,p.s,data,game.state.entities),workerDetail:workerDetails(p.w,spotIndex)}:null;},
+    workerTarget:()=>{const p=selected.length===1 && selectedLive()[0];return p?{...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),workerDetail:workerDetails(p.w,spotIndex)}:null;},
     doubleClick(ds,s) {
       if(ds.act==='build-worker-select'){focusWorkers([ds.id]);return true;}
       if(ds.act==='build-worker-group'){focusWorkers((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));return true;}

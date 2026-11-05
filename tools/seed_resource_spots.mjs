@@ -48,6 +48,11 @@ const waterNear = (x, z, cells) => {
   }
   return null;
 };
+// distance along dir to the first water/river ground (1-unit steps), or null within max
+const shoreDist = (x, z, dir, max) => {
+  for (let d = 0; d <= max; d++) { const c = code(x + dir[0] * d, z + dir[1] * d); if (c === 'w' || c === 'r') return d; }
+  return null;
+};
 
 // ---- piece layout: rejection-sampled points in a disc ----
 function layout(rand, n, radius, gap, variants, ok, dir) {
@@ -104,6 +109,11 @@ function tryPlace(kind, x, z, rand, quiet) {
     const m = Math.hypot(w[0], w[1]) || 1; dir = [w[0] / m, w[1] / m];
   }
   const r = r1(k.radius[0] + (k.radius[1] - k.radius[0]) * rand());
+  if (dir) {   // fish (Tim 2026-11-05): pull the cluster onto the shore so the boats sit right at the water
+    const d = shoreDist(x, z, dir, (k.waterWithin + 1) * CELL); if (d === null) return false;
+    const shift = d - (r + (k.shoreGap ?? 2)); x += dir[0] * shift; z += dir[1] * shift;
+    if (!buildable(world, x, z)) return false;
+  }
   const n = k.size[0] + Math.floor(rand() * (k.size[1] - k.size[0] + 1));
   const rr = kind === 'timber' ? r1(k.radius[0] + (k.radius[1] - k.radius[0]) * ((n - k.size[0]) / (k.size[1] - k.size[0] || 1))) : r;
   if (blocked(x, z, rr) || !spaced(x, z, rr)) return false;

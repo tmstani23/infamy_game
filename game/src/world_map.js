@@ -7,9 +7,16 @@ import { visibleSpots } from './resource_spot_props.js';
 // Extend the map UI without changing the accepted atlas or its glyph system.
 export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on: false }];
 export const worldFeatureName = it => it?.kind === 'spot' ? `${it.featureKind} spot · ${it.id}` : atlasFeatureName(it);
-export function drawSpotMarker(ctx, x, y, kind) {
-  ctx.fillStyle = { timber: '#a0c586', stone: '#c9c2b5', fish: '#8bc6db', forage: '#d2ba7b' }[kind];
-  ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+// Resource markers (brighter, Tim 2026-11-05): a soft glow, a dark rim and a bright dot; big = rich spot or node.
+export const SPOT_COLORS = { timber: '#8ff09a', forest: '#8ff09a', stone: '#f2eee2', quarry: '#f2eee2', ore: '#ffb35c', fish: '#7fe2ff', fishing: '#7fe2ff', forage: '#ffe07a', fertile: '#d4f57a' };
+export function drawSpotMarker(ctx, x, y, kind, big = false) {
+  const c = SPOT_COLORS[kind] || '#ffffff', r = big ? 4 : 2.6;
+  ctx.save();
+  ctx.globalAlpha = 0.35; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r * 2.1, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  if (big) { ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.restore();
 }
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
 const fogCell = world => world.rules?.discovery?.cell ?? FOG_CELL;

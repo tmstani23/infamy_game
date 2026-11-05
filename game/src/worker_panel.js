@@ -35,12 +35,15 @@ export function workerPanelHTML(s,{selected,index,data,page=0,known=()=>true,tab
   const roster=workers.slice(page*rows,(page+1)*rows).map(w=>{const detail=workerDetails(w,index);return `<div class="workerrow">`
     + button('select',w.id,w.id,selected.includes(w.id))
     + `<span>${esc(workerStatus(w,index))}<small>${esc(w.spot || '')}${w.carrying?' · carrying '+w.carrying+' '+esc(detail.resource):''}${w.entity==null?' · offscreen':''}</small>`
-    + (detail.harvesting?`<small>${detail.left}s left · load progress ${detail.gathered.toFixed(2)} / ${w.trip.load}<progress value="${detail.progress}" max="1"></progress></small>`:'')+'</span>'
+    // the harvest line always takes its space so the row and pane never grow when it appears (Tim 2026-11-05)
+    + (detail.harvesting?`<small class="harvestline">${detail.left}s left · ${detail.gathered.toFixed(1)} / ${w.trip.load}<progress value="${detail.progress}" max="1"></progress></small>`:`<small class="harvestline" style="visibility:hidden">–<progress value="0" max="1"></progress></small>`)+'</span>'
     + `<select data-act="build-worker-assign" data-id="${esc(w.id)}" aria-label="Group for ${esc(w.id)}">${options(w.group || 0)}</select></div>`;}).join('');
   const spots=index.spotsNear(s.x,s.z,data.workers.range).filter(p=>known(p.x,p.z));
   const resources=['timber','stone','fish','forage'].flatMap(kind=>spots.filter(p=>p.kind===kind).sort((a,b)=>Math.hypot(a.x-s.x,a.z-s.z)-Math.hypot(b.x-s.x,b.z-s.z)).slice(0,2));
   return `<div class="workerroster"><h3>Workers · ${workers.length}</h3>${tabs}<div class="workergroups">${button('all','',`All (${workers.length})`)}${groupButtons}</div>`
-    + (selectedHere.length ? `<div class="workergroups">${selectedHere.length} selected ${button('stop','','Stop / stand (Z)')}${selectedHere.some(w=>w.carrying>0)?button('return','','Return resources')+button('drop','','Drop resources…'):''}<label>Assign selected: <select data-act="build-worker-assign-selected" aria-label="Assign selected workers to group"><option value="">Choose group</option>${options(-1)}</select></label></div>` : '')
+    // the selection bar always takes its space (hidden when nothing is selected), so selecting a worker never
+    // shifts the rows under the mouse and a double-click lands on the same row (Tim 2026-11-05)
+    + `<div class="workergroups"${selectedHere.length ? '' : ' style="visibility:hidden" aria-hidden="true"'}>${selectedHere.length} selected ${button('stop','','Stop / stand (Z)')}${[button('return','','Return resources'),button('drop','','Drop resources…')].map(b=>selectedHere.some(w=>w.carrying>0)?b:b.replace('<button ','<button disabled ')).join('')}<label>Assign selected: <select data-act="build-worker-assign-selected" aria-label="Assign selected workers to group"${selectedHere.length ? '' : ' disabled'}><option value="">Choose group</option>${options(-1)}</select></label></div>`
     + (roster || '<div class="hint">No workers yet. Train one at the town hall.</div>')
     + (pages>1?`<div class="pager">${button('page',Math.max(0,page-1),'Previous')} ${page+1}/${pages} ${button('page',Math.min(pages-1,page+1),'Next')}</div>`:'')
     + `<div class="hint">Double-click a worker or group to follow it with the camera. Right-click ground to move and wait, or a resource spot to harvest. Z stops selected workers. Return resources unloads then holds. Dropped cargo is lost; you can reassign immediately afterward.</div>`

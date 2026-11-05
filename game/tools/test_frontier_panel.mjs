@@ -62,7 +62,7 @@ panel.close(); assert.equal(root.hidden, true);
   const manifest=createFrontierPanel({root,game:{state,frontier:fr},heroId:'h1',send(){},focus:(x,z)=>focus=[x,z]});manifest.open(t.id);
   assert.match(root.innerHTML,/data-act="usage" data-id="timber"/);
   const click=(act,id)=>handlers.click({target:{closest:()=>({dataset:{act,id}})}});
-  click('usage','timber');assert.match(root.innerHTML,/Stock usage/);assert.match(root.innerHTML,/pending construction: 12 once/);
+  click('usage','timber');assert.match(root.innerHTML,/· Usage</);assert.match(root.innerHTML,/12 timber/);click('usage','housing');assert.match(root.innerHTML,/beds used/);click('usage','timber');
   click('usage-focus','project:invoice');assert.deepEqual(focus,[3000,3000]);
   click('usage-back');assert.match(root.innerHTML,/data-act="usage"/);
 }

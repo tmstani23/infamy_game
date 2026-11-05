@@ -9,6 +9,7 @@ import { residents } from './people.js';
 import { isFull, storageCap } from './storage.js';
 import { upgradeTick } from './tiers.js';
 import { noteArrival } from './arrivals.js';
+import { foldFlow } from './flow.js';
 const EPS = 1e-9;
 
 export function createEconomy({ state, data, world, zones = null, workers = null }) {
@@ -228,6 +229,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     const gathered=s.workerIncome || {};
     s.report.rate = Object.fromEntries(Object.keys(s.stock).map(r => [r, (s.stock[r] - before[r] + (gathered[r] || 0)) / secs]));
     s.workerIncome={};
+    foldFlow(s, secs);   // Usage page per-minute flows
     grow(s);
     factors(s);why(s); // report recovery now; taxes and population reviews keep their normal cadence
     if (f().econTick % M.reviewTicks === 0) review(s);

@@ -239,17 +239,33 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   function progress(s,w) {
     if(w.retryAt>state.tick)return false;
-    if(walk(w,w.elapsed+1)) {delete w.status;return true;}
+    if(walk(w,w.elapsed+1)) {delete w.status;delete w.stuckTries;return true;}
     // replan at most once a second per worker; if the new route still can't start, step onto it (stuck on a tree/rock)
     if(w.rerouteAt>state.tick) {w.status ||= 'Stuck';return false;}
     w.rerouteAt=state.tick+(R.rerouteTicks || 20);
-    if(reroute(s,w) && (walk(w,w.elapsed+1) || unstick(w) && walk(w,w.elapsed+1))) {delete w.status;return true;}
+    if(reroute(s,w) && (walk(w,w.elapsed+1) || unstick(w) && walk(w,w.elapsed+1))) {delete w.status;delete w.stuckTries;return true;}
+    // Tim 2026-11-05: after stuckGiveUp failed tries, jump to open ground further away; if that fails too, back to a drop-off, idle
+    if((w.stuckTries=(w.stuckTries || 0)+1)>=(R.stuckGiveUp || 3)) {
+      w.stuckTries=0;
+      if(unstick(w,R.rescueReach || 25) && reroute(s,w) && walk(w,w.elapsed+1)) {delete w.status;return true;}
+      rescue(s,w);return false;
+    }
     w.status='Route blocked';w.retryAt=state.tick+(R.retryTicks || 100);return false;
   }
-  function unstick(w) {
+  // Give up on a route: the worker appears at the nearest drop-off, hands in its cargo and goes idle (governor may reassign).
+  function rescue(s,w) {
+    const here=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,{x:here[0],z:here[1]});
+    const at=drop?.p || [s.x,s.z],res=cargoType(w);
+    if(w.carrying>0 && res) {world.change(s.id,res,w.carrying,'gather');s.workerIncome ||= {};s.workerIncome[res]=(s.workerIncome[res] || 0)+w.carrying;}
+    w.carrying=0;delete w.cargoResource;w.trip=null;w.elapsed=0;w.phase=0;w.departure=[...at];w.spot=null;
+    if(w.order?.kind==='move')w.order={kind:'hold'};
+    const e=state.entities?.[w.entity];if(e) {[e.x,e.z]=at;e.carrying=0;}
+    w.status='Was stuck: back at drop-off';w.retryAt=state.tick+(R.retryTicks || 100);
+  }
+  function unstick(w,reach=R.unstickReach || 4) {
     const e=state.entities?.[w.entity],p=position({...w,elapsed:Math.max(0,w.elapsed)});if(!e || !p)return false;
     const spot=runtime.areas.nav.free(...p) ? p : runtime.areas.nav.nearestFree(...p);
-    if(!spot || distance([e.x,e.z],spot)>(R.unstickReach || 4))return false;
+    if(!spot || distance([e.x,e.z],spot)>reach)return false;
     [e.x,e.z]=spot;return true;
   }
   function position(w) {
@@ -269,14 +285,22 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const p=next<=t.out ? t.outPath : next>t.out+t.harvest ? t.backPath : null;
     const target=position({...w,elapsed:next});
     if(!target)return true;
-    const points=[];
+    // Check the planned legs this step touches with the planner's own line test (Tim 2026-11-05 mini-freeze fix):
+    // testing entity -> interpolated point sampled the grid differently, so lines the planner passed clipped tree
+    // corners, the worker froze up to a second and hopped. A leg is checked once per town geometry revision.
     if(p) {
-      const duration=next<=t.out?t.out:t.back,offset=next<=t.out?0:t.out+t.harvest;
-      let d=0;const from=length(p)*(old-offset)/duration,to=length(p)*(next-offset)/duration;
-      for(let i=1;i<p.length;i++) {d+=distance(p[i-1],p[i]);if(d>from && d<to)points.push(p[i]);}
+      const duration=next<=t.out?t.out:t.back,offset=next<=t.out?0:t.out+t.harvest,total=length(p);
+      const from=total*Math.max(0,old-offset)/duration,to=total*(next-offset)/duration,rev=geometryRevision();
+      let d=0;
+      for(let i=1;i<p.length;i++) {
+        const a=d;d+=distance(p[i-1],p[i]);
+        if(d<from || a>to)continue;
+        const key=`${rev}|${p===t.outPath?'o':'b'}${i}`;
+        if(t.legOk?.[key])continue;
+        if(!runtime.areas.nav.clearLine(...p[i-1],...p[i]))return false;
+        (t.legOk ||= {})[key]=1;
+      }
     }
-    points.push(target);let here=[e.x,e.z];
-    for(const point of points) {if(!runtime.areas.nav.clearLine(...here,...point))return false;here=point;}
     const dx=target[0]-e.x,dz=target[1]-e.z;
     if(dx || dz) {e.dir=dirIndex(dx,dz);e.anim='walk';}
     [e.x,e.z]=target;return true;

@@ -11,7 +11,7 @@ export function layoutCategory(id){
  if(['hire','clinic','police','contracts','deploymentpanel','townpanel','townsoverview','gamesettings','blacksmithshop','hqstash','characterpage','controls','seasonend'].includes(id))return 'windows';
  return 'main';
 }
-const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results']);
+const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results','towngrowthfx','townbuildoverlay','townbuildhint','gatefade']);   // full-screen effect layers are never movable panels
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clone=v=>JSON.parse(JSON.stringify(v));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}};
@@ -76,8 +76,11 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(saved[id])place(p);}).observe(el);
   if(saved[id])place(p);
  }
+ // full-screen click-through layers (fades, effect canvases) are never panels: their box would cover every other one
+ const screenLayer=el=>{if(typeof getComputedStyle!=='function')return false;const c=getComputedStyle(el);return c.position==='fixed'&&c.pointerEvents==='none'&&['top','left','right','bottom'].every(k=>c[k]==='0px');};
  function enroll(el){
   if(!el||el.nodeType===3||el===layer)return;
+  if(el.nodeType===1&&!el.dataset?.layoutId&&screenLayer(el))return;
   if(el.dataset?.layoutId){register(el,el.dataset.layoutId,el.dataset.layoutLabel||el.dataset.layoutId);return;}
   if(el.id&&!STRUCTURAL.has(el.id)){register(el);return;}
   if(el.classList?.contains('tip')){const n=[...panels.keys()].filter(k=>k.startsWith('tooltip-')).length+1;register(el,`tooltip-${n}`,`Tooltip ${n}`);}

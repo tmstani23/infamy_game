@@ -60,6 +60,14 @@ export function createSnapshotEncoder(game, clan = 'player') {
     if (st.frontier) {
       if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position)); frontierAt = st.tick; }
       roots.frontier = frontierView;
+      // Sleeping workers move every tick but the frontier view is 4 Hz: send just their positions each tick so
+      // they glide on screen instead of stepping 4 times a second (Tim 2026-11-05 "morse code" workers).
+      if (!map) {
+        const workers = game.frontier?.modules?.find(m => m.name === 'workers')?.workers, at = {};
+        if (workers?.position) for (const s of Object.values(st.frontier.settlements || {})) if (s.owner === clan) for (const w of s.workers || [])
+          { const e = st.entities[w.entity], p = e ? [e.x, e.z] : workers.position(w); if (p) at[w.id] = [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100]; }   // every worker, live or asleep, so the camera can follow any of them per tick
+        roots.workerAt = at;
+      }
     }
     if (map) {
       // No world VFX, rival orders or rival deployment records on the map.

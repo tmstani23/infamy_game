@@ -5,14 +5,14 @@
   "workers": {
     "_note": "placeholder, Tim to tune (L3.5/L3.6). Costs come from town stock and population when ordered. trainTicks, harvestTicks and clearTicks are sim ticks (20/second); training is sequential at the hall. load is stock per trip; harvested spots take longer to work as their pieces regrow. range is measured from the town hall. spawnRadius is proximity in world units; spawnPerTick bounds new entities globally; pathCacheSize bounds reusable navigation paths. hp and model are civilian stand-ins. logEntries caps saved delivery history per town.",
     "cost": 10, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 10, "range": 600, "clearTicks": 200, "spawnSearchCells": 3,
-    "spawnRadius": 160, "spawnPerTick": 4, "pathCacheSize": 128, "hp": 60, "model": "laborer", "groups": 4, "panelRows": 6, "retryTicks": 100, "moveSpacing": 1.1, "logEntries": 64,
+    "stuckGiveUp": 3, "rescueReach": 25, "_stuckNote": "Tim 2026-11-05: after stuckGiveUp failed route retries a worker jumps to open ground within rescueReach; if still stuck it reappears at the nearest drop-off, hands in its cargo and goes idle", "spawnRadius": 160, "spawnPerTick": 4, "pathCacheSize": 128, "hp": 60, "model": "laborer", "groups": 4, "panelRows": 6, "retryTicks": 100, "moveSpacing": 1.1, "logEntries": 64,
     "dropoffs": ["town_hall", "storehouse", "lumber_camp", "quarry"],
     "gatherBuildings": ["lumber_camp", "quarry"],
     "resources": { "timber": "timber", "stone": "stone", "fish": "food", "forage": "food" }
   },
   "townGrid": { "_note": "placeholder, Tim to tune (L3.1): cellSize = world units per cell; radius = the town work range the grid covers; coreRadius = starting core where housing and work zones may go; corePerTier = core growth per town hall tier above 1; clearedRadius = cells round the hall that start cleared; hallRoadReserve = cells reserved around the hall for roads; cliffMargin = cells that roads and farm zones keep back from unbuildable ground", "cellSize": 11, "radius": 600, "coreRadius": 250, "corePerTier": 100, "clearedRadius": 4, "hallRoadReserve": 1, "cliffMargin": 1 },
   "opening": { "_note": "placeholder, Tim to tune: preserve a townsperson for food/building and the first worker's training ryo when paying for projects", "reservePeople": 1 },
-  "buildUI": { "_note": "placeholder, Tim to tune: presentation settings; zone buttons, overlays and valid drag previews share these colors", "doubleClickMs": 400, "confirmDrag": true, "cornerRoundness": 0.08, "zoneColors": { "housing": "#5aa0f0", "farm": "#64c864", "work": "#be78e6" } },
+  "buildUI": { "_note": "placeholder, Tim to tune: presentation settings; zone buttons, overlays and valid drag previews share these colors", "doubleClickMs": 400, "confirmDrag": true, "cornerRoundness": 0.08, "zoneColors": { "housing": "#5aa0f0", "farm": "#64c864", "work": "#f0923c" } },
   "placeCosts": { "_note": "placeholder, Tim to tune (L3.2): per cell, paid at once when a road, wall or gate is placed; buildings use their own cost and queue as projects", "road": { "timber": 1 }, "wall": { "timber": 2 }, "gate": { "timber": 5 } },
   "zones": {
     "_note": "placeholder, Tim to tune (L3.3, numbers from the approved L3.0 table): per kind char = grid letter; coreOnly = core cells only; stages = looks per level (stage 0 = zoned, empty); needs: food = needs the town fed, workersPerCell = workers each grown cell wants, roadReach = a road (or the hall, hallIsRoad) within this many cells to grow; housing = people per cell per level; output = per cell per level per economy tick; inputs = paid per unit made; trait = traitEffects factor (fertile soil); growTicks = healthy economy ticks per stage; abandonTicks = short ticks before abandoned; governorCells = cells the governor zones at once. healthyAt = health needed to grow; shortBelow = health that counts as short; clearTicks = healthy ticks to clear an overgrown zoned cell. fromBuilding = old building types that migrate to zones (and what the governor's house/farm/workshop rules mean in grid towns).",
@@ -29,7 +29,7 @@
     "list": [
       { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 4 }, "placed": { "storehouse": 1, "camps": 2, "stockade": 0 }, "workers": 12 },
       { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 12 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1 }, "workers": 35,
-        "upgrade": { "pop": 20, "cost": { "timber": 300, "stone": 150, "goods": 40 }, "ticks": 120 } },
+        "upgrade": { "pop": 20, "cost": { "timber": 300, "stone": 150 }, "ticks": 120 } },
       { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 30 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 2 }, "workers": 90,
         "upgrade": { "pop": 60, "cost": { "timber": 1200, "stone": 800, "goods": 250 }, "ticks": 300 } }
     ] },
@@ -113,7 +113,7 @@
     "zone:k": "blacksmith",
     "_zones": {
       "_note": "placeholder, Tim to tune (L3.7): cutouts by zone growth stage; one farmhouse per houseEvery cells. zoned = art on a zoned cell at stage 0 (housing: building site 1; stage 1 is site 2, then house, large house); abandoned = ruin art for an abandoned kind (farms keep the grey tint).",
-      "h": { "kind": "housing", "zoned": "house_construction_1", "stages": ["house_construction_2", "townhouse", "longhouse"], "abandoned": "abandoned_housing" },
+      "h": { "kind": "housing", "zoned": "house_construction_1", "stages": ["house_construction_2", "townhouse", "tenements"], "abandoned": "abandoned_housing" },
       "f": { "kind": "farm", "stages": ["thatched_hut"], "field": true, "houseEvery": 6 },
       "k": { "kind": "work", "stages": ["blacksmith"], "abandoned": "abandoned_workshop" }
     },
@@ -131,8 +131,8 @@
     },
     "_spots": {
       "_note": "placeholder, Tim to tune (L3.7): art scale by full/harvested/sapling stage, nearby display and minimap threshold; does not change harvesting or collision.",
-      "scales": { "timber": { "f": 1, "h": 0.65, "s": 0.3 }, "stone": { "f": 1, "h": 0.65, "s": 0.35 }, "fish": { "f": 0.5, "h": 0.3, "s": 0.4 }, "forage": { "f": 1, "h": 0.35, "s": 0.65 } },
-      "clearance": 4, "pieceReach": 30, "minimapZoom": 1.5, "hoverRadius": 5, "twinkleSize": 4, "twinklePeriodMs": 150, "twinklePulse": 0.2
+      "scales": { "timber": { "f": 1, "h": 0.65, "s": 0.3 }, "stone": { "f": 1, "h": 0.65, "s": 0.35 }, "fish": { "f": 0.95, "h": 0.55, "s": 0.8 }, "forage": { "f": 1, "h": 0.35, "s": 0.65 } },
+      "clearance": 4, "pieceReach": 30, "minimapZoom": 1.5, "hoverRadius": 5, "twinkleSize": 4, "twinklePeriodMs": 150, "twinklePulse": 0.2, "glow": { "_note": "Tim 2026-11-05: ground glow under discovered resource spots and nodes (render only). opacity/pulse = brightness and its swing, periodMs = pulse time, reach = show radius x the prop radius, pad/minRadius = glow beyond the pieces, nodeRadius = big node glow, bigScale = rich spots and nodes", "opacity": 0.28, "pulse": 0.35, "periodMs": 1400, "reach": 1.6, "pad": 3, "minRadius": 4, "nodeRadius": 9, "bigScale": 1.4, "height": 0.12 }
     }
   },
   "forage": {

@@ -24,7 +24,7 @@ import { frontierReport } from './frontier_report.js';
 import { createFrontierPanel } from './frontier_panel.js';
 import { createFrontierBuildUI } from './frontier_build_ui.js';
 import { createFoundButton } from './found_button.js';
-import {withWorkerPresentations} from './worker_details.js';
+import {withWorkerPresentations,workerLocation} from './worker_details.js';
 import { drawableTowns, townSignature, townProps } from './town_props.js';
 import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
@@ -479,7 +479,10 @@ async function start() {
   // draws as often as it can and slides units between the last two ticks.
   // last tick's units, only what the view reads from it (render/view.js: sliding between ticks, heal pops);
   // a full copy of the state 20 times a second was wasted work (Tim 2026-10-26). Add a field here if the view needs more.
-  const snapshot = state => { const entities = {}; for (const id in state.entities) { const e = state.entities[id]; entities[id] = { x: e.x, z: e.z, hp: e.hp, downed: e.downed }; } return { tick: state.tick, entities }; };
+  const snapshot = state => { const entities = {}; for (const id in state.entities) { const e = state.entities[id]; entities[id] = { x: e.x, z: e.z, hp: e.hp, downed: e.downed }; }
+    // sleeping workers are drawn from their trip records (withWorkerPresentations); keep their last spot too so they glide, not tick (Tim 2026-11-05)
+    for (const s of Object.values(state.frontier?.settlements || {})) for (const w of s.workers || []) if (!state.entities[w.entity]) { const p = workerLocation(w, state.entities, state.workerAt); if (p) entities[`worker:${w.id}`] = { x: p[0], z: p[1] }; }
+    return { tick: state.tick, entities }; };
   let prev = snapshot(game.state);
   const presentation=createPresentationMode({
     suspend(){document.body.classList.add('map-active');view.setPresentationActive(false);},

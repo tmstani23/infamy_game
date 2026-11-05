@@ -1,7 +1,8 @@
 // Presentation queries over full simulation records or compact worker snapshots.
 import {dirIndex} from './sim/geometry.js';
-export function workerLocation(w,entities={}) {
+export function workerLocation(w,entities={},at=null) {
   const e=entities[w.entity];if(e)return [e.x,e.z];
+  if(at?.[w.id])return at[w.id];   // per-tick position from the snapshot (sim_snapshot workerAt)
   if(w.location)return w.location;
   const t=w.trip;if(!t)return w.departure || null;
   if(w.elapsed>=t.out && w.elapsed<t.out+t.harvest)return t.destination;
@@ -19,9 +20,9 @@ export function workerDetails(w,index) {
   return {resource,cargo,harvesting,left:Math.ceil(left/20),progress:harvesting?Math.max(0,1-left/Math.max(1,t.harvest)):0,
     gathered:harvesting?(t.load || 0)*Math.max(0,1-left/Math.max(1,t.harvest)):cargo};
 }
-export function workerPresentation(w,s,data,entities={}) {
+export function workerPresentation(w,s,data,entities={},at=null) {
   const live=entities[w.entity];if(live)return live;
-  const p=workerLocation(w,entities) || [s.x,s.z],t=w.trip,returning=t && w.elapsed>=t.out+t.harvest;
+  const p=workerLocation(w,entities,at) || [s.x,s.z],t=w.trip,returning=t && w.elapsed>=t.out+t.harvest;
   const harvesting=t && !t.kind && !returning && w.elapsed>=t.out;
   const dx=t?t.destination[0]-t.origin[0]:0,dz=t?t.destination[1]-t.origin[1]:1;
   return {id:`worker:${w.id}`,worker:w.id,workerOwner:s.owner,type:'civilian',model:data.workers.model,name:`Worker ${w.id}`,place:'world',
@@ -30,9 +31,12 @@ export function workerPresentation(w,s,data,entities={}) {
 export function withWorkerPresentations(state,data,focus) {
   if(!data?.workers || focus?.place!=='world')return state;
   const entities={...state.entities};
+  // a worker that is a live unit is drawn as that unit only: the 4 Hz frontier record can still name no entity
+  // (or an old one) for a few ticks after it wakes, which drew a second, stepping copy on top (Tim 2026-11-05)
+  const live=new Set(Object.values(state.entities).filter(e=>e.worker && !e.dead).map(e=>`${e.town}:${e.worker}`));
   for(const s of Object.values(state.frontier?.settlements || {}))if(s.owner===focus.owner)for(const w of s.workers || []) {
-    if(entities[w.entity])continue;
-    const e=workerPresentation(w,s,data,entities);
+    if(entities[w.entity] || live.has(`${s.id}:${w.id}`))continue;
+    const e=workerPresentation(w,s,data,entities,state.workerAt);
     if(Math.hypot(e.x-focus.x,e.z-focus.z)<=data.workers.spawnRadius)entities[e.id]=e;
   }
   return {...state,entities};

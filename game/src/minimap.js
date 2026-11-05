@@ -161,13 +161,13 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const near = list => list.filter(f => Math.abs(f.x - me.x) < reach && Math.abs(f.z - me.z) < reach);
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)';
     islandHits = []; const tipCtx = { camps, scouted: state.world?.scouted?.[clan] || [], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world };
-    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: me.x, z: me.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: Math.min(1,spotConfig.minimapZoom),
+    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: me.x, z: me.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: 0,
       known: (x, z) => isDiscovered(world, game.state.world?.discovered?.[clan] ?? '0', x, z) })) {
       const [u, v] = at(spot.x, spot.z);
       if (u < 0 || v < 0 || u > size || v > size) continue;
-      drawSpotMarker(ctx, u, v, spot.kind); islandHits.push([u, v, 5, 'spot', spot, tipCtx]);
+      drawSpotMarker(ctx, u, v, spot.kind, !!spot.deposit); islandHits.push([u, v, 6, 'spot', spot, tipCtx]);
     }
-    for (const n of near(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 5, 'node', n, tipCtx]); ctx.fillStyle = '#9fc7a1'; ctx.fillRect(u - 2, v - 2, 4, 4); }
+    for (const n of near(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 8, 'node', n, tipCtx]); drawSpotMarker(ctx, u, v, n.kind, true); }
     for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill(); ctx.stroke(); }
     for (const f of near(world.fords || [])) {   // bridges (brown bar) and fords (pale x)
       const [u, v] = at(f.x, f.z); islandHits.push([u, v, 8, f.kind === 'bridge' ? 'bridge' : 'ford', f, tipCtx]);

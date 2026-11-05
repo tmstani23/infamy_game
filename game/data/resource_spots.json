@@ -9,7 +9,7 @@
         "chance": { "f": 0.9, "b": 0.8, "p": 0.45, "h": 0.3, "d": 0.12, "n": 0.12 } },
       "stone":  { "cell": 330, "size": [2, 5], "radius": [3, 6], "minGap": 2.5, "variants": 3,
         "chance": { "h": 0.7, "p": 0.3, "d": 0.4, "n": 0.4, "f": 0.25, "b": 0.1 } },
-      "fish":   { "cell": 130, "size": [2, 4], "radius": [3, 6], "minGap": 2.5, "variants": 2, "waterWithin": 2,
+      "fish":   { "cell": 130, "size": [2, 4], "radius": [3, 6], "minGap": 2.5, "variants": 2, "waterWithin": 2, "shoreGap": 1,
         "chance": { "p": 0.8, "f": 0.8, "h": 0.5, "d": 0.6, "n": 0.4, "b": 0.6 } },
       "forage": { "cell": 330, "size": [3, 6], "radius": [3, 6], "minGap": 2.5, "variants": 2,
         "chance": { "p": 0.45, "f": 0.45, "h": 0.2, "d": 0.1, "n": 0.05, "b": 0.3 } }

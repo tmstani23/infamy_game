@@ -24,6 +24,7 @@ import { campPropsInChunk, findPropsInChunk, crossingPropsInChunk, nodePropsInCh
 import { makeSpotIndex } from '../sim/resource_spots.js';
 import { spotPiecesToProps, visibleSpots, coveredBySpot } from '../resource_spot_props.js';
 import { isDiscovered } from '../world_map.js';
+import { createSpotGlow } from './spot_glow.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
 // mountain art is cut in, W3.4b)
@@ -50,6 +51,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const textures = new Map();   // art file -> texture (or a pending promise)
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
   let spotRevision = '', snapshot = null, spotAppliedAt = -Infinity;
+  const glowCfg = spotConfig?.glow, glow = glowCfg ? createSpotGlow({ scene, cfg: glowCfg }) : null, glowItems = [];
   const sigs = new WeakMap(), sigOf = p => { let v = sigs.get(p); if (v === undefined) sigs.set(p, v = JSON.stringify(p)); return v; };
   const coastline = createCoastlineRenderer({ world, cfg, renderer });
   const waterEffects = createWaterEffects({ world, cfg, renderer, scene });
@@ -217,6 +219,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     // Harvest stage changes are batched (max ~2/s) so many workers can't force a full prop + draw-order rebuild every tick
     const nowMs = performance.now();
     if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
+    glow?.update(glowItems, active);
     if (!active) {
       if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; }
       return;
@@ -247,6 +250,14 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     propAt = [x, z, R];
     const want = new Map();
     const spots = spotConfig ? visibleSpots(spotIndex, { x, z, radius: R + spotConfig.pieceReach, known: (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz) }) : [];
+    if (glow) {   // resource glow: spots and nodes within a wider radius so they show at far zoom
+      const known = (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz), GR = R * (glowCfg.reach ?? 1.6) + spotConfig.pieceReach;
+      glowItems.length = 0;
+      for (const s of visibleSpots(spotIndex, { x, z, radius: GR, known })) glowItems.push({ key: s.id, kind: s.kind, x: s.x, z: s.z, big: !!s.deposit, deposit: s.deposit,
+        r: Math.max(glowCfg.minRadius ?? 4, ...s.pieces.map(([a, b]) => Math.hypot(a, b) + (glowCfg.pad ?? 3))) });
+      const hasSpot = new Set(glowItems.map(i => i.deposit).filter(Boolean));   // a node and its deposit spot share one glow
+      for (const n of world.nodes || []) if (!hasSpot.has(n.id) && Math.hypot(n.x - x, n.z - z) < GR && known(n.x, n.z)) glowItems.push({ key: n.id, kind: n.kind, x: n.x, z: n.z, r: glowCfg.nodeRadius ?? 9, big: true });
+    }
     const patches = towns.filter(p => p.dirt && Math.hypot(p.x - x, p.z - z) < R + p.width);
     const cleared = p => patches.some(t => Math.abs(p.x - t.x) < t.width / 2 && Math.abs(p.z - t.z) < t.height / 2);
     for (const spot of spots) for (const p of spotPiecesToProps(spot, snapshot?.spots?.[spot.id], catalog.spotArt, spotConfig))

@@ -4,6 +4,7 @@
 // Talk to the governor is a button for now; the Space-at-the-town-hall version arrives with the town in the world (E5).
 import { bindTips } from './frontier_tips.js';
 import {resourceUsage} from './sim/frontier/resource_usage.js';
+import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js';
 import { reportRows, governorSays, talkCommand } from './frontier_report.js';
 import { tierOf, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
 import { workerCount } from './sim/frontier/people.js';
@@ -32,6 +33,37 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (!list.find(s => s.id === selected)) selected = nearbyTown ? nearbyTown() : list[0]?.id ?? null;
     return list.find(s => s.id === selected) || null;
   }
+  // Usage page (Tim 2026-11-05 redesign): one tab per resource plus Housing. Rates per minute.
+  const pm = v => { const a = Math.abs(v); return (v < 0 ? '−' : '+') + (a >= 10 ? Math.round(a) : a >= 1 ? a.toFixed(1) : a.toFixed(2)); };
+  const num = v => Math.floor(v).toLocaleString();
+  const stateCls = t => /short|abandoned|unhealthy|empty/.test(t) ? 'bad' : /paid|fed|producing|making/.test(t) ? 'good' : 'dim';
+  function usagePage_(s, rows) {
+    const tabs = [...data.resources, 'housing'].map(r => `<button data-act="usage" data-id="${r}" class="${usageResource === r ? 'on' : ''}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('');
+    let h = `<div class="row"><h1>${esc(rows.title)} · Usage</h1><button data-act="usage-back">‹ Town</button></div><div class="utabs">${tabs}</div>`;
+    if (usageResource === 'housing') return h + housingHtml(s);
+    const u = usageView(s, usageResource, data), full = u.cap != null && u.stock >= u.cap * 0.99;
+    const fill = u.cap ? Math.min(100, u.stock / u.cap * 100) : 0;
+    h += `<div class="ucard"><div class="row"><div><b class="big">${num(u.stock)}</b><span class="dim"> ${u.cap != null ? '/ ' + num(u.cap) + ' stored' : 'stored'}</span></div>`
+      + `<div class="r"><b class="net ${u.net > 0.05 ? 'good' : u.net < -0.05 ? 'bad' : 'dim'}">${Math.abs(u.net) < 0.05 ? 'steady' : pm(u.net) + '/min'}</b><div class="dim">${esc(u.eta)}</div></div></div>`
+      + (u.cap != null ? `<div class="ubar"><i class="${full ? 'full' : ''}" style="width:${fill}%"></i></div>` : '') + '</div>';
+    const big = Math.max(1, ...u.incoming.map(x => x.rate), ...u.outgoing.map(x => -x.rate));
+    const list = (title, items, sum, cls) => `<div class="lab">${title} · ${sum ? pm(cls === 'in' ? sum : -sum) + '/min' : 'nothing'}</div>` + items.map(x =>
+      `<button class="urow" data-act="usage-focus" data-id="${esc(x.id)}"><span class="row"><span>${esc(x.name)}</span><b class="${cls === 'in' ? 'good' : 'bad'}">${pm(x.rate)}/min</b></span>`
+      + `<span class="row"><span class="ubar s ${cls}"><i style="width:${Math.max(3, Math.abs(x.rate) / big * 100)}%"></i></span><small class="${stateCls(x.state)}">${esc(x.once ? 'one-time' : x.state)}</small></span></button>`).join('');
+    h += list('Coming in', u.incoming, u.inSum, 'in') + list('Going out', u.outgoing, u.outSum, 'out');
+    if (u.once.length) h += '<div class="lab">Waiting to be paid once</div>' + u.once.map(x => `<button class="urow" data-act="usage-focus" data-id="${esc(x.id)}"><span class="row"><span>${esc(x.name)} <small class="dim">${esc(x.state)}</small></span><b class="gold">${num(x.amount)} ${esc(usageResource)}</b></span></button>`).join('');
+    return h + '<div class="hint">Rates are averaged over the last minute. Click a row to see it on the map.</div>';
+  }
+  function housingHtml(s) {
+    const v = housingView(s, data), fill = x => v.beds ? Math.min(100, x / v.beds * 100) : 0;
+    let h = `<div class="ucard"><div class="row"><div><b class="big">${v.used}</b><span class="dim"> / ${v.beds} beds used</span></div><div class="r"><b class="${v.growthBlock ? 'warn' : 'good'}">${esc(v.growth || '')}</b><div class="dim">${v.pop} townsfolk · ${v.workers} workers</div></div></div>`
+      + `<div class="ubar"><i style="width:${fill(v.pop)}%"></i><i class="w" style="width:${fill(v.workers)}%"></i></div></div>`;
+    h += '<div class="lab">Houses by level</div>' + v.levels.map(l => `<div class="hlev"><span><b>${esc(l.name)}</b><small class="dim">${esc(l.needs)}</small></span><span class="dim">${l.count === '' ? '' : '× ' + l.count}</span><span class="dim">${l.bedsEach === '' ? '' : l.bedsEach + ' beds'}</span><b class="gold">${l.beds}</b></div>`).join('')
+      + (v.empty ? `<div class="hint">${v.empty} zoned cell${v.empty > 1 ? 's' : ''} still empty (needs a road within reach and food).</div>` : '');
+    h += '<div class="lab">What housing uses</div>' + v.uses.map(x => `<div class="row"><span>${esc(x.name)}</span><span><b class="bad">${x.rate > 0 ? pm(-x.rate) + '/min' : '–'}</b> <small class="${stateCls(x.state)}">${esc(x.state)}</small></span></div>`).join('');
+    if (v.limits.length) h += '<div class="lab">Limits</div>' + v.limits.map(x => `<div class="row"><span>${esc(x.name)}</span><b class="${x.full ? 'warn' : 'gold'}">${esc(x.value)}${x.note ? ` <small class="dim">(${esc(x.note)})</small>` : ''}</b></div>`).join('');
+    return h;
+  }
   function render() {
     if (root.hidden) return;
     const s = pick();
@@ -47,13 +79,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<h1>Governor</h1><div class="sub">${esc(rows.title)}</div><div class="chat">“${esc(say.text)}”</div><div class="choices">`
         + say.choices.map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
     } else if(mode==='usage' && data) {
-      const u=resourceUsage(s,usageResource,data),per=data.workers.panelRows || 6,pages=Math.max(1,Math.ceil(u.entries.length/per));usagePage=Math.max(0,Math.min(usagePage,pages-1));
-      h=`<h1>${esc(rows.title)} · Stock usage</h1><button data-act="usage-back">Back to town</button><div class="workergroups">${data.resources.map(r=>`<button data-act="usage" data-id="${r}">${esc(r)}</button>`).join('')}</div>`
-        +`<h3>${esc(usageResource)} · ${u.stock.toFixed(2)} in stock</h3><div>Actual consumption ${u.consumption.toFixed(3)}/s · full production needs ${u.demand.toFixed(3)}/s</div><div>Estimated worker delivery ${u.gathering.toFixed(3)}/s · pending construction: ${u.pending} once · production net ${u.net.toFixed(3)}/s</div>`
-        +u.entries.slice(usagePage*per,(usagePage+1)*per).map(e=>`<div class="row"><button data-act="usage-focus" data-id="${esc(e.id)}">${esc(e.name)}</button><span>${e.once?e.once+' once':e.rate.toFixed(3)+'/s'} · ${esc(e.state)}<small>${esc(e.purpose)}</small></span></div>`).join('')
-        +(!u.entries.length?'<div>No active consumers or pending construction costs.</div>':'')
-        +`<div class="hint">Click a consumer to focus its location. Use Build → Eraser to remove it. Rates describe production; construction is a separate one-time payment. Training is paid when ordered.</div>`
-        +(pages>1?`<button data-act="usage-page" data-id="${Math.max(0,usagePage-1)}">Previous</button> ${usagePage+1}/${pages} <button data-act="usage-page" data-id="${Math.min(pages-1,usagePage+1)}">Next</button>`:'');
+      h = usagePage_(s, rows);
     } else {
       const mood = rows.mood;
       h += `<div class="row"><div><h1>${esc(rows.title)}</h1><div class="sub">Yours · mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div><button data-act="talk"${tip('Talk to the governor: his report, and ways to steer the town.')}>Governor</button></div>`;
@@ -110,10 +136,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (s && buildUI?.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (b.dataset.act === 'talk') buildUI?.close();
     switch (b.dataset.act) {
-      case 'usage': if(data && data.resources.includes(id)){usageResource=id;mode='usage';usagePage=0;buildUI?.close();}break;
+      case 'usage': if(data && (data.resources.includes(id) || id==='housing')){usageResource=id;mode='usage';usagePage=0;buildUI?.close();}break;
       case 'usage-back':mode='town';break;
       case 'usage-page':usagePage=Number(id);break;
-      case 'usage-focus':{const e=data && resourceUsage(s,usageResource,data).entries.find(e=>e.id===id);if(e)focus(e.x,e.z);break;}
+      case 'usage-focus':{const p=data && flowFocus(s,id,usageResource,data);if(p)focus(p[0],p[1]);break;}
       case 'town': selected = id; mode = 'town'; break;
       case 'page': page = Number(id); break;
       case 'talk': if (id && s) { const c = id === 'close' ? null : talkCommand(id, reportRows(s)); if (c) cmd(c); mode = id === 'close' ? 'town' : 'talk'; } else mode = mode === 'talk' ? 'town' : 'talk'; break;

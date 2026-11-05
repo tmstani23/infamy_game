@@ -26,7 +26,7 @@ assert.deepEqual(view.settlements.t.grid, grid, 'the replica gets complete autho
 assert.equal(view.settlements.enemy, undefined, 'unknown rival towns stay hidden');
 assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stages cross the snapshot boundary');
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
-assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'townhouse', 'longhouse']);
+assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'townhouse', 'tenements']);
 // Housing build phases and ruins (Tim 2026-11-05): zoned stage 0 shows site 1, stage 1 site 2; abandoned swaps in ruin art
 const pre = townCellsToProps({ ...grid, zone: 'hhhh.' + grid.zone.slice(5), stage: '12300' + grid.stage.slice(5) }, art, town.zones);
 assert.equal(pre.find(p => p.key.startsWith('3:zone:'))?.art, 'house_construction_1', 'zoned housing cell shows the first building site');

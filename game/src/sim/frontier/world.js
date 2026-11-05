@@ -8,6 +8,7 @@
 import { debitRyo, creditRyo } from '../treasury.js';
 import { ensureWorkers } from './workers.js';
 import { storageCap } from './storage.js';
+import { noteFlow } from './flow.js';
 const LEDGER_MAX = 500;
 const EPS = 1e-6;
 const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('_')));
@@ -105,6 +106,7 @@ export function createFrontierWorld({ state, data }) {
       if (delta <= 0) return s.stock[resource];
     }
     s.stock[resource] = Math.max(0, s.stock[resource] + delta);
+    noteFlow(s, resource, delta, reason);   // Usage page per-minute flows
     ledgerAdd({ settlement: s.id, resource, delta, reason });
     return s.stock[resource];
   }
