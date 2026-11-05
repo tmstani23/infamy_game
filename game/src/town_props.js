@@ -48,15 +48,14 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
         edges: [i % grid.n === 0 || !cleared(i - 1), i % grid.n === grid.n - 1 || !cleared(i + 1), !cleared(i - grid.n), !cleared(i + grid.n)].map(Number) });
     }
     if (G && (use === 'r' || use === 'g')) {
-      const width = grid.cell * G.roadWidth;
-      patch('road', width, width, G.roadTint,G.roadTexture);
-      Object.assign(out[out.length-1],{tile:G.roadTile || G.textureTile,cornerRadius:width/2,opacity:G.roadOpacity ?? 1});
-      for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-        const col = i % grid.n + dc, row = Math.floor(i / grid.n) + dr;
-        if (col < 0 || row < 0 || col >= grid.n || row >= grid.n || !'rgB'.includes(grid.use[row * grid.n + col])) continue;
-        out.push({ ...base, key: `${i}:road:${dc}:${dr}`, dirt: true, width: dc ? grid.cell / 2 : width, height: dr ? grid.cell / 2 : width,
-          x: x + dc * grid.cell / 4, z: z + dr * grid.cell / 4, tint: G.roadTint,texture:G.roadTexture,tile:G.roadTile || G.textureTile,cornerRadius:width/2,opacity:G.roadOpacity ?? 1 });
-      }
+      // One whole-cell tile per road cell, picked by which neighbours are roads (16 pre-made tiles).
+      const col = i % grid.n, row = Math.floor(i / grid.n);
+      const joinsRoad = (dc, dr) => col + dc >= 0 && col + dc < grid.n && row + dr >= 0 && row + dr < grid.n && 'rgB'.includes(grid.use[(row + dr) * grid.n + col + dc]);
+      const arms = [joinsRoad(-1, 0), joinsRoad(1, 0), joinsRoad(0, -1), joinsRoad(0, 1)].map(Number);
+      // art/ground/road/road_<mask>.png: kerbs on the open sides, a rounded corner on a bend (tools/build_road_tiles.py)
+      const mask = arms[0] + 2 * arms[1] + 4 * arms[2] + 8 * arms[3];
+      patch('road', grid.cell, grid.cell, '#ffffff', `art/ground/road/road_${mask}.png`);
+      Object.assign(out[out.length - 1], { cornerRadius: 0, road: { arms, mask } });
     }
     if (use === 'w' || use === 'g') {
       const col = i % grid.n, row = Math.floor(i / grid.n);
@@ -87,7 +86,13 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
     const abandoned = !!zones[def.kind]?.abandoned, tint = abandoned ? G?.abandonedTint : undefined;
     if (def.field && G) {
       patch('field', grid.cell * G.fieldSize, grid.cell * G.fieldSize, abandoned ? G.abandonedTint : G.fieldTint, G.fieldTexture);
-      if (!abandoned) for (let row = 0; row < G.cropRows; row++) out.push({ ...base, key: `${i}:crop:${row}`, dirt: true, width: grid.cell * G.fieldSize, height: grid.cell * G.cropWidth, z: z + (row - (G.cropRows - 1) / 2) * grid.cell * G.fieldSize / G.cropRows, tint: G.cropTint });
+      // Soft feathered edge so fields melt into the ground; no fade where the next cell is also a field.
+      const isField = j => j >= 0 && j < grid.n * grid.n && grid.ground[j] === 'c' && definitions[grid.zone[j]]?.field && Number(grid.stage[j]) > 0;
+      const fc = i % grid.n;
+      Object.assign(out[out.length - 1], { tile: G.fieldTile || G.textureTile, edgeFade: G.fieldFade ?? G.edgeFade, opacity: G.fieldOpacity ?? 0.8, cornerRadius: 0,
+        width: grid.cell * (G.fieldSize + 0.1), height: grid.cell * (G.fieldSize + 0.1),
+        edges: [fc === 0 || !isField(i - 1), fc === grid.n - 1 || !isField(i + 1), !isField(i - grid.n), !isField(i + grid.n)].map(Number) });
+      if (!abandoned) for (let row = 0; row < G.cropRows; row++) out.push({ ...base, key: `${i}:crop:${row}`, dirt: true, width: grid.cell * G.fieldSize, height: grid.cell * G.cropWidth, opacity: G.cropOpacity ?? 1, z: z + (row - (G.cropRows - 1) / 2) * grid.cell * G.fieldSize / G.cropRows, tint: G.cropTint });
       if (i % def.houseEvery !== 0) continue;
     }
     const name = def.stages[Math.min(stage, def.stages.length) - 1];

@@ -120,4 +120,14 @@ const ring = (r, gate) => {
   assert.equal(state.frontier.receipts.at(-1).reason, 'not your settlement');
   assert.equal(snap(s), before);
 }
+{
+  // cliff margin: roads and farm zones keep one cell back from unbuildable ground; other things and old roads are unaffected
+  const { s, send } = fresh();
+  s.grid.ground = s.grid.ground.slice(0, at(7, 7)) + 'x' + s.grid.ground.slice(at(7, 7) + 1);
+  assert.equal(send({ action: 'place', kind: 'road', cells: [at(8, 7)] }).reason, 'too close to a cliff', 'beside a cliff');
+  assert.equal(send({ action: 'place', kind: 'road', cells: [at(8, 8)] }).reason, 'too close to a cliff', 'diagonal');
+  assert.equal(send({ action: 'place', kind: 'road', cells: [at(9, 7)] }).ok, true, 'two cells away is fine');
+  assert.equal(send({ action: 'zone', kind: 'farm', cells: [at(7, 8)] }).ok, false, 'fields keep back too');
+  assert.equal(send({ action: 'zone', kind: 'housing', cells: [at(7, 8)] }).ok, true, 'other zones may touch');
+}
 console.log('test_frontier_place: ok');

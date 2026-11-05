@@ -11,7 +11,7 @@
 // recovers as soon as its needs return. Nothing is destroyed.
 // Output = sum over cells of stage level x health x per-cell rate x trait factor.
 // Every kind, char and number comes from data/frontier.json "zones" (nothing is hard-coded here).
-import { cellOffset, inCore, centreCell, hallRoadCell } from './town_grid.js';
+import { cellOffset, inCore, centreCell, hallRoadCell, nearCliff } from './town_grid.js';
 import {coversResources} from './resource_clearance.js';
 
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
@@ -71,6 +71,7 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (!Array.isArray(list) || !list.length || !list.every(Number.isInteger) || new Set(list).size !== list.length) return bad('cells must list each cell once');
     if (list.some(i => i < 0 || i >= n * n)) return bad('outside grid', list);
     if (list.some(i => g.ground[i] === 'x')) return bad('unbuildable', list);
+    if (k.cliffMargin && list.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', list);
     if(coversResources(s,list,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',list);
     if (k.coreOnly && list.some(i => !inCore(s, i, data))) return bad('core only', list);
     const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i));
@@ -113,7 +114,7 @@ export function createZones({ state, data, world,resourceIndex }) {
         const [ax, az] = own.length ? cellOffset(s, own[0]) : [0, 0];
         const cand = [];
         for (let i = 0; i < n * n; i++) {
-          if (g.use[i] !== '.' || g.zone[i] !== '.' || g.ground[i] === 'x' || picked.includes(i) || (k.coreOnly && !inCore(s, i, data))) continue;
+          if (g.use[i] !== '.' || g.zone[i] !== '.' || g.ground[i] === 'x' || (k.cliffMargin && nearCliff(s, i, data)) || picked.includes(i) || (k.coreOnly && !inCore(s, i, data))) continue;
           const [ox, oz] = cellOffset(s, i);
           cand.push([(ox - ax) * (ox - ax) + (oz - az) * (oz - az), i]);
         }
@@ -229,7 +230,7 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (!k) return bad('unknown zone kind');
     const cand = [];
     for (let i = 0; i < n * n; i++) {
-      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || hallRoadCell(s, i) || (k.coreOnly && !inCore(s, i, data))) continue;
+      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || (k.cliffMargin && nearCliff(s, i, data)) || hallRoadCell(s, i) || (k.coreOnly && !inCore(s, i, data))) continue;
       if(coversResources(s,[i],resourceIndex,data.founding?.unitClearance))continue;
       const [ox, oz] = cellOffset(s, i);
       cand.push([ox * ox + oz * oz, i]);

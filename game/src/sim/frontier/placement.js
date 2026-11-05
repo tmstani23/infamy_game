@@ -10,7 +10,7 @@
 // off from that flood. "New" matters: a town founded in an awkward pocket is never frozen by it.
 // A closed wall ring therefore needs a gate; the gate cell is passable and reaches outside.
 // Overgrown ground is allowed: a project on it starts in phase 'clearing' (L3.3's work order clears it).
-import { cellOffset, inCore, setUse, hallRoadCell } from './town_grid.js';
+import { cellOffset, inCore, setUse, hallRoadCell, nearCliff } from './town_grid.js';
 import { buildingSafety } from './building_safety.js';
 import { coversResources } from './resource_clearance.js';
 
@@ -88,6 +88,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if (!cover) return bad('outside grid', cells);
     if (!['road', 'gate'].includes(kind) && cover.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', cover);
     if (cover.some(i => g.ground[i] === 'x')) return bad('unbuildable', cover);
+    if ((kind === 'road' || kind === 'gate') && cover.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', cover);
     if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
     if (cover.some(i => g.use[i] !== '.' || g.zone[i] !== '.')) return bad('occupied', cover);
     if(kind==='wall' || !LINES[kind]) {

@@ -20,3 +20,10 @@ const project = townProps([town], art).find(p => p.key === 't:p:dirt');
 assert.equal(project.texture, art._ground.clearTexture, 'construction footprints use the same earth');
 assert.deepEqual(project.edges, [1, 1, 1, 1]);
 console.log('test_town_ground: ok');
+{
+  // every road tile and the field texture exist
+  const { existsSync } = await import('node:fs');
+  for (let m = 0; m < 16; m++) assert.ok(existsSync(new URL(`../art/ground/road/road_${m}.png`, import.meta.url)), `road tile ${m}`);
+  assert.ok(existsSync(new URL(`../${art._ground.fieldTexture}`, import.meta.url)), 'field texture');
+  console.log('test_town_ground: road tiles ok');
+}

@@ -28,11 +28,15 @@ assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stage
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
 assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['thatched_hut', 'townhouse', 'longhouse']);
 assert.ok(cells.some(p => p.key.includes(':clear') && p.cell === 12), 'founding clearing under the hall');
-assert.ok(cells.some(p => p.key === '16:road:0:-1'), 'vertical road connections reach the neighbouring cell');
-assert.ok(cells.some(p => p.key === '16:road:1:0'), 'road bends join both axes');
+const road16 = cells.find(p => p.key === '16:road');
+assert.ok(road16?.road && road16.width === grid.cell, 'a road cell is one whole-cell tile');
+assert.equal(road16.road.arms[2], 1, 'vertical road connections reach the neighbouring cell');
+assert.equal(road16.road.arms[1], 1, 'road bends join both axes');
+assert.equal(road16.texture, `art/ground/road/road_${road16.road.mask}.png`, 'tile picked by neighbour mask');
+assert.equal(cells.filter(p => p.key.startsWith('16:road:')).length, 0, 'no overlapping stub blobs');
 assert.ok(cells.some(p => p.art === 'bamboo_fence') && cells.some(p => p.art === 'village_gate'));
 assert.ok(cells.filter(p => p.art === 'bamboo_fence').some(p => p.flip === false));
-assert.ok(cells.some(p => p.key.endsWith(':field')) && cells.some(p => p.key.includes(':crop:')), 'farm cells become crop fields');
+assert.ok(cells.some(p => p.key.endsWith(':field')), 'farm cells become crop fields (rows are in the texture)');
 assert.equal(cells.some(p => p.cell === 24), false, 'unbuildable cells have no props');
 assert.equal(townCellsToProps({ n: 5, cell: 11 }, art).length, 0, 'old partial replicas do not crash');
 const abandoned = structuredClone(town); abandoned.zones.housing.abandoned = true;

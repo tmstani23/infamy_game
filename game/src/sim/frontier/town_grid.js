@@ -127,4 +127,15 @@ export function freeCell(s, data) {
   }
   return best;
 }
+// Within `margin` cells (default townGrid.cliffMargin, 1) of unbuildable ground (cliffs, mountains, water):
+// roads and fields keep back from it so they never run under the cliff art. Placement rules only; roads
+// already built stay as they are.
+export function nearCliff(s, i, data, margin = data?.townGrid?.cliffMargin ?? 1) {
+  const g = s.grid, { n } = g, col = i % n, row = (i - col) / n;
+  for (let dr = -margin; dr <= margin; dr++) for (let dc = -margin; dc <= margin; dc++) {
+    const c = col + dc, r = row + dr;
+    if (c >= 0 && c < n && r >= 0 && r < n && g.ground[r * n + c] === 'x') return true;
+  }
+  return false;
+}
 export function setUse(s, i, ch) { s.grid.use = put(s.grid.use, i, ch); }

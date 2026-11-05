@@ -41,7 +41,7 @@ const corners=townCellsToProps(g,data.townArt).filter(p=>p.cell===6 && p.art==='
 assert.ok(corners.some(p=>p.fenceHeading && Math.abs(p.fenceHeading[0])===Math.abs(p.fenceHeading[1])),'corner connector follows a 45-degree ground segment');
 assert.ok(corners.every(p=>p.x>=-11 && p.z>=-11),'corner never sprouts into its two unconnected directions');
 const roads=townCellsToProps({...g,use:put('.'.repeat(25),12,'r')},data.townArt).filter(p=>p.key.includes(':road'));
-assert.ok(roads.every(p=>p.texture==='art/ground/gravel.jpg' && p.cornerRadius>0));
+assert.ok(roads.length===1 && roads.every(p=>p.texture==='art/ground/road/road_0.png' && p.road && p.road.arms.every(a=>a===0)));
 console.log('test_frontier_fix_phase: usage/debits/demand, compact snapshots, remote visibility, harvest details, resource footprints and joins passed');
 // Island minimap: real event routing, out-of-grid worker markers and hover in a Node canvas double.
 {
