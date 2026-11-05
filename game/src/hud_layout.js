@@ -33,12 +33,17 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  const picker=document.createElement('select');picker.setAttribute('aria-label','Select UI panel');filters.appendChild(picker);
  const empty=document.createElement('option');empty.value='';empty.textContent='Select a panel…';picker.appendChild(empty);
  for(const [category,label]of [['main','Main HUD'],['tooltips','Tooltips'],['alerts','Alerts'],['windows','Windows']]){
-  const b=document.createElement('button');b.type='button';b.textContent=`Hide ${label}`;b.dataset.filter=category;
-  b.setAttribute('aria-pressed',String(hiddenCategories.has(category)));
-  b.addEventListener('click',()=>{drag=null;if(hiddenCategories.has(category))hiddenCategories.delete(category);else hiddenCategories.add(category);b.setAttribute('aria-pressed',String(hiddenCategories.has(category)));if(selected&&hiddenCategories.has(panels.get(selected).category))select(null);update();});
+  const b=document.createElement('button');b.type='button';b.dataset.filter=category;
+  // the label says what a click does (Tim 2026-11-05: "Hide Windows" while windows were already hidden read as a missing Town window)
+  const label_=()=>{const off=hiddenCategories.has(category);b.textContent=`${off?'Show':'Hide'} ${label}`;b.setAttribute('aria-pressed',String(off));};label_();
+  b.addEventListener('click',()=>{drag=null;if(hiddenCategories.has(category))hiddenCategories.delete(category);else hiddenCategories.add(category);label_();if(selected&&hiddenCategories.has(panels.get(selected).category))select(null);update();});
   filters.appendChild(b);
  }
  picker.addEventListener('change',()=>{select(picker.value||null);update();});
+ // Firefox redraws (flickers) an open dropdown whenever its options change: panels that appear while it is open
+ // (tooltips, alerts) join the list once it closes.
+ const lateOptions=[];const addOption=o=>{if(document.activeElement===picker)lateOptions.push(o);else picker.appendChild(o);};
+ picker.addEventListener('blur',()=>{while(lateOptions.length)picker.appendChild(lateOptions.shift());});
  function select(id){drag=null;selected=id;picker.value=id||'';for(const p of panels.values()){
   const on=p.id===id;p.handle.classList.toggle('selected',on);p.handle.setAttribute('aria-pressed',String(on));p.el.classList.toggle('layout-focused',editing&&on);
  }}
@@ -63,7 +68,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   const p={id,el,name:label,category:el.dataset?.layoutCategory||layoutCategory(id),defaults:Object.fromEntries(PROPS.map(k=>[k,el.style[k]||'']))};panels.set(id,p);
   el.dataset.layoutFree=String(!UNIFORM.has(id));
   p.pages=createLayoutPages(el,id);
-  const option=document.createElement('option');option.value=id;option.textContent=label;picker.appendChild(option);p.option=option;
+  const option=document.createElement('option');option.value=id;option.textContent=label;addOption(option);p.option=option;
   const handle=document.createElement('div');handle.className='layout-handle';handle.tabIndex=0;handle.setAttribute('role','button');handle.setAttribute('aria-label',`Move or resize ${label}`);
   const title=document.createElement('span');title.textContent=label;handle.appendChild(title);
   const grip=document.createElement('button');grip.type='button';grip.className='layout-resize';grip.textContent='◢';grip.setAttribute('aria-label',`Resize ${label}`);handle.appendChild(grip);
@@ -97,7 +102,8 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
    }
    if(saved[p.id]&&signature(p.el)!==p.applied)place(p);
    if(!editing)continue;
-   const filtered=hiddenCategories.has(p.category);p.handle.hidden=filtered;p.option.hidden=filtered;p.el.classList.toggle('layout-filtered',filtered);
+   // write only on change: this runs every frame, and touching the options flickers an open picker
+   const filtered=hiddenCategories.has(p.category);if(p.handle.hidden!==filtered)p.handle.hidden=filtered;if(p.option.hidden!==filtered)p.option.hidden=filtered;if(p.el.classList.contains('layout-filtered')!==filtered)p.el.classList.toggle('layout-filtered',filtered);
    if(filtered)continue;
    const actual=p.el.getBoundingClientRect(),L=saved[p.id];dimensions(p);
    let rect=actual;

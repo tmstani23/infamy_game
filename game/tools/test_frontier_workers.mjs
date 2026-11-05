@@ -15,7 +15,7 @@ function fixture({saved=null,changes={},spots=null,stages=null}={}) {
   const spotData={seed:31,chunkSize:250,spots:list.map(p=>({...p,pieces:[[0,0,0],[1,0,0],[2,0,0]],deposit:null})),byChunk:{}};
   for(const p of spotData.spots)(spotData.byChunk[`c${Math.floor(p.x/250)}_${Math.floor(p.z/250)}`] ||= []).push(p.id);
   const state=saved || {tick:0},fr=createFrontier({state,data,spotData,spotRules:stages?{stages}:null});
-  if(!saved)fr.world.addTown({id:'t',name:'Test',owner:'p',region:null,x:1000,z:1000,pop:8,stock:{food:100,timber:100,stone:100,ryo:100},buildings:[{type:'town_hall',cell:0}]});
+  if(!saved)fr.world.addTown({id:'t',name:'Test',owner:'p',region:null,x:1000,z:1000,pop:8,stock:{food:100,timber:100,stone:100,goods:100,ryo:100},buildings:[{type:'town_hall',cell:0}]});
   const s=fr.world.settlement('t'),workers=fr.modules.find(m=>m.name==='workers').workers;
   const send=(c,owner='p')=>{fr.command({owner},{type:'frontier',town:'t',...c});return state.frontier.receipts.at(-1);};
   const run=n=>{for(let i=0;i<n;i++){state.tick++;fr.tick();}};
@@ -128,7 +128,7 @@ function fixture({saved=null,changes={},spots=null,stages=null}={}) {
 {
   const f=fixture({changes:{trainTicks:10}});
   const options={district:read('data/waterfront.json'),catalog:read('data/art.json'),cutouts:read('art/cutouts.json'),interiors:read('data/interiors.json'),parts:read('data/interior_parts.json'),recipes:read('data/room_recipes.json'),units:read('data/units.json'),frontier:f.data,resourceSpots:f.spotData};
-  const g=createGame(options);g.clans.addClan('p');g.frontier.world.addTown({id:'t',name:'Test',owner:'p',x:1000,z:1000,pop:8,stock:{ryo:100,food:100,timber:100,stone:100},buildings:[{type:'town_hall',cell:0}]});
+  const g=createGame(options);g.clans.addClan('p');g.frontier.world.addTown({id:'t',name:'Test',owner:'p',x:1000,z:1000,pop:8,stock:{ryo:100,food:100,timber:100,stone:100,goods:100},buildings:[{type:'town_hall',cell:0}]});
   const hero=g.spawn('hero','ronin',-8,1,{owner:'p',holdFire:true});g.step([{id:hero,type:'frontier',action:'train',town:'t',count:2}]);
   for(let i=0;i<12;i++)g.step([]);
   const s=g.state.frontier.settlements.t;g.step([{id:hero,type:'frontier',action:'assign',town:'t',workers:[s.workers[0].id],spot:'near'}]);
@@ -220,7 +220,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   const f=fixture(),options={district:read('data/waterfront.json'),catalog:read('data/art.json'),cutouts:read('art/cutouts.json'),interiors:read('data/interiors.json'),parts:read('data/interior_parts.json'),recipes:read('data/room_recipes.json'),units:read('data/units.json'),frontier:f.data,resourceSpots:f.spotData,world:island,worldChunks:chunks};
   const g=createGame(options);g.state.match={mode:'campaign'};g.clans.addClan('p');
   const id=g.spawn('hero','ronin',1000,1000,{owner:'p',place:'world',holdFire:true});
-  g.frontier.world.addTown({id:'t',owner:'p',x:1000,z:1000,pop:8,stock:{food:100,timber:100,stone:100,ryo:100},buildings:[{type:'town_hall',cell:0}]});
+  g.frontier.world.addTown({id:'t',owner:'p',x:1000,z:1000,pop:8,stock:{food:100,timber:100,stone:100,goods:100,ryo:100},buildings:[{type:'town_hall',cell:0}]});
   g.step([{id,type:'frontier',town:'t',action:'train',count:2}]);for(let i=0;i<5;i++)g.step([]);
   const s=g.state.frontier.settlements.t;
   g.step([{id,type:'frontier',town:'t',action:'assign',workers:s.workers.map(w=>w.id),spot:'near'}]);

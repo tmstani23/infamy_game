@@ -12,6 +12,7 @@ export const BUILD_DETAILS={
   lumber_camp:['A gathering camp and general worker drop-off; all cargo types accepted.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive timber production.'],
   quarry:['A gathering camp and general worker drop-off; all cargo types accepted.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive stone production.'],
   storehouse:['A general worker drop-off; all cargo types accepted. Each one raises every storage cap by 500.','Shortens return trips. Delivery credits town stock immediately; camps are optional alternatives.'],
+  market:['Sells goods above the town keep level for ryo (about 1 ryo per goods).','Village tier, one per town. Set the keep level under Steer in the town panel (default 400).'],
   stockade:['A placed solid stockade building, separate from the fence tools.','Build Wall and Gate for an enclosure. No defensive stat bonus is implemented yet.']
 };
 export function buildTooltip(id,s,data,requirements) {
@@ -27,7 +28,7 @@ export function buildTooltip(id,s,data,requirements) {
   if(zone && tier?.cells?.[id]!==undefined && s?.grid) { const left=tier.cells[id]-zoneCells(s,zone.char); cellsLine=`${left>0?GOOD_LINE:WARN_LINE}${Math.max(0,left)} / ${tier.cells[id]} cells remaining (${tier.name})`; }
   else if(zone && tier?.cells?.[id]!==undefined)needs.push(`at most ${tier.cells[id]} ${id} cells at this tier`);
   if(zone) {
-    needs.push(`road within ${zone.needs.roadReach} cells to grow`);
+    needs.push(`road within ${zone.needs.roadReach} cells that connects to the town hall`);
     if(zone.inputs)needs.push(`uses ${Object.entries(zone.inputs).map(([r,v])=>`${v} ${r}`).join(' + ')} per ${Object.keys(zone.output || {}).join('/')} made`);
     const U=data.upkeep;
     if(zone.housing && U?.goodsByStage?.some(v=>v>0))needs.push(`goods to level up past ${String(zone.stages?.[0] || 'level 1').replace(/_/g,' ')}; ${zone.stages?.slice(1).map((n,i)=>`${n.replace(/_/g,' ')} uses ${((U.goodsByStage[i+1] || 0)*60).toFixed(2)} goods/min`).join(', ')}`);

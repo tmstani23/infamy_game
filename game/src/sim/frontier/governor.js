@@ -10,8 +10,8 @@
 // Every rule fires only when its cause is the real limit, so it never loops.
 // createGovernor({ state, data, world, economy, construction }) -> { review, run, approve }
 import { residents } from './people.js';
-import { placedRoom, upgradeCheck, startUpgrade, tierOf, nextTier, zoneCells } from './tiers.js';
-import { isFull } from './storage.js';
+import { placedRoom, upgradeCheck, startUpgrade, tierOf, nextTier, zoneCells, cellCap } from './tiers.js';
+import { isFull, storageCap } from './storage.js';
 import { workerCount } from './people.js';
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
@@ -53,7 +53,16 @@ export function createGovernor({ state, data, world, economy, construction, zone
       s.report.next = 'Food falling, need workers';
     }
     // 2. housing full and food not falling: a house
-    if (residents(s) >= s.housing && s.gov.falling === 0) return suggest(s, 'house', 'House: no free housing');
+    if (residents(s) >= s.housing && s.gov.falling === 0) {
+      // Economy pass 2 fix (Tim 2026-11-05): at the tier's housing cell cap the limit is the hall, not free land.
+      const zk = zoneKind(s, 'house'), char = zk && data.zones.kinds[zk]?.char;
+      if (char && zoneCells(s, char) >= cellCap(s, zk, data)) {
+        s.suggestions = s.suggestions.filter(x => x.type !== 'house');
+        s.report.next = 'House: town hall tier limit (upgrade the hall for more housing cells)';
+        return true;
+      }
+      return suggest(s, 'house', 'House: no free housing');
+    }
     const spare = idle >= G.idleNeeded && unfilled === 0;
     // 3. priority produce: the building for the scarcest of timber, stone and goods
     if (s.priority === 'produce' && spare) {
@@ -101,10 +110,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again
     const nBuilt = s.buildings.filter(b => b.stage === 'built').length;
-    gov.falling = nBuilt === gov.nBuilt && s.stock.food < gov.foodLast - EPS ? gov.falling + 1 : 0;
+    // Economy pass 2 fix (Tim 2026-11-05): a full or well stocked store is never "food falling".
+    const foodCap = storageCap(s, data, 'food'), plenty = isFull(s, data, 'food') || (Number.isFinite(foodCap) && s.stock.food >= foodCap * (G.foodPlentyShare ?? 0.5));
+    gov.falling = !plenty && nBuilt === gov.nBuilt && s.stock.food < gov.foodLast - EPS ? gov.falling + 1 : 0;
     gov.nBuilt = nBuilt;
     gov.foodLast = s.stock.food;
-    if(gov.falling===0 && (s.report.rate?.food || 0)>0)s.suggestions=s.suggestions.filter(x=>!(x.type==='farm' && x.reason==='Farm: food falling'));
+    if(gov.falling===0 && (plenty || (s.report.rate?.food || 0)>0))s.suggestions=s.suggestions.filter(x=>!(x.type==='farm' && x.reason==='Farm: food falling'));
     if (++gov.window >= G.budgetWindowReviews) { gov.window = 0; s.budget.spent = 0; }
     s.report.next = '';
     maintain(s);

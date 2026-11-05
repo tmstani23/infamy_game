@@ -50,7 +50,9 @@ const housingMax = K.housing.stages.length;
   const { s, send, econ } = fresh();
   const reach = K.housing.needs.roadReach;
   const roadCell = at(reach + 6, 0), near = at(reach + 6, 1), lonely = at(0, -(reach + 6));
-  assert.equal(send({ action: 'place', kind: 'road', cells: [roadCell] }).ok, true);
+  // roads count only when linked to the hall (Tim 2026-11-05): a line out to roadCell, plus a stray piece by `lonely`
+  assert.equal(send({ action: 'place', kind: 'road', cells: Array.from({ length: reach + 6 }, (_, k) => at(k + 1, 0)) }).ok, true);
+  assert.equal(send({ action: 'place', kind: 'road', cells: [at(2, -(reach + 6))] }).ok, true);
   assert.equal(send({ action: 'zone', kind: 'housing', rect: rectOf(near) }).ok, true);
   assert.equal(send({ action: 'zone', kind: 'housing', rect: rectOf(lonely) }).ok, true);
   const seen = [];

@@ -22,7 +22,11 @@ export function noteArrival(s, data, state) {
 }
 export function noteLevelUp(s, cell, stage, state) {
   (s.fx ||= []).push({ kind: 'level', cell, stage, tick: state?.tick ?? 0 });
-  if (s.fx.length > 12) s.fx.splice(0, s.fx.length - 12);
+  while (s.fx.length > 12) { const i = s.fx.findIndex(f => f.kind !== 'fireworks'); if (i < 0) break; s.fx.splice(i, 1); }
+}
+// a town hall tier-up: fireworks from the hall (Tim 2026-11-05); kept apart from the 12-entry cap
+export function noteTierUp(s, state) {
+  (s.fx ||= []).push({ kind: 'fireworks', tier: s.tier || 1, tick: state?.tick ?? 0 });
 }
 
 export function createArrivals({ state, data }) {
@@ -35,20 +39,23 @@ export function createArrivals({ state, data }) {
     const anchors = enabled ? Object.values(state.entities || {}).filter(e => e.place === 'world' && e.owner && e.type !== 'civilian' && !e.worker && !e.dead) : [];
     const near = p => anchors.some(e => distance(p, [e.x, e.z]) <= (R.spawnRadius || 160));
     for (const s of towns()) {
-      if (s.fx?.length) s.fx = s.fx.filter(f => now - f.tick <= (A.fxTicks || 80));
+      if (s.fx?.length) s.fx = s.fx.filter(f => now - f.tick <= (f.kind === 'fireworks' ? A.fireworksTicks || 400 : A.fxTicks || 80));
       if (!s.arrivals?.length) continue;
       const walking = s.arrivals.filter(a => a.entity).length;
       for (const a of [...s.arrivals]) {
         const home = cellToWorld(s, a.cell), done = () => {
-          if (a.entity && state.entities?.[a.entity]) runtime?.remove(a.entity);
+          const e = a.entity && state.entities?.[a.entity];
+          if (e) runtime?.remove(a.entity);
           s.arrivals.splice(s.arrivals.indexOf(a), 1);
-          (s.fx ||= []).push({ kind: 'arrive', cell: a.cell, tick: now });
+          // the +1 rises where the newcomer actually went in (the path ends beside the house, not in its centre)
+          const at = e ? [e.x, e.z] : home;
+          (s.fx ||= []).push({ kind: 'arrive', cell: a.cell, tick: now, x: at[0], z: at[1] });
         };
         if (!a.entity) {
           if (!enabled || !near(home) || walking >= (A.maxWalkers || 3)) { done(); continue; }
-          // start on the ring edge, on the side facing the house
-          const ang = Math.atan2(home[1] - s.z, home[0] - s.x), r = ringRadius(s, data) * 0.95;
-          const start = runtime.areas.nav.nearestFree?.(s.x + Math.cos(ang) * r, s.z + Math.sin(ang) * r) || [s.x, s.z];
+          // newcomers walk out of the town hall to their house (Tim 2026-11-05), from the hall's side facing it
+          const ang = Math.atan2(home[1] - s.z, home[0] - s.x) || 0, step = (s.grid.cell || 11) * 1.2;
+          const start = runtime.areas.nav.nearestFree?.(s.x + Math.cos(ang) * step, s.z + Math.sin(ang) * step) || [s.x, s.z];
           const path = runtime.areas.nav.workerPath(...start, ...home);
           if (!path?.length) { done(); continue; }
           const models = A.models || ['old_woman'];

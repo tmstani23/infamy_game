@@ -47,7 +47,7 @@ const cellsOut = r => Math.floor(r / cs);
 
 // upgrade: needs people and stock, pays at once, arrives after its ticks, ring and caps grow, alert fires
 {
-  const { state, fr, s, at, send, econ } = fresh({ food: 500, timber: 10, stone: 900, goods: 100, ryo: 900 });
+  const { state, fr, s, at, send, econ } = fresh({ food: 500, timber: 10, stone: 900, goods: 900, ryo: 900 });
   assert.match(send({ action: 'upgradeHall' }).reason, /needs .* timber/);
   fr.world.change('t', 'timber', 890, 'test');
   s.pop = 5; assert.match(upgradeCheck(s, data).reason, /needs \d+ people/); s.pop = 30;

@@ -56,7 +56,7 @@ const SID = 's_frontier_1', CAP = data.storage.caps[0];
   const spotData = { seed: 1, chunkSize: 250, spots: list.map(p => ({ ...p, pieces: [[0, 0, 0]], deposit: null })), byChunk: {} };
   for (const p of spotData.spots) (spotData.byChunk[`c${Math.floor(p.x / 250)}_${Math.floor(p.z / 250)}`] ||= []).push(p.id);
   const state = { tick: 0 }, fr = createFrontier({ state, data: fdata, spotData });
-  fr.world.addTown({ id: 't', name: 'Test', owner: 'p', region: null, x: 1000, z: 1000, pop: 8, stock: { food: 100, timber: 100, stone: 100, ryo: 100 }, buildings: [{ type: 'town_hall', cell: 0 }] });
+  fr.world.addTown({ id: 't', name: 'Test', owner: 'p', region: null, x: 1000, z: 1000, pop: 8, stock: { food: 100, timber: 100, stone: 100, goods: 100, ryo: 100 }, buildings: [{ type: 'town_hall', cell: 0 }] });
   const s = fr.world.settlement('t'), workers = fr.modules.find(m => m.name === 'workers').workers;
   const send = c => { fr.command({ owner: 'p' }, { type: 'frontier', town: 't', ...c }); return state.frontier.receipts.at(-1); };
   const run = n => { for (let i = 0; i < n; i++) { state.tick++; fr.tick(); } };

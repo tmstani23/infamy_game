@@ -18,6 +18,7 @@ export function flowLabel(why, data) {
   if (why === 'train') return 'Training workers';
   if (why === 'upgrade') return 'Town hall upgrade';
   if (why === 'refund') return 'Refunds';
+  if (why === 'market') return 'Market sales';
   if (why === 'upkeep:wages') return 'Worker wages';
   if (why === 'upkeep:goods') return 'Houses want goods';
   if (why === 'upkeep:buildings') return 'Upkeep: buildings';

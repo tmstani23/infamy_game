@@ -44,13 +44,38 @@ export function createZones({ state, data, world,resourceIndex }) {
     return out;
   }
 
-  // A road or gate (or the town hall, when hallIsRoad) within `reach` cells (square ring)
+  // Road and gate cells linked to the town hall (Tim 2026-11-05: stray road bits must not count). A chain of
+  // road/gate cells (diagonals join) has to reach the hall's apron: within roadReserve + 1 cells of its centre.
+  // Cached per grid layout string, so it is recomputed only when roads change.
+  const linkedCache = new WeakMap();
+  function linkedRoads(s) {
+    const { n, use } = s.grid, key = use + '|' + (s.roadReserve || 0);
+    const hit = linkedCache.get(s);
+    if (hit?.key === key) return hit.mask;
+    const mask = new Uint8Array(use.length), hall = centreCell(n), hc = hall % n, hr = (hall - hc) / n, apron = (s.roadReserve || 0) + 1;
+    const road = j => use[j] === 'r' || use[j] === 'g', stack = [];
+    for (let r = Math.max(0, hr - apron); r <= Math.min(n - 1, hr + apron); r++)
+      for (let c = Math.max(0, hc - apron); c <= Math.min(n - 1, hc + apron); c++) { const j = r * n + c; if (road(j)) { mask[j] = 1; stack.push(j); } }
+    while (stack.length) {
+      const j = stack.pop(), c = j % n, r = (j - c) / n;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const rr = r + dr, cc = c + dc, k = rr * n + cc;
+        if (rr < 0 || cc < 0 || rr >= n || cc >= n || mask[k] || !road(k)) continue;
+        mask[k] = 1; stack.push(k);
+      }
+    }
+    linkedCache.set(s, { key, mask });
+    return mask;
+  }
+  // A road or gate (or the town hall, when hallIsRoad) within `reach` cells (square ring); with zones.roadsConnect
+  // the road must be linked to the hall.
   function roadNear(s, i, reach) {
     const { n, use } = s.grid, col = i % n, row = (i - col) / n, hall = centreCell(n);
+    const linked = Z().roadsConnect ? linkedRoads(s) : null;
     for (let r = Math.max(0, row - reach); r <= Math.min(n - 1, row + reach); r++)
       for (let c = Math.max(0, col - reach); c <= Math.min(n - 1, col + reach); c++) {
         const j = r * n + c;
-        if (use[j] === 'r' || use[j] === 'g' || (Z().hallIsRoad && j === hall)) return true;
+        if ((Z().hallIsRoad && j === hall) || ((use[j] === 'r' || use[j] === 'g') && (!linked || linked[j]))) return true;
       }
     return false;
   }
@@ -258,5 +283,5 @@ export function createZones({ state, data, world,resourceIndex }) {
     return zone(s, { kind, cells: picked, by: 'g' });
   }
 
-  return { on, zone, migrate, slots, setWorkers, tick, autoZone, busy, roadNear };
+  return { on, zone, migrate, slots, setWorkers, tick, autoZone, busy, roadNear, linkedRoads };
 }

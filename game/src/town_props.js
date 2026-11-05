@@ -16,12 +16,19 @@ export function drawableTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && Number.isFinite(s.x) && Array.isArray(s.buildings));
 }
 
+// Town hall upgrade phase 1-3 while s.tierUpgrade runs (Tim 2026-11-05: the hall goes through construction stages), else 0
+export function hallPhase(s) {
+  const u = s.tierUpgrade;
+  if (!u) return 0;
+  const frac = 1 - Math.max(0, u.left) / Math.max(1, u.total || u.left);
+  return frac < 1 / 3 ? 1 : frac < 2 / 3 ? 2 : 3;
+}
 // A short string that changes whenever a drawn thing would change (so the renderer only rebuilds then).
 export function townSignature(towns) {
   return JSON.stringify(towns.map(s => [s.id, s.x, s.z,
     s.buildings.map(b => [b.id, b.type, b.cell, b.cells, b.stage]),
-    s.projects.map(p => [p.id, p.type, p.cell, p.cells, p.phase, p.paid, p.progress > 0]), s.grid,
-    Object.entries(s.zones || {}).map(([kind, z]) => [kind, !!z.abandoned])]));
+    s.projects.map(p => [p.id, p.type, p.cell, p.cells, p.phase, p.paid, p.progress > 0, p.progress * 2 >= p.need]), s.grid,
+    Object.entries(s.zones || {}).map(([kind, z]) => [kind, !!z.abandoned]), hallPhase(s)]));
 }
 
 // Local drawing instructions only. No clearing, growth or placement rules run here.
@@ -126,6 +133,12 @@ export function townProps(towns, townArt, townLights = {}) {
     s.buildings.forEach((b, i) => {
       const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i, b.cells);
       if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5 });
+      // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
+      const phase = b.type === 'town_hall' && b.stage === 'built' ? hallPhase(s) : 0;
+      if (phase) {
+        const c = s.grid?.cell || 11, site = townArt._hallUpgrade?.[phase - 1] || ['house_construction_1', 'house_construction_2', 'wall_planks'][phase - 1];
+        for (const [k, dx, dz] of [[0, -0.95, 0.55], [1, 0.95, 0.55], [2, 0, -0.95]]) out.push({ key: `${s.id}:${b.id}:up${phase}:${k}`, art: k === 2 && phase < 3 ? 'wall_planks' : site, x: s.x + ox + dx * c, z: s.z + oz + dz * c });
+      }
       // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
       if (b.stage === 'built') for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
     });
@@ -133,7 +146,9 @@ export function townProps(towns, townArt, townLights = {}) {
     s.projects.forEach((p, i) => {
       const art = townArt[p.type], [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells);
       const x = s.x + ox, z = s.z + oz;
-      if (p.paid && p.progress > 0 && art) out.push({ key: `${s.id}:${p.id}:frame`, art, x, z, opacity: 0.5 });
+      // placed buildings go through the same build phases as zone houses (Tim 2026-11-05): site, then frame, then the building
+      if (p.paid && p.progress > 0 && art) { const half = p.progress * 2 >= p.need, phases = townArt._buildPhases || ['house_construction_1', 'house_construction_2'];
+        out.push({ key: `${s.id}:${p.id}:frame${half ? 2 : 1}`, art: phases[half ? 1 : 0], x, z }); }
       else if (p.phase !== 'clearing') {
         const offsets = p.cells?.map(c => cellOffset(s, c));
         const width = offsets ? Math.max(...offsets.map(p => p[0])) - Math.min(...offsets.map(p => p[0])) + s.grid.cell : 8;

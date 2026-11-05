@@ -102,9 +102,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(s.pop<count*R.personCost)return result('not enough people');
     if(s.pop-count*R.personCost < (data.opening?.reservePeople || 0))return result('keep one townsperson for food and construction');
     if(s.stock.ryo<count*R.cost)return result('cannot afford workers');
+    if((s.stock.goods || 0)<count*(R.goodsCost || 0))return result('not enough goods');
     if(workerCount(s)+count>workerCap(s,data))return result('town hall tier worker limit');
     ensureWorkers(s);
-    world.change(s.id,'ryo',-count*R.cost,'train');world.changePop(s.id,-count*R.personCost,'train');
+    world.change(s.id,'ryo',-count*R.cost,'train');if(R.goodsCost)world.change(s.id,'goods',-count*R.goodsCost,'train');world.changePop(s.id,-count*R.personCost,'train');
     let readyAt=Math.max(state.tick || 0,s.workerTraining.at(-1)?.readyAt || 0);
     for(let i=0;i<count;i++)s.workerTraining.push({id:world.newId('w'),readyAt:readyAt+=R.trainTicks});
     return result();

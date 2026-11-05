@@ -4,7 +4,7 @@
   "cadenceTicks": 20,
   "workers": {
     "_note": "placeholder, Tim to tune (L3.5/L3.6). Costs come from town stock and population when ordered. trainTicks, harvestTicks and clearTicks are sim ticks (20/second); training is sequential at the hall. load is stock per trip; harvested spots take longer to work as their pieces regrow. range is measured from the town hall. spawnRadius is proximity in world units; spawnPerTick bounds new entities globally; pathCacheSize bounds reusable navigation paths. hp and model are civilian stand-ins. logEntries caps saved delivery history per town.",
-    "cost": 10, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 10, "range": 600, "clearTicks": 200, "spawnSearchCells": 3,
+    "cost": 10, "goodsCost": 5, "personCost": 1, "trainTicks": 100, "speed": 4, "harvestTicks": 40, "load": 2.5, "range": 600, "clearTicks": 200, "spawnSearchCells": 3,
     "stuckGiveUp": 3, "rescueReach": 25, "_stuckNote": "Tim 2026-11-05: after stuckGiveUp failed route retries a worker jumps to open ground within rescueReach; if still stuck it reappears at the nearest drop-off, hands in its cargo and goes idle", "spawnRadius": 160, "spawnPerTick": 4, "pathCacheSize": 128, "hp": 60, "model": "laborer", "groups": 4, "panelRows": 6, "retryTicks": 100, "moveSpacing": 1.1, "logEntries": 64,
     "dropoffs": ["town_hall", "storehouse", "lumber_camp", "quarry"],
     "gatherBuildings": ["lumber_camp", "quarry"],
@@ -20,18 +20,19 @@
     "shortBelow": 0.5,
     "clearTicks": 10,
     "hallIsRoad": true,
+    "roadsConnect": true, "_roadsConnectNote": "Tim 2026-11-05: only roads and gates linked to the town hall (a chain of road/gate cells, diagonals join, reaching within roadReserve + 1 cells of the hall) give zones road access",
     "fromBuilding": { "house": "housing", "farm": "farm", "workshop": "work" },
-    "kinds": { "housing": { "char": "h", "coreOnly": true, "stages": ["hut", "house", "large_house"], "needs": { "food": true, "workersPerCell": 0, "roadReach": 3 }, "housing": 2, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 }, "farm": { "char": "f", "coreOnly": false, "cliffMargin": true, "stages": ["field"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "food": 0.03 }, "trait": "soil", "growTicks": 60, "abandonTicks": 40, "governorCells": 4 }, "work": { "char": "k", "coreOnly": true, "stages": ["workshop"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "goods": 0.25 }, "inputs": { "timber": 0.5, "stone": 0.25 }, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 } }
+    "kinds": { "housing": { "char": "h", "coreOnly": true, "stages": ["hut", "house", "large_house"], "needs": { "food": true, "workersPerCell": 0, "roadReach": 3 }, "housing": 2, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 }, "farm": { "char": "f", "coreOnly": false, "cliffMargin": true, "stages": ["field"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "food": 0.03 }, "trait": "soil", "growTicks": 60, "abandonTicks": 40, "governorCells": 4 }, "work": { "char": "k", "coreOnly": true, "stages": ["workshop"], "needs": { "food": false, "workersPerCell": 0.5, "roadReach": 3 }, "output": { "goods": 0.0625 }, "inputs": { "timber": 0.5, "stone": 0.25 }, "growTicks": 60, "abandonTicks": 40, "governorCells": 2 } }
   },
   "resources": ["food", "timber", "stone", "goods", "ryo"],
-  "tiers": { "_note": "Economy balance B3, placeholder, Tim to tune: town hall tiers (tier 1 first, set at founding). ring = build radius in world units from the hall for every zone, town building, wall and gate (roads and work camps may go outside); cells = most zoned cells per zone kind; placed = most of each placed building type (camps counts lumber_camp + quarry together); workers = most workers incl. training; upgrade = what moving UP to this tier costs (pop counts townspeople + workers) and how many economy ticks it takes.",
+  "tiers": { "_costNote": "Tim 2026-11-05: upgrade costs = 90% of the current tier's base storage cap (storage.caps) in timber, stone and goods", "_note": "Economy balance B3, placeholder, Tim to tune: town hall tiers (tier 1 first, set at founding). ring = build radius in world units from the hall for every zone, town building, wall and gate (roads and work camps may go outside); cells = most zoned cells per zone kind; placed = most of each placed building type (camps counts lumber_camp + quarry together); workers = most workers incl. training; upgrade = what moving UP to this tier costs (pop counts townspeople + workers) and how many economy ticks it takes.",
     "camps": ["lumber_camp", "quarry"],
     "list": [
-      { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 4 }, "placed": { "storehouse": 1, "camps": 2, "stockade": 0 }, "workers": 12 },
-      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 12 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1 }, "workers": 35,
-        "upgrade": { "pop": 20, "cost": { "timber": 300, "stone": 150 }, "ticks": 120 } },
-      { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 30 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 2 }, "workers": 90,
-        "upgrade": { "pop": 60, "cost": { "timber": 1200, "stone": 800, "goods": 250 }, "ticks": 300 } }
+      { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 4 }, "placed": { "storehouse": 1, "camps": 2, "stockade": 0, "market": 0 }, "workers": 12 },
+      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 12 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1, "market": 1 }, "workers": 35,
+        "upgrade": { "pop": 20, "cost": { "timber": 900, "stone": 900, "goods": 900 }, "ticks": 120 } },
+      { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 30 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 2, "market": 1 }, "workers": 90,
+        "upgrade": { "pop": 60, "cost": { "timber": 2700, "stone": 2700, "goods": 2700 }, "ticks": 300 } }
     ] },
   "upkeep": { "_note": "Economy balance B5, placeholder, Tim to tune: paid every economy tick. The first freeLevels grown zone levels of a town are free; above that, zones pay their rate per grown level (scaled by the share above the free allowance). Short zone upkeep lowers that zone's health (less output and housing; long shortages abandon it, then it recovers). buildings = per built placed building; lines = per wall (w) / gate (g) cell; workerWage = per worker incl. training (short wages show as waiting). goodsByStage = goods per housing cell at stage 1, 2, 3: housing levels up to stage 2+ only while goods are paid; short goods never lower a level, they cost goodsShortMood of mood.",
     "freeLevels": 12,
@@ -39,9 +40,10 @@
     "buildings": { "storehouse": { "timber": 0.01 }, "stockade": { "stone": 0.02 } },
     "lines": { "w": { "stone": 0.002 }, "g": { "stone": 0.002 } },
     "workerWage": { "ryo": 0.002 },
-    "goodsByStage": [0, 0.002, 0.004],
+    "goodsByStage": [0, 0.006, 0.012],
     "goodsShortMood": 0.9 },
-  "arrivals": { "_note": "Economy balance B7, placeholder, Tim to tune: a new townsperson walks from the edge of the town ring to a house when the player's units are within workers.spawnRadius (else they just arrive). models = civilian looks picked in turn (workers use laborer); speed = units per second; fxTicks = how long the +1 and the level-up scaffold/dust show (sim ticks).", "models": ["old_woman", "merchant", "fisherman", "monk", "geisha", "sailor", "monk2"], "speed": 3, "maxWalkers": 3, "fxTicks": 80 },
+  "arrivals": { "_note": "Economy balance B7, placeholder, Tim to tune: a new townsperson walks out of the town hall to a house (Tim 2026-11-05) when the player's units are within workers.spawnRadius (else they just arrive). models = civilian looks picked in turn (workers use laborer); speed = units per second; fxTicks = how long the +1 and the level-up scaffold/dust show (sim ticks).", "models": ["old_woman", "merchant", "fisherman", "monk", "geisha", "sailor", "monk2"], "speed": 4, "maxWalkers": 3, "fxTicks": 80, "fireworksTicks": 400 },
+  "market": { "_note": "Economy pass 2 D (Tim 2026-11-05): a built market sells goods above the town's keep level (setMarketKeep; default keep) at price ryo per goods, at most perTick goods each economy tick", "keep": 400, "price": 1, "perTick": 1, "keepMax": 100000 },
   "storage": { "_note": "Economy balance B2, placeholder, Tim to tune: most of each resource a town can hold. caps = by town hall tier (tier 1 first); each built storehouse adds perStorehouse; uncapped resources have no limit. Stock already above the cap stays but cannot grow; workers on a full resource wait (status Store full).", "caps": [1000, 3000, 8000], "perStorehouse": 500, "uncapped": ["ryo"] },
   "rates": {
     "food": 0.01,
@@ -52,7 +54,7 @@
     "_buildersNote": "placeholder, Tim to tune: most workers that can build one project at once",
     "foodShortTicks": 30,
     "_foodShortNote": "placeholder, Tim to tune: food is 'short' when stock covers fewer than this many economy ticks of eating; short food fills farm jobs first",
-    "tax": { "low": 0.02, "normal": 0.05, "high": 0.09 },
+    "tax": { "low": 0.02, "normal": 0.05, "high": 0.09 }, "idleTaxShare": 0.5, "_idleTaxNote": "Tim 2026-11-05: idle townsfolk pay this share of tax; employed pay full",
     "_taxNote": "placeholder, Tim to tune: ryo per person per review (every mood.reviewTicks economy ticks), times mood/100",
     "shipmentSpeed": 3,
     "_shipmentNote": "F0.2: units per second (used from F3)"
@@ -61,6 +63,7 @@
   "governor": {
     "_note": "placeholder, Tim to tune (F2.7)",
     "reviewTicks": 5,
+    "foodPlentyShare": 0.5, "_foodPlentyNote": "Tim 2026-11-05: food at or above this share of its storage cap never counts as falling (no farm suggestion)",
     "maxSuggestions": 3,
     "idleNeeded": 2,
     "foodFallingReviews": 3,
@@ -108,12 +111,13 @@
     "workshop": "blacksmith",
     "storehouse": "handcart",
     "stockade": "watch_post",
+    "market": "market_stall",
     "zone:h": "townhouse",
     "zone:f": "haystack",
     "zone:k": "blacksmith",
     "_zones": {
       "_note": "placeholder, Tim to tune (L3.7): cutouts by zone growth stage; one farmhouse per houseEvery cells. zoned = art on a zoned cell at stage 0 (housing: building site 1; stage 1 is site 2, then house, large house); abandoned = ruin art for an abandoned kind (farms keep the grey tint).",
-      "h": { "kind": "housing", "zoned": "house_construction_1", "stages": ["house_construction_2", "townhouse", "tenements"], "abandoned": "abandoned_housing" },
+      "h": { "kind": "housing", "zoned": "house_construction_1", "stages": ["house_construction_2", "tenements", "townhouse"], "abandoned": "abandoned_housing" },
       "f": { "kind": "farm", "stages": ["thatched_hut"], "field": true, "houseEvery": 6 },
       "k": { "kind": "work", "stages": ["blacksmith"], "abandoned": "abandoned_workshop" }
     },
@@ -141,7 +145,7 @@
   },
   "townLights": {
     "_note": "E5 placeholder, Tim to tune: stone lanterns (data/art.json) set beside each finished building of this type, how many (max 2). They glow at night. Houses, the town hall and the stockade already have lit windows in their art.",
-    "art": "stone_lantern", "town_hall": 2, "house": 1, "farm": 1, "lumber_camp": 1, "quarry": 1, "workshop": 1, "storehouse": 1, "stockade": 2,
+    "art": "stone_lantern", "town_hall": 2, "house": 1, "farm": 1, "lumber_camp": 1, "quarry": 1, "workshop": 1, "storehouse": 1, "stockade": 2, "market": 1,
     "automatic": { "_note": "placeholder, Tim to tune: decorative lights at regular developed grid corners; no cost, collision or build-cell use", "art": "lantern_post", "spacingCells": 2, "radius": 18 }
   },
   "founding": {
@@ -149,6 +153,7 @@
     "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1600, "botSiteRadius": 30,
     "placementRange": 60, "unitClearance": 1, "_placementNote": "placeholder, Tim to tune: hall placement reach from hero and unit escape clearance in world units",
     "startStock": { "food": 60, "timber": 40, "stone": 10, "goods": 10, "ryo": 20 },
+    "startWorkers": 2, "_startWorkersNote": "Tim 2026-11-05: free workers with every new town (on top of the settlers), in case there are no goods to train one",
     "startBuildings": ["town_hall"],
     "townHall": "town_hall", "firstProject": null,
     "traits": {
@@ -161,15 +166,17 @@
       "waterNear": [300, 700]
     }
   },
+  "_buildingCostNote": "Tim 2026-11-05: placed building costs (storehouse, camps, stockade, market) doubled in economy pass 2",
   "buildings": {
     "town_hall": { "cost": { "timber": 30 }, "jobs": 0, "housing": 6, "buildTicks": 1, "tier": 1, "_note": "E3 placeholder, Tim to tune: tier 1 town hall, built at founding (F6.1 grows it); houses the first settlers" },
     "house": { "size": 1, "coreOnly": true, "cost": { "timber": 15 }, "jobs": 0, "housing": 6, "buildTicks": 30, "_note": "F0.2: housing 6, cost 15 timber; buildTicks placeholder, Tim to tune" },
     "farm": { "size": 2, "cost": { "timber": 20 }, "jobs": 4, "housing": 0, "output": { "food": 0.03 }, "buildTicks": 40, "_note": "F0.2: 0.03 food per worker per tick; cost and jobs placeholder, Tim to tune" },
-    "lumber_camp": { "size": 1, "cost": { "timber": 15 }, "jobs": 4, "housing": 0, "output": { "timber": 0.02 }, "buildTicks": 40, "_note": "F0.2: 0.02 timber per worker per tick; cost and jobs placeholder, Tim to tune" },
-    "quarry": { "size": 2, "cost": { "timber": 25 }, "jobs": 4, "housing": 0, "output": { "stone": 0.015 }, "buildTicks": 50, "_note": "F0.2: 0.015 stone per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "lumber_camp": { "size": 1, "cost": { "timber": 30, "goods": 40 }, "jobs": 4, "housing": 0, "output": { "timber": 0.02 }, "buildTicks": 40, "_note": "F0.2: 0.02 timber per worker per tick; cost and jobs placeholder, Tim to tune" },
+    "quarry": { "size": 2, "cost": { "timber": 50, "goods": 40 }, "jobs": 4, "housing": 0, "output": { "stone": 0.015 }, "buildTicks": 50, "_note": "F0.2: 0.015 stone per worker per tick; cost and jobs placeholder, Tim to tune" },
     "workshop": { "size": 2, "coreOnly": true, "cost": { "timber": 25, "stone": 5 }, "jobs": 2, "housing": 0, "recipe": { "in": { "timber": 1, "stone": 0.5 }, "out": { "goods": 1 }, "everyTicks": 2 }, "buildTicks": 50, "_note": "F0.2: 1 timber + 0.5 stone into 1 goods every 40 sim ticks (2 economy ticks) with 2 workers; cost placeholder, Tim to tune" },
-    "storehouse": { "size": 1, "cost": { "timber": 20 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
-    "stockade": { "size": 1, "cost": { "timber": 40 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "placeholder, Tim to tune; defence rules come with F6/F7" }
+    "storehouse": { "size": 1, "cost": { "timber": 40, "goods": 40 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
+    "stockade": { "size": 1, "cost": { "timber": 80 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "placeholder, Tim to tune; defence rules come with F6/F7" },
+    "market": { "size": 1, "coreOnly": true, "cost": { "timber": 160, "stone": 80 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "Economy pass 2 D (Tim 2026-11-05): Village tier, 1 per town; sells goods above the town keep level for ryo (see market)" }
   },
   "regions": {
     "capital":    { "name": "The Capital", "_note": "the existing port city" },

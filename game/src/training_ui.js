@@ -12,8 +12,8 @@ export function workerTrainingHTML(s,tick,data) {
     + `<div class="hint">${queue.length-1} more queued · all complete in ${Math.max(0,(queue.at(-1).readyAt-tick)/20).toFixed(1)}s</div>`;
 }
 export function workerTrainingPreview(s,count,data) {
-  const cost={ryo:count*data.workers.cost},people=count*data.workers.personCost,reserve=data.opening?.reservePeople || 0;
+  const cost={ryo:count*data.workers.cost,...(data.workers.goodsCost?{goods:count*data.workers.goodsCost}:{})},people=count*data.workers.personCost,reserve=data.opening?.reservePeople || 0;
   const cap=workerCap(s,data),have=workerCount(s);
-  const reason=!Number.isSafeInteger(count) || count<1?'Invalid training quantity':have+count>cap?`Town hall tier worker limit: ${have} / ${cap}`:s.pop<people+reserve?`Need ${people} people plus ${reserve} reserved; have ${s.pop}`:(s.stock.ryo || 0)<cost.ryo?'Not enough ryo':'';
+  const reason=!Number.isSafeInteger(count) || count<1?'Invalid training quantity':have+count>cap?`Town hall tier worker limit: ${have} / ${cap}`:s.pop<people+reserve?`Need ${people} people plus ${reserve} reserved; have ${s.pop}`:(s.stock.ryo || 0)<cost.ryo?'Not enough ryo':(s.stock.goods || 0)<(cost.goods || 0)?'Not enough goods':'';
   return {ok:!reason,reason,cost,people,cells:[]};
 }

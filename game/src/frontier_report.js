@@ -30,7 +30,7 @@ export const TIPS = {
   tax: 'Ryo per person. Higher taxes bring more ryo but lower mood. Auto lets the governor pick.',
   initiative: 'Off: the governor only suggests, you approve. On: he builds suggestions within his budget by himself.',
   suggestions: 'Ideas from the governor. Nothing is built until you approve.',
-  jobs: 'Workers in each building. Idle people have no job; free jobs have no worker.'
+  jobs: 'Workers in each building. Idle people have no job; free jobs have no worker.\nIdle townsfolk pay half tax; give them work (zones, buildings) to collect full tax.'
 };
 const dir = (now, then) => then === undefined || Math.abs(now - then) < 0.05 ? 'flat' : now > then ? 'up' : 'down';
 // What a "Waiting for <resource>" chip can say: how full it is and how long it will take (frontier E5 polish, Tim 2026-11-04).
@@ -68,7 +68,7 @@ export function reportRows(s, prev) {
     stock,
     pop: { pop: residents(s), housing: s.housing, text: `${s.pop} townsfolk + ${workerCount(s)} workers / ${Math.floor(s.housing)} beds`, growth: r.growth?.text || '', goodsWait: (r.waiting || []).includes('goods for housing'), fill: s.housing ? Math.min(1, residents(s) / s.housing) : 0 },
     jobs, jobsTip: TIPS.jobs, idle: r.idle || 0, unfilled: r.unfilled || 0,
-    jobsText: `Jobs ${jobs.reduce((n, j) => n + j.workers, 0)} filled · ${r.unfilled || 0} free · ${r.idle || 0} idle`,
+    jobsText: `Jobs ${jobs.reduce((n, j) => n + j.workers, 0)} filled · ${r.unfilled || 0} free · ${r.idle || 0} idle${r.idle ? ' (half tax)' : ''}`,
     doing: r.doing || '', next: r.next || '', waiting, waitingInfo: (r.waiting || []).map(w => waitInfo(s, w)),
     projects, suggestions, suggestionsTip: TIPS.suggestions,
     steer: { priority: s.priority, tax: s.taxLevel, taxLocked: !!s.taxLocked, autoBuild: !!s.autoBuild, tips: { focus: TIPS.focus, tax: TIPS.tax, initiative: TIPS.initiative } }

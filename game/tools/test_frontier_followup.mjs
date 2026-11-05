@@ -14,7 +14,7 @@ data.workers.trainTicks=2; data.workers.speed=20; data.workers.harvestTicks=1;
 const spots={seed:1,chunkSize:250,spots:[{id:'timber',kind:'timber',x:1100,z:1000,pieces:[[0,0,0]]}],byChunk:{c4_4:['timber']}};
 const state={tick:0,entities:{h:{id:'h',owner:'p',type:'hero',place:'world',x:1000,z:1000}},match:{mode:'campaign'}};
 const fr=createFrontier({state,data,spotData:spots});
-fr.world.addTown({id:'t',name:'Test town',owner:'p',x:1000,z:1000,pop:6,stock:{food:60,timber:40,ryo:20},buildings:[{type:'town_hall',cell:0}],roadReserve:1});
+fr.world.addTown({id:'t',name:'Test town',owner:'p',x:1000,z:1000,pop:6,stock:{food:60,timber:40,goods:20,ryo:20},buildings:[{type:'town_hall',cell:0}],roadReserve:1});
 const s=fr.world.settlement('t'),c=centreCell(s.grid.n),at=(x,z)=>c+x+z*s.grid.n;
 const command=c=>{fr.command({owner:'p'}, {town:'t',...c});return state.frontier.receipts.at(-1);};
 assert.match(command({action:'zone',kind:'housing',cells:[at(1,0)]}).reason,/reserved/);

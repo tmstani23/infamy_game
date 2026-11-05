@@ -106,6 +106,11 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += '<div class="lab">Steer</div>';
       h += `<div class="row"><span${tip(st.tips.focus)}>Focus</span><span>${['grow', 'produce', 'trade', 'fortify'].map(p => b('priority', p, p[0].toUpperCase() + p.slice(1), st.priority === p)).join(' ')}</span></div>`;
       h += `<div class="row"><span${tip(st.tips.tax)}>Taxes</span><span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p)).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked)}</span></div>`;
+      // Economy pass 2 D: market keep level (players and bots share setMarketKeep)
+      if (data?.market && s.buildings?.some(x => x.type === 'market' && x.stage === 'built')) {
+        const keep = s.marketKeep ?? data.market.keep, step = 100;
+        h += `<div class="row"><span${tip(`Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}>Market keeps <b>${keep}</b> goods</span><span>${b('keep', Math.max(0, keep - step), '−' + step, false)} ${b('keep', keep + step, '+' + step, false)}</span></div>`;
+      }
       h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild)} ${b('auto', 'on', 'On', st.autoBuild)}</span></div>`;
     }
     let paged = null;
@@ -150,6 +155,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'tax': cmd({ action: 'setTax', settlement: sid, level: id }); break;
       case 'auto': cmd({ action: 'setAutoBuild', settlement: sid, on: id === 'on' }); break;
       case 'upgrade': cmd({ action: 'upgradeHall', settlement: sid }); break;   // B3
+      case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
     }
     lastHtml = ''; render(); b.blur?.();
   });

@@ -19,7 +19,7 @@ export function townCellTip(s, cell, data) {
   else lines.push('State: finished');
   if (entry) {
     lines.push(`Zone state: ${zone?.abandoned ? 'abandoned' : 'active'} · health ${Math.round((zone?.health ?? 1) * 100)}%`);
-    if (!createZones({ data }).roadNear(s, cell, def.needs?.roadReach)) lines.push('Needs road to grow');
+    if (!createZones({ data }).roadNear(s, cell, def.needs?.roadReach)) lines.push(`\u0002No road linked to the town hall within ${def.needs?.roadReach} cells: will not grow`);
     if(def.needs?.food && (s.foodShortage || (s.stock.food || 0)<data.rates.food*residents(s)))lines.push(`Needs food: ${Number((data.rates.food*residents(s)).toFixed(2))} per economy tick for ${s.pop} people`);
     if(def.needs?.workersPerCell && (zone?.workers || 0)<(zone?.wanted || 0))lines.push(`Needs townspeople: ${zone?.workers || 0} / ${zone?.wanted || 0} zone jobs filled; trained gatherers are separate`);
     if(def.housing) {   // B7: who lives here and what the next level needs
@@ -34,6 +34,12 @@ export function townCellTip(s, cell, data) {
     if(Number(g.stage[cell])<def.stages.length)lines.push(`Growth: ${s.zoneGrow?.[cell] || 0} / ${def.growTicks} healthy economy ticks`);
     if(zone?.abandoned)lines.push('Recovery: restore food/workers to raise zone health; road access is required for growth');
   } else lines.push('Zone state: not zoned');
+  if (!entry && !b && !p && 'rg'.includes(g.use[cell]) && data.zones?.roadsConnect) {   // Tim 2026-11-05: linked roads only
+    const reach = Object.values(data.zones.kinds).find(k => k.needs?.roadReach)?.needs.roadReach ?? 3;
+    lines.push(createZones({ data }).linkedRoads(s)[cell]
+      ? `\u0001Linked to the town hall: zones within ${reach} cells can grow`
+      : `\u0002Not linked to the town hall: zones near it get no road access. Join it to the hall with more road or gate cells.`);
+  }
   const details=BUILD_DETAILS[b?.type || p?.type];if(details)lines.push(...details);
   return { title: townName(b?.type || p?.type || kind || ({ r: 'road', w: 'wall', g: 'gate' }[g.use[cell]])), lines, hall: b?.type === 'town_hall' && b.stage === 'built' };
 }

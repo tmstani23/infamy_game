@@ -39,7 +39,8 @@ function setup(state = { tick: 0 }) {
 
 // progress follows the number of builders; with no spare workers it waits
 {
-  const { s, con, step } = setup();
+  const { s, con, step, world } = setup();
+  world.change(SID, 'goods', 100, 'test'); world.change(SID, 'timber', 100, 'test');   // economy pass 2: camps cost goods, doubled costs
   con.authorize(con.queue(SID, 'quarry'));
   step(2);   // pays on tick 1; builders are assigned from tick 2 on
   const p = s.projects[0];

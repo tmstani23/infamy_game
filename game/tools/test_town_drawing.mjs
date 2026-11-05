@@ -26,7 +26,7 @@ assert.deepEqual(view.settlements.t.grid, grid, 'the replica gets complete autho
 assert.equal(view.settlements.enemy, undefined, 'unknown rival towns stay hidden');
 assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stages cross the snapshot boundary');
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
-assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'townhouse', 'tenements']);
+assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'tenements', 'townhouse']);
 // Housing build phases and ruins (Tim 2026-11-05): zoned stage 0 shows site 1, stage 1 site 2; abandoned swaps in ruin art
 const pre = townCellsToProps({ ...grid, zone: 'hhhh.' + grid.zone.slice(5), stage: '12300' + grid.stage.slice(5) }, art, town.zones);
 assert.equal(pre.find(p => p.key.startsWith('3:zone:'))?.art, 'house_construction_1', 'zoned housing cell shows the first building site');
@@ -68,7 +68,9 @@ buildingTown.projects[0].phase = 'cleared';
 const footprint = townProps([buildingTown], art).find(p => p.key === 't:build:dirt');
 assert.deepEqual([footprint.x, footprint.z, footprint.width, footprint.height], [94.5, 94.5, 22, 22], 'large projects cover their actual footprint');
 buildingTown.projects[0].paid = true; buildingTown.projects[0].progress = 1;
-assert.ok(townProps([buildingTown], art).some(p => p.key === 't:build:frame' && p.opacity === 0.5));
+assert.ok(townProps([buildingTown], art).some(p => p.key === 't:build:frame1' && p.art === 'house_construction_1'), 'placed buildings show build site 1 first');
+buildingTown.projects[0].need = 10; buildingTown.projects[0].progress = 10;
+assert.ok(townProps([buildingTown], art).some(p => p.key === 't:build:frame2' && p.art === 'house_construction_2'), 'then the frame');
 
 const pieces = spotPiecesToProps(spot, view.spots.sp1, catalog.spotArt, art._spots);
 assert.deepEqual(pieces.map(p => p.art), ['pine_tree', 'snow_stump', 'pine_tree']);

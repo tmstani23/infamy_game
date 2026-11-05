@@ -126,7 +126,8 @@ const crew = (s, kind) => s.buildings.filter(b => b.type === kind).reduce((n, b)
   step(5);
   const entry = state.frontier.ledger.filter(l => l.reason === 'tax').at(-1);
   assert.ok(entry, 'taxes collected at the review');
-  assert.ok(Math.abs(entry.delta - data.rates.tax.normal * 8 * s.mood / 100) < 1e-9, 'tax = rate x pop x mood/100');
+  const idle = Math.min(s.pop, s.report.idle || 0);   // economy pass 2 C: idle townsfolk pay idleTaxShare
+  assert.ok(Math.abs(entry.delta - data.rates.tax.normal * (8 - idle + idle * data.rates.idleTaxShare) * s.mood / 100) < 1e-9, 'tax = rate x (employed + idle x share) x mood/100');
   step(300);
   assert.ok(s.mood > 70, `mood ${s.mood}`);
 }

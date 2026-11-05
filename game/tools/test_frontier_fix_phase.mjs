@@ -16,9 +16,9 @@ const put=(text,i,ch)=>text.slice(0,i)+ch+text.slice(i+1);
 for(const i of cells){s.grid.zone=put(s.grid.zone,i,'k');s.grid.stage=put(s.grid.stage,i,'1');}
 fr.tick();
 const usage=resourceUsage(s,'timber',data),actual=state.frontier.ledger.filter(e=>e.settlement===s.id && e.resource==='timber' && e.reason==='work zone').reduce((v,e)=>v-e.delta,0);
-assert.equal(usage.entries.length,6);assert.equal(usage.consumption,.75);assert.equal(usage.demand,.75);assert.equal(usage.consumption,actual,'usage totals match actual debits, without double counting');
+assert.equal(usage.entries.length,6);const want=6*data.zones.kinds.work.output.goods*data.zones.kinds.work.inputs.timber;assert.ok(Math.abs(usage.consumption-want)<1e-9);assert.ok(Math.abs(usage.demand-want)<1e-9);assert.equal(usage.consumption,actual,'usage totals match actual debits, without double counting');
 s.zones.work.output=0;
-assert.equal(resourceUsage(s,'timber',data).consumption,0);assert.equal(resourceUsage(s,'timber',data).demand,.75,'shortage still explains required supply');
+assert.equal(resourceUsage(s,'timber',data).consumption,0);assert.ok(Math.abs(resourceUsage(s,'timber',data).demand-want)<1e-9,'shortage still explains required supply');
 s.projects.push({id:'cost',type:'quarry',cell:C+20,cost:{timber:25},authorized:true,paid:false});
 assert.equal(resourceUsage(s,'timber',data).pending,25,'one-time construction is separate from ongoing use');
 const path=Array.from({length:1000},(_,i)=>[3000+i/10,3000]);

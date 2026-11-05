@@ -37,7 +37,7 @@ export function startUpgrade(s, data, world) {
   const r = upgradeCheck(s, data);
   if (!r.ok) return r;
   for (const [res, v] of Object.entries(r.cost)) world.change(s.id, res, -v, 'upgrade');
-  s.tierUpgrade = { to: (s.tier || 1) + 1, left: r.ticks };
+  s.tierUpgrade = { to: (s.tier || 1) + 1, left: r.ticks, total: r.ticks };
   return r;
 }
 // One economy tick of a running upgrade; true on the tick the new tier arrives.

@@ -112,6 +112,8 @@ export function createFounding({ state, data, world, removeUnit, resourceIndex }
       buildings: (D.startBuildings || [D.townHall]).map((type, i) => ({ type, stage: 'built', cell: i })),
     });
     ensureGrid(town, wd, data);   // L3.1: the town grid, water and mountain cells marked x; the hall takes the centre
+    // Economy pass 2 (Tim 2026-11-05): new towns start with free workers, ready on the next tick.
+    town.workerTraining = [...(town.workerTraining || []), ...Array.from({ length: D.startWorkers || 0 }, () => ({ id: w.newId('w'), readyAt: state.tick || 0 }))];
     w.payFounding(clan, D.cost, town.id);
     for (const u of settlers) removeUnit(u.id);
     if (D.firstProject) construction.queue(id, D.firstProject);

@@ -1,5 +1,5 @@
 // Frontier economy (frontier plan F2.4, F2.5, F2.5b): production, food, jobs, growth, mood and taxes.
-// createEconomy({ state, data, world }) -> { run, econTick, assignJobs, hit, setTax, setAutoTax }.
+// createEconomy({ state, data, world }) -> { run, econTick, assignJobs, hit, setTax, setAutoTax, setMarketKeep }.
 // Runs once per economy tick for every non-capital settlement. Every stock change goes through
 // world.change (the one door), every pop change through world.changePop, always with a reason.
 // No randomness: the same start always gives the same result. Nobody dies; unhappy people leave.
@@ -8,7 +8,7 @@
 import { residents } from './people.js';
 import { isFull, storageCap } from './storage.js';
 import { upgradeTick } from './tiers.js';
-import { noteArrival } from './arrivals.js';
+import { noteArrival, noteTierUp } from './arrivals.js';
 import { foldFlow } from './flow.js';
 const EPS = 1e-9;
 
@@ -172,7 +172,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
       taxes:`Taxes: ${s.taxLevel}. Tax mood factor: ${M.taxFactor[s.taxLevel]} / 100. Normal status starts at 70. ${Object.entries(M.taxFactor).filter(([,v])=>v>=70).map(([k,v])=>`${k}: ${v}`).join('; ')}.`,
       builders:`Builders: ${s.builders || 0}. Need at least 1 available townsperson; ${s.report.idle || 0} currently idle.`,
       'population growth surplus':`Population growth needs a positive food surplus across its growth period. Current food: ${round(s.stock.food)}; comparison stock: ${round(s.growthFood0)}; net change: ${round(rate)} per second.`,
-      'needs road':`Road access is missing for ${Object.values(s.zones || {}).reduce((n,z)=>n+(z.noRoad || 0),0)} zoned cells. Add a nearby road or gate.`
+      'needs road':`Road access is missing for ${Object.values(s.zones || {}).reduce((n,z)=>n+(z.noRoad || 0),0)} zoned cells. Zones grow only with a road or gate within ${data.zones?.kinds?.housing?.needs?.roadReach ?? 3} cells that links back to the town hall through other road or gate cells.`
     };
     const worst = Object.entries(s.moodFactors).filter(([, v]) => v < 70).sort((a, b) => a[1] - b[1]).slice(0, 3);
     s.report.moodWhy = worst.map(([k, v]) => { const [text, hint] = WHY[k](v); return { factor: k, text, hint, tip:s.report.statusTips[k]+'\n'+hint }; });
@@ -182,7 +182,9 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   // safety recover a little.
   function review(s) {
     factors(s);
-    const tax = rates.tax[s.taxLevel] * s.pop * (s.mood / 100);
+    // Economy pass 2 C (Tim 2026-11-05): employed townsfolk pay full tax, idle ones pay idleTaxShare.
+    const idle = Math.min(s.pop, s.report?.idle || 0), share = rates.idleTaxShare ?? 1;
+    const tax = rates.tax[s.taxLevel] * (s.pop - idle + idle * share) * (s.mood / 100);
     if (tax > 0) world.change(s.id, 'ryo', tax, 'tax');
     if (s.mood < M.declineBelow) {
       s.lowReviews++;
@@ -214,7 +216,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   function econTick(s) {
     init(s);
     s.report.waiting = [];
-    if (upgradeTick(s)) s.tierUpAt = f().econTick;   // B3: town hall upgrade finished (alerts announce it)
+    if (upgradeTick(s)) { s.tierUpAt = f().econTick; noteTierUp(s, state); }   // B3: town hall upgrade finished (alerts announce it)
     // B2: caps for the town panel (null = no cap); derived each economy tick, never read back by rules.
     s.storageCaps = Object.fromEntries(data.resources.map(r => { const c = storageCap(s, data, r); return [r, Number.isFinite(c) ? c : null]; }));
     if (zones?.on(s)) zones.migrate(s);   // L3.3: old house/farm/workshop buildings become zones
@@ -224,6 +226,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     if (zones?.on(s)) zones.tick(s);      // L3.3: zone health, growth, output and housing
     forage(s);
     eat(s);
+    market(s);
     // net stock change per second from production and eating (not spending), for the town panel's "how long" hints
     const secs = (data.cadenceTicks || 20) / 20;
     const gathered=s.workerIncome || {};
@@ -235,10 +238,24 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     if (f().econTick % M.reviewTicks === 0) review(s);
   }
 
+  // Economy pass 2 D (Tim 2026-11-05): a built market sells goods above the keep level for ryo.
+  function market(s) {
+    const mk = data.market;
+    if (!mk || !s.buildings.some(b => b.type === 'market' && b.stage === 'built')) return;
+    const keep = s.marketKeep ?? mk.keep, sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
+    if (sell <= EPS) return;
+    world.change(s.id, 'goods', -sell, 'market');
+    world.change(s.id, 'ryo', sell * mk.price, 'market');
+  }
+  function setMarketKeep(sid, keep) {
+    const s = world.settlement(sid); init(s);
+    s.marketKeep = keep; return true;
+  }
+
   // called by the frontier hub each economy tick
   function run() {
     for (const s of Object.values(f().settlements)) if (!s.capital) econTick(s);
   }
 
-  return { econTick, run, assignJobs, hit, setTax, setAutoTax };
+  return { econTick, run, assignJobs, hit, setTax, setAutoTax, setMarketKeep };
 }

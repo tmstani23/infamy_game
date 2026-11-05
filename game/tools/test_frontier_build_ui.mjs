@@ -11,7 +11,7 @@ const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.met
 const spotRules = JSON.parse(readFileSync(new URL('../data/resource_spots.json', import.meta.url)));
 const state = { tick: 0, entities: { h: { id: 'h', type: 'hero', owner: 'player', place: 'world' } } };
 const fr = createFrontier({ state, data });
-fr.world.addTown({ id:'t', name:'Town', owner:'player', x:3000, z:3000, pop:6, stock:{food:80,timber:500,stone:30,ryo:80}, buildings:[{type:'town_hall',cell:0}] });
+fr.world.addTown({ id:'t', name:'Town', owner:'player', x:3000, z:3000, pop:6, stock:{food:80,timber:500,stone:30,goods:50,ryo:80}, buildings:[{type:'town_hall',cell:0}] });
 void fr.world;
 const s = state.frontier.settlements.t, C = centreCell(s.grid.n), n = s.grid.n;
 const at = (x,z) => C + z*n + x;
@@ -25,7 +25,7 @@ assert.equal(buildPreview(snapshot,request('road',at(3,3)),data).ok,true);
 assert.equal(buildPreview(snapshot,request('road',C),data).reason,'occupied');
 assert.equal(buildPreview(snapshot,request('quarry',n-1),data).reason,'outside grid');
 assert.equal(buildPreview(snapshot,request('housing',at(40,0)),data).reason,'outside the town ring');
-assert.match(buildPreview(snapshot,request('farm',at(8,8)),data).warning,/Needs road/);
+assert.match(buildPreview(snapshot,request('farm',at(8,8)),data).warning,/Needs a road linked to the town hall/);
 assert.equal(buildPreview(snapshot,request('eraser',C),data).reason,'town hall');
 assert.equal(JSON.stringify(snapshot),before,'queries accept frozen snapshots and never write');
 const ring = [];

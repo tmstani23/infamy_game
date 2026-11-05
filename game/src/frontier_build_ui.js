@@ -12,7 +12,7 @@ import {workerDetails,workerPresentation} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
 import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
-import { cellCap, zoneCells } from './sim/frontier/tiers.js';
+import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
 import { residents } from './sim/frontier/people.js';
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -48,7 +48,7 @@ export function buildPreview(s, request, data, {state,resourceIndex}={}) {
     : request.action === 'remove' ? placement.remove(s, {...request,dryRun:true}) : placement.check(s, request);
   if (result.ok && request.action === 'zone') {
     const reach = data.zones.kinds[request.kind].needs?.roadReach;
-    if (result.cells.some(i => !zones.roadNear(s, i, reach))) return { ...result, warning: 'Needs road to grow' };
+    if (result.cells.some(i => !zones.roadNear(s, i, reach))) return { ...result, warning: 'Needs a road linked to the town hall within ' + reach + ' cells to grow' };
   }
   if (result.ok && request.action === 'place' && data.buildings[request.kind]) {
     const short = Object.entries(result.cost).some(([r, n]) => (s.stock[r] || 0) < n);
@@ -147,7 +147,15 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function requestDrop() {
     cancel();pendingPlan={drop:towns().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
   }
-  const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost},data.workers.personCost)
+  // Tim 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
+  function hallUpgradeButton(s) {
+    const next = nextTier(s, data);
+    if (s.tierUpgrade) return `<div class="hint">Upgrading to ${esc(next?.name || '')}… ${Math.max(0, s.tierUpgrade.left)}s</div>`;
+    if (!next?.upgrade) return '';
+    const chk = upgradeCheck(s, data), cost = Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people`;
+    return `<button data-upgrade="${esc(s.id)}"${chk.ok ? '' : ' class="no"'} title="${esc(`Upgrade the town hall to ${next.name}: ${cost}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}">Upgrade to ${esc(next.name)}</button>`;
+  }
+  const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost,...(data.workers.goodsCost?{goods:data.workers.goodsCost}:{})},data.workers.personCost)
     + `\nTrains a selectable worker for harvesting and ground clearing.\nRequires a finished town hall. Training: ${data.workers.trainTicks / 20} seconds. Keep ${data.opening?.reservePeople || 0} townsperson for food/building.\nTechnology: none.\nEnables manual move, stop, group and resource orders.`;
   function showInspection() {
     if(!inspect && selected.length===1 && outdoors() && !blocked()) {
@@ -174,7 +182,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!info) { card.hidden = true; return; }
     const html = `<button data-close aria-label="Close inspection">×</button><b>${esc(info.title)}</b>`
       + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
-      + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo, ${data.workers.personCost} person</button><div data-worker-training></div>` : '');
+      + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
     if (inspectionHtml !== html && !inspectionPressed) { card.innerHTML = html; inspectionHtml = html; }
     const training=card.querySelector?.('[data-worker-training]');
@@ -187,6 +195,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if(b?.hasAttribute('data-return'))orderSelected('return');
     if(b?.hasAttribute('data-drop'))requestDrop();
     if (b?.dataset.train) requestTraining(b.dataset.train);
+    if (b?.dataset.upgrade) command({ action: 'upgradeHall', settlement: b.dataset.upgrade });
     if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }
     if (b?.hasAttribute('data-close')) { inspect = null; selected=[]; card.hidden = true; }
   });
@@ -302,6 +311,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       for (let c = Math.max(0,Math.min(...cols)-1); c <= Math.min(n-1,Math.max(...cols)+1); c++) out.push(r*n+c);
     return out;
   }
+  let roadZones = null;   // road-link query for the overlay (cached per road layout)
   function update() {
     for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) {
       seen = r.seq;
@@ -351,6 +361,38 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
           status = needsGoods ? '#c58cff' : residents(s) >= s.housing ? '#f4f0e0' : '#7be08a';
         }
         polygon(ctx,s,i,color + '30',status || color);
+      }
+      // Tim 2026-11-05: a warning icon over each group of road/gate cells not linked to the town hall
+      if (data.zones.roadsConnect) {
+        const linked = (roadZones ||= createZones({ data })).linkedRoads(s), n = s.grid.n, use = s.grid.use, seen = new Uint8Array(use.length), road = j => use[j] === 'r' || use[j] === 'g';
+        for (let i0 = 0; i0 < use.length; i0++) {
+          if (!road(i0) || linked[i0] || seen[i0]) continue;
+          const group = [i0], stack = [i0]; seen[i0] = 1;
+          while (stack.length) { const j = stack.pop(), c = j % n, r = (j - c) / n;
+            for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const rr = r + dr, cc = c + dc, k = rr * n + cc;
+              if (rr >= 0 && cc >= 0 && rr < n && cc < n && !seen[k] && road(k) && !linked[k]) { seen[k] = 1; stack.push(k); group.push(k); } } }
+          for (const j of group) polygon(ctx, s, j, 'rgba(255,150,60,.28)', '#ff9a3c');
+          // the icon sits over the group's middle cell
+          const mid = group.reduce((m, j) => { const [x, z] = cellToWorld(s, j); return [m[0] + x / group.length, m[1] + z / group.length]; }, [0, 0]);
+          const at = group.map(j => [j, ...cellToWorld(s, j)]).sort((a, b) => Math.hypot(a[1] - mid[0], a[2] - mid[1]) - Math.hypot(b[1] - mid[0], b[2] - mid[1]))[0];
+          const u = view.unitToScreen(at[1], at[2], s.grid.cell * 0.15);
+          if (u.x < -20 || u.y < -20 || u.x > innerWidth + 20 || u.y > innerHeight + 20) continue;
+          ctx.save(); ctx.fillStyle = '#ffb347'; ctx.strokeStyle = 'rgba(40,24,10,.9)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(u.x, u.y - 13); ctx.lineTo(u.x + 12, u.y + 8); ctx.lineTo(u.x - 12, u.y + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#2a1a0a'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', u.x, u.y + 6); ctx.restore();
+          // hover note (Tim 2026-11-05): over the icon or any cell of the unlinked road
+          if (mouse && (Math.hypot(mouse.x - u.x, mouse.y - u.y) < 18 || group.includes(cellAt(mouse.x, mouse.y, s)))) {
+            const lines = ['Road not connected', 'Roads must connect through other roads or gates', 'to the town hall. Zones near this road cannot grow.'];
+            ctx.save(); ctx.font = '13px sans-serif';
+            const w = Math.max(...lines.map(l => ctx.measureText?.(l)?.width ?? l.length * 7)) + 20, h = lines.length * 17 + 12;
+            const x = Math.min(innerWidth - w - 8, mouse.x + 16), y = Math.max(8, mouse.y - h - 12);
+            ctx.fillStyle = 'rgba(18,16,14,.94)'; ctx.strokeStyle = '#ff9a3c'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 6) : ctx.rect(x, y, w, h); ctx.fill(); ctx.stroke();
+            ctx.textAlign = 'left';
+            lines.forEach((l, k) => { ctx.fillStyle = k ? '#efe3c4' : '#ffb347'; ctx.font = k ? '13px sans-serif' : 'bold 13px sans-serif'; ctx.fillText(l, x + 10, y + 20 + k * 17); });
+            ctx.restore();
+          }
+        }
       }
       // B3: the town hall tier's build ring (everything but roads and work camps goes inside it)
       { const R = ringRadius(s,data), pts = [];
@@ -409,7 +451,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (opened ? `<div class="buildtools">${['road','wall','gate','housing','farm','work','eraser'].map(t => button(t,townName(t))).join('')}`
         + Object.entries(data.buildings).filter(([k,v]) => v.size && !data.zones.fromBuilding[k]).map(([k]) => button(k,townName(k))).join('')
         + `</div><div class="hint">Drag, release, review requirements, then Confirm or Cancel. Right click / Esc cancels.<br>Zone previews match their buttons; amber border = short, red border = abandoned.</div>` : '')
-      + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
+      + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
       + workerTrainingHTML(s,game.state.tick,data)
       + `<div class="hint">${guide}<br>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. The hall is a drop-off; a lumber camp is optional.</div>`
       + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';

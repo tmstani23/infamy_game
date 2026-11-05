@@ -36,7 +36,7 @@ assert.equal(JSON.stringify(state), before, 'reading writes nothing');
   assert.deepEqual(rows.waiting, ['Waiting for food']);
   assert.equal(rows.doing, 'Building a farm');
   assert.equal(rows.jobs[0].label, 'Farm'); assert.equal(rows.jobs[0].workers, 4);
-  assert.equal(rows.jobsText, 'Jobs 4 filled · 2 free · 1 idle');
+  assert.equal(rows.jobsText, 'Jobs 4 filled · 2 free · 1 idle (half tax)');
   assert.equal(rows.projects[0].status, '60% built'); assert.equal(rows.projects[0].canAuthorize, false);
   assert.equal(rows.projects[1].status, 'Needs your OK'); assert.equal(rows.projects[1].canAuthorize, true);
   assert.equal(rows.suggestions[0].index, 0);
