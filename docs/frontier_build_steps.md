@@ -466,7 +466,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
 - [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
-- [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [ ] C2 · [ ] C3 · [x] C4 · [ ] C5 (after F3) · [ ] C6 playtest
+- [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [x] C2 · [x] C3 · [x] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [x] E1 rules (updated 2026-11-05) · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [x] E6 · [x] E6b · [ ] E7 playtest
 - [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
@@ -1840,6 +1840,7 @@ raided business refuses a new raid for the cooldown; an away boss's HQ never cha
 bounties don't fire in campaign mode; spending never exceeds the budget; with "defend only" he never starts a
 Shakedown; an all-bot comparison shows his win rate against a rival bot is close to even.
 Done note: "C2 lieutenant in (bot brain with standing orders)."
+**Built 2026-11-05 (campaign checkpoint 3), with changes:** C2 lieutenant in (`sim/lieutenant.js`). Every clan (player and bots) gets a lieutenant while its boss is on the island. It sends normal commands tagged `by: 'lieutenant'`, and the sim refuses any outside the standing orders or over the daily budget (300 ryo placeholder). It never moves the boss, never sells and never touches frontier towns. Differences from this card: defend, shakedown, sweep and ambush use the same deployment brain the bots use, plus a **city captain** (`city_captain`, 450 hp, not crew) who appears in the HQ when the boss leaves and stands down when he returns, instead of a full `createBot` run; retake only buys back a business the clan once held that is free again (a business a rival took needs a raid, not built). Campaign pacing: a raided business can't be raided again for 3 days; leader bounties are off in campaign. Not done: the all-bot win-rate comparison and big-event callouts (F4.4c) for log entries. Numbers in `settings.json` `campaignCity`.
 
 ### C3. Standing orders in Deployment  [SMALL]
 Needs: C2
@@ -1851,6 +1852,7 @@ use the F4.4c callouts.
 Check (pass/fail): the command validates owner and values; a rejected command changes nothing; the
 log keeps the last 20 entries.
 Done note: "C3 standing orders panel in (controls.md line needed)."
+**Built 2026-11-05 (campaign checkpoint 3):** C3 standing orders panel in (Deployment → While I'm away; controls.md row added).
 
 ### C4. Influence  [SMALL]
 Needs: C1

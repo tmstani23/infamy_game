@@ -19,6 +19,7 @@ import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
 import { createLandOfficeMenu } from './land_office_menu.js';
 import { createSiteMenu } from './site_menu.js';
+import { createLieutenantPanel } from './lieutenant_panel.js';
 import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
@@ -295,6 +296,7 @@ async function start() {
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
     onOpen: id => gameMap.dock(true, id), onClose: () => { gameMap.dock(false); gameMap.close(); }, onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
+  const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
   const unstuck = () => { const h = game.state.entities[heroId], no = h?.unstuck ? null : game.unstuck.why(h); if (no) callout(no, 'loss'); else pending.push({ id: heroId, type: 'unstuck' }); };
@@ -620,6 +622,7 @@ async function start() {
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();
+      lieutenantPanel.update();
       topBar.update();
       crewInput.update();
       selPanel.update();

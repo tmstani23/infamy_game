@@ -38,7 +38,7 @@ export function createClans(state, units, opts = {}) {
   }
 
   // Crew a clan has now (everything it owns except its hero and its house guards)
-  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && e.type !== 'settler' && !e.guard);
+  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && e.type !== 'settler' && !e.guard && !e.captain);   // the city captain (C2) is not crew
   // settlers (frontier E2) are not crew: no cap, no deployment, no clinic
   const settlersOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type === 'settler' && !e.dead);
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
@@ -80,7 +80,7 @@ export function createClans(state, units, opts = {}) {
   // arrives at the teahouse door when the timer runs out. Returns the message shown.
   function hire(hero, businessId, type, count = 1) {
     const clan = state.clans[hero.owner], b = state.businesses[businessId];
-    if (!clan || hero.type !== 'hero') return null;
+    if (!clan || (hero.type !== 'hero' && !hero.captain)) return null;   // C2: the city captain hires while the boss is away
     // in a teahouse (the Shinobi clan: the village dojo), or (slower) in your own hideout
     const home = b?.kind === 'hideout' && b.owner === clan.id;
     // Settlers are hired at the Land Office door (E1, Tim 2026-11-05), and only there

@@ -58,6 +58,7 @@ import { createDiscovery } from './discovery.js';
 import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
 import { createInfluence } from './influence/influence.js';
+import { createLieutenantRules } from './lieutenant.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -711,8 +712,10 @@ export function createGame(options) {
     return (patrolCache[b.room] = out);
   };
   const roomOfBusiness = b => rooms.find(r => r.name === b.room) || null;
-  const businesses = clans ? createBusinesses({ state, units, clans, onRaidPlaced: clan => rally.raidPlaced(clan), payoutShare: id => police?.payoutShare(id) ?? 1, tierOf: id => police?.tierOf(id) ?? 0,
+  const businesses = clans ? createBusinesses({ state, units, clans, campaignCity: options.settings?.campaignCity, onRaidPlaced: clan => rally.raidPlaced(clan), payoutShare: id => police?.payoutShare(id) ?? 1, tierOf: id => police?.tierOf(id) ?? 0,
     spawn, guardSpots, patrolSpots, roomOf: roomOfBusiness, remove: removeUnit, payoutBonus: territory.payoutBonus, addHeatGain: (clan, amount, reason) => state.heatGains.push({ clan, amount, reason }) }) : null;
+  // C2/C3: the lieutenant's standing orders, budget, log and the city captain (campaign only, sim/lieutenant.js)
+  const lieutenant = clans ? createLieutenantRules({ state, rules: options.settings?.campaignCity?.lieutenant, units, clans, doors, spawn, removeUnit: id => removeUnit(id), businesses }) : null;
   // Shinobi contracts (sim/contracts.js): the back room is the floor spot furthest from the way in, as for raids
   const backRoomOf = b => {
     const room = b && roomOfBusiness(b);
@@ -787,6 +790,9 @@ export function createGame(options) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
       const e = state.entities[c.id];
       if (!e) continue;
+      // C2: a lieutenant's command runs only inside its standing orders and budget (sim/lieutenant.js)
+      if (c.by === 'lieutenant' && !lieutenant?.gate(e, c).ok) continue;
+      if (c.type === 'lieutenant') { lieutenant?.command(e, c); continue; }
       itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
       if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;
@@ -886,6 +892,7 @@ export function createGame(options) {
     kuroda.tick();
     unstuck.tick();
     clans?.tick(DT, spawnOutside);
+    lieutenant?.tick();   // C2: the city captain takes charge / stands down
     influence.tick();   // C4: campaign Influence, after this tick's dawn (no-op in Classic)
     syncCrewAttacks();
     shakedown.tick();
@@ -1090,5 +1097,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, lieutenant, dayTicks };
 }

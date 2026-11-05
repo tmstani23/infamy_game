@@ -72,6 +72,11 @@
     "quarterBonus": 0.25,
     "intruderAlertSeconds": 30
   },
+  "campaignCity": {
+    "_note": "C2 (Tim 2026-11-02), campaign only, placeholders to tune. raidCooldownDays: a raided business can't be raided again for this many days. An HQ can be hit but never changes owner (already true). Leader bounties are off in campaign. lieutenant: budget = ryo a day he may spend (hiring, buying back), maxBudget = slider top, logEntries = log length, captain = the unit type that takes charge at the HQ while the boss is away.",
+    "raidCooldownDays": 3,
+    "lieutenant": { "budget": 300, "maxBudget": 2000, "logEntries": 20, "captain": "city_captain" }
+  },
   "influence": {
     "_note": "C4 (Tim 2026-11-05), campaign only, placeholders to tune. Influence = Renown + perBusinessDay for each business held at every dawn + perGoodSold for each good a town Market sells. Every tier raises Market export prices by exportBonusPerTier and cuts import prices by importDiscountPerTier (imports take effect once F3 shipments exist); tiers with unlock 'permit' allow one more founded town (2nd and 3rd). Renown itself is unchanged.",
     "perBusinessDay": 10, "perGoodSold": 0.05, "exportBonusPerTier": 0.1, "importDiscountPerTier": 0.05,

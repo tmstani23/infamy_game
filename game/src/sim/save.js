@@ -1,3 +1,5 @@
+import { createLieutenantBrain } from './lieutenant.js';
+import { modeRules } from './modes/index.js';
 // Save and load (frontier plan F1). A save is plain JSON: the whole game.state plus the
 // "private" closure state that modules keep outside it (rng seeds, AI memory, path caches).
 // Modules opt in with saveState() / loadState(data); see to_delete/_chk/save_audit.md.
@@ -71,7 +73,12 @@ function merge(old, v) {
 // --- bots (they run beside the game, in the worker runtime) ----------------------------
 // rivals: setupMatch's list { clan, hero, kind, rules, seed }; kept on each bot as `config`.
 export function makeBots(game, rivals) {
-  return rivals.map(r => Object.assign((r.kind === 'ninja' ? createNinjaBot : createBot)(game, r), { config: r }));
+  const lieutenant = clan => Object.assign(createLieutenantBrain(game, { clan }), { config: { lieutenant: true, clan } });
+  const list = rivals.map(r => r.lieutenant ? lieutenant(r.clan) : Object.assign((r.kind === 'ninja' ? createNinjaBot : createBot)(game, r), { config: r }));
+  // C2: one lieutenant brain per clan in a campaign (player and bots); older saves get theirs appended
+  if (game.lieutenant && modeRules(game.state).campaignCity)
+    for (const clan of Object.keys(game.state.clans)) if (!list.some(b => b.config?.lieutenant && b.config.clan === clan)) list.push(lieutenant(clan));
+  return list;
 }
 
 // The player's hero id (a loaded game keeps its saved ids)
@@ -92,6 +99,6 @@ export function loadSave(game, save) {
   patch(game.state, decode(save.state));
   game.loadState?.(priv.game);
   const bots = makeBots(game, (priv.bots || []).map(b => b.config));
-  bots.forEach((b, i) => b.loadState?.(priv.bots[i].state));
+  bots.forEach((b, i) => b.loadState?.(priv.bots?.[i]?.state));   // lieutenants appended for older saves have no saved state
   return bots;
 }

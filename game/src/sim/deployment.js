@@ -40,7 +40,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     sectors: geometry.sectors, village: geometry.village, clans: {} };
   const D = state.deployment, sectorIds = D.sectors.map(s => s.id);
   const localNavs = new Map();
-  const crew = e => !!e && !!state.clans?.[e.owner] && e.type !== 'hero' && e.type !== 'civilian' && e.type !== 'settler'
+  const crew = e => !!e && !!state.clans?.[e.owner] && e.type !== 'hero' && e.type !== 'civilian' && e.type !== 'settler' && !e.captain
     && !e.guard && !e.cop && !e.wild;
   const active = e => crew(e) && !e.dead && !e.jailed;
   const validGroup = id => id === 'home' || id === 'hero' || sectorIds.includes(id);

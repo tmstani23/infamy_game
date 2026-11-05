@@ -1,3 +1,4 @@
+import { modeRules } from './modes/index.js';
 // Ganging up on the leader (phase 6, Tim 2026-10-29). The leader: the clan (Shinobi too) with the top season
 // score, at least leadMargin points ahead of the next. Bounties go only to property clans (the Shinobi have their
 // own bonuses already): raiding the leader's business, a Shakedown on it, and when the Shinobi lead, raiding their
@@ -33,6 +34,7 @@ export function createLeader({ state, standings = () => [], rules = {} }) {
   }
   // news: last tick's big moments (sim/game.js passes them before clearing)
   function tick(news = []) {
+    if (modeRules(state).campaignCity) return;   // C2: no leader gang-up bounties in a campaign
     const l = leader();
     if (!l) return;
     for (const n of news) {

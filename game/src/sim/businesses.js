@@ -8,13 +8,14 @@ import { POLICE } from './police.js';
 import { canInteract, interactionActor } from './interactions.js';
 import { debitRyo } from './treasury.js';
 import { isShinobiHQ } from './hq_raids.js';
+import { modeRules } from './modes/index.js';
 import {isRallyParticipant} from './deployment_rally.js';
 import { noticeFor, secs } from './util.js';
 // Players and bots alike send [{ id, type: 'business', action: 'buy', business }] from a hero
 // standing at the business's door ring. Prices and payouts: units.json rules.businesses
 // (data/settings.json "businesses" lays over them).
 // guardSpots(b) = where its guards stand ([{ x, z, place }]); spawn = the game's spawn
-export function createBusinesses({ state, units, clans, payoutShare = () => 1, tierOf = () => 0, spawn = null, guardSpots = () => [], patrolSpots = () => [],
+export function createBusinesses({ state, units, clans, campaignCity = null, payoutShare = () => 1, tierOf = () => 0, spawn = null, guardSpots = () => [], patrolSpots = () => [],
   roomOf = () => null, remove = null, addHeatGain = () => {}, payoutBonus = () => 1, onRaidPlaced = () => {} }) {
   const R = units?.rules?.businesses || {}, reach = units?.rules?.buyReach ?? 2.5;
   const G = units?.rules?.houseGuards || {}, guardCount = G.count ?? 0;
@@ -83,6 +84,9 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
       return { ok: false, why: burning ? `HQ burning: contracts reopen in ${Math.ceil((recovery.suppressedUntil - state.tick) / 20)} s`
         : `HQ protected for ${Math.ceil((recovery.protectedUntil - state.tick) / 20)} s` };
     }
+    // C2 campaign pacing: a raided business can't be raided again for raidCooldownDays
+    const cooldown = modeRules(state).campaignCity ? campaignCity?.raidCooldownDays ?? 0 : 0;
+    if (cooldown && b.raidedDay != null && (state.clock?.day ?? 1) - b.raidedDay < cooldown) return { ok: false, why: `Raided lately: safe for ${cooldown - ((state.clock?.day ?? 1) - b.raidedDay)} more day(s)` };
     if (!state.night) return { ok: false, why: 'Raid at night' };
     if (clan && state.raidsTonight?.[clan.id]?.includes(b.owner)) return { ok: false, why: `Already raided ${state.clans[b.owner]?.name || 'them'} tonight` };   // once per rival per night (Tim 2026-10-30)
     if (!able(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot raid now' };
@@ -161,6 +165,7 @@ export function createBusinesses({ state, units, clans, payoutShare = () => 1, t
         || { x: room.spawn.x, z: room.spawn.z };
       // the lantern stands beside the door ring, on the other side from the owner's banner
       const ox = b.ring[0] - b.x, oz = b.ring[1] - b.z, len = Math.hypot(ox, oz) || 1;
+      if (modeRules(state).campaignCity) b.raidedDay = state.clock?.day ?? 1;   // C2: raid cooldown in a campaign
       state.attacks[b.id] = { mode: 'raid', ...(isShinobiHQ(state, b) ? { hq: true } : {}), business: b.id, kind: b.kind, room: room.name, clan: clan.id, defender: b.owner, hero: leader(clan.id).id,
         phase: 'warmup', opensAt: state.tick + secs(RD.warmupSeconds), warmupTotal: secs(RD.warmupSeconds), away: 0, lantern: { x: b.ring[0] + oz / len * 1.6, z: b.ring[1] - ox / len * 1.6 },
         hold: { x: far.x, z: far.z, r: RD.holdRadius }, holdLeft: secs(RD.holdSeconds), holdTotal: secs(RD.holdSeconds), holding: false };

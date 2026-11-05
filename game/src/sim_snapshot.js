@@ -59,6 +59,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
     if (st.influence) roots.influence = { [clan]: st.influence[clan] || null };   // C4: own Influence only
+    if (st.lieutenants) roots.lieutenants = { [clan]: st.lieutenants[clan] || null };   // C3: own standing orders and log only
     if (st.frontier) {
       if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position)); frontierAt = st.tick; }
       roots.frontier = frontierView;
