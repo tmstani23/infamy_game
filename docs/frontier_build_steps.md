@@ -453,6 +453,8 @@ Tick a box (`[x]`) only when the step's check passes. A phase box is ticked afte
 Tim's "g2g". This list is the single source of where the build is; after any compaction or new
 session, read it before doing anything else.
 
+**Campaign loop checkpoints (Tim, 2026-11-05):** finish the campaign loop in 4 checkpoints, one fresh Sonnet thread each (Opus only for C2): (1) founding: Land Office permit, Choose-site menu, E6 bot expeditions, E6b remove the test starter towns; (2) C4 Influence (Campaign only; Classic unchanged); (3) C2 lieutenant + C3 standing orders; (4) C6 + E7 playtest. C5 still waits for F3. Economy balancing continues alongside playtests.
+
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
@@ -464,9 +466,9 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
 - [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
-- [ ] **C** City in campaign: [ ] C1 rules · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
-- [ ] **E** Founding: [ ] E1 rules · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E6b · [ ] E7 playtest
-- [ ] **B** Economy balance: [ ] B0 soak test · [ ] B1 workers eat and need a bed · [ ] B2 storage caps · [ ] B3 hall tiers and ring · [ ] B4 founding spacing · [ ] B5 upkeep and goods needs · [ ] B6 tune · [ ] B7 growth readable
+- [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 (after F3) · [ ] C6 playtest
+- [ ] **E** Founding: [x] E1 rules (updated 2026-11-05) · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [ ] E6 · [ ] E6b · [ ] E7 playtest
+- [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
 - [ ] **F6** Armies: [ ] 6.1 choices · [ ] 6.2 · [ ] 6.3a · [ ] 6.3b · [ ] 6.3c · [ ] 6.4 · [ ] 6.5 · [ ] 6.6 · [ ] 6.7 playtest · [ ] 6.8 second slice
@@ -1811,6 +1813,7 @@ through owned businesses (more and bigger businesses = better prices); Shakedown
 contracts hit the target clan's city income and trade prices; the lieutenant's standing orders and
 budget; what winning the campaign means (proposed: top Influence plus key businesses plus a share of
 the island; can stay open until the campaign-rules phase).
+**Decided (Tim, 2026-11-05):** Renown stays and is earned exactly as in Classic; it is not converted or spent. Influence = Renown + businesses held per day + frontier trade. Unlocks for now: 2nd and 3rd town permits; cheaper imports (towns buying goods in; takes effect once F3 shipments exist); better export prices (each Influence tier raises what town Markets get per good sold, placeholder +10% per tier in data; Market base price is 1 ryo today). Police leniency is dropped. Elite recruits (enforcer, archer, rifleman) move to the warfare phase (F6). The win condition stays open until the campaign-rules phase. The existing C2 and C3 cards are approved as written (Tim: "good on all").
 
 ### C2. The lieutenant is the bot brain  [STRONG]
 Needs: C1, F1
@@ -1853,8 +1856,9 @@ Done note: "C3 standing orders panel in (controls.md line needed)."
 Needs: C1
 Files: new `game/src/sim/influence.js`, `game/src/sim/territory.js` (campaign mode only),
 `game/data/settings.json` (`influence` block), new `game/tools/test_influence.mjs`.
-Do: in campaign mode, the season score becomes Influence, a running total per clan from businesses
-held, Renown and frontier trade volume, with unlock thresholds from data. Classic mode is unchanged.
+Do (updated Tim, 2026-11-05): in campaign mode, Influence is a running total per clan = Renown + businesses
+held per day + frontier trade volume; Renown itself is unchanged. Unlock thresholds come from data (2nd and 3rd
+town permits, import discount, Market export bonus per tier). Classic mode is unchanged.
 Check (pass/fail): Classic matches today's season tests exactly; in campaign mode Influence rises
 with the listed sources and unlocks fire once per threshold.
 Done note: "C4 Influence in (campaign mode)."
@@ -1887,20 +1891,19 @@ found a town there.
 Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/clans.js` (hire function only).
 
 ### E1. Expedition rules  [TIM]
-**Decided (Tim, 2026-11-02):** an expedition is the hero, up to one crew group of 6, at least 5
-settlers and optional riflemen. Settlers cost 60 ryo each (placeholder), are hired at HQ in campaign
-mode only and don't count against the crew cap. Founding costs 500 ryo (placeholder), paid at
-founding. More towns can be founded later, each with a new expedition. ~~Founding is allowed only on a
-scouted site (one of the ~60 W1 sites).~~ **Updated (Tim, 2026-11-02):** the player can found a town
-anywhere buildable, at least 1,600 units from other towns (Tim, 2026-11-05, B4; 1,000 until B4 is built); the 60 sites are hint spots with known
-traits. Bots found only on the 60 sites. Traits are computed for any spot from the terrain. Losses on the way: a settler who dies is gone for good; if
-the hero is knocked out, he wakes in the city and the rest of the party walks home.
+**Decided (Tim, 2026-11-05; replaces the 2026-11-02 party rules):**
+- **Land Office:** the unused `telegraph_office` building in the capital becomes the Land Office. There the player buys a founding permit and hires settlers (moved from HQ). Hired settlers appear outside the Land Office and show as their own group in the crew menu. Settlers cost 60 ryo each (placeholder), campaign mode only, and don't count against the crew cap.
+- **Permit requirements (player):** placeholders in data: 250 Renown, 8 crew, 3 businesses held; meant as a late-game city unlock on a first playthrough. The founding cost (500 ryo, paid at founding) stays.
+- **Party:** only the hero and the settlers (at least 5) leave to found. Crew stay in the city (the lieutenant uses them); the crew and riflemen escort is removed.
+- **Leaving the city:** going through the island gate with a permit and settlers in the group opens a **Choose site** menu: open sites with their traits, plus **Walk out** (explore on foot first). Choosing a site places the hero and settlers there; from there they may walk anywhere and found at any buildable spot at least 1,600 units from other towns (B4). The 60 sites are hint spots with known traits; traits are computed for any spot from the terrain. More towns can be founded later, each with a new permit.
+- **Camps:** camps never attack towns (already true in `sim/camps.js`; keep it for now). A newly founded town gets a 2-day grace in which camp bandits leave it alone. The site menu warns when a camp is close.
+- **Unchanged:** a settler who dies is gone for good; if the hero is knocked out, the hero wakes in the city and the settlers walk home.
 
 ### E2. Settler unit  [SMALL]
 Needs: E1
 Files: `game/data/units.json` (settler type), `game/data/art.json` (reuse a civilian sheet first; any
 new character uses the per-model sprite flow), `game/src/hire_menu.js`, new `game/tools/test_settler.mjs`.
-Do: a non-fighting settler unit hired at HQ in campaign mode only. Settlers follow the hero like
+Do: a non-fighting settler unit hired at HQ in campaign mode only (moves to the Land Office, E1 2026-11-05). Settlers follow the hero like
 crew, flee from fights, and don't count against the crew cap (E1).
 Check (pass/fail): hiring a settler costs the set price; settlers can't be hired in Classic mode;
 they never attack.
@@ -1945,11 +1948,9 @@ Done note: "E5 towns in the world."
 ### E6. Bot expeditions  [SMALL]
 Needs: E3
 Files: `game/src/sim/bot.js` (one new rule group), `game/data/bots.json`, new `game/tools/test_bot_founding.mjs`.
-Do: in campaign mode, a bot clan hires settlers and sends an expedition, led by its boss (same rule
-as C2: rival bosses leave for the frontier), to the best-scoring free site (traits plus distance),
-using the same commands as the player. It respects difficulty settings.
+Do (updated Tim, 2026-11-05): in campaign mode, a bot clan hires settlers and uses the same Choose-site command as the player (it appears at the site, no long walk). Bots start only after the player founds their first town and once they can afford the permit; they have no Renown, crew or business requirement (the player may be holding them down). Fallback: if the player hasn't founded by about day 30 (data), bots go anyway. Site pick: score sites (traits plus distance) plus a seeded random roll per game, and pick among the top few. Clan taste: Kuroda passes and high ground, Yakuza coast and trade, Shinobi forest. A site is claimed when chosen, so no two clans pick the same one; departures are spread a few days apart. Same commands as the player; respects difficulty settings.
 Check (pass/fail): an all-bot Node run founds one bot town by the set day; the bot never issues a
-rejected `found`.
+rejected `found`; no two clans claim the same site.
 Done note: "E6 bot expeditions in."
 
 ### E6b. Remove the test starter towns from real games  [SMALL]
