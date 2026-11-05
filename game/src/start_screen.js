@@ -1,4 +1,5 @@
 import { CLAN_CHOICES, DIFFICULTY_CHOICES, MODE_CHOICES, matchOptions } from './sim/match_options.js';
+import { RULE_SETS } from './sim/modes/index.js';
 import { createMenuMusic } from './menu_music.js';
 import { sortSaves, rowText, newest } from './save_menu.js';
 
@@ -60,7 +61,7 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
   function update() {
     const clan = CLAN_CHOICES.find(c => c.id === value('clan'));
     root.querySelector('.start-loadout').textContent = `${startRyo} ryo · 1 ${clan.kind === 'ninja' ? 'ninja' : 'crew member'} · HQ only`;
-    root.querySelector('.start-season').textContent = value('mode') === 'campaign' ? 'Open-ended campaign · two rival clans' : `${cycles}-day season · two rival clans`;
+    root.querySelector('.start-season').textContent = RULE_SETS[value('mode')].seasonEnds ? `${cycles}-day season · two rival clans` : 'Open-ended campaign · two rival clans';
     root.querySelector('.start-mode-note').textContent = MODE_CHOICES.find(m => m.id === value('mode')).about;
     root.querySelector('.start-difficulty-note').textContent = DIFFICULTY_CHOICES.find(d => d.id === value('difficulty')).about;
   }

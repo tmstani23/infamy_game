@@ -21,7 +21,7 @@ for (const choice of CLAN_CHOICES) for (const difficulty of DIFFICULTY_CHOICES) 
   assert.equal(S.entities[heroId].model, choice.model);
   assert.equal(S.clans.player.kind, choice.kind);
   assert.equal(S.clans.player.color, choice.color);
-  assert.deepEqual(S.match, { clan: choice.id, difficulty: difficulty.id });
+  assert.deepEqual(S.match, { clan: choice.id, difficulty: difficulty.id, mode: 'classic' });
   for (const identity of CLAN_CHOICES) {
     const id = identity.id === choice.id ? 'player' : identity.id;
     const owned = Object.values(S.businesses).filter(b => b.owner === id);

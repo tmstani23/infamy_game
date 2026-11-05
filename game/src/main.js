@@ -9,7 +9,7 @@ import { createStealthBadge } from './stealth_badge.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
 import { setupMatch } from './sim/setup_match.js';
-import { loadSave, heroOf } from './sim/save.js';
+import { loadSave, heroOf, decode } from './sim/save.js';
 import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
 import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput } from './input.js';
@@ -94,7 +94,12 @@ async function start() {
   status('Preparing the city…');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world, worldChunks, resourceSpots, resourceSpotRules, frontier: DEV && frontier ? { ...frontier, dev: true } : frontier };   // the worker gets the same options, frontier included
+  // Lean Classic (Tim 2026-11-05): the mode is fixed once here (start screen or the save), and a match
+  // without the island never builds the island, its camps or the frontier, in the sim or the view.
+  const bootFile = selected.loadSave ? await startSaves.read(selected.loadSave) : null;
+  const island = modeRules(bootFile ? decode(bootFile.state) : { match: selected }).island;
+  const islandOnly = v => island ? v : null;
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(DEV && frontier ? { ...frontier, dev: true } : frontier) };   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST };
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -103,7 +108,7 @@ async function start() {
   // Continue / Load from the start screen: the display copy and the worker both boot from the file.
   let saveFile = null, heroId;
   if (selected.loadSave) {
-    saveFile = await startSaves.read(selected.loadSave);
+    saveFile = bootFile;
     loadSave(game, saveFile);   // migrates the file in place; only the display copy uses the result
     heroId = heroOf(game);
     selected.difficulty = game.state.match?.difficulty ?? bots.difficulty;
@@ -119,7 +124,7 @@ async function start() {
   let view;
   try {
     view = await createView({
-      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world, worldChunks, cutouts, resourceSpots, spotConfig: frontier?.townArt?._spots,
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots,
       doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
@@ -372,7 +377,7 @@ async function start() {
     else if ((menu === 'police_box' || menu === 'police_hq') && !policeMenu.isOpen()) policeMenu.toggle(menu);
     else if (menu === 'contracts' && !contractMenu.isOpen()) contractMenu.toggle();
   } });
-  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world, resourceSpots, spotConfig, atlasConfig: worldAtlas, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const minimap = createMinimap({ canvas: $('minimapcanvas'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, atlasConfig: worldAtlas, view, fog, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const mapZoom = factor => {
     const level = minimap.zoomBy(factor);
     $('minimapout').disabled = level <= 1;
@@ -383,7 +388,7 @@ async function start() {
   mapZoom(1);
 
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world, resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
+  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
