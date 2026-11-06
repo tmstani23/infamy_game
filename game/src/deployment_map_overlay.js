@@ -75,7 +75,15 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
     ctx.drawImage(cachedCanvas,0,0,size,size);ctx.restore();
     selection(args);
   }
-  function selection({ ctx, toMap }) {
+  function selection({ ctx, toMap, now = 0 }) {
+    // Goal guide (Tim 2026-11-06): during a Shakedown or Sweep goal, your sectors with crew pulse gold (main.js sets game.goalGuide)
+    const guided = game.goalGuide?.sectors || [];
+    if (guided.length) {
+      const q = (now / 1000) % 1.2 / 1.2;
+      ctx.save(); ctx.strokeStyle = '#ffd34d'; ctx.shadowColor = '#ffd34d'; ctx.shadowBlur = 14; ctx.globalAlpha = .55 + .45 * Math.sin(q * Math.PI * 2); ctx.lineWidth = 4;
+      for (const id of guided) for (const loop of byId.get(id)?.loops || []) { path(ctx, toMap, loop); ctx.closePath(); ctx.stroke(); }
+      ctx.restore();
+    }
     const sector = byId.get(selectedSector());
     if (!sector) return;
     ctx.save();ctx.strokeStyle=sector.color;ctx.shadowColor=sector.color;ctx.shadowBlur=10;

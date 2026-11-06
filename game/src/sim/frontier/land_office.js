@@ -7,8 +7,8 @@ import { siteTraits } from './founding.js';
 //    bots need none of them. One permit at a time; the next founding uses it up.
 //  - Settlers are hired with the normal 'hire' command at the Land Office (sim/clans.js).
 //  - { id, type: 'expedition', action: 'site', site, units } at the island gate: the hero and the settlers
-//    (only settlers: crew stay in the city) appear at a chosen open site. action 'walk' = Walk out:
-//    through the gate on foot, again with settlers only.
+//    (plus the Hero group; other crew stay in the city) appear at a chosen open site. action 'walk' = Walk out:
+//    through the gate on foot, again with the Hero group and settlers.
 // Sites are claimed when chosen, so no two clans pick the same one. A new town has a grace of
 // founding.graceDays in which camp bandits leave its people alone.
 export function createLandOffice({ state, data, worldData, units, clans, doorNear, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base }) {
@@ -38,6 +38,12 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
       { label: 'Businesses held', have: businessesHeld(id), need: Q.businesses || 0 },
       { label: 'Ryo', have: Math.floor(clan.ryo || 0), need: Q.ryo || 0 },
     ].filter(r => r.need > 0 || r.label === 'Renown' || r.label === 'Crew').map(r => ({ ...r, ok: r.have >= r.need }));
+    // Tim 2026-11-06: a 2nd or 3rd permit also needs one of your towns grown to a tier (frontier.json permit.townTier)
+    const wantTier = P.townTier?.[townsOf(id)] || 0;
+    if (!clan.bot && wantTier > 1) {
+      const best = Math.max(0, ...Object.values(fr()?.settlements || {}).filter(s => s.owner === id && s.founded).map(s => s.tier || 1));
+      rows.push({ label: 'Town tier', have: best, need: wantTier, ok: best >= wantTier });
+    }
     let reason = null;
     const towns = clan.bot ? (P.maxTowns ?? 1) : maxTowns(id, P.maxTowns ?? 1);   // C4: Influence unlocks the 2nd and 3rd town
     if (clan.permit) reason = 'You already hold a founding permit';
@@ -97,6 +103,12 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return Object.values(state.entities).filter(u => u.owner === e.owner && u.type === 'settler' && standing(u) && u.place === e.place
       && Math.hypot(u.x - e.x, u.z - e.z) < radius && ((ids || []).includes(u.id) || (u.order?.kind === 'follow' && u.order.target === e.id)));
   }
+  // Tim 2026-11-06: the Hero group goes with the hero as the escort; the rest of the crew stay in the city.
+  // Downed, jailed or clinic crew are not standing, so they stay behind too.
+  function heroCrew(e) {
+    return Object.values(state.entities).filter(u => u.owner === e.owner && u.type !== 'hero' && u.type !== 'settler' && u.type !== 'civilian'
+      && !u.captain && u.deployment?.group === 'hero' && standing(u) && u.place === e.place);
+  }
   // settlers waiting at the HQ (Tim 2026-11-06): they all go with the hero through the gate
   const settlersWaiting = id => state.clans?.[id]?.settlersWaiting || 0;
   // { ok, reason, settlers, waiting, site } for 'expedition' (validation only; game.js moves the party and spawns the waiting)
@@ -106,14 +118,15 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (!on() || !modeRules(state).island) return { ok: false, reason: 'Expeditions leave in campaign games only' };
     if (!atGate(e)) return { ok: false, reason: 'Stand at the island gate' };
     const settlers = partyAtGate(e, c.units), waiting = settlersWaiting(clan.id), n = settlers.length + waiting;
-    if (c.action === 'walk') return { ok: true, settlers, waiting };
+    const crew = heroCrew(e);
+    if (c.action === 'walk') return { ok: true, settlers, waiting, crew };
     if (!clan.permit) return { ok: false, reason: 'Buy a founding permit at the Land Office first' };
     if (n < D.minSettlers) return { ok: false, reason: `Bring at least ${D.minSettlers} settlers (${n} with you)` };
     const si = (worldData?.sites || []).find(s => s.id === c.site);
     if (!si) return { ok: false, reason: 'No such site' };
     const why = siteBlocked(si, clan.id);
     if (why) return { ok: false, reason: why };
-    return { ok: true, settlers, waiting, site: si };
+    return { ok: true, settlers, waiting, crew, site: si };
   }
   function claim(id, siteId) {
     const all = claims();
@@ -170,6 +183,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { office, atOffice, atGate, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, settlersWaiting,
+  return { office, atOffice, atGate, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botBudget, botSite, settlerPrice, day };
 }

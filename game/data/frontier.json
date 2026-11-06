@@ -148,6 +148,8 @@
     "art": "stone_lantern", "town_hall": 2, "house": 1, "farm": 1, "lumber_camp": 1, "quarry": 1, "workshop": 1, "storehouse": 1, "stockade": 2, "market": 1,
     "automatic": { "_note": "placeholder, Tim to tune: decorative lights at regular developed grid corners; no cost, collision or build-cell use", "art": "lantern_post", "spacingCells": 2, "radius": 18 }
   },
+  "goals": { "_note": "Goal card after founding (Tim 2026-11-06, placeholders to tune): Lay out your town (road, housing and farm cells), Put workers to work (workers on a resource spot), Grow to Village (tier 2), Open a Market; holdBusinesses = capital businesses the hold-the-capital row asks for.",
+    "layout": { "road": 3, "housing": 4, "farm": 4 }, "workers": 2, "tier": 2, "holdBusinesses": 6 },
   "founding": {
     "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital (1600 from economy balance B4, Tim 2026-11-05: fewer, bigger towns; 600 rings never overlap); bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
     "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1600, "botSiteRadius": 30,
@@ -159,6 +161,7 @@
     "permit": {
       "_note": "E1 2026-11-05 placeholders, Tim to tune. A founding permit is bought at the Land Office (telegraph_office) and used up by the next founding. Player needs renown, crew and businesses held; bots need none of these (bots: false). ryo = permit price. maxTowns = towns a clan may found for now (C4 Influence raises it for the 2nd and 3rd town).",
       "renown": 250, "crew": 8, "businesses": 3, "ryo": 0, "maxTowns": 1,
+      "townTier": [0, 2, 3], "_townTierNote": "Tim 2026-11-06: the Nth permit also needs one of your towns at this tier (2nd: Village, 3rd: Town); players only, like the other requirements",
       "shinobi": { "_note": "Tim 2026-11-06: Shinobi hold no businesses, so they pay ryo instead", "businesses": 0, "ryo": 1500 }
     },
     "graceDays": 2, "_graceNote": "E1 2026-11-05: camp bandits leave a new town's people alone for this many days (inside graceRadius of the hall)",

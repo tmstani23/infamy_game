@@ -573,8 +573,8 @@ export function createGame(options) {
     const clan = state.clans?.[e.owner], r = landOffice.expeditionCheck(e, c);
     if (!r.ok) { if (clan) clan.notice = { tick: state.tick, text: r.reason }; return; }
     const from = e.place, old = { x: e.x, z: e.z };
-    // crew who were following stay behind in the city and hold where they stand (E1: crew never go)
-    for (const u of Object.values(state.entities)) if (u.owner === e.owner && u.type !== 'settler' && u.type !== 'hero' && u.order?.kind === 'follow' && u.order.target === e.id)
+    // Tim 2026-11-06: the Hero group goes with the hero; crew following from other groups stay in the city
+    for (const u of Object.values(state.entities)) if (u.owner === e.owner && u.type !== 'settler' && u.type !== 'hero' && u.order?.kind === 'follow' && u.order.target === e.id && !r.crew.includes(u))
       u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
     let to = { x: gate.island[0], z: gate.island[1] };
     if (r.site) {
@@ -593,7 +593,7 @@ export function createGame(options) {
       for (let k = 0; k < r.waiting; k++) r.settlers.push(state.entities[spawn('settler', st.sprite, e.x, e.z, { owner: e.owner, hp: st.hp, holdFire: true, place: 'world' })]);
       clan.settlersWaiting = 0;
     }
-    r.settlers.forEach((u, k) => {
+    [...r.settlers, ...r.crew].forEach((u, k) => {
       const [ox, oz] = followOffset(k % 36);
       const [x, z] = grid.nearestFree(e.x + ox * 0.8, e.z + oz * 0.8) || [e.x, e.z];
       Object.assign(u, { x, z, place: 'world', anim: 'idle' });
@@ -601,7 +601,7 @@ export function createGame(options) {
       u.order = { kind: 'follow', target: e.id }; u.order.slot = freeSlot(e.id, u.id);
     });
     areas.update(Object.values(state.entities));
-    if (clan) clan.notice = { tick: state.tick, text: r.site ? `Arrived at site ${r.site.id} with ${r.settlers.length} settlers` : `Out on the island with ${r.settlers.length} settlers` };
+    if (clan) clan.notice = { tick: state.tick, text: r.site ? `Arrived at site ${r.site.id} with ${r.settlers.length} settlers and ${r.crew.length} crew` : `Out on the island with ${r.settlers.length} settlers and ${r.crew.length} crew` };
   }
 
   // The door a unit is standing at, if any
@@ -673,6 +673,7 @@ export function createGame(options) {
   // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, rules: units?.rules, data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
@@ -1047,6 +1048,8 @@ export function createGame(options) {
     vision.tick();
     discovery.tick();
     frontier?.tick();
+    // quest log milestones (campaign only); at the end of the tick so loot, raids and buys made by units this tick count (Tim 2026-11-06)
+    goals.record(state.news, state.casts, state.ryoLosses);
     state.tick++;
   }
 
@@ -1108,5 +1111,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals: createCampaignGoals({ state, clans, landOffice, influence, data: options.frontier || {} }), lieutenant, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, dayTicks };
 }

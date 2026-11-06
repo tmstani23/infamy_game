@@ -39,14 +39,18 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     if(sections.has(id))return sections.get(id);
     const el=document.createElement('section'),head=document.createElement('button'),list=document.createElement('div');
     el.className='crew-section';el.dataset.group=id;head.className='crew-group-select';head.type='button';list.className='crew-group-pips';
-    head.addEventListener('dblclick',()=>watchGroup(id));
+    head.addEventListener('dblclick',()=>{if(id!=='capital')watchGroup(id);});
     head.addEventListener('click',()=>{
+      if(id==='capital'){capitalOpen=!capitalOpen;return;}
       const crew=Object.values(game.state.entities).filter(e=>e.owner===game.state.entities[heroId]?.owner&&e.type!=='hero'&&!e.guard&&!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&key(e)===id);
       crewInput.select(crew.map(e=>e.id));
     });const note=document.createElement('div');note.className='crew-drop-note';el.append(head,list,note);root.appendChild(el);const s={el,head,list,label,note,headKey:''};sections.set(id,s);return s;
   };
-  const key=e=>e.type==='settler'?'settlers':crewCommandGroup(game.state,e);   // E1: settlers are their own group
-  const droppable=id=>id&&id!=='rally'&&id!=='medical'&&id!=='settlers';
+  // Tim 2026-11-06: out on the island the panel shows the Hero group and settlers; crew left in the capital fold into one line
+  const heroOut=()=>game.state.entities[heroId]?.place==='world';
+  const key=e=>e.type==='settler'?'settlers':heroOut()&&e.place!=='world'?'capital':crewCommandGroup(game.state,e);   // E1: settlers are their own group
+  let capitalOpen=false;
+  const droppable=id=>id&&id!=='rally'&&id!=='medical'&&id!=='settlers'&&id!=='capital';
   let dragged=null;
   const showDestinations=()=>{for(const [id,s]of sections)s.el.style.display=dragged&&droppable(id)?'block':s.count?'':'none';};
   root.addEventListener('dragstart',e=>{const id=e.target.closest?.('.mate')?.dataset.id;if(!id||!game.state.entities[id]){e.preventDefault();return;}
@@ -67,7 +71,7 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     send({id:heroId,type:'deployment',action:'transfer',units:ids,to});});
   function update(crew,clinic,jail){
     root.classList.add('grouped');
-    const names={rally:'Rally force',hero:'Hero group',settlers:'Settlers',...Object.fromEntries(game.state.deployment.sectors.map(s=>[s.id,s.name])),home:'HQ reserves'};
+    const names={rally:'Rally force',hero:'Hero group',settlers:'Settlers',capital:'In capital',...Object.fromEntries(game.state.deployment.sectors.map(s=>[s.id,s.name])),home:'HQ reserves'};
     const ordered=[],live=new Set(crew.map(e=>e.id)),selected=new Set(crewInput.selected());
     for(const [id,p]of pips)if(!live.has(id)){p.el.remove();pips.delete(id);}
     const sizes=[0,0,0,0];for(const e of crew){const g=crewInput.groupOf(e.id);if(g)sizes[g-1]++;}
@@ -80,6 +84,7 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       const s=createSection(id,label),chosen=members.filter(e=>selected.has(e.id)).length,partial=chosen>0&&chosen<members.length,headKey=`${label}|${members.length}|${partial?chosen:''}`;s.count=members.length;
       if(s.headKey!==headKey){s.headKey=headKey;s.head.textContent=`${label} · ${members.length}`;if(partial){const b=document.createElement('b');b.textContent=` · ${chosen} selected`;s.head.appendChild(b);}}
       const waiting=id==='home'&&members.some(e=>e.deployment?.awaitingAssignment);s.el.classList.toggle('crew-waiting',!!waiting);if(waiting)s.note.textContent='Crew waiting to be assigned';else if(s.note.textContent==='Crew waiting to be assigned')s.note.textContent='';
+      if(id==='capital'){s.list.style.display=capitalOpen?'':'none';s.head.title='Click to show or hide the crew left in the capital';}
       s.head.setAttribute('aria-pressed',String(chosen>0));s.el.classList.toggle('selected',chosen>0);
       const nodes=members.map(e=>{
         let p=pips.get(e.id);if(!p){const el=document.createElement('div'),name=document.createElement('span'),hp=document.createElement('div'),group=document.createElement('b'),status=document.createElement('small');el.className='mate';el.draggable=true;name.className='name';hp.className='pip';group.className='group';status.className='crew-status';el.append(name,hp,group,status);p={el,name,hp,group,status};pips.set(e.id,p);}

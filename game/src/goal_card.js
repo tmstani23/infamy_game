@@ -3,11 +3,17 @@
 // bar and its count; a finished one stamps gold. When the whole goal is done a "New goal" callout follows.
 // Click the banner to fold or unfold the rows. Hidden outside campaign games.
 const GLYPH = { renown: '名', crew: '人', business: '店', office: '印', settler: '民', ryo: '両', town: '町', influence: '威', gate: '門' };
-const FOLD_KEY = 'infamy.goalCard.folded';
+const FOLD_KEY = 'infamy.goalCard.folded', HIDE_KEY = 'infamy.goalCard.hidden';
 
-export function createGoalCard({ root, game, heroId, callout = () => {}, stamp = () => {} }) {
+export function createGoalCard({ root, button = null, game, heroId, callout = () => {}, stamp = () => {} }) {
   let at = 0, shown = '', lastKey = null, doneSeen = new Set();
   let folded = false; try { folded = localStorage.getItem(FOLD_KEY) === '1'; } catch {}
+  // utility-menu icon (Tim 2026-11-06): shows or hides the whole card
+  let off = false; try { off = localStorage.getItem(HIDE_KEY) === '1'; } catch {}
+  button?.addEventListener('click', e => {
+    off = !off; try { localStorage.setItem(HIDE_KEY, off ? '1' : '0'); } catch {}
+    at = 0; e.currentTarget.blur();
+  });
   root.addEventListener('click', e => {
     if (!e.target.closest('.gc-banner')) return;
     folded = !folded; try { localStorage.setItem(FOLD_KEY, folded ? '1' : '0'); } catch {}
@@ -18,7 +24,8 @@ export function createGoalCard({ root, game, heroId, callout = () => {}, stamp =
     if (now - at < 250) return;
     at = now;
     const owner = game.state.entities[heroId]?.owner, g = owner && game.goals?.current(owner);
-    root.hidden = !g;
+    root.hidden = !g || off;
+    if (button) { button.hidden = !g; button.setAttribute('aria-pressed', String(!off)); }
     if (!g) { lastKey = null; return; }
     if (lastKey !== g.key) {
       if (lastKey !== null) callout(`New goal: ${g.title}`, 'news', 4000);

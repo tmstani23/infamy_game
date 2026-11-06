@@ -196,6 +196,12 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.beginPath();ctx.arc(u,v,2.5,0,Math.PI*2);ctx.fillStyle='#60ddd0';ctx.fill();ctx.stroke();
       islandHits.push([u,v,6,'worker',w]);
     }
+    // goal ping on the island (Tim 2026-11-06): same gold pulse as in the city (game.officeHint, set by main.js)
+    if (game.officeHint) {
+      const [u, v] = at(game.officeHint.x, game.officeHint.z), q = (performance.now() / 1000) % 1.5 / 1.5;
+      ctx.beginPath(); ctx.arc(u, v, 4 + q * 12, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
+      ctx.beginPath(); ctx.arc(u, v, 3.2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
+    }
     // what the camera sees (island coordinates)
     const corners = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y));
     if (corners.every(Boolean)) {

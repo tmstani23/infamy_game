@@ -372,6 +372,16 @@ Agreed with Tim on 2026-11-05 ("ok docs"). Nothing here is built yet.
 - Exact win rule and zone difficulty curve.
 - Where this fits in the build order (after the campaign loop checkpoints and warfare F6/F7).
 
+## Goal card (2026-11-06)
+
+Campaign only. `sim/campaign_goals.js` `goals.current(clan)` returns the current goal; `src/goal_card.js` draws it under the minimap.
+
+- **Starter goals** come first, per clan: Yakuza: loot a body, gear up, 3 crew, first business, a shakedown, win a raid. Kuroda: the same with a sweep instead of the shakedown. Shinobi: loot, gear up, 3 ninja, a contract.
+- **Founding chain:** buy a permit, hire settlers, leave the city, found a town.
+- **After founding:** Lay out your town (road, housing and farm cells), Put workers to work (workers on a resource spot), Grow to Village, Open a Market, then the next Influence tier. A Capital businesses row (hold 6 businesses) runs alongside. Numbers: `frontier.json` `goals` (`layout`, `workers`, `tier`, `holdBusinesses`).
+- **Permits after the first:** the Nth permit also needs one of your towns at tier N (2nd: Village, 3rd: Town); players only (`frontier.json` `founding.permit.townTier`).
+- A clan holds at most 5 settlers at once (`units.json` `rules.settlers.max`).
+
 ## Simulation and view independence — agreed constraints
 
 1. One world state owns all settlements, governors, armies, shipments and battles.

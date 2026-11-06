@@ -270,22 +270,51 @@ async function start() {
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
-  let hintAt = 0, calloutShown = false, gateCallout = false;
+  // Every Goal card step with a place pings the same way (the minimap pulse and the street blink).
+  let hintAt = 0, calloutShown = false, gateCallout = false, leaveSince = 0;
   function officeHint(now) {
     if (now - hintAt < 250) return;
     hintAt = now;
     const h = game.state.entities[heroId], L = game.landOffice, b = L?.office(), c = h && game.state.clans[h.owner];
+    const goal = c && !c.bot ? game.goals?.current(h.owner) : null;
     const ready = !!(b && c && !c.bot && !c.permit && L.permitStatus(c.id).ok) && !landOfficeMenu.isOpen();
     // Leave the city goal (Tim 2026-11-06): the island gate gets the same gold blink and minimap pulse
-    const leave = !ready && h?.place !== 'world' && !!game.goals?.current(h?.owner)?.gate && game.gate?.city;
-    const door = leave ? game.gate.city : b && (b.ring || b.door || [b.x, b.z]);
-    view.setOfficeHint(ready || leave ? door : null);
-    game.officeHint = ready || leave ? { x: door[0], z: door[1] } : null;
-    if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are ready: leave the city through the island gate (gold marker on the map)', 'news', 5000); }
+    const leave = !ready && h?.place !== 'world' && !!goal?.gate && game.gate?.city;
+    // Goal pings (Tim 2026-11-06): otherwise the first unfinished row of the Goal card that names a spot (shown when the hero is in that place)
+    const row = goal?.rows.find(r => !r.done && r.where), where = row?.where && row.where.place === h?.place ? row.where : null;
+    // Tim 2026-11-06: when the last settler arrives, the HQ blinks for a few seconds first (they wait there), then the gate
+    if (leave && !leaveSince) leaveSince = now; else if (!leave) leaveSince = 0;
+    const hq = leave && now - leaveSince < 8000 && Object.values(game.state.businesses).find(x => x.hideout === h.owner && x.ring);
+    const door = hq ? hq.ring : leave ? game.gate.city : ready ? b && (b.ring || b.door || [b.x, b.z]) : where && !landOfficeMenu.isOpen() ? [where.x, where.z] : null;
+    view.setOfficeHint(door || null);
+    game.officeHint = door ? { x: door[0], z: door[1] } : null;
+    // Shakedown / Sweep goal (Tim 2026-11-06): lead the player with gold flashes, one at a time:
+    // the Deployment icon, then your sectors with crew on the map, then the Start Shakedown / Dispatch Sweep button
+    const op = goal?.rows.find(r => !r.done && (r.label === 'Shakedown done' || r.label === 'Sweep done'));
+    const ops = op && $('deploymentpanel').querySelector(op.label === 'Sweep done' ? '.sweep-ops' : '.shakedown-ops');
+    const opsShown = !!ops && !ops.hidden && deploymentPanel.isOpen(), menuOpen = deploymentPanel.isOpen() || gameMap.isOpen();
+    $('deploymentbtn').classList.toggle('goal-flash', !!op && !menuOpen);
+    for (const btn of $('deploymentpanel').querySelectorAll('.start-shakedown, .start-sweep')) btn.classList.toggle('goal-flash', opsShown && ops.contains(btn));
+    game.goalGuide = op && menuOpen && !opsShown ? { sectors: (game.state.deployment?.sectors || []).map(s => s.id)
+      .filter(id => Object.values(game.state.entities).some(e => e.owner === h.owner && e.type !== 'hero' && !e.dead && e.deployment?.group === id)) } : null;
+    // Land Office menu (Tim 2026-11-06): the permit's Buy button flashes once it can be bought; Five settlers during the settlers goal
+    for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
+      !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '2' && !!goal?.key?.startsWith('settlers'))));
+    // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
+    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm' };
+    const step = goal && { layout: () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-build]'],
+      workers: () => ['[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
+      market: () => ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
+    for (const el of document.querySelectorAll('#townpanel .goal-flash, #towninspect .goal-flash')) el.classList.remove('goal-flash');
+    let target = null;
+    if (step) for (const sel of step()) { target = [...document.querySelectorAll(`#townpanel ${sel}, #towninspect ${sel}`)].find(el => el.offsetParent !== null); if (target) break; }
+    target?.classList.add('goal-flash');
+    $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world');
+    if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
     if (ready && !calloutShown) { calloutShown = true; callout('You can buy a founding permit: go to the telegraph office (gold marker on the map)', 'news', 5000); }
   }
   // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
-  const goalCard = createGoalCard({ root: $('goalcard'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
+  const goalCard = createGoalCard({ root: $('goalcard'), button: $('goalbtn'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -392,7 +421,7 @@ async function start() {
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
   $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
-  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','ctlbtn','daynight'].map($)});
+  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput });
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
@@ -667,7 +696,7 @@ async function start() {
       el.hidden = !hoverLamp;
       if (hoverLamp) { const n = game.stealth.snuffsLeft(h.owner), t = n ? `Snuff (${n} left tonight)` : 'No snuffs left tonight';
         if (el.textContent !== t) el.textContent = t; el.style.left = `${mouse.x + 16}px`; el.style.top = `${mouse.y - 8}px`; } }
-    officeHint(now); goalCard.update(now);
+    officeHint(now * 1000); goalCard.update(now * 1000);   // both throttle in ms (now is in seconds here)
     minimap.update();
     }else{
       $('snuffhint').hidden=true;

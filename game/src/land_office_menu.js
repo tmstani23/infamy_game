@@ -35,12 +35,13 @@ export function createLandOfficeMenu({ panel, game, heroId, units, send }) {
       : `<div class="row"><span>1. Founding permit<br><small>founding itself costs ${F.cost ?? 0} ryo</small></span>` +
         `<button data-pick="0" ${st.ok ? '' : 'disabled'} title="${st.reason || ''}">${st.ryo ? `${st.ryo} ryo` : 'Buy'}</button></div>${reqs}` +
         (st.reason && st.reason !== 'Requirements not met' ? `<div class="waiting">${st.reason}</div>` : '');
-    const canHire = n => price !== null && c.ryo >= price * n && queued + n <= maxQ;
+    const cap = units.rules.settlers?.max ?? Infinity, full = have + queued >= cap;   // Tim 2026-11-06: 5 is all a new town takes
+    const canHire = n => price !== null && c.ryo >= price * n && queued + n <= maxQ && have + queued + n <= cap;
     const settlers = price === null ? '<div class="waiting">Settlers sign up in campaign games only</div>'
       : `<div class="row"><span>2. Settler<br><small>${t.hp || 0} hp · unarmed · ${F.minSettlers ?? 5} found a town · wait safely at your HQ</small></span>` +
         `<button data-pick="1" ${canHire(1) ? '' : 'disabled'}>${price} ryo</button></div>` +
         `<div class="row"><span>3. Five settlers</span><button data-pick="2" ${canHire(5) ? '' : 'disabled'}>${price * 5} ryo</button></div>` +
-        `<div class="waiting">settlers ${have}${queued ? ` (+${queued} signing up)` : ''}</div>`;
+        `<div class="waiting">settlers ${have}${queued ? ` (+${queued} signing up)` : ''}${full ? ` · ${cap} is all a new town takes` : ''}</div>`;
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const html = `<h3>LAND OFFICE</h3>${permit}${settlers}${notice}<div class="waiting">number keys or click · Space / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }

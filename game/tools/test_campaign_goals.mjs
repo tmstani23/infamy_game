@@ -22,8 +22,25 @@ function match(mode) {
 
 const { g, clan } = match('campaign');
 const before = JSON.stringify(g.state.clans);
+// starter goals (Tim 2026-11-06): Yakuza loot, gear up, 3 crew, first business, win a raid; each says how
 let goal = g.goals.current('player');
-assert.equal(goal.step, 0); assert.match(goal.title, /founding permit/);
+assert.equal(goal.key, 'starter0'); assert.ok(goal.rows.every(r => r.done || r.how), 'starters say how');
+const marks = () => clan.milestones;
+assert.match(goal.title, /Loot a bandit/);
+const bandit = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player');
+g.state.tick = 10; g.goals.record([], [{ kind: 'loot', a: bandit.id }], [{ reason: 'Shop purchase', clan: 'player', target: 'x' }]);
+assert.ok(marks().loots === 1 && marks().gearBought === 1, 'loot and gear purchase recorded');
+assert.equal(marks().starters, 1, 'loot done; gear waits for equipping');
+assert.match(g.goals.current('player').title, /Gear up/);
+marks().starters = 4; assert.match(g.goals.current('player').title, /shakedown/);
+marks().starters = 5;
+assert.match(g.goals.current('player').title, /Win a raid/);
+g.goals.record([{ kind: 'raidWon', raider: 'player', hq: false }]);
+assert.equal(marks().raids, 1, 'raid recorded');
+g.goals.record([]);
+assert.equal(marks().starters, 6, 'raid starter done');
+goal = g.goals.current('player');
+assert.equal(goal.step, 6); assert.match(goal.title, /founding permit/);
 const st = g.landOffice.permitStatus('player');
 for (const r of st.rows) {
   const row = goal.rows.find(x => x.have === r.have && x.need === r.need);
@@ -31,20 +48,20 @@ for (const r of st.rows) {
   assert.ok(row.done || row.how.length > 0, `unmet ${r.label} says how`);
 }
 assert.ok(goal.rows.every(r => r.icon && r.label), 'every row has a seal and a label');
-assert.equal(JSON.stringify(g.state.clans), before, 'goals write nothing');
+{ const before = JSON.stringify(g.state.clans); g.goals.current('player'); assert.equal(JSON.stringify(g.state.clans), before, 'current() writes nothing'); }
 
 clan.permit = true;
 goal = g.goals.current('player');
-assert.equal(goal.step, 1); assert.match(goal.rows[0].how, /telegraph office/);
+assert.equal(goal.step, 7); assert.match(goal.rows[0].how, /telegraph office/);
 
 const settlers = g.clans.settlersOf;
 g.clans.settlersOf = () => Array(frontier.founding.minSettlers).fill({});
 goal = g.goals.current('player');
-assert.equal(goal.step, 2); assert.match(goal.title, /Leave the city/); assert.ok(goal.gate, 'the gate gets the gold hint');
+assert.equal(goal.step, 8); assert.match(goal.title, /Leave the city/); assert.ok(goal.gate, 'the gate gets the gold hint');
 const hero = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player'), place = hero.place;
 hero.place = 'world';
 goal = g.goals.current('player');
-assert.equal(goal.step, 3); assert.match(goal.title, /Found your town/);
+assert.equal(goal.step, 9); assert.match(goal.title, /Found your town/);
 assert.ok(goal.rows.some(r => r.label === 'Town founded' && !r.done && /Found a town here/.test(r.how)));
 hero.place = place;
 g.clans.settlersOf = settlers;
@@ -57,7 +74,7 @@ g.clans.settlersOf = settlers;
   for (let i = 0; i < 20 * 120 && clan.queue.length; i++) g.step([]);
   assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ');
   assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city to be hurt');
-  assert.equal(g.goals.current('player').step, 2, 'goal: leave the city');
+  assert.equal(g.goals.current('player').step, 8, 'goal: leave the city');
   const gc = g.gate.city;
   Object.assign(hero, { place: 'street', x: gc[0], z: gc[1] });
   g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]);
@@ -66,7 +83,7 @@ g.clans.settlersOf = settlers;
   assert.equal(out.length, 5, 'the waiting settlers stepped out with the hero');
   assert.ok(out.every(u => u.place === 'world' && Math.hypot(u.x - hero.x, u.z - hero.z) < 10));
   assert.equal(clan.settlersWaiting, 0);
-  assert.equal(g.goals.current('player').step, 3, 'goal: found the town');
+  assert.equal(g.goals.current('player').step, 9, 'goal: found the town');
   console.log('settlers wait at HQ ok');
 }
 
@@ -74,7 +91,7 @@ g.clans.settlersOf = settlers;
 g.state.frontier.settlements.__t = { owner: 'player', founded: true, name: 'Test' };
 clan.permit = false;
 goal = g.goals.current('player');
-assert.equal(goal.step, 4); assert.match(goal.title, /Influence/);
+assert.equal(goal.step, 14); assert.match(goal.title, /Influence/);
 assert.equal(goal.rows[0].label, 'Influence');
 delete g.state.frontier.settlements.__t;
 console.log('campaign goals ok');
@@ -84,6 +101,12 @@ console.log('campaign goals ok');
   const g2 = createGame(options());
   setupMatch(g2, { clan: 'shinobi', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 100 }, seed: 77 });
   const c = g2.state.clans.player, S = frontier.founding.permit.shinobi;
+  assert.equal(g2.goals.current('player').key, 'starter0', 'Shinobi start with starters too');
+  g2.goals.record([{ kind: 'contractTaken', clan: 'player' }, { kind: 'contractDone', clan: 'player' }]);
+  assert.equal(c.milestones.contractsDone, 1);
+  c.milestones.starters = 3; assert.match(g2.goals.current('player').title, /Finish a contract/);
+  assert.equal(g2.goals.current('player').rows.length, 2, 'the step shows all its requirements');
+  c.milestones.starters = 4;
   const st2 = g2.landOffice.permitStatus('player');
   assert.ok(!st2.rows.some(r => r.label === 'Businesses held'), 'Shinobi need no businesses');
   const ryo = st2.rows.find(r => r.label === 'Ryo');
@@ -91,4 +114,66 @@ console.log('campaign goals ok');
   assert.ok(g2.goals.current('player').rows.some(r => r.label === 'Ryo' && /contracts/.test(r.how)), 'goal card shows the ryo seal');
   c.ryo = S.ryo; assert.ok(g2.landOffice.permitStatus('player').rows.find(r => r.label === 'Ryo').ok);
   console.log('shinobi permit ok');
+}
+// Kuroda (Tim 2026-11-06): Yakuza starters with a sweep in place of the shakedown
+{
+  const g3 = createGame(options());
+  setupMatch(g3, { clan: 'kuroda', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 100 }, seed: 77 });
+  const k = g3.state.clans.player; g3.goals.record([{ kind: 'sweepSuccess', clan: 'player' }]);
+  k.milestones.starters = 4; const kg = g3.goals.current('player');
+  assert.match(kg.title, /sweep/); assert.ok(kg.rows[0].done, 'sweep recorded');
+  console.log('kuroda starters ok');
+}
+
+// Goal pings (Tim 2026-11-06): unfinished rows name a spot; looting a body counts in the same tick
+{
+  const { g, clan } = match('campaign');
+  g.step([]);
+  const where = () => g.goals.current('player').rows.find(r => !r.done)?.where;
+  assert.ok(where()?.place === 'street', 'Loot a bandit points at a camp');
+  const hero = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player');
+  const body = g.state.entities[g.spawn('bandit', 'thug', hero.x + 1, hero.z, { wild: true, place: hero.place })];
+  Object.assign(body, { dead: true, downed: false, hp: 0, loot: 50 });
+  assert.deepEqual([where().x, where().z], [body.x, body.z], 'a glinting body comes first');
+  g.step([{ id: hero.id, type: 'loot', target: body.id }]);
+  for (let i = 0; i < 40 && !clan.milestones.loots; i++) g.step([]);
+  assert.equal(clan.milestones.loots, 1, 'the loot counts (recorded at the end of the tick)');
+  for (let i = 0; i < 20; i++) g.step([]);
+  assert.equal(g.goals.current('player').title, 'Gear up');
+  assert.ok(where(), 'Gear up points at the blacksmith');
+  clan.milestones.starters = 99;
+  assert.equal(g.goals.current('player').rows.find(r => r.label === 'Permit bought').where, null, 'the office only once the permit is buyable');
+  console.log('goal pings ok');
+}
+
+// Town setup goals and the town-tier permit row (Tim 2026-11-06)
+{
+  const { g, clan } = match('campaign');
+  g.step([]);
+  clan.milestones.starters = 99;
+  const town = Object.values(g.state.frontier.settlements).find(s => !s.owner) || null;
+  // found a town the quick way: borrow the founding module through a fresh settlement record
+  const id = 'tgoal', base = Object.values(g.state.frontier.settlements)[0];
+  const n = 9, grid = { n, cell: 50, ground: 'c'.repeat(n * n), use: '.'.repeat(n * n), zone: '.'.repeat(n * n), by: '.'.repeat(n * n), stage: '0'.repeat(n * n) };
+  g.state.frontier.settlements[id] = { id, name: 'Test', owner: 'player', founded: true, x: 100, z: 100, tier: 1, pop: 5, grid, buildings: [{ type: 'town_hall', stage: 'built', cell: 40 }], workers: [{ id: 'w1' }, { id: 'w2' }] };
+  const cur = () => g.goals.current('player');
+  assert.equal(cur().key, 'layout');
+  assert.deepEqual(cur().rows.map(r => r.label), ['Road cells', 'Housing cells', 'Farm cells', 'Capital businesses']);
+  assert.equal(cur().rows[0].where.place, 'world', 'layout rows point at the town');
+  grid.use = 'rrr' + grid.use.slice(3); grid.zone = 'hhhhffff' + grid.zone.slice(8);
+  assert.equal(cur().key, 'workers');
+  g.state.frontier.settlements[id].workers.forEach(w => { w.spot = 's1'; });
+  assert.equal(cur().key, 'village');
+  g.state.frontier.settlements[id].tier = 2;
+  assert.equal(cur().key, 'market');
+  g.state.frontier.settlements[id].buildings.push({ type: 'market', stage: 'built' });
+  assert.notEqual(cur().key, 'market', 'past the setup goals');
+  // the 2nd permit asks for a Village-tier town
+  g.state.frontier.settlements[id].tier = 1;
+  const row = g.landOffice.permitStatus('player').rows.find(r => r.label === 'Town tier');
+  assert.ok(row && row.need === 2 && !row.ok, '2nd permit needs a Village');
+  g.state.frontier.settlements[id].tier = 2;
+  assert.ok(g.landOffice.permitStatus('player').rows.find(r => r.label === 'Town tier').ok);
+  void town; void base;
+  console.log('town setup goals ok');
 }

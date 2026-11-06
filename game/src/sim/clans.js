@@ -94,7 +94,12 @@ export function createClans(state, units, opts = {}) {
     if (price === null) return say(clan, 'Nobody here for that job yet');
     if(!Number.isSafeInteger(count) || count<1 || count>Math.max(rules.maxQueue,rules.settlers?.maxQueue || 10))return say(clan,'Invalid hire quantity');
     const settler = !!types[type]?.settler, queued = n => clan.queue.filter(q => !!types[q.unit]?.settler === n).length;
-    if (settler) { if (queued(true)+count > (rules.settlers?.maxQueue ?? 10)) return say(clan, 'Too many settlers waiting'); }
+    if (settler) {
+      if (queued(true)+count > (rules.settlers?.maxQueue ?? 10)) return say(clan, 'Too many settlers waiting');
+      // Tim 2026-11-06: no more than a town takes (with you + waiting at the HQ + signing up)
+      const cap = rules.settlers?.max ?? Infinity, have = settlersOf(clan.id).length + (clan.settlersWaiting || 0) + queued(true);
+      if (have + count > cap) return say(clan, have >= cap ? `You have all ${cap} settlers a new town takes` : `Only ${cap - have} more settler${cap - have === 1 ? '' : 's'} needed`);
+    }
     else if (crewCount(clan.id) + queued(false)+count > crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
     if (!settler && queued(false)+count > rules.maxQueue) return say(clan, 'Too many hires waiting');
     const total=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)).reduce((n,v)=>n+v,0);

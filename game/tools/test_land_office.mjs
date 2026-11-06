@@ -64,6 +64,8 @@ assert.equal(clan.queue.length, 5, 'the Land Office hires settlers only');
 for (let i = 0; i < 2000 && (clan.settlersWaiting || 0) < 5; i++) g.step([]);
 assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ');
 assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city streets');
+g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 1 }]);
+assert.equal(clan.queue.length, 0, `no 6th settler (Tim 2026-11-06): ${clan.notice?.text}`);
 
 // --- the island gate: Choose site takes the hero and the settlers only ---------------------------------
 const gate = g.doors.find(d => d.gate && d.place === 'world');
@@ -73,6 +75,8 @@ const toGate = () => {
 toGate();
 const crew = g.clans.crewOf('player').filter(u => u.type === 'thug');
 crew.forEach((u, i) => Object.assign(u, { place: 'street', x: gate.x - 0.6 * (i + 1), z: gate.z - 0.6, order: { kind: 'follow', target: hero.id } }));
+crew.forEach((u, i) => { u.deployment = { ...(u.deployment || {}), group: i < 3 ? 'hero' : 'home' }; if (i >= 3) u.order = { kind: 'move', x: u.x, z: u.z, arrived: true }; });
+crew[2].downed = true;   // Tim 2026-11-06: a downed Hero-group member stays behind
 const sites = L.sites('player'), open = sites.filter(s => s.open);
 assert.ok(sites.length === world.sites.length && open.length > 10, 'sites listed with traits');
 assert.ok(sites.every(s => s.traits.soil >= 1 && s.traits.water >= 1 && s.traits.defense >= 1 && typeof s.campWarn === 'boolean'));
@@ -91,7 +95,8 @@ const settlers = g.clans.settlersOf('player');
 assert.equal(settlers.length, 5, 'the waiting settlers stepped out at the site');
 assert.equal(clan.settlersWaiting, 0);
 assert.ok(settlers.every(u => u.place === 'world' && Math.hypot(u.x - hero.x, u.z - hero.z) < 15), 'the settlers came along');
-assert.ok(crew.every(u => u.place === 'street'), 'crew stay in the city');
+assert.ok(crew.slice(0, 2).every(u => u.place === 'world' && Math.hypot(u.x - hero.x, u.z - hero.z) < 15), 'the Hero group goes along');
+assert.ok(crew.slice(2).every(u => u.place === 'street'), 'a downed Hero member and the other crew stay in the city');
 assert.equal(g.state.frontier.siteClaims[pickSite.id], 'player', 'the site is claimed');
 assert.equal(L.sites('kuroda').find(s => s.id === pickSite.id).open, false, 'a claimed site is shut to others');
 
