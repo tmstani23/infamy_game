@@ -673,7 +673,7 @@ export function createGame(options) {
   // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
-  const goals = createCampaignGoals({ state, clans, landOffice, influence, rules: units?.rules, data: options.frontier || {} });   // quest log (2026-11-06)
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({

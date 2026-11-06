@@ -11,10 +11,10 @@ import { SHOP } from './gear_catalog.js';
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (Tim 2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'settlers', 'leave', 'found', 'layout', 'workers', 'village', 'market', 'influence'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'settlers', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'storehouse', 'camps', 'people', 'village', 'market', 'influence'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
-export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, data = {} }) {
+export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {} }) {
   const D = data.founding || {}, P = D.permit || {}, G = data.goals || {};
   const townsOf = id => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === id && s.founded).length;
   const heroOf = id => Object.values(state.entities).find(e => e.type === 'hero' && e.owner === id);
@@ -147,19 +147,36 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       pin(row('ryo', 'Farm cells', count(g.zone, /f/g), L.farm ?? 4, panel + 'Build bar, pick Farm (gold) and drag on open ground near a road')),
     ];
     if (layout.some(r => !r.done)) return { key: 'layout', title: 'Lay out your town', step: S0 + 4, steps, rows: [...layout, holdRow(id)] };
-    const busy = (town.workers || []).filter(w => w.spot).length, needW = Math.min(G.workers ?? 2, Math.max(1, (town.workers || []).length));
-    if (busy < needW) return { key: 'workers', title: 'Put workers to work', step: S0 + 5, steps, rows: [pin(row('crew', 'Workers harvesting', busy, needW,
-      panel + 'Workers (gold): select your workers, then right-click a resource spot (trees, stone) on the ground')), holdRow(id)] };
+    // Tim 2026-11-06: timber, stone, goods, storehouse, camps, people, then the Village upgrade
+    const on = kind => (town.workers || []).filter(w => w.spot && spotKind(w.spot) === kind).length;
+    const has = type => (town.buildings || []).some(b => b.type === type && b.stage !== 'ruined') || (town.projects || []).some(p => p.type === type);
+    const tool = (name, what) => panel + `Build bar (gold), pick ${name} (gold) and ${what}`;
+    if (on('timber') < 1) return { key: 'workers', title: 'Put workers to work', step: S0 + 5, steps, rows: [pin(row('crew', 'Workers on timber', on('timber'), 1,
+      panel + 'Workers (gold), click the timber spot (gold) to look there, select a worker, then right-click the trees')), holdRow(id)] };
+    if (on('stone') < 1) return { key: 'stone', title: 'Gather stone', step: S0 + 6, steps, rows: [pin(row('crew', 'Workers on stone', on('stone'), 1,
+      panel + 'Workers (gold), click the stone spot (gold) to look there, select a worker, then right-click the rocks')), holdRow(id)] };
+    const work = count(g.zone, /k/g);
+    if (work < (G.workCells ?? 2)) return { key: 'goods', title: 'Make goods', step: S0 + 7, steps, rows: [pin(row('business', 'Work cells', work, G.workCells ?? 2,
+      tool('Work', 'drag next to a road: workshops turn timber and stone into goods'))), holdRow(id)] };
+    if (data.buildings?.storehouse && !has('storehouse')) return { key: 'storehouse', title: 'Build a storehouse', step: S0 + 8, steps, rows: [pin(row('town', 'Storehouse', 0, 1,
+      tool('Storehouse', 'click a spot by a road: it holds the stock you need for the upgrade'))), holdRow(id)] };
+    const camps = [['lumber_camp', 'Lumber camp', 'near trees'], ['quarry', 'Quarry', 'near rocks']].filter(([t]) => data.buildings?.[t]);
+    if (camps.some(([t]) => !has(t))) return { key: 'camps', title: 'Build a lumber camp and a quarry', step: S0 + 9, steps, rows: [
+      ...camps.map(([t, name, near]) => pin(row('town', name, has(t) ? 1 : 0, 1, tool(name, `place it ${near}: steady ${t === 'quarry' ? 'stone' : 'timber'} without picking spots`)))), holdRow(id)] };
     const tier = town.tier || 1, wantTier = G.tier ?? 2, next = (data.tiers?.list || [])[wantTier - 1];
     if (next && tier < wantTier) {
-      const people = (town.pop || 0) + (town.workers?.length || 0) + (town.workerTraining?.length || 0);
-      return { key: 'village', title: `Grow to ${next.name}`, step: S0 + 6, steps, rows: [
-        pin(row('settler', 'People', people, next.upgrade?.pop || 0, 'More housing and food bring settlers; train workers at the hall')),
-        pin(row('town', `Town hall: ${next.name}`, town.tierUpgrade ? 0 : tier >= wantTier ? 1 : 0, 1, town.tierUpgrade ? 'Upgrade under way' : panel + `press Upgrade to ${next.name} (gold) once the stock is there`)),
+      const people = (town.pop || 0) + (town.workers?.length || 0) + (town.workerTraining?.length || 0), needP = next.upgrade?.pop || 0;
+      if (people < needP) return { key: 'people', title: 'Grow your people', step: S0 + 10, steps, rows: [pin(row('settler', 'People', people, needP,
+        tool('Housing', 'zone more cells by a road; houses fill up while there is food (farms)'))), holdRow(id)] };
+      const cost = next.upgrade?.cost || {}, icon = { timber: 'town', stone: 'town', goods: 'business' };
+      return { key: 'village', title: `Grow to ${next.name}`, step: S0 + 11, steps, rows: [
+        ...Object.entries(cost).map(([k, n]) => pin(row(icon[k] || 'ryo', k[0].toUpperCase() + k.slice(1), Math.floor(town.stock?.[k] || 0), n,
+          k === 'goods' ? 'Workshops (Work cells) make goods from timber and stone' : `Workers, the ${k === 'stone' ? 'quarry' : 'lumber camp'} and more workers bring it in`))),
+        pin(row('town', `Town hall: ${next.name}`, tier >= wantTier ? 1 : 0, 1, town.tierUpgrade ? 'Upgrade under way' : panel + `press Upgrade to ${next.name} (gold)`)),
         holdRow(id)] };
     }
     const market = (town.buildings || []).some(b => b.type === 'market' && b.stage !== 'ruined');
-    if (!market && data.buildings?.market) return { key: 'market', title: 'Open a Market', step: S0 + 7, steps, rows: [
+    if (!market && data.buildings?.market) return { key: 'market', title: 'Open a Market', step: S0 + 12, steps, rows: [
       pin(row('ryo', 'Market built', 0, 1, panel + 'Build bar, pick Market (gold) and place it; it sells goods above the keep level for ryo and Influence')), holdRow(id)] };
     return null;
   }
@@ -206,7 +223,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       return { key: `found${towns}`, title: `Found your ${nth}town`, step: S0 + 3, steps, rows };
     }
     const st = influence?.status(id);
-    if (st?.next) return { key: `influence${st.tier}`, title: `Grow Influence: ${st.next.label}`, step: S0 + 8, steps,
+    if (st?.next) return { key: `influence${st.tier}`, title: `Grow Influence: ${st.next.label}`, step: S0 + 13, steps,
       rows: [row('influence', 'Influence', st.value, st.next.at, 'Hold businesses (every dawn) and sell town goods at a Market')] };
     return null;
   }

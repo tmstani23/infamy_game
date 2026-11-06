@@ -301,13 +301,18 @@ async function start() {
     for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
       !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '2' && !!goal?.key?.startsWith('settlers'))));
     // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
-    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm' };
-    const step = goal && { layout: () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-build]'],
-      workers: () => ['[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
+    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing' };
+    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-act="build-workers"]', '[data-build]'];
+    const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps,
+      stone: () => ['@stone', '[data-act="build-workers"]'],
+      workers: () => ['@timber', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
       market: () => ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
     for (const el of document.querySelectorAll('#townpanel .goal-flash, #towninspect .goal-flash')) el.classList.remove('goal-flash');
     let target = null;
-    if (step) for (const sel of step()) { target = [...document.querySelectorAll(`#townpanel ${sel}, #towninspect ${sel}`)].find(el => el.offsetParent !== null); if (target) break; }
+    // '@timber' (Tim 2026-11-06): the nearest timber button under "Nearby discovered spots" on the Workers pane
+    const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.textContent.startsWith(sel.slice(1)) && el.offsetParent !== null)
+      : [...document.querySelectorAll(`#townpanel ${sel}, #towninspect ${sel}`)].find(el => el.offsetParent !== null);
+    if (step) for (const sel of step()) { target = pick(sel); if (target) break; }
     target?.classList.add('goal-flash');
     $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world');
     if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
@@ -501,13 +506,14 @@ async function start() {
       known: (x,z) => isDiscovered(world, game.state.world?.discovered?.[game.state.entities[heroId]?.owner] ?? '0', x,z),
       send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id),
       blocked: () => foundButton.isPlacing() || gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
+    const nearTown = () => {
+      const h = game.state.entities[heroId];
+      if (h?.place !== 'world') return null;
+      return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
+        .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
+    };
     townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI, focus:(x,z)=>view.jumpTo(x,z),
-      nearbyTown: () => {
-        const h = game.state.entities[heroId];
-        if (h?.place !== 'world') return null;
-        return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
-          .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
-      } });
+      nearbyTown: () => nearTown() });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onKey('KeyO', () => townPanel.toggle());
     onKey('KeyY', () => overview.toggle());
@@ -516,12 +522,29 @@ async function start() {
     createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier });
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
+    // Tim 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road
+    // blocked) and alerts for the town you stand in show on their own; the rest fold into one
+    // "Towns: N need attention" line. Every alert opens the all-towns window (Y), worst towns first.
+    // At most 3 lines on screen.
+    const folded = new Map(); let foldBtn = null, foldTimer = 0;
+    const showLine = (b, ms) => { const box = $('townalerts'); box.append(b); while (box.children.length > 3) box.firstElementChild.remove(); setTimeout(() => b.remove(), ms); };
     townAlertHook = n => {
-      const b = document.createElement('button'); b.textContent = n.text; b.className = n.urgent ? 'urgent' : '';
-      b.title=n.tip || n.text;
-      b.addEventListener('click', () => { townPanel.open(n.settlement); b.remove(); });
-      $('townalerts').append(b); setTimeout(() => b.remove(), n.urgent ? 10000 : 6000);
       overview.alert(n.settlement, n.event, n.urgent);
+      const here = nearTown() === n.settlement;
+      if (n.urgent || here) {
+        const b = document.createElement('button'); b.textContent = n.text; b.className = n.urgent ? 'urgent' : ''; b.title = n.tip || n.text;
+        b.addEventListener('click', () => { here && !n.urgent ? townPanel.open(n.settlement) : overview.showNeed(n.settlement); b.remove(); });
+        return showLine(b, n.urgent ? 10000 : 6000);
+      }
+      folded.set(n.settlement, n.text);
+      if (!foldBtn?.isConnected) {
+        foldBtn = document.createElement('button'); foldBtn.className = 'fold';
+        foldBtn.addEventListener('click', () => { overview.showNeed(); foldBtn.remove(); folded.clear(); });
+        showLine(foldBtn, 600000);
+      }
+      foldBtn.textContent = folded.size === 1 ? `${n.text} (Y)` : `Towns: ${folded.size} need attention (Y)`;
+      foldBtn.title = [...folded.values()].join('\n');
+      clearTimeout(foldTimer); foldTimer = setTimeout(() => { foldBtn?.remove(); folded.clear(); }, 8000);
     };
     if (DEV) window.infamy.blockRoad = (road = 'r1', st = 'blocked') => pending.push({ id: heroId, type: 'frontier', action: 'devRoadState', road, state: st });   // try the F4.4c alerts
     if (DEV) window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
@@ -620,7 +643,7 @@ async function start() {
       }
       // your business is being raided: bell once, red banner, a channel bar while knocking the lantern down
       {
-        const a = raidOnMe(), el = $('raidalarm');
+        const a = game.state.entities[heroId]?.place === 'world' ? null : raidOnMe(), el = $('raidalarm');   // quiet on the island (Tim 2026-11-06): the lieutenant defends
         el.hidden = !a;
         if (a) {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';

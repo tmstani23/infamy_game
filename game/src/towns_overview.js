@@ -5,7 +5,8 @@ import { overviewRows, SORTS } from './frontier_report.js';
 import { bindTips } from './frontier_tips.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const arrow = { up: '<span class="up">▲</span>', down: '<span class="dn">▼</span>', flat: '<span class="dim">–</span>' };
-const COLS = [['rank', '#', 'Priority list. The top town gets capital supplies, imports and new recruits first. Drag a row to reorder.'], ['name', 'Town'], ['pop', 'Pop'], ['mood', 'Mood', 'How content the town is, and the worst thing dragging it down.'],
+const NEED = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low', ok: 'OK' };
+const COLS = [['rank', '#', 'Priority list. The top town gets capital supplies, imports and new recruits first. Drag a row to reorder.'], ['need', 'Need', 'How badly the town needs you: Urgent (attacked, lost a building), High (road blocked, food running out, very low mood), down to OK. Click to list the worst first. Hover a Need cell for why.'], ['name', 'Town'], ['pop', 'Pop'], ['mood', 'Mood', 'How content the town is, and the worst thing dragging it down.'],
   ['food', 'Food', 'Arrow: food going up or down. Down for long means a farm is needed.'], ['ryo', 'Ryo', 'Ryo in the town treasury and its trend.'], ['shortage', 'Short of'], ['project', 'Building'], ['road', 'Road', 'Whether goods can travel between this town and the capital.'], ['garrison', 'Garrison'], ['priority', 'Focus', 'What the governor builds first.'], ['tax', 'Tax', 'Ryo per person against mood. Auto lets the governor pick.']];
 
 export function createTownsOverview({ root, game, heroId, clan = 'player', send, openTown = () => {}, onOpen = () => {}, onClose = () => {} }) {
@@ -25,7 +26,7 @@ export function createTownsOverview({ root, game, heroId, clan = 'player', send,
     let h = '<h1>Your towns</h1><table><tr>' + COLS.map(([k, t, tip]) => `<th data-sort="${k}"${tip ? ` data-tip="${esc(tip)}"` : ''}>${t}${sort === k ? ' ▾' : ''}</th>`).join('') + '</tr>';
     for (const r of list) {
       const road = r.road === 'working' ? '<span class="up">OK</span>' : r.road === 'none' ? '<span class="dim">–</span>' : `<span class="dn">${esc(r.road)}</span>`;
-      h += `<tr draggable="${sort === 'rank'}" data-id="${r.id}" class="${flash[r.id] > now ? 'flash' : ''}"><td>≡ ${r.rank}</td><td><b>${esc(r.name)}</b>${r.alerts.map(a => ` <span class="pill">${esc(a)}</span>`).join('')}</td><td>${r.pop}</td>`
+      h += `<tr draggable="${sort === 'rank'}" data-id="${r.id}" class="${flash[r.id] > now ? 'flash' : ''}"><td>≡ ${r.rank}</td><td class="need ${r.need}" data-tip="${esc(r.needWhy.join('\n') || 'Nothing wrong right now.')}">${NEED[r.need]}</td><td><b>${esc(r.name)}</b>${r.alerts.map(a => ` <span class="pill">${esc(a)}</span>`).join('')}</td><td>${r.pop}</td>`
         + `<td data-tip="${esc(r.moodTip)}" class="${r.mood < 40 ? 'dn' : ''}">${r.mood}${r.moodWhy ? ` <span class="dim">${esc(r.moodWhy)}</span>` : ''}</td><td data-tip="${esc(r.foodTip)}">${r.foodValue} ${arrow[r.food]}</td><td>${r.ryo} ${arrow[r.ryoArrow]}</td>`
         + `<td data-tip="${esc(r.shortageTip)}">${esc(r.shortage.replace('Waiting for ', ''))}</td><td>${esc(r.project)}</td><td>${road}</td><td>${r.garrison}</td>`
         + `<td><select data-act="priority" data-id="${r.id}">${['grow', 'produce', 'trade', 'fortify'].map(p => `<option value="${p}"${p === r.priority ? ' selected' : ''}>${p[0].toUpperCase() + p.slice(1)}</option>`).join('')}</select></td>`
@@ -56,9 +57,11 @@ export function createTownsOverview({ root, game, heroId, clan = 'player', send,
     cmd({ action: 'setTownOrder', order }); dragId = null; lastHtml = '';
   });
   function open() { root.hidden = false; lastHtml = ''; render(); onOpen(); }
+  // Tim 2026-11-06: a town alert opens this window with the worst towns first and that town's row flashing
+  function showNeed(id) { sort = 'need'; if (id) flash[id] = Date.now() + 4000; open(); }
   function close() { if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   setInterval(render, 1000);
-  return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, render,
+  return { open, showNeed, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, render,
     // F4.4c: the news feed calls this; urgent alerts flash the row for 8 s
     alert(id, text, urgent) { (alerts[id] ||= []); if (!alerts[id].includes(text)) alerts[id] = [...alerts[id], text].slice(-3); if (urgent) flash[id] = Date.now() + 8000; setTimeout(() => { alerts[id] = (alerts[id] || []).filter(t => t !== text); lastHtml = ''; }, 30000); lastHtml = ''; render(); } };
 }

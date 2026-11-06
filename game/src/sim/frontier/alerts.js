@@ -9,6 +9,35 @@
 import { isFull } from './storage.js';
 import { residents } from './people.js';
 import { upgradeCheck, nextTier } from './tiers.js';
+// Tim 2026-11-06: how badly each town needs you, so the all-towns window (Y) can list the worst first
+// and a pile of alerts from many towns folds into one line. Pure: reads the town, its roads and its
+// alert latches. Weights live in frontier.json alerts.need.
+export const NEED_LEVELS = [['urgent', 'Urgent'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low'], ['ok', 'OK']];
+export function townNeed(s, frontier, data, st = {}) {
+  const A = data.alerts || {}, N = A.need || {}, w = k => N.weights?.[k] ?? DEFAULT_NEED[k];
+  const recent = N.recentEcon ?? 30, now = frontier?.econTick ?? 0, why = [];
+  const add = (k, text) => why.push({ key: k, text, score: w(k) });
+  const lately = ev => st.at?.[ev] !== undefined && now - st.at[ev] < recent;
+  if (lately('attack')) add('attack', 'under attack');
+  if (lately('destroyed')) add('destroyed', 'lost a building');
+  if (Object.values(frontier?.roads || {}).some(r => (r.from === s.id || r.to === s.id) && r.state === 'blocked')) add('blocked', 'road blocked');
+  if ((s.report?.waiting || []).includes('food')) add('food', 'running out of food');
+  const mood = s.mood ?? 100;
+  if (mood < (N.moodVeryLow ?? 25)) add('moodVeryLow', `mood ${Math.round(mood)}`);
+  else if (mood < (A.moodBelow ?? 40)) add('mood', `mood ${Math.round(mood)}`);
+  if ((s.safety ?? 100) < (N.safetyBelow ?? 50)) add('unsafe', 'unsafe');
+  const full = (data.resources || []).filter(r => isFull(s, data, r));
+  if (full.length) why.push({ key: 'full', text: `${full.join(', ')} full`, score: Math.min(full.length, 2) * w('full') });
+  if ((s.suggestions || []).length) add('suggestion', 'governor suggestion');
+  if (s.housing > 0 && residents(s) >= s.housing) add('housing', 'housing full');
+  if (data.tiers?.list && upgradeCheck(s, data).ok) add('upgrade', 'can upgrade');
+  why.sort((a, b) => b.score - a.score);
+  const score = why.reduce((n, x) => n + x.score, 0), L = N.levels || {};
+  const level = score >= (L.urgent ?? 50) ? 'urgent' : score >= (L.high ?? 25) ? 'high' : score >= (L.medium ?? 10) ? 'medium' : score > 0 ? 'low' : 'ok';
+  return { score, level, why };
+}
+const DEFAULT_NEED = { attack: 50, destroyed: 30, blocked: 30, food: 25, moodVeryLow: 30, mood: 20, unsafe: 15, full: 5, suggestion: 5, housing: 5, upgrade: 5 };
+
 export function createAlerts({ state, data }) {
   const A = data.alerts || {};
   const cooldown = A.cooldownEcon ?? 20;   // economy ticks per town and kind
@@ -58,6 +87,7 @@ export function createAlerts({ state, data }) {
         if (built > st.last.built && ruined <= st.last.ruined) say('finished');
       }
       st.last = { safety: s.safety ?? 100, built, ruined };
+      s.need = townNeed(s, f, data, st);
     }
   }
   return { econTick };

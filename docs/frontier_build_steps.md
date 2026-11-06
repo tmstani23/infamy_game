@@ -1881,6 +1881,7 @@ Done note: "C5 city ops now hit rival frontier income."
 ### C6. Playtest  [TIM]
 Walk out with standing orders "defend + retake", come back after a few days and read the log. Check
 Influence unlocks and that a Shakedown on a rival dents their trade.
+Test note: city ryo from owned businesses grows without limit and there is little to spend it on.
 
 **Phase end:** tests pass; Docs keeper commits "City in the campaign"; Tim playtest C6.
 

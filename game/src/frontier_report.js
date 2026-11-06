@@ -123,10 +123,11 @@ export function overviewRows(frontier, clan, prev = {}, alerts = {}) {
       ryo: rep.stock[4].value, ryoArrow: rep.stock[4].arrow,
       shortage: rep.waiting[0] || '', project: proj ? `${proj.label} · ${proj.status}` : '',
       road: road ? road.state : 'none', garrison: '–',
-      priority: s.priority, tax: s.taxLocked ? s.taxLevel : 'auto', alerts: alerts[s.id] || [] };
+      priority: s.priority, tax: s.taxLocked ? s.taxLevel : 'auto', alerts: alerts[s.id] || [],
+      need: s.need?.level || 'ok', needScore: s.need?.score || 0, needWhy: (s.need?.why || []).map(w => w.text) };   // Tim 2026-11-06: sim/frontier/alerts.js townNeed
   });
 }
-export const SORTS = { name: (a, b) => a.name.localeCompare(b.name), pop: (a, b) => b.popNum - a.popNum, mood: (a, b) => a.mood - b.mood, ryo: (a, b) => b.ryo - a.ryo, rank: (a, b) => a.rank - b.rank };
+export const SORTS = { name: (a, b) => a.name.localeCompare(b.name), pop: (a, b) => b.popNum - a.popNum, mood: (a, b) => a.mood - b.mood, ryo: (a, b) => b.ryo - a.ryo, rank: (a, b) => a.rank - b.rank, need: (a, b) => b.needScore - a.needScore || a.rank - b.rank };
 
 // ---- F4.4d: the small card when you hover a town on the World map. Your towns get the full card; a
 // rival town only what you have seen (name, owner, that you saw it). Pure. ----

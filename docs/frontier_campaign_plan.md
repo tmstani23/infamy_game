@@ -378,9 +378,21 @@ Campaign only. `sim/campaign_goals.js` `goals.current(clan)` returns the current
 
 - **Starter goals** come first, per clan: Yakuza: loot a body, gear up, 3 crew, first business, a shakedown, win a raid. Kuroda: the same with a sweep instead of the shakedown. Shinobi: loot, gear up, 3 ninja, a contract.
 - **Founding chain:** buy a permit, hire settlers, leave the city, found a town.
-- **After founding:** Lay out your town (road, housing and farm cells), Put workers to work (workers on a resource spot), Grow to Village, Open a Market, then the next Influence tier. A Capital businesses row (hold 6 businesses) runs alongside. Numbers: `frontier.json` `goals` (`layout`, `workers`, `tier`, `holdBusinesses`).
+- **After founding:** Lay out your town (road, housing and farm cells), Put workers to work (timber), Gather stone, Make goods (2 Work cells), Build a storehouse, Build a lumber camp and a quarry, Grow your people (20), Grow to Village (rows for 750 timber, stone and goods in stock, then Upgrade), Open a Market, then the next Influence tier. A Capital businesses row (hold 6 businesses) runs alongside. Each step flashes its button through the town panel (build bar tool, Workers button then the timber or stone spot, Upgrade). Numbers: `frontier.json` `goals`.
 - **Permits after the first:** the Nth permit also needs one of your towns at tier N (2nd: Village, 3rd: Town); players only (`frontier.json` `founding.permit.townTier`).
 - A clan holds at most 5 settlers at once (`units.json` `rules.settlers.max`).
+
+## Alerts while on the island (2026-11-06)
+
+While the hero is on the island the lieutenant runs the city. Only major capital news shows, prefixed "Capital:": a raid won against you, a quarter lost, your HQ raided, and one warning (once) when the clan falls below half the businesses it held on leaving. Other city pings are muted and the raid banner is hidden. Code: `src/news_callouts.js`, `src/main.js`.
+
+## Town Need rating (2026-11-06)
+
+`sim/frontier/alerts.js` `townNeed()` stores `s.need = { score, level, why[] }` on each town every economy tick. Weights (`frontier.json` `alerts.need`): attack 50 and building destroyed 30 (each for 30 economy ticks), blocked road 30, food running out 25, mood below 25: 30, mood below 40: 20, safety below 50: 15, full store 5 each (max 2), governor suggestion 5, housing full 5, upgrade ready 5. Levels: urgent 50+, high 25+, medium 10+, low above 0, else ok.
+
+- The all-towns window (Y) has a Need column; sorting by Need lists the worst first.
+- Town alerts: urgent alerts and alerts from the town you stand in show on their own line; the rest fold into "Towns: N need attention (Y)". Every alert opens Y worst-first. At most 3 lines.
+- Test: `game/tools/test_town_need.mjs`.
 
 ## Simulation and view independence — agreed constraints
 

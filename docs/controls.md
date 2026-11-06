@@ -164,7 +164,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Town panel → Steer → Governor takes initiative | Ask first: the governor only suggests and nothing is built until you press Approve. On: he zones and builds by himself, and now also trains workers when all are busy (keeping some ryo and goods), lays short road spurs that open new cells, places work camps, and sends idle workers gathering. While the hall upgrade is affordable, a reminder repeats every so often; you still press Upgrade (2026-11-06). |
 | New townsfolk | A newcomer walks out of the town hall to a house, and a gold "+1 Homed" pops up where they go in (2026-11-05). |
 | Stuck workers | A worker stuck for about 15 s jumps to open ground or returns to the nearest drop-off and goes idle; it then shows in Workers → Idle. Resources glow on the ground and show on the minimap at every zoom (2026-11-05). |
-| Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. |
+| Y | Open the all-towns window: sort columns and drag rows to reorder the priority list. The Need column (Urgent, High, Medium, Low, OK; hover for why) sorts worst-first. |
+| Town alerts (under the big callout) | Urgent town alerts (under attack, lost a building, road blocked) and alerts from the town you stand in show on their own line; other towns fold into "Towns: N need attention". Click any to open Y with the worst towns first. On the island, city alerts stay quiet; only major capital losses show, prefixed "Capital:". |
 | M map → World tab, hover or click a town | Hover shows a town card; click opens its details. |
 | Settings → Save game | Save the city now under a name (any time). |
 | Settings → saved games list | Load any saved clan or Classic/campaign match, or Delete a save (moves it to `saves/_trash`); dawn autosaves appear here too (newest 3 kept). |

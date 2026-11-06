@@ -11,7 +11,8 @@ const frontier = data('data/frontier.json');
 const options = () => ({ district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
-  settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier });
+  settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier,
+  resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json') });
 function match(mode) {
   const g = createGame(options());
   const m = setupMatch(g, { clan: 'yakuza', difficulty: 'easy', mode, bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 5000 }, seed: 77 });
@@ -91,7 +92,7 @@ g.clans.settlersOf = settlers;
 g.state.frontier.settlements.__t = { owner: 'player', founded: true, name: 'Test' };
 clan.permit = false;
 goal = g.goals.current('player');
-assert.equal(goal.step, 14); assert.match(goal.title, /Influence/);
+assert.equal(goal.step, 19); assert.match(goal.title, /Influence/);
 assert.equal(goal.rows[0].label, 'Influence');
 delete g.state.frontier.settlements.__t;
 console.log('campaign goals ok');
@@ -162,8 +163,20 @@ console.log('campaign goals ok');
   assert.equal(cur().rows[0].where.place, 'world', 'layout rows point at the town');
   grid.use = 'rrr' + grid.use.slice(3); grid.zone = 'hhhhffff' + grid.zone.slice(8);
   assert.equal(cur().key, 'workers');
-  g.state.frontier.settlements[id].workers.forEach(w => { w.spot = 's1'; });
+  const T = g.state.frontier.settlements[id], spots = data('data/world_spots.json').spots, spotOf = k => spots.find(p => p.kind === k).id;
+  T.workers[0].spot = spotOf('timber');
+  assert.equal(cur().key, 'stone');
+  T.workers[1].spot = spotOf('stone');
+  assert.equal(cur().key, 'goods');
+  grid.zone = grid.zone.slice(0, 8) + 'kk' + grid.zone.slice(10);
+  assert.equal(cur().key, 'storehouse');
+  T.buildings.push({ type: 'storehouse', stage: 'built' });
+  assert.equal(cur().key, 'camps');
+  T.projects = [{ type: 'lumber_camp' }, { type: 'quarry' }];
+  assert.equal(cur().key, 'people');
+  T.pop = 40;
   assert.equal(cur().key, 'village');
+  assert.deepEqual(cur().rows.map(r => r.label).slice(0, 3), ['Timber', 'Stone', 'Goods']);
   g.state.frontier.settlements[id].tier = 2;
   assert.equal(cur().key, 'market');
   g.state.frontier.settlements[id].buildings.push({ type: 'market', stage: 'built' });

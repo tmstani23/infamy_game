@@ -1,11 +1,28 @@
 // News callouts each sim tick: the big moments in state.news shown to this player (moved out of main.js,
 // phase 7 split, 2026-10-29). Reads the state only; never sends commands.
 import { sweepArrivalVisible } from './render/sweep_trail.js';
-export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert = () => {} }) {
+export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: calloutRaw, contractCallout: contractRaw, minimap: mini, gameMap: bigMap, view, presentation, showResults, townAlert = () => {} }) {
+  // Out on the island (Tim 2026-11-06) the lieutenant has the city: city alerts stay quiet, only major capital
+  // losses show, marked "Capital:", plus one warning when the clan falls below half the businesses it held on leaving
+  const AWAY_OK = new Set(['town', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd']);
+  const major = (n, me) => (n.kind === 'raidWon' && n.defender === me) || (n.kind === 'quarterLost' && n.clan === me) || (n.kind === 'hqSuppressed' && n.defender === me);
+  let prefix = '', quiet = false, heldOnLeaving = null, warned = false;
+  const callout = (t, k, ms) => calloutRaw(prefix + t, k, ms), contractCallout = (t, k) => contractRaw(prefix + t, k);
+  const minimap = { ping: (...a) => { if (!quiet) mini.ping(...a); } }, gameMap = { ping: (...a) => { if (!quiet) bigMap.ping(...a); } };
   const shinobiAlert = text => callout(text, 'loss shinobi-alert', 8000);
+  const held = me => Object.values(game.state.businesses).filter(b => b.owner === me && !b.hideout).length;
   function update() {
+    const hero = game.state.entities[heroId], away = hero?.place === 'world', mine = hero?.owner;
+    if (away && heldOnLeaving === null) { heldOnLeaving = held(mine); warned = false; }
+    if (!away) heldOnLeaving = null;
+    if (away && !warned && heldOnLeaving >= 2 && held(mine) < Math.ceil(heldOnLeaving / 2)) {
+      warned = true; calloutRaw(`Capital: you're losing the city (${held(mine)} of ${heldOnLeaving} businesses left)`, 'loss', 7000);
+    }
     for (const n of game.state.news) {
       const me = game.state.entities[heroId]?.owner, boss = game.state.clans[n.clan]?.name || 'Rival clan';
+      const big = away && major(n, me);
+      if (away && !big && !AWAY_OK.has(n.kind)) continue;
+      prefix = big ? 'Capital: ' : ''; quiet = away;
       if(n.kind==='sweepArrival'&&sweepArrivalVisible(n,game.state,me,(clan,e)=>game.vision.canSee(clan,e))){
         const zone=game.state.deployment.sectors.find(s=>s.id===n.sector)?.name||n.sector;
         callout(`${n.clan===me?'SWEEP IN POSITION':'ENEMY SWEEP IN POSITION'} · ${zone} · ${n.point}/3 · hold 20 s`,n.clan===me?'win':'loss',5000);
