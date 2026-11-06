@@ -62,6 +62,12 @@
 - Unit circles (2026-11-01): turning-arc magic circles (shader in `render/view.js`) replace the flat team rings, dimmer.
 - Door rings (2026-10-17): a notched outer ring, a turning dashed inner ring, ember glow and a sweeping highlight; each ring sits 1 step out from its door.
 
+### Animals and vehicles (2026-11-06)
+
+- Mixamo can't rig animals. Path: concept image, then Tencent for the 3D model, then rig and animate headless in the cloud with `assets/models/source/animal_rigs/quad_rig.py` (Blender as a Python module: `pip install bpy`), then the usual 8-direction sprite export.
+- Vehicles: generate the wheels and the animals as separate images, because Tencent fuses wheels into the body.
+- Concepts live in `assets/concepts/mounts_vehicles/`.
+
 ### Superseded
 
 - The 2026-10-13 plan used free 3D building packs (Kasuga) and local Hunyuan3D. It was replaced by the painted sheets above and Tencent's web version, which has textures.
