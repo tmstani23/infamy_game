@@ -67,7 +67,7 @@
     "frames": 12,
     "fps": 12,
     "cellWorld": 4.2,
-    "feetUp": 1.333
+    "feetUp": 1.047
   },
   "omnibus_walk": {
     "size": 384,

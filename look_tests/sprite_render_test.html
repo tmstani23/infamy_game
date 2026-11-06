@@ -628,6 +628,7 @@ async function loadFiles(files) {
   // The file with a skinned mesh is the character; everything else only donates clips
   const model = parsed.find(p => hasSkin(p.obj) && /ronin|model/i.test(p.file.name)) || parsed.find(p => hasSkin(p.obj) && !root);
   if (model) {
+    superSample = 1;
     clips = [];
     current = null;
     modelName = model.file.name.replace(/\.fbx$/i, '');
@@ -656,12 +657,17 @@ addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'
 // opts: { height or length, ref, merge, yaw }. merge: play every clip in the file together as one clip
 // of that name (grouped scenes: team + coach + coachman). yaw: degrees to turn the model (default 180).
 let mountOpts = {};
+let superSample = 1;
+let groundShift = 0;
 async function loadMount(file, opts = mountOpts) {
   const gltf = await gltfLoader.parseAsync(await file.arrayBuffer(), '');
   clips = []; current = null;
   modelName = file.name.replace(/\.(glb|gltf)$/i, '');
   yawOffset = THREE.MathUtils.degToRad(opts.yaw ?? 180);   // Blender .glb exports face -Z
   $('inplace').checked = false;   // the rigs already walk on the spot
+  wheelSets = opts.wheels ? addWheels(gltf.scene, opts.wheels) : [];
+  if (opts.tilt) tiltPart(gltf.scene, opts.tilt);
+  superSample = opts.supersample || 1;
   setupModel(gltf.scene, { height: opts.height || CHAR_HEIGHT, length: opts.length, ref: opts.ref });
   if (opts.merge) {
     const tracks = gltf.animations.flatMap(c => c.tracks);
@@ -673,12 +679,120 @@ async function loadMount(file, opts = mountOpts) {
 }
 $('pickMount').onchange = e => e.target.files[0] && loadMount(e.target.files[0]);
 
+// ---------- spinning wheels (vehicles) ----------
+// Tencent models come with the wheels fused into the body, so they cannot turn. addWheels cuts the
+// fused wheels out of the mesh and puts procedural spoked wheels in their place, coloured from the
+// texture they replace. spinWheels turns them during export by a whole number of spoke gaps per
+// loop (seamless), about as far as the vehicle rolls in that time.
+// spec (Blender coordinates, Z up, from the .blend): { mesh, fwd: +1 if the vehicle drives toward +Y,
+//   axle: [inner |x|, outer |x|], list: [[y, z, radius], ...], spokes, roll: world units per second }
+let wheelSets = [];
+function addWheels(scene, spec) {
+  scene.updateMatrixWorld(true);
+  const mesh = scene.getObjectByName(spec.mesh);
+  if (!mesh?.isMesh) { log(`wheels: no mesh ${spec.mesh}`); return []; }
+  const [xIn, xOut] = spec.axle, list = spec.list;
+  const g = mesh.geometry, pos = g.attributes.position, uv = g.attributes.uv;
+  const M = mesh.matrixWorld, v = new THREE.Vector3();
+  // Blender (x, y, z) = glTF (x, -z, y)
+  const inWheel = new Uint8Array(pos.count), rimPart = new Uint8Array(pos.count);
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(M);
+    if (Math.abs(v.x) < xIn) continue;
+    for (const [cy, cz, r] of list) {
+      const d = Math.hypot(-v.z - cy, v.y - cz);
+      if (d <= r * 1.04) { inWheel[i] = 1; rimPart[i] = d > r * 0.8 ? 1 : 0; break; }
+    }
+  }
+  // texture colours of what is cut out: rim and spokes separately
+  const img = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material).map?.image;
+  let px = null, W = 0, H = 0;
+  if (img && uv) {
+    const c = document.createElement('canvas'); W = c.width = 256; H = c.height = 256;
+    const cx = c.getContext('2d'); cx.drawImage(img, 0, 0, W, H); px = cx.getImageData(0, 0, W, H).data;
+  }
+  const sum = [[0, 0, 0, 0], [0, 0, 0, 0]];
+  const idx = g.index ? g.index.array : [...Array(pos.count).keys()];
+  const keep = [];
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+    if (inWheel[a] && inWheel[b] && inWheel[c]) {
+      if (px) for (const k of [a, b, c]) {
+        const x = Math.min(W - 1, Math.max(0, Math.floor((uv.getX(k) % 1 + 1) % 1 * W)));
+        const y = Math.min(H - 1, Math.max(0, Math.floor((uv.getY(k) % 1 + 1) % 1 * H)));
+        const o = (y * W + x) * 4, s = sum[rimPart[k]];
+        s[0] += px[o]; s[1] += px[o + 1]; s[2] += px[o + 2]; s[3]++;
+      }
+    } else keep.push(a, b, c);
+  }
+  g.setIndex(keep);
+  const colour = (s, fb) => s[3] ? new THREE.Color().setRGB(s[0] / s[3] / 255, s[1] / s[3] / 255, s[2] / s[3] / 255, THREE.SRGBColorSpace) : new THREE.Color(fb);
+  const spokeMat = new THREE.MeshStandardMaterial({ color: colour(sum[0], 0x5a4632) });
+  const rimMat = new THREE.MeshStandardMaterial({ color: colour(sum[1], 0x3a2e22) });
+  const width = xOut - xIn, n = spec.spokes || 10, sets = [];
+  for (const [cy, cz, r] of list) for (const side of [1, -1]) {
+    const w = new THREE.Group();
+    w.position.set(side * (xIn + xOut) / 2, cz, -cy);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(r * 0.93, r * 0.07, 6, 40), rimMat);
+    rim.rotation.y = Math.PI / 2; rim.scale.z = Math.max(1, width / (r * 0.14));
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.15, r * 0.15, width * 1.6, 16), rimMat);
+    hub.rotation.z = Math.PI / 2;
+    w.add(rim, hub);
+    for (let k = 0; k < n; k++) {
+      const arm = new THREE.Group(); arm.rotation.x = k * 2 * Math.PI / n;
+      const sp = new THREE.Mesh(new THREE.BoxGeometry(width * 0.5, r * 0.8, r * 0.06), spokeMat);
+      sp.position.y = r * 0.5; arm.add(sp); w.add(arm);
+    }
+    scene.add(w);
+    sets.push({ w, r, n, fwd: spec.fwd ?? 1, roll: spec.roll ?? 1.4 });
+  }
+  log(`wheels: ${list.length * 2} cut out and rebuilt on ${spec.mesh}`);
+  return sets;
+}
+// Tilts one part (with its rebuilt wheels) about a pivot on the x axis, e.g. the rickshaw about the
+// shaft tips in the puller's hands, so its wheels come down to the ground.
+// spec: { mesh, about: [y, z] (Blender coordinates), degrees (about +x in the page's Y-up space) }
+function tiltPart(scene, spec) {
+  scene.updateMatrixWorld(true);
+  const mesh = scene.getObjectByName(spec.mesh);
+  if (!mesh) return log(`tilt: no mesh ${spec.mesh}`);
+  const g = new THREE.Group();
+  g.position.set(0, spec.about[1], -spec.about[0]);   // Blender (y, z) -> (z = -y, y = z)
+  scene.add(g); g.updateMatrixWorld(true);
+  g.attach(mesh);
+  for (const ws of wheelSets) g.attach(ws.w);
+  g.rotation.x = THREE.MathUtils.degToRad(spec.degrees);
+}
+function spinWheels(phase, frames, duration) {
+  const s = new THREE.Vector3();
+  for (const ws of wheelSets) {
+    const worldR = ws.r * ws.w.getWorldScale(s).x;
+    const turns = ws.roll * duration / (2 * Math.PI * worldR);
+    // whole spoke gaps per loop, and under half a gap per frame so it never seems to spin backwards
+    const gaps = Math.max(1, Math.min(Math.round(turns * ws.n), Math.floor(0.45 * frames)));
+    ws.w.rotation.x = -ws.fwd * phase * gaps * 2 * Math.PI / ws.n;
+  }
+}
+
 // Frames the camera around everything the clips reach, for all 8 directions, at the
 // characters' pixel scale (pxPerUnit), and returns the cell size it picked.
 function autoFrame(pxPerUnit = 160 / (2 * VIEW_HALF), step = 32) {
   const obj = root.children[0], m = new THREE.AnimationMixer(obj);
   const cam = camera.clone(); aimY = 0; frameCamera(cam, 1); cam.updateMatrixWorld(true);
   const view = cam.matrixWorldInverse, box = new THREE.Box3(), p = new THREE.Vector3();
+  // Stand it on its lowest point while animated (wheel rims, hooves, feet), not on the bind pose,
+  // which can sit lower than anything in the clips and leave the sprite hovering.
+  let low = Infinity;
+  for (const { clip } of clips) {
+    m.stopAllAction(); m.clipAction(clip).play();
+    for (let k = 0; k < 8; k++) {
+      m.setTime(clip.duration * k / 8);
+      root.rotation.y = 0; root.updateMatrixWorld(true);
+      low = Math.min(low, new THREE.Box3().setFromObject(obj, true).min.y);
+    }
+  }
+  groundShift = isFinite(low) && !mountOpts.length ? -low : 0;   // boats (sized by length) keep their waterline at 0
+  obj.position.y += groundShift;
   let x = 0, y0 = Infinity, y1 = -Infinity;
   for (const { clip } of clips) {
     m.stopAllAction(); m.clipAction(clip).play();
@@ -703,7 +817,7 @@ function autoFrame(pxPerUnit = 160 / (2 * VIEW_HALF), step = 32) {
   if (![...$('size').options].some(o => o.value === String(size))) $('size').add(new Option(String(size)));
   $('size').value = String(size);
   $('zoom').value = String(VIEW_HALF / (size / 2 / pxPerUnit));
-  return { size, worldPerCell: size / pxPerUnit, feetUp: aimY };   // = art.json characterFraming cellWorld / feetUp
+  return { size, worldPerCell: size / pxPerUnit, feetUp: aimY, groundShift };   // = art.json characterFraming cellWorld / feetUp
 }
 
 // ---------- export ----------
@@ -753,7 +867,9 @@ function renderSheet(i, withGlow = false, opts = {}) {
 
   const off = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   off.setPixelRatio(1);
-  off.setSize(size, size);
+  const ss = superSample;   // render big, draw down: softer edges (vehicles; MOUNTS supersample)
+  off.setSize(size * ss, size * ss);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   off.outputColorSpace = THREE.SRGBColorSpace;
   off.setClearColor(0x000000, 0);
   const cam = camera.clone();
@@ -777,10 +893,11 @@ function renderSheet(i, withGlow = false, opts = {}) {
     root.rotation.y = yawFor(d);
     for (let f = 0; f < frames; f++) {
       exMixer.setTime((f / frames) * clip.duration);
+      spinWheels(f / frames, frames, clip.duration);
       spearPhase = f / frames;
       updateItem();
       off.render(scene, cam);
-      ctx.drawImage(off.domElement, f * size, row * size);
+      ctx.drawImage(off.domElement, f * size, row * size, size, size);   // supersampled: drawn down to the cell size
       if (doGlow) {
         glowSwap(true, saved);
         off.render(scene, cam);
@@ -841,6 +958,11 @@ window.spriteTest = {
   setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
   setFraming: f => { $('size').value = f.size; $('zoom').value = 3 / f.cellWorld; },
   setMount: o => { mountOpts = o; },
+  // lowest point of each mesh over the first clip (world units, after framing), to check ground contact
+  meshLows: () => { const obj = root.children[0], m = new THREE.AnimationMixer(obj), out = {}; const clip = clips[0].clip; m.clipAction(clip).play();
+    for (let k = 0; k < 16; k++) { m.setTime(clip.duration * k / 16); root.rotation.y = 0; root.updateMatrixWorld(true);
+      obj.traverse(o => { if (o.isMesh) { const y = new THREE.Box3().setFromObject(o, true).min.y; out[o.name] = Math.min(out[o.name] ?? Infinity, y); } }); }
+    m.stopAllAction(); return out; },
   autoFrame,
 };
 

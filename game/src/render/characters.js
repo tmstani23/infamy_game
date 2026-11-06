@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { healthBar } from './health.js';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
-import { spriteMaterial, shadowMaterial, hiddenMaterial, weaponGlowMaterial } from './shading.js';
+import { spriteMaterial, shadowMaterial, footShadowMaterial, hiddenMaterial, weaponGlowMaterial } from './shading.js';
 import { Thing, loadTex } from './scenery.js';
 import { drawCrest } from './banners.js';
 import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
@@ -117,7 +117,9 @@ export class CharacterSprite {
     this.hidden.renderOrder = 99500;
     this.hidden.frustumCulled = true;
     this.thing = new Thing(mesh, { minX: 0, maxX: 0, minZ: 0, maxZ: 0 });
-    this.shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), shadowMaterial);
+    // vehicles: footprint shadow [length, width] that turns with them (characterFraming shadow)
+    this.footShadow = sheets.framing?.shadow || null;
+    this.shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), this.footShadow ? footShadowMaterial : shadowMaterial);
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.renderOrder = 1;
     // green ring under selected crew
@@ -292,6 +294,13 @@ export class CharacterSprite {
     this.thing.foot = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r };
     this.thing.updateScreen();
     this.shadow.position.set(x, 0.01, z);
+    if (this.footShadow) {
+      // dir 0..7 = S, SW, W, NW, N, NE, E, SE on screen; length along the heading
+      const a = dir * Math.PI / 4, S = Math.SQRT1_2;
+      const hx = (-Math.sin(a) + Math.cos(a)) * S, hz = (Math.sin(a) + Math.cos(a)) * S;
+      this.shadow.rotation.set(-Math.PI / 2, 0, Math.atan2(-hx, -hz));
+      this.shadow.scale.set(this.footShadow[1] / 1.5 * size, this.footShadow[0] / 1.5 * size, 1);
+    }
     this.ring.position.set(x, 0.02, z);
     this.bar.position.set(x, BAR_UP * size, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
     this.nameplate.position.set(x, (BAR_UP + 0.35) * size, z);

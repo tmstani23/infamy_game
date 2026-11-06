@@ -114,14 +114,22 @@ const BUILT_IN = { ronin: 'walk' };
 // Mounts and vehicles: file in assets/models/mounts, height of the ref mesh (or the whole
 // model) in world units (character = 2) or length (longest side, for boats), pxPerUnit = sheet resolution, merge = play all clips of a grouped scene as one,
 // yaw = degrees to turn the model (default 180: Blender .glb exports face -Z). Heights by eye (2026-11-06); tune here.
+// wheels: vehicles whose wheels are fused into the model get them cut out and rebuilt as spinning
+// spoked wheels (sprite_render_test.html addWheels). Numbers are Blender coordinates read off the model.
+// tilt: turn one part about a pivot so it meets the ground (the rickshaw hung level from the puller's hands, wheels in the air).
+// supersample: render at that many times the size and draw down, for softer edges.
 const MOUNTS = {
   mare: { file: 'mare.glb', height: 2.4 },
   mare_saddled: { file: 'mare_saddled.glb', height: 2.4, ref: '^black_beauty' },
   calico: { file: 'calico.glb', height: 2.3 },
   ox: { file: 'ox.glb', height: 2.0 },
-  ox_cart: { file: 'ox_cart.glb', height: 2.0, ref: '^ox$', merge: 'walk' },
-  rickshaw: { file: 'rickshaw.glb', height: 2.0, ref: '^node_0', merge: 'walk', yaw: 0 },   // built around the Mixamo driver, who faces +Z
-  omnibus: { file: 'omnibus.glb', height: 2.4, ref: '^black_beauty', merge: 'walk' },
+  ox_cart: { file: 'ox_cart.glb', height: 2.0, ref: '^ox$', merge: 'walk', supersample: 2,
+    wheels: { mesh: 'ox_cart', fwd: 1, axle: [0.372, 0.425], list: [[-1.145, 0.315, 0.316]], spokes: 12 } },
+  rickshaw: { file: 'rickshaw.glb', height: 2.0, ref: '^node_0', merge: 'walk', yaw: 0, supersample: 2,
+    wheels: { mesh: 'rickshaw', fwd: -1, axle: [0.00262, 0.0031], list: [[0.0097, 0.0071, 0.0033]], spokes: 10 },
+    tilt: { mesh: 'rickshaw', about: [-0.0011, 0.0057], degrees: -24 } },   // built around the Mixamo driver, who faces +Z
+  omnibus: { file: 'omnibus.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
+    wheels: { mesh: 'omnibus_body', fwd: 1, axle: [0.133, 0.172], list: [[-0.222, 0.108, 0.108], [0.209, 0.095, 0.087]], spokes: 10 } },
   // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
   cannon_wooden: { file: 'cannon_wooden.glb', height: 1.2, merge: 'fire', yaw: 90 },
@@ -296,7 +304,8 @@ for (const [name, cfg] of mounts) {
   const frame = await page.evaluate(px => window.spriteTest.autoFrame(px), cfg.pxPerUnit);
   if (cfg.fps) await page.evaluate(f => { document.getElementById('fps').value = String(f); }, cfg.fps);
   const names = await page.evaluate(() => window.spriteTest.clipNames());
-  console.log(`${name} (mount): ${names.length} animation(s), ${frame.size} px cells`);
+  console.log(`${name} (mount): ${names.length} animation(s), ${frame.size} px cells` + (Math.abs(frame.groundShift) > 0.01 ? `, lowered ${frame.groundShift.toFixed(2)} to stand on the ground` : ''));
+  if (process.env.MOUNT_MEASURE) { console.log('  lowest point per mesh:', JSON.stringify(await page.evaluate(() => window.spriteTest.meshLows()), (k, v) => typeof v === 'number' ? +v.toFixed(2) : v)); await page.close(); continue; }   // report framing only, render nothing
   for (let i = 0; i < names.length; i++) {
     const clip = safe(names[i]);
     if (onlyClips.length && !onlyClips.includes(clip)) continue;

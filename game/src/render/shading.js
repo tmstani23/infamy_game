@@ -766,6 +766,20 @@ export const shadowMaterial = new THREE.ShaderMaterial({
   transparent: true, depthTest: true, depthWrite: false,   // hidden under 3D furniture; nothing else writes depth
 });
 
+// Vehicles: a soft rounded-box shadow, stretched to the vehicle's footprint and turned with it
+// (art.json characterFraming shadow: [length, width]). No hero ring.
+export const footShadowMaterial = new THREE.ShaderMaterial({
+  vertexShader: QUAD_VERT,
+  fragmentShader: /* glsl */`
+    varying vec2 vUv;
+    void main() {
+      vec2 p = abs(vUv - 0.5) * 2.0;
+      float d = pow(pow(p.x, 4.0) + pow(p.y, 4.0), 0.25);
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 0.38 * smoothstep(1.0, 0.45, d));
+    }`,
+  transparent: true, depthTest: true, depthWrite: false,
+});
+
 // ---------- 3D interiors: textured shapes lit by the same lamps ----------
 const SOLID_VERT = /* glsl */`
 varying vec3 vWorld;

@@ -28,3 +28,7 @@ From Assassin's Creed Unity and Hitman talks:
 - Witnesses are marked `e.witness`.
 - Fear: a 0.3 s flinch, then they run; runners that get jammed stop.
 - Combat: attackable on order only, 60 HP, flee when hit, can be executed. A downed townsperson left alone for 5 s is helped home. The dead and the helped-home come back after 5 minutes (`replaceSeconds` 300) at their own home.
+
+## Vehicles (2026-11-06)
+
+Town traffic: `civilians.json` types `rickshaw` (2), `ox_cart` (2) and `omnibus` (1) with `"vehicle": true`. They come on top of the `settings.json` townsfolk total and are topped up in older saves. Vehicles drive on the district's road bands only (`roadNav` in `sim/game.js`), never chat, bow or freeze, and pull away from fights at once. They share people's walk speed and collision size. Idle is a still frame. Each one casts a soft footprint shadow that turns with it (`art.json` `characterFraming` `shadow: [length, width]`, `footShadowMaterial` in `render/shading.js`).

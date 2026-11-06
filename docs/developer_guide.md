@@ -54,3 +54,10 @@ Held items (weapons, props) go in `assets/models/items/` as `.glb` (or `.fbx`), 
 ### Mounts and vehicles
 
 Animals, vehicles and cannons are `.glb` files in `assets/models/mounts/` (git-ignored, like the other models). The `MOUNTS` table in `tools/export_sprites.mjs` lists each one with its file, size and clips; export them the same way (`node tools/export_sprites.mjs . mare --pack`). `tools/mounts_to_glb.py` (pip `bpy`) converts a Blender rig scene to that `.glb`. Export sizes and framing are written to `assets/sprites/mounts.json`.
+
+Extra `MOUNTS` fields for vehicles:
+- `wheels`: wheels fused into the model are cut out and rebuilt as spinning spoked wheels (`addWheels` in `look_tests/sprite_render_test.html`); `mesh`, `fwd`, `axle`, `list` (Blender coordinates read off the model) and `spokes`.
+- `tilt`: turns one part about a pivot so it meets the ground (the rickshaw's cart).
+- `supersample`: renders at that many times the size and draws down, for softer edges.
+
+Vehicle footprint shadows are set in `game/data/art.json` `characterFraming` as `shadow: [length, width]` in world units.
