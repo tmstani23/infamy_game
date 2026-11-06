@@ -23,3 +23,19 @@ saves/
 /assets/environment/**/*.jpg
 /assets/environment/**/*.webp
 /assets/concepts/
+
+# Exceptions to the source-art rule above: the game loads these island textures
+# at runtime, so they must be in git or a fresh copy of the repo is missing them.
+!/assets/environment/island/ground_snow.png
+!/assets/environment/island/ground_snow_b.png
+!/assets/environment/island/ground_snow_thaw.png
+!/assets/environment/island/ground_snow_thaw_b.png
+!/assets/environment/island/top_dry_b.png
+!/assets/environment/island/top_dry_c.png
+!/assets/environment/island/top_dry_d.png
+!/assets/environment/island/top_forest_b.png
+!/assets/environment/island/top_forest_c.png
+!/assets/environment/island/top_forest_d.png
+!/assets/environment/island/top_snow_b.png
+!/assets/environment/island/top_snow_c.png
+!/assets/environment/island/top_snow_d.png
