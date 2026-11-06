@@ -198,6 +198,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
 
   function review(s) {
     init(s);
+    // a bot clan's towns run themselves: its governor always takes initiative (2026-11-06)
+    if (s.owner && state.clans?.[s.owner]?.bot) s.autoBuild = true;
     if (s.autoBuild) { workers?.assignIdle(s); workers?.rebalance?.(s); }
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again

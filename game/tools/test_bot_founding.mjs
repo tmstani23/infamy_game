@@ -65,6 +65,8 @@ const botTowns = g => Object.values(g.state.frontier.settlements).filter(s => s.
   const bossesOut = Object.values(g.state.entities).filter(e => e.type === 'hero' && g.state.clans[e.owner]?.bot && e.place === 'world');
   for (const b of bossesOut) assert.ok(Object.values(g.state.entities).some(u => u.owner === b.owner && u.type !== 'hero' && u.type !== 'settler' && u.place === 'world'), 'a bot takes its Hero group along (Tim 2026-11-06)');
   assert.equal(bossesOut.length, 2, 'the bosses stay out at their towns (C2: lieutenants run the city)');
+  for (let i = 0; i < 400; i++) g.step(bots.flatMap(b => b.tick()));
+  for (const t of towns) assert.equal(t.autoBuild, true, 'a bot town\'s governor takes initiative');
 }
 
 // Classic: never

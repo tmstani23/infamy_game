@@ -414,6 +414,7 @@ Goal chain (`sim/campaign_goals.js`): Buy a founding permit â†’ Hire settlers â†
 - Governor: stands by each town hall; Space opens his report, what each Focus does, and focus and initiative buttons. Placeholder look: `merchant` (`units.json` `rules.governorModel`, default merchant).
 - Goal flashes on buttons use the stronger `.goal-flash` style (`index.html`).
 - The stockade has a tooltip and no goal step.
+- Bot clans' town governors always take initiative (`autoBuild` on). Code: `sim/frontier/governor.js`. Test: `tools/test_bot_founding.mjs`.
 - New towns start with food 60, timber 50, stone 50, goods 50, ryo 20 (`frontier.json` `founding.startStock`).
 
 Test: `tools/test_campaign_goals.mjs`.
