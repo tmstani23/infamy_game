@@ -26,18 +26,20 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       <label class="start-choice"><input type="radio" name="clan" value="${c.id}" ${initial.clan === c.id ? 'checked' : ''} required>
       <span class="start-clan-card" style="--choice-color:${c.color}"><canvas width="72" height="72" data-crest="${c.id}" aria-hidden="true"></canvas>
       <strong>${c.name}</strong><em>${c.home}</em><span>${c.about}</span></span></label>`).join('')}</div></fieldset>
+    <div class="start-options">
     <fieldset class="start-difficulty"><legend>Difficulty</legend><div class="start-levels">${DIFFICULTY_CHOICES.map(d => `
       <label class="start-choice"><input type="radio" name="difficulty" value="${d.id}" ${initial.difficulty === d.id ? 'checked' : ''} required><span>${d.name}</span></label>`).join('')}</div>
       <p class="start-difficulty-note" aria-live="polite"></p></fieldset>
     <fieldset class="start-difficulty"><legend>Mode</legend><div class="start-levels">${MODE_CHOICES.map(m => `
       <label class="start-choice"><input type="radio" name="mode" value="${m.id}" ${initial.mode === m.id ? 'checked' : ''} required><span>${m.name}</span></label>`).join('')}</div>
       <p class="start-mode-note" aria-live="polite"></p></fieldset>
+    </div>
     <div class="start-footer"><div><p class="start-loadout" aria-live="polite"></p><p class="start-season">${cycles}-day season · two rival clans</p></div>
       <button class="start-play" type="submit">Start game <span aria-hidden="true">→</span></button></div>
     <div class="start-saves" hidden><button type="button" class="start-continue">Continue</button> <button type="button" class="start-load">Load game</button>
       <ul class="start-save-list" hidden></ul><p class="start-save-note" role="status"></p></div>
-    </form><div class="start-exit"><button type="button" class="start-exit-button">Exit Game</button><p class="start-exit-note" role="status" aria-live="polite"></p></div><div class="start-music"><button class="start-music-toggle" type="button">Play music</button>
-    <span class="start-music-title"></span><label>Music volume <input class="start-music-volume" aria-label="Intro music volume" type="range" min="0" max="100" step="1"></label></div></div>`;
+    </form><div class="start-util"><div class="start-exit"><button type="button" class="start-exit-button">Exit Game</button><p class="start-exit-note" role="status" aria-live="polite"></p></div><div class="start-music"><button class="start-music-toggle" type="button">Play music</button>
+    <span class="start-music-title"></span><label>Music volume <input class="start-music-volume" aria-label="Intro music volume" type="range" min="0" max="100" step="1"></label></div></div></div>`;
   const musicButton=root.querySelector('.start-music-toggle'),musicVolume=root.querySelector('.start-music-volume');
   function renderMusic(s){
     musicButton.textContent=s.unavailable?'Music unavailable':s.playing?'Pause music':'Play music';

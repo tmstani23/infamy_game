@@ -94,3 +94,29 @@ body.prematch > :not(#startscreen):not(#loading):not(script) { visibility: hidde
 #startscreen .start-save-list .start-save-ask { flex:1; align-self:center; font-size:13px; color:#e8c9a0; }
 #startscreen .start-save-list .start-save-yes { background:#7a2a22; color:#fff; }
 #startscreen .start-save-list [hidden] { display:none; }
+
+/* Fit on one screen (Tim 2026-11-06): sizes follow viewport height, no page scroll on desktop-sized windows. */
+@media (min-width: 601px) and (min-height: 520px) {
+  #startscreen { overflow: hidden; }
+  #startscreen .start-content { box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 2vh 0 clamp(40px, 6vh, 56px); }
+  #startscreen .start-eyebrow { margin-bottom: .4vh; }
+  #startscreen h1 { font-size: clamp(44px, 9vh, 104px); margin-bottom: .8vh; }
+  #startscreen .start-tagline { margin-bottom: clamp(8px, 3vh, 34px); font-size: clamp(13px, 2vh, 17px); }
+  #startscreen legend { margin-bottom: clamp(5px, 1.2vh, 13px); }
+  #startscreen .start-clan-card { padding: clamp(8px, 1.8vh, 18px) clamp(10px, 1.4vh, 16px) clamp(8px, 2vh, 20px); }
+  #startscreen .start-clan-card canvas { width: clamp(28px, 4.5vh, 42px); height: clamp(28px, 4.5vh, 42px); margin-bottom: clamp(5px, 1.5vh, 16px); }
+  #startscreen .start-clan-card strong { font-size: clamp(18px, 2.7vh, 24px); }
+  #startscreen .start-clan-card em { margin: 3px 0 clamp(5px, 1.3vh, 13px); }
+  #startscreen .start-clan-card > span { line-height: 1.5; }
+  #startscreen .start-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0 clamp(14px, 2vw, 28px); margin-top: clamp(8px, 2.4vh, 26px); }
+  #startscreen .start-options .start-difficulty { margin-top: 0; }
+  #startscreen .start-levels span { padding: clamp(6px, 1.2vh, 10px) 10px; }
+  #startscreen .start-difficulty-note, #startscreen .start-mode-note { margin: clamp(4px, 1vh, 10px) 0 0; min-height: 2.9em; color: #a3a6a4; font-size: 12px; line-height: 1.4; }
+  #startscreen .start-footer { margin-top: clamp(6px, 1.8vh, 27px); padding-top: clamp(8px, 2vh, 23px); }
+  #startscreen .start-play { padding: clamp(9px, 1.6vh, 14px) 28px; }
+  #startscreen .start-saves { position: relative; margin-top: clamp(6px, 1.2vh, 14px); }
+  #startscreen .start-save-list { position: absolute; left: 0; right: 0; bottom: 100%; margin: 0 0 6px; padding: 8px; max-height: 40vh; background: rgba(8,13,20,.96); border: 1px solid rgba(222,200,163,.25); border-radius: 4px; z-index: 5; }
+  #startscreen .start-util { position: fixed; z-index: 4; left: clamp(36px, 7vw, 150px); bottom: clamp(8px, 1.8vh, 18px); display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  #startscreen .start-util .start-exit, #startscreen .start-util .start-music { margin: 0; }
+}
+@media (min-width: 601px) and (max-width: 850px) { #startscreen .start-util { left: 24px; } }
