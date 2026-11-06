@@ -65,6 +65,7 @@ const MODEL_SETS = {
   thug: ['brawler'],
   lookout: ['brawler'],
   demolitions: ['brawler'],
+  lieutenant1: ['brawler'],
   bandit: ['brawler'],
   police: ['brawler'],
   brute: ['brawler'],
@@ -106,6 +107,7 @@ const EXTRA = {
   swordsman: ['brawler/Walking.fbx'],
   rival_yakuza: ['brawler/Walking.fbx'],
   geisha: ['Arms Hip Hop Dance.fbx'],
+  lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (Tim OK 2026-11-06)
 };
 // Dedicated borrowed clips stay out of the root combat set.
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx']);

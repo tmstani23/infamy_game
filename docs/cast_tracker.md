@@ -23,6 +23,7 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | Shinobi masked bodyguard | Shinobi dodge tank (new model) | ✅ shinobi_enforcerobj1.zip | `shinobi_enforcer.fbx` (header checked) | ✅ 9 color/glow pairs | ninja (new clips) |
 | lookout | Crew | ✅ | ✅ | ✅ 7 | brawler |
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
+| lieutenant1 | City captain / lieutenant (`units.json` `city_captain` sprite) | ✅ leutobj1.zip | ✅ lieutenant1.fbx | ✅ 6 (160px): fighting_idle, walking, running, punching, dying, yelling_out; packed with `--pack` | brawler + EXTRA Yelling Out (`export_sprites.mjs`; used as the talk clip, no dedicated talk clip exists); `art.json` `characters.lieutenant1` and `packedCharacters`; portraits `assets/sprites/portraits/lieutenant1_portrait_idle.png` plus colour grades `lieutenant1_{yakuza,shinobi,kuroda}_portrait_idle.png` (not packed, not used in the UI yet) |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
 | police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip | ✅ police.fbx (was policeman2) | ✅ 7, with jitte (2026-10-18) | brawler |
 | bandit | Enemy | ✅ | ✅ | ✅ 7 (cloak touches the edge at the end of dying) | brawler |
