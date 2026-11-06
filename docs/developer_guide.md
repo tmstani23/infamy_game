@@ -1,0 +1,52 @@
+# Developer guide
+
+Repo layout, look tests, sprite export and tech overview.
+
+## Tech
+
+The browser client uses JavaScript ES modules and three.js, with isometric character sprites rendered from 3D models. The simulation owns game rules and state; the client sends commands and renders the results. A local Node server serves the game and saves. The architecture is designed for multiplayer later; a networked multiplayer release is not built yet.
+
+## Repo layout
+
+| Path | What it is |
+|---|---|
+| `docs/` | Design and tech docs (listed in [START_HERE.md](../START_HERE.md)) |
+| `game/` | The game: sim, render, data (see `docs/architecture.md`) |
+| `look_tests/` | Standalone HTML experiments. Open any file in a browser. |
+| `screenshots/` | Screenshots used in the README |
+| `assets/` | Concepts, environment sheets, models, animations, sprites and prompt files (see `docs/art_direction.md`) |
+| `tools/export_sprites.mjs` | Batch-exports each model with its animation set to `assets/sprites` |
+
+## Look tests
+
+- `look_tests/lantern_street.html`: rainy lantern-lit street with wet reflections, mist, a see-through cutaway and a Realistic to Anime style slider.
+- `look_tests/voxel_character.html`: one ronin built from about 108,000 one-centimetre cubes, with idle and walk animations. Kept as an example only; the art pipeline uses sprites instead.
+
+- `look_tests/sprite_render_test.html`: drop in a rigged model and Mixamo animations to preview all 8 isometric directions and export a transparent spritesheet.
+
+All of them load three.js from a CDN, so they need an internet connection.
+
+## Exporting sprites
+
+This is the process for new characters and items and for updates to existing ones.
+
+One-time setup in the `infamy_game` root: `npm install sharp playwright`.
+
+```
+node tools/export_sprites.mjs . <model> --pack
+```
+
+- `--pack` repacks just the exported models into the live catalog afterwards (runs `tools/repack_model.mjs`).
+- `--portrait` also renders the 512 px character-page portrait (idle, front row) to `assets/sprites/portraits/`; with `--pack` it goes into `assets/sprites_packed/portraits/`.
+- `--margin=N` sets the gutter between packed frames (passed through to the repack).
+- Overwritten sheets are archived automatically to `assets/sprites_archive/<date>_<model>/` (once per day per file).
+
+Repack without exporting: `node tools/repack_model.mjs <model> [more models] [--margin=4]`, `--all` for every model (slow), `--dry` to report sizes only, `--portrait` for portraits.
+
+Add `--glow-only` to write just the weapon glow sheets (`<sheet>_glow.png`) and keep the colour sheets.
+
+This renders each model in `assets/models` with its own animation set from `assets/animations` to `assets/sprites/<model>_<animation>.png`, overwriting earlier exports. Add model names after `.` to export only those (`node tools/export_sprites.mjs . thug brute`). Animation sets go by subfolder of `assets/animations`, keeping Mixamo's own filenames: `brawler/` (thug, brute), `gunner/` (mercenary), `ninja/` (ninja leader and ninja grunt), `archer/` (archer), `civilian/` (geisha and other townsfolk, the default). Files directly in `assets/animations` are the ronin's combat set. `Mutant ...` files in `brawler/` are brute-only and replace the plain clip of the same name (`Mutant Walking` replaces `Walking`). A filename prefix such as `brawler_walk.fbx` also works. The mapping is at the top of the script.
+
+Without `--pack` an export is not added to the packed runtime catalog. A full sprite audit is only needed for catalog-wide policy changes; the packing gates are in `docs/art_direction.md`.
+
+Held items (weapons, props) go in `assets/models/items/` as `.glb` (or `.fbx`), and `ITEMS` at the top of the script says who holds what (for example the mercenary holds `rifle.glb` in both hands). Sizes per character are in `SCALE` (the brute is 1.12x). The sprite test page has matching controls for trying an item and its grip by hand.

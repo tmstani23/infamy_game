@@ -41,7 +41,7 @@ Tim's order from here (2026-10-20): a fully playable single-player game first, s
 
 On hold: real estate (market, selling, lots, development) until the map can grow (Tim 2026-10-20).
 
-## Architecture and maintenance pass (Tim, 2026-10-21)
+## Architecture and maintenance pass (2026-10-21)
 
 After the start-menu phase and playtest, begin with a read-only architecture audit. Approve a concrete checklist before refactoring; then complete the maintenance pass before the next feature batch:
 
@@ -51,6 +51,6 @@ After the start-menu phase and playtest, begin with a read-only architecture aud
 - [ ] Refactor in small, tested steps, keeping gameplay behavior unchanged.
 - [ ] Update [architecture.md](architecture.md) to match the code.
 
-Phase 4 deployment/sector/Rally design (Tim, 2026-10-25; not built): [implementation plan and open decisions](deployment_sector_plan.md), including the linked Shinobi HQ raid. This records future work; it does not authorize implementation.
+Phase 4 deployment/sector/Rally design (2026-10-25; not built): [implementation plan and open decisions](deployment_sector_plan.md), including the linked Shinobi HQ raid. This records future work; it does not authorize implementation.
 
-Future direction (Tim, 2026-10-31; design documentation only): [capital and frontier campaign plan](frontier_campaign_plan.md). It records agreed constraints, automated supply, open choices and a possible phased build. No frontier implementation is approved or built.
+Future direction (2026-10-31; design documentation only): [capital and frontier campaign plan](frontier_campaign_plan.md). It records agreed constraints, automated supply, open choices and a possible phased build. No frontier implementation is approved or built.

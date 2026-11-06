@@ -18,7 +18,8 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 | Topic | Owner |
 |---|---|
 | Working rules and the doc index | `START_HERE.md` |
-| Project overview, status, folder layout, sprite export how-to | `README.md` |
+| Public overview, screenshots, how to play | `README.md` |
+| Tech overview, folder layout, look tests, sprite export how-to | `docs/developer_guide.md` |
 | Usage-saving rules | `docs/usage.md` |
 | This role: doc owners and how docs are written | `docs/documentation_role.md` |
 | Code architecture: modules, data flow, main loop, data files | `docs/architecture.md` |
