@@ -85,7 +85,7 @@ export function createCommands({ state, data, world, economy, construction, gove
     switch (c.action) {
       case 'setPriority':
         if (!PRIORITIES.includes(c.priority)) return reject(e, c, 'unknown priority');
-        s.priority = c.priority;
+        s.priority = c.priority; s.focusSet = true;   // goal step "Give him his orders" (Tim 2026-11-06)
         return receipt(e, c, true);
       case 'setBudget':
         if (!Number.isFinite(c.ryo) || c.ryo < 0) return reject(e, c, 'budget must be 0 or more');
@@ -97,7 +97,9 @@ export function createCommands({ state, data, world, economy, construction, gove
         return receipt(e, c, true);
       case 'approveSuggestion':
         if (!Number.isInteger(c.index) || !s.suggestions?.[c.index]) return reject(e, c, 'no such suggestion');
-        return governor.approve(s.id, c.index) ? receipt(e, c, true) : reject(e, c, 'could not start it');
+        if (!governor.approve(s.id, c.index)) return reject(e, c, 'could not start it');
+        s.approvedOnce = true;
+        return receipt(e, c, true);
       case 'setTax':
         if (!['low', 'normal', 'high', 'auto'].includes(c.level)) return reject(e, c, 'unknown tax level');
         economy.setTax(s.id, c.level);

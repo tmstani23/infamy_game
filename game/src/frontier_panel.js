@@ -95,6 +95,11 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       const say = governorSays(rows);
       h += `<h1>Governor</h1><div class="sub">${esc(rows.title)}</div><div class="chat">“${esc(say.text)}”</div><div class="choices">`
         + say.choices.map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
+      // Tim 2026-11-06: he says what each focus does, and you can pick one right here
+      const st = rows.steer, pri = s.priority || st.priority;
+      h += `<div class="chat">“Tell me where to put our people:”</div><div class="focuslines">`
+        + ['grow', 'produce', 'trade', 'fortify'].map(p => `<div class="row"><button data-act="priority" data-id="${p}" class="${pri === p ? 'on' : ''}">${p[0].toUpperCase() + p.slice(1)}</button><small>${esc(STEER.focus[p].replace(/^\w+: /, ''))}</small></div>`).join('')
+        + `</div><div class="row"><span>Take initiative?</span><span><button data-act="auto" data-id="off" class="${st.autoBuild ? '' : 'on'}">Ask first</button> <button data-act="auto" data-id="on" class="${st.autoBuild ? 'on' : ''}">On</button></span></div>`;
     } else if(mode==='usage' && data) {
       h = usagePage_(s, rows);
     } else {

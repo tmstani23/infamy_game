@@ -13,7 +13,8 @@ export const BUILD_DETAILS={
   quarry:['A gathering camp and general worker drop-off; all cargo types accepted.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive stone production.'],
   storehouse:['A general worker drop-off; all cargo types accepted. Each one raises every storage cap by 500.','Shortens return trips. Delivery credits town stock immediately; camps are optional alternatives.'],
   market:['Sells goods above the town keep level for ryo (about 1 ryo per goods).','Village tier, one per town. Set the keep level under Steer in the town panel (default 400).'],
-  stockade:['A placed solid stockade building, separate from the fence tools.','Build Wall and Gate for an enclosure. No defensive stat bonus is implemented yet.']
+  stockade:['A 4-cell fort: shelter up to 40 of your units inside (town panel).','Hits on units inside land on the stockade; if it breaks, everyone piles out and the governor rebuilds it.'],
+  infirmary:['Your units nearby heal 3x faster.','Anyone knocked out on the island comes round at the nearest town\'s infirmary at full health (at its hall, at low health, without one).']
 };
 export function buildTooltip(id,s,data,requirements) {
   const [purpose,enables]=BUILD_DETAILS[id] || ['A placed town building.',''];

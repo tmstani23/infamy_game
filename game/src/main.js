@@ -17,6 +17,7 @@ import { createHireMenu } from './hire_menu.js';
 import { interactionDoor as selectInteractionDoor } from './door_interaction.js';
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
+import { createLieutenantTalk } from './lieutenant_talk.js';
 import { createLandOfficeMenu } from './land_office_menu.js';
 import { createGoalCard } from './goal_card.js';
 import { createSiteMenu } from './site_menu.js';
@@ -159,6 +160,9 @@ async function start() {
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
+    // your town's governor beside the hall (Tim 2026-11-06): talk to him
+    const gov = game.governorNear?.(heroId);
+    if (gov) { pending.push({ id: heroId, type: 'lieutenant', guide: 'governor' }); townTalk(gov.governor); return; }
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
     const door0 = interactionDoor();
     const innerDoor = !door0 && game.interiorDoorNear(heroId);
@@ -172,6 +176,7 @@ async function start() {
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle(menu);
     else if (menu === 'contracts') contractMenu.toggle();
     else if (menu === 'land_office') landOfficeMenu.toggle();   // E1: founding permit and settlers
+    else if (menu === 'lieutenant') lieutenantTalk.toggle();   // goal steps: the lieutenant at the gate (Tim 2026-11-06)
     else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // E1: out of the gate with a permit and settlers: Choose site
     else { pending.push({ id: heroId, type: 'use', units: crewInput.selected() }); sound.cue('use_1', 0.45); }   // selected crew come in too
   });
@@ -272,6 +277,7 @@ async function start() {
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
   // Every Goal card step with a place pings the same way (the minimap pulse and the street blink).
   let hintAt = 0, calloutShown = false, gateCallout = false, leaveSince = 0;
+  let ordersSent = false, reportSent = false, lastPlace = null;   // While I'm away opened during the orders step: told to the sim once
   function officeHint(now) {
     if (now - hintAt < 250) return;
     hintAt = now;
@@ -293,7 +299,26 @@ async function start() {
     const op = goal?.rows.find(r => !r.done && (r.label === 'Shakedown done' || r.label === 'Sweep done'));
     const ops = op && $('deploymentpanel').querySelector(op.label === 'Sweep done' ? '.sweep-ops' : '.shakedown-ops');
     const opsShown = !!ops && !ops.hidden && deploymentPanel.isOpen(), menuOpen = deploymentPanel.isOpen() || gameMap.isOpen();
-    $('deploymentbtn').classList.toggle('goal-flash', !!op && !menuOpen);
+    // lieutenant goal steps (Tim 2026-11-06): Deployment icon, then the While I'm away tab, then the budget slider
+    const orders = goal?.key === 'orders', awayPage = $('deploymentpanel').dataset.page === 'away' && deploymentPanel.isOpen();
+    $('deploymentbtn').classList.toggle('goal-flash', (!!op || orders) && !menuOpen);
+    document.querySelector('#deploymentpanel .show-away')?.classList.toggle('goal-flash', orders && deploymentPanel.isOpen() && !awayPage);
+    document.querySelector('#deploymentpanel .away-budget')?.classList.toggle('goal-flash', orders && awayPage);
+    if (orders && awayPage && !goal.rows[0].done && !ordersSent) { ordersSent = true; pending.push({ id: heroId, type: 'lieutenant', guide: 'opened' }); }
+    // Lieutenant's report (Tim 2026-11-06): the first time the boss walks back into the city, a callout and the log flashes until read
+    const ms = c?.milestones || {};
+    if (h && lastPlace === 'world' && h.place !== 'world' && !ms.reportDue && !ms.reportRead && game.state.lieutenants?.[c.id]) {
+      pending.push({ id: heroId, type: 'lieutenant', guide: 'back' });
+      callout('Lieutenant’s report: open Deployment → While I’m away to read what he did while you were out', 'news', 8000);
+    }
+    if (h) lastPlace = h.place;
+    const report = !!ms.reportDue && !ms.reportRead && !orders && !op;
+    if (report) {
+      if (!menuOpen) $('deploymentbtn').classList.add('goal-flash');
+      document.querySelector('#deploymentpanel .show-away')?.classList.toggle('goal-flash', deploymentPanel.isOpen() && !awayPage);
+      document.querySelector('#deploymentpanel .away-log')?.classList.toggle('goal-flash', awayPage);
+      if (awayPage && !reportSent) { reportSent = true; setTimeout(() => pending.push({ id: heroId, type: 'lieutenant', guide: 'report' }), 4000); }
+    } else if (!orders) document.querySelector('#deploymentpanel .away-log')?.classList.remove('goal-flash');
     for (const btn of $('deploymentpanel').querySelectorAll('.start-shakedown, .start-sweep')) btn.classList.toggle('goal-flash', opsShown && ops.contains(btn));
     game.goalGuide = op && menuOpen && !opsShown ? { sectors: (game.state.deployment?.sectors || []).map(s => s.id)
       .filter(id => Object.values(game.state.entities).some(e => e.owner === h.owner && e.type !== 'hero' && !e.dead && e.deployment?.group === id)) } : null;
@@ -301,9 +326,10 @@ async function start() {
     for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
       !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '2' && !!goal?.key?.startsWith('settlers'))));
     // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
-    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing' };
+    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing', Infirmary: 'infirmary' };
     const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-act="build-workers"]', '[data-build]'];
-    const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps,
+    const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
+      govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]'] : ['[data-act="priority"]'],
       stone: () => ['@stone', '[data-act="build-workers"]'],
       workers: () => ['@timber', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
       market: () => ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
@@ -320,6 +346,7 @@ async function start() {
   }
   // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
   const goalCard = createGoalCard({ root: $('goalcard'), button: $('goalbtn'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
+  const lieutenantTalk = createLieutenantTalk({ panel: $('lttalk'), game, heroId, send: c => pending.push(c), showOrders: () => { if (!deploymentPanel.isOpen()) $('deploymentbtn').click(); setTimeout(() => document.querySelector('#deploymentpanel .show-away')?.click(), 0); } });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -367,9 +394,10 @@ async function start() {
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
   let openTownHook = () => {};   // opens a town panel (F4.4d)
+  let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, siteMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -519,6 +547,7 @@ async function start() {
     onKey('KeyY', () => overview.toggle());
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
+    townTalk = id => townPanel.talk(id);
     createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier });
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
@@ -689,7 +718,7 @@ async function start() {
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
-      landOfficeMenu.update(); siteMenu.update();
+      landOfficeMenu.update(); lieutenantTalk.update(); siteMenu.update();
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();

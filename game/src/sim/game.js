@@ -180,6 +180,9 @@ export function createGame(options) {
   // knocked out on the island: up again at the nearest own town hall (sim/island_respawn.js, Tim 2026-11-06)
   const islandRespawn = areas ? createIslandRespawn({ state, areas, gate, rules: units?.rules?.islandRespawn, cellSize: options.frontier?.townGrid?.cellSize,
     spawn: (...a) => spawn(...a), freeSlot: (...a) => freeSlot(...a), followOffset: (...a) => followOffset(...a), say: (clan, text) => { clan.notice = { tick: state.tick, text }; }, infirmary: () => frontier?.infirmary }) : null;
+  // the lieutenant's spot by the gate (goal steps, Tim 2026-11-06): Space here talks to him (sim/lieutenant.js guide)
+  if (gate) { const [gx, gz] = gate.city, [ix, iz] = gate.inside, dx = ix - gx, dz = iz - gz, l = Math.hypot(dx, dz) || 1;
+    doors.push({ x: gx + dx / l * 3 - dz / l * 4, z: gz + dz / l * 3 + dx / l * 4, place: 'street', menu: 'lieutenant', label: 'Talk to your lieutenant' }); }
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
@@ -336,7 +339,7 @@ export function createGame(options) {
   // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
-  const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+  const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
   const hostile=(a,b)=>!b?.shopkeeper&&baseHostile(a,b)&&!charmProtected(a,b,state);
@@ -344,7 +347,7 @@ export function createGame(options) {
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
-  const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
+  const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
   const attackAllowed=(a,b)=>!b?.shopkeeper&&fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
@@ -488,6 +491,23 @@ export function createGame(options) {
       }
     }
   }
+
+  // the governor standing by each of a player's town halls (Tim 2026-11-06): Space beside him talks; not attackable.
+  // Placeholder look: the merchant townsperson (units.json rules.governorModel) until he has a model of his own.
+  function townGovernors() {
+    if (!state.frontier || !areas || state.tick % 20) return;
+    const model = units?.rules?.governorModel || 'merchant', cell = options.frontier?.townGrid?.cellSize || 11;
+    for (const s of Object.values(state.frontier.settlements || {})) {
+      const g = s.governorNpc && state.entities[s.governorNpc];
+      const want = s.founded && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);
+      if (g && (!want || g.owner !== s.owner || g.dead || g.downed)) { removeUnit(g.id); delete s.governorNpc; continue; }
+      if (!want) continue;
+      const [x, z] = [s.x + cell * 1.1, s.z + cell * 0.6];
+      if (!g) s.governorNpc = spawn('city_captain', model, x, z, { owner: s.owner, place: 'world', captain: true, guide: true, governor: s.id, holdFire: true, hp: 100 });
+      else Object.assign(g, { x, z, place: 'world', anim: 'idle' });
+    }
+  }
+  const governorNear = (id, reach = 3.5) => { const h = state.entities[id]; return h && h.place === 'world' ? Object.values(state.entities).find(e => e.governor && e.owner === h.owner && Math.hypot(e.x - h.x, e.z - h.z) < reach) || null : null; };
 
   // Crew each tick: duties, pursuit, indoor duty and going through doors: sim/crew_step.js
   function crewStep(...a) { return crewSteps.crewStep(...a); }
@@ -678,7 +698,7 @@ export function createGame(options) {
   // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
-  const goals = createCampaignGoals({ state, clans, landOffice, influence, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
@@ -732,7 +752,8 @@ export function createGame(options) {
   const businesses = clans ? createBusinesses({ state, units, clans, campaignCity: options.settings?.campaignCity, onRaidPlaced: clan => rally.raidPlaced(clan), payoutShare: id => police?.payoutShare(id) ?? 1, tierOf: id => police?.tierOf(id) ?? 0,
     spawn, guardSpots, patrolSpots, roomOf: roomOfBusiness, remove: removeUnit, payoutBonus: territory.payoutBonus, addHeatGain: (clan, amount, reason) => state.heatGains.push({ clan, amount, reason }) }) : null;
   // C2/C3: the lieutenant's standing orders, budget, log and the city captain (campaign only, sim/lieutenant.js)
-  const lieutenant = clans ? createLieutenantRules({ state, rules: options.settings?.campaignCity?.lieutenant, units, clans, doors, spawn, removeUnit: id => removeUnit(id), businesses }) : null;
+  const lieutenant = clans ? createLieutenantRules({ state, rules: options.settings?.campaignCity?.lieutenant, units, clans, doors, spawn, removeUnit: id => removeUnit(id), businesses,
+    guideAt: () => { const d = doors.find(x => x.menu === 'lieutenant'); return d && { x: d.x + 1.2, z: d.z }; } }) : null;
   // Shinobi contracts (sim/contracts.js): the back room is the floor spot furthest from the way in, as for raids
   const backRoomOf = b => {
     const room = b && roomOfBusiness(b);
@@ -910,6 +931,7 @@ export function createGame(options) {
     unstuck.tick();
     clans?.tick(DT, spawnOutside);
     islandRespawn?.tick(DT, units?.types);
+    townGovernors();
     lieutenant?.tick();   // C2: the city captain takes charge / stands down
     influence.tick();   // C4: campaign Influence, after this tick's dawn (no-op in Classic)
     syncCrewAttacks();
@@ -1117,5 +1139,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, governorNear, dayTicks };
 }

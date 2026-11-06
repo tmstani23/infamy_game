@@ -113,10 +113,50 @@ assert.ok(logged(/captain takes charge/));
   Object.assign(c, { dead: true, diedAt: g.state.tick, hp: 0 });
   g.step([]);
   assert.ok(logged(/captain fell/));
-  for (let i = 0; i < 5 && !L.captainOf('player'); i++) g.step([]);
+  // not straight away: after captainWaitSeconds, for captainFee ryo (Tim 2026-11-06)
+  for (let i = 0; i < 20; i++) g.step([]);
+  assert.ok(!L.captainOf('player'), 'no instant free replacement');
+  const wait = Math.round(L.rules.captainWaitSeconds * 20);
+  for (let i = 0; i < wait + 5 && !L.captainOf('player'); i++) g.step([]);
   const c2 = L.captainOf('player');
   assert.ok(c2 && c2.id !== c.id && c2.place === L.hq('player').room, 'a new captain at the HQ');
+  assert.ok((clan.ryoHistory || []).some(h => h.reason === 'New city captain' && h.amount === Math.min(L.rules.captainFee, h.before)), 'he costs ryo');
   assert.equal(Object.values(g.state.entities).filter(e => e.captain && e.owner === 'player' && !e.dead).length, 1, 'one captain only');
+}
+
+// --- fairness while the boss is away (Tim 2026-11-06): rivals raid him on about awayRaidShare of nights; a city
+// holding no business gets a stipend each new day ---------------------------------------------------------------
+{
+  assert.ok(L.away('player'));
+  const d0 = g.state.clock.day;
+  let yes = 0;
+  for (let d = 1; d <= 200; d++) { g.state.clock.day = d; if (L.raidable('kuroda', 'player')) yes++; }
+  g.state.clock.day = d0;
+  assert.ok(Math.abs(yes / 200 - L.rules.awayRaidShare) < 0.12, `raided on ${yes} of 200 nights`);
+  assert.ok(L.raidable('kuroda', 'nobody'), 'a boss at home is raided as usual');
+  const mine = Object.values(g.state.businesses).filter(b => b.owner === 'player' && !b.hideout);
+  for (const b of mine) b.owner = null;
+  const r = L.record('player');
+  r.awaySince = d0 - 1; r.stipendDay = d0 - 1;
+  g.step([]);
+  assert.ok(logged(/family sends/), 'stipend paid');
+  const n = (L.record('player').log || []).filter(x => /family sends/.test(x.text ?? x)).length;
+  g.step([]);
+  assert.equal((L.record('player').log || []).filter(x => /family sends/.test(x.text ?? x)).length, n, 'once a day');
+  for (const b of mine) b.owner = 'player';
+}
+
+// --- wages (Tim 2026-11-06): each new day the clan pays wageShare of its treasury --------------------------------
+{
+  const r = L.record('player');
+  clan.ryo = 5000; r.day = g.state.clock.day - 1;
+  g.step([]);
+  const wages = () => (clan.ryoHistory || []).filter(h => h.reason === 'Lieutenant wages').length;
+  const paid = (clan.ryoHistory || []).filter(h => h.reason === 'Lieutenant wages').at(-1), n = wages();
+  assert.ok(paid && paid.amount === Math.floor(5000 * L.rules.wageShare), `wage paid (${paid?.amount})`);
+  assert.ok(logged(/Paid the lieutenant/));
+  g.step([]);
+  assert.equal(wages(), n, 'once a day');
 }
 
 // --- save while the boss is away: orders, budget, log and the captain come back -------------------------------

@@ -392,6 +392,32 @@ While the hero is on the island the lieutenant runs the city. Only major capital
 
 The hero comes round after `heroRespawnSeconds` at his clan's nearest founded town hall with 30% health, or at the island side of the city gate if he has no town. Crew downed on the island come round at the nearest hall after 30 s with 30% health; Hero-group crew follow the hero again. City crew keep the clinic/HQ rules. Settings: `units.json` `rules.islandRespawn` `{ hpShare, crewSeconds }`. Code: `sim/island_respawn.js`. Test: `tools/test_island_respawn.mjs`.
 
+## Lieutenant fairness and wage (2026-11-06)
+
+`settings.json` `campaignCity.lieutenant`:
+- `awayRaidShare` 0.5: rivals raid a clan whose boss is on the island on about half the nights.
+- `stipend` 150: a city holding no business gets 150 ryo each new day while the boss is away.
+- `captainWaitSeconds` 60, `captainFee` 100: a dead city captain is replaced after 60 s for 100 ryo.
+- `banditJobMinutes` 6: time limit for a lieutenant's bandit job. A timed-out bandit job gives back that day's job once.
+- `wageShare` 0.02: each day the lieutenant and captain are paid 2% of the clan's total ryo.
+
+Code: `sim/lieutenant.js`, `sim/bot.js`. Test: `tools/test_lieutenant_hero.mjs`.
+
+## Infirmary (2026-11-06)
+
+Frontier building, 1 cell, 120 timber and 60 stone, 90 economy ticks; Camp 1, Village 1, Town 2 (`frontier.json` `buildings.infirmary`). Your units within 20 heal 3x faster. Anyone knocked out on the island comes round at the town's finished infirmary with full health; without one, at the town hall with 30% health. Code: `sim/frontier/infirmary.js`, `sim/island_respawn.js`. Test: `tools/test_island_respawn.mjs`.
+
+## Lieutenant and governor goals (2026-11-06)
+
+Goal chain (`sim/campaign_goals.js`): Buy a founding permit → Hire settlers → Meet your lieutenant → Give him his orders → Leave the city → Found your town → Lay out your town → Put workers to work → Gather stone → Make goods → Meet your governor → Give him his orders → Build a storehouse → Build a lumber camp and a quarry → Build an infirmary → Grow your people → Grow to Village → Open a Market. On the first return through the gate a Lieutenant's report callout flashes the While I'm away log.
+- Lieutenant: stands by the island gate (sprite `lieutenant1`); Space opens a short dialogue (`src/lieutenant_talk.js`) with Show me (opens Deployment → While I'm away) and Later.
+- Governor: stands by each town hall; Space opens his report, what each Focus does, and focus and initiative buttons. Placeholder look: `merchant` (`units.json` `rules.governorModel`, default merchant).
+- Goal flashes on buttons use the stronger `.goal-flash` style (`index.html`).
+- The stockade has a tooltip and no goal step.
+- New towns start with food 60, timber 50, stone 50, goods 50, ryo 20 (`frontier.json` `founding.startStock`).
+
+Test: `tools/test_campaign_goals.mjs`.
+
 ## Town Need rating (2026-11-06)
 
 `sim/frontier/alerts.js` `townNeed()` stores `s.need = { score, level, why[] }` on each town every economy tick. Weights (`frontier.json` `alerts.need`): attack 50 and building destroyed 30 (each for 30 economy ticks), blocked road 30, food running out 25, mood below 25: 30, mood below 40: 20, safety below 50: 15, full store 5 each (max 2), governor suggestion 5, housing full 5, upgrade ready 5. Levels: urgent 50+, high 25+, medium 10+, low above 0, else ok.

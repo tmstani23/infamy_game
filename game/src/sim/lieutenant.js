@@ -1,3 +1,4 @@
+import { creditRyo, debitRyo } from './treasury.js';
 import { modeRules } from './modes/index.js';
 import { createDeploymentAI } from './deployment_ai.js';
 // The lieutenant (frontier plan C2 + C3, Tim 2026-11-02/05). Campaign only (capability campaignCity).
@@ -37,8 +38,8 @@ function orderFor(c, state) {
 }
 const DEFEND_ONLY = new Set(['defend', 'any']);
 
-export function createLieutenantRules({ state, rules = {}, units, clans, doors, spawn, removeUnit, businesses }) {
-  const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, ...rules };
+export function createLieutenantRules({ state, rules = {}, units, clans, doors, spawn, removeUnit, businesses, guideAt = () => null }) {
+  const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, banditJobMinutes: 6, captainWaitSeconds: 60, captainFee: 100, stipend: 150, awayRaidShare: 0.5, wageShare: 0.02, ...rules };
   const on = () => modeRules(state).campaignCity;
   const day = () => state.clock?.day ?? 1;
   const boss = id => Object.values(state.entities).find(e => e.owner === id && e.type === 'hero');
@@ -59,20 +60,53 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
   const active = id => on() && !!state.clans?.[id] && (away(id) || record(id).defendAtHome);
   const captainOf = id => { const c = state.entities[record(id).captain]; return c && !c.dead ? c : null; };
 
+  // the lieutenant waiting at the island gate for the player's goal steps (Tim 2026-11-06): talkable, not attackable
+  const guideWanted = (id, c) => !c.bot && c.permit && !away(id) && !(c.milestones?.metLieutenant && c.milestones?.budgetSet)
+    && !Object.values(state.frontier?.settlements || {}).some(s => s.owner === id && s.founded);
+  function guide(id, c, r) {
+    const g = state.entities[r.guide], want = guideWanted(id, c) && guideAt();
+    if (want && !g) {
+      const t = units?.types?.[R.captain]; if (!t) return;
+      r.guide = spawn(R.captain, t.sprite, want.x, want.z, { owner: id, place: 'street', captain: true, guide: true, holdFire: true, hp: t.hp, dir: want.dir ?? 0 });
+    } else if (!want && g) { removeUnit(g.id); delete r.guide; }
+    else if (g && (g.dead || g.downed)) { removeUnit(g.id); delete r.guide; }
+    else if (g) Object.assign(g, { x: want.x, z: want.z, anim: 'idle' });
+  }
   function tick() {
     if (!on()) return;
     for (const id of Object.keys(state.clans || {})) {
       const r = record(id);
-      if (r.day !== day()) { r.day = day(); r.spent = 0; }
+      if (state.clans[id]) guide(id, state.clans[id], r);
+      if (r.day !== day()) {
+        r.day = day(); r.spent = 0;
+        // ryo sink (Tim 2026-11-06): each new day the clan pays its lieutenant and captain wageShare of its treasury
+        const c0 = state.clans[id], wage = Math.floor(Math.max(0, c0?.ryo || 0) * (R.wageShare || 0));
+        if (wage > 0) { debitRyo(state, c0, wage, 'Lieutenant wages'); log(id, `Paid the lieutenant and captain ${wage} ryo`); }
+      }
       const cap = state.entities[r.captain];
-      if (cap?.dead || cap?.downed) { if (cap.dead) { r.captain = null; log(id, 'The city captain fell'); } }
+      // a fallen captain is replaced after captainWaitSeconds for captainFee ryo (free when the clan is broke) (Tim 2026-11-06)
+      if (cap?.dead || cap?.downed) { if (cap.dead) { r.captain = null; r.captainDue = state.tick + Math.round((R.captainWaitSeconds ?? 0) * 20); log(id, `The city captain fell: a new one in ${R.captainWaitSeconds ?? 0} s`); } }
+      // weak city (Tim 2026-11-06): while the boss is away and the clan holds no business, a small stipend each new day
+      const c = state.clans[id];
+      if (away(id) && c && r.stipendDay !== day()) {
+        r.stipendDay = day();
+        const held = Object.values(state.businesses).some(b => b.owner === id && !b.hideout);
+        if (!held && R.stipend > 0 && r.awaySince !== undefined && r.awaySince !== day()) { creditRyo(state, c, R.stipend, 'Family stipend'); log(id, `No business held: the family sends ${R.stipend} ryo`); }
+      }
+      if (away(id)) r.awaySince ??= day(); else delete r.awaySince;
       if (away(id) && !cap) {
         const h = hq(id), d = h && doors.find(x => x.to && !x.ninja && x.place === h.room), t = units?.types?.[R.captain];
         if (!d || !t) continue;
+        if (r.captainDue !== undefined) {
+          if (state.tick < r.captainDue) continue;
+          const fee = Math.min(R.captainFee || 0, Math.max(0, c?.ryo || 0));
+          if (fee > 0) debitRyo(state, c, fee, 'New city captain');
+          delete r.captainDue;
+        }
         r.captain = spawn(R.captain, t.sprite, d.to.x, d.to.z, { owner: id, place: d.place, captain: true, hp: t.hp });
         log(id, 'The city captain takes charge at the HQ');
       } else if (!away(id) && cap) {
-        removeUnit(cap.id); r.captain = null;
+        removeUnit(cap.id); r.captain = null; delete r.captainDue;
         log(id, 'The boss is back: the captain stands down');
       }
     }
@@ -83,6 +117,11 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     const clan = state.clans?.[e?.owner];
     if (!clan || e.type !== 'hero' || !on()) return false;
     const r = record(clan.id), bad = text => { clan.notice = { tick: state.tick, text }; return false; };
+    // goal steps (Tim 2026-11-06): met the lieutenant at the gate, opened While I'm away, set his budget
+    const m = (clan.milestones ||= {});
+    const FLAG = { met: 'metLieutenant', opened: 'ordersOpened', report: 'reportRead', back: 'reportDue', governor: 'metGovernor' };
+    if (FLAG[c.guide]) { m[FLAG[c.guide]] = true; return true; }
+    if (c.budget !== undefined && Number.isSafeInteger(c.budget) && c.budget >= 0 && c.budget <= R.maxBudget) m.budgetSet = true;
     if (c.orders !== undefined && (typeof c.orders !== 'object' || c.orders === null || Object.entries(c.orders).some(([k, v]) => !ORDERS.includes(k) || typeof v !== 'boolean'))) return bad('Unknown standing order');
     if (c.budget !== undefined && (!Number.isSafeInteger(c.budget) || c.budget < 0 || c.budget > R.maxBudget)) return bad(`Budget must be 0 to ${R.maxBudget} ryo a day`);
     if (c.defendAtHome !== undefined && typeof c.defendAtHome !== 'boolean') return bad('Bad setting');
@@ -129,7 +168,14 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (said) log(id, said);
     return { ok: true, why: '', cost: price };
   }
-  return { tick, command, gate, record, active, away, captainOf, log, hq, rules: R };
+  // false on nights a raider leaves this owner alone because its boss is away (awayRaidShare of nights it may raid)
+  function raidable(raider, owner) {
+    if (!on() || !owner || !away(owner)) return true;
+    let h = 2166136261;
+    for (const ch of `${day()}:${raider}:${owner}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    return ((h >>> 0) % 1000) / 1000 < (R.awayRaidShare ?? 1);
+  }
+  return { tick, command, gate, record, active, away, captainOf, log, hq, raidable, guideOf: id => state.entities[record(id).guide] || null, rules: R };
 }
 
 // The brain: one per clan (player and bots alike), a client that only reads the state and sends commands.
@@ -190,7 +236,9 @@ export function createLieutenantBrain(game, { clan }) {
       const room = game.clans.crewCount(clan) + c.queue.length < game.clans.crewCap(clan), price = game.clans.hirePrice(clan, type);
       // with Buy on he saves for the cheapest free business first, so hiring never eats the money for it (soak 2026-11-06)
       const saveFor = !ninja && r.orders.buy && r.boughtDay !== day() ? Math.min(...Object.values(state.businesses).filter(x => !x.owner && !x.hideout && x.ring).map(x => game.businesses.rules[x.kind]?.price ?? Infinity)) + (R.reserve ?? 200) : 0;
-      const keep = Math.max(50, Number.isFinite(saveFor) ? saveFor : 0);
+      // a boss out on the island with a permit still has a town to pay for: hiring never eats the founding money
+      const founding = c.permit ? (game.frontier?.data?.founding?.cost || 0) : 0;
+      const keep = Math.max(50, Number.isFinite(saveFor) ? saveFor : 0) + founding;
       if (room && price !== null && c.ryo - price >= keep && r.spent + price <= r.budget && c.queue.length < 2) out.push(tag({ id: cap.id, type: 'hire', business: home.id, unit: type }));
     }
     return out;
@@ -204,7 +252,12 @@ export function createLieutenantBrain(game, { clan }) {
     if (jobId !== null && (!mine || mine.id !== jobId)) { recall(); return false; }   // done, failed or dropped
     if (mine && mine.id === jobId) {
       const order = mine.kind === 'steal' ? 'steal' : 'jobs';
-      if (!r.orders[order] || state.tick - jobAt > (R.jobMinutes ?? 3) * 60 * 20) { out.push(tag({ id: b.id, type: 'contract', action: 'drop' })); recall(); return true; }
+      const minutes = mine.kind === 'bandits' ? (R.banditJobMinutes ?? R.jobMinutes ?? 3) : (R.jobMinutes ?? 3);
+      if (!r.orders[order] || state.tick - jobAt > minutes * 60 * 20) {
+        // timed out (bandits move in gangs): the day's job comes back once, so he can try another (Tim 2026-11-06)
+        if (r.orders[order] && order === 'jobs' && r.jobRetryDay !== day()) { r.jobRetryDay = day(); delete r.jobDay; L.log?.(clan, 'The job ran out of time: trying another'); }
+        out.push(tag({ id: b.id, type: 'contract', action: 'drop' })); recall(); return true;
+      }
       squad = squad.filter(id => standing(state.entities[id]) && state.entities[id].place !== 'world');
       if (!squad.length) squad = cityCrew(cap).slice(0, mine.kind === 'bandits' ? 3 : 2).map(u => u.id);
       if (!squad.length) { out.push(tag({ id: b.id, type: 'contract', action: 'drop' })); recall(); return true; }

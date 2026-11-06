@@ -63,3 +63,33 @@ g.clans.carryOff(g.state.entities[cid]);
 assert.equal(clan.respawning.filter(x => x.island).length, before, 'street crew not sent to a town');
 
 console.log('island respawn: ok');
+
+// --- an infirmary in the town: come round there at full health; units near it heal faster (Tim 2026-11-06) -------
+{
+  const town = g.state.frontier.settlements.tNear;
+  g.step([]);   // the town gets its grid
+  const cell = town.grid.use.split('').findIndex((c, i) => c === '.' && i !== 0);
+  town.buildings.push({ id: 'inf1', type: 'infirmary', cell, stage: 'built' });
+  const [ix, iz] = g.frontier.infirmary.centre(town, town.buildings.at(-1));
+  Object.assign(hero, { place: 'world', x: near.x + 60, z: near.z + 60 });
+  knockOut();
+  g.step([]);
+  assert.ok(!hero.dead && Math.hypot(hero.x - ix, hero.z - iz) < 25, 'up at the infirmary');
+  assert.ok(hero.hp >= hero.maxHp - 1, `full health (${hero.hp})`);
+  assert.match(clan.notice?.text || '', /infirmary/);
+  for (let i = 0; i < 10; i++) g.step([]);
+  assert.equal(hero.infirmary, frontier.buildings.infirmary.infirmary.healFactor, 'heals faster near it');
+  Object.assign(hero, { x: ix + 200, z: iz });
+  for (let i = 0; i < 10; i++) g.step([]);
+  assert.equal(hero.infirmary, undefined, 'not when far away');
+  console.log('island respawn infirmary: ok');
+  // the governor stands beside the hall of each player town (Tim 2026-11-06); Space there talks to him
+  for (let i = 0; i < 20; i++) g.step([]);
+  const gov = Object.values(g.state.entities).find(e => e.governor === 'tNear');
+  assert.ok(gov && gov.guide && gov.place === 'world' && Math.hypot(gov.x - near.x, gov.z - near.z) < 30, 'governor by the hall');
+  Object.assign(hero, { place: 'world', x: gov.x + 1, z: gov.z, dead: false });
+  assert.equal(g.governorNear(hero.id)?.id, gov.id);
+  Object.assign(hero, { x: gov.x + 30 });
+  assert.equal(g.governorNear(hero.id), null);
+  console.log('town governor: ok');
+}
