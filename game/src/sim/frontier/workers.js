@@ -5,7 +5,7 @@ import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spo
 import { cellToWorld, worldToCell, townBlockersIn } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
-import { cartRules, isCamp, campFull, stepCarts, buyCart } from './camp_carts.js';
+import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint } from './camp_carts.js';
 import { workerCap, nextTier } from './tiers.js';
 import { workerCount } from './people.js';
 const HZ=20;
@@ -418,7 +418,15 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     let spawned=0;
     for(const s of towns()) {
       ensureWorkers(s);if(!on(s))continue;
-      if(cartRules(data))stepCarts(s,data,world.change,point,cartHome);
+      if(cartRules(data)) {
+        stepCarts(s,data,world.change,point,cartHome);
+        for(const b of s.buildings)for(const c of b.carts || []) {   // decoration: an ox cart on the road near your units
+          const e=c.entity && state.entities?.[c.entity], at=enabled && b.cartTicks ? cartPoint(c,point(s,b),cartHome(s,b),b.cartTicks) : null;
+          if(!at || !near(at)) {if(e)runtime.remove(e.id);c.entity=null;continue;}
+          if(!e) {if(spawned>=R.spawnPerTick)continue;spawned++;c.entity=runtime.spawn('civilian',cartRules(data).model || 'ox_cart',at[0],at[1],{place:'world',area:'world',cart:b.id,town:s.id,holdFire:true,hp:200,maxHp:200});continue;}
+          [e.x,e.z]=at;e.dir=dirIndex(at[2],at[3]);e.anim='run';
+        }
+      }
       // A disappeared/knocked-out live unit is a casualty, never a fresh spawn. Sleeping
       // records have entity:null, so they cannot be attacked or accidentally lost.
       s.workers=s.workers.filter(w=>{

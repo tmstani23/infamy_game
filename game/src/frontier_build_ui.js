@@ -81,6 +81,24 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const selectedLive = () => towns().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
+  // Camp card (Tim 2026-11-06 21:20: a bar and chips, not a wall of text): storage used / cap, each cart, worker limit, Buy cart.
+  function campCardHTML(b, s) {
+    const C = data.workers.carts, used = Object.values(b.store || {}).reduce((a, v) => a + v, 0), pct = Math.min(100, Math.round(100 * used / C.cap));
+    const col = pct >= 100 ? '#d9694a' : pct >= 75 ? '#d9a25a' : '#7fc27a', carts = b.carts || [];
+    const res = Object.entries(b.store || {}).filter(([, v]) => v > 0).map(([r, v]) => `${Math.round(v)} ${esc(r)}`).join(' · ') || 'empty';
+    const where = { camp: 'At camp', out: 'To town', back: 'Returning' }, secs = t => `${Math.ceil((t || 0) / 20)}s`;
+    const chip = c => { const load = Object.values(c.load || {}).reduce((a, v) => a + v, 0);
+      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;margin:2px 0;border-radius:4px;background:rgba(255,255,255,.06)"><span>🐂 ${where[c.at] || c.at}${c.t ? ` · ${secs(c.t)}` : ''}</span><span>${c.at === 'out' ? `${Math.round(load)} / ${C.maxLoad}` : `max ${C.maxLoad}`}</span></div>`; };
+    const perMin = b.cartTicks ? carts.length * C.maxLoad * 1200 / (2 * b.cartTicks) : null, keep = perMin && C.workerPerMin ? Math.floor(perMin / C.workerPerMin) : null;
+    const cost = Object.entries(C.extraCost).map(([r, v]) => `${v} ${r}`).join(', ');
+    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Camp storage</span><span>${Math.round(used)} / ${C.cap} · ${Math.max(0, Math.round(C.cap - used))} free</span></div>`
+      + `<div style="height:8px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden;margin:3px 0"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`
+      + `<div style="font-size:12px;opacity:.8">${res}${pct >= 100 ? ' · <span style="color:#d9a25a">full: workers walk to town</span>' : ''}</div>`
+      + `<div style="font-size:12px;margin-top:6px">Ox carts ${carts.length} / ${C.max} · take ${Math.round(C.share * 100)}% each visit</div>${carts.map(chip).join('')}`
+      + (keep != null ? `<div style="font-size:12px;opacity:.8">Carts keep up with about ${keep} workers${b.cartTicks ? ` · round trip ${secs(2 * b.cartTicks)}` : ''}</div>` : '')
+      + (carts.length < C.max ? `<button data-buy-cart="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="One more ox cart for this camp">Buy cart (${esc(cost)})</button>` : '')
+      + `</div>`;
+  }
   // Reach anchors for rich deposits: own town halls (workers.range) and their built work camps (workers.campReach).
   function reachAnchors() {
     const W = data.workers || {}, out = [];
@@ -195,7 +213,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!info) { card.hidden = true; return; }
     const html = `<button data-close aria-label="Close inspection">×</button><b>${esc(info.title)}</b>`
       + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
-      + (info.camp ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built lumber camp or quarry.">Place camp here</button>` : '')
+      + (info.camp && info.camp.id ? campCardHTML(info.camp, trainTown) : '')
+      + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built lumber camp or quarry.">Place camp here</button>` : '')
       + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
     if (inspectionHtml !== html && !inspectionPressed) { card.innerHTML = html; inspectionHtml = html; }
@@ -210,6 +229,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if(b?.hasAttribute('data-drop'))requestDrop();
     if (b?.dataset.train) requestTraining(b.dataset.train);
     if (b?.dataset.upgrade) command({ action: 'upgradeHall', settlement: b.dataset.upgrade });
+    if (b?.dataset.buyCart) { command({ action: 'buyCart', town: b.dataset.cartTown, building: b.dataset.buyCart }); return; }
     if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
     if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }
     if (b?.hasAttribute('data-close')) { inspect = null; selected=[]; card.hidden = true; }

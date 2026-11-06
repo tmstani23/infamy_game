@@ -41,7 +41,7 @@ export function townCellTip(s, cell, data) {
       : `\u0002Not linked to the town hall: zones near it get no road access. Join it to the hall with more road or gate cells.`);
   }
   const details=BUILD_DETAILS[b?.type || p?.type];if(details)lines.push(...details);
-  return { title: townName(b?.type || p?.type || kind || ({ r: 'road', w: 'wall', g: 'gate' }[g.use[cell]])), lines, hall: b?.type === 'town_hall' && b.stage === 'built' };
+  return { title: townName(b?.type || p?.type || kind || ({ r: 'road', w: 'wall', g: 'gate' }[g.use[cell]])), lines, hall: b?.type === 'town_hall' && b.stage === 'built', camp: b && b.stage === 'built' && (data.workers?.gatherBuildings || []).includes(b.type) && data.workers?.carts ? b : null };
 }
 
 // One floating tooltip for anything with a data-tip attribute inside `root` (frontier F4: panel, overview).

@@ -5,6 +5,7 @@
 // `speed`, unloads through world.change, and drives back. A full camp (store >= cap) takes no more drop-offs, so
 // workers walk to the hall or a storehouse instead. A 3rd cart can be bought at the camp (buyCart, cost from data).
 // Numbers: frontier.json workers.carts.
+// Moving carts show as an ox cart near the player's units (cartPoint; spawned by workers.js, decoration only).
 export const cartRules = data => data.workers?.carts || null;
 export const isCamp = (data, b) => (data.workers?.gatherBuildings || []).includes(b.type);
 export const campStock = b => Object.values(b.store || {}).reduce((a, v) => a + v, 0);
@@ -64,4 +65,11 @@ export function buyCart(s, data, b, pay) {
   if (!pay(C.extraCost)) return 'not enough stock';
   b.carts ||= []; b.carts.push({ at: 'camp', t: 0, load: null, bought: true });
   return null;
+}
+
+// Where a moving cart is: 'out' runs camp -> home, 'back' home -> camp; t counts down the one-way ticks. null at the camp.
+export function cartPoint(c, camp, home, oneWay) {
+  if (c.at !== 'out' && c.at !== 'back') return null;
+  const f = 1 - Math.max(0, Math.min(1, c.t / Math.max(1, oneWay))), [a, b] = c.at === 'out' ? [camp, home] : [home, camp];
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, b[0] - a[0], b[1] - a[1]];
 }
