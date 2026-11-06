@@ -229,12 +229,15 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   }
   const worldState = () => {
     const w = game.state.world, h = game.state.entities[heroId];
+    const told = game.state.clans?.[clan]?.knownSites || [], R = game.frontier?.data?.founding?.traits?.nodeRadius ?? 600;
     return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+      knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap() };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
   // (the snapshot only carries those). Placed where the town hall actually stands (Tim 2026-11-05);
   // records without a position (old fixture towns, rival name-only records) fall back to their world site.
+  let tourStop = null;   // the surveyor's tour (src/surveyor_talk.js): { x, z, r } ringed on the World tab
   const siteXZ = Object.fromEntries((world?.sites || []).map(t => [t.id, t]));
   function townsOnMap() {
     const f = game.state.frontier; if (!f) return [];
@@ -407,5 +410,13 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.invalidate(); } },
     pickDestination(callback) { pointPicker=null;destinationPicker=callback;layers.deployment=true;syncLayers();open(); },
     cancelPick() {pointPicker=null;destinationPicker=null;},
+    // the surveyor's tour (Tim 2026-11-06 20:45): open the World tab on a site with sites and resources showing
+    tourTo(id, span = 2600) {
+      const t = siteXZ[id]; if (!world || !t) return false;
+      if (!isOpen()) open(); setTab('world'); ensureWorldMap();
+      worldMap.setLayer('sites', true); worldMap.setLayer('resources', true);
+      tourStop = { x: t.x, z: t.z, r: game.frontier?.data?.founding?.traits?.nodeRadius ?? 600 }; worldMap.focus(t, span); worldMap.invalidate(); return true;
+    },
+    endTour() { tourStop = null; worldMap?.invalidate(); },
     pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };
 }

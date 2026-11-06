@@ -18,6 +18,7 @@ import { interactionDoor as selectInteractionDoor } from './door_interaction.js'
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
 import { createLieutenantTalk } from './lieutenant_talk.js';
+import { createSurveyorTalk } from './surveyor_talk.js';
 import { createStationMenu } from './station_menu.js';
 import { createLandOfficeMenu } from './land_office_menu.js';
 import { createGoalCard } from './goal_card.js';
@@ -162,10 +163,10 @@ async function start() {
   onKey(['Space', 'Enter'], () => {
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // your town's governor beside the hall (Tim 2026-11-06): talk to him
-    // at your omnibus station or the rickshaw stand by the city gate: rickshaw travel (Tim 2026-11-06)
-    if (stationMenu.at()) { stationMenu.toggle(); return; }
+    // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
     const gov = game.governorNear?.(heroId);
     if (gov) { pending.push({ id: heroId, type: 'lieutenant', guide: 'governor' }); townTalk(gov.governor); return; }
+    if (stationMenu.at()) { stationMenu.toggle(); return; }
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
     const door0 = interactionDoor();
     const innerDoor = !door0 && game.interiorDoorNear(heroId);
@@ -179,8 +180,9 @@ async function start() {
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle(menu);
     else if (menu === 'contracts') contractMenu.toggle();
     else if (menu === 'land_office') landOfficeMenu.toggle();   // E1: founding permit and settlers
+    else if (menu === 'surveyor') surveyorTalk.toggle();   // the old surveyor by the Land Office (Tim 2026-11-06 20:45)
     else if (menu === 'lieutenant') lieutenantTalk.toggle();   // goal steps: the lieutenant at the gate (Tim 2026-11-06)
-    else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // E1: out of the gate with a permit and settlers: Choose site
+    else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // the island gate menu when there is more than one way out (Tim 20:40)
     else { pending.push({ id: heroId, type: 'use', units: crewInput.selected() }); sound.cue('use_1', 0.45); }   // selected crew come in too
   });
   // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
@@ -365,6 +367,9 @@ async function start() {
   // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
   const goalCard = createGoalCard({ root: $('goalcard'), button: $('goalbtn'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
   const stationMenu = createStationMenu({ panel: $('stationmenu'), game, heroId, send: c => pending.push(c) });
+  // the old surveyor's map tour runs on the World tab of the game map (made further down; called only after a click)
+  const surveyorTalk = createSurveyorTalk({ panel: $('svtalk'), card: $('svtour'), game, heroId, send: c => pending.push(c),
+    map: { tourTo: (id, span) => gameMap.tourTo(id, span), endTour: () => gameMap.endTour(), isOpen: () => gameMap.isOpen(), close: () => gameMap.close() } });
   const lieutenantTalk = createLieutenantTalk({ panel: $('lttalk'), game, heroId, send: c => pending.push(c), showOrders: () => { if (!deploymentPanel.isOpen()) $('deploymentbtn').click(); setTimeout(() => document.querySelector('#deploymentpanel .show-away')?.click(), 0); } });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -416,8 +421,8 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); stationMenu.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
-  bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, siteMenu, contractMenu, hireMenu] });
+  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
@@ -724,11 +729,13 @@ async function start() {
     }
       const door = interactionDoor(), innerDoor = !door && game.interiorDoorNear(heroId), knockable = raidOnMe(true);
       const shut = door?.to && game.businesses.entryStatus(game.state.entities[heroId], door.place);
-      const lamp = !door && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? `Space  ${door.gate && siteMenu.wanted() ? 'Choose a site or walk out' : door.label}`
+      const travel = !door && !innerDoor && !knockable && stationMenu.at() && !stationMenu.isOpen();
+      const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
+      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
+        : travel ? 'Space  Travel: rickshaws or drive back to the gate'
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
-      $('prompt').hidden = !door && !innerDoor && !knockable && !lamp;
+      $('prompt').hidden = !door && !innerDoor && !knockable && !lamp && !travel;
       stealthBadge.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update(); updateSpotHover();
@@ -737,7 +744,7 @@ async function start() {
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
-      landOfficeMenu.update(); lieutenantTalk.update(); stationMenu.update(); siteMenu.update();
+      landOfficeMenu.update(); lieutenantTalk.update(); surveyorTalk.update(); stationMenu.update(); siteMenu.update();
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();

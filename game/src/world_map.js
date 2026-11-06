@@ -9,13 +9,22 @@ export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on:
 export const worldFeatureName = it => it?.kind === 'spot' ? `${it.featureKind} spot · ${it.id}` : atlasFeatureName(it);
 // Resource markers (brighter, Tim 2026-11-05): a soft glow, a dark rim and a bright dot; big = rich spot or node.
 export const SPOT_COLORS = { timber: '#8ff09a', forest: '#8ff09a', stone: '#f2eee2', quarry: '#f2eee2', ore: '#ffb35c', fish: '#7fe2ff', fishing: '#7fe2ff', forage: '#ffe07a', fertile: '#d4f57a' };
+// Rich deposits (Tim 2026-11-06): a dark painted badge with the kind character and a coloured rim, so they
+// never read as one more small spot. Small spots keep the plain dot.
+const RICH_MARK = { quarry: '石', ore: '鉱', forest: '木', fishing: '魚', fertile: '稲', stone: '石', timber: '木', fish: '魚', forage: '稲' };
 export function drawSpotMarker(ctx, x, y, kind, big = false) {
-  const c = SPOT_COLORS[kind] || '#ffffff', r = big ? 4 : 2.6;
+  const c = SPOT_COLORS[kind] || '#ffffff', r = big ? 6.5 : 2.6;
   ctx.save();
+  if (big) {
+    ctx.fillStyle = 'rgba(58,40,24,.92)'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = c; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = '#f3e6c8'; ctx.font = `bold ${Math.round(r * 1.35)}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(RICH_MARK[kind] || '◆', x, y + 0.5);
+    ctx.restore(); return;
+  }
   ctx.globalAlpha = 0.35; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r * 2.1, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  if (big) { ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.stroke(); }
   ctx.restore();
 }
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
@@ -151,8 +160,11 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       for (const label of labels) label.lines.forEach((line,i)=>{const y=label.py+(i-(label.lines.length-1)/2)*label.lineHeight;ctx.strokeText(line,label.px,y);ctx.fillText(line,label.px,y);});
       ctx.restore();
     }
-    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.featureKind); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
+    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
+    // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
+    if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.arc(p.px,p.py,Math.max(14,(h.r||0)*view.scale),0,Math.PI*2); ctx.stroke(); ctx.restore(); }
     ctx.restore(); cssTransform();
     // Fixed rulers stay legible while the map pans/zooms underneath them.
     ctx.fillStyle = 'rgba(10,20,27,.94)'; ctx.fillRect(0, 0, view.w, MARGIN); ctx.fillRect(0, 0, MARGIN, view.h);
@@ -177,6 +189,8 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     items: hitItems,
     biomeAt: (x,z) => biomes.at(x,z),
     centerOn(p) { if (p && inWorld(p)) { view.cx=p.x; view.cz=p.z; clampView(world,view); dirty=true; } },
+    // centre on p with about `span` world units across the shorter side (the surveyor's tour)
+    focus(p, span) { if (!p || !inWorld(p)) return; resize(); view.scale=Math.min(view.w,view.h)/Math.max(1,span); view.cx=p.x; view.cz=p.z; clampView(world,view); dirty=true; },
     // call every frame; redraws only when the view or the snapshot revision changed
     resize,
     frame(revision) { resize(); if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },

@@ -11,7 +11,7 @@ import { siteTraits } from './founding.js';
 //    through the gate on foot, again with the Hero group and settlers.
 // Sites are claimed when chosen, so no two clans pick the same one. A new town has a grace of
 // founding.graceDays in which camp bandits leave its people alone.
-export function createLandOffice({ state, data, worldData, units, clans, doorNear, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base }) {
+export function createLandOffice({ state, data, worldData, units, clans, doorNear, discovered = null, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base }) {
   const D = data.founding, P = D.permit || {}, U = units?.rules || {};
   const say = (clan, text) => { if (clan) clan.notice = { tick: state.tick, text }; return null; };
   const fr = () => state.frontier;
@@ -61,7 +61,29 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (!st.ok) return say(clan, st.reason);
     if (st.ryo) { clan.ryo -= st.ryo; (state.ryoLosses ||= []).push({ clan: clan.id, amount: st.ryo, reason: 'Founding permit' }); }
     clan.permit = true;
-    return say(clan, 'Founding permit bought: take settlers through the island gate');
+    if (clan.bot) return say(clan, 'Founding permit bought');
+    clan.surveyPending = true;   // the old surveyor outside the Land Office has a report for this permit (Tim 20:45)
+    return say(clan, 'Founding permit bought: the old surveyor outside the Land Office has a report for you');
+  }
+
+  // Talk to the old surveyor (Tim 2026-11-06 20:45): { id, type: 'landOffice', action: 'survey' } beside him, once per
+  // permit, makes the nearest open sites known (the rest you discover on the island). Measured from your towns
+  // (Tim 20:43: each permit pushes the known sites out past your last town); the first from the capital.
+  // clan.survey = { sites, n, tick } is what the screen's map tour shows.
+  const atSurveyor = e => e?.type === 'hero' && e.place === 'street' && doorNear(e.id)?.menu === 'surveyor';
+  function survey(e) {
+    const clan = state.clans?.[e?.owner];
+    if (!clan || !standing(e) || !on()) return null;
+    if (!atSurveyor(e)) return say(clan, 'Talk to the old surveyor outside the Land Office');
+    if (!clan.surveyPending) return say(clan, clan.permit ? 'He has already surveyed for this permit' : 'Bring him a founding permit first');
+    const homes = Object.values(state.frontier?.settlements || {}).filter(s => s.owner === clan.id && s.founded !== undefined);
+    const from = si => homes.length ? Math.min(...homes.map(h => Math.hypot(si.x - h.x, si.z - h.z))) : (si.travel ?? Infinity);
+    const near = sites(clan.id).filter(s => s.open && !s.known).sort((a, b) => from(a) - from(b)).slice(0, D.siteMenu?.surveyed ?? 3);
+    clan.knownSites = [...new Set([...(clan.knownSites || []), ...near.map(s => s.id)])];
+    clan.surveyPending = false;
+    clan.survey = { sites: near.map(s => s.id), n: (clan.survey?.n || 0) + 1, tick: state.tick };
+    say(clan, `The surveyor marked ${near.length} site${near.length === 1 ? '' : 's'} on your map`);
+    return near.map(s => s.id);
   }
 
   // --- sites -----------------------------------------------------------------------------------
@@ -94,7 +116,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
       const why = siteBlocked(si, id), camp = campNear(si), region = (worldData.regions || []).find(r => r.id === si.region);
       return { id: si.id, x: si.x, z: si.z, region: region?.name || si.region, terrain: si.terrain, tags: si.tags || [],
         traits: traitsOf(si), open: !why, why, campDistance: Math.round(camp), campWarn: camp <= warn, claimed: claims()[si.id] === id,
-        travel: si.travelCostToCapital ?? null };
+        travel: si.travelCostToCapital ?? null, known: (state.clans?.[id]?.knownSites || []).includes(si.id) || !!discovered?.(id, si.id) };
     });
   }
 
@@ -124,6 +146,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (n < D.minSettlers) return { ok: false, reason: `Bring at least ${D.minSettlers} settlers (${n} with you)` };
     const si = (worldData?.sites || []).find(s => s.id === c.site);
     if (!si) return { ok: false, reason: 'No such site' };
+    if (!clan.bot && !(clan.knownSites || []).includes(si.id) && !discovered?.(clan.id, si.id)) return { ok: false, reason: 'You have not found that site yet' };
     const why = siteBlocked(si, clan.id);
     if (why) return { ok: false, reason: why };
     return { ok: true, settlers, waiting, crew, site: si };
@@ -183,6 +206,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { office, atOffice, atGate, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
+  return { office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botBudget, botSite, settlerPrice, day };
 }

@@ -219,7 +219,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     // Harvest stage changes are batched (max ~2/s) so many workers can't force a full prop + draw-order rebuild every tick
     const nowMs = performance.now();
     if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
-    glow?.update(glowItems, active);
+    glow?.update(glowItems, active, viewScale);
     if (!active) {
       if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; }
       return;
@@ -253,10 +253,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (glow) {   // resource glow: spots and nodes within a wider radius so they show at far zoom
       const known = (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz), GR = R * (glowCfg.reach ?? 1.6) + spotConfig.pieceReach;
       glowItems.length = 0;
-      for (const s of visibleSpots(spotIndex, { x, z, radius: GR, known })) glowItems.push({ key: s.id, kind: s.kind, x: s.x, z: s.z, big: !!s.deposit, deposit: s.deposit,
+      for (const s of visibleSpots(spotIndex, { x, z, radius: GR, known })) glowItems.push({ key: s.id, kind: s.kind, x: s.x, z: s.z, big: !!s.deposit, deposit: s.deposit, node: s.deposit ? s.nodeKind : null,
         r: Math.max(glowCfg.minRadius ?? 4, ...s.pieces.map(([a, b]) => Math.hypot(a, b) + (glowCfg.pad ?? 3))) });
       const hasSpot = new Set(glowItems.map(i => i.deposit).filter(Boolean));   // a node and its deposit spot share one glow
-      for (const n of world.nodes || []) if (!hasSpot.has(n.id) && Math.hypot(n.x - x, n.z - z) < GR && known(n.x, n.z)) glowItems.push({ key: n.id, kind: n.kind, x: n.x, z: n.z, r: glowCfg.nodeRadius ?? 9, big: true });
+      for (const n of world.nodes || []) if (!hasSpot.has(n.id) && Math.hypot(n.x - x, n.z - z) < GR && known(n.x, n.z)) glowItems.push({ key: n.id, kind: n.kind, x: n.x, z: n.z, r: glowCfg.nodeRadius ?? 9, big: true, node: n.kind });
     }
     const patches = towns.filter(p => p.dirt && Math.hypot(p.x - x, p.z - z) < R + p.width);
     const cleared = p => patches.some(t => Math.abs(p.x - t.x) < t.width / 2 && Math.abs(p.z - t.z) < t.height / 2);

@@ -450,6 +450,15 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 
 `sim/vehicle_steer.js` `steer(e, want, { turnDegrees, turnSlow }, dt)` (the capital cart steering from `civilians.js` `drive()`): caps the turn rate, slows to 0.4 at turns of 90° or more, and sets `e.dir` from the heading so turns sweep through the 8 sprite rows. Used by the hero driving the omnibus or rickshaw or riding, the following omnibus, and called horses (dir only). `units.json` `turnDegrees`: omnibus 120, rickshaw 180, mount 240. Test: `tools/test_omnibus.mjs` (turn limit).
 
+## Island gate menu and surveyor (2026-11-06)
+
+- Gate menu (`src/site_menu.js`): Space at the island gate in the city opens a menu when there is more than one way out: 1 Walk out (with a permit and settlers they ride in the omnibus); 2 Ride to a known site (permit and settlers; known open sites, nearest first, 5 per page; Go needs 5 settlers); 3 Rickshaw to your towns (once you have a station; rickshaws waiting outside the gate). With one way out, Space walks through. The Choose site window and the city rickshaw stand are removed.
+- Drive back to the gate: Space beside or inside your omnibus on the island, away from the gate. Instant; everyone stays aboard; it parks outside the gate. Not during a fight (a hit in the last 10 s or a hostile within 12).
+- Old surveyor: one NPC beside the Land Office door; not crew, cannot be attacked; placeholder model fisherman (`units.json` `rules.surveyorModel`). Buying a permit sets `clan.surveyPending`. Talking to him (`{ type: 'landOffice', action: 'survey' }`) marks the 3 nearest open unknown sites as known (`clan.knownSites`, `clan.survey`); the first report measures from the capital, later ones from your towns. Once per permit. Code: `sim/frontier/land_office.js`, `src/surveyor_talk.js`.
+- World map tour: known sites and the nodes within 600 of them show through the fog. The tour steps Next / Back over the sites, opens with a how-to-read-a-site intro on the first report and ends with his pick; Show me again replays it (`src/world_map.js`, `src/world_atlas.js`, `src/game_map.js`).
+- An expedition to a site not yet found: players get "You have not found that site yet". Bots are unaffected.
+- Test: `tools/test_land_office.mjs`.
+
 ## Lieutenant portraits (2026-11-06)
 
 `src/lieutenant_portrait.js` shows the clan's lieutenant portrait in the talk panel and the While I'm away pane.

@@ -1,5 +1,5 @@
 // L3.7 presentation over authored spot locations and snapshot stage strings.
-import { spotState } from './sim/resource_spots.js';
+import { spotState, RICH_NAME, RICH_GIVES } from './sim/resource_spots.js';
 
 export function spotPiecesToProps(spot, saved, art, config) {
   const stages = spotState(spot, saved), choices = art?.[spot.kind];
@@ -16,9 +16,11 @@ export function visibleSpots(index, { x, z, radius, known, zoom = Infinity, minZ
   return index.spotsNear(x, z, radius).filter(p => known(p.x, p.z));
 }
 
-export function spotInfo(spot, saved) {
+export function spotInfo(spot, saved, reach) {
   const stages = spotState(spot, saved), count = ch => [...stages].filter(s => s === ch).length;
-  return { title: `${spot.deposit ? 'Rich ' : ''}${spot.kind} spot`, lines: [
+  const rich = spot.deposit && RICH_NAME[spot.nodeKind];
+  return { title: rich || `${spot.kind} spot`, lines: [
+    ...(rich ? [`Gives ${RICH_GIVES[spot.nodeKind]} · rich deposit, works faster`, ...(reach ? [reach] : [])] : []),
     `${count('f')} full · ${count('h')} harvested · ${count('s')} regrowing`,
     spot.kind === 'timber' ? 'Stumps regrow into saplings, then trees.' : 'Worked pieces recover over time.'
   ] };

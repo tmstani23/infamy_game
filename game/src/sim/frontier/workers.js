@@ -5,6 +5,7 @@ import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spo
 import { cellToWorld, worldToCell, townBlockersIn } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
+import { cartRules, isCamp, campFull, stepCarts, buyCart } from './camp_carts.js';
 import { workerCap, nextTier } from './tiers.js';
 import { workerCount } from './people.js';
 const HZ=20;
@@ -87,13 +88,22 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const on=s=>!!R && Number.isFinite(s.x) && Number.isFinite(s.z);
   const walkTicks=d=>Math.ceil(d/R.speed*HZ);
   const point=(s,b)=>s.grid && Number.isInteger(b.cell) ? cellToWorld(s,b.cell) : [s.x,s.z];
-  const dropoffs=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type));
+  const dropoffs=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !campFull(data,b));
+  const homeDrops=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !isCamp(data,b));
   function nearestDropoff(s,spot) {
     return dropoffs(s).map(b=>({b,p:waitingPoint(s,null,b)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
   }
+  // Reach (Tim 2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
+  const camps=s=>s.buildings.filter(b=>b.stage==='built' && (R.gatherBuildings || []).includes(b.type));
+  const inReach=(s,spot)=>distance([s.x,s.z],[spot.x,spot.z])<=R.range || camps(s).some(b=>distance(point(s,b),[spot.x,spot.z])<=(R.campReach || 0));
+  function reachSpots(s) {
+    const out=new Map(index.spotsNear(s.x,s.z,R.range).map(p=>[p.id,p]));
+    if(R.campReach)for(const b of camps(s))for(const p of index.spotsNear(...point(s,b),R.campReach))out.set(p.id,p);
+    return [...out.values()];
+  }
   function eligible(s,id) {
     const spot=index.get(id);
-    return spot && R.resources[spot.kind] && distance([s.x,s.z],[spot.x,spot.z])<=R.range ? spot : null;
+    return spot && R.resources[spot.kind] && inReach(s,spot) ? spot : null;
   }
   function train(s,count) {
     if(!on(s))return result('no town position');
@@ -133,7 +143,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   function assignIdle(s) {
     if(!on(s) || !has(s))return;
-    const spots=index.spotsNear(s.x,s.z,R.range).filter(p=>R.resources[p.kind]);
+    const spots=reachSpots(s).filter(p=>R.resources[p.kind]);
     const resources=[...new Set(Object.values(R.resources))].filter(r=>!isFull(s,data,r)).sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
     for(const w of s.workers) {
       // B2: governor-placed workers on a full resource are moved; the player's own picks stay put.
@@ -159,7 +169,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       .sort((a,b)=>count(b)-count(a) || compare(a,b))[0];
     if(!donor)return;
     const w=mine.filter(w=>res(w)===donor).sort((a,b)=>(a.carrying || 0)-(b.carrying || 0) || compare(a.id,b.id))[0];if(!w)return;
-    const spots=index.spotsNear(s.x,s.z,R.range).filter(p=>R.resources[p.kind]===low).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id));
+    const spots=reachSpots(s).filter(p=>R.resources[p.kind]===low).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id));
     if(spots[0])assign(s,[w.id],spots[0].id,'g');
   }
   function start(s,w,spot) {
@@ -357,7 +367,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     w.phase=Math.min(1,w.elapsed/t.total);
     if(w.elapsed>=t.total) {
       if(w.carrying) {
-        world.change(s.id,t.resource,w.carrying,'gather');s.workerIncome ||= {};s.workerIncome[t.resource]=(s.workerIncome[t.resource] || 0)+w.carrying;
+        const camp=cartRules(data) && s.buildings.find(b=>b.id===w.dropoff && isCamp(data,b));
+        if(camp) {camp.store ||= {};camp.store[t.resource]=Math.round(((camp.store[t.resource] || 0)+w.carrying)*100)/100;}
+        else world.change(s.id,t.resource,w.carrying,'gather');
+        s.workerIncome ||= {};s.workerIncome[t.resource]=(s.workerIncome[t.resource] || 0)+w.carrying;
         const log=s.workerLog ||= [];
         log.push({tick:state.tick,worker:w.id,resource:t.resource,amount:w.carrying,dropoff:w.dropoff});
         const limit=R.logEntries || 64;
@@ -390,6 +403,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!left.length) {p.phase='cleared';delete p.clearWork;for(const w of selected)delete w.project;}
     return new Set(selected);
   }
+  // nearest hall or storehouse to a camp, for its carts
+  const cartHome=(s,b)=>{const p=point(s,b),h=homeDrops(s).map(x=>point(s,x)).sort((a,c)=>distance(a,p)-distance(c,p))[0];return h || [s.x,s.z];};
+  function buyCampCart(s,id) {
+    const b=s.buildings.find(x=>x.id===id),C=cartRules(data);
+    const err=buyCart(s,data,b,cost=>{if(Object.entries(cost).some(([r,v])=>(s.stock[r] || 0)<v))return false;for(const [r,v] of Object.entries(cost))world.change(s.id,r,-v,'cart');return true;});
+    return err ? result(err) : result();
+  }
   function tick() {
     if(!R)return;
     const enabled=runtime && modeRules(state).island;
@@ -398,6 +418,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     let spawned=0;
     for(const s of towns()) {
       ensureWorkers(s);if(!on(s))continue;
+      if(cartRules(data))stepCarts(s,data,world.change,point,cartHome);
       // A disappeared/knocked-out live unit is a casualty, never a fresh spawn. Sleeping
       // records have entity:null, so they cannot be attacked or accidentally lost.
       s.workers=s.workers.filter(w=>{
@@ -448,5 +469,5 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(next===null)delete state.frontier.spots[id];else state.frontier.spots[id]=next;
     }
   }
-  return {tick,econTick,train,assign,workerOrder,assignIdle,rebalance,has,position,index,attach};
+  return {tick,econTick,buyCampCart,train,assign,workerOrder,assignIdle,rebalance,has,position,index,attach};
 }

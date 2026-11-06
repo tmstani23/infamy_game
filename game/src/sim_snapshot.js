@@ -4,7 +4,7 @@ const ROOTS = ['tick','night','dawn','dusk','clock','businesses','interiorDoors'
   'contracts','attacks','banditCamps','lightsOut','hqCamping','hqRaids','shakedowns','raidWindow',
   'formations','smokes','projectiles'];
 const MARKER_FIELDS = ['id','type','model','owner','x','z','place','hp','maxHp','dead','downed','jailed',
-  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider'];
+  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor'];
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k,value[k]]));
 
 // Recursive replacement retains object identities captured by read-only sim helpers.

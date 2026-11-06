@@ -79,6 +79,21 @@ g.step([{ id: hero.id, type: 'omnibus', action: 'board' }]);
 assert.equal(hero.aboard, lead.id, 'back in the first');
 assert.equal(Object.values(S.entities).filter(u => u.aboard).length, 12, 'all twelve back in');
 
+// --- Drive back to the gate (Tim 2026-11-06 20:42): at once, everyone aboard, not with a fight on --------------
+{
+  const [ix, iz] = g.gate.island, fx = ix + 200, fz = iz;
+  for (const b of buses()) { Object.assign(b, { x: fx, z: fz }); for (const u of aboard(b)) Object.assign(u, { x: fx, z: fz }); }
+  hero.hitAt = S.tick;
+  g.step([{ id: hero.id, type: 'omnibus', action: 'home' }]);
+  assert.match(clan.notice?.text || '', /fight/, 'not straight after a hit');
+  assert.ok(Math.hypot(lead.x - fx, lead.z - fz) < 5, 'stayed put');
+  hero.hitAt = -1e9;
+  g.step([{ id: hero.id, type: 'omnibus', action: 'home' }]);
+  assert.ok(buses().every(b => Math.hypot(b.x - ix, b.z - iz) < 15), `both omnibuses at the gate: ${clan.notice?.text}`);
+  assert.equal(Object.values(S.entities).filter(u => u.aboard).length, 12, 'everyone still aboard');
+  assert.ok(Math.hypot(hero.x - ix, hero.z - iz) < 15, 'the hero with them');
+}
+
 // --- wrecked: everyone piles out, that omnibus is gone ----------------------------------------------------------
 g.omnibus.shelter(hero, O.hp * 2);
 assert.ok(!S.entities[lead.id], 'wrecked omnibus removed');

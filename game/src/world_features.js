@@ -1,3 +1,4 @@
+import { RICH_NAME, RICH_GIVES } from './sim/resource_spots.js';
 // Basic camp dressing, read from authored locations. Decorative only; no navigation changes.
 export function campPropsInChunk(world,x0,z0,size) {
   return (world.camps || []).filter(c=>c.kind==='bandit' && c.x>=x0 && c.z>=z0 && c.x<x0+size && c.z<z0+size)
@@ -89,7 +90,7 @@ export function siteReport(world, site, nodeRadius = 600) {
 
 // Hover text for a marker on the island minimap (and anywhere else a feature is named).
 // kind: 'camp' | 'site' | 'node'. ctx: { camps: state.world.camps view, scouted: [site ids], rules: bandits.json worldCamps }.
-const KIND_NAME = { bandit: 'Bandit camp', ruin: 'Ruin', cache: 'Cache', quarry: 'Quarry', forest: 'Forest (timber)', ore: 'Ore vein', fertile: 'Fertile ground', fishing: 'Fishing spot' };
+const KIND_NAME = { bandit: 'Bandit camp', ruin: 'Ruin', cache: 'Cache', ...RICH_NAME };
 export function featureTip(kind, f, ctx = {}) {
   if (kind === 'camp') {
     const rec = ctx.camps?.[f.id], sizes = ctx.rules?.membersByTier, guards = sizes?.[Math.max(1, Math.min(sizes.length, f.tier || 1)) - 1]?.length;
@@ -106,7 +107,7 @@ export function featureTip(kind, f, ctx = {}) {
   if (kind === 'node') {
     let near = null;
     for (const t of ctx.world?.sites || []) { const d = Math.hypot(t.x - f.x, t.z - f.z); if (!near || d < near.d) near = { id: t.id, d: Math.round(d) }; }
-    return { title: KIND_NAME[f.kind] || f.kind, lines: [`Richness ${f.richness} of 3`, near ? `Nearest site ${placeNo(near.id)}, ${near.d} away${near.d <= 600 ? ' (a town there could work it)' : ''}` : '', 'Gathering comes with town building'].filter(Boolean) };
+    return { title: KIND_NAME[f.kind] || f.kind, lines: [`Gives ${RICH_GIVES[f.kind] || f.kind} · richness ${f.richness} of 3`, near ? `Nearest site ${placeNo(near.id)}, ${near.d} away${near.d <= 600 ? ' (a town there could work it)' : ''}` : '', 'Gathering comes with town building'].filter(Boolean) };
   }
   if (kind === 'bridge' || kind === 'ford') return { title: `${kind === 'bridge' ? 'Bridge' : 'Ford'} ${f.id}`, lines: [`Crosses the ${(ctx.rivers || []).find(r => r.id === f.river)?.name || 'river'}`] };
   if (kind === 'pass') return { title: `Mountain pass ${f.id}`, lines: ['A way through the range'] };

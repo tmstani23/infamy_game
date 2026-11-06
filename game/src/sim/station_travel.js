@@ -1,32 +1,29 @@
 // Rickshaw travel between omnibus stations (Tim 2026-11-06 20:21, plan in project files omnibus_stable/plan.md).
-// Space at your station on the island (or at the rickshaw stand by the city gate) lists where you can go: your
+// Space at your station on the island (or the island gate menu in the city, src/site_menu.js) lists where you can go: your
 // other towns with a finished station, and the capital (you arrive just inside the island gate; the rickshaws
 // park on the island side). The trip is instant: each empty rickshaw parked where you leave carries two
 // (rules.rickshaw.seats), the hero first, then the crew and settlers following him; whoever does not fit stays.
 // The rickshaws park at the destination. Not within station.fightSeconds of a hit or with enemies within
 // station.enemyRange. Command: { id: <hero id>, type: 'rickshaw', to: <town id> | 'capital' }.
 // createStationTravel({ state, data, rules, frontier, omnibus, gate, areas, navOf, followOffset, freeSlot, forget, danger, say })
-//   -> { command, from, destinations }
+//   -> { command, from, destinations }  (destinations: { here, capital, rickshaws, list })
 
 export function createStationTravel({ state, data, rules, frontier, omnibus, gate, areas, navOf, followOffset, freeSlot, forget, danger, say }) {
   const C = () => data()?.buildings?.station?.station || {};
   const st = () => frontier()?.stable;
   const towns = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded !== undefined && st()?.of(s, 'station'));
-  const STAND = 3.5;
-  // the rickshaw stand: inside the city gate, across from the lieutenant's spot (sim/game.js)
-  const stand = () => { if (!gate) return null; const [gx, gz] = gate.city, dx = gate.inside[0] - gx, dz = gate.inside[1] - gz, l = Math.hypot(dx, dz) || 1;
-    return { x: gx + dx / l * 3 + dz / l * 4, z: gz + dz / l * 3 - dx / l * 4 }; };
+  const STAND = 4;
   const atCapital = () => gate ? Object.values(state.entities).filter(v => v.type === 'rickshaw' && !v.dead && v.place === 'world' && Math.hypot(v.x - gate.island[0], v.z - gate.island[1]) <= 18 && !omnibus.riders(v).length) : [];
 
-  // where the hero stands: { town, station } at one of his stations, { capital: true } at the city stand, else null
+  // where the hero stands: { town, station } at one of his stations, { capital: true } at the island gate, else null
   function from(e) {
     if (!e) return null;
     if (e.place === 'world') {
       for (const s of towns(e.owner)) { const b = st().of(s, 'station'), [x, z] = st().centre(s, b); if (Math.hypot(e.x - x, e.z - z) <= (C().reach ?? 8) + (data().townGrid?.cellSize || 10)) return { town: s, station: b }; }
       return null;
     }
-    const p = stand();
-    return e.place === 'street' && p && Math.hypot(e.x - p.x, e.z - p.z) <= STAND ? { capital: true } : null;
+    // the city side: at the island gate (the gate menu, src/site_menu.js, Tim 2026-11-06 20:42)
+    return e.place === 'street' && gate && Math.hypot(e.x - gate.city[0], e.z - gate.city[1]) <= STAND ? { capital: true } : null;
   }
   const waiting = (e, f) => f.capital ? atCapital().filter(v => v.omnibusOwner === e.owner) : st().parkedAt(f.town, f.station, 'rickshaw');
   function destinations(e) {
@@ -34,7 +31,7 @@ export function createStationTravel({ state, data, rules, frontier, omnibus, gat
     if (!f) return null;
     const list = towns(e.owner).filter(s => s !== f.town).map(s => ({ id: s.id, name: s.name }));
     if (!f.capital) list.push({ id: 'capital', name: 'The capital' });
-    return { here: f.capital ? 'The capital' : f.town.name, rickshaws: waiting(e, f).length, list };
+    return { here: f.capital ? 'The capital' : f.town.name, capital: !!f.capital, rickshaws: waiting(e, f).length, list };
   }
 
   function command(e, c) {
@@ -70,5 +67,5 @@ export function createStationTravel({ state, data, rules, frontier, omnibus, gat
     areas?.update(Object.values(state.entities));
     say(e.owner, `By rickshaw to ${to === 'capital' ? 'the capital' : to.name}${party.length < group.length ? ` (${group.length - party.length} could not fit and stayed)` : ''}`);
   }
-  return { command, from, destinations, stand };
+  return { command, from, destinations };
 }

@@ -2,6 +2,7 @@
 // No simulation state or placement is changed here. Glyphs feed both the canvas and its key.
 import { createPaint } from './world_paint.js';
 import { terrainAt } from './sim/world_data.js';
+import { RICH_NAME } from './sim/resource_spots.js';
 
 export const ATLAS_LAYERS = [
   { id: 'routes', label: 'Routes', on: true },
@@ -54,13 +55,15 @@ const titleCase = s => String(s).replaceAll('_', ' ').replace(/\b\w/g, c => c.to
 export function atlasFeatureName(it) {
   if (!it) return '';
   if (it.kind === 'pin') return it.note || 'Your pin';
-  if (it.kind === 'resource') return `${titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
+  if (it.kind === 'resource') return `${RICH_NAME[it.featureKind] || titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
   if (it.kind === 'camp') return `${it.featureKind === 'bandit' ? 'Bandit camp' : titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
   return it.name || `${ATLAS_MARKERS[it.kind]?.label || titleCase(it.kind)}${it.id ? ' · ' + it.id : ''}`;
 }
 export function atlasItems(world, st, layers, known) {
   const records = [];
-  const add = (list, kind) => { if (!layers[ATLAS_MARKERS[kind].layer] && !layers.revealAll) return; for (const it of list || []) if (known(it.x,it.z)) records.push({ ...it, featureKind: it.kind, kind }); };
+  // sites the surveyor reported (Tim 2026-11-06 20:45) and the nodes around them show through the fog
+  const told = new Set(st.knownSites || []), near = (st.knownAt || []), surveyed = (it, kind) => kind === 'site' ? told.has(it.id) : kind === 'resource' && near.some(p => Math.hypot(p.x - it.x, p.z - it.z) <= p.r);
+  const add = (list, kind) => { if (!layers[ATLAS_MARKERS[kind].layer] && !layers.revealAll) return; for (const it of list || []) if (known(it.x,it.z) || surveyed(it, kind)) records.push({ ...it, featureKind: it.kind, kind }); };
   add(world.sites, 'site'); add(world.nodes, 'resource'); add(world.camps, 'camp');
   // Geographic crossings are part of the full atlas, independent of site exploration.
   // Keep them in this shared list so the symbols, key and hover all agree.

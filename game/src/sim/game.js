@@ -122,7 +122,12 @@ export function createGame(options) {
     // the Shinobi village shrine: the contract board (sim/contracts.js)
     if (b.business === 'contract_board' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'contracts', business: `b${i}`, place: 'street', label: 'Read the contract board' });
     // the Land Office (telegraph office, E1 2026-11-05): founding permits and settlers (sim/frontier/land_office.js)
-    if (b.business === 'land_office' && b.door && options.frontier && options.world) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'land_office', business: `b${i}`, place: 'street', label: 'Open the Land Office' });
+    if (b.business === 'land_office' && b.door && options.frontier && options.world) {
+      const [rx, rz] = ringAt(b), ox = b.door[0] - b.x, oz = b.door[1] - b.z, l = Math.hypot(ox, oz) || 1;
+      doors.push({ x: rx, z: rz, menu: 'land_office', business: `b${i}`, place: 'street', label: 'Open the Land Office' });
+      // the old surveyor beside the Land Office door (Tim 2026-11-06 20:45): talk after a permit, he shows you sites
+      doors.push({ x: rx - oz / l * 4.5, z: rz + ox / l * 4.5, menu: 'surveyor', business: `b${i}`, place: 'street', label: 'Talk to the old surveyor' });
+    }
     if (b.business === 'police_hq' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_hq', business: `b${i}`, place: 'street', label: 'Open the police HQ' });
   });
 
@@ -187,7 +192,8 @@ export function createGame(options) {
   // the omnibus out on the island (sim/omnibus.js, Tim 2026-11-06): settlers and the Hero group ride in with the hero
   const omnibus = areas ? createOmnibus({ state, rules: units?.rules, spawn: (...a) => spawn(...a), remove: id => removeUnit(id), nav: () => navOf('world'),
     freeSlot: (...a) => freeSlot(...a), followOffset: (...a) => followOffset(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; },
-    say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
+    say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; },
+    homeAt: () => gate?.island, danger: e => state.tick - (e.hitAt ?? -Infinity) < 200 || Object.values(state.entities).some(u => u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= 12 && baseHostile(u, e)) }) : null;
   // horses from the stable and the hero's mount (sim/mounts.js, Tim 2026-11-06): H to ride, island only
   const mounts = areas ? createMounts({ state, rules: units?.rules, spawn: (...a) => spawn(...a), nav: () => navOf('world'), born: () => frontier?.stable?.born() || [],
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
@@ -196,7 +202,6 @@ export function createGame(options) {
     followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; },
     danger: (e, r) => Object.values(state.entities).some(u => u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= r && baseHostile(u, e)),
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
-  { const p = stationTravel?.stand(); if (p) doors.push({ x: p.x, z: p.z, place: 'street', menu: 'rickshaw', label: 'Rickshaw stand: to your towns' }); }
   // the lieutenant's spot by the gate (goal steps, Tim 2026-11-06): Space here talks to him (sim/lieutenant.js guide)
   if (gate) { const [gx, gz] = gate.city, [ix, iz] = gate.inside, dx = ix - gx, dz = iz - gz, l = Math.hypot(dx, dz) || 1;
     doors.push({ x: gx + dx / l * 3 - dz / l * 4, z: gz + dz / l * 3 + dx / l * 4, place: 'street', menu: 'lieutenant', label: 'Talk to your lieutenant' }); }
@@ -524,6 +529,18 @@ export function createGame(options) {
       else Object.assign(g, { x, z, place: 'world', anim: 'idle' });
     }
   }
+  // the old surveyor outside the Land Office (Tim 2026-11-06 20:45): one figure, nobody's crew, not attackable (guide),
+  // there while any player clan plays a founding mode. Placeholder look: units.json rules.surveyorModel (the fisherman).
+  function landSurveyor() {
+    if (!landOffice || state.tick % 20) return;
+    const d = doors.find(x => x.menu === 'surveyor'), model = units?.rules?.surveyorModel || 'fisherman';
+    const g = state.surveyorNpc && state.entities[state.surveyorNpc];
+    const want = !!d && modeRules(state).founding && Object.values(state.clans || {}).some(c => !c.bot);
+    if (g && (!want || g.dead || g.downed)) { removeUnit(g.id); delete state.surveyorNpc; return; }
+    if (!want) return;
+    if (!g) state.surveyorNpc = spawn('city_captain', model, d.x + 0.8, d.z, { owner: null, place: 'street', guide: true, surveyor: true, holdFire: true, hp: 100, name: 'Old surveyor' });
+    else Object.assign(g, { x: d.x + 0.8, z: d.z, place: 'street', anim: 'idle' });
+  }
   const townCount = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded !== undefined).length;
   const governorNear = (id, reach = 3.5) => { const h = state.entities[id]; return h && h.place === 'world' ? Object.values(state.entities).find(e => e.governor && e.owner === h.owner && Math.hypot(e.x - h.x, e.z - h.z) < reach) || null : null; };
 
@@ -717,7 +734,7 @@ export function createGame(options) {
   const dayTicks = dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000;
   // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
-  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
+  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
   const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
@@ -898,6 +915,7 @@ export function createGame(options) {
       }
       if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit,c.count ?? 1);
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'permit') landOffice.buyPermit(e);
+      if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'survey') landOffice.survey(e);
       if (c.type === 'expedition' && landOffice && areas && gate && !stunned(e, state.tick)) expedition(e, c);
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'omnibus') omnibus?.command(e, c);
@@ -965,6 +983,7 @@ export function createGame(options) {
     clans?.tick(DT, spawnOutside);
     islandRespawn?.tick(DT, units?.types);
     townGovernors();
+    landSurveyor();
     lieutenant?.tick();   // C2: the city captain takes charge / stands down
     influence.tick();   // C4: campaign Influence, after this tick's dawn (no-op in Classic)
     syncCrewAttacks();

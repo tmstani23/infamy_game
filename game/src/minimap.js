@@ -165,7 +165,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       known: (x, z) => isDiscovered(world, game.state.world?.discovered?.[clan] ?? '0', x, z) })) {
       const [u, v] = at(spot.x, spot.z);
       if (u < 0 || v < 0 || u > size || v > size) continue;
-      drawSpotMarker(ctx, u, v, spot.kind, !!spot.deposit); islandHits.push([u, v, 6, 'spot', spot, tipCtx]);
+      drawSpotMarker(ctx, u, v, spot.deposit ? spot.nodeKind || spot.kind : spot.kind, !!spot.deposit); islandHits.push([u, v, 6, 'spot', spot, tipCtx]);
     }
     for (const n of near(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 8, 'node', n, tipCtx]); drawSpotMarker(ctx, u, v, n.kind, true); }
     for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill(); ctx.stroke(); }

@@ -5,7 +5,7 @@ import { cellToWorld, worldToCell, ringRadius } from './sim/frontier/town_grid.j
 import { bodyDistance } from './crew_input.js';
 import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
-import { spotYield } from './sim/resource_spots.js';
+import { spotYield, richReach } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
 import { workerPanelHTML, workerJob } from './worker_panel.js';
 import {workerDetails,workerPresentation} from './worker_details.js';
@@ -81,6 +81,17 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const selectedLive = () => towns().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
+  // Reach anchors for rich deposits: own town halls (workers.range) and their built work camps (workers.campReach).
+  function reachAnchors() {
+    const W = data.workers || {}, out = [];
+    for (const s of towns()) {
+      out.push({ town: s.id, name: s.name, x: s.x, z: s.z, r: W.range ?? 600 });
+      for (const b of s.buildings || []) if (b.stage === 'built' && (W.gatherBuildings || []).includes(b.type) && s.grid && Number.isInteger(b.cell)) {
+        const [x, z] = cellToWorld(s, b.cell); out.push({ town: s.id, name: s.name, x, z, r: W.campReach ?? 0, camp: true });
+      }
+    }
+    return out;
+  }
   function cancel() { tool = null; drag = null; pendingPlan = null; review.hidden = true; mouse = null; preview = null; lastPreview = ''; hint.hidden = true; crewInput.cancelPointer(); }
   function close() { cancel(); opened = false; workersOpen = false; }
   function say(text) { hint.textContent = text; delete hint.dataset.ok; hint.hidden = false; hint.style.left = '24px'; hint.style.top = '130px'; messageUntil = Date.now() + 5000; }
@@ -171,7 +182,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (inspect.spot) {
       const spot = spotIndex.get(inspect.spot);
       if (!spot || !known(spot.x, spot.z)) { card.hidden = true; return; }
-      info = spotInfo(spot, game.state.frontier?.spots?.[spot.id]);
+      const reach = spot.deposit ? richReach(spot, reachAnchors()) : null;
+      info = spotInfo(spot, game.state.frontier?.spots?.[spot.id], reach?.text);
+      if (reach && !reach.ok && reach.town) info.camp = { town: reach.town, type: spot.kind === 'timber' ? 'lumber_camp' : 'quarry' };
       const assigned = towns().flatMap(s => (s.workers || []).filter(w => w.spot === spot.id || w.nextSpot === spot.id).map(w => `${w.id} (${s.name})`));
       info.lines.push(`Amount per harvest: ${spotYield(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages)}`,
         `Your workers: ${assigned.length ? assigned.join(', ') : 'none'}`);
@@ -182,6 +195,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!info) { card.hidden = true; return; }
     const html = `<button data-close aria-label="Close inspection">×</button><b>${esc(info.title)}</b>`
       + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
+      + (info.camp ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built lumber camp or quarry.">Place camp here</button>` : '')
       + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
     if (inspectionHtml !== html && !inspectionPressed) { card.innerHTML = html; inspectionHtml = html; }
@@ -196,6 +210,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if(b?.hasAttribute('data-drop'))requestDrop();
     if (b?.dataset.train) requestTraining(b.dataset.train);
     if (b?.dataset.upgrade) command({ action: 'upgradeHall', settlement: b.dataset.upgrade });
+    if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
     if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }
     if (b?.hasAttribute('data-close')) { inspect = null; selected=[]; card.hidden = true; }
   });

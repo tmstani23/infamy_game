@@ -56,6 +56,27 @@ assert.ok(clan.permit, `permit bought: ${clan.notice?.text}`);
 assert.equal(clan.ryo, ryo0 - (P.ryo || 0));
 assert.equal(L.permitStatus('player').ok, false, 'one permit at a time');
 
+// --- the old surveyor (Tim 2026-11-06 20:45): talk after the permit, the nearest 3 open sites become known ----------
+assert.equal(clan.surveyPending, true, 'the permit comes with a report waiting');
+assert.equal((clan.knownSites || []).length, 0, 'no site known before talking to him');
+const sv = g.doors.find(d => d.menu === 'surveyor');
+assert.ok(sv, 'the surveyor stands by the Land Office door');
+for (let i = 0; i < 21; i++) g.step([]);
+assert.ok(Object.values(g.state.entities).some(e => e.surveyor && !e.owner && e.place === 'street'), 'his figure is there');
+g.step([{ id: hero.id, type: 'landOffice', action: 'survey' }]);
+assert.match(clan.notice?.text || '', /surveyor/, 'only beside him');
+Object.assign(hero, { place: 'street', x: sv.x, z: sv.z });
+const openBefore = L.sites('player').filter(s => s.open);
+g.step([{ id: hero.id, type: 'landOffice', action: 'survey' }]);
+assert.equal(clan.knownSites.length, 3, clan.notice?.text);
+assert.deepEqual(clan.survey.sites, clan.knownSites); assert.equal(clan.survey.n, 1); assert.equal(clan.surveyPending, false);
+const byTravel = [...openBefore].sort((a, b) => a.travel - b.travel).slice(0, 3).map(s => s.id).sort();
+assert.deepEqual([...clan.knownSites].sort(), byTravel, 'the first report: nearest to the capital');
+g.step([{ id: hero.id, type: 'landOffice', action: 'survey' }]);
+assert.match(clan.notice?.text || '', /already/, 'once per permit');
+assert.equal(clan.knownSites.length, 3);
+atOffice();
+
 // --- settlers: hired here, then wait safely at the HQ as a count (Tim 2026-11-06), not as units -------
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 5 }]);
 assert.equal(clan.queue.filter(q => q.unit === 'settler').length, 5);
@@ -81,7 +102,15 @@ const sites = L.sites('player'), open = sites.filter(s => s.open);
 assert.ok(sites.length === world.sites.length && open.length > 10, 'sites listed with traits');
 assert.ok(sites.every(s => s.traits.soil >= 1 && s.traits.water >= 1 && s.traits.defense >= 1 && typeof s.campWarn === 'boolean'));
 assert.ok(sites.some(s => s.campWarn), 'some sites warn of a nearby camp');
-const pickSite = open[0];
+const pickSite = open.find(s => s.known);
+assert.ok(pickSite, 'a known site');
+// a site you have not found is refused (players only)
+const hidden = open.find(s => !s.known && !s.campWarn);
+clan.settlersWaiting = 5;
+g.step([{ id: hero.id, type: 'expedition', action: 'site', site: hidden.id, units: [] }]);
+assert.equal(hero.place, 'street', 'unknown site refused');
+assert.match(clan.notice?.text || '', /not found/);
+toGate();
 // not enough settlers
 clan.settlersWaiting = 4;
 g.step([{ id: hero.id, type: 'expedition', action: 'site', site: pickSite.id, units: [] }]);
@@ -121,6 +150,19 @@ assert.ok(!L.inGrace({ ...near, owner: 'kuroda' }), 'grace only for its own peop
 g.state.tick += frontier.founding.graceDays * g.dayTicks;
 assert.ok(!L.inGrace(near), 'grace ends after graceDays');
 assert.equal(L.permitStatus('player').ok, false, 'maxTowns: no second permit until Influence (C4)');
+
+// the next report is measured from your towns: the 3 nearest open unknown sites to the new town
+{
+  clan.surveyPending = true;
+  const before = new Set(clan.knownSites);
+  Object.assign(hero, { place: 'street', x: sv.x, z: sv.z });
+  g.step([{ id: hero.id, type: 'landOffice', action: 'survey' }]);
+  const fresh = L.sites('player').filter(s => clan.survey.sites.includes(s.id)), rest = L.sites('player').filter(s => s.open && !s.known);
+  const d = s => Math.hypot(s.x - town.x, s.z - town.z);
+  assert.equal(fresh.length, 3, clan.notice?.text); assert.equal(clan.survey.n, 2);
+  assert.ok(fresh.every(s => !before.has(s.id)), 'new sites only');
+  assert.ok(Math.max(...fresh.map(d)) <= Math.min(...rest.map(d)), 'nearest the town');
+}
 
 // --- Walk out: through the gate on foot, settlers only ------------------------------------------------
 {

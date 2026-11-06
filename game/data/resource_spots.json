@@ -31,6 +31,7 @@
     "_note": "One char per piece: f full, h harvested, s sapling (rubble for stone). value = what a piece gives per harvest round; regrow = chance per economy tick that h -> s and s -> f; trickle = floor so a worked spot never drops to 0.",
     "value": { "f": 1, "s": 0.2, "h": 0.1 },
     "regrow": { "h": 0.02, "s": 0.02 },
-    "trickle": 0.25
+    "trickle": 0.25,
+    "rich": { "_note": "Tim 2026-11-06, placeholder, Tim to tune: rich deposits (the big map nodes) yield this many times faster per harvest round and regrow this many times faster than small spots", "yield": 3, "regrow": 2 }
   }
 }
