@@ -25,6 +25,7 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | demolitions | Crew | ✅ demoobj1.zip | ✅ | ✅ 7 | brawler |
 | lieutenant1 | City captain / lieutenant (`units.json` `city_captain` sprite) | ✅ leutobj1.zip | ✅ lieutenant1.fbx | ✅ 6 (160px): fighting_idle, walking, running, punching, dying, yelling_out; packed with `--pack` | brawler + EXTRA Yelling Out (`export_sprites.mjs`; used as the talk clip, no dedicated talk clip exists); `art.json` `characters.lieutenant1` and `packedCharacters`; portraits `assets/sprites/portraits/lieutenant1_portrait_idle.png` plus colour grades `lieutenant1_{yakuza,shinobi,kuroda}_portrait_idle.png` (not packed, not used in the UI yet) |
 | governer1 | Town governor (`units.json` `rules.governorModel`) | ✅ | ✅ | ✅ 6: standing_idle, catwalk_walk_forward, gentle_reaction, quick_formal_bow, scared, standing_death_forward_01; packed | civilian |
+| surveyor1 | Old surveyor by the Land Office (`units.json` `rules.surveyorModel`) | ✅ | ✅ | ✅ 6: standing_idle, catwalk_walk_forward, gentle_reaction, quick_formal_bow, scared, standing_death_forward_01; packed | civilian |
 | ninja_grunt | Crew | ✅ | ✅ | ✅ 8 (blade tip touches the top in 2 frames of slash 2) | ninja, ninjato |
 | police_officer | Enemy, medium rig risk: cape | ✅ policemanobj1.zip | ✅ police.fbx (was policeman2) | ✅ 7, with jitte (2026-10-18) | brawler |
 | bandit | Enemy | ✅ | ✅ | ✅ 7 (cloak touches the edge at the end of dying) | brawler |
