@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, saves/dev_frontier.json
+//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, dev_frontier.json, campaign_test_yakuza.json
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 4).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -19,13 +19,40 @@ const SAVES = {
   dev_classic: { clan: 'yakuza', difficulty: 'medium', ticks: 400, playerRyo: 3000 },
   // A campaign match (the island gate is open, W3.5) with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
   dev_frontier: { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', ticks: 400, playerRyo: 3000, frontier: true, settlers: 6 },
+  // Campaign as a real game (no fixture towns), ready to test the campaign loop (Tim 2026-11-06): the city's businesses
+  // are shared out evenly between the clans that hold them, and every clan has the Renown, 8 crew and ryo to buy a
+  // permit, hire settlers and found a town. Nobody holds a permit yet; rivals leave once you found (the real rule).
+  campaign_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8 },
 };
 
+// Shares out the free businesses (the kinds that give crew room) between the clans that may hold them (the
+// Shinobi clan holds none; its crew room comes from Renown). Biggest first, snake order, so the shares stay even.
+function shareCity(game) {
+  const room = game.settings.units.rules.capPerBusiness, ids = Object.keys(game.state.clans).filter(id => game.state.clans[id].kind !== 'ninja');
+  const free = Object.values(game.state.businesses).filter(b => !b.owner && room[b.kind]).sort((a, b) => room[b.kind] - room[a.kind] || a.id.localeCompare(b.id));
+  free.forEach((b, i) => { const lap = Math.floor(i / ids.length), k = i % ids.length; game.clans.setOwner(b.id, ids[lap % 2 ? ids.length - 1 - k : k]); });
+}
+
+// Tops every clan up to the spec's ryo, Renown and crew (crew spawn by the hero, following him).
+function readyClans(game, spec) {
+  for (const clan of Object.values(game.state.clans)) {
+    clan.ryo = Math.max(clan.ryo || 0, spec.ryo); clan.renown = Math.max(clan.renown || 0, spec.renown);
+    const hero = Object.values(game.state.entities).find(e => e.owner === clan.id && e.type === 'hero');
+    const type = clan.kind === 'ninja' ? 'ninja' : 'thug', sprite = game.settings.units.types[type].sprite;
+    for (let k = game.clans.crewCount(clan.id); k < spec.crew; k++) {
+      const spot = game.nav.nearestFree(hero.x + 1 + k * 0.7, hero.z + 1);
+      if (spot) game.spawn(type, sprite, ...spot, { owner: clan.id, order: { kind: 'follow', target: hero.id } });
+    }
+  }
+}
+
 export function build(name, spec) {
-  const game = createGame(options);
+  const game = createGame(spec.realGame ? { ...options, frontier: { ...options.frontier, fixtureTowns: false } } : options);   // E6b: real games have no fixture towns
   const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, mode: spec.mode, bots: data('data/bots.json'),
     spawns: options.district.spawns, test: { playerRyo: spec.playerRyo } });
   game.civilians.populate();
+  if (spec.cityMix) shareCity(game);
+  if (spec.crew) readyClans(game, spec);
   const bots = makeBots(game, m.rivals);
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
   if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });

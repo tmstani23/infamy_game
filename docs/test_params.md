@@ -32,3 +32,11 @@ All six presets have distinct starts or staging, so none were retired. The share
 | `window.infamy` | `{ game, view }` for the browser console (F12). | `main.js` |
 
 Not covered by `DEV` (audited 2026-10-19): `game/server.mjs` saving the HUD layout (PUT `/game/data/ui_layout.json`), and the separate room preview page `game/tools/rooms.html` (`?type=`, `window.roomsReady`). `look_tests/sprite_render_test.html` has `window.spriteTest` for the exporter. Art tool command-line flags are in `README.md`.
+
+## Dev test saves (2026-11-06)
+
+`node game/tools/make_dev_save.mjs` rebuilds the dev saves in `saves/`; load them from the normal Load menu.
+
+- `dev_classic`: a Classic city match.
+- `dev_frontier`: a campaign save with the fixture towns and road, map revealed, spare ryo and a permit.
+- `campaign_test_yakuza` (replaces the planned `dev_campaign_start`): a real campaign game (no fixture towns) as Yakuza. The city's businesses are shared out evenly between the clans; every clan has 300 Renown, 8 crew and 3,000 ryo, ready to buy a permit, hire settlers and found. Nobody holds a permit yet; rivals leave once you found.

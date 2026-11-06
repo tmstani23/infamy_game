@@ -458,7 +458,7 @@ session, read it before doing anything else.
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
-- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic` and `dev_frontier` saves done via `game/tools/make_dev_save.mjs`; campaign and frontier saves wait for their phases; `test_params.js` stays until Tim sees the presets)
+- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic`, `dev_frontier` and `campaign_test_yakuza` saves done via `game/tools/make_dev_save.mjs`; `test_params.js` stays until Tim sees the presets)
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
 - [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
@@ -709,8 +709,7 @@ Files: new `game/tools/make_dev_save.mjs`, `game/src/test_params.js` (emptied, t
 `to_delete/`), `docs/test_params.md` (proposal to coordinator: replaced by a short "Dev test save"
 section).
 Do: one Node tool rebuilds a small fixed set of saves from the current code, so they never go stale:
-`dev_classic.json` (a Classic city match), `dev_campaign_start.json` (campaign day 1, before the
-expedition) and `dev_frontier.json` (fixture towns and road, map revealed, spare ryo). They load from
+`dev_classic.json` (a Classic city match), `campaign_test_yakuza.json` (built 2026-11-06 in place of the planned `dev_campaign_start`: a real campaign game with no fixture towns, playing Yakuza; the city's businesses shared out evenly between the clans, every clan with 300 Renown, 8 crew and 3,000 ryo, ready to buy a permit, hire settlers and found; nobody holds a permit yet) and `dev_frontier.json` (fixture towns and road, map revealed, spare ryo). They load from
 the normal Load menu (F1.6b). A phase that needs something new to test updates one of these; a new
 save is added only with Tim's OK, and the set stays small (no more than 4). Dev-only checks (invariant logging, frozen snapshots, the F2.4b readout) run in the
 dev build (`start_game.bat`), never in a release build. Existing Classic presets in `test_params.js`
