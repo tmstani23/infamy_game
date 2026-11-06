@@ -128,18 +128,22 @@ assert.ok(logged(/captain takes charge/));
   assert.ok(g2.lieutenant.captainOf('player') && g2.lieutenant.active('player'));
 }
 
-// --- the boss is knocked out on the island: the captain holds until he comes round at the HQ, then stands down ---
+// --- the boss is knocked out on the island: he comes round out there (no town yet: by the gate, Tim 2026-11-06),
+// the captain stays in charge and the Hero group is still with him; walking home, the captain stands down ---
 {
   Object.assign(hero, { dead: true, diedAt: g.state.tick, hp: 0 });
   g.step([]);
   assert.ok(L.captainOf('player') && L.active('player'), 'still in charge while the boss lies on the island');
   const capId = L.captainOf('player').id;
   for (let i = 0; i < 60 * 20 && hero.dead; i++) g.step([]);
-  assert.ok(!hero.dead && hero.place !== 'world', `the boss came round in the city (${hero.place})`);
+  assert.ok(!hero.dead && hero.place === 'world', `the boss came round on the island (${hero.place})`);
   g.step([]);
+  assert.ok(L.captainOf('player') && L.active('player'), 'the captain stays in charge');
+  assert.ok(party.every(u => u.place === 'world'), 'the Hero group is still out on the island with him');
+  Object.assign(hero, { place: 'street', x: gate.x, z: gate.z });   // walks home
+  g.step([]); g.step([]);
   assert.ok(!L.captainOf('player') && !g.state.entities[capId], 'the captain stands down');
   assert.ok(!L.active('player') && logged(/boss is back/));
-  assert.ok(party.every(u => u.place === 'world'), 'the Hero group is still out on the island (left behind)');
 }
 
 // --- through the gate again and back: a fresh captain each time, he stands down when the boss walks home --------

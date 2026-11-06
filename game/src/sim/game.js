@@ -60,6 +60,7 @@ import { createLandOffice } from './frontier/land_office.js';
 import { createCampaignGoals } from './campaign_goals.js';
 import { createInfluence } from './influence/influence.js';
 import { createLieutenantRules } from './lieutenant.js';
+import { createIslandRespawn } from './island_respawn.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -153,7 +154,7 @@ export function createGame(options) {
   });
   // at Wanted and up the clinic charges more (police.clinicScale); police is made further down
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1,
-    onAddClan: clan => deployment.addClan(clan), priceFactor: id => leader.hireFactor(id), respawnFactor: id => leader.respawnFactor(id) }) : null;
+    onAddClan: clan => deployment.addClan(clan), priceFactor: id => leader.hireFactor(id), respawnFactor: id => leader.respawnFactor(id), islandCarry: (e, saved) => islandRespawn?.carry(e, saved) }) : null;
   const rewards = createRewards(state, units?.rules);
   const inventory = createInventory({state,baseHp:e=>stats.base(e).hp||0});
   const itemServices = createItemServices({state,inventory,raidRules:units?.rules?.raid,spawn,nav:{nearestFree:(...p)=>nav.nearestFree(...p)}});
@@ -176,6 +177,9 @@ export function createGame(options) {
     const mx = (b.minX + b.maxX) / 2 - gd.x, mz = (b.minZ + b.maxZ) / 2 - gd.z, ml = Math.hypot(mx, mz) || 1;
     return { city: [gd.x, gd.z], inside: [gd.x + mx / ml * 3, gd.z + mz / ml * 3], island: [x, z], side };
   })() : null;
+  // knocked out on the island: up again at the nearest own town hall (sim/island_respawn.js, Tim 2026-11-06)
+  const islandRespawn = areas ? createIslandRespawn({ state, areas, gate, rules: units?.rules?.islandRespawn, cellSize: options.frontier?.townGrid?.cellSize,
+    spawn: (...a) => spawn(...a), freeSlot: (...a) => freeSlot(...a), followOffset: (...a) => followOffset(...a), say: (clan, text) => { clan.notice = { tick: state.tick, text }; }, infirmary: () => frontier?.infirmary }) : null;
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
@@ -470,6 +474,7 @@ export function createGame(options) {
       // a knocked-out hero comes round inside his clan's hideout after heroRespawnSeconds (rival bot plan),
       // else at the clinic's door ring (Tim 2026-10-17), or at home when the map has no clinic
       if (e.type === 'hero' && secs >= (units?.rules?.heroRespawnSeconds ?? 20) * leader.respawnFactor(e.owner)) {
+        if (islandRespawn?.hero(e)) continue;   // knocked out on the island: up at the nearest town hall, low health
         const hd = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room);
         if (hd) {
           Object.assign(e, { x: hd.to.x, z: hd.to.z, place: hd.place, hp: e.maxHp, dead: false, anim: 'idle' });
@@ -904,6 +909,7 @@ export function createGame(options) {
     kuroda.tick();
     unstuck.tick();
     clans?.tick(DT, spawnOutside);
+    islandRespawn?.tick(DT, units?.types);
     lieutenant?.tick();   // C2: the city captain takes charge / stands down
     influence.tick();   // C4: campaign Influence, after this tick's dawn (no-op in Classic)
     syncCrewAttacks();
@@ -1092,7 +1098,7 @@ export function createGame(options) {
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
-  const combat = createCombat({ decide, onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const combat = createCombat({ decide, shelter: (t, d) => frontier?.garrison?.shelter(t, d) ?? false, onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
   // Closure state that lives outside game.state. Values are copied by the save encoder.
@@ -1111,5 +1117,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, dayTicks };
 }

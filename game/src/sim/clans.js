@@ -136,6 +136,7 @@ export function createClans(state, units, opts = {}) {
     // sector and HQ crew are not carried to the clinic: they come round at their own HQ after
     // sectorRespawnSeconds and run back to their sector; hero-group crew still go to the clinic (Tim 2026-10-27)
     const saved = storedDeployment(e);
+    if (opts.islandCarry?.(e, saved)) return true;   // on the island with a town: comes round at its hall (Tim 2026-11-06)
     if (state.deployment?.restrictionsEnabled && saved && saved.savedGroup !== 'hero' && hideoutOf(clan.id)) {
       (clan.respawning ||= []).push({ unit: e.type, model: e.model, deployment: saved, left: (rules.sectorRespawnSeconds ?? 30) * (opts.respawnFactor?.(e.owner) ?? 1) });
       say(clan, `Your ${e.type} will come round at your HQ in ${rules.sectorRespawnSeconds ?? 30} s`);
@@ -218,6 +219,7 @@ export function createClans(state, units, opts = {}) {
     const b = clinicOf();
     for (const clan of Object.values(state.clans)) {
       for (const r of [...(clan.respawning || [])]) {
+        if (r.island) continue;   // knocked out on the island: sim/island_respawn.js brings them round at a town hall
         if ((r.left = Math.max(0, r.left - dt)) > 0) continue;
         const home = hideoutOf(clan.id);
         if (!home) continue;

@@ -43,3 +43,27 @@ assert.ok(workerIdle(town2.workers[0], new Map()), 'garrisoned workers count as 
 g2.command(st2.entities.h, { action: 'garrison', mode: 'leave', town: 't2' });
 assert.equal(town2.workers[0].garrison, undefined);
 console.log('garrison workers ok');
+// hits on people inside go to the stockade; at 0 it is ruined and everyone piles out (Tim 2026-11-06)
+{
+  const town3 = { id: 't3', owner: 'c1', x: 0, z: 0, grid: town.grid, buildings: [{ id: 'b3', type: 'stockade', cells: [12, 13, 17, 18], stage: 'built' }], workers: [] };
+  const st3 = { tick: 1, frontier: { receipts: [], settlements: { t3: town3 } }, entities: {} };
+  for (let i = 0; i < 3; i++) st3.entities['p' + i] = { id: 'p' + i, owner: 'c1', type: i ? 'crew' : 'hero', place: 'world', x: 5, z: 5, hp: 50, maxHp: 100 };
+  const g3 = createGarrison({ state: st3, data, world: { settlement: id => st3.frontier.settlements[id] } });
+  g3.command(st3.entities.p0, { action: 'garrison', mode: 'enter', town: 't3', units: ['p0', 'p1', 'p2'] });
+  g3.tick();
+  const [cx, cz] = [st3.entities.p0.x, st3.entities.p0.z];   // they stand at the stockade's centre
+  const b = town3.buildings[0], max = st.garrison.hp, p1 = st3.entities.p1;
+  assert.ok(max > 0, 'stockade has health');
+  assert.equal(g3.shelter(p1, 60), true, 'absorbed');
+  assert.equal(p1.hp, 50, 'the person inside is not hurt');
+  assert.equal(b.hp, max - 60, 'the stockade is');
+  assert.equal(g3.shelter(p1, max), true);
+  assert.equal(b.stage, 'ruined', 'broken');
+  assert.equal(g3.members(town3).length, 0, 'everyone piles out');
+  for (const id of ['p0', 'p1', 'p2']) {
+    const u = st3.entities[id];
+    assert.ok(!u.garrison && Math.hypot(u.x - cx, u.z - cz) >= 10, `${id} out round the ruin (${u.x},${u.z} from ${cx},${cz})`);
+  }
+  assert.equal(g3.shelter(p1, 10), false, 'outside again: hits land as normal');
+  console.log('garrison stockade health ok');
+}

@@ -3,7 +3,10 @@
 // (sim/stats.js reads e.garrison.heal) and they stand idle at the building until sent out.
 // Command (through the frontier hub): { id: <hero id>, type: 'frontier', action: 'garrison', mode: 'enter' | 'leave',
 // town: <settlement id>, units: [entity ids] } (leave with no units = everyone). Receipts as for other frontier commands.
-// createGarrison({ state, data, world }) -> { command, tick, members, capacity }
+// Hits on anyone inside go to the stockade instead (garrison.hp, Tim 2026-11-06): area attacks such as
+// dynamite or a cleave cannot reach the people. At 0 the stockade is ruined and everyone piles out;
+// the town governor rebuilds it on the same spot. Enemies attacking the building itself waits for F7 sieges.
+// createGarrison({ state, data, world }) -> { command, tick, members, capacity, shelter }
 import { cellToWorld, townBlockersIn } from './town_grid.js';
 
 export function createGarrison({ state, data, world }) {
@@ -77,6 +80,21 @@ export function createGarrison({ state, data, world }) {
     return receipt(e, c, true);
   }
 
+  // a hit on a sheltered unit: the stockade takes the damage; true when it was absorbed
+  function shelter(u, damage) {
+    const g = u.garrison, s = g && world.settlement(g.town), b = s?.buildings?.find(x => x.id === g.building && finished(s, x));
+    if (!b) return false;
+    const max = rules()?.hp || 0;
+    if (!max) return true;   // no building health set: the stockade cannot be broken
+    b.hp = Math.max(0, (b.hp ?? max) - Math.max(0, damage || 0));
+    b.hitAt = state.tick ?? 0;
+    if (b.hp > 0) return true;
+    // broken: ruined (the governor rebuilds it) and everyone inside piles out round it
+    b.stage = 'ruined'; delete b.hp;
+    for (const m of members(s)) if (m.sleeping || m.garrison?.building === b.id) release(s, m, b);
+    return true;
+  }
+
   // every tick: garrisoned units stand at the stockade; a stockade that is gone lets them out
   function tick() {
     for (const s of Object.values(state.frontier?.settlements || {})) for (const w of s.workers || []) {   // a woken garrisoned worker is put back inside
@@ -93,5 +111,5 @@ export function createGarrison({ state, data, world }) {
       delete u.order; delete u.attackTarget;
     }
   }
-  return { command, tick, members, capacity };
+  return { command, tick, members, capacity, shelter };
 }

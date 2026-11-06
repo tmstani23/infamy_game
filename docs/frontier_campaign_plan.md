@@ -388,6 +388,10 @@ Campaign only. `sim/campaign_goals.js` `goals.current(clan)` returns the current
 
 While the hero is on the island the lieutenant runs the city. Only major capital news shows, prefixed "Capital:": a raid won against you, a quarter lost, your HQ raided, and one warning (once) when the clan falls below half the businesses it held on leaving. Other city pings are muted and the raid banner is hidden. Code: `src/news_callouts.js`, `src/main.js`.
 
+## Knocked out on the island (2026-11-06)
+
+The hero comes round after `heroRespawnSeconds` at his clan's nearest founded town hall with 30% health, or at the island side of the city gate if he has no town. Crew downed on the island come round at the nearest hall after 30 s with 30% health; Hero-group crew follow the hero again. City crew keep the clinic/HQ rules. Settings: `units.json` `rules.islandRespawn` `{ hpShare, crewSeconds }`. Code: `sim/island_respawn.js`. Test: `tools/test_island_respawn.mjs`.
+
 ## Town Need rating (2026-11-06)
 
 `sim/frontier/alerts.js` `townNeed()` stores `s.need = { score, level, why[] }` on each town every economy tick. Weights (`frontier.json` `alerts.need`): attack 50 and building destroyed 30 (each for 30 economy ticks), blocked road 30, food running out 25, mood below 25: 30, mood below 40: 20, safety below 50: 15, full store 5 each (max 2), governor suggestion 5, housing full 5, upgrade ready 5. Levels: urgent 50+, high 25+, medium 10+, low above 0, else ok.
