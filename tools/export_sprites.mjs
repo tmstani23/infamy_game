@@ -112,7 +112,7 @@ const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx']);
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };
 // Mounts and vehicles: file in assets/models/mounts, height of the ref mesh (or the whole
-// model) in world units (character = 2), merge = play all clips of a grouped scene as one,
+// model) in world units (character = 2) or length (longest side, for boats), pxPerUnit = sheet resolution, merge = play all clips of a grouped scene as one,
 // yaw = degrees to turn the model (default 180: Blender .glb exports face -Z). Heights by eye (2026-11-06); tune here.
 const MOUNTS = {
   mare: { file: 'mare.glb', height: 2.4 },
@@ -125,6 +125,11 @@ const MOUNTS = {
   // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
   cannon_wooden: { file: 'cannon_wooden.glb', height: 1.2, merge: 'fire', yaw: 90 },
+  // Boats (hull cut at the waterline; the game draws the water): sized by hull length, and at half the
+  // characters' pixel scale (pxPerUnit) so the big hulls stay a sane sheet size; fps 6 halves their frames (art.json plays them at speed 0.5; Tim 2026-11-06). Wake and spray come later as effects.
+  boat_river: { file: 'boat_river.glb', length: 6, yaw: 90, pxPerUnit: 160 / 3 , fps: 6 },
+  ship_coastal: { file: 'ship_coastal.glb', length: 12, yaw: 90, pxPerUnit: 80 / 3 , fps: 6 },
+  ship_war: { file: 'ship_war.glb', length: 16, yaw: 90, pxPerUnit: 80 / 3 , fps: 6 },
 };
 
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
@@ -288,7 +293,8 @@ for (const [name, cfg] of mounts) {
   await page.evaluate(o => window.spriteTest.setMount(o), cfg);
   await page.setInputFiles('#pickMount', path.join(mountDir, cfg.file));
   await page.waitForFunction(() => window.spriteTest.ready(), null, { timeout: 300000 });
-  const frame = await page.evaluate(() => window.spriteTest.autoFrame());
+  const frame = await page.evaluate(px => window.spriteTest.autoFrame(px), cfg.pxPerUnit);
+  if (cfg.fps) await page.evaluate(f => { document.getElementById('fps').value = String(f); }, cfg.fps);
   const names = await page.evaluate(() => window.spriteTest.clipNames());
   console.log(`${name} (mount): ${names.length} animation(s), ${frame.size} px cells`);
   for (let i = 0; i < names.length; i++) {
@@ -303,7 +309,7 @@ for (const [name, cfg] of mounts) {
       if (!fs.existsSync(path.join(archive, fname))) fs.copyFileSync(old, path.join(archive, fname));
     }
     fs.writeFileSync(old, Buffer.from(r.dataUrl.split(',')[1], 'base64'));
-    mountInfo[`${name}_${clip}`] = { size: frame.size, frames: r.frames, fps: 12, cellWorld: +frame.worldPerCell.toFixed(3), feetUp: +frame.feetUp.toFixed(3) };
+    mountInfo[`${name}_${clip}`] = { size: frame.size, frames: r.frames, fps: cfg.fps || 12, cellWorld: +frame.worldPerCell.toFixed(3), feetUp: +frame.feetUp.toFixed(3) };
     console.log(`  ${fname}  (${r.frames} frames, ${r.duration.toFixed(3)} seconds)`);
     written++;
   }

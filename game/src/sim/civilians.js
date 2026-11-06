@@ -12,7 +12,7 @@ const TICK_RATE = 20, DT = 1 / TICK_RATE;
 
 // state: the game state; data: civilians.json; pois: the district's spots;
 // nav: street paths; spawn / moveTo / stopPath / statsOf come from the game rules
-export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, stopPath, statsOf, seed = 777 }) {
+export function createCivilians({ state, data, pois = [], nav, roadNav = null, spawn, moveTo: walkTo, stopPath: stopWalk, statsOf, seed = 777 }) {
   const R = data?.rules || {}, types = data?.types || {};
   const secs = s => Math.round(s / DT);
   // spots snapped to free ground, so every one can be walked to
@@ -35,11 +35,71 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   }
   const pick = list => list[Math.floor(rng() * list.length)];
+  // vehicles (rickshaws, ox carts, the omnibus; civilians.json "vehicle"): they drive between spots
+  // like townsfolk but never chat, bow or freeze in fright; they just pull away (Tim 2026-11-06)
+  const isVehicle = e => !!types[mind[e.id]?.kind]?.vehicle;
+
+  // --- Driving (vehicles, Tim 2026-11-06) ---------------------------------------------
+  // Vehicles keep to the roads (roadNav: the district's road bands) and steer like a cart:
+  // the heading turns at most turnDegrees a second, they slow down in sharp turns, and they
+  // wait for whoever stands in front of them instead of pushing through. The sprite row
+  // follows the heading, so a turn sweeps through the 8 views instead of snapping.
+  const V = R.vehicles || {};
+  const roadPoint = (x, z) => roadNav?.nearestFree(x, z, 16) || null;
+  function drive(e, unit, tx, tz) {
+    const m = mind[e.id];
+    if (!roadNav || !m) return walkTo(e, unit, tx, tz, true);
+    const goal = roadPoint(tx, tz);
+    if (!goal) return false;
+    // off the road (just out of a yard or a fright): walk the people's paths to the nearest road first
+    const r = roadNav.free(e.x, e.z) ? null : roadPoint(e.x, e.z);
+    if (r && Math.hypot(r[0] - e.x, r[1] - e.z) > 1.5) {          // (a road edge within 1.5 still counts as on it)
+      m.onFoot = true; delete m.routeTo;
+      return walkTo(e, { ...unit, walk: unit.walk * (V.speed ?? 0.85) }, r[0], r[1], true);
+    }
+    if (m.onFoot) { stopWalk(e); delete m.onFoot; }
+    const key = goal.map(v => v.toFixed(1)).join(',');
+    if (m.routeTo !== key) {
+      const from = roadPoint(e.x, e.z) || [e.x, e.z];
+      const path = roadNav.findPath(from[0], from[1], goal[0], goal[1]);
+      if (!path) return false;
+      m.route = Math.hypot(from[0] - e.x, from[1] - e.z) > 0.5 ? [from, ...path] : path;
+      m.routeTo = key; m.wp = 0;
+    }
+    while (m.wp < m.route.length && Math.hypot(m.route[m.wp][0] - e.x, m.route[m.wp][1] - e.z) < (m.wp === m.route.length - 1 ? 0.5 : 1.2)) m.wp++;
+    if (m.wp >= m.route.length) { stopPath(e); return false; }          // there
+    const [wx, wz] = m.route[m.wp];
+    const want = Math.atan2(wx - e.x, wz - e.z);
+    if (e.heading === undefined) e.heading = want;
+    let diff = want - e.heading;
+    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    const maxTurn = (V.turnDegrees ?? 120) * Math.PI / 180 * DT;
+    e.heading += Math.max(-maxTurn, Math.min(maxTurn, diff));
+    const hx = Math.sin(e.heading), hz = Math.cos(e.heading);
+    e.dir = dirIndex(hx, hz);
+    // someone in front (within gapAhead, roughly ahead): wait for them
+    const gap = V.gapAhead ?? 2.2;
+    const blocked = Object.values(state.entities).some(o => o !== e && o.place === e.place && !o.dead && o.type !== 'building'
+      && Math.hypot(o.x - e.x, o.z - e.z) < gap && ((o.x - e.x) * hx + (o.z - e.z) * hz) > 0.5);
+    // waits for whoever is in front, but not forever: after waitSeconds it creeps on at a crawl
+    // (people standing about would otherwise park a cart for good)
+    if (blocked) { m.waitFrom ??= state.tick; if (state.tick - m.waitFrom < secs(V.waitSeconds ?? 2)) { e.anim = 'idle'; return true; } }
+    else delete m.waitFrom;
+    // slower than people, and slower still while turning hard
+    const speed = unit.walk * (V.speed ?? 0.85) * (1 - 0.6 * Math.min(1, Math.abs(diff) / (Math.PI / 2))) * (blocked ? 0.35 : 1);
+    const nx = e.x + hx * speed * DT, nz = e.z + hz * speed * DT;
+    if (!nav.free(nx, nz)) { e.anim = 'idle'; return true; }
+    e.x = nx; e.z = nz; e.anim = 'walk';
+    return true;
+  }
+  const moveTo = (e, unit, x, z, walk) => isVehicle(e) ? drive(e, unit, x, z) : walkTo(e, unit, x, z, walk);
+  function stopPath(e) { const m = mind[e.id]; if (m) { delete m.route; delete m.routeTo; } stopWalk(e); }
   const range = ([a, b]) => a + rng() * (b - a);
 
   // A spot this civilian would go to now (never the one it stands at)
   function nextSpot(m) {
-    const ok = spots.filter(p => p.id !== m.spot && p.tags.some(t => types[m.kind].likes.includes(t)) && (!state.night || p.night));
+    const ok = spots.filter(p => p.id !== m.spot && p.tags.some(t => types[m.kind].likes.includes(t)) && (!state.night || p.night)
+      && (!types[m.kind].vehicle || !roadNav || roadPoint(p.x, p.z)));
     return ok.length ? pick(ok) : null;
   }
   // A place to stand at a spot: a little apart from the spot itself, on free ground
@@ -48,10 +108,10 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     return nav.nearestFree(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r) || [p.x, p.z];
   }
   function goTo(e, m, p) {
-    const [x, z] = standAt(p);
+    const [x, z] = types[m.kind]?.vehicle && roadNav ? (roadPoint(p.x, p.z) || standAt(p)) : standAt(p);
     Object.assign(m, { spot: p.id, x, z, until: null, act: p.act || null });
     // give up on a trip that takes far longer than it should (blocked by a crowd)
-    m.deadline = state.tick + secs(Math.hypot(x - e.x, z - e.z) / statsOf('civilian').walk * 2.5 + 8);
+    m.deadline = state.tick + secs(Math.hypot(x - e.x, z - e.z) / statsOf('civilian').walk * (types[m.kind]?.vehicle ? 5 : 2.5) + 8);   // roads wind: vehicles get longer
     delete e.talk;
   }
 
@@ -97,7 +157,7 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
       for (const src of own ? [own] : sources) {
         if (Math.hypot(src.x - e.x, src.z - e.z) > radius) continue;
         e.witness = { tick: state.tick, clan: state.entities[src.a]?.owner || null, x: src.x, z: src.z };
-        if (src.t === e.id) {                     // hit themselves: no freezing, run from the attacker at once
+        if (src.t === e.id || isVehicle(e)) {     // hit themselves (or a vehicle): no freezing, run from the attacker at once
           const by = state.entities[src.a] || src;
           delete e.scared; delete e.danger; delete e.talk;
           stopPath(e);
@@ -219,12 +279,13 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
     stopPath(e);
     m.arrived = state.tick;
     m.until = state.tick + secs(range(R.staySeconds || [4, 12]));
-    e.anim = m.act === 'bow' ? 'bow' : 'idle';
+    e.anim = m.act === 'bow' && !isVehicle(e) ? 'bow' : 'idle';
+    if (isVehicle(e)) return;
     if (m.act === 'bow') { const p = spots.find(q => q.id === m.spot); if (p?.face) e.dir = dirIndex(p.face[0] - e.x, p.face[1] - e.z); return; }
     // someone idle here already, nobody to talk to: chat with them (at most once per reactSeconds)
     if (!reached || state.tick - (m.reactAt ?? -Infinity) < secs(R.reactSeconds ?? 3)) return;
     if (rng() >= (R.chatChance ?? 0.6)) return;
-    const other = Object.values(state.entities).find(o => o !== e && o.type === 'civilian' && !o.talk && !o.scared && !o.flee
+    const other = Object.values(state.entities).find(o => o !== e && o.type === 'civilian' && !isVehicle(o) && !o.talk && !o.scared && !o.flee
       && mind[o.id]?.until != null && o.anim === 'idle' && Math.hypot(o.x - e.x, o.z - e.z) < (R.chatRadius ?? 2.5));
     if (!other) return;
     const until = Math.max(m.until, mind[other.id].until);
@@ -282,5 +343,13 @@ export function createCivilians({ state, data, pois = [], nav, spawn, moveTo, st
 
   return { populate, add, tick, count, spots, away, lost, mind,
     saveState: () => ({ mind, away, lost, s }),
-    loadState: d => { if (!d) return; refill(mind, d.mind); refill(away, d.away); refill(lost, d.lost); s = d.s; } };
+    loadState: d => {
+      if (!d) return; refill(mind, d.mind); refill(away, d.away); refill(lost, d.lost); s = d.s;
+      // a save from before a type existed (or with a raised count) gets the missing ones: they walk
+      // out of their homes over the next ticks like any replacement (town traffic, Tim 2026-11-06)
+      for (const [kind, t] of Object.entries(types)) {
+        const have = [...Object.values(mind), ...away, ...lost].filter(c => c.kind === kind).length;
+        for (let i = have; i < (t.count || 0); i++) lost.push({ kind, nightOut: false, home: null, at: 0 });
+      }
+    } };
 }

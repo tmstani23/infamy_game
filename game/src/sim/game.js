@@ -4,7 +4,7 @@ import {separateUnits} from './separation.js';
 // The game rules. Holds the state and advances it one fixed tick at a time from
 // commands. No three.js and no DOM: in multiplayer a Colyseus server runs this
 // same code, and browsers only send commands and draw the state they get back.
-import { placeScenery, placePiece, dirIndex, SCREEN_RIGHT, SCREEN_DOWN, shapeBlockers } from './geometry.js';
+import { placeScenery, placePiece, dirIndex, SCREEN_RIGHT, SCREEN_DOWN, shapeBlockers, groundZone, shapeDistance } from './geometry.js';
 import { buildRoom3d, INTERIOR_ORIGIN } from './interiors.js';
 import { generateRoom } from './generate.js';
 import { createClans } from './clans.js';
@@ -629,8 +629,14 @@ export function createGame(options) {
     return stats.base(t);
   }
 
+  // Town traffic (civilians.json "vehicle" types) drives on the roads only: the district's road bands
+  // (ground lines that are not water), on a coarser grid; built only when a vehicle type exists
+  const roadNav = Object.values(civData?.types || {}).some(t => t.vehicle) ? (() => {
+    const roads = (district.ground || []).map(groundZone).filter(g => g.shape?.line && g.type !== 'water').map(g => g.shape);
+    return roads.length ? createNav(blockers, district.bounds, { cell: 1, pad: 0.6, allowed: (x, z) => roads.some(r => shapeDistance(r, x, z) > 0.5) }) : null;
+  })() : null;
   const civilians = createCivilians({
-    state, data: civData, pois: district.pois, nav, spawn, moveTo, statsOf,
+    state, data: civData, pois: district.pois, nav, roadNav, spawn, moveTo, statsOf,
     stopPath: e => { delete paths[e.id]; }, seed: (options.seed ?? 12345) ^ 0x5eed,
   });
 

@@ -243,7 +243,8 @@ function setupModel(obj, fit = null) {
   if (fit) {
     const refBox = new THREE.Box3();
     if (fit.ref) obj.traverse(o => o.isMesh && new RegExp(fit.ref).test(o.name) && refBox.expandByObject(o));
-    s = fit.height / (refBox.isEmpty() ? size.y : refBox.getSize(new THREE.Vector3()).y);
+    const ref = refBox.isEmpty() ? size : refBox.getSize(new THREE.Vector3());
+    s = fit.length ? fit.length / Math.max(ref.x, ref.z) : fit.height / ref.y;   // boats: by hull length
   }
   obj.scale.multiplyScalar(s);
   obj.updateMatrixWorld(true);
@@ -652,7 +653,7 @@ addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'
 
 // ---------- mounts and vehicles (.glb with clips baked in, tools/export_sprites.mjs MOUNTS) ----------
 // Kept at true size next to the characters instead of stretched to their height.
-// opts: { height, ref, merge, yaw }. merge: play every clip in the file together as one clip
+// opts: { height or length, ref, merge, yaw }. merge: play every clip in the file together as one clip
 // of that name (grouped scenes: team + coach + coachman). yaw: degrees to turn the model (default 180).
 let mountOpts = {};
 async function loadMount(file, opts = mountOpts) {
@@ -661,7 +662,7 @@ async function loadMount(file, opts = mountOpts) {
   modelName = file.name.replace(/\.(glb|gltf)$/i, '');
   yawOffset = THREE.MathUtils.degToRad(opts.yaw ?? 180);   // Blender .glb exports face -Z
   $('inplace').checked = false;   // the rigs already walk on the spot
-  setupModel(gltf.scene, { height: opts.height || CHAR_HEIGHT, ref: opts.ref });
+  setupModel(gltf.scene, { height: opts.height || CHAR_HEIGHT, length: opts.length, ref: opts.ref });
   if (opts.merge) {
     const tracks = gltf.animations.flatMap(c => c.tracks);
     clips.push({ name: opts.merge, clip: new THREE.AnimationClip(opts.merge, -1, tracks) });

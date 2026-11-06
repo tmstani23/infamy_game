@@ -13,7 +13,9 @@ const settings = data('data/settings.json');
 const s = applySettings(files, { ...settings, townsfolk: { total: 17 }, costs: { ...settings.costs, startRyo: 999, hire: { thug: 77 } }, police: { officersPerTier: [0, 1, 2, 3, 9] }, bandits: { maxOut: 4 } });
 assert.equal(s.units.rules.startRyo, 999);
 assert.equal(s.units.types.thug.price, 77);
-assert.equal(Object.values(s.civilians.types).reduce((n, t) => n + t.count, 0), 17);
+assert.equal(Object.values(s.civilians.types).filter(t => !t.vehicle).reduce((n, t) => n + t.count, 0), 17);
+// vehicles (town traffic) keep their own counts on top of the townsfolk total
+for (const [k, t] of Object.entries(s.civilians.types)) if (t.vehicle) assert.equal(t.count, files.civilians.types[k].count, `${k} keeps its count`);
 assert.deepEqual(s.police.rules.tiers.map(t => t.officers), [0, 1, 2, 3, 9]);
 assert.equal(s.bandits.rules.maxOut, 4);
 const banditSettings = applySettings(files, { bandits: { sightRange: 3, giveUpDistance: 4, roamerLoot: 75 } });

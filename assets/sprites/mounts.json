@@ -89,5 +89,54 @@
     "fps": 12,
     "cellWorld": 3,
     "feetUp": 0.611
+  },
+  "boat_river_idle": {
+    "size": 352,
+    "frames": 12,
+    "fps": 6,
+    "cellWorld": 6.6,
+    "feetUp": 0.736
+  },
+  "boat_river_sail": {
+    "size": 352,
+    "frames": 8,
+    "fps": 6,
+    "cellWorld": 6.6,
+    "feetUp": 0.736
+  },
+  "ship_coastal_idle": {
+    "size": 384,
+    "frames": 12,
+    "fps": 6,
+    "cellWorld": 14.4,
+    "feetUp": 3.351
+  },
+  "ship_coastal_sail": {
+    "size": 384,
+    "frames": 8,
+    "fps": 6,
+    "cellWorld": 14.4,
+    "feetUp": 3.351
+  },
+  "ship_war_broadside": {
+    "size": 448,
+    "frames": 10,
+    "fps": 6,
+    "cellWorld": 16.8,
+    "feetUp": 3.221
+  },
+  "ship_war_idle": {
+    "size": 448,
+    "frames": 12,
+    "fps": 6,
+    "cellWorld": 16.8,
+    "feetUp": 3.221
+  },
+  "ship_war_sail": {
+    "size": 448,
+    "frames": 8,
+    "fps": 6,
+    "cellWorld": 16.8,
+    "feetUp": 3.221
   }
 }

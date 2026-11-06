@@ -48,7 +48,8 @@ export function applySettings({ units, civilians, bandits, police }, s = {}) {
   // townsfolk: one total, shared out by each type's count in civilians.json (largest remainder)
   const total = s.townsfolk?.total;
   if (civilians?.types && total !== undefined) {
-    const types = Object.values(civilians.types), sum = types.reduce((n, t) => n + (t.count || 0), 0);
+    // vehicles (town traffic, civilians.json "vehicle") keep their own counts on top of the total (Tim 2026-11-06)
+    const types = Object.values(civilians.types).filter(t => !t.vehicle), sum = types.reduce((n, t) => n + (t.count || 0), 0);
     if (sum > 0) {
       const raw = types.map(t => (t.count || 0) * total / sum);
       types.forEach((t, i) => { t.count = Math.floor(raw[i]); });

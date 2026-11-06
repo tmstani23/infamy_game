@@ -12,7 +12,7 @@
     "startAtNight": false
   },
   "townsfolk": {
-    "_note": "total across all types; each type keeps its share of civilians.json counts",
+    "_note": "total across all types; each type keeps its share of civilians.json counts (vehicles, the town traffic, come on top)",
     "total": 30
   },
   "bandits": {

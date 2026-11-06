@@ -15,7 +15,9 @@
     "hp": 60,
     "replaceSeconds": 300,
     "_homes": "a type's homes are poi ids in front of the buildings it lives in (default: every home poi); townsfolk start there, go in there at night and come out there; by day they walk anywhere they like (Tim 2026-10-18)",
-    "homeSpeed": 1.25
+    "homeSpeed": 1.25,
+    "vehicles": { "_note": "town traffic driving (Tim 2026-11-06): speed = share of a walker's speed, turnDegrees = most the heading turns in a second, gapAhead = how close someone in front makes them wait, waitSeconds = then they creep on slowly", "speed": 0.85, "turnDegrees": 120, "gapAhead": 2.2, "waitSeconds": 2 },
+    "_vehicles": "types with vehicle: true are town traffic (rickshaws, ox carts, omnibus; Tim 2026-11-06): they drive between spots, never chat, bow or freeze, and just pull away from a fight"
   },
   "types": {
     "foreign_visitor": {"model": "gunslinger", "count": 1, "likes": ["docks", "pier", "market", "teahouse"], "nightOut": 0, "homes": ["dock_warehouse", "customs_house"]},
@@ -28,6 +30,10 @@
     "geisha":    { "model": "geisha",    "count": 4, "likes": ["teahouse", "street", "market"],    "nightOut": 0.1, "homes": ["teahouse", "geisha_house", "kabuki"] },
     "fisherman": { "model": "fisherman", "count": 4, "likes": ["pier", "docks", "market"],         "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse", "fish_market", "boatbuilder"] },
     "sailor":    { "model": "sailor",    "count": 3, "likes": ["docks", "pier", "den", "teahouse"], "nightOut": 0.1, "homes": ["dock_warehouse", "warehouse", "customs_house"] },
-    "laborer":   { "model": "laborer",   "count": 5, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "brewery", "rice_storehouse", "blacksmith", "tenements"] }
+    "laborer":   { "model": "laborer",   "count": 5, "likes": ["warehouse", "docks", "den", "street"], "nightOut": 0.1, "homes": ["warehouse", "brewery", "rice_storehouse", "blacksmith", "tenements"] },
+
+    "rickshaw":  { "model": "rickshaw",  "count": 2, "likes": ["street", "market", "teahouse"],   "nightOut": 0, "homes": ["rickshaw_station", "inn", "teahouse"], "vehicle": true },
+    "ox_cart":   { "model": "ox_cart",   "count": 2, "likes": ["warehouse", "docks", "market"],   "nightOut": 0, "homes": ["rice_storehouse", "warehouse", "brewery"], "vehicle": true },
+    "omnibus":   { "model": "omnibus",   "count": 1, "likes": ["street", "market", "docks"],      "nightOut": 0, "homes": ["customs_house", "western_office", "dock_warehouse"], "vehicle": true }
   }
 }
