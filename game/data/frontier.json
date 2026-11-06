@@ -106,20 +106,20 @@
     "town_hall": "manor",
     "house": "townhouse",
     "farm": "haystack",
-    "lumber_camp": "firewood",
+    "lumber_camp": "sawmill",
     "quarry": "hills_old_quarry_workings",
-    "workshop": "blacksmith",
-    "storehouse": "handcart",
-    "stockade": "watch_post",
+    "workshop": "smithy",
+    "storehouse": "granary",
+    "stockade": "fort",
     "market": "market_stall",
     "zone:h": "townhouse",
     "zone:f": "haystack",
-    "zone:k": "blacksmith",
+    "zone:k": "smithy",
     "_zones": {
       "_note": "placeholder, Tim to tune (L3.7): cutouts by zone growth stage; one farmhouse per houseEvery cells. zoned = art on a zoned cell at stage 0 (housing: building site 1; stage 1 is site 2, then house, large house); abandoned = ruin art for an abandoned kind (farms keep the grey tint).",
       "h": { "kind": "housing", "zoned": "house_construction_1", "stages": ["house_construction_2", "tenements", "townhouse"], "abandoned": "abandoned_housing" },
       "f": { "kind": "farm", "stages": ["thatched_hut"], "field": true, "houseEvery": 6 },
-      "k": { "kind": "work", "stages": ["blacksmith"], "abandoned": "abandoned_workshop" }
+      "k": { "kind": "work", "stages": ["smithy"], "abandoned": "abandoned_workshop" }
     },
     "_ground": {
       "_note": "placeholder, Tim to tune (L3.7): art-only dirt foundation, road and crop decals; sizes are fractions of a town cell except foundationRadius (world units).",
@@ -151,8 +151,8 @@
   "goals": { "_note": "Goal card after founding (Tim 2026-11-06, placeholders to tune): Lay out your town (road, housing and farm cells), Put workers to work (workers on a resource spot), Grow to Village (tier 2), Open a Market; holdBusinesses = capital businesses the hold-the-capital row asks for.",
     "layout": { "road": 3, "housing": 4, "farm": 4 }, "workers": 2, "tier": 2, "holdBusinesses": 6 },
   "founding": {
-    "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital (1600 from economy balance B4, Tim 2026-11-05: fewer, bigger towns; 600 rings never overlap); bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
-    "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1600, "botSiteRadius": 30,
+    "_note": "E1/E3 placeholders, Tim to tune. cost = ryo paid by the clan at founding; minSettlers must stand within gatherRadius of the hero; minSpacing = least distance to any other town or the capital (1600 from economy balance B4, Tim 2026-11-05: fewer, bigger towns; 600 rings never overlap); capitalSpacing = least distance to the capital point (Tim 2026-11-06: about 500 from the island gate, so a town can go up a short walk out); bots found only within botSiteRadius of a W1 site; startStock = what the settlers bring (no grind at the start); townHall is built at founding, firstProject is queued (unauthorized).",
+    "cost": 500, "minSettlers": 5, "gatherRadius": 15, "minSpacing": 1600, "capitalSpacing": 600, "botSiteRadius": 30,
     "placementRange": 60, "unitClearance": 1, "_placementNote": "placeholder, Tim to tune: hall placement reach from hero and unit escape clearance in world units",
     "startStock": { "food": 60, "timber": 40, "stone": 10, "goods": 10, "ryo": 20 },
     "startWorkers": 2, "_startWorkersNote": "Tim 2026-11-05: free workers with every new town (on top of the settlers), in case there are no goods to train one",
@@ -195,7 +195,7 @@
     "quarry": { "size": 2, "cost": { "timber": 50, "goods": 40 }, "jobs": 4, "housing": 0, "output": { "stone": 0.015 }, "buildTicks": 50, "_note": "F0.2: 0.015 stone per worker per tick; cost and jobs placeholder, Tim to tune" },
     "workshop": { "size": 2, "coreOnly": true, "cost": { "timber": 25, "stone": 5 }, "jobs": 2, "housing": 0, "recipe": { "in": { "timber": 1, "stone": 0.5 }, "out": { "goods": 1 }, "everyTicks": 2 }, "buildTicks": 50, "_note": "F0.2: 1 timber + 0.5 stone into 1 goods every 40 sim ticks (2 economy ticks) with 2 workers; cost placeholder, Tim to tune" },
     "storehouse": { "size": 1, "cost": { "timber": 40, "goods": 40 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
-    "stockade": { "size": 1, "cost": { "timber": 80 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "placeholder, Tim to tune; defence rules come with F6/F7" },
+    "stockade": { "size": 2, "cost": { "timber": 200 }, "jobs": 0, "housing": 0, "buildTicks": 150, "garrison": { "capacity": 40, "healFactor": 3, "range": 14 }, "_note": "Tim 2026-11-06: 4-cell fort (size 2). garrison: your hero, crew and workers can shelter inside (capacity units), safe from attack and healing healFactor times faster; range = how close a unit must be to go in. Building HP waits for F7. Cost and times are placeholders, Tim to tune" },
     "market": { "size": 1, "coreOnly": true, "cost": { "timber": 160, "stone": 80 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "Economy pass 2 D (Tim 2026-11-05): Village tier, 1 per town; sells goods above the town keep level for ryo (see market)" }
   },
   "regions": {

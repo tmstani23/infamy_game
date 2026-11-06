@@ -52,9 +52,11 @@ export function createFounding({ state, data, world, removeUnit, resourceIndex }
     if (clan.ryo < D.cost) return `Founding costs ${D.cost} ryo`;
     if(!Number.isFinite(point?.x) || !Number.isFinite(point?.z))return 'Choose a hall position';
     if(Math.hypot(point.x-hero.x,point.z-hero.z)>(D.placementRange || D.gatherRadius))return 'Hall is too far from the hero';
-    if (Math.hypot(point.x - wd.capital.x, point.z - wd.capital.z) < D.minSpacing) return `Too close to the capital (${D.minSpacing} units apart)`;
+    // Tim 2026-11-06: the capital has its own, smaller gap so a town can go up a short walk from the gate
+    const capGap = D.capitalSpacing ?? D.minSpacing;
+    if (Math.hypot(point.x - wd.capital.x, point.z - wd.capital.z) < capGap) return `Too close to the capital (${capGap} units apart)`;
     for (const s of Object.values(f().settlements)) {
-      if (s.x === undefined) continue;
+      if (s.x === undefined || s.capital) continue;
       if (Math.hypot(point.x - s.x, point.z - s.z) < D.minSpacing) return `Too close to ${s.name} (${D.minSpacing} units apart)`;
     }
     const half=data.townGrid.cellSize/2,clearance=D.unitClearance ?? 1;

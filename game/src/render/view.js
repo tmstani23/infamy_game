@@ -369,6 +369,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
       s.veiled = veiled;
       s.shimmer = shim;
+      // sheltering in a stockade garrison (Tim 2026-11-06): not drawn, shown again when sent out
+      const sheltered = !!e.garrison;
+      if (sheltered || s.sheltered) {
+        for (const m of [s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate, s.team]) if (m) m.visible = !sheltered && (m !== s.ring || selected.has(id));
+        s.sheltered = sheltered;
+      }
     }
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);

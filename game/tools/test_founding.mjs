@@ -112,6 +112,13 @@ g.frontier.world.checkInvariants();
 const after = snap(); put(plain[0] + 400, plain[1]);
 hero.owner = 'player'; settlers.forEach(u => { u.dead = false; g.state.entities[u.id] = u; }); clan.permit = true;
 const r2 = found(); assert.ok(r2 && !r2.ok && /Too close to/.test(r2.reason), r2?.reason);
+// Tim 2026-11-06: the capital keeps only capitalSpacing (600), not the 1600 between towns
+{
+  const C = world.capital, gap = frontier.founding.capitalSpacing, at = (dx, dz) => { put(C.x + dx, C.z + dz); return g.frontier.founding.check(hero, undefined, { x: C.x + dx, z: C.z + dz }).reason || ''; };
+  assert.ok(gap < frontier.founding.minSpacing, 'capital gap is the smaller one');
+  assert.match(at(-(gap - 100), 0), /Too close to the capital/);
+  for (const [dx, dz] of [[-(gap + 150), 0], [0, gap + 150], [0, -(gap + 150)]]) assert.doesNotMatch(at(dx, dz), /capital/, `${dx},${dz} is far enough from the capital`);
+}
 
 // --- save / load keeps the town -----------------------------------------------------------
 {

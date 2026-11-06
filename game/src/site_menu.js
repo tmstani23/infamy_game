@@ -42,7 +42,7 @@ export function createSiteMenu({ panel, game, heroId, selected = () => [], send 
     }).join('');
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const html = `<h3>CHOOSE SITE</h3><div class="waiting">${n} settler${n === 1 ? '' : 's'} with you${n < need ? ` · ${need} needed to go to a site` : ''} · crew stay in the city</div>` +
-      `<div class="row"><span>1. Walk out<br><small>through the gate on foot; found anywhere ${(F.minSpacing ?? 1600).toLocaleString()}+ from other towns</small></span><button data-site="">Walk</button></div>` +
+      `<div class="row"><span>1. Walk out<br><small>through the gate on foot; found anywhere ${(F.minSpacing ?? 1600).toLocaleString()}+ from other towns and ${(F.capitalSpacing ?? F.minSpacing ?? 1600).toLocaleString()}+ from the capital</small></span><button data-site="">Walk</button></div>` +
       `${rows}<div class="waiting">${all.length - list.length} sites taken or too close to a town</div>${notice}<div class="waiting">click a site · 1 walks out · Space / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }
   }

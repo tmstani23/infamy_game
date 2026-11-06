@@ -79,3 +79,7 @@ Four stream crossings serve the Shinobi village: the original two, the retained 
 ## Frontier housing stages (Tim, 2026-11-05)
 
 Housing zone cells show their growth in stages: a zoned cell shows `house_construction_1`, stage 1 shows `house_construction_2`, then `townhouse` and `longhouse`. Abandoned housing and work cells swap in ruin art (`abandoned_housing`, `abandoned_workshop`) with no grey tint; abandoned farms keep the grey tint. Cutouts are in `game/art/buildings/` (made by `tools/add_housing_stage_art.py`; large sources stay in `assets/environment/`, not in git); the stage list is `frontier.json` `townArt._zones`. Art only, no balance change.
+
+## Frontier buildings (2026-11-06)
+
+`tools/add_frontier_building_art.py` cuts `assets/environment/frontier_buildings1.png` into `game/art/buildings/`: fort 520 px, granary 400, sawmill 440, smithy 400, infirmary 440, pier_fish_house 440 (listed in `game/art/cutouts.json` and `game/data/art.json`). `frontier.json` `townArt`: stockade → fort, storehouse → granary, lumber_camp → sawmill, workshop, `zone:k` and the work stage → smithy. Infirmary and pier have no building type yet. Not yet checked in the game.

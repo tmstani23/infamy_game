@@ -79,10 +79,10 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   function siteBlocked(si, id) {
     const by = claims()[si.id];
     if (by && by !== id) return `${state.clans?.[by]?.name || 'Another clan'} has claimed it`;
-    if (worldData?.capital && Math.hypot(si.x - worldData.capital.x, si.z - worldData.capital.z) < D.minSpacing) return 'Too close to the capital';
+    if (worldData?.capital && Math.hypot(si.x - worldData.capital.x, si.z - worldData.capital.z) < (D.capitalSpacing ?? D.minSpacing)) return 'Too close to the capital';
     for (const s of Object.values(fr().settlements)) {
       if (s.site === si.id) return `${s.name} stands here`;
-      if (s.x !== undefined && Math.hypot(si.x - s.x, si.z - s.z) < D.minSpacing) return `Too close to ${s.name}`;
+      if (s.x !== undefined && !s.capital && Math.hypot(si.x - s.x, si.z - s.z) < D.minSpacing) return `Too close to ${s.name}`;
     }
     return null;
   }

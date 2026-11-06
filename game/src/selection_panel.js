@@ -11,6 +11,7 @@ export const unitName = (units, type) => units.types[type]?.name || units.models
 export function unitStatus(e, state) {
   if (e.prisoner) return `In jail: bail ${e.prisoner.bail} ryo at the police HQ`;
   if (e.dead) return 'Dead';
+  if (e.garrison) return 'Garrisoned in stockade';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
   if(e.distracted?.source&&e.distracted.until>state.tick)return 'Charmed';

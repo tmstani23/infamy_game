@@ -116,4 +116,18 @@ s.workerLog=Array.from({length:8},(_,i)=>({tick:20*(i+1),worker:'w'+i,resource:i
 const logHTML=ui.html(s);assert.match(logHTML,/Delivery log/);assert.match(logHTML,/Worker w7.*8 stone returned/s);assert.ok(logHTML.indexOf('Worker w7')<logHTML.indexOf('Worker w6'));
 assert.doesNotMatch(logHTML,/Worker w0/);ui.click({act:'build-worker-log-page',id:'1'},s);assert.match(ui.html(s),/Worker w0/);
 ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group for w1/);
+// Tim 2026-11-06: Jobs buttons select every worker on one harvest kind; Ctrl+click adds them
+{
+  const keep=s.workers;
+  s.workers=[{id:'j1',spot:'tree'},{id:'j2',spot:'tree'},{id:'j3',spot:null},{id:'j4',spot:'tree',order:{kind:'hold'}}];
+  ui.click({act:'build-worker-select',id:'j3'},s);
+  assert.match(ui.html(s),/Jobs: .*Timber \(2\)/s,'one button per job in use with its count; standing workers do not count');
+  ui.click({act:'build-worker-job',id:'timber'},s);
+  assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/); assert.match(ui.html(s),/data-id="j3" aria-pressed="false"/,'plain click replaces the selection');
+  ui.click({act:'build-worker-select',id:'j3'},s);ui.click({act:'build-worker-select',id:'j1'},s);ui.click({act:'build-worker-select',id:'j2'},s);
+  ui.click({act:'build-worker-job',id:'timber'},s,{ctrlKey:true});
+  assert.match(ui.html(s),/data-id="j3" aria-pressed="true"/); assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/,'Ctrl+click adds');
+  s.workers=[{id:'k1',spot:null}];assert.doesNotMatch(ui.html(s),/Jobs:/,'no Jobs row when nobody harvests');
+  s.workers=keep;
+}
 console.log('test_frontier_build_ui: ok');

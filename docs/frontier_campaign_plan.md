@@ -167,6 +167,8 @@ References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontie
 - Capture does not silently award a completed tier or free missing materials.
 - Exact thresholds, build times, upkeep and downgrade rules are open.
 
+**Stockade (built 2026-11-06):** the town's shelter. Hero, crew and workers garrison inside (up to 40), cannot be attacked there and heal 3x faster. Building HP comes with F7 sieges. Details: `frontier_build_steps.md`, Stockade garrison.
+
 ## Frontier armies and the hero — agreed direction
 
 - Frontier fights use larger RTS groups than capital street fights.

@@ -512,7 +512,7 @@ async function start() {
       return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
         .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
     };
-    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, send: c => pending.push(c), buildUI: frontierBuildUI, focus:(x,z)=>view.jumpTo(x,z),
+    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, focus:(x,z)=>view.jumpTo(x,z),
       nearbyTown: () => nearTown() });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onKey('KeyO', () => townPanel.toggle());

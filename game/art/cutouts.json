@@ -2382,5 +2382,11 @@
  "buildings/house_construction_1": {"w":400,"h":270,"left":0,"right":399,"bottomX":226,"bottomY":269,"glows":[]},
  "buildings/house_construction_2": {"w":400,"h":326,"left":0,"right":399,"bottomX":177,"bottomY":325,"glows":[]},
  "buildings/abandoned_housing": {"w":400,"h":349,"left":0,"right":399,"bottomX":219,"bottomY":347,"glows":[]},
- "buildings/abandoned_workshop": {"w":440,"h":293,"left":0,"right":438,"bottomX":208,"bottomY":292,"glows":[]}
+ "buildings/abandoned_workshop": {"w":440,"h":293,"left":0,"right":438,"bottomX":208,"bottomY":292,"glows":[]},
+ "buildings/fort": {"w":520,"h":457,"left":0,"right":519,"bottomX":369,"bottomY":455,"glows":[]},
+ "buildings/granary": {"w":400,"h":441,"left":0,"right":398,"bottomX":197,"bottomY":439,"glows":[]},
+ "buildings/sawmill": {"w":440,"h":383,"left":1,"right":439,"bottomX":191,"bottomY":382,"glows":[]},
+ "buildings/smithy": {"w":400,"h":375,"left":1,"right":398,"bottomX":206,"bottomY":373,"glows":[]},
+ "buildings/infirmary": {"w":440,"h":364,"left":1,"right":437,"bottomX":204,"bottomY":363,"glows":[]},
+ "buildings/pier_fish_house": {"w":440,"h":366,"left":1,"right":439,"bottomX":139,"bottomY":365,"glows":[]}
 }

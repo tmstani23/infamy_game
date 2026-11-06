@@ -12,6 +12,7 @@ import { createCommands } from './commands.js';
 import { createAlerts } from './alerts.js';
 import { createFounding } from './founding.js';
 import { ensureGrid, townBlockersIn } from './town_grid.js';
+import { createGarrison } from './garrison.js';
 import { livingWorldUnits } from './building_safety.js';
 import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
@@ -50,6 +51,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
   const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers });
+  const garrison = createGarrison({ state, data, world: live });
+  modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
@@ -70,6 +73,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     }
     commands.clearOldReceipts();   // receipts live one tick
     world.syncCapital();           // the capital's ryo mirrors the clan treasury
+    garrison.tick();               // stockade garrison: sheltered units stand at the stockade
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -86,5 +90,5 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   }
 
   function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);founding?.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, attach };
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, attach };
 }

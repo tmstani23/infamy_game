@@ -33,7 +33,7 @@ const STEER = {
     on: 'On: the governor zones, builds, lays roads, trains workers and sends idle workers gathering by himself.'
   }
 };
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, focus=()=>{}, onOpen = () => {}, onClose = () => {} }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {} }) {
   let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const data=game.frontier?.data;
@@ -130,6 +130,12 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         const keep = s.marketKeep ?? data.market.keep, step = 100;
         h += `<div class="row"><span${tip(`Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}>Market keeps <b>${keep}</b> goods</span><span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>` + now(`Market: sells goods above ${keep} for ryo.`);
       }
+      // Stockade garrison (Tim 2026-11-06): shelter units inside a finished stockade
+      const fort = data?.buildings?.stockade?.garrison;
+      if (fort && s.buildings?.some(x => x.type === 'stockade' && x.stage === 'built')) {
+        const inside = Object.values(game.state.entities).filter(u => u.garrison?.town === s.id);
+        h += `<div class="lab">Stockade</div><div class="row"><span${tip(`Units inside cannot be attacked and heal ${fort.healFactor}x faster. They must be within ${fort.range} of the stockade to go in. Holds ${fort.capacity}.`)}>Garrison <b>${inside.length}</b> / ${fort.capacity}</span><span>${b('garrison-in', 'selected', 'Send in selected', false, 'Send your selected units into the stockade')} ${b('garrison-in', 'crew', 'Hero &amp; crew', false, 'Send your hero and crew nearby into the stockade')} ${b('garrison-in', 'workers', 'Workers', false, 'Send your workers nearby into the stockade; they count as idle there')} ${b('garrison-out', 'all', 'Leave', false, 'Everyone inside walks out')}</span></div>`;
+      }
       h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>` + now(STEER.initiative[st.autoBuild ? 'on' : 'off']);
     }
     let paged = null;
@@ -157,7 +163,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   root.addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const s = pick(), id = b.dataset.id, sid = s?.id;
-    if (s && buildUI?.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
+    if (s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (b.dataset.act === 'talk') buildUI?.close();
     switch (b.dataset.act) {
       case 'usage': if(data && (data.resources.includes(id) || id==='housing')){usageResource=id;mode='usage';usagePage=0;buildUI?.close();}break;
@@ -174,6 +180,13 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'tax': cmd({ action: 'setTax', settlement: sid, level: id }); break;
       case 'auto': cmd({ action: 'setAutoBuild', settlement: sid, on: id === 'on' }); break;
       case 'upgrade': cmd({ action: 'upgradeHall', settlement: sid }); break;   // B3
+      case 'garrison-in': {   // Stockade garrison: who goes in
+        const mine = game.state.entities[heroId]?.owner;
+        const ids = id === 'selected' ? pickedUnits() : Object.values(game.state.entities).filter(u => (u.owner ?? u.workerOwner) === mine && !u.garrison && u.place === 'world' && (id === 'workers' ? u.worker : !u.worker && u.type !== 'civilian')).map(u => u.id);
+        if (ids.length) cmd({ action: 'garrison', mode: 'enter', town: sid, units: ids });
+        break;
+      }
+      case 'garrison-out': cmd({ action: 'garrison', mode: 'leave', town: sid }); break;
       case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
     }
     lastHtml = ''; render(); b.blur?.();

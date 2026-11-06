@@ -37,8 +37,9 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const fieldRest = e.place === 'street' && !e.swing && !e.execute && state.tick - (e.foughtAt ?? -Infinity) >= wait;
     const clan = state.clans[e.owner]?.faction === 'kuroda' && fieldRest ? KURODA_FIELD_RECOVERY : 1;
     const home = atHome(e) ? rules.hideout?.restPerSecond || 0 : 0;
-    const maxHp = e.maxHp ?? base(e).hp ?? 0, eligible = !e.dead && !e.downed && state.tick - (e.hitAt ?? -Infinity) >= wait;
-    return { base: maxHp * rate, rate: maxHp * (rate * turf * clan + home), current: eligible ? maxHp * (rate * turf * clan + home) : 0,
+    const maxHp = e.maxHp ?? base(e).hp ?? 0, eligible = !e.dead && !e.downed && (!!e.garrison || state.tick - (e.hitAt ?? -Infinity) >= wait);
+    const shelter = e.garrison?.heal || 1;   // stockade garrison (Tim 2026-11-06)
+    return { base: maxHp * rate, rate: maxHp * (rate * turf * clan * shelter + home), current: eligible ? maxHp * (rate * turf * clan * shelter + home) : 0, shelter,
       eligible, waitSeconds: Math.max(0, (wait - (state.tick - (e.hitAt ?? -Infinity))) / 20), turf, clan, home };
   }
   function effective(e) {

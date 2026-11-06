@@ -3,6 +3,7 @@ import {workerDetails} from './worker_details.js';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function workerStatus(w,index) {
   if(w.status)return w.status;
+  if(w.garrison)return 'Garrisoned in stockade';
   if(w.nextOrder)return w.nextOrder.kind==='hold'?'Returning load, then holding':'Returning load before move';
   if(w.order?.kind==='hold')return 'Standing';
   if(w.order?.kind==='move')return 'Moving';
@@ -11,8 +12,14 @@ export function workerStatus(w,index) {
   if(kind) return w.carrying>0 ? `Returning ${kind}` : w.trip && w.elapsed>=w.trip.out ? `Harvesting ${kind}` : `Going to ${kind}`;
   return 'Waiting for orders';
 }
+// Job filter (Tim 2026-11-06): the resource a worker is set to harvest, or null (moving, standing, clearing ground)
+export const JOB_ORDER=['timber','stone','fish','forage'];
+export function workerJob(w,index) {
+  if(w.garrison || w.project || w.order?.kind==='hold' || w.order?.kind==='move' || w.nextOrder)return null;
+  return index.get(w.spot)?.kind || null;
+}
 // Idle filter (Tim 2026-11-05): standing, waiting for orders, stuck or route blocked
-export const workerIdle=(w,index)=>['Route blocked','Stuck','Standing','Waiting for orders'].includes(workerStatus(w,index));
+export const workerIdle=(w,index)=>['Route blocked','Stuck','Standing','Waiting for orders','Garrisoned in stockade'].includes(workerStatus(w,index));
 export function workerPanelHTML(s,{selected,index,data,page=0,known=()=>true,tab='roster',logPage=0}) {
   const all=s.workers || [],workers=tab==='idle'?all.filter(w=>workerIdle(w,index)):all,groups=data.workers.groups || 4,rows=data.workers.panelRows || 6;
   const pages=Math.max(1,Math.ceil(workers.length/rows));page=Math.max(0,Math.min(page,pages-1));
@@ -40,7 +47,12 @@ export function workerPanelHTML(s,{selected,index,data,page=0,known=()=>true,tab
     + `<select data-act="build-worker-assign" data-id="${esc(w.id)}" aria-label="Group for ${esc(w.id)}">${options(w.group || 0)}</select></div>`;}).join('');
   const spots=index.spotsNear(s.x,s.z,data.workers.range).filter(p=>known(p.x,p.z));
   const resources=['timber','stone','fish','forage'].flatMap(kind=>spots.filter(p=>p.kind===kind).sort((a,b)=>Math.hypot(a.x-s.x,a.z-s.z)-Math.hypot(b.x-s.x,b.z-s.z)).slice(0,2));
+  // one button per harvest job in use: click selects everyone on it, Ctrl or Shift + click adds them
+  const jobs={};for(const w of all){const k=workerJob(w,index);if(k)(jobs[k] ||= []).push(w.id);}
+  const jobKinds=Object.keys(jobs).sort((a,b)=>(JOB_ORDER.indexOf(a)+1 || 99)-(JOB_ORDER.indexOf(b)+1 || 99));
+  const jobButtons=jobKinds.map(k=>button('job',k,`${k[0].toUpperCase()+k.slice(1)} (${jobs[k].length})`,jobs[k].every(id=>selected.includes(id))).replace('<button ','<button title="Select every worker harvesting '+k+'; Ctrl+click adds them" ')).join('');
   return `<div class="workerroster"><h3>Workers · ${workers.length}</h3>${tabs}<div class="workergroups">${button('all','',`All (${workers.length})`)}${groupButtons}</div>`
+    + (jobButtons?`<div class="workergroups">Jobs: ${jobButtons}</div>`:'')
     // the selection bar always takes its space (hidden when nothing is selected), so selecting a worker never
     // shifts the rows under the mouse and a double-click lands on the same row (Tim 2026-11-05)
     + `<div class="workergroups"${selectedHere.length ? '' : ' style="visibility:hidden" aria-hidden="true"'}>${selectedHere.length} selected ${button('stop','','Stop / stand (Z)')}${[button('return','','Return resources'),button('drop','','Drop resources…')].map(b=>selectedHere.some(w=>w.carrying>0)?b:b.replace('<button ','<button disabled ')).join('')}<label>Assign selected: <select data-act="build-worker-assign-selected" aria-label="Assign selected workers to group"${selectedHere.length ? '' : ' disabled'}><option value="">Choose group</option>${options(-1)}</select></label></div>`

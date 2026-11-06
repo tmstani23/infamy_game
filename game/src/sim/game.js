@@ -332,7 +332,7 @@ export function createGame(options) {
   // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
-  const baseHostile = (a, b) => b && a !== b && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+  const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
   const hostile=(a,b)=>!b?.shopkeeper&&baseHostile(a,b)&&!charmProtected(a,b,state);
@@ -340,7 +340,7 @@ export function createGame(options) {
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
-  const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
+  const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
   const attackAllowed=(a,b)=>!b?.shopkeeper&&fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan

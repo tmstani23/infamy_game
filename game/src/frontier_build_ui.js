@@ -7,7 +7,7 @@ import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
 import { spotYield } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
-import { workerPanelHTML } from './worker_panel.js';
+import { workerPanelHTML, workerJob } from './worker_panel.js';
 import {workerDetails,workerPresentation} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
@@ -463,7 +463,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if(ds.act==='build-worker-group'){focusWorkers((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));return true;}
       return false;
     },
-    click(ds, s) {
+    click(ds, s, e) {
       if (!ds.act.startsWith('build-')) return false;
       if(['build-worker-select','build-worker-group'].includes(ds.act)) {
         const key=ds.act+':'+ds.id,now=Date.now(),twice=rosterClick?.key===key && now-rosterClick.at< (data.buildUI?.doubleClickMs || 400);
@@ -476,6 +476,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-workers') {cancel();opened=false;workersOpen=!workersOpen;}
       if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id]);
       if (ds.act === 'build-worker-all')select((s.workers || []).map(w=>w.id));
+      if (ds.act === 'build-worker-job') {const ids=(s.workers || []).filter(w=>workerJob(w,spotIndex)===ds.id).map(w=>w.id);select(e?.ctrlKey || e?.shiftKey?[...new Set([...selected,...ids])]:ids);}
       if (ds.act === 'build-worker-group')select((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));
       if (ds.act === 'build-worker-stop')orderSelected('hold');
       if (ds.act === 'build-worker-return')orderSelected('return');
