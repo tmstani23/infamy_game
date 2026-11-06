@@ -16,6 +16,23 @@ export function ownTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && s.stock);
 }
 
+// Plain one-line effects of each steering choice (Tim 2026-11-05: what do the focus buttons actually do?)
+const STEER = {
+  focus: {
+    grow: 'Grow: people work farms first; the governor adds farms and houses so the town gets bigger.',
+    produce: 'Produce: people work workshops and camps first; the governor adds whatever makes your lowest of timber, stone or goods.',
+    trade: 'Trade: people work workshops first, so more goods for upkeep, upgrades and the market.',
+    fortify: 'Fortify: the governor builds a stockade first; people fill camps before farms.'
+  },
+  tax: {
+    low: 'Low taxes: little ryo, happier town.', normal: 'Normal taxes: steady ryo, mood a little lower than low taxes.',
+    high: 'High taxes: most ryo, but mood falls (low mood drives people away).', auto: 'Auto taxes: the governor raises or lowers them to keep mood healthy.'
+  },
+  initiative: {
+    off: 'Ask first: the governor only suggests; nothing is built until you press Approve.',
+    on: 'On: the governor zones, builds, lays roads, trains workers and sends idle workers gathering by himself.'
+  }
+};
 export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, focus=()=>{}, onOpen = () => {}, onClose = () => {} }) {
   let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
@@ -102,16 +119,18 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       page1 = h; h = '';
       if (rows.projects.length) h += '<div class="lab">Projects</div>' + rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">· ${esc(p.status)}${p.canAuthorize ? ' · ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
       if (rows.suggestions.length) h += `<div class="lab"${tip(rows.suggestionsTip)}>Suggestions</div>` + rows.suggestions.map(x => `<div class="row"><span>${esc(x.label)} <span class="dim">· ${esc(x.reason)}</span></span><button data-act="approve" data-id="${x.index}">Approve</button></div>`).join('');
-      const st = rows.steer, b = (act, val, label, on) => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}">${label}</button>`;
+      // Tim 2026-11-05: every choice says what it does (hover) and the current one is spelled out under its row
+      const st = rows.steer, b = (act, val, label, on, t = '') => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}"${t ? tip(t) : ''}>${label}</button>`;
+      const now = text => `<div class="hint steernow">${esc(text)}</div>`, taxNow = st.taxLocked ? st.tax : 'auto';
       h += '<div class="lab">Steer</div>';
-      h += `<div class="row"><span${tip(st.tips.focus)}>Focus</span><span>${['grow', 'produce', 'trade', 'fortify'].map(p => b('priority', p, p[0].toUpperCase() + p.slice(1), st.priority === p)).join(' ')}</span></div>`;
-      h += `<div class="row"><span${tip(st.tips.tax)}>Taxes</span><span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p)).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked)}</span></div>`;
+      h += `<div class="row"><span${tip(st.tips.focus)}>Focus</span><span>${['grow', 'produce', 'trade', 'fortify'].map(p => b('priority', p, p[0].toUpperCase() + p.slice(1), st.priority === p, STEER.focus[p])).join(' ')}</span></div>` + now(STEER.focus[st.priority] || '');
+      h += `<div class="row"><span${tip(st.tips.tax)}>Taxes</span><span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p, STEER.tax[p])).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked, STEER.tax.auto)}</span></div>` + now(STEER.tax[taxNow] + (st.taxLocked ? '' : ` Now: ${st.tax}.`));
       // Economy pass 2 D: market keep level (players and bots share setMarketKeep)
       if (data?.market && s.buildings?.some(x => x.type === 'market' && x.stage === 'built')) {
         const keep = s.marketKeep ?? data.market.keep, step = 100;
-        h += `<div class="row"><span${tip(`Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}>Market keeps <b>${keep}</b> goods</span><span>${b('keep', Math.max(0, keep - step), '−' + step, false)} ${b('keep', keep + step, '+' + step, false)}</span></div>`;
+        h += `<div class="row"><span${tip(`Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}>Market keeps <b>${keep}</b> goods</span><span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>` + now(`Market: sells goods above ${keep} for ryo.`);
       }
-      h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild)} ${b('auto', 'on', 'On', st.autoBuild)}</span></div>`;
+      h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>` + now(STEER.initiative[st.autoBuild ? 'on' : 'off']);
     }
     let paged = null;
     if (mode === 'town') { const full = page1 + h; paged = (page === 0 ? page1 : head + `<h1>${esc(rows.title)}</h1>` + h) + `<div class="pager"><button data-act="page" data-id="${page === 0 ? 1 : 0}">${page === 0 ? 'More: projects &amp; steering ›' : '‹ Back to overview'}</button></div>`; h = full; }

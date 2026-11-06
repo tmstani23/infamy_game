@@ -8,6 +8,7 @@
 // Not here yet: "town grew a tier" (towns have no tiers until F5).
 import { isFull } from './storage.js';
 import { residents } from './people.js';
+import { upgradeCheck, nextTier } from './tiers.js';
 export function createAlerts({ state, data }) {
   const A = data.alerts || {};
   const cooldown = A.cooldownEcon ?? 20;   // economy ticks per town and kind
@@ -34,6 +35,13 @@ export function createAlerts({ state, data }) {
       cond('food', (s.report?.waiting || []).includes('food'));
       cond('suggestion', (s.suggestions || []).length > 0);
       if (s.tierUpAt === f.econTick) say('tier');   // B3
+      // Tim 2026-11-05: a repeating reminder while the hall upgrade is affordable (the player starts it)
+      if (data.tiers?.list && upgradeCheck(s, data).ok) {
+        if (st.upAt === undefined || f.econTick - st.upAt >= (A.upgradeEveryEcon ?? 120)) {
+          st.upAt = f.econTick;
+          (state.news ||= []).push({ kind: 'town', event: 'upgrade', clan: s.owner, settlement: s.id, name: s.name, text: `${s.name} can upgrade to ${nextTier(s, data).name}`, tip: 'Open the town panel or click the town hall, then Upgrade.', urgent: false });
+        }
+      } else delete st.upAt;
       // B7 growth alerts: a population milestone or housing full, at most one per growthCooldownEcon
       const people = residents(s), step = A.popMilestone ?? 25, mile = Math.floor(people / step) * step;
       st.mile ??= mile;

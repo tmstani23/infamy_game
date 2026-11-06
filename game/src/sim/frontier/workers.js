@@ -5,7 +5,7 @@ import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spo
 import { cellToWorld, worldToCell, townBlockersIn } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
-import { workerCap } from './tiers.js';
+import { workerCap, nextTier } from './tiers.js';
 import { workerCount } from './people.js';
 const HZ=20;
 export function ensureWorkers(s) {
@@ -142,6 +142,25 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
       if(spot)assign(s,[w.id],spot.id,'g');
     }
+  }
+  // Tim 2026-11-05 (self-running governor): move one governor-placed worker per call from a well stocked
+  // resource to the lowest one that needs hands (the player's own picks never move).
+  function rebalance(s) {
+    if(!on(s) || !has(s))return;
+    const res=w=>R.resources[index.get(w.spot)?.kind],mine=s.workers.filter(w=>w.by!=='p' && w.spot && !w.order && !w.project && !w.trip?.kind);
+    const kinds=[...new Set(Object.values(R.resources))].filter(r=>!isFull(s,data,r));
+    if(kinds.length<2)return;
+    const count=r=>s.workers.filter(w=>w.spot && res(w)===r).length;
+    // compare stocks against what the town is saving for (the next hall upgrade), so no resource is starved
+    const goal=nextTier(s,data)?.upgrade?.cost || {},fill=r=>(s.stock[r] || 0)/Math.max(50,goal[r] || 200);
+    const low=[...kinds].sort((a,b)=>fill(a)-fill(b) || compare(a,b))[0];
+    const met=r=>fill(r)>=1 && fill(low)<1;   // a resource already at its goal gives hands to one still short
+    const donor=kinds.filter(r=>r!==low && (met(r) ? count(r)>0 : fill(r)>fill(low)*2+0.1 && count(r)>(count(low)===0?0:count(low)+1)))
+      .sort((a,b)=>count(b)-count(a) || compare(a,b))[0];
+    if(!donor)return;
+    const w=mine.filter(w=>res(w)===donor).sort((a,b)=>(a.carrying || 0)-(b.carrying || 0) || compare(a.id,b.id))[0];if(!w)return;
+    const spots=index.spotsNear(s.x,s.z,R.range).filter(p=>R.resources[p.kind]===low).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id));
+    if(spots[0])assign(s,[w.id],spots[0].id,'g');
   }
   function start(s,w,spot) {
     const drop=nearestDropoff(s,spot);if(!drop)return false;
@@ -429,5 +448,5 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(next===null)delete state.frontier.spots[id];else state.frontier.spots[id]=next;
     }
   }
-  return {tick,econTick,train,assign,workerOrder,assignIdle,has,position,index,attach};
+  return {tick,econTick,train,assign,workerOrder,assignIdle,rebalance,has,position,index,attach};
 }

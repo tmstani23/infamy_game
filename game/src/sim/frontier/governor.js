@@ -13,10 +13,13 @@ import { residents } from './people.js';
 import { placedRoom, upgradeCheck, startUpgrade, tierOf, nextTier, zoneCells, cellCap } from './tiers.js';
 import { isFull, storageCap } from './storage.js';
 import { workerCount } from './people.js';
+import { inCore, centreCell, hallRoadCell, worldToCell } from './town_grid.js';
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
+// one-off or surplus flows that say nothing about the town's running goods balance
+const ONCE_FLOW = new Set(['build', 'train', 'upgrade', 'refund', 'market', 'test']);
 
-export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null }) {
+export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null }) {
   const G = data.governor, f = () => state.frontier;
 
   function init(s) {
@@ -37,11 +40,87 @@ export function createGovernor({ state, data, world, economy, construction, zone
   function suggest(s, type, reason) {
     const zk = zoneKind(s, type);
     if (zk && zones.busy(s, zk)) return true;
-    if (zk && s.autoBuild) { const r = zones.autoZone(s, zk); if (!r.ok) s.report.next = `${reason} (${r.reason})`; return true; }
+    if (zk && s.autoBuild) {
+      let r = zones.autoZone(s, zk);
+      // Tim 2026-11-05: with initiative the governor lays a short road out from its network when zones run out of road access
+      if (!r.ok && /road/.test(r.reason) && roadSpur(s, zk)) r = { ok: true };
+      if (!r.ok) s.report.next = `${reason} (${r.reason})`;
+      return true;
+    }
     if (pending(s, type) || s.suggestions.length >= G.maxSuggestions) return true;   // already on the list: this rule has fired
     if (!zk && placedRoom(s, type, data) < 1) { s.report.next = `${reason} (town hall tier limit)`; return true; }   // B3
     s.suggestions.push({ type, reason });
     return true;
+  }
+
+  // A straight road spur (up to G.roadSpur cells) from a road linked to the hall, or from the hall itself, in the
+  // direction that opens the most free zonable cells without road access. Same place() as the player, by = 'g'.
+  function roadSpur(s, kind) {
+    const pl = placement(); if (!pl || !s.grid) return false;
+    const g = s.grid, n = g.n, reach = data.zones.kinds[kind]?.needs?.roadReach ?? 3, len = G.roadSpur ?? 6;
+    const linked = zones.linkedRoads(s), hall = centreCell(n);
+    const free = i => g.ground[i] === 'c' && g.use[i] === '.' && g.zone[i] === '.' && g.by[i] === '.' && !hallRoadCell(s, i) && inCore(s, i, data);
+    const open = new Uint8Array(n * n);   // free cells that have no road access yet
+    for (let i = 0; i < n * n; i++) if (free(i) && !zones.roadNear(s, i, reach)) open[i] = 1;
+    const seeds = [hall]; for (let i = 0; i < n * n; i++) if (linked[i]) seeds.push(i);
+    let best = null;
+    for (const seed of seeds) for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const cells = []; let c = seed % n, r = (seed - c) / n;
+      for (let k = 0; k < len; k++) {
+        c += dc; r += dr; const i = r * n + c;
+        if (c < 0 || r < 0 || c >= n || r >= n || g.use[i] !== '.' || g.zone[i] !== '.' || g.ground[i] !== 'c' || !inCore(s, i, data)) break;
+        cells.push(i);
+      }
+      if (cells.length < 2) continue;
+      const seen = new Set();
+      for (const i of cells) { const ic = i % n, ir = (i - ic) / n;
+        for (let rr = Math.max(0, ir - reach); rr <= Math.min(n - 1, ir + reach); rr++) for (let cc = Math.max(0, ic - reach); cc <= Math.min(n - 1, ic + reach); cc++) { const j = rr * n + cc; if (open[j] && !cells.includes(j)) seen.add(j); } }
+      if (seen.size >= (G.roadSpurMinCells ?? 6) && (!best || seen.size > best.gain || seen.size === best.gain && cells.length < best.cells.length)) best = { cells, gain: seen.size };
+    }
+    if (!best) return false;
+    if (!pl.check(s, { kind: 'road', cells: best.cells }).ok) return false;
+    const r = pl.place(s, { kind: 'road', cells: best.cells, by: 'g' });
+    if (r.ok) s.report.next = 'Laying a road for new zones';
+    return !!r.ok;
+  }
+
+  // Self-running governor (Tim 2026-11-05): with initiative, a lumber camp / quarry beside the spot its workers use
+  // most, once that spot is far from every drop-off (shorter trips = much more income). One per review.
+  function campRule(s) {
+    if (!s.autoBuild || s.projects.some(p => !p.replaces) || !workers?.index || !placement()) return false;
+    const R = data.workers, hall = [s.x, s.z];
+    for (const [type, res] of [['lumber_camp', 'timber'], ['quarry', 'stone']]) {
+      if (placedRoom(s, type, data) < 1 || s.buildings.some(b => b.type === type)) continue;
+      const use = {};
+      for (const w of s.workers || []) { const sp = w.spot && workers.index.get(w.spot); if (sp && R.resources[sp.kind] === res) use[w.spot] = (use[w.spot] || 0) + 1; }
+      const [top, n] = Object.entries(use).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0] || [];
+      if (!top || n < 2) continue;
+      const sp = workers.index.get(top), drops = s.buildings.filter(b => b.stage === 'built' && R.dropoffs.includes(b.type));
+      if (Math.hypot(sp.x - hall[0], sp.z - hall[1]) < (G.campDistance ?? 70) || drops.length > 1) continue;
+      const cost = data.buildings[type].cost;
+      if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) continue;   // never blocks the other rules while saving
+      const g = s.grid, n2 = g.n, c0 = worldToCell(s, sp.x, sp.z);
+      if (c0 < 0) continue;
+      const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
+      for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
+      cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      for (const [, i] of cand) {
+        if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
+        const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+        if (r.ok && r.project) { construction.authorize(r.project); s.report.next = `Building a ${type.replace('_', ' ')} by the ${res}`; return true; }
+      }
+    }
+    return false;
+  }
+
+  // Tim 2026-11-05: with initiative the governor trains a worker when every worker is busy, people are idle,
+  // nobody is training and there is ryo and goods to spare (bots use the same rule).
+  function trainWorker(s) {
+    if (!s.autoBuild || !workers?.train || s.workerTraining?.length) return;
+    const R = data.workers, idle = s.report.idle || 0;
+    if (idle < 1 || (s.workers || []).some(w => !w.spot && !w.project && !w.order)) return;
+    if ((s.stock.ryo || 0) < R.cost + (G.trainRyoKeep ?? 20) || (s.stock.goods || 0) < (R.goodsCost || 0) + (G.trainGoodsKeep ?? 10)) return;
+    workers.train(s, 1);
   }
 
   // Rules 1 to 5: returns true when one fired (checked top to bottom, the first that fires wins).
@@ -49,8 +128,21 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const idle = s.report.idle || 0, unfilled = s.report.unfilled || 0;
     // 1. food falling: a farm, but only if there are workers to run it
     if (s.gov.falling >= G.foodFallingReviews) {
-      if (idle >= G.idleNeeded) return suggest(s, 'farm', 'Farm: food falling');
+      // more farm cells only help when the farms are healthy (short timber/workers make new cells useless too)
+      const farmZone = s.zones?.farm, sick = farmZone && farmZone.cells > 0 && (farmZone.health ?? 1) < data.zones.healthyAt;
+      if (idle >= G.idleNeeded && !sick) return suggest(s, 'farm', 'Farm: food falling');
+      if (sick) s.report.next = 'Food falling: farms are short of upkeep or hands';
       s.report.next = 'Food falling, need workers';
+    }
+    // 1b. goods not growing (Tim 2026-11-05: the governor runs the town at a slight profit so the hall upgrade
+    // comes within reach): more work cells while there is room, idle people and no input shortage
+    if (zones?.on(s) && !zones.busy(s, 'work')) {
+      const k = data.zones.kinds.work, net = Object.entries(s.flow?.goods || {}).filter(([why]) => !ONCE_FLOW.has(why)).reduce((n, [, v]) => n + v, 0);
+      const room = k && zoneCells(s, k.char) + (k.governorCells || 1) <= cellCap(s, 'work', data);
+      // workshops burn timber and stone: only add them while those are stocked and still rising
+      const rising = r => Object.values(s.flow?.[r] || {}).reduce((n, v) => n + v, 0) > 0, stocked = r => (s.stock[r] || 0) >= (G.inputBuffer ?? 60);
+      if (room && idle >= G.idleNeeded && net < (G.goodsProfitPerMin ?? 3) && (zoneCells(s, k.char) === 0 || stocked('timber') && stocked('stone') && rising('timber') && rising('stone')) && !isFull(s, data, 'goods'))
+        return suggest(s, 'workshop', 'Workshop: goods not growing');
     }
     // 2. housing full and food not falling: a house
     if (residents(s) >= s.housing && s.gov.falling === 0) {
@@ -106,7 +198,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
 
   function review(s) {
     init(s);
-    if (s.autoBuild) workers?.assignIdle(s);
+    if (s.autoBuild) { workers?.assignIdle(s); workers?.rebalance?.(s); }
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again
     const nBuilt = s.buildings.filter(b => b.stage === 'built').length;
@@ -119,7 +211,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (++gov.window >= G.budgetWindowReviews) { gov.window = 0; s.budget.spent = 0; }
     s.report.next = '';
     maintain(s);
-    rules(s);
+    trainWorker(s);
+    if (!campRule(s)) rules(s);
     promote(s);
     moodKeeper(s);
     const p = s.projects.find(x => x.authorized) || s.projects[0];

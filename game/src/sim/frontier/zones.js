@@ -17,6 +17,7 @@ import { residents } from './people.js';
 import { cellCap, zoneCells } from './tiers.js';
 import { payUpkeep } from './upkeep.js';
 import { noteLevelUp } from './arrivals.js';
+import { storageCap } from './storage.js';
 
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
@@ -238,6 +239,8 @@ export function createZones({ state, data, world,resourceIndex }) {
         for (const [r, per] of Object.entries(k.output)) made[r] = per * levels * live * tf;
         const total = Object.values(made).reduce((a, b) => a + b, 0);
         let scale = 1;
+        // a full store makes no more (Tim 2026-11-05 governor soak: workshops burned timber/stone into a full goods store)
+        if (k.inputs) for (const [r, v] of Object.entries(made)) if (v > 0) scale = Math.min(scale, Math.max(0, storageCap(s, data, r) - (s.stock[r] || 0)) / v);
         for (const [r, per] of Object.entries(k.inputs || {})) { const need = per * total; if (need > 0) scale = Math.min(scale, Math.max(0, s.stock[r]) / need); }
         if (scale < 1) wait(s, 'inputs');
         if (scale > 0) {

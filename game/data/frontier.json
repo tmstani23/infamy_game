@@ -63,7 +63,7 @@
   "governor": {
     "_note": "placeholder, Tim to tune (F2.7)",
     "reviewTicks": 5,
-    "foodPlentyShare": 0.5, "_foodPlentyNote": "Tim 2026-11-05: food at or above this share of its storage cap never counts as falling (no farm suggestion)",
+    "foodPlentyShare": 0.5, "goodsProfitPerMin": 3, "roadSpur": 6, "campDistance": 70, "inputBuffer": 60, "roadSpurMinCells": 6, "trainRyoKeep": 20, "trainGoodsKeep": 0, "_selfRunNote": "Tim 2026-11-05: with initiative On the governor lays road spurs (up to roadSpur cells, only if they open roadSpurMinCells zonable cells) and trains a worker when all are busy, keeping trainRyoKeep ryo and trainGoodsKeep goods", "_goodsProfitNote": "Tim 2026-11-05: the governor adds work cells while running goods income (per minute, one-off spends left out) is below this", "_foodPlentyNote": "Tim 2026-11-05: food at or above this share of its storage cap never counts as falling (no farm suggestion)",
     "maxSuggestions": 3,
     "idleNeeded": 2,
     "foodFallingReviews": 3,
@@ -79,7 +79,7 @@
     "fortify": ["stockade", "lumber_camp", "quarry", "farm", "workshop", "storehouse"],
     "_note": "placeholder, Tim to tune: job fill order per settlement priority (after short food and builders)"
   },
-  "alerts": { "_note": "placeholder, Tim to tune (F4.4c). B7: growth alerts (town grew past a milestone of popMilestone people, housing full) share one cooldown of growthCooldownEcon economy ticks per town so they never spam", "cooldownEcon": 20, "moodBelow": 40, "attackDrop": 20, "growthCooldownEcon": 300, "popMilestone": 25 },
+  "alerts": { "_note": "placeholder, Tim to tune (F4.4c). B7: growth alerts (town grew past a milestone of popMilestone people, housing full) share one cooldown of growthCooldownEcon economy ticks per town so they never spam", "cooldownEcon": 20, "moodBelow": 40, "attackDrop": 20, "growthCooldownEcon": 300, "popMilestone": 25, "upgradeEveryEcon": 120, "_upgradeNote": "Tim 2026-11-05: while the town can afford its next hall tier, a reminder alert repeats every upgradeEveryEcon economy ticks" },
   "mood": {
     "_note": "placeholder, Tim to tune (F2.5b). mood 0-100 = weighted food, safety and taxes factors, reviewed every reviewTicks economy ticks",
     "reviewTicks": 5,
