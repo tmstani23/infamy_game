@@ -110,7 +110,9 @@ const EXTRA = {
   lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (Tim OK 2026-11-06)
 };
 // Dedicated borrowed clips stay out of the root combat set.
-const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx']);
+// RIDE: the heroes' riding pose, for now the coachman's omnibus sitting clip (Tim 2026-11-06); art.json characters.<hero>.ride
+const RIDE = { ronin: 'coach_sitting.fbx', ninja_leader: 'coach_sitting.fbx', rival_yakuza: 'coach_sitting.fbx' };
+const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx']);
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };
 // Mounts and vehicles: file in assets/models/mounts, height of the ref mesh (or the whole
@@ -132,6 +134,10 @@ const MOUNTS = {
     tilt: { mesh: 'rickshaw', about: [-0.0011, 0.0057], degrees: -24 } },   // built around the Mixamo driver, who faces +Z
   omnibus: { file: 'omnibus.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
     wheels: { mesh: 'omnibus_body', fwd: 1, axle: [0.133, 0.172], list: [[-0.222, 0.108, 0.108], [0.209, 0.095, 0.087]], spokes: 10 } },
+  // Horse-drawn rickshaw (Tim 2026-11-06): the black mare in the black rickshaw's stretched shafts, no puller
+  // (assets/models/source/rickshaw_horse_rig/rickshaw_horse.py). Wheel numbers are in the scene's Blender coordinates.
+  rickshaw_horse: { file: 'rickshaw_horse.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
+    wheels: { mesh: 'rickshaw', fwd: 1, axle: [0.133, 0.195], list: [[-0.889, 0.179, 0.181]], spokes: 10 } },
   // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
   cannon_wooden: { file: 'cannon_wooden.glb', height: 1.2, merge: 'fire', yaw: 90 },
@@ -202,7 +208,7 @@ for (const { file: model, name } of models) {
   const overridden = new Set(mine.filter(a => variant && variantOf(a) === variant).map(a => setOf(a) + ':' + clipName(clipOf(a))));
   mine = mine.filter(a => variantOf(a) || !overridden.has(setOf(a) + ':' + clipOf(a)));
   if (spearConfig) mine = Object.values(spearConfig.clips).map(f => path.join(animDir, f));
-  for (const e of (spearConfig ? [] : EXTRA[name]) || []) {
+  for (const e of [...(spearConfig ? [] : EXTRA[name] || []), ...(RIDE[name] ? [RIDE[name]] : [])]) {
     const f = path.join(animDir, e);
     if (fs.existsSync(f)) mine.push(f); else console.log(`  missing extra clip ${e}`);
   }

@@ -419,6 +419,41 @@ Goal chain (`sim/campaign_goals.js`): Buy a founding permit → Hire settlers �
 
 Test: `tools/test_campaign_goals.mjs`.
 
+## Bot frontier governor (2026-11-06)
+
+`sim/frontier/governor.js`, `frontier.json` `governor`:
+- Initiative spending cap: `s.budget.ryo`, or `initiativeBudget` 400 when the budget is 0.
+- Camp rule: distance to the nearest drop-off.
+- Initiative-only rules: storehouse when any stock reaches 80% of its cap; market at the goods keep level; infirmary at 20 residents; rule 9 stable at Village; rule 10 station at Village.
+- `inputFullShare` 0.5. Goods target = max(`goodsProfitPerMin`, (next tier's goods cost − stock) / `upgradeGoalMinutes` 60).
+- Bot towns queue one horse for their boss and build one rickshaw.
+
+Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [seed] [away]`. Test: `tools/test_frontier_governor.mjs`, `tools/test_bot_founding.mjs`.
+
+## Omnibus (2026-11-06)
+
+`sim/omnibus.js`, `units.json` `rules.omnibus`. The hero arrives on the island driving an omnibus (8 seats); a second follows; at most 2 per clan. Speed 3x; nobody inside fights. 800 HP: hits on riders land on the omnibus (stockade rule); wrecked, everyone piles out. Q or right-click deploys or boards (`#busicon` flashes on hover). Founding a town uses the omnibuses up. Bots use them too. Test: `tools/test_omnibus.mjs`.
+
+## Stable and mounts (2026-11-06)
+
+- Stable (`sim/frontier/stable.js`, `frontier.json` `buildings.stable`): horses only, raised by hand on a production bar: Calico or Black Beauty, food 80, goods 40, 60 s; max 3 per stable; Cancel refunds. Placed limit Camp 1, Village 1, Town 2.
+- Mounts (`sim/mounts.js`, `units.json` `rules.mount`): on the island H rides, gets off or calls the horse (in the city H still hires). Speed 3.75x; no fighting mounted; thrown off below 1/3 HP and at the gate. Right-click your own horse to ride her. The first horse raised is the mount; the town panel picks another. The hero plays the `ride` clip.
+- Test: `tools/test_stable_mount.mjs`.
+
+## Omnibus station and rickshaws (2026-11-06)
+
+- Station (`frontier.json` `buildings.station`, art `coach_house`): 1 per town, 200 timber and 80 stone. Production bar: rickshaw (60 timber, 20 goods, 45 s, max 3 parked) and omnibus (150 timber, 60 goods, 90 s); both come out empty and park.
+- Rickshaw (`units.json` `rules.rickshaw`, model `rickshaw_horse`): 2 seats, 3.5x speed, 400 HP; right-click or Q.
+- Rickshaw travel (`sim/station_travel.js`, `src/station_menu.js`): Space at a station, or at the rickshaw stand inside the city gate, lists your stations and the capital. Travel is instant; each waiting rickshaw carries 2 and parks at the destination. Refused within 10 s of a hit or with enemies within 12. Bots do not travel by rickshaw.
+
+## Vehicle steering (2026-11-06)
+
+`sim/vehicle_steer.js` `steer(e, want, { turnDegrees, turnSlow }, dt)` (the capital cart steering from `civilians.js` `drive()`): caps the turn rate, slows to 0.4 at turns of 90° or more, and sets `e.dir` from the heading so turns sweep through the 8 sprite rows. Used by the hero driving the omnibus or rickshaw or riding, the following omnibus, and called horses (dir only). `units.json` `turnDegrees`: omnibus 120, rickshaw 180, mount 240. Test: `tools/test_omnibus.mjs` (turn limit).
+
+## Lieutenant portraits (2026-11-06)
+
+`src/lieutenant_portrait.js` shows the clan's lieutenant portrait in the talk panel and the While I'm away pane.
+
 ## Town Need rating (2026-11-06)
 
 `sim/frontier/alerts.js` `townNeed()` stores `s.need = { score, level, why[] }` on each town every economy tick. Weights (`frontier.json` `alerts.need`): attack 50 and building destroyed 30 (each for 30 economy ticks), blocked road 30, food running out 25, mood below 25: 30, mood below 40: 20, safety below 50: 15, full store 5 each (max 2), governor suggestion 5, housing full 5, upgrade ready 5. Levels: urgent 50+, high 25+, medium 10+, low above 0, else ok.

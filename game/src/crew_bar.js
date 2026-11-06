@@ -11,6 +11,11 @@ const CMDS = [
   { key: 'G', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
   { key: 'C', name: 'Hero', tip: 'Select your hero group, replacing the current selection. During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
 ];
+// Mount controls (Tim 2026-11-06): their own headed row under the crew commands
+const MOUNT_CMDS = [
+  { key: 'H', name: 'Horse', tip: 'On the island: ride your horse (3.75x run speed), get off, or call her and she gallops to you. Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
+  { key: 'Q', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
+];
 
 const CSS = `
   #crewcommands .crewcmds { display: grid; grid-template-columns:repeat(auto-fit,minmax(min(38px,100%),1fr)); gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
@@ -21,6 +26,7 @@ const CSS = `
   #crewcommands .ccmd .key { position: absolute; left: 3px; top: 1px; font: 700 10px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
   #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 9px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
   #crewcommands .ccmd.off { filter: grayscale(1) brightness(.5); cursor: default; }
+  #crewcommands .mounthead { padding: 3px 8px 0; font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .06em; color: #c9b27a; text-transform: uppercase; }
   #crewcommands .ccmd.press { border-color: #ffd34d; box-shadow: 0 0 8px rgba(255,190,60,.7); }`;
 
 export function createCrewBar({ root, game, heroId, crewInput }) {
@@ -35,7 +41,12 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
   tip.hidden = true;
   document.body.appendChild(tip);
 
-  const buttons = CMDS.map(cmd => {
+  const mountHead = document.createElement('div');
+  mountHead.className = 'mounthead'; mountHead.textContent = 'Mount controls';
+  const mountStrip = document.createElement('div');
+  mountStrip.className = 'crewcmds';
+  root.appendChild(mountHead); root.appendChild(mountStrip);
+  const buttons = [...CMDS, ...MOUNT_CMDS].map(cmd => {
     const b = document.createElement('div');
     b.className = 'ccmd';
     b.innerHTML = `<span class="key">${cmd.key}</span><span class="nm">${cmd.name}</span>`;
@@ -54,7 +65,7 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
       tip.style.bottom = `${innerHeight - r.top + 10}px`;
     });
     b.addEventListener('mouseleave', () => { tip.hidden = true; });
-    strip.appendChild(b);
+    (MOUNT_CMDS.includes(cmd) ? mountStrip : strip).appendChild(b);
     return { b, cmd };
   });
 
@@ -67,7 +78,12 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
     const follow = crewInput.selected().some(id => usable(S[id]) && ['street', h?.place].includes(S[id].place));
     const street = crewInput.selected().some(id => usable(S[id]) && S[id].place === 'street');
     const sector = crewInput.selected().some(id => { const e = S[id]; return usable(e) && !e.downed && !e.jailed && !e.deployment?.transfer && game.state.deployment?.clans[h?.owner]?.sectors[e.deployment?.group]; });
-    const available = { sel, follow, street, outdoor, crew, sector };
+    const busNear = h?.place === 'world' && !!game.omnibus?.near(h, 4).some(b => !game.omnibus.riders(b).length);
+    const bus = !!h?.aboard || busNear;
+    for (const { b, cmd } of buttons) if (cmd.need === 'bus') b.querySelector('.nm').textContent = h?.aboard ? 'Step out' : busNear ? 'Get in' : 'Omnibus';
+    const horse = h?.place === 'world' && !!game.mounts?.mountOf(h.owner);
+    for (const { b, cmd } of buttons) if (cmd.need === 'horse') b.querySelector('.nm').textContent = h?.mounted ? 'Get off' : 'Horse';
+    const available = { sel, follow, street, outdoor, crew, sector, bus, horse };
     for (const { b, cmd } of buttons) b.classList.toggle('off', !available[cmd.need]);
   }
   return { update };

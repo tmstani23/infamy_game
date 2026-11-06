@@ -28,10 +28,10 @@
   "tiers": { "_costNote": "Tim 2026-11-05: upgrade costs = 75% of the current tier (was 90%, Tim 2026-11-05 evening: leave stock to run the next tier)'s base storage cap (storage.caps) in timber, stone and goods", "_note": "Economy balance B3, placeholder, Tim to tune: town hall tiers (tier 1 first, set at founding). ring = build radius in world units from the hall for every zone, town building, wall and gate (roads and work camps may go outside); cells = most zoned cells per zone kind; placed = most of each placed building type (camps counts lumber_camp + quarry together); workers = most workers incl. training; upgrade = what moving UP to this tier costs (pop counts townspeople + workers) and how many economy ticks it takes.",
     "camps": ["lumber_camp", "quarry"],
     "list": [
-      { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 4 }, "placed": { "storehouse": 1, "camps": 2, "stockade": 0, "market": 0, "infirmary": 1 }, "workers": 12 },
-      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 24 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1, "market": 1, "infirmary": 1 }, "workers": 35,
+      { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 4 }, "placed": { "storehouse": 1, "camps": 2, "stockade": 0, "market": 0, "infirmary": 1, "stable": 1, "station": 1 }, "workers": 12 },
+      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 24 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1, "market": 1, "infirmary": 1, "stable": 1, "station": 1 }, "workers": 35,
         "upgrade": { "pop": 20, "cost": { "timber": 750, "stone": 750, "goods": 750 }, "ticks": 120 } },
-      { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 60 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 2, "market": 1, "infirmary": 2 }, "workers": 90,
+      { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 60 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 2, "market": 1, "infirmary": 2, "stable": 2, "station": 1 }, "workers": 90,
         "upgrade": { "pop": 60, "cost": { "timber": 2250, "stone": 2250, "goods": 2250 }, "ticks": 300 } }
     ] },
   "upkeep": { "_note": "Economy balance B5, placeholder, Tim to tune: paid every economy tick. The first freeLevels grown zone levels of a town are free; above that, zones pay their rate per grown level (scaled by the share above the free allowance). Short zone upkeep lowers that zone's health (less output and housing; long shortages abandon it, then it recovers). buildings = per built placed building; lines = per wall (w) / gate (g) cell; workerWage = per worker incl. training (short wages show as waiting). goodsByStage = goods per housing cell at stage 1, 2, 3: housing levels up to stage 2+ only while goods are paid; short goods never lower a level, they cost goodsShortMood of mood.",
@@ -63,14 +63,14 @@
   "governor": {
     "_note": "placeholder, Tim to tune (F2.7)",
     "reviewTicks": 5,
-    "foodPlentyShare": 0.5, "goodsProfitPerMin": 3, "roadSpur": 6, "campDistance": 70, "inputBuffer": 60, "roadSpurMinCells": 6, "trainRyoKeep": 20, "trainGoodsKeep": 0, "_selfRunNote": "Tim 2026-11-05: with initiative On the governor lays road spurs (up to roadSpur cells, only if they open roadSpurMinCells zonable cells) and trains a worker when all are busy, keeping trainRyoKeep ryo and trainGoodsKeep goods", "_goodsProfitNote": "Tim 2026-11-05: the governor adds work cells while running goods income (per minute, one-off spends left out) is below this", "_foodPlentyNote": "Tim 2026-11-05: food at or above this share of its storage cap never counts as falling (no farm suggestion)",
+    "foodPlentyShare": 0.5, "goodsProfitPerMin": 3, "upgradeGoalMinutes": 60, "_upgradeGoalNote": "2026-11-06 soak fix, placeholder: while the next hall tier's goods cost is not in stock the governor aims for enough goods income to save it within this many game minutes (more work cells, within the tier cell cap)", "roadSpur": 6, "campDistance": 70, "inputBuffer": 60, "roadSpurMinCells": 6, "trainRyoKeep": 20, "trainGoodsKeep": 0, "_selfRunNote": "Tim 2026-11-05: with initiative On the governor lays road spurs (up to roadSpur cells, only if they open roadSpurMinCells zonable cells) and trains a worker when all are busy, keeping trainRyoKeep ryo and trainGoodsKeep goods", "_goodsProfitNote": "Tim 2026-11-05: the governor adds work cells while running goods income (per minute, one-off spends left out) is below this", "_foodPlentyNote": "Tim 2026-11-05: food at or above this share of its storage cap never counts as falling (no farm suggestion)",
     "maxSuggestions": 3,
     "idleNeeded": 2,
     "foodFallingReviews": 3,
     "moodLow": 55,
     "moodHigh": 80,
     "moodHighReviews": 5,
-    "budgetWindowReviews": 100
+    "initiativeBudget": 400, "_initiativeBudget": "value (data.values) a governor with initiative may spend on his own suggestions per budgetWindowReviews when the town has no budget set", "budgetWindowReviews": 100
   },
   "priorities": {
     "grow":    ["farm", "lumber_camp", "quarry", "workshop", "storehouse"],
@@ -112,6 +112,8 @@
     "storehouse": "granary",
     "stockade": "fort",
     "infirmary": "infirmary",
+    "stable": "stable",
+    "station": "coach_house",
     "market": "market_stall",
     "zone:h": "townhouse",
     "zone:f": "haystack",
@@ -197,6 +199,8 @@
     "workshop": { "size": 2, "coreOnly": true, "cost": { "timber": 25, "stone": 5 }, "jobs": 2, "housing": 0, "recipe": { "in": { "timber": 1, "stone": 0.5 }, "out": { "goods": 1 }, "everyTicks": 2 }, "buildTicks": 50, "_note": "F0.2: 1 timber + 0.5 stone into 1 goods every 40 sim ticks (2 economy ticks) with 2 workers; cost placeholder, Tim to tune" },
     "storehouse": { "size": 1, "cost": { "timber": 40, "goods": 40 }, "jobs": 1, "housing": 0, "buildTicks": 30, "_note": "placeholder, Tim to tune; no storage cap yet" },
     "stockade": { "size": 2, "cost": { "timber": 200 }, "jobs": 0, "housing": 0, "buildTicks": 150, "garrison": { "capacity": 40, "healFactor": 3, "range": 14, "hp": 1500 }, "_note": "Tim 2026-11-06: 4-cell fort (size 2). garrison: your hero, crew and workers can shelter inside (capacity units), safe from attack and healing healFactor times faster; range = how close a unit must be to go in. hp (Tim 2026-11-06) = stockade health: hits on anyone inside go to the stockade; at 0 it is ruined and everyone piles out (enemies attacking the building itself waits for F7). Cost and times are placeholders, Tim to tune" },
+    "stable": { "size": 2, "cost": { "timber": 200, "stone": 100 }, "jobs": 0, "housing": 0, "buildTicks": 120, "stable": { "kinds": { "calico": { "name": "Calico", "cost": { "food": 80, "goods": 40 }, "seconds": 60 }, "black_beauty": { "name": "Black Beauty", "cost": { "food": 80, "goods": 40 }, "seconds": 60 } }, "maxHorses": 3, "queue": 3 }, "_note": "Tim 2026-11-06, placeholders to tune: a placed building (no ryo costs); horses are made by hand one at a time on its production bar (seconds each, cost paid from town stock when queued, refunded on cancel); nothing is made on its own except one horse for a bot clan's boss. maxHorses per stable. Omnibuses are built at the station" },
+    "station": { "size": 2, "cost": { "timber": 200, "stone": 80 }, "jobs": 0, "housing": 0, "buildTicks": 120, "station": { "kinds": { "rickshaw": { "name": "Rickshaw", "cost": { "timber": 60, "goods": 20 }, "seconds": 45 }, "omnibus": { "name": "Omnibus", "cost": { "timber": 150, "goods": 60 }, "seconds": 90 } }, "maxRickshaws": 3, "maxOmnibuses": 2, "queue": 3, "reach": 8, "fightSeconds": 10, "enemyRange": 12 }, "_note": "Tim 2026-11-06 20:21-20:24, placeholders to tune: omnibus station (coach house art). Builds rickshaws (up to maxRickshaws waiting here) and omnibuses (spawn empty, parked here; at most maxOmnibuses per clan) by hand on a production bar. Space at it: rickshaw travel to your towns with a station or the capital (gate). A trip uses one rickshaw from where you leave and parks it where you arrive; not within fightSeconds of a fight or with enemies within enemyRange" },
     "infirmary": { "size": 1, "cost": { "timber": 120, "stone": 60 }, "jobs": 0, "housing": 0, "buildTicks": 90, "infirmary": { "radius": 20, "healFactor": 3 }, "_note": "Tim 2026-11-06, placeholders to tune: your units within radius heal healFactor times faster; anyone knocked out on the island comes round at the nearest town's infirmary at full health (else at its hall at low health). One per Camp and Village, two per Town" },
     "market": { "size": 1, "coreOnly": true, "cost": { "timber": 160, "stone": 80 }, "jobs": 0, "housing": 0, "buildTicks": 60, "_note": "Economy pass 2 D (Tim 2026-11-05): Village tier, 1 per town; sells goods above the town keep level for ryo (see market)" }
   },

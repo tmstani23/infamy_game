@@ -288,7 +288,7 @@ export class CharacterSprite {
       this.shadow.scale.setScalar(size);
       this.ring.scale.setScalar(size);
     }
-    this.thing.mesh.position.set(x, this.feetUp * size, z);
+    this.thing.mesh.position.set(x, this.feetUp * size + (this.lift || 0), z);   // lift: riding a horse (render/view.js)
     this.hidden.position.set(x, FEET_UP * size, z);
     u.uDepthAt.value.set(x, 0, z, 0.45);
     this.thing.foot = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r };

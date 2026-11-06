@@ -1,6 +1,7 @@
 // The lieutenant at the island gate (goal steps, Tim 2026-11-06). Space at his ring opens four short lines on
 // what he does; Show me opens Deployment at While I'm away, Later closes. Sends only { type: 'lieutenant',
 // guide: 'met' | 'opened' }; the steps and flags are in sim/campaign_goals.js and sim/lieutenant.js.
+import { lieutenantPortrait } from './lieutenant_portrait.js';
 const LINES = clan => [
   'Boss. While you are out on the island, I run the city for you.',
   clan?.kind === 'ninja' ? 'I defend our people, take shrine jobs and night steals, and hire when we are short.'
@@ -22,7 +23,7 @@ export function createLieutenantTalk({ panel, game, heroId, send, showOrders }) 
     panel.hidden = !open;
     if (!open) return;
     const clan = game.state.clans?.[hero()?.owner];
-    const html = `<h3>YOUR LIEUTENANT</h3>${LINES(clan).map(t => `<p>${t}</p>`).join('')}`
+    const html = `<div class="lt-head"><img class="lt-portrait" src="${lieutenantPortrait(clan)}" alt=""><h3>YOUR LIEUTENANT</h3></div>${LINES(clan).map(t => `<p>${t}</p>`).join('')}`
       + '<div class="row"><button data-pick="show" class="goal-flash">Show me</button><button data-pick="later">Later</button></div>'
       + '<div class="waiting">Space / Esc close</div>';
     if (html !== shown) { panel.innerHTML = html; shown = html; }

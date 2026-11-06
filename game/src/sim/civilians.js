@@ -5,6 +5,7 @@
 // killing nearby scares them: they freeze, then run away, and are marked as witnesses.
 // Plain sim code, no three.js: the server runs the same townsfolk in multiplayer.
 import { dirIndex } from './geometry.js';
+import { steer } from './vehicle_steer.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 import { refill } from './util.js';
 
@@ -69,14 +70,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
     while (m.wp < m.route.length && Math.hypot(m.route[m.wp][0] - e.x, m.route[m.wp][1] - e.z) < (m.wp === m.route.length - 1 ? 0.5 : 1.2)) m.wp++;
     if (m.wp >= m.route.length) { stopPath(e); return false; }          // there
     const [wx, wz] = m.route[m.wp];
-    const want = Math.atan2(wx - e.x, wz - e.z);
-    if (e.heading === undefined) e.heading = want;
-    let diff = want - e.heading;
-    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    const maxTurn = (V.turnDegrees ?? 120) * Math.PI / 180 * DT;
-    e.heading += Math.max(-maxTurn, Math.min(maxTurn, diff));
-    const hx = Math.sin(e.heading), hz = Math.cos(e.heading);
-    e.dir = dirIndex(hx, hz);
+    const { hx, hz, slow } = steer(e, Math.atan2(wx - e.x, wz - e.z), { turnDegrees: V.turnDegrees ?? 120 }, DT);   // sim/vehicle_steer.js
     // someone in front (within gapAhead, roughly ahead): wait for them
     const gap = V.gapAhead ?? 2.2;
     const blocked = Object.values(state.entities).some(o => o !== e && o.place === e.place && !o.dead && o.type !== 'building'
@@ -86,7 +80,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
     if (blocked) { m.waitFrom ??= state.tick; if (state.tick - m.waitFrom < secs(V.waitSeconds ?? 2)) { e.anim = 'idle'; return true; } }
     else delete m.waitFrom;
     // slower than people, and slower still while turning hard
-    const speed = unit.walk * (V.speed ?? 0.85) * (1 - 0.6 * Math.min(1, Math.abs(diff) / (Math.PI / 2))) * (blocked ? 0.35 : 1);
+    const speed = unit.walk * (V.speed ?? 0.85) * slow * (blocked ? 0.35 : 1);
     const nx = e.x + hx * speed * DT, nz = e.z + hz * speed * DT;
     if (!nav.free(nx, nz)) { e.anim = 'idle'; return true; }
     e.x = nx; e.z = nz; e.anim = 'walk';

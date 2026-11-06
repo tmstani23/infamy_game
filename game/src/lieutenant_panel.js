@@ -5,12 +5,13 @@ const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', sha
   buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)' };
 // Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
 const FOR_NINJA = { buy: false, jobs: true, steal: true };
+import { lieutenantPortrait } from './lieutenant_portrait.js';
 export function createLieutenantPanel({ root, game, heroId, send }) {
   const L = () => game.lieutenant, tabs = root.querySelector('.page-tabs'), work = root.querySelector('.workspace');
   if (!tabs || !work) return { update() {} };
   const tab = document.createElement('button'); tab.type = 'button'; tab.className = 'show-away'; tab.textContent = 'While I’m away';
   const pane = document.createElement('section'); pane.className = 'pane-away';
-  pane.innerHTML = '<h4>While I’m away</h4><p class="away-status"></p><div class="away-orders"></div>'
+  pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I’m away</h4></div><p class="away-status"></p><div class="away-orders"></div>'
     + '<label>Budget <input class="away-budget" type="range" min="0" step="50"> <span class="away-budget-value"></span> ryo a day</label>'
     + '<label><input class="away-home" type="checkbox"> Keep defending when I’m back</label><h4>Log</h4><ol class="away-log"></ol>';
   tabs.appendChild(tab); work.appendChild(pane);
@@ -43,6 +44,8 @@ export function createLieutenantPanel({ root, game, heroId, send }) {
     const key = JSON.stringify([r.orders, r.budget, r.defendAtHome, r.spent, r.log.length, r.log.at(-1)?.tick, L().away(owner())]);
     if (key === shown) return; shown = key;
     const ninja = game.state.clans?.[owner()]?.kind === 'ninja';
+    const pic = pane.querySelector('.lt-portrait'), src = lieutenantPortrait(game.state.clans?.[owner()]);
+    if (pic.getAttribute('src') !== src) pic.setAttribute('src', src);
     for (const [k, c] of Object.entries(boxes)) { c.parentElement.hidden = k in FOR_NINJA && FOR_NINJA[k] !== ninja; if (document.activeElement !== c) c.checked = !!r.orders[k]; }
     budget.max = String(game.settings.lieutenantMax ?? 2000);
     if (document.activeElement !== budget) { budget.value = String(r.budget); pane.querySelector('.away-budget-value').textContent = r.budget; }

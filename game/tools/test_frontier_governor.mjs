@@ -64,9 +64,10 @@ const count = (s, type) => s.buildings.filter(b => b.type === type).length;
   t.reviews(30);
   assert.equal(count(t.s, 'farm'), 1, 'the next project was a farm');
 }
-// over-budget projects stay unauthorized, and only one project exists
+// over-budget projects stay unauthorized, and only one project exists (budget 1: a budget of 0 means
+// "none set", which spends governor.initiativeBudget instead, 2026-11-06)
 {
-  const t = fresh(s => { noFarm(s); s.autoBuild = true; s.budget.ryo = 0; });
+  const t = fresh(s => { noFarm(s); s.autoBuild = true; s.budget.ryo = 1; });
   t.reviews(60);
   assert.equal(t.s.projects.length, 1);
   assert.equal(t.s.projects[0].authorized, false);
@@ -132,3 +133,11 @@ for (const [priority, type] of [['fortify', 'stockade'], ['trade', 'workshop']])
   assert.equal(t.s.taxLevel, 'high');
 }
 console.log('test_frontier_governor: ok');
+
+// no budget set: initiative spends up to governor.initiativeBudget (2026-11-06)
+{
+  const t = fresh(s => { noFarm(s); s.autoBuild = true; s.budget.ryo = 0; });
+  t.reviews(30);
+  assert.ok(t.s.projects.every(p => p.authorized) || count(t.s, 'farm') === 1, 'built within the default initiative budget');
+  console.log('governor initiative budget ok');
+}

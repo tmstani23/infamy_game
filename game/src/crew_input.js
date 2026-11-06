@@ -151,6 +151,19 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     return best;
   }
 
+  // your own omnibus under a page pixel (sim/omnibus.js; it is bigger than a person, so a wider reach)
+  function omnibusAt(px, py) {
+    const h = hero();
+    if (!h) return null;
+    const list = Object.values(game.state.entities).filter(b => (b.type === 'omnibus' || b.type === 'rickshaw') && b.omnibusOwner === h.owner && b.place === commandPlace());
+    return unitAt(px, py, list, 55);
+  }
+  const busRiders = b => Object.values(game.state.entities).some(u => u.aboard === b.id);
+  function horseAt(px, py) {
+    const h = hero();
+    if (!h || h.place !== 'world') return null;
+    return unitAt(px, py, Object.values(game.state.entities).filter(b => b.type === 'horse' && b.horseOwner === h.owner && !b.rider && b.place === 'world'), 40);
+  }
   // no browser menu on right-click (capture phase, before anything else sees it)
   addEventListener('contextmenu', e => {if(!e.target?.closest?.('input,textarea,[contenteditable="true"]'))e.preventDefault();}, { capture: true });
   // the hero goes for the unit at a page pixel: attack it, or finish it off if it is down
@@ -179,6 +192,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       send({id:heroId,type:'loot',target:body.id,units:jobs,crewJob:!!jobs.length,preferHeroInRange:useHero,crewOnly:!useHero});return;
     }
     if (e.button === 2 && !e.ctrlKey && pointed) { heroAt(e.clientX, e.clientY); return; }
+    // right-click your omnibus (Tim 2026-11-06): everyone steps out, or a parked one takes the hero and the selected crew in
+    // right-click one of your horses: ride her (she comes over if she is not beside you)
+    const horse = e.button === 2 && horseAt(e.clientX, e.clientY);
+    if (horse) { send({ id: heroId, type: 'mount', horse: horse.id }); return; }
+    const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
+    if (bus) { send(busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy' } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine() }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -275,6 +294,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { pruneTargets(); return looked; },
     inspect(id) { looked=game.state.entities[id]?id:null; },
+    // Q for the omnibus (also the Mount controls button): step out, or get in a parked one right beside the hero
+    mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },
+    omnibusKey() { const h = hero(); if (!h) return false; if (h.aboard) { send({ id: heroId, type: 'omnibus', action: 'deploy' }); return true; }
+      if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !game.omnibus.riders(b).length)) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },
+    omnibusAt(px, py) { const b = omnibusAt(px, py); return b ? { id: b.id, x: b.x, z: b.z, full: busRiders(b) } : null; },
     hovered(px, py) {
       const h = hero();
       if (!h || drag) return null;

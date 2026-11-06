@@ -4,7 +4,7 @@ const ROOTS = ['tick','night','dawn','dusk','clock','businesses','interiorDoors'
   'contracts','attacks','banditCamps','lightsOut','hqCamping','hqRaids','shakedowns','raidWindow',
   'formations','smokes','projectiles'];
 const MARKER_FIELDS = ['id','type','model','owner','x','z','place','hp','maxHp','dead','downed','jailed',
-  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry'];
+  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider'];
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k,value[k]]));
 
 // Recursive replacement retains object identities captured by read-only sim helpers.
@@ -83,7 +83,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     }
     const records = new Map(Object.entries(roots).map(([k,v])=>['s:'+k,v]));
     for (const e of Object.values(st.entities)) {
-      if (!map || e.owner === clan || e.workerOwner === clan || detail.has(e.id) && game.vision.canSee(clan,e)) records.set('e:'+e.id,e);
+      if (!map || e.owner === clan || e.workerOwner === clan || e.omnibusOwner === clan || e.horseOwner === clan || detail.has(e.id) && game.vision.canSee(clan,e)) records.set('e:'+e.id,e);
       else if (game.vision.canSee(clan,e)) records.set('e:'+e.id,pick(e,MARKER_FIELDS));
       // Contracts need rival hero identity, never their unobserved position.
       else if(e.type==='hero') records.set('e:'+e.id,pick(e,['id','type','model','owner','hidden','dead','downed','jailed']));

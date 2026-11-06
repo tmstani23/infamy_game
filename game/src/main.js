@@ -18,6 +18,7 @@ import { interactionDoor as selectInteractionDoor } from './door_interaction.js'
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
 import { createLieutenantTalk } from './lieutenant_talk.js';
+import { createStationMenu } from './station_menu.js';
 import { createLandOfficeMenu } from './land_office_menu.js';
 import { createGoalCard } from './goal_card.js';
 import { createSiteMenu } from './site_menu.js';
@@ -161,6 +162,8 @@ async function start() {
   onKey(['Space', 'Enter'], () => {
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // your town's governor beside the hall (Tim 2026-11-06): talk to him
+    // at your omnibus station or the rickshaw stand by the city gate: rickshaw travel (Tim 2026-11-06)
+    if (stationMenu.at()) { stationMenu.toggle(); return; }
     const gov = game.governorNear?.(heroId);
     if (gov) { pending.push({ id: heroId, type: 'lieutenant', guide: 'governor' }); townTalk(gov.governor); return; }
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
@@ -206,6 +209,18 @@ async function start() {
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
   addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
+  // hovering your omnibus: a small flashing icon says what a right-click does (Tim 2026-11-06)
+  const busIcon = $('busicon');
+  setInterval(() => {
+    if (!busIcon) return;
+    let b = null;
+    try { b = crewInput.omnibusAt(mouse.x, mouse.y); } catch { return; }   // crewInput is made further down
+    busIcon.hidden = !b;
+    if (!b) return;
+    const s = view.unitToScreen(b.x, b.z);
+    busIcon.textContent = b.full ? 'Step out' : 'Get in';
+    busIcon.style.left = `${s.x}px`; busIcon.style.top = `${s.y - 70}px`;
+  }, 100);
   // Shinobi (Tim 2026-10-20): a lit lantern under the mouse, within snuffReach of the boss at night,
   // says "Snuff"; a left-click on it snuffs it (before the crew clicks see it)
   let hoverLamp = null;
@@ -222,6 +237,8 @@ async function start() {
     e.stopImmediatePropagation(); e.preventDefault();
   }, true);
   for (const slot of ['Q', 'E', 'R', 'F']) onKey(`Key${slot}`, () => {
+    // the omnibus (sim/omnibus.js, Tim 2026-11-06): Q inside steps everyone out; Q right by a parked one gets in
+    if (slot === 'Q' && crewInput.omnibusKey()) return;
     const p = view.screenToGround(mouse.x, mouse.y);
     // Shinobi Q / F go for the unit in the target frame when there is one (Tim 2026-10-21)
     const h = game.state.entities[heroId], target = h && frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e));
@@ -271,7 +288,8 @@ async function start() {
   }
   const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, view, send: c => pending.push(c), onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();}, blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() });
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
-  onKey('KeyH', () => hireMenu.toggle());
+  // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, Tim 2026-11-06); in the city it hires
+  onKey('KeyH', () => { if (game.state.entities[heroId]?.place === 'world') pending.push({ id: heroId, type: 'mount' }); else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
@@ -346,6 +364,7 @@ async function start() {
   }
   // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
   const goalCard = createGoalCard({ root: $('goalcard'), button: $('goalbtn'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
+  const stationMenu = createStationMenu({ panel: $('stationmenu'), game, heroId, send: c => pending.push(c) });
   const lieutenantTalk = createLieutenantTalk({ panel: $('lttalk'), game, heroId, send: c => pending.push(c), showOrders: () => { if (!deploymentPanel.isOpen()) $('deploymentbtn').click(); setTimeout(() => document.querySelector('#deploymentpanel .show-away')?.click(), 0); } });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -397,7 +416,7 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); stationMenu.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, siteMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -718,7 +737,7 @@ async function start() {
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
-      landOfficeMenu.update(); lieutenantTalk.update(); siteMenu.update();
+      landOfficeMenu.update(); lieutenantTalk.update(); stationMenu.update(); siteMenu.update();
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();

@@ -2388,5 +2388,19 @@
  "buildings/sawmill": {"w":440,"h":383,"left":1,"right":439,"bottomX":191,"bottomY":382,"glows":[]},
  "buildings/smithy": {"w":400,"h":375,"left":1,"right":398,"bottomX":206,"bottomY":373,"glows":[]},
  "buildings/infirmary": {"w":440,"h":364,"left":1,"right":437,"bottomX":204,"bottomY":363,"glows":[]},
- "buildings/pier_fish_house": {"w":440,"h":366,"left":1,"right":439,"bottomX":139,"bottomY":365,"glows":[]}
+ "buildings/pier_fish_house": {"w":440,"h":366,"left":1,"right":439,"bottomX":139,"bottomY":365,"glows":[]},
+ "buildings/stable": {"w":480,"h":364,"left":2,"right":478,"bottomX":241,"bottomY":362,"glows":[]},
+ "buildings/coach_house": {"w":500,"h":402,"left":0,"right":499,"bottomX":264,"bottomY":400,"glows":[]},
+ "buildings/frontier_watchtower": {"w":260,"h":441,"left":2,"right":258,"bottomX":138,"bottomY":439,"glows":[]},
+ "buildings/palisade": {"w":400,"h":390,"left":2,"right":398,"bottomX":346,"bottomY":389,"glows":[]},
+ "buildings/gatehouse": {"w":440,"h":390,"left":3,"right":438,"bottomX":394,"bottomY":388,"glows":[]},
+ "buildings/mine": {"w":480,"h":392,"left":2,"right":478,"bottomX":315,"bottomY":390,"glows":[]},
+ "buildings/gate_v1": {"w":415,"h":260,"left":3,"right":412,"bottomX":216,"bottomY":258,"glows":[]},
+ "buildings/gate_v5": {"w":415,"h":259,"left":3,"right":412,"bottomX":208,"bottomY":257,"glows":[]},
+ "buildings/palisade_wall_v1": {"w":346,"h":220,"left":2,"right":343,"bottomX":184,"bottomY":214,"glows":[]},
+ "buildings/palisade_wall_v5": {"w":356,"h":211,"left":2,"right":351,"bottomX":157,"bottomY":208,"glows":[]},
+ "buildings/palisade_wall_z": {"w":250,"h":273,"left":1,"right":248,"bottomX":53,"bottomY":270,"glows":[]},
+ "buildings/palisade_wall_x": {"w":250,"h":273,"left":1,"right":248,"bottomX":196,"bottomY":270,"glows":[]},
+ "buildings/gate_x": {"w":367,"h":345,"left":2,"right":363,"bottomX":340,"bottomY":342,"glows":[]},
+ "buildings/gate_z": {"w":367,"h":345,"left":3,"right":364,"bottomX":26,"bottomY":342,"glows":[]}
 }

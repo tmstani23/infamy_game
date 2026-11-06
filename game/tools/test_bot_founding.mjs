@@ -67,6 +67,10 @@ const botTowns = g => Object.values(g.state.frontier.settlements).filter(s => s.
   assert.equal(bossesOut.length, 2, 'the bosses stay out at their towns (C2: lieutenants run the city)');
   for (let i = 0; i < 400; i++) g.step(bots.flatMap(b => b.tick()));
   for (const t of towns) assert.equal(t.autoBuild, true, 'a bot town\'s governor takes initiative');
+  // the omnibus (Tim 2026-11-06): bots ride out in it too; founding steps everyone out and uses it up
+  for (const t of towns) assert.equal(g.state.clans[t.owner].omnibusFree, 0, 'a bot rode out by omnibus');
+  assert.ok(!Object.values(g.state.entities).some(e => e.type === 'omnibus' && towns.some(t => t.owner === e.omnibusOwner)), 'their omnibuses are used up');
+  assert.ok(!Object.values(g.state.entities).some(e => e.aboard), 'nobody left inside');
 }
 
 // Classic: never

@@ -14,6 +14,7 @@ import { createFounding } from './founding.js';
 import { ensureGrid, townBlockersIn } from './town_grid.js';
 import { createGarrison } from './garrison.js';
 import { createInfirmary } from './infirmary.js';
+import { createStable } from './stable.js';
 import { livingWorldUnits } from './building_safety.js';
 import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
@@ -54,7 +55,9 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers });
   const garrison = createGarrison({ state, data, world: live });
   const infirmary = createInfirmary({ state, data });   // Tim 2026-11-06: heals nearby units, revives the island's fallen
+  const stable = createStable({ state, data, world: live });   // Tim 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
+  modules.push({ name: 'stable', command: (e, c) => stable.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
@@ -77,6 +80,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     world.syncCapital();           // the capital's ryo mirrors the clan treasury
     garrison.tick();               // stockade garrison: sheltered units stand at the stockade
     infirmary.tick();              // units near their own infirmary heal faster
+    stable.tick();                 // the stable's production bar
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -93,5 +97,5 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   }
 
   function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);founding?.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, attach };
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, attach };
 }

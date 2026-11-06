@@ -138,5 +138,12 @@
     "fps": 6,
     "cellWorld": 16.8,
     "feetUp": 3.221
+  },
+  "rickshaw_horse_walk": {
+    "size": 288,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.253
   }
 }

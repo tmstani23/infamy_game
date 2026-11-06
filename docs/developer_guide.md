@@ -65,3 +65,9 @@ Extra `MOUNTS` fields for vehicles:
 - `supersample`: renders at that many times the size and draws down, for softer edges.
 
 Vehicle footprint shadows are set in `game/data/art.json` `characterFraming` as `shadow: [length, width]` in world units.
+
+### Frontier sheet 2, ride clip and rickshaw horse (2026-11-06)
+
+- `python tools/add_frontier_sheet2_art.py`: cuts frontier sheet 2 plus the gates and walls into `game/art/buildings/`.
+- `RIDE` table in `tools/export_sprites.mjs`: the hero's `ride` clip (`coach_sitting` for now).
+- `rickshaw_horse`: rig script `assets/models/source/rickshaw_horse_rig/rickshaw_horse.py`, exported through `MOUNTS`.

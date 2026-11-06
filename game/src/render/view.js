@@ -319,7 +319,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
-      const anim = e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
+      // on horseback (sim/mounts.js, Tim 2026-11-06): the hero sits up on the horse ('ride' clip, the idle until it is exported)
+      const anim = e.mounted ? 'ride' : e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
+      s.lift = e.mounted ? 0.95 : 0;
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
@@ -370,7 +372,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.veiled = veiled;
       s.shimmer = shim;
       // sheltering in a stockade garrison (Tim 2026-11-06): not drawn, shown again when sent out
-      const sheltered = !!e.garrison;
+      const sheltered = !!e.garrison || !!e.aboard;   // or riding inside the omnibus (sim/omnibus.js)
       if (sheltered || s.sheltered) {
         for (const m of [s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate, s.team]) if (m) m.visible = !sheltered && (m !== s.ring || selected.has(id));
         s.sheltered = sheltered;

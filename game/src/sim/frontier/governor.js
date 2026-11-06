@@ -13,7 +13,7 @@ import { residents } from './people.js';
 import { placedRoom, upgradeCheck, startUpgrade, tierOf, nextTier, zoneCells, cellCap } from './tiers.js';
 import { isFull, storageCap } from './storage.js';
 import { workerCount } from './people.js';
-import { inCore, centreCell, hallRoadCell, worldToCell } from './town_grid.js';
+import { inCore, centreCell, hallRoadCell, worldToCell, cellToWorld } from './town_grid.js';
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
 // one-off or surplus flows that say nothing about the town's running goods balance
@@ -96,7 +96,9 @@ export function createGovernor({ state, data, world, economy, construction, zone
       const [top, n] = Object.entries(use).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0] || [];
       if (!top || n < 2) continue;
       const sp = workers.index.get(top), drops = s.buildings.filter(b => b.stage === 'built' && R.dropoffs.includes(b.type));
-      if (Math.hypot(sp.x - hall[0], sp.z - hall[1]) < (G.campDistance ?? 70) || drops.length > 1) continue;
+      // far from every drop-off (a start quarry no longer blocks a lumber camp by being a second drop-off, 2026-11-06)
+      const dropXZ = b => { const pts = (b.cells?.length ? b.cells : [b.cell]).filter(i => i !== null && i !== undefined).map(i => cellToWorld(s, i)); return pts.length ? pts[0] : hall; };
+      if (Math.hypot(sp.x - hall[0], sp.z - hall[1]) < (G.campDistance ?? 70) || drops.some(b => { const [x, z] = dropXZ(b); return Math.hypot(sp.x - x, sp.z - z) < (G.campDistance ?? 70); })) continue;
       const cost = data.buildings[type].cost;
       if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) continue;   // never blocks the other rules while saving
       const g = s.grid, n2 = g.n, c0 = worldToCell(s, sp.x, sp.z);
@@ -134,14 +136,22 @@ export function createGovernor({ state, data, world, economy, construction, zone
       if (sick) s.report.next = 'Food falling: farms are short of upkeep or hands';
       s.report.next = 'Food falling, need workers';
     }
+    // 1b goods target (2026-11-06 soak fix): at least goodsProfitPerMin, and while the next hall tier's goods cost is
+    // not yet in stock, enough to save it up within upgradeGoalMinutes
+    const goodsTarget = s => {
+      const need = nextTier(s, data)?.upgrade?.cost?.goods || 0, short = need - (s.stock.goods || 0);
+      return Math.max(G.goodsProfitPerMin ?? 3, short > 0 && G.upgradeGoalMinutes ? short / G.upgradeGoalMinutes : 0);
+    };
     // 1b. goods not growing (Tim 2026-11-05: the governor runs the town at a slight profit so the hall upgrade
     // comes within reach): more work cells while there is room, idle people and no input shortage
     if (zones?.on(s) && !zones.busy(s, 'work')) {
       const k = data.zones.kinds.work, net = Object.entries(s.flow?.goods || {}).filter(([why]) => !ONCE_FLOW.has(why)).reduce((n, [, v]) => n + v, 0);
       const room = k && zoneCells(s, k.char) + (k.governorCells || 1) <= cellCap(s, 'work', data);
-      // workshops burn timber and stone: only add them while those are stocked and still rising
-      const rising = r => Object.values(s.flow?.[r] || {}).reduce((n, v) => n + v, 0) > 0, stocked = r => (s.stock[r] || 0) >= (G.inputBuffer ?? 60);
-      if (room && idle >= G.idleNeeded && net < (G.goodsProfitPerMin ?? 3) && (zoneCells(s, k.char) === 0 || stocked('timber') && stocked('stone') && rising('timber') && rising('stone')) && !isFull(s, data, 'goods'))
+      // workshops burn timber and stone: only add them while those are stocked and still rising,
+      // or already sitting at half their cap or more (a full store shows no rise but has plenty to burn)
+      const rising = r => Object.values(s.flow?.[r] || {}).reduce((n, v) => n + v, 0) > 0
+        || (s.stock[r] || 0) >= (G.inputFullShare ?? 0.5) * storageCap(s, data, r), stocked = r => (s.stock[r] || 0) >= (G.inputBuffer ?? 60);
+      if (room && idle >= G.idleNeeded && net < goodsTarget(s) && (zoneCells(s, k.char) === 0 || stocked('timber') && stocked('stone') && rising('timber') && rising('stone')) && !isFull(s, data, 'goods'))
         return suggest(s, 'workshop', 'Workshop: goods not growing');
     }
     // 2. housing full and food not falling: a house
@@ -165,6 +175,18 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (s.priority === 'fortify' && !has(s, 'stockade')) return suggest(s, 'stockade', 'Stockade: fortify');
     // 5. priority trade: a workshop if none
     if (s.priority === 'trade' && spare && !has(s, 'workshop')) return suggest(s, 'workshop', 'Workshop: trade goods');
+    // 6-8 (2026-11-06), with initiative only: a storehouse when stock nears its cap, a market once goods pass the keep
+    // level, an infirmary once the town has people to look after (so bot towns and Initiative On towns use them)
+    if (s.autoBuild) {
+      const room = t => data.buildings?.[t] && placedRoom(s, t, data) >= 1 && !pending(s, t);
+      if (room('storehouse') && data.resources.some(r => r !== 'ryo' && (s.stock[r] || 0) >= 0.8 * storageCap(s, data, r))) return suggest(s, 'storehouse', 'Storehouse: stock near its cap');
+      if (room('market') && !has(s, 'market') && (s.stock.goods || 0) >= (data.market?.keep ?? 400)) return suggest(s, 'market', 'Market: goods to sell');
+      if (room('infirmary') && !has(s, 'infirmary') && residents(s) >= 20) return suggest(s, 'infirmary', 'Infirmary: look after our people');
+      // 9 (Tim 2026-11-06): a stable once the town is a Village
+      if (room('stable') && !has(s, 'stable') && (s.tier || 1) >= 2) return suggest(s, 'stable', 'Stable: horses for the boss');
+      // 10 (Tim 2026-11-06): an omnibus station once the town is a Village
+      if (room('station') && !has(s, 'station') && (s.tier || 1) >= 2) return suggest(s, 'station', 'Omnibus station: rickshaws between our towns');
+    }
     return false;
   }
 
@@ -184,7 +206,9 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const pid = construction.queue(s.id, sg.type, null);
     if (!pid) return;
     const cost = value(construction.find(pid).project.cost);
-    if (s.budget.spent + cost <= s.budget.ryo + EPS) { construction.authorize(pid); s.budget.spent += cost; }
+    // no budget set (the town panel has no budget control): initiative spends up to governor.initiativeBudget per window (2026-11-06)
+    const cap = s.budget.ryo || (G.initiativeBudget ?? 400);
+    if (s.budget.spent + cost <= cap + EPS) { construction.authorize(pid); s.budget.spent += cost; }
   }
 
   // Rule 6: mood keeper, only on auto taxes. The player's locked level is never touched.

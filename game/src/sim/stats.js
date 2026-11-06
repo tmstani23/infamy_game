@@ -27,6 +27,8 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
+    // riding (the omnibus, a horse; Tim 2026-11-06): run speed times the ride's factor, whatever the gait
+    if (e.ride) return (base(e).run || 0) * (e.ride.speed || 1) * Math.min(buff(e, 'snared')?.speed ?? 1, buff(e, 'charmSnare')?.speed ?? 1);
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const pursuit = e.type === 'hero' && gait === 'run' ? buff(e, 'pursuit')?.runSpeed || 1 : 1;
     return (b[gait] || 0) * gearMultiplier(e, gait) * turf * pursuit * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);

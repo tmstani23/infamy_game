@@ -68,6 +68,12 @@
 - Vehicles: generate the wheels and the animals as separate images, because Tencent fuses wheels into the body.
 - Concepts live in `assets/concepts/mounts_vehicles/`.
 
+### Frontier angled art (2026-11-06)
+
+- The ground grid shows on screen at 24.1° (camera elevation atan(0.5), yaw 45). Angled wall and fence art matches it: along world x the line falls to the right, along z it rises to the right. Fix a slope with a vertical shear; make the other axis by mirroring.
+- Stockade walls run along the two grid axes only; no vertical pieces.
+- Art keys: buildings `stable`, `coach_house`, `frontier_watchtower`, `palisade`, `gatehouse`, `mine`; walls and gates `palisade_wall_x`/`_z`, `gate_x`/`_z`, `gate_v1`, `gate_v5`, `palisade_wall_v1`, `palisade_wall_v5` (`game/art/buildings/`, `game/art/cutouts.json`). Cut by `tools/add_frontier_sheet2_art.py`. Replaced views: `to_delete/2026-11-06_frontier_angled_views/`.
+
 ### Superseded
 
 - The 2026-10-13 plan used free 3D building packs (Kasuga) and local Hunyuan3D. It was replaced by the painted sheets above and Tencent's web version, which has textures.
