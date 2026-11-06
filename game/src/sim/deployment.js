@@ -291,7 +291,8 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
             continue;
           }
         }
-        if (!to && !e.deployment.everAssigned && heroUp && healthy(e) && canAssign(clan.id, [e.id], 'hero').ok) to = 'hero';
+        // new crew join the Hero group, unless the boss is out on the island: the lieutenant hired them for the city (2026-11-06)
+        if (!to && !e.deployment.everAssigned && heroUp && h.place !== 'world' && healthy(e) && canAssign(clan.id, [e.id], 'hero').ok) to = 'hero';
         if (!to) continue;
         const target = destination(e, to);
         if (!route(e, target, true)) { waiting.add(e.id); e.deployment.automatic = { to, status: 'blocked', why: 'Automatic transfer blocked; retrying' }; continue; }

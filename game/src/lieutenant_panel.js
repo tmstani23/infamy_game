@@ -1,7 +1,10 @@
 // "While I'm away" page in the Deployment window (frontier C3, Tim 2026-11-02/05). Campaign only.
 // Standing order toggles, a daily budget slider and the lieutenant's last 20 log lines. Sends only
 // { type: 'lieutenant', orders | budget | defendAtHome }; the rules are in sim/lieutenant.js.
-const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', shakedown: 'Shakedowns', sweep: 'Sweeps', contracts: 'Ambush contracts', hire: 'Hire crew' };
+const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', shakedown: 'Shakedowns', sweep: 'Sweeps', contracts: 'Ambush contracts', hire: 'Hire crew',
+  buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)' };
+// Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
+const FOR_NINJA = { buy: false, jobs: true, steal: true };
 export function createLieutenantPanel({ root, game, heroId, send }) {
   const L = () => game.lieutenant, tabs = root.querySelector('.page-tabs'), work = root.querySelector('.workspace');
   if (!tabs || !work) return { update() {} };
@@ -39,7 +42,8 @@ export function createLieutenantPanel({ root, game, heroId, send }) {
     if (!r) { pane.querySelector('.away-status').textContent = 'Your lieutenant takes over when you leave the city.'; return; }
     const key = JSON.stringify([r.orders, r.budget, r.defendAtHome, r.spent, r.log.length, r.log.at(-1)?.tick, L().away(owner())]);
     if (key === shown) return; shown = key;
-    for (const [k, c] of Object.entries(boxes)) if (document.activeElement !== c) c.checked = !!r.orders[k];
+    const ninja = game.state.clans?.[owner()]?.kind === 'ninja';
+    for (const [k, c] of Object.entries(boxes)) { c.parentElement.hidden = k in FOR_NINJA && FOR_NINJA[k] !== ninja; if (document.activeElement !== c) c.checked = !!r.orders[k]; }
     budget.max = String(game.settings.lieutenantMax ?? 2000);
     if (document.activeElement !== budget) { budget.value = String(r.budget); pane.querySelector('.away-budget-value').textContent = r.budget; }
     home.checked = !!r.defendAtHome;

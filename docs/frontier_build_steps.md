@@ -1861,6 +1861,25 @@ log keeps the last 20 entries.
 Done note: "C3 standing orders panel in (controls.md line needed)."
 **Built 2026-11-05 (campaign checkpoint 3):** C3 standing orders panel in (Deployment → While I'm away; controls.md row added).
 
+**Lieutenant orders update (2026-11-06):** standing orders are defend, retake, shakedown, sweep, contracts (ambush), hire, buy, jobs and steal; all on by default, older saves get the new ones switched on.
+- Buy (Yakuza, Kuroda): the captain walks to the free business nearest the HQ and buys it; at most one a day, inside the daily budget, always leaving `campaignCity.lieutenant.reserve` (200) ryo. While Buy is on, hiring keeps enough for the cheapest free business plus the reserve.
+- Jobs (Shinobi): one contract a day at the shrine (Scout, or Thin out the bandits when a street bandit group no bigger than the squad exists); city crew carry it out; called off after `jobMinutes` (3).
+- Steal (Shinobi): one Steal contract a night. Lieutenants never take Sabotage or Knock out the boss.
+- Retake only walks to a lost business he can pay for today.
+- The lieutenant's orders reach crew left in the city while the boss is on the island (`crew_orders.js`, `by: 'lieutenant'`, not follow). New crew are not auto-assigned to the Hero group while the boss is away; a bot's recruits don't follow an absent boss.
+- Settings: default budget 600 (was 300), `reserve` 200, `jobMinutes` 3.
+- Tests: `test_lieutenant_hero.mjs`, `test_lieutenant.mjs`; soak: `game/tools/lieutenant_soak.mjs [weak|average|strong] [days] [seed]`.
+- Soak (seed 9, boss away 3 days): weak (0 businesses, 100 ryo) stays frozen, Influence 0 vs rivals 85/226; average (2 businesses, 400 ryo) buys a pawnshop on day 2, loses one by day 4, Influence 70 vs 175/140; strong (6 businesses, 3000 ryo, 7 crew) holds 5, 7,586 ryo, Influence 175 vs 225/238.
+
+Known gaps (lieutenant):
+1. A weak city with no income stays frozen and never affords Buy.
+2. An average city still falls behind and loses businesses to Kuroda; no pull toward the average.
+3. A dead captain is replaced the next tick for free.
+4. A hero knocked out on the island wakes at the HQ and the Hero group is left out there.
+5. Bandit jobs often time out (bandits move in gangs); a called-off job still uses that day's job.
+6. Budget 600 and reserve 200 are placeholders.
+7. Lieutenant goal cards wait until the lieutenant is settled.
+
 ### C4. Influence  [SMALL]
 Needs: C1
 Files: new `game/src/sim/influence.js`, `game/src/sim/territory.js` (campaign mode only),

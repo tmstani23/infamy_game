@@ -52,7 +52,7 @@ assert.ok(L.active('player'));
 assert.ok(L.record('player').log.some(x => /captain takes charge/.test(x.text)));
 
 // defend + retake only: he never hires, never starts a Shakedown or Sweep
-g.step([{ id: hero.id, type: 'lieutenant', orders: { defend: true, retake: true, shakedown: false, sweep: false, contracts: false, hire: false } }]);
+g.step([{ id: hero.id, type: 'lieutenant', orders: { defend: true, retake: true, shakedown: false, sweep: false, contracts: false, hire: false, buy: false, jobs: false, steal: false } }]);
 const sent = [];
 for (let i = 0; i < 1200; i++) { const out = mine.tick(); sent.push(...out); g.step(out); }
 assert.ok(sent.every(c => c.by === 'lieutenant'), 'tagged');

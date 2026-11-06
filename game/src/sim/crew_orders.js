@@ -40,7 +40,8 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     if (!['follow', 'attack', 'heal', 'stop', 'enter', 'resume'].includes(c.kind) && !(Number.isFinite(c.x) && Number.isFinite(c.z))) return;
     const crew = c.units.map(id => state.entities[id])
       .filter(u => u && !u.dead && !u.downed && !u.jailed && u.owner === hero.owner && u.type !== 'hero' && !u.guard && (!c.broadcast || u.place === 'street')
-        && (u.place === hero.place || (c.kind === 'follow' && u.place === 'street') || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind))
+        // a lieutenant's order (sim/lieutenant.js gates it; the boss is out on the island) reaches crew left in the city
+        && (u.place === hero.place || (c.by === 'lieutenant' && c.kind !== 'follow' && u.place !== 'world' && (!c.place || c.place === u.place || c.kind === 'move')) || (c.kind === 'follow' && u.place === 'street') || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind))
           || (c.place === 'street' && (u.place === 'street' || (c.kind === 'move' && u.place !== 'street')))
           || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
           || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place))

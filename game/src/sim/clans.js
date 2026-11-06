@@ -253,9 +253,10 @@ export function createClans(state, units, opts = {}) {
       // beside the hero when he leaves the city through the island gate (game.js expedition)
       if (types[h.unit]?.settler && modeRules(state).founding) { clan.settlersWaiting = (clan.settlersWaiting || 0) + 1; say(clan, 'A settler is waiting safely at your HQ'); continue; }
       // Player recruits (settlers too: they wait outside the Land Office, E1) hold at the hiring site until explicitly ordered to Follow.
+      // A bot's recruit follows its boss, unless the boss is out on the island: the lieutenant hired it for the city (2026-11-06).
       const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(h.unit, types[h.unit].sprite, state.businesses[h.business],
-        { owner: clan.id, hp: types[h.unit].hp, ...(types[h.unit].settler ? { holdFire: true, order: hero && clan.bot ? { kind: 'follow', target: hero.id } : undefined } : {}), ...(!types[h.unit].settler && clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
+        { owner: clan.id, hp: types[h.unit].hp, ...(types[h.unit].settler ? { holdFire: true, order: hero && clan.bot ? { kind: 'follow', target: hero.id } : undefined } : {}), ...(!types[h.unit].settler && clan.bot && hero && hero.place !== 'world' && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
       say(clan, `Your ${h.unit} is here`);
     }
   }
