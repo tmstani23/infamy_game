@@ -36,7 +36,7 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | old_woman | Townsfolk | ✅ oldwoman2obj1.zip (concept oldwoman2) | ✅ old_woman.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |
 | sailor | Townsfolk | ✅ | ✅ | ✅ 6 | civilian |
 
-## Mounts, vehicles and cannons
+## Mounts, vehicles, cannons and boats
 
 `.glb` in `assets/models/mounts/`, exported through `MOUNTS` in `tools/export_sprites.mjs` (see the developer guide). Packed into `catalog_v1`; animation sets in `game/data/art.json`.
 
@@ -51,6 +51,9 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | omnibus | Horse omnibus (vehicle) | walk |
 | cannon_field | Field cannon | fire (recoil only, no flash or smoke) |
 | cannon_wooden | Wooden cannon | fire (recoil only, no flash or smoke) |
+| ship_coastal | Cargo ship (fast-travel ride) | idle, sail; modelled and animated in `assets/models/source/boat_rig/`, not exported yet |
+| boat_river | River boat | idle; oarsman needs a Mixamo rowing clip; not exported yet |
+| ship_war | Warship (1870s steam-and-sail corvette) | idle, sail, broadside; not exported yet |
 
 ## Held items (assets/models/items)
 

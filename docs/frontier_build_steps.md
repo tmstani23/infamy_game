@@ -2450,6 +2450,7 @@ through the town hall's rooms, hold the council room and capture it. Then defend
 
 **Future notes (Tim, 2026-11-05; no step cards yet; see [Endgame and campaign length](frontier_campaign_plan.md#endgame-and-campaign-length-2026-11-05)):**
 - **Travel:** a horse for the hero (about 3x faster, roads faster still); fast travel between your own towns by rickshaw or boat for a small fee, shown as a ~5 s skippable ride on the map while the world keeps running; crew mounts come later with warfare.
+- **Boats:** cargo ship (`ship_coastal`) = the ride art for fast travel (needs no water phase). River boat (`boat_river`) = after the water phase (Phase S), for exploration and harbour life. Warship (`ship_war`, 1870s steam-and-sail corvette, broadside clip) = warfare phase. All three are modelled and animated in `assets/models/source/boat_rig/` (idle, sail, broadside for the warship), hulls cut at the waterline; the river boat's oarsman still needs a Mixamo rowing clip.
 - **Ruin and rebuild (F7):** buildings are standing or ruined, no half states. The attacker chooses spare / defences and hall only / burn everything. Ruins rebuild through the normal build phases at a fraction of the cost; houses lose their people but the town keeps its tier; no loyalty meter; a taken town is fully yours and the old owner does not raid it back.
 - **Surrender (F7):** a defender can surrender; the town falls with little damage and the defender's hero and crew retreat to their nearest town.
 
