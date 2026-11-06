@@ -455,6 +455,8 @@ session, read it before doing anything else.
 
 **Campaign loop checkpoints (Tim, 2026-11-05):** finish the campaign loop in 4 checkpoints, one fresh Sonnet thread each (Opus only for C2): (1) founding: Land Office permit, Choose-site menu, E6 bot expeditions, E6b remove the test starter towns; (2) C4 Influence (Campaign only; Classic unchanged); (3) C2 lieutenant + C3 standing orders; (4) C6 + E7 playtest. C5 still waits for F3. Economy balancing continues alongside playtests.
 
+**Hero horse (after the campaign loop checkpoints):** buy a horse for the hero at a stable in the city; the hero rides it on the island and on roads (about 3x walking speed, faster on roads). Price: to be set. Fast travel between your own towns follows F3 roads and shipments. Crew horses come with the F6.8 stables. Sprites: `mare`, `mare_saddled`, `calico` (see `cast_tracker.md`).
+
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 

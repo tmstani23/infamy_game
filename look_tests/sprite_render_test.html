@@ -39,7 +39,8 @@
 <div id="side">
   <h1>Sprite render test</h1>
   <div id="drop">Drop a character model (e.g. ronin.fbx) and its animation FBX files here, or click to pick them.
-    <input id="pick" type="file" accept=".fbx" multiple hidden></div>
+    <input id="pick" type="file" accept=".fbx" multiple hidden>
+    <input id="pickMount" type="file" accept=".glb,.gltf" hidden></div>
 
   <h2>Animations</h2>
   <ul id="clips"><li style="color:var(--muted);cursor:default">No model loaded yet</li></ul>
@@ -110,19 +111,23 @@ const DIR_VEC = {
 for (const [d, a, b] of [['NE', 'N', 'E'], ['NW', 'N', 'W'], ['SE', 'S', 'E'], ['SW', 'S', 'W']])
   DIR_VEC[d] = DIR_VEC[a].clone().add(DIR_VEC[b]).normalize();
 // Mixamo characters face +Z, so the yaw that faces a ground direction d is atan2(d.x, d.z)
-const yawFor = d => Math.atan2(DIR_VEC[d].x, DIR_VEC[d].z);
+// yawOffset turns models that face another way (mounts, see loadMount)
+let yawOffset = 0;
+const yawFor = d => Math.atan2(DIR_VEC[d].x, DIR_VEC[d].z) + yawOffset;
 
 // Half the view height in world units. 1.5 leaves room below the feet for
 // lunges and falls (1.2 cut them off at 128px); at 160px cells the character
 // stays the same pixel size as the old 128px sheets.
 const VIEW_HALF = 1.5;
+// Height the camera aims at (mounts and vehicles move it, see autoFrame)
+let aimY = CHAR_HEIGHT * 0.45;
 
 function frameCamera(cam, aspect) {
   const half = VIEW_HALF / Number($('zoom').value);
   cam.top = half; cam.bottom = -half;
   cam.left = -half * aspect; cam.right = half * aspect;
   // Aim at the character's middle so it sits centered in each cell
-  const target = new THREE.Vector3(0, CHAR_HEIGHT * 0.45, 0);
+  const target = new THREE.Vector3(0, aimY, 0);
   cam.position.copy(target).addScaledVector(VIEW_DIR, camDist);
   cam.lookAt(target);
   cam.updateProjectionMatrix();
@@ -215,7 +220,8 @@ function stripRootMotion(clip) {
   return c;
 }
 
-function setupModel(obj) {
+// fit: { height, ref } for mounts: scale so the meshes whose name matches ref (or the whole model) are height units tall
+function setupModel(obj, fit = null) {
   if (root) scene.remove(root);
   // Swap the loader's Phong materials for standard ones so the moody lights read better
   obj.traverse(o => {
@@ -233,7 +239,12 @@ function setupModel(obj) {
   // Normalize height and stand the character on the origin
   const box = new THREE.Box3().setFromObject(obj);
   const size = box.getSize(new THREE.Vector3());
-  const s = CHAR_HEIGHT / size.y;
+  let s = CHAR_HEIGHT / size.y;
+  if (fit) {
+    const refBox = new THREE.Box3();
+    if (fit.ref) obj.traverse(o => o.isMesh && new RegExp(fit.ref).test(o.name) && refBox.expandByObject(o));
+    s = fit.height / (refBox.isEmpty() ? size.y : refBox.getSize(new THREE.Vector3()).y);
+  }
   obj.scale.multiplyScalar(s);
   obj.updateMatrixWorld(true);
   const box2 = new THREE.Box3().setFromObject(obj);
@@ -639,6 +650,61 @@ addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over
 addEventListener('dragleave', () => drop.classList.remove('over'));
 addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); loadFiles(e.dataTransfer.files); });
 
+// ---------- mounts and vehicles (.glb with clips baked in, tools/export_sprites.mjs MOUNTS) ----------
+// Kept at true size next to the characters instead of stretched to their height.
+// opts: { height, ref, merge, yaw }. merge: play every clip in the file together as one clip
+// of that name (grouped scenes: team + coach + coachman). yaw: degrees to turn the model (default 180).
+let mountOpts = {};
+async function loadMount(file, opts = mountOpts) {
+  const gltf = await gltfLoader.parseAsync(await file.arrayBuffer(), '');
+  clips = []; current = null;
+  modelName = file.name.replace(/\.(glb|gltf)$/i, '');
+  yawOffset = THREE.MathUtils.degToRad(opts.yaw ?? 180);   // Blender .glb exports face -Z
+  $('inplace').checked = false;   // the rigs already walk on the spot
+  setupModel(gltf.scene, { height: opts.height || CHAR_HEIGHT, ref: opts.ref });
+  if (opts.merge) {
+    const tracks = gltf.animations.flatMap(c => c.tracks);
+    clips.push({ name: opts.merge, clip: new THREE.AnimationClip(opts.merge, -1, tracks) });
+  } else for (const c of gltf.animations) clips.push({ name: c.name, clip: c });
+  refreshClipList();
+  play(0);
+  log(`${modelName}: ${clips.length} animation(s) ready.`);
+}
+$('pickMount').onchange = e => e.target.files[0] && loadMount(e.target.files[0]);
+
+// Frames the camera around everything the clips reach, for all 8 directions, at the
+// characters' pixel scale (pxPerUnit), and returns the cell size it picked.
+function autoFrame(pxPerUnit = 160 / (2 * VIEW_HALF), step = 32) {
+  const obj = root.children[0], m = new THREE.AnimationMixer(obj);
+  const cam = camera.clone(); aimY = 0; frameCamera(cam, 1); cam.updateMatrixWorld(true);
+  const view = cam.matrixWorldInverse, box = new THREE.Box3(), p = new THREE.Vector3();
+  let x = 0, y0 = Infinity, y1 = -Infinity;
+  for (const { clip } of clips) {
+    m.stopAllAction(); m.clipAction(clip).play();
+    for (let k = 0; k < 8; k++) {
+      m.setTime(clip.duration * k / 8);
+      root.rotation.y = 0; root.updateMatrixWorld(true);
+      box.setFromObject(obj, true);
+      for (const d of DIRS) {
+        root.rotation.y = yawFor(d); root.updateMatrixWorld(true);
+        for (let c = 0; c < 8; c++) {
+          p.set(c & 1 ? box.max.x : box.min.x, c & 2 ? box.max.y : box.min.y, c & 4 ? box.max.z : box.min.z);
+          p.applyAxisAngle(THREE.Object3D.DEFAULT_UP, root.rotation.y).applyMatrix4(view);
+          x = Math.max(x, Math.abs(p.x)); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+        }
+      }
+    }
+  }
+  m.stopAllAction(); m.uncacheRoot(obj);
+  const half = Math.max(x, (y1 - y0) / 2) * 1.04;
+  const size = Math.ceil(2 * half * pxPerUnit / step) * step;
+  aimY = ((y0 + y1) / 2) / Math.cos(ELEVATION);
+  if (![...$('size').options].some(o => o.value === String(size))) $('size').add(new Option(String(size)));
+  $('size').value = String(size);
+  $('zoom').value = String(VIEW_HALF / (size / 2 / pxPerUnit));
+  return { size, worldPerCell: size / pxPerUnit, feetUp: aimY };   // = art.json characterFraming cellWorld / feetUp
+}
+
 // ---------- export ----------
 // Glow pass for the in-game weapon glow (render/characters.js): the held item alone in white,
 // hidden where the body is in front of it, blurred into a soft halo at half size.
@@ -773,6 +839,8 @@ window.spriteTest = {
   setProcItem: k => setItemObject(PROC_ITEMS[k]()),
   setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
   setFraming: f => { $('size').value = f.size; $('zoom').value = 3 / f.cellWorld; },
+  setMount: o => { mountOpts = o; },
+  autoFrame,
 };
 
 log('Waiting for files.');

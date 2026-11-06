@@ -1,0 +1,93 @@
+{
+  "mare_gallop": {
+    "size": 288,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.221
+  },
+  "mare_walk": {
+    "size": 288,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.221
+  },
+  "mare_saddled_gallop": {
+    "size": 288,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.221
+  },
+  "mare_saddled_walk": {
+    "size": 288,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.221
+  },
+  "calico_gallop": {
+    "size": 256,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 1.151
+  },
+  "calico_walk": {
+    "size": 256,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 1.151
+  },
+  "ox_gallop": {
+    "size": 256,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 0.995
+  },
+  "ox_walk": {
+    "size": 256,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 0.995
+  },
+  "ox_cart_walk": {
+    "size": 384,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 7.2,
+    "feetUp": 1.098
+  },
+  "rickshaw_walk": {
+    "size": 224,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 1.333
+  },
+  "omnibus_walk": {
+    "size": 384,
+    "frames": 16,
+    "fps": 12,
+    "cellWorld": 7.2,
+    "feetUp": 1.315
+  },
+  "cannon_field_fire": {
+    "size": 256,
+    "frames": 18,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 0.645
+  },
+  "cannon_wooden_fire": {
+    "size": 160,
+    "frames": 18,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.611
+  }
+}

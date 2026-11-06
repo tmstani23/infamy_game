@@ -36,6 +36,14 @@
 // hand holds it (0 = back end, 1 = front end). flip and roll fix a model that
 // faces backwards or sits upside down; tune them in the sprite test page.
 //
+// Mounts and vehicles (MOUNTS below) are .glb files in assets/models/mounts/ with their
+// clips baked in (tools/mounts_to_glb.py makes them from the Blender rigs). They keep
+// their true size next to the characters (height is in world units, a character is 2),
+// at the characters' pixel scale, in a bigger cell picked to fit every direction.
+// Each sheet's cell size goes to assets/sprites/mounts.json (cellWorld and feetUp are the
+// art.json characterFraming values for that model).
+//   node tools/export_sprites.mjs . mare omnibus   (only these; mounts are part of a full run too)
+//
 // It drives look_tests/sprite_render_test.html in headless Chromium, so the
 // sheets match what that page shows. Needs Node and Playwright once:
 //   npm install playwright && npx playwright install chromium
@@ -103,6 +111,21 @@ const EXTRA = {
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx']);
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };
+// Mounts and vehicles: file in assets/models/mounts, height of the ref mesh (or the whole
+// model) in world units (character = 2), merge = play all clips of a grouped scene as one,
+// yaw = degrees to turn the model (default 180: Blender .glb exports face -Z). Heights by eye (2026-11-06); tune here.
+const MOUNTS = {
+  mare: { file: 'mare.glb', height: 2.4 },
+  mare_saddled: { file: 'mare_saddled.glb', height: 2.4, ref: '^black_beauty' },
+  calico: { file: 'calico.glb', height: 2.3 },
+  ox: { file: 'ox.glb', height: 2.0 },
+  ox_cart: { file: 'ox_cart.glb', height: 2.0, ref: '^ox$', merge: 'walk' },
+  rickshaw: { file: 'rickshaw.glb', height: 2.0, ref: '^node_0', merge: 'walk', yaw: 0 },   // built around the Mixamo driver, who faces +Z
+  omnibus: { file: 'omnibus.glb', height: 2.4, ref: '^black_beauty', merge: 'walk' },
+  // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
+  cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
+  cannon_wooden: { file: 'cannon_wooden.glb', height: 1.2, merge: 'fire', yaw: 90 },
+};
 
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const flags = process.argv.slice(3).filter(s => s.startsWith('--'));
@@ -143,7 +166,11 @@ const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))
 const outDir = path.join(root, 'assets', 'sprites');
 fs.mkdirSync(outDir, { recursive: true });
 
-if (!models.length) { console.log('No models in assets/models'); process.exit(1); }
+const mountDir = path.join(root, 'assets', 'models', 'mounts');
+let mounts = Object.entries(MOUNTS).filter(([n, m]) => fs.existsSync(path.join(mountDir, m.file)));
+if (only.length) mounts = mounts.filter(([n]) => only.includes(n));
+if (portrait) mounts = [];
+if (!models.length && !mounts.length) { console.log('No models in assets/models'); process.exit(1); }
 
 const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--allow-file-access-from-files'] });
 let written = 0;
@@ -245,6 +272,44 @@ for (const { file: model, name } of models) {
   }
   await page.close();
 }
+const mountInfoFile = path.join(outDir, 'mounts.json');
+const mountInfo = fs.existsSync(mountInfoFile) ? JSON.parse(fs.readFileSync(mountInfoFile, 'utf8')) : {};
+for (const [name, cfg] of mounts) {
+  const page = await browser.newPage();
+  page.on('pageerror', e => console.log('  page error:', e.message));
+  if (process.env.THREE_LOCAL_DIR) {
+    await page.route(/cdn\.jsdelivr\.net\/npm\/three@[^/]+\//, r => r.fulfill({
+      path: path.join(process.env.THREE_LOCAL_DIR, r.request().url().replace(/^.*three@[^/]+\//, '')),
+      contentType: 'text/javascript',
+    }));
+  }
+  await page.goto(page_url);
+  await page.waitForFunction(() => !!window.spriteTest);
+  await page.evaluate(o => window.spriteTest.setMount(o), cfg);
+  await page.setInputFiles('#pickMount', path.join(mountDir, cfg.file));
+  await page.waitForFunction(() => window.spriteTest.ready(), null, { timeout: 300000 });
+  const frame = await page.evaluate(() => window.spriteTest.autoFrame());
+  const names = await page.evaluate(() => window.spriteTest.clipNames());
+  console.log(`${name} (mount): ${names.length} animation(s), ${frame.size} px cells`);
+  for (let i = 0; i < names.length; i++) {
+    const clip = safe(names[i]);
+    if (onlyClips.length && !onlyClips.includes(clip)) continue;
+    const r = await page.evaluate(i => window.spriteTest.render(i, false, {}), i);
+    const fname = `${name}_${clip}.png`;
+    const old = path.join(outDir, fname);
+    if (fs.existsSync(old)) {
+      const archive = path.join(root, 'assets', 'sprites_archive', `${today}_${name}`);
+      fs.mkdirSync(archive, { recursive: true });
+      if (!fs.existsSync(path.join(archive, fname))) fs.copyFileSync(old, path.join(archive, fname));
+    }
+    fs.writeFileSync(old, Buffer.from(r.dataUrl.split(',')[1], 'base64'));
+    mountInfo[`${name}_${clip}`] = { size: frame.size, frames: r.frames, fps: 12, cellWorld: +frame.worldPerCell.toFixed(3), feetUp: +frame.feetUp.toFixed(3) };
+    console.log(`  ${fname}  (${r.frames} frames, ${r.duration.toFixed(3)} seconds)`);
+    written++;
+  }
+  await page.close();
+}
+if (mounts.length) fs.writeFileSync(mountInfoFile, JSON.stringify(mountInfo, null, 2) + '\n');
 } finally { await browser.close(); }
 console.log(`Done: ${written} spritesheet(s) in assets/sprites`);
 if (pack && exported.size) {

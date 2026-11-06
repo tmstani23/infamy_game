@@ -36,6 +36,22 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | old_woman | Townsfolk | ✅ oldwoman2obj1.zip (concept oldwoman2) | ✅ old_woman.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |
 | sailor | Townsfolk | ✅ | ✅ | ✅ 6 | civilian |
 
+## Mounts, vehicles and cannons
+
+`.glb` in `assets/models/mounts/`, exported through `MOUNTS` in `tools/export_sprites.mjs` (see the developer guide). Packed into `catalog_v1`; animation sets in `game/data/art.json`.
+
+| Model | Kind | Clips |
+|---|---|---|
+| mare | Horse | walk, gallop |
+| mare_saddled | Horse with saddle | walk, gallop |
+| calico | Horse | walk, gallop |
+| ox | Ox | walk, gallop |
+| ox_cart | Ox cart (vehicle) | walk |
+| rickshaw | Rickshaw (vehicle) | walk |
+| omnibus | Horse omnibus (vehicle) | walk |
+| cannon_field | Field cannon | fire (recoil only, no flash or smoke) |
+| cannon_wooden | Wooden cannon | fire (recoil only, no flash or smoke) |
+
 ## Held items (assets/models/items)
 
 Checked 2026-10-14: all four rigged models (ronin, thug, brute, mercenary) are empty-handed, and every concept prompt says "nothing in the hands", so every weapon is a separate item model.

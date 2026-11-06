@@ -50,3 +50,7 @@ This renders each model in `assets/models` with its own animation set from `asse
 Without `--pack` an export is not added to the packed runtime catalog. A full sprite audit is only needed for catalog-wide policy changes; the packing gates are in `docs/art_direction.md`.
 
 Held items (weapons, props) go in `assets/models/items/` as `.glb` (or `.fbx`), and `ITEMS` at the top of the script says who holds what (for example the mercenary holds `rifle.glb` in both hands). Sizes per character are in `SCALE` (the brute is 1.12x). The sprite test page has matching controls for trying an item and its grip by hand.
+
+### Mounts and vehicles
+
+Animals, vehicles and cannons are `.glb` files in `assets/models/mounts/` (git-ignored, like the other models). The `MOUNTS` table in `tools/export_sprites.mjs` lists each one with its file, size and clips; export them the same way (`node tools/export_sprites.mjs . mare --pack`). `tools/mounts_to_glb.py` (pip `bpy`) converts a Blender rig scene to that `.glb`. Export sizes and framing are written to `assets/sprites/mounts.json`.
