@@ -29,19 +29,22 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   function permitStatus(id) {
     const clan = state.clans?.[id];
     if (!clan) return { ok: false, reason: 'no clan', rows: [], ryo: P.ryo || 0 };
+    // Shinobi hold no businesses: they pay ryo instead (Tim 2026-11-06, frontier.json permit.shinobi)
+    const Q = clan.kind === 'ninja' && !clan.bot && P.shinobi ? { ...P, ...P.shinobi } : P;
     if (!on()) return { ok: false, reason: 'The Land Office deals in campaign games only', rows: [], ryo: P.ryo || 0 };
     const rows = clan.bot ? [] : [
       { label: 'Renown', have: Math.floor(clan.renown || 0), need: P.renown || 0 },
       { label: 'Crew', have: clans.crewCount(id), need: P.crew || 0 },
-      { label: 'Businesses held', have: businessesHeld(id), need: P.businesses || 0 },
-    ].map(r => ({ ...r, ok: r.have >= r.need }));
+      { label: 'Businesses held', have: businessesHeld(id), need: Q.businesses || 0 },
+      { label: 'Ryo', have: Math.floor(clan.ryo || 0), need: Q.ryo || 0 },
+    ].filter(r => r.need > 0 || r.label === 'Renown' || r.label === 'Crew').map(r => ({ ...r, ok: r.have >= r.need }));
     let reason = null;
     const towns = clan.bot ? (P.maxTowns ?? 1) : maxTowns(id, P.maxTowns ?? 1);   // C4: Influence unlocks the 2nd and 3rd town
     if (clan.permit) reason = 'You already hold a founding permit';
     else if (townsOf(id) >= towns) reason = `No more permits for now (${towns} town${towns === 1 ? '' : 's'}; Influence unlocks more)`;
     else if (rows.some(r => !r.ok)) reason = 'Requirements not met';
-    else if (clan.ryo < (P.ryo || 0)) reason = `A permit costs ${P.ryo} ryo`;
-    return { ok: !reason, reason, rows, ryo: P.ryo || 0, held: !!clan.permit };
+    else if (clan.ryo < (Q.ryo || 0)) reason = `A permit costs ${Q.ryo} ryo`;
+    return { ok: !reason, reason, rows, ryo: Q.ryo || 0, held: !!clan.permit };
   }
 
   function buyPermit(e) {
@@ -94,21 +97,23 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return Object.values(state.entities).filter(u => u.owner === e.owner && u.type === 'settler' && standing(u) && u.place === e.place
       && Math.hypot(u.x - e.x, u.z - e.z) < radius && ((ids || []).includes(u.id) || (u.order?.kind === 'follow' && u.order.target === e.id)));
   }
-  // { ok, reason, settlers, site } for 'expedition' (validation only; game.js moves the party)
+  // settlers waiting at the HQ (Tim 2026-11-06): they all go with the hero through the gate
+  const settlersWaiting = id => state.clans?.[id]?.settlersWaiting || 0;
+  // { ok, reason, settlers, waiting, site } for 'expedition' (validation only; game.js moves the party and spawns the waiting)
   function expeditionCheck(e, c) {
     const clan = state.clans?.[e?.owner];
     if (!clan || !standing(e)) return { ok: false, reason: 'no hero' };
     if (!on() || !modeRules(state).island) return { ok: false, reason: 'Expeditions leave in campaign games only' };
     if (!atGate(e)) return { ok: false, reason: 'Stand at the island gate' };
-    const settlers = partyAtGate(e, c.units);
-    if (c.action === 'walk') return { ok: true, settlers };
+    const settlers = partyAtGate(e, c.units), waiting = settlersWaiting(clan.id), n = settlers.length + waiting;
+    if (c.action === 'walk') return { ok: true, settlers, waiting };
     if (!clan.permit) return { ok: false, reason: 'Buy a founding permit at the Land Office first' };
-    if (settlers.length < D.minSettlers) return { ok: false, reason: `Bring at least ${D.minSettlers} settlers (${settlers.length} with you)` };
+    if (n < D.minSettlers) return { ok: false, reason: `Bring at least ${D.minSettlers} settlers (${n} with you)` };
     const si = (worldData?.sites || []).find(s => s.id === c.site);
     if (!si) return { ok: false, reason: 'No such site' };
     const why = siteBlocked(si, clan.id);
     if (why) return { ok: false, reason: why };
-    return { ok: true, settlers, site: si };
+    return { ok: true, settlers, waiting, site: si };
   }
   function claim(id, siteId) {
     const all = claims();
@@ -165,6 +170,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { office, atOffice, atGate, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate,
+  return { office, atOffice, atGate, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botBudget, botSite, settlerPrice, day };
 }

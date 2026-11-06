@@ -18,6 +18,7 @@ import { interactionDoor as selectInteractionDoor } from './door_interaction.js'
 import { createClinicMenu } from './clinic_menu.js';
 import { createPoliceMenu } from './police_menu.js';
 import { createLandOfficeMenu } from './land_office_menu.js';
+import { createGoalCard } from './goal_card.js';
 import { createSiteMenu } from './site_menu.js';
 import { createLieutenantPanel } from './lieutenant_panel.js';
 import { createContractMenu } from './contract_menu.js';
@@ -267,6 +268,24 @@ async function start() {
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   onKey('KeyH', () => hireMenu.toggle());
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
+  // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
+  let hintAt = 0, calloutShown = false, gateCallout = false;
+  function officeHint(now) {
+    if (now - hintAt < 250) return;
+    hintAt = now;
+    const h = game.state.entities[heroId], L = game.landOffice, b = L?.office(), c = h && game.state.clans[h.owner];
+    const ready = !!(b && c && !c.bot && !c.permit && L.permitStatus(c.id).ok) && !landOfficeMenu.isOpen();
+    // Leave the city goal (Tim 2026-11-06): the island gate gets the same gold blink and minimap pulse
+    const leave = !ready && h?.place !== 'world' && !!game.goals?.current(h?.owner)?.gate && game.gate?.city;
+    const door = leave ? game.gate.city : b && (b.ring || b.door || [b.x, b.z]);
+    view.setOfficeHint(ready || leave ? door : null);
+    game.officeHint = ready || leave ? { x: door[0], z: door[1] } : null;
+    if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are ready: leave the city through the island gate (gold marker on the map)', 'news', 5000); }
+    if (ready && !calloutShown) { calloutShown = true; callout('You can buy a founding permit: go to the telegraph office (gold marker on the map)', 'news', 5000); }
+  }
+  // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
+  const goalCard = createGoalCard({ root: $('goalcard'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -648,6 +667,7 @@ async function start() {
       el.hidden = !hoverLamp;
       if (hoverLamp) { const n = game.stealth.snuffsLeft(h.owner), t = n ? `Snuff (${n} left tonight)` : 'No snuffs left tonight';
         if (el.textContent !== t) el.textContent = t; el.style.left = `${mouse.x + 16}px`; el.style.top = `${mouse.y - 8}px`; } }
+    officeHint(now); goalCard.update(now);
     minimap.update();
     }else{
       $('snuffhint').hidden=true;

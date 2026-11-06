@@ -20,9 +20,9 @@ const SAVES = {
   // A campaign match (the island gate is open, W3.5) with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
   dev_frontier: { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', ticks: 400, playerRyo: 3000, frontier: true, settlers: 6 },
   // Campaign as a real game (no fixture towns), ready to test the campaign loop (Tim 2026-11-06): the city's businesses
-  // are shared out evenly between the clans that hold them, and every clan has the Renown, 8 crew and ryo to buy a
+  // are shared out evenly between the clans that hold them, and every clan has the Renown, 11 crew (3 spare over the permit's 8, so an early fight does not drop below it) and ryo to buy a
   // permit, hire settlers and found a town. Nobody holds a permit yet; rivals leave once you found (the real rule).
-  campaign_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8 },
+  campaign_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 11 },
 };
 
 // Shares out the free businesses (the kinds that give crew room) between the clans that may hold them (the

@@ -158,7 +158,8 @@
     "townHall": "town_hall", "firstProject": null,
     "permit": {
       "_note": "E1 2026-11-05 placeholders, Tim to tune. A founding permit is bought at the Land Office (telegraph_office) and used up by the next founding. Player needs renown, crew and businesses held; bots need none of these (bots: false). ryo = permit price. maxTowns = towns a clan may found for now (C4 Influence raises it for the 2nd and 3rd town).",
-      "renown": 250, "crew": 8, "businesses": 3, "ryo": 0, "maxTowns": 1
+      "renown": 250, "crew": 8, "businesses": 3, "ryo": 0, "maxTowns": 1,
+      "shinobi": { "_note": "Tim 2026-11-06: Shinobi hold no businesses, so they pay ryo instead", "businesses": 0, "ryo": 1500 }
     },
     "graceDays": 2, "_graceNote": "E1 2026-11-05: camp bandits leave a new town's people alone for this many days (inside graceRadius of the hall)",
     "graceRadius": 600,

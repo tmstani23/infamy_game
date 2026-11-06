@@ -333,6 +333,13 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
         }
       }
     }
+    // telegraph office: a pulsing gold ring while you can buy a founding permit (set by main.js)
+    if (game.officeHint) {
+      const [u, v] = toMap(game.officeHint.x, game.officeHint.z), q = (nowMs / 1000) % 1.5 / 1.5;
+      ctx.beginPath(); ctx.arc(u, v, (4 + q * 12) * Math.sqrt(zoom), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
+      ctx.beginPath(); ctx.arc(u, v, 3.2 * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
+    }
     // units on the street that you can see (yours on top)
     const list = Object.values(state.entities).filter(e => e.place === 'street' && !e.dead)
       .sort((a, b) => (a.owner === clan) - (b.owner === clan) || (a.id === heroId) - (b.id === heroId));

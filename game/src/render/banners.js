@@ -106,6 +106,10 @@ export function createBanners({ scene }) {
   const lanterns = new Map();        // business id -> { mesh, glow, pool, ring, thing }
   const knocks = new Map();          // business id -> the knock-down progress ring
   let lanternTex = null, glowTex = null;
+  // Telegraph office hint (Tim 2026-11-06): once a permit can be bought, the office door blinks gold.
+  // The view sets hint to [x, z] (the door ring) or null; nothing is stored in the sim.
+  let hint = null, hintMarks = null;
+  const setHint = p => { hint = p; };
   const POOL_GEO = new THREE.CircleGeometry(1, 48);
 
   function addLantern(x, z) {
@@ -271,6 +275,20 @@ export function createBanners({ scene }) {
       l.ring.material.opacity = .45 + .05 * beat;
       runeProgress(l.ring, a.warmupTotal ? 1 - (a.opensAt - state.tick) / a.warmupTotal : NaN);
     }
+    // telegraph office hint: a gold pool and ring on the ground that flare for ~1.5 s out of every 4 s
+    if (hint && place === 'street') {
+      if (!hintMarks) {
+        if (!glowTex) glowTex = glowTexture();
+        const pool = new THREE.Mesh(POOL_GEO, new THREE.MeshBasicMaterial({ color: 0xffc040, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+        const ring = createRune(RUNE.raid, 0xffd470);
+        for (const m of [pool, ring]) { m.rotation.x = -Math.PI / 2; m.renderOrder = 2; scene.add(m); }
+        hintMarks = { pool, ring };
+      }
+      const cyc = (time % 4) / 4, flare = cyc < 0.375 ? Math.sin(cyc / 0.375 * Math.PI) : 0, r = 2.2 + 0.8 * flare;
+      for (const m of [hintMarks.pool, hintMarks.ring]) { m.position.set(hint[0], 0.04, hint[1]); m.scale.setScalar(r); m.visible = true; }
+      hintMarks.pool.material.opacity = 0.05 + 0.3 * flare;
+      hintMarks.ring.material.opacity = 0.25 + 0.7 * flare;
+    } else if (hintMarks) { hintMarks.pool.visible = hintMarks.ring.visible = false; }
     // someone knocking a War Lantern down (Tim 2026-10-20): a red ring at his feet fills over the channel
     for (const [id, m] of knocks) if (!state.attacks?.[id]?.knock) { scene.remove(m); m.material.dispose(); knocks.delete(id); }
     for (const a of Object.values(state.attacks || {})) {
@@ -290,5 +308,5 @@ export function createBanners({ scene }) {
     }
     return claimed;
   }
-  return { update, things, spot };
+  return { update, things, spot, setHint };
 }

@@ -56,21 +56,19 @@ assert.ok(clan.permit, `permit bought: ${clan.notice?.text}`);
 assert.equal(clan.ryo, ryo0 - (P.ryo || 0));
 assert.equal(L.permitStatus('player').ok, false, 'one permit at a time');
 
-// --- settlers: hired here, wait outside, their own group (no crew record, no follow) -------------------
+// --- settlers: hired here, then wait safely at the HQ as a count (Tim 2026-11-06), not as units -------
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 5 }]);
 assert.equal(clan.queue.filter(q => q.unit === 'settler').length, 5);
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'thug' }]);
 assert.equal(clan.queue.length, 5, 'the Land Office hires settlers only');
-for (let i = 0; i < 2000 && g.clans.settlersOf('player').length < 5; i++) g.step([]);
-const settlers = g.clans.settlersOf('player');
-assert.equal(settlers.length, 5);
-assert.ok(settlers.every(u => u.place === 'street' && Math.hypot(u.x - office.ring[0], u.z - office.ring[1]) < 8 && u.order?.kind !== 'follow'), 'they wait outside the Land Office');
+for (let i = 0; i < 2000 && (clan.settlersWaiting || 0) < 5; i++) g.step([]);
+assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ');
+assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city streets');
 
 // --- the island gate: Choose site takes the hero and the settlers only ---------------------------------
 const gate = g.doors.find(d => d.gate && d.place === 'world');
 const toGate = () => {
   Object.assign(hero, { place: 'street', x: gate.x, z: gate.z });
-  settlers.forEach((u, i) => Object.assign(u, { place: 'street', x: gate.x + 0.6 * (i + 1), z: gate.z + 0.6, order: { kind: 'follow', target: hero.id } }));
 };
 toGate();
 const crew = g.clans.crewOf('player').filter(u => u.type === 'thug');
@@ -81,13 +79,17 @@ assert.ok(sites.every(s => s.traits.soil >= 1 && s.traits.water >= 1 && s.traits
 assert.ok(sites.some(s => s.campWarn), 'some sites warn of a nearby camp');
 const pickSite = open[0];
 // not enough settlers
-settlers[4].order = { kind: 'move', x: 0, z: 0 }; Object.assign(settlers[4], { x: gate.x + 30 });
+clan.settlersWaiting = 4;
 g.step([{ id: hero.id, type: 'expedition', action: 'site', site: pickSite.id, units: [] }]);
 assert.equal(hero.place, 'street', 'four settlers are not enough for a site');
+clan.settlersWaiting = 5;
 toGate();
 g.step([{ id: hero.id, type: 'expedition', action: 'site', site: pickSite.id, units: [] }]);
 assert.equal(hero.place, 'world', clan.notice?.text);
 assert.ok(Math.hypot(hero.x - pickSite.x, hero.z - pickSite.z) < 40, 'the hero stands at the site');
+const settlers = g.clans.settlersOf('player');
+assert.equal(settlers.length, 5, 'the waiting settlers stepped out at the site');
+assert.equal(clan.settlersWaiting, 0);
 assert.ok(settlers.every(u => u.place === 'world' && Math.hypot(u.x - hero.x, u.z - hero.z) < 15), 'the settlers came along');
 assert.ok(crew.every(u => u.place === 'street'), 'crew stay in the city');
 assert.equal(g.state.frontier.siteClaims[pickSite.id], 'player', 'the site is claimed');

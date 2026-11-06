@@ -244,6 +244,9 @@ export function createClans(state, units, opts = {}) {
       const h = clan.queue[0];
       if (!h || (h.left -= dt) > 1e-9) continue;
       clan.queue.shift();
+      // settlers (Tim 2026-11-06) wait safely inside the HQ as a count, not as units in the street; they appear
+      // beside the hero when he leaves the city through the island gate (game.js expedition)
+      if (types[h.unit]?.settler && modeRules(state).founding) { clan.settlersWaiting = (clan.settlersWaiting || 0) + 1; say(clan, 'A settler is waiting safely at your HQ'); continue; }
       // Player recruits (settlers too: they wait outside the Land Office, E1) hold at the hiring site until explicitly ordered to Follow.
       const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
       spawn(h.unit, types[h.unit].sprite, state.businesses[h.business],

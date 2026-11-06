@@ -532,6 +532,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       raycaster.setFromCamera({x:px/innerWidth*2-1,y:1-py/innerHeight*2},camera);
       return ids.get(raycaster.intersectObjects(plates,false)[0]?.object)||null;
     },
+    setOfficeHint(p) { banners.setHint(p); },   // telegraph office door [x, z] or null
     commandPlace(state, followId) { return cameraPlace(state.entities[followId]); },
     audioFocus(state, followId, selected = []) {
       const h = state.entities[followId];

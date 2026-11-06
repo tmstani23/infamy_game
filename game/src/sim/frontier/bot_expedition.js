@@ -15,13 +15,14 @@ export function createBotExpedition(game, { clan, hero, ai }) {
   const myClan = () => state.clans[clan];
   const settlers = () => Object.values(state.entities).filter(u => u.owner === clan && u.type === 'settler' && !u.dead && !u.downed);
   const queued = () => myClan().queue.filter(q => q.unit === 'settler').length;
+  const count = () => settlers().length + (myClan().settlersWaiting || 0);   // settlers wait at the HQ (2026-11-06)
   const office = () => L.office();
   const raided = () => Object.values(state.attacks || {}).some(a => a.mode === 'raid' && a.defender === clan);
   let tries = 0;
 
   // what the rest of the trip still costs
   const need = () => {
-    const c = myClan(), missing = Math.max(0, D.minSettlers - settlers().length - queued());
+    const c = myClan(), missing = Math.max(0, D.minSettlers - count() - queued());
     return (c.permit ? 0 : (D.permit?.ryo || 0)) + missing * L.settlerPrice() + D.cost + (D.bots?.reserve ?? 0);
   };
   const due = () => L.botDue(clan, Math.max(0, order()));
@@ -58,10 +59,10 @@ export function createBotExpedition(game, { clan, hero, ai }) {
     if (!ai.toStreet(out)) return true;
     const b = office();
     if (!b?.ring) return false;
-    if (!c.permit || settlers().length + queued() < D.minSettlers) {
+    if (!c.permit || count() + queued() < D.minSettlers) {
       if (!ai.walk(out, b.ring[0], b.ring[1], 0.8)) return true;
       if (!c.permit) out.push({ id: hero, type: 'landOffice', action: 'permit' });
-      else out.push({ id: hero, type: 'hire', business: b.id, unit: 'settler', count: D.minSettlers - settlers().length - queued() });
+      else out.push({ id: hero, type: 'hire', business: b.id, unit: 'settler', count: D.minSettlers - count() - queued() });
       return true;
     }
     if (queued()) { out.push({ id: hero, type: 'move', right: 0, down: 0 }); return true; }
@@ -72,7 +73,7 @@ export function createBotExpedition(game, { clan, hero, ai }) {
     const g = game.gate.city;
     if (!ai.walk(out, g[0], g[1], 0.8)) return true;
     const party = settlers().filter(u => u.place === 'street' && Math.hypot(u.x - h.x, u.z - h.z) < 12);
-    if (party.length < D.minSettlers) { out.push({ id: hero, type: 'move', right: 0, down: 0 }); return true; }
+    if (party.length + (c.settlersWaiting || 0) < D.minSettlers) { out.push({ id: hero, type: 'move', right: 0, down: 0 }); return true; }
     const site = L.botSite(clan);
     if (site) out.push({ id: hero, type: 'expedition', action: 'site', site, units: party.map(u => u.id) });
     return true;

@@ -57,6 +57,7 @@ import { createCombat } from './combat.js';
 import { createDiscovery } from './discovery.js';
 import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
+import { createCampaignGoals } from './campaign_goals.js';
 import { createInfluence } from './influence/influence.js';
 import { createLieutenantRules } from './lieutenant.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
@@ -587,7 +588,11 @@ export function createGame(options) {
     Object.assign(e, to, { place: 'world', anim: 'idle' });
     delete paths[e.id]; delete intents[e.id];
     areas.update(Object.values(state.entities));
-    const grid = navOf('world');
+    const grid = navOf('world'), st = units?.types?.settler;
+    if (r.waiting && st && clan) {   // Tim 2026-11-06: settlers held safe at the HQ step out here
+      for (let k = 0; k < r.waiting; k++) r.settlers.push(state.entities[spawn('settler', st.sprite, e.x, e.z, { owner: e.owner, hp: st.hp, holdFire: true, place: 'world' })]);
+      clan.settlersWaiting = 0;
+    }
     r.settlers.forEach((u, k) => {
       const [ox, oz] = followOffset(k % 36);
       const [x, z] = grid.nearestFree(e.x + ox * 0.8, e.z + oz * 0.8) || [e.x, e.z];
@@ -1097,5 +1102,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, lieutenant, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals: createCampaignGoals({ state, clans, landOffice, influence, data: options.frontier || {} }), lieutenant, dayTicks };
 }

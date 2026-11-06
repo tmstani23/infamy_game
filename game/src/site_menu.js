@@ -10,7 +10,8 @@ export function createSiteMenu({ panel, game, heroId, selected = () => [], send 
   const L = () => game.landOffice;
   const party = () => L()?.partyAtGate(hero(), selected()) || [];
   // the menu is for a hero at the gate holding a permit with settlers along
-  const wanted = () => { const h = hero(); return !!L() && L().atGate(h) && !!clan()?.permit && party().length > 0; };
+  const waiting = () => L()?.settlersWaiting?.(hero()?.owner) || 0;   // settlers held at the HQ come along (2026-11-06)
+  const wanted = () => { const h = hero(); return !!L() && L().atGate(h) && !!clan()?.permit && party().length + waiting() > 0; };
 
   function go(site) {
     const h = hero();
@@ -30,7 +31,7 @@ export function createSiteMenu({ panel, game, heroId, selected = () => [], send 
     panel.hidden = !open;
     const c = clan();
     if (!open || !c) return;
-    const F = game.frontier?.data?.founding || {}, n = party().length, need = F.minSettlers ?? 5;
+    const F = game.frontier?.data?.founding || {}, n = party().length + waiting(), need = F.minSettlers ?? 5;
     const all = L().sites(c.id), list = all.filter(s => s.open)
       .sort((a, b) => (b.traits.soil + b.traits.water + b.traits.defense) - (a.traits.soil + a.traits.water + a.traits.defense) || (a.travel ?? 0) - (b.travel ?? 0));
     const rows = list.map(s => {

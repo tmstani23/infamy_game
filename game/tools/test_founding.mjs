@@ -40,13 +40,16 @@ for (let i = 0; i < 5; i++) g.step([{ id: hero.id, type: 'hire', business: offic
 assert.equal(clan.queue.length, 5);
 assert.equal(clan.ryo, ryoBefore - 5 * U.types.settler.price, 'flat price each');
 assert.equal(g.clans.hirePrice('player', 'settler'), U.types.settler.price, 'price does not climb');
-for (let i = 0; i < 1300 && g.clans.settlersOf('player').length < 5; i++) g.step([]);
+for (let i = 0; i < 1300 && (clan.settlersWaiting || 0) < 5; i++) g.step([]);
+assert.equal(clan.settlersWaiting, 5, 'settlers wait safely at the HQ (Tim 2026-11-06)');
+assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city');
+assert.equal(g.clans.crewCount('player'), crewBefore, 'settlers are not crew');
+// the gate turns them into units beside the hero (test_land_office); here they are placed directly
+clan.settlersWaiting = 0;
+for (let i = 0; i < 5; i++) g.spawn('settler', U.types.settler.sprite, hero.x + 1 + i * 0.6, hero.z + 1, { owner: 'player', hp: U.types.settler.hp, holdFire: true });
 const settlers = g.clans.settlersOf('player');
 assert.equal(settlers.length, 5);
-assert.equal(g.clans.crewCount('player'), crewBefore, 'settlers are not crew');
 assert.equal(g.clans.crewOf('player').filter(u => u.type === 'settler').length, 0);
-assert.ok(settlers.every(u => u.holdFire && u.order?.kind !== 'follow'), 'settlers wait outside the Land Office and never attack');
-assert.ok(settlers.every(u => Math.hypot(u.x - office.ring[0], u.z - office.ring[1]) < 8), 'they appear outside the Land Office');
 for (const u of settlers) u.order = { kind: 'follow', target: hero.id };
 assert.ok(!settlers[0].deployment, 'settlers are outside the deployment groups');
 // Regression (Tim 2026-11-05): right-clicking with settlers and crew selected while deployment rules are on
