@@ -6,6 +6,10 @@ Repo layout, look tests, sprite export and tech overview.
 
 The browser client uses JavaScript ES modules and three.js, with isometric character sprites rendered from 3D models. The simulation owns game rules and state; the client sends commands and renders the results. A local Node server serves the game and saves. The architecture is designed for multiplayer later; a networked multiplayer release is not built yet.
 
+## Test status (2026-11-06)
+
+12 stale tests in `game/tools` updated to current rules (and `mode_baseline.json` refreshed); `rewards.js` dawn exception for leaderDown removed; all 13 pass. `formatStat`/`modifierDisplay` moved to `src/character_stat_format.js` (re-exported from `character_panel.js`).
+
 ## Repo layout
 
 | Path | What it is |

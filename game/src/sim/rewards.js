@@ -25,7 +25,7 @@ export function createRewards(state, rules = {}) {
     if (state.bounties.claimed[victim.id]) return;
     state.bounties.claimed[victim.id] = clan.id;
     const job = state.contracts?.active?.[clan.id];
-    if (job?.kind === 'boss' && job.hero === victim.id && !(state.dawn && job.takenAt < state.tick)) return; // a live contract pays instead
+    if (job?.kind === 'boss' && job.hero === victim.id) return; // a live contract pays instead (contracts never expire at dawn)
     const amount = rules.leaderBounty ?? 250;
     if (amount <= 0) return;
     clan.ryo += amount;

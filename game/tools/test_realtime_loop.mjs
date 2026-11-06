@@ -27,11 +27,16 @@ for (const fps of [60, 20, 8, 5, 2]) {
   clock.advance(.025, () => ticks++);
   assert.equal(ticks, 21, 'paused frames never accumulate catch-up debt');
 }
-// Test the production loop wiring as well as its clock: one presentation pass,
-// but all one-tick contacts, news, effects, sound and reward events are consumed.
+// Test the production loop wiring as well as its clock. The simulation runs in a
+// worker (sim_worker_runtime.js): every fixed step is followed by event collection,
+// so one-tick contacts, news, effects, sound and reward events reach the snapshot.
+const worker = readFileSync(new URL('../src/sim_worker_runtime.js', import.meta.url), 'utf8');
+const pump = worker.slice(worker.indexOf('clock.advance(elapsed'), worker.indexOf('},paused);'));
+for (const call of ['game.step(', 'encoder.observe()', 'collect()']) assert.ok(pump.includes(call), call);
+// The main thread consumes each snapshot once in simClient.observe: one presentation pass.
 const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-const loop = main.slice(main.indexOf('clock.advance(elapsed'), main.indexOf('}, paused);'));
-for (const call of ['game.step(', 'gameMap.observe()', 'newsCallouts.update()', 'view.addHits(', 'view.addCasts(', 'sound.update(', 'topBar.observe()']) assert.ok(loop.includes(call), call);
+const loop = main.slice(main.indexOf('simClient.observe('), main.indexOf('// Input publication'));
+for (const call of ['gameMap.observe()', 'newsCallouts.update()', 'view.addHits(', 'view.addCasts(', 'sound.update(', 'topBar.observe()']) assert.ok(loop.includes(call), call);
 for (const name of ['stealthBadge', 'characterPanel', 'hireMenu', 'clinicMenu', 'policeMenu', 'contractMenu', 'deploymentPanel', 'topBar', 'crewInput', 'selPanel', 'unitFrames', 'bldPanel', 'interiorInfo']) {
   assert.ok(!loop.includes(`${name}.update()`), `${name} paints outside catch-up`);
   assert.equal(main.split(`${name}.update()`).length - 1, 1, `${name} has one frame update`);
@@ -81,9 +86,9 @@ try {
   const saved = Object.fromEntries(keys.map(k => [k, globalThis[k]]));
   try {
     const ctx = new Proxy({}, { get: (o, k) => o[k] ?? (() => {}) });
-    const canvas = () => ({ clientWidth: 200, getContext: () => ctx, handlers: {},
+    const canvas = () => ({ clientWidth: 200, getContext: () => ctx, handlers: {}, style: {},
       addEventListener(k, fn) { this.handlers[k] = fn; }, getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) });
-    globalThis.document = { createElement: canvas }; globalThis.devicePixelRatio = 1;
+    globalThis.document = { createElement: canvas, body: { appendChild() {} } }; globalThis.devicePixelRatio = 1;
     globalThis.addEventListener = () => {}; globalThis.innerWidth = 1000; globalThis.innerHeight = 800;
     globalThis.ImageData = class { constructor(w, h) { this.data = new Uint8ClampedArray(w * h * 4); } };
     const grid = { w: 2, h: 2, minX: 0, minZ: 0, visible: new Uint8Array(4), explored: new Uint8Array(4) };

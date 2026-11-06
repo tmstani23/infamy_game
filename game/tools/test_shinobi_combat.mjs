@@ -29,7 +29,10 @@ function assassinate(g, hero, target) {
   const victim = { id: 'v', owner: 'r', type: 'thug', x: 0, z: 0 };
   rewards.crewExecuted(attacker, victim); assert.equal(state.clans.s.renown, 2);
   for (const v of [{ ...victim, owner: 's' }, { ...victim, guard: true },
-    ...['civilian', 'bandit', 'night_brute', 'junsa', 'hero'].map(type => ({ ...victim, type }))]) rewards.crewExecuted(attacker, v);
+    // Non-clan units as the game spawns them: no clan owner, or flagged wild/cop.
+    { ...victim, type: 'civilian', owner: 'town' }, { ...victim, type: 'bandit', owner: 'bandits', wild: true },
+    { ...victim, type: 'night_brute', owner: 'wild', wild: true }, { ...victim, type: 'junsa', owner: 'police', cop: true },
+    { ...victim, type: 'hero' }]) rewards.crewExecuted(attacker, v);
   rewards.crewExecuted({ ...attacker, owner: 'r' }, { ...victim, owner: 's' });
   assert.equal(state.clans.s.renown, 2); assert.equal(state.clans.r.renown, undefined);
   state.contracts = { active: { s: { kind: 'boss', hero: 'boss', takenAt: 0 } } };

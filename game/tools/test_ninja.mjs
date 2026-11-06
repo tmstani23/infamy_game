@@ -256,6 +256,7 @@ const newGame = () => {
   // take a Scout job: the target is warned; stand inside hidden for its seconds
   let job = want('scout');
   const scoutQuote = g.contracts.quote(job);
+  C.readyAt.player = 0;   // skip the accept interval (aa1fa76); pacing is covered by test_contract_pacing
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   assert.equal(C.active.player?.id, job.id, 'scout taken');
   assert.ok(g.state.news.some(n => n.kind === 'contractWarn' && n.clan === 'kuroda'), 'kuroda warned');
@@ -269,12 +270,14 @@ const newGame = () => {
   g.step([{ type: 'time', night: true }]);
   job = want('mark');
   const markQuote = g.contracts.quote(job);
+  C.readyAt.player = 0;   // skip the accept interval (aa1fa76); pacing is covered by test_contract_pacing
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const spot = g.contracts.backRoom(tea);
   Object.assign(crew, { x: spot.x, z: spot.z });
   run(20 * (K.mark.plantSeconds + 1));
   assert.ok(C.active.player?.mark, 'mark planted');
-  run(20 * (K.mark.holdSeconds + 1));
+  // a hidden plant alerts the owner after alertDelay; the job can't finish until alertWindowSeconds after that (Tim 2026-10-30)
+  run(20 * (Math.max(K.mark.holdSeconds, K.mark.alertDelay + K.alertWindowSeconds) + 1));
   assert.ok(!C.active.player && tea.sabotaged, 'mark held: sabotaged');
   const k0 = g.state.clans.kuroda.ryo;
   g.step([{ type: 'time', night: false }]);
@@ -285,6 +288,7 @@ const newGame = () => {
   crew.place = 'street';
   job = want('steal');
   const stealQuote = g.contracts.quote(job);
+  C.readyAt.player = 0;   // skip the accept interval (aa1fa76); pacing is covered by test_contract_pacing
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const win = g.doors.find(d => d.ninja && d.place === tea.room);
   // right-click the business with crew selected: they climb in by the back window too (Tim 2026-10-21)
@@ -317,13 +321,15 @@ const newGame = () => {
   assert.ok(C.active.player.progress > p2, 'the count runs while seen');
   delete g.state.entities[watcher.id];
   Object.assign(boss, { x: stash.x, z: stash.z });
-  run(20 * (K.steal.seconds - 3));
+  // seen = alerted: the steal can't finish until alertWindowSeconds after the alarm (Tim 2026-10-30)
+  run(20 * (Math.max(K.steal.seconds - 3, K.alertWindowSeconds) + 1));
   assert.equal(clan.ryo - r1, Math.min(stealQuote.stealCap, 1000 * stealQuote.stealShare), 'stole their ryo');
   assert.equal(g.state.clans.kuroda.ryo, 1000 - (clan.ryo - r1));
   // Dawn does not cancel an accepted job or pay it prematurely.
   boss.place = 'street'; Object.assign(boss, { x: shrine.x, z: shrine.z });
   g.step([{ type: 'time', night: true }]);
   job = C.board[0];
+  C.readyAt.player = 0;   // skip the accept interval (aa1fa76); pacing is covered by test_contract_pacing
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const r2 = clan.ryo;
   const renownBeforeDawn = clan.renown;
@@ -350,6 +356,7 @@ const newGame = () => {
   const shrine = g.doors.find(d => d.menu === 'contracts');
   const boss = g.state.entities[g.spawn('hero', 'ninja_leader', shrine.x, shrine.z, { owner: 'player' })];
   const n0 = C.board.length;
+  C.readyAt.player = 0;   // skip the accept interval (aa1fa76); pacing is covered by test_contract_pacing
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   assert.equal(C.active.player?.id, job.id, 'taken');
   assert.ok(!C.board.some(j => j.target === job.target), 'no other jobs left on that clan');

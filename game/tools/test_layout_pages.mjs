@@ -5,7 +5,7 @@ class Node{
  children=[];handlers={};hidden=false;attrs={};className='';classes=new Set();
  classList={toggle:(k,on)=>on?this.classes.add(k):this.classes.delete(k),contains:k=>this.classes.has(k),add:k=>this.classes.add(k),remove:k=>this.classes.delete(k)};
  append(...n){this.children.push(...n);}appendChild(n){this.append(n);}setAttribute(k,v){this.attrs[k]=v;}
- addEventListener(k,fn){this.handlers[k]=fn;}querySelectorAll(){return this.items||[];}
+ addEventListener(k,fn){this.handlers[k]=fn;}querySelectorAll(){return this.items||[];}querySelector(){return null;}
 }
 const previous=globalThis.document;globalThis.document={createElement:()=>new Node(),head:new Node(),body:new Node()};
 try{

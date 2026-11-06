@@ -65,6 +65,7 @@ const geisha={id:'g',type:'shinobi_geisha',owner:'a',x:0,z:0,hp:160,order:{kind:
 const ds={tick:1,entities:{g:geisha,victim},clans:{a:{},b:{}},casts:[]};
 const diversion=createDiversion({state:ds,deployment:{canOccupy:()=>true},vision:{canSee:()=>true},hostile:(a,b)=>a.owner!==b.owner,reveal:()=>{},clearCombat:()=>{}});
 assert.ok(diversion.step(geisha,units.types.shinobi_geisha));assert.equal(geisha.lure.target,victim.id,'Charm initiates against the commanded target');
-assert.equal(Object.values(civilians.types).reduce((n,t)=>n+t.count,0),30,'two new civilians replace existing slots');
+// town vehicles (rickshaw, ox cart, omnibus; 22e4907) are extra slots, not walkers
+assert.equal(Object.values(civilians.types).filter(t=>!t.vehicle).reduce((n,t)=>n+t.count,0),30,'two new civilians replace existing slots');
 for(const name of ['foreign_visitor','western_dockworker']){assert.equal(civilians.types[name].nightOut,0);assert.deepEqual(civilians.types[name].homes,['dock_warehouse','customs_house']);}
 console.log('New roster: clan hiring/assets, real arrow flight/damage/Hamstring/charm protection, tank cone/passive/reveal/defence, initiating Charm and civilian slots passed');

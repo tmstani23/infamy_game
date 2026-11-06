@@ -95,10 +95,12 @@ console.log('all four crew types: 50 ryo per execution, no down or duplicate rew
   const { g, hero, clan } = make(true);
   const victim = g.spawn('hero', 'rival_yakuza', -6, 1, { owner: 'rival', hp: 1 });
   g.state.contracts.active.player = { kind: 'boss', clan: 'player', hero: victim, target: 'rival',
-    ryo: 400, renown: 40, label: 'Expiring contract', takenAt: 0, progress: 0 };
+    ryo: 400, renown: 40, label: 'All-day contract', takenAt: 0, progress: 0 };
   g.step([{ type: 'time', night: true }]);
   const before = clan.ryo;
+  // Contracts no longer expire at dawn (all-day contracts, ba62146): a live boss contract taken
+  // before dawn still replaces the cash bounty when the boss falls on the dawn tick.
   g.step([{ type: 'time', night: false }, { id: hero, type: 'ability', slot: 'Q', x: -6, z: 1, target: victim }]);
-  assert.equal(clan.ryo - before, 250, 'an expired contract cannot swallow the normal bounty');
-  assert.equal(clan.renown, 8, 'expired contract pays no Renown but leader defeat does');
+  assert.equal(clan.ryo - before, 400, 'a contract running over dawn still replaces the normal bounty');
+  assert.equal(clan.renown, 48, 'contract Renown stacks with leader defeat Renown');
 }

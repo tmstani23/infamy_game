@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame, DT } from '../src/sim/game.js';
-import { formatStat, modifierDisplay } from '../src/character_panel.js';
+import { formatStat, modifierDisplay } from '../src/character_stat_format.js';   // character_panel.js pulls in three.js (browser CDN only)
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 function make(faction = 'kuroda', model = 'rival_yakuza') {
   const units = data('data/units.json');

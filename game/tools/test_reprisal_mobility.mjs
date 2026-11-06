@@ -21,7 +21,7 @@ function measure(g,h,c=move(h)) {const p=[h.x,h.z];g.step([c]);return dist(h,p);
   const {g,hero:h}=make();g.step([cast(h)]);const tick=g.state.tick;
   close(measure(g,h),6*1.3/20);
   assert.ok(!h.brace&&!h.buffs.reprisal);assert.equal(h.buffs.pursuit.until,tick+80);
-  assert.equal(h.cooldowns.E,400);assert.equal(h.buffs.pursuit.runSpeed,1.3);
+  assert.equal(h.cooldowns.E,300); // Reprisal cooldown 20 s -> 15 s in 4736076assert.equal(h.buffs.pursuit.runSpeed,1.3);
   assert.equal(g.state.casts.filter(c=>c.kind==='pursuit').length,1);
   g.step([move(h,0)]);
   while(g.state.tick<h.buffs.pursuit.until)g.step();

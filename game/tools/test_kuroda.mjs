@@ -61,7 +61,7 @@ for(const player of ['yakuza','kuroda','shinobi']) {
   advance(g,161);
   const recruit=g.clans.crewOf('player').find(e=>e.type==='spearman');
   assert.equal(recruit.model,'kuroda_spearman');assert.equal(recruit.maxHp,204);
-  assert.equal(g.settings.units.types.spearman.damage,24);
+  assert.equal(g.settings.units.types.spearman.damage,22); // approved crew rebalance ff6494b
 }
 // Sweeping Cut: area/slow, room isolation, allies and neutral police/civilians.
 {
@@ -250,7 +250,8 @@ for(const buffed of [false,true]){
  rifle.order={kind:'attack',target:primary.id};
  if(buffed)rifle.buffs={reprisal:{until:g.state.tick+1000,splash:.2,radius:2}};
  let shot=false;for(let i=0;i<45&&!shot;i++){g.step();shot=g.state.hits.some(h=>h.a===rifle.id&&h.kind==='rifle');}
- assert.ok(shot);assert.equal(10000-secondary.hp,buffed?4:0,'ranged Reprisal uses20% of18 weapon damage, not80 shot damage');
+ assert.ok(shot);const weapon=g.settings.units.types.kuroda_rifleman.damage; // 12 after rebalance ff6494b
+ assert.equal(10000-secondary.hp,buffed?Math.round(weapon*.2):0,'ranged Reprisal uses 20% of base weapon damage, not shot damage');
  assert.equal(police.hp,10000,'ranged splash excludes police including wave officers');assert.equal(civilian.hp,10000);
 }
 console.log('Ranged Reprisal: base-weapon splash only during buff, no police/civilian collateral passed');

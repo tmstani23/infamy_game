@@ -17,7 +17,9 @@ const options = () => ({ district: data('data/port_town.json'), catalog, cutouts
 // every art name in townArt is a real building cutout
 for (const [type, art] of Object.entries(frontier.townArt)) {
   if (type.startsWith('_')) continue;
-  assert.ok(frontier.buildings[type], `${type} is a building`);
+  // zone:<letter> keys draw zoned cells (housing/farm/work), not buildings
+  if (type.startsWith('zone:')) assert.ok(frontier.townArt._zones[type.slice(5)], `${type} is a zone`);
+  else assert.ok(frontier.buildings[type], `${type} is a building`);
   assert.ok(placePiece({ name: art, x: 0, z: 0, flip: false }, catalog, cutouts), `${type} -> ${art} has art`);
 }
 
@@ -32,7 +34,7 @@ function game(heroAt) {
   return { g, hero, w };
 }
 
-// drawing: dirt -> frame -> built
+// drawing: dirt -> construction site -> built
 {
   const { g, w } = game([3000, 3000]);
   const t = w.settlement('tw'), snap = () => drawableTowns(structuredClone(g.state.frontier), 'player');
@@ -41,18 +43,20 @@ function game(heroAt) {
   g.step([{ id: hero.id, type: 'frontier', action: 'queue', settlement: 'tw', building: 'stockade' }]);
   let props = townProps(snap(), frontier.townArt, frontier.townLights);
   assert.ok(props.filter(p => p.art === 'stone_lantern').length >= 4, 'lanterns beside the finished buildings');
-  assert.deepEqual(props.filter(p => !p.dirt && p.art !== 'stone_lantern').map(p => [p.art, p.opacity]), [['manor', 1], ['haystack', 1], ['firewood', 1]]);
-  assert.equal(props.filter(p => p.dirt).length, 1, 'the unbuilt project is a dirt footprint');
+  assert.deepEqual(props.filter(p => !p.dirt && p.art !== 'stone_lantern' && p.art !== frontier.townLights.automatic.art).map(p => [p.art, p.opacity]), [['manor', 1], ['haystack', 1], ['firewood', 1]]);
+  // ground patches and crop rows are dirt decals too; a project footprint's key ends in :dirt
+  const footprint = p => p.dirt && p.key.endsWith(':dirt');
+  assert.equal(props.filter(footprint).length, 1, 'the unbuilt project is a dirt footprint');
   const sig0 = townSignature(snap());
   g.step([{ id: hero.id, type: 'frontier', action: 'authorize', project: t.projects[0].id }]);
   let sawFrame = false, sig1 = sig0;
   for (let i = 0; i < 20 * 400 && t.projects.length; i++) {
     g.step([]);
-    if (t.projects[0]?.progress > 0 && !sawFrame) { sawFrame = true; props = townProps(snap(), frontier.townArt); assert.ok(props.some(p => p.art === 'watch_post' && p.opacity === 0.5), 'work done = half-opacity frame'); sig1 = townSignature(snap()); }
+    if (t.projects[0]?.progress > 0 && !sawFrame) { sawFrame = true; props = townProps(snap(), frontier.townArt); assert.ok(props.some(p => p.key.includes(':frame') && (frontier.townArt._buildPhases || ['house_construction_1', 'house_construction_2']).includes(p.art)), 'work done = construction-site frame (Tim 2026-11-05)'); sig1 = townSignature(snap()); }
   }
   assert.ok(sawFrame && t.projects.length === 0, 'the stockade got built');
   props = townProps(snap(), frontier.townArt);
-  assert.ok(props.some(p => p.art === 'watch_post' && p.opacity === 1) && !props.some(p => p.dirt), 'finished = normal');
+  assert.ok(props.some(p => p.art === 'watch_post' && p.opacity === 1) && !props.some(footprint), 'finished = normal');
   assert.notEqual(sig0, sig1); assert.notEqual(sig1, townSignature(snap()));
   const [x0, z0] = [t.x, t.z], hall = props.find(p => p.art === 'manor');
   assert.deepEqual([hall.x, hall.z], [x0, z0], 'town hall stands on the spot');
