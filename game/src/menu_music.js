@@ -1,17 +1,38 @@
 import {readAudioSettings,saveAudioSettings} from './audio_settings.js';
 
 export const INTRO_TRACKS=[
-  {file:'intro_rain_city.mp3',title:'雨の街の静寂'},
-  {file:'intro_rain_night.mp3',title:'雨夜の菜单'},
+  {file:'city/intro_rain_city.mp3',title:'雨の街の静寂'},
+  {file:'city/intro_rain_night.mp3',title:'雨夜の菜单'},
 ];
 
-// In-game shuffle: the intro tracks plus gameplay-only songs (prompts in assets/music_prompts.md).
+// In-game shuffle: every song once per cycle, no repeats until all have played (prompts in assets/music_prompts.md).
+// Subfolders of assets/music are only for organizing by mood; all songs share one playlist.
 export const GAME_TRACKS=[...INTRO_TRACKS,
-  {file:'harbor_morning.mp3',title:'港の朝'},
-  {file:'lanternlit_alley.mp3',title:'Lanternlit Alley'},
-  {file:'lanterns_in_rain.wav',title:'Lanterns in Rain'},
-  {file:'silent_bamboo_grove.wav',title:'Silent Bamboo Grove'},
-  {file:'ninja_grove_song1.wav',title:'Ninja Grove Song 1'},
+  {file:'city/harbor_morning.mp3',title:'港の朝'},
+  {file:'city/lanternlit_alley.mp3',title:'Lanternlit Alley'},
+  {file:'city/lanterns_in_rain.wav',title:'Lanterns in Rain'},
+  {file:'city/lantern_night.mp3',title:'提灯の夜'},
+  {file:'city/teahouse_night.mp3',title:'茶屋の夜'},
+  {file:'city/candlelit_tearoom.mp3',title:'燭明茶室'},
+  {file:'city/in_the_red_lamplight.mp3',title:'红灯影里'},
+  {file:'city/lantern_festival_band.mp3',title:'提灯の囃子'},
+  {file:'city/meiji_machine_sounds.mp3',title:'明治の機械音'},
+  {file:'city/rolling_with_the_swells.mp3',title:'Rolling with the Swells'},
+  {file:'frontier/frontier_reel.mp3',title:'Frontier Reel'},
+  {file:'frontier/prairie_campfire.mp3',title:'Prairie Campfire'},
+  {file:'frontier/railroad_chug.mp3',title:'Railroad Chug'},
+  {file:'frontier/saloon_polka.mp3',title:'Saloon Polka'},
+  {file:'frontier/desert_stillness.mp3',title:'砂漠の静けさ'},
+  {file:'frontier/dawn_march.mp3',title:'黎明の行進'},
+  {file:'battle/pulse_of_the_wind.mp3',title:'風の鼓動'},
+  {file:'battle/pulse_of_the_final_battle.mp3',title:'決戦の鼓動'},
+  {file:'battle/patrol_march.mp3',title:'警備行進曲'},
+  {file:'stealth/silent_bamboo_grove.wav',title:'Silent Bamboo Grove'},
+  {file:'stealth/ninja_grove_song1.wav',title:'Ninja Grove Song 1'},
+  {file:'stealth/stealth_coil.mp3',title:'Stealth Coil'},
+  {file:'stealth/stealth_coil_2.mp3',title:'Stealth Coil 2'},
+  {file:'ceremony/imperial_ceremony_march.mp3',title:'皇典の行進'},
+  {file:'ceremony/silence_of_the_rain_funeral.mp3',title:'雨葬の静寂'},
 ];
 
 // Stream just one intro track; no full-song WebAudio decoding or combat voices.

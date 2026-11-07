@@ -115,6 +115,40 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return false;
   }
 
+  // Tim 2026-11-06 22:33: rich deposits. Once the town's own spots are full (a governor worker has no spot with room)
+  // and a camp slot is free, the governor puts a camp on the grid cell nearest the closest rich deposit it could then
+  // reach (campReach), one per review, within the tier camp limit, so it never overextends. Ask first only reports it.
+  function richCampRule(s) {
+    if (!workers?.index || !placement() || s.projects.some(p => !p.replaces)) return false;
+    const R = data.workers, reach = R.campReach || 0;
+    if (!reach || !(s.workers || []).some(w => w.by !== 'p' && !w.spot && !w.project && !w.order)) return false;
+    const camps = s.buildings.filter(b => (R.gatherBuildings || []).includes(b.type) && b.stage === 'built' && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
+    const near = (x, z) => Math.hypot(x - s.x, z - s.z) <= R.range || camps.some(([cx, cz]) => Math.hypot(x - cx, z - cz) <= reach);
+    const grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
+    const deps = [...workers.index.byId.values()].filter(p => p.deposit && (p.kind === 'timber' || p.kind === 'stone') && !near(p.x, p.z) && !isFull(s, data, R.resources[p.kind]))
+      .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).filter(o => o.d <= grid + reach).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
+    for (const { p, d } of deps) {
+      const type = p.kind === 'timber' ? 'lumber_camp' : 'quarry';
+      if (placedRoom(s, type, data) < 1) continue;
+      const cost = data.buildings[type].cost;
+      if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) continue;
+      const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;   // grid cell toward the deposit
+      if (Math.hypot(p.x - tx, p.z - tz) > reach) continue;
+      if (!s.autoBuild) { s.report.next = `Rich deposit within camp reach: place a ${type.replace('_', ' ')} toward it`; return false; }
+      const g = s.grid, n2 = g.n, c0 = worldToCell(s, tx, tz);
+      if (c0 < 0) continue;
+      const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
+      for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
+      cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      for (const [, i] of cand) {
+        if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
+        const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+        if (r.ok && r.project) { construction.authorize(r.project); s.report.next = `Building a ${type.replace('_', ' ')} toward a rich deposit`; return true; }
+      }
+    }
+    return false;
+  }
+
   // Tim 2026-11-05: with initiative the governor trains a worker when every worker is busy, people are idle,
   // nobody is training and there is ryo and goods to spare (bots use the same rule).
   function trainWorker(s) {
@@ -238,7 +272,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     s.report.next = '';
     maintain(s);
     trainWorker(s);
-    if (!campRule(s)) rules(s);
+    if (!campRule(s) && !richCampRule(s)) rules(s);
     promote(s);
     moodKeeper(s);
     const p = s.projects.find(x => x.authorized) || s.projects[0];

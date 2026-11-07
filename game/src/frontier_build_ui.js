@@ -5,7 +5,7 @@ import { cellToWorld, worldToCell, ringRadius } from './sim/frontier/town_grid.j
 import { bodyDistance } from './crew_input.js';
 import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
-import { spotYield, richReach } from './sim/resource_spots.js';
+import { spotYield, richReach, overwork, regrowChance, supportsWorkers } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
 import { workerPanelHTML, workerJob } from './worker_panel.js';
 import {workerDetails,workerPresentation} from './worker_details.js';
@@ -81,6 +81,55 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const selectedLive = () => towns().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
+  // Workers row on a spot card (Tim 2026-11-06 22:23): how worked out the spot is now and about how many workers it
+  // keeps at full speed. Live estimate: aim to keep at most `aim` of its value worked out (workers.overwork).
+  function workRow(spot, n) {
+    if (!n || !spotRules?.stages) return '';
+    const { speed, best, over } = overwork(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages, n, data.workers?.overwork, tripSecondsAt(spot));
+    const cap = best ?? n, pct = Math.min(100, Math.round(100 * Math.min(n, cap) / Math.max(n, cap))), col = over ? '#d9a25a' : '#7fc27a';
+    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Workers ${n}${best != null ? ` / about ${best} best` : ''}</span><span>${speed}% full</span></div>`
+      + `<div style="height:8px;border-radius:4px;background:${over ? 'rgba(217,162,90,.35)' : 'rgba(0,0,0,.45)'};overflow:hidden;margin:3px 0"><div style="height:100%;width:${pct}%;background:#7fc27a"></div></div>`
+      + `<div style="font-size:12px;color:${col}">${over ? `Overworked: ${n - best} extra worker${n - best > 1 ? 's' : ''} add little` : 'Room for more workers'}</div>`
+      + spotDetails(spot, n) + `</div>`;
+  }
+  // The actual numbers behind the workers row (Tim 2026-11-06 22:25), folded away under Details.
+  function spotDetails(spot, n) {
+    const st = spotRules.stages, saved = game.state.frontier?.spots?.[spot.id], chars = saved && saved.length === spot.pieces.length ? saved : 'f'.repeat(spot.pieces.length);
+    const c = ch => [...chars].filter(x => x === ch).length, now = spotYield(spot, saved, st), full = spotYield(spot, null, st);
+    const W = data.workers, rich = spot.deposit ? st.rich || {} : {}, hz = 20, cad = data.cadenceTicks || 20;
+    const harvest = t => (W.harvestTicks * spot.pieces.length / t / hz).toFixed(1), aim = W.overwork ?? 0.35;
+    const q = regrowChance(spot, st), regrowSec = Math.round((q ? 2 / q : 1 / st.regrow.h + 1 / st.regrow.s) * cad / hz), trip = tripSecondsAt(spot);
+    const row = (a, b) => `<div style="display:flex;justify-content:space-between;gap:10px"><span style="opacity:.75">${a}</span><span>${b}</span></div>`;
+    return `<details style="font-size:12px;margin-top:4px"><summary style="cursor:pointer;opacity:.8">Details</summary>`
+      + row('Pieces', `${c('f')} full · ${c('s')} regrowing · ${c('h')} worked`)
+      + row('Piece value', `full ${st.value.f} · regrowing ${st.value.s} · worked ${st.value.h}`)
+      + row('Harvest value now / full', `${now.toFixed(1)} / ${full.toFixed(1)} (${Math.round(100 * now / full)}%)`)
+      + (spot.deposit ? row('Rich deposit', `x${rich.yield ?? 1} harvest speed`) : '')
+      + (q ? row('Keeps busy (camp beside it)', `${supportsWorkers(spot, st)} workers · ${st.supports.campTripSeconds}s trip`) : '')
+      + (trip ? row('Your workers\' trip now', `${trip.toFixed(1)}s`) : '')
+      + row('Harvest time per trip', `${harvest(now)}s now · ${harvest(full)}s when full`)
+      + row('Load per trip', `${W.load}`)
+      + row('Worked piece back to full', `about ${regrowSec}s${q ? ` (${Math.round(q * 100)}% chance per stage each second)` : ''}`)
+      + row('Each trip works out', '1 piece')
+      + row('Workers here', `${n}`)
+      + row('Overworked when', q ? 'more workers than it keeps busy at your trip length' : `more than ${Math.round(aim * 100)}% of its value is worked out`)
+      + `</details>`;
+  }
+  // average full-speed trip (walk out + back, at full harvest) of the workers on a spot, in seconds; null if none
+  function tripSecondsAt(spot) {
+    const ws = towns().flatMap(t => t.workers || []).filter(w => w.spot === spot.id && w.trip && !w.trip.kind);
+    if (!ws.length) return null;
+    const full = data.workers.harvestTicks * spot.pieces.length / spotYield(spot, null, spotRules.stages);
+    return ws.reduce((a, w) => a + (w.trip.out + w.trip.back + full) / 20, 0) / ws.length;
+  }
+  // spots this town's workers are overworking (for the worker roster)
+  function overworkedSpots(s) {
+    const out = new Set(), count = {};
+    if (!spotRules?.stages) return out;
+    for (const t of towns()) for (const w of t.workers || []) if (w.spot) count[w.spot] = (count[w.spot] || 0) + 1;
+    for (const w of s.workers || []) if (w.spot && !out.has(w.spot)) { const p = spotIndex.get(w.spot); if (p && overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, count[w.spot], data.workers?.overwork, tripSecondsAt(p)).over) out.add(w.spot); }
+    return out;
+  }
   // Camp card (Tim 2026-11-06 21:20: a bar and chips, not a wall of text): storage used / cap, each cart, worker limit, Buy cart.
   function campCardHTML(b, s) {
     const C = data.workers.carts, used = Object.values(b.store || {}).reduce((a, v) => a + v, 0), pct = Math.min(100, Math.round(100 * used / C.cap));
@@ -206,6 +255,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const assigned = towns().flatMap(s => (s.workers || []).filter(w => w.spot === spot.id || w.nextSpot === spot.id).map(w => `${w.id} (${s.name})`));
       info.lines.push(`Amount per harvest: ${spotYield(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages)}`,
         `Your workers: ${assigned.length ? assigned.join(', ') : 'none'}`);
+      info.work = workRow(spot, assigned.length);
     } else {
       trainTown = towns().find(s => s.id === inspect.town);
       info = townCellTip(trainTown, inspect.cell, data);
@@ -213,11 +263,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!info) { card.hidden = true; return; }
     const html = `<button data-close aria-label="Close inspection">×</button><b>${esc(info.title)}</b>`
       + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
+      + (info.work || '')
       + (info.camp && info.camp.id ? campCardHTML(info.camp, trainTown) : '')
       + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built lumber camp or quarry.">Place camp here</button>` : '')
       + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
-    if (inspectionHtml !== html && !inspectionPressed) { card.innerHTML = html; inspectionHtml = html; }
+    if (inspectionHtml !== html && !inspectionPressed) { const open = card.querySelector?.('details')?.open; card.innerHTML = html; inspectionHtml = html; if (open) { const d = card.querySelector?.('details'); if (d) d.open = true; } }
     const training=card.querySelector?.('[data-worker-training]');
     if(training && info.hall)training.innerHTML=workerTrainingHTML(trainTown,game.state.tick,data);
     card.hidden = false;
@@ -474,7 +525,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function html(s) {
     if (town !== s.id) { close(); town = s.id; }
-    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage})}</div>`;
+    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage})}</div>`;
     const button = (id, label) => {
       const color = data.buildUI?.zoneColors?.[id],text=buildTooltip(id,s,data,resourceRequirements);
       return `<button data-act="build-tool" data-id="${esc(id)}" data-tip="${esc(text)}" ${color ? `style="border-color:${color};color:${color}"` : ''} class="${tool === id ? 'on' : ''}" aria-pressed="${tool === id}">${esc(label)}</button>`;

@@ -480,6 +480,10 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Rich deposits (`resource_spots.json` `stages.rich`): named "Rich …"; harvest 3x faster and regrow 2x faster. Warm wash and a kanji badge on the minimap and World map (`frontier.json` `townArt._spots.glow.rich`); hover shows In reach or Needs a work camp.
 - Camp reach (`frontier.json` `workers.campReach` 400). A rich deposit card has a Place camp here button.
 - Camps hold 400. Camp carts (`workers.carts`, `sim/frontier/camp_carts.js`): 2 free carts per camp run a relay to the hall at running speed, each taking 60% of the camp's stock (150 max per trip). A 3rd cart costs 150 timber and 75 goods (Buy cart on the camp card; command `{ type: 'frontier', action: 'buyCart' }`). When a camp is full, workers walk to the hall.
+- Spot workers (`resource_spots.json` `stages.supports`, `sim/resource_spots.js`): regrowth is derived so a spot keeps a set number of workers at full speed with a camp beside it; a longer trip lets more share it (best = supports x campTripSeconds / tripSeconds). The spot card's Workers row shows workers, about how many is best, % speed and Overworked (`workers.overwork` 0.35 for the live estimate). The governor never puts more of its workers on a spot than it supports and moves its extras off (player picks stay put).
+- The governor places a camp toward the nearest reachable rich deposit once the town's own spots are full and a camp slot is free (one per review, within the tier limit; Ask first only reports it).
+- Site score: `frontier.json` `richNode` 0.5 bonus per rich deposit within `workers.range` + `campReach` of the site (`sim/frontier/land_office.js`).
+- Station menu: Space skips a ride; number keys board trains standing at the station; Drive back to the gate is click only.
 - Plan: `/mnt/project-files/resource_nodes/plan.md`. Tests: `tools/test_rich_nodes.mjs`, `tools/test_camp_carts.mjs`.
 
 ## Frontier fixes (2026-11-07)

@@ -2,20 +2,26 @@
 // Rich deposits yield stages.rich.yield x and regrow faster; every node kind has a "Rich ..." name; reach lines.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { spotYield, regrowSpot, isRich, RICH_NAME, RICH_GIVES, richReach } from '../src/sim/resource_spots.js';
+import { spotYield, regrowSpot, isRich, regrowChance, supportsWorkers, RICH_NAME, RICH_GIVES, richReach } from '../src/sim/resource_spots.js';
 const read = f => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url), 'utf8'));
 const conf = read('resource_spots.json'), world = read('world.json'), spots = read('world_spots.json').spots, fr = read('frontier.json');
 const st = conf.stages, k = st.rich.yield;
-assert.ok(k > 1 && st.rich.regrow >= 1, 'rich factors set');
+assert.ok(k > 1 && st.supports, 'rich factors set');
 const dep = spots.find(s => s.deposit), small = spots.find(s => !s.deposit && s.kind === dep.kind);
 assert.ok(isRich(dep) && !isRich(small));
 assert.equal(spotYield(dep, undefined, st), dep.pieces.length * k, 'rich full yield = pieces x factor');
 assert.equal(spotYield(small, undefined, st), small.pieces.length, 'small spot unchanged');
 assert.ok(Math.abs(spotYield(dep, 'h'.repeat(dep.pieces.length), st) - Math.max(dep.pieces.length * st.value.h, st.trickle) * k) < 1e-9, 'worked rich yield');
-// regrow: with rand just above the small chance, only the rich spot regrows
-const r = () => st.regrow.h * 1.01;
-assert.equal(regrowSpot(small, 'h'.repeat(small.pieces.length), st, r), 'h'.repeat(small.pieces.length), 'small spot waits');
-assert.equal(regrowSpot(dep, 'h'.repeat(dep.pieces.length), st, r), 's'.repeat(dep.pieces.length), 'rich spot regrows faster');
+// regrow is derived from the workers a spot supports beside a camp
+{
+  const q = regrowChance(dep, st), n = supportsWorkers(dep, st);
+  assert.equal(n, st.supports.rich[dep.nodeKind]); assert.equal(supportsWorkers(small, st), st.supports.small);
+  assert.ok(Math.abs(q - 2 * n / (dep.pieces.length * st.supports.campTripSeconds)) < 1e-12);
+  // steady state: pieces / (2 / q) recovered per second = workers / trip seconds
+  assert.ok(Math.abs(dep.pieces.length * q / 2 - n / st.supports.campTripSeconds) < 1e-9, 'supply matches the supported workers');
+  const r = () => q * 0.99, back = regrowSpot(dep, 'h'.repeat(dep.pieces.length), st, r);
+  assert.equal(back, 's'.repeat(dep.pieces.length), 'regrows at its own chance');
+}
 for (const kind of new Set(world.nodes.map(n => n.kind))) { assert.match(RICH_NAME[kind], /^Rich /, `${kind} named Rich`); assert.ok(RICH_GIVES[kind]); }
 for (const s of spots.filter(s => s.deposit)) assert.ok(RICH_NAME[s.nodeKind], `${s.id} nodeKind named`);
 // reach

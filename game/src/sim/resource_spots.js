@@ -56,16 +56,38 @@ export function spotYield(spot, stateStr, stages) {
   return Math.max(sum, stages.trickle) * richFactor(spot, stages, 'yield');
 }
 
+// Workers a spot keeps busy at full speed with a camp beside it (stages.supports), and the regrow chance per stage per
+// economy tick that this needs: 2 stages per piece, so chance = 2 x workers / (pieces x campTripSeconds). null = old flat rate.
+export function supportsWorkers(spot, stages) {
+  const S = stages.supports; if (!S) return null;
+  return isRich(spot) ? S.rich?.[spot.nodeKind] ?? S.small : S.small;
+}
+export function regrowChance(spot, stages) {
+  const S = stages.supports, n = supportsWorkers(spot, stages); if (!S || !n) return null;
+  return Math.min(1, 2 * n / (spot.pieces.length * S.campTripSeconds));
+}
+
 // One economy tick of regrowth: each h piece may become s, each s piece may become f. `rand` returns 0..1.
 // Returns the new stage string, or null when the spot is back to all full (nothing to save).
 export function regrowSpot(spot, stateStr, stages, rand) {
   const st = spotState(spot, stateStr);
-  const k = richFactor(spot, stages, 'regrow');
+  const q = regrowChance(spot, stages);
   let out = '';
   for (const ch of st) {
-    if (ch === 'h' && rand() < stages.regrow.h * k) out += 's';
-    else if (ch === 's' && rand() < stages.regrow.s * k) out += 'f';
+    if (ch === 'h' && rand() < (q ?? stages.regrow.h)) out += 's';
+    else if (ch === 's' && rand() < (q ?? stages.regrow.s)) out += 'f';
     else out += ch;
   }
   return /^f*$/.test(out) ? null : out;
+}
+
+// Overworked check (Tim 2026-11-06 22:23-22:29): the spot keeps supportsWorkers busy when the camp is beside it
+// (campTripSeconds); a longer trip lets more workers share it: best = supports x campTripSeconds / tripSeconds.
+// Without supports data it falls back to a live estimate (aim = share of value worked out). Returns { speed, best, over }.
+export function overwork(spot, stateStr, stages, n, aim = 0.35, tripSeconds = null) {
+  const now = spotYield(spot, stateStr, stages), full = spotYield(spot, null, stages), worked = Math.max(0, 1 - now / full);
+  const sup = supportsWorkers(spot, stages), S = stages.supports;
+  const best = sup ? Math.max(1, Math.floor(sup * S.campTripSeconds / Math.max(S.campTripSeconds, tripSeconds || S.campTripSeconds)))
+    : !n || worked <= aim ? null : Math.max(1, Math.floor(n * aim / worked));
+  return { speed: Math.round(100 * now / full), best, over: best != null && n > best };
 }

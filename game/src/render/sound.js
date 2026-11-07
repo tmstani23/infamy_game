@@ -179,7 +179,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (h.kill) play(t?.type === 'hero' ? 'knockdown_thud_1' : ['death_thud_1', 'death_thud_2'], 0.6 * v);
       }
       for (const c of state.casts) {
-        if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / (HEAR * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero));   // Tim 2026-11-07: only heard near the hero or the camera, fading fast variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }
+        if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / (HEAR * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='arrow')swordSlash(.16*v); // quiet existing whoosh until a dedicated arrow-flight recording is supplied
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);

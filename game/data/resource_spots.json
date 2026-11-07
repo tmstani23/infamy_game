@@ -32,6 +32,7 @@
     "value": { "f": 1, "s": 0.2, "h": 0.1 },
     "regrow": { "h": 0.02, "s": 0.02 },
     "trickle": 0.25,
-    "rich": { "_note": "Tim 2026-11-06, placeholder, Tim to tune: rich deposits (the big map nodes) yield this many times faster per harvest round and regrow this many times faster than small spots", "yield": 3, "regrow": 2 }
+    "rich": { "_note": "Tim 2026-11-06, placeholder, Tim to tune: rich deposits (the big map nodes) harvest this many times faster per round", "yield": 3 },
+    "supports": { "_note": "Tim 2026-11-06 22:28: regrowth is derived, not drawn: each spot regrows just fast enough to keep this many workers at full speed with a work camp right beside it (campTripSeconds = one trip there: walk ~20 each way at worker speed 4 plus harvest). Regrow chance per stage per economy tick = 2 x workers / (pieces x campTripSeconds); a worked piece needs 2 stages (h -> s -> f). small = ordinary spots; rich by world.json node kind", "small": 6, "rich": { "quarry": 12, "ore": 12, "fishing": 12, "fertile": 12, "forest": 14 }, "campTripSeconds": 11 }
   }
 }

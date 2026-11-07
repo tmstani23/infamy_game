@@ -1,7 +1,7 @@
 import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
-import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spots.js';
+import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from '../resource_spots.js';
 import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
@@ -145,12 +145,19 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!on(s) || !has(s))return;
     const spots=reachSpots(s).filter(p=>R.resources[p.kind]);
     const resources=[...new Set(Object.values(R.resources))].filter(r=>!isFull(s,data,r)).sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
+    // Tim 2026-11-06: the governor never puts more workers on a spot than it keeps busy (supportsWorkers) and moves
+    // its own extras off an overworked one; the player's own picks stay put.
+    const count={};for(const t of towns())for(const w of t.workers || [])if(w.spot)count[w.spot]=(count[w.spot] || 0)+1;
+    const room=p=>{const n=spotRules?.stages ? supportsWorkers(p,spotRules.stages) : null;return n==null || (count[p.id] || 0)<n;};
     for(const w of s.workers) {
       // B2: governor-placed workers on a full resource are moved; the player's own picks stay put.
-      const stuck=w.by==='g' && w.spot && !w.carrying && !w.trip && w.status==='Store full';
+      const sp=w.spot && index.get(w.spot),cap=sp && spotRules?.stages ? supportsWorkers(sp,spotRules.stages) : null;
+      const extra=w.by==='g' && cap!=null && count[w.spot]>cap && !w.carrying && !w.trip;
+      const stuck=extra || w.by==='g' && w.spot && !w.carrying && !w.trip && w.status==='Store full';
       if((w.spot && !stuck) || w.project || w.order || w.by==='p')continue;
-      const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
-      if(spot)assign(s,[w.id],spot.id,'g');
+      if(extra) {count[w.spot]--;w.spot=null;}
+      const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r && room(p)).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
+      if(spot) {assign(s,[w.id],spot.id,'g');count[spot.id]=(count[spot.id] || 0)+1;}
     }
   }
   // Tim 2026-11-05 (self-running governor): move one governor-placed worker per call from a well stocked

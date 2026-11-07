@@ -1,10 +1,11 @@
 // The island travel menu (Tim 2026-11-06): Space on the island at your omnibus station (which doubles as the
 // railway station) or at the island end of the gate. Trains (Tim 2026-11-07, train plan step 4): board one standing
 // here, see when the next one comes in, lay track to another of your towns (sim/frontier/rail.js). While you ride,
-// the panel stays up with Skip (Space or 1, after a few seconds). Instant rickshaw trips are off (rickshaws are
+// the panel stays up with Skip (Space or the button, after a few seconds; number keys do nothing while you ride). Instant rickshaw trips are off (rickshaws are
 // driven like the omnibus). Space beside or inside your omnibus away from the gate adds "Drive back to the gate"
 // (sim/omnibus.js home). The city side is the island gate menu (src/site_menu.js). Closes when you walk away, or on
-// Esc / Space. Number keys pick: drive back first, then the trains standing here.
+// Esc / Space. Number keys board the trains standing here; Drive back to the gate is click only (Tim 2026-11-07:
+// a stray number key had jumped him back from a frontier station).
 export function createStationMenu({ panel, game, heroId, send }) {
   let open = false, shown = '';
   const hero = () => game.state.entities[heroId];
@@ -56,9 +57,8 @@ export function createStationMenu({ panel, game, heroId, send }) {
     if (to) go(to);
   });
   function pick(i) {
-    if (riding()) { if (i === 0) skip(); return; }
-    if (!open) return;
-    const opts = [...(homeable() ? ['home'] : []), ...boardNow().map(s => `board:${s.train}`)];
+    if (riding() || !open) return;
+    const opts = boardNow().map(s => `board:${s.train}`);
     if (opts[i]) go(opts[i]);
   }
   // on the train: where to, how long, Skip
@@ -68,7 +68,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     const to = t.dir > 0 ? l.to : l.from, left = Math.ceil((Math.max(0, t.wait) + Math.abs((t.dir > 0 ? l.length : 0) - t.d) / Math.max(1, t.speed) * 20) / 20);
     const wait = Math.max(0, (game.frontier.data?.railways?.ride?.skipSeconds ?? 5) - Math.floor((game.state.tick - (h.railRide.since ?? 0)) / 20));
     return `<h3>ON THE TRAIN · to ${esc(placeName(to))}</h3><p>${t.wait > 0 ? 'Standing at the platform' : 'Under way'}, about ${left} s to go. Your crew aboard come along.</p>`
-      + `<div class="row"><button data-to="skip"${wait ? ' disabled' : ''}>1. Skip to ${esc(placeName(to))}${wait ? ` (in ${wait} s)` : ''}</button></div><div class="waiting">Space / 1 skip</div>`;
+      + `<div class="row"><button data-to="skip"${wait ? ' disabled' : ''}>Skip to ${esc(placeName(to))}${wait ? ` (in ${wait} s)` : ''}</button></div><div class="waiting">Space skip</div>`;
   }
   function update() {
     if (riding()) { panel.hidden = false; const html = ridePanel(); if (html !== shown) { panel.innerHTML = html; shown = html; } return; }
@@ -79,7 +79,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     const now = tr.filter(s => s.eta === 0), next = tr.filter(s => s.eta > 0 && !now.some(n => n.to === s.to));
     const name = t?.here || (tr[0] ? placeName(tr[0].at) : '');
     let k = 0, html = `<h3>${name ? `STATION · ${esc(name)}` : 'YOUR OMNIBUS'}</h3>`;
-    if (home) html += `<div class="row"><button data-to="home">${++k}. Drive back to the gate</button></div><p>At once, everyone aboard; it parks outside the island gate. Not with a fight on.</p>`;
+    if (home) html += `<div class="row"><button data-to="home">Drive back to the gate (click)</button></div><p>At once, everyone aboard; it parks outside the island gate. Not with a fight on.</p>`;
     if (now.length || next.length) {
       html += '<h3>TRAINS</h3><div class="row">' + now.map(s => `<button data-to="board:${esc(s.train)}"${s.riders >= s.seats ? ' disabled' : ''}>${++k}. Board the train to ${esc(s.toName)} (${s.seats - s.riders} seats)</button>`).join('')
         + next.map(s => `<button disabled>Train to ${esc(s.toName)} in ${s.eta < 90 ? `${s.eta} s` : `${Math.round(s.eta / 60)} min`}</button>`).join('') + '</div><p>You and the crew following you get on. Ride along, or Skip after a few seconds.</p>';

@@ -71,3 +71,7 @@ Vehicle footprint shadows are set in `game/data/art.json` `characterFraming` as 
 - `python tools/add_frontier_sheet2_art.py`: cuts frontier sheet 2 plus the gates and walls into `game/art/buildings/`.
 - `RIDE` table in `tools/export_sprites.mjs`: the hero's `ride` clip (`coach_sitting` for now).
 - `rickshaw_horse`: rig script `assets/models/source/rickshaw_horse_rig/rickshaw_horse.py`, exported through `MOUNTS`.
+
+### Music (2026-11-07)
+
+Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/`, `ceremony/`, `stealth/`); the list is in `game/src/menu_music.js`. The in-game shuffle plays every song once per cycle with no repeats; subfolders do not change the playlist.

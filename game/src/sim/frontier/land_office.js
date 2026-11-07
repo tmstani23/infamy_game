@@ -200,6 +200,9 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
       s += taste.terrain?.[si.terrain] || 0;
       for (const [k, w] of Object.entries(taste.traits || {})) s += (t[k] || 0) * w;
       s -= (si.travelCostToCapital || 0) / (B.travelScale || 6000);
+      // Tim 2026-11-06 22:33: rich deposits within a camp's reach of the town (workers.range + campReach) are a bonus
+      const far = (data.workers?.range ?? 600) + (data.workers?.campReach ?? 0);
+      for (const n of worldData?.nodes || []) if (Math.hypot(n.x - si.x, n.z - si.z) <= far) s += B.richNode ?? 0.5;
       return { id: si.id, s: s + rnd() * (B.randomRoll ?? 3) };
     }).sort((a, b) => b.s - a.s || (a.id < b.id ? -1 : 1));
     const top = scored.slice(0, Math.max(1, B.topPick ?? 3));
