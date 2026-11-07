@@ -77,7 +77,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   const commandPlace = () => view.commandPlace?.(game.state, heroId) || hero()?.place;
   const order = c => send({ id: heroId, type: 'order', place: commandPlace(), ...c });
   const myCrew = () => Object.values(game.state.entities)
-    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && e.place === commandPlace());
+    .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && !e.guide && e.place === commandPlace());   // guides (town governor, city captain) are not crew
   // your loaded rickshaws and omnibuses on the island select and take orders like crew (Tim 2026-11-07)
   const myVehicles = () => Object.values(game.state.entities).filter(e => game.omnibus?.isVehicle(e) && e.omnibusOwner === hero()?.owner && !e.dead
     && e.place === commandPlace() && game.omnibus.riders(e).length && !e.driver);
@@ -105,11 +105,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     return [[s.x, s.z], [minX, minZ], [minX, maxZ], [maxX, minZ], [maxX, maxZ]].some(([x, z]) => g.explored[game.vision.cellOf(x, z)] === 1);
   };
   // the selected units orders go to (a selected townsperson takes none)
-  const mine = () => selected.filter(id => { const e = game.state.entities[id]; return e && (e.owner === hero()?.owner || (e.omnibusOwner === hero()?.owner && game.omnibus?.riders(e).length)); });
+  const mine = () => selected.filter(id => { const e = game.state.entities[id]; return e && ((e.owner === hero()?.owner && !e.guide) || (e.omnibusOwner === hero()?.owner && game.omnibus?.riders(e).length)); });
   const bodyJobUnits=()=>mine().length?mine():myCrew().filter(e=>!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id);
   const groupable = id => {
     const u = game.state.entities[id];
-    return u && u.owner === hero()?.owner && u.type !== 'hero' && u.type !== 'civilian' && !u.guard && !u.wild && !u.cop && !u.dead;
+    return u && u.owner === hero()?.owner && u.type !== 'hero' && u.type !== 'civilian' && !u.guard && !u.guide && !u.wild && !u.cop && !u.dead;
   };
   function pruneGroups() {
     for (const [number, ids] of groups) {
@@ -200,7 +200,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const horse = e.button === 2 && horseAt(e.clientX, e.clientY);
     if (horse) { send({ id: heroId, type: 'mount', horse: horse.id }); return; }
     const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
-    if (bus) { send(busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy', vehicles: [bus.id] } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine() }); return; }
+    // selected crew and the hero not beside it: they walk over and get in on their own (Tim 2026-11-07)
+    const crewOnly = bus && !busRiders(bus) && mine().length && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) > 6;
+    if (bus) { send(busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy', vehicles: [bus.id] } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -299,6 +301,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     inspect(id) { looked=game.state.entities[id]?id:null; },
     // Q for the omnibus (also the Mount controls button): step out, or get in a parked one right beside the hero
     mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },
+    mountUpKey() { if (!hero()) return false; send({ id: heroId, type: 'mount', group: true, units: mine() }); return true; },
     omnibusKey() { const h = hero(); if (!h) return false; const sel = mine().filter(id => game.omnibus?.isVehicle(game.state.entities[id]));
       if (h.aboard || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
       if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !game.omnibus.riders(b).length)) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },

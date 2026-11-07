@@ -181,7 +181,8 @@ export function createRail({ state, data, world, worldData, stable }) {
   function atStation(e, owner, id) {
     if (id === 'capital') {
       const g = runtime?.gate; if (!g) return false;
-      return (e.place === 'street' && Math.hypot(e.x - g.city[0], e.z - g.city[1]) <= (RIDE().gateReach ?? 6))
+      const st = g.station || g.city;   // the city railway station (Tim 2026-11-07), else the gate
+      return (e.place === 'street' && Math.hypot(e.x - st[0], e.z - st[1]) <= (RIDE().gateReach ?? 6))
         || (e.place === 'world' && Math.hypot(e.x - g.island[0], e.z - g.island[1]) <= (RIDE().reach ?? 18) + 6);
     }
     const p = endpoint(owner, id);
@@ -223,6 +224,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (!party.length) return say(e.owner, 'The train is full');
     const head = pointAt(rec().links[t.link], t.d);
     for (const u of party) {
+      if (u.mounted) { delete u.mounted; delete u.ride; }   // crew horses stay at the station
       delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; runtime?.forget?.(u.id);
       Object.assign(u, { aboard: `rail:${t.id}`, railRide: { train: t.id, since: state.tick ?? 0 }, place: 'world', x: head.x, z: head.z, anim: 'idle' });
     }
@@ -250,7 +252,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (!riders.length) return;
     const hero = riders.find(u => u.type === 'hero') || riders[0];
     let place = 'world', px, pz;
-    if (at === 'capital') { place = 'street'; [px, pz] = runtime?.gate?.inside || runtime?.gate?.city || [hero.x, hero.z]; }
+    if (at === 'capital') { place = 'street'; [px, pz] = runtime?.gate?.station || runtime?.gate?.inside || runtime?.gate?.city || [hero.x, hero.z]; }
     else { const p = endpoint(t.owner, at) || pointAt(l, t.d); px = p.x + 6; pz = p.z + 6; }
     const grid = runtime?.navOf?.(place);
     riders.forEach((u, k) => {

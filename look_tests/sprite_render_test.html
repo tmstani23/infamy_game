@@ -40,7 +40,7 @@
   <h1>Sprite render test</h1>
   <div id="drop">Drop a character model (e.g. ronin.fbx) and its animation FBX files here, or click to pick them.
     <input id="pick" type="file" accept=".fbx" multiple hidden>
-    <input id="pickMount" type="file" accept=".glb,.gltf" hidden></div>
+    <input id="pickMount" type="file" accept=".glb,.gltf" hidden><input id="pickExtra" type="file" accept=".glb,.gltf" hidden></div>
 
   <h2>Animations</h2>
   <ul id="clips"><li style="color:var(--muted);cursor:default">No model loaded yet</li></ul>
@@ -658,9 +658,11 @@ addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'
 // of that name (grouped scenes: team + coach + coachman). yaw: degrees to turn the model (default 180).
 let mountOpts = {};
 let superSample = 1;
+let mountGltf = null;
 let groundShift = 0;
 async function loadMount(file, opts = mountOpts) {
   const gltf = await gltfLoader.parseAsync(await file.arrayBuffer(), '');
+  mountGltf = gltf;
   clips = []; current = null;
   modelName = file.name.replace(/\.(glb|gltf)$/i, '');
   yawOffset = THREE.MathUtils.degToRad(opts.yaw ?? 180);   // Blender .glb exports face -Z
@@ -678,6 +680,36 @@ async function loadMount(file, opts = mountOpts) {
   log(`${modelName}: ${clips.length} animation(s) ready.`);
 }
 $('pickMount').onchange = e => e.target.files[0] && loadMount(e.target.files[0]);
+// Extra clips for a loaded mount from an animation-only .glb of the same scene (MOUNTS extra, e.g. the
+// team on 'gallop'; made by assets/models/source/gallop_anim.py). Its tracks are moved onto the model's
+// nodes by top-level object name + original node name, so the two files' node order doesn't matter.
+async function loadMountExtra(file, merge) {
+  const gltf = await gltfLoader.parseAsync(await file.arrayBuffer(), '');
+  const keyOf = (g, o) => {
+    let top = o; while (top.parent && top.parent !== g.scene) top = top.parent;
+    const a = g.parser.associations.get(o), t = g.parser.associations.get(top);
+    const name = x => (x && x.nodes !== undefined ? g.parser.json.nodes[x.nodes].name : null);
+    return name(t) + '/' + name(a);
+  };
+  const main = new Map();
+  mountGltf.scene.traverse(o => main.set(keyOf(mountGltf, o), o));
+  const tracks = [];
+  let missing = 0;
+  for (const c of gltf.animations) for (const t of c.tracks) {
+    const { nodeName } = THREE.PropertyBinding.parseTrackName(t.name);
+    const src = gltf.scene.getObjectByName(nodeName), dst = src && main.get(keyOf(gltf, src));
+    if (!dst) { missing++; continue; }
+    const tr = t.clone(); tr.name = dst.uuid + t.name.slice(nodeName.length); tracks.push(tr);
+  }
+  // the exporter starts the keys at frame 1; start them at 0 so the last key (= the first pose) closes the loop
+  const t0 = Math.min(...tracks.map(t => t.times[0]));
+  tracks.forEach(t => t.shift(-t0));
+  clips.push({ name: merge, clip: new THREE.AnimationClip(merge, -1, tracks) });
+  refreshClipList();
+  log(`${file.name}: '${merge}' added (${tracks.length} tracks${missing ? `, ${missing} without a match` : ''}).`);
+}
+$('pickExtra').onchange = e => { const f = e.target.files[0]; if (!f) return;
+  const x = (mountOpts.extra || []).find(x => x.file === f.name); loadMountExtra(f, x?.merge || f.name.replace(/\.glb$/i, '')); };
 
 // ---------- spinning wheels (vehicles) ----------
 // Tencent models come with the wheels fused into the body, so they cannot turn. addWheels cuts the
@@ -744,7 +776,7 @@ function addWheels(scene, spec) {
       sp.position.y = r * 0.5; arm.add(sp); w.add(arm);
     }
     scene.add(w);
-    sets.push({ w, r, n, fwd: spec.fwd ?? 1, roll: spec.roll ?? 1.4 });
+    sets.push({ w, r, n, fwd: spec.fwd ?? 1, roll: spec.roll ?? 1.4, rollFast: spec.rollFast ?? 4.5 });
   }
   log(`wheels: ${list.length * 2} cut out and rebuilt on ${spec.mesh}`);
   return sets;
@@ -763,11 +795,11 @@ function tiltPart(scene, spec) {
   for (const ws of wheelSets) g.attach(ws.w);
   g.rotation.x = THREE.MathUtils.degToRad(spec.degrees);
 }
-function spinWheels(phase, frames, duration) {
+function spinWheels(phase, frames, duration, clipName = '') {
   const s = new THREE.Vector3();
   for (const ws of wheelSets) {
     const worldR = ws.r * ws.w.getWorldScale(s).x;
-    const turns = ws.roll * duration / (2 * Math.PI * worldR);
+    const turns = (/gallop|run/i.test(clipName) ? ws.rollFast : ws.roll) * duration / (2 * Math.PI * worldR);
     // whole spoke gaps per loop, and under half a gap per frame so it never seems to spin backwards
     const gaps = Math.max(1, Math.min(Math.round(turns * ws.n), Math.floor(0.45 * frames)));
     ws.w.rotation.x = -ws.fwd * phase * gaps * 2 * Math.PI / ws.n;
@@ -893,7 +925,7 @@ function renderSheet(i, withGlow = false, opts = {}) {
     root.rotation.y = yawFor(d);
     for (let f = 0; f < frames; f++) {
       exMixer.setTime((f / frames) * clip.duration);
-      spinWheels(f / frames, frames, clip.duration);
+      spinWheels(f / frames, frames, clip.duration, entry.name);
       spearPhase = f / frames;
       updateItem();
       off.render(scene, cam);

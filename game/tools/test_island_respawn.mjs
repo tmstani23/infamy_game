@@ -83,13 +83,12 @@ console.log('island respawn: ok');
   for (let i = 0; i < 10; i++) g.step([]);
   assert.equal(hero.infirmary, undefined, 'not when far away');
   console.log('island respawn infirmary: ok');
-  // the governor stands beside the hall of each player town (Tim 2026-11-06); Space there talks to him
+  // no governor figure any more (Tim 2026-11-07): Space at your town hall talks to its governor
   for (let i = 0; i < 20; i++) g.step([]);
-  const gov = Object.values(g.state.entities).find(e => e.governor === 'tNear');
-  assert.ok(gov && gov.guide && gov.place === 'world' && Math.hypot(gov.x - near.x, gov.z - near.z) < 30, 'governor by the hall');
-  Object.assign(hero, { place: 'world', x: gov.x + 1, z: gov.z, dead: false });
-  assert.equal(g.governorNear(hero.id)?.id, gov.id);
-  Object.assign(hero, { x: gov.x + 30 });
-  assert.equal(g.governorNear(hero.id), null);
+  assert.ok(!Object.values(g.state.entities).some(e => e.governor), 'no governor figure in the town');
+  Object.assign(hero, { place: 'world', x: near.x + 5, z: near.z, dead: false });
+  assert.equal(g.governorNear(hero.id)?.governor, 'tNear', 'Space by the hall talks to its governor');
+  Object.assign(hero, { x: near.x + 60 });
+  assert.equal(g.governorNear(hero.id), null, 'not from far away');
   console.log('town governor: ok');
 }

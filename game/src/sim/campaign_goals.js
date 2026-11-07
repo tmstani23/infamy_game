@@ -162,7 +162,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     // the governor (Tim 2026-11-06): meet him beside the hall, then give him a focus and initiative or approve a suggestion
     const clan = state.clans?.[id], m = clan?.milestones || {};
     if (!m.metGovernor) return { key: 'governor', title: 'Meet your governor', step: S0 + MAIN_STEPS.indexOf('governor'), steps, rows: [
-      pin(row('crew', 'Talk to your governor', 0, 1, 'He stands beside your town hall (gold): walk up to him and press Space')), holdRow(id)] };
+      pin(row('crew', 'Talk to your governor', 0, 1, 'Walk up to your town hall (gold) and press Space')), holdRow(id)] };
     if (!town.focusSet || !(town.autoBuild || town.approvedOnce)) return { key: 'govorders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('govorders'), steps, rows: [
       pin(row('town', 'Pick a focus', town.focusSet ? 1 : 0, 1, panel + 'under Steer pick a Focus (gold): Grow, Produce, Trade or Fortify')),
       pin(row('office', 'Initiative On or a suggestion approved', town.autoBuild || town.approvedOnce ? 1 : 0, 1, panel + 'set Governor takes initiative to On (gold), or press Approve on one of his suggestions')), holdRow(id)] };

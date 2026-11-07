@@ -17,6 +17,7 @@ import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMark
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import {workerLocation,workerDetails} from './worker_details.js';
+import { majorBuildings, drawBuildingBadge, CITY_NAMES } from './minimap_icons.js';
 
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
@@ -121,13 +122,22 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   tipBox.style.cssText = 'position:fixed;z-index:50;pointer-events:none;background:rgba(10,20,27,.94);color:#f3dfae;border:1px solid #6b5a38;border-radius:4px;padding:5px 8px;font:12px sans-serif;max-width:230px;display:none';
   document.body.appendChild(tipBox);
   canvas.addEventListener('mousemove', e => {
-    if (!(world && game.state.entities[heroId]?.place === 'world')) { tipBox.style.display = 'none'; return; }
+    const onIsland = world && game.state.entities[heroId]?.place === 'world';
+    if (!onIsland && onHover) { tipBox.style.display = 'none'; return; }   // the big map has its own hover card
+    if (!onIsland) {   // city minimap: a building's name
+      const b = businessAt(e), nm = b && (b.kind === 'bandit_camp' ? 'Bandit camp' : CITY_NAMES[b.kind]);
+      if (!nm) { tipBox.style.display = 'none'; return; }
+      const own = b.owner && b.owner === clan ? 'Yours' : '';
+      tipBox.innerHTML = `<b>${nm}</b>${own ? `<div>${own}</div>` : ''}`;
+      tipBox.style.left = `${e.clientX - 250}px`; tipBox.style.top = `${e.clientY + 14}px`; tipBox.style.display = 'block'; return;
+    }
     const r = canvas.getBoundingClientRect(), mx = (e.clientX - r.left) * size / r.width, my = (e.clientY - r.top) * size / r.height;
     let best = null, bd = Infinity;
     for (const h of islandHits) { const d = (h[0] - mx) ** 2 + (h[1] - my) ** 2; if (d < h[2] * h[2] && d < bd) { bd = d; best = h; } }
     if (!best) { tipBox.style.display = 'none'; return; }
     const w=best[3]==='worker'?best[4]:null,detail=w?workerDetails(w,spotIndex):null;
-    const t = w ? {title:`Worker ${w.id}`,lines:[detail.cargo?`Carrying ${detail.cargo} ${detail.resource}`:detail.harvesting?`Harvesting ${detail.resource} · ${detail.left}s remaining`:'Working / travelling',w.status || '']} : best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
+    const bld=best[3]==='building'?best[4]:null;
+    const t = bld ? {title:bld.name,lines:[bld.town,bld.owner&&bld.owner===clan?'Yours':'']} : w ? {title:`Worker ${w.id}`,lines:[detail.cargo?`Carrying ${detail.cargo} ${detail.resource}`:detail.harvesting?`Harvesting ${detail.resource} · ${detail.left}s remaining`:'Working / travelling',w.status || '']} : best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
     tipBox.innerHTML = `<b>${t.title}</b>` + t.lines.map(l => `<div>${l}</div>`).join('');
     tipBox.style.left = `${e.clientX - 250}px`; tipBox.style.top = `${e.clientY + 14}px`; tipBox.style.display = 'block';
   });
@@ -185,6 +195,12 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       const [u, v] = at(c.x, c.z), done = camps[c.id]?.cleared; islandHits.push([u, v, 9, 'camp', c, tipCtx]);
       ctx.beginPath(); ctx.moveTo(u, v - 6); ctx.lineTo(u + 6, v + 5); ctx.lineTo(u - 6, v + 5); ctx.closePath();
       ctx.fillStyle = done ? '#7d7d78' : c.kind === 'bandit' ? '#e0583a' : c.kind === 'ruin' ? '#c9b6e0' : '#e8d27a'; ctx.fill(); ctx.stroke();
+    }
+    // major buildings of the towns (Tim 2026-11-07): lettered badges, name on hover; they show once you are close enough to tell
+    if (islandZoom >= 0.6) for (const b of near(majorBuildings(game.state.frontier))) {
+      const [u, v] = at(b.x, b.z); if (u < 0 || v < 0 || u > size || v > size) continue;
+      drawBuildingBadge(ctx, u, v, b.letter, b.owner ? state.clans?.[b.owner]?.color : null, 8 + Math.min(4, (islandZoom - 1) * 2));
+      islandHits.push([u, v, 8, 'building', b]);
     }
     for (const e of Object.values(state.entities)) {
       if (e.place !== 'world' || e.dead) continue;

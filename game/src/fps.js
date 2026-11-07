@@ -18,7 +18,7 @@ export function createFps({diagnostics=()=>null,sim=()=>null}={}) {
         const d=diagnostics();
         el.style.whiteSpace='pre-line';
         el.textContent = `${Math.round(frames * 1000 / (now - since))} fps  worst ${Math.round(worst)} ms${mem}`
-          +(d?`\nDraw ${d.drawMs.toFixed(1)}ms · ${d.calls} calls · ${d.sprites} sprites (${d.workers} workers)\nGPU resources: ${d.geometries} geometries · ${d.textures} textures · ${d.programs} programs\n${d.width}×${d.height} · DPR ${d.pixelRatio}`:'');
+          +(d?`\nDraw ${d.drawMs.toFixed(1)}ms · ${d.calls} calls · ${d.sprites} sprites (${d.workers} workers)\nGPU resources: ${d.geometries} geometries · ${d.textures} textures · ${d.programs} programs\n${d.width}×${d.height} · DPR ${d.pixelRatio}`+(d.parts?`\nFrame ms: ${Object.entries(d.parts).map(([k,v])=>`${k} ${v.toFixed(1)}`).join(' · ')}`:''):'');
       }
       const sd=sim();
       if(sd && !el.hidden) {

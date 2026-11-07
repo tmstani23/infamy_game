@@ -25,10 +25,21 @@ export function createBloom(renderer, { strength = 1.15, radius = 0.55 } = {}) {
   let w = 0, h = 0;
   const black = new THREE.Color(0, 0, 0), oldClear = new THREE.Color();
 
+  // perf 2026-11-07 (Tim's F3: the glow pass cost 2.4 ms a frame with no effect on screen): is any effect showing?
+  const mask = 1 << FX_LAYER;
+  function anyFx(o) {
+    if (!o.visible) return false;
+    if ((o.layers.mask & mask) && (o.isMesh || o.isPoints || o.isLine || o.isSprite)) return true;
+    for (const c of o.children) if (anyFx(c)) return true;
+    return false;
+  }
+  let active = false;
   return {
     scale: SCALE,
-    // draw the effects alone and blur them (call before the main render)
+    // draw the effects alone and blur them (call before the main render); skipped while no effect shows
     render(scene, camera) {
+      active = anyFx(scene);
+      if (!active) return;
       renderer.getDrawingBufferSize(size);
       const tw = Math.max(1, Math.round(size.x * SCALE)), th = Math.max(1, Math.round(size.y * SCALE));
       if (tw !== w || th !== h) { w = tw; h = th; target.setSize(w, h); pass.setSize(w, h); }
@@ -48,6 +59,7 @@ export function createBloom(renderer, { strength = 1.15, radius = 0.55 } = {}) {
     },
     // add the glow over the frame just drawn (call after the main render)
     composite() {
+      if (!active) return;
       add.material.uniforms.tGlow.value = pass.renderTargetsHorizontal[0].texture;
       const auto = renderer.autoClear;
       renderer.autoClear = false;

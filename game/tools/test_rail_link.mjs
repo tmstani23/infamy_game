@@ -149,13 +149,16 @@ assert.ok(tr.d > 0 && Math.hypot(hero.x - pointAt(l, tr.d).x, hero.z - pointAt(l
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'skip' }]);
 assert.ok(!hero.aboard && !mate.aboard, 'off the train');
 assert.equal(hero.place, 'street', 'into the city');
-assert.ok(Math.hypot(hero.x - g.gate.inside[0], hero.z - g.gate.inside[1]) < 12, 'just inside the gate');
+assert.ok(g.gate.station && Math.hypot(hero.x - g.gate.station[0], hero.z - g.gate.station[1]) < 12, 'at the city railway station by the gate');
 assert.equal(mate.place, 'street', 'the follower came too');
 assert.equal(rail.stationOf(tr), 'capital', 'the train stands at the capital');
-// from the city side of the gate: ride along all the way, no Skip
+// from the city railway station (Tim 2026-11-07): ride along all the way, no Skip; the gate itself is no station
 Object.assign(hero, { x: g.gate.city[0] + 1, z: g.gate.city[1] });
+assert.equal(rail.service(hero).length, 0, 'no trains at the gate itself');
+Object.assign(hero, { x: g.gate.station[0] + 1, z: g.gate.station[1] });
 const sc = rail.service(hero);
-assert.ok(sc.length && sc[0].at === 'capital' && sc[0].eta === 0, 'the train shows at the city gate');
+assert.ok(sc.length && sc[0].at === 'capital' && sc[0].eta === 0, 'the train shows at the city station');
+assert.ok(g.doors.some(d => d.menu === 'rail_station'), 'the station door ring opens the station menu');
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);
 assert.equal(hero.aboard, `rail:${tr.id}`, 'aboard from the city');
 for (let t = 0; t < R4.departSeconds * 20 + Math.ceil(l.length / T.viewSpeed * 20) + 30 && hero.aboard; t++) g.step([]);

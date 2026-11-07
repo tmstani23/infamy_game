@@ -91,7 +91,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
         c.className = 'card';
         c.dataset.id = id;
         c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
-        c.querySelector('b').textContent = unitName(units, e.civ || e.type);
+        c.querySelector('b').textContent = (e.cannon && e.name) || unitName(units, e.civ || e.type);
         root.appendChild(c);
         cards[id] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
@@ -111,7 +111,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       if (k.where.textContent !== at) k.where.textContent = at;
       k.c.classList.toggle('down', !!e.downed);
       k.c.classList.toggle('jailed', !!e.prisoner);
-      k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
+      k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${(e.cannon && e.name) || unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
     }
   }
   return { update };

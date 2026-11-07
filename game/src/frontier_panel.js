@@ -33,7 +33,7 @@ const STEER = {
     on: 'On: the governor zones, builds, lays roads, trains workers and sends idle workers gathering by himself.'
   }
 };
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {} }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null }) {
   let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const data=game.frontier?.data;
@@ -142,28 +142,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         const fb = s.buildings.find(x => x.type === 'stockade' && x.stage === 'built'), fhp = fort.hp ? ` · health <b>${Math.round(fb?.hp ?? fort.hp)}</b> / ${fort.hp}` : '';
         h += `<div class="lab">Stockade</div><div class="row"><span${tip(`Hits on units inside land on the stockade instead${fort.hp ? ` (${fort.hp} health); if it breaks, everyone inside piles out and the governor rebuilds it` : ''}. Units inside heal ${fort.healFactor}x faster. They must be within ${fort.range} of the stockade to go in. Holds ${fort.capacity}.`)}>Garrison <b>${inside.length}</b> / ${fort.capacity}${fhp}</span><span>${b('garrison-in', 'selected', 'Send in selected', false, 'Send your selected units into the stockade')} ${b('garrison-in', 'crew', 'Hero &amp; crew', false, 'Send your hero and crew nearby into the stockade')} ${b('garrison-in', 'workers', 'Workers', false, 'Send your workers nearby into the stockade; they count as idle there')} ${b('garrison-out', 'all', 'Leave', false, 'Everyone inside walks out')}</span></div>`;
       }
-      // Stable (Tim 2026-11-06): horses and omnibuses made by hand, one at a time on its production bar
-      const SB = data?.buildings?.stable?.stable, sb = SB && s.buildings?.find(x => x.type === 'stable' && x.stage === 'built');
-      if (sb) {
-        const jobs = sb.stableJobs || [], j = jobs[0], cost = c => Object.entries(c || {}).map(([r, n]) => `${n} ${r}`).join(', ');
-        const meId = game.state.entities[heroId]?.owner, myClan = game.state.clans?.[meId];
-        const horses = Object.values(game.state.entities).filter(u => u.type === 'horse' && u.horseOwner === meId);
-        const bar = j ? `<span style="display:inline-block;width:80px;height:8px;background:#3a2f1e;border:1px solid #5c4a2c;vertical-align:middle"><i style="display:block;height:100%;width:${Math.round(100 * (1 - j.left / j.total))}%;background:#ffd34d"></i></span> ${j.kind === 'omnibus' ? 'Omnibus' : esc(SB.kinds[j.kind]?.name || j.kind)} ${Math.ceil(j.left / 20)}s${jobs.length > 1 ? ` (+${jobs.length - 1} waiting)` : ''}` : 'Nothing being made';
-        const kind = k => b('stable', k, `Raise ${esc(SB.kinds[k].name)}`, false, `${cost(SB.kinds[k].cost)}, ${SB.kinds[k].seconds} s. Holds ${SB.maxHorses} horses`);
-        h += `<div class="lab">Stable</div><div class="row"><span>${bar}</span><span>${Object.keys(SB.kinds).map(kind).join(' ')}${jobs.length ? ' ' + b('stable', 'cancel', 'Cancel last', false, 'Cancel the last job (refunded)') : ''}</span></div>`;
-        if (horses.length) h += `<div class="row"><span${tip('Click a horse to make it your mount, or right-click her out on the island. H on the island rides her or calls her to you.')}>Your horses</span><span>${horses.map(x => b('stable', 'choose:' + x.id, `${esc(x.name || 'Horse')}${myClan?.mount === x.id ? ' (yours)' : ''}`, myClan?.mount === x.id, 'Make this your mount (H to ride)')).join(' ')}</span></div>`;
-      }
-      // Omnibus station (Tim 2026-11-06): rickshaws and omnibuses by hand; Space at it travels by rickshaw
-      const SN = data?.buildings?.station?.station, sn = SN && s.buildings?.find(x => x.type === 'station' && x.stage === 'built');
-      if (sn) {
-        const jobs = sn.stableJobs || [], j = jobs[0], cost = c => Object.entries(c || {}).map(([r, n]) => `${n} ${r}`).join(', ');
-        const meId = game.state.entities[heroId]?.owner;
-        const mine = k => Object.values(game.state.entities).filter(v => v.type === k && v.omnibusOwner === meId).length;
-        const bar = j ? `<span style="display:inline-block;width:80px;height:8px;background:#3a2f1e;border:1px solid #5c4a2c;vertical-align:middle"><i style="display:block;height:100%;width:${Math.round(100 * (1 - j.left / j.total))}%;background:#ffd34d"></i></span> ${esc(SN.kinds[j.kind]?.name || j.kind)} ${Math.ceil(j.left / 20)}s${jobs.length > 1 ? ` (+${jobs.length - 1} waiting)` : ''}` : 'Nothing being made';
-        const make = k => b('station', k, `Build ${esc(SN.kinds[k].name.toLowerCase())}`, false, `${cost(SN.kinds[k].cost)}, ${SN.kinds[k].seconds} s. It comes out empty and parks at the station${k === 'rickshaw' ? ` (2 seats, 3.5x speed; holds ${SN.maxRickshaws})` : ` (8 seats, 3x speed; you can keep ${SN.maxOmnibuses})`}`);
-        h += `<div class="lab">Omnibus station</div><div class="row"><span${tip('Space at the station: rickshaw travel to your other towns with a station, or the capital. Each rickshaw waiting here takes two.')}>${bar}</span><span>${Object.keys(SN.kinds).map(make).join(' ')}${jobs.length ? ' ' + b('station', 'cancel', 'Cancel last', false, 'Cancel the last job (refunded)') : ''}</span></div>`;
-        h += `<div class="row"><span>Yours</span><span>rickshaws <b>${mine('rickshaw')}</b> · omnibuses <b>${mine('omnibus')}</b></span></div>`;
-      }
+      // Stable (Tim 2026-11-07): horses, rickshaws and omnibuses are bought in the stable menu (src/stable_menu.js)
+      if (s.buildings?.some(x => x.type === 'stable' && x.stage === 'built')) h += `<div class="lab">Stable</div><div class="row"><span${tip('Horses, rickshaws and omnibuses are made at the stable: click it or Space beside it.')}>Horses and vehicles</span><span>${b('openstable', 'open', 'Open stable', false, 'Open the stable menu for this town')}</span></div>`;
       h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>` + now(STEER.initiative[st.autoBuild ? 'on' : 'off']);
     }
     let paged = null;
@@ -215,7 +195,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         break;
       }
       case 'garrison-out': cmd({ action: 'garrison', mode: 'leave', town: sid }); break;
-      case 'station': cmd({ action: 'station', mode: id, town: sid }); break;
+      case 'openstable': onStable?.(sid); break;
       case 'stable': cmd(id.startsWith('choose:') ? { action: 'stable', mode: 'choose', town: sid, horse: id.slice(7) } : id === 'cancel' || id === 'omnibus' ? { action: 'stable', mode: id, town: sid } : { action: 'stable', mode: 'horse', kind: id, town: sid }); break;
       case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
     }

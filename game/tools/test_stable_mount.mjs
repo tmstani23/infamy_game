@@ -81,7 +81,7 @@ assert.ok(!hero.mounted, 'thrown off');
 assert.match(clan.notice?.text || '', /Thrown/);
 hero.hp = hero.maxHp;
 
-// --- a second horse, chosen as the mount; the stable holds maxHorses --------------------------------------------
+// --- a second horse, chosen as the mount; room by the town's tier (stable.room) --------------------------------------------
 cmd({ mode: 'horse', kind: 'calico' });
 for (let t = 0; t < SB.kinds.calico.seconds * 20 + 5; t++) g.step([]);
 const cal = horses().find(h => h.horseKind === 'calico');
@@ -89,17 +89,25 @@ assert.ok(cal, 'a calico');
 assert.equal(clan.mount, bb.id, 'Black Beauty is still the mount');
 cmd({ mode: 'choose', horse: cal.id });
 assert.equal(clan.mount, cal.id, 'chose the calico');
-for (let k = horses().length; k < SB.maxHorses; k++) cmd({ mode: 'horse', kind: 'calico' });
+assert.equal(g.frontier.stable.room('player', 'horse'), SB.room.horse[(town.tier || 1) - 1], 'horse room from the tier');
+const stableB = town.buildings.find(b => b.type === 'stable');
+for (let k = 0; k < 12 && g.frontier.stable.have('player', 'horse') < g.frontier.stable.room('player', 'horse'); k++) { town.stock.food = 9999; town.stock.goods = 9999; if ((stableB.stableJobs || []).length >= (SB.queue ?? 3)) for (let t = 0; t < SB.kinds.calico.seconds * 20 * 3 + 10; t++) g.step([]); cmd({ mode: 'horse', kind: 'calico' }); }
 cmd({ mode: 'horse', kind: 'calico' });
-assert.match(clan.notice?.text || '', /holds/);
+assert.match(clan.notice?.text || '', /room for/, 'no room for more horses');
+for (const b of town.buildings) if (b.type === 'stable') b.stableJobs = [];
 
-// --- the omnibus station: rickshaws and omnibuses come out empty and park there ----------------------------------
-const SN = frontier.buildings.station.station;
+// --- rickshaws and omnibuses: made at the stable (Tim 2026-11-07), they come out empty and park there ----------------------------------
+const SN = SB;
 if (hero.mounted) g.step([{ id: hero.id, type: 'mount' }]);
 const scell = (() => { let best = -1, bd = Infinity; town.grid.use.split('').forEach((c, i) => { if (c !== '.' || i === cell) return; const [x, z] = g.frontier.stable.centre(town, { cell: i }), d = Math.hypot(x - town.x, z - town.z); if (d > 45 && d < bd) { bd = d; best = i; } }); return best; })();
 town.buildings.push({ id: 'sn1', type: 'station', cell: scell, stage: 'built' });
 const station = town.buildings.at(-1);
-const scmd = c => g.step([{ id: hero.id, type: 'frontier', action: 'station', town: 'tS', ...c }]);
+g.step([{ id: hero.id, type: 'frontier', action: 'station', town: 'tS', mode: 'rickshaw' }]);
+assert.match(clan.notice?.text || '', /made at the stable/, 'the station makes no vehicles');
+const scmd = c => g.step([{ id: hero.id, type: 'frontier', action: 'stable', town: 'tS', ...c }]);
+scmd({ mode: 'omnibus' });
+assert.match(clan.notice?.text || '', /No room for omnibuses|room for/, 'no omnibus at tier 1');
+town.tier = 3; town.stock.timber = 9999; town.stock.goods = 9999;
 const mineV = k => Object.values(S.entities).filter(v => v.type === k && v.omnibusOwner === 'player');
 scmd({ mode: 'rickshaw' }); scmd({ mode: 'rickshaw' });
 for (let t = 0; t < SN.kinds.rickshaw.seconds * 40 + 10; t++) g.step([]);
@@ -156,6 +164,30 @@ assert.ok(fromGate?.capital && fromGate.list.some(d => d.id === 'tS'), 'the isla
 g.step([{ id: hero.id, type: 'rickshaw', to: 'tS' }]);
 assert.equal(hero.place, 'world', 'back out at Stableton');
 assert.ok(Math.hypot(hero.x - sx, hero.z - sz) < 40);
+
+// --- whistles (Tim 2026-11-07): one per horse; far or lost horses appear beside you; a dead one takes hers ---------
+Object.assign(hero, { place: 'world', x: town.x + 40, z: town.z + 40 }); if (hero.mounted) g.step([{ id: hero.id, type: 'mount' }]);
+const ws = () => clan.whistles || [];
+assert.equal(ws().length, horses().filter(h => !h.dead).length, `a whistle per horse (${ws().length})`);
+const far = horses().find(h => h.id !== clan.mount);
+Object.assign(far, { x: hero.x + 900, z: hero.z });
+g.step([{ id: hero.id, type: 'mount', whistle: far.id }]);
+assert.equal(clan.mount, far.id, 'the whistle makes her the mount');
+assert.ok(Math.hypot(far.x - hero.x, far.z - hero.z) < 5, `far away: she appears beside you (${Math.hypot(far.x - hero.x, far.z - hero.z).toFixed(1)})`);
+const near = horses().find(h => h.id !== far.id);
+Object.assign(near, { x: hero.x + 40, z: hero.z });
+g.step([{ id: hero.id, type: 'mount', whistle: near.id }]);
+assert.equal(near.called, hero.id, 'close by: she gallops over');
+for (let t = 0; t < 60 && !hero.mounted; t++) g.step([]);
+assert.ok(hero.mounted && hero.ride.horse === near.id, 'she arrived and he is up');
+g.step([{ id: hero.id, type: 'mount' }]);
+const lostName = far.name; delete S.entities[far.id];
+g.step([{ id: hero.id, type: 'mount', whistle: far.id }]);
+const back = horses().find(h => h.name === lostName && !h.dead && Math.hypot(h.x - hero.x, h.z - hero.z) < 5);
+assert.ok(back && clan.mount === back.id && ws().some(w => w.horse === back.id), 'a horse lost after a load comes back to her whistle');
+back.dead = true; for (let t = 0; t < 21; t++) g.step([]);
+assert.ok(!ws().some(w => w.horse === back.id), 'a dead horse takes her whistle with her');
+assert.match(clan.notice?.text || '', /died/);
 
 // --- in the city: H is the hire menu (main.js), the horse command says island only --------------------------------
 Object.assign(hero, { place: 'street', x: 0, z: 0 });

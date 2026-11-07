@@ -70,5 +70,15 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
       }
     }
   }
-  return { hero, carry, tick, nearestHall, rules: R };
+  // Unstuck on the island (Tim 2026-11-07): the nearest of your town halls, or null when the city gate is closer
+  function unstuckSpot(e, probe = false) {   // probe: only whether there is one (cheap, for the button)
+    if (!areas || e.place !== 'world') return null;
+    const s = nearestHall(e.owner, e.x, e.z);
+    if (!s) return null;
+    const hall = hallFront(s), dHall = Math.hypot(hall[0] - e.x, hall[1] - e.z), dGate = gate ? Math.hypot(gate.island[0] - e.x, gate.island[1] - e.z) : Infinity;
+    if (dGate < dHall) return null;
+    const [x, z] = probe ? hall : spotNear(...hall);
+    return { x, z, place: 'world', town: s.name || 'your town' };
+  }
+  return { hero, carry, tick, nearestHall, unstuckSpot, rules: R };
 }

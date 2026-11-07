@@ -29,7 +29,7 @@ function heap() {
   };
 }
 
-export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [] }) {
+export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [], dynamicVersion = null }) {
   const S = cfg.chunk, CELL = cfg.navCell, N = Math.round(S / CELL), PAD = cfg.navPad ?? 0.4;
   const TC = world.terrain.cell, K = Math.round(S / TC);
   const NX = world.terrain.rows[0].length, NZ = world.terrain.rows.length;
@@ -41,7 +41,8 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   let active = new Map();                // chunk key -> cached chunk, for chunks units stand in or next to
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
-  let freeMemo = null;                  // perf 2026-11-07: one worker search asks each cell up to ~10 times; answer once
+  let freeMemo = null;
+  const dynMemo = new Map(); let dynVer = null;                  // perf 2026-11-07: one worker search asks each cell up to ~10 times; answer once
   let clock = 0, stats = { built: 0, buildMs: 0, worstMs: 0 };
   const keyOf = (cx, cz) => cz * CX + cx;
   const inRange = (cx, cz) => cx >= 0 && cz >= 0 && cx < CX && cz < CZ;
@@ -106,7 +107,13 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   function freeRaw(i, j) {
     if (planningBlocked?.(...centre(i, j))) return false;
     const [x,z]=centre(i,j),pad=cfg.navPad || 0;
-    if(dynamicBlockers(x-pad,z-pad,x+pad,z+pad).length)return false;
+    if (dynamicVersion) {   // perf 2026-11-07: each cell's town-blocker answer is kept until a town's blockers change
+      const v = dynamicVersion();
+      if (v !== dynVer || dynMemo.size > 400000) { dynVer = v; dynMemo.clear(); }
+      const k = i * 1048576 + j; let b = dynMemo.get(k);
+      if (b === undefined) { b = dynamicBlockers(x-pad,z-pad,x+pad,z+pad).length > 0; dynMemo.set(k, b); }
+      if (b) return false;
+    } else if(dynamicBlockers(x-pad,z-pad,x+pad,z+pad).length)return false;
     const cx = Math.floor(i / N), cz = Math.floor(j / N);
     if (!inRange(cx, cz)) return false;
     const key = keyOf(cx, cz);

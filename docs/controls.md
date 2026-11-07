@@ -163,6 +163,12 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Town panel or town hall card → Upgrade to … | Upgrades the town hall tier: pays the listed stock at once (needs enough people; costs are 75% of the current tier's base storage cap: Village 750, Town 2,250 each of timber, stone and goods), then a scaffold and build phases go up around the hall until it finishes. A higher tier widens the build ring (dashed circle with the build bar open) and raises zone cell, building, worker and storage limits. Hover for costs and limits. On the new tier, fireworks go up over the hall for 20 seconds (2026-11-05). |
 | Town panel → Steer → Market (Village tier) | A built market sells goods above the town's keep level for ryo (about 1 ryo per goods, a little each second). − / + changes the keep level in steps of 100 (default 400). Sales show in Usage → Goods as Market sales. Idle townsfolk pay half tax (2026-11-05). |
 | H (island) | Ride your horse, get off, or call her. No fighting while mounted; thrown off below 1/3 health and at the gate. Right-click your own horse to ride her. In the city H still hires crew. |
+| Shift+H (island) | Mount up: the hero group's crew get on horses (not settlers or workers); crew dismount to fight. |
+| Shift+Y | Vehicles panel: your vehicles, with recall, store and take out. |
+| Character page (J) → Field supplies → horse whistle | Makes that horse your mount and calls her; a lost horse respawns beside you. |
+| Hover a minimap icon | Shows the building's name. |
+| Hover a train | Shows the train's card. |
+| U or Unstuck (island) | Sends you to the nearest town hall, or to the capital if it is closer. |
 | Q or right-click an omnibus or rickshaw | Board or deploy it (the omnibus icon flashes on hover). Omnibus: 8 seats, 3x speed, 800 health; rickshaw: 2 seats, 3.5x, 400 health. Nobody inside fights; hits land on the vehicle and everyone piles out when it is wrecked. |
 | Space at a station | Rickshaw travel: pick one of your stations or the capital; instant, 2 per waiting rickshaw; refused within 10 s of a hit or with enemies within 12. From the city, use the gate menu (3). |
 | Space beside your lieutenant at the island gate (campaign) | Talk to your lieutenant: what he does while you are on the island. Show me opens Deployment → While I'm away; Later closes. |

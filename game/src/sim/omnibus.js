@@ -9,7 +9,7 @@
 //           { id: <hero id>, type: 'omnibus', action: 'board', omnibus?: <id>, units?: [ids] } (hero and
 //           units in reach get in; no omnibus = the nearest parked one; no units = the hero and his followers)
 // Rickshaws (Tim 2026-11-06 20:24) work the same way: rules.rickshaw seats (2) and speed (3.5x). Both are built
-// empty at an omnibus station (sim/frontier/stable.js) and park there (park()); stationTrip() moves parked
+// empty at a stable (sim/frontier/stable.js, Tim 2026-11-07) and park there (park()); stationTrip() moves parked
 // rickshaws with their riders for the station's instant travel.
 // createOmnibus({ state, rules, spawn, remove, nav, freeSlot, followOffset, forget, say })
 //   -> { ride, deploy, board, command, tick, shelter, consume, of, riders, near, park, isVehicle }
@@ -45,6 +45,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
   }
   function seat(u, bus) {
+    if (u.mounted && u.type !== 'hero') { delete u.mounted; delete u.ride; }   // a crew horse stays where it is
     u.aboard = bus.id; if (!bus.vorder) bus.vorder = { kind: 'follow' };
     delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; forget(u.id);
     Object.assign(u, { x: bus.x, z: bus.z, place: 'world', anim: 'idle' });
@@ -94,8 +95,25 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     .sort((a, b) => Math.hypot(a.x - hero.x, a.z - hero.z) - Math.hypot(b.x - hero.x, b.z - hero.z));
 
   // into a parked omnibus: the hero (drives it) and the chosen units, overflow into the next one in reach
+  // selected crew into a parked vehicle without the hero (Tim 2026-11-07: "garrison" a crew member in it): they walk
+  // over and get in, as many as it seats; it then stays put and takes crew orders like a loaded one
+  function crewBoard(hero, c) {
+    const bus = state.entities[c.omnibus];
+    if (!isVehicle(bus) || bus.omnibusOwner !== hero.owner || bus.dead || bus.driver) return false;
+    const room = seatsOf(bus) - riders(bus).length - Object.values(state.entities).filter(u => u.boardBus === bus.id).length;
+    if (room <= 0) { say(hero.owner, `The ${bus.type} is full`); return false; }
+    const group = (c.units || []).map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && u.type !== 'horse' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === bus.place);
+    if (!group.length) return false;
+    for (const u of group.slice(0, room)) {
+      if (u.mounted) { delete u.mounted; delete u.ride; }
+      u.boardBus = bus.id; u.order = { kind: 'move', x: bus.x, z: bus.z, place: bus.place }; forget(u.id);
+    }
+    if (group.length > room) say(hero.owner, `Room for ${room} in the ${bus.type}`);
+    return true;
+  }
   function board(hero, c = {}) {
     if (hero.aboard) return false;
+    if (c.crewOnly) return crewBoard(hero, c);
     if (hero.mounted) { say(hero.owner, 'Get off your horse first (H)'); return false; }
     const reach = R().boardRange ?? 6;
     let buses = near(hero, reach * 2).filter(b => !riders(b).length);
@@ -200,6 +218,13 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     if (o.kind === 'stay') b.anim = 'idle';
   }
   function tick() {
+    for (const u of Object.values(state.entities)) {   // crew walking over to get in (crewBoard)
+      if (!u.boardBus) continue;
+      const bus = state.entities[u.boardBus];
+      if (!bus || bus.dead || u.dead || u.downed || u.aboard || bus.driver || u.order?.kind !== 'move' || riders(bus).length >= seatsOf(bus)) { delete u.boardBus; continue; }
+      if (Math.hypot(bus.x - u.x, bus.z - u.z) > (R().boardRange ?? 6) * 0.6) continue;
+      delete u.boardBus; seat(u, bus); bus.vorder = { kind: 'stay' };
+    }
     const byOwner = {};
     for (const b of Object.values(state.entities)) if (isVehicle(b)) (byOwner[b.omnibusOwner] ||= []).push(b);
     for (const list of Object.values(byOwner)) {

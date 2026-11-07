@@ -497,6 +497,19 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Calmer alert animations (`index.html`, `worker_panel.js`, `grouped_crew.js`, `stealth_badge.js`).
 - New sounds in `assets/sounds/`: cannon_fire_1-2, gate_open_1, hoof_gallop_1-2, hoof_walk_1-2, omnibus_roll_1-3, rickshaw_roll_1-2.
 
+## Stable, whistles and city station (2026-11-07)
+
+- Horses and vehicles are bought at the stable (`src/stable_menu.js`, `sim/frontier/stable.js`). Each stable's room depends on its town's tier: horses 5 / 12 / 25, rickshaws 1 / 2 / 3, omnibuses 0 / 1 / 2; the limit is the total across all your stables.
+- Each horse comes with a whistle on the character page (J), under Field supplies. Using it makes that horse your mount and calls her; a lost horse respawns beside you (`sim/mounts.js`, `src/character_panel.js`).
+- The Vehicles panel (Shift+Y) lists your vehicles and can recall, store and take them out (`src/vehicles_panel.js`, `sim/vehicle_garage.js`). Test: `tools/test_vehicle_garage.mjs`.
+- Shift+H Mount up puts the hero group's crew on horses; settlers and workers are excluded; crew dismount to fight. Test: `tools/test_crew_horses.mjs`.
+- Right-click with crew selected on a parked rickshaw (2 seats) or omnibus (8) to garrison them inside.
+- The capital's railway station is just inside the island gate (`data/port_town.json`).
+- Unstuck sends you to the nearest town hall, or to the capital if it is closer (`sim/unstuck.js`).
+- Hovering a train shows a card (`src/town_hover.js`). Minimap icons show the building's name on hover (`src/minimap_icons.js`).
+- Building and site menus open around 48% from the left and 33% down (`data/ui_layout.json`).
+- Omnibus and rickshaw `run` uses gallop sheets (`omnibus_gallop`, `rickshaw_horse_gallop`; `art.json`).
+
 ## Cannon salute (2026-11-07)
 
 Each town hall has 4 cannons beside it (2 `cannon_field` brass, 2 `cannon_wooden`). The governor fires a salute on the first talk after the town is founded, after each tier upgrade, and from the Fire a salute talk choice (2-minute cooldown). No damage. Code: `sim/cannon_salute.js`. Test: `tools/test_cannon_salute.mjs`.

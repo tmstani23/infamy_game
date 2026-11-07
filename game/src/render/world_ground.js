@@ -50,7 +50,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
-  let spotRevision = '', snapshot = null, spotAppliedAt = -Infinity;
+  let spotRevision = '', snapshot = null, spotAppliedAt = -Infinity, spotKey = '', lastDiscovered = undefined;
   const glowCfg = spotConfig?.glow, glow = glowCfg ? createSpotGlow({ scene, cfg: glowCfg }) : null, glowItems = [];
   const sigs = new WeakMap(), sigOf = p => { let v = sigs.get(p); if (v === undefined) sigs.set(p, v = JSON.stringify(p)); return v; };
   const coastline = createCoastlineRenderer({ world, cfg, renderer });
@@ -214,8 +214,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
 
   // Each frame: (camera x, z), whether the followed hero is on the island, frame time
   function update(x, z, active, dt, frontier, discovered, viewScale = 1) {
+    // perf 2026-11-07: the spots are only re-read when a new frontier view or discovery arrives (4 Hz), not every frame
+    if (frontier !== snapshot || discovered !== lastDiscovered) { spotKey = `${JSON.stringify(frontier?.spots || {})}|${discovered}`; lastDiscovered = discovered; }
     snapshot = frontier;
-    const revision = `${JSON.stringify(frontier?.spots || {})}|${discovered}`;
+    const revision = spotKey;
     // Harvest stage changes are batched (max ~2/s) so many workers can't force a full prop + draw-order rebuild every tick
     const nowMs = performance.now();
     if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
@@ -245,8 +247,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       }
     }
     // props: refresh when the camera has moved a few units (or a chunk came in)
-    const R = (cfg.propRadius ?? 55) * viewScale;
-    if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < 4 && Math.abs(R - propAt[2]) < 1) return;
+    // perf 2026-11-07 (Tim: worse while moving): props are gathered a margin wider and refreshed every MOVE units
+    // instead of every 4, so panning rebuilds the prop set about a third as often without props popping in
+    const MOVE = 12, R = (cfg.propRadius ?? 55) * viewScale + MOVE;
+    if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < MOVE && Math.abs(R - propAt[2]) < 1) return;
     propAt = [x, z, R];
     const want = new Map();
     const spots = spotConfig ? visibleSpots(spotIndex, { x, z, radius: R + spotConfig.pieceReach, known: (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz) }) : [];
@@ -298,11 +302,14 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       camera.updateMatrixWorld(); reflectionProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       reflectionFrustum.setFromProjectionMatrix(reflectionProjection);
       const T = world.terrain.cell, pad = world.terrain.shoreline?.radius || 0;
-      outer: for (const c of loaded.values()) for (let j = 0; j < c.gen.cells.length; j++) for (let i = 0; i < c.gen.cells[j].length; i++) {
-        if (!'wr'.includes(c.gen.cells[j][i])) continue;
-        const x = c.gen.x0 + i * T, z = c.gen.z0 + j * T;
-        waterBox.min.set(x - pad, -0.1, z - pad); waterBox.max.set(x + T + pad, 0.1, z + T + pad);
-        if (reflectionFrustum.intersectsBox(waterBox)) { waterVisible = true; break outer; }
+      // perf 2026-11-07: each chunk's water cells are listed once, not rescanned every frame
+      outer: for (const c of loaded.values()) {
+        if (!c.water) { c.water = []; for (let j = 0; j < c.gen.cells.length; j++) for (let i = 0; i < c.gen.cells[j].length; i++) if ('wr'.includes(c.gen.cells[j][i])) c.water.push(c.gen.x0 + i * T, c.gen.z0 + j * T); }
+        for (let k = 0; k < c.water.length; k += 2) {
+          const x = c.water[k], z = c.water[k + 1];
+          waterBox.min.set(x - pad, -0.1, z - pad); waterBox.max.set(x + T + pad, 0.1, z + T + pad);
+          if (reflectionFrustum.intersectsBox(waterBox)) { waterVisible = true; break outer; }
+        }
       }
     }
     const hidden = [];

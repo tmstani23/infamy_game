@@ -121,6 +121,8 @@ const BUILT_IN = { ronin: 'walk' };
 // wheels: vehicles whose wheels are fused into the model get them cut out and rebuilt as spinning
 // spoked wheels (sprite_render_test.html addWheels). Numbers are Blender coordinates read off the model.
 // tilt: turn one part about a pivot so it meets the ground (the rickshaw hung level from the puller's hands, wheels in the air).
+// extra: more clips from animation-only .glb files of the same scene (the horse teams' gallop,
+// assets/models/source/gallop_anim.py), each merged into one clip named by merge.
 // supersample: render at that many times the size and draw down, for softer edges.
 const MOUNTS = {
   mare: { file: 'mare.glb', height: 2.4 },
@@ -133,10 +135,12 @@ const MOUNTS = {
     wheels: { mesh: 'rickshaw', fwd: -1, axle: [0.00262, 0.0031], list: [[0.0097, 0.0071, 0.0033]], spokes: 10 },
     tilt: { mesh: 'rickshaw', about: [-0.0011, 0.0057], degrees: -24 } },   // built around the Mixamo driver, who faces +Z
   omnibus: { file: 'omnibus.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
+    extra: [{ file: 'omnibus_gallop.glb', merge: 'gallop' }],
     wheels: { mesh: 'omnibus_body', fwd: 1, axle: [0.133, 0.172], list: [[-0.222, 0.108, 0.108], [0.209, 0.095, 0.087]], spokes: 10 } },
   // Horse-drawn rickshaw (Tim 2026-11-06): the black mare in the black rickshaw's stretched shafts, no puller
   // (assets/models/source/rickshaw_horse_rig/rickshaw_horse.py). Wheel numbers are in the scene's Blender coordinates.
   rickshaw_horse: { file: 'rickshaw_horse.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
+    extra: [{ file: 'rickshaw_horse_gallop.glb', merge: 'gallop' }],
     wheels: { mesh: 'rickshaw', fwd: 1, axle: [0.133, 0.195], list: [[-0.889, 0.179, 0.181]], spokes: 10 } },
   // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
@@ -309,6 +313,10 @@ for (const [name, cfg] of mounts) {
   await page.evaluate(o => window.spriteTest.setMount(o), cfg);
   await page.setInputFiles('#pickMount', path.join(mountDir, cfg.file));
   await page.waitForFunction(() => window.spriteTest.ready(), null, { timeout: 300000 });
+  for (const [k, x] of (cfg.extra || []).entries()) {   // more clips from animation-only .glb files of the same scene
+    await page.setInputFiles('#pickExtra', path.join(mountDir, x.file));
+    await page.waitForFunction(n => window.spriteTest.clipCount() >= n, k + 2, { timeout: 300000 });
+  }
   const frame = await page.evaluate(px => window.spriteTest.autoFrame(px), cfg.pxPerUnit);
   if (cfg.fps) await page.evaluate(f => { document.getElementById('fps').value = String(f); }, cfg.fps);
   const names = await page.evaluate(() => window.spriteTest.clipNames());

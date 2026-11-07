@@ -1,5 +1,6 @@
 // Unstuck (phase 5 of docs/playtest_followup_plan.md, Tim 2026-10-29): a hero caught on the map stands
-// still for channelSeconds and comes out inside his own hideout. Once per cooldownSeconds. A hit, moving,
+// still for channelSeconds and comes out inside his own hideout (on the island: by his nearest town hall when
+// that is closer than the city gate, Tim 2026-11-07). Once per cooldownSeconds. A hit, moving,
 // attacking, a door or being downed cancels it (pressing again too). Not allowed within combatSeconds of
 // hitting or being hit, while his HQ is raided, or while he is in the room of his Sabotage/Steal job.
 // Every use is logged in state.stuckSpots (where it was used) so map snags can be fixed.
@@ -21,7 +22,7 @@ export function createUnstuck({ state, rules = {}, destination, moving = () => f
     if (fighting(e) || recent(e.hitAt) || recent(e.struckAt)) return 'Not during a fight';
     if (hqRaided(e.owner)) return 'Your HQ is being raided';
     if (holding(e)) return 'Not while on your contract objective';
-    if (!destination(e)) return 'No HQ to go to';
+    if (!destination(e, true)) return 'No HQ to go to';
     return null;
   }
   function command(e) {
@@ -47,6 +48,7 @@ export function createUnstuck({ state, rules = {}, destination, moving = () => f
       cleanup(e);
       Object.assign(e, { x: d.x, z: d.z, place: d.place, anim: 'idle' });
       e.unstuckReady = state.tick + secs(R.cooldownSeconds);
+      if (d.town) say(e, `Unstuck: back at ${d.town}`);
     }
   }
   // for the button: channel seconds left, cooldown seconds left, and why it can't start (null = ready)

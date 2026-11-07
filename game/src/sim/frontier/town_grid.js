@@ -65,6 +65,17 @@ const blockerCache=new WeakMap();
 let blockerEpoch=0;
 // frontier tick calls this once a tick: buildings finished since are re-checked (grid edits are seen at once)
 export function townBlockersTick(){blockerEpoch++;}
+// a number that changes whenever any town's blockers change (checked at most once per frontier tick), so callers
+// can keep their own per-cell answers until it moves (sim/areas.js, Tim 2026-11-07 lag while walking)
+let blockerVersion=0,versionEpoch=-1,versionTowns='';
+export function townBlockersVersion(frontier,data) {
+  if(versionEpoch===blockerEpoch)return blockerVersion;
+  versionEpoch=blockerEpoch;
+  const list=Object.values(frontier?.settlements || {}).filter(s=>s.grid && Number.isFinite(s.x)),ids=list.map(s=>s.id).join(',');
+  if(ids!==versionTowns){versionTowns=ids;blockerVersion++;}
+  for(const s of list)cellBoxesOf(s,data);
+  return blockerVersion;
+}
 const builtKey=s=>s.buildings.map(b=>b.stage==='built'?b.id ?? (b.cells || [b.cell]).join('.'):'').join(',');
 function cellBoxesOf(s,data) {
   const g=s.grid;
@@ -101,6 +112,7 @@ function cellBoxesOf(s,data) {
     }
     if(out.length)cells.set(i,out);
   }
+  blockerVersion++;
   per.set(dk,{use:g.use,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
   return cells;
 }

@@ -1,6 +1,7 @@
 // Hover tooltip and right-click on a founded town's buildings (frontier E5, Tim 2026-11-04). Reads the
 // frontier snapshot only; right-click opens the town panel for that town and flashes the plot.
 import { drawableTowns, townPlots, plotInfo } from './town_props.js';
+import { pointAt } from './sim/frontier/rail_route.js';
 
 export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
@@ -23,6 +24,40 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     }
     return best;
   }
+  // a steam train under the pointer (Tim 2026-11-07: hover says it's a train, with some stats): engine to last car
+  function trainAt(x, y) {
+    if (!onIsland()) return null;
+    const R = game.state.frontier?.rail, T = frontierData?.railways?.train || {};
+    if (!R?.trains) return null;
+    let best = null, bestD = Infinity;
+    for (const t of Object.values(R.trains)) {
+      const l = R.links?.[t.link]; if (!l?.points) continue;
+      const len = 4.4 + (t.cars ?? 3) * (T.gap ?? 7);
+      for (let o = 0; o <= len; o += 2.5) {
+        const p = pointAt(l, Math.max(0, Math.min(l.length, t.d - t.dir * o))), u = view.unitToScreen(p.x, p.z, 1.2), a = view.unitToScreen(p.x + 1, p.z, 1.2);
+        const k = Math.hypot(a.x - u.x, a.y - u.y) || 1, d = Math.hypot(x - u.x, (y - u.y) * 1.3);
+        if (d <= 2.6 * k && d < bestD) { best = t; bestD = d; }
+      }
+    }
+    return best;
+  }
+  function trainInfo(t) {
+    const st = game.state, R = st.frontier.rail, l = R.links[t.link], T = frontierData?.railways || {};
+    const name = id => id === 'capital' ? 'the capital' : st.frontier.settlements?.[id]?.name || id;
+    const to = t.dir > 0 ? l.to : l.from, from = t.dir > 0 ? l.from : l.to, mine = t.owner === owner();
+    const seats = Math.max(1, (t.cars ?? 3) - 1) * (T.ride?.seatsPerCar ?? 8);
+    const riders = Object.values(st.entities).filter(u => u.aboard === `rail:${t.id}`).length;
+    const speed = t.v ?? t.speed ?? 36, left = t.dir > 0 ? l.length - t.d : t.d;
+    const atEnd = t.wait > 0 && (t.d <= 0.01 || t.d >= l.length - 0.01);
+    const lines = [
+      atEnd ? `Standing at ${name(t.d <= 0.01 ? l.from : l.to)}, leaves in ${Math.ceil(t.wait / 20)} s` : `${name(from)} to ${name(to)}: arrives in ${Math.ceil(left / Math.max(1, speed))} s`,
+      `Line ${name(l.from)} – ${name(l.to)}, ${Math.round(l.length)} long`,
+      `Engine, tender, ${(t.cars ?? 3) - 1} carriages and a goods wagon`,
+      `${riders} / ${seats} aboard · speed ${Math.round(speed)} (you run at 6)`,
+    ];
+    if (mine) lines.push('Board at your station: Space');
+    return { title: mine ? 'Steam train (yours)' : `Steam train · ${st.clans?.[t.owner]?.name || t.owner}`, lines };
+  }
   function flash(p) {
     const u = view.unitToScreen(p.x, p.z, 1.5);
     Object.assign(flashEl.style, { left: `${u.x}px`, top: `${u.y}px` });
@@ -31,7 +66,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
     const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel');
-    const p = blocked ? null : plotAt(e.clientX, e.clientY), info = p && plotInfo(game.state.frontier, p, frontierData);
+    const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData);
     if (!info) { tipEl.hidden = true; return; }
     const html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
     if (tipEl.dataset.html !== html) { tipEl.innerHTML = html; tipEl.dataset.html = html; }

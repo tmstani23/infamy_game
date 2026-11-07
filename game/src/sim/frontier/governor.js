@@ -219,7 +219,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       // 9 (Tim 2026-11-06): a stable once the town is a Village
       if (room('stable') && !has(s, 'stable') && (s.tier || 1) >= 2) return suggest(s, 'stable', 'Stable: horses for the boss');
       // 10 (Tim 2026-11-06): an omnibus station once the town is a Village
-      if (room('station') && !has(s, 'station') && (s.tier || 1) >= 2) return suggest(s, 'station', 'Omnibus station: rickshaws between our towns');
+      if (room('station') && !has(s, 'station') && (s.tier || 1) >= 2) return suggest(s, 'station', 'Omnibus station: the railway station for trains between our towns');
     }
     return false;
   }

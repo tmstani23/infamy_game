@@ -57,7 +57,7 @@ export function buildPreview(s, request, data, {state,resourceIndex}={}) {
   return result;
 }
 
-export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, blocked = () => false }) {
+export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onStable = () => {}, blocked = () => false }) {
   let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null;
   let inspectionHtml = '', inspectionPressed = false;
   let pendingPlan = null, reviewHtml = '', reviewPressed = false;
@@ -266,6 +266,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (info.work || '')
       + (info.camp && info.camp.id ? campCardHTML(info.camp, trainTown) : '')
       + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built lumber camp or quarry.">Place camp here</button>` : '')
+      + (info.stable ? `<button data-stable="${esc(trainTown.id)}" title="Buy horses, rickshaws and omnibuses here">Open stable</button>` : '')
       + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
     if (inspectionHtml !== html && !inspectionPressed) { const open = card.querySelector?.('details')?.open; card.innerHTML = html; inspectionHtml = html; if (open) { const d = card.querySelector?.('details'); if (d) d.open = true; } }
@@ -282,6 +283,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (b?.dataset.upgrade) command({ action: 'upgradeHall', settlement: b.dataset.upgrade });
     if (b?.dataset.buyCart) { command({ action: 'buyCart', town: b.dataset.cartTown, building: b.dataset.buyCart }); return; }
     if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
+    if (b?.dataset.stable) { onStable(b.dataset.stable); inspect = null; card.hidden = true; return; }
     if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }
     if (b?.hasAttribute('data-close')) { inspect = null; selected=[]; card.hidden = true; }
   });

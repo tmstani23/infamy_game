@@ -1,14 +1,15 @@
 // Stable and omnibus station (Tim 2026-11-06, plan in project files omnibus_stable/plan.md): placed town
 // buildings with a production bar, one job at a time, made by hand (nothing on its own, except one horse
 // for a bot clan's boss). Costs are town stock, never ryo.
-//  - stable (data.buildings.stable.stable): horses (kinds calico, black_beauty), at most maxHorses per stable.
-//    A finished horse waits at the stable for sim/mounts.js to bring it out (born()).
-//  - station (data.buildings.station.station): rickshaws (up to maxRickshaws parked at it) and omnibuses
-//    (at most maxOmnibuses per clan). They come out empty and park at the station (bornVehicles(),
-//    sim/omnibus.js park()). Space at a station is rickshaw travel (sim/station_travel.js).
-// Command (through the frontier hub): { id: <hero id>, type: 'frontier', action: 'stable' | 'station', town,
+//  - stable (data.buildings.stable.stable): horses (kinds calico, black_beauty), rickshaws and omnibuses
+//    (kinds with vehicle: true; Tim 2026-11-07, the omnibus station no longer makes them). How many a clan can
+//    have is room(): the sum over its towns with a built stable of stable.room[category][town tier - 1]
+//    (categories horse / rickshaw / omnibus); owned ones count, queued ones too, nothing is ever taken away.
+//    A finished horse waits at the stable for sim/mounts.js to bring it out (born()); a finished vehicle comes
+//    out empty and parks beside the stable (bornVehicles(), sim/omnibus.js).
+// Command (through the frontier hub): { id: <hero id>, type: 'frontier', action: 'stable', town,
 //   mode: 'horse' (kind) | 'rickshaw' | 'omnibus' | 'cancel' (the last job, refunded) | 'choose' (horse: id) }
-// createStable({ state, data, world }) -> { command, tick, of, born, bornVehicles, horsesOf, jobsOf, centre, parkedAt }
+// createStable({ state, data, world }) -> { command, tick, of, born, bornVehicles, horsesOf, jobsOf, centre, parkedAt, room, have, category }
 import { cellToWorld } from './town_grid.js';
 
 export function createStable({ state, data, world }) {
@@ -25,7 +26,18 @@ export function createStable({ state, data, world }) {
   // empty vehicles of a kind parked at a station
   const parkedAt = (s, b, kind) => { const [x, z] = centre(s, b), reach = (R('station')?.reach ?? 8) * 3;
     return Object.values(state.entities).filter(v => v.type === kind && v.omnibusOwner === s.owner && !v.dead && v.place === 'world' && !ridden(v) && Math.hypot(v.x - x, v.z - z) <= reach); };
-  const queuedAll = (owner, kind) => Object.values(state.frontier.settlements || {}).reduce((n, t) => n + (t.owner === owner ? (of(t, 'station')?.stableJobs || []).filter(j => j.kind === kind).length : 0), 0);
+  // what a kind counts as for the limits, and how many a clan has (alive, queued, or out of the door this tick)
+  const category = kind => kind === 'rickshaw' || kind === 'omnibus' ? kind : 'horse';
+  const towns = owner => Object.values(state.frontier.settlements || {}).filter(t => t.owner === owner && !t.capital);
+  const queued = (owner, cat) => towns(owner).reduce((n, t) => n + (of(t)?.stableJobs || []).filter(j => category(j.kind) === cat).length, 0);
+  function have(owner, cat) {
+    const alive = Object.values(state.entities || {}).filter(e => !e.dead && (cat === 'horse' ? e.type === 'horse' && e.horseOwner === owner : e.type === cat && e.omnibusOwner === owner)).length;
+    const born = cat === 'horse' ? (state.frontier.bornHorses || []).filter(h => h.owner === owner).length : (state.frontier.bornVehicles || []).filter(v => v.owner === owner && v.kind === cat).length;
+    return alive + born + queued(owner, cat);
+  }
+  const tierRoom = (t, cat) => { const list = R()?.room?.[cat]; return Array.isArray(list) ? list[Math.min(list.length, Math.max(1, t.tier || 1)) - 1] ?? 0 : 0; };
+  const room = (owner, cat) => towns(owner).reduce((n, t) => n + (of(t) ? tierRoom(t, cat) : 0), 0);
+  const NAMES = { horse: 'horses', rickshaw: 'rickshaws', omnibus: 'omnibuses' };
   const receipt = (e, c, ok, reason = '') => {
     const fr = state.frontier;
     fr.receiptSeq = (fr.receiptSeq || 0) + 1;
@@ -44,7 +56,8 @@ export function createStable({ state, data, world }) {
 
   function command(e, c) {
     if (c.action !== 'stable' && c.action !== 'station') return false;
-    const type = c.action, C = R(type), s = typeof c.town === 'string' ? world.settlement(c.town) : null;
+    if (c.action === 'station') return receipt(e, c, false, 'Rickshaws and omnibuses are made at the stable now');
+    const type = 'stable', C = R(type), s = typeof c.town === 'string' ? world.settlement(c.town) : null;
     if (!C || !s || s.capital) return receipt(e, c, false, 'no such town');
     if (s.owner == null || s.owner !== e.owner) return receipt(e, c, false, 'not your town');
     const clan = state.clans?.[e.owner];
@@ -56,7 +69,7 @@ export function createStable({ state, data, world }) {
       return receipt(e, c, true);
     }
     const b = of(s, type);
-    if (!b) return receipt(e, c, false, type === 'stable' ? 'Build a stable first' : 'Build an omnibus station first');
+    if (!b) return receipt(e, c, false, 'Build a stable first');
     const jobs = jobsOf(b);
     if (c.mode === 'cancel') {
       const j = jobs.pop();
@@ -64,15 +77,11 @@ export function createStable({ state, data, world }) {
       pay(s, j.cost, 1);
       return receipt(e, c, true);
     }
-    if (jobs.length >= (C.queue ?? 3)) return receipt(e, c, false, `The ${type} is busy (too many jobs waiting)`);
-    const kind = type === 'stable' ? (c.mode === 'horse' ? c.kind : null) : c.mode, spec = kind && C.kinds?.[kind];
-    if (!spec) return receipt(e, c, false, type === 'stable' ? 'no such horse' : 'rickshaw or omnibus');
-    if (type === 'stable' && horsesOf(s, b) + jobs.length >= (C.maxHorses ?? 3)) return receipt(e, c, false, `This stable holds ${C.maxHorses ?? 3} horses`);
-    if (kind === 'rickshaw' && parkedAt(s, b, 'rickshaw').length + jobs.filter(j => j.kind === 'rickshaw').length >= (C.maxRickshaws ?? 3)) return receipt(e, c, false, `This station holds ${C.maxRickshaws ?? 3} rickshaws`);
-    if (kind === 'omnibus') {
-      const have = Object.values(state.entities).filter(v => v.type === 'omnibus' && v.omnibusOwner === e.owner && !v.dead).length + queuedAll(e.owner, 'omnibus');
-      if (have >= (C.maxOmnibuses ?? 2)) return receipt(e, c, false, `You can keep ${C.maxOmnibuses ?? 2} omnibuses`);
-    }
+    const kind = c.mode === 'horse' ? c.kind : c.mode === 'rickshaw' || c.mode === 'omnibus' ? c.mode : null, spec = kind && C.kinds?.[kind];
+    if (!spec || (c.mode === 'horse' && spec.vehicle)) return receipt(e, c, false, 'a horse, rickshaw or omnibus');
+    const cat = category(kind), max = room(e.owner, cat);
+    if (have(e.owner, cat) >= max) return receipt(e, c, false, max ? `Your stables have room for ${max} ${NAMES[cat]}: upgrade a town or build a stable in another` : `No room for ${NAMES[cat]} yet: upgrade this town`);
+    if (jobs.length >= (C.queue ?? 3)) return receipt(e, c, false, 'The stable is busy (too many jobs waiting)');
     if (!afford(s, spec.cost)) return receipt(e, c, false, `Not enough stock (need ${missing(s, spec.cost)})`);
     pay(s, spec.cost);
     queue(b, spec, kind);
@@ -84,24 +93,24 @@ export function createStable({ state, data, world }) {
     for (const s of Object.values(state.frontier?.settlements || {})) {
       if (!s.owner) continue;
       const clan = state.clans?.[s.owner];
-      for (const type of ['stable', 'station']) {
-        const C = R(type), b = C && of(s, type);
-        if (!b) continue;
-        const jobs = jobsOf(b);
-        if (type === 'stable' && clan?.bot && !jobs.length && !clan.mount && !(state.frontier.bornHorses || []).some(h => h.owner === s.owner)
-          && !Object.values(state.entities).some(e => e.type === 'horse' && e.horseOwner === s.owner) && C.kinds.black_beauty && afford(s, C.kinds.black_beauty.cost)) { pay(s, C.kinds.black_beauty.cost); queue(b, C.kinds.black_beauty, 'black_beauty'); }
-        if (type === 'station' && clan?.bot && !jobs.length && C.kinds.rickshaw && !parkedAt(s, b, 'rickshaw').length && afford(s, C.kinds.rickshaw.cost)) { pay(s, C.kinds.rickshaw.cost); queue(b, C.kinds.rickshaw, 'rickshaw'); }
-        const j = jobs[0];
-        if (!j || --j.left > 0) continue;
-        jobs.shift();
-        const [x, z] = centre(s, b), off = data.townGrid?.cellSize || 10;
-        if (type === 'stable') (state.frontier.bornHorses ||= []).push({ owner: s.owner, kind: j.kind, x, z: z + off, stable: `${s.id}:${b.id}`, town: s.id });
-        else (state.frontier.bornVehicles ||= []).push({ owner: s.owner, kind: j.kind, x: x + off * 0.6, z: z + off, town: s.id });
+      const C = R(), b = C && of(s);
+      if (!b) continue;
+      const jobs = jobsOf(b);
+      // a bot clan raises one horse for its boss and keeps one rickshaw, room allowing
+      if (clan?.bot && !jobs.length) {
+        const want = !clan.mount && have(s.owner, 'horse') < room(s.owner, 'horse') ? 'black_beauty' : have(s.owner, 'rickshaw') < Math.min(1, room(s.owner, 'rickshaw')) ? 'rickshaw' : null;
+        if (want && C.kinds[want] && afford(s, C.kinds[want].cost)) { pay(s, C.kinds[want].cost); queue(b, C.kinds[want], want); }
       }
+      const j = jobs[0];
+      if (!j || --j.left > 0) continue;
+      jobs.shift();
+      const [x, z] = centre(s, b), off = data.townGrid?.cellSize || 10;
+      if (category(j.kind) === 'horse') (state.frontier.bornHorses ||= []).push({ owner: s.owner, kind: j.kind, x, z: z + off, stable: `${s.id}:${b.id}`, town: s.id });
+      else (state.frontier.bornVehicles ||= []).push({ owner: s.owner, kind: j.kind, x: x + off * 0.6, z: z + off, town: s.id, stable: `${s.id}:${b.id}` });
     }
   }
   // finished horses / vehicles for sim/mounts.js and sim/omnibus.js to bring out (taken once)
   function born() { const out = state.frontier?.bornHorses || []; if (state.frontier) state.frontier.bornHorses = []; return out; }
   function bornVehicles() { const out = state.frontier?.bornVehicles || []; if (state.frontier) state.frontier.bornVehicles = []; return out; }
-  return { command, tick, of, born, bornVehicles, horsesOf, jobsOf, centre, parkedAt };
+  return { command, tick, of, born, bornVehicles, horsesOf, jobsOf, centre, parkedAt, room, have, category };
 }

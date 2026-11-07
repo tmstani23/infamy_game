@@ -18,7 +18,7 @@ import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
 import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
 import { createAreas } from './areas.js';
-import { townBlockersIn } from './frontier/town_grid.js';
+import { townBlockersIn, townBlockersVersion } from './frontier/town_grid.js';
 import { cityOnIsland } from './chunk_gen.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
@@ -65,6 +65,7 @@ import { createIslandRespawn } from './island_respawn.js';
 import { createOmnibus } from './omnibus.js';
 import { steer } from './vehicle_steer.js';
 import { createMounts } from './mounts.js';
+import { createGarage } from './vehicle_garage.js';
 import { createStationTravel } from './station_travel.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
@@ -174,7 +175,7 @@ export function createGame(options) {
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
   // the island as a walkable place, e.place === 'world' (sim/areas.js, frontier W3.2); the city sits on it
   // at world.capital + cityOffset, as a blocker whose way in is the gate (W3.5)
-  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier) }) : null;
+  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier), dynamicVersion: () => townBlockersVersion(state.frontier, options.frontier) }) : null;
   // the city gate out to the island (frontier W3.5, district.islandGate): a pair of doors, open in a
   // campaign match only. The island side stands just outside the city's west wall on the island.
   // The island side is the gate's spot on the island, pushed out past the nearest edge of the city.
@@ -198,6 +199,9 @@ export function createGame(options) {
   // horses from the stable and the hero's mount (sim/mounts.js, Tim 2026-11-06): H to ride, island only
   const mounts = areas ? createMounts({ state, rules: units?.rules, spawn: (...a) => spawn(...a), nav: () => navOf('world'), born: () => frontier?.stable?.born() || [],
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
+  // recall and store horses and vehicles at your stables (Tim 2026-11-07, sim/vehicle_garage.js)
+  const garage = areas ? createGarage({ state, rules: units?.rules, nav: () => navOf('world'), stable: () => frontier?.stable, omnibus, mounts,
+    say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
   // rickshaw travel between omnibus stations and the capital (sim/station_travel.js, Tim 2026-11-06)
   const stationTravel = areas ? createStationTravel({ state, data: () => frontier?.data, rules: units?.rules, frontier: () => frontier, omnibus, gate, areas, navOf: p => navOf(p),
     followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; },
@@ -206,6 +210,10 @@ export function createGame(options) {
   // the lieutenant's spot by the gate (goal steps, Tim 2026-11-06): Space here talks to him (sim/lieutenant.js guide)
   if (gate) { const [gx, gz] = gate.city, [ix, iz] = gate.inside, dx = ix - gx, dz = iz - gz, l = Math.hypot(dx, dz) || 1;
     doors.push({ x: gx + dx / l * 3 - dz / l * 4, z: gz + dz / l * 3 + dx / l * 4, place: 'street', menu: 'lieutenant', label: 'Talk to your lieutenant' }); }
+  // the city's railway station by the gate (Tim 2026-11-07): Space at its door ring opens the station menu;
+  // trains from your towns let you off here (sim/frontier/rail.js uses gate.station)
+  const railStation = gate && district.buildings.find(b => b.railStation && b.door);
+  if (railStation) { gate.station = ringAt(railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' }); }
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
@@ -515,19 +523,14 @@ export function createGame(options) {
     }
   }
 
-  // the governor standing by each of a player's town halls (Tim 2026-11-06): Space beside him talks; not attackable.
-  // Placeholder look: the merchant townsperson (units.json rules.governorModel) until he has a model of his own.
+  // Tim 2026-11-07: no governor figure stands in the town any more (he warped about and read as crew); Space at your
+  // town hall talks to him. Old saves' governor figures are removed. Later he may walk about as a townsperson.
   function townGovernors() {
-    if (!state.frontier || !areas || state.tick % 20) return;
-    const model = units?.rules?.governorModel || 'merchant', cell = options.frontier?.townGrid?.cellSize || 11;
+    if (!state.frontier || state.tick % 20) return;
     for (const s of Object.values(state.frontier.settlements || {})) {
       const g = s.governorNpc && state.entities[s.governorNpc];
-      const want = s.founded && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);
-      if (g && (!want || g.owner !== s.owner || g.dead || g.downed)) { removeUnit(g.id); delete s.governorNpc; continue; }
-      if (!want) continue;
-      const [x, z] = [s.x + cell * 1.1, s.z + cell * 0.6];
-      if (!g) s.governorNpc = spawn('city_captain', model, x, z, { owner: s.owner, place: 'world', captain: true, guide: true, governor: s.id, holdFire: true, hp: 100 });
-      else Object.assign(g, { x, z, place: 'world', anim: 'idle' });
+      if (g) removeUnit(g.id);
+      delete s.governorNpc;
     }
   }
   // the old surveyor outside the Land Office (Tim 2026-11-06 20:45): one figure, nobody's crew, not attackable (guide),
@@ -544,7 +547,11 @@ export function createGame(options) {
   }
   const cannons = createCannonSalute({ state, spawn: (...a) => spawn(...a), removeUnit: id => removeUnit(id), cell: options.frontier?.townGrid?.cellSize || 11, rules: units?.rules?.cannonSalute });
   const townCount = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded !== undefined).length;
-  const governorNear = (id, reach = 3.5) => { const h = state.entities[id]; return h && h.place === 'world' ? Object.values(state.entities).find(e => e.governor && e.owner === h.owner && Math.hypot(e.x - h.x, e.z - h.z) < reach) || null : null; };
+  // Space at your town hall talks to its governor (Tim 2026-11-07): within reach of the hall's middle
+  const governorNear = (id, reach = null) => { const h = state.entities[id]; if (!h || h.place !== 'world') return null;
+    const cell = options.frontier?.townGrid?.cellSize || 11, r = reach ?? cell * 1.5;
+    const s = Object.values(state.frontier?.settlements || {}).find(s => s.owner === h.owner && s.founded && Number.isFinite(s.x) && Math.hypot(s.x - h.x, s.z - h.z) < r);
+    return s ? { governor: s.id, owner: s.owner, x: s.x, z: s.z } : null; };
 
   // Crew each tick: duties, pursuit, indoor duty and going through doors: sim/crew_step.js
   function crewStep(...a) { return crewSteps.crewStep(...a); }
@@ -810,7 +817,8 @@ export function createGame(options) {
     return far ? { x: far.x, z: far.z } : backRoomOf(b);
   };
   const unstuck = createUnstuck({ state, rules: units?.rules?.unstuck,
-    destination: e => { const d = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room); return d && { x: d.to.x, z: d.to.z, place: d.place }; },
+    // on the island: the nearest of your town halls, or your HQ in the capital when the city gate is closer (Tim 2026-11-07)
+    destination: (e, probe) => { const t = islandRespawn?.unstuckSpot(e, probe); if (t) return t; const d = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room); return d && { x: d.to.x, z: d.to.z, place: d.place }; },
     moving: e => Math.hypot(intents[e.id]?.right || 0, intents[e.id]?.down || 0) >= 0.1 || !!e.snuffing || !!e.lootTarget,
     holding: e => { const job = state.contracts?.active?.[e.owner]; return !!e.markScrub || !!e.lootTarget || (['mark', 'steal'].includes(job?.kind) && state.businesses[job.business]?.room === e.place); },
     cleanup: e => { delete paths[e.id]; delete intents[e.id]; delete e.attackTarget; delete e.assistCrew; delete e.swing; delete e.lootTarget; kuroda.cancel(e); } });
@@ -923,6 +931,7 @@ export function createGame(options) {
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'omnibus') omnibus?.command(e, c);
       if (c.type === 'mount') mounts?.command(e, c);
+      if (c.type === 'garage') garage?.command(e, c);
       if (c.type === 'rickshaw') stationTravel?.command(e, c);
       if (c.type === 'frontier' && c.action === 'salute') { const st = state.frontier?.settlements?.[c.settlement]; if (st?.owner === e.owner) cannons.salute(st, true); continue; }
       if (c.type === 'frontier' && frontier) {   // towns keep running while the hero is down
@@ -1147,6 +1156,7 @@ export function createGame(options) {
     }
     omnibus?.tick();
     mounts?.tick(DT);
+    garage?.tick(DT);
     // quest log milestones (campaign only); at the end of the tick so loot, raids and buys made by units this tick count (Tim 2026-11-06)
     goals.record(state.news, state.casts, state.ryoLosses);
     state.tick++;
@@ -1210,5 +1220,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, garage, stationTravel, governorNear, dayTicks };
 }

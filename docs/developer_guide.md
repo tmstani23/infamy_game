@@ -70,6 +70,7 @@ Vehicle footprint shadows are set in `game/data/art.json` `characterFraming` as 
 
 - `python tools/add_frontier_sheet2_art.py`: cuts frontier sheet 2 plus the gates and walls into `game/art/buildings/`.
 - `RIDE` table in `tools/export_sprites.mjs`: the hero's `ride` clip (`coach_sitting` for now).
+- `MOUNTS` `extra`: more clips from animation-only `.glb` files, made by `assets/models/source/gallop_anim.py` (for example `assets/models/mounts/*_gallop.glb`).
 - `rickshaw_horse`: rig script `assets/models/source/rickshaw_horse_rig/rickshaw_horse.py`, exported through `MOUNTS`.
 
 ### Music (2026-11-07)

@@ -14,6 +14,7 @@ const CMDS = [
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
   { key: 'H', name: 'Horse', tip: 'On the island: ride your horse (3.75x run speed), get off, or call her and she gallops to you. Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
+  { key: '⇧H', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
   { key: 'Q', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
 ];
 
@@ -62,7 +63,8 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
       tip.hidden = false;
       const r = b.getBoundingClientRect();
       tip.style.left = `${Math.min(innerWidth - 270, Math.max(10, r.left + r.width / 2 - 130))}px`;
-      tip.style.bottom = `${innerHeight - r.top + 10}px`;
+      if (r.top < 170) { tip.style.top = `${r.bottom + 10}px`; tip.style.bottom = 'auto'; }   // near the top of the screen the tip opens below
+      else { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - r.top + 10}px`; }
     });
     b.addEventListener('mouseleave', () => { tip.hidden = true; });
     (MOUNT_CMDS.includes(cmd) ? mountStrip : strip).appendChild(b);

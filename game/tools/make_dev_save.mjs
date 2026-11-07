@@ -6,7 +6,7 @@ import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
 import { makeBots, makeSave, loadSave, heroOf } from '../src/sim/save.js';
 import { makeFile, validName } from '../src/save_store.js';
-import { cellToWorld } from '../src/sim/frontier/town_grid.js';
+import { cellToWorld, zoneStructureAt } from '../src/sim/frontier/town_grid.js';
 import { storageCap } from '../src/sim/frontier/storage.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
@@ -106,9 +106,13 @@ function railTown(game, heroId) {
   for (let t = 0; t < 40; t++) game.step([]);
   // the hero stands by the station with four crew following
   const st = town.buildings.find(b => b.type === 'station'), [sx, sz] = game.frontier.stable.centre(town, st);
-  Object.assign(hero, { place: 'world', x: sx + 4, z: sz + 4, anim: 'idle' });
+  // on open ground just outside the station's footprint (Tim 2026-11-07: he spawned inside the station), within its reach
+  const open = Array.from({ length: g.n * g.n }, (_, i) => i).filter(i => !['B', 'w'].includes(g.use[i]) && g.ground?.[i] !== 'x' && !(st.cells || [st.cell]).includes(i) && !zoneStructureAt(town, i, game.frontier.data))
+    .map(i => { const [x, z] = cellToWorld(town, i); return { i, x, z, d: Math.hypot(x - sx, z - sz) }; }).filter(c => c.d <= 18).sort((p, q) => p.d - q.d);
+  if (!open.length) throw new Error('rail_test_kuroda: no open ground beside the station');
+  Object.assign(hero, { place: 'world', x: open[0].x, z: open[0].z, anim: 'idle' });
   const crew = Object.values(S.entities).filter(u => u.owner === clan.id && ['thug', 'kuroda_rifleman', 'kuroda_enforcer', 'ninja'].includes(u.type) && !u.dead && game.settings.units.types[u.type] && !u.worker && !u.railGang).slice(0, 4);
-  crew.forEach((u, k) => Object.assign(u, { place: 'world', x: sx + 6 + k, z: sz + 6, order: { kind: 'follow', target: hero.id } }));
+  crew.forEach((u, k) => { const c = open[Math.min(k + 1, open.length - 1)]; Object.assign(u, { place: 'world', x: c.x + (k % 2 ? 1 : -1), z: c.z + 1, order: { kind: 'follow', target: hero.id } }); });
   game.areas.update(Object.values(S.entities));
   return town;
 }

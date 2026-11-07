@@ -74,7 +74,7 @@
     "frames": 16,
     "fps": 12,
     "cellWorld": 7.2,
-    "feetUp": 1.315
+    "feetUp": 1.355
   },
   "cannon_field_fire": {
     "size": 256,
@@ -144,6 +144,20 @@
     "frames": 21,
     "fps": 12,
     "cellWorld": 5.4,
-    "feetUp": 1.253
+    "feetUp": 1.346
+  },
+  "omnibus_gallop": {
+    "size": 384,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 7.2,
+    "feetUp": 1.355
+  },
+  "rickshaw_horse_gallop": {
+    "size": 288,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.346
   }
 }

@@ -29,6 +29,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.info.autoReset=false; // count all water/bloom/main passes together for diagnostics
   let frameDrawMs=0,frameWorkers=0;
+  const frameParts={};   // F3 breakdown of the frame's CPU time (Tim 2026-11-07 lag hunt)
+  let partAt=0;const mark=k=>{const n=performance.now();frameParts[k]=(frameParts[k]||0)*0.9+(n-partAt)*0.1;partAt=n;};
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -205,7 +207,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);
     }
-    s.team.visible = !e.dead && !e.downed && !e.jailed;
+    s.team.visible = !e.dead && !e.downed && !e.jailed && !e.cannon;   // salute cannons are scenery: no ring
     TEAM_TIME.value = performance.now() / 1000;
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
     s.team.position.set(s.pos.x, 0.018, s.pos.z);
@@ -303,7 +305,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   // state: current tick; prev: the tick before; alpha: how far between them (0..1)
   function render(state, prev, alpha, dt, time, followId) {
-    const frameStart=performance.now();renderer.info.reset();
+    const frameStart=performance.now();renderer.info.reset();partAt=frameStart;
     frameWorkers=Object.values(state.entities).filter(e=>e.worker).length;
     updateFlashes(dt);
     shared.uTime.value = time;
@@ -313,6 +315,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
     syncSprites(state);
     syncLightsOut(state);
+    mark('sprites');
     if (state.tick !== healTick) { healTick = state.tick; showHeals(state, prev); }
     // hitstop: on a big impact the screen holds still for a few frames (animation and
     // effects only; the rules keep running, so this never touches the game)
@@ -331,7 +334,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
-      s.setHealth(e.hp, e.maxHp);
+      if (e.cannon) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp);   // salute cannons: no health bar
       s.setNameplate(e.name || unitName(units || { types: {} }, e.type), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero');
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
@@ -403,19 +406,25 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     railTrack?.update(state.frontier, heroPlace === 'world', dt);
+    mark('rail');
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
+    mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
     sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || [])]);
+    mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
     fxShared.uPx.value = px * bloom.scale;
     worldGround?.captureWater(camera, time);
+    mark('water');
     bloom.render(scene, camera);
+    mark('glow');
     fxShared.uPx.value = px;
     renderer.render(scene, camera);
     bloom.composite();
+    mark('draw');
     frameDrawMs=performance.now()-frameStart;
     resumingPresentation=false;
   }
@@ -509,7 +518,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     setTowns: list => worldGround?.setTowns(list),
     graphicsStats:()=>({drawMs:frameDrawMs,calls:renderer.info.render.calls,sprites:sprites.size,workers:frameWorkers,
       geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,programs:renderer.info.programs?.length || 0,
-      width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()}),
+      width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio(),parts:{...frameParts}}),
     setPresentationActive(active){
       fxLayer.hidden=!active;
       resumingPresentation=active;
