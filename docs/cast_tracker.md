@@ -34,6 +34,11 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | geisha | Townsfolk | ✅ geisha2 zip (the older geisha zip won't rig) | ✅ geisha.fbx (was geisha2) | ✅ 6; robe flares as she lands in the new death (Tim: keep) | civilian |
 | laborer | Townsfolk | ✅ | ✅ | ✅ 6 | civilian |
 | rail_worker | Rail gang (railways.json gang) | ✅ | ✅ | ✅ 7 | laborer.fbx + hammer proc item (sledge, right hand); clips standing_idle, catwalk_walk_forward, scared, quick_formal_bow, gentle_reaction, standing_death_forward_01, great_sword_slash (art.json key `hammer`). Export: `node tools/export_sprites.mjs . rail_worker --pack` |
+| train_engine | Train (engine) | ✅ | ✅ | ✅ 1 | 8 dirs (S, SW, W, NW, N, NE, E, SE); clip train_engine_walk at 12 fps (idle speed 0, run speed 3); wheels spin; 3.6 x 6.4 world units tall x long; all train pieces share 9.28 world units per model unit |
+| train_tender | Train (tender) | ✅ | ✅ | ✅ 1 | 8 dirs (S, SW, W, NW, N, NE, E, SE); clip train_tender_walk at 12 fps (idle speed 0, run speed 3); wheels spin; 2.4 x 4.3 world units tall x long; all train pieces share 9.28 world units per model unit |
+| train_carriage | Train (carriage) | ✅ | ✅ | ✅ 1 | 8 dirs (S, SW, W, NW, N, NE, E, SE); clip train_carriage_walk at 12 fps (idle speed 0, run speed 3); wheels spin; 3.2 x 6.3 world units tall x long; all train pieces share 9.28 world units per model unit |
+| train_goods | Train (goods wagon) | ✅ | ✅ | ✅ 1 | 8 dirs (S, SW, W, NW, N, NE, E, SE); clip train_goods_walk at 12 fps (idle speed 0, run speed 3); wheels spin; 1.6 x 4.2 world units tall x long; all train pieces share 9.28 world units per model unit |
+| train_guard | Train (brake van) | ✅ | ✅ | ✅ 1 | 8 dirs (S, SW, W, NW, N, NE, E, SE); clip train_guard_walk at 12 fps (idle speed 0, run speed 3); wheels spin; 3.8 x 5.4 world units tall x long; all train pieces share 9.28 world units per model unit |
 | fisherman | Townsfolk | ✅ | ✅ | ✅ 6 (empty-handed) | civilian |
 | monk | Townsfolk | ✅ monk3obj1.zip (redrawn concept monk3) | ✅ monk.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |
 | monk2 | Townsfolk, second take | ✅ monk4obj1.zip (concept monk4) | ✅ monk2.fbx | ✅ 6 (160px), exported 2026-10-17 | civilian |

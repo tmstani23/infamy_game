@@ -51,6 +51,8 @@ Add `--glow-only` to write just the weapon glow sheets (`<sheet>_glow.png`) and 
 
 This renders each model in `assets/models` with its own animation set from `assets/animations` to `assets/sprites/<model>_<animation>.png`, overwriting earlier exports. Add model names after `.` to export only those (`node tools/export_sprites.mjs . thug brute`). Animation sets go by subfolder of `assets/animations`, keeping Mixamo's own filenames: `brawler/` (thug, brute), `gunner/` (mercenary), `ninja/` (ninja leader and ninja grunt), `archer/` (archer), `civilian/` (geisha and other townsfolk, the default). Files directly in `assets/animations` are the ronin's combat set. `Mutant ...` files in `brawler/` are brute-only and replace the plain clip of the same name (`Mutant Walking` replaces `Walking`). A filename prefix such as `brawler_walk.fbx` also works. The mapping is at the top of the script.
 
+Trains: `tools/train_to_glb.py` (numpy + Pillow) turns the OBJ pieces in `assets/models/source/train/split` plus the guard zip into `assets/models/mounts/train_*.glb`; the MOUNTS train entries in `tools/export_sprites.mjs` then export them.
+
 Without `--pack` an export is not added to the packed runtime catalog. A full sprite audit is only needed for catalog-wide policy changes; the packing gates are in `docs/art_direction.md`.
 
 Held items (weapons, props) go in `assets/models/items/` as `.glb` (or `.fbx`), and `ITEMS` at the top of the script says who holds what (for example the mercenary holds `rifle.glb` in both hands). Sizes per character are in `SCALE` (the brute is 1.12x). The sprite test page has matching controls for trying an item and its grip by hand.

@@ -159,5 +159,40 @@
     "fps": 12,
     "cellWorld": 5.4,
     "feetUp": 1.346
+  },
+  "train_carriage_walk": {
+    "size": 352,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 6.6,
+    "feetUp": 1.595
+  },
+  "train_engine_walk": {
+    "size": 384,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 7.2,
+    "feetUp": 1.8
+  },
+  "train_tender_walk": {
+    "size": 256,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 1.22
+  },
+  "train_goods_walk": {
+    "size": 256,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 4.8,
+    "feetUp": 0.795
+  },
+  "train_guard_walk": {
+    "size": 352,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 6.6,
+    "feetUp": 1.905
   }
 }
