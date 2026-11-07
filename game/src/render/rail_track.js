@@ -2,14 +2,17 @@
 // station up to how far the rail gang has got (link.built), with a plank deck under the rails where the line
 // crosses water. Painted seamless strips (Tim 2026-11-07): art/ground/rail_track.png and rail_bridge.png,
 // copied from assets/concepts/mounts_vehicles/*_tile.png at half size, rails along the image. Reads the frontier view only (state.frontier.rail.links); never changes the sim.
-// Trains (step 3) are simple code-built boxes until the Tencent train models are exported: a black engine
-// with a smokestack and coal tender, then brown carriages, each car turned along the track. Their position
-// is predicted between the 4 Hz frontier views from the train's speed, so they glide instead of jumping.
-// createRailTrack({ scene }) -> { update(frontierView, show, dt), dispose() }
+// Trains (Tim 2026-11-07): each car is a sprite from the Tencent models (train_engine, train_tender, train_carriage,
+// train_goods, train_guard; 8 directions, wheels turning in 'run'), engine and tender first, then the train's
+// consist (data/railways.json train.consist), coupled end to end along the track. Without carSprite (or for a
+// car whose sheet has not loaded yet) the old code-built boxes stand in. Their position is predicted between
+// the 4 Hz frontier views from the train's speed, so they glide instead of jumping.
+// createRailTrack({ scene, carSprite }) -> { update(frontierView, show, dt), things(), dispose() }
 import * as THREE from 'three';
 import { spriteMaterial } from './shading.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
 import { toScreen } from './iso.js';
+import { dirIndex } from '../sim/geometry.js';
 
 // world units. The strips are scaled so the rails sit GAUGE apart (153 of the image's 362 px); both strips share
 // the scale so the rails line up where track meets bridge. One image = TILE units along the track.
@@ -38,8 +41,8 @@ function ribbon(line, d0, d1, width, y) {
   return { geo, n };
 }
 
-// Tim 2026-11-07 (track looked pasted on): round the corners a few more times (render only) and fade the ballast
-// out toward both edges so it melts into the ground. fade = share of the width each side that fades.
+// Tim 2026-11-07 (track looked pasted on): round the corners a few more times (render only). fade = share of the
+// width each side that fades out (0 = hard edges, as Tim preferred).
 function smoothLine(l, passes = 3) {
   let p = l.points;
   for (let n = 0; n < passes && p.length > 2; n++) {
@@ -56,9 +59,10 @@ function smoothLine(l, passes = 3) {
   return { points: p, dist, length, k: l.length > 0 ? length / l.length : 1, bridges: (l.bridges || []).map(([a, b]) => [a * length / l.length, b * length / l.length]) };
 }
 
-function groundMaterial(tex, fade = 0.22) {
+function groundMaterial(tex, fade = 0) {
   const m = spriteMaterial(tex);
-  m.fragmentShader = m.fragmentShader.replace('float a = t.a * uOpacity;', `float a = t.a * uOpacity * smoothstep(0.0, ${fade.toFixed(2)}, vUv.x) * smoothstep(1.0, ${(1 - fade).toFixed(2)}, vUv.x);`);
+  // the ballast edge fade was taken back out (Tim 2026-11-07: the track looked less 3D); fade 0 keeps hard edges
+  if (fade > 0) m.fragmentShader = m.fragmentShader.replace('float a = t.a * uOpacity;', `float a = t.a * uOpacity * smoothstep(0.0, ${fade.toFixed(2)}, vUv.x) * smoothstep(1.0, ${(1 - fade).toFixed(2)}, vUv.x);`);
   m.fragmentShader = m.fragmentShader.replace('grade(t.rgb, vWorld, true, uSelfLight)', 'grade(t.rgb, vWorld, false, uSelfLight)');
   m.depthWrite = false; m.transparent = true; m.side = THREE.DoubleSide;
   return m;
@@ -103,10 +107,16 @@ function carThing(c) {
   return t;
 }
 
-export function createRailTrack({ scene }) {
+// sprite cars: the art key and the car's length in world units (the train sprite export, 2026-11-07)
+const CAR_ART = { engine: ['train_engine', 6.4], tender: ['train_tender', 4.3], carriage: ['train_carriage', 6.3],
+  goods: ['train_goods', 4.2], wagon: ['train_goods', 4.2], guard: ['train_guard', 5.4] };
+const COUPLING = 0.35;   // buffer to buffer between two cars
+const DEFAULT_CONSIST = ['carriage', 'carriage', 'goods', 'goods', 'guard'];
+
+export function createRailTrack({ scene, carSprite = null }) {
   let track = null, bridge = null;
   const shown = new Map();   // link id -> { key, meshes: [{ mesh, d0, n }] }
-  const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png'), 0.06); };
+  const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png')); };
   function build(l0) {
     mats();
     const l = l0.r;
@@ -129,7 +139,22 @@ export function createRailTrack({ scene }) {
   function drop(id) { const s = shown.get(id); if (!s) return; for (const p of s.meshes) { scene.remove(p.mesh); p.mesh.geometry.dispose(); } shown.delete(id); }
   const trains = new Map();   // train id -> { group, cars: [mesh], d, snapD, snapAt, len }
   let carMat = null;
+  // sprite cars: middle of each car measured back from the engine's middle
+  function spriteTrain(t) {
+    const kinds = ['engine', 'tender', ...(Array.isArray(t.consist) && t.consist.length ? t.consist : DEFAULT_CONSIST)].filter(k => CAR_ART[k]);
+    let off = 0;
+    const cars = kinds.map((k, i) => { if (i) off += CAR_ART[kinds[i - 1]][1] / 2 + COUPLING + CAR_ART[k][1] / 2;
+      const c = { kind: k, off, sprite: null, gone: false };
+      carSprite(CAR_ART[k][0]).then(sp => { sp.thing.mesh.visible = sp.shadow.visible = false;   // shown once placed on the track
+        if (c.gone) { scene.remove(sp.thing.mesh, sp.shadow); sp.dispose(); } else c.sprite = sp; });
+      return c; });
+    return { cars, sprites: true, key: kinds.join(','), d: t.d, snapD: t.d, snapAt: 0 };
+  }
+  function dropTrain(s) {
+    for (const c of s.cars) { if (c.mesh) scene.remove(c.mesh); c.gone = true; if (c.sprite) { scene.remove(c.sprite.thing.mesh, c.sprite.shadow); c.sprite.dispose(); c.sprite = null; } }
+  }
   function trainMeshes(t, gap) {
+    if (carSprite) return spriteTrain(t);
     const G = carGeometries(); carMat ||= carMaterial();
     const kinds = ['engine', 'tender', ...Array.from({ length: t.cars ?? 3 }, (_, i) => i === (t.cars ?? 3) - 1 ? 'wagon' : 'carriage')];
     const cars = kinds.map(k => { const m = new THREE.Mesh(G[k], carMat); m.renderOrder = 0; scene.add(m); return { mesh: m, kind: k }; });
@@ -143,11 +168,12 @@ export function createRailTrack({ scene }) {
   }
   function moveTrains(frontier, links, dt, clock) {
     const list = frontier?.rail?.trains || {};
-    for (const [id, s] of trains) if (!list[id] || !links[list[id].link]) { for (const c of s.cars) scene.remove(c.mesh); trains.delete(id); }
+    for (const [id, s] of trains) if (!list[id] || !links[list[id].link]) { dropTrain(s); trains.delete(id); }
     for (const t of Object.values(list)) {
       const l = links[t.link]; if (!l?.done) continue;
       const rl = smoothed(l), kk = rl.k;
       let s = trains.get(t.id);
+      if (s?.sprites && s.key !== ['engine', 'tender', ...(Array.isArray(t.consist) && t.consist.length ? t.consist : DEFAULT_CONSIST)].filter(k => CAR_ART[k]).join(',')) { dropTrain(s); s = null; }   // the consist changed
       if (!s) trains.set(t.id, s = trainMeshes(t, 7));
       if (t.d !== s.snapD || t.wait !== s.wait) { s.snapD = t.d; s.wait = t.wait; s.snapAt = clock; }
       // predict from the last view: standing while it waits, otherwise on at its speed, never past the ends
@@ -155,6 +181,16 @@ export function createRailTrack({ scene }) {
       const predicted = (t.wait ?? 0) > 0 ? s.snapD : Math.max(0, Math.min(l.length, s.snapD + t.dir * (t.v ?? t.speed ?? 36) * since));
       s.d += (predicted - s.d) * Math.min(1, dt * 8);
       // cars trail behind the engine, toward where it came from
+      if (s.sprites) {
+        const moving = (t.wait ?? 0) <= 0;
+        for (const c of s.cars) {
+          if (!c.sprite) continue;
+          const p = pointAt(rl, (s.d - t.dir * c.off) * kk), ahead = pointAt(rl, (s.d - t.dir * c.off + t.dir * 0.5) * kk);
+          c.sprite.update(dt, p.x, p.z, dirIndex(ahead.x - p.x, ahead.z - p.z), moving ? 'run' : 'idle', null, 1);
+          c.sprite.thing.mesh.visible = c.sprite.shadow.visible = true;
+        }
+        continue;
+      }
       s.cars.forEach((c, k) => {
         const off = k === 0 ? 0 : k === 1 ? 4.4 : 4.4 + (k - 1) * s.gap, p = pointAt(rl, (s.d - t.dir * off) * kk), ahead = pointAt(rl, (s.d - t.dir * off + t.dir * 0.5) * kk);
         c.mesh.position.set(p.x, 0.05, p.z);
@@ -184,7 +220,7 @@ export function createRailTrack({ scene }) {
     }
   }
   // the cars to sort with the units this frame (render/view.js)
-  const things = () => [...trains.values()].flatMap(s => s.cars.filter(c => c.mesh.visible && c.thing).map(c => c.thing));
-  function dispose() { for (const id of [...shown.keys()]) drop(id); for (const s of trains.values()) for (const c of s.cars) scene.remove(c.mesh); trains.clear(); track?.dispose(); bridge?.dispose(); }
+  const things = () => [...trains.values()].flatMap(s => s.sprites ? s.cars.filter(c => c.sprite).map(c => c.sprite.thing) : s.cars.filter(c => c.mesh.visible && c.thing).map(c => c.thing));
+  function dispose() { for (const id of [...shown.keys()]) drop(id); for (const s of trains.values()) dropTrain(s); trains.clear(); track?.dispose(); bridge?.dispose(); }
   return { update, things, dispose };
 }

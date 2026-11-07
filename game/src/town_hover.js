@@ -27,6 +27,16 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     return best;
   }
   // a steam train under the pointer (Tim 2026-11-07: hover says it's a train, with some stats): engine to last car
+  // its cars after the engine and tender (train.consist, Tim 2026-11-07) and their lengths (render/rail_track.js CAR_ART)
+  const CAR_LEN = { engine: 6.4, tender: 4.3, carriage: 6.3, goods: 4.2, guard: 5.4 };
+  const consistOf = t => Array.isArray(t.consist) && t.consist.length ? t.consist : null;
+  const trainLength = (t, T) => { const c = consistOf(t); return c ? ['engine', 'tender', ...c].reduce((a, k) => a + (CAR_LEN[k] ?? 5) + 0.35, 0) - 3.2 : 4.4 + (t.cars ?? 3) * (T.gap ?? 7); };
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  function carsLine(t) {
+    const c = consistOf(t); if (!c) return `Engine, tender, ${(t.cars ?? 3) - 1} carriages and a goods wagon`;
+    const n = k => c.filter(x => x === k).length, parts = [n('carriage') && plural(n('carriage'), 'carriage', 'carriages'), n('goods') && plural(n('goods'), 'goods wagon', 'goods wagons'), n('guard') && plural(n('guard'), 'brake van', 'brake vans')].filter(Boolean);
+    return `Engine, tender, ${parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0] || 'no cars'}`;
+  }
   function trainAt(x, y) {
     if (!onIsland()) return null;
     const R = game.state.frontier?.rail, T = frontierData?.railways?.train || {};
@@ -34,7 +44,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     let best = null, bestD = Infinity;
     for (const t of Object.values(R.trains)) {
       const l = R.links?.[t.link]; if (!l?.points) continue;
-      const len = 4.4 + (t.cars ?? 3) * (T.gap ?? 7);
+      const len = trainLength(t, T);
       for (let o = 0; o <= len; o += 2.5) {
         const p = pointAt(l, Math.max(0, Math.min(l.length, t.d - t.dir * o))), u = view.unitToScreen(p.x, p.z, 1.2), a = view.unitToScreen(p.x + 1, p.z, 1.2);
         const k = Math.hypot(a.x - u.x, a.y - u.y) || 1, d = Math.hypot(x - u.x, (y - u.y) * 1.3);
@@ -47,14 +57,14 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     const st = game.state, R = st.frontier.rail, l = R.links[t.link], T = frontierData?.railways || {};
     const name = id => id === 'capital' ? 'the capital' : st.frontier.settlements?.[id]?.name || id;
     const to = t.dir > 0 ? l.to : l.from, from = t.dir > 0 ? l.from : l.to, mine = t.owner === owner();
-    const seats = Math.max(1, (t.cars ?? 3) - 1) * (T.ride?.seatsPerCar ?? 8);
+    const seats = Math.max(1, consistOf(t) ? consistOf(t).filter(k => k === 'carriage').length : (t.cars ?? 3) - 1) * (T.ride?.seatsPerCar ?? 8);
     const riders = Object.values(st.entities).filter(u => u.aboard === `rail:${t.id}`).length;
     const speed = t.v ?? t.speed ?? 36, left = t.dir > 0 ? l.length - t.d : t.d;
     const atEnd = t.wait > 0 && (t.d <= 0.01 || t.d >= l.length - 0.01);
     const lines = [
       atEnd ? `Standing at ${name(t.d <= 0.01 ? l.from : l.to)}, leaves in ${Math.ceil(t.wait / 20)} s` : `${name(from)} to ${name(to)}: arrives in ${Math.ceil(left / Math.max(1, speed))} s`,
       `Line ${name(l.from)} – ${name(l.to)}, ${Math.round(l.length)} long`,
-      `Engine, tender, ${(t.cars ?? 3) - 1} carriages and a goods wagon`,
+      carsLine(t),
       `${riders} / ${seats} aboard · speed ${Math.round(speed)} (you run at 6)`,
     ];
     if (mine) lines.push('Board at your station: Space');

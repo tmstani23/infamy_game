@@ -148,6 +148,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       const l = rec().links[t.link];
       if (!l?.done) { for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; continue; }
       t.speed = T().speed ?? 36;
+      if (T().consist) t.consist = T().consist; else delete t.consist;   // its cars, for the renderer (render/rail_track.js)
       // Tim 2026-11-07: on screen it runs a little slower than a horse (train.viewSpeed); with nobody near it
       // runs at full speed, so shipments keep their arrival times. Checked twice a second.
       if (!((state.tick ?? 0) % 10) || t.seen === undefined) t.seen = watched(t, l);
@@ -175,7 +176,8 @@ export function createRail({ state, data, world, worldData, stable }) {
   const RIDE = () => R?.ride || {};
   const say = (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; return true; };
   const ridersOf = id => Object.values(state.entities).filter(u => u.aboard === `rail:${id}`);
-  const seats = t => Math.max(1, (t.cars ?? 3) - 1) * (RIDE().seatsPerCar ?? 8);
+  // seats: the carriages of train.consist (Tim 2026-11-07), else every car but the last
+  const seats = t => Math.max(1, T().consist ? T().consist.filter(k => k === 'carriage').length : (t.cars ?? 3) - 1) * (RIDE().seatsPerCar ?? 8);
   const placeName = id => id === 'capital' ? 'the capital' : town(id)?.name || id;
   // is e standing at station `id` (a town's station on the island, or the capital: either side of the gate)?
   function atStation(e, owner, id) {

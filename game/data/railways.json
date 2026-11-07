@@ -53,7 +53,9 @@
     "viewRange": 140,
     "stopSeconds": 60,
     "cars": 3,
-    "gap": 7
+    "gap": 7,
+    "_consist": "Tim 2026-11-07: the cars behind the engine and tender, front to back: carriage (8 seats each, ride.seatsPerCar), goods (goods wagon), guard (brake van). Drawn from the train_* sprites; replaces cars and gap where set.",
+    "consist": ["carriage", "carriage", "goods", "goods", "guard"]
   },
   "ride": {
     "_note": "placeholder, Tim to tune (train plan step 4). Board at a station while the train stands there: you and your followers (within followRange) ride; seatsPerCar = riders per carriage (the engine, tender and last wagon carry none). The train leaves departSeconds after you board. skipSeconds = how long you ride before Skip takes you straight to the far station. The capital end lands you just inside the island gate. reach = how close to a town's station you must stand.",
