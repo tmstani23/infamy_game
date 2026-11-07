@@ -6,9 +6,10 @@
 // createCannonSalute({ state, spawn, removeUnit, cell, rules }) -> { tick, salute, firstTalk }
 const MODELS = ['cannon_field', 'cannon_field', 'cannon_wooden', 'cannon_wooden'];
 export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules = {} }) {
-  const R = { gapTicks: 16, cooldownSeconds: 120, ...rules };
+  const R = { gapTicks: 16, cooldownSeconds: 120, spacing: 3.6, ...rules };
   const say = (s, text) => { const c = state.clans?.[s.owner]; if (c) c.notice = { tick: state.tick, text }; };
-  const spots = s => MODELS.map((m, k) => ({ m, x: s.x - cell * 1.2 - k * 2.4, z: s.z + cell * 1.1 }));
+  // an even row, one gun per slot, wide enough that each gun's ground shadow holds the whole gun (Tim 2026-11-07)
+  const spots = s => MODELS.map((m, k) => ({ m, x: s.x - cell * 1.2 - k * R.spacing, z: s.z + cell * 1.1 }));
   function batteries() {
     for (const s of Object.values(state.frontier?.settlements || {})) {
       const want = s.founded !== undefined && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);
@@ -25,8 +26,8 @@ export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules 
   function salute(s, asked = false) {
     if (!s?.cannons?.length) return false;
     if (s.salute) return false;
-    if (asked && state.tick - (s.saluteAt ?? -1e9) < R.cooldownSeconds * 20) { say(s, 'The guns are still being cleaned: try again later'); return false; }
-    s.salute = { start: state.tick + 10 }; s.saluteAt = state.tick;
+    if (asked && state.tick < (s.saluteReadyAt ?? -1e9)) { say(s, 'The guns are still being cleaned: try again later'); return false; }
+    s.salute = { start: state.tick + 10 }; s.saluteAt = state.tick; s.saluteReadyAt = state.tick + R.cooldownSeconds * 20;   // saluteReadyAt: the cannons' hover card counts down to it
     return true;
   }
   const firstTalk = s => { if (s && !s.firstSalute) { s.firstSalute = true; salute(s); } };

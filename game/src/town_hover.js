@@ -60,6 +60,43 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     if (mine) lines.push('Board at your station: Space');
     return { title: mine ? 'Steam train (yours)' : `Steam train · ${st.clans?.[t.owner]?.name || t.owner}`, lines };
   }
+  // the governor's salute cannons by your halls (Tim 2026-11-07): hover for a card (with the cooldown), click to fire
+  const CANNON_NAMES = { cannon_field: 'Brass field gun', cannon_wooden: 'Wooden gun' };
+  function cannonAt(x, y) {
+    if (!onIsland()) return null;
+    let best = null, bestD = Infinity;
+    for (const s of drawableTowns(game.state.frontier, owner())) for (const id of s.cannons || []) {
+      const e = game.state.entities[id]; if (!e || e.dead) continue;
+      const u = view.unitToScreen(e.x, e.z, 0), a = view.unitToScreen(e.x + 1, e.z, 0), k = Math.hypot(a.x - u.x, a.y - u.y) || 1;
+      const dx = Math.abs(x - u.x), dy = y - u.y;
+      if (dx <= 2.3 * k && dy >= -3.2 * k && dy <= 1.2 * k && dx + Math.abs(dy) < bestD) { best = { e, town: s }; bestD = dx + Math.abs(dy); }
+    }
+    return best;
+  }
+  function cannonInfo({ e, town }) {
+    const left = Math.max(0, Math.ceil(((town.saluteReadyAt ?? 0) - game.state.tick) / 20));
+    const status = town.salute ? 'Firing the salute' : left ? `Guns being cleaned: ready in ${left} s` : 'Ready: click to fire a salute';
+    return { title: `${CANNON_NAMES[e.model] || 'Cannon'} · ${town.name || 'your town'}`, lines: ['Ceremonial guns: they never shoot at anyone', status] };
+  }
+  const hl = document.createElement('div');   // a soft gold ring under the hovered cannon
+  Object.assign(hl.style, { position: 'fixed', zIndex: 28, width: '96px', height: '44px', margin: '-22px 0 0 -48px', border: '2px solid #f2c75c', borderRadius: '50%', boxShadow: '0 0 14px #f2c75c88', pointerEvents: 'none', display: 'none' });
+  document.body.appendChild(hl);
+  let hoverCannon = null;
+  function showCannon(c, x, y) {
+    hoverCannon = c;
+    view.setHoverUnit?.(c ? c.e.id : null);
+    if (!c) { hl.style.display = 'none'; return; }
+    const u = view.unitToScreen(c.e.x, c.e.z, 0);
+    Object.assign(hl.style, { display: 'block', left: `${u.x}px`, top: `${u.y}px` });
+    const info = cannonInfo(c), html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
+    if (tipEl.dataset.html !== html) { tipEl.innerHTML = html; tipEl.dataset.html = html; }
+    tipEl.hidden = false;
+    tipEl.style.left = `${Math.min(innerWidth - 260, x + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, y + 16)}px`;
+  }
+  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel');
+  // keeps the cooldown counting down while the pointer rests on a gun
+  setInterval(() => { if (hoverCannon) { const c = cannonAt(mouse.x, mouse.y); showCannon(c, mouse.x, mouse.y); if (!c) tipEl.hidden = true; } }, 250);
+
   function flash(p) {
     const u = view.unitToScreen(p.x, p.z, 1.5);
     Object.assign(flashEl.style, { left: `${u.x}px`, top: `${u.y}px` });
@@ -68,6 +105,8 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
     const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel');
+    const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
+    if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
     const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities);
     if (!info) { tipEl.hidden = true; return; }
     const html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
@@ -75,6 +114,14 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     tipEl.hidden = false;
     tipEl.style.left = `${Math.min(innerWidth - 260, e.clientX + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, e.clientY + 16)}px`;
   });
+  // left-click a gun: the governor fires the salute (before the crew clicks see it)
+  addEventListener('mousedown', e => {
+    if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
+    const c = cannonAt(e.clientX, e.clientY);
+    if (!c) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    send({ id: heroId, type: 'frontier', action: 'salute', settlement: c.town.id });
+  }, { capture: true });
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
     if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls')) return;

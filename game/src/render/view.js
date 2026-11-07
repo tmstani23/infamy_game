@@ -219,6 +219,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const sprites = new Map();
   let selected = new Set();
   let nameplatesOn = false;
+  let hoverUnitId = null;   // the salute cannon under the pointer (town_hover.js): drawn brighter
   async function addSprite(e) {
     const s = new CharacterSprite(await loadSheets(catalog, e.model));
     sprites.set(e.id, s);
@@ -378,6 +379,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (veiled) {
         u.uTint.value.setRGB(0.65, 0.78, 1.05);
         u.uSelfLight.value.setRGB(0.09, 0.15, 0.27);
+      }
+      // salute cannons (Tim 2026-11-07): lifted out of the night's mud so they read; brighter still while hovered
+      if (e.cannon && !lit && !veiled) {
+        const hv = id === hoverUnitId;
+        u.uTint.value.setRGB(hv ? 2.1 : 1.55, hv ? 1.9 : 1.45, hv ? 1.55 : 1.3);
+        u.uSelfLight.value.setRGB(hv ? 0.5 : 0.34, hv ? 0.42 : 0.3, hv ? 0.3 : 0.24);
       }
       s.veiled = veiled;
       s.shimmer = shim;
@@ -582,6 +589,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       for (const t of things) if (t.building !== null && t.covers(P) && (!best || t.mesh.renderOrder > best.mesh.renderOrder)) best = t;
       return best ? best.building : null;
     },
+    setHoverUnit(id) { hoverUnitId = id; },
     // a unit's body centre (about 0.9 above its feet) -> page pixel { x, y }; y = another height
     unitToScreen(x, z, y = 0.9) {
       v.set(x, y, z).project(camera);
