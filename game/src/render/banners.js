@@ -6,6 +6,8 @@ import { createRune, runeProgress, RUNE } from './rune_mesh.js';
 import * as THREE from 'three';
 import { CAM_QUAT, CAM_UP } from './iso.js';
 import { Thing } from './scenery.js';
+import { doorMaterial } from './shading.js';
+import { cellToWorld } from '../sim/frontier/town_grid.js';
 
 const W = 112, H = 300;                      // canvas pixels
 const WORLD_H = 2.4,   // about a third of a building, a little taller than a person (Tim 2026-10-19)
@@ -183,10 +185,36 @@ export function createBanners({ scene }) {
   }
 
   // every frame: banners follow ownership; returns the businesses that just changed hands to a clan
+
+  // Space rings on the island (Tim 2026-11-07): the same door ring the city uses, at the front (screen-down) of your
+  // built town hall, stable and station, the buildings that open a menu with Space. Reads state.frontier only.
+  const spaceRings = new Map();
+  const FRONT = { town_hall: 1, stable: 1.6, station: 1.6 };   // placed-art width in cells (townArt._placedFootprint); ring = half of it, plus a margin
+  function updateSpaceRings(state, me, place) {
+    const want = new Map();
+    if (place === 'world' && me != null) for (const s of Object.values(state.frontier?.settlements || {})) {
+      if (s.owner !== me || !s.founded || !Number.isFinite(s.x)) continue;
+      const cell = s.grid?.cell || 11, off = fp => cell * fp / 2 + 3, k = Math.SQRT1_2;
+      want.set(`${s.id}:hall`, [s.x + off(FRONT.town_hall) * k, s.z + off(FRONT.town_hall) * k]);
+      for (const b of s.buildings || []) {
+        if ((b.type !== 'stable' && b.type !== 'station') || b.stage !== 'built' || !(b.cells?.length || Number.isFinite(b.cell))) continue;
+        const pts = (b.cells?.length ? b.cells : [b.cell]).map(i => cellToWorld(s, i));
+        const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+        want.set(`${s.id}:${b.id}`, [cx + off(FRONT[b.type]) * k, cz + off(FRONT[b.type]) * k]);
+      }
+    }
+    for (const [id, m] of spaceRings) if (!want.has(id)) { scene.remove(m); m.geometry.dispose(); spaceRings.delete(id); }
+    for (const [id, [x, z]] of want) {
+      let m = spaceRings.get(id);
+      if (!m) { m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), doorMaterial); m.rotation.x = -Math.PI / 2; m.renderOrder = 1; scene.add(m); spaceRings.set(id, m); }
+      m.position.set(x, 0.02, z);
+    }
+  }
   let jobRing = null, jobMark = null;
   const campingRings = new Map();
   const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
   function update(state, time, me, place = 'street') {
+    updateSpaceRings(state, me, place);
     if (assignmentTick !== state.tick || assignmentOwner !== me) {
       assignmentTick=state.tick;assignmentOwner=me;staffed.clear();
       for (const e of Object.values(state.entities)) if (e.owner===me && e.type!=='hero' && !e.guard && !e.dead) staffed.add(e.deployment?.group);

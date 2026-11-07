@@ -166,6 +166,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shift while mounted | Gallop (otherwise the horse trots at run speed). |
 | Mount controls → Sprint | Keeps the hero's horse galloping without holding Shift, until clicked again or he gets off. The Shift+H button reads Mount up, or All off once the crew ride. |
 | Driving a rickshaw or omnibus | The hero's vehicle trots at run speed; Shift or Mount controls → Sprint gallops at full speed (rickshaw 3.5x, omnibus 3x). Crew-driven and following vehicles keep full speed. |
+| Gold ring (island) | Marks where Space works at each built town hall, stable and station, on the screen-down front of the building; standing in or near it shows the prompt. |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: the hero group's crew get on horses (not settlers or workers); crew dismount to fight. |
 | Shift+Y | Vehicles panel: your vehicles, with recall, store and take out. |
