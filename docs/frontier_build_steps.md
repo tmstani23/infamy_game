@@ -1867,6 +1867,7 @@ Done note: "C3 standing orders panel in (controls.md line needed)."
 - Buy (Yakuza, Kuroda): the captain walks to the free business nearest the HQ and buys it; at most one a day, inside the daily budget, always leaving `campaignCity.lieutenant.reserve` (200) ryo. While Buy is on, hiring keeps enough for the cheapest free business plus the reserve.
 - Jobs (Shinobi): one contract a day at the shrine (Scout, or Thin out the bandits when a street bandit group no bigger than the squad exists); city crew carry it out; called off after `jobMinutes` (3).
 - Steal (Shinobi): one Steal contract a night. Lieutenants never take Sabotage or Knock out the boss.
+- The lieutenant never sends follow (regroup) orders to a player clan's units (the hero party stays under the player's control); bots are unaffected. Code: `sim/lieutenant.js`.
 - Retake only walks to a lost business he can pay for today.
 - The lieutenant's orders reach crew left in the city while the boss is on the island (`crew_orders.js`, `by: 'lieutenant'`, not follow). New crew are not auto-assigned to the Hero group while the boss is away; a bot's recruits don't follow an absent boss.
 - Settings: default budget 600 (was 300), `reserve` 200, `jobMinutes` 3.

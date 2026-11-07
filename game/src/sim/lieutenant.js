@@ -201,6 +201,9 @@ export function createLieutenantBrain(game, { clan }) {
     if (aiFor !== b.id) { ai = createDeploymentAI(game, { clan, hero: b.id }); aiFor = b.id; }
     for (const cmd of ai.tick()) {
       if (cmd.type === 'deployment' && cmd.action === 'transfer') continue;   // never pulls crew to the absent boss
+      // a player's hero party is the player's own: no regroup orders behind his back (Tim 2026-11-07: frontier crew
+      // sent to move ran back to the hero after a couple of seconds)
+      if (cmd.type === 'order' && cmd.kind === 'follow' && !state.clans[clan]?.bot) continue;
       out.push(tag(cmd));
     }
     if (!L.away(clan)) return out.filter(x => x.type !== 'deployment' || ['rally', 'autoSector', 'staffing'].includes(x.action));
