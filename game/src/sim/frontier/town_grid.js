@@ -59,6 +59,53 @@ export function zoneStructureAt(s,i,data,stage=Number(s.grid.stage[i])) {
   return !!def && (def.blocksMovement || def.buildingEvery>0 && i%def.buildingEvery===0);
 }
 // Completed structures block their physical footprints; fields and unfinished plots stay open.
+// perf (2026-11-07 profile: 18% of a frontier tick): each cell's boxes are built once per settlement and
+// reused until the grid strings or the set of built buildings change
+const blockerCache=new WeakMap();
+let blockerEpoch=0;
+// frontier tick calls this once a tick: buildings finished since are re-checked (grid edits are seen at once)
+export function townBlockersTick(){blockerEpoch++;}
+const builtKey=s=>s.buildings.map(b=>b.stage==='built'?b.id ?? (b.cells || [b.cell]).join('.'):'').join(',');
+function cellBoxesOf(s,data) {
+  const g=s.grid;
+  let per=blockerCache.get(s);if(!per)blockerCache.set(s,per=new Map());
+  const dk=data || per;let e=per.get(dk);
+  if(e && e.use===g.use && e.stage===g.stage && e.zone===g.zone && e.ground===g.ground && e.x===s.x && e.z===s.z && e.n===s.buildings.length) {
+    if(e.epoch===blockerEpoch)return e.cells;
+    const key=builtKey(s);if(key===e.key){e.epoch=blockerEpoch;return e.cells;}
+  }
+  const key=builtKey(s);
+  const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;
+  const owner=new Map();for(const b of s.buildings)if(b.stage==='built')for(const i of b.cells || [b.cell])owner.set(i,b);
+  const cells=new Map();
+  for(let i=0;i<g.n*g.n;i++) {
+    const out=[];const add=b=>out.push(b);
+    const c=i%g.n,r=Math.floor(i/g.n),x=s.x+(c-mid)*g.cell,z=s.z+(r-mid)*g.cell;
+    if(g.use[i]==='w') {
+      for(const [a,b] of wallSegments(g,i,data?.townArt?._walls?.cornerCut || 0)) {
+        const dx=b[0]-a[0],dz=b[1]-a[1],steps=dx && dz ? Math.max(1,Math.ceil(Math.hypot(dx,dz)/thickness)):1;
+        for(let k=0;k<steps;k++) {
+          const ax=x+a[0]+dx*k/steps,az=z+a[1]+dz*k/steps,bx=x+a[0]+dx*(k+1)/steps,bz=z+a[1]+dz*(k+1)/steps;
+          add({minX:Math.min(ax,bx)-pad,maxX:Math.max(ax,bx)+pad,minZ:Math.min(az,bz)-pad,maxZ:Math.max(az,bz)+pad});
+        }
+      }
+    } else if(g.use[i]==='B' && owner.has(i)) {
+      // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (Tim 2026-11-07)
+      const b=owner.get(i),k=data?.buildings?.[b.type]?.collide ?? data?.townGrid?.buildingCollide;
+      if(k>0 && k<1) {
+        const cs=b.cells || [b.cell];let cx=0,cz=0;for(const j of cs){cx+=s.x+(j%g.n-mid)*g.cell;cz+=s.z+(Math.floor(j/g.n)-mid)*g.cell;}cx/=cs.length;cz/=cs.length;
+        const sx=v=>cx+(v-cx)*k,sz=v=>cz+(v-cz)*k;add({minX:sx(x-half),maxX:sx(x+half),minZ:sz(z-half),maxZ:sz(z+half)});
+      } else add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
+    } else if(zoneStructureAt(s,i,data)) {
+      const h=half*data.townGrid.zoneFootprint;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});
+    }
+    if(out.length)cells.set(i,out);
+  }
+  per.set(dk,{use:g.use,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
+  return cells;
+}
+// which cells block walking, as a string: changes only when something solid appears or goes (worker path cache key)
+export function townBlockSignature(s,data){return s.grid && Number.isFinite(s.x)?[...cellBoxesOf(s,data).keys()].join(','):'';}
 export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
   const out=[];
   for(const s of Object.values(frontier?.settlements || {})) {
@@ -66,29 +113,11 @@ export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
     const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;
     const col0=Math.max(0,Math.ceil((x0-s.x-half-pad)/g.cell+mid)),col1=Math.min(g.n-1,Math.floor((x1-s.x+half+pad)/g.cell+mid));
     const row0=Math.max(0,Math.ceil((z0-s.z-half-pad)/g.cell+mid)),row1=Math.min(g.n-1,Math.floor((z1-s.z+half+pad)/g.cell+mid));
-    const add=b=>{if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)out.push(b);};
+    if(col0>col1 || row0>row1)continue;
+    const cells=cellBoxesOf(s,data);
     for(let r=row0;r<=row1;r++)for(let c=col0;c<=col1;c++) {
-      const i=r*g.n+c;
-      const x=s.x+(c-mid)*g.cell,z=s.z+(r-mid)*g.cell;
-      if(g.use[i]==='w') {
-        for(const [a,b] of wallSegments(g,i,data?.townArt?._walls?.cornerCut || 0)) {
-          const dx=b[0]-a[0],dz=b[1]-a[1],steps=dx && dz ? Math.max(1,Math.ceil(Math.hypot(dx,dz)/thickness)):1;
-          for(let k=0;k<steps;k++) {
-            const ax=x+a[0]+dx*k/steps,az=z+a[1]+dz*k/steps,bx=x+a[0]+dx*(k+1)/steps,bz=z+a[1]+dz*(k+1)/steps;
-            add({minX:Math.min(ax,bx)-pad,maxX:Math.max(ax,bx)+pad,minZ:Math.min(az,bz)-pad,maxZ:Math.max(az,bz)+pad});
-          }
-        }
-      } else if(g.use[i]==='B' && s.buildings.some(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i))) {
-        // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (Tim 2026-11-07)
-        const b=s.buildings.find(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i)),k=data?.buildings?.[b.type]?.collide ?? data?.townGrid?.buildingCollide;
-        if(k>0 && k<1) {
-          const cs=b.cells || [b.cell];let cx=0,cz=0;for(const j of cs){cx+=s.x+(j%g.n-mid)*g.cell;cz+=s.z+(Math.floor(j/g.n)-mid)*g.cell;}cx/=cs.length;cz/=cs.length;
-          const sx=v=>cx+(v-cx)*k,sz=v=>cz+(v-cz)*k;add({minX:sx(x-half),maxX:sx(x+half),minZ:sz(z-half),maxZ:sz(z+half)});
-        } else add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
-      }
-      else if(zoneStructureAt(s,i,data)) {
-        const h=half*data.townGrid.zoneFootprint;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});
-      }
+      const bs=cells.get(r*g.n+c);if(!bs)continue;
+      for(const b of bs)if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)out.push(b);
     }
   }
   return out;

@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { spriteMaterial } from './shading.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
+import { toScreen } from './iso.js';
 
 // world units. The strips are scaled so the rails sit GAUGE apart (153 of the image's 362 px); both strips share
 // the scale so the rails line up where track meets bridge. One image = TILE units along the track.
@@ -63,7 +64,25 @@ function carGeometries() {
   CARS = { engine: merge([engine, stack, dome, cab, buffer]), tender: shadedBox(2.2, 1.6, 3.2, 0x2a2622), carriage: shadedBox(2.4, 2.4, 6, 0x6b4630), wagon: shadedBox(2.4, 1.2, 5, 0x5a4a3a) };
   return CARS;
 }
-const carMaterial = () => new THREE.MeshBasicMaterial({ vertexColors: true });
+// Tim 2026-11-07 (train not sitting on the rails): everything here is drawn as sprites without a depth test, in the
+// order render/draw_order.js gives them, and the track ribbon is one of those. So the cars are drawn the same way
+// (no depth test, back faces culled, so each box still looks solid) and take part in that sort as movers.
+const carMaterial = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthTest: false, depthWrite: false });
+const CAR_SIZE = { engine: [2.4, 5.2, 3.4], tender: [2.2, 3.2, 1.6], carriage: [2.4, 6, 2.4], wagon: [2.4, 5, 1.2] };   // width, length, height
+const corner = new THREE.Vector3();
+// the sort record of a car: its footprint on the ground and its box on screen
+function carThing(c) {
+  const [w, len, h] = CAR_SIZE[c.kind], p = c.mesh.position, a = c.mesh.rotation.y, ca = Math.cos(a), sa = Math.sin(a);
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const lx = sx * w / 2, lz = sz * len / 2, x = p.x + lx * ca + lz * sa, z = p.z - lx * sa + lz * ca;
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x); minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+    for (const y of [0, h]) { const q = toScreen(corner.set(x, y, z)); x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }
+  }
+  const t = c.thing ||= { mesh: c.mesh, extras: [] };
+  t.foot = { minX, maxX, minZ, maxZ }; t.screen = { x0, x1, y0, y1 }; t.depth = (minX + maxX + minZ + maxZ) / 2;
+  return t;
+}
 
 export function createRailTrack({ scene }) {
   let track = null, bridge = null;
@@ -114,6 +133,7 @@ export function createRailTrack({ scene }) {
         c.mesh.position.set(p.x, 0.05, p.z);
         c.mesh.rotation.y = Math.atan2(ahead.x - p.x, ahead.z - p.z) || 0;
         c.mesh.visible = true;
+        carThing(c);
       });
     }
   }
@@ -136,6 +156,8 @@ export function createRailTrack({ scene }) {
       }
     }
   }
+  // the cars to sort with the units this frame (render/view.js)
+  const things = () => [...trains.values()].flatMap(s => s.cars.filter(c => c.mesh.visible && c.thing).map(c => c.thing));
   function dispose() { for (const id of [...shown.keys()]) drop(id); for (const s of trains.values()) for (const c of s.cars) scene.remove(c.mesh); trains.clear(); track?.dispose(); bridge?.dispose(); }
-  return { update, dispose };
+  return { update, things, dispose };
 }

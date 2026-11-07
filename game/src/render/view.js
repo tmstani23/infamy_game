@@ -407,7 +407,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...sprites.values()].filter(Boolean).map(s => s.thing));
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || [])]);
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
     fxShared.uPx.value = px * bloom.scale;
@@ -553,7 +553,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     audioFocus(state, followId, selected = []) {
       const h = state.entities[followId];
       if (!h) return null;
-      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h) };
+      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h), hero: { x: h.x, z: h.z, place: h.place } };
     },
     // page pixel -> ground point { x, z }
     screenToGround(px, py) {

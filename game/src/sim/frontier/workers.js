@@ -2,7 +2,7 @@ import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
 import { makeSpotIndex, spotState, spotYield, regrowSpot } from '../resource_spots.js';
-import { cellToWorld, worldToCell, townBlockersIn } from './town_grid.js';
+import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
 import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint } from './camp_carts.js';
@@ -24,7 +24,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   let geometry='',geometryAt=-1,geometryState=null,revision=0;
   function geometryRevision() {
     if(geometryAt!==state.tick || geometryState!==state.frontier) {
-      const next=JSON.stringify(towns().map(s=>[s.id,s.grid?.use,s.grid?.zone,s.grid?.stage,s.buildings.map(b=>[b.id,b.stage])]));
+      const next=JSON.stringify(towns().map(s=>[s.id,townBlockSignature(s,data)]));   // perf 2026-11-07: only what blocks walking, so growing fields do not throw away every worker path
       if(next!==geometry || geometryState!==state.frontier){geometry=next;revision++;waiting.clear();paths.clear();}
       geometryAt=state.tick;geometryState=state.frontier;
     }

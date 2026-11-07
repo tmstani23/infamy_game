@@ -11,7 +11,7 @@ import { createGovernor } from './governor.js';
 import { createCommands } from './commands.js';
 import { createAlerts } from './alerts.js';
 import { createFounding } from './founding.js';
-import { ensureGrid, townBlockersIn } from './town_grid.js';
+import { ensureGrid, townBlockersIn, townBlockersTick } from './town_grid.js';
 import { createGarrison } from './garrison.js';
 import { createInfirmary } from './infirmary.js';
 import { createStable } from './stable.js';
@@ -64,6 +64,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
+    townBlockersTick();
     ensure();
     // Older collision checkpoints could save a unit inside a finished hall. Repair only
     // actual overlap once on load; use the same terrain-aware navigation as worker trips.

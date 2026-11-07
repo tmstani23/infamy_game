@@ -487,6 +487,10 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Vehicles count as crew in the crew panel and input (`sim/omnibus.js`, `src/crew_input.js`, `src/grouped_crew.js`). Test: `tools/test_omnibus.mjs`.
 - Placed buildings block a box of `frontier.json` `townGrid.buildingCollide` 0.7 of their tiles (`sim/frontier/town_grid.js`).
 - Render pixel ratio: min(devicePixelRatio, 2, √(8,000,000 / canvas pixels)), at least 1; `?dpr=N` forces it (`render/view.js`).
+- Worker path cache is keyed on the cells that block walking (`town_grid.js` `townBlockSignature`); each town's blocker boxes are built once and reused until the grid or the built buildings change (`townBlockersTick`, called from `frontier.js` tick). A building's `collide` field overrides `buildingCollide`. `areas.js` `workerPath` checks each cell once per search.
+- Cannon salute audio: heard within 1.5x hearing range (about 36 units) of the hero or the camera, whichever is closer; volume falls with the square of the distance (`render/sound.js`; `view.js` `audioFocus` returns the hero position).
+- Train cars join the sprite draw sort, so they draw over the track (`render/rail_track.js` `things()`, `view.js`).
+- Calmer alert animations (`index.html`, `worker_panel.js`, `grouped_crew.js`, `stealth_badge.js`).
 - New sounds in `assets/sounds/`: cannon_fire_1-2, gate_open_1, hoof_gallop_1-2, hoof_walk_1-2, omnibus_roll_1-3, rickshaw_roll_1-2.
 
 ## Cannon salute (2026-11-07)

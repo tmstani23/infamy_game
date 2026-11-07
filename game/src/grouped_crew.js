@@ -8,8 +8,8 @@ import { syncChildren } from './stable_list.js';
 // control groups (click selects, Ctrl+click assigns, again dissolves); a drag shows gold where the crew
 // fit and red where they don't, and a refused drop flashes red with the reason.
 const CSS=`
-  @keyframes hqWaiting{50%{box-shadow:0 0 12px #f4c66c99;border-color:#ffe4a0}}
-  #partyframes .crew-waiting{border:1px solid #d8b160;animation:hqWaiting 1.6s ease-in-out infinite}
+  @keyframes hqWaiting{50%{box-shadow:0 0 8px #f4c66c66;border-color:#ecd08c}}
+  #partyframes .crew-waiting{border:1px solid #d8b160;animation:hqWaiting 3s ease-in-out infinite}
   #partyframes .crew-waiting .crew-drop-note{color:#ffe2a3}
   #partyframes .crew-tabs{display:flex;gap:4px;grid-column:1/-1}
   #partyframes .crew-tab{flex:1;padding:2px 0;border-radius:4px;border:1px solid #555;background:#22262e;color:#ffd34d;font:700 11px system-ui;cursor:pointer}

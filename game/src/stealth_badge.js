@@ -26,8 +26,8 @@ const STYLE = `
 #stealth.hid { outline:2px solid #b8a0e5; }
 #stealth.seen { outline:3px solid #ff7865; box-shadow:0 0 18px #ed6c6388; }
 #stealth .stealth-ready { position:absolute; left:9px; bottom:7px; font:bold 10px system-ui; color:#e4d2ff; }
-#stealth.warning { color:#ffe0a1; animation:stealth-warning 1s ease-in-out infinite; }
-@keyframes stealth-warning { 50% { box-shadow:inset 0 0 12px #6e421c,0 0 13px #e4ac5b99; } }
+#stealth.warning { color:#ffe0a1; animation:stealth-warning 2.4s ease-in-out infinite; }
+@keyframes stealth-warning { 50% { box-shadow:inset 0 0 8px #6e421c,0 0 8px #e4ac5b66; } }
 @media(prefers-reduced-motion:reduce) { #stealth { transition:none; } #stealth.warning { animation:none; outline:2px solid #e7b65e; } }
 .stealth-observer { position:fixed; z-index:7; pointer-events:none; color:#f3bf69; font:bold 15px system-ui; text-shadow:0 1px 3px #000; transform:translate(-50%,-100%); }
 `;

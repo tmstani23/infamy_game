@@ -20,7 +20,7 @@ export function workerJob(w,index) {
 }
 // Idle filter (Tim 2026-11-05): standing, waiting for orders, stuck or route blocked
 export const workerIdle=(w,index)=>['Route blocked','Stuck','Standing','Waiting for orders','Garrisoned in stockade'].includes(workerStatus(w,index));
-export function workerPanelHTML(s,{selected,index,data,page=0,known=()=>true,tab='roster',logPage=0}) {
+export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0}) {
   const all=s.workers || [],workers=tab==='idle'?all.filter(w=>workerIdle(w,index)):all,groups=data.workers.groups || 4,rows=data.workers.panelRows || 6;
   const pages=Math.max(1,Math.ceil(workers.length/rows));page=Math.max(0,Math.min(page,pages-1));
   const button=(act,id,label,on=false)=>`<button data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" class="${on?'on':''}">${esc(label)}</button>`;
@@ -39,9 +39,9 @@ export function workerPanelHTML(s,{selected,index,data,page=0,known=()=>true,tab
     const ids=all.filter(w=>w.group===g).map(w=>w.id);
     return button('group',g,`Group ${g} (${ids.length})`,ids.length>0 && ids.every(id=>selected.includes(id)));
   }).join('');
-  const roster=workers.slice(page*rows,(page+1)*rows).map(w=>{const detail=workerDetails(w,index);return `<div class="workerrow">`
+  const roster=workers.slice(page*rows,(page+1)*rows).map(w=>{const detail=workerDetails(w,index);return `<div class="workerrow${overworked.has(w.spot)?' overworked':''}">`
     + button('select',w.id,w.id,selected.includes(w.id))
-    + `<span>${esc(workerStatus(w,index))}<small>${esc(w.spot || '')}${w.carrying?' · carrying '+w.carrying+' '+esc(detail.resource):''}${w.entity==null?' · offscreen':''}</small>`
+    + `<span>${esc(workerStatus(w,index))}${overworked.has(w.spot)?' <b style="color:#d9a25a" title="Too many workers on this vein: extra workers add little. Move some to another spot.">· overworked</b>':''}<small>${esc(w.spot || '')}${w.carrying?' · carrying '+w.carrying+' '+esc(detail.resource):''}${w.entity==null?' · offscreen':''}</small>`
     // the harvest line always takes its space so the row and pane never grow when it appears (Tim 2026-11-05)
     + (detail.harvesting?`<small class="harvestline">${detail.left}s left · ${detail.gathered.toFixed(1)} / ${w.trip.load}<progress value="${detail.progress}" max="1"></progress></small>`:`<small class="harvestline" style="visibility:hidden">–<progress value="0" max="1"></progress></small>`)+'</span>'
     + `<select data-act="build-worker-assign" data-id="${esc(w.id)}" aria-label="Group for ${esc(w.id)}">${options(w.group || 0)}</select></div>`;}).join('');
@@ -59,5 +59,6 @@ export function workerPanelHTML(s,{selected,index,data,page=0,known=()=>true,tab
     + (roster || '<div class="hint">No workers yet. Train one at the town hall.</div>')
     + (pages>1?`<div class="pager">${button('page',Math.max(0,page-1),'Previous')} ${page+1}/${pages} ${button('page',Math.min(pages-1,page+1),'Next')}</div>`:'')
     + `<div class="hint">Double-click a worker or group to follow it with the camera. Right-click ground to move and wait, or a resource spot to harvest. Z stops selected workers. Return resources unloads then holds. Dropped cargo is lost; you can reassign immediately afterward.</div>`
+    + (overworked.size?'<style>.workerrow.overworked{border:1px solid #d9533f;border-radius:4px;animation:overworkFlash 3s ease-in-out infinite}@keyframes overworkFlash{50%{border-color:rgba(217,83,63,.35);box-shadow:none}0%,100%{box-shadow:0 0 5px rgba(217,83,63,.6)}}</style>':'')
     + `<div class="workergroups">Nearby discovered spots: ${resources.map(p=>button('spot',p.id,`${p.kind} · ${Math.round(Math.hypot(p.x-s.x,p.z-s.z))} units`)).join('') || 'none'}</div><div class="hint">Click a spot button to look there; right-click its pieces to assign selected workers.</div></div>`;
 }

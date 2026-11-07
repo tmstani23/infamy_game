@@ -41,6 +41,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   let active = new Map();                // chunk key -> cached chunk, for chunks units stand in or next to
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
+  let freeMemo = null;                  // perf 2026-11-07: one worker search asks each cell up to ~10 times; answer once
   let clock = 0, stats = { built: 0, buildMs: 0, worstMs: 0 };
   const keyOf = (cx, cz) => cz * CX + cx;
   const inRange = (cx, cz) => cx >= 0 && cz >= 0 && cx < CX && cz < CZ;
@@ -99,6 +100,10 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   const cellOf = (x, z) => [Math.floor(x / CELL), Math.floor(z / CELL)];
   const centre = (i, j) => [(i + 0.5) * CELL, (j + 0.5) * CELL];
   function free(i, j) {
+    if (freeMemo) { const k = i * 1048576 + j, v = freeMemo.get(k); if (v !== undefined) return v; const r = freeRaw(i, j); freeMemo.set(k, r); return r; }
+    return freeRaw(i, j);
+  }
+  function freeRaw(i, j) {
     if (planningBlocked?.(...centre(i, j))) return false;
     const [x,z]=centre(i,j),pad=cfg.navPad || 0;
     if(dynamicBlockers(x-pad,z-pad,x+pad,z+pad).length)return false;
@@ -470,6 +475,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   function workerPath(ax, az, bx, bz, blocked = null) {
     planning = new Map();
     planningBlocked = blocked;
+    freeMemo = new Map();
     try {
       const start = nearestFreeCell(ax, az), end = nearestFreeCell(bx, bz);
       if (!start || !end) return null;
@@ -494,7 +500,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
         }
       }
       return out;
-    } finally { planning = null; planningBlocked = null; }
+    } finally { planning = null; planningBlocked = null; freeMemo = null; }
   }
   const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   return {
