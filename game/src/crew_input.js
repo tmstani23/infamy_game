@@ -258,7 +258,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
       // vehicles are bigger than people: a wider reach so a click on a loaded one of yours selects it (Tim 2026-11-07)
-      const mate = unitAt(e.clientX, e.clientY, myCrew()) || unitAt(e.clientX, e.clientY, myVehicles(), 45) || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
+      const mate = unitAt(e.clientX, e.clientY, myCrew().filter(u => !u.aboard)) || unitAt(e.clientX, e.clientY, myVehicles(), 45)   // crew inside a vehicle: the click is on the vehicle || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);

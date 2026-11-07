@@ -175,6 +175,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Vehicles following in a line | Loaded vehicles following the hero ride single file along his track. Each stays (length of the one ahead + own length)/2 + followClearance back along the trail, gallops to catch up, and never moves into the one ahead (units.json: omnibus length 7, followClearance 4; rickshaw length 5). |
 | Click a vehicle | Selects it and shows it in the target frame; loaded vehicles have a 45 px click reach. A group box selects crew only and clears the target frame. Parked or taken-out vehicles pick clear spots and ease apart if they overlap. |
 | Selecting crew who ride in a vehicle | Selects that vehicle instead (C, crew-panel group header, crew name, Ctrl/1–4 groups). |
+| Group move order with vehicles | Vehicles line up back from the target; a moving vehicle waits rather than driving into another. Left-click on a loaded vehicle targets the vehicle, not its riders (double-click follows it). |
 | Double-click a crew member or vehicle | Camera follows it until you pan, click the map or press Home. |
 | Right-click a rickshaw or omnibus | With a group or 1–2 crew selected, the nearest fill the free seats. Right-clicking a full vehicle, or one with no other crew selected, unloads it. |
 | F3 | Frame time breakdown. |

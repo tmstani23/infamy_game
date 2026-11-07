@@ -142,11 +142,24 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   // crew 'order' kinds: follow, move (drives there and stays), station / stop (stays). Empty ones stay parked.
   function orderVehicles(hero, c) {
     if (!Array.isArray(c.units)) return;
-    for (const id of c.units) {
-      const b = state.entities[id];
-      if (!isVehicle(b) || b.omnibusOwner !== hero.owner || b.dead || !riders(b).length || b.driver) continue;
+    const list = c.units.map(id => state.entities[id]).filter(b => isVehicle(b) && b.omnibusOwner === hero.owner && !b.dead && riders(b).length && !b.driver);
+    const move = (c.kind === 'move' || c.kind === 'attackmove' || c.kind === 'station') && Number.isFinite(c.x) && Number.isFinite(c.z);
+    if (move && list.length > 1) {   // several sent to one spot (Tim 2026-11-07: they crashed): a line back from it, nearest first, each at its spacing
+      list.sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z));
+      const cx = list.reduce((s, b) => s + b.x, 0) / list.length, cz = list.reduce((s, b) => s + b.z, 0) / list.length;
+      let dx = c.x - cx, dz = c.z - cz, d = Math.hypot(dx, dz); if (d < 0.01) { dx = 1; dz = 0; d = 1; }
+      let back = 0, prev = null;
+      for (const b of list) {
+        if (prev) back += spacing(prev, b);
+        prev = b;
+        const tx = c.x - dx / d * back, tz = c.z - dz / d * back, [fx, fz] = nav()?.nearestFree(tx, tz) || [tx, tz];
+        b.vorder = { kind: 'move', x: fx, z: fz };
+      }
+      return;
+    }
+    for (const b of list) {
       if (c.kind === 'follow' || c.kind === 'resume') b.vorder = { kind: 'follow' };
-      else if ((c.kind === 'move' || c.kind === 'attackmove' || c.kind === 'station') && Number.isFinite(c.x) && Number.isFinite(c.z)) b.vorder = { kind: 'move', x: c.x, z: c.z };
+      else if (move) b.vorder = { kind: 'move', x: c.x, z: c.z };
       else if (c.kind === 'stop') b.vorder = { kind: 'stay' };
     }
   }
@@ -159,6 +172,9 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const step = Math.min(d - stopAt, (R(b.type).speed ?? 3) * HERO_RUN * dt * (r.slow ?? 1));
     const nx = b.x + r.hx * step, nz = b.z + r.hz * step, [fx, fz] = nav()?.nearestFree(nx, nz) || [nx, nz];
     if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return false; }   // blocked: wait there
+    // never drive into another vehicle that is on the move: the later one (by id) waits for it to pass
+    if (Object.values(state.entities).some(o => o !== b && isVehicle(o) && !o.dead && o.place === b.place && (o.anim === 'run' || o.anim === 'trot' || o.driver) && o.id < b.id
+      && Math.hypot(o.x - fx, o.z - fz) < ((R(o.type).length ?? 6) + (R(b.type).length ?? 6)) / 2 && Math.hypot(o.x - fx, o.z - fz) < Math.hypot(o.x - b.x, o.z - b.z))) { b.anim = 'idle'; return true; }
     Object.assign(b, { x: fx, z: fz, anim: 'run' }); b.trail = [];   // vehicles move at gallop pace: gallop sheets (art.json run)
     return true;
   }
