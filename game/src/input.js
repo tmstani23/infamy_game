@@ -12,6 +12,14 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
+// a browser menu (Shift+right-click forces it in some browsers) swallows the key-ups, so held keys stuck and the hero
+// kept moving or galloping (Tim 2026-11-07): forget held keys when a menu opens, and drop a Shift the mouse says is up
+addEventListener('contextmenu', () => keys.clear(), { capture: true });
+addEventListener('mousedown', e => { if (e.button === 2 && e.shiftKey) keys.clear(); }, { capture: true });
+const shiftCheck = e => { if (!e.shiftKey) { keys.delete('ShiftLeft'); keys.delete('ShiftRight'); } };
+addEventListener('mousemove', shiftCheck, { capture: true });
+addEventListener('mousedown', shiftCheck, { capture: true });
+document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
 
 // Run fn when a key is pressed (once per press)
 export function onKey(codes, fn) { for (const c of [].concat(codes)) handlers[c] = fn; }
