@@ -65,6 +65,7 @@ import { bindControlTooltips } from './control_tooltips.js';
 import { createDeploymentPanel } from './deployment_panel.js';
 import { createCharacterPanel } from './character_panel.js';
 import { createGameSettings } from './game_settings.js';
+import { createVideoSettings } from './video_settings.js';
 import { createSaveStore, serverBackend, usable as usableSave } from './save_store.js';
 import { saveLoadURL, saveFromURL } from './save_menu.js';
 import { createGameMusic } from './game_music.js';
@@ -142,6 +143,10 @@ async function start() {
     status('This browser could not start WebGL, which the game needs.');
     throw e;
   }
+  // Video settings (Settings > Video, Tim 2026-11-07): applied live and kept in this browser
+  const video = createVideoSettings();
+  view.setVideo(video.get());
+  video.subscribe(v => view.setVideo(v));
 
   // Fog of war: the screen shows only what your clan can see
   const fog = createFog({ vision: game.vision, clan: 'player', on: true });
@@ -445,7 +450,7 @@ async function start() {
       const check=usableSave(file);if(!check.ok)throw new Error(check.message);
       if(!hero||!file.state?.clans?.player)throw new Error('This save has no player hero');
       location.assign(saveLoadURL(name,location.href));}};
-  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,saves,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,video,saves,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -460,6 +465,8 @@ async function start() {
   $('pausebtn').addEventListener('click', e => { togglePause(); e.currentTarget.blur(); });
   const fps = createFps({diagnostics:()=>view.graphicsStats(),sim:()=>simClient.diagnostics()});
   onKey('KeyP', () => fps.toggle());
+  fps.show(video.get().showFps);
+  video.subscribe(v => fps.show(v.showFps));
   // Controls panel: the button or ? opens it, Esc closes it
   const toggleControls = () => { controlTips.hide(); $('controls').hidden = !$('controls').hidden; };
   onKey('Slash', toggleControls);
@@ -662,7 +669,12 @@ async function start() {
   const inputTimer=setInterval(()=>simClient.input({movement:moveCommand(heroId),commands:pending.splice(0),
     paused,map:gameMap.isOpen(),selected:[...crewInput.selected(),crewInput.looked?.(),crewInput.tabbed?.()].filter(Boolean)}),50);
   addEventListener('pagehide',()=>clearInterval(inputTimer),{once:true});
+  let frameAt = 0;
   view.renderer.setAnimationLoop(() => {
+    // frame cap (Settings > Video): skip a screen refresh that comes too soon after the last drawn frame
+    const cap = video.get().fpsCap, nowMs = performance.now();
+    if (cap) { const step = 1000 / cap; if (nowMs < frameAt + step - 1) return; frameAt = nowMs - frameAt > 2 * step ? nowMs : frameAt + step; }
+    else frameAt = nowMs;
     fps.frame();
     presentation.sync(gameMap.isOpen() || simClient.map);
     const now = performance.now() / 1000;

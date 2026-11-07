@@ -7,7 +7,15 @@ import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMateri
 import { shapeDistance, shapeBox, groundZone } from '../sim/geometry.js';
 
 const loader = new THREE.TextureLoader();
-export const loadTex = url => new Promise((ok, fail) => loader.load(url, ok, undefined, () => fail(new Error(`Could not load ${url}`))));
+// perf 2026-11-07 (Tim: hitches while riding as new props come into view): images are decoded off the main
+// thread (ImageBitmap, already flipped the way TextureLoader's textures are), so the first draw of a new
+// prop only uploads it instead of decoding it mid-frame. Falls back to TextureLoader without createImageBitmap.
+const bitmapLoader = typeof createImageBitmap === 'function' ? new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' }) : null;
+export const loadTex = url => new Promise((ok, fail) => {
+  const bad = () => fail(new Error(`Could not load ${url}`));
+  if (!bitmapLoader) return loader.load(url, ok, undefined, bad);
+  bitmapLoader.load(url, bmp => { const t = new THREE.Texture(bmp); t.flipY = false; t.needsUpdate = true; ok(t); }, undefined, bad);
+});
 export const quad = new THREE.PlaneGeometry(1, 1);
 const shearedQuads = new Map();
 

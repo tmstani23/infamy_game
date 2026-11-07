@@ -37,8 +37,8 @@ export function createBloom(renderer, { strength = 1.15, radius = 0.55 } = {}) {
   return {
     scale: SCALE,
     // draw the effects alone and blur them (call before the main render); skipped while no effect shows
-    render(scene, camera) {
-      active = anyFx(scene);
+    render(scene, camera, enabled = true) {
+      active = enabled !== false && anyFx(scene);
       if (!active) return;
       renderer.getDrawingBufferSize(size);
       const tw = Math.max(1, Math.round(size.x * SCALE)), th = Math.max(1, Math.round(size.y * SCALE));

@@ -1,4 +1,5 @@
 // Everything on screen. Reads the game state every frame and never changes it.
+import { VIDEO_DEFAULTS, pixelRatioFor } from '../video_settings.js';
 import * as THREE from 'three';
 import { ITEMS } from '../sim/inventory.js';
 import { VIEW_DIR, CAM_QUAT, CAM_RIGHT, CAM_UP, PPU, toScreen } from './iso.js';
@@ -59,12 +60,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
 
+  let video = { ...VIDEO_DEFAULTS };
   function resize() {
     const w = innerWidth, h = innerHeight;
-    // perf (Tim 2026-11-07, 44 fps at 3088x1346 x2 = 16.6M pixels): cap the drawn pixels near 8M so big
-    // high-DPI screens don't pay 4x the fill cost; ?dpr=2 in the URL brings back full sharpness
+    // video settings (src/video_settings.js): the picked resolution sets how many pixels are drawn
     const forced = Number(new URLSearchParams(location.search).get('dpr'));
-    renderer.setPixelRatio(forced || Math.max(1, Math.min(devicePixelRatio, 2, Math.sqrt(8e6 / (w * h)))));
+    renderer.setPixelRatio(forced || pixelRatioFor(video, w, h, devicePixelRatio));
     renderer.setSize(w, h, false);
     const half = h / 2 / (PPU * zoomNow);
     camera.top = half; camera.bottom = -half;
@@ -408,7 +409,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId);
     shakeT = Math.max(0, shakeT - dt);
-    if (shakeT > 0) {
+    if (shakeT > 0 && video.shake) {
       const a = shakeAmp * shakeT / 0.18;
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
@@ -428,7 +429,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     fxShared.uPx.value = px * bloom.scale;
     worldGround?.captureWater(camera, time);
     mark('water');
-    bloom.render(scene, camera);
+    bloom.render(scene, camera, video.glow);
     mark('glow');
     fxShared.uPx.value = px;
     renderer.render(scene, camera);
@@ -602,6 +603,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     isNight: () => nightTarget === 1,
     toggleNight() { nightTarget = nightTarget ? 0 : 1; return nightTarget === 1; },
     toggleDebug() { lines.visible = !lines.visible; },
+    setVideo(v) { video = { ...video, ...v }; resize(); },
     // 1.0 shows the sprites at their real size; closer than that just blurs them
     zoomBy(f) { zoom = THREE.MathUtils.clamp(zoom * f, minZoom(cameraPlace({ place: heroPlace })), 1.0); resize(); },
   };
