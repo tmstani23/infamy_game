@@ -44,12 +44,23 @@ Full plan: `/mnt/project-files/steam_trains/plan.md`. Built (2026-11-07): steps 
 - Unlock around town tier 2-3. First line: capital to your first town, then town by town. Lines link only your own towns and the capital.
 - Building a link: the governor proposes lines (card with route, time and cost), or order one from the station card (Link to...). The game picks the route over world terrain cost (`world.json` roadCost). A link takes 10 minutes at any length, paid in timber and goods as it goes; it waits when stock runs out. An optional 2nd gang works from the far end. A rival attack knocks the gang out (~30 s) and sets the link back ~1 minute, at most once per link per day; wild bandits leave gangs alone.
 - Station: a placed building beside the omnibus station, tier-gated; builds locomotives and carriages. The capital gets a station in the endgame.
-- Trains run automatically. Governor shipments use rail when a line exists and road carts when it is closed. Travel: board at a station with your crew; ride along or Skip after 5 s. A closed line makes the train detour, or stop at the last station before the break.
-- Cargo: food, timber, stone, goods, ryo. Each town keeps a reserve; the governor ships surplus to short linked towns and spare goods to the capital for ryo. Buying supplies: ryo on a town's card buys what it is short of, shipped from the capital by train (unlinked towns: slow road cart); buying costs more than selling pays.
+- Trains run automatically. Shipments go by rail only (no road-cart fallback; see [Rail shipments rules](#rail-shipments-rules-rail-step-5)). Travel: board at a station with your crew; ride along or Skip after 5 s. A closed line makes the train detour, or stop at the last station before the break.
+- Cargo: food, timber, stone, goods, ryo. Each town keeps a reserve; the governor ships surplus to short linked towns and spare goods to the capital for ryo. Buying supplies: ryo on a town's card buys what it is short of, shipped by train (unlinked towns cannot buy); buying costs more than selling pays.
 - Outlaw play: a blasting charge closes a line for 1 day (same line not again for 4 days). Robbery: plant a charge on the freight wagon and hold ~30 s; win = up to 25% of the cargo; cap 1 per line per 2 days. A unit on the track when a train passes is killed. No heat on the frontier.
 - Defence: fighting happens on the ground beside a stopped train. Troops garrisoned in carriages (e.g. 4 per carriage) pile out; optional paid former-samurai guards. Alerts open the World map at the spot.
 - War: an attacker's siege camp keeps a blasted line closed while it stands; a town at the end of a closed line goes short and is easier to capture.
 - Build steps: 1 track data and route finder; 2 link command and 10-min laying; 3 station building and trains; 4 ride / Skip, rickshaw travel removed; 5 governor shipments and line proposals; 6 blasting, robbery, garrison, guards, alerts, bots; 7 painted art, train sprites, railway worker.
+
+### Rail shipments rules (rail step 5)
+
+- The capital holds no stock. Port wholesale houses (tonya) buy and sell anything for ryo; buying costs more than selling pays.
+- Keep amount per resource per town (default: upkeep plus the next build; editable). A town never gives below keep plus reserved.
+- Order fields: from, to, resource, amount, ryo, auto/manual, state, sources, losses. The player names only the need; the source is the nearest surplus town, then the capital. Optional source pin and urgent flag. Accepted amounts are reserved at the source. Orders stay open with a progress bar.
+- The rail clerk runs at each governor review: auto orders, capital auto-buy (on, with a small budget per town), selling spare goods. Manual orders go first. Minimum order size and a cap on open auto orders (data).
+- Trains carry tagged consignments; cargo transfers between lines at stations. Each trip loads one wagon-load per waiting order, then fills spare space. A blasted line holds cargo; nothing is lost.
+- Robbery (existing caps): the loss is shared equally by every order aboard, with a ledger entry, alert and ping. The clerk re-sends the shortfall.
+- UI: Rail ledger tab on the World map (selecting a shipment highlights its train). Town card Shipments tab: new order form (resource, amount, optional source pin, urgent), keep amounts with −/+, auto-buy budget, open incoming and outgoing orders with progress, sources and losses, "stock soon". Without a line the tab is greyed out with "Needs a rail line". Station arrival labels.
+- Steps: S1 orders/keep/reserves · S2 consignments · S3 clerk · S4 town card and order form · S5 ledger tab · S6 robbery.
 ## World map scale and visual reference (revised sketch, 2026-11-01)
 
 The current island draft is approximately **14,000 × 8,000 world units** (the first rough draft was about 14,000 × 7,000), with **24 full land regions plus 12 coastal partial regions**. The east-coast capital sits on the right-hand side of the water. Regions in the revised sketch are nominally about **1,750 × 1,400 units**. These are provisional measurements to validate in play, not streaming, population or capacity guarantees.

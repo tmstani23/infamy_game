@@ -2014,6 +2014,8 @@ town, and watch it start building. Check the bot founds its own town.
 
 ## Phase F3: Roads and shipments
 
+**Revised (2026-11-07): rails replace world roads.** Roads exist only inside towns. No road-cart fallback: with no line, or a blasted line, nothing ships and nothing is bought. Armies march over open land. The horse road bonus applies on town roads only. Shipments follow the [rail shipments rules](frontier_campaign_plan.md#rail-shipments-rules-rail-step-5). C5 waits on rail shipments. The F3.x steps below are superseded where they describe world roads and carts.
+
 Goal: goods really travel between the capital and the frontier town, and a blocked road stops them
 without losing anything. All SMALL. In the campaign a road is a construction project along a
 route the player picks between two settlements (or a settlement and the capital, or a junction on
