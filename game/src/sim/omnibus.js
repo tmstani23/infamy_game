@@ -201,6 +201,9 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     return true;
   }
 
+  // room between two vehicles in a line, centre to centre (Tim 2026-11-07: they followed too close): half of each
+  // one's length (rules.<type>.length) plus rules.omnibus.followClearance; `a` null = the hero on foot or horseback
+  const spacing = (a, b) => (a ? (R(a.type).length ?? 6) / 2 : 1.5) + (R(b.type).length ?? 6) / 2 + (R().followClearance ?? 3);
   // the track a follower drives along: the point `gap` back along the lead's trail
   function back(trail, gap) {
     let left = gap;
@@ -235,11 +238,12 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
         Object.assign(lead, { x: h.x, z: h.z, place: h.place, dir: h.dir ?? lead.dir, heading: h.heading ?? lead.heading, anim: moved && h.anim !== 'idle' ? (h.gallop ? 'run' : 'trot') : 'idle' });
         if (!last || Math.hypot(h.x - last[0], h.z - last[1]) > 0.5) { lead.trail.push([h.x, h.z]); if (lead.trail.length > 80) lead.trail.shift(); }
         // the others with riders drive behind it along its track
-        let gap = R().gap ?? 6;
+        let gap = 0, prev = lead;
         for (const b of list) {
           if (b === lead || !riders(b).length) continue;
           if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
-          const p = back(lead.trail, gap); gap += R().gap ?? 6;
+          gap += spacing(prev, b); prev = b;
+          const p = back(lead.trail, gap);
           if (!p) { b.anim = 'idle'; continue; }
           const dx = p[0] - b.x, dz = p[1] - b.z, d = Math.hypot(dx, dz);
           if (d > 0.01) { steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20); b.anim = 'run'; } else b.anim = 'idle';   // the row sweeps round (sim/vehicle_steer.js)
@@ -249,12 +253,13 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
         for (const b of list) if (b.driver && !state.entities[b.driver]?.aboard) delete b.driver;
         // the hero is on foot or horseback: loaded vehicles follow him in a line, or do as told
         const hero = heroOf(list[0].omnibusOwner);
-        let k = 0;
+        let gap = 0, prev = null;
         for (const b of list) {
           if (!riders(b).length || b.driver) continue;
           if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
           if (!hero || hero.place !== b.place || hero.dead) { b.anim = 'idle'; continue; }
-          k++; drive(b, hero.x, hero.z, (R(b.type).gap ?? 6) * k, 1 / 20);
+          gap += spacing(prev, b); prev = b;
+          drive(b, hero.x, hero.z, gap, 1 / 20);
         }
       }
       for (const b of list) for (const u of riders(b)) {   // riders sit inside

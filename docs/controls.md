@@ -172,6 +172,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shift+K | Evacuates all your stockades (K alone is mute). |
 | Space at a station (train standing) | Trains stand 60 s at each station; while one stands where you are, the Space prompt names its destination and a departure countdown. The town "station" building is the railway station. |
 | Hover / left-click a salute cannon | Hover shows a card with ready or seconds left; left-click fires the salute (2 min cooldown, shared with the governor's Fire a salute). |
+| Vehicles following in a line | Keep (length of the one ahead + own length)/2 + followClearance apart, centre to centre (units.json: omnibus length 7, followClearance 3; rickshaw length 5). |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: the hero group's crew get on horses (not settlers or workers); crew dismount to fight. |
 | Shift+Y | Vehicles panel: your vehicles, with recall, store and take out. |

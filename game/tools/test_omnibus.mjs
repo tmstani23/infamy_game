@@ -53,7 +53,8 @@ assert.ok(turned > 0 && turned <= U.rules.omnibus.turnDegrees * Math.PI / 180 / 
 assert.equal(lead.dir, hero.dir, 'the omnibus shows the same row');
 for (const u of aboard(lead)) if (u !== hero) assert.ok(Math.hypot(u.x - lead.x, u.z - lead.z) < 1e-6, 'riders inside');
 const gap = Math.hypot(second.x - lead.x, second.z - lead.z);
-assert.ok(gap > O.gap * 0.6 && gap < O.gap * 1.6, `second follows ${O.gap} behind (${gap.toFixed(1)})`);
+const want = O.length + (O.followClearance ?? 3);   // omnibus behind omnibus: a length plus clearance (Tim 2026-11-07)
+assert.ok(gap > want * 0.6 && gap < want * 1.3, `second follows ${want} behind (${gap.toFixed(1)})`);
 for (const u of aboard(second)) assert.ok(Math.hypot(u.x - second.x, u.z - second.z) < 1e-6, 'its riders inside');
 
 // --- nobody inside can fight; hits land on the omnibus ------------------------------------------------------
