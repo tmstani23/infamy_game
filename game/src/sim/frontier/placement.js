@@ -92,6 +92,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if ((kind === 'road' || kind === 'gate') && cover.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', cover);
     if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
     if (cover.some(i => g.use[i] !== '.' || g.zone[i] !== '.')) return bad('occupied', cover);
+    if (kind !== 'road' && kind !== 'gate' && cover.some(i => s.railCells?.[i])) return bad('railway track', cover);   // roads may cross (Tim 2026-11-07)
     if(kind==='wall' || !LINES[kind]) {
       const reason=buildingSafety(s,cover,state,data.founding?.unitClearance);
       if(reason)return bad(reason,cover);

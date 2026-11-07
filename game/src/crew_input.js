@@ -78,6 +78,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   const order = c => send({ id: heroId, type: 'order', place: commandPlace(), ...c });
   const myCrew = () => Object.values(game.state.entities)
     .filter(e => e.owner === hero()?.owner && e.type !== 'hero' && !e.guard && e.place === commandPlace());
+  // your loaded rickshaws and omnibuses on the island select and take orders like crew (Tim 2026-11-07)
+  const myVehicles = () => Object.values(game.state.entities).filter(e => game.omnibus?.isVehicle(e) && e.omnibusOwner === hero()?.owner && !e.dead
+    && e.place === commandPlace() && game.omnibus.riders(e).length && !e.driver);
   const outdoors = () => commandPlace() === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
   const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner) && (!game.vision || game.vision.canSee(hero()?.owner, e));
@@ -102,7 +105,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     return [[s.x, s.z], [minX, minZ], [minX, maxZ], [maxX, minZ], [maxX, maxZ]].some(([x, z]) => g.explored[game.vision.cellOf(x, z)] === 1);
   };
   // the selected units orders go to (a selected townsperson takes none)
-  const mine = () => selected.filter(id => game.state.entities[id]?.owner === hero()?.owner);
+  const mine = () => selected.filter(id => { const e = game.state.entities[id]; return e && (e.owner === hero()?.owner || (e.omnibusOwner === hero()?.owner && game.omnibus?.riders(e).length)); });
   const bodyJobUnits=()=>mine().length?mine():myCrew().filter(e=>!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id);
   const groupable = id => {
     const u = game.state.entities[id];
@@ -197,7 +200,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const horse = e.button === 2 && horseAt(e.clientX, e.clientY);
     if (horse) { send({ id: heroId, type: 'mount', horse: horse.id }); return; }
     const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
-    if (bus) { send(busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy' } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine() }); return; }
+    if (bus) { send(busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy', vehicles: [bus.id] } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine() }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -241,7 +244,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     let picked = [];
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
-      const mate = unitAt(e.clientX, e.clientY, myCrew()) || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
+      const mate = unitAt(e.clientX, e.clientY, [...myCrew(), ...myVehicles()]) || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
@@ -257,7 +260,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (foe) picked = [foe.id];
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
-      const boxed = myCrew().filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
+      const boxed = [...myCrew(), ...myVehicles()].filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
       picked = boxed.filter(u => !u.dead).map(u => u.id);
       building = null;
       if (picked.length) setSelected(picked);   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection
@@ -296,7 +299,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     inspect(id) { looked=game.state.entities[id]?id:null; },
     // Q for the omnibus (also the Mount controls button): step out, or get in a parked one right beside the hero
     mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },
-    omnibusKey() { const h = hero(); if (!h) return false; if (h.aboard) { send({ id: heroId, type: 'omnibus', action: 'deploy' }); return true; }
+    omnibusKey() { const h = hero(); if (!h) return false; const sel = mine().filter(id => game.omnibus?.isVehicle(game.state.entities[id]));
+      if (h.aboard || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
       if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !game.omnibus.riders(b).length)) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },
     omnibusAt(px, py) { const b = omnibusAt(px, py); return b ? { id: b.id, x: b.x, z: b.z, full: busRiders(b) } : null; },
     hovered(px, py) {

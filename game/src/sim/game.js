@@ -57,6 +57,7 @@ import { createCombat } from './combat.js';
 import { createDiscovery } from './discovery.js';
 import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
+import { createCannonSalute } from './cannon_salute.js';
 import { createCampaignGoals } from './campaign_goals.js';
 import { createInfluence } from './influence/influence.js';
 import { createLieutenantRules } from './lieutenant.js';
@@ -541,6 +542,7 @@ export function createGame(options) {
     if (!g) state.surveyorNpc = spawn('city_captain', model, d.x + 0.8, d.z, { owner: null, place: 'street', guide: true, surveyor: true, holdFire: true, hp: 100, name: 'Old surveyor' });
     else Object.assign(g, { x: d.x + 0.8, z: d.z, place: 'street', anim: 'idle' });
   }
+  const cannons = createCannonSalute({ state, spawn: (...a) => spawn(...a), removeUnit: id => removeUnit(id), cell: options.frontier?.townGrid?.cellSize || 11, rules: units?.rules?.cannonSalute });
   const townCount = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded !== undefined).length;
   const governorNear = (id, reach = 3.5) => { const h = state.entities[id]; return h && h.place === 'world' ? Object.values(state.entities).find(e => e.governor && e.owner === h.owner && Math.hypot(e.x - h.x, e.z - h.z) < reach) || null : null; };
 
@@ -736,7 +738,7 @@ export function createGame(options) {
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
   const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
-  frontier?.attach({areas,spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
+  frontier?.attach({areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -867,6 +869,7 @@ export function createGame(options) {
       if (!e) continue;
       // C2: a lieutenant's command runs only inside its standing orders and budget (sim/lieutenant.js)
       if (c.by === 'lieutenant' && !lieutenant?.gate(e, c).ok) continue;
+      if (c.type === 'lieutenant' && c.guide === 'governor') cannons.firstTalk(state.frontier?.settlements?.[governorNear(e.id)?.governor]);   // first talk in a town: a salute (Tim 2026-11-07)
       if (c.type === 'lieutenant') { lieutenant?.command(e, c); continue; }
       itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
@@ -921,6 +924,7 @@ export function createGame(options) {
       if (c.type === 'omnibus') omnibus?.command(e, c);
       if (c.type === 'mount') mounts?.command(e, c);
       if (c.type === 'rickshaw') stationTravel?.command(e, c);
+      if (c.type === 'frontier' && c.action === 'salute') { const st = state.frontier?.settlements?.[c.settlement]; if (st?.owner === e.owner) cannons.salute(st, true); continue; }
       if (c.type === 'frontier' && frontier) {   // towns keep running while the hero is down
         // founding from the omnibus: everyone steps out first; a new town takes the clan's omnibuses (Tim 2026-11-06)
         const founding = c.action === 'found' && omnibus, before = founding ? townCount(e.owner) : 0;
@@ -931,7 +935,7 @@ export function createGame(options) {
       if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}
       if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business);
       if (c.type === 'business' && businesses) businesses.command(e, c);
-      if (c.type === 'order') giveOrder(e, c);
+      if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
       if (c.type === 'unstuck') unstuck.command(e);   // a stuck hero back to his hideout (sim/unstuck.js)
@@ -983,6 +987,7 @@ export function createGame(options) {
     clans?.tick(DT, spawnOutside);
     islandRespawn?.tick(DT, units?.types);
     townGovernors();
+    cannons.tick();
     landSurveyor();
     lieutenant?.tick();   // C2: the city captain takes charge / stands down
     influence.tick();   // C4: campaign Influence, after this tick's dawn (no-op in Classic)

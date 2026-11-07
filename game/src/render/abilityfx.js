@@ -44,6 +44,28 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       glow.emit({ x: x + rand(-spread, spread), y: y + rand(-0.6, 0.8), z: z + rand(-spread, spread), vy: rand(0.3, 1.2), drag: 1.5, sway: 0.5,
         life: rand(0.6, 1.2), size: rand(0.1, 0.22), color: pick(DUSK), alpha: 0.75, shape: SHAPE.sparkle, twinkle: 0.7, spin: 2 });
   }
+  // the governor's cannon salute (Tim 2026-11-07): a muzzle flash, a burst of thin fire tongues, sparks thrown
+  // forward, then thick grey smoke rolling out, rising and drifting for about 3 s
+  const GREY = [[0.42, 0.41, 0.4], [0.55, 0.54, 0.52], [0.33, 0.32, 0.32]];
+  function cannonShot(c) {
+    const fx = Math.sin(c.dir || 0), fz = Math.cos(c.dir || 0), mx = c.x + fx * 1.1, mz = c.z + fz * 1.1, y = 0.8;
+    cards.glint(mx, y, mz, 2.6, 0xffe0a0, 0.25);
+    for (let i = 0; i < 46; i++) {   // many small, thin flame tongues, not one blob (Tim's fire rule)
+      const sp = rand(3, 9), a = rand(-0.35, 0.35), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a);
+      glow.emit({ x: mx, y: y + rand(-0.1, 0.15), z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0.2, 1.6), drag: 6, life: rand(0.12, 0.32),
+        size: rand(0.08, 0.2), color: pick(FIRE), alpha: 1, shape: SHAPE.ember, spin: rand(-3, 3) });
+    }
+    for (let i = 0; i < 28; i++) {   // sparks: fast, small, falling
+      const sp = rand(5, 13), a = rand(-0.5, 0.5), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a);
+      glow.emit({ x: mx, y, z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0.5, 3.5), drag: 2.2, gravity: 6, life: rand(0.4, 0.9),
+        size: rand(0.05, 0.11), color: [1, rand(0.6, 0.85), 0.35], alpha: 1, shape: SHAPE.sparkle, twinkle: 0.6 });
+    }
+    for (let i = 0; i < 26; i++) {   // the smoke: out along the barrel, then up and drifting
+      const sp = rand(1.2, 4.5), a = rand(-0.6, 0.6), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a);
+      soot.emit({ x: mx, y: y + rand(-0.1, 0.3), z: mz, vx: dx * sp + 0.25, vz: dz * sp, vy: rand(0.25, 0.8), drag: 1.2, sway: 0.3,
+        life: rand(2.2, 3.4), size: rand(0.9, 1.7), grow: 1.4, color: pick(GREY), alpha: rand(0.45, 0.7), shape: SHAPE.dot, spin: rand(-0.5, 0.5) });
+    }
+  }
   const rallyCasts = new Map();   // hero id -> when they last cast Rally (the buff itself is crew-only)
   const outlines = new Map();   // "id:buff" -> glowing outline mesh
   const lanterns = new Map();   // unit id -> the lanterns circling a unit with Red Lantern on
@@ -117,6 +139,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     },
     // c: one entry of state.casts
     cast(c) {
+      if (c.kind === 'cannonFire') return cannonShot(c);
       crewFx.cast(c);kurodaFx.cast(c);
       shakedownFx.cast(c);
       const s0 = spriteOf(c.a);

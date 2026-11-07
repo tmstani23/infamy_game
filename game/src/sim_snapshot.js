@@ -4,7 +4,7 @@ const ROOTS = ['tick','night','dawn','dusk','clock','businesses','interiorDoors'
   'contracts','attacks','banditCamps','lightsOut','hqCamping','hqRaids','shakedowns','raidWindow',
   'formations','smokes','projectiles'];
 const MARKER_FIELDS = ['id','type','model','owner','x','z','place','hp','maxHp','dead','downed','jailed',
-  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor'];
+  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon'];
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k,value[k]]));
 
 // Recursive replacement retains object identities captured by read-only sim helpers.
@@ -42,7 +42,10 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
     receipts: recent || (f.receipts || []).filter(r => r.clan === clan),
-    siteClaims: f.siteClaims || {} };   // E1: claimed sites are shut in everyone's Choose site menu
+    siteClaims: f.siteClaims || {},   // E1: claimed sites are shut in everyone's Choose site menu
+    // train plan: this clan's railway links (track drawn up to `built`)
+    rail: { links: Object.fromEntries(Object.entries(f.rail?.links || {}).filter(([, l]) => l.owner === clan)),
+      trains: Object.fromEntries(Object.entries(f.rail?.trains || {}).filter(([, t]) => t.owner === clan)), tick: f.econTick } };
 }
 
 export function createSnapshotEncoder(game, clan = 'player') {

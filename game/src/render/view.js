@@ -15,6 +15,7 @@ import { createBanners } from './banners.js';
 import { unitName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
 import { createWorldGround } from './world_ground.js';
+import { createRailTrack } from './rail_track.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
@@ -57,6 +58,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   function resize() {
     const w = innerWidth, h = innerHeight;
+    // perf (Tim 2026-11-07, 44 fps at 3088x1346 x2 = 16.6M pixels): cap the drawn pixels near 8M so big
+    // high-DPI screens don't pay 4x the fill cost; ?dpr=2 in the URL brings back full sharpness
+    const forced = Number(new URLSearchParams(location.search).get('dpr'));
+    renderer.setPixelRatio(forced || Math.max(1, Math.min(devicePixelRatio, 2, Math.sqrt(8e6 / (w * h)))));
     renderer.setSize(w, h, false);
     const half = h / 2 / (PPU * zoomNow);
     camera.top = half; camera.bottom = -half;
@@ -85,6 +90,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
   const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), resourceSpots, spotConfig }) : null;
+  const railTrack = worldGround ? createRailTrack({ scene }) : null;   // train plan: railway track on the island
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);
@@ -396,6 +402,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
     worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
+    railTrack?.update(state.frontier, heroPlace === 'world', dt);
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
@@ -423,6 +430,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const c of casts) {
       abilityFx.cast(c);
       if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo
+      if (c.kind === 'cannonFire') { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
       if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.24; shakeAmp = 0.18; freezeT = Math.max(freezeT, 0.08); }   // a tiny pause so it lands hard (Shadow Step crit slash)
     }

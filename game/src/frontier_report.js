@@ -88,6 +88,7 @@ export function governorSays(rows) {
   choices.push(st.autoBuild ? { id: 'ask', label: 'Ask me before building' } : { id: 'initiative', label: 'Take more initiative' });
   choices.push({ id: 'ease', label: 'Ease the taxes' }, { id: 'squeeze', label: 'Squeeze them harder' });
   if (st.taxLocked) choices.push({ id: 'autotax', label: 'Handle taxes yourself' });
+  choices.push({ id: 'salute', label: 'Fire a salute' });
   choices.push({ id: 'close', label: 'Never mind' });
   return { who: 'Governor', text: bits.join(' '), choices };
 }
@@ -97,6 +98,7 @@ export function talkCommand(choice, rows) {
   const sid = rows.id;
   if (choice === 'initiative') return { action: 'setAutoBuild', settlement: sid, on: true };
   if (choice === 'ask') return { action: 'setAutoBuild', settlement: sid, on: false };
+  if (choice === 'salute') return { action: 'salute', settlement: sid };
   if (choice === 'autotax') return { action: 'setTax', settlement: sid, level: 'auto' };
   const i = Math.max(0, LEVELS.indexOf(rows.steer.tax) < 0 ? 1 : LEVELS.indexOf(rows.steer.tax));
   if (choice === 'ease') return { action: 'setTax', settlement: sid, level: LEVELS[Math.max(0, i - 1)] };

@@ -45,7 +45,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
   }
   function seat(u, bus) {
-    u.aboard = bus.id;
+    u.aboard = bus.id; if (!bus.vorder) bus.vorder = { kind: 'follow' };
     delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; forget(u.id);
     Object.assign(u, { x: bus.x, z: bus.z, place: 'world', anim: 'idle' });
     if (u.type === 'hero') { u.ride = { kind: 'omnibus', speed: R(bus.type).speed ?? 3 }; bus.driver = u.id; u.heading = bus.heading ?? u.heading; }
@@ -73,8 +73,10 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   }
 
   // everyone out of every omnibus of this clan (they stay parked); followers fall in behind the hero again
-  function deploy(hero) {
-    const buses = mine(hero.owner).filter(b => riders(b).length);
+  function deploy(hero, only = null) {
+    // Q with vehicles selected empties just those (Tim 2026-11-07); otherwise every one of the clan's
+    const pick = Array.isArray(only) && only.length ? new Set(only) : null;
+    const buses = mine(hero.owner).filter(b => riders(b).length && (!pick || pick.has(b.id) || b.id === hero.aboard));
     if (!buses.length) return false;
     let k = 0;
     for (const b of buses) {
@@ -101,9 +103,34 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     if (!buses.length) { say(hero.owner, 'No parked omnibus close enough'); return false; }
     if (Math.hypot(buses[0].x - hero.x, buses[0].z - hero.z) > reach) { say(hero.owner, 'Walk up to the omnibus to get in'); return false; }
     const ids = Array.isArray(c.units) && c.units.length ? c.units : Object.values(state.entities).filter(u => u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id).map(u => u.id);
-    const group = ids.map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && u.type !== 'omnibus' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === hero.place && Math.hypot(u.x - hero.x, u.z - hero.z) <= reach * 2.5);
+    const group = ids.map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === hero.place && Math.hypot(u.x - hero.x, u.z - hero.z) <= reach * 2.5);
     fill(hero, group, buses);
     for (const b of buses.slice(1)) b.trail = [];
+    return true;
+  }
+
+  // Vehicles work like crew (Tim 2026-11-07): a loaded one follows the hero by default; selected, it takes the
+  // crew 'order' kinds: follow, move (drives there and stays), station / stop (stays). Empty ones stay parked.
+  function orderVehicles(hero, c) {
+    if (!Array.isArray(c.units)) return;
+    for (const id of c.units) {
+      const b = state.entities[id];
+      if (!isVehicle(b) || b.omnibusOwner !== hero.owner || b.dead || !riders(b).length || b.driver) continue;
+      if (c.kind === 'follow' || c.kind === 'resume') b.vorder = { kind: 'follow' };
+      else if ((c.kind === 'move' || c.kind === 'attackmove' || c.kind === 'station') && Number.isFinite(c.x) && Number.isFinite(c.z)) b.vorder = { kind: 'move', x: c.x, z: c.z };
+      else if (c.kind === 'stop') b.vorder = { kind: 'stay' };
+    }
+  }
+  const HERO_RUN = rules?.mount?.heroRun ?? 6;
+  // one step of a vehicle driving itself toward (tx, tz); true while it still moves
+  function drive(b, tx, tz, stopAt, dt) {
+    const dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz);
+    if (d <= stopAt) { b.anim = 'idle'; return false; }
+    const r = steer(b, Math.atan2(dx, dz), { turnDegrees: R(b.type).turnDegrees ?? 120 }, dt);
+    const step = Math.min(d - stopAt, (R(b.type).speed ?? 3) * HERO_RUN * dt * (r.slow ?? 1));
+    const nx = b.x + r.hx * step, nz = b.z + r.hz * step, [fx, fz] = nav()?.nearestFree(nx, nz) || [nx, nz];
+    if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return false; }   // blocked: wait there
+    Object.assign(b, { x: fx, z: fz, anim: 'walk' }); b.trail = [];
     return true;
   }
 
@@ -128,7 +155,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
 
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    if (c.action === 'deploy') deploy(e);
+    if (c.action === 'deploy') deploy(e, c.vehicles);
     else if (c.action === 'board') board(e, c);
     else if (c.action === 'home') home(e);
   }
@@ -167,6 +194,11 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     return null;
   }
 
+  function selfDrive(b) {
+    const o = b.vorder;
+    if (o.kind === 'move' && !drive(b, o.x, o.z, 1, 1 / 20) && Math.hypot(o.x - b.x, o.z - b.z) <= 1.5) b.vorder = { kind: 'stay' };
+    if (o.kind === 'stay') b.anim = 'idle';
+  }
   function tick() {
     const byOwner = {};
     for (const b of Object.values(state.entities)) if (isVehicle(b)) (byOwner[b.omnibusOwner] ||= []).push(b);
@@ -181,13 +213,25 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
         let gap = R().gap ?? 6;
         for (const b of list) {
           if (b === lead || !riders(b).length) continue;
+          if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
           const p = back(lead.trail, gap); gap += R().gap ?? 6;
           if (!p) { b.anim = 'idle'; continue; }
           const dx = p[0] - b.x, dz = p[1] - b.z, d = Math.hypot(dx, dz);
           if (d > 0.01) { steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20); b.anim = 'walk'; } else b.anim = 'idle';   // the row sweeps round (sim/vehicle_steer.js)
           Object.assign(b, { x: p[0], z: p[1], place: lead.place });
         }
-      } else for (const b of list) if (b.driver && !state.entities[b.driver]?.aboard) delete b.driver;
+      } else {
+        for (const b of list) if (b.driver && !state.entities[b.driver]?.aboard) delete b.driver;
+        // the hero is on foot or horseback: loaded vehicles follow him in a line, or do as told
+        const hero = heroOf(list[0].omnibusOwner);
+        let k = 0;
+        for (const b of list) {
+          if (!riders(b).length || b.driver) continue;
+          if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
+          if (!hero || hero.place !== b.place || hero.dead) { b.anim = 'idle'; continue; }
+          k++; drive(b, hero.x, hero.z, (R(b.type).gap ?? 6) * k, 1 / 20);
+        }
+      }
       for (const b of list) for (const u of riders(b)) {   // riders sit inside
         if (u.dead || u.jailed) { delete u.aboard; if (u.ride?.kind === 'omnibus') delete u.ride; continue; }
         if (u.type === 'hero') { delete u.attackTarget; delete u.swing; continue; }
@@ -197,5 +241,5 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
   }
 
-  return { ride, deploy, board, home, command, tick, shelter, consume, of, riders, near, free, park, isVehicle, seatsOf, make };
+  return { ride, deploy, board, home, command, orderVehicles, tick, shelter, consume, of, riders, near, free, park, isVehicle, seatsOf, make };
 }

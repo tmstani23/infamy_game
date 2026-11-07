@@ -1,6 +1,7 @@
 // World atlas: registered illustration with data overlays, feature discovery and exact hover.
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
+import { drawRailLines } from './rail_map.js';
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots } from './resource_spot_props.js';
@@ -161,6 +162,8 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       ctx.restore();
     }
     for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
+    // your railway lines (Tim 2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
+    if (st.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds });
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
     if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);

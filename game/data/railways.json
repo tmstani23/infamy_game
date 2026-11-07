@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "_note": "Railways (plan: project files steam_trains/plan.md). Placeholder numbers, Tim to tune. route: cost per world terrain code for laying track (m and w are impassable); bridge = river and water cells the track may cross; maxBridge = longest crossing in world units; reuse = cost factor on cells that already carry your track (branching); simplify = how far (world units) the drawn line may stray from the cell path; smooth = corner-rounding passes.",
+  "route": {
+    "cost": {
+      "p": 1,
+      "d": 1,
+      "f": 1.6,
+      "b": 1.6,
+      "h": 2.5,
+      "n": 1.8,
+      "k": 3,
+      "r": 10,
+      "w": 14,
+      "m": null
+    },
+    "bridge": [
+      "r",
+      "w"
+    ],
+    "maxBridge": 300,
+    "reuse": 0.35,
+    "simplify": 30,
+    "smooth": 2
+  },
+  "link": {
+    "_note": "placeholder, Tim to tune. A link is the whole track between two stations and always takes seconds to lay, whatever its length; paid a stretch at a time from the ordering town's stock (costPer100 per 100 units of track; waits when the stock runs short); minTier = town hall tier a town needs before it can link; maxBuilding = links one clan may lay at once.",
+    "seconds": 600,
+    "stretch": 100,
+    "costPer100": {
+      "timber": 8,
+      "goods": 3
+    },
+    "minTier": 2,
+    "maxBuilding": 1
+  },
+  "gang": {
+    "_note": "placeholder: the rail gang drawn at the railhead (laborers; real units only near someone on the island, like town workers). hammerSeconds = how long they work in place before walking up to the railhead again; anim = stand-in clips until the railway worker model has hammering and carrying.",
+    "size": 3,
+    "model": "laborer",
+    "spawnRadius": 160,
+    "hammerSeconds": 2,
+    "speed": 4.5,
+    "anim": {
+      "work": "bow",
+      "move": "run"
+    }
+  },
+  "train": {
+    "_note": "placeholder, Tim to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end. cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first).",
+    "speed": 36,
+    "stopSeconds": 20,
+    "cars": 3,
+    "gap": 7
+  },
+  "ride": {
+    "_note": "placeholder, Tim to tune (train plan step 4). Board at a station while the train stands there: you and your followers (within followRange) ride; seatsPerCar = riders per carriage (the engine, tender and last wagon carry none). The train leaves departSeconds after you board. skipSeconds = how long you ride before Skip takes you straight to the far station. The capital end lands you just inside the island gate. reach = how close to a town's station you must stand.",
+    "seatsPerCar": 8,
+    "followRange": 15,
+    "departSeconds": 3,
+    "skipSeconds": 5,
+    "reach": 18,
+    "gateReach": 6
+  }
+}

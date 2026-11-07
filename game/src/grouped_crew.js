@@ -24,7 +24,15 @@ const CSS=`
   #partyframes .crew-section.drop-target{border:2px dashed #ffd34d;box-shadow:none}
   #partyframes .crew-section.drop-full,#partyframes .crew-section.drop-refused{border:2px solid #e0473c;background:rgba(224,71,60,.18);box-shadow:none}
   #partyframes .crew-drop-note{color:#ff8a7a;font:600 10px system-ui;margin-top:2px}
-  #partyframes .crew-drop-note:empty{display:none}`;
+  #partyframes .crew-drop-note:empty{display:none}
+  #partyframes .veh{display:block;min-width:84px;cursor:pointer;padding:2px 4px;border-radius:4px;border:1px solid #5c4a2c;background:#1a1d24}
+  #partyframes .veh.picked{border:2px solid #ffd34d;background:rgba(255,211,77,.2)}
+  #partyframes .veh .vname{font:700 10px system-ui;color:#e9d6a8}
+  #partyframes .veh .seats{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px}
+  #partyframes .veh .seat{width:13px;height:13px;border-radius:3px;background:#3b4150;color:#fff;font:700 8px/13px system-ui;text-align:center;overflow:hidden}
+  #partyframes .veh .seat.empty{background:none;border:1px dashed #555}
+  #partyframes .veh .seat.hero{background:#8a6a2a}
+  #partyframes .veh .seat.settler{background:#4a6b3a}`;
 let cssAdded=false;
 
 export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},watchGroup=()=>{},where=()=>''}) {
@@ -73,14 +81,14 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     root.classList.add('grouped');
     const names={rally:'Rally force',hero:'Hero group',settlers:'Settlers',capital:'In capital',...Object.fromEntries(game.state.deployment.sectors.map(s=>[s.id,s.name])),home:'HQ reserves'};
     const ordered=[],live=new Set(crew.map(e=>e.id)),selected=new Set(crewInput.selected());
-    for(const [id,p]of pips)if(!live.has(id)){p.el.remove();pips.delete(id);}
+    for(const [id,p]of pips)if(!id.startsWith('veh:')&&!live.has(id)){p.el.remove();pips.delete(id);}
     const sizes=[0,0,0,0];for(const e of crew){const g=crewInput.groupOf(e.id);if(g)sizes[g-1]++;}
     const picked=crew.filter(e=>selected.has(e.id));
     tabButtons.forEach((b,i)=>{const n=sizes[i],key=`${i+1}|${n}`;if(b.dataset.key!==key){b.dataset.key=key;b.textContent=String(i+1);if(n){const c=document.createElement('small');c.textContent=n;b.appendChild(c);}}
       b.classList.toggle('empty',!n);b.classList.toggle('on',!!n&&picked.length>0&&crew.every(e=>(crewInput.groupOf(e.id)===i+1)===selected.has(e.id)));});
     ordered.push(tabs);
     for(const [id,label]of Object.entries(names)){
-      const members=crew.filter(e=>key(e)===id);
+      const members=crew.filter(e=>key(e)===id&&!e.aboard);   // riders show in their vehicle's card
       const s=createSection(id,label),chosen=members.filter(e=>selected.has(e.id)).length,partial=chosen>0&&chosen<members.length,headKey=`${label}|${members.length}|${partial?chosen:''}`;s.count=members.length;
       if(s.headKey!==headKey){s.headKey=headKey;s.head.textContent=`${label} · ${members.length}`;if(partial){const b=document.createElement('b');b.textContent=` · ${chosen} selected`;s.head.appendChild(b);}}
       const waiting=id==='home'&&members.some(e=>e.deployment?.awaitingAssignment);s.el.classList.toggle('crew-waiting',!!waiting);if(waiting)s.note.textContent='Crew waiting to be assigned';else if(s.note.textContent==='Crew waiting to be assigned')s.note.textContent='';
@@ -94,6 +102,28 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
         p.el.title=`${p.name.textContent} · ${Math.ceil(e.hp)}/${e.maxHp} HP · ${label} · ${status}${location?' · '+location:''}. Click selects and shows them in the target frame; Shift+click adds or removes; double-click also follows with the camera; drag onto another group to transfer.`;return p.el;
       });syncChildren(s.list,nodes);ordered.push(s.el);
     }
+    // Frontier crew (Tim 2026-11-07): each loaded rickshaw or omnibus is one card with its shared health and a seat per
+    // place (2 or 8): riders show in their seats, empty seats faintly. Clicking the card selects the vehicle.
+    const owner=game.state.entities[heroId]?.owner,O=game.omnibus;
+    const vehicles=O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length):[];
+    const vs=createSection('vehicles','Frontier crew');vs.count=vehicles.length;
+    if(vs.headKey!==`v${vehicles.length}`){vs.headKey=`v${vehicles.length}`;vs.head.textContent=`Frontier crew · ${vehicles.length} vehicle${vehicles.length===1?'':'s'}`;}
+    const vnodes=vehicles.map(v=>{
+      let p=pips.get('veh:'+v.id);
+      if(!p){const el=document.createElement('div'),name=document.createElement('div'),hp=document.createElement('div'),seats=document.createElement('div');
+        el.className='mate veh';name.className='vname';hp.className='pip';seats.className='seats';el.append(name,hp,seats);
+        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>crewInput.select([v.id]));
+        p={el,name,hp,seats,key:''};pips.set('veh:'+v.id,p);}
+      const rs=O.riders(v),n=O.seatsOf(v),k=rs.map(r=>r.id).join(',')+'|'+n;
+      p.name.textContent=`${v.type==='rickshaw'?'Rickshaw':'Omnibus'}${v.vorder?.kind==='stay'?' · staying':v.driver?' · driving':''}`;
+      p.hp.style.setProperty('--hp',`${Math.max(0,v.hp/v.maxHp*100)}%`);
+      if(p.key!==k){p.key=k;p.seats.replaceChildren(...Array.from({length:n},(_,i)=>{const r=rs[i],d=document.createElement('span');
+        d.className='seat'+(r?(r.type==='hero'?' hero':r.type==='settler'?' settler':''):' empty');if(r){d.textContent=unitName(units,r.type).slice(0,1);d.title=unitName(units,r.type);}return d;}));}
+      p.el.classList.toggle('picked',selected.has(v.id));
+      p.el.title=`${p.name.textContent} · ${Math.ceil(v.hp)}/${v.maxHp} health · ${rs.length} of ${n} seats. Click selects it: right-click the ground to send it, V to follow, Z to stay, Q to empty it.`;
+      return p.el;});
+    for(const [id,p]of pips)if(id.startsWith('veh:')&&!vehicles.some(v=>'veh:'+v.id===id)){p.el.remove();pips.delete(id);}
+    syncChildren(vs.list,vnodes);if(vehicles.length)ordered.splice(1,0,vs.el);
     if(clinic.length||jail.length){
       const s=createSection('medical','Unavailable');s.count=clinic.length+jail.length;s.head.textContent=`Clinic ${clinic.length} · Jail ${jail.length}`;s.head.disabled=true;
       const records=[...clinic.map((c,i)=>({key:`clinic-${i}`,name:unitName(units,c.unit),title:`Clinic · ${Math.ceil(c.left)}s`,id:null})),...jail.map(p=>({key:`jail-${p.id}`,name:unitName(units,p.unit),title:`Police HQ · In jail · bail ${p.bail} ryo`,id:p.id}))];

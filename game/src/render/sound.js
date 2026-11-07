@@ -13,7 +13,7 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
-const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [] };
+const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [] };
 // hero ability activation cues (Tim's clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
 // Each clip used once per hero so skills don't sound alike (Tim); abilities not listed keep only their old sounds
 const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
@@ -94,6 +94,50 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     }
   }
 
+  // Movement loops (Tim 2026-11-06): wheels under moving vehicles, hooves under horses and a riding hero.
+  // One looping source per moving thing in earshot (nearest MAX_LOOPS), faded in and out, volume by distance.
+  const MAX_LOOPS = 4, HORSES = new Set(['calico', 'mare', 'mare_saddled']), loops = new Map(), lastPos = new Map();
+  const loopOf = (e, speed) => {
+    const m = e.model || e.type;
+    if (e.mounted || (HORSES.has(m) && !e.rider)) return speed > 12 ? ['hoof_gallop_1', 0.5, 1] : ['hoof_walk_1', 0.45, 1];
+    if (m === 'omnibus') return ['omnibus_roll_1', 0.5, 1];
+    if (m === 'rickshaw' || m === 'rickshaw_horse') return ['rickshaw_roll_1', 0.45, 1];
+    if (m === 'ox_cart') return ['omnibus_roll_1', 0.3, 0.72];   // no cart clip yet: the coach, slower and lower
+    return null;
+  };
+  function startLoop(family, pitch) {
+    const pool = pickCustom(family).filter(n => buffers[n]); if (!pool.length) return null;
+    const buf = buffers[pool[Math.floor(Math.random() * pool.length)]], src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = buf; src.loop = true; src.playbackRate.value = pitch * (0.95 + Math.random() * 0.1);
+    g.gain.value = 0; src.connect(g).connect(effects); src.start(0, Math.random() * buf.duration);
+    return { src, g, family };
+  }
+  function stopLoop(id) { const l = loops.get(id); if (!l) return; const t = ctx.currentTime; l.g.gain.setTargetAtTime(0, t, 0.08); l.src.stop(t + 0.5); loops.delete(id); }
+  function movementLoops(state, me) {
+    if (!ctx) return;
+    const want = [];
+    for (const e of Object.values(state.entities)) {
+      if (e.dead || e.aboard) continue;
+      const m = e.model || e.type; if (!(e.mounted || HORSES.has(m) || m === 'omnibus' || m === 'rickshaw' || m === 'rickshaw_horse' || m === 'ox_cart')) continue;
+      const p = lastPos.get(e.id); lastPos.set(e.id, [e.x, e.z, e.place]);
+      if (!p || p[2] !== e.place) continue;
+      const speed = Math.hypot(e.x - p[0], e.z - p[1]) * 20, v = near(me, e.x, e.z, e.place);
+      if (speed < 0.6 || speed > 400 || v <= 0.02) continue;
+      const k = loopOf(e, speed); if (k) want.push({ id: e.id, k, v });
+    }
+    want.sort((a, b) => b.v - a.v);
+    const keep = new Map(want.slice(0, MAX_LOOPS).map(w => [w.id, w]));
+    for (const id of [...loops.keys()]) { const w = keep.get(id); if (!w || w.k[0] !== loops.get(id).family || settings.muted) stopLoop(id); }
+    if (settings.muted) return;
+    for (const [id, w] of keep) {
+      let l = loops.get(id);
+      if (!l) { l = startLoop(w.k[0], w.k[2]); if (!l) continue; loops.set(id, l); }
+      l.g.gain.setTargetAtTime(w.k[1] * w.v, ctx.currentTime, 0.12);
+    }
+    if (lastPos.size > 600) for (const id of lastPos.keys()) if (!state.entities[id]) lastPos.delete(id);
+  }
+  let heroPlace = null;
+
   return {
     bell,
     // a UI cue for the hero's own actions (Space use): Tim's clip or its fallback
@@ -105,8 +149,13 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     // after each tick: new swings, hits and casts
     update(state, focus) {
       const me = focus;
+      movementLoops(state, me);
+      // through the island gate (Tim 2026-11-06): the hero's place flips between street and world
+      // (the camera's place: only a flip into or out of the island counts, not stepping into a room)
+      if (me) { if (heroPlace && heroPlace !== me.place && (me.place === 'world' || heroPlace === 'world')) play(pickCustom('gate_open_1'), 0.6); heroPlace = me.place; }
       for (const e of Object.values(state.entities)) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
+        if (e.cannon) continue;   // the salute's cast plays the boom
         const v = near(me, e.x, e.z, e.place);
         if(e.model==='archer'||e.type==='shinobi_geisha')continue; // ranged cue is emitted at projectile release
         if (SWORDS.has(e.model)) swordSlash(0.35*v);
@@ -130,6 +179,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (h.kill) play(t?.type === 'hero' ? 'knockdown_thud_1' : ['death_thud_1', 'death_thud_2'], 0.6 * v);
       }
       for (const c of state.casts) {
+        if (c.kind === 'cannonFire') { const v = me && c.place === me.place ? Math.max(0, 1 - Math.hypot(c.x - me.x, c.z - me.z) / (HEAR * 4)) : 0; variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='arrow')swordSlash(.16*v); // quiet existing whoosh until a dedicated arrow-flight recording is supplied
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);

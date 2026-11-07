@@ -15,6 +15,7 @@ import { ensureGrid, townBlockersIn } from './town_grid.js';
 import { createGarrison } from './garrison.js';
 import { createInfirmary } from './infirmary.js';
 import { createStable } from './stable.js';
+import { createRail } from './rail.js';
 import { livingWorldUnits } from './building_safety.js';
 import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
@@ -58,6 +59,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const stable = createStable({ state, data, world: live });   // Tim 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
   modules.push({ name: 'stable', command: (e, c) => stable.command(e, c) });
+  const rail = createRail({ state, data, world: live, worldData, stable });   // train plan: railway links between stations
+  modules.push({ name: 'rail', rail, econTick: () => rail.econTick(), command: (e, c) => rail.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
@@ -81,6 +84,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     garrison.tick();               // stockade garrison: sheltered units stand at the stockade
     infirmary.tick();              // units near their own infirmary heal faster
     stable.tick();                 // the stable's production bar
+    rail.tick();                   // the rail gang at each railhead
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -96,6 +100,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);founding?.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, attach };
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);rail.attach(services);founding?.attach(services);}
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, attach };
 }

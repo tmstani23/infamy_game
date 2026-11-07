@@ -36,6 +36,9 @@ export function createStationTravel({ state, data, rules, frontier, omnibus, gat
 
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
+    // Tim 2026-11-07 (train plan): no more instant rickshaw trips between stations; the railway is the fast way
+    // between towns, rickshaws stay as vehicles you drive. Set rules.rickshaw.instantTravel to bring it back.
+    if (!rules?.rickshaw?.instantTravel) return say(e.owner, 'Rickshaws no longer jump between stations: take the train');
     const f = from(e), R = C();
     if (!f) return say(e.owner, 'Stand at your omnibus station');
     if (e.aboard) return say(e.owner, 'Step out first (Q)');

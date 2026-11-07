@@ -78,7 +78,14 @@ export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
             add({minX:Math.min(ax,bx)-pad,maxX:Math.max(ax,bx)+pad,minZ:Math.min(az,bz)-pad,maxZ:Math.max(az,bz)+pad});
           }
         }
-      } else if(g.use[i]==='B' && s.buildings.some(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i)))add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
+      } else if(g.use[i]==='B' && s.buildings.some(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i))) {
+        // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (Tim 2026-11-07)
+        const b=s.buildings.find(b=>b.stage==='built' && (b.cells || [b.cell]).includes(i)),k=data?.buildings?.[b.type]?.collide ?? data?.townGrid?.buildingCollide;
+        if(k>0 && k<1) {
+          const cs=b.cells || [b.cell];let cx=0,cz=0;for(const j of cs){cx+=s.x+(j%g.n-mid)*g.cell;cz+=s.z+(Math.floor(j/g.n)-mid)*g.cell;}cx/=cs.length;cz/=cs.length;
+          const sx=v=>cx+(v-cx)*k,sz=v=>cz+(v-cz)*k;add({minX:sx(x-half),maxX:sx(x+half),minZ:sz(z-half),maxZ:sz(z+half)});
+        } else add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
+      }
       else if(zoneStructureAt(s,i,data)) {
         const h=half*data.townGrid.zoneFootprint;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});
       }

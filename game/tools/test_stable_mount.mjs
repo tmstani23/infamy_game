@@ -133,6 +133,11 @@ for (const v of mineV('rickshaw')) Object.assign(v, { x: sx + 6, z: sz + 6 });
 const menu = g.stationTravel.destinations(hero);
 assert.ok(menu && menu.list.some(d => d.id === 'tT') && menu.list.some(d => d.id === 'capital'), `the menu lists Farside and the capital (${JSON.stringify(menu)})`);
 assert.equal(menu.rickshaws, 2);
+// Tim 2026-11-07 (train plan): instant rickshaw trips are off by default; the rest of this section turns them back on
+g.step([{ id: hero.id, type: 'rickshaw', to: 'tT' }]);
+assert.match(clan.notice?.text || '', /take the train/i, 'no instant rickshaw trips');
+assert.ok(Math.hypot(hero.x - sx, hero.z - sz) < 10, 'still at the station');
+g.settings.units.rules.rickshaw.instantTravel = true;   // the game's own copy of units.json
 g.step([{ id: hero.id, type: 'rickshaw', to: 'tT' }]);
 const [fx, fz] = g.frontier.stable.centre(t2, t2.buildings.at(-1));
 assert.ok(Math.hypot(hero.x - fx, hero.z - fz) < 40, `hero at Farside (${Math.round(Math.hypot(hero.x - fx, hero.z - fz))})`);

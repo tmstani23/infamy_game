@@ -34,7 +34,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
       };
       const allowed=a=>{
         const cells=cover(a);
-        return cells && cells.every(i=>s.grid.use[i]==='.' && s.grid.zone[i]==='.' && s.grid.ground[i]!=='x' && !hallRoadCell(s,i))
+        return cells && cells.every(i=>s.grid.use[i]==='.' && s.grid.zone[i]==='.' && s.grid.ground[i]!=='x' && !hallRoadCell(s,i) && !s.railCells?.[i])
           && !coversResources(s,cells,resourceIndex,data.founding?.unitClearance) && !buildingSafety(s,cells,state,data.founding?.unitClearance) ? cells:null;
       };
       if(cell===null) {

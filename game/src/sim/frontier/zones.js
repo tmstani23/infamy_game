@@ -104,7 +104,8 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (k.cliffMargin && list.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', list);
     if(coversResources(s,list,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',list);
     if (list.some(i => !inCore(s, i, data))) return bad('outside the town ring', list);
-    const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i));
+    const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i) && !s.railCells?.[i]);   // never on railway track (Tim 2026-11-07)
+    if (!free.length && list.some(i => s.railCells?.[i])) return bad('railway track', list);
     if (!free.length && list.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', list);
     if (!free.length) return bad('occupied', list);
     // B3: the town hall tier caps zoned cells per kind

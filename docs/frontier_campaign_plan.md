@@ -37,7 +37,7 @@ continues in this current project. No copy or move is requested now.
 
 ## Railways (plan 2026-11-07, not built)
 
-Full plan: `/mnt/project-files/steam_trains/plan.md`. Setting: 1870s Meiji Japan; British-built locomotives with Japanese crews.
+Full plan: `/mnt/project-files/steam_trains/plan.md`. Built (2026-11-07): steps 1-4: route finder (`sim/frontier/rail_route.js`), 10-minute track laying and trains (`sim/frontier/rail.js`, `data/railways.json`), ride / Skip; track art `art/ground/rail_track.png`, `rail_bridge.png` (`render/rail_track.js`); map lines (`src/rail_map.js`). Tests: `tools/test_rail_route.mjs`, `tools/test_rail_link.mjs`. Dev save `rail_test_kuroda` (`tools/make_dev_save.mjs`). Track routes round town buildings (`sim/frontier/rail_town.js`); railway cells refuse buildings and zones (roads may cross), and governor auto-placement skips them. Rail gang: hammerSeconds 2, speed 4.5 (`railways.json`). Setting: 1870s Meiji Japan; British-built locomotives with Japanese crews.
 
 - Purpose: rail is the main trade channel between your towns and the only fast way between them. No timetables, driving, cargo picking or track placing. Instant rickshaw station travel is removed when trains arrive; rickshaws stay as driveable 2-seaters.
 - Unlock around town tier 2-3. First line: capital to your first town, then town by town. Lines link only your own towns and the capital.
@@ -481,6 +481,13 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Camp reach (`frontier.json` `workers.campReach` 400). A rich deposit card has a Place camp here button.
 - Camps hold 400. Camp carts (`workers.carts`, `sim/frontier/camp_carts.js`): 2 free carts per camp run a relay to the hall at running speed, each taking 60% of the camp's stock (150 max per trip). A 3rd cart costs 150 timber and 75 goods (Buy cart on the camp card; command `{ type: 'frontier', action: 'buyCart' }`). When a camp is full, workers walk to the hall.
 - Plan: `/mnt/project-files/resource_nodes/plan.md`. Tests: `tools/test_rich_nodes.mjs`, `tools/test_camp_carts.mjs`.
+
+## Frontier fixes (2026-11-07)
+
+- Vehicles count as crew in the crew panel and input (`sim/omnibus.js`, `src/crew_input.js`, `src/grouped_crew.js`). Test: `tools/test_omnibus.mjs`.
+- Placed buildings block a box of `frontier.json` `townGrid.buildingCollide` 0.7 of their tiles (`sim/frontier/town_grid.js`).
+- Render pixel ratio: min(devicePixelRatio, 2, √(8,000,000 / canvas pixels)), at least 1; `?dpr=N` forces it (`render/view.js`).
+- New sounds in `assets/sounds/`: cannon_fire_1-2, gate_open_1, hoof_gallop_1-2, hoof_walk_1-2, omnibus_roll_1-3, rickshaw_roll_1-2.
 
 ## Cannon salute (2026-11-07)
 

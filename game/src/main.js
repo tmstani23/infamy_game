@@ -107,7 +107,8 @@ async function start() {
   const bootFile = selected.loadSave ? await startSaves.read(selected.loadSave) : null;
   const island = modeRules(bootFile ? decode(bootFile.state) : { match: selected }).island;
   const islandOnly = v => island ? v : null;
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(frontier && { ...frontier, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
+  const railways = await getJSON('data/railways.json').catch(() => null);   // train plan: railway rules
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(frontier && { ...frontier, railways, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -733,7 +734,7 @@ async function start() {
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
       $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
-        : travel ? 'Space  Travel: rickshaws or drive back to the gate'
+        : travel ? (stationMenu.riding() ? 'Space  Skip to the station' : 'Space  Station: trains, track, or drive back to the gate')
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !door && !innerDoor && !knockable && !lamp && !travel;
       stealthBadge.update();

@@ -99,6 +99,32 @@ g.omnibus.shelter(hero, O.hp * 2);
 assert.ok(!S.entities[lead.id], 'wrecked omnibus removed');
 assert.ok(!hero.aboard && !hero.ride, 'hero piled out');
 assert.ok(aboard(second).length > 0, 'the other omnibus still holds its riders');
+
+// --- vehicles work like crew (Tim 2026-11-07): follow on foot, move then stay, stop stays, Q empties only those --
+{
+  Object.assign(second, { x: hero.x + 30, z: hero.z }); second.vorder = { kind: 'follow' };
+  for (let t = 0; t < 60; t++) g.step([]);
+  const d = Math.hypot(second.x - hero.x, second.z - hero.z);
+  assert.ok(d < 12, `loaded vehicle follows the hero on foot (${d.toFixed(1)})`);
+  const tx = second.x + 15, tz = second.z;
+  g.step([{ id: hero.id, type: 'order', units: [second.id], kind: 'move', x: tx, z: tz }]);
+  for (let t = 0; t < 80; t++) g.step([]);
+  assert.ok(Math.hypot(second.x - tx, second.z - tz) < 2.5, `drove to the spot (${Math.hypot(second.x - tx, second.z - tz).toFixed(1)})`);
+  assert.equal(second.vorder.kind, 'stay', 'then stays');
+  Object.assign(hero, { x: hero.x - 25 }); const sx = second.x;
+  for (let t = 0; t < 40; t++) g.step([]);
+  assert.ok(Math.abs(second.x - sx) < 1e-6, 'staying vehicle does not follow');
+  g.step([{ id: hero.id, type: 'order', units: [second.id], kind: 'follow' }]);
+  assert.equal(second.vorder.kind, 'follow', 'follow again');
+  g.step([{ id: hero.id, type: 'order', units: [second.id], kind: 'stop' }]);
+  assert.equal(second.vorder.kind, 'stay', 'stop stays');
+  const n = aboard(second).length;
+  g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [crew[0].id] }]);
+  assert.equal(aboard(second).length, n, 'Q with other vehicles selected leaves this one loaded');
+  g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [second.id] }]);
+  assert.equal(aboard(second).length, 0, 'Q on it empties it');
+  console.log('vehicles as crew ok');
+}
 g.step([{ id: hero.id, type: 'omnibus', action: 'deploy' }]);
 assert.ok(!Object.values(S.entities).some(u => u.aboard), 'everyone out');
 
