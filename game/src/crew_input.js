@@ -120,7 +120,10 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     }
   }
   function setSelected(ids, returnPrevious = false, alreadyReturned = []) {
-    let next = [...new Set(ids)];
+    // crew sitting in one of your rickshaws or omnibuses (not one the hero drives) select as that vehicle, so C, a group
+    // header, a crew name or 1-4 pick up the vehicle they ride in and it takes the orders (Tim 2026-11-07)
+    const S = game.state.entities;
+    let next = [...new Set(ids.map(id => { const v = S[id]?.aboard && S[S[id].aboard]; return v && game.omnibus?.isVehicle(v) && v.omnibusOwner === hero()?.owner && !v.driver ? v.id : id; }))];
     const group = id => commandGroup(game.state.entities[id]);
     if (game.state.deployment?.restrictionsEnabled) {
       const first = next.map(id=>game.state.entities[id]).find(e=>groupable(e?.id));
