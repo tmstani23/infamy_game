@@ -33,8 +33,22 @@ continues in this current project. No copy or move is requested now.
 - The current revised sketch has **24 full land regions plus 12 coastal partial regions**. Region count and dimensions remain provisional map targets, not capacity guarantees.
 - Start with curated capital and region structure so travel, defenses and resources can be balanced.
 - Add procedural variation later if the curated version is good; make it optional.
-- More capitals and railroads are later possibilities, not first-slice requirements.
+- More capitals are a later possibility, not a first-slice requirement. Railways: see [Railways](#railways-plan-2026-11-07-not-built).
 
+## Railways (plan 2026-11-07, not built)
+
+Full plan: `/mnt/project-files/steam_trains/plan.md`. Setting: 1870s Meiji Japan; British-built locomotives with Japanese crews.
+
+- Purpose: rail is the main trade channel between your towns and the only fast way between them. No timetables, driving, cargo picking or track placing. Instant rickshaw station travel is removed when trains arrive; rickshaws stay as driveable 2-seaters.
+- Unlock around town tier 2-3. First line: capital to your first town, then town by town. Lines link only your own towns and the capital.
+- Building a link: the governor proposes lines (card with route, time and cost), or order one from the station card (Link to...). The game picks the route over world terrain cost (`world.json` roadCost). A link takes 10 minutes at any length, paid in timber and goods as it goes; it waits when stock runs out. An optional 2nd gang works from the far end. A rival attack knocks the gang out (~30 s) and sets the link back ~1 minute, at most once per link per day; wild bandits leave gangs alone.
+- Station: a placed building beside the omnibus station, tier-gated; builds locomotives and carriages. The capital gets a station in the endgame.
+- Trains run automatically. Governor shipments use rail when a line exists and road carts when it is closed. Travel: board at a station with your crew; ride along or Skip after 5 s. A closed line makes the train detour, or stop at the last station before the break.
+- Cargo: food, timber, stone, goods, ryo. Each town keeps a reserve; the governor ships surplus to short linked towns and spare goods to the capital for ryo. Buying supplies: ryo on a town's card buys what it is short of, shipped from the capital by train (unlinked towns: slow road cart); buying costs more than selling pays.
+- Outlaw play: a blasting charge closes a line for 1 day (same line not again for 4 days). Robbery: plant a charge on the freight wagon and hold ~30 s; win = up to 25% of the cargo; cap 1 per line per 2 days. A unit on the track when a train passes is killed. No heat on the frontier.
+- Defence: fighting happens on the ground beside a stopped train. Troops garrisoned in carriages (e.g. 4 per carriage) pile out; optional paid former-samurai guards. Alerts open the World map at the spot.
+- War: an attacker's siege camp keeps a blasted line closed while it stands; a town at the end of a closed line goes short and is easier to capture.
+- Build steps: 1 track data and route finder; 2 link command and 10-min laying; 3 station building and trains; 4 ride / Skip, rickshaw travel removed; 5 governor shipments and line proposals; 6 blasting, robbery, garrison, guards, alerts, bots; 7 painted art, train sprites, railway worker.
 ## World map scale and visual reference (revised sketch, 2026-11-01)
 
 The current island draft is approximately **14,000 × 8,000 world units** (the first rough draft was about 14,000 × 7,000), with **24 full land regions plus 12 coastal partial regions**. The east-coast capital sits on the right-hand side of the water. Regions in the revised sketch are nominally about **1,750 × 1,400 units**. These are provisional measurements to validate in play, not streaming, population or capacity guarantees.
@@ -185,6 +199,8 @@ References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontie
 - Hero equipment uses the same authoritative stat evaluation in the capital and frontier.
 - Standard crew use unit-type equipment; they have no individual bags.
 - Initial settlement zoom sits farther out for an RTS view. Reuse the existing packed character sprites at first; do not convert characters to 3D for this transition.
+
+**Economy rule for warfare (2026-11-07):** materials build towns and zones; ryo builds armies (troops, barracks, cannons, siege camps). Ryo also buys supplies a town is short of, shipped by rail. Train income starts modest and is tuned once war is built.
 
 ## Hero equipment, exploration and rewards — agreed direction (2026-10-31)
 
@@ -465,6 +481,10 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Camp reach (`frontier.json` `workers.campReach` 400). A rich deposit card has a Place camp here button.
 - Camps hold 400. Camp carts (`workers.carts`, `sim/frontier/camp_carts.js`): 2 free carts per camp run a relay to the hall at running speed, each taking 60% of the camp's stock (150 max per trip). A 3rd cart costs 150 timber and 75 goods (Buy cart on the camp card; command `{ type: 'frontier', action: 'buyCart' }`). When a camp is full, workers walk to the hall.
 - Plan: `/mnt/project-files/resource_nodes/plan.md`. Tests: `tools/test_rich_nodes.mjs`, `tools/test_camp_carts.mjs`.
+
+## Cannon salute (2026-11-07)
+
+Each town hall has 4 cannons beside it (2 `cannon_field` brass, 2 `cannon_wooden`). The governor fires a salute on the first talk after the town is founded, after each tier upgrade, and from the Fire a salute talk choice (2-minute cooldown). No damage. Code: `sim/cannon_salute.js`. Test: `tools/test_cannon_salute.mjs`.
 
 ## Lieutenant portraits (2026-11-06)
 

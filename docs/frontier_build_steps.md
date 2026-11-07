@@ -2627,7 +2627,7 @@ Each becomes its own phase after a short design session with Tim:
   gets a few marked empty lots where defenders can drop quick structures (barricade, rifle nest,
   field barracks tent), and the HQ and owned businesses act as recruit points. Same commands as
   frontier building, so it adds lots and structures, not a new system.
-- **Railways** (Tim, 2026-11-02: yes, later): built only on W1 rail corridors, with a permit
+- **Railways**: current plan in `frontier_campaign_plan.md`, [Railways](frontier_campaign_plan.md#railways-plan-2026-11-07-not-built) (2026-11-07; replaces the note below). Earlier note (2026-11-02): built only on W1 rail corridors, with a permit
   unlocked by Influence and a large stone, timber and ryo cost. A train carries several carts'
   worth about 4× as fast, so far towns pay like near ones. Runs station to station only; a cut
   track stops the whole line until repaired, and train robbery is its own raid. Same shipment
