@@ -101,6 +101,9 @@ const T = railways.train, trains = rail.trains();
 assert.equal(trains.length, 1, 'one train on the open line');
 const tr = trains[0];
 Object.assign(tr, { d: 0, dir: 1, wait: T.stopSeconds * 20 });   // it has been running while the test waited; start it over
+// with nobody near it runs at full speed (Tim 2026-11-07: slower only on screen); park the hero in the city
+const parked = { place: hero.place, x: hero.x, z: hero.z };
+Object.assign(hero, { place: 'street', x: g.gate.inside[0], z: g.gate.inside[1] });
 assert.equal(rail.stationOf(tr), 'tR', 'standing at the first station');
 const runTicks = Math.ceil(l.length / T.speed * 20);
 for (let t = 0; t < T.stopSeconds * 20 + 2; t++) g.step([]);
@@ -112,6 +115,16 @@ assert.ok(tr.arrived?.at === 'capital', 'arrival recorded');
 for (let t = 0; t < T.stopSeconds * 20 + runTicks + 10; t++) g.step([]);
 assert.equal(rail.stationOf(tr), 'tR', 'back home');
 assert.ok(frontierFor(S.frontier, 'player').rail.trains[tr.id], 'train in the snapshot');
+// someone beside the track: it slows to viewSpeed
+Object.assign(hero, parked, { place: 'world' });
+Object.assign(tr, { d: 300, dir: 1, wait: 0, seen: undefined });
+{ const head = pointAt(l, tr.d); Object.assign(hero, { x: head.x + 10, z: head.z }); }
+const d0 = tr.d; for (let t = 0; t < 20; t++) g.step([]);
+assert.ok(Math.abs(tr.d - d0 - T.viewSpeed) < 2, `watched: about viewSpeed a second (${(tr.d - d0).toFixed(1)})`);
+Object.assign(hero, { place: 'street', x: g.gate.inside[0], z: g.gate.inside[1] });
+for (let t = 0; t < 10; t++) g.step([]);   // it looks round twice a second
+const d1 = tr.d; for (let t = 0; t < 20; t++) g.step([]);
+assert.ok(Math.abs(tr.d - d1 - T.speed) < 2, `unwatched: full speed (${(tr.d - d1).toFixed(1)})`);
 console.log(`rail link OK (length ${Math.round(l.length)}, ${l.bridges.length} bridges)`);
 // --- step 4: board at the station with a follower, Skip only after a few seconds, get off at the capital; ride back from the city side
 const R4 = railways.ride, mate = Object.values(S.entities).find(u => u.owner === 'player' && u.type !== 'hero' && !u.dead && !u.worker && !u.railGang && !u.civilian);
@@ -145,7 +158,7 @@ const sc = rail.service(hero);
 assert.ok(sc.length && sc[0].at === 'capital' && sc[0].eta === 0, 'the train shows at the city gate');
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);
 assert.equal(hero.aboard, `rail:${tr.id}`, 'aboard from the city');
-for (let t = 0; t < R4.departSeconds * 20 + runTicks + 10 && hero.aboard; t++) g.step([]);
+for (let t = 0; t < R4.departSeconds * 20 + Math.ceil(l.length / T.viewSpeed * 20) + 30 && hero.aboard; t++) g.step([]);
 assert.ok(!hero.aboard && hero.place === 'world', 'got off on the island');
 assert.ok(Math.hypot(hero.x - st.x, hero.z - st.z) < 25, 'at Railton station');
 assert.match(clan.notice?.text || '', /Arrived at Railton/);

@@ -47,8 +47,10 @@
     }
   },
   "train": {
-    "_note": "placeholder, Tim to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end. cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first).",
+    "_note": "placeholder, Tim to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end. cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first). viewSpeed (Tim 2026-11-07) = its speed while someone rides it or a player hero is within viewRange of the engine (a little under a horse, 22.5); with nobody near it runs at speed, so arrival times hold.",
     "speed": 36,
+    "viewSpeed": 20,
+    "viewRange": 140,
     "stopSeconds": 20,
     "cars": 3,
     "gap": 7

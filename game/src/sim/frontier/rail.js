@@ -148,15 +148,28 @@ export function createRail({ state, data, world, worldData, stable }) {
       const l = rec().links[t.link];
       if (!l?.done) { for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; continue; }
       t.speed = T().speed ?? 36;
+      // Tim 2026-11-07: on screen it runs a little slower than a horse (train.viewSpeed); with nobody near it
+      // runs at full speed, so shipments keep their arrival times. Checked twice a second.
+      if (!((state.tick ?? 0) % 10) || t.seen === undefined) t.seen = watched(t, l);
+      const v = t.seen ? Math.min(t.speed, T().viewSpeed ?? 20) : t.speed;
+      t.v = v;
       if (t.wait > 0) t.wait--;
       else {
-        t.d += t.dir * t.speed / 20;
+        t.d += t.dir * v / 20;
         if (t.d >= l.length || t.d <= 0) { t.d = t.d >= l.length ? l.length : 0; arrive(t); continue; }
       }
       // riders go along with the engine (the camera follows the hero: ride along and watch)
       const head = pointAt(l, t.d);
       for (const u of ridersOf(t.id)) { u.x = head.x; u.z = head.z; u.place = 'world'; u.anim = 'idle'; }
     }
+  }
+  // someone is riding it, or a player's hero on the island is within train.viewRange of the engine (the camera
+  // stays on the hero)
+  function watched(t, l) {
+    if (ridersOf(t.id).length) return true;
+    const head = pointAt(l, t.d), r = T().viewRange ?? 140;
+    return Object.values(state.entities).some(u => u.type === 'hero' && u.place === 'world' && !u.dead && !state.clans?.[u.owner]?.bot
+      && Math.abs(u.x - head.x) < r && Math.abs(u.z - head.z) < r);
   }
   // ---- riding (step 4) ----------------------------------------------------------------------------------
   const RIDE = () => R?.ride || {};

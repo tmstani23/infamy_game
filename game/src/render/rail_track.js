@@ -106,7 +106,7 @@ export function createRailTrack({ scene }) {
       if (t.d !== s.snapD || t.wait !== s.wait) { s.snapD = t.d; s.wait = t.wait; s.snapAt = clock; }
       // predict from the last view: standing while it waits, otherwise on at its speed, never past the ends
       const since = clock - s.snapAt;
-      const predicted = (t.wait ?? 0) > 0 ? s.snapD : Math.max(0, Math.min(l.length, s.snapD + t.dir * (t.speed ?? 36) * since));
+      const predicted = (t.wait ?? 0) > 0 ? s.snapD : Math.max(0, Math.min(l.length, s.snapD + t.dir * (t.v ?? t.speed ?? 36) * since));
       s.d += (predicted - s.d) * Math.min(1, dt * 8);
       // cars trail behind the engine, toward where it came from
       s.cars.forEach((c, k) => {
