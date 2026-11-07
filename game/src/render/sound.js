@@ -2,6 +2,7 @@
 // sim's per-tick hits and casts and from swings starting. Quieter with distance from the
 // camera, a little random pitch so repeats don't sound the same. K mutes. Purely output.
 import {normalizeAudioSettings,readAudioSettings,saveAudioSettings} from '../audio_settings.js';
+import { pointAt } from '../sim/frontier/rail_route.js';
 const SWORDS = new Set(['ronin', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto', 'koruda_enforcer']);
 const SPEARS = new Set(['rival_yakuza', 'kuroda_spearman']);
 const CLUBS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout','shinobi_enforcer']);
@@ -13,7 +14,7 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
-const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [] };
+const CUSTOM = { punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [] };
 // hero ability activation cues (Tim's clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
 // Each clip used once per hero so skills don't sound alike (Tim); abilities not listed keep only their old sounds
 const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
@@ -136,6 +137,50 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     }
     if (lastPos.size > 600) for (const id of lastPos.keys()) if (!state.entities[id]) lastPos.delete(id);
   }
+  // Steam trains (Tim 2026-11-07, his clips in assets/sounds/new_sounds/train): a whistle when one leaves a station,
+  // the running loop while it moves, the approach as it nears the next station (about the edge of town:
+  // TRAIN.approach seconds out) and the brakes just before it stops. Heard further than other sounds; each clip
+  // follows its train's volume by distance while it plays (the approach starts out of earshot and swells as it comes in).
+  const TRAIN = { range: HEAR * 3.5, run: 0.55, approach: 0.7, brake: 0.65, whistle: 0.75, approachSec: 12, brakeSec: 2.5, maxLoops: 3 };
+  const trainState = new Map();   // train id -> { d, tick, speed, moving, approach, brake, loop, clips: [] }
+  const trainEar = (me, x, z) => !me || me.place !== 'world' ? 0 : Math.max(0, 1 - Math.hypot(x - me.x, z - me.z) / TRAIN.range) ** 1.5;
+  function trainClip(name, base) {
+    const buf = buffers[name]; if (!buf) return null;
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = buf; src.playbackRate.value = 0.96 + Math.random() * 0.08; g.gain.value = 0;
+    src.connect(g).connect(effects); src.start();
+    const c = { src, g, base, done: false }; src.onended = () => { c.done = true; }; return c;
+  }
+  function trainSounds(state, me) {
+    if (!ctx) return;
+    const rail = state.frontier?.rail, trains = rail?.trains || {}, links = rail?.links || {}, now = state.tick ?? 0;
+    for (const [id, s] of [...trainState]) if (!trains[id]) { if (s.loop) { s.loop.g.gain.setTargetAtTime(0, ctx.currentTime, 0.2); s.loop.src.stop(ctx.currentTime + 1); } for (const c of s.clips) c.src.stop(); trainState.delete(id); }
+    const loud = [];
+    for (const t of Object.values(trains)) {
+      const l = links[t.link]; if (!l?.done || !l.points?.length) continue;
+      let s = trainState.get(t.id);
+      if (!s) trainState.set(t.id, s = { d: t.d, tick: now, speed: 0, moving: t.wait <= 0, clips: [] });
+      if (now !== s.tick) { const v = Math.abs(t.d - s.d) / Math.max(1, now - s.tick) * 20; s.speed = v > 0 ? s.speed * 0.6 + v * 0.4 : s.speed; s.d = t.d; s.tick = now; }
+      const p = pointAt(l, t.d), v = settings.muted ? 0 : trainEar(me, p.x, p.z), moving = t.wait <= 0;
+      if (moving && !s.moving && v > 0.01) s.clips.push(trainClip('train_whistle_1', TRAIN.whistle));   // pulls out of the station
+      if (moving !== s.moving) { s.moving = moving; s.approach = false; s.brake = false; }
+      const left = (t.dir > 0 ? l.length - t.d : t.d) / Math.max(4, s.speed || t.speed || 20);   // seconds to the next station
+      if (moving && s.speed > 0) {
+        if (!s.approach && left <= TRAIN.approachSec && left > TRAIN.brakeSec) { s.approach = true; if (me?.place === 'world' && !settings.muted) s.clips.push(trainClip('train_approach_1', TRAIN.approach)); }
+        if (!s.brake && left <= TRAIN.brakeSec) { s.brake = true; if (me?.place === 'world' && !settings.muted) s.clips.push(trainClip('train_brake_1', TRAIN.brake)); }
+      }
+      s.clips = s.clips.filter(c => c && !c.done);
+      for (const c of s.clips) c.g.gain.setTargetAtTime(c.base * v, ctx.currentTime, 0.1);
+      if (moving && v > 0.01) loud.push({ s, v }); else if (s.loop) { s.loop.g.gain.setTargetAtTime(0, ctx.currentTime, 0.3); s.loop.src.stop(ctx.currentTime + 1.5); s.loop = null; }
+    }
+    loud.sort((a, b) => b.v - a.v);
+    loud.forEach(({ s, v }, k) => {
+      if (k >= TRAIN.maxLoops) { if (s.loop) { s.loop.g.gain.setTargetAtTime(0, ctx.currentTime, 0.3); s.loop.src.stop(ctx.currentTime + 1.5); s.loop = null; } return; }
+      if (!s.loop) { const buf = buffers.train_run_1; if (!buf) return; const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0; src.connect(g).connect(effects); src.start(0, Math.random() * buf.duration); s.loop = { src, g }; }
+      s.loop.src.playbackRate.value = Math.max(0.8, Math.min(1.15, 0.8 + (s.speed || 20) / 100));   // a slow train (in view) chuffs slower
+      s.loop.g.gain.setTargetAtTime(TRAIN.run * v, ctx.currentTime, 0.25);
+    });
+  }
   let heroPlace = null;
 
   return {
@@ -150,6 +195,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     update(state, focus) {
       const me = focus;
       movementLoops(state, me);
+      trainSounds(state, me);
       // through the island gate (Tim 2026-11-06): the hero's place flips between street and world
       // (the camera's place: only a flip into or out of the island counts, not stepping into a room)
       if (me) { if (heroPlace && heroPlace !== me.place && (me.place === 'world' || heroPlace === 'world')) play(pickCustom('gate_open_1'), 0.6); heroPlace = me.place; }
