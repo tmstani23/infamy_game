@@ -555,9 +555,15 @@ export function createGame(options) {
 
   // Crew each tick: duties, pursuit, indoor duty and going through doors: sim/crew_step.js
   function crewStep(...a) { return crewSteps.crewStep(...a); }
+  // units standing on each other ease apart; on the island too (Tim 2026-11-07: crew following the hero stacked
+  // there), for clan units on foot or horseback (a horse takes more room); riders inside vehicles, horses, vehicles
+  // and scenery keep their places. Each place separately: street and island coordinates overlap
+  const looseOnIsland = e => e.owner && !e.aboard && !e.guide && !e.garrison && e.type !== 'horse' && e.type !== 'omnibus' && e.type !== 'rickshaw';
   function separate() {
-    const crew = Object.values(state.entities).filter(e => e.type !== 'hero' && e.place === 'street' && !e.dead && !e.downed);
-    separateUnits(crew,e=>statsOf(e).radius,tryMove);
+    const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed);
+    separateUnits(all.filter(e => e.place === 'street'),e=>statsOf(e).radius,tryMove);
+    const island = all.filter(e => e.place === 'world' && looseOnIsland(e));
+    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted?2.5:1),tryMove);
   }
 
   // Spawn a unit just outside a building's door, on a spot that is free of walls and

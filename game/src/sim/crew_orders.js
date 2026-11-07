@@ -131,7 +131,8 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     if (o.kind === 'follow') {
       const h = state.entities[o.target];
       if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
-      const [ox, oz] = followOffset(o.slot);
+      // on horseback (him or them) the ring is wider: a horse is longer than a man (Tim 2026-11-07)
+      const wide = e.mounted || h.mounted ? 1.8 : 1, [ox, oz] = followOffset(o.slot).map(v => v * wide);
       return { x: h.x + ox, z: h.z + oz, near: Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
     }
     if (o.kind === 'attack') return null;
