@@ -63,7 +63,7 @@ assert.ok(Math.abs(g.stats.movement(hero, 'run') - 6 * M.speed) < 1e-6, `3.5x ru
 let x0 = hero.x;   // Tim 2026-11-07: trots at about run speed; Shift (walk) gallops
 for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
 assert.ok(hero.x - x0 > 5 && hero.x - x0 < 6 * (M.trot ?? 1) * 2 + 1, `trotted (${(hero.x - x0).toFixed(1)} in 2 s)`);
-assert.equal(bb.anim, 'walk', 'trot uses the walk clip');
+assert.equal(bb.anim, 'trot', 'trot clip (the walk sheet played faster)');
 x0 = hero.x;
 for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0, walk: true }]);
 assert.ok(hero.x - x0 > 20, `galloped with Shift (${(hero.x - x0).toFixed(1)} in 2 s)`);

@@ -160,7 +160,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
         // crew get off to fight: hit, or told to attack (Tim 2026-11-07); the horse waits there
         if (rider.type !== 'hero' && (rider.attackTarget || ['attack', 'attackmove'].includes(rider.order?.kind) || (rider.hitBy && state.tick - rider.hitBy.tick < 10))) { dismount(rider); continue; }
         const moved = Math.hypot(rider.x - horse.x, rider.z - horse.z) > 0.01;
-        Object.assign(horse, { x: rider.x, z: rider.z, dir: rider.dir ?? horse.dir, heading: rider.heading ?? horse.heading, anim: moved ? (rider.type === 'hero' && !rider.gallop ? 'walk' : 'run') : 'idle' });
+        Object.assign(horse, { x: rider.x, z: rider.z, dir: rider.dir ?? horse.dir, heading: rider.heading ?? horse.heading, anim: moved ? (rider.type === 'hero' && !rider.gallop ? 'trot' : 'run') : 'idle' });
         delete rider.attackTarget; delete rider.swing;
         continue;
       }

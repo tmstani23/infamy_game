@@ -15,7 +15,7 @@ const CMDS = [
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
   { key: 'H', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed), get off, or call her and she gallops to you. Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
-  { key: 'Shift', name: 'Sprint', tip: 'On horseback: gallop at 3.75x run speed. Hold Shift while you ride, or click here to keep galloping until you click again or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
+  { key: 'Shift', name: 'Sprint', tip: 'On a horse or driving a rickshaw or omnibus: gallop at full speed (horse 3.75x, rickshaw 3.5x, omnibus 3x run speed). Hold Shift, or click here to keep galloping until you click again or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
   { key: 'Shift+H', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
   { key: 'Q', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
 ];
@@ -92,7 +92,7 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
     const horse = h?.place === 'world' && !!game.mounts?.mountOf(h.owner);
     const crewRiding = Object.values(S).some(e => usable(e) && e.mounted);
     for (const { b, cmd } of buttons) if (cmd.need === 'horse') b.querySelector('.nm').textContent = cmd.key === 'H' ? (h?.mounted ? 'Get off' : 'Horse') : crewRiding ? 'All off' : 'Mount up';
-    const riding = !!h?.mounted;
+    const riding = !!h?.ride;   // on a horse or driving a rickshaw / omnibus
     if (!riding && sprintOn()) setSprint(false);
     for (const { b, cmd } of buttons) if (cmd.need === 'riding') { b.classList.toggle('on', sprintOn()); b.querySelector('.nm').textContent = sprintOn() ? 'Galloping' : 'Sprint'; }
     const available = { sel, follow, street, outdoor, crew, sector, bus, horse, riding };

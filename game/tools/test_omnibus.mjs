@@ -38,9 +38,12 @@ assert.equal(clan.omnibusFree, O.max - 2, 'both used');
 
 // --- driving: 3x run speed, riders stay inside, the second follows the track ------------------------------
 assert.ok(Math.abs(g.stats.movement(hero, 'run') - 6 * O.speed) < 1e-6, `3x run speed (${g.stats.movement(hero, 'run')})`);
-const x0 = hero.x;
+let x0 = hero.x;   // Tim 2026-11-07: trots at about run speed; Shift (walk) or Sprint gallops
 for (let t = 0; t < 60; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
-assert.ok(hero.x - x0 > 20, `drove fast (${(hero.x - x0).toFixed(1)} in 3 s)`);
+assert.ok(hero.x - x0 > 6 && hero.x - x0 < 6 * 3 + 1, `trotted (${(hero.x - x0).toFixed(1)} in 3 s)`);
+x0 = hero.x;
+for (let t = 0; t < 60; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0, sprint: true }]);
+assert.ok(hero.x - x0 > 20, `drove fast with Sprint (${(hero.x - x0).toFixed(1)} in 3 s)`);
 assert.ok(Math.hypot(lead.x - hero.x, lead.z - hero.z) < 1e-6, 'the omnibus is where the hero is');
 // cart-like steering (sim/vehicle_steer.js, shared with town traffic): a hard turn sweeps round, it does not snap
 const h0 = hero.heading;

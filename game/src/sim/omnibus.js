@@ -232,7 +232,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
       if (lead) {
         const h = state.entities[lead.driver], last = lead.trail[lead.trail.length - 1];
         const moved = !last || Math.hypot(h.x - lead.x, h.z - lead.z) > 0.01;
-        Object.assign(lead, { x: h.x, z: h.z, place: h.place, dir: h.dir ?? lead.dir, heading: h.heading ?? lead.heading, anim: moved && h.anim !== 'idle' ? 'run' : 'idle' });
+        Object.assign(lead, { x: h.x, z: h.z, place: h.place, dir: h.dir ?? lead.dir, heading: h.heading ?? lead.heading, anim: moved && h.anim !== 'idle' ? (h.gallop ? 'run' : 'trot') : 'idle' });
         if (!last || Math.hypot(h.x - last[0], h.z - last[1]) > 0.5) { lead.trail.push([h.x, h.z]); if (lead.trail.length > 80) lead.trail.shift(); }
         // the others with riders drive behind it along its track
         let gap = R().gap ?? 6;
