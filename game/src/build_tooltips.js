@@ -15,7 +15,7 @@ export const BUILD_DETAILS={
   market:['Sells goods above the town keep level for ryo (about 1 ryo per goods).','Village tier, one per town. Set the keep level under Steer in the town panel (default 400).'],
   stockade:['A 4-cell fort: shelter up to 40 of your units inside (town panel).','Hits on units inside land on the stockade; if it breaks, everyone piles out and the governor rebuilds it.'],
   stable:['Raise horses by hand on its production bar (Calico or Black Beauty, paid in food and goods); pick which one is your mount there. H on the island rides her, at 3.75x run speed.','Right-click one of your horses on the island to ride her.'],
-  station:['Omnibus station: builds rickshaws (2 seats, 3.5x speed) and omnibuses (8 seats, 3x speed); they come out empty and park here.','Space at it: rickshaw travel to your other towns with a station or the capital; each waiting rickshaw takes two.'],
+  station:['Railway station: lay track from here to another of your towns or the capital (Town tier 2+); each open line gets a steam train.','Space at it: lay track, see when trains come in, and board a train while it stands here (it waits about a minute; the prompt shows when it leaves). Drive back to the city gate from here too.'],
   infirmary:['Your units nearby heal 3x faster.','Anyone knocked out on the island comes round at the nearest town\'s infirmary at full health (at its hall, at low health, without one).']
 };
 export function buildTooltip(id,s,data,requirements) {

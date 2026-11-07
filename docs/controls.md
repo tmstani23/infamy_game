@@ -170,6 +170,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Right-click own finished stockade | With crew selected: they go in (farther than 14 walk over first, then enter; the hero never walks by order). No selection: opens the town panel. Hit area is wider and taller than other buildings (11 each side, 12 up, 6 down world units). |
 | Stockade badge | Shows Inside N / 40 · Evacuate; clicking walks everyone out. Hovering the stockade shows the same count. |
 | Shift+K | Evacuates all your stockades (K alone is mute). |
+| Space at a station (train standing) | Trains stand 60 s at each station; while one stands where you are, the Space prompt names its destination and a departure countdown. The town "station" building is the railway station. |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: the hero group's crew get on horses (not settlers or workers); crew dismount to fight. |
 | Shift+Y | Vehicles panel: your vehicles, with recall, store and take out. |

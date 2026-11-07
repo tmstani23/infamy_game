@@ -65,8 +65,8 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (from === to) return { error: 'pick another town' };
     if ((tierOf(s, data) && (s.tier || 1) < (L().minTier ?? 2))) return { error: `${s.name} needs a bigger town hall first` };
     const a = endpoint(owner, from), b = endpoint(owner, to);
-    if (!a) return { error: `Build an omnibus station in ${s.name} first` };
-    if (!b) return { error: to === 'capital' ? 'The capital end is not ready' : `Build an omnibus station in ${town(to).name} first` };
+    if (!a) return { error: `Build a railway station in ${s.name} first` };
+    if (!b) return { error: to === 'capital' ? 'The capital end is not ready' : `Build a railway station in ${town(to).name} first` };
     if (linked(owner, from, to)) return { error: 'Those stations are already linked' };
     const g = G();
     if (!g) return { error: 'no railway data' };
@@ -199,7 +199,7 @@ export function createRail({ state, data, world, worldData, stable }) {
   // every train serving a station the hero stands at: standing there now (eta 0) or seconds until it comes in
   function service(e) {
     if (!e || e.type !== 'hero') return [];
-    const stop = (T().stopSeconds ?? 20) * 20;
+    const stop = (T().stopSeconds ?? 60) * 20;
     return Object.values(rec().trains).filter(t => t.owner === e.owner).flatMap(t => {
       const l = rec().links[t.link]; if (!l) return [];
       return [l.from, l.to].filter(id => atStation(e, e.owner, id)).map(at => {
@@ -208,7 +208,7 @@ export function createRail({ state, data, world, worldData, stable }) {
         if (stationOf(t) === at) ticks = 0;
         else if ((end - t.d) * t.dir > 0) ticks = Math.max(0, t.wait) + run(end - t.d);   // heading here
         else ticks = Math.max(0, t.wait) + run(t.dir > 0 ? l.length - t.d : t.d) + stop + run(l.length);   // out to the far end first
-        return { train: t.id, at, to, toName: placeName(to), eta: Math.ceil(ticks / 20), riders: ridersOf(t.id).length, seats: seats(t) };
+        return { train: t.id, at, to, toName: placeName(to), eta: Math.ceil(ticks / 20), leaves: ticks === 0 ? Math.ceil(Math.max(0, t.wait) / 20) : null, riders: ridersOf(t.id).length, seats: seats(t) };
       });
     }).sort((a, b) => a.eta - b.eta);
   }

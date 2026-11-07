@@ -40,7 +40,7 @@ export function createStationTravel({ state, data, rules, frontier, omnibus, gat
     // between towns, rickshaws stay as vehicles you drive. Set rules.rickshaw.instantTravel to bring it back.
     if (!rules?.rickshaw?.instantTravel) return say(e.owner, 'Rickshaws no longer jump between stations: take the train');
     const f = from(e), R = C();
-    if (!f) return say(e.owner, 'Stand at your omnibus station');
+    if (!f) return say(e.owner, 'Stand at your railway station');
     if (e.aboard) return say(e.owner, 'Step out first (Q)');
     if (state.tick - (e.hitAt ?? -Infinity) < (R.fightSeconds ?? 10) * 20 || danger(e, R.enemyRange ?? 12)) return say(e.owner, 'Not with a fight on');
     const to = c.to === 'capital' ? (f.capital ? null : 'capital') : towns(e.owner).find(s => s.id === c.to && s !== f.town);

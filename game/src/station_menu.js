@@ -83,11 +83,11 @@ export function createStationMenu({ panel, game, heroId, send }) {
     let k = 0, html = `<h3>${name ? `STATION · ${esc(name)}` : 'YOUR OMNIBUS'}</h3>`;
     if (home) html += `<div class="row"><button data-to="home">Drive back to the gate (click)</button></div><p>At once, everyone aboard; it parks outside the island gate. Not with a fight on.</p>`;
     if (now.length || next.length) {
-      html += '<h3>TRAINS</h3><div class="row">' + now.map(s => `<button data-to="board:${esc(s.train)}"${s.riders >= s.seats ? ' disabled' : ''}>${++k}. Board the train to ${esc(s.toName)} (${s.seats - s.riders} seats)</button>`).join('')
+      html += '<h3>TRAINS</h3><div class="row">' + now.map(s => `<button data-to="board:${esc(s.train)}"${s.riders >= s.seats ? ' disabled' : ''}>${++k}. Board the train to ${esc(s.toName)} (${s.seats - s.riders} seats, leaves in ${s.leaves ?? 0} s)</button>`).join('')
         + next.map(s => `<button disabled>Train to ${esc(s.toName)} in ${s.eta < 90 ? `${s.eta} s` : `${Math.round(s.eta / 60)} min`}</button>`).join('') + '</div><p>You and the crew following you get on. Ride along, or Skip after a few seconds.</p>';
     } else if (atCity()) html += '<p>No train here yet: lay track to the capital from the station in one of your towns.</p>';
     else if (t) html += `<p>${Object.values(game.state.frontier?.rail?.links || {}).some(l => l.owner === hero().owner && !l.done) ? 'No train here yet: it starts once the line is laid.'
-      : t.list.length ? 'No train here yet: lay track to another of your towns below.' : 'No other station yet: build an omnibus station in another of your towns.'}</p>`;
+      : t.list.length ? 'No train here yet: lay track to another of your towns below.' : 'No other station yet: build a railway station in another of your towns.'}</p>`;
     const r = t && railRows(t);
     if (r) {
       html += '<h3>RAILWAY</h3>';
@@ -104,5 +104,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
   }
   function close() { open = false; update(); }
   const at = () => riding() || !!trip() || homeable() || trains().length > 0;
-  return { update, close, pick, riding, isOpen: () => open || riding(), toggle() { if (riding()) return skip(); open = !open && (at() || atCity()); update(); }, at };
+  // the on-screen prompt while a train stands here (main.js): which way it goes and when it leaves
+  const trainPrompt = () => { const s = boardNow()[0]; return s ? `Space  Board the train to ${s.toName}: leaves in ${s.leaves ?? 0} s` : ''; };
+  return { update, close, pick, riding, trainPrompt, isOpen: () => open || riding(), toggle() { if (riding()) return skip(); open = !open && (at() || atCity()); update(); }, at };
 }
