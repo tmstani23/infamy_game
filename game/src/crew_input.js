@@ -207,7 +207,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // selected crew walk over and get in on their own (Tim 2026-11-07), the rickshaw (2 seats) the same as the omnibus,
     // also into one that already has crew aboard; only with the hero right beside an empty one does he get in with them.
     // Right-click with no crew selected (or only crew already inside it) lets them out.
-    const crewSel = bus ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && u.aboard !== bus.id; }) : [];
+    const crewSel = bus ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && !u.aboard && u.place === bus.place && !u.dead && !u.downed && !u.jailed && !u.garrison; }) : [];   // only crew who could walk over (C also selects crew left in the capital or riding elsewhere)
     const heroBeside = bus && !busRiders(bus) && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) <= 6;
     const aboardOrComing = bus ? Object.values(game.state.entities).filter(u => u.aboard === bus.id || u.boardBus === bus.id).length : 0;
     const full = bus && aboardOrComing >= (game.omnibus?.seatsOf?.(bus) ?? (bus.type === 'rickshaw' ? 2 : 8));   // full: right-click lets them out
