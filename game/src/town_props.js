@@ -133,7 +133,8 @@ export function townProps(towns, townArt, townLights = {}) {
     s.buildings.forEach((b, i) => {
       const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i, b.cells);
       const fit = townArt._placedFootprint?.[b.type], maxFootprint = fit ? (s.grid?.cell || 11) * fit : undefined;   // Tim 2026-11-07: placed buildings were far bigger than the townhouse
-      if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint });
+      if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
+        ...(b.stage === 'built' && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
       // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
       const phase = b.type === 'town_hall' && b.stage === 'built' ? hallPhase(s) : 0;
       if (phase) {

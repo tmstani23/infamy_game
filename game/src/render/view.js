@@ -13,6 +13,7 @@ import { createAbilityFx } from './abilityfx.js';
 import { createBloom } from './bloom.js';
 import { fxShared } from './vfx.js';
 import { createBanners } from './banners.js';
+import { placePiece } from '../sim/geometry.js';
 import { unitName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
 import { createWorldGround } from './world_ground.js';
@@ -526,7 +527,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let resumingPresentation=false;
   return {
     render, renderer, scene, addHits, addCasts, updateCamera,
-    setTowns: list => worldGround?.setTowns(list),
+    setTowns: list => {
+      worldGround?.setTowns(list);
+      // Space rings at the front door (Tim 2026-11-07): the middle of the art's front (+z, screen down-left) edge, as drawn
+      const spots = new Map();
+      if (cutouts) for (const p of list) if (p.spaceDoor) {
+        const piece = placePiece({ name: p.art, x: p.x, z: p.z }, catalog, cutouts); if (!piece) continue;
+        const fit = p.maxFootprint ? Math.min(1, p.maxFootprint / (2 * Math.max(piece.fa, piece.fb))) : 1;
+        spots.set(p.spaceDoor, [p.x, p.z + piece.fb * 0.9 * fit + 1.6]);
+      }
+      banners.setDoors(spots);
+    },
     graphicsStats:()=>({drawMs:frameDrawMs,calls:renderer.info.render.calls,sprites:sprites.size,workers:frameWorkers,
       geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,programs:renderer.info.programs?.length || 0,
       width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio(),parts:{...frameParts},peaks:Object.fromEntries(Object.entries(framePeaks).map(([k,p])=>[k,p.v]))}),

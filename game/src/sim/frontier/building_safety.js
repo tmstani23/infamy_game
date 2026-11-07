@@ -1,7 +1,8 @@
 // Shared placement/completion safety. Queries only; no unit teleporting or save changes.
 import { cellToWorld, worldToCell } from './town_grid.js';
 
-export const livingWorldUnits = state => Object.values(state?.entities || {}).filter(e => e.place === 'world' && !e.dead && !e.jailed);
+// salute cannons are scenery that never moves off a plot, so they never hold up a building (sim/cannon_salute.js)
+export const livingWorldUnits = state => Object.values(state?.entities || {}).filter(e => e.place === 'world' && !e.dead && !e.jailed && !e.cannon);
 export function overlapsCells(s, cells, e, clearance = 1) {
   return cells.some(i => {
     const [x,z] = cellToWorld(s,i), h = s.grid.cell / 2 + clearance;

@@ -21,6 +21,7 @@ import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
 import { createWorkers, ensureWorkers } from './workers.js';
 import { createArrivals } from './arrivals.js';
+import { createTownsfolk } from './townsfolk.js';
 
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {} }) {
   let world = createFrontierWorld({ state, data });
@@ -50,6 +51,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
   const arrivals = createArrivals({ state, data });
+  const townsfolk = createTownsfolk({ state, data });   // Tim 2026-11-07: citizens wandering your towns in peacetime
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index }) : null;
   const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
@@ -88,6 +90,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     rail.tick();                   // the rail gang at each railhead
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
+    townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
     if ((state.tick ?? 0) % cadence !== cadence - 1) return;
     state.frontier.econTick++;
@@ -101,6 +104,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);rail.attach(services);founding?.attach(services);}
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);}
   return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, attach };
 }

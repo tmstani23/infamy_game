@@ -2402,5 +2402,11 @@
  "buildings/palisade_wall_z": {"w":250,"h":273,"left":1,"right":248,"bottomX":53,"bottomY":270,"glows":[]},
  "buildings/palisade_wall_x": {"w":250,"h":273,"left":1,"right":248,"bottomX":196,"bottomY":270,"glows":[]},
  "buildings/gate_x": {"w":367,"h":345,"left":2,"right":363,"bottomX":340,"bottomY":342,"glows":[]},
- "buildings/gate_z": {"w":367,"h":345,"left":3,"right":364,"bottomX":26,"bottomY":342,"glows":[]}
+ "buildings/gate_z": {"w":367,"h":345,"left":3,"right":364,"bottomX":26,"bottomY":342,"glows":[]},
+ "buildings/forage_camp": {"w":320,"h":254,"left":0,"right":318,"bottomX":156,"bottomY":253,"glows":[]},
+ "buildings/railway_station": {"w":500,"h":358,"left":0,"right":498,"bottomX":209,"bottomY":356,"glows":[]},
+ "buildings/barracks": {"w":500,"h":361,"left":0,"right":499,"bottomX":164,"bottomY":359,"glows":[]},
+ "buildings/artillery_shed": {"w":480,"h":373,"left":1,"right":478,"bottomX":276,"bottomY":371,"glows":[]},
+ "buildings/ironworks": {"w":470,"h":416,"left":0,"right":468,"bottomX":311,"bottomY":415,"glows":[]},
+ "buildings/market_hall": {"w":330,"h":259,"left":0,"right":329,"bottomX":125,"bottomY":258,"glows":[]}
 }

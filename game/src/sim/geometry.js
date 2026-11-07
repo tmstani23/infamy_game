@@ -72,6 +72,9 @@ export function placePiece(entry, catalog, cutouts) {
     // An interior can calibrate the painted floor-contact pixel without moving
     // its recipe footprint or gameplay blocker.
     center: entry.artAnchor ?? item.artAnchor ?? f.center,
+    // a painting whose base is turned off the ground diagonal is sheared back upright-safe (art.json "shear",
+    // tools/measure_art_slant.py, Tim 2026-11-07); mirrored art mirrors it
+    shear: entry.shear ?? (entry.flip ? -1 : 1) * (item.shear || 0),
     foot: rect(entry.x, entry.z, f.fa * shrink, f.fb * shrink),
     // Interior parts already provide their exact blockers, including surface-mounted props.
     solid: !entry.roomProp && item.solid > 0 ? rect(entry.x, entry.z, f.fa * item.solid, f.fb * item.solid) : null,

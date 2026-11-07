@@ -10,6 +10,7 @@ export const BUILD_DETAILS={
   work:['A workshop zone that consumes timber and stone.','Enables goods production with available townspeople.'],
   eraser:['Removes selected roads, walls, gates, zones and buildings.','Returns 100% of their resource cost; the town hall is protected.'],
   lumber_camp:['A gathering camp: workers drop off timber only, and reach timber further out from it.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive timber production.'],
+  food_camp:['A fishing and foraging camp: workers drop off food only, and reach fishing grounds and fertile ground further out from it.','Same storage and ox carts as the other work camps.'],
   quarry:['A gathering camp: workers drop off stone only, and reach stone further out from it.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive stone production.'],
   storehouse:['Storage only: each one raises every storage cap by 500.','Workers do not drop off here; they use the town hall or a matching work camp.'],
   market:['Sells goods above the town keep level for ryo (about 1 ryo per goods).','Village tier, one per town. Set the keep level under Steer in the town panel (default 400).'],

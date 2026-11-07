@@ -189,25 +189,45 @@ export function createBanners({ scene }) {
   // Space rings on the island (Tim 2026-11-07): the same door ring the city uses, at the front (screen-down) of your
   // built town hall, stable and station, the buildings that open a menu with Space. Reads state.frontier only.
   const spaceRings = new Map();
-  const FRONT = { town_hall: 1, stable: 1.6, station: 1.6 };   // placed-art width in cells (townArt._placedFootprint); ring = half of it, plus a margin
-  function updateSpaceRings(state, me, place) {
+  const FRONT = { town_hall: 1, stable: 1.6, station: 1.6 };   // fallback before the art is placed: placed-art width in cells
+  let doorSpots = new Map();   // "town:hall" / "town:building" -> [x, z] at the art's front door (render/view.js setTowns)
+  const setDoors = m => { doorSpots = m; };
+  // Tim 2026-11-07: the frontier rings were a plain gold circle; now an entry rune with a slowly turning inner seal and
+  // a soft warm pool, like the city's marked doors
+  function spaceRing() {
+    const g = new THREE.Group();
+    if (!glowTex) glowTex = glowTexture();
+    const pool = new THREE.Mesh(POOL_GEO, new THREE.MeshBasicMaterial({ color: 0xffb050, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending }));
+    pool.rotation.x = -Math.PI / 2; pool.scale.setScalar(1.7); pool.renderOrder = 1;
+    const outer = createRune(RUNE.entry, 0xffd48a, 0.8, false); outer.scale.setScalar(1.55); outer.renderOrder = 2;
+    const inner = createRune(RUNE.assignment, 0xffbf6a, 0.5, false); inner.scale.setScalar(1.05); inner.renderOrder = 2;
+    g.add(pool, outer, inner); g.userData = { outer, inner, pool };
+    return g;
+  }
+  function updateSpaceRings(state, me, place, time = 0) {
     const want = new Map();
     if (place === 'world' && me != null) for (const s of Object.values(state.frontier?.settlements || {})) {
       if (s.owner !== me || !s.founded || !Number.isFinite(s.x)) continue;
       const cell = s.grid?.cell || 11, off = fp => cell * fp / 2 + 3, k = Math.SQRT1_2;
-      want.set(`${s.id}:hall`, [s.x + off(FRONT.town_hall) * k, s.z + off(FRONT.town_hall) * k]);
+      want.set(`${s.id}:hall`, doorSpots.get(`${s.id}:hall`) || [s.x + off(FRONT.town_hall) * k, s.z + off(FRONT.town_hall) * k]);
       for (const b of s.buildings || []) {
         if ((b.type !== 'stable' && b.type !== 'station') || b.stage !== 'built' || !(b.cells?.length || Number.isFinite(b.cell))) continue;
+        const spot = doorSpots.get(`${s.id}:${b.id}`);
+        if (spot) { want.set(`${s.id}:${b.id}`, spot); continue; }
         const pts = (b.cells?.length ? b.cells : [b.cell]).map(i => cellToWorld(s, i));
         const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
         want.set(`${s.id}:${b.id}`, [cx + off(FRONT[b.type]) * k, cz + off(FRONT[b.type]) * k]);
       }
     }
-    for (const [id, m] of spaceRings) if (!want.has(id)) { scene.remove(m); m.geometry.dispose(); spaceRings.delete(id); }
+    for (const [id, m] of spaceRings) if (!want.has(id)) { scene.remove(m); for (const c of m.children) c.material.dispose(); spaceRings.delete(id); }
+    const beat = 0.5 + 0.5 * Math.sin(time * 1.8);
     for (const [id, [x, z]] of want) {
       let m = spaceRings.get(id);
-      if (!m) { m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), doorMaterial); m.rotation.x = -Math.PI / 2; m.renderOrder = 1; scene.add(m); spaceRings.set(id, m); }
-      m.position.set(x, 0.02, z);
+      if (!m) { m = spaceRing(); scene.add(m); spaceRings.set(id, m); }
+      m.position.set(x, 0.03, z);
+      const { inner, outer, pool } = m.userData;
+      inner.rotation.z = time * 0.25; outer.rotation.z = -time * 0.08;
+      outer.material.opacity = 0.7 + 0.15 * beat; inner.material.opacity = 0.4 + 0.15 * beat; pool.material.opacity = 0.06 + 0.06 * beat;
     }
   }
   let jobRing = null, jobMark = null;
@@ -240,7 +260,7 @@ export function createBanners({ scene }) {
     questMark.material.opacity = active ? 0.75 + 0.25 * beat : 0.55;
   }
   function update(state, time, me, place = 'street') {
-    updateSpaceRings(state, me, place);
+    updateSpaceRings(state, me, place, time);
     updateQuestMark(state, time, me, place);
     if (assignmentTick !== state.tick || assignmentOwner !== me) {
       assignmentTick=state.tick;assignmentOwner=me;staffed.clear();
@@ -363,5 +383,5 @@ export function createBanners({ scene }) {
     }
     return claimed;
   }
-  return { update, things, spot, setHint };
+  return { update, things, spot, setHint, setDoors };
 }

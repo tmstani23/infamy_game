@@ -43,7 +43,7 @@ function game(heroAt) {
   g.step([{ id: hero.id, type: 'frontier', action: 'queue', settlement: 'tw', building: 'stockade' }]);
   let props = townProps(snap(), frontier.townArt, frontier.townLights);
   assert.ok(props.filter(p => p.art === 'stone_lantern').length >= 4, 'lanterns beside the finished buildings');
-  assert.deepEqual(props.filter(p => !p.dirt && p.art !== 'stone_lantern' && p.art !== frontier.townLights.automatic.art).map(p => [p.art, p.opacity]), [['manor', 1], ['haystack', 1], ['firewood', 1]]);
+  assert.deepEqual(props.filter(p => !p.dirt && p.art !== 'stone_lantern' && p.art !== frontier.townLights.automatic.art).map(p => [p.art, p.opacity]), [['manor', 1], ['haystack', 1], ['sawmill', 1]]);
   // ground patches and crop rows are dirt decals too; a project footprint's key ends in :dirt
   const footprint = p => p.dirt && p.key.endsWith(':dirt');
   assert.equal(props.filter(footprint).length, 1, 'the unbuilt project is a dirt footprint');
@@ -56,7 +56,7 @@ function game(heroAt) {
   }
   assert.ok(sawFrame && t.projects.length === 0, 'the stockade got built');
   props = townProps(snap(), frontier.townArt);
-  assert.ok(props.some(p => p.art === 'watch_post' && p.opacity === 1) && !props.some(footprint), 'finished = normal');
+  assert.ok(props.some(p => p.art === frontier.townArt.stockade && p.opacity === 1) && !props.some(footprint), 'finished = normal');
   assert.notEqual(sig0, sig1); assert.notEqual(sig1, townSignature(snap()));
   const [x0, z0] = [t.x, t.z], hall = props.find(p => p.art === 'manor');
   assert.deepEqual([hall.x, hall.z], [x0, z0], 'town hall stands on the spot');

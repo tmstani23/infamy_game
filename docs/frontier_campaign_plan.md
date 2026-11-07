@@ -484,10 +484,17 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 
 ## Playtest fixes (2026-11-07)
 
-- Lumber camps take only timber; quarries only stone.
-- Storehouses are storage only and take no worker drop-offs; ox carts unload at the town hall.
-- The surveyor's quest marker is a gold ! above his head that flashes while a survey is pending (no ground ring).
-- Your own rail gang, ox carts and salute cannons are always visible through fog.
+- Camps take only their own resource: lumber camp timber, quarry stone, food camp (new) food from fishing and fertile ground.
+- Storehouses are storage only (no worker drop-offs); carts unload at the town hall.
+- Frontier townsfolk: 1 per 10 people, at most 4/8/14 by tier; they go inside at night or when enemies are in the ring, and exist only within 250 of your units (`sim/frontier/townsfolk.js`, `frontier.json` townsfolk).
+- The surveyor's quest marker is a gold ! above his head that flashes while he has a report (no ground ring).
+- Frontier Space rings are a layered rune at the building's front edge.
+- Fog never hides your own carts, rail gang or salute cannons (`e.seenBy`).
+- No card shows on bare road, wall or gate cells.
+- The food camp uses `forage_camp` art; the town market uses `market_hall`.
+- Sheet 3 (source `assets/environment/frbuilds3.png`, `tools/add_frontier_sheet3_art.py`) adds forage_camp, railway_station, barracks, artillery_shed, ironworks and market_hall.
+- A per-art `shear` value in `art.json` slants a building's art at draw time so its base lines up with the road diagonals (mirrored for flipped art); `tools/measure_art_slant.py` measures it.
+- Construction no longer sticks at the frame stage.
 
 ## Island gate menu and surveyor (2026-11-06)
 

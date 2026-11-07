@@ -255,7 +255,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (!spot || !known(spot.x, spot.z)) { card.hidden = true; return; }
       const reach = spot.deposit ? richReach(spot, reachAnchors(spot.kind)) : null;
       info = spotInfo(spot, game.state.frontier?.spots?.[spot.id], reach?.text);
-      if (reach && !reach.ok && reach.town && (spot.kind === 'timber' || spot.kind === 'stone')) info.camp = { town: reach.town, type: spot.kind === 'timber' ? 'lumber_camp' : 'quarry' };
+      const campType = (data.workers?.gatherBuildings || []).find(t => data.workers?.campTakes?.[t]?.includes(data.workers?.resources?.[spot.kind]));
+      if (reach && !reach.ok && reach.town && campType) info.camp = { town: reach.town, type: campType };
       const assigned = towns().flatMap(s => (s.workers || []).filter(w => w.spot === spot.id || w.nextSpot === spot.id).map(w => `${w.id} (${s.name})`));
       info.lines.push(`Amount per harvest: ${spotYield(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages)}`,
         `Your workers: ${assigned.length ? assigned.join(', ') : 'none'}`);
@@ -269,7 +270,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
       + (info.work || '')
       + (info.camp && info.camp.id ? campCardHTML(info.camp, trainTown) : '')
-      + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built lumber camp or quarry.">Place camp here</button>` : '')
+      + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built work camp of the same kind.">Place camp here</button>` : '')
       + (info.stable ? `<button data-stable="${esc(trainTown.id)}" title="Buy horses, rickshaws and omnibuses here">Open stable</button>` : '')
       + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").

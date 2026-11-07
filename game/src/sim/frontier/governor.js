@@ -89,7 +89,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
   function campRule(s) {
     if (!s.autoBuild || s.projects.some(p => !p.replaces) || !workers?.index || !placement()) return false;
     const R = data.workers, hall = [s.x, s.z];
-    for (const [type, res] of [['lumber_camp', 'timber'], ['quarry', 'stone']]) {
+    for (const [type, res] of [['lumber_camp', 'timber'], ['quarry', 'stone'], ['food_camp', 'food']].filter(([t]) => data.buildings?.[t])) {
       if (placedRoom(s, type, data) < 1 || s.buildings.some(b => b.type === type)) continue;
       const use = {};
       for (const w of s.workers || []) { const sp = w.spot && workers.index.get(w.spot); if (sp && R.resources[sp.kind] === res) use[w.spot] = (use[w.spot] || 0) + 1; }
@@ -124,13 +124,15 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!reach || !(s.workers || []).some(w => w.by !== 'p' && !w.spot && !w.project && !w.order)) return false;
     // a camp only reaches its own resource (workers.campTakes, Tim 2026-11-07)
     const camps = s.buildings.filter(b => (R.gatherBuildings || []).includes(b.type) && b.stage === 'built' && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);
+    // the work camp that takes a spot kind's resource (lumber camp, quarry, food camp)
+    const campFor = kind => (R.gatherBuildings || []).find(t => data.buildings?.[t] && R.campTakes?.[t]?.includes(R.resources[kind]));
     const fits = (type, kind) => !R.campTakes?.[type] || R.campTakes[type].includes(R.resources[kind]);
     const near = (x, z, kind) => Math.hypot(x - s.x, z - s.z) <= R.range || camps.some(([cx, cz, t]) => fits(t, kind) && Math.hypot(x - cx, z - cz) <= reach);
     const grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
-    const deps = [...workers.index.byId.values()].filter(p => p.deposit && (p.kind === 'timber' || p.kind === 'stone') && !near(p.x, p.z, p.kind) && !isFull(s, data, R.resources[p.kind]))
+    const deps = [...workers.index.byId.values()].filter(p => p.deposit && campFor(p.kind) && !near(p.x, p.z, p.kind) && !isFull(s, data, R.resources[p.kind]))
       .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).filter(o => o.d <= grid + reach).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
     for (const { p, d } of deps) {
-      const type = p.kind === 'timber' ? 'lumber_camp' : 'quarry';
+      const type = campFor(p.kind);
       if (placedRoom(s, type, data) < 1) continue;
       const cost = data.buildings[type].cost;
       if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) continue;

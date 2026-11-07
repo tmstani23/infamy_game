@@ -112,6 +112,8 @@ export function createConstruction({ state, data, world,resourceIndex }) {
       if (p.phase) p.phase = 'frame';
       return;
     }
+    // finished work retries completion even with no builders left (a unit stood on the plot when it first finished)
+    if (p.progress >= p.need) { finish(s, p); return; }
     if (!s.builders) { wait(s, 'builders'); return; }
     p.progress = Math.min(p.need, p.progress + s.builders);
     if (p.progress >= p.need) finish(s, p);
