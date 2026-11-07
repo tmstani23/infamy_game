@@ -66,7 +66,9 @@ export function createStableMenu({ panel, game, heroId, send, data }) {
     if (!b || !st) return close();
     const jobs = b.stableJobs || [], j = jobs[0];
     const name = k => C().kinds?.[k]?.name || k;
-    const bar = j ? `<div class="row"><span style="display:inline-block;width:90px;height:8px;background:#3a2f1e;border:1px solid #5c4a2c"><i style="display:block;height:100%;width:${Math.round(100 * (1 - j.left / j.total))}%;background:#ffd34d"></i></span><span>${esc(name(j.kind))} ${Math.ceil(j.left / 20)} s</span>${jobs.length > 1 ? `<small>then ${esc(jobs.slice(1).map(x => name(x.kind)).join(', '))}</small>` : ''}</div>` : '<p>Nothing being made.</p>';
+    // the queue in order, runs of the same kind counted: "5x Calico, 1x Rickshaw" (Tim 2026-11-07)
+    const runs = list => list.reduce((r, x) => { const last = r.at(-1); if (last?.k === x.kind) last.n++; else r.push({ k: x.kind, n: 1 }); return r; }, []).map(r => `${r.n}x ${name(r.k)}`);
+    const bar = j ? `<div class="row"><span style="display:inline-block;width:90px;height:8px;background:#3a2f1e;border:1px solid #5c4a2c"><i style="display:block;height:100%;width:${Math.round(100 * (1 - j.left / j.total))}%;background:#ffd34d"></i></span><span>${esc(name(j.kind))} ${Math.ceil(j.left / 20)} s</span></div><p>Queue ${jobs.length} / ${C().queue ?? 10}: <b>${esc(runs(jobs).join(', '))}</b></p>` : '<p>Nothing being made.</p>';
     const room = ['horse', 'rickshaw', 'omnibus'].map(c => `${NAMES[c]} <b>${st.have(me, c)}</b> / ${st.room(me, c)}`).join(' · ');
     let k = 0;
     const rows = options().map(o => {
