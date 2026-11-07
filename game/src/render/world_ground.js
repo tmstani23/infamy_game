@@ -212,6 +212,28 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     sprites.delete(key);
   }
 
+  // Tim 2026-11-07: grass and other props must not grow over laid track. A set of 1.5-unit cells within ~2 units of
+  // the laid part of every rail link (rebuilt when a link grows by 10 units or changes), checked in `cleared`.
+  let railKey = '', railSet = new Set();
+  function railMask(fr) {
+    const links = Object.values(fr?.rail?.links || {});
+    const key = links.map(l => `${l.id}:${Math.floor((l.built || 0) / 10)}:${l.length}`).join('|');
+    if (key === railKey) return railSet;
+    railKey = key; railSet = new Set(); propAt = null;
+    for (const l of links) {
+      const p = l.points, dist = l.dist, end = Math.min(l.built || 0, l.length || 0);
+      if (!p || p.length < 2 || !(end > 0)) continue;
+      for (let i = 1; i < p.length && dist[i - 1] < end; i++) {
+        const [ax, az] = p[i - 1], [bx, bz] = p[i], len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(len));
+        for (let k = 0; k <= n; k++) {
+          if (dist[i - 1] + len * k / n > end) break;
+          const cx = Math.floor((ax + (bx - ax) * k / n) / 1.5), cz = Math.floor((az + (bz - az) * k / n) / 1.5);
+          for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) railSet.add((cx + dx) * 100003 + cz + dz);
+        }
+      }
+    }
+    return railSet;
+  }
   // Each frame: (camera x, z), whether the followed hero is on the island, frame time
   function update(x, z, active, dt, frontier, discovered, viewScale = 1) {
     // perf 2026-11-07: the spots are only re-read when a new frontier view or discovery arrives (4 Hz), not every frame
@@ -263,7 +285,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       for (const n of world.nodes || []) if (!hasSpot.has(n.id) && Math.hypot(n.x - x, n.z - z) < GR && known(n.x, n.z)) glowItems.push({ key: n.id, kind: n.kind, x: n.x, z: n.z, r: glowCfg.nodeRadius ?? 9, big: true, node: n.kind });
     }
     const patches = towns.filter(p => p.dirt && Math.hypot(p.x - x, p.z - z) < R + p.width);
-    const cleared = p => patches.some(t => Math.abs(p.x - t.x) < t.width / 2 && Math.abs(p.z - t.z) < t.height / 2);
+    const rail = railMask(snapshot);
+    const cleared = p => rail.has(Math.floor(p.x / 1.5) * 100003 + Math.floor(p.z / 1.5)) || patches.some(t => Math.abs(p.x - t.x) < t.width / 2 && Math.abs(p.z - t.z) < t.height / 2);
     for (const spot of spots) for (const p of spotPiecesToProps(spot, snapshot?.spots?.[spot.id], catalog.spotArt, spotConfig))
       if (Math.hypot(p.x - x, p.z - z) < R && !cleared(p)) want.set(p.key, p);
     if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gate.x,z:gate.z});

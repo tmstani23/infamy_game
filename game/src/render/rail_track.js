@@ -38,8 +38,27 @@ function ribbon(line, d0, d1, width, y) {
   return { geo, n };
 }
 
-function groundMaterial(tex) {
+// Tim 2026-11-07 (track looked pasted on): round the corners a few more times (render only) and fade the ballast
+// out toward both edges so it melts into the ground. fade = share of the width each side that fades.
+function smoothLine(l, passes = 3) {
+  let p = l.points;
+  for (let n = 0; n < passes && p.length > 2; n++) {
+    const out = [p[0]];
+    for (let i = 1; i < p.length - 1; i++) {
+      const [x, z] = p[i], a = p[i - 1], b = p[i + 1];
+      out.push([x * 0.75 + a[0] * 0.25, z * 0.75 + a[1] * 0.25], [x * 0.75 + b[0] * 0.25, z * 0.75 + b[1] * 0.25]);
+    }
+    out.push(p[p.length - 1]); p = out;
+  }
+  const dist = [0];
+  for (let i = 1; i < p.length; i++) dist.push(dist[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+  const length = dist[dist.length - 1];
+  return { points: p, dist, length, k: l.length > 0 ? length / l.length : 1, bridges: (l.bridges || []).map(([a, b]) => [a * length / l.length, b * length / l.length]) };
+}
+
+function groundMaterial(tex, fade = 0.22) {
   const m = spriteMaterial(tex);
+  m.fragmentShader = m.fragmentShader.replace('float a = t.a * uOpacity;', `float a = t.a * uOpacity * smoothstep(0.0, ${fade.toFixed(2)}, vUv.x) * smoothstep(1.0, ${(1 - fade).toFixed(2)}, vUv.x);`);
   m.fragmentShader = m.fragmentShader.replace('grade(t.rgb, vWorld, true, uSelfLight)', 'grade(t.rgb, vWorld, false, uSelfLight)');
   m.depthWrite = false; m.transparent = true; m.side = THREE.DoubleSide;
   return m;
@@ -87,9 +106,10 @@ function carThing(c) {
 export function createRailTrack({ scene }) {
   let track = null, bridge = null;
   const shown = new Map();   // link id -> { key, meshes: [{ mesh, d0, n }] }
-  const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png')); };
-  function build(l) {
+  const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png'), 0.06); };
+  function build(l0) {
     mats();
+    const l = l0.r;
     const parts = [];
     // ballast track everywhere except over the bridges (spans widened a little onto the banks)
     const spans = (l.bridges || []).map(([b0, b1]) => [Math.max(0, b0 - 3), Math.min(l.length, b1 + 3)]).sort((a, b) => a[0] - b[0]);
@@ -115,11 +135,18 @@ export function createRailTrack({ scene }) {
     const cars = kinds.map(k => { const m = new THREE.Mesh(G[k], carMat); m.renderOrder = 0; scene.add(m); return { mesh: m, kind: k }; });
     return { cars, d: t.d, snapD: t.d, snapAt: 0, gap };
   }
+  const smooths = new Map();   // link id -> { key, r }
+  function smoothed(l) {
+    const key = `${l.length}:${l.points.length}`, c = smooths.get(l.id);
+    if (c && c.key === key) return c.r;
+    const r = smoothLine(l); smooths.set(l.id, { key, r }); return r;
+  }
   function moveTrains(frontier, links, dt, clock) {
     const list = frontier?.rail?.trains || {};
     for (const [id, s] of trains) if (!list[id] || !links[list[id].link]) { for (const c of s.cars) scene.remove(c.mesh); trains.delete(id); }
     for (const t of Object.values(list)) {
       const l = links[t.link]; if (!l?.done) continue;
+      const rl = smoothed(l), kk = rl.k;
       let s = trains.get(t.id);
       if (!s) trains.set(t.id, s = trainMeshes(t, 7));
       if (t.d !== s.snapD || t.wait !== s.wait) { s.snapD = t.d; s.wait = t.wait; s.snapAt = clock; }
@@ -129,7 +156,7 @@ export function createRailTrack({ scene }) {
       s.d += (predicted - s.d) * Math.min(1, dt * 8);
       // cars trail behind the engine, toward where it came from
       s.cars.forEach((c, k) => {
-        const off = k === 0 ? 0 : k === 1 ? 4.4 : 4.4 + (k - 1) * s.gap, p = pointAt(l, s.d - t.dir * off), ahead = pointAt(l, s.d - t.dir * off + t.dir * 0.5);
+        const off = k === 0 ? 0 : k === 1 ? 4.4 : 4.4 + (k - 1) * s.gap, p = pointAt(rl, (s.d - t.dir * off) * kk), ahead = pointAt(rl, (s.d - t.dir * off + t.dir * 0.5) * kk);
         c.mesh.position.set(p.x, 0.05, p.z);
         c.mesh.rotation.y = Math.atan2(ahead.x - p.x, ahead.z - p.z) || 0;
         c.mesh.visible = true;
@@ -148,9 +175,9 @@ export function createRailTrack({ scene }) {
       const key = `${l.length}:${l.points.length}`;
       let s = shown.get(l.id);
       if (s && s.key !== key) { drop(l.id); s = null; }
-      if (!s) shown.set(l.id, s = { key, meshes: build(l) });
+      if (!s) shown.set(l.id, s = { key, meshes: build({ ...l, r: smoothed(l) }) });
       for (const p of s.meshes) {   // only what has been laid so far
-        const quads = Math.max(0, Math.min(p.n, Math.floor((l.built - p.d0) / STEP)));
+        const quads = Math.max(0, Math.min(p.n, Math.floor((l.built * smoothed(l).k - p.d0) / STEP)));
         p.mesh.geometry.setDrawRange(0, quads * 6);
         p.mesh.visible = quads > 0;
       }
