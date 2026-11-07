@@ -42,6 +42,10 @@ const artFile = 'game/data/art.json', art = readJSON(artFile), glow = readJSON('
 const stemOf = e => typeof e === 'string' ? e : e.file;
 const stemsOf = model => portrait ? [`${model}_portrait_idle`] : [...new Set(Object.values(art.characters[model]).map(stemOf))];
 const sheetDir = portrait ? 'assets/sprites/portraits' : 'assets/sprites', directions = portrait ? 1 : 8;
+// long vehicles may have 16 or 32 rows (tools/export_sprites.mjs MOUNTS dirs, recorded in assets/sprites/mounts.json)
+const mountInfo = fs.existsSync(path.join(root, 'assets/sprites/mounts.json')) ? readJSON('assets/sprites/mounts.json') : {};
+const rowsOf = stem => portrait ? 1 : mountInfo[stem]?.dirs || directions;
+const modelRows = m => portrait ? 8 : rowsOf(stemsOf(m)[0]);
 const hasGlow = model => !!glow.weapons?.[glow.models?.[model]];
 
 let models = args.filter(a => !a.startsWith('--'));
@@ -95,7 +99,7 @@ for (const stem of stems) {
     assert.ok(fs.existsSync(file), `Missing sheet ${rel(file)}`);
     const source = fs.readFileSync(file);
     const {data: original, info} = await sharp(source).ensureAlpha().raw().toBuffer({resolveWithObject: true});
-    const fb = frameBounds(original, info.width, info.height, directions);
+    const fb = frameBounds(original, info.width, info.height, rowsOf(stem));
     const layout = packFrames(fb.bounds, {margin});
     validateLayout(fb.bounds, layout);
     const pageBuffers = layout.pages.map(p => Buffer.alloc(p.width * p.height * 4));
@@ -130,7 +134,7 @@ for (const stem of stems) {
         return p ? {page: p.page, x: p.x, y: p.y, left: b.x, top: b.y, width: b.w, height: b.h} : null;
       }), fb.frames),
       source: {file: rel(file), sha256: hash(source)}};
-    if (kind === 'glow') record.bladeAxes = toEightRows(bladeAxes(original, info.width, info.height, fb.frames, directions), fb.frames);
+    if (kind === 'glow') record.bladeAxes = toEightRows(bladeAxes(original, info.width, info.height, fb.frames, rowsOf(stem)), fb.frames);
     stats[`${stem}:${kind}`] = {frames: fb.bounds.length, originalBytes: mipBytes(info.width, info.height), packedBytes: layout.bytes};
   }
   if (record.glow) assert.equal(record.glow.frames, record.color.frames, `${stem}: colour/glow frame counts differ`);
@@ -158,7 +162,7 @@ for (const record of Object.values(records)) for (const ch of [record.color, rec
 }
 for (const m of affected) {
   const keys = stemsOf(m).flatMap(s => [`${s}:color`, `${s}:glow`]);
-  const json = {version: 1, directions: 8, margin, model: m, sheets: Object.fromEntries(stemsOf(m).map(s => [s, records[s]])),
+  const json = {version: 1, directions: modelRows(m), margin, model: m, sheets: Object.fromEntries(stemsOf(m).map(s => [s, records[s]])),
     repacked: new Date().toISOString(), tool: 'tools/repack_model.mjs',
     verification: {frames: sum(keys, 'frames'), originalBytes: sum(keys, 'originalBytes'), packedBytes: sum(keys, 'packedBytes')}};
   fs.writeFileSync(path.join(catalog, `${m}.json`), JSON.stringify(json));

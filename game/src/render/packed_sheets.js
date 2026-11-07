@@ -79,18 +79,19 @@ export function setSheetFrame(uniforms, sheet, dir, frame, glow = false) {
 
 export async function loadPackedSheets({url, model, names, loadJson, loadTexture, requireGlow = false, releaseTexture = texture => texture.dispose()}) {
   const manifest = await loadJson(url);
-  check(manifest.version === 1 && manifest.model === model && manifest.directions === 8 && manifest.margin >= 2, 'unsupported manifest');
+  check(manifest.version === 1 && manifest.model === model && [8, 16, 32].includes(manifest.directions) && manifest.margin >= 2, 'unsupported manifest');
+  const dirs = manifest.directions;   // 8 for people; long vehicles (train cars) may have 16 or 32
   const records = new Map(), pages = new Map();
   for (const entry of Object.values(names)) {
     const file = typeof entry === 'string' ? entry : entry.file;
     if (records.has(file)) continue;
     const record = manifest.sheets?.[file]; check(record, `missing animation ${file}`);
-    validateChannel(record.color, 8, manifest.margin);
+    validateChannel(record.color, dirs, manifest.margin);
     check(!requireGlow || record.glow, 'missing required weapon glow');
     if (record.glow) {
-      validateChannel(record.glow, 8, manifest.margin);
+      validateChannel(record.glow, dirs, manifest.margin);
       check(record.color.frames === record.glow.frames, 'color/glow frame mismatch');
-      check(Array.isArray(record.bladeAxes) && record.bladeAxes.length === record.color.frames * 8, 'missing original blade axes');
+      check(Array.isArray(record.bladeAxes) && record.bladeAxes.length === record.color.frames * dirs, 'missing original blade axes');
       check(record.bladeAxes.every(a => !a || [a.base?.x, a.base?.y, a.tip?.x, a.tip?.y].every(Number.isFinite)), 'invalid blade axes');
     }
     records.set(file, record);
@@ -113,7 +114,7 @@ export async function loadPackedSheets({url, model, names, loadJson, loadTexture
   for (const [file, record] of records) {
     const color = record.color.pages.map(p => loaded.get(p.file));
     const glow = record.glow?.pages.map(p => loaded.get(p.file));
-    sets.set(file, {tex: color[0], glow: glow?.[0], frames: record.color.frames, bladeAxes: record.bladeAxes,
+    sets.set(file, {tex: color[0], glow: glow?.[0], frames: record.color.frames, dirs, bladeAxes: record.bladeAxes,
       packed: {color: packedFrames(record.color, color, manifest.margin),
         glow: glow ? packedFrames(record.glow, glow, manifest.margin) : null}});
   }

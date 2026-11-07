@@ -145,18 +145,18 @@ const MOUNTS = {
   rickshaw_horse: { file: 'rickshaw_horse.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
     extra: [{ file: 'rickshaw_horse_gallop.glb', merge: 'gallop' }],
     wheels: { mesh: 'rickshaw', fwd: 1, axle: [0.133, 0.195], list: [[-0.889, 0.179, 0.181]], spokes: 10 } },
-  // Train pieces (Tim 2026-11-07), from tools/train_to_glb.py. One shared scale: engine 3.6 units to the chimney top
+  // Train pieces (Tim 2026-11-07), from tools/train_to_glb.py. dirs: 32 sheet rows (long cars need finer turns on curves), fps 6 = 6 frames, keeps the pages small. One shared scale: engine 3.6 units to the chimney top
   // (k = 9.28 world units per model unit; guard car also x0.556 because its model is bigger). Wheels cut out and spun
   // like the omnibus; list = [along (Blender y), height, radius]. Clips 'walk' (slow roll) and 'run' (fast roll).
-  train_engine: { file: 'train_engine.glb', height: 3.6, supersample: 2,
+  train_engine: { file: 'train_engine.glb', dirs: 32, fps: 6, height: 3.6, supersample: 2,
     wheels: { mesh: 'train_engine', fwd: 1, axle: [0.066, 0.1], list: [[-0.187, 0.065, 0.065], [-0.003, 0.065, 0.065], [0.158, 0.065, 0.065]], spokes: 12 } },
-  train_tender: { file: 'train_tender.glb', height: 2.44, supersample: 2,
+  train_tender: { file: 'train_tender.glb', dirs: 32, fps: 6, height: 2.44, supersample: 2,
     wheels: { mesh: 'train_tender', fwd: 1, axle: [0.066, 0.1], list: [[-0.083, 0.063, 0.064], [0.102, 0.063, 0.064]], spokes: 12 } },
-  train_carriage: { file: 'train_carriage.glb', height: 3.19, supersample: 2,
+  train_carriage: { file: 'train_carriage.glb', dirs: 32, fps: 6, height: 3.19, supersample: 2,
     wheels: { mesh: 'train_carriage', fwd: 1, axle: [0.06, 0.097], list: [[-0.213, 0.058, 0.058], [0.18, 0.058, 0.058]], spokes: 12 } },
-  train_goods: { file: 'train_goods.glb', height: 1.59, supersample: 2,
+  train_goods: { file: 'train_goods.glb', dirs: 32, fps: 6, height: 1.59, supersample: 2,
     wheels: { mesh: 'train_goods', fwd: 1, axle: [0.058, 0.092], list: [[-0.109, 0.054, 0.055], [0.09, 0.054, 0.055]], spokes: 12 } },
-  train_guard: { file: 'train_guard.glb', height: 3.81, supersample: 2,
+  train_guard: { file: 'train_guard.glb', dirs: 32, fps: 6, height: 3.81, supersample: 2,
     wheels: { mesh: 'train_guard', fwd: 1, axle: [0.11, 0.17], list: [[-0.215, 0.1, 0.1], [0.255, 0.1, 0.1]], spokes: 12 } },
   // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
@@ -352,7 +352,7 @@ for (const [name, cfg] of mounts) {
       if (!fs.existsSync(path.join(archive, fname))) fs.copyFileSync(old, path.join(archive, fname));
     }
     fs.writeFileSync(old, Buffer.from(r.dataUrl.split(',')[1], 'base64'));
-    mountInfo[`${name}_${clip}`] = { size: frame.size, frames: r.frames, fps: cfg.fps || 12, cellWorld: +frame.worldPerCell.toFixed(3), feetUp: +frame.feetUp.toFixed(3) };
+    mountInfo[`${name}_${clip}`] = { size: frame.size, dirs: cfg.dirs || 8, frames: r.frames, fps: cfg.fps || 12, cellWorld: +frame.worldPerCell.toFixed(3), feetUp: +frame.feetUp.toFixed(3) };
     console.log(`  ${fname}  (${r.frames} frames, ${r.duration.toFixed(3)} seconds)`);
     written++;
   }

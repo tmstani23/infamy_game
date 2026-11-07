@@ -1,7 +1,7 @@
 // Draws a unit from the game state with its 8-direction spritesheets.
 import * as THREE from 'three';
 import { healthBar } from './health.js';
-import { CAM_QUAT, CAM_RIGHT } from './iso.js';
+import { CAM_QUAT, CAM_RIGHT, CAM_UP, VIEW_DIR } from './iso.js';
 import { spriteMaterial, shadowMaterial, footShadowMaterial, hiddenMaterial, weaponGlowMaterial } from './shading.js';
 import { Thing, loadTex } from './scenery.js';
 import { drawCrest } from './banners.js';
@@ -16,6 +16,7 @@ import { createTextureCache } from './texture_cache.js';
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
 const CELL_WORLD = 3;       // a 160px cell covers 3 world units (see sprite_render_test.html)
+const ROLL_Q = new THREE.Quaternion(), Z_AXIS = new THREE.Vector3(0, 0, 1);
 const FEET_UP = 0.9;        // the cell centre is 0.9 units above the feet
 const FPS = 12;
 // drawing scale for characters inside buildings (Tim tried 0.75 on 2026-10-18 and went back to 1);
@@ -103,6 +104,10 @@ export class CharacterSprite {
     this.sheets = sheets;
     this.cellWorld = sheets.framing?.cellWorld || CELL_WORLD;
     this.feetUp = sheets.framing?.feetUp ?? FEET_UP;
+    // rows in the sheets (8, or 16/32 for long vehicles); roll: turn the picture in the screen plane by this many
+    // radians about the ground point, heading: true ground angle for the foot shadow (train cars, render/rail_track.js)
+    this.dirs = sheets.idle?.dirs || 8;
+    this.roll = 0; this.heading = null;
     this.material = spriteMaterial(sheets.idle.tex, { uSelfLight: { value: new THREE.Color(0.2, 0.18, 0.16) } }, !!sheets.packing);
     setSheetFrame(this.material.uniforms, sheets.idle, 0, 0);
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
@@ -289,14 +294,22 @@ export class CharacterSprite {
       this.ring.scale.setScalar(size);
     }
     this.thing.mesh.position.set(x, this.feetUp * size + (this.lift || 0), z);   // lift: riding a horse (render/view.js)
+    if (this.roll || this.rolled) {
+      // turn about the ground point: the centre sits feetUp above it, split into screen-up and toward-camera parts
+      const r = this.roll || 0, h = this.feetUp * size, up = h * CAM_UP.y, back = h * VIEW_DIR.y;
+      this.thing.mesh.position.set(x, 0, z).addScaledVector(VIEW_DIR, back)
+        .addScaledVector(CAM_UP, up * Math.cos(r)).addScaledVector(CAM_RIGHT, -up * Math.sin(r));
+      this.thing.mesh.quaternion.copy(CAM_QUAT).multiply(ROLL_Q.setFromAxisAngle(Z_AXIS, r));
+      this.rolled = !!r;
+    }
     this.hidden.position.set(x, FEET_UP * size, z);
     u.uDepthAt.value.set(x, 0, z, 0.45);
     this.thing.foot = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r };
     this.thing.updateScreen();
     this.shadow.position.set(x, 0.01, z);
     if (this.footShadow) {
-      // dir 0..7 = S, SW, W, NW, N, NE, E, SE on screen; length along the heading
-      const a = dir * Math.PI / 4, S = Math.SQRT1_2;
+      // dir 0..7 = S, SW, W, NW, N, NE, E, SE on screen (more rows split those steps); length along the heading
+      const a = this.heading ?? dir * 2 * Math.PI / this.dirs, S = Math.SQRT1_2;
       const hx = (-Math.sin(a) + Math.cos(a)) * S, hz = (Math.sin(a) + Math.cos(a)) * S;
       this.shadow.rotation.set(-Math.PI / 2, 0, Math.atan2(-hx, -hz));
       this.shadow.scale.set(this.footShadow[1] / 1.5 * size, this.footShadow[0] / 1.5 * size, 1);

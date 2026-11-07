@@ -11,8 +11,8 @@
 import * as THREE from 'three';
 import { spriteMaterial } from './shading.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
-import { toScreen } from './iso.js';
-import { dirIndex } from '../sim/geometry.js';
+import { toScreen, CAM_UP } from './iso.js';
+import { createTrainFx } from './train_fx.js';
 
 // world units. The strips are scaled so the rails sit GAUGE apart (153 of the image's 362 px); both strips share
 // the scale so the rails line up where track meets bridge. One image = TILE units along the track.
@@ -112,6 +112,23 @@ const CAR_ART = { engine: ['train_engine', 6.4], tender: ['train_tender', 4.3], 
   goods: ['train_goods', 4.2], wagon: ['train_goods', 4.2], guard: ['train_guard', 5.4] };
 const COUPLING = 0.35;   // buffer to buffer between two cars
 const DEFAULT_CONSIST = ['carriage', 'carriage', 'goods', 'goods', 'guard'];
+const BOGIE_IN = 1.0;    // a bogie's centre from the car's end
+const SHED = 8, NOSE = 6.5;   // station: track inside it from its middle (the art is up to 17.6 wide); the engine's middle stands NOSE in
+// The sheets only have so many turns (8 rows, maybe 16/32 later), so a car on a track between two of them is drawn
+// from the nearest row and the picture turned in the screen plane by what is left, so its long side lies on the rails.
+// Angles as in sim/geometry.js dirIndex: 0 = screen down (S), going round S, SW, W ...
+const groundAngle = (dx, dz) => { const sx = (dx - dz) * Math.SQRT1_2, sy = (dx + dz) * Math.SQRT1_2; return Math.atan2(-sx, sy); };
+const DOWN_UP = (CAM_UP.x + CAM_UP.z) * Math.SQRT1_2;   // how far screen-down on the ground goes up on screen (negative)
+const screenAngle = a => Math.atan2(Math.cos(a) * DOWN_UP, -Math.sin(a));
+const MAX_ROLL = 0.6;
+const wrap = r => Math.atan2(Math.sin(r), Math.cos(r));
+function carPose(sp, dx, dz) {
+  // of the two rows either side, the one whose long side is nearest on screen (the turn left over is the smallest)
+  const a = groundAngle(dx, dz), n = sp.dirs || 8, step = 2 * Math.PI / n, want = screenAngle(a);
+  let row = 0, r = 9;
+  for (const k of [Math.floor(a / step), Math.ceil(a / step)]) { const rk = wrap(want - screenAngle(k * step)); if (Math.abs(rk) < Math.abs(r)) { r = rk; row = ((k % n) + n) % n; } }
+  sp.row = row; sp.heading = a; sp.roll = Math.max(-MAX_ROLL, Math.min(MAX_ROLL, r));
+}
 
 export function createRailTrack({ scene, carSprite = null }) {
   let track = null, bridge = null;
@@ -151,6 +168,7 @@ export function createRailTrack({ scene, carSprite = null }) {
     return { cars, sprites: true, key: kinds.join(','), d: t.d, snapD: t.d, snapAt: 0 };
   }
   function dropTrain(s) {
+    s.fx?.dispose(); s.fx = null;
     for (const c of s.cars) { if (c.mesh) scene.remove(c.mesh); c.gone = true; if (c.sprite) { scene.remove(c.sprite.thing.mesh, c.sprite.shadow); c.sprite.dispose(); c.sprite = null; } }
   }
   function trainMeshes(t, gap) {
@@ -182,13 +200,32 @@ export function createRailTrack({ scene, carSprite = null }) {
       s.d += (predicted - s.d) * Math.min(1, dt * 8);
       // cars trail behind the engine, toward where it came from
       if (s.sprites) {
-        const moving = (t.wait ?? 0) <= 0;
+        const moving = (t.wait ?? 0) <= 0, L = l.length * kk, head = s.d * kk + t.dir * NOSE;
+        let eng = null;
         for (const c of s.cars) {
           if (!c.sprite) continue;
-          const p = pointAt(rl, (s.d - t.dir * c.off) * kk), ahead = pointAt(rl, (s.d - t.dir * c.off + t.dir * 0.5) * kk);
-          c.sprite.update(dt, p.x, p.z, dirIndex(ahead.x - p.x, ahead.z - p.z), moving ? 'run' : 'idle', null, 1);
+          // Tim 2026-11-07 (cars at odd diagonals, not coupled): each car rests on two bogies on the rails, so it sits on
+          // the chord between them and faces along it, like a real coupled car going round a curve
+          const mid = head - t.dir * c.off;
+          // Tim 2026-11-07: a train in a station stands inside it with only the engine's nose out of the front; cars
+          // go in and come out at the station (SHED of track at each end), the engine shows once it faces out
+          const in0 = mid < SHED, inL = mid > L - SHED, out = c.kind === 'engine' && ((in0 && t.dir > 0) || (inL && t.dir < 0));
+          if ((in0 || inL) && !out) { c.sprite.thing.mesh.visible = c.sprite.shadow.visible = false; continue; }
+          const half = Math.max(0.5, CAR_ART[c.kind][1] / 2 - BOGIE_IN);
+          const f = pointAt(rl, mid + t.dir * half), b = pointAt(rl, mid - t.dir * half);
+          carPose(c.sprite, f.x - b.x, f.z - b.z);
+          const x = (f.x + b.x) / 2, z = (f.z + b.z) / 2;
+          c.sprite.update(dt, x, z, c.sprite.row, moving ? 'run' : 'idle', null, 1);
           c.sprite.thing.mesh.visible = c.sprite.shadow.visible = true;
+          if (c.kind === 'engine') { const n = Math.hypot(f.x - b.x, f.z - b.z) || 1; eng = { x, z, fx: (f.x - b.x) / n, fz: (f.z - b.z) / n }; }
         }
+        // steam from the chimney, and while it stands in a station a flashing badge and a bar running down to departure
+        if (moving) s.waitFull = 0; else s.waitFull = Math.max(s.waitFull || 0, (t.wait ?? 0) / 20);
+        const whistle = moving && s.wasMoving === false;
+        s.wasMoving = moving;
+        s.fx ||= createTrainFx(scene);
+        s.fx.step(dt, eng, { mode: moving ? 'run' : 'idle', speed: t.v ?? t.speed ?? 36, whistle,
+          wait: moving ? null : { left: Math.max(0, (t.wait ?? 0) / 20 - (clock - s.snapAt)), full: s.waitFull } });
         continue;
       }
       s.cars.forEach((c, k) => {
@@ -220,7 +257,40 @@ export function createRailTrack({ scene, carSprite = null }) {
     }
   }
   // the cars to sort with the units this frame (render/view.js)
-  const things = () => [...trains.values()].flatMap(s => s.sprites ? s.cars.filter(c => c.sprite).map(c => c.sprite.thing) : s.cars.filter(c => c.mesh.visible && c.thing).map(c => c.thing));
+  const things = () => [...trains.values()].flatMap(s => s.sprites ? s.cars.filter(c => c.sprite?.thing.mesh.visible).map(c => c.sprite.thing) : s.cars.filter(c => c.mesh.visible && c.thing).map(c => c.thing));
   function dispose() { for (const id of [...shown.keys()]) drop(id); for (const s of trains.values()) dropTrain(s); trains.clear(); track?.dispose(); bridge?.dispose(); }
+  return { update, things, dispose };
+}
+
+// The capital's railway station (Tim 2026-11-07): a short track from the station's east side out to the edge of the
+// city map, and an engine standing in the station with its nose out of that side, steaming. Scenery only: the trains
+// themselves run on the island. createCityStation({ scene, carSprite, station: { x, z }, edgeX })
+//   -> { update(show, dt), things(), dispose() }
+const CITY_NOSE = 4.6;   // the engine's middle from the station's middle, along the track (its nose comes out past the wall)
+export function createCityStation({ scene, carSprite, station, edgeX }) {
+  const p = [[station.x, station.z], [Math.max(station.x + 8, edgeX), station.z]];
+  const length = p[1][0] - p[0][0], line = { points: p, dist: [0, length], length };
+  const tex = stripTexture('art/ground/rail_track.png'), mat = groundMaterial(tex), r = ribbon(line, 0, length, TRACK_W, 0.03);
+  const mesh = new THREE.Mesh(r.geo, mat); mesh.renderOrder = -0.4; mesh.frustumCulled = false; mesh.visible = false;
+  scene.add(mesh);
+  let engine = null, gone = false, fx = null;
+  carSprite(CAR_ART.engine[0]).then(sp => { if (gone) { scene.remove(sp.thing.mesh, sp.shadow); sp.dispose(); } else { engine = sp; sp.thing.mesh.visible = sp.shadow.visible = false; } });
+  function update(show, dt) {
+    mesh.visible = show;
+    fx ||= createTrainFx(scene);
+    if (!engine) { fx.step(dt, null); return; }
+    engine.thing.mesh.visible = engine.shadow.visible = show;
+    if (!show) { fx.step(dt, null); return; }
+    const half = CAR_ART.engine[1] / 2 - BOGIE_IN, f = pointAt(line, CITY_NOSE + half), b = pointAt(line, CITY_NOSE - half);
+    carPose(engine, f.x - b.x, f.z - b.z);
+    const x = (f.x + b.x) / 2, z = (f.z + b.z) / 2, n = Math.hypot(f.x - b.x, f.z - b.z) || 1;
+    engine.update(dt, x, z, engine.row, 'idle', null, 1);
+    // sorted as if it stood inside the station, so the building hides its back half and only the nose shows
+    engine.thing.foot = { minX: station.x - 1.2, maxX: station.x - 0.8, minZ: station.z - 1.2, maxZ: station.z - 0.8 };
+    engine.thing.updateScreen();
+    fx.step(dt, { x, z, fx: (f.x - b.x) / n, fz: (f.z - b.z) / n }, { mode: 'idle' });
+  }
+  const things = () => engine && engine.thing.mesh.visible ? [engine.thing] : [];
+  function dispose() { gone = true; scene.remove(mesh); r.geo.dispose(); mat.dispose(); tex.dispose(); fx?.dispose(); if (engine) { scene.remove(engine.thing.mesh, engine.shadow); engine.dispose(); } }
   return { update, things, dispose };
 }

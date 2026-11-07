@@ -114,6 +114,11 @@ for (const [d, a, b] of [['NE', 'N', 'E'], ['NW', 'N', 'W'], ['SE', 'S', 'E'], [
 // yawOffset turns models that face another way (mounts, see loadMount)
 let yawOffset = 0;
 const yawFor = d => Math.atan2(DIR_VEC[d].x, DIR_VEC[d].z) + yawOffset;
+// Sheet rows: 8 (S, SW, W ... as DIRS) or more for long vehicles (MOUNTS dirs: 16 / 32, train cars, Tim 2026-11-07):
+// row k faces k * 360 / ROWS degrees round from S, the same way round as DIRS, so every (ROWS / 8)th row is a DIRS row
+let ROWS = 8;
+const rowYaw = k => { const a = k * 2 * Math.PI / ROWS, v = screenRight.clone().multiplyScalar(-Math.sin(a)).addScaledVector(screenDown, Math.cos(a));
+  return Math.atan2(v.x, v.z) + yawOffset; };
 
 // Half the view height in world units. 1.5 leaves room below the feet for
 // lunges and falls (1.2 cut them off at 128px); at 160px cells the character
@@ -845,8 +850,8 @@ function autoFrame(pxPerUnit = 160 / (2 * VIEW_HALF), step = 32) {
       m.setTime(clip.duration * k / 8);
       root.rotation.y = 0; root.updateMatrixWorld(true);
       box.setFromObject(obj, true);
-      for (const d of DIRS) {
-        root.rotation.y = yawFor(d); root.updateMatrixWorld(true);
+      for (let r = 0; r < ROWS; r++) {
+        root.rotation.y = rowYaw(r); root.updateMatrixWorld(true);
         for (let c = 0; c < 8; c++) {
           p.set(c & 1 ? box.max.x : box.min.x, c & 2 ? box.max.y : box.min.y, c & 4 ? box.max.z : box.min.z);
           p.applyAxisAngle(THREE.Object3D.DEFAULT_UP, root.rotation.y).applyMatrix4(view);
@@ -887,7 +892,7 @@ function glowSwap(on, saved) {
 // opts.rows: only these direction rows, stacked in that order (hi-res portraits use [7])
 // opts.blurScale: widen the glow blur to match a bigger frame size
 function renderSheet(i, withGlow = false, opts = {}) {
-  const rows = opts.rows || DIRS.map((_, r) => r), blur = 2.5 * (opts.blurScale || 1);
+  const rows = opts.rows || Array.from({ length: ROWS }, (_, r) => r), blur = 2.5 * (opts.blurScale || 1);
   const size = Number($('size').value);
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
@@ -932,10 +937,10 @@ function renderSheet(i, withGlow = false, opts = {}) {
     }});
   }
 
-  DIRS.forEach((d, dirRow) => {
+  Array.from({ length: ROWS }, (_, k) => k).forEach(dirRow => {
     if (!rows.includes(dirRow)) return;
     const row = rows.indexOf(dirRow);
-    root.rotation.y = yawFor(d);
+    root.rotation.y = rowYaw(dirRow);
     for (let f = 0; f < frames; f++) {
       exMixer.setTime((f / frames) * clip.duration);
       spinWheels(f / frames, frames, clip.duration, entry.name);
@@ -1002,7 +1007,7 @@ window.spriteTest = {
   setProcItem: k => setItemObject(PROC_ITEMS[k]()),
   setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
   setFraming: f => { $('size').value = f.size; $('zoom').value = 3 / f.cellWorld; },
-  setMount: o => { mountOpts = o; },
+  setMount: o => { mountOpts = o; ROWS = o.dirs || 8; },
   // lowest point of each mesh over the first clip (world units, after framing), to check ground contact
   meshLows: () => { const obj = root.children[0], m = new THREE.AnimationMixer(obj), out = {}; const clip = clips[0].clip; m.clipAction(clip).play();
     for (let k = 0; k < 16; k++) { m.setTime(clip.duration * k / 16); root.rotation.y = 0; root.updateMatrixWorld(true);
