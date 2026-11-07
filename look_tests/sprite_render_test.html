@@ -358,6 +358,19 @@ function buildClub() {
   return g;
 }
 
+// Rail gang sledge: wooden haft, iron head block across the top (rail workers, Tim 2026-11-07)
+function buildHammer() {
+  const g = new THREE.Group();
+  const wood = std({ color: 0x7a5233, roughness: 0.8, metalness: 0.02, emissive: 0x24160b }, [0x9ab8ff, 0.2]);
+  const iron = std({ color: 0x3a3e46, roughness: 0.4, metalness: 0.6, emissive: 0x10141a }, [0xa9c4ff, 0.5]);
+  const haft = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.95, 12), wood);
+  haft.rotation.x = Math.PI / 2; haft.position.z = 0.475; g.add(haft);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.036, 10, 8), wood); knob.position.z = 0.0; g.add(knob);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.14), iron); head.position.z = 0.93; g.add(head);
+  [-1, 1].forEach(k => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.16), iron); f.position.set(k * 0.145, 0, 0.93); g.add(f); });
+  return g;
+}
+
 function buildKatana() {
   const g = new THREE.Group();
   const gold = std({ color: 0xb08a40, roughness: 0.35, metalness: 0.7, emissive: 0x120d04 }, [0xffe2a0, 0.8]);
@@ -438,7 +451,7 @@ function buildJitte() {
   const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
   return g;
 }
-const PROC_ITEMS = { club: buildClub, katana: buildKatana, jitte: buildJitte, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true) };
+const PROC_ITEMS = { club: buildClub, hammer: buildHammer, katana: buildKatana, jitte: buildJitte, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true) };
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
 // Hand distance (in character heights / 2) below which both hands hold the

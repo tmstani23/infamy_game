@@ -101,12 +101,15 @@ const ITEMS = {
   brute: { file: 'wooden_club', proc: 'club', mode: 'right', length: 1.0, grip: 0.15, dir: [0.92, 0.38, 0] },
   // Police: iron jitte in the right hand, same hammer grip as the clubs
   police: { file: 'jitte', proc: 'jitte', mode: 'right', length: 0.55, grip: 0.18, dir: [0.92, 0.38, 0] },
+  // Rail gang (Tim 2026-11-07): the laborer body holding a sledge in the right hand, same hammer grip
+  rail_worker: { file: 'hammer', proc: 'hammer', mode: 'right', length: 0.9, grip: 0.12, dir: [0.92, 0.38, 0] },
 };
 // Single clips borrowed from another set (path inside assets/animations)
 const EXTRA = {
   swordsman: ['brawler/Walking.fbx'],
   rival_yakuza: ['brawler/Walking.fbx'],
   geisha: ['Arms Hip Hop Dance.fbx'],
+  rail_worker: ['Great Sword Slash.fbx'],   // the hammer swing (overhead chop) until a proper pounding clip exists
   lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (Tim OK 2026-11-06)
 };
 // Dedicated borrowed clips stay out of the root combat set.
@@ -185,6 +188,8 @@ const grunt = models.find(m => m.name === 'ninja_grunt');
 if (grunt) models.push({ file: grunt.file, name: 'ninja_tanto' });
 const swordsman = models.find(m => m.name === 'swordsman');
 if (swordsman) models.push({ file: swordsman.file, name: 'kuroda_spearman' });
+const laborerM = models.find(m => m.name === 'laborer');
+if (laborerM) models.push({ file: laborerM.file, name: 'rail_worker' });   // laborer body + sledge for the rail gang
 if (only.length) models = models.filter(m => only.includes(m.name));
 const animDir = path.join(root, 'assets', 'animations');
 const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))].filter(a => !EXTRA_ONLY.has(path.basename(a)));
@@ -197,7 +202,7 @@ if (only.length) mounts = mounts.filter(([n]) => only.includes(n));
 if (portrait) mounts = [];
 if (!models.length && !mounts.length) { console.log('No models in assets/models'); process.exit(1); }
 
-const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--allow-file-access-from-files'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--allow-file-access-from-files'] });
 let written = 0;
 try {
 for (const { file: model, name } of models) {
