@@ -34,7 +34,9 @@ const STEER = {
   }
 };
 export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null }) {
-  let selected = null, mode = 'town', page = 0, prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
+  // Tim 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
+  const TABS = [['town', 'Overview'], ['projects', 'Projects'], ['steer', 'Steer'], ['governor', 'Governor'], ['stable', 'Stable']];
+  let selected = null, mode = 'town', tab = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const data=game.frontier?.data;
   let usageResource='timber',usagePage=0;
@@ -89,9 +91,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const now = Date.now();
     if (now - prevAt > 1000) { prevAt = now; prevStock[s.id] = { prev: prevStock[s.id]?.cur, cur: structuredClone(s) }; }
     const rows = reportRows(s, prevStock[s.id]?.prev);
-    let h = '', page1 = '', head = '';
-    head = h;
-    if (mode === 'talk') {
+    let h = '', overH = '', projectsH = '', steerH = '', stableH = '';
+    const hasStable = !!s.buildings?.some(x => x.type === 'stable' && x.stage === 'built');
+    if (tab === 'stable' && !hasStable) tab = 'town';
+    if (mode === 'town' && tab === 'governor') {
       const say = governorSays(rows);
       h += `<h1>Governor</h1><div class="sub">${esc(rows.title)}</div><div class="chat">“${esc(say.text)}”</div><div class="choices">`
         + say.choices.map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
@@ -104,7 +107,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h = usagePage_(s, rows);
     } else {
       const mood = rows.mood;
-      h += `<div class="row"><div><h1>${esc(rows.title)}</h1><div class="sub">Yours · mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div><button data-act="talk"${tip('Talk to the governor: his report, and ways to steer the town.')}>Governor</button></div>`;
+      h += `<div><h1>${esc(rows.title)}</h1><div class="sub">Yours · mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div>`;
       // B3: town hall tier and its upgrade
       if (data?.tiers?.list) {
         const tier = tierOf(s, data), next = nextTier(s, data), up = s.tierUpgrade, chk = upgradeCheck(s, data);
@@ -121,12 +124,14 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(' · ')) + '</div>';
       h += `<div class="lab">Governor says</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
         + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ');
-      page1 = h; h = '';
+      overH = h; h = '';
+      if (!rows.projects.length && !rows.suggestions.length) h += '<div class="hint">No projects or suggestions right now.</div>';
       if (rows.projects.length) h += '<div class="lab">Projects</div>' + rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">· ${esc(p.status)}${p.canAuthorize ? ' · ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
       if (rows.suggestions.length) h += `<div class="lab"${tip(rows.suggestionsTip)}>Suggestions</div>` + rows.suggestions.map(x => `<div class="row"><span>${esc(x.label)} <span class="dim">· ${esc(x.reason)}</span></span><button data-act="approve" data-id="${x.index}">Approve</button></div>`).join('');
       // Tim 2026-11-05: every choice says what it does (hover) and the current one is spelled out under its row
       const st = rows.steer, b = (act, val, label, on, t = '') => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}"${t ? tip(t) : ''}>${label}</button>`;
       const now = text => `<div class="hint steernow">${esc(text)}</div>`, taxNow = st.taxLocked ? st.tax : 'auto';
+      projectsH = `<h1>${esc(rows.title)}</h1>` + h; h = '';
       h += '<div class="lab">Steer</div>';
       h += `<div class="row"><span${tip(st.tips.focus)}>Focus</span><span>${['grow', 'produce', 'trade', 'fortify'].map(p => b('priority', p, p[0].toUpperCase() + p.slice(1), st.priority === p, STEER.focus[p])).join(' ')}</span></div>` + now(STEER.focus[st.priority] || '');
       h += `<div class="row"><span${tip(st.tips.tax)}>Taxes</span><span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p, STEER.tax[p])).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked, STEER.tax.auto)}</span></div>` + now(STEER.tax[taxNow] + (st.taxLocked ? '' : ` Now: ${st.tax}.`));
@@ -143,22 +148,26 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         h += `<div class="lab">Stockade</div><div class="row"><span${tip(`Hits on units inside land on the stockade instead${fort.hp ? ` (${fort.hp} health); if it breaks, everyone inside piles out and the governor rebuilds it` : ''}. Units inside heal ${fort.healFactor}x faster. They must be within ${fort.range} of the stockade to go in. Holds ${fort.capacity}.`)}>Garrison <b>${inside.length}</b> / ${fort.capacity}${fhp}</span><span>${b('garrison-in', 'selected', 'Send in selected', false, 'Send your selected units into the stockade')} ${b('garrison-in', 'crew', 'Hero &amp; crew', false, 'Send your hero and crew nearby into the stockade')} ${b('garrison-in', 'workers', 'Workers', false, 'Send your workers nearby into the stockade; they count as idle there')} ${b('garrison-out', 'all', 'Leave', false, 'Everyone inside walks out')}</span></div>`;
       }
       // Stable (Tim 2026-11-07): horses, rickshaws and omnibuses are bought in the stable menu (src/stable_menu.js)
-      if (s.buildings?.some(x => x.type === 'stable' && x.stage === 'built')) h += `<div class="lab">Stable</div><div class="row"><span${tip('Horses, rickshaws and omnibuses are made at the stable: click it or Space beside it.')}>Horses and vehicles</span><span>${b('openstable', 'open', 'Open stable', false, 'Open the stable menu for this town')}</span></div>`;
+      if (hasStable) stableH = `<h1>${esc(rows.title)}</h1><div class="lab">Stable</div><div class="row"><span${tip('Horses, rickshaws and omnibuses are made at the stable: click it or Space beside it.')}>Horses and vehicles</span><span>${b('openstable', 'open', 'Open stable', false, 'Open the stable menu for this town')}</span></div>`;
       h += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>` + now(STEER.initiative[st.autoBuild ? 'on' : 'off']);
     }
-    let paged = null;
-    if (mode === 'town') { const full = page1 + h; paged = (page === 0 ? page1 : head + `<h1>${esc(rows.title)}</h1>` + h) + `<div class="pager"><button data-act="page" data-id="${page === 0 ? 1 : 0}">${page === 0 ? 'More: projects &amp; steering ›' : '‹ Back to overview'}</button></div>`; h = full; }
-    const build = mode !== 'town' ? '' : buildUI?.html(s) || '';
-    h = build + h;
-    if (paged) paged = build + paged;
-    if(buildUI?.isRosterOpen?.()) {h=build;paged=null;}
-    if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
-    const key = h + page;
-    if (key !== lastHtml) {
-      root.innerHTML = h; lastHtml = key;
-      // everything on one pane; only when it does not fit, buttons switch between two pages
-      if (paged && root.scrollHeight > root.clientHeight + 1) root.innerHTML = paged;
+    if (mode === 'town' && tab !== 'governor') {
+      // h now holds the steer section; pick the body of the current tab
+      steerH = `<h1>${esc(rows.title)}</h1>` + h;
+      h = tab === 'projects' ? projectsH : tab === 'steer' ? steerH : tab === 'stable' ? stableH : overH;
     }
+    const rosterOpen = !!buildUI?.isRosterOpen?.();
+    let tabsH = '';
+    if (mode === 'town') {
+      tabsH = '<div class="ptabs">' + TABS.filter(([id]) => id !== 'stable' || hasStable).map(([id, label]) => `<button data-act="tab" data-id="${id}" class="${!rosterOpen && tab === id ? 'on' : ''}">${label}</button>`).join('')
+        + `<button data-act="build-workers" class="${rosterOpen ? 'on' : ''}">Workers (${s.workers?.length || 0})</button></div>`;
+      const build = (tab === 'town' || rosterOpen) ? buildUI?.html(s) || '' : '';
+      h = rosterOpen ? build : build + h;
+    }
+    h = tabsH + h;
+    if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
+    const key = h + tab;
+    if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; }
   }
   root.addEventListener('mousedown', e => e.stopPropagation());
   root.addEventListener('dblclick',e=>{
@@ -179,8 +188,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'usage-page':usagePage=Number(id);break;
       case 'usage-focus':{const p=data && flowFocus(s,id,usageResource,data);if(p)focus(p[0],p[1]);break;}
       case 'town': selected = id; mode = 'town'; break;
-      case 'page': page = Number(id); break;
-      case 'talk': if (id && s) { const c = id === 'close' ? null : talkCommand(id, reportRows(s)); if (c) cmd(c); mode = id === 'close' ? 'town' : 'talk'; } else mode = mode === 'talk' ? 'town' : 'talk'; break;
+      case 'tab': buildUI?.close(); tab = TABS.some(t => t[0] === id) ? id : 'town'; mode = 'town'; break;
+      case 'talk': if (id && s) { const c = id === 'close' ? null : talkCommand(id, reportRows(s)); if (c) cmd(c); tab = id === 'close' ? 'town' : 'governor'; } else tab = 'governor'; mode = 'town'; break;
       case 'authorize': cmd({ action: 'authorize', project: id }); break;
       case 'cancel': cmd({ action: 'cancel', project: id }); break;
       case 'approve': cmd({ action: 'approveSuggestion', settlement: sid, index: Number(id) }); break;
@@ -207,7 +216,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     for (const r of game.state.frontier?.receipts || []) if (r.clan === clan && r.seq > seen) { seen = r.seq; if (!r.ok) failure = { text: `Not possible: ${r.reason}`, at: Date.now() }; }
   }
   setInterval(() => { watchReceipts(); render(); }, 1000);
-  function open(id) { if (id) selected = id; else if (nearbyTown) selected = nearbyTown(); mode = 'town'; page = 0; root.hidden = false; lastHtml = ''; render(); onOpen(); }
+  function open(id) { if (id) selected = id; else if (nearbyTown) selected = nearbyTown(); mode = 'town'; tab = 'town'; root.hidden = false; lastHtml = ''; render(); onOpen(); }
   function close() { buildUI?.close(); if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
-  return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); mode = 'talk'; render(); }, render };
+  return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); tab = 'governor'; render(); }, render };
 }

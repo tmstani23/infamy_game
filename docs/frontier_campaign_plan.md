@@ -506,6 +506,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Right-click with crew selected on a parked rickshaw (2 seats) or omnibus (8) to garrison them inside.
 - The stable queue holds up to 10 jobs of any mix; +5 queues five. The stable menu lists all your horses and vehicles with recall or take out on each, and a Recall all button.
 - Mounted, the hero trots at run speed (`units.json` `rules.mount.trot`) and gallops at `rules.mount.speed` while Shift is held.
+- Town panel (O) tabs: Overview (build bar), Projects, Steer (focus, taxes, market keep, stockade garrison, takes initiative), Governor, Stable (once built) and Workers; they replace the More: projects & steering page and the Governor and Workers buttons (`src/frontier_panel.js`, `src/frontier_build_ui.js`).
 - The town governor has no figure; Space within 1.5 cells of your own town hall talks to him.
 - Unstuck on the island goes to the front of your nearest town hall, or to the capital gate if that is closer.
 - Town-hall cannons have no ring or health bar and are named "Cannon".

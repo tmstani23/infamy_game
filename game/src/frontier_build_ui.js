@@ -535,7 +535,6 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const steps = [[s.grid.zone.includes('h'),'Housing'],[s.grid.zone.includes('f'),'Farms'],[/[rg]/.test(s.grid.use),'Roads'],[!!s.workers?.length,'Train worker'],[(s.workers || []).some(w=>spotIndex.get(w.spot)?.kind==='timber'),'Assign timber']];
     const guide = steps.map(([done,label])=>`${done ? '✓' : '○'} ${label}`).join(' → ');
     return `<div class="townbuild"><button data-act="build-toggle" aria-expanded="${opened}">${opened ? 'Close build bar' : 'Build bar'}</button>`
-      + `<button data-act="build-workers">Workers (${s.workers?.length || 0})</button>`
       + (opened ? `<div class="buildtools">${['road','wall','gate','housing','farm','work','eraser'].map(t => button(t,townName(t))).join('')}`
         + Object.entries(data.buildings).filter(([k,v]) => v.size && !data.zones.fromBuilding[k]).map(([k]) => button(k,townName(k))).join('')
         + `</div><div class="hint">Drag, release, review requirements, then Confirm or Cancel. Right click / Esc cancels.<br>Zone previews match their buttons; amber border = short, red border = abandoned.</div>` : '')
