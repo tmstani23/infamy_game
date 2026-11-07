@@ -164,6 +164,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Town panel → Steer → Market (Village tier) | A built market sells goods above the town's keep level for ryo (about 1 ryo per goods, a little each second). − / + changes the keep level in steps of 100 (default 400). Sales show in Usage → Goods as Market sales. Idle townsfolk pay half tax (2026-11-05). |
 | H (island) | Ride your horse, get off, or call her. No fighting while mounted; thrown off below 1/3 health and at the gate. Right-click your own horse to ride her. In the city H still hires crew. |
 | Shift while mounted | Gallop (otherwise the horse trots at run speed). |
+| Mount controls → Sprint | Keeps the hero's horse galloping without holding Shift, until clicked again or he gets off. The Shift+H button reads Mount up, or All off once the crew ride. |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: the hero group's crew get on horses (not settlers or workers); crew dismount to fight. |
 | Shift+Y | Vehicles panel: your vehicles, with recall, store and take out. |

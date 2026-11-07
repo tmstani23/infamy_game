@@ -1,3 +1,4 @@
+import { sprintOn, setSprint } from './input.js';
 // Independent crew command panel; wraps buttons into the chosen width,
 // styled like the ability slots with the key in the corner (Tim 2026-10-19).
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
@@ -13,8 +14,9 @@ const CMDS = [
 ];
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
-  { key: 'H', name: 'Horse', tip: 'On the island: ride your horse (3.75x run speed), get off, or call her and she gallops to you. Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
-  { key: '⇧H', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
+  { key: 'H', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed), get off, or call her and she gallops to you. Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
+  { key: 'Shift', name: 'Sprint', tip: 'On horseback: gallop at 3.75x run speed. Hold Shift while you ride, or click here to keep galloping until you click again or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
+  { key: 'Shift+H', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
   { key: 'Q', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
 ];
 
@@ -28,6 +30,10 @@ const CSS = `
   #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 9px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
   #crewcommands .ccmd.off { filter: grayscale(1) brightness(.5); cursor: default; }
   #crewcommands .mounthead { padding: 3px 8px 0; font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .06em; color: #c9b27a; text-transform: uppercase; }
+  #crewcommands .mountcmds { grid-template-columns: repeat(auto-fit, minmax(min(46px,100%),1fr)); gap: 3px; padding: 4px 5px; }
+  #crewcommands .mountcmds .ccmd { min-height: 30px; }
+  #crewcommands .mountcmds .ccmd .key { font-size: 9px; } #crewcommands .mountcmds .ccmd .nm { bottom: 3px; }
+  #crewcommands .ccmd.on { border-color: #ffd34d; box-shadow: 0 0 6px rgba(255,190,60,.6); }
   #crewcommands .ccmd.press { border-color: #ffd34d; box-shadow: 0 0 8px rgba(255,190,60,.7); }`;
 
 export function createCrewBar({ root, game, heroId, crewInput }) {
@@ -45,7 +51,7 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
   const mountHead = document.createElement('div');
   mountHead.className = 'mounthead'; mountHead.textContent = 'Mount controls';
   const mountStrip = document.createElement('div');
-  mountStrip.className = 'crewcmds';
+  mountStrip.className = 'crewcmds mountcmds';
   root.appendChild(mountHead); root.appendChild(mountStrip);
   const buttons = [...CMDS, ...MOUNT_CMDS].map(cmd => {
     const b = document.createElement('div');
@@ -84,8 +90,12 @@ export function createCrewBar({ root, game, heroId, crewInput }) {
     const bus = !!h?.aboard || busNear;
     for (const { b, cmd } of buttons) if (cmd.need === 'bus') b.querySelector('.nm').textContent = h?.aboard ? 'Step out' : busNear ? 'Get in' : 'Omnibus';
     const horse = h?.place === 'world' && !!game.mounts?.mountOf(h.owner);
-    for (const { b, cmd } of buttons) if (cmd.need === 'horse') b.querySelector('.nm').textContent = h?.mounted ? 'Get off' : 'Horse';
-    const available = { sel, follow, street, outdoor, crew, sector, bus, horse };
+    const crewRiding = Object.values(S).some(e => usable(e) && e.mounted);
+    for (const { b, cmd } of buttons) if (cmd.need === 'horse') b.querySelector('.nm').textContent = cmd.key === 'H' ? (h?.mounted ? 'Get off' : 'Horse') : crewRiding ? 'All off' : 'Mount up';
+    const riding = !!h?.mounted;
+    if (!riding && sprintOn()) setSprint(false);
+    for (const { b, cmd } of buttons) if (cmd.need === 'riding') { b.classList.toggle('on', sprintOn()); b.querySelector('.nm').textContent = sprintOn() ? 'Galloping' : 'Sprint'; }
+    const available = { sel, follow, street, outdoor, crew, sector, bus, horse, riding };
     for (const { b, cmd } of buttons) b.classList.toggle('off', !available[cmd.need]);
   }
   return { update };

@@ -34,6 +34,11 @@ export function edgeAxes() {
   const up = mouse.y <= EDGE ? 1 : mouse.y >= innerHeight - 1 - EDGE ? -1 : 0;
   return { right, up };
 }
+// Sprint toggle (Tim 2026-11-07): the Sprint button in Mount controls makes the hero's horse gallop without
+// holding Shift; it switches off when he gets off (crew_bar.js)
+let sprintLock = false;
+export const sprintOn = () => sprintLock;
+export function setSprint(on) { sprintLock = !!on; }
 // Screen-relative WASD for unit `id`; Shift walks (on a horse: gallops, sim/game.js)
 export function moveCommand(id) {
   return {
@@ -41,5 +46,6 @@ export function moveCommand(id) {
     right: axis(['KeyA'], ['KeyD']),
     down: axis(['KeyW'], ['KeyS']),
     walk: keys.has('ShiftLeft') || keys.has('ShiftRight'),
+    sprint: sprintLock,
   };
 }

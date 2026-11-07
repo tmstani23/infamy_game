@@ -1051,8 +1051,8 @@ export function createGame(options) {
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns
         const kind = e.ride.kind === 'horse' ? 'mount' : state.entities[e.aboard]?.type || 'omnibus';
         // a horse trots at rules.mount.trot x run speed; Shift (c.walk) gallops at full ride speed (Tim 2026-11-07)
-        const M = units?.rules?.mount || {}, trot = kind === 'mount' && !c.walk ? (M.trot ?? 1) / (e.ride.speed || 1) : 1;
-        if (kind === 'mount') e.gallop = !!c.walk;
+        const M = units?.rules?.mount || {}, gallop = c.walk || c.sprint, trot = kind === 'mount' && !gallop ? (M.trot ?? 1) / (e.ride.speed || 1) : 1;
+        if (kind === 'mount') e.gallop = !!gallop;
         const s = steer(e, Math.atan2(dx, dz), { turnDegrees: units?.rules?.[kind]?.turnDegrees ?? 120 }, DT), d = stats.movement(e, 'run') * DT * s.slow * Math.min(1, trot);
         tryMove(e, unit.radius, s.hx * d, 0);
         tryMove(e, unit.radius, 0, s.hz * d);
