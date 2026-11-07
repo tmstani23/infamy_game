@@ -172,7 +172,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Shift+K | Evacuates all your stockades (K alone is mute). |
 | Space at a station (train standing) | Trains stand 60 s at each station; while one stands where you are, the Space prompt names its destination and a departure countdown. The town "station" building is the railway station. |
 | Hover / left-click a salute cannon | Hover shows a card with ready or seconds left; left-click fires the salute (2 min cooldown, shared with the governor's Fire a salute). |
-| Vehicles following in a line | Keep (length of the one ahead + own length)/2 + followClearance apart, centre to centre (units.json: omnibus length 7, followClearance 3; rickshaw length 5). |
+| Vehicles following in a line | Loaded vehicles following the hero ride single file along his track. Each stays (length of the one ahead + own length)/2 + followClearance back along the trail, gallops to catch up, and never moves into the one ahead (units.json: omnibus length 7, followClearance 4; rickshaw length 5). |
 | Click a vehicle | Shows it in the target frame. |
 | Double-click a crew member or vehicle | Camera follows it until you pan, click the map or press Home. |
 | Right-click a rickshaw or omnibus | With a group or 1–2 crew selected, the nearest fill the free seats. Right-clicking a full vehicle, or one with no other crew selected, unloads it. |
