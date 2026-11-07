@@ -298,23 +298,36 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   function captureWater(camera, time) {
     if (!waterEffects) return;
     let waterVisible = false;
+    // perf 2026-11-07 (Tim: lag riding past water): the box around all water in view, so the reflection
+    // pass can skip everything standing too far from it to show in it
+    let w0x = Infinity, w0z = Infinity, w1x = -Infinity, w1z = -Infinity;
     if (shown && painter) {
       camera.updateMatrixWorld(); reflectionProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       reflectionFrustum.setFromProjectionMatrix(reflectionProjection);
       const T = world.terrain.cell, pad = world.terrain.shoreline?.radius || 0;
       // perf 2026-11-07: each chunk's water cells are listed once, not rescanned every frame
-      outer: for (const c of loaded.values()) {
+      for (const c of loaded.values()) {
         if (!c.water) { c.water = []; for (let j = 0; j < c.gen.cells.length; j++) for (let i = 0; i < c.gen.cells[j].length; i++) if ('wr'.includes(c.gen.cells[j][i])) c.water.push(c.gen.x0 + i * T, c.gen.z0 + j * T); }
         for (let k = 0; k < c.water.length; k += 2) {
           const x = c.water[k], z = c.water[k + 1];
           waterBox.min.set(x - pad, -0.1, z - pad); waterBox.max.set(x + T + pad, 0.1, z + T + pad);
-          if (reflectionFrustum.intersectsBox(waterBox)) { waterVisible = true; break outer; }
+          if (reflectionFrustum.intersectsBox(waterBox)) { waterVisible = true; w0x = Math.min(w0x, x - pad); w0z = Math.min(w0z, z - pad); w1x = Math.max(w1x, x + T + pad); w1z = Math.max(w1z, z + T + pad); }
         }
       }
     }
     const hidden = [];
     for (const c of loaded.values()) { hidden.push(c.mesh); if (c.coastMesh) hidden.push(c.coastMesh); }
     for (const t of sprites.values()) if (t.decal) hidden.push(t.mesh);
+    if (waterVisible) {   // small things (sprites, props, units) farther than REACH from that water are left out of the reflection
+      const REACH = 45;
+      for (const o of scene.children) {
+        if (!o.visible || !o.geometry || !o.isMesh) continue;
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        if (o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z) > 30) continue;
+        const { x, z } = o.position;
+        if (x < w0x - REACH || x > w1x + REACH || z < w0z - REACH || z > w1z + REACH) hidden.push(o);
+      }
+    }
     waterEffects.capture(camera, time, waterVisible, hidden);
   }
   function setTowns(list) { towns = list; propAt = null; }

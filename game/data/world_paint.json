@@ -17,7 +17,7 @@
   "_note": "Painted water with animated surface slopes and light, independent of the slow base color drift. World-unit wave sizes/speeds; visual only. Disable to compare the earlier seam-safe color-flow shader.",
   "enabled": true,
   "normalMaps": {"size":512,"tile":8,"strength":0.65,"flowSpeed":0.045},
-  "reflection": {"enabled":true,"size":512,"strength":0.8,"distortion":0.012,"updateHz":30},
+  "reflection": {"enabled":true,"size":512,"strength":0.8,"distortion":0.012,"updateHz":15},
   "drift": [0.001, 0.0006],
   "distortion": 0.025,
   "textureStrength": 0.12,

@@ -30,7 +30,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   renderer.info.autoReset=false; // count all water/bloom/main passes together for diagnostics
   let frameDrawMs=0,frameWorkers=0;
   const frameParts={};   // F3 breakdown of the frame's CPU time (Tim 2026-11-07 lag hunt)
-  let partAt=0;const mark=k=>{const n=performance.now();frameParts[k]=(frameParts[k]||0)*0.9+(n-partAt)*0.1;partAt=n;};
+  const framePeaks={};   // worst single frame of each part over the last 8 s, so a hitch can be read after stopping
+  let partAt=0;const mark=k=>{const n=performance.now(),v=n-partAt;frameParts[k]=(frameParts[k]||0)*0.9+v*0.1;const pk=framePeaks[k];if(!pk||v>pk.v||n-pk.at>8000)framePeaks[k]={v,at:n};partAt=n;};
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -405,6 +406,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
     worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
+    mark('ground');
     railTrack?.update(state.frontier, heroPlace === 'world', dt);
     mark('rail');
     updateLights(time);
@@ -518,7 +520,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     setTowns: list => worldGround?.setTowns(list),
     graphicsStats:()=>({drawMs:frameDrawMs,calls:renderer.info.render.calls,sprites:sprites.size,workers:frameWorkers,
       geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,programs:renderer.info.programs?.length || 0,
-      width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio(),parts:{...frameParts}}),
+      width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio(),parts:{...frameParts},peaks:Object.fromEntries(Object.entries(framePeaks).map(([k,p])=>[k,p.v]))}),
     setPresentationActive(active){
       fxLayer.hidden=!active;
       resumingPresentation=active;

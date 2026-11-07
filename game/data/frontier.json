@@ -115,6 +115,7 @@
     "stable": "stable",
     "station": "coach_house",
     "market": "market_stall",
+    "_placedFootprint": { "_note": "Tim 2026-11-07, placeholder, Tim to tune: largest width a placed building's art may take, in town cells (11 world units each); bigger art is shrunk to fit, smaller is left. Zone houses use zoneFootprint (0.8 cell).", "storehouse": 0.9, "infirmary": 0.9, "market": 0.9, "lumber_camp": 1.0, "stable": 1.6, "station": 1.6, "quarry": 1.6, "workshop": 1.6 },
     "zone:h": "townhouse",
     "zone:f": "haystack",
     "zone:k": "smithy",

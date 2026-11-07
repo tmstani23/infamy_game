@@ -9,6 +9,7 @@ export function createFps({diagnostics=()=>null,sim=()=>null}={}) {
   let frames = 0, worst = 0, since = performance.now(), last = since;
   return {
     toggle() { el.hidden = !el.hidden; },
+    show(v) { el.hidden = !v; },
     frame() {
       const now = performance.now();
       worst = Math.max(worst, now - last); last = now; frames++;
@@ -18,7 +19,7 @@ export function createFps({diagnostics=()=>null,sim=()=>null}={}) {
         const d=diagnostics();
         el.style.whiteSpace='pre-line';
         el.textContent = `${Math.round(frames * 1000 / (now - since))} fps  worst ${Math.round(worst)} ms${mem}`
-          +(d?`\nDraw ${d.drawMs.toFixed(1)}ms · ${d.calls} calls · ${d.sprites} sprites (${d.workers} workers)\nGPU resources: ${d.geometries} geometries · ${d.textures} textures · ${d.programs} programs\n${d.width}×${d.height} · DPR ${d.pixelRatio}`+(d.parts?`\nFrame ms: ${Object.entries(d.parts).map(([k,v])=>`${k} ${v.toFixed(1)}`).join(' · ')}`:''):'');
+          +(d?`\nDraw ${d.drawMs.toFixed(1)}ms · ${d.calls} calls · ${d.sprites} sprites (${d.workers} workers)\nGPU resources: ${d.geometries} geometries · ${d.textures} textures · ${d.programs} programs\n${d.width}×${d.height} · DPR ${d.pixelRatio}`+(d.parts?`\nFrame ms: ${Object.entries(d.parts).map(([k,v])=>`${k} ${v.toFixed(1)}`).join(' · ')}`:'')+(d.peaks?`\nWorst frame, last 8 s: ${Object.entries(d.peaks).filter(([,v])=>v>=1).map(([k,v])=>`${k} ${v.toFixed(0)}`).join(' · ')}`:''):'');
       }
       const sd=sim();
       if(sd && !el.hidden) {
