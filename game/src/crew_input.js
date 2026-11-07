@@ -201,9 +201,16 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const horse = e.button === 2 && horseAt(e.clientX, e.clientY);
     if (horse) { send({ id: heroId, type: 'mount', horse: horse.id }); return; }
     const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
-    // selected crew and the hero not beside it: they walk over and get in on their own (Tim 2026-11-07)
-    const crewOnly = bus && !busRiders(bus) && mine().length && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) > 6;
-    if (bus) { send(busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy', vehicles: [bus.id] } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly }); return; }
+    // selected crew walk over and get in on their own (Tim 2026-11-07), the rickshaw (2 seats) the same as the omnibus,
+    // also into one that already has crew aboard; only with the hero right beside an empty one does he get in with them.
+    // Right-click with no crew selected (or only crew already inside it) lets them out.
+    const crewSel = bus ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && u.aboard !== bus.id; }) : [];
+    const heroBeside = bus && !busRiders(bus) && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) <= 6;
+    const aboardOrComing = bus ? Object.values(game.state.entities).filter(u => u.aboard === bus.id || u.boardBus === bus.id).length : 0;
+    const full = bus && aboardOrComing >= (game.omnibus?.seatsOf?.(bus) ?? (bus.type === 'rickshaw' ? 2 : 8));   // full: right-click lets them out
+    const crewOnly = bus && !bus.driver && !full && crewSel.length > 0 && !heroBeside;
+    if (bus) { send(crewOnly ? { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: crewSel, crewOnly: true }
+      : busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy', vehicles: [bus.id] } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly: false }); return; }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';

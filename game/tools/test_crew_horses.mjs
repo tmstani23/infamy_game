@@ -74,4 +74,12 @@ const rx = rk.x; for (let t = 0; t < 40; t++) g.step([]);
 assert.ok(Math.abs(rk.x - rx) < 0.5, 'it stays put until told');
 g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [rk.id] }]);
 assert.equal(Object.values(S.entities).filter(u => u.aboard === rk.id).length, 0, 'let out');
+// one at a time: a second crew member joins the one already inside (Tim 2026-11-07: same as the omnibus)
+for (const u of three.slice(0, 2)) {
+  g.step([{ id: hero.id, type: 'omnibus', action: 'board', omnibus: rk.id, units: [u.id], crewOnly: true }]);
+  for (let t = 0; t < 200 && u.aboard !== rk.id; t++) g.step([]);
+  assert.equal(u.aboard, rk.id, 'got in one at a time');
+}
+g.step([{ id: hero.id, type: 'omnibus', action: 'board', omnibus: rk.id, units: [three[2].id], crewOnly: true }]);
+assert.ok(!three[2].boardBus, 'full: no third');
 console.log('test_crew_horses: ok');

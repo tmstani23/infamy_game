@@ -175,6 +175,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Vehicles following in a line | Keep (length of the one ahead + own length)/2 + followClearance apart, centre to centre (units.json: omnibus length 7, followClearance 3; rickshaw length 5). |
 | Click a vehicle | Shows it in the target frame. |
 | Double-click a crew member or vehicle | Camera follows it until you pan, click the map or press Home. |
+| Right-click a rickshaw or omnibus | With a group or 1–2 crew selected, the nearest fill the free seats. Right-clicking a full vehicle, or one with no other crew selected, unloads it. |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: the hero group's crew get on horses (not settlers or workers); crew dismount to fight. |
 | Shift+Y | Vehicles panel: your vehicles, with recall, store and take out. |

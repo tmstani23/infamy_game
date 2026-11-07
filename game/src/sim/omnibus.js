@@ -104,6 +104,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     if (room <= 0) { say(hero.owner, `The ${bus.type} is full`); return false; }
     const group = (c.units || []).map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && u.type !== 'horse' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === bus.place);
     if (!group.length) return false;
+    group.sort((a, b) => Math.hypot(a.x - bus.x, a.z - bus.z) - Math.hypot(b.x - bus.x, b.z - bus.z));   // a whole group: the nearest fill the seats
     for (const u of group.slice(0, room)) {
       if (u.mounted) { delete u.mounted; delete u.ride; }
       u.boardBus = bus.id; u.order = { kind: 'move', x: bus.x, z: bus.z, place: bus.place }; forget(u.id);
