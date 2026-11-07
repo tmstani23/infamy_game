@@ -164,8 +164,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Town panel → Steer → Market (Village tier) | A built market sells goods above the town's keep level for ryo (about 1 ryo per goods, a little each second). − / + changes the keep level in steps of 100 (default 400). Sales show in Usage → Goods as Market sales. Idle townsfolk pay half tax (2026-11-05). |
 | H (island) | Ride your horse, get off, or call her. No fighting while mounted; thrown off below 1/3 health and at the gate. Right-click your own horse to ride her. In the city H still hires crew. |
 | Shift while mounted | Gallop (otherwise the horse trots at run speed). |
-| Mount controls → Sprint | Keeps the hero's horse galloping without holding Shift, until clicked again or he gets off. The Shift+H button reads Mount up, or All off once the crew ride. |
-| Driving a rickshaw or omnibus | The hero's vehicle trots at run speed; Shift or Mount controls → Sprint gallops at full speed (rickshaw 3.5x, omnibus 3x). Crew-driven and following vehicles keep full speed. |
+| Mount controls → Sprint / Shift | On a horse or driving a vehicle, Shift or the Sprint button toggles gallop on and off (until toggled again or he gets off). On foot, Shift still walks while held. The Shift+H button reads Mount up, or All off once the crew ride. |
+| Driving a rickshaw or omnibus | The hero's vehicle trots at run speed; Sprint toggled on (Shift or Mount controls → Sprint) gallops at full speed (rickshaw 3.5x, omnibus 3x). Crew-driven and following vehicles keep full speed. |
 | Gold ring (island) | Marks where Space works at each built town hall, stable and station, on the screen-down front of the building; standing in or near it shows the prompt. |
 | Right-click own finished stockade | With crew selected: they go in (farther than 14 walk over first, then enter; the hero never walks by order). No selection: opens the town panel. Hit area is wider and taller than other buildings (11 each side, 12 up, 6 down world units). |
 | Stockade badge | Shows Inside N / 40 · Evacuate; clicking walks everyone out. Hovering the stockade shows the same count. |

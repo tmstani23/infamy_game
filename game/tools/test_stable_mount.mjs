@@ -65,7 +65,7 @@ for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down
 assert.ok(hero.x - x0 > 5 && hero.x - x0 < 6 * (M.trot ?? 1) * 2 + 1, `trotted (${(hero.x - x0).toFixed(1)} in 2 s)`);
 assert.equal(bb.anim, 'trot', 'trot clip (the walk sheet played faster)');
 x0 = hero.x;
-for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0, walk: true }]);
+for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0, sprint: true }]);
 assert.ok(hero.x - x0 > 20, `galloped with Shift (${(hero.x - x0).toFixed(1)} in 2 s)`);
 assert.equal(bb.anim, 'run', 'gallop clip');
 assert.ok(Math.hypot(bb.x - hero.x, bb.z - hero.z) < 1e-6, 'the horse is under him');

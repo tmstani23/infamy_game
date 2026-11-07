@@ -12,7 +12,7 @@ import { setupMatch } from './sim/setup_match.js';
 import { loadSave, heroOf, decode } from './sim/save.js';
 import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
-import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput } from './input.js';
+import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput, setSprint, sprintOn } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { interactionDoor as selectInteractionDoor } from './door_interaction.js';
 import { createClinicMenu } from './clinic_menu.js';
@@ -302,6 +302,8 @@ async function start() {
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, Tim 2026-11-06); in the city it hires
   // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (Tim 2026-11-07)
+  // Shift on a horse or driving: sprint on / off (Tim 2026-11-07; on foot Shift still walks while held)
+  onKey(['ShiftLeft', 'ShiftRight'], () => { if (game.state.entities[heroId]?.ride) setSprint(!sprintOn()); });
   onKey('KeyH', e => { if (game.state.entities[heroId]?.place === 'world') pending.push(e?.shiftKey ? { id: heroId, type: 'mount', group: true, units: crewInput.selected() } : { id: heroId, type: 'mount' }); else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office

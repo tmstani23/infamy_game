@@ -47,7 +47,7 @@ export function edgeAxes() {
 let sprintLock = false;
 export const sprintOn = () => sprintLock;
 export function setSprint(on) { sprintLock = !!on; }
-// Screen-relative WASD for unit `id`; Shift walks (on a horse: gallops, sim/game.js)
+// Screen-relative WASD for unit `id`; Shift held walks on foot (on a horse or driving, Shift toggles sprint: main.js)
 export function moveCommand(id) {
   return {
     id, type: 'move',
