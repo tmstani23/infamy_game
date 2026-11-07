@@ -67,3 +67,21 @@ console.log('garrison workers ok');
   assert.equal(g3.shelter(p1, 10), false, 'outside again: hits land as normal');
   console.log('garrison stockade health ok');
 }
+// right-click walk-in, count and evacuate (Tim 2026-11-07)
+{
+  const { garrisonCount } = await import('../src/town_props.js');
+  const t = { id: 't4', owner: 'c1', x: 0, z: 0, grid: town.grid, buildings: [{ id: 'b4', type: 'stockade', cells: [12, 13, 17, 18], stage: 'built' }], workers: [] };
+  const s4 = { tick: 1, frontier: { receipts: [], settlements: { t4: t } }, entities: { h: { id: 'h', owner: 'c1', type: 'hero', place: 'world', x: 90, z: 5 }, a: { id: 'a', owner: 'c1', type: 'crew', place: 'world', x: 60, z: 5 }, n: { id: 'n', owner: 'c1', type: 'crew', place: 'world', x: 16, z: 5 } } };
+  const g4 = createGarrison({ state: s4, data, world: { settlement: id => s4.frontier.settlements[id] } });
+  g4.command(s4.entities.h, { action: 'garrison', mode: 'enter', town: 't4', walk: true, units: ['h', 'a', 'n'] });
+  assert.ok(s4.entities.n.garrison, 'near crew go in at once');
+  assert.equal(s4.entities.a.order.garrisonGo, 't4', 'far crew walk over');
+  assert.equal(s4.entities.h.order, undefined, 'the hero does not walk by order');
+  g4.tick(); assert.ok(!s4.entities.a.garrison, 'not there yet');
+  s4.entities.a.x = 12; g4.tick();
+  assert.ok(s4.entities.a.garrison, 'goes in on arrival');
+  assert.equal(garrisonCount(s4.frontier, s4.entities, t), 2);
+  g4.command(s4.entities.h, { action: 'garrison', mode: 'leave', town: 't4' });
+  assert.equal(garrisonCount(s4.frontier, s4.entities, t), 0, 'evacuated');
+  console.log('garrison walk-in ok');
+}

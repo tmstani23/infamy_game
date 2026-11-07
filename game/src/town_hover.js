@@ -1,9 +1,9 @@
 // Hover tooltip and right-click on a founded town's buildings (frontier E5, Tim 2026-11-04). Reads the
 // frontier snapshot only; right-click opens the town panel for that town and flashes the plot.
-import { drawableTowns, townPlots, plotInfo } from './town_props.js';
+import { drawableTowns, townPlots, plotInfo, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
-export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData }) {
+export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
   const owner = () => game.state.entities[heroId]?.owner;
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
@@ -20,7 +20,9 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     for (const p of plots) {
       const u = view.unitToScreen(p.x, p.z, 0), a = view.unitToScreen(p.x + 1, p.z, 0), k = Math.hypot(a.x - u.x, a.y - u.y) || 1;
       const dx = Math.abs(x - u.x), dy = y - u.y;
-      if (dx <= 5 * k && dy >= -7 * k && dy <= 3 * k && dx + Math.abs(dy) < bestD) { best = p; bestD = dx + Math.abs(dy); }
+      // a stockade is 4 cells of tall art: a wider, taller hit area than a one-cell building (Tim 2026-11-07)
+      const wide = p.type === 'stockade' ? 11 : 5, up = p.type === 'stockade' ? 12 : 7, down = p.type === 'stockade' ? 6 : 3;
+      if (dx <= wide * k && dy >= -up * k && dy <= down * k && dx + Math.abs(dy) < bestD) { best = p; bestD = dx + Math.abs(dy); }
     }
     return best;
   }
@@ -66,7 +68,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
     const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel');
-    const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData);
+    const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities);
     if (!info) { tipEl.hidden = true; return; }
     const html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
     if (tipEl.dataset.html !== html) { tipEl.innerHTML = html; tipEl.dataset.html = html; }
@@ -79,7 +81,36 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     const p = plotAt(e.clientX, e.clientY);
     if (!p) return;
     e.stopImmediatePropagation(); e.preventDefault();
-    flash(p); openTown(p.town);
+    flash(p);
+    // right-click your finished stockade with crew selected (Tim 2026-11-07): they go in (far ones walk over first)
+    const s = game.state.frontier?.settlements?.[p.town], ids = selected(), b = s?.buildings?.find(x => x.id === p.id);
+    if (p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner() && ids.length) {
+      send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, walk: true, units: ids });
+      return;
+    }
+    openTown(p.town);
   }, { capture: true });
-  return {};
+  // the garrison count over each of your stockades, with a click to walk everyone out (and Shift+K does it from anywhere)
+  const badges = new Map();
+  function evacuate(town) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town }); }
+  function evacuateAll() {
+    for (const s of drawableTowns(game.state.frontier, owner())) if (garrisonCount(game.state.frontier, game.state.entities, s)) evacuate(s.id);
+  }
+  setInterval(() => {
+    if (!badgeEl) return;
+    const want = new Set();
+    if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner())) {
+      const b = s.buildings.find(x => x.type === 'stockade' && x.stage === 'built'), n = b ? garrisonCount(game.state.frontier, game.state.entities, s) : 0;
+      if (!n) continue;
+      const pl = townPlots([s]).find(q => q.id === b.id); if (!pl) continue;
+      want.add(s.id);
+      let el = badges.get(s.id);
+      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); evacuate(s.id); }); badgeEl.appendChild(el); badges.set(s.id, el); }
+      const u = view.unitToScreen(pl.x, pl.z, 3), cap = frontierData?.buildings?.stockade?.garrison?.capacity;
+      el.textContent = `Inside ${n}${cap ? ` / ${cap}` : ''} · Evacuate`; el.title = 'Everyone inside walks out (Shift+K)';
+      el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
+    }
+    for (const [id, el] of badges) if (!want.has(id)) { el.remove(); badges.delete(id); }
+  }, 150);
+  return { evacuateAll };
 }

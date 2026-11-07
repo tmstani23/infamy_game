@@ -425,6 +425,7 @@ async function start() {
   onKey('KeyT', () => crewInput.crewAttack());
   onKey('KeyG', () => crewInput.healSelected());
   let openTownHook = () => {};   // opens a town panel (F4.4d)
+  let evacuateGarrison = () => {};   // Shift+K: everyone out of your stockades (Tim 2026-11-07)
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
@@ -449,7 +450,7 @@ async function start() {
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
   const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };
-  onKey('KeyK', mute);
+  onKey('KeyK', e => e?.shiftKey ? evacuateGarrison() : mute());
   $('mutebtn').addEventListener('click', e => { mute(); e.currentTarget.blur(); });
   // Pause (Tim 2026-10-27, single player): the sim stops stepping, drawing and menus keep going
   let paused = false;
@@ -581,7 +582,9 @@ async function start() {
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
-    createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier });
+    const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
+      send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges') });
+    evacuateGarrison = () => townHover.evacuateAll();
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
     // Tim 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road

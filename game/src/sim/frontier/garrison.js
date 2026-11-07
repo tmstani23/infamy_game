@@ -63,21 +63,28 @@ export function createGarrison({ state, data, world }) {
     }
     if (c.mode !== 'enter') return receipt(e, c, false, 'enter or leave');
     const [cx, cz] = centre(s, b);
-    let room = R.capacity - inside.length, taken = 0, far = 0;
+    let room = R.capacity - inside.length, taken = 0, far = 0, walking = 0;
     for (const id of Array.isArray(c.units) ? c.units : []) {
       const u = state.entities[id];
       if (!u || (u.owner ?? u.workerOwner) !== e.owner || u.garrison || u.dead || u.downed || u.jailed || u.place !== 'world') continue;
       if ((u.type === 'civilian' && !u.worker) || u.wild || u.cop) continue;
-      if (Math.hypot(u.x - cx, u.z - cz) > R.range) { far++; continue; }
+      if (Math.hypot(u.x - cx, u.z - cz) > R.range) {
+        // right-click on the stockade (Tim 2026-11-07): far units walk over and go in when they arrive
+        if (c.walk && u.type !== 'hero' && !u.worker && !u.aboard && !u.mounted) { u.order = { kind: 'move', x: cx, z: cz, garrisonGo: s.id }; delete u.attackTarget; walking++; } else far++;
+        continue;
+      }
       if (room <= 0) return receipt(e, c, taken > 0, 'stockade is full');
-      u.garrison = { town: s.id, building: b.id, heal: R.healFactor };
-      delete u.order; delete u.swing; delete u.attackTarget;
-      const w = workerOf(s, u);
-      if (w) { w.garrison = true; w.order = { kind: 'hold' }; w.spot = null; w.trip = null; w.project = null; w.nextOrder = null; w.departure = [cx, cz]; }
-      room--; taken++;
+      admit(s, b, u, [cx, cz]); room--; taken++;
     }
-    if (!taken) return receipt(e, c, false, far ? 'move closer to the stockade' : 'nobody can go in');
+    if (!taken && !walking) return receipt(e, c, false, far ? 'move closer to the stockade' : 'nobody can go in');
     return receipt(e, c, true);
+  }
+
+  function admit(s, b, u, [cx, cz]) {
+    u.garrison = { town: s.id, building: b.id, heal: rules().healFactor };
+    delete u.order; delete u.swing; delete u.attackTarget;
+    const w = workerOf(s, u);
+    if (w) { w.garrison = true; w.order = { kind: 'hold' }; w.spot = null; w.trip = null; w.project = null; w.nextOrder = null; w.departure = [cx, cz]; }
   }
 
   // a hit on a sheltered unit: the stockade takes the damage; true when it was absorbed
@@ -100,6 +107,15 @@ export function createGarrison({ state, data, world }) {
     for (const s of Object.values(state.frontier?.settlements || {})) for (const w of s.workers || []) {   // a woken garrisoned worker is put back inside
       const u = w.garrison && state.entities?.[w.entity];
       if (u && !u.garrison && stockadeOf(s)) u.garrison = { town: s.id, building: stockadeOf(s).id, heal: rules()?.healFactor || 1 };
+    }
+    for (const u of Object.values(state.entities || {})) {   // units sent by right-click go in once they are within range
+      const go = u.order?.garrisonGo; if (!go || u.garrison) continue;
+      const s = world.settlement(go), b = s && stockadeOf(s), R = rules();
+      if (!s || !b || !R || s.owner !== (u.owner ?? u.workerOwner) || u.dead || u.downed || u.jailed) { if (u.order) delete u.order.garrisonGo; continue; }
+      const [cx, cz] = centre(s, b);
+      if (Math.hypot(u.x - cx, u.z - cz) <= R.range - 2 || u.order.arrived) {
+        if (Math.hypot(u.x - cx, u.z - cz) <= R.range && members(s).length < R.capacity) admit(s, b, u, [cx, cz]); else delete u.order.garrisonGo;
+      }
     }
     for (const u of Object.values(state.entities || {})) {
       const g = u.garrison; if (!g) continue;

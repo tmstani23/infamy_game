@@ -168,15 +168,21 @@ export function townProps(towns, townArt, townLights = {}) {
 export function townPlots(towns) {
   const out = [];
   for (const s of towns) {
-    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i, b.cells); out.push({ town: s.id, kind: 'building', id: b.id, x: s.x + ox, z: s.z + oz }); });
+    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i, b.cells); out.push({ town: s.id, kind: 'building', type: b.type, id: b.id, x: s.x + ox, z: s.z + oz }); });
     s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz }); });
   }
   return out;
 }
 
+// how many of your units shelter in a town's stockade (entities plus sleeping workers), for the hover card and the badge
+export function garrisonCount(frontier, entities, s) {
+  let n = Object.values(entities || {}).filter(e => e.garrison?.town === s.id).length;
+  for (const w of s.workers || []) if (w.garrison && !entities?.[w.entity]) n++;
+  return n;
+}
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 // { title, lines } for a plot, read from the live snapshot so numbers stay current.
-export function plotInfo(frontier, plot, data) {
+export function plotInfo(frontier, plot, data, entities = null) {
   const s = frontier?.settlements?.[plot.town];
   if (!s) return null;
   const lines = [];
@@ -197,7 +203,8 @@ export function plotInfo(frontier, plot, data) {
     if (t.housing) lines.push(`Houses ${t.housing} people`);
     if (t.output) lines.push(`Makes ${Object.keys(t.output).join(', ')}`);
     if (!lines.length) lines.push(nice(b.type));
+    if (b.type === 'stockade' && b.stage === 'built' && entities && data?.buildings?.stockade?.garrison) lines.push(`Garrison ${garrisonCount(frontier, entities, s)} / ${data.buildings.stockade.garrison.capacity}`);
     lines.push(s.name);
   }
-  return { title: nice(b.type), lines: [...lines, 'Right-click: open the town panel'] };
+  return { title: nice(b.type), lines: [...lines, b.type === 'stockade' && b.stage === 'built' ? 'Right-click: send selected crew in (none selected: open the town panel)' : 'Right-click: open the town panel'] };
 }
