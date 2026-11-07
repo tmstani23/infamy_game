@@ -11,7 +11,7 @@
     "frames": 21,
     "fps": 12,
     "cellWorld": 5.4,
-    "feetUp": 1.221
+    "feetUp": 1.274
   },
   "mare_saddled_gallop": {
     "size": 288,
@@ -25,7 +25,7 @@
     "frames": 21,
     "fps": 12,
     "cellWorld": 5.4,
-    "feetUp": 1.221
+    "feetUp": 1.274
   },
   "calico_gallop": {
     "size": 256,
@@ -39,7 +39,7 @@
     "frames": 21,
     "fps": 12,
     "cellWorld": 4.8,
-    "feetUp": 1.151
+    "feetUp": 1.179
   },
   "ox_gallop": {
     "size": 256,

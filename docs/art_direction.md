@@ -67,6 +67,7 @@
 - Mixamo can't rig animals. Path: concept image, then Tencent for the 3D model, then rig and animate headless in the cloud with `assets/models/source/animal_rigs/quad_rig.py` (Blender as a Python module: `pip install bpy`), then the usual 8-direction sprite export.
 - Vehicles: generate the wheels and the animals as separate images, because Tencent fuses wheels into the body.
 - Concepts live in `assets/concepts/mounts_vehicles/`.
+- Horse walk clip (2026-11-07): the front-leg swing fold is softened (front cannon -0.6F, pastern -0.25F; was -F and -0.6F) for the walk clips of mare, mare_saddled, calico, rickshaw_horse and omnibus; gallop unchanged. Rig source (gitignored): `assets/models/source/black_beauty_rig/bb_rig.py` `leg_pose()`.
 
 ### Frontier angled art (2026-11-06)
 
