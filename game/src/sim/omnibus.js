@@ -33,7 +33,17 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     return state.entities[id];
   }
   // built at a station: parked there, empty
-  function park(owner, kind, x, z) { const [px, pz] = nav()?.nearestFree(x, z) || [x, z]; return make(owner, px, pz, 0, kind); }
+  function park(owner, kind, x, z) { const [px, pz] = spotFor(kind, x, z); return make(owner, px, pz, 0, kind); }
+  // a free parking spot near (x, z) clear of other vehicles (Tim 2026-11-07: new ones came out on top of each other)
+  function spotFor(kind, x, z) {
+    const len = R(kind).length ?? 6, others = Object.values(state.entities).filter(v => isVehicle(v) && !v.dead && v.place === 'world');
+    for (let ring = 0; ring < 8; ring++) for (let k = 0; k < Math.max(1, ring * 6); k++) {
+      const a = k / Math.max(1, ring * 6) * Math.PI * 2, r = ring * len * 0.9;
+      const [px, pz] = nav()?.nearestFree(x + Math.cos(a) * r, z + Math.sin(a) * r) || [x + Math.cos(a) * r, z + Math.sin(a) * r];
+      if (others.every(v => Math.hypot(v.x - px, v.z - pz) >= ((R(v.type).length ?? 6) + len) / 2 * 0.8)) return [px, pz];
+    }
+    return nav()?.nearestFree(x, z) || [x, z];
+  }
   // put a group into vehicles in order, filling each one's seats (the hero first, as driver of the first)
   function fill(hero, group, buses) {
     seat(hero, buses[0]);
@@ -208,6 +218,23 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   // would moving b to point p put it into the vehicle ahead (sharp turns, catching up)?
   const tooClose = (a, b, p) => Math.hypot(p[0] - a.x, p[1] - a.z) < ((R(a.type).length ?? 6) + (R(b.type).length ?? 6)) / 2 + 0.5
     && Math.hypot(p[0] - a.x, p[1] - a.z) < Math.hypot(b.x - a.x, b.z - a.z);
+  // parked or standing vehicles never sit on top of each other (Tim 2026-11-07: a rickshaw hid on an omnibus):
+  // two that overlap are eased apart a little each tick; one being driven or moving keeps its place, the other gives way
+  function separate(list) {
+    const v = list.filter(b => b.place === 'world' && !b.dead && !b.stored);
+    for (let i = 0; i < v.length; i++) for (let j = i + 1; j < v.length; j++) {
+      const a = v[i], b = v[j], need = ((R(a.type).length ?? 6) + (R(b.type).length ?? 6)) / 2 * 0.7;
+      let dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
+      if (d >= need) continue;
+      if (d < 0.01) { dx = 1; dz = 0; d = 1; }
+      const busy = e => !!e.driver || e.anim === 'run' || e.anim === 'trot';
+      const mover = busy(b) && !busy(a) ? a : b, sign = mover === b ? 1 : -1, step = Math.min(0.4, need - d);
+      const nx = mover.x + sign * dx / d * step, nz = mover.z + sign * dz / d * step, [fx, fz] = nav()?.nearestFree(nx, nz) || [nx, nz];
+      if (Math.hypot(fx - nx, fz - nz) > 2) continue;
+      Object.assign(mover, { x: fx, z: fz });
+      for (const u of riders(mover)) Object.assign(u, { x: fx, z: fz });
+    }
+  }
   const heroTrails = {};   // hero id -> his recent positions on the island, for vehicles following him on foot or horseback
   // the track a follower drives along: the point `gap` back along the lead's trail
   function back(trail, gap) {
@@ -235,6 +262,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
     const byOwner = {};
     for (const b of Object.values(state.entities)) if (isVehicle(b)) (byOwner[b.omnibusOwner] ||= []).push(b);
+    separate(Object.values(byOwner).flat());
     for (const list of Object.values(byOwner)) {
       const lead = list.find(b => b.driver && state.entities[b.driver]?.aboard === b.id);
       if (lead) {
@@ -285,5 +313,5 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
   }
 
-  return { ride, deploy, board, home, command, orderVehicles, tick, shelter, consume, of, riders, near, free, park, isVehicle, seatsOf, make };
+  return { ride, deploy, board, home, command, orderVehicles, tick, shelter, consume, of, riders, near, free, park, spotFor, isVehicle, seatsOf, make };
 }

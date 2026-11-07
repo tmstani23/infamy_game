@@ -46,7 +46,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
       const t = state.frontier?.settlements?.[e.stored.town], b = t && stable().of(t);
       const at = b ? (() => { const [x, z] = stable().centre(t, b); return { x, z }; })() : stableOf(hero.owner, hero.x, hero.z);
       if (!at) return say(hero.owner, 'No stable to take it out of');
-      const off = 8 + Math.random() * 4, [x, z] = nav()?.nearestFree(at.x + off, at.z + off * 0.5) || [at.x + off, at.z];
+      const [x, z] = e.type === 'horse' ? (nav()?.nearestFree(at.x + 10, at.z + 5) || [at.x + 10, at.z]) : omnibus?.spotFor?.(e.type, at.x + 10, at.z + 5) || [at.x + 10, at.z];   // its own spot, clear of other vehicles
       Object.assign(e, { place: 'world', x, z, anim: 'idle' }); delete e.stored;
       return say(hero.owner, `${e.name || (e.type === 'omnibus' ? 'The omnibus' : 'The rickshaw')} is out at ${t?.name || 'the stable'}`);
     }

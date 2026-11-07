@@ -254,7 +254,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     let picked = [];
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
-      const mate = unitAt(e.clientX, e.clientY, [...myCrew(), ...myVehicles()]) || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
+      // vehicles are bigger than people: a wider reach so a click on a loaded one of yours selects it (Tim 2026-11-07)
+      const mate = unitAt(e.clientX, e.clientY, myCrew()) || unitAt(e.clientX, e.clientY, myVehicles(), 45) || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
@@ -270,7 +271,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const b = mate || foe || civ || ride || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
       if (mate) {
-        if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id);
+        if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id, !!game.omnibus?.isVehicle(mate));   // a vehicle on its own (it has no command group)
         else setSelected(selected.includes(mate.id) ? selected.filter(id => id !== mate.id) : [...selected, mate.id]);
       }
       if (foe) picked = [foe.id];
@@ -279,7 +280,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const boxed = [...myCrew(), ...myVehicles()].filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
       picked = boxed.filter(u => !u.dead).map(u => u.id);
       building = null;
-      if (picked.length) setSelected(picked);   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection
+      if (picked.length) { setSelected(picked); if (looked && game.omnibus?.isVehicle(game.state.entities[looked])) looked = null; }   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection; a group goes to crew select only, not the target box (Tim 2026-11-07)
     }
     // a left-click (or drag) anywhere but the hero's locked target drops it and cancels his auto
     // attack (Tim 2026-10-18); clicking the target itself keeps it
