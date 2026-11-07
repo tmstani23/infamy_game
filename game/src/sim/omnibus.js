@@ -179,30 +179,11 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     return true;
   }
 
-  // Drive back to the gate (Tim 2026-11-06 20:42): from beside or inside your omnibus, at once; it parks outside
-  // the gate with everyone still inside (Space at the gate steps out and goes through). Not with a fight on.
-  function home(hero) {
-    const at = homeAt();
-    if (!at || hero.place !== 'world') return false;
-    const bus = of(hero) || near(hero)[0];
-    if (!bus) { say(hero.owner, 'Stand by your omnibus'); return false; }
-    if (danger(hero)) { say(hero.owner, 'Not with a fight on'); return false; }
-    if (!hero.aboard && !board(hero, { omnibus: bus.id })) return false;
-    const list = mine(hero.owner).filter(b => b === of(hero) || riders(b).length);
-    list.forEach((b, k) => {
-      const [x, z] = nav()?.nearestFree(at[0] + k * 3, at[1] + k * 1.5) || at;
-      Object.assign(b, { x, z, trail: [] });
-      for (const u of riders(b)) { Object.assign(u, { x, z }); forget(u.id); }
-    });
-    say(hero.owner, 'Back at the island gate: Space at the gate to go into the city');
-    return true;
-  }
-
+  // Drive back to the gate was taken out (Tim 2026-11-07): drive or walk back, or take the train
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
     if (c.action === 'deploy') deploy(e, c.vehicles);
     else if (c.action === 'board') board(e, c);
-    else if (c.action === 'home') home(e);
   }
 
   // founding a town takes the clan's omnibuses (the stable builds new ones)
@@ -329,5 +310,5 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
   }
 
-  return { ride, deploy, board, home, command, orderVehicles, tick, shelter, consume, of, riders, near, free, park, spotFor, isVehicle, seatsOf, make };
+  return { ride, deploy, board, command, orderVehicles, tick, shelter, consume, of, riders, near, free, park, spotFor, isVehicle, seatsOf, make };
 }

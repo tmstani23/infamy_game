@@ -469,7 +469,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 ## Island gate menu and surveyor (2026-11-06)
 
 - Gate menu (`src/site_menu.js`): Space at the island gate in the city opens a menu when there is more than one way out: 1 Walk out (with a permit and settlers they ride in the omnibus); 2 Ride to a known site (permit and settlers; known open sites, nearest first, 5 per page; Go needs 5 settlers); 3 Rickshaw to your towns (once you have a station; rickshaws waiting outside the gate). With one way out, Space walks through. The Choose site window and the city rickshaw stand are removed.
-- Drive back to the gate: Space beside or inside your omnibus on the island, away from the gate. Instant; everyone stays aboard; it parks outside the gate. Not during a fight (a hit in the last 10 s or a hostile within 12).
+- Omnibus (2026-11-07): no drive-back-to-gate action; the way back is driving, walking or the train. The station menu opens only at a station.
 - Old surveyor: one NPC beside the Land Office door; not crew, cannot be attacked; model `surveyor1` (`units.json` `rules.surveyorModel`). Buying a permit sets `clan.surveyPending`. Talking to him (`{ type: 'landOffice', action: 'survey' }`) marks the 3 nearest open unknown sites as known (`clan.knownSites`, `clan.survey`); the first report measures from the capital, later ones from your towns. Once per permit. Code: `sim/frontier/land_office.js`, `src/surveyor_talk.js`.
 - World map tour: known sites and the nodes within 600 of them show through the fog. The tour steps Next / Back over the sites, opens with a how-to-read-a-site intro on the first report and ends with his pick; Show me again replays it (`src/world_map.js`, `src/world_atlas.js`, `src/game_map.js`).
 - An expedition to a site not yet found: players get "You have not found that site yet". Bots are unaffected.
@@ -483,7 +483,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Spot workers (`resource_spots.json` `stages.supports`, `sim/resource_spots.js`): regrowth is derived so a spot keeps a set number of workers at full speed with a camp beside it; a longer trip lets more share it (best = supports x campTripSeconds / tripSeconds). The spot card's Workers row shows workers, about how many is best, % speed and Overworked (`workers.overwork` 0.35 for the live estimate). The governor never puts more of its workers on a spot than it supports and moves its extras off (player picks stay put).
 - The governor places a camp toward the nearest reachable rich deposit once the town's own spots are full and a camp slot is free (one per review, within the tier limit; Ask first only reports it).
 - Site score: `frontier.json` `richNode` 0.5 bonus per rich deposit within `workers.range` + `campReach` of the site (`sim/frontier/land_office.js`).
-- Station menu: Space skips a ride; number keys board trains standing at the station; Drive back to the gate is click only.
+- Station menu: Space skips a ride; number keys board trains standing at the station.
 - Plan: `/mnt/project-files/resource_nodes/plan.md`. Tests: `tools/test_rich_nodes.mjs`, `tools/test_camp_carts.mjs`.
 
 ## Frontier fixes (2026-11-07)

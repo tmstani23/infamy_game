@@ -2,10 +2,8 @@
 // railway station) or at the island end of the gate. Trains (Tim 2026-11-07, train plan step 4): board one standing
 // here, see when the next one comes in, lay track to another of your towns (sim/frontier/rail.js). While you ride,
 // the panel stays up with Skip (Space or the button, after a few seconds; number keys do nothing while you ride). Instant rickshaw trips are off (rickshaws are
-// driven like the omnibus). Space beside or inside your omnibus away from the gate adds "Drive back to the gate"
-// (sim/omnibus.js home). The city side is the island gate menu (src/site_menu.js). Closes when you walk away, or on
-// Esc / Space. Number keys board the trains standing here; Drive back to the gate is click only (Tim 2026-11-07:
-// a stray number key had jumped him back from a frontier station).
+// driven like the omnibus). Drive back to the gate was taken out (Tim 2026-11-07). The city side is the island gate
+// menu (src/site_menu.js). Closes when you walk away, or on Esc / Space. Number keys board the trains standing here.
 export function createStationMenu({ panel, game, heroId, send }) {
   let open = false, shown = '';
   const hero = () => game.state.entities[heroId];
@@ -19,12 +17,6 @@ export function createStationMenu({ panel, game, heroId, send }) {
   const trains = () => (onIsland() || atCity()) && !riding() ? rail()?.service(hero()) || [] : [];
   const boardNow = () => trains().filter(s => s.eta === 0);
   const placeName = id => id === 'capital' ? 'the capital' : game.state.frontier?.settlements?.[id]?.name || id;
-  // drive back: in your omnibus or rickshaw, or beside one of yours, and not already at the gate
-  const homeable = () => {
-    const h = hero(), O = game.omnibus, g = game.gate?.island;
-    if (!onIsland() || !O || !g || Math.hypot(h.x - g[0], h.z - g[1]) < 24) return false;
-    return !!O.of(h) || O.near(h, 6).some(b => b.omnibusOwner === h.owner);
-  };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // railway (train plan step 2): lay track from this station to another of yours, or watch the line being laid
   const here = () => { const h = hero(); return onIsland() ? game.stationTravel?.from(h)?.town || null : null; };
@@ -52,7 +44,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     if (to?.startsWith('board:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'board', train: to.slice(6) }); return close(); }
     if (to?.startsWith('rail:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'link', town: here().id, to: to.slice(5) }); return close(); }
     if (to?.startsWith('railcancel:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'cancel', link: to.slice(11) }); return close(); }
-    if (to === 'home') send({ id: heroId, type: 'omnibus', action: 'home' }); close(); };
+    close(); };
   panel.addEventListener('click', e => {
     const to = e.target.dataset?.to;
     if (to === 'close') return close();
@@ -74,14 +66,13 @@ export function createStationMenu({ panel, game, heroId, send }) {
   }
   function update() {
     if (riding()) { panel.hidden = false; const html = ridePanel(); if (html !== shown) { panel.innerHTML = html; shown = html; } return; }
-    const t = open && trip(), home = open && homeable(), tr = open ? trains() : [];
-    if (open && !t && !home && !tr.length && !atCity()) open = false;
+    const t = open && trip(), tr = open ? trains() : [];
+    if (open && !t && !tr.length && !atCity()) open = false;
     panel.hidden = !open;
     if (!open) return;
     const now = tr.filter(s => s.eta === 0), next = tr.filter(s => s.eta > 0 && !now.some(n => n.to === s.to));
     const name = t?.here || (atCity() ? 'The capital' : tr[0] ? placeName(tr[0].at) : '');
-    let k = 0, html = `<h3>${name ? `STATION · ${esc(name)}` : 'YOUR OMNIBUS'}</h3>`;
-    if (home) html += `<div class="row"><button data-to="home">Drive back to the gate (click)</button></div><p>At once, everyone aboard; it parks outside the island gate. Not with a fight on.</p>`;
+    let k = 0, html = `<h3>${name ? `STATION · ${esc(name)}` : 'STATION'}</h3>`;
     if (now.length || next.length) {
       html += '<h3>TRAINS</h3><div class="row">' + now.map(s => `<button data-to="board:${esc(s.train)}"${s.riders >= s.seats ? ' disabled' : ''}>${++k}. Board the train to ${esc(s.toName)} (${s.seats - s.riders} seats, leaves in ${s.leaves ?? 0} s)</button>`).join('')
         + next.map(s => `<button disabled>Train to ${esc(s.toName)} in ${s.eta < 90 ? `${s.eta} s` : `${Math.round(s.eta / 60)} min`}</button>`).join('') + '</div><p>You and the crew following you get on. Ride along, or Skip after a few seconds.</p>';
@@ -103,7 +94,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     if (html !== shown) { panel.innerHTML = html; shown = html; }
   }
   function close() { open = false; update(); }
-  const at = () => riding() || !!trip() || homeable() || trains().length > 0;
+  const at = () => riding() || !!trip() || trains().length > 0;
   // the on-screen prompt while a train stands here (main.js): which way it goes and when it leaves
   const trainPrompt = () => { const s = boardNow()[0]; return s ? `Space  Board the train to ${s.toName}: leaves in ${s.leaves ?? 0} s` : ''; };
   return { update, close, pick, riding, trainPrompt, isOpen: () => open || riding(), toggle() { if (riding()) return skip(); open = !open && (at() || atCity()); update(); }, at };

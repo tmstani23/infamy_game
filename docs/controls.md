@@ -188,7 +188,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Q or right-click an omnibus or rickshaw | Board or deploy it (the omnibus icon flashes on hover). Omnibus: 8 seats, 3x speed, 800 health; rickshaw: 2 seats, 3.5x, 400 health. Nobody inside fights; hits land on the vehicle and everyone piles out when it is wrecked. |
 | Space at a station | Rickshaw travel: pick one of your stations or the capital; instant, 2 per waiting rickshaw; refused within 10 s of a hit or with enemies within 12. From the city, use the gate menu (3). |
 | Space beside your lieutenant at the island gate (campaign) | Talk to your lieutenant: what he does while you are on the island. Show me opens Deployment → While I'm away; Later closes. |
-| Space beside or inside your omnibus (island, away from the gate) | Drive back to the city gate: instant, everyone stays aboard, the omnibus parks outside the gate. Not during a fight (a hit in the last 10 s or a hostile within 12). |
+| Omnibus on the island | No drive-back action: return by driving, walking or the train. The station menu opens only at a station. |
 | Space beside the old surveyor (by the Land Office door, campaign) | After buying a permit: he reports the 3 nearest open sites you have not found and tours them on the World map (Next / Back, his pick last; Show me again replays). Once per permit. |
 | Place camp here (rich deposit card) | Places a work camp beside a rich deposit so its harvest is in reach (camp reach 400). |
 | Buy cart (camp card) | Buys a 3rd camp cart for 150 timber and 75 goods. Two free carts per camp carry stock to the hall (60% of stock, up to 150 a trip). |
