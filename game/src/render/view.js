@@ -384,8 +384,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // salute cannons (Tim 2026-11-07): lifted out of the night's mud so they read; brighter still while hovered
       if (e.cannon && !lit && !veiled) {
         const hv = id === hoverUnitId;
-        u.uTint.value.setRGB(hv ? 2.1 : 1.55, hv ? 1.9 : 1.45, hv ? 1.55 : 1.3);
-        u.uSelfLight.value.setRGB(hv ? 0.5 : 0.34, hv ? 0.42 : 0.3, hv ? 0.3 : 0.24);
+        u.uTint.value.setRGB(hv ? 1.35 : 1.08, hv ? 1.3 : 1.05, hv ? 1.2 : 1.0);   // Tim 2026-11-07: the stronger lift looked washed out
+        u.uSelfLight.value.setRGB(hv ? 0.18 : 0.06, hv ? 0.15 : 0.05, hv ? 0.1 : 0.04);
       }
       s.veiled = veiled;
       s.shimmer = shim;

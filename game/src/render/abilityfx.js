@@ -47,23 +47,35 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
   // the governor's cannon salute (Tim 2026-11-07): a muzzle flash, a burst of thin fire tongues, sparks thrown
   // forward, then thick grey smoke rolling out, rising and drifting for about 3 s
   const GREY = [[0.42, 0.41, 0.4], [0.55, 0.54, 0.52], [0.33, 0.32, 0.32]];
+  // a black-powder shot (Tim 2026-11-07: "as real as possible, slightly stylized", no gold sparkles): a short white-hot
+  // flash at the muzzle, a quick cone of orange flame, burning powder flecks, then a big pale smoke cloud that
+  // punches out along the barrel and rolls upward. c.dir is the sprite's direction index (0 = toward the camera).
+  const SMOKE = [[0.86, 0.85, 0.82], [0.76, 0.75, 0.72], [0.66, 0.65, 0.63], [0.92, 0.91, 0.88]];
+  const FLAME = [[1, 0.93, 0.7], [1, 0.72, 0.3], [1, 0.5, 0.16], [0.95, 0.33, 0.1]];
   function cannonShot(c) {
-    const fx = Math.sin(c.dir || 0), fz = Math.cos(c.dir || 0), mx = c.x + fx * 1.1, mz = c.z + fz * 1.1, y = 0.8;
-    cards.glint(mx, y, mz, 2.6, 0xffe0a0, 0.25);
-    for (let i = 0; i < 46; i++) {   // many small, thin flame tongues, not one blob (Tim's fire rule)
-      const sp = rand(3, 9), a = rand(-0.35, 0.35), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a);
-      glow.emit({ x: mx, y: y + rand(-0.1, 0.15), z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0.2, 1.6), drag: 6, life: rand(0.12, 0.32),
-        size: rand(0.08, 0.2), color: pick(FIRE), alpha: 1, shape: SHAPE.ember, spin: rand(-3, 3) });
+    const th = (c.dir || 0) * Math.PI / 4, sx = -Math.sin(th), sy = Math.cos(th), S = Math.SQRT1_2;   // screen dir -> world (sim/geometry.js dirIndex)
+    const fx = (sx + sy) * S, fz = (-sx + sy) * S, reach = c.brass ? 1.7 : 1.4, mx = c.x + fx * reach, mz = c.z + fz * reach, y = c.brass ? 0.85 : 0.75;
+    const along = (sp, spread) => { const a = rand(-spread, spread), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a); return [dx * sp, dz * sp]; };
+    cards.glint(mx, y, mz, 1.5, 0xfff2d8, 0.09);   // the white-hot instant
+    for (let i = 0; i < 22; i++) {   // flame cone: fast, short-lived, hot core to red edge
+      const [vx, vz] = along(rand(6, 14), 0.22);
+      glow.emit({ x: mx, y: y + rand(-0.05, 0.1), z: mz, vx, vz, vy: rand(0, 0.6), drag: 9, life: rand(0.06, 0.16),
+        size: rand(0.18, 0.42), grow: 0.6, color: FLAME[Math.min(3, Math.floor(i / 6))], alpha: 0.95, shape: SHAPE.dot });
     }
-    for (let i = 0; i < 28; i++) {   // sparks: fast, small, falling
-      const sp = rand(5, 13), a = rand(-0.5, 0.5), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a);
-      glow.emit({ x: mx, y, z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0.5, 3.5), drag: 2.2, gravity: 6, life: rand(0.4, 0.9),
-        size: rand(0.05, 0.11), color: [1, rand(0.6, 0.85), 0.35], alpha: 1, shape: SHAPE.sparkle, twinkle: 0.6 });
+    for (let i = 0; i < 12; i++) {   // burning powder flecks: a few, dull orange, arcing down (not sparkles)
+      const [vx, vz] = along(rand(4, 10), 0.4);
+      glow.emit({ x: mx, y, z: mz, vx, vz, vy: rand(0.6, 2.4), drag: 1.8, gravity: 7, life: rand(0.35, 0.7),
+        size: rand(0.04, 0.07), color: [1, rand(0.42, 0.6), 0.15], alpha: 0.9, shape: SHAPE.ember });
     }
-    for (let i = 0; i < 26; i++) {   // the smoke: out along the barrel, then up and drifting
-      const sp = rand(1.2, 4.5), a = rand(-0.6, 0.6), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a);
-      soot.emit({ x: mx, y: y + rand(-0.1, 0.3), z: mz, vx: dx * sp + 0.25, vz: dz * sp, vy: rand(0.25, 0.8), drag: 1.2, sway: 0.3,
-        life: rand(2.2, 3.4), size: rand(0.9, 1.7), grow: 1.4, color: pick(GREY), alpha: rand(0.45, 0.7), shape: SHAPE.dot, spin: rand(-0.5, 0.5) });
+    for (let i = 0; i < 40; i++) {   // the smoke: punched forward, slowing fast, then rolling up and drifting
+      const [vx, vz] = along(rand(2, 9), 0.45), near = i < 14;
+      soot.emit({ x: mx + rand(-0.2, 0.2), y: y + rand(-0.1, 0.25), z: mz + rand(-0.2, 0.2), vx: vx + 0.2, vz, vy: rand(0.3, near ? 0.9 : 0.6), drag: 2.4, sway: 0.25,
+        life: rand(2.6, 4.2), size: rand(0.7, 1.4), grow: near ? 2.2 : 1.6, color: pick(SMOKE), alpha: rand(0.4, 0.62), shape: SHAPE.dot, spin: rand(-0.4, 0.4) });
+    }
+    for (let i = 0; i < 8; i++) {   // the kick raises a little ground dust at the wheels
+      const a = Math.random() * Math.PI * 2;
+      soot.emit({ x: c.x + Math.cos(a) * 0.6, y: 0.1, z: c.z + Math.sin(a) * 0.6, vx: Math.cos(a) * 1.4 - fx * 0.8, vz: Math.sin(a) * 1.4 - fz * 0.8, vy: 0.2, drag: 2,
+        life: rand(0.8, 1.3), size: rand(0.4, 0.7), grow: 1.4, color: [0.5, 0.44, 0.36], alpha: 0.35, shape: SHAPE.dot });
     }
   }
   const rallyCasts = new Map();   // hero id -> when they last cast Rally (the buff itself is crew-only)

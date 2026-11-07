@@ -6,10 +6,13 @@
 // createCannonSalute({ state, spawn, removeUnit, cell, rules }) -> { tick, salute, firstTalk }
 const MODELS = ['cannon_field', 'cannon_field', 'cannon_wooden', 'cannon_wooden'];
 export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules = {} }) {
-  const R = { gapTicks: 16, cooldownSeconds: 120, spacing: 3.6, ...rules };
+  const R = { gapTicks: 16, cooldownSeconds: 10, spacing: 4.5, ahead: 1.6, dir: 1, ...rules };   // Tim 2026-11-07: salute every 10 s; dir 1 = facing down-left on screen
   const say = (s, text) => { const c = state.clans?.[s.owner]; if (c) c.notice = { tick: state.tick, text }; };
-  // an even row, one gun per slot, wide enough that each gun's ground shadow holds the whole gun (Tim 2026-11-07)
-  const spots = s => MODELS.map((m, k) => ({ m, x: s.x - cell * 1.2 - k * R.spacing, z: s.z + cell * 1.1 }));
+  // an even row in front of the hall (Tim 2026-11-07: they ran into the house): R.ahead cells toward the camera
+  // (screen down = +x +z), spread across the screen (screen right = +x -z), one gun per slot
+  const Q = Math.SQRT1_2;
+  const spots = s => MODELS.map((m, k) => { const off = (k - (MODELS.length - 1) / 2) * R.spacing, d = cell * R.ahead;
+    return { m, x: s.x + Q * d + Q * off, z: s.z + Q * d - Q * off }; });
   function batteries() {
     for (const s of Object.values(state.frontier?.settlements || {})) {
       const want = s.founded !== undefined && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);
@@ -17,8 +20,8 @@ export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules 
       if (!want) { if (ids.length) { ids.forEach(id => state.entities[id] && removeUnit(id)); delete s.cannons; } continue; }
       s.cannons = spots(s).map((p, k) => {
         const e = state.entities[ids[k]];
-        if (e && !e.dead) { Object.assign(e, { x: p.x, z: p.z, place: 'world' }); return e.id; }
-        return spawn('city_captain', p.m, p.x, p.z, { owner: null, place: 'world', guide: true, holdFire: true, cannon: s.id, hp: 100, dir: 0, name: 'Cannon' });
+        if (e && !e.dead) { Object.assign(e, { x: p.x, z: p.z, place: 'world' }); if (!e.swing) e.dir = R.dir; return e.id; }
+        return spawn('city_captain', p.m, p.x, p.z, { owner: null, place: 'world', guide: true, holdFire: true, cannon: s.id, hp: 100, dir: R.dir, name: 'Cannon' });
       });
     }
   }
@@ -26,7 +29,7 @@ export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules 
   function salute(s, asked = false) {
     if (!s?.cannons?.length) return false;
     if (s.salute) return false;
-    if (asked && state.tick < (s.saluteReadyAt ?? -1e9)) { say(s, 'The guns are still being cleaned: try again later'); return false; }
+    if (asked && state.tick < (s.saluteReadyAt ?? -1e9)) { say(s, 'The guns are still being loaded: a moment'); return false; }
     s.salute = { start: state.tick + 10 }; s.saluteAt = state.tick; s.saluteReadyAt = state.tick + R.cooldownSeconds * 20;   // saluteReadyAt: the cannons' hover card counts down to it
     return true;
   }

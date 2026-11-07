@@ -171,7 +171,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Stockade badge | Shows Inside N / 40 · Evacuate; clicking walks everyone out. Hovering the stockade shows the same count. |
 | Shift+K | Evacuates all your stockades (K alone is mute). |
 | Space at a station (train standing) | Trains stand 60 s at each station; while one stands where you are, the Space prompt names its destination and a departure countdown. The town "station" building is the railway station. |
-| Hover / left-click a salute cannon | Hover shows a card with ready or seconds left; left-click fires the salute (2 min cooldown, shared with the governor's Fire a salute). |
+| Hover / left-click a salute cannon | Hover shows a card with ready or seconds left; left-click fires the salute (10 s cooldown, shared with the governor's Fire a salute). Four cannons stand in a row 1.6 cells in front of the town hall, facing screen down-left; the shot is a black-powder muzzle blast (flash, flame cone, drifting smoke, ground dust). |
 | Vehicles following in a line | Loaded vehicles following the hero ride single file along his track. Each stays (length of the one ahead + own length)/2 + followClearance back along the trail, gallops to catch up, and never moves into the one ahead (units.json: omnibus length 7, followClearance 4; rickshaw length 5). |
 | Click a vehicle | Selects it and shows it in the target frame; loaded vehicles have a 45 px click reach. A group box selects crew only and clears the target frame. Parked or taken-out vehicles pick clear spots and ease apart if they overlap. |
 | Selecting crew who ride in a vehicle | Selects that vehicle instead (C, crew-panel group header, crew name, Ctrl/1–4 groups). |
