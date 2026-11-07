@@ -38,7 +38,7 @@
     "_note": "placeholder: the rail gang drawn at the railhead (laborers; real units only near someone on the island, like town workers). hammerSeconds = how long they work in place before walking up to the railhead again; anim = rail_worker = laborer body holding a sledge (tools/export_sprites.mjs ITEMS); work clip hammer = Great Sword Slash swing.",
     "size": 3,
     "model": "rail_worker",
-    "spawnRadius": 160,
+    "spawnRadius": 300,
     "hammerSeconds": 2,
     "speed": 4.5,
     "anim": {

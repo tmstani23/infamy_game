@@ -20,8 +20,8 @@ export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules 
       if (!want) { if (ids.length) { ids.forEach(id => state.entities[id] && removeUnit(id)); delete s.cannons; } continue; }
       s.cannons = spots(s).map((p, k) => {
         const e = state.entities[ids[k]];
-        if (e && !e.dead) { Object.assign(e, { x: p.x, z: p.z, place: 'world' }); if (!e.swing) e.dir = R.dir; return e.id; }
-        return spawn('city_captain', p.m, p.x, p.z, { owner: null, place: 'world', guide: true, holdFire: true, cannon: s.id, hp: 100, dir: R.dir, name: 'Cannon' });
+        if (e && !e.dead) { Object.assign(e, { x: p.x, z: p.z, place: 'world', seenBy: s.owner }); if (!e.swing) e.dir = R.dir; return e.id; }
+        return spawn('city_captain', p.m, p.x, p.z, { owner: null, seenBy: s.owner, place: 'world', guide: true, holdFire: true, cannon: s.id, hp: 100, dir: R.dir, name: 'Cannon' });
       });
     }
   }

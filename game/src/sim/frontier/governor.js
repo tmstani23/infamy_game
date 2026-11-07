@@ -122,10 +122,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!workers?.index || !placement() || s.projects.some(p => !p.replaces)) return false;
     const R = data.workers, reach = R.campReach || 0;
     if (!reach || !(s.workers || []).some(w => w.by !== 'p' && !w.spot && !w.project && !w.order)) return false;
-    const camps = s.buildings.filter(b => (R.gatherBuildings || []).includes(b.type) && b.stage === 'built' && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
-    const near = (x, z) => Math.hypot(x - s.x, z - s.z) <= R.range || camps.some(([cx, cz]) => Math.hypot(x - cx, z - cz) <= reach);
+    // a camp only reaches its own resource (workers.campTakes, Tim 2026-11-07)
+    const camps = s.buildings.filter(b => (R.gatherBuildings || []).includes(b.type) && b.stage === 'built' && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);
+    const fits = (type, kind) => !R.campTakes?.[type] || R.campTakes[type].includes(R.resources[kind]);
+    const near = (x, z, kind) => Math.hypot(x - s.x, z - s.z) <= R.range || camps.some(([cx, cz, t]) => fits(t, kind) && Math.hypot(x - cx, z - cz) <= reach);
     const grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
-    const deps = [...workers.index.byId.values()].filter(p => p.deposit && (p.kind === 'timber' || p.kind === 'stone') && !near(p.x, p.z) && !isFull(s, data, R.resources[p.kind]))
+    const deps = [...workers.index.byId.values()].filter(p => p.deposit && (p.kind === 'timber' || p.kind === 'stone') && !near(p.x, p.z, p.kind) && !isFull(s, data, R.resources[p.kind]))
       .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).filter(o => o.d <= grid + reach).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
     for (const { p, d } of deps) {
       const type = p.kind === 'timber' ? 'lumber_camp' : 'quarry';

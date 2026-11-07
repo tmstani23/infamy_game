@@ -59,6 +59,7 @@ export function createVision(state, bounds, rules = {}, territory = null, island
   function canSee(clan, e) {
     if (!e || !clan) return false;
     if (e.owner === clan || e.workerOwner === clan) return true;
+    if (e.seenBy === clan) return true;   // ownerless scenery of your own (ox carts, rail gang, salute cannons): never fogged (Tim 2026-11-07)
     if (e.hidden) return false;   // a hidden ninja (sim/stealth.js)
     if (e.place === 'world') {
       if (!island) return false;

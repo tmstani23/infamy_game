@@ -88,17 +88,19 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const on=s=>!!R && Number.isFinite(s.x) && Number.isFinite(s.z);
   const walkTicks=d=>Math.ceil(d/R.speed*HZ);
   const point=(s,b)=>s.grid && Number.isInteger(b.cell) ? cellToWorld(s,b.cell) : [s.x,s.z];
-  const dropoffs=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !campFull(data,b));
+  // Tim 2026-11-07: a work camp takes only its own resource (R.campTakes: lumber camp timber, quarry stone); res unknown = any
+  const takes=(b,res)=>!res || !R.campTakes?.[b.type] || R.campTakes[b.type].includes(res);
+  const dropoffs=(s,res)=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !campFull(data,b) && takes(b,res));
   const homeDrops=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !isCamp(data,b));
-  function nearestDropoff(s,spot) {
-    return dropoffs(s).map(b=>({b,p:waitingPoint(s,null,b)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
+  function nearestDropoff(s,spot,res=R.resources[spot?.kind]) {
+    return dropoffs(s,res).map(b=>({b,p:waitingPoint(s,null,b)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
   }
   // Reach (Tim 2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
   const camps=s=>s.buildings.filter(b=>b.stage==='built' && (R.gatherBuildings || []).includes(b.type));
-  const inReach=(s,spot)=>distance([s.x,s.z],[spot.x,spot.z])<=R.range || camps(s).some(b=>distance(point(s,b),[spot.x,spot.z])<=(R.campReach || 0));
+  const inReach=(s,spot)=>distance([s.x,s.z],[spot.x,spot.z])<=R.range || camps(s).some(b=>takes(b,R.resources[spot.kind]) && distance(point(s,b),[spot.x,spot.z])<=(R.campReach || 0));
   function reachSpots(s) {
     const out=new Map(index.spotsNear(s.x,s.z,R.range).map(p=>[p.id,p]));
-    if(R.campReach)for(const b of camps(s))for(const p of index.spotsNear(...point(s,b),R.campReach))out.set(p.id,p);
+    if(R.campReach)for(const b of camps(s))for(const p of index.spotsNear(...point(s,b),R.campReach))if(takes(b,R.resources[p.kind]))out.set(p.id,p);
     return [...out.values()];
   }
   function eligible(s,id) {
@@ -197,7 +199,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   };
   const cargoType=w=>w.cargoResource || w.trip?.resource || R.resources[index.get(w.spot)?.kind];
   function returnPlan(s,w) {
-    const here=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,{x:here[0],z:here[1]});
+    const here=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,{x:here[0],z:here[1]},cargoType(w));
     return {here,drop,route:drop && path(here,drop.p),resource:cargoType(w)};
   }
   function setReturnTrip(w,{here,drop,route,resource}) {
@@ -291,7 +293,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   // Give up on a route: the worker appears at the nearest drop-off, hands in its cargo and goes idle (governor may reassign).
   function rescue(s,w) {
-    const here=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,{x:here[0],z:here[1]});
+    const here=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,{x:here[0],z:here[1]},cargoType(w));
     const at=drop?.p || [s.x,s.z],res=cargoType(w);
     if(w.carrying>0 && res) {world.change(s.id,res,w.carrying,'gather');s.workerIncome ||= {};s.workerIncome[res]=(s.workerIncome[res] || 0)+w.carrying;}
     w.carrying=0;delete w.cargoResource;w.trip=null;w.elapsed=0;w.phase=0;w.departure=[...at];w.spot=null;
@@ -359,9 +361,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(!start(s,w,spot)) {w.retryAt=state.tick+(R.retryTicks || 100);return;}
     }
     // Removing a storehouse reroutes a carried load; it never unloads into a vanished building.
-    if(!dropoffs(s).some(b=>b.id===w.dropoff)) {
+    if(!dropoffs(s,cargoType(w)).some(b=>b.id===w.dropoff)) {
       if(!w.carrying) {w.trip=null;return;}
-      const drop=nearestDropoff(s,spot || {x:currentPoint(w)[0],z:currentPoint(w)[1]});if(!drop)return;
+      const drop=nearestDropoff(s,spot || {x:currentPoint(w)[0],z:currentPoint(w)[1]},cargoType(w));if(!drop)return;
       const here=position(w),backPath=path(here,drop.p);if(!backPath)return;
       const back=walkTicks(length(backPath));
       w.dropoff=drop.b.id;w.trip={...w.trip,origin:backPath.at(-1),destination:here,backPath,outPath:null,out:0,harvest:0,back,total:Math.max(1,back),harvested:true};w.elapsed=0;
@@ -429,8 +431,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         stepCarts(s,data,world.change,point,cartHome);
         for(const b of s.buildings)for(const c of b.carts || []) {   // decoration: an ox cart on the road near your units
           const e=c.entity && state.entities?.[c.entity], at=enabled && b.cartTicks ? cartPoint(c,point(s,b),cartHome(s,b),b.cartTicks) : null;
-          if(!at || !near(at)) {if(e)runtime.remove(e.id);c.entity=null;continue;}
-          if(!e) {if(spawned>=R.spawnPerTick)continue;spawned++;c.entity=runtime.spawn('civilian',cartRules(data).model || 'ox_cart',at[0],at[1],{place:'world',area:'world',cart:b.id,town:s.id,holdFire:true,hp:200,maxHp:200});continue;}
+          // Tim 2026-11-07: carts stay drawn out to carts.viewRadius (about 1.25 zoomed-out screens), never hidden by fog
+          const cr=cartRules(data).viewRadius ?? R.spawnRadius;
+          if(!at || !anchors.some(u=>distance(at,[u.x,u.z])<=cr)) {if(e)runtime.remove(e.id);c.entity=null;continue;}
+          if(!e) {if(spawned>=R.spawnPerTick)continue;spawned++;c.entity=runtime.spawn('civilian',cartRules(data).model || 'ox_cart',at[0],at[1],{place:'world',area:'world',cart:b.id,town:s.id,seenBy:s.owner,holdFire:true,hp:200,maxHp:200});continue;}
           [e.x,e.z]=at;e.dir=dirIndex(at[2],at[3]);e.anim='run';
         }
       }

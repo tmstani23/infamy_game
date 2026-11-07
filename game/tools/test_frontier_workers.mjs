@@ -79,7 +79,7 @@ function fixture({saved=null,changes={},spots=null,stages=null}={}) {
 // Player reassignment preserves a carried load; a destroyed drop-off reroutes it to the hall.
 {
   const f=fixture(),[w]=f.train(),c=centreCell(f.s.grid.n);
-  f.s.buildings.push({id:'drop',type:'storehouse',stage:'built',cell:c+2,workers:0});
+  f.s.buildings.push({id:'drop',type:'lumber_camp',stage:'built',cell:c+2,workers:0});
   f.send({action:'assign',workers:[w.id],spot:'far'});f.run(2);
   assert.equal(w.dropoff,'drop','nearest finished drop-off wins');assert.equal(w.carrying,3);
   assert.equal(f.send({action:'assign',workers:[w.id],spot:'fish'}).ok,true);

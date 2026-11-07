@@ -213,8 +213,35 @@ export function createBanners({ scene }) {
   let jobRing = null, jobMark = null;
   const campingRings = new Map();
   const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
+  // the old surveyor's quest mark (Tim 2026-11-07): a gold ! above his head instead of a ground ring;
+  // it flashes while he has a report for you (clan.surveyPending, after a permit is bought)
+  let questMark = null, questId = null;
+  function questTexture() {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = 'rgba(40,18,10,0.85)'; g.beginPath(); g.arc(64, 64, 50, 0, Math.PI * 2); g.fill();
+    g.lineWidth = 7; g.strokeStyle = '#e8c06a'; g.stroke();
+    g.fillStyle = '#ffd77a'; g.font = 'bold 84px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('!', 64, 68);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }
+  function updateQuestMark(state, time, me, place) {
+    let e = state.entities[questId];
+    if (!e?.surveyor) { e = Object.values(state.entities).find(u => u.surveyor); questId = e?.id; }
+    const show = e && !e.dead && e.place === place;
+    if (!show) { if (questMark) questMark.visible = false; return; }
+    if (!questMark) {
+      questMark = new THREE.Sprite(new THREE.SpriteMaterial({ map: questTexture(), transparent: true, depthTest: false, depthWrite: false }));
+      questMark.renderOrder = 99820; questMark.frustumCulled = false; scene.add(questMark);
+    }
+    const active = !!state.clans?.[me]?.surveyPending, beat = active ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
+    questMark.visible = true;
+    questMark.position.set(e.x, 3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0), e.z);
+    questMark.scale.setScalar(active ? 0.8 + 0.12 * beat : 0.62);
+    questMark.material.opacity = active ? 0.75 + 0.25 * beat : 0.55;
+  }
   function update(state, time, me, place = 'street') {
     updateSpaceRings(state, me, place);
+    updateQuestMark(state, time, me, place);
     if (assignmentTick !== state.tick || assignmentOwner !== me) {
       assignmentTick=state.tick;assignmentOwner=me;staffed.clear();
       for (const e of Object.values(state.entities)) if (e.owner===me && e.type!=='hero' && !e.guard && !e.dead) staffed.add(e.deployment?.group);

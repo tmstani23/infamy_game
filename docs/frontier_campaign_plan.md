@@ -478,6 +478,13 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 
 `sim/vehicle_steer.js` `steer(e, want, { turnDegrees, turnSlow }, dt)` (the capital cart steering from `civilians.js` `drive()`): caps the turn rate, slows to 0.4 at turns of 90° or more, and sets `e.dir` from the heading so turns sweep through the 8 sprite rows. Used by the hero driving the omnibus or rickshaw or riding, the following omnibus, and called horses (dir only). `units.json` `turnDegrees`: omnibus 120, rickshaw 180, mount 240. Test: `tools/test_omnibus.mjs` (turn limit).
 
+## Playtest fixes (2026-11-07)
+
+- Lumber camps take only timber; quarries only stone.
+- Storehouses are storage only and take no worker drop-offs; ox carts unload at the town hall.
+- The surveyor's quest marker is a gold ! above his head that flashes while a survey is pending (no ground ring).
+- Your own rail gang, ox carts and salute cannons are always visible through fog.
+
 ## Island gate menu and surveyor (2026-11-06)
 
 - Gate menu (`src/site_menu.js`): Space at the island gate in the city opens a menu when there is more than one way out: 1 Walk out (with a permit and settlers they ride in the omnibus); 2 Ride to a known site (permit and settlers; known open sites, nearest first, 5 per page; Go needs 5 settlers); 3 Rickshaw to your towns (once you have a station; rickshaws waiting outside the gate). With one way out, Space walks through. The Choose site window and the city rickshaw stand are removed.

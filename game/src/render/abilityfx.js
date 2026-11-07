@@ -57,12 +57,17 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     const fx = (sx + sy) * S, fz = (-sx + sy) * S, reach = c.brass ? 1.7 : 1.4, mx = c.x + fx * reach, mz = c.z + fz * reach, y = c.brass ? 0.85 : 0.75;
     const along = (sp, spread) => { const a = rand(-spread, spread), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a); return [dx * sp, dz * sp]; };
     cards.glint(mx, y, mz, 1.5, 0xfff2d8, 0.09);   // the white-hot instant
-    for (let i = 0; i < 22; i++) {   // flame cone: fast, short-lived, hot core to red edge
-      const [vx, vz] = along(rand(6, 14), 0.22);
-      glow.emit({ x: mx, y: y + rand(-0.05, 0.1), z: mz, vx, vz, vy: rand(0, 0.6), drag: 9, life: rand(0.06, 0.16),
-        size: rand(0.18, 0.42), grow: 0.6, color: FLAME[Math.min(3, Math.floor(i / 6))], alpha: 0.95, shape: SHAPE.dot });
+    for (let i = 0; i < 40; i++) {   // flame cone: fast, short-lived, hot core to red edge (Tim 2026-11-07: more fire)
+      const [vx, vz] = along(rand(6, 16), 0.26);
+      glow.emit({ x: mx, y: y + rand(-0.05, 0.1), z: mz, vx, vz, vy: rand(0, 0.7), drag: 8, life: rand(0.08, 0.24),
+        size: rand(0.24, 0.6), grow: 0.7, color: FLAME[Math.min(3, Math.floor(i / 10))], alpha: 0.95, shape: SHAPE.dot });
     }
-    for (let i = 0; i < 12; i++) {   // burning powder flecks: a few, dull orange, arcing down (not sparkles)
+    for (let i = 0; i < 18; i++) {   // a rolling fireball at the mouth: slower, bigger, fading orange to red into the smoke
+      const [vx, vz] = along(rand(1.5, 5), 0.6);
+      glow.emit({ x: mx + fx * rand(0.2, 0.9), y: y + rand(-0.1, 0.3), z: mz + fz * rand(0.2, 0.9), vx, vz, vy: rand(0.3, 1.1), drag: 4, sway: 0.3,
+        life: rand(0.22, 0.45), size: rand(0.45, 0.9), grow: 1.1, color: FLAME[1 + Math.floor(Math.random() * 3)], alpha: 0.8, shape: SHAPE.dot });
+    }
+    for (let i = 0; i < 22; i++) {   // burning powder flecks: a few, dull orange, arcing down (not sparkles)
       const [vx, vz] = along(rand(4, 10), 0.4);
       glow.emit({ x: mx, y, z: mz, vx, vz, vy: rand(0.6, 2.4), drag: 1.8, gravity: 7, life: rand(0.35, 0.7),
         size: rand(0.04, 0.07), color: [1, rand(0.42, 0.6), 0.15], alpha: 0.9, shape: SHAPE.ember });

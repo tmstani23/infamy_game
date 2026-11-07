@@ -290,7 +290,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       const ahead = [Math.sin(head.heading), Math.cos(head.heading)];   // heading = atan2(dx, dz)
       for (let k = l.gang.length; k < size; k++) {
         const spot = gangSpot(l, k, l.built);
-        l.gang.push(runtime.spawn('civilian', g.model || 'laborer', spot.x, spot.z, { place: 'world', area: 'world', railGang: l.id, town: l.payer, holdFire: true, hp: 120, maxHp: 120, anim: 'idle' }));
+        l.gang.push(runtime.spawn('civilian', g.model || 'laborer', spot.x, spot.z, { place: 'world', area: 'world', railGang: l.id, seenBy: l.owner, town: l.payer, holdFire: true, hp: 120, maxHp: 120, anim: 'idle' }));
       }
       const cycle = Math.round(((g.hammerSeconds ?? 3) + 2) * 20);
       l.gang.forEach((id, k) => {

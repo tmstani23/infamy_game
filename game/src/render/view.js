@@ -89,7 +89,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const door of built.partitionDoors) blueprintDoors.push({ ...door, at: door.at * scale, a: door.a * scale, b: door.b * scale,
       room: r.name, ox: r.origin.x, oz: r.origin.z, fade: baseOpacity, baseOpacity });
   }
-  const rings = doorRings(doors);
+  const rings = doorRings(doors.filter(d => d.menu !== 'surveyor'));   // the surveyor has a quest mark over his head instead (render/banners.js)
   for (const d of rings) scene.add(d);
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)

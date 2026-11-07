@@ -149,11 +149,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + `</div>`;
   }
   // Reach anchors for rich deposits: own town halls (workers.range) and their built work camps (workers.campReach).
-  function reachAnchors() {
+  function reachAnchors(kind = null) {
     const W = data.workers || {}, out = [];
     for (const s of towns()) {
       out.push({ town: s.id, name: s.name, x: s.x, z: s.z, r: W.range ?? 600 });
-      for (const b of s.buildings || []) if (b.stage === 'built' && (W.gatherBuildings || []).includes(b.type) && s.grid && Number.isInteger(b.cell)) {
+      for (const b of s.buildings || []) if (b.stage === 'built' && (W.gatherBuildings || []).includes(b.type) && s.grid && Number.isInteger(b.cell)
+        && (!kind || !W.campTakes?.[b.type] || W.campTakes[b.type].includes(W.resources?.[kind]))) {   // a camp reaches only its own resource
         const [x, z] = cellToWorld(s, b.cell); out.push({ town: s.id, name: s.name, x, z, r: W.campReach ?? 0, camp: true });
       }
     }
@@ -191,7 +192,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const record = (best.kind === 'project' ? s.projects : s.buildings).find(b => b.id === best.id);
       return { s, cell: record.cell };
     }
-    return towns().map(s => ({ s, cell: cellAt(x,y,s) })).find(p => townCellTip(p.s,p.cell,data));
+    // Tim 2026-11-07: a click on bare road, wall or gate ground opens no card (too easy to hit, and it covers the screen)
+    const bare = (s, c) => 'rwg'.includes(s.grid.use[c]) && !s.buildings.some(b => (b.cells || [b.cell]).includes(c))
+      && !s.projects.some(p => (p.cells || [p.cell]).includes(c)) && !Object.values(data.zones.kinds).some(k => k.char === s.grid.zone[c]);
+    return towns().map(s => ({ s, cell: cellAt(x,y,s) })).find(p => townCellTip(p.s,p.cell,data) && !bare(p.s,p.cell));
   }
   function select(ids) {
     selected = ids;
@@ -249,9 +253,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (inspect.spot) {
       const spot = spotIndex.get(inspect.spot);
       if (!spot || !known(spot.x, spot.z)) { card.hidden = true; return; }
-      const reach = spot.deposit ? richReach(spot, reachAnchors()) : null;
+      const reach = spot.deposit ? richReach(spot, reachAnchors(spot.kind)) : null;
       info = spotInfo(spot, game.state.frontier?.spots?.[spot.id], reach?.text);
-      if (reach && !reach.ok && reach.town) info.camp = { town: reach.town, type: spot.kind === 'timber' ? 'lumber_camp' : 'quarry' };
+      if (reach && !reach.ok && reach.town && (spot.kind === 'timber' || spot.kind === 'stone')) info.camp = { town: reach.town, type: spot.kind === 'timber' ? 'lumber_camp' : 'quarry' };
       const assigned = towns().flatMap(s => (s.workers || []).filter(w => w.spot === spot.id || w.nextSpot === spot.id).map(w => `${w.id} (${s.name})`));
       info.lines.push(`Amount per harvest: ${spotYield(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages)}`,
         `Your workers: ${assigned.length ? assigned.join(', ') : 'none'}`);
