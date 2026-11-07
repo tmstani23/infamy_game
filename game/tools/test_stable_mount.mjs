@@ -60,9 +60,14 @@ assert.ok(hero.mounted && hero.ride?.horse === bb.id, 'she came and he got on');
 
 // --- riding: 3.5x run speed, no fighting -------------------------------------------------------------------
 assert.ok(Math.abs(g.stats.movement(hero, 'run') - 6 * M.speed) < 1e-6, `3.5x run (${g.stats.movement(hero, 'run')})`);
-const x0 = hero.x;
+let x0 = hero.x;   // Tim 2026-11-07: trots at about run speed; Shift (walk) gallops
 for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
-assert.ok(hero.x - x0 > 20, `galloped (${(hero.x - x0).toFixed(1)} in 2 s)`);
+assert.ok(hero.x - x0 > 5 && hero.x - x0 < 6 * (M.trot ?? 1) * 2 + 1, `trotted (${(hero.x - x0).toFixed(1)} in 2 s)`);
+assert.equal(bb.anim, 'walk', 'trot uses the walk clip');
+x0 = hero.x;
+for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0, walk: true }]);
+assert.ok(hero.x - x0 > 20, `galloped with Shift (${(hero.x - x0).toFixed(1)} in 2 s)`);
+assert.equal(bb.anim, 'run', 'gallop clip');
 assert.ok(Math.hypot(bb.x - hero.x, bb.z - hero.z) < 1e-6, 'the horse is under him');
 const foe = S.entities[g.spawn('thug', 'thug', hero.x + 1, hero.z, { owner: 'kuroda', place: 'world', hp: 100 })];
 g.step([{ id: hero.id, type: 'attack', target: foe.id }]);
@@ -91,6 +96,15 @@ cmd({ mode: 'choose', horse: cal.id });
 assert.equal(clan.mount, cal.id, 'chose the calico');
 assert.equal(g.frontier.stable.room('player', 'horse'), SB.room.horse[(town.tier || 1) - 1], 'horse room from the tier');
 const stableB = town.buildings.find(b => b.type === 'stable');
+{ // +5 queues several at once, as many as the room and queue allow (Tim 2026-11-07)
+  const n0 = (stableB.stableJobs || []).length, h0 = g.frontier.stable.have('player', 'horse');
+  town.stock.food = 9999; town.stock.goods = 9999;
+  cmd({ mode: 'horse', kind: 'calico', count: 5 });
+  const want = Math.min(5, SB.queue - n0, g.frontier.stable.room('player', 'horse') - h0);
+  assert.ok(want > 1, 'room to queue several');
+  assert.equal((stableB.stableJobs || []).length, n0 + want, '+5 queued several');
+  assert.match(clan.notice?.text || '', /queued/, 'a notice says how many');
+}
 for (let k = 0; k < 12 && g.frontier.stable.have('player', 'horse') < g.frontier.stable.room('player', 'horse'); k++) { town.stock.food = 9999; town.stock.goods = 9999; if ((stableB.stableJobs || []).length >= (SB.queue ?? 3)) for (let t = 0; t < SB.kinds.calico.seconds * 20 * 3 + 10; t++) g.step([]); cmd({ mode: 'horse', kind: 'calico' }); }
 cmd({ mode: 'horse', kind: 'calico' });
 assert.match(clan.notice?.text || '', /room for/, 'no room for more horses');

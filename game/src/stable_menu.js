@@ -1,7 +1,9 @@
 // The stable menu (Tim 2026-11-07): click one of your stables (the inspection card's Open stable, or the town
-// panel's) or Space beside it. Buy horses, rickshaws and omnibuses for this town's stock, one at a time on its
-// production bar; how many you can have comes from your stables' town tiers (sim/frontier/stable.js room()).
-// Your horses: pick which one is your mount. Number keys buy in the order shown; Esc / Space close.
+// panel's) or Space beside it. Buy horses, rickshaws and omnibuses for this town's stock: +1 or +5 queue them on its
+// production bar (made one at a time); how many you can have comes from your stables' town tiers
+// (sim/frontier/stable.js room()). Your horses and vehicles: Ride picks your mount, Recall / Take out / Recall all
+// (sim/vehicle_garage.js). Number keys buy one, in the order shown; Esc / Space close.
+import { listVehicles } from './vehicles_panel.js';
 export function createStableMenu({ panel, game, heroId, send, data }) {
   let open = false, townId = null, shown = '';
   const hero = () => game.state.entities[heroId];
@@ -26,27 +28,32 @@ export function createStableMenu({ panel, game, heroId, send, data }) {
   const kinds = () => Object.entries(C().kinds || {});
   const cost = c => Object.entries(c || {}).map(([r, n]) => `${n} ${r}`).join(', ');
   const NAMES = { horse: 'Horses', rickshaw: 'Rickshaws', omnibus: 'Omnibuses' };
-  const LABEL = { rickshaw: 'Rickshaw · 2 seats, 3.5x speed', omnibus: 'Omnibus · 8 seats, 3x speed, 800 health: settlers and workers ride here' };
+  const LABEL = { rickshaw: 'Rickshaw · 2 seats', omnibus: 'Omnibus · 8 seats' };
+  const TIP = { rickshaw: '2 seats, 3.5x speed', omnibus: '8 seats, 3x speed, 800 health: settlers and workers ride here', horse: 'a horse for you or your crew (3.75x speed)' };
   function options() {
     const s = town(), st = S(), me = owner();
     if (!s || !st) return [];
     return kinds().map(([k, spec]) => {
       const cat = st.category(k), room = st.room(me, cat), have = st.have(me, cat);
       const short = Object.entries(spec.cost || {}).filter(([r, n]) => (s.stock?.[r] || 0) < n).map(([r, n]) => `${n - Math.floor(s.stock?.[r] || 0)} ${r}`).join(', ');
-      const why = have >= room ? (room ? `Full: your stables hold ${room} ${NAMES[cat].toLowerCase()}` : 'No room yet: upgrade this town') : short ? `Short of ${short}` : '';
+      const queued = (st.of(s)?.stableJobs || []).length, qmax = C().queue ?? 10;
+      const why = have >= room ? (room ? `Full: your stables hold ${room} ${NAMES[cat].toLowerCase()}` : 'No room yet: upgrade this town') : queued >= qmax ? 'The queue is full' : short ? `Short of ${short}` : '';
       return { k, spec, cat, why };
     });
   }
-  function buy(k) {
+  function buy(k, count = 1) {
     const s = town(); if (!s) return;
     const vehicle = C().kinds?.[k]?.vehicle;
-    send({ id: heroId, type: 'frontier', action: 'stable', town: s.id, ...(vehicle ? { mode: k } : { mode: 'horse', kind: k }) });
+    send({ id: heroId, type: 'frontier', action: 'stable', town: s.id, count, ...(vehicle ? { mode: k } : { mode: 'horse', kind: k }) });
   }
   panel.addEventListener('click', e => {
     const b = e.target.closest?.('button'); if (!b || b.disabled) return;
     const d = b.dataset;
     if (d.close !== undefined) return close();
-    if (d.buy) buy(d.buy);
+    if (d.buy) buy(d.buy, +d.count || 1);
+    if (d.recall) send({ id: heroId, type: 'garage', action: 'recall', unit: d.recall });
+    if (d.takeout) send({ id: heroId, type: 'garage', action: 'takeout', unit: d.takeout });
+    if (d.recallall !== undefined) send({ id: heroId, type: 'garage', action: 'recallAll' });
     if (d.cancel) send({ id: heroId, type: 'frontier', action: 'stable', town: townId, mode: 'cancel' });
     if (d.choose) send({ id: heroId, type: 'frontier', action: 'stable', town: townId, mode: 'choose', horse: d.choose });
   });
@@ -58,17 +65,32 @@ export function createStableMenu({ panel, game, heroId, send, data }) {
     const s = town(), b = builtStable(s), st = S(), me = owner();
     if (!b || !st) return close();
     const jobs = b.stableJobs || [], j = jobs[0];
-    const bar = j ? `<div class="row"><span style="display:inline-block;width:90px;height:8px;background:#3a2f1e;border:1px solid #5c4a2c"><i style="display:block;height:100%;width:${Math.round(100 * (1 - j.left / j.total))}%;background:#ffd34d"></i></span><span>${esc(C().kinds?.[j.kind]?.name || j.kind)} ${Math.ceil(j.left / 20)} s${jobs.length > 1 ? ` (+${jobs.length - 1} waiting)` : ''}</span></div>` : '<p>Nothing being made.</p>';
+    const name = k => C().kinds?.[k]?.name || k;
+    const bar = j ? `<div class="row"><span style="display:inline-block;width:90px;height:8px;background:#3a2f1e;border:1px solid #5c4a2c"><i style="display:block;height:100%;width:${Math.round(100 * (1 - j.left / j.total))}%;background:#ffd34d"></i></span><span>${esc(name(j.kind))} ${Math.ceil(j.left / 20)} s</span>${jobs.length > 1 ? `<small>then ${esc(jobs.slice(1).map(x => name(x.kind)).join(', '))}</small>` : ''}</div>` : '<p>Nothing being made.</p>';
     const room = ['horse', 'rickshaw', 'omnibus'].map(c => `${NAMES[c]} <b>${st.have(me, c)}</b> / ${st.room(me, c)}`).join(' · ');
     let k = 0;
-    const rows = options().map(o => `<button data-buy="${esc(o.k)}"${o.why ? ` disabled title="${esc(o.why)}"` : ''}>${o.why ? '' : `${++k}. `}${esc(LABEL[o.k] || `${o.spec.name} (horse)`)} · ${esc(cost(o.spec.cost))} · ${o.spec.seconds} s${o.why ? ` · ${esc(o.why)}` : ''}</button>`).join('');
+    const rows = options().map(o => {
+      const off = o.why ? ` disabled title="${esc(o.why)}"` : ` title="${esc(TIP[o.k] || TIP.horse)}"`;
+      return `<div class="srow"><span${o.why ? ' class="off"' : ''}>${o.why ? '' : `${++k}. `}${esc(LABEL[o.k] || `${o.spec.name} (horse)`)} · ${esc(cost(o.spec.cost))} · ${o.spec.seconds} s${o.why ? `<br><small>${esc(o.why)}</small>` : ''}</span><span><button data-buy="${esc(o.k)}"${off}>+1</button><button data-buy="${esc(o.k)}" data-count="5"${off}>+5</button></span></div>`;
+    }).join('');
     const myClan = game.state.clans?.[me];
-    const horses = Object.values(game.state.entities).filter(u => u.type === 'horse' && u.horseOwner === me && !u.dead);
-    let html = `<h3>STABLE · ${esc(s.name)}</h3>${bar}<h3>BUY</h3><div class="row">${rows}</div>`
+    const list = listVehicles(game, heroId);
+    const unit = v => {
+      const e = v.e, btns = [
+        e.type === 'horse' ? `<button data-choose="${esc(e.id)}"${myClan?.mount === e.id ? ' disabled' : ''} title="Make her your mount (H rides or calls her)">Ride</button>` : '',
+        e.stored ? `<button data-takeout="${esc(e.id)}">Take out</button>` : `<button data-recall="${esc(e.id)}"${e.recall ? ' disabled' : ''} title="Riders get off; back to your nearest stable and stored there">Recall</button>`,
+      ].join('');
+      return `<div class="srow"><span><b>${esc(v.name)}</b>${v.status ? ` · ${esc(v.status)}` : ''}<br><small>${esc(v.where)}</small></span><span>${btns}</span></div>`;
+    };
+    let html = `<h3>STABLE · ${esc(s.name)}</h3>${bar}`
       + (jobs.length ? `<div class="row"><button data-cancel="1">Cancel the last job (refunded)</button></div>` : '')
-      + `<p>Yours, all stables: ${room}. Room grows with each town's tier.</p>`;
-    if (horses.length) html += `<h3>YOUR HORSES</h3><div class="row">${horses.map(x => `<button data-choose="${esc(x.id)}"${myClan?.mount === x.id ? ' disabled' : ''}>${esc(x.name || 'Horse')}${myClan?.mount === x.id ? ' (your mount)' : ''}</button>`).join('')}</div><p>Click a horse to make her your mount (H rides or calls her).</p>`;
-    html += `<div class="row"><button data-close>Close</button></div><div class="waiting">number keys buy · Space / Esc close</div>`;
+      + `<h3>BUY</h3>${rows}<p>Yours, all stables: ${room}. Room grows with each town's tier.</p>`;
+    if (list.length) {
+      const out = list.some(v => !v.e.stored && !v.e.recall);
+      html += `<h3>YOUR HORSES AND VEHICLES</h3><div class="row"><button data-recallall${out ? '' : ' disabled'} title="Everyone gets off; every horse and vehicle goes back to your nearest stable">Recall all</button></div>`
+        + ['horse', 'rickshaw', 'omnibus'].map(c => list.filter(v => v.kind === c).map(unit).join('')).join('');
+    }
+    html += `<div class="row"><button data-close>Close</button></div><div class="waiting">number keys buy one · Space / Esc close</div>`;
     if (html !== shown) { panel.innerHTML = html; shown = html; }
     panel.hidden = false;
   }

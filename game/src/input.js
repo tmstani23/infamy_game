@@ -34,7 +34,7 @@ export function edgeAxes() {
   const up = mouse.y <= EDGE ? 1 : mouse.y >= innerHeight - 1 - EDGE ? -1 : 0;
   return { right, up };
 }
-// Screen-relative WASD for unit `id`; Shift walks
+// Screen-relative WASD for unit `id`; Shift walks (on a horse: gallops, sim/game.js)
 export function moveCommand(id) {
   return {
     id, type: 'move',

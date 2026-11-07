@@ -3,6 +3,7 @@
 //  - recall: anyone aboard or riding gets off; it heads for your nearest built stable on its own and is stored
 //    there (e.stored = { town }, place 'stable': off the map, safe, still counted in your stable room). Further
 //    than rules.garage.driveRange, or no closer for rules.garage.stuckSeconds, it is stored at once.
+//  - recallAll: the same for every horse and vehicle you own that is not stored or on its way.
 //  - takeout: a stored one comes out, parked beside its stable.
 // A stored horse still answers her whistle (sim/mounts.js).
 // createGarage({ state, rules, nav, stable, omnibus, mounts, say }) -> { command, tick, stableOf, kindOf }
@@ -37,6 +38,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
   }
   function command(hero, c) {
     if (hero.type !== 'hero' || c.type !== 'garage') return;
+    if (c.action === 'recallAll') return recallAll(hero);
     const e = state.entities[c.unit];
     if (!kindOf(e) || ownerOf(e) !== hero.owner || e.dead) return say(hero.owner, 'Not yours');
     if (c.action === 'takeout') {
@@ -50,13 +52,26 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     }
     if (c.action !== 'recall') return;
     if (e.stored) return say(hero.owner, 'Already in the stable');
+    const r = recall(hero, e);
+    say(hero.owner, !r ? 'Build a stable first' : r.stored ? `Sent back to the stable in ${r.name}` : `On its way back to the stable in ${r.name}`);
+  }
+  // one horse or vehicle back to the nearest stable: stored at once when far or off the map, else it goes there
+  function recall(hero, e) {
     const at = stableOf(hero.owner, e.x, e.z);
-    if (!at) return say(hero.owner, 'Build a stable first');
+    if (!at) return null;
     getOff(e);
-    if (e.place !== 'world' || at.d > (R().driveRange ?? 400)) { store(e, at); return say(hero.owner, `Sent back to the stable in ${at.name}`); }
+    if (e.place !== 'world' || at.d > (R().driveRange ?? 400)) { store(e, at); return { name: at.name, stored: true }; }
     e.recall = { town: at.town, x: at.x, z: at.z, best: at.d, tick: state.tick };
     delete e.called; delete e.path; delete e.vorder;
-    say(hero.owner, `On its way back to the stable in ${at.name}`);
+    return { name: at.name };
+  }
+  // Recall all (stable menu, Tim 2026-11-07): every horse and vehicle you own that is not stored yet
+  function recallAll(hero) {
+    const list = Object.values(state.entities).filter(e => kindOf(e) && !e.dead && !e.stored && !e.recall && ownerOf(e) === hero.owner);
+    if (!list.length) return say(hero.owner, 'Everything is already in a stable');
+    let n = 0;
+    for (const e of list) if (recall(hero, e)) n++;
+    say(hero.owner, n ? `${n} sent back to the stables` : 'Build a stable first');
   }
   // recalled ones make their way to the stable
   function tick(dt = 1 / 20) {

@@ -147,12 +147,17 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     // replanAt (island paths, sim/areas.js): only the first part of a long trip is walked in detail;
     // when just the rough waypoints are left, ask again from here
     // perf 2026-11-07: a goal that moved (a walking hero) keeps the path when its last leg still
-    // sees the new goal; otherwise a fresh search at most every 5 ticks per unit
+    // sees the new goal, or when it moved little next to how far away it is; otherwise a fresh
+    // search at most every 5 ticks per unit (20 on a long trip)
     let hold = false;
-    if (p && p.pts.length && !p.replanAt && Math.hypot(p.gx - gx, p.gz - gz) > 1.2) {
+    const moved = p ? Math.hypot(p.gx - gx, p.gz - gz) : 0;
+    if (p && p.pts.length && moved > 1.2) {
       const from = p.pts.length > 1 ? p.pts[p.pts.length - 2] : [e.x, e.z];
-      if (grid?.clearLine?.(from[0], from[1], gx, gz)) { p.pts[p.pts.length - 1] = [gx, gz]; p.gx = gx; p.gz = gz; }
-      else if (state.tick < (p.at ?? -Infinity) + 5) { p.pts[p.pts.length - 1] = [gx, gz]; hold = true; }
+      if (!p.replanAt && grid?.clearLine?.(from[0], from[1], gx, gz)) { p.pts[p.pts.length - 1] = [gx, gz]; p.gx = gx; p.gz = gz; }
+      else if (moved <= 0.1 * Math.hypot(gx - e.x, gz - e.z) || state.tick < (p.at ?? -Infinity) + (p.replanAt ? 20 : 5)) {
+        if (!p.replanAt) p.pts[p.pts.length - 1] = [gx, gz];
+        hold = true;
+      }
     }
     if (!p || (!hold && Math.hypot(p.gx - gx, p.gz - gz) > 1.2) || !p.pts.length || (p.replanAt && p.pts.length <= p.replanAt)) {
       const pts = grid.findPath(e.x, e.z, gx, gz) || [];

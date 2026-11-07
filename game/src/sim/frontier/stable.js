@@ -79,12 +79,19 @@ export function createStable({ state, data, world }) {
     }
     const kind = c.mode === 'horse' ? c.kind : c.mode === 'rickshaw' || c.mode === 'omnibus' ? c.mode : null, spec = kind && C.kinds?.[kind];
     if (!spec || (c.mode === 'horse' && spec.vehicle)) return receipt(e, c, false, 'a horse, rickshaw or omnibus');
-    const cat = category(kind), max = room(e.owner, cat);
-    if (have(e.owner, cat) >= max) return receipt(e, c, false, max ? `Your stables have room for ${max} ${NAMES[cat]}: upgrade a town or build a stable in another` : `No room for ${NAMES[cat]} yet: upgrade this town`);
-    if (jobs.length >= (C.queue ?? 3)) return receipt(e, c, false, 'The stable is busy (too many jobs waiting)');
-    if (!afford(s, spec.cost)) return receipt(e, c, false, `Not enough stock (need ${missing(s, spec.cost)})`);
-    pay(s, spec.cost);
-    queue(b, spec, kind);
+    // count (Tim 2026-11-07): queue several at once; as many as room, the queue and stock allow
+    const cat = category(kind), max = room(e.owner, cat), want = Math.max(1, Math.min(C.queue ?? 10, Math.floor(c.count) || 1));
+    let made = 0, why = '';
+    while (made < want) {
+      if (have(e.owner, cat) >= max) { why = max ? `Your stables have room for ${max} ${NAMES[cat]}: upgrade a town or build a stable in another` : `No room for ${NAMES[cat]} yet: upgrade this town`; break; }
+      if (jobs.length >= (C.queue ?? 10)) { why = 'The stable queue is full'; break; }
+      if (!afford(s, spec.cost)) { why = `Not enough stock (need ${missing(s, spec.cost)})`; break; }
+      pay(s, spec.cost);
+      queue(b, spec, kind);
+      made++;
+    }
+    if (!made) return receipt(e, c, false, why);
+    if (want > 1 && clan) clan.notice = { tick: state.tick, text: `Stable: ${made} ${made === 1 ? spec.name : NAMES[cat]} queued${why ? ` (${why.split(':')[0].toLowerCase()})` : ''}` };
     return receipt(e, c, true);
   }
 

@@ -58,4 +58,13 @@ assert.ok(!horse.stored && horse.place === 'world' && Math.hypot(horse.x - hero.
 horse.recall = { town: 'tS', x: sx, z: sz, best: 1, tick: S.tick };
 for (let t = 0; t < 6 * 20 + 2 && !horse.stored; t++) g.step([]);
 assert.ok(horse.stored, 'stuck: stored anyway');
+// Recall all (stable menu): everything not stored goes back; the rickshaw is out, the horse is stored already
+gcmd('takeout', horse.id);
+assert.ok(!horse.stored && !rk.stored, 'both out');
+g.step([{ id: hero.id, type: 'garage', action: 'recallAll' }]);
+assert.ok((horse.recall || horse.stored) && (rk.recall || rk.stored), 'Recall all sends both back');
+for (let t = 0; t < 30 * 20 && !(horse.stored && rk.stored); t++) g.step([]);
+assert.ok(horse.stored && rk.stored, 'both stored');
+g.step([{ id: hero.id, type: 'garage', action: 'recallAll' }]);
+assert.match(clan.notice?.text || '', /already in a stable/, 'nothing left out');
 console.log('test_vehicle_garage: ok');

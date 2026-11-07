@@ -148,7 +148,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const step = Math.min(d - stopAt, (R(b.type).speed ?? 3) * HERO_RUN * dt * (r.slow ?? 1));
     const nx = b.x + r.hx * step, nz = b.z + r.hz * step, [fx, fz] = nav()?.nearestFree(nx, nz) || [nx, nz];
     if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return false; }   // blocked: wait there
-    Object.assign(b, { x: fx, z: fz, anim: 'walk' }); b.trail = [];
+    Object.assign(b, { x: fx, z: fz, anim: 'run' }); b.trail = [];   // vehicles move at gallop pace: gallop sheets (art.json run)
     return true;
   }
 
@@ -232,7 +232,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
       if (lead) {
         const h = state.entities[lead.driver], last = lead.trail[lead.trail.length - 1];
         const moved = !last || Math.hypot(h.x - lead.x, h.z - lead.z) > 0.01;
-        Object.assign(lead, { x: h.x, z: h.z, place: h.place, dir: h.dir ?? lead.dir, heading: h.heading ?? lead.heading, anim: moved && h.anim !== 'idle' ? 'walk' : 'idle' });
+        Object.assign(lead, { x: h.x, z: h.z, place: h.place, dir: h.dir ?? lead.dir, heading: h.heading ?? lead.heading, anim: moved && h.anim !== 'idle' ? 'run' : 'idle' });
         if (!last || Math.hypot(h.x - last[0], h.z - last[1]) > 0.5) { lead.trail.push([h.x, h.z]); if (lead.trail.length > 80) lead.trail.shift(); }
         // the others with riders drive behind it along its track
         let gap = R().gap ?? 6;
@@ -242,7 +242,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
           const p = back(lead.trail, gap); gap += R().gap ?? 6;
           if (!p) { b.anim = 'idle'; continue; }
           const dx = p[0] - b.x, dz = p[1] - b.z, d = Math.hypot(dx, dz);
-          if (d > 0.01) { steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20); b.anim = 'walk'; } else b.anim = 'idle';   // the row sweeps round (sim/vehicle_steer.js)
+          if (d > 0.01) { steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20); b.anim = 'run'; } else b.anim = 'idle';   // the row sweeps round (sim/vehicle_steer.js)
           Object.assign(b, { x: p[0], z: p[1], place: lead.place });
         }
       } else {

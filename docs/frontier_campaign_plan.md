@@ -504,8 +504,15 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - The Vehicles panel (Shift+Y) lists your vehicles and can recall, store and take them out (`src/vehicles_panel.js`, `sim/vehicle_garage.js`). Test: `tools/test_vehicle_garage.mjs`.
 - Shift+H Mount up puts the hero group's crew on horses; settlers and workers are excluded; crew dismount to fight. Test: `tools/test_crew_horses.mjs`.
 - Right-click with crew selected on a parked rickshaw (2 seats) or omnibus (8) to garrison them inside.
+- The stable queue holds up to 10 jobs of any mix; +5 queues five. The stable menu lists all your horses and vehicles with recall or take out on each, and a Recall all button.
+- Mounted, the hero trots at run speed (`units.json` `rules.mount.trot`) and gallops at `rules.mount.speed` while Shift is held.
+- The town governor has no figure; Space within 1.5 cells of your own town hall talks to him.
+- Unstuck on the island goes to the front of your nearest town hall, or to the capital gate if that is closer.
+- Town-hall cannons have no ring or health bar and are named "Cannon".
+- Following crew keep their path while its last leg can see the goal; otherwise they re-plan at most every 5 ticks (every 20 on a long trip). The island walk-cell building check is cached until a town's buildings change.
+- Frontier lag fixes: town blocker cache, crew re-path throttle (`sim/crew_orders.js`, `sim/areas.js`), cheaper ground and bloom drawing (`render/world_ground.js`, `render/bloom.js`). F3 shows a frame time breakdown (`src/fps.js`).
+- Guides (lieutenant, surveyor) are not counted as crew (`src/crew_input.js`).
 - The capital's railway station is just inside the island gate (`data/port_town.json`).
-- Unstuck sends you to the nearest town hall, or to the capital if it is closer (`sim/unstuck.js`).
 - Hovering a train shows a card (`src/town_hover.js`). Minimap icons show the building's name on hover (`src/minimap_icons.js`).
 - Building and site menus open around 48% from the left and 33% down (`data/ui_layout.json`).
 - Omnibus and rickshaw `run` uses gallop sheets (`omnibus_gallop`, `rickshaw_horse_gallop`; `art.json`).

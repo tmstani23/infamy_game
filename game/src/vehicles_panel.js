@@ -2,11 +2,9 @@
 // who is aboard, and Look (camera), Select (vehicles: they take crew orders), Whistle (horses), Recall (back to your
 // nearest stable and stored there) or Take out (parked beside its stable). Commands: sim/vehicle_garage.js,
 // sim/mounts.js whistle. Room per stable comes from the town tiers (sim/frontier/stable.js).
-export function createVehiclesPanel({ root, game, heroId, send, view, crewInput }) {
-  let open = false, shown = '';
+// Your horses and vehicles with name, status and where, in words (also used by the stable menu).
+export function listVehicles(game, heroId) {
   const hero = () => game.state.entities[heroId];
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const NAMES = { horse: 'Horses', rickshaw: 'Rickshaws', omnibus: 'Omnibuses' };
   function mine() {
     const me = hero()?.owner, list = [];
     for (const e of Object.values(game.state.entities)) {
@@ -33,6 +31,16 @@ export function createVehiclesPanel({ root, game, heroId, send, view, crewInput 
     const n = Object.values(st.entities).filter(u => u.aboard === e.id).length;
     return n ? `${n} aboard${e.driver === heroId ? ', you drive' : ''}` : 'empty';
   }
+  const k = { horse: 0, rickshaw: 0, omnibus: 0 };
+  return mine().map(({ e, kind }) => ({ e, kind, name: e.type === 'horse' ? e.name || 'Horse' : `${e.type === 'omnibus' ? 'Omnibus' : 'Rickshaw'} ${++k[kind]}`, status: status(e), where: where(e) }));
+}
+
+export function createVehiclesPanel({ root, game, heroId, send, view, crewInput }) {
+  let open = false, shown = '';
+  const hero = () => game.state.entities[heroId];
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const NAMES = { horse: 'Horses', rickshaw: 'Rickshaws', omnibus: 'Omnibuses' };
+  const mine = () => listVehicles(game, heroId);
   root.addEventListener('click', ev => {
     const b = ev.target.closest?.('button'); if (!b || b.disabled) return;
     const d = b.dataset, e = d.id && game.state.entities[d.id];
@@ -48,21 +56,20 @@ export function createVehiclesPanel({ root, game, heroId, send, view, crewInput 
   function update() {
     if (!open) return;
     const list = mine(), S = game.frontier?.stable, me = hero()?.owner, onIsland = hero()?.place === 'world';
-    let k = { horse: 0, rickshaw: 0, omnibus: 0 }, html = '<header><h3>VEHICLES</h3><button data-close aria-label="Close">✕</button></header>';
+    let html = '<header><h3>VEHICLES</h3><button data-close aria-label="Close">✕</button></header>';
     if (S) html += `<p>${['horse', 'rickshaw', 'omnibus'].map(c => `${NAMES[c]} <b>${S.have(me, c)}</b> / ${S.room(me, c)}`).join(' · ')}<br><small>Room: all your stables together, by each town's tier. Buy more in a stable menu.</small></p>`;
     for (const cat of ['horse', 'rickshaw', 'omnibus']) {
       const rows = list.filter(r => r.kind === cat);
       if (!rows.length) continue;
       html += `<h4>${NAMES[cat]}</h4>`;
-      for (const { e } of rows) {
-        const name = e.type === 'horse' ? e.name || 'Horse' : `${e.type === 'omnibus' ? 'Omnibus' : 'Rickshaw'} ${++k[cat]}`, s = status(e);
+      for (const { e, name, status: s, where: w } of rows) {
         const btns = [
           !e.stored && e.place === 'world' ? `<button data-act="look" data-id="${esc(e.id)}">Look</button>` : '',
           e.type !== 'horse' && !e.stored && e.place === 'world' ? `<button data-act="select" data-id="${esc(e.id)}" title="Select it: loaded ones take crew orders">Select</button>` : '',
           e.type === 'horse' ? `<button data-act="whistle" data-id="${esc(e.id)}"${onIsland ? '' : ' disabled title="Island only"'}>Whistle</button>` : '',
           e.stored ? `<button data-act="takeout" data-id="${esc(e.id)}">Take out</button>` : `<button data-act="recall" data-id="${esc(e.id)}"${e.recall ? ' disabled' : ''} title="Riders get off; it goes back to your nearest stable and is stored there">Recall</button>`,
         ].join('');
-        html += `<div class="vrow"><div><b>${esc(name)}</b>${s ? ` · ${esc(s)}` : ''}<br><small>${esc(where(e))}</small></div><div class="vbtns">${btns}</div></div>`;
+        html += `<div class="vrow"><div><b>${esc(name)}</b>${s ? ` · ${esc(s)}` : ''}<br><small>${esc(w)}</small></div><div class="vbtns">${btns}</div></div>`;
       }
     }
     if (!list.length) html += '<p>No horses or vehicles yet. Build a stable in one of your towns, then click it to buy them.</p>';
