@@ -31,6 +31,7 @@ export function frameTarget(state, heroId, selected, tabbed, seen = () => true, 
 export function relation(e, hero) {
   if (e.id === hero.id) return { tag: 'You', kind: 'you' };
   if(e.workerOwner===hero.owner)return {tag:'Your worker',kind:'crew'};
+  if (e.omnibusOwner) { const k = e.type === 'rickshaw' ? 'rickshaw' : 'omnibus'; return e.omnibusOwner === hero.owner ? { tag: `Your ${k}`, kind: 'crew' } : { tag: `Rival ${k}`, kind: 'enemy' }; }   // vehicles (Tim 2026-11-07)
   if (e.owner === POLICE) return { tag: 'Police', kind: 'enemy' };
   if (e.owner === WILD) return { tag: 'Bandit', kind: 'neutral' };
   if (!e.owner) return { tag: 'Townsfolk', kind: 'neutral' };

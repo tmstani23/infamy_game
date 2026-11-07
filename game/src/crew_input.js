@@ -71,6 +71,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
   let tabbed = null;          // the Tab (or left-click) target: red, purple when sharing the hero's attack
+  let lastClick = { id: null, t: 0 };   // for double-click to follow with the camera
   let looked = null;          // a townsperson (or other non-enemy) left-clicked to look at in the target frame
   let building = null;        // the selected building (index in the district's buildings), or null
   const hero = () => game.state.entities[heroId];
@@ -250,10 +251,16 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
-      looked = civ ? civ.id : mate ? mate.id : null;
+      // any rickshaw or omnibus in sight (yours empty or driven, or someone else's) shows in the target frame (Tim 2026-11-07)
+      const ride = !mate && !foe && !civ && unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => game.omnibus?.isVehicle(v) && !v.dead && v.place === commandPlace() && seen(v)), 45);
+      looked = civ ? civ.id : mate ? mate.id : ride ? ride.id : null;
+      // double-click a crew member or vehicle: the camera follows it until you pan, click the map or press Home
+      const clicked = mate || ride, now = performance.now();
+      if (clicked && lastClick.id === clicked.id && now - lastClick.t < 400) { const id = clicked.id; view.watch?.(() => { const u = game.state.entities[id]; return u && !u.dead && !u.jailed ? { id, x: u.x, z: u.z, place: u.place } : null; }); }
+      lastClick = { id: clicked?.id ?? null, t: now };
       if (mate) picked = [mate.id];
       // nothing there but a building: look at the building
-      const b = mate || foe || civ || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
+      const b = mate || foe || civ || ride || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
       if (mate) {
         if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id);
