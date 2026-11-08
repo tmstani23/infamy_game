@@ -28,18 +28,20 @@
     "feetUp": 1.274
   },
   "calico_gallop": {
-    "size": 256,
+    "size": 288,
+    "dirs": 8,
     "frames": 11,
     "fps": 12,
-    "cellWorld": 4.8,
-    "feetUp": 1.151
+    "cellWorld": 5.4,
+    "feetUp": 1.188
   },
   "calico_walk": {
-    "size": 256,
+    "size": 288,
+    "dirs": 8,
     "frames": 21,
     "fps": 12,
-    "cellWorld": 4.8,
-    "feetUp": 1.179
+    "cellWorld": 5.4,
+    "feetUp": 1.188
   },
   "ox_gallop": {
     "size": 256,

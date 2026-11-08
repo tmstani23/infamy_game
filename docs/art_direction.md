@@ -68,6 +68,7 @@
 - Vehicles: generate the wheels and the animals as separate images, because Tencent fuses wheels into the body.
 - Concepts live in `assets/concepts/mounts_vehicles/`.
 - Horse walk (2026-11-07): the leg pose keeps the original fold (front cannon -F, pastern -0.6F). The front-leg swing is time-compressed to the first 70% of its swing window, then held planted, so the front legs match the back legs' cadence. Applied in the walk clips of mare, mare_saddled, calico, rickshaw_horse and omnibus .glb (`assets/models/mounts`, gitignored). Gallop unchanged.
+- Calico rig (2026-11-08): built by `assets/models/source/animal_rigs/calico_rig.py`, not `quad_rig.py`, because the Tencent mesh is bent and leaning. It finds the feet by k-means, shears the legs under the body, straightens the chest, neck and head, re-rolls the bones, re-weights, and makes walk and gallop with the mare's `make()` values. The 0.7 front-leg walk warp is applied with `animal_rigs/front_walk_warp.py` (`python front_walk_warp.py calico.glb walk`). Framing: 288 px cells, cellWorld 5.4 (same as the mare).
 
 ### Frontier angled art (2026-11-06)
 
