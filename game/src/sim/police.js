@@ -209,7 +209,10 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   // --- Officers ----------------------------------------------------------------------
   // A clan's units the police can go after: on the street (indoors too at Most Wanted, where they
   // follow the hero in), standing, outside no-police areas
-  const fair = (u, clanId) => u.owner === clanId && (u.place === 'street' || !!tierFor(clanId)?.relentless)
+  // The city police stop at the island gate (Tim 2026-11-08): nobody out on the island ('world') is theirs to chase,
+  // even at Most Wanted; you shouldn't be chased out there for what your captain did in the city
+  const offIsland = u => u?.place !== 'world';
+  const fair = (u, clanId) => u.owner === clanId && offIsland(u) && (u.place === 'street' || !!tierFor(clanId)?.relentless)
     && !u.dead && !u.downed && !u.jailed && !noPolice(u.x, u.z);
 
   // Every new officer comes out fresh: it patrols and only joins the hunt once it sees the
@@ -340,14 +343,14 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   // him less than lostSeconds ago, and he is still outside). Most Wanted: always.
   function knownFor(e) {
     const t = tierFor(e.clan), h = heroOf(e.clan);
-    if (!h || !hunting(t) || quiet()) return null;
+    if (!h || !offIsland(h) || !hunting(t) || quiet()) return null;
     if (t.relentless) return h;
     return h.place === 'street' && !h.downed && chasing(mind[e.id], e.clan) ? h : null;
   }
   // ...while any officer of the squad does (the screen's 'lost' news, Most Wanted following, tests)
   function knownHero(clanId) {
     const t = tierFor(clanId), h = heroOf(clanId);
-    if (!h || !hunting(t) || quiet()) return null;
+    if (!h || !offIsland(h) || !hunting(t) || quiet()) return null;
     if (t.relentless) return track[clanId] ? h : null;
     return officers().some(o => o.clan === clanId && knownFor(o)) ? h : null;
   }
@@ -470,6 +473,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
 
   function step(e) {
     const m = mind[e.id] ||= {}, unit = statsOf(e);
+    if (e.place === 'world') m.leaving = true;   // an officer already out on the island heads back to the city
     if (e.dead || e.downed) return;
     // Finish an arrest already in progress, and preserve business attack defenders.
     if (!e.wave && !e.execute) {

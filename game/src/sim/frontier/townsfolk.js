@@ -3,8 +3,10 @@
 // town hall tier (max[tier]). At night, or while enemies are inside the town ring (a stand-in for war until wars
 // exist; s.war also counts), they walk back to the town hall and go in. Decoration only: they exist only while
 // one of your units is within viewRadius of the hall, and nobody can lose a person this way.
+// Tim 2026-11-08: they are the capital's mix of townsfolk (every civilians.json walker type, picked at random by its
+// count), and they keep near the town hall: within roam[tier] world units of it, a bit further each tier.
 // Records (plain data, saved): s.folk = [{ entity, path, step, wait, home }].
-// createTownsfolk({ state, data }) -> { tick, attach }   data.townsfolk (frontier.json)
+// createTownsfolk({ state, data, civilians }) -> { tick, attach }   data.townsfolk (frontier.json), civilians.json
 import { cellToWorld, ringRadius } from './town_grid.js';
 import { dirIndex } from '../geometry.js';
 import { modeRules } from '../modes/index.js';
@@ -12,8 +14,11 @@ import { modeRules } from '../modes/index.js';
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const HZ = 20;
 
-export function createTownsfolk({ state, data }) {
+export function createTownsfolk({ state, data, civilians = null }) {
   const T = data.townsfolk;
+  // the capital's walkers, each as many times as its count (vehicles drive, they don't walk round a town)
+  const mix = Object.values(civilians?.types || {}).filter(t => !t.vehicle && t.model).flatMap(t => Array(Math.max(1, t.count || 1)).fill(t.model));
+  const roamOf = s => T.roam?.[s.tier || 1] ?? T.roam?.[1] ?? Infinity;
   let runtime = null, danger = new Map();   // town id -> enemies inside the ring (refreshed once a second)
   const towns = () => Object.values(state.frontier?.settlements || {}).filter(s => !s.capital && s.grid && s.owner && s.founded !== undefined && Number.isFinite(s.x));
   // seeded per town and step, so the same game wanders the same way
@@ -23,13 +28,19 @@ export function createTownsfolk({ state, data }) {
     return Object.values(state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.downed && e.owner && e.owner !== s.owner
       && (state.clans?.[e.owner] || e.owner === 'bandits') && Math.hypot(e.x - x, e.z - z) <= r);
   }
-  // somewhere worth walking to: a built building or a road cell of the town
+  // somewhere worth walking to near the hall: a built building or a road cell of the town within roam of it,
+  // else just a spot within roam
   function target(s, k) {
-    const g = s.grid, cells = [];
+    const g = s.grid, cells = [], roam = roamOf(s);
     for (const b of s.buildings || []) if (b.stage === 'built' && b.type !== 'town_hall') cells.push(...(b.cells?.length ? b.cells : [b.cell]).filter(Number.isInteger));
     for (let i = 0; i < g.use.length; i += 3) if (g.use[i] === 'r') cells.push(i);
-    if (!cells.length) return null;
-    const [x, z] = cellToWorld(s, cells[Math.floor(roll(s, k) * cells.length)]);
+    const near = cells.filter(i => { const [x, z] = cellToWorld(s, i); return Math.hypot(x - s.x, z - s.z) <= roam; });
+    if (!near.length) {
+      if (!Number.isFinite(roam)) return null;
+      const a = roll(s, k) * Math.PI * 2, d = roam * (0.35 + 0.65 * roll(s, k + 1)), x = s.x + Math.cos(a) * d, z = s.z + Math.sin(a) * d;
+      return runtime.areas.nav.nearestFree?.(x, z) || [x, z];
+    }
+    const [x, z] = cellToWorld(s, near[Math.floor(roll(s, k) * near.length)]);
     return runtime.areas.nav.nearestFree?.(x + (roll(s, k + 1) - 0.5) * 4, z + (roll(s, k + 2) - 0.5) * 4) || [x, z];
   }
   const door = s => { const step = (s.grid.cell || 11) * 0.9; return runtime.areas.nav.nearestFree?.(s.x + step * 0.7, s.z + step * 0.7) || [s.x, s.z]; };
@@ -53,7 +64,7 @@ export function createTownsfolk({ state, data }) {
       for (const f of out.slice(want)) { const e = state.entities[f.entity]; f.home = true; route(f, [e.x, e.z], door(s)); }
       // too few: one walks out of the hall each second
       if (out.length < want && now % HZ === 0) {
-        const at = door(s), k = s.folk.length + now, models = T.models || data.arrivals?.models || ['old_woman'];
+        const at = door(s), k = s.folk.length + now, models = T.models || (mix.length ? mix : null) || data.arrivals?.models || ['old_woman'];
         const id = runtime.spawn('civilian', models[Math.floor(roll(s, k) * models.length)], ...at, { place: 'world', area: 'world', townsfolk: s.id, seenBy: s.owner, holdFire: true, hp: 60, maxHp: 60 });
         const f = { entity: id, path: null, step: 0, wait: 0, home: false };
         s.folk.push(f);

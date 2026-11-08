@@ -48,6 +48,8 @@ Full plan: `/mnt/project-files/steam_trains/plan.md`. Built (2026-11-07): steps 
 - Boarding takes your followers and the Hero group within 60 (`railways.json` heroGroupRange). The camera follows the train while you ride; a pan holds until Home.
 - Town station: one 3x2 placement (ticket hall, engine shed, railway slot). R turns it; an arrow on the ghost shows where the track leaves. Erasing a station with lines needs a second erase, which tears the lines up.
 - The rail gang keeps up with the railhead.
+- Track routing (2026-11-08): keeps 11 units (one town cell) from mountains, cliffs and water (`railways.json` route.clearance); corners round to arcs (route.minRadius 24). In towns it leaves a 3x2 station straight out of its mouth, then bends at most 45° with a straight cell between bends. A station whose mouth can't curve out is refused ("turn it (R) or clear a way").
+- World map: Railways layer switch (on by default); the key shows open lines and lines being laid (dashed; the dot is the rail gang).
 - Purpose: rail is the main trade channel between your towns and the only fast way between them. No timetables, driving, cargo picking or track placing. Instant rickshaw station travel is removed when trains arrive; rickshaws stay as driveable 2-seaters.
 - Unlock around town tier 2-3. First line: capital to your first town, then town by town. Lines link only your own towns and the capital.
 - Building a link: the governor proposes lines (card with route, time and cost), or order one from the station card (Link to...). The game picks the route over world terrain cost (`world.json` roadCost). A link takes 10 minutes at any length, paid in timber and goods as it goes; it waits when stock runs out. An optional 2nd gang works from the far end. A rival attack knocks the gang out (~30 s) and sets the link back ~1 minute, at most once per link per day; wild bandits leave gangs alone.
@@ -486,6 +488,11 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 
 `sim/vehicle_steer.js` `steer(e, want, { turnDegrees, turnSlow }, dt)` (the capital cart steering from `civilians.js` `drive()`): caps the turn rate, slows to 0.4 at turns of 90° or more, and sets `e.dir` from the heading so turns sweep through the 8 sprite rows. Used by the hero driving the omnibus or rickshaw or riding, the following omnibus, and called horses (dir only). `units.json` `turnDegrees`: omnibus 120, rickshaw 180, mount 240. Test: `tools/test_omnibus.mjs` (turn limit).
 
+## Later phases: police on the frontier (planned 2026-11-08)
+
+- Police following you onto the island (today they stop at the island gate).
+- Frontier police: a police station per town; city heat and frontier heat are separate. Heat cools at the normal rate while you are in the other zone, but cannot be bribed off from there.
+
 ## Stable and town fixes (2026-11-08)
 
 - Capital stable (the old rickshaw station): sells horses for 300 ryo, a rickshaw for 400 and an omnibus for 900 to permit holders. Purchases wait outside the island gate. It adds stable room: 2 horses, 1 rickshaw, 1 omnibus.
@@ -495,6 +502,13 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - The Governor tab holds all steering (the Steer tab is gone); the market keep level can be typed in. The Open a Market goal ends once the keep level is set.
 - Camp ox carts leave the camp spaced apart.
 - Crew panel: no flashing in the capital; paging no longer bounces.
+- Frontier townsfolk use the capital's walker mix (`civilians.json` non-vehicle types, weighted by count) and stay within townsfolk.roam of the town hall: 45 / 80 / 130 units by tier.
+- Frontier town workers' nameplates read "Worker".
+- Market keep box has no browser number spinner.
+- Governor tab: Focus is one row of buttons with a short caption; Taxes, Market keeps and Initiative show short captions with the full text in tooltips. Fortify = the governor builds a stockade first. Camps are worked only by trained workers.
+- Build bar rows: Lay out (Eraser apart at the right, muted red), Zones, Camps, Buildings. Capped buildings show used/allowed; buildings the tier doesn't allow yet are greyed and dashed with the unlocking tier's name. Town panel tabs are underlined; the panel has a ✕ close button.
+- Police never chase, attack or arrest units on the island (place 'world') at any heat tier; officers out there return to the city.
+- Ride clips: every crew model has a ride clip (`coach_sitting`, art.json `ride` keys); the RIDE table in `tools/export_sprites.mjs` lists the riders.
 - `test_eraser_caps` checks that every tier-capped building frees its slot when erased.
 
 ## Playtest fixes (2026-11-07)

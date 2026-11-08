@@ -14,8 +14,8 @@
 //   after ride.skipSeconds: straight to the far station). Riders carry e.aboard = 'rail:<train id>' (hidden, out
 //   of fights, like the omnibus) and e.railRide = { train, since }; they get off at the train's next station.
 // createRail({ state, data, world, worldData }) -> { command, tick, econTick, attach, endpoint, preview, linksOf }
-import { createRailGrid, routeRail, pointAt, measure } from './rail_route.js';
-import { townExit, railCellsFor } from './rail_town.js';
+import { createRailGrid, routeRail, pointAt, measure, roundCorners, openRun } from './rail_route.js';
+import { townExit, railCellsFor, clearRun } from './rail_town.js';
 import { stationParts } from './station_layout.js';
 import { tierOf } from './tiers.js';
 import { modeRules } from '../modes/index.js';
@@ -79,15 +79,23 @@ export function createRail({ state, data, world, worldData, stable }) {
     // a 3x2 station (Tim 2026-11-07): out of the shed straight through the railway slot, then round the town
     const exitOf = (t, route) => { const st = stable.of(t, 'station'), parts = st && stationParts(t, st);
       if (!parts) return townExit(t, data, st ? (st.cells || [st.cell]) : [], route);
-      const far = [t.x + parts.slotFar[0], t.z + parts.slotFar[1]], r = townExit(t, data, parts.slotCells, [far, ...route.slice(1)]);
+      const far = [t.x + parts.slotFar[0], t.z + parts.slotFar[1]], r = townExit(t, data, parts.slotCells, [far, ...route.slice(1)], { dir: parts.dir });
       return r && [route[0], ...r]; };
+    const boxed = t => stationParts(t, stable.of(t, 'station')) ? `No room for a train to curve out of ${t.name}'s station: turn it (R) or clear a way`
+      : `Buildings box in ${t.name}'s station: clear a way out`;
     let pts = exitOf(s, coarse.points);
-    if (!pts) return { error: `Buildings box in ${s.name}'s station: clear a way out` };
+    if (!pts) return { error: boxed(s) };
     if (to !== 'capital') {
       const back = exitOf(town(to), [...pts].reverse());
-      if (!back) return { error: `Buildings box in ${town(to).name}'s station: clear a way out` };
+      if (!back) return { error: boxed(town(to)) };
       pts = back.reverse();
     }
+    // round every corner to a curve a train could take (Tim 2026-11-08), keeping clear of rock, water and buildings
+    const ends = [s, town(to)].filter(t => t?.grid).map(t => { const st = stable.of(t, 'station'); return [t, new Set(st ? (st.cells || [st.cell]) : [])]; });
+    // strict first (a cell clear of rock and water), then just off rock and buildings where the strict curve won't fit
+    const ok = [(p, q) => openRun(g, p, q) && ends.every(([t, mine]) => clearRun(t, p, q, mine, true)),
+      (p, q) => openRun(g, p, q, 0) && ends.every(([t, mine]) => clearRun(t, p, q, mine))];
+    pts = roundCorners(pts.filter((p, k) => !k || k === pts.length - 1 || Math.hypot(p[0] - pts[k - 1][0], p[1] - pts[k - 1][1]) > 4), g.cfg.minRadius ?? 0, ok, 3, 0.5);   // half the slot stays straight
     const line = measure(g, pts.map(([x, z]) => [Math.round(x * 10) / 10, Math.round(z * 10) / 10]));
     line.cost = coarse.cost;
     const cost = {};

@@ -14,7 +14,7 @@ import { createBloom } from './bloom.js';
 import { fxShared } from './vfx.js';
 import { createBanners } from './banners.js';
 import { placePiece } from '../sim/geometry.js';
-import { unitName } from '../selection_panel.js';
+import { entityName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
@@ -43,6 +43,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 600);
   camera.quaternion.copy(CAM_QUAT);
+  // unit overlays (health bars, selection rings, nameplates) sit on their own layer so F2 can hide them (Tim 2026-11-08)
+  const UI_LAYER = 5;
+  camera.layers.enable(UI_LAYER);
   const camTarget = new THREE.Vector3();
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
@@ -231,6 +234,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const s = new CharacterSprite(await loadSheets(catalog, e.model));
     sprites.set(e.id, s);
     scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate);
+    for (const o of [s.ring, s.bar, s.nameplate]) o.traverse(c => c.layers.set(UI_LAYER));
     s.ring.visible = selected.has(e.id);
     return s;
   }
@@ -345,7 +349,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       if (e.cannon) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp);   // salute cannons: no health bar
-      s.setNameplate(e.name || unitName(units || { types: {} }, e.type), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
+      s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero');
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
       // health bar stays a health bar: two bars used to show, Tim 2026-10-18);
@@ -583,6 +587,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
     setNameplates(on) { nameplatesOn = !!on; },
+    // F2 screenshot mode: hide unit bars, rings and nameplates
+    setUnitOverlays(on) { if (on) camera.layers.enable(UI_LAYER); else camera.layers.disable(UI_LAYER); },
     nameplateAt(px,py,eligible=[]) {
       if(!nameplatesOn)return null;
       const ids=new Map(eligible.map(id=>[sprites.get(id)?.nameplate,id]));

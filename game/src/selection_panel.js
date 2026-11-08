@@ -5,6 +5,8 @@ import { healthBar } from './render/health.js';
 import { portrait } from './portraits.js';
 import { prisonerOf } from './sim/police.js';
 
+// frontier town workers read as Worker, not Civilian (Tim 2026-11-08)
+export const entityName = (units, e, type = e.type) => e.worker ? 'Worker' : unitName(units, type);
 export const unitName = (units, type) => units.types[type]?.name || units.models?.[type]?.name || (type.charAt(0).toUpperCase() + type.slice(1)).replace(/_/g, ' ');
 
 // What a unit is doing, in a word or two, from the state alone (no DOM, so Node can check it)
@@ -91,7 +93,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
         c.className = 'card';
         c.dataset.id = id;
         c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
-        c.querySelector('b').textContent = ((e.cannon || e.surveyor) && e.name) || unitName(units, e.civ || e.type);
+        c.querySelector('b').textContent = ((e.cannon || e.surveyor) && e.name) || entityName(units, e, e.civ || e.type);
         root.appendChild(c);
         cards[id] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
@@ -111,7 +113,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       if (k.where.textContent !== at) k.where.textContent = at;
       k.c.classList.toggle('down', !!e.downed);
       k.c.classList.toggle('jailed', !!e.prisoner);
-      k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${((e.cannon || e.surveyor) && e.name) || unitName(units, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
+      k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${((e.cannon || e.surveyor) && e.name) || entityName(units, e, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
     }
   }
   return { update };

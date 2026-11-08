@@ -211,6 +211,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
+| F2 | Hide all UI (panels, minimap, unit bars, selection rings, nameplates); F2 again shows it |
+| Town panel ✕ (or O / Esc) | Close the town panel |
 | Settings → Video | Resolution 1920×1080 (default) / 1600×900 / 1280×720 draws about that many pixels whatever the window shape; Sharp draws every screen pixel (up to 2 per page pixel); `?dpr=N` in the URL overrides. Toggles: Glow, Screen shake, Show FPS. Frame cap Off / 60 / 30. Applied live and kept in this browser (localStorage `infamy.video.v1`). |
 | ` (backquote), Pause, or the Pause button | Pause / resume (single player): the game stops, menus still work |
 | ? or the Controls button | Open the controls panel (Esc closes it) |

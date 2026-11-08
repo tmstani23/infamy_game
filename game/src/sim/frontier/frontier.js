@@ -23,7 +23,7 @@ import { createWorkers, ensureWorkers } from './workers.js';
 import { createArrivals } from './arrivals.js';
 import { createTownsfolk } from './townsfolk.js';
 
-export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null }) {
+export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null }) {
   let world = createFrontierWorld({ state, data });
   const cadence = Math.max(1, data.cadenceTicks || 20);
   const ctx = { state, data, world };
@@ -51,7 +51,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
   const arrivals = createArrivals({ state, data });
-  const townsfolk = createTownsfolk({ state, data });   // Tim 2026-11-07: citizens wandering your towns in peacetime
+  const townsfolk = createTownsfolk({ state, data, civilians });   // Tim 2026-11-07: citizens wandering your towns in peacetime
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index }) : null;
   const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });

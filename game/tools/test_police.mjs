@@ -441,4 +441,21 @@ for (const kind of ['thug', 'swordsman', 'brute']) {
   assert.ok(up(cops2) > 0 && up(crew) === 0, `2 officers beat 2 ${kind}s`);
 }
 console.log('tough police ok');
+// The city police stop at the island gate (Tim 2026-11-08): even Most Wanted, nobody chases a boss out on the island,
+// and an officer already out there goes back
+{
+  const g = newGame();
+  const h = g.state.entities[g.spawn('hero', 'ronin', 20, 10, { owner: 'player' })];
+  clan(g).heat = 300;
+  run(g, 6);
+  assert.ok(cops(g).length > 0, 'Most Wanted squad out');
+  Object.assign(h, { place: 'world', x: 5000, z: 5000 });
+  const o = cops(g)[0]; Object.assign(o, { place: 'world', x: 5003, z: 5000 });
+  const hp = h.hp, t0 = g.state.tick;
+  run(g, 10);
+  assert.ok(!cops(g).some(c => c.place === 'world'), 'officers leave the island');
+  assert.ok(h.hp >= hp && !(h.hitBy?.tick > t0), 'nobody hits the boss out on the island');
+  assert.ok(!g.state.casts.some(c => c.kind === 'arrest' && c.target === h.id), 'no arrest out there');
+  console.log('island out of reach ok');
+}
 console.log('police tests passed');

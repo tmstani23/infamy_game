@@ -17,12 +17,19 @@ export function ownTowns(frontier, clan) {
 }
 
 // Plain one-line effects of each steering choice (Tim 2026-11-05: what do the focus buttons actually do?)
+// Short captions shown under each choice (Tim 2026-11-08: no long lines across the card); the full lines above are tooltips
+const SHORT = {
+  focus: { grow: 'Farms first · more farms and houses', produce: 'Workshops first · builds for your scarcest material', trade: 'Workshops first · more goods to sell', fortify: 'Builds a stockade first' },
+  tax: { low: 'Little ryo · happier town', normal: 'Steady ryo', high: 'Most ryo · mood falls', auto: 'Kept where mood stays healthy' },
+  initiative: { off: 'He suggests, you approve', on: 'He builds by himself' }
+};
+const CLOSE = '<button type="button" data-act="panel-close" class="pclose" aria-label="Close" title="Close (O or Esc)">✕</button>';
 const STEER = {
   focus: {
     grow: 'Grow: people work farms first; the governor adds farms and houses so the town gets bigger.',
-    produce: 'Produce: people work workshops and camps first; the governor adds whatever makes your lowest of timber, stone or goods.',
+    produce: 'Produce: people work workshops first; the governor adds whatever makes your lowest of timber, stone or goods.',
     trade: 'Trade: people work workshops first, so more goods for upkeep, upgrades and the market.',
-    fortify: 'Fortify: the governor builds a stockade first; people fill camps before farms.'
+    fortify: 'Fortify: the governor builds a stockade first.'
   },
   tax: {
     low: 'Low taxes: little ryo, happier town.', normal: 'Normal taxes: steady ryo, mood a little lower than low taxes.',
@@ -87,13 +94,14 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   // the Governor tab's steering rows (Tim 2026-11-07: were the Steer tab): taxes, market keep, stockade, initiative
   function steerExtras(s, rows) {
     const st = rows.steer, b = (act, val, label, on, t = '') => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}"${t ? tip(t) : ''}>${label}</button>`;
-    const now = text => `<div class="hint steernow">${esc(text)}</div>`, taxNow = st.taxLocked ? st.tax : 'auto';
+    // label with a short caption under it on the left, the choices on the right
+    const label = (name, cap, t = '') => `<span class="steerlab"${t ? tip(t) : ''}>${name}<small>${esc(cap)}</small></span>`, taxNow = st.taxLocked ? st.tax : 'auto';
     let x = '<div class="lab">Steer</div>';
-    x += `<div class="row"><span${tip(st.tips.tax)}>Taxes</span><span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p, STEER.tax[p])).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked, STEER.tax.auto)}</span></div>` + now(STEER.tax[taxNow] + (st.taxLocked ? '' : ` Now: ${st.tax}.`));
+    x += `<div class="row">${label('Taxes', SHORT.tax[taxNow] + (st.taxLocked ? '' : ` · now ${st.tax}`), st.tips.tax)}<span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p, STEER.tax[p])).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked, STEER.tax.auto)}</span></div>`;
     // Economy pass 2 D: market keep level (players and bots share setMarketKeep)
     if (data?.market && s.buildings?.some(x => x.type === 'market' && x.stage === 'built')) {
       const keep = s.marketKeep ?? data.market.keep, step = 100;
-      x += `<div class="row"><span${tip(`Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}>Market keeps <b>${keep}</b> goods</span><span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} <input class="keepin" type="number" min="0" max="${data.market.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput"${tip('Type how many goods to keep, then Enter')}> ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>` + now(`Market: sells goods above ${keep} for ryo.`);
+      x += `<div class="row">${label('Market keeps', `sells goods above ${keep}`, `Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}<span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} <input class="keepin" type="number" min="0" max="${data.market.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput"${tip('Type how many goods to keep, then Enter')}> ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>`;
     }
     // Stockade garrison (Tim 2026-11-06): shelter units inside a finished stockade
     const fort = data?.buildings?.stockade?.garrison;
@@ -102,13 +110,13 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       const fb = s.buildings.find(x => x.type === 'stockade' && x.stage === 'built'), fhp = fort.hp ? ` · health <b>${Math.round(fb?.hp ?? fort.hp)}</b> / ${fort.hp}` : '';
       x += `<div class="lab">Stockade</div><div class="row"><span${tip(`Hits on units inside land on the stockade instead${fort.hp ? ` (${fort.hp} health); if it breaks, everyone inside piles out and the governor rebuilds it` : ''}. Units inside heal ${fort.healFactor}x faster. They must be within ${fort.range} of the stockade to go in. Holds ${fort.capacity}.`)}>Garrison <b>${inside.length}</b> / ${fort.capacity}${fhp}</span><span>${b('garrison-in', 'selected', 'Send in selected', false, 'Send your selected units into the stockade')} ${b('garrison-in', 'crew', 'Hero &amp; crew', false, 'Send your hero and crew nearby into the stockade')} ${b('garrison-in', 'workers', 'Workers', false, 'Send your workers nearby into the stockade; they count as idle there')} ${b('garrison-out', 'all', 'Leave', false, 'Everyone inside walks out')}</span></div>`;
     }
-    x += `<div class="row"><span${tip(st.tips.initiative)}>Governor takes initiative</span><span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>` + now(STEER.initiative[st.autoBuild ? 'on' : 'off']);
+    x += `<div class="row">${label('Initiative', SHORT.initiative[st.autoBuild ? 'on' : 'off'], st.tips.initiative)}<span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>`;
     return x;
   }
   function render() {
     if (root.hidden) return;
     const s = pick();
-    if (!s) { root.innerHTML = '<h1>Town</h1><div class="sub">Go near your town, or choose one in Towns (Y) or the World map.</div>'; return; }
+    if (!s) { root.innerHTML = CLOSE + '<h1>Town</h1><div class="sub">Go near your town, or choose one in Towns (Y) or the World map.</div>'; return; }
     // arrows compare with the numbers from about a second ago
     const now = Date.now();
     if (now - prevAt > 1000) { prevAt = now; prevStock[s.id] = { prev: prevStock[s.id]?.cur, cur: structuredClone(s) }; }
@@ -122,9 +130,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         + say.choices.map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
       // Tim 2026-11-06: he says what each focus does, and you can pick one right here
       const st = rows.steer, pri = s.priority || st.priority;
-      h += `<div class="chat">“Tell me where to put our people:”</div><div class="focuslines">`
-        + ['grow', 'produce', 'trade', 'fortify'].map(p => `<div class="row"><button data-act="priority" data-id="${p}" class="${pri === p ? 'on' : ''}">${p[0].toUpperCase() + p.slice(1)}</button><small>${esc(STEER.focus[p].replace(/^\w+: /, ''))}</small></div>`).join('')
-        + '</div>' + steerExtras(s, rows);
+      h += `<div class="lab">Focus</div><div class="row"><span class="focuscap">${esc(SHORT.focus[pri] || '')}</span><span class="seg">`
+        + ['grow', 'produce', 'trade', 'fortify'].map(p => `<button data-act="priority" data-id="${p}" class="${pri === p ? 'on' : ''}"${tip(STEER.focus[p])}>${p[0].toUpperCase() + p.slice(1)}</button>`).join(' ')
+        + '</span></div>' + steerExtras(s, rows);
     } else if(mode==='usage' && data) {
       h = usagePage_(s, rows);
     } else {
@@ -168,7 +176,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       const build = (tab === 'town' || rosterOpen) ? buildUI?.html(s) || '' : '';
       h = rosterOpen ? build : build + h;
     }
-    h = tabsH + h;
+    // Tim 2026-11-08: a close button on the panel itself (O and Esc still work)
+    h = CLOSE + tabsH + h;
     if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
     const key = h + tab;
     if (document.activeElement?.dataset?.act === 'keepinput' && root.contains(document.activeElement)) return;   // typing a keep level
@@ -186,6 +195,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   });
   root.addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
+    if (b.dataset.act === 'panel-close') { close(); return; }
     const s = pick(), id = b.dataset.id, sid = s?.id;
     if (s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (b.dataset.act === 'talk') buildUI?.close();

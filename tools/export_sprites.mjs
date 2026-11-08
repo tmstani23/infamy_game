@@ -114,7 +114,10 @@ const EXTRA = {
 };
 // Dedicated borrowed clips stay out of the root combat set.
 // RIDE: the heroes' riding pose, for now the coachman's omnibus sitting clip (Tim 2026-11-06); art.json characters.<hero>.ride
-const RIDE = { ronin: 'coach_sitting.fbx', ninja_leader: 'coach_sitting.fbx', rival_yakuza: 'coach_sitting.fbx' };
+const RIDE = Object.fromEntries(['ronin', 'ninja_leader', 'rival_yakuza',
+  // every crew model rides too (Tim 2026-11-07: select crew, right-click a horse); enforcer = brute sheets, shinobi_geisha = geisha
+  'thug', 'brute', 'swordsman', 'kuroda_spearman', 'koruda_enforcer', 'shinobi_enforcer', 'demolitions', 'lookout', 'ninja_grunt', 'ninja_tanto',
+  'mercenary', 'monk', 'monk2', 'geisha', 'archer', 'gunslinger'].map(m => [m, 'coach_sitting.fbx']));
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx']);
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };

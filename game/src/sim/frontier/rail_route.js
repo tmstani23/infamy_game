@@ -82,15 +82,53 @@ function search(G, src, dst, reuse) {
 }
 
 // may the straight segment a-b replace the cell path between them? It must stay on open ground and not
-// add or move water (a bridge must stay where the search put it)
-function clear(G, a, b, wetAllowed) {
+// add or move water (a bridge must stay where the search put it), and keep route.clearance world units
+// (Tim 2026-11-07: one town cell) from mountains and other impassable cells
+const RING = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7071, 0.7071], [0.7071, -0.7071], [-0.7071, 0.7071], [-0.7071, -0.7071]];
+function clear(G, a, b, wetAllowed, c = G.cfg.clearance ?? 0) {
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.ceil(len / (G.cell / 4)));
   for (let s = 0; s <= m; s++) {
-    const k = cellAt(G, a[0] + (b[0] - a[0]) * s / m, a[1] + (b[1] - a[1]) * s / m);
+    const x = a[0] + (b[0] - a[0]) * s / m, z = a[1] + (b[1] - a[1]) * s / m, k = cellAt(G, x, z);
     if (k < 0 || !Number.isFinite(G.cost[k])) return false;
     if (G.bridge[k] && !wetAllowed) return false;
+    if (c > 0) for (const [ox, oz] of RING) { const q = cellAt(G, x + ox * c, z + oz * c); if (q >= 0 && !Number.isFinite(G.cost[q])) return false; }
   }
   return true;
+}
+// a straight piece on open ground with the clearance (or `c`); water allowed (corner rounding near a bridge)
+export const openRun = (G, a, b, c) => clear(G, a, b, true, c);
+
+// Rounds every corner of a polyline to a circular arc of radius R (Tim 2026-11-07: no turns a train could not
+// take), smaller only where the straight pieces beside it are too short; ok(a, b) must accept each arc chord or
+// the corner tries a smaller arc and else stays. `ok` may be a list of checks, strictest first: a corner that
+// can't round under one tries again, full size, under the next. The ends stay put; an arc may use `endShare` of
+// the first and last pieces (half of any other).
+export function roundCorners(pts, R, ok = () => true, step = 3, endShare = 0.9) {
+  if (!(R > 0) || pts.length < 3) return pts;
+  const out = [pts[0]], oks = Array.isArray(ok) ? ok : [ok];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+    const la = Math.hypot(a[0] - b[0], a[1] - b[1]), lc = Math.hypot(c[0] - b[0], c[1] - b[1]);
+    if (la < 1e-6 || lc < 1e-6) { out.push(b); continue; }
+    const u = [(a[0] - b[0]) / la, (a[1] - b[1]) / la], v = [(c[0] - b[0]) / lc, (c[1] - b[1]) / lc];
+    const inner = Math.acos(Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1])));   // angle between the two pieces
+    if (Math.PI - inner < 0.02) { out.push(b); continue; }   // straight on
+    const tMax = Math.min(i === 1 ? la * endShare : la / 2, i === pts.length - 2 ? lc * endShare : lc / 2), tan = Math.tan(inner / 2);
+    let done = false;
+    for (const okk of oks) for (let r = Math.min(R, tMax * tan); r > Math.min(R, tMax * tan) * 0.3 && !done; r *= 0.7) {
+      const t = r / tan, p1 = [b[0] + u[0] * t, b[1] + u[1] * t], p2 = [b[0] + v[0] * t, b[1] + v[1] * t];
+      const bis = [u[0] + v[0], u[1] + v[1]], bl = Math.hypot(bis[0], bis[1]) || 1, d = r / Math.sin(inner / 2);
+      const o = [b[0] + bis[0] / bl * d, b[1] + bis[1] / bl * d];
+      let a1 = Math.atan2(p1[1] - o[1], p1[0] - o[0]), a2 = Math.atan2(p2[1] - o[1], p2[0] - o[0]), sweep = a2 - a1;
+      while (sweep > Math.PI) sweep -= 2 * Math.PI; while (sweep < -Math.PI) sweep += 2 * Math.PI;
+      const n = Math.max(2, Math.ceil(Math.abs(sweep) * r / step)), arc = [];
+      for (let k = 0; k <= n; k++) { const ang = a1 + sweep * k / n; arc.push([o[0] + Math.cos(ang) * r, o[1] + Math.sin(ang) * r]); }
+      if (arc.every((p, k) => !k || okk(arc[k - 1], p)) && okk(out[out.length - 1], arc[0])) { out.push(...arc); done = true; }
+    }
+    if (!done) out.push(b);
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
 }
 
 function segDist(p, a, b) {
@@ -154,7 +192,7 @@ export function routeRail(G, from, to, opts = {}) {
   const pts = cells.map(k => centre(G, k));
   pts[0] = [from.x, from.z]; pts[pts.length - 1] = [to.x, to.z];
   const simple = simplify(G, pts, G.cfg.simplify ?? 30);
-  const line = measure(G, smooth(G, simple, G.cfg.smooth ?? 2).map(([x, z]) => [Math.round(x * 10) / 10, Math.round(z * 10) / 10]));
+  const line = measure(G, roundCorners(smooth(G, simple, G.cfg.smooth ?? 2), G.cfg.minRadius ?? 0, [(a, b) => openRun(G, a, b), (a, b) => openRun(G, a, b, 0)]).map(([x, z]) => [Math.round(x * 10) / 10, Math.round(z * 10) / 10]));
   line.cost = cells.reduce((s, k) => s + G.cost[k], 0) * G.cell;
   return line;
 }

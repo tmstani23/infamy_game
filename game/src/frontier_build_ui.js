@@ -11,6 +11,7 @@ import { workerPanelHTML, workerJob } from './worker_panel.js';
 import {workerDetails,workerPresentation} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
+import { tierOf, placedGroup, placedCount } from './sim/frontier/tiers.js';
 import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
 import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
 import { residents } from './sim/frontier/people.js';
@@ -570,15 +571,25 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function html(s) {
     if (town !== s.id) { close(); town = s.id; }
     if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage})}</div>`;
+    // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
+    const capOf = id => { const g = placedGroup(id, data), max = tierOf(s, data)?.placed?.[g]; if (max === undefined) return null;
+      const used = placedCount(s, id, data), next = (data.tiers?.list || []).find(t => (t.placed?.[g] ?? 0) > 0);
+      return { max, used, locked: max === 0, unlock: next?.name || '' }; };
     const button = (id, label) => {
-      const color = data.buildUI?.zoneColors?.[id],text=buildTooltip(id,s,data,resourceRequirements);
-      return `<button data-act="build-tool" data-id="${esc(id)}" data-tip="${esc(text)}" ${color ? `style="border-color:${color};color:${color}"` : ''} class="${tool === id ? 'on' : ''}" aria-pressed="${tool === id}">${esc(label)}</button>`;
+      const color = data.buildUI?.zoneColors?.[id],text=buildTooltip(id,s,data,resourceRequirements), cap = capOf(id);
+      const tag = !cap ? '' : cap.locked ? `<small>${esc(cap.unlock)}</small>` : `<small>${cap.used}/${cap.max}</small>`;
+      const cls = [tool === id ? 'on' : '', cap?.locked ? 'locked' : '', cap && !cap.locked && cap.used >= cap.max ? 'full' : '', id === 'eraser' ? 'eraser' : ''].filter(Boolean).join(' ');
+      return `<button data-act="build-tool" data-id="${esc(id)}" data-tip="${esc(text)}" ${color && !cap?.locked ? `style="border-color:${color};color:${color}"` : ''} class="${cls}" aria-pressed="${tool === id}">${esc(label)}${tag}</button>`;
     };
+    // the build bar in groups, one row each, the eraser apart at the right of the first row
+    const camps = data.tiers?.camps || ['lumber_camp', 'food_camp', 'quarry'];
+    const others = Object.entries(data.buildings).filter(([k, v]) => v.size && !data.zones.fromBuilding[k] && !camps.includes(k)).map(([k]) => k);
+    const group = (name, ids, extra = '') => `<div class="bgroup"><span class="blab">${name}</span><div class="btns">${ids.map(t => button(t, camps.includes(t) ? townName(t).replace(/ camp$/i, '') : townName(t))).join('')}${extra}</div></div>`;
     const steps = [[s.grid.zone.includes('h'),'Housing'],[s.grid.zone.includes('f'),'Farms'],[/[rg]/.test(s.grid.use),'Roads'],[!!s.workers?.length,'Train worker'],[(s.workers || []).some(w=>spotIndex.get(w.spot)?.kind==='timber'),'Assign timber']];
     const guide = steps.map(([done,label])=>`${done ? '✓' : '○'} ${label}`).join(' → ');
     return `<div class="townbuild"><button data-act="build-toggle" aria-expanded="${opened}">${opened ? 'Close build bar' : 'Build bar'}</button>`
-      + (opened ? `<div class="buildtools">${['road','wall','gate','housing','farm','work','eraser'].map(t => button(t,townName(t))).join('')}`
-        + Object.entries(data.buildings).filter(([k,v]) => v.size && !data.zones.fromBuilding[k]).map(([k]) => button(k,townName(k))).join('')
+      + (opened ? `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
+        + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others)
         + `</div><div class="hint">Drag, release, review requirements, then Confirm or Cancel. Right click / Esc cancels.<br>Zone previews match their buttons; amber border = short, red border = abandoned.</div>` : '')
       + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
       + workerTrainingHTML(s,game.state.tick,data)

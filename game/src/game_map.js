@@ -290,12 +290,23 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const label = p ? `You · ${gridLabel(p.x, p.z)} · x ${Math.floor(p.x).toLocaleString('en-US')} z ${Math.floor(p.z).toLocaleString('en-US')}` : '';
     if (el.textContent !== label) el.textContent = label;
   }
+  // the railway key (Tim 2026-11-08): shown while the Railways switch is on and you have a line
+  function railKey() {
+    const links = Object.values(worldState().rail?.links || {});
+    if (!worldMap.layers.rail || !links.length) return '';
+    const laying = links.filter(l => !l.done).length;
+    const laid = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5" stroke="rgba(255,196,96,.9)" stroke-width="4.5" stroke-linecap="round"/><line x1="1" y1="5" x2="21" y2="5" stroke="rgba(52,34,20,.95)" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    const dash = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="16" y2="5" stroke="rgba(255,224,160,.55)" stroke-width="2" stroke-dasharray="4 3"/><circle cx="19" cy="5" r="2.6" fill="#ffd27a"/></svg>';
+    return `<span title="Your railway lines">${laid}Railway <small>${links.length - laying} open</small></span>`
+      + (laying ? `<span title="Track still to lay; the dot is the rail gang">${dash}Being laid <small>${laying} · dot: rail gang</small></span>` : '');
+  }
   function updateWorldLegend() {
     const el=worldSide.querySelector('.atlas-legend'); if (!el || !worldMap) return;
     const counts = {};
     for (const it of worldMap.items()) counts[it.kind]=(counts[it.kind] || 0)+1;
     if (worldState().hero) counts.hero=1;
-    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ' · hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>• Spots <small>${counts.spot} in view · green timber · grey stone · blue fish · tan forage</small></span>` : '');
+    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ' · hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>• Spots <small>${counts.spot} in view · green timber · grey stone · blue fish · tan forage</small></span>` : '')
+      + railKey();
     if (el.innerHTML !== html) el.innerHTML=html;
   }
   function ensureWorldMap() {

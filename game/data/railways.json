@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_note": "Railways (plan: project files steam_trains/plan.md). Placeholder numbers, Tim to tune. route: cost per world terrain code for laying track (m and w are impassable); bridge = river and water cells the track may cross; maxBridge = longest crossing in world units; reuse = cost factor on cells that already carry your track (branching); simplify = how far (world units) the drawn line may stray from the cell path; smooth = corner-rounding passes.",
+  "_note": "Railways (plan: project files steam_trains/plan.md). Placeholder numbers, Tim to tune. route: cost per world terrain code for laying track (m and w are impassable); bridge = river and water cells the track may cross; maxBridge = longest crossing in world units; reuse = cost factor on cells that already carry your track (branching); simplify = how far (world units) the drawn line may stray from the cell path; smooth = corner-rounding passes; clearance and minRadius: see _clearance.",
   "route": {
     "cost": {
       "p": 1,
@@ -21,7 +21,10 @@
     "maxBridge": 300,
     "reuse": 0.35,
     "simplify": 30,
-    "smooth": 2
+    "smooth": 2,
+    "_clearance": "Tim 2026-11-07: track keeps clearance world units (one town cell) from mountains and other impassable cells, in the world and in towns; minRadius = tightest curve in world units (corners are rounded to arcs, no hairpins)",
+    "clearance": 11,
+    "minRadius": 24
   },
   "link": {
     "_note": "placeholder, Tim to tune. A link is the whole track between two stations and always takes seconds to lay, whatever its length; paid a stretch at a time from the ordering town's stock (costPer100 per 100 units of track; waits when the stock runs short); minTier = town hall tier a town needs before it can link; maxBuilding = links one clan may lay at once.",

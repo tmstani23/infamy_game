@@ -504,6 +504,8 @@ async function start() {
   onKey('KeyB', () => bar.useItem());   // usable-item slot
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
+  // F2: hide every panel, bar and nameplate for screenshots, F2 again brings them back (Tim 2026-11-08)
+  onKey('F2', () => { const on = document.body.classList.toggle('ui-hidden'); view.setUnitOverlays(!on); });
   const actionCommands=document.createElement('div');actionCommands.className='action-commands';
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
   $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
