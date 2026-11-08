@@ -297,7 +297,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
         if (!target || !route(e, target, true)) Object.assign(e.deployment.transfer, { status: 'blocked', retryAt: state.tick + 20 });
       }
       // a lieutenant's job squad, idle again: free roaming ends, and anyone outside their area travels back
-      if (!state.contracts?.active?.[clan.id]) for (const e of members(clan.id)) if (e.deployment.ltJob && !e.downed && idle(e)) {
+      if (!state.contracts?.active?.[clan.id] && !Object.values(state.attacks || {}).some(a => a.clan === clan.id)) for (const e of members(clan.id)) if (e.deployment.ltJob && !e.downed && idle(e)) {
         delete e.deployment.ltJob;
         if (e.place === 'world' || canOccupy(e, e.x, e.z)) continue;
         const to = e.deployment.group, target = destination(e, to);

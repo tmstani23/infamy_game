@@ -38,6 +38,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   canvas.width = canvas.height = Math.round(size * dpr);
   const ctx = canvas.getContext('2d');
 
+  // the island view while the boss is out there, except in Watch the city (then the capital map, with the camera's box)
+  const onIsland = () => !!world && game.state.entities[heroId]?.place === 'world' && !view.isCityWatch?.();
   // world point <-> minimap pixel (screen right = x - z, screen down = x + z)
   const toMap = (x, z) => [size / 2 + (x - midX - (z - midZ)) * S * k, size / 2 + (x - midX + (z - midZ)) * S * k];
   const toWorld = (u, v) => {
@@ -122,9 +124,9 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   tipBox.style.cssText = 'position:fixed;z-index:50;pointer-events:none;background:rgba(10,20,27,.94);color:#f3dfae;border:1px solid #6b5a38;border-radius:4px;padding:5px 8px;font:12px sans-serif;max-width:230px;display:none';
   document.body.appendChild(tipBox);
   canvas.addEventListener('mousemove', e => {
-    const onIsland = world && game.state.entities[heroId]?.place === 'world';
-    if (!onIsland && onHover) { tipBox.style.display = 'none'; return; }   // the big map has its own hover card
-    if (!onIsland) {   // city minimap: a building's name
+    const island = onIsland();
+    if (!island && onHover) { tipBox.style.display = 'none'; return; }   // the big map has its own hover card
+    if (!island) {   // city minimap: a building's name
       const b = businessAt(e), nm = b && (b.kind === 'bandit_camp' ? 'Bandit camp' : CITY_NAMES[b.kind]);
       if (!nm) { tipBox.style.display = 'none'; return; }
       const own = b.owner && b.owner === clan ? 'Yours' : '';
@@ -241,7 +243,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     }
     const nowMs = performance.now();metrics.draws++;
     const state = fog.seen(game.state);
-    if (world && game.state.entities[heroId]?.place === 'world') { paintIsland(state); return; }
+    if (onIsland()) { paintIsland(state); return; }
     paintCells();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a';
@@ -392,7 +394,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   let dirty = false;
   const draw=()=>{dirty=false;const start=performance.now();paintMap();const ms=performance.now()-start;metrics.drawMs+=ms;metrics.maxDrawMs=Math.max(metrics.maxDrawMs,ms);};
   const at = e => { const r = canvas.getBoundingClientRect(),u=(e.clientX-r.left)*size/r.width,v=(e.clientY-r.top)*size/r.height;
-    if(world && game.state.entities[heroId]?.place==='world') {
+    if(onIsland()) {
       const me=game.state.entities[heroId],scale=size/2/ISLAND_SPAN*islandZoom;
       return {x:me.x+(u-size/2)/scale,z:me.z+(v-size/2)/scale};
     }
@@ -424,7 +426,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   canvas.addEventListener('mousedown', e => {
     e.stopPropagation();
     e.preventDefault();
-    if (world && game.state.entities[heroId]?.place === 'world') {if(e.button===0){dragging=true;const p=at(e);view.lookAt(p.x,p.z);}return;}
+    if (onIsland()) {if(e.button===0){dragging=true;const p=at(e);view.lookAt(p.x,p.z);}return;}
     const p = at(e);
     if (e.button === 0 && layers.deployment && overlay?.pick(p, e)) return;
     // big map: a click looks there (a business: its door) and closes the map
@@ -440,7 +442,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
 
   let frame = 0;
   const pings = [];
-  return { worldAt: at, zoomBy(factor) { if (world && game.state.entities[heroId]?.place === 'world') { islandZoom = Math.max(0.3, Math.min(4, islandZoom * factor)); draw(); return islandZoom; } mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update(changed = false) { if (big ? changed || dirty || (canvas.clientWidth && canvas.clientWidth !== size) : frame++ % 3 === 0) draw(); }, draw, invalidate() { dirty=true; },
+  return { worldAt: at, zoomBy(factor) { if (onIsland()) { islandZoom = Math.max(0.3, Math.min(4, islandZoom * factor)); draw(); return islandZoom; } mapZoom = Math.max(1, Math.min(4, mapZoom * factor)); k = baseScale * mapZoom; draw(); return mapZoom; }, update(changed = false) { if (big ? changed || dirty || (canvas.clientWidth && canvas.clientWidth !== size) : frame++ % 3 === 0) draw(); }, draw, invalidate() { dirty=true; },
     ping(x,z){const t=performance.now();while(pings.length&&(pings.length>=64||t-pings[0].t>=4800))pings.shift();pings.push({x,z,t});dirty=true;},
     diagnostics:()=>({...metrics,pings:pings.length,terrainBytes:base.byteLength,rasterBytes:img.data.byteLength}), layers, size, shownHolder: q => shownHolder(q) };
 }

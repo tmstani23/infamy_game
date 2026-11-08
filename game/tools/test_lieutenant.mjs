@@ -36,7 +36,7 @@ assert.ok(mine && brains.filter(b => b.config?.lieutenant).length === Object.key
 
 // standing orders: validated, a rejected command changes nothing
 const before = JSON.stringify(L.record('player'));
-for (const bad of [{ orders: { raid: true } }, { orders: { defend: 'yes' } }, { budget: -5 }, { budget: CC.lieutenant.maxBudget + 1 }, { budget: 1.5 }])
+for (const bad of [{ orders: { pillage: true } }, { orders: { defend: 'yes' } }, { budget: -5 }, { budget: CC.lieutenant.maxBudget + 1 }, { budget: 1.5 }])
   g.step([{ id: hero.id, type: 'lieutenant', ...bad }]);
 assert.equal(JSON.stringify(L.record('player')), before, 'rejected commands change nothing');
 assert.deepEqual(Object.keys(L.record('player').orders), ORDERS);

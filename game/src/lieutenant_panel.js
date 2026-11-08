@@ -2,9 +2,10 @@
 // Standing order toggles, a daily budget slider and the lieutenant's last 20 log lines. Sends only
 // { type: 'lieutenant', orders | budget | defendAtHome }; the rules are in sim/lieutenant.js.
 const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', shakedown: 'Shakedowns', sweep: 'Sweeps', contracts: 'Ambush contracts', hire: 'Hire crew',
-  buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)' };
+  buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)',
+  raid: 'Raid rival businesses at night (War Lantern from the treasury, with a Rally)' };
 // Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
-const FOR_NINJA = { buy: false, jobs: true, steal: true };
+const FOR_NINJA = { buy: false, jobs: true, steal: true, raid: false };
 import { lieutenantPortrait } from './lieutenant_portrait.js';
 export function createLieutenantPanel({ root, game, heroId, send, cityWatch = null }) {
   const L = () => game.lieutenant, tabs = root.querySelector('.page-tabs'), work = root.querySelector('.workspace');

@@ -383,7 +383,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   function open() {
     root.hidden = false;
     // M opens straight to World while the hero is out on the island (W3 puts heroes there)
-    if (world && game.state.entities[heroId]?.place === 'world') setTab('world');
+    // watching the city (Tim 2026-11-08): the city deployment map first instead
+    if (world && game.state.entities[heroId]?.place === 'world') setTab(document.body.classList.contains('city-watching') ? 'city' : 'world');
     deploymentData.update(true, true);
     if (!map) {
       // made on first open, when the canvas has its size on screen

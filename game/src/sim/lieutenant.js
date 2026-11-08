@@ -13,7 +13,7 @@ import { createDeploymentAI } from './deployment_ai.js';
 // Rules (in the sim): createLieutenantRules -> { tick, command, gate, record, active, captainOf, log }
 //   command { id: <boss>, type: 'lieutenant', orders?: { defend, retake, ... : boolean }, budget?, defendAtHome? }
 // Brain (a client, like bots): createLieutenantBrain(game, { clan }) -> { tick(): commands }
-export const ORDERS = ['defend', 'retake', 'shakedown', 'sweep', 'contracts', 'hire', 'buy', 'jobs', 'steal'];
+export const ORDERS = ['defend', 'retake', 'shakedown', 'sweep', 'contracts', 'hire', 'buy', 'jobs', 'steal', 'raid'];
 // Tim 2026-11-06: Shinobi lieutenants only take these contract kinds (never Sabotage or Knock out the boss)
 export const LIEUTENANT_JOBS = { scout: 'jobs', bandits: 'jobs', steal: 'steal' };
 // which standing order a lieutenant command needs; null = never allowed
@@ -25,21 +25,22 @@ function orderFor(c, state) {
   }
   if (c.type === 'deployment') {
     if (c.action === 'autoSector' || c.action === 'staffing') return 'any';
-    if (c.action === 'rally') return 'defend';
+    if (c.action === 'rally') return c.purpose === 'raid' ? 'raid' : 'defend';
     if (c.action === 'shakedown') return 'shakedown';
     if (c.action === 'sweep') return 'sweep';
     if (c.action === 'armAmbush') return 'contracts';
     return null;
   }
-  if (c.type === 'order') return c.job ? (c.job === 'steal' ? 'steal' : 'jobs') : c.expand ? 'buy' : c.retake ? 'retake' : 'defend';
+  if (c.type === 'use') return c.job === 'raid' ? 'raid' : null;   // raiders step in through the door (Tim 2026-11-08)
+  if (c.type === 'order') return c.job ? (c.job === 'steal' ? 'steal' : c.job === 'raid' ? 'raid' : 'jobs') : c.expand ? 'buy' : c.retake ? 'retake' : 'defend';
   if (c.type === 'hire') return 'hire';
-  if (c.type === 'business') return c.action === 'buy' ? (c.expand ? 'buy' : 'retake') : c.action === 'knock' ? 'defend' : null;
+  if (c.type === 'business') return c.action === 'buy' ? (c.expand ? 'buy' : 'retake') : c.action === 'knock' ? 'defend' : ['lantern', 'raid'].includes(c.action) ? 'raid' : null;
   return null;
 }
 const DEFEND_ONLY = new Set(['defend', 'any']);
 
 export function createLieutenantRules({ state, rules = {}, units, clans, doors, spawn, removeUnit, businesses, guideAt = () => null }) {
-  const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, banditJobMinutes: 6, captainWaitSeconds: 60, captainFee: 100, stipend: 150, awayRaidShare: 0.5, wageShare: 0.02, ...rules };
+  const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, banditJobMinutes: 6, captainWaitSeconds: 60, captainFee: 100, stipend: 150, awayRaidShare: 0.5, wageShare: 0.02, raidReserve: 1000, raidMinCrew: 3, ...rules };
   const on = () => modeRules(state).campaignCity;
   const day = () => state.clock?.day ?? 1;
   const boss = id => Object.values(state.entities).find(e => e.owner === id && e.type === 'hero');
@@ -148,6 +149,10 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (c.type === 'hire' && e.id !== r.captain) return { ok: false, why: 'the captain hires' };
     if (order === 'buy' && ninja) return { ok: false, why: 'Shinobi do not own businesses' };
     if ((order === 'jobs' || order === 'steal') && !ninja) return { ok: false, why: 'only Shinobi take contracts' };
+    if (order === 'raid' && ninja) return { ok: false, why: 'Shinobi do not capture businesses' };
+    // a War Lantern comes out of the treasury, not the daily budget, and only while it keeps raidReserve (Tim 2026-11-08)
+    const lantern = c.type === 'business' && c.action === 'lantern', lanternPrice = units?.rules?.raid?.lanternPrice ?? 1200;
+    if (lantern && (clan.ryo || 0) - lanternPrice < R.raidReserve) return { ok: false, why: `keeps ${R.raidReserve} ryo after a War Lantern` };
     const buyNew = c.type === 'business' && c.action === 'buy' && c.expand, take = c.type === 'contract' && c.action === 'take';
     if (buyNew && r.boughtDay === day()) return { ok: false, why: 'one new business a day' };
     if (take && order === 'steal' && !state.night) return { ok: false, why: 'steals at night only' };
@@ -159,12 +164,14 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     r.spent += price;
     if (buyNew) r.boughtDay = day();
     if (take) r[order === 'steal' ? 'stoleDay' : 'jobDay'] = day();
+    if (c.type === 'business' && c.action === 'raid') r.raidDay = day();
     const name = id => state.businesses[id]?.kind?.replace(/_/g, ' ') || 'business';
     const job = take && state.contracts.board.find(x => x.id === c.job);
     const said = c.type === 'hire' ? `Hired a ${c.unit} (${price} ryo)` : buyNew ? `Buying the ${name(c.business)} (${price} ryo)` : c.type === 'business' && c.action === 'buy' ? `Buying back the ${name(c.business)} (${price} ryo)`
       : take ? `Took a contract: ${job?.label || job?.kind}` : c.type === 'contract' && c.action === 'drop' ? 'Called off the contract'
       : c.type === 'deployment' && c.action === 'shakedown' ? `Shakedown on the ${name(c.business)}` : c.type === 'deployment' && c.action === 'sweep' ? 'Sent a Sweep'
-      : c.type === 'deployment' && c.action === 'rally' ? 'Called a Rally to defend' : c.type === 'deployment' && c.action === 'armAmbush' ? 'Set an ambush' : null;
+      : lantern ? `Bought a War Lantern (${lanternPrice} ryo)` : c.type === 'business' && c.action === 'raid' ? `Raiding the ${name(c.business)}`
+      : c.type === 'deployment' && c.action === 'rally' ? (c.purpose === 'raid' ? 'Called a Rally to raid' : 'Called a Rally to defend') : c.type === 'deployment' && c.action === 'armAmbush' ? 'Set an ambush' : null;
     if (said) log(id, said);
     return { ok: true, why: '', cost: price };
   }
@@ -181,7 +188,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
 // The brain: one per clan (player and bots alike), a client that only reads the state and sends commands.
 export function createLieutenantBrain(game, { clan }) {
   const state = game.state, L = game.lieutenant;
-  let ai = null, aiFor = null, next = 0, jobId = null, jobAt = 0, squad = [];
+  let ai = null, aiFor = null, next = 0, jobId = null, jobAt = 0, squad = [], raid = null;   // raid: { business, at } (Tim 2026-11-08)
   const held = new Set();       // businesses it saw the clan hold (retake)
   const day = () => state.clock?.day ?? 1;
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
@@ -230,6 +237,8 @@ export function createLieutenantBrain(game, { clan }) {
         return out;
       }
     }
+    // raids (Tim 2026-11-08): the captain buys a War Lantern, calls a Rally and leads it to a rival business at night
+    if (!ninja && cap && r.orders.raid && runRaid(b, cap, c, out, tag)) return out;
     // Shinobi jobs and steals (Tim 2026-11-06): the captain takes one at the shrine, city crew carry it out
     if (ninja && cap && runJob(b, cap, r, home, out, tag)) return out;
     // hire: the captain hires at the HQ up to the crew cap, inside the budget
@@ -245,6 +254,67 @@ export function createLieutenantBrain(game, { clan }) {
       if (room && price !== null && c.ryo - price >= keep && r.spent + price <= r.budget && c.queue.length < 2) out.push(tag({ id: cap.id, type: 'hire', business: home.id, unit: type }));
     }
     return out;
+  }
+  // Raid (Tim 2026-11-08, "holds even"): at the pace a boss would. The captain buys a War Lantern at the moneylender
+  // (treasury, keeping raidReserve), and at night calls a Rally of the city groups, walks them to the weakest rival
+  // business he can raid, plants the lantern, and once the doors open everyone goes in to hold the back room.
+  // True while busy with it.
+  function runRaid(b, cap, c, out, tag) {
+    const R = L.rules || {}, B = game.businesses, price = game.settings.units.rules?.raid?.lanternPrice ?? 1200;
+    const D = state.deployment?.clans?.[clan], rs = game.rally.status(clan);
+    const party = () => (rs.active ? D?.rally?.participants || [] : []).map(p => state.entities[p.id]).filter(u => standing(u) && u.place !== 'world');
+    const near = (u, x, z, d) => u.place === 'street' && Math.hypot(u.x - x, u.z - z) <= d;
+    const move = (units, x, z, place = 'street') => { const ids = units.filter(u => !(u.order?.kind === 'move' && u.order.place === place && Math.hypot(u.order.x - x, u.order.z - z) < 3)).map(u => u.id);
+      for (const id of ids) out.push(tag({ id: b.id, type: 'order', units: [id], kind: 'move', place, x, z, job: 'raid' })); };   // one each: crew of mixed groups
+    const a = Object.values(state.attacks || {}).find(x => x.mode === 'raid' && x.clan === clan);
+    if (a) {   // under way
+      const x = state.businesses[a.business], crew = [...party(), cap].filter(standing);
+      if (a.phase === 'warmup' || !x?.ring) { move(crew.filter(u => !near(u, x.ring[0], x.ring[1], 3)), x.ring[0], x.ring[1]); return true; }
+      for (const u of crew) {
+        if (u.place === a.room) continue;
+        if (near(u, x.ring[0], x.ring[1], 1.4)) out.push(tag({ id: u.id, type: 'use', job: 'raid' }));
+        else move([u], x.ring[0], x.ring[1]);
+      }
+      move(crew.filter(u => u.place === a.room && Math.hypot(u.x - a.hold.x, u.z - a.hold.z) > a.hold.r * 0.6), a.hold.x, a.hold.z, a.room);
+      return true;
+    }
+    if (raid && state.tick - raid.at > 20 * 120) raid = null;   // never got there: drop it
+    // a War Lantern first, by day or night
+    if (!(c.lanterns > 0)) {
+      const ml = Object.values(state.businesses).find(x => x.kind === 'moneylender' && x.ring);
+      if (!ml || (c.ryo || 0) - price < (R.raidReserve ?? 1000)) return false;
+      if (!near(cap, ml.ring[0], ml.ring[1], 1.2)) move([cap], ml.ring[0], ml.ring[1]);
+      else out.push(tag({ id: cap.id, type: 'business', action: 'lantern', business: ml.id }));
+      return true;
+    }
+    if (!state.night) return false;
+    // the weakest rival business he may raid (the season leader's first), not an HQ
+    const lead = game.leader?.leader?.(), defenders = x => Object.values(state.entities).filter(u => u.owner === x.owner && standing(u)
+      && (u.place === x.room || near(u, x.ring[0], x.ring[1], 15))).length;
+    const okWhy = new Set(['', 'Walk to its door to raid']);
+    let target = raid && state.businesses[raid.business];
+    if (target && !okWhy.has(B.canRaid(cap.id, target.id).why)) { target = null; raid = null; }
+    if (!target) {
+      target = Object.values(state.businesses).filter(x => x.owner && x.owner !== clan && state.clans[x.owner] && !x.hideout && x.room && x.ring
+        && L.raidable(clan, x.owner) && okWhy.has(B.canRaid(cap.id, x.id).why))
+        .sort((p, q) => ((q.owner === lead) - (p.owner === lead)) || defenders(p) - defenders(q))[0];
+      if (!target) return false;
+    }
+    // gather: a Rally of the city groups (never the boss's own party out on the island)
+    if (!raid) {
+      const city = game.clans.crewOf(clan).filter(u => standing(u) && u.place !== 'world' && !u.captain && !u.deployment?.transfer);
+      if (city.length < (R.raidMinCrew ?? 3) || rs.active || rs.cooldown > 0) return false;
+      out.push(tag({ id: b.id, type: 'deployment', action: 'rally', purpose: 'raid', groups: ['home', ...state.deployment.sectors.map(s => s.id)] }));
+      raid = { business: target.id, at: state.tick };
+      return true;
+    }
+    if (!rs.active) { raid = null; return false; }
+    const crew = party(), [tx, tz] = target.ring;
+    move(crew, tx, tz);
+    if (!near(cap, tx, tz, 1.2)) { move([cap], tx, tz); return true; }
+    const ready = crew.filter(u => near(u, tx, tz, 8)).length;
+    if (ready >= Math.min(R.raidMinCrew ?? 3, crew.length) || state.tick - raid.at > 20 * 60) out.push(tag({ id: cap.id, type: 'business', action: 'raid', business: target.id }));
+    return true;
   }
   // true while the Shinobi lieutenant is busy with a contract (taking one or carrying it out)
   function runJob(b, cap, r, home, out, tag) {
