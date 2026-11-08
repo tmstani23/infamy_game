@@ -48,11 +48,27 @@ export function createDeploymentRally({ state, deployment }) {
     for(const e of participants)if(e.deployment.transfer){e.deployment.group=e.deployment.transfer.to;delete e.deployment.transfer;e.order={kind:'stop'};}
     Object.assign(r, { active: true, startedAt: state.tick, endsAt: state.tick + RALLY_TICKS, readyAt: 0, groups,
       participants: participants.map(e => ({ id: e.id, group: e.deployment.transfer?.to || e.deployment.group })) });
-    deploymentFeedback(state,h,c,true,'RALLY ACCEPTED — 3 minutes including travel. Issue Follow or movement orders to assemble.');
+    // HQ reserves come out to the boss on their own (Tim 2026-11-08): no second select-and-Follow. Not when he is
+    // knocked out or out on the island (a remote Rally); other groups still wait for Follow or movement orders.
+    const homeCrew = r.participants.filter(p => p.group === 'home').map(p => state.entities[p.id]).filter(e => e && !e.downed && !e.dead && !e.jailed);
+    if (!h.dead && !h.downed && !h.jailed && h.place !== 'world') for (const e of homeCrew) {
+      delete e.swing; delete e.execute; delete e.patrol;
+      if (e.place !== 'street' && e.place !== 'world') e.indoorDuty = { room: e.place, present: false, resume: false };   // walk out, not back to guarding
+      // in the same place: follow at once; inside the HQ with him on the street: out of the door toward him first
+      if (e.place === h.place) e.order = { kind: 'follow', target: h.id, regrouping: true, ...(h.place !== 'street' ? { exitWithHero: true } : {}) };
+      else if (h.place === 'street') e.order = { kind: 'move', x: h.x, z: h.z, place: 'street', rallyFollow: h.id };
+    }
+    deploymentFeedback(state,h,c,true,homeCrew.length && h.place !== 'world' && !h.downed ? 'RALLY ACCEPTED — 3 minutes. HQ reserves are on their way to you; Follow or move the others to assemble.'
+      : 'RALLY ACCEPTED — 3 minutes including travel. Issue Follow or movement orders to assemble.');
   }
   function tick() {
     for (const clan of Object.keys(state.clans || {})) {
       const r = record(clan);
+      // reserves called out of the HQ (command above): once through the door, they fall in behind the boss
+      if (r?.active) for (const p of r.participants) {
+        const e = state.entities[p.id], o = e?.order, h = o?.rallyFollow && state.entities[o.rallyFollow];
+        if (h && e.place === h.place && !h.dead) e.order = { kind: 'follow', target: h.id, regrouping: true };
+      }
       if (r?.active && state.tick >= r.endsAt) {
         r.active = false; r.readyAt = r.nextReady ? r.endsAt : r.endsAt + RALLY_COOLDOWN_TICKS; delete r.nextReady;
         for (const p of r.participants) {

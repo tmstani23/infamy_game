@@ -514,7 +514,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Train from the capital: only the boss's party boards at the city station (Hero group or Rally crew and settlers); sector crew and HQ reserves in the zone stay.
 - Boss out on the island: Hero group crew left in the city become HQ reserves (they walk to the HQ; the lieutenant can staff sectors with them) and don't rejoin the Hero group on their own; new crew fill it once the boss is back. City crew can't be transferred to the Hero group while the boss is on the island. Sector crew or reserves out on the island with him join his Hero group and follow him.
 - Lieutenant's jobs: his job squad (Shinobi scout, bandits, steal) can be any city crew and goes where the job needs; afterwards anyone outside their area travels back to their group.
-- Rally: HQ reserves are called into a Rally but wait inside until given a Follow or move order.
+- Rally: HQ reserves called into a Rally come out to the boss on their own; other groups need Follow (V) or a move order.
 - Deployment transfers: the crew page keeps its list and Assign button while Traveling crew is open. Crew on their way show in the target group's list as "Transferring · from <group>". Downed crew don't take a place in their group (replacements can be assigned at once; if the group is full when they come round, they stay at HQ). Crew you transfer to HQ yourself are set to Keep at HQ; sending them elsewhere clears it.
 - Clinic: Release works whoever stands at the door for the clan (hero or a selected crewman).
 - Police: sector crew (patrol duty, a rifleman's skirmish, withdrawing to HQ) never hit street police on their own; they back off. An attack order, or officers defending a business you attack, still count.

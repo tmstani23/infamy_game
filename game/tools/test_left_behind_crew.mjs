@@ -36,4 +36,15 @@ const d = g.doors.find(x => x.to && x.gate && x.place === 'street');
 Object.assign(hero, { place: 'street', x: d.to.x, z: d.to.z });
 for (let i = 0; i < 60; i++) g.step([]);
 assert.ok(left.every(id => (S[id].deployment.transfer?.to ?? S[id].deployment.group) !== 'hero' || !S[id].deployment.everAssigned), 'reserves are not pulled back by an old saved group');
+// Rally (Tim 2026-11-08): HQ reserves come out to the boss on their own; follow him out of the HQ
+const hq = Object.values(g.state.businesses).find(b => b.hideout === me), hd = g.doors.find(x => x.to && !x.ninja && x.place === hq.room);
+const [sx, sz] = g.nav.nearestFree(hd.x + 5, hd.z + 2) || [hd.x, hd.z]; Object.assign(hero, { place: 'street', x: sx, z: sz });
+for (let i = 0; i < 40; i++) g.step([]);
+const reserves = D.members(me, 'home').filter(e => !e.deployment.transfer).map(e => e.id);
+assert.ok(reserves.length >= 3, 'reserves at the HQ');
+g.step([{ id: hero.id, type: 'deployment', action: 'rally' }]);
+assert.ok(reserves.every(id => (S[id].order?.kind === 'follow' && S[id].order.target === hero.id) || S[id].order?.rallyFollow === hero.id), 'Rally sends HQ reserves to the boss');
+for (let i = 0; i < 20 * 20; i++) g.step([]);
+assert.ok(reserves.every(id => S[id].place === 'street' && Math.hypot(S[id].x - hero.x, S[id].z - hero.z) < 8), 'they reach him');
+assert.ok(reserves.every(id => S[id].order?.kind === 'follow'), 'and follow him');
 console.log('test_left_behind_crew: ok');
