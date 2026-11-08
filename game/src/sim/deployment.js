@@ -16,6 +16,7 @@ export const restoredDeployment = record => record.deployment ? {
 
 // Authoritative membership and physical transfers. Match setup enables local
 // movement limits; isolated sim fixtures can still exercise the older rules.
+const STUCK_HOME_TICKS = 8 * 20;   // 8 s without progress on the way to the HQ
 export function createDeployment({ state, district, nav, navOf = () => nav, doors = [], moveTo,
   clearCombat = () => {}, entryAllowed = () => true, inCombat = () => false }) {
   const geometry = createSectors(district, nav);
@@ -437,6 +438,19 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     const t = e.deployment?.transfer;
     if (!t) return false;
     clearCombat(e, false);
+    // stuck on the way to the HQ (Tim 2026-11-08): no progress for STUCK_HOME_TICKS, blocked or not, and he goes
+    // straight inside and becomes a reserve
+    if (t.to === 'home' && state.tick - (t.progressAt ?? t.startedAt ?? state.tick) > STUCK_HOME_TICKS) {
+      const d = destination(e, 'home');
+      if (d) {
+        Object.assign(e, { x: d.x, z: d.z, place: d.place, anim: 'idle' });
+        e.deployment.group = 'home'; e.deployment.arrivedAt = state.tick;
+        delete e.deployment.transfer; delete e.deployment.duty;
+        clearCombat(e);
+        e.order = { kind: 'move', x: e.x, z: e.z, arrived: true };
+        return true;
+      }
+    }
     if (t.status === 'blocked' && state.tick < t.retryAt) { e.anim = 'idle'; return true; }
     const target = t.to === 'hero' || !t.target ? destination(e, t.to) : t.target;
     const path = route(e, target, t.status === 'blocked');

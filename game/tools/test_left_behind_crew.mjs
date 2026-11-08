@@ -16,12 +16,20 @@ const S = g.state.entities, hero = S[m.heroId], me = hero.owner, D = g.deploymen
 const left = [0, 1, 2].map(i => g.spawn('thug', 'thug', hero.x + i * 0.6, hero.z + 1, { owner: me, place: hero.place, deployment: { group: 'hero', everAssigned: true }, order: { kind: 'follow', target: hero.id } }));
 g.step([]);
 assert.ok(left.every(id => S[id].deployment.group === 'hero'));
-const gate = g.doors.find(d => d.gate && d.place === 'world');
+const gate = g.doors.find(d => d.gate && d.place === 'world'), hq0 = Object.values(g.state.businesses).find(b => b.hideout === me);
 Object.assign(hero, { place: 'world', x: gate.to.x, z: gate.to.z });
 for (let i = 0; i < 25; i++) g.step([]);
 assert.ok(left.every(id => (S[id].deployment.transfer?.to ?? S[id].deployment.group) === 'home'), 'left-behind Hero group crew head for the HQ reserves');
 for (let i = 0; i < 20 * 30; i++) g.step([]);
 assert.ok(left.every(id => S[id].deployment.group === 'home' && S[id].place !== 'world'), 'they are HQ reserves in the city');
+// stuck on the way to the HQ: after 8 s without progress he goes straight inside
+{
+  const id = g.spawn('thug', 'thug', hero.x, hero.z, { owner: me, place: 'world', deployment: { group: 'home' } });
+  const u = S[id]; Object.assign(u, { place: 'street', x: 0, z: 0 });
+  u.deployment.transfer = { from: 'hero', to: 'home', startedAt: g.state.tick, status: 'blocked', retryAt: g.state.tick + 1e6, progressAt: g.state.tick, x: 0, z: 0 };
+  for (let i = 0; i < 20 * 9; i++) g.step([]);
+  assert.ok(!u.deployment.transfer && u.deployment.group === 'home' && u.place === hq0.room, 'stuck crew go straight into the HQ');
+}
 // a city crewman cannot transfer out to the Hero group on the island
 const r = D.canTransfer(hero.id, [left[0]], 'hero');
 assert.equal(r.ok, false); assert.match(r.why, /island/);
