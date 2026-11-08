@@ -891,6 +891,18 @@ export function createGame(options) {
       if (!e) continue;
       if (c.type === 'watchCity') { if (c.on && e.type === 'hero') watchingCity.add(e.owner); else watchingCity.delete(e.owner); continue; }
       if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders
+      // the boss out on the island gives the city no orders (Tim 2026-11-08): the lieutenant runs it (his commands carry
+      // by), crew out on the island still take orders. Bots out there have their lieutenant brain instead.
+      if (e.type === 'hero' && e.place === 'world' && !c.by && !state.clans?.[e.owner]?.bot && !watchingCity.has(e.owner)
+        && (c.type === 'deployment' || (c.type === 'order' && Array.isArray(c.units)))) {
+        const asked = c.type === 'order' ? c.units.length : 0;
+        if (c.type === 'order') c.units = c.units.filter(id => state.entities[id]?.place === 'world');
+        if (c.type === 'deployment' || (asked && !c.units.length)) {
+          const clan = state.clans?.[e.owner];
+          if (clan) clan.notice = { tick: state.tick, text: "The lieutenant runs the city while you're away: come back through the gate or by train to give orders" };
+          continue;
+        }
+      }
       // C2: a lieutenant's command runs only inside its standing orders and budget (sim/lieutenant.js)
       if (c.by === 'lieutenant' && !lieutenant?.gate(e, c).ok) continue;
       if (c.type === 'lieutenant' && c.guide === 'governor') cannons.firstTalk(state.frontier?.settlements?.[governorNear(e.id)?.governor]);   // first talk in a town: a salute (Tim 2026-11-07)

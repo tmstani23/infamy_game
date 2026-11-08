@@ -219,3 +219,8 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #partyframes .crew.grouped .mate {width:68px;min-width:68px;box-sizing:border-box;}
 #partyframes .crew.grouped .mate .name {max-width:64px;}
 #partyframes .crew.grouped .mate .crew-status {max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 9px/12px system-ui;color:#bdd5cc;}
+/* out on the island or watching the city (Tim 2026-11-08): orders are not available. The order tabs and controls are
+   hidden and a status line shows instead; the group tabs, crew lists, Traveling crew, View crew and While I'm away stay */
+#deploymentpanel .away-note { margin: 0; padding: 6px 8px; border: 1px solid #a3834d; border-radius: 6px; background: rgba(163,131,77,.15); color: #f0d9a8; font-weight: 600; }
+#deploymentpanel.away :is(.show-duty, .show-rally, .show-reserves, .pane-duty, .pane-rally, .pane-reserves, .first-zone, .staffing-goal,
+  .transfer-start, .assign-here, .assign-mode, .transfer-mode, .select-group, .cancel-transfer, .return-assignment, .retreat) { display: none !important; }

@@ -5,8 +5,9 @@ export function createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, 
   let scoreTick = -Infinity;
   function update() {
     { const r = game.rally.status(game.state.entities[heroId].owner), b = $('rallybtn');
-      b.disabled = r.active || r.cooldown > 0; b.textContent = r.active ? `Rally · ${r.seconds}s` : r.cooldown ? `Rally · ${r.cooldown}s` : 'Call Rally';
-      b.title = 'Calls your remembered groups (all groups on first use). Configure groups in Deployment.'; }
+      const away = game.state.entities[heroId]?.place === 'world';   // the lieutenant runs the city while you're out (Tim 2026-11-08)
+      b.disabled = away || r.active || r.cooldown > 0; b.textContent = r.active ? `Rally · ${r.seconds}s` : r.cooldown ? `Rally · ${r.cooldown}s` : 'Call Rally';
+      b.title = away ? "The lieutenant runs the city while you're away: come back to call a Rally" : 'Calls your remembered groups (all groups on first use). Configure groups in Deployment.'; }
     { const s = game.unstuck.status(game.state.entities[heroId]), b = $('unstuckbtn');
       const t = s.channel ? `Unstuck · ${s.channel}s` : s.cooldown ? `Unstuck · ${Math.floor(s.cooldown / 60)}:${String(s.cooldown % 60).padStart(2, '0')}` : 'Unstuck (U)';
       if (b.textContent !== t) b.textContent = t;

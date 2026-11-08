@@ -33,12 +33,24 @@ assert.ok(left.every(id => S[id].deployment.group === 'home' && S[id].place !== 
 // a city crewman cannot transfer out to the Hero group on the island
 const r = D.canTransfer(hero.id, [left[0]], 'hero');
 assert.equal(r.ok, false); assert.match(r.why, /island/);
+// no city orders from the island (Tim 2026-11-08): Deployment and orders to city crew are dropped with a notice
+{
+  const keep = S[left[1]].deployment.keepAtHQ;
+  g.step([{ id: hero.id, type: 'deployment', action: 'keepAtHQ', value: !keep, units: [left[1]] }]);
+  assert.equal(S[left[1]].deployment.keepAtHQ, keep, 'Deployment ignored from the island');
+  assert.match(g.state.clans[me].notice?.text || '', /lieutenant runs the city/);
+  const was = JSON.stringify(S[left[2]].order);
+  g.step([{ id: hero.id, type: 'order', kind: 'move', units: [left[2]], place: 'street', x: 0, z: 0 }]);
+  assert.equal(JSON.stringify(S[left[2]].order), was, 'city crew orders ignored from the island');
+}
 // a sector crewman out on the island joins the Hero group there and follows the boss
 const sector = g.state.deployment.sectors[0].id;
 const stray = g.spawn('thug', 'thug', hero.x + 2, hero.z + 2, { owner: me, place: 'world', deployment: { group: sector, everAssigned: true }, order: { kind: 'stop' } });
 for (let i = 0; i < 25; i++) g.step([]);
 assert.equal(S[stray].deployment.group, 'hero', 'stray sector crew on the island join the Hero group');
 assert.equal(S[stray].order?.kind, 'follow');
+g.step([{ id: hero.id, type: 'order', kind: 'move', units: [stray], x: hero.x + 4, z: hero.z }]);
+assert.equal(S[stray].order?.kind, 'move', 'island crew still take orders');
 // back in the city: reserves stay reserves (no automatic walk back into the Hero group)
 const d = g.doors.find(x => x.to && x.gate && x.place === 'street');
 Object.assign(hero, { place: 'street', x: d.to.x, z: d.to.z });
