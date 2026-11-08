@@ -107,3 +107,11 @@ Lag step 1 done: while no player hero is in the city, crew/police/geisha target 
 During the final playtest, compare map/input responsiveness while paused versus running, exercise normal movement and bot contracts, and capture a Firefox performance profile if the lag is present. The Node harness excludes browser events, DOM/layout, paint, GPU and frame presentation. Manual browser checks remain pending. Workers cannot directly access the DOM and require message-based data transfer.
 
 Reference guidance: [MDN collision performance](https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection#collision_performance) recommends broad- and narrow-phase collision checks instead of testing every entity pair; [web.dev long-task guidance](https://web.dev/articles/optimize-long-tasks) describes how long main-thread tasks delay input; [MDN Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) documents worker isolation and message passing; and [Firefox performance best practices](https://firefox-source-docs.mozilla.org/performance/bestpractices.html) recommends profiling and measuring before and after changes.
+
+## Frontier worker lag spike (2026-11-08)
+
+- On the policecapbug save the 350-500 ms hitch at tick 202 is gone.
+- Cause: the island route graph was built the first time a worker detoured. It is now built at save load.
+- A shorter first route search was added (`sim/areas.js`, `data/world_chunks.json`).
+- Only one worker sets out on a new trip per tick (`sim/frontier/workers.js`).
+- Two smaller bumps of about 70-90 ms remain; they are not from workers.

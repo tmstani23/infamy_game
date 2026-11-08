@@ -50,16 +50,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
   let watchedPlace=null,watchedId=null;
+  let cityView=false,cityExit=null;   // Watch the city (Tim 2026-11-08): the boss is on the island, the camera shows the capital street
   let watchFn = null;      // camera follow target (double-click a crew name or group header): () => { x, z } or null
   const PAN_SPEED = 16;
   // Indoors the camera may also travel to the street to command outdoor crew.
   const B = district.bounds, inMap = p => {
-    if (heroPlace === 'world') return p;   // out on the island (frontier W3): no city edges
-    const farX = heroPlace === 'street' ? B.maxX + 4 : Math.max(B.maxX + 4, ...rooms.map(r => r.origin.x + (r.renderLayout || r).size[0] * (r.worldScale || 1) + 4));
+    if (heroPlace === 'world' && !cityView) return p;   // out on the island (frontier W3): no city edges
+    const farX = heroPlace === 'street' || cityView ? B.maxX + 4 : Math.max(B.maxX + 4, ...rooms.map(r => r.origin.x + (r.renderLayout || r).size[0] * (r.worldScale || 1) + 4));
     p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, farX);
     p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4);
     return p; };
-  const cameraPlace = h => watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
+  const cameraPlace = h => cityView ? 'street' : watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -268,7 +269,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   function updateLights(time) {
-    const wild = heroPlace === 'world' && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
+    const wild = heroPlace === 'world' && !cityView && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
     const trainLamps = [...(railTrack?.lights() || []), ...(cityStation?.lights() || [])];   // train oil lamps (render/train_fx.js)
     const near = [...lights, ...wild, ...trainLamps].filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
@@ -441,7 +442,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateCamera(state, followId, dt, hero?.pos);
 
     // clan banners at owned businesses; a gold burst where one just changed hands
-    for (const b of banners.update(state, time, state.entities[followId]?.owner, state.entities[followId]?.place)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
+    for (const b of banners.update(state, time, state.entities[followId]?.owner, cityView ? 'street' : state.entities[followId]?.place)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
@@ -451,10 +452,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = shakeAmp * shakeT / 0.18;
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
-    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
+    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world' && !cityView, dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     mark('ground');
-    railTrack?.update(state.frontier, heroPlace === 'world', dt, shared.uNight.value);
-    cityStation?.update(state.frontier, heroPlace === 'street', dt, state.entities[followId]?.owner, shared.uNight.value);
+    railTrack?.update(state.frontier, heroPlace === 'world' && !cityView, dt, shared.uNight.value);
+    cityStation?.update(state.frontier, heroPlace === 'street' || cityView, dt, state.entities[followId]?.owner, shared.uNight.value);
     mark('rail');
     updateLights(time);
     updateCutaway(hero, dt);
@@ -602,7 +603,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
       inMap(freeCam);
     },
-    snapBack() { freeCam = null; farCam = false; watchFn = null; },
+    snapBack() { freeCam = null; farCam = false; watchFn = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } },
+    // Watch the city: show the capital street from the island, camera at (x, z); onExit runs when Home / snapBack ends it
+    setCityWatch(on, x = 0, z = 0, onExit = null) {
+      cityView = !!on; cityExit = on ? onExit : null; watchFn = null;
+      if (on) { farCam = true; jumpFrom = null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); inMap(freeCam); }
+      else { freeCam = null; farCam = false; }
+    },
+    isCityWatch: () => cityView,
     // keep the camera on fn() = { x, z } every frame (null ends it); pans, map clicks and Home stop it
     watch(fn) { watchFn = fn;watchedPlace=fn?.()?.place??null; },
     // look at a ground point (minimap click); stays there until snapBack, like panning

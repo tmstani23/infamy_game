@@ -11,6 +11,8 @@
   "workerRefineStep": 100,
   "maxSearchCells": 250000,
   "maxSearchSteps": 20000,
+  "workerSearchSteps": 5000,
+  "_workerSearchNote": "lag fix 2026-11-08: frontier worker routes try this many fine search steps before taking the island route; a route that still fails gets the full maxSearchSteps",
   "drawRadius": 1,
   "drawCache": 16,
   "propRadius": 55,

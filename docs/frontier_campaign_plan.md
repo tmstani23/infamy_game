@@ -932,3 +932,5 @@ escort micromanagement, detailed caravan hunting, scheduled theft and captured-c
 transport are optional later logistics features, not first-slice requirements.
 Durability, inventory Tetris, large random-affix pools and individual army bags
 are outside the first hero gear slice.
+
+**Worker hammers (2026-11-08):** harvest and camp workers use the rail_worker model with a sledge (`frontier.json` workers.model) and loop the hammer swing while collecting; harvest rates are unchanged. A quiet metal tap plays (`render/sound.js`): at most 3 at once, near the camera only, varied pitch, volume 0.16, about one per worker per second; it follows the Effects volume and mute.

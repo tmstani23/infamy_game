@@ -10,7 +10,7 @@ const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
   'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT,
-  'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1'];
+  'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'Audio/bookOpen', 'Audio/impactMetal_light_000', 'Audio/impactMetal_light_001', 'Audio/impactMetal_light_002', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1'];
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
@@ -79,6 +79,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
   const near = (me, x, z, place) => !me || place !== me.place ? 0 : Math.max(0, 1 - Math.hypot(x - me.x, z - me.z) / HEAR);
 
   // a temple bell, made on the spot (no file): a few soft partials that ring out (raid alarm)
+  let lastTapTick = -1;
   function bell() {
     if (!ctx || settings.muted) return;
     const t0 = ctx.currentTime;
@@ -187,6 +188,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     bell,
     // a UI cue for the hero's own actions (Space use): Tim's clip or its fallback
     cue(name, volume = 0.5) { play(pickCustom(name), volume); },
+    clip(name, volume = 0.5, pitch = 1) { play(name, volume, pitch); },   // one named clip, no variants (Watch the city)
     toggleMute() { return setSettings({muted:!settings.muted}).muted; },
     setSettings,getSettings:()=>({...settings}),
     subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
@@ -196,6 +198,18 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       const me = focus;
       movementLoops(state, me);
       trainSounds(state, me);
+      // worker hammer taps (Tim 2026-11-08): quiet, only workers near the camera, at most 3 per tick, each worker about once a second
+      if (me && state.tick !== lastTapTick) {
+        lastTapTick = state.tick; let taps = 0;
+        for (const e of Object.values(state.entities)) {
+          if (taps >= 3) break;
+          if (!e.worker || e.anim !== 'hammer') continue;
+          let k = 0; for (const ch of String(e.id)) k = (k * 31 + ch.charCodeAt(0)) >>> 0;
+          if ((state.tick + k) % 20 !== 0) continue;
+          const v = near(me, e.x, e.z, e.place); if (v <= 0.05) continue;
+          play(['Audio/impactMetal_light_000', 'Audio/impactMetal_light_001', 'Audio/impactMetal_light_002'][(k + state.tick) % 3], 0.16 * v, 0.9 + (k % 7) * 0.04); taps++;
+        }
+      }
       // through the island gate (Tim 2026-11-06): the hero's place flips between street and world
       // (the camera's place: only a flip into or out of the island counts, not stepping into a room)
       if (me) { if (heroPlace && heroPlace !== me.place && (me.place === 'world' || heroPlace === 'world')) play(pickCustom('gate_open_1'), 0.6); heroPlace = me.place; }

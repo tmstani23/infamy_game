@@ -402,7 +402,8 @@ export function createGame(options) {
   const awayHz = options.settings?.cityDecisions?.awayHz ?? 2;
   const thinkEvery = awayHz > 0 && awayHz < TICK_RATE ? Math.round(TICK_RATE / awayHz) : 1;
   let cityAway = false;
-  const updateCityAway = () => { cityAway = thinkEvery > 1 && !Object.values(state.entities).some(e => e.type === 'hero' && e.place !== 'world' && state.clans?.[e.owner] && !state.clans[e.owner].bot);
+  const watchingCity = new Set();   // owners looking at their city from the island (Watch the city, Tim 2026-11-08): the city thinks at full speed for them; not saved
+  const updateCityAway = () => { cityAway = thinkEvery > 1 && !Object.values(state.entities).some(e => e.type === 'hero' && (e.place !== 'world' || watchingCity.has(e.owner)) && state.clans?.[e.owner] && !state.clans[e.owner].bot);
     if (!cityAway && thinkCache.size) thinkCache.clear(); };
   const thinkSlot = new Map();   // unit id -> its tick slot, so units spread their thinking over the period
   // true when this city unit searches this tick (always, unless the city is away)
@@ -888,6 +889,8 @@ export function createGame(options) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
       const e = state.entities[c.id];
       if (!e) continue;
+      if (c.type === 'watchCity') { if (c.on && e.type === 'hero') watchingCity.add(e.owner); else watchingCity.delete(e.owner); continue; }
+      if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders
       // C2: a lieutenant's command runs only inside its standing orders and budget (sim/lieutenant.js)
       if (c.by === 'lieutenant' && !lieutenant?.gate(e, c).ok) continue;
       if (c.type === 'lieutenant' && c.guide === 'governor') cannons.firstTalk(state.frontier?.settlements?.[governorNear(e.id)?.governor]);   // first talk in a town: a salute (Tim 2026-11-07)

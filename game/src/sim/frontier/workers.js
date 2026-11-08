@@ -55,7 +55,11 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(key)waiting.set(key,found);
     return found;
   }
-  function attach(services) { runtime=services.areas ? services : null; }
+  function attach(services) {
+    runtime=services.areas ? services : null;
+    // lag fix (Tim 2026-11-08): build the island route graph now, while loading, not on the first worker detour (~100 ms)
+    runtime?.areas.ensureGraph?.();
+  }
   function path(a,b) {
     if(!runtime)return [a,b];
     const key=JSON.stringify([a,b,geometryRevision()]);
@@ -181,7 +185,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const spots=reachSpots(s).filter(p=>R.resources[p.kind]===low).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id));
     if(spots[0])assign(s,[w.id],spots[0].id,'g');
   }
-  function start(s,w,spot) {
+  // Lag fix (Tim 2026-11-08): working out new routes is the costly part, so only one worker sets out on a
+  // new trip per tick (defer); the next tries again a tick later. This counts trips, not uncached routes, so a
+  // loaded save (empty route cache) makes the same choices. Reroutes and return trips never wait.
+  let startTick=-1;
+  function start(s,w,spot,defer=false) {
+    if(defer && runtime) { if(startTick===state.tick)return 'later'; startTick=state.tick; }   // without island navigation routes are free
     const drop=nearestDropoff(s,spot);if(!drop)return false;
     const backPath=path([spot.x,spot.z],drop.p);
     const outPath=path(w.departure || drop.p,[spot.x,spot.z]);
@@ -358,7 +367,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       // B2: a full store sends nobody out; the worker waits (Idle tab, governor may move it).
       if(spot && isFull(s,data,R.resources[spot.kind])) {w.status='Store full';w.retryAt=state.tick+(R.retryTicks || 100);return;}
       if(w.status==='Store full')delete w.status;
-      if(!start(s,w,spot)) {w.retryAt=state.tick+(R.retryTicks || 100);return;}
+      const started=start(s,w,spot,true);
+      if(started==='later') {w.retryAt=state.tick+1;return;}   // one new route per tick: try again next tick
+      if(!started) {w.retryAt=state.tick+(R.retryTicks || 100);return;}
     }
     // Removing a storehouse reroutes a carried load; it never unloads into a vanished building.
     if(!dropoffs(s,cargoType(w)).some(b=>b.id===w.dropoff)) {
@@ -371,7 +382,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!progress(s,w))return;
     const t=w.trip;w.elapsed++;
     const e=state.entities?.[w.entity];
-    if(e && !t.kind && !t.harvested && w.elapsed>=t.out)e.anim='attack';
+    if(e && !t.kind && !t.harvested && w.elapsed>=t.out)e.anim='hammer';   // hammer swing while collecting (Tim 2026-11-08): same ticks as before, so the harvest rate is unchanged
     if(!t.harvested && w.elapsed>=t.out+t.harvest) {harvest(spot);w.carrying=t.load;w.cargoResource=t.resource;t.harvested=true;if(e)e.harvestedAt=state.tick;}
     w.phase=Math.min(1,w.elapsed/t.total);
     if(w.elapsed>=t.total) {

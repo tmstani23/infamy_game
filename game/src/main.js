@@ -27,6 +27,7 @@ import { createLandOfficeMenu } from './land_office_menu.js';
 import { createGoalCard } from './goal_card.js';
 import { createSiteMenu } from './site_menu.js';
 import { createLieutenantPanel } from './lieutenant_panel.js';
+import { createCityWatch } from './city_watch.js';
 import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
@@ -420,7 +421,9 @@ async function start() {
     // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
     onOpen: id => gameMap.dock(true, id), onClose: () => { gameMap.dock(false); gameMap.close(); }, onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
-  const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
+  // Watch the city (Tim 2026-11-08): camera to the capital while the boss stays on the island; Home / Esc / the banner return
+  const cityWatch = createCityWatch({ game, view, heroId, send: c => pending.push(c), notify: (...a) => callout(...a), sound: { clip: (...a) => sound.clip(...a), bell: () => sound.bell() }, onStart: () => { deploymentPanel.close(); gameMap.close(); crewInput.clear(); } });
+  const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, cityWatch, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
   const unstuck = () => { const h = game.state.entities[heroId], no = h?.unstuck ? null : game.unstuck.why(h); if (no) callout(no, 'loss'); else pending.push({ id: heroId, type: 'unstuck' }); };
@@ -442,7 +445,7 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { cityWatch.end(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -527,6 +530,9 @@ async function start() {
   $('minimapin').addEventListener('click', () => mapZoom(1.25));
   mapZoom(1);
 
+  const mapWatchBtn = document.createElement('button'); mapWatchBtn.type = 'button'; mapWatchBtn.className = 'mapwatch'; mapWatchBtn.textContent = 'Watch the city'; mapWatchBtn.hidden = true;
+  mapWatchBtn.addEventListener('click', e => { cityWatch.start(); e.currentTarget.blur(); });
+  $('gamemap').querySelector('.mapcol').insertBefore(mapWatchBtn, $('gamemap').querySelector('.mapclose'));
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
   const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
@@ -677,7 +683,7 @@ async function start() {
   });
   // Input publication is small and independent of render cadence. Movement is
   // latest-value; discrete commands stay ordered and are consumed exactly once.
-  const inputTimer=setInterval(()=>simClient.input({movement:moveCommand(heroId),commands:pending.splice(0),
+  const inputTimer=setInterval(()=>simClient.input({movement:moveCommand(heroId),commands:cityWatch.filterCommands(pending.splice(0)),
     paused,map:gameMap.isOpen(),selected:[...crewInput.selected(),crewInput.looked?.(),crewInput.tabbed?.()].filter(Boolean)}),50);
   addEventListener('pagehide',()=>clearInterval(inputTimer),{once:true});
   let frameAt = 0;
@@ -799,7 +805,8 @@ async function start() {
     // (not in hero follow; Home goes back to it), and not with the game map open
     const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !hqStash.isOpen() && !shop.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
-    $('snap').hidden = !view.isPanned();
+    $('snap').hidden = !view.isPanned() || cityWatch.isOn();
+    cityWatch.update(); mapWatchBtn.hidden = !cityWatch.canWatch();
     fog.update(dt);
     // through the island gate (W3.5): a one-second fade from black
     { const place = game.state.entities[heroId]?.place;

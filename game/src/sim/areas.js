@@ -42,6 +42,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
   let freeMemo = null;
+  let searchSteps = null;               // worker routes search fewer fine steps first (lag fix 2026-11-08)
   const dynMemo = new Map(); let dynVer = null;                  // perf 2026-11-07: one worker search asks each cell up to ~10 times; answer once
   let clock = 0, stats = { built: 0, buildMs: 0, worstMs: 0 };
   const keyOf = (cx, cz) => cz * CX + cx;
@@ -166,7 +167,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     const h = k => { const di = Math.abs(k % W - (goal[0] - wi0)), dj = Math.abs(((k / W) | 0) - (goal[1] - wj0)); return Math.max(di, dj) + 0.414 * Math.min(di, dj); };
     const open = heap();
     g[S0] = 0; open.push(h(S0), S0);
-    let found = false, budget = cfg.maxSearchSteps ?? 20000;   // a goal round a long detour: give up here, the island route finds it
+    let found = false, budget = searchSteps ?? cfg.maxSearchSteps ?? 20000;   // a goal round a long detour: give up here, the island route finds it
     while (open.size) {
       yield;
       if (--budget < 0) return null;
@@ -492,22 +493,28 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
       // centre can clip a blocked neighbour when started at an arbitrary fractional point.
       const ac=centre(...start);
       const finish=iterator=>{let next;do{next=iterator.next();}while(!next.done);return next.value;};
+      // Lag fix (Tim 2026-11-08): a fine search that cannot get round an obstacle used to try the full
+      // maxSearchSteps before falling back to the island route (~200 ms). Worker routes first try only
+      // workerSearchSteps; a leg or route that still fails then gets the full search, as before.
+      const full=fn=>{const saved=searchSteps;searchSteps=null;try{return fn();}finally{searchSteps=saved;}};
+      searchSteps=cfg.workerSearchSteps ?? null;
       const direct=finish(localPath(...ac,...b));
       if(direct)return [a,ac,...direct];
       // Mountains can require leaving the straight-line search window. Follow the
       // island route, fully refining each leg for both loaded and sleeping workers.
-      const coarse=route(...ac,...b);if(!coarse)return null;
+      const coarse=route(...ac,...b);
+      if(!coarse){const p=full(()=>finish(localPath(...ac,...b)));return p ? [a,ac,...p] : null;}
       const out=[a,ac];let here=ac;
       for(const goal of coarse.points) {
         const from=[...here],steps=Math.max(1,Math.ceil(Math.hypot(goal[0]-from[0],goal[1]-from[1])/(cfg.workerRefineStep || 100)));
         for(let j=1;j<=steps;j++) {
-          const to=from.map((v,k)=>v+(goal[k]-v)*j/steps),part=finish(localPath(...here,...to));
+          const to=from.map((v,k)=>v+(goal[k]-v)*j/steps),part=finish(localPath(...here,...to)) || full(()=>finish(localPath(...here,...to)));
           if(!part)return null;
           out.push(...part);here=out.at(-1);
         }
       }
       return out;
-    } finally { planning = null; planningBlocked = null; freeMemo = null; }
+    } finally { planning = null; planningBlocked = null; freeMemo = null; searchSteps = null; }
   }
   const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   return {

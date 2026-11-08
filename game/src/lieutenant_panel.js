@@ -6,12 +6,12 @@ const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', sha
 // Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
 const FOR_NINJA = { buy: false, jobs: true, steal: true };
 import { lieutenantPortrait } from './lieutenant_portrait.js';
-export function createLieutenantPanel({ root, game, heroId, send }) {
+export function createLieutenantPanel({ root, game, heroId, send, cityWatch = null }) {
   const L = () => game.lieutenant, tabs = root.querySelector('.page-tabs'), work = root.querySelector('.workspace');
   if (!tabs || !work) return { update() {} };
   const tab = document.createElement('button'); tab.type = 'button'; tab.className = 'show-away'; tab.textContent = 'While I’m away';
   const pane = document.createElement('section'); pane.className = 'pane-away';
-  pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I’m away</h4></div><p class="away-status"></p><div class="away-orders"></div>'
+  pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I’m away</h4></div><p class="away-status"></p><button type="button" class="away-watch">Watch the city</button><div class="away-orders"></div>'
     + '<label>Budget <input class="away-budget" type="range" min="0" step="50"> <span class="away-budget-value"></span> ryo a day</label>'
     + '<label><input class="away-home" type="checkbox"> Keep defending when I’m back</label><h4>Log</h4><ol class="away-log"></ol>';
   tabs.appendChild(tab); work.appendChild(pane);
@@ -34,10 +34,14 @@ export function createLieutenantPanel({ root, game, heroId, send }) {
   budget.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', budget: Number(budget.value) }));
   budget.addEventListener('input', () => { pane.querySelector('.away-budget-value').textContent = budget.value; });
   home.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', defendAtHome: home.checked }));
+  const watchBtn = pane.querySelector('.away-watch');
+  watchBtn.addEventListener('click', () => { cityWatch?.start(); });
   let shown = '';
   function update() {
     const on = !!L() && game.state.match && game.lieutenant && (game.state.lieutenants || L().away);
     tab.hidden = !game.settings || !game.state.lieutenants && !L()?.away(owner());
+    watchBtn.hidden = !cityWatch; watchBtn.disabled = !cityWatch?.canWatch();
+    watchBtn.title = watchBtn.disabled ? 'Available while your boss is out on the island' : 'Move the camera to the city; your boss stays here';
     if (root.dataset.page !== 'away' || root.hidden || !on) return;
     const r = game.state.lieutenants?.[owner()];
     if (!r) { pane.querySelector('.away-status').textContent = 'Your lieutenant takes over when you leave the city.'; return; }

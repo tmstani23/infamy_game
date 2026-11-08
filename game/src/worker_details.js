@@ -26,7 +26,7 @@ export function workerPresentation(w,s,data,entities={},at=null) {
   const harvesting=t && !t.kind && !returning && w.elapsed>=t.out;
   const dx=t?t.destination[0]-t.origin[0]:0,dz=t?t.destination[1]-t.origin[1]:1;
   return {id:`worker:${w.id}`,worker:w.id,workerOwner:s.owner,type:'civilian',model:data.workers.model,name:`Worker ${w.id}`,place:'world',
-    x:p[0],z:p[1],hp:w.hp ?? data.workers.hp,maxHp:data.workers.hp,carrying:w.carrying,dir:dirIndex(dx*(returning?-1:1),dz*(returning?-1:1)),anim:t?harvesting?'attack':'walk':'idle'};
+    x:p[0],z:p[1],hp:w.hp ?? data.workers.hp,maxHp:data.workers.hp,carrying:w.carrying,dir:dirIndex(dx*(returning?-1:1),dz*(returning?-1:1)),anim:t?harvesting?'hammer':'walk':'idle'};
 }
 export function withWorkerPresentations(state,data,focus) {
   if(!data?.workers || focus?.place!=='world')return state;
