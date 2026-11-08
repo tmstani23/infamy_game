@@ -32,11 +32,17 @@ export function stepCarts(s, data, change, pos, home) {
     const h = home(s, b); if (!h) continue;
     const oneWay = tripTicks(C, pos(s, b), h);
     b.cartTicks = oneWay;
-    for (const c of ensureCarts(C, b, oneWay)) {
+    // carts leave the camp at least a round trip / carts apart (Tim 2026-11-07: after an empty camp they all left
+    // together and drove on top of each other)
+    if (b.cartGap > 0) b.cartGap--;
+    const carts = ensureCarts(C, b, oneWay);
+    for (const c of carts) {
       if (c.t > 0) { c.t--; continue; }
       if (c.at === 'camp') {
         const total = campStock(b);
         if (total <= 0) { c.t = C.waitTicks ?? 20; continue; }   // empty camp: wait a moment and look again
+        if (b.cartGap > 0) { c.t = b.cartGap; continue; }          // the cart before it only just left
+        b.cartGap = Math.max(1, Math.round(2 * oneWay / carts.length));
         const take = Math.min(total * C.share, C.maxLoad) / total, load = {};
         for (const [r, v] of Object.entries(b.store)) { const n = Math.round(v * take * 100) / 100; if (n > 0) { load[r] = n; b.store[r] = Math.round((v - n) * 100) / 100; if (b.store[r] <= 0) delete b.store[r]; } }
         c.load = load; c.at = 'out'; c.t = oneWay;

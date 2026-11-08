@@ -17,7 +17,7 @@ import { placePiece } from '../sim/geometry.js';
 import { unitName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
 import { createWorldGround } from './world_ground.js';
-import { createRailTrack } from './rail_track.js';
+import { createRailTrack, createCityStation } from './rail_track.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
@@ -97,6 +97,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), resourceSpots, spotConfig }) : null;
   // train plan: railway track on the island; each train car is a sprite (train_* art, Tim 2026-11-07), only its body and shadow
   const railTrack = worldGround ? createRailTrack({ scene, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
+  // the capital's railway station (Tim 2026-11-07): an engine with its nose out and a track off the east edge, in the city
+  const cityStationAt = (district.buildings || []).find(b => b.railStation);
+  const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
+    carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);
@@ -237,7 +241,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   function updateLights(time) {
     const wild = heroPlace === 'world' && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
-    const near = [...lights, ...wild].filter(l => !l.off)
+    const trainLamps = [...(railTrack?.lights() || []), ...(cityStation?.lights() || [])];   // train oil lamps (render/train_fx.js)
+    const near = [...lights, ...wild, ...trainLamps].filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
       .sort((a, b) => a.d - b.d).slice(0, MAX_LIGHTS);
     near.forEach(({ l }, i) => {
@@ -417,14 +422,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world', dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     mark('ground');
-    railTrack?.update(state.frontier, heroPlace === 'world', dt);
+    railTrack?.update(state.frontier, heroPlace === 'world', dt, shared.uNight.value);
+    cityStation?.update(state.frontier, heroPlace === 'street', dt, state.entities[followId]?.owner, shared.uNight.value);
     mark('rail');
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || [])]);
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || [])]);
     mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
@@ -492,7 +498,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
   const raycaster = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const v = new THREE.Vector3();
-  let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null;
+  let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null, lastRide = null;
   let previousCameraHero = null;
   const cameraPoint = new THREE.Vector3();
   // Also runs with map presentation active: update only camera math, never the scene or GPU.
@@ -504,6 +510,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     cameraPoint.set(h.x, 0, h.z);
     // Don't interpolate through a whole-island test travel.
     if (position && Math.hypot(position.x - h.x, position.z - h.z) <= 60) cameraPoint.copy(position);
+    // aboard a train (Tim 2026-11-07): the camera follows the drawn engine; boarding drops a pan or a watch,
+    // panning afterwards keeps the camera there until Home
+    const ride = typeof h.aboard === 'string' && h.aboard.startsWith('rail:') ? h.aboard.slice(5) : null, eng = ride && railTrack?.focus(ride);
+    if (ride !== lastRide) { if (ride) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; } lastRide = ride; }
+    if (eng && Math.hypot(eng.x - h.x, eng.z - h.z) <= 60) cameraPoint.set(eng.x, 0, eng.z);
     if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; camTarget.copy(cameraPoint); }
     const w = watchFn && watchFn();
     if (watchFn && !w) watchFn = null;
@@ -532,7 +543,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // Space rings at the front door (Tim 2026-11-07): the middle of the art's front (+z, screen down-left) edge, as drawn
       const spots = new Map();
       if (cutouts) for (const p of list) if (p.spaceDoor) {
-        const piece = placePiece({ name: p.art, x: p.x, z: p.z }, catalog, cutouts); if (!piece) continue;
+        const piece = placePiece({ name: p.art, x: p.x, z: p.z, flip: !!p.flip }, catalog, cutouts); if (!piece) continue;
         const fit = p.maxFootprint ? Math.min(1, p.maxFootprint / (2 * Math.max(piece.fa, piece.fb))) : 1;
         spots.set(p.spaceDoor, [p.x, p.z + piece.fb * 0.9 * fit + 1.6]);
       }

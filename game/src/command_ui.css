@@ -75,6 +75,8 @@
 .layout-pages button:disabled {opacity:.4;cursor:default;}
 #partyframes .crew-section:not(:has(.mate:not(.layout-page-hidden))) {display:none;}
 #partyframes .crew.grouped .mate .crew-status {max-width:none;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;}
+/* clinic and jail cards (Tim 2026-11-07): one status line, cut with … (hover shows it all), so every card is the same height */
+#partyframes .crew.grouped .mate.away .crew-status {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;}
 #partyframes .crew.grouped .mate .name {max-width:none;white-space:normal;overflow:visible;text-overflow:clip;}
 #bar .buffs,#hud,#bldpanel .acts {flex-wrap:wrap;}
 #bldpanel {flex-wrap:wrap;}

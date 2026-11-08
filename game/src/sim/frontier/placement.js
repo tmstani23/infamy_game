@@ -14,6 +14,7 @@ import { cellOffset, inCore, setUse, hallRoadCell, nearCliff } from './town_grid
 import { buildingSafety } from './building_safety.js';
 import { coversResources } from './resource_clearance.js';
 import { placedRoom } from './tiers.js';
+import { shapeOf } from './station_layout.js';
 
 const LINES = { road: 'r', wall: 'w', gate: 'g' };
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
@@ -23,11 +24,12 @@ export function createPlacement({ state, data, world, construction, resourceInde
 
   // Cells a placement covers: a line kind covers each listed cell, a building its 1x1 or 2x2 footprint.
   // Returns null when a footprint runs off the grid edge.
-  function footprint(s, kind, cells) {
+  // A building with a `shape` (the 3x2 railway station, Tim 2026-11-07) is cols x rows, turned by rot (0..3).
+  function footprint(s, kind, cells, rot = 0) {
     if (LINES[kind]) return cells.slice();
-    const { n } = s.grid, a = cells[0], size = sizeOf(kind);
+    const { n } = s.grid, a = cells[0], size = sizeOf(kind), [w, h] = shapeOf(data.buildings[kind], rot) || [size, size];
     const out = [];
-    for (let dz = 0; dz < size; dz++) for (let dx = 0; dx < size; dx++) {
+    for (let dz = 0; dz < h; dz++) for (let dx = 0; dx < w; dx++) {
       if ((a % n) + dx >= n || Math.floor(a / n) + dz >= n) return null;
       out.push(a + dz * n + dx);
     }
@@ -77,7 +79,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
   const bad = (reason, cells = []) => ({ ok: false, reason, cost: {}, cells });
 
   // Validates without changing anything. Returns a receipt; ok:true means place() would succeed.
-  function check(s, { kind, cells }) {
+  function check(s, { kind, cells, rot = 0 }) {
     if (!s?.grid) return bad('no grid');
     const g = s.grid, { n } = g;
     const placed = LINES[kind] || (data.buildings[kind] && sizeOf(kind) > 0);
@@ -85,7 +87,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if (!Array.isArray(cells) || !cells.length || !cells.every(i => Number.isInteger(i)) || new Set(cells).size !== cells.length) return bad('cells must list each cell once');
     if (!LINES[kind] && cells.length !== 1) return bad('a building takes one anchor cell');
     if (cells.some(i => i < 0 || i >= n * n)) return bad('outside grid', cells);
-    const cover = footprint(s, kind, cells);
+    const cover = footprint(s, kind, cells, rot);
     if (!cover) return bad('outside grid', cells);
     if (!['road', 'gate'].includes(kind) && cover.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', cover);
     if (cover.some(i => g.ground[i] === 'x')) return bad('unbuildable', cover);
@@ -116,8 +118,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
     return { ok: true, reason: '', cost, cells: cover };
   }
 
-  function place(s, { kind, cells, by = 'p' }) {
-    const r = check(s, { kind, cells });
+  function place(s, { kind, cells, by = 'p', rot = 0 }) {
+    const r = check(s, { kind, cells, rot });
     if (!r.ok) return r;
     const g = s.grid, mark = by === 'g' ? 'g' : 'p';
     const stamp = i => { g.by = put(g.by, i, mark); };
@@ -129,7 +131,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
       return r;
     }
     for (const i of r.cells) { setUse(s, i, 'B'); stamp(i); }
-    const pid = construction.queue(s.id, kind, r.cells[0], { cells: r.cells });
+    const pid = construction.queue(s.id, kind, r.cells[0], { cells: r.cells, ...(shapeOf(data.buildings[kind]) ? { rot: ((rot | 0) % 4 + 4) % 4 } : {}) });
     if (!pid) { for (const i of r.cells) setUse(s, i, '.'); return bad('could not queue it', r.cells); }
     if (by === 'p') construction.authorize?.(pid); // confirming a player placement is its build approval
     return { ...r, project: pid };

@@ -4,6 +4,7 @@
 // finished building is drawn as normal. Art names come from data/frontier.json "townArt".
 import { townSlot } from './sim/frontier/town_layout.js';
 import { cellOffset } from './sim/frontier/town_grid.js';
+import { stationParts } from './sim/frontier/station_layout.js';
 // grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
 const slotOf = (s, c, cells) => {
   if (!s.grid) return townSlot(c);
@@ -133,7 +134,16 @@ export function townProps(towns, townArt, townLights = {}) {
     s.buildings.forEach((b, i) => {
       const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i, b.cells);
       const fit = townArt._placedFootprint?.[b.type], maxFootprint = fit ? (s.grid?.cell || 11) * fit : undefined;   // Tim 2026-11-07: placed buildings were far bigger than the townhouse
-      if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
+      // the 3x2 railway station (Tim 2026-11-07): the ticket hall (its Space ring) and the engine shed, its open front to the track
+      const parts = b.type === 'station' && townArt._stationParts && stationParts(s, b);
+      if (parts) {
+        const P = townArt._stationParts, along = parts.rot % 2 === 0, mf = (s.grid?.cell || 11) * (P.fit ?? 1.6), op = b.stage === 'built' ? 1 : 0.5;
+        // coach_house opens toward +z, mirrored toward +x; railway_station's platform faces +x, mirrored +z
+        out.push({ key: `${s.id}:${b.id}:${b.stage}:shed`, art: P.shed, x: s.x + parts.shed[0], z: s.z + parts.shed[1], flip: along, opacity: op, maxFootprint: mf });
+        out.push({ key: `${s.id}:${b.id}:${b.stage}:hall`, art: P.hall, x: s.x + parts.hall[0], z: s.z + parts.hall[1], flip: !along, opacity: op, maxFootprint: mf,
+          ...(b.stage === 'built' ? { spaceDoor: `${s.id}:${b.id}` } : {}) });
+      }
+      else if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
         ...(b.stage === 'built' && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
       // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
       const phase = b.type === 'town_hall' && b.stage === 'built' ? hallPhase(s) : 0;

@@ -34,5 +34,5 @@ data.buildings.storehouse.cost.timber=999;
 const built=s.stock.timber;send({action:'remove',cells:[building.cell]});assert.equal(s.stock.timber,built+storeCost.timber);
 assert.equal(s.buildings.some(b=>b.id===building.id),false);
 const tip=buildTooltip('lumber_camp',s,data,resourceRequirements);
-assert.match(tip,/drop-off/);assert.match(tip,/Requirements:/);assert.match(tip,new RegExp(`need ${data.buildings.lumber_camp.cost.timber}, have`));assert.match(tip,/Technology: none/);
+assert.match(tip,/drop off/);assert.match(tip,/Requirements:/);assert.match(tip,new RegExp(`need ${data.buildings.lumber_camp.cost.timber}, have`));assert.match(tip,/Technology: none/);
 fr.world.checkInvariants();console.log('test_eraser_refunds: ok');

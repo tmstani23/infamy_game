@@ -202,7 +202,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // right-click your omnibus (Tim 2026-11-06): everyone steps out, or a parked one takes the hero and the selected crew in
     // right-click one of your horses: ride her (she comes over if she is not beside you)
     const horse = e.button === 2 && horseAt(e.clientX, e.clientY);
-    if (horse) { send({ id: heroId, type: 'mount', horse: horse.id }); return; }
+    // with crew selected (Tim 2026-11-07): they ride, the nearest on this horse, the rest on your other free horses
+    const riders = horse ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && u.type !== 'horse' && !u.aboard && u.place === horse.place && !u.dead && !u.downed && !u.jailed && !u.garrison; }) : [];
+    if (horse) { send({ id: heroId, type: 'mount', horse: horse.id, ...(riders.length ? { units: riders } : {}) }); return; }
     const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
     // selected crew walk over and get in on their own (Tim 2026-11-07), the rickshaw (2 seats) the same as the omnibus,
     // also into one that already has crew aboard; only with the hero right beside an empty one does he get in with them.

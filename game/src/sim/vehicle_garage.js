@@ -24,6 +24,8 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
       const [sx, sz] = stable().centre(t, b), d = Math.hypot(sx - x, sz - z);
       if (!best || d < best.d) best = { town: t.id, name: t.name, x: sx, z: sz, d };
     }
+    const cap = stable()?.capitalAt?.(owner);   // the capital stable (Tim 2026-11-07): stores at the island side of the gate
+    if (cap) { const d = Math.hypot(cap[0] - x, cap[1] - z); if (!best || d < best.d) best = { town: 'capital', name: 'the capital', x: cap[0], z: cap[1], d }; }
     return best;
   }
   function store(e, at) {
@@ -43,12 +45,12 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     if (!kindOf(e) || ownerOf(e) !== hero.owner || e.dead) return say(hero.owner, 'Not yours');
     if (c.action === 'takeout') {
       if (!e.stored) return say(hero.owner, 'It is not in a stable');
-      const t = state.frontier?.settlements?.[e.stored.town], b = t && stable().of(t);
-      const at = b ? (() => { const [x, z] = stable().centre(t, b); return { x, z }; })() : stableOf(hero.owner, hero.x, hero.z);
+      const t = state.frontier?.settlements?.[e.stored.town], b = t && stable().of(t), cap = e.stored.town === 'capital' && stable()?.capitalAt?.(hero.owner);
+      const at = cap ? { x: cap[0], z: cap[1] } : b ? (() => { const [x, z] = stable().centre(t, b); return { x, z }; })() : stableOf(hero.owner, hero.x, hero.z);
       if (!at) return say(hero.owner, 'No stable to take it out of');
       const [x, z] = e.type === 'horse' ? (nav()?.nearestFree(at.x + 10, at.z + 5) || [at.x + 10, at.z]) : omnibus?.spotFor?.(e.type, at.x + 10, at.z + 5) || [at.x + 10, at.z];   // its own spot, clear of other vehicles
       Object.assign(e, { place: 'world', x, z, anim: 'idle' }); delete e.stored;
-      return say(hero.owner, `${e.name || (e.type === 'omnibus' ? 'The omnibus' : 'The rickshaw')} is out at ${t?.name || 'the stable'}`);
+      return say(hero.owner, `${e.name || (e.type === 'omnibus' ? 'The omnibus' : 'The rickshaw')} is out ${cap ? 'outside the island gate' : `at ${t?.name || 'the stable'}`}`);
     }
     if (c.action !== 'recall') return;
     if (e.stored) return say(hero.owner, 'Already in the stable');

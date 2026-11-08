@@ -8,6 +8,7 @@
 import { freeCell, setUse, inCore, hallRoadCell,cellOffset } from './town_grid.js';
 import { buildingSafety } from './building_safety.js';
 import {coversResources} from './resource_clearance.js';
+import { shapeOf } from './station_layout.js';
 const EPS = 1e-9;
 
 export function createConstruction({ state, data, world,resourceIndex }) {
@@ -27,11 +28,12 @@ export function createConstruction({ state, data, world,resourceIndex }) {
     const s = world.settlement(sid), t = data.buildings[type];
     if (!s || !t) return null;
     if(s.grid && !opts.cells && !opts.replaces) {
-      const {n}=s.grid,size=t.size || 1;
+      const {n}=s.grid,size=t.size || 1,[w,h]=shapeOf(t,0) || [size,size];   // shape: the 3x2 railway station, unturned here
       const cover=a=>{
-        if(!Number.isInteger(a) || a<0 || a>=n*n || a%n+size>n || Math.floor(a/n)+size>n)return null;
-        return Array.from({length:size*size},(_,i)=>a+Math.floor(i/size)*n+i%size);
+        if(!Number.isInteger(a) || a<0 || a>=n*n || a%n+w>n || Math.floor(a/n)+h>n)return null;
+        return Array.from({length:w*h},(_,i)=>a+Math.floor(i/w)*n+i%w);
       };
+      if(shapeOf(t))opts={...opts,rot:opts.rot ?? 0};
       const allowed=a=>{
         const cells=cover(a);
         return cells && cells.every(i=>s.grid.use[i]==='.' && s.grid.zone[i]==='.' && s.grid.ground[i]!=='x' && !hallRoadCell(s,i) && !s.railCells?.[i])
@@ -56,6 +58,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
     }
     const p = { id: world.newId('p'), type, cell, cost: { ...t.cost }, paid: false, progress: 0, need: t.buildTicks, authorized: false };
     if (opts.replaces) p.replaces = opts.replaces;
+    if (Number.isInteger(opts.rot)) p.rot = opts.rot;   // which way a station's track leaves (station_layout.js)
     if (opts.cells) {   // L3.2: a placed building may cover several cells (2x2); `cell` stays the anchor
       p.cells = opts.cells.slice();
       for (const i of p.cells) if (s.grid.use[i] === '.') setUse(s, i, 'B');
@@ -88,7 +91,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
     if(reason) {wait(s,reason);return false;}
     const rebuilt = p.replaces && s.buildings.find(b => b.id === p.replaces);
     if (rebuilt) rebuilt.stage = 'built';
-    else s.buildings.push({ id: world.newId('b'), type: p.type, cell: p.cell, ...(p.cells ? { cells: p.cells } : {}), stage: 'built', workers: 0, paidCost: {...p.cost} });
+    else s.buildings.push({ id: world.newId('b'), type: p.type, cell: p.cell, ...(p.cells ? { cells: p.cells } : {}), ...(Number.isInteger(p.rot) ? { rot: p.rot } : {}), stage: 'built', workers: 0, paidCost: {...p.cost} });
     s.projects.splice(s.projects.indexOf(p), 1);
     world.recount(s.id);
     return true;

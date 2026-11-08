@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import {createLayoutPages} from '../src/layout_pages.js';
-import {createCrewBar} from '../src/crew_bar.js';
 class Node{
- children=[];handlers={};hidden=false;attrs={};className='';classes=new Set();
+ children=[];handlers={};hidden=false;attrs={};className='';classes=new Set();dataset={};style={};   // dataset/style: the Mount panel (crew_bar.js)
  classList={toggle:(k,on)=>on?this.classes.add(k):this.classes.delete(k),contains:k=>this.classes.has(k),add:k=>this.classes.add(k),remove:k=>this.classes.delete(k)};
  append(...n){this.children.push(...n);}appendChild(n){this.append(n);}setAttribute(k,v){this.attrs[k]=v;}
  addEventListener(k,fn){this.handlers[k]=fn;}querySelectorAll(){return this.items||[];}querySelector(){return null;}
 }
-const previous=globalThis.document;globalThis.document={createElement:()=>new Node(),head:new Node(),body:new Node()};
+const previous=globalThis.document,previousEvents=globalThis.addEventListener;globalThis.document={createElement:()=>new Node(),head:new Node(),body:new Node(),addEventListener(){}};
+// crew_bar.js reads input.js (sprint toggle), which listens on window and document when it loads
+globalThis.addEventListener??=()=>{};
+const {createCrewBar}=await import('../src/crew_bar.js');
 try{
  const root=new Node();root.items=Array.from({length:20},(_,i)=>Object.assign(new Node(),{id:String(i)}));
  const pages=createLayoutPages(root,'partyframes'),nav=root.children[0],[back,label,next]=nav.children;
@@ -30,4 +32,4 @@ try{
  const buttons=commands.children[0].children;assert.equal(buttons.length,7);
  buttons.forEach(b=>b.handlers.mousedown({button:0,stopPropagation(){}}));assert.deepEqual(sent,['duty','follow','attack','stop','amove','clinic','hero'],'separate commands keep shared input actions');
  console.log('No-scroll panel pages: every crew entry reachable, resize/count changes, selection preserved, Controls paging and independent crew commands passed');
-}finally{globalThis.document=previous;}
+}finally{globalThis.document=previous;globalThis.addEventListener=previousEvents;}

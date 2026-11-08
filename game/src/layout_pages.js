@@ -19,7 +19,10 @@ export function createLayoutPages(root,id){
   if(!width)return;
   const current=[...root.querySelectorAll(selector)];
   const groups=current.map(e=>e.parentElement||e.parent||root);
-  const cardHeight=Math.max(44,...current.map(e=>{if(e.offsetHeight)measured.set(e,e.offsetHeight);return measured.get(e)||0;}))+4;
+  const same=current.length===items.length&&current.every((e,i)=>e===items[i]);
+  // Tim 2026-11-07 (crew panel bounced up and down): with the same cards the height only grows, so a re-measure after
+  // re-paging (cards wrap differently when a section hides) can't flip the pages back and forth every frame
+  const cardHeight=Math.max(same?oldCardHeight:0,44+4,...current.map(e=>{if(e.offsetHeight)measured.set(e,e.offsetHeight);return (measured.get(e)||0)+4;}));
   if(width===oldWidth&&height===oldHeight&&cardHeight===oldCardHeight&&current.length===items.length&&current.every((e,i)=>e===items[i]&&groups[i]===oldGroups[i]))return;
   const cols=Math.max(1,Math.floor((width-20)/104));
   size=id==='controls'?1:Math.max(1,Math.floor((height-150)/70));

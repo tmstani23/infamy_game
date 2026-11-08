@@ -133,6 +133,9 @@ const st = rail.endpoint('player', 'tR');
 Object.assign(tr, { d: 0, dir: 1, wait: T.stopSeconds * 20 });
 Object.assign(hero, { place: 'world', x: st.x + 3, z: st.z + 3 }); hero.hitAt = -1e9;
 Object.assign(mate, { place: 'world', x: st.x + 5, z: st.z + 3, order: { kind: 'follow', target: hero.id } });
+// a Hero group member standing about town, not following, comes too (Tim 2026-11-07); one far away does not
+const pal = S.entities[g.spawn(mate.type, mate.model, st.x + 30, st.z - 20, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp, deployment: { ...(mate.deployment || {}), group: 'hero' } })];
+const far = S.entities[g.spawn(mate.type, mate.model, st.x + 200, st.z, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp, deployment: { ...(mate.deployment || {}), group: 'hero' } })];
 g.step([]);
 const sv = rail.service(hero);
 assert.ok(sv.length && sv[0].eta === 0 && sv[0].to === 'capital', `the train here shows in service (${JSON.stringify(sv)})`);
@@ -140,6 +143,8 @@ assert.equal(sv[0].toName, 'the capital');
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);
 assert.equal(hero.aboard, `rail:${tr.id}`, 'hero aboard');
 assert.equal(mate.aboard, `rail:${tr.id}`, 'follower aboard');
+assert.equal(pal.aboard, `rail:${tr.id}`, 'Hero group member about town came along');
+assert.ok(!far.aboard, 'a Hero group member far off stays');
 assert.match(clan.notice?.text || '', /All aboard for the capital/);
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'skip' }]);
 assert.match(clan.notice?.text || '', /in a moment/, 'no Skip straight away');

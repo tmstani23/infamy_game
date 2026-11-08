@@ -213,12 +213,17 @@ export function createGame(options) {
   // the city's railway station by the gate (Tim 2026-11-07): Space at its door ring opens the station menu;
   // trains from your towns let you off here (sim/frontier/rail.js uses gate.station)
   const railStation = gate && district.buildings.find(b => b.railStation && b.door);
-  if (railStation) { gate.station = ringAt(railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' }); }
+  // the ticket hall beside it (Tim 2026-11-07, railway_station art): its window ring opens the menu and trains let you off there
+  const ticketHall = railStation && district.buildings.find(b => b.ticketHall && b.door);
+  if (railStation) { gate.station = ringAt(ticketHall || railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' }); }
+  // the capital stable (Tim 2026-11-07, the old rickshaw station): Space at its ring opens the stable menu (src/stable_menu.js)
+  const capitalStable = gate && district.buildings.find(b => b.capitalStable && b.door);
+  if (capitalStable) { const [x, z] = ringAt(capitalStable); doors.push({ x, z, place: 'street', menu: 'capital_stable', label: 'Capital stable: horses, rickshaws and omnibuses' }); }
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
-  const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit }) : null;   // settlement economy (sim/frontier/, F2.3)
+  const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit, capitalYard: gate?.island || null }) : null;   // settlement economy (sim/frontier/, F2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
@@ -1162,7 +1167,7 @@ export function createGame(options) {
     for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (Tim 2026-11-06)
       omnibus?.park(v.owner, v.kind, v.x, v.z);
       const clan = state.clans?.[v.owner], town = state.frontier.settlements?.[v.town];
-      if (clan) clan.notice = { tick: state.tick, text: `${town?.name || 'Your town'}: a new ${v.kind} is parked at the station` };
+      if (clan && v.town !== 'capital') clan.notice = { tick: state.tick, text: `${town?.name || 'Your town'}: a new ${v.kind} is parked at the station` };   // capital stable: its own notice
     }
     omnibus?.tick();
     mounts?.tick(DT);

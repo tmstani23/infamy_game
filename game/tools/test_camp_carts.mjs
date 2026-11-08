@@ -19,10 +19,19 @@ assert.ok(C.free===2 && C.max===3 && C.share===0.6 && C.maxLoad===150 && C.cap==
   for(let i=0;i<=oneWay;i++)stepCarts(s,data,change,()=>[0,0],()=>[0,300]);
   assert.deepEqual(got[0],['stone',60,'cart']);
   assert.equal(b.carts[1].at,'out','second cart leaves as the first arrives home');
-  b.store={stone:1000};b.carts[0]={at:'camp',t:0,load:null};stepCarts(s,data,change,()=>[0,0],()=>[0,300]);
+  b.store={stone:1000};b.carts[0]={at:'camp',t:0,load:null};b.cartGap=0;stepCarts(s,data,change,()=>[0,0],()=>[0,300]);
   assert.equal(b.carts[0].load.stone,150,'load capped at maxLoad');
   assert.equal(campFull(data,{store:{stone:400}}),true);assert.equal(campFull(data,{store:{stone:399}}),false);
   assert.ok(cartWorkerLimit(data,b,10)>=1);
+  // Tim 2026-11-07: carts waiting together at an empty camp never leave together (they drove on top of each other)
+  const b2={id:'q2',type:'quarry',stage:'built',store:{}},s2={id:'t2',buildings:[b2]};
+  for(let i=0;i<200;i++)stepCarts(s2,data,change,()=>[0,0],()=>[0,300]);
+  assert.ok(b2.carts.every(c=>c.at==='camp'),'both wait at the empty camp');
+  b2.store={stone:500};
+  for(let i=0;i<60;i++)stepCarts(s2,data,change,()=>[0,0],()=>[0,300]);
+  assert.equal(b2.carts.filter(c=>c.at==='out').length,1,'only one cart leaves');
+  for(let i=0;i<oneWay+30;i++)stepCarts(s2,data,change,()=>[0,0],()=>[0,300]);
+  assert.ok(b2.carts.every(c=>c.at!=='camp'),'the other follows a gap later');
 }
 
 // in the frontier: workers drop at a camp into its store; a full camp sends them to the hall; carts deliver; buy a 3rd

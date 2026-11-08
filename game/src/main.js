@@ -191,7 +191,20 @@ async function start() {
     else if (menu === 'land_office') landOfficeMenu.toggle();   // E1: founding permit and settlers
     else if (menu === 'surveyor') surveyorTalk.toggle();   // the old surveyor by the Land Office (Tim 2026-11-06 20:45)
     else if (menu === 'lieutenant') lieutenantTalk.toggle();   // goal steps: the lieutenant at the gate (Tim 2026-11-06)
-    else if (menu === 'rail_station') stationMenu.toggle();   // the city railway station by the gate (Tim 2026-11-07)
+    else if (menu === 'rail_station') {   // the city railway station by the gate (Tim 2026-11-07)
+      // open to you once you hold (or have used) a founding permit (Tim 2026-11-07)
+      const own = game.state.entities[heroId]?.owner, clan = game.state.clans?.[own];
+      const founded = Object.values(game.state.frontier?.settlements || {}).some(t => t.owner === own && t.founded);
+      if (clan?.permit || founded) stationMenu.toggle();
+      else callout('The railway station is for permit holders: buy a founding permit at the Land Office first', 'news', 4000);
+    }
+    else if (menu === 'capital_stable') {   // the capital stable (Tim 2026-11-07): buy horses and vehicles for clan ryo, permit holders
+      const own = game.state.entities[heroId]?.owner, clan = game.state.clans?.[own];
+      const town = Object.values(game.state.frontier?.settlements || {}).some(t => t.owner === own && !t.capital);
+      if (stableMenu.isOpen()) stableMenu.close();
+      else if (clan?.permit || town) stableMenu.openCapital();
+      else callout('The capital stable sells to permit holders: buy a founding permit at the Land Office first', 'news', 4000);
+    }
     else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // the island gate menu when there is more than one way out (Tim 20:40)
     else { pending.push({ id: heroId, type: 'use', units: crewInput.selected() }); sound.cue('use_1', 0.45); }   // selected crew come in too
   });
@@ -365,7 +378,7 @@ async function start() {
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]'] : ['[data-act="priority"]'],
       stone: () => ['@stone', '[data-act="build-workers"]'],
       workers: () => ['@timber', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
-      market: () => ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
+      market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
     for (const el of document.querySelectorAll('#townpanel .goal-flash, #towninspect .goal-flash')) el.classList.remove('goal-flash');
     let target = null;
     // '@timber' (Tim 2026-11-06): the nearest timber button under "Nearby discovered spots" on the Workers pane
@@ -497,7 +510,7 @@ async function start() {
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
-  const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput });
+  const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
   const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id) });

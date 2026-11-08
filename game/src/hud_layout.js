@@ -97,8 +97,11 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  function update(){
   let hidden=0;
   for(const p of panels.values()){
-   if(p.pages&&p.el.offsetWidth){const rect=p.el.getBoundingClientRect(),s=saved[p.id]?.s||1;
-    p.pages.update(p.el.offsetWidth,Math.min(saved[p.id]?.h||600,Math.max(160,(innerHeight-Math.max(0,rect.top)-24)/s)));
+   if(p.pages&&p.el.offsetWidth){const rect=p.el.getBoundingClientRect(),L=saved[p.id],s=L?.s||1;
+    // a scaled panel grows about its middle, so its live top moves with its content: paging from that fed back into itself
+    // and the crew panel bounced (Tim 2026-11-07). A top-anchored saved panel uses its saved top instead.
+    const top=L&&L.ay==='t'&&Number.isFinite(L.dy)?L.dy:Math.max(0,rect.top);
+    p.pages.update(p.el.offsetWidth,Math.min(L?.h||600,Math.max(160,(innerHeight-top-24)/s)));
    }
    if(saved[p.id]&&signature(p.el)!==p.applied)place(p);
    if(!editing)continue;

@@ -5,6 +5,9 @@
 //     mode: idle = standing in a station (slow soft wisps), run = moving (puffs, more the faster it goes)
 //     whistle: true on the frame it whistles (pulling out): a thin, fast plume straight up for a moment
 //     wait: { left, full } seconds while it stands in a station: a flashing badge and a bar that runs down
+//   fx.lamps(head, tail, night): night lamps (Tim 2026-11-07): a warm headlamp on the engine's front and a red tail lamp
+//     on the guard van; head / tail = { x, z, fx, fz } (that car's middle and facing) or null; night 0..1
+//   fx.lights: the two lamps as scene lights (render/view.js updateLights); off while hidden or by day
 //   fx.dispose()
 // The puffs stay where they were let out, so a moving train leaves its steam behind it.
 import * as THREE from 'three';
@@ -19,7 +22,13 @@ const STEAM = {
 const POOL = 110;
 const BADGE = { up: 6.0, size: 1.7, flashHz: 1.4 };
 const BAR = { up: 4.6, w: 3.2, h: 0.34, pad: 0.06 };
-const ON_TOP = 99600;   // steam and badge over the scenery (sprites are drawn without a depth test)
+const ON_TOP = 99600;
+const LAMP = {
+  // 1870s oil lamps, as on the British-built engines of the first Japanese lines: a dim warm lamp on the engine's
+  // buffer beam, a red lamp on the back of the guard van
+  head: { fwd: 3.2, up: 1.35, color: [1, 0.74, 0.4], radius: 8, glow: 1.2 },      // engine front (6.4 long)
+  tail: { fwd: -2.75, up: 1.6, color: [1, 0.16, 0.08], radius: 4.5, glow: 0.9 },  // guard van rear (5.4 long)
+};   // steam and badge over the scenery (sprites are drawn without a depth test)
 
 function canvasTexture(size, draw) {
   const c = document.createElement('canvas'); c.width = c.height = size;
@@ -62,6 +71,21 @@ export function createTrainFx(scene) {
   barBack.scale.set(BAR.w, BAR.h, 1);
   scene.add(badge, barBack, barFill);
   const amber = new THREE.Color(0xd4aa5a), red = new THREE.Color(0xc0462e);
+  const lamp = k => { const L = LAMP[k], m = quad(new THREE.MeshBasicMaterial({ map: puffTexture(), color: new THREE.Color(...L.color), transparent: true,
+      opacity: 0, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending }), ON_TOP - 2);
+    m.scale.set(L.glow, L.glow, 1); scene.add(m);
+    return { L, mesh: m, light: { pos: new THREE.Vector3(), radius: L.radius, color: new THREE.Color(...L.color), fire: false, seed: Math.random() * 10, off: true } }; };
+  const lampList = [lamp('head'), lamp('tail')];
+  function lamps(head, tail, night = 0) {
+    [head, tail].forEach((c, i) => {
+      const { L, mesh, light } = lampList[i], on = !!c && night > 0.05;
+      mesh.visible = on; light.off = !on;
+      if (!on) return;
+      const x = c.x + c.fx * L.fwd, z = c.z + c.fz * L.fwd;
+      mesh.position.set(x, L.up, z); mesh.material.opacity = 0.9 * night;
+      light.pos.set(x, L.up, z);
+    });
+  }
 
   function emit(kind, e, speed) {
     const k = STEAM[kind], p = puffs[next]; next = (next + 1) % POOL;
@@ -111,6 +135,20 @@ export function createTrainFx(scene) {
   function dispose() {
     for (const p of puffs) { scene.remove(p.mesh); p.mesh.material.dispose(); }
     for (const m of [badge, barBack, barFill]) { scene.remove(m); m.material.dispose(); }
+    for (const l of lampList) { scene.remove(l.mesh); l.mesh.material.dispose(); l.light.off = true; }
   }
-  return { step, dispose };
+  return { step, lamps, lights: lampList.map(l => l.light), dispose };
+}
+
+// Carriage lighting of the time: oil lamps hung in the roof, a dim warm glow through the windows at night (no scene
+// light, just a soft glow over the carriage). carriageGlow(scene) -> { set(x, z, night), hide(), dispose() }
+export function carriageGlow(scene) {
+  const m = quad(new THREE.MeshBasicMaterial({ map: puffTexture(), color: new THREE.Color(1, 0.72, 0.38), transparent: true, opacity: 0,
+    depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending }), ON_TOP - 3);
+  m.scale.set(4.2, 2.4, 1); scene.add(m);
+  return {
+    set(x, z, night) { m.visible = night > 0.05; if (m.visible) { m.position.set(x, 1.9, z); m.material.opacity = 0.32 * night; } },
+    hide() { m.visible = false; },
+    dispose() { scene.remove(m); m.material.dispose(); },
+  };
 }

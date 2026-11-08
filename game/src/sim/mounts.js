@@ -9,6 +9,7 @@
 // Field supplies on the character page). { type: 'mount', whistle: <horse id> } makes her your mount and calls
 // her; if she is far (rules.mount.whistleRange), stuck (no closer for rules.mount.stuckSeconds) or gone (missing
 // after a load), she appears beside you. A horse that dies takes her whistle with her.
+// Stay ({ type: 'mount', stay: true }, the Mount panel, Tim 2026-11-07): she stays where she is (you get off, a call is off).
 // Mount up (Tim 2026-11-07, Shift+H / the Mount up button): { type: 'mount', group: true, units?: [ids] } puts you and
 // your selected crew (else the crew following you) on horses: free horses of yours nearby trot over, then spare
 // ones (stored or far) come out to them. Settlers and workers never ride. Again with anyone mounted: everyone off.
@@ -99,10 +100,45 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     }
     say(e.owner, short ? `${short} crew have no horse: buy more at a stable` : group.length ? 'Mount up!' : 'Mounting up');
   }
+  // select crew (or their group) and right-click one of your horses (Tim 2026-11-07): the nearest of them rides that
+  // horse, the others take your other free horses (nearest first); a horse that is not beside its rider comes over
+  function crewRide(e, c) {
+    const picked = state.entities[c.horse];
+    if (!picked || picked.type !== 'horse' || picked.horseOwner !== e.owner || picked.dead) return;
+    const group = c.units.map(id => state.entities[id]).filter(u => rider(u, e.owner) && u.place === 'world');
+    if (!group.length) return command(e, { horse: c.horse });
+    const onIt = group.find(u => u.ride?.horse === picked.id);
+    if (onIt) { dismount(onIt); return; }   // right-click the horse one of them rides: that one gets off
+    const want = group.filter(u => !u.mounted).sort((a, b) => Math.hypot(a.x - picked.x, a.z - picked.z) - Math.hypot(b.x - picked.x, b.z - picked.z));
+    if (!want.length) return;
+    if (picked.rider) { const r = state.entities[picked.rider]; if (r?.type === 'hero') dismount(r); else return say(e.owner, 'Someone already rides her'); }
+    const mine = mountOf(e.owner);
+    const free = [picked, ...Object.values(state.entities).filter(h => h.id !== picked.id && h.type === 'horse' && h.horseOwner === e.owner && !h.dead && !h.rider && !h.recall && h.id !== mine?.id && !(h.called && !want.some(u => u.id === h.called)))
+      .sort((a, b) => (a.stored ? 1e9 : Math.hypot(a.x - picked.x, a.z - picked.z)) - (b.stored ? 1e9 : Math.hypot(b.x - picked.x, b.z - picked.z)))];
+    let short = 0;
+    for (const u of want) {
+      const horse = free.shift();
+      if (!horse) { short++; continue; }
+      if (horse.stored || horse.place !== 'world' || Math.hypot(horse.x - u.x, horse.z - u.z) > (R().whistleRange ?? 300)) beside(horse, u);
+      if (Math.hypot(horse.x - u.x, horse.z - u.z) <= (R().reach ?? 4)) { mount(u, horse); continue; }
+      horse.called = u.id; delete horse.path; delete horse.callBest;
+    }
+    say(e.owner, short ? `${short} crew have no horse: buy more at a stable` : want.length > 1 ? 'Mount up!' : `${picked.name || 'The horse'} is theirs to ride`);
+  }
+  // Stay here: she stays where she is; you get off if you ride her, and a call is off
+  function stay(e) {
+    const horse = mountOf(e.owner);
+    if (!horse || horse.stored || horse.place !== 'world') return say(e.owner, 'Your horse is not out on the island');
+    if (e.ride?.horse === horse.id) dismount(e);
+    delete horse.called; delete horse.path; delete horse.callBest; delete horse.recall; horse.anim = 'idle';
+    say(e.owner, `${horse.name || 'Your horse'} stays here`);
+  }
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
+    if (c.stay) return stay(e);   // the Mount panel's Stay here (Tim 2026-11-07)
     if (c.whistle) return whistle(e, c.whistle);
     if (c.group) return mountUp(e, c);
+    if (c.horse && Array.isArray(c.units) && c.units.length) return crewRide(e, c);
     // right-click one of your horses (Tim 2026-11-06 20:25): that one becomes your mount
     const picked = c.horse && state.entities[c.horse];
     if (picked?.type === 'horse' && picked.horseOwner === e.owner && !picked.dead) {
@@ -141,7 +177,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       const clan = clanOf(b.owner);
       if (clan) whistlesOf(b.owner).some(w => w.horse === id) || whistlesOf(b.owner).push({ horse: id, name, kind: b.kind });
       if (clan && !mountOf(b.owner)) clan.mount = id;
-      say(b.owner, `${name} is ready at the stable, her whistle is in your Field supplies${clan?.mount === id ? ' (H to call and ride her)' : ''}`);
+      say(b.owner, `${name} is ready ${b.town === 'capital' ? 'outside the island gate' : 'at the stable'}, her whistle is in your Field supplies${clan?.mount === id ? ' (H to call and ride her)' : ''}`);
     }
     if (state.tick % 20 === 0) for (const clan of Object.values(state.clans || {})) {   // a dead horse takes her whistle with her
       if (!clan.whistles?.length) continue;

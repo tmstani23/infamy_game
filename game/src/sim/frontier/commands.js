@@ -9,7 +9,8 @@ import { startUpgrade } from './tiers.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
 const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'setMarketKeep'];
 
-export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers }) {
+// hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (Tim 2026-11-07)
+export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers, hooks = {} }) {
   const f = () => state.frontier;
 
   function receipt(e, c, ok, reason = '') {
@@ -63,7 +64,12 @@ export function createCommands({ state, data, world, economy, construction, gove
       if (t.owner == null || t.owner !== e.owner) return reject(e, c, 'not your settlement');
       if (c.dryRun) { placement.lastDryRun = c.action === 'place' ? placement.check(t, c) : c.action === 'zone' ? zones.zone(t, { ...c, dryRun: true }) : null; return true; }   // changes nothing, not even receipts
       const by = c.by === 'g' ? 'g' : 'p';
+      // removing a station with railway lines (Tim 2026-11-07): only with confirmLines; then its lines are torn up
+      const station = c.action === 'remove' && Array.isArray(c.cells) && t.buildings.find(b => b.type === 'station' && (b.cells || [b.cell]).some(i => c.cells.includes(i)));
+      const lines = station && hooks.rail ? hooks.rail.linesAt(t.owner, t.id).length : 0;
+      if (lines && !c.confirmLines) return reject(e, c, `Track runs from this station: erase it again to tear up its ${lines === 1 ? 'railway line' : `${lines} railway lines`}`);
       const r = c.action === 'place' ? placement.place(t, { ...c, by }) : c.action === 'zone' ? zones.zone(t, { kind: c.kind, rect: c.rect, cells: c.cells, by }) : placement.remove(t, c);
+      if (lines && r.ok && !t.buildings.includes(station)) hooks.rail.tearUp(t.owner, t.id);
       const fr = f();
       fr.receiptSeq = (fr.receiptSeq || 0) + 1;
       fr.receipts.push({ seq: fr.receiptSeq, tick: state.tick ?? 0, clan: e.owner ?? null, action: c.action, ok: r.ok, reason: r.reason, cost: r.cost, cells: r.cells });
@@ -108,6 +114,7 @@ export function createCommands({ state, data, world, economy, construction, gove
         const max = data.market?.keepMax ?? 100000;
         if (!Number.isFinite(c.keep) || c.keep < 0 || c.keep > max) return reject(e, c, `keep must be 0 to ${max}`);
         economy.setMarketKeep(s.id, Math.round(c.keep));
+        s.marketKeepSet = true;   // the Open a Market goal's second row (campaign_goals.js)
         return receipt(e, c, true);
       }
       case 'authorize':

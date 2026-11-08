@@ -16,6 +16,7 @@
 // createRail({ state, data, world, worldData }) -> { command, tick, econTick, attach, endpoint, preview, linksOf }
 import { createRailGrid, routeRail, pointAt, measure } from './rail_route.js';
 import { townExit, railCellsFor } from './rail_town.js';
+import { stationParts } from './station_layout.js';
 import { tierOf } from './tiers.js';
 import { modeRules } from '../modes/index.js';
 import { dirIndex } from '../geometry.js';
@@ -35,6 +36,8 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (id === 'capital') { const g = runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }
     const s = town(id), b = s && s.owner === owner && stable?.of(s, 'station');
     if (!b) return null;
+    const parts = stationParts(s, b);   // the 3x2 station (Tim 2026-11-07): the line ends in its shed
+    if (parts) return { x: s.x + parts.shed[0], z: s.z + parts.shed[1] };
     const [x, z] = stable.centre(s, b);
     return { x, z };
   }
@@ -73,11 +76,15 @@ export function createRail({ state, data, world, worldData, stable }) {
     const coarse = routeRail(g, a, b, { reuse: linksOf(owner).map(l => l) });
     if (!coarse) return { error: 'No way to lay track there' };
     // inside the end towns the track takes a fine path round buildings and houses (Tim 2026-11-07)
-    const cellsOf = t => { const st = stable.of(t, 'station'); return st ? (st.cells || [st.cell]) : []; };
-    let pts = townExit(s, data, cellsOf(s), coarse.points);
+    // a 3x2 station (Tim 2026-11-07): out of the shed straight through the railway slot, then round the town
+    const exitOf = (t, route) => { const st = stable.of(t, 'station'), parts = st && stationParts(t, st);
+      if (!parts) return townExit(t, data, st ? (st.cells || [st.cell]) : [], route);
+      const far = [t.x + parts.slotFar[0], t.z + parts.slotFar[1]], r = townExit(t, data, parts.slotCells, [far, ...route.slice(1)]);
+      return r && [route[0], ...r]; };
+    let pts = exitOf(s, coarse.points);
     if (!pts) return { error: `Buildings box in ${s.name}'s station: clear a way out` };
     if (to !== 'capital') {
-      const back = townExit(town(to), data, cellsOf(town(to)), [...pts].reverse());
+      const back = exitOf(town(to), [...pts].reverse());
       if (!back) return { error: `Buildings box in ${town(to).name}'s station: clear a way out` };
       pts = back.reverse();
     }
@@ -107,6 +114,19 @@ export function createRail({ state, data, world, worldData, stable }) {
       built: 0, paid: 0, started: state.tick ?? 0, done: false, waiting: null, gang: [] };
     reserve(rec().links[id]);
     return receipt(e, true, `Rail gang heading out: ${town(c.town).name} to ${c.to === 'capital' ? 'the capital' : town(c.to).name}`);
+  }
+
+  // a town's railway lines, laid or being laid (Tim 2026-11-07: removing its station tears them up; lay them again
+  // from the new station). Riders get off where the train is.
+  const linesAt = (owner, id) => linksOf(owner).filter(l => l.from === id || l.to === id);
+  function tearUp(owner, id) {
+    const gone = linesAt(owner, id);
+    for (const l of gone) {
+      for (const t of Object.values(rec().trains)) if (t.link === l.id) { for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; }
+      dropGang(l); unreserve(l); delete rec().links[l.id];
+    }
+    if (gone.length && state.clans?.[owner]) state.clans[owner].notice = { tick: state.tick, text: `${gone.length === 1 ? 'Its railway line was' : `${gone.length} railway lines were`} torn up with the station` };
+    return gone.length;
   }
 
   // one economy tick: each unfinished link moves on by length / seconds, buying the next stretch when needed
@@ -220,8 +240,13 @@ export function createRail({ state, data, world, worldData, stable }) {
     const t = rec().trains[trainId], at = t && stationOf(t);
     if (!t || t.owner !== e.owner || !at || !atStation(e, e.owner, at)) return say(e.owner, 'No train standing here');
     if (e.mounted) { delete e.mounted; delete e.ride; }   // the horse stays at the station
+    // who comes along: crew following you close by, and (Tim 2026-11-07) every standing Hero group member in this town or
+    // station area (heroGroupRange), followed or not; Hero group crew left in another town stay there
+    const near = (u, r) => Math.hypot(u.x - e.x, u.z - e.z) <= r;
     const group = Object.values(state.entities).filter(u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === e.place
-      && u.order?.kind === 'follow' && u.order.target === e.id && Math.hypot(u.x - e.x, u.z - e.z) <= (RIDE().followRange ?? 15));
+      && ((u.order?.kind === 'follow' && u.order.target === e.id && near(u, RIDE().followRange ?? 15))
+        || (u.deployment?.group === 'hero' && near(u, RIDE().heroGroupRange ?? 60))))
+      .sort((a, b) => (b.deployment?.group === 'hero') - (a.deployment?.group === 'hero') || Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z));   // Hero group first, then nearest
     const room = seats(t) - ridersOf(t.id).length, party = [e, ...group].slice(0, Math.max(0, room));
     if (!party.length) return say(e.owner, 'The train is full');
     const head = pointAt(rec().links[t.link], t.d);
@@ -300,8 +325,10 @@ export function createRail({ state, data, world, worldData, stable }) {
         if (!working || e.railSpot == null) e.railSpot = l.built;
         const spot = gangSpot(l, k, e.railSpot), dx = spot.x - e.x, dz = spot.z - e.z, d = Math.hypot(dx, dz);
         // they keep up without racing ahead of a hero on foot (Tim 2026-11-07): gang.speed (below the hero's run),
-        // but at least 1.6 times the railhead's own pace; a long gap (spawning in) closes at once
-        const v = Math.max(g.speed ?? 4.5, 1.6 * l.length / Math.max(1, L().seconds ?? 600)) / 20;
+        // but at least 1.3 times the railhead's own pace counting the time they stand hammering (they only walk
+        // between swings, Tim 2026-11-07: the track ran ahead of them); a long gap (spawning in) closes at once
+        const hammer = Math.round((g.hammerSeconds ?? 3) * 20), walkShare = Math.max(0.2, (cycle - hammer) / cycle);
+        const v = Math.max(g.speed ?? 4.5, 1.3 * l.length / Math.max(1, L().seconds ?? 600) / walkShare) / 20;
         if (d > 40) { e.x = spot.x; e.z = spot.z; }
         else if (d > 0.05) { const m = Math.min(1, v / d); e.x += dx * m; e.z += dz * m; e.dir = dirIndex(dx, dz); }
         e.anim = d > 0.3 ? (g.anim?.move || 'run') : (g.anim?.work || 'bow');
@@ -317,5 +344,5 @@ export function createRail({ state, data, world, worldData, stable }) {
   }
 
   function attach(services) { runtime = services; }
-  return { command, tick, econTick, attach, endpoint, preview, linksOf, addTrain, stationOf, boardable, service, atStation, trains: () => Object.values(rec().trains) };
+  return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, atStation, trains: () => Object.values(rec().trains) };
 }

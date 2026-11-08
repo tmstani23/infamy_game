@@ -9,6 +9,7 @@ import { setupMatch } from '../src/sim/setup_match.js';
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), frontier = data('data/frontier.json'), U = data('data/units.json');
 const SB = frontier.buildings.stable.stable, M = U.rules.mount;
+delete SB.capital;   // town stables only here; the capital stable's room is tested in test_capital_stable.mjs
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: U, civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
@@ -85,6 +86,17 @@ g.step([]);
 assert.ok(!hero.mounted, 'thrown off');
 assert.match(clan.notice?.text || '', /Thrown/);
 hero.hp = hero.maxHp;
+// --- Stay here (the Mount panel, Tim 2026-11-07): off her back, a call is off, she stays put -----------------------------
+g.step([{ id: hero.id, type: 'mount' }]);
+assert.ok(hero.mounted, 'on again');
+g.step([{ id: hero.id, type: 'mount', stay: true }]);
+assert.ok(!hero.mounted && !bb.rider && !bb.called, 'Stay here: got off, she waits');
+assert.match(clan.notice?.text || '', /stays here/);
+Object.assign(hero, { x: hero.x + 30 }); g.step([{ id: hero.id, type: 'mount' }]);
+assert.ok(bb.called, 'called from afar');
+const bx = bb.x; g.step([{ id: hero.id, type: 'mount', stay: true }]); for (let t = 0; t < 10; t++) g.step([]);
+assert.ok(!bb.called && Math.abs(bb.x - bx) < 1, 'Stay here: the call is off');
+Object.assign(hero, { x: hero.x - 30 });
 
 // --- a second horse, chosen as the mount; room by the town's tier (stable.room) --------------------------------------------
 cmd({ mode: 'horse', kind: 'calico' });
@@ -109,6 +121,27 @@ for (let k = 0; k < 12 && g.frontier.stable.have('player', 'horse') < g.frontier
 cmd({ mode: 'horse', kind: 'calico' });
 assert.match(clan.notice?.text || '', /room for/, 'no room for more horses');
 for (const b of town.buildings) if (b.type === 'stable') b.stableJobs = [];
+
+// --- select crew and right-click a horse (Tim 2026-11-07): the nearest rides it, the others take free horses ------
+{
+  if (hero.mounted) g.step([{ id: hero.id, type: 'mount' }]);
+  // h1: the hero's own mount (clicking a horse picks her even so), h2: another free one
+  const h1 = horses().find(h => h.id === clan.mount), h2 = horses().find(h => h.id !== clan.mount && !h.rider && !h.stored && h.place === 'world');
+  assert.ok(h1 && h2, 'two horses out');
+  const mk = dx => S.entities[g.spawn('thug', 'thug', h1.x + dx, h1.z, { owner: 'player', place: 'world', hp: 100, maxHp: 100 })];
+  const a = mk(1), b2 = mk(2.5);
+  Object.assign(h2, { x: h1.x + 60, z: h1.z });
+  g.step([{ id: hero.id, type: 'mount', horse: h1.id, units: [b2.id, a.id] }]);
+  assert.ok(a.mounted && a.ride.horse === h1.id, 'the nearest crew member rides the clicked horse');
+  assert.ok(!hero.mounted, 'the hero stays on foot');
+  assert.equal(h2.called, b2.id, 'the next free horse comes to the other');
+  for (let t = 0; t < 200 && !b2.mounted; t++) g.step([]);
+  assert.ok(b2.mounted && b2.ride.horse === h2.id, 'and he rides her');
+  g.step([{ id: hero.id, type: 'mount', horse: h1.id, units: [a.id] }]);
+  assert.ok(!a.mounted && !h1.rider, 'right-click the horse he rides: he gets off');
+  g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [b2.id] }]);
+  for (const u of [a, b2]) delete S.entities[u.id];
+}
 
 // --- rickshaws and omnibuses: made at the stable (Tim 2026-11-07), they come out empty and park there ----------------------------------
 const SN = SB;

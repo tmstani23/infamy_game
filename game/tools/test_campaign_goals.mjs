@@ -176,7 +176,7 @@ console.log('campaign goals ok');
   // found a town the quick way: borrow the founding module through a fresh settlement record
   const id = 'tgoal', base = Object.values(g.state.frontier.settlements)[0];
   const n = 9, grid = { n, cell: 50, ground: 'c'.repeat(n * n), use: '.'.repeat(n * n), zone: '.'.repeat(n * n), by: '.'.repeat(n * n), stage: '0'.repeat(n * n) };
-  g.state.frontier.settlements[id] = { id, name: 'Test', owner: 'player', founded: true, x: 100, z: 100, tier: 1, pop: 5, grid, buildings: [{ type: 'town_hall', stage: 'built', cell: 40 }], workers: [{ id: 'w1' }, { id: 'w2' }] };
+  g.state.frontier.settlements[id] = { id, name: 'Test', owner: 'player', founded: true, x: 100, z: 100, tier: 1, pop: 5, stock: { food: 100, timber: 0, stone: 0, goods: 0 }, mood: 100, grid, buildings: [{ type: 'town_hall', stage: 'built', cell: 40 }], workers: [{ id: 'w1' }, { id: 'w2' }] };
   const cur = () => g.goals.current('player');
   assert.equal(cur().key, 'layout');
   assert.deepEqual(cur().rows.map(r => r.label), ['Road cells', 'Housing cells', 'Farm cells', 'Capital businesses']);
@@ -211,6 +211,9 @@ console.log('campaign goals ok');
   g.state.frontier.settlements[id].tier = 2;
   assert.equal(cur().key, 'market');
   g.state.frontier.settlements[id].buildings.push({ type: 'market', stage: 'built' });
+  assert.equal(cur().key, 'market', 'built: now set the goods to keep');
+  assert.deepEqual(cur().rows.map(r => r.done).slice(0, 2), [true, false]);
+  g.step([{ id: g.state.clans.player.heroId ?? Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player').id, type: 'frontier', action: 'setMarketKeep', settlement: id, keep: 250 }]);
   assert.notEqual(cur().key, 'market', 'past the setup goals');
   // the 2nd permit asks for a Village-tier town
   g.state.frontier.settlements[id].tier = 1;

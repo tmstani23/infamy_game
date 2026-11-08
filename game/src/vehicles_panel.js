@@ -17,7 +17,7 @@ export function listVehicles(game, heroId) {
   // where it is, in words
   function where(e) {
     const st = game.state, h = hero();
-    if (e.stored) return `In the stable at ${st.frontier?.settlements?.[e.stored.town]?.name || 'your town'}`;
+    if (e.stored) return e.stored.town === 'capital' ? 'In the capital stable' : `In the stable at ${st.frontier?.settlements?.[e.stored.town]?.name || 'your town'}`;
     if (e.place !== 'world') return 'Away';
     let near = null;
     for (const t of Object.values(st.frontier?.settlements || {})) { const d = Math.hypot(t.x - e.x, t.z - e.z); if (d < 220 && (!near || d < near.d)) near = { t, d }; }

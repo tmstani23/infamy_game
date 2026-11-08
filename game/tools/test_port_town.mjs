@@ -30,7 +30,7 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   const water = g.blockers.filter(b => !street.some(s => s.solid === b) && b.minX > -200 && b.maxX < 200 && b.maxX - b.minX < 300);
   for (const s of street.filter(s => s.solid && s.name !== 'rowboat'))
     for (const b of blds) if (s !== b && s.item.kind !== 'buildings' && hit(s.solid, b.foot)) problems.push(`${s.name} at ${s.x},${s.z} stands in the ${b.name}`);
-  assert.equal(blds.length, 43, '33 buildings, a second police box and the 9 of the Shinobi village');
+  assert.equal(blds.length, 45, '33 buildings, a second police box, the 9 of the Shinobi village, the railway station and its ticket hall');
   assert.deepEqual(problems, [], problems.join('\n'));
   console.log('buildings ok');
 }

@@ -23,7 +23,7 @@ import { createWorkers, ensureWorkers } from './workers.js';
 import { createArrivals } from './arrivals.js';
 import { createTownsfolk } from './townsfolk.js';
 
-export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {} }) {
+export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null }) {
   let world = createFrontierWorld({ state, data });
   const cadence = Math.max(1, data.cadenceTicks || 20);
   const ctx = { state, data, world };
@@ -55,13 +55,15 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index }) : null;
   const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
-  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers });
+  const commandHooks = {};   // .rail once it exists (a removed station tears up its lines)
+  const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers, hooks: commandHooks });
   const garrison = createGarrison({ state, data, world: live });
   const infirmary = createInfirmary({ state, data });   // Tim 2026-11-06: heals nearby units, revives the island's fallen
-  const stable = createStable({ state, data, world: live });   // Tim 2026-11-06: horses and omnibuses, made by hand
+  const stable = createStable({ state, data, world: live, capitalYard });   // capitalYard: the island side of the city gate (the capital stable)   // Tim 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
   modules.push({ name: 'stable', command: (e, c) => stable.command(e, c) });
   const rail = createRail({ state, data, world: live, worldData, stable });   // train plan: railway links between stations
+  commandHooks.rail = rail;
   modules.push({ name: 'rail', rail, econTick: () => rail.econTick(), command: (e, c) => rail.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 

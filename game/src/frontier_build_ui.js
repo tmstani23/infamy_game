@@ -14,6 +14,7 @@ import { buildTooltip } from './build_tooltips.js';
 import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
 import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
 import { residents } from './sim/frontier/people.js';
+import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -33,10 +34,12 @@ export function rectangleCells(s, first, last) {
   return cells;
 }
 
-export function buildRequest(s, tool, first, last, data) {
+// rot: which way a shaped building (the 3x2 railway station) is turned, 0..3 (R while placing)
+export function buildRequest(s, tool, first, last, data, rot = 0) {
   const building = !!data.buildings[tool]?.size && !data.zones.kinds[tool];
   return { town: s.id, action: tool === 'eraser' ? 'remove' : data.zones.kinds[tool] ? 'zone' : 'place',
-    ...(tool === 'eraser' ? {} : { kind: tool }), cells: building ? [last] : rectangleCells(s, first, last) };
+    ...(tool === 'eraser' ? {} : { kind: tool }), cells: building ? [last] : rectangleCells(s, first, last),
+    ...(building && shapeOf(data.buildings[tool]) ? { rot } : {}) };
 }
 
 // The same dry-run functions the sim commands use, applied to the read-only snapshot.
@@ -58,7 +61,11 @@ export function buildPreview(s, request, data, {state,resourceIndex}={}) {
 }
 
 export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onStable = () => {}, blocked = () => false }) {
-  let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null;
+  let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null, rot = 0;   // rot: R turns a station
+  let eraseConfirm = null;   // { k, until }: the station erase waiting for its second click
+  // how many railway lines run from the station under these cells (0 if none or no station)
+  const stationLines = (s, cells) => s.buildings.some(b => b.type === 'station' && (b.cells || [b.cell]).some(i => cells.includes(i)))
+    ? Object.values(game.state.frontier?.rail?.links || {}).filter(l => l.owner === s.owner && (l.from === s.id || l.to === s.id)).length : 0;
   let inspectionHtml = '', inspectionPressed = false;
   let pendingPlan = null, reviewHtml = '', reviewPressed = false;
   let workerPage = 0;
@@ -313,6 +320,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   });
   addEventListener('mouseup', () => { inspectionPressed = false; reviewPressed = false; });
   addEventListener('keydown', e => {
+    // R turns a station while placing it (Tim 2026-11-07); otherwise R stays the hero's ability
+    if(e.code==='KeyR' && tool && !pendingPlan && shapeOf(data.buildings[tool]) && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
+      rot=(rot+1)%4;lastPreview='';consume(e);return;
+    }
     if(e.code==='KeyZ' && selected.length && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
       orderSelected('hold');consume(e);return;
     }
@@ -352,7 +363,18 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (d.build) {
       const s = current(), last = cellAt(e.clientX, e.clientY);
       if (s && d.first >= 0 && last >= 0) {
-        const request = buildRequest(s, tool, d.first, last, data), result = previewBuild(s, request);
+        const request = buildRequest(s, tool, d.first, last, data, rot), result = previewBuild(s, request);
+        // erasing a station with railway lines (Tim 2026-11-07): a second erase within 6 s confirms tearing them up
+        const lines = request.action === 'remove' && result.ok ? stationLines(s, request.cells) : 0;
+        if (lines) {
+          const k = `${s.id}:${request.cells.join(',')}`;
+          if (eraseConfirm?.k !== k || Date.now() > eraseConfirm.until) {
+            eraseConfirm = { k, until: Date.now() + 6000 };
+            say(`This station has ${lines === 1 ? 'a railway line' : `${lines} railway lines`}: erase it again to tear ${lines === 1 ? 'it' : 'them'} up (lay new ones from your next station)`);
+            crewInput.cancelPointer(); consume(e); return;
+          }
+          eraseConfirm = null; request.confirmLines = true;
+        }
         if (data.buildUI?.confirmDrag) { pendingPlan = { request, tool }; }
         else if (result.ok) command(request);
         say(result.ok ? data.buildUI?.confirmDrag ? 'Review requirements, then Confirm or Cancel' : `${townName(tool)}: ordered${result.warning ? ' · ' + result.warning : ''}` : result.reason);
@@ -494,18 +516,33 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         ctx.beginPath(); pts.forEach((p,k) => k ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y)); ctx.stroke(); ctx.restore(); }
       if (pendingPlan?.request && pendingPlan.request.action!=='train' || !pendingPlan && tool && mouse) {
         const last = mouse ? cellAt(mouse.x,mouse.y) : -1, first = drag?.build ? drag.first : last;
-        const request = pendingPlan?.request || buildRequest(s,tool,first,last,data), key = JSON.stringify([game.state.tick,s.id,request]);
+        const request = pendingPlan?.request || buildRequest(s,tool,first,last,data,rot), key = JSON.stringify([game.state.tick,s.id,request]);
         if (key !== lastPreview) { lastPreview = key; preview = previewBuild(s,request); }
         const cells = new Set(preview.cells?.length ? preview.cells : request.cells);
         const zoneColor = data.buildUI?.zoneColors?.[pendingPlan?.tool || tool];
+        // a station (Tim 2026-11-07): the railway slot, where the track leaves, shows blue
+        const parts = Number.isInteger(request.rot) && preview.cells?.length === 6 ? stationParts(s, { cells: preview.cells, rot: request.rot }) : null;
+        const slot = parts ? new Set(parts.slotCells) : null;
         for (const i of visible) if (cells.has(i)) {
           if(preview.reason==='occupied' && s.grid.zone[i]!=='.')continue;
-          polygon(ctx,s,i,preview.ok ? zoneColor ? zoneColor + '66' : 'rgba(80,235,120,.4)' : 'rgba(245,70,60,.4)');
+          polygon(ctx,s,i,preview.ok ? slot?.has(i) ? 'rgba(90,170,245,.5)' : zoneColor ? zoneColor + '66' : 'rgba(80,235,120,.4)' : 'rgba(245,70,60,.4)');
         }
+        // the track's mouth (Tim 2026-11-07): an arrow out of the railway slot, the way the track leaves, for every turn
+        if (parts) { const c = s.grid.cell, [dx, dz] = parts.dir, [sx, sz] = parts.slot;
+          const a = view.unitToScreen(s.x + sx, s.z + sz, 0.1), b = view.unitToScreen(s.x + sx + dx * c * 1.6, s.z + sz + dz * c * 1.6, 0.1);
+          const ang = Math.atan2(b.y - a.y, b.x - a.x), head = Math.max(9, Math.min(18, Math.hypot(b.x - a.x, b.y - a.y) * 0.35));
+          ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (const [w, col] of [[7, 'rgba(20,24,30,.75)'], [3.5, preview.ok ? '#8fd0ff' : '#ffb0a0']]) {
+            ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+            ctx.moveTo(b.x - Math.cos(ang - 0.5) * head, b.y - Math.sin(ang - 0.5) * head); ctx.lineTo(b.x, b.y);
+            ctx.lineTo(b.x - Math.cos(ang + 0.5) * head, b.y - Math.sin(ang + 0.5) * head); ctx.stroke();
+          }
+          ctx.restore(); }
         if (Date.now() > messageUntil) {
           const zk = data.zones.kinds[pendingPlan?.tool || tool], cap = zk ? cellCap(s,pendingPlan?.tool || tool,data) : Infinity;
           const count = Number.isFinite(cap) ? ` · ${zoneCells(s,zk.char)} / ${cap} cells` : '';   // B3: tier cell cap
-          hint.textContent = (preview.ok ? `${townName(pendingPlan?.tool || tool)} · ${resourceRequirements(s,preview.cost)}${preview.warning ? ' · ' + preview.warning : ''}` : `${preview.reason} · ${resourceRequirements(s,preview.cost)}`) + count;
+          const turn = Number.isInteger(request.rot) ? ` · R turns it: the track leaves to the ${['lower right', 'lower left', 'upper left', 'upper right'][request.rot]} (arrow)` : '';
+          hint.textContent = (preview.ok ? `${townName(pendingPlan?.tool || tool)} · ${resourceRequirements(s,preview.cost)}${preview.warning ? ' · ' + preview.warning : ''}` : `${preview.reason} · ${resourceRequirements(s,preview.cost)}`) + count + turn;
           hint.hidden = false; hint.dataset.ok = String(preview.ok);
         }
       }

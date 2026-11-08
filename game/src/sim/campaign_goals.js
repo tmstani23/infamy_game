@@ -164,7 +164,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     if (!m.metGovernor) return { key: 'governor', title: 'Meet your governor', step: S0 + MAIN_STEPS.indexOf('governor'), steps, rows: [
       pin(row('crew', 'Talk to your governor', 0, 1, 'Walk up to your town hall (gold) and press Space')), holdRow(id)] };
     if (!town.focusSet || !(town.autoBuild || town.approvedOnce)) return { key: 'govorders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('govorders'), steps, rows: [
-      pin(row('town', 'Pick a focus', town.focusSet ? 1 : 0, 1, panel + 'under Steer pick a Focus (gold): Grow, Produce, Trade or Fortify')),
+      pin(row('town', 'Pick a focus', town.focusSet ? 1 : 0, 1, panel + 'open the Governor tab and pick a Focus (gold): Grow, Produce, Trade or Fortify')),
       pin(row('office', 'Initiative On or a suggestion approved', town.autoBuild || town.approvedOnce ? 1 : 0, 1, panel + 'set Governor takes initiative to On (gold), or press Approve on one of his suggestions')), holdRow(id)] };
     if (data.buildings?.storehouse && !has('storehouse')) return { key: 'storehouse', title: 'Build a storehouse', step: S0 + MAIN_STEPS.indexOf('storehouse'), steps, rows: [pin(row('town', 'Storehouse', 0, 1,
       tool('Storehouse', 'click a spot by a road: it holds the stock you need for the upgrade'))), holdRow(id)] };
@@ -186,9 +186,11 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
         pin(row('town', `Town hall: ${next.name}`, tier >= wantTier ? 1 : 0, 1, town.tierUpgrade ? 'Upgrade under way' : panel + `press Upgrade to ${next.name} (gold)`)),
         holdRow(id)] };
     }
-    const market = (town.buildings || []).some(b => b.type === 'market' && b.stage !== 'ruined');
-    if (!market && data.buildings?.market) return { key: 'market', title: 'Open a Market', step: S0 + MAIN_STEPS.indexOf('market'), steps, rows: [
-      pin(row('ryo', 'Market built', 0, 1, panel + 'Build bar, pick Market (gold) and place it; it sells goods above the keep level for ryo and Influence')), holdRow(id)] };
+    // Tim 2026-11-07: then set how many goods it keeps, in the Governor tab, so new players see how the market works
+    const market = (town.buildings || []).some(b => b.type === 'market' && b.stage === 'built');
+    if ((!market || !town.marketKeepSet) && data.buildings?.market) return { key: 'market', title: 'Open a Market', step: S0 + MAIN_STEPS.indexOf('market'), steps, rows: [
+      pin(row('ryo', 'Market built', market ? 1 : 0, 1, panel + 'Build bar, pick Market (gold) and place it; once built it sells goods for ryo and Influence')),
+      pin(row('business', 'Goods to keep set', town.marketKeepSet ? 1 : 0, 1, panel + 'open the Governor tab (gold) and type in the Market box (gold) how many goods the town keeps; every goods above that is sold for ryo')), holdRow(id)] };
     return null;
   }
 

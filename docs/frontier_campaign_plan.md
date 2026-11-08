@@ -44,6 +44,10 @@ Full plan: `/mnt/project-files/steam_trains/plan.md`. Built (2026-11-07): steps 
 - Train at a station: a standing train is drawn inside the station; cars within 8 track units of the station end are hidden. The engine stands 6.5 units in, facing out, with a flashing badge and a wait bar above it (red in its last quarter).
 - Steam (`render/train_fx.js`): from the chimney; slow wisps while standing, puffs while running (more with speed); on the whistle a thin upward plume for 1.6 s.
 - Capital station: at (92,-6), north of the east trail by the island gate (was (86,16)); about 21 units from the East trail camp.
+- Capital station (2026-11-08): the coach_house is mirrored so its open front faces east; a ticket hall (railway_station art) stands just west of it, and Space at its window opens the station menu. Line 1 runs through the shed; lines 2-4 idle on sidings along its north side.
+- Boarding takes your followers and the Hero group within 60 (`railways.json` heroGroupRange). The camera follows the train while you ride; a pan holds until Home.
+- Town station: one 3x2 placement (ticket hall, engine shed, railway slot). R turns it; an arrow on the ghost shows where the track leaves. Erasing a station with lines needs a second erase, which tears the lines up.
+- The rail gang keeps up with the railhead.
 - Purpose: rail is the main trade channel between your towns and the only fast way between them. No timetables, driving, cargo picking or track placing. Instant rickshaw station travel is removed when trains arrive; rickshaws stay as driveable 2-seaters.
 - Unlock around town tier 2-3. First line: capital to your first town, then town by town. Lines link only your own towns and the capital.
 - Building a link: the governor proposes lines (card with route, time and cost), or order one from the station card (Link to...). The game picks the route over world terrain cost (`world.json` roadCost). A link takes 10 minutes at any length, paid in timber and goods as it goes; it waits when stock runs out. An optional 2nd gang works from the far end. A rival attack knocks the gang out (~30 s) and sets the link back ~1 minute, at most once per link per day; wild bandits leave gangs alone.
@@ -481,6 +485,17 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 ## Vehicle steering (2026-11-06)
 
 `sim/vehicle_steer.js` `steer(e, want, { turnDegrees, turnSlow }, dt)` (the capital cart steering from `civilians.js` `drive()`): caps the turn rate, slows to 0.4 at turns of 90° or more, and sets `e.dir` from the heading so turns sweep through the 8 sprite rows. Used by the hero driving the omnibus or rickshaw or riding, the following omnibus, and called horses (dir only). `units.json` `turnDegrees`: omnibus 120, rickshaw 180, mount 240. Test: `tools/test_omnibus.mjs` (turn limit).
+
+## Stable and town fixes (2026-11-08)
+
+- Capital stable (the old rickshaw station): sells horses for 300 ryo, a rickshaw for 400 and an omnibus for 900 to permit holders. Purchases wait outside the island gate. It adds stable room: 2 horses, 1 rickshaw, 1 omnibus.
+- Stable room is 8 horses at tier 1.
+- Mount panel under the crew commands: portrait, status, Stay here, Send to stable.
+- Select crew and right-click a horse: they ride it.
+- The Governor tab holds all steering (the Steer tab is gone); the market keep level can be typed in. The Open a Market goal ends once the keep level is set.
+- Camp ox carts leave the camp spaced apart.
+- Crew panel: no flashing in the capital; paging no longer bounces.
+- `test_eraser_caps` checks that every tier-capped building frees its slot when erased.
 
 ## Playtest fixes (2026-11-07)
 
