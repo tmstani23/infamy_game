@@ -224,3 +224,4 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #deploymentpanel .away-note { margin: 0; padding: 6px 8px; border: 1px solid #a3834d; border-radius: 6px; background: rgba(163,131,77,.15); color: #f0d9a8; font-weight: 600; }
 #deploymentpanel.away :is(.show-duty, .show-rally, .show-reserves, .pane-duty, .pane-rally, .pane-reserves, .first-zone, .staffing-goal,
   .transfer-start, .assign-here, .assign-mode, .transfer-mode, .select-group, .cancel-transfer, .return-assignment, .retreat) { display: none !important; }
+#deploymentpanel.away-island :is(.show-crew, .pane-crew, .tabs, .group-summary, .acceptance) { display: none !important; }

@@ -152,6 +152,9 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
     root.classList.toggle('away',away());$('.away-note').hidden=!away();
     if(away()&&['duty','rally','reserves'].includes(root.dataset.page))setPage('crew');   // those pages are orders only
+    // on the island and not watching the city (Tim 2026-11-08): only While I'm away is left; Watch the city shows the crew too
+    const island=away()&&!document.body.classList.contains('city-watching');root.classList.toggle('away-island',island);
+    if(island&&root.dataset.page!=='away')root.querySelector('.show-away')?.click();
     $('.first-zone').hidden=!first;
     const st=game.state, selected=new Set(chosen()), signature=`${Math.floor(st.tick/10)}:${config().feedback?.sequence}:${focus}:${[...selected].join(',')}`;
     if(!force&&lastRefresh===signature)return;lastRefresh=signature;
