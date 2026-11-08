@@ -8,6 +8,7 @@ import { spotInfo } from './resource_spot_props.js';
 import { spotYield, richReach, overwork, regrowChance, supportsWorkers } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
 import { workerPanelHTML, workerJob, workerStatus } from './worker_panel.js';
+import { cargoIcon, CARGO_ICON_SIZE } from './cargo_icons.js';
 import {workerDetails,workerPresentation} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
@@ -556,9 +557,11 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const chosen=selected.includes(p.w.id);
       if(chosen){ctx.beginPath(); ctx.ellipse(u.x,u.y,15,7,0,0,Math.PI*2); ctx.strokeStyle = '#ffe08b'; ctx.lineWidth = 2; ctx.stroke();}
       if(d.cargo) {
-        // A small carried bundle sits on the worker's torso, with the resource label.
-        ctx.fillStyle=d.resource==='timber'?'#a8743b':'#b9b7aa';ctx.fillRect(u.x-8,u.y-26,16,10);ctx.strokeStyle='#413020';ctx.strokeRect(u.x-8,u.y-26,16,10);
-        ctx.fillStyle='#fff0c8';ctx.font='12px sans-serif';ctx.fillText(`${d.cargo} ${d.resource}`,u.x+10,u.y-20);
+        // a little load icon over the worker (Tim 2026-11-08: logs, stone block, fish in a net, forage basket, rice sack)
+        // with the amount beside it; the icons are drawn once and only copied here
+        const icon=cargoIcon(spotIndex.get(p.w.spot)?.kind || d.resource),{w:iw,h:ih}=CARGO_ICON_SIZE;
+        ctx.drawImage(icon,u.x-iw/2,u.y-30-ih/2,iw,ih);
+        ctx.font='bold 11px sans-serif';ctx.lineWidth=3;ctx.strokeStyle='#1a1208';ctx.strokeText(String(d.cargo),u.x+iw/2+1,u.y-26);ctx.fillStyle='#fff0c8';ctx.fillText(String(d.cargo),u.x+iw/2+1,u.y-26);
       }
       if(game.state.tick-(p.e.harvestedAt ?? -Infinity)<20){ctx.fillStyle='#e9dc96';ctx.font='12px sans-serif';ctx.fillText(`+${d.cargo} ${d.resource}`,u.x+10,u.y-40-(game.state.tick-p.e.harvestedAt)/2);}
       if(chosen && d.harvesting) {

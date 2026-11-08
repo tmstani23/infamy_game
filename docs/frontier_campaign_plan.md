@@ -509,6 +509,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Build bar rows: Lay out (Eraser apart at the right, muted red), Zones, Camps, Buildings. Capped buildings show used/allowed; buildings the tier doesn't allow yet are greyed and dashed with the unlocking tier's name. Town panel tabs are underlined; the panel has a ✕ close button.
 - Police never chase, attack or arrest units on the island (place 'world') at any heat tier; officers out there return to the city.
 - Ride clips: every crew model has a ride clip (`coach_sitting`, art.json `ride` keys); the RIDE table in `tools/export_sprites.mjs` lists the riders.
+- Worker loads: a worker carrying a harvest shows a small icon over him with the amount: logs (timber), a stone block (stone), a fish on a net (fish), a basket (forage), a rice sack (other food) (`src/cargo_icons.js`).
 - Crew follow: while the boss moves, followers keep pace with their spot; while he stands, a follower that gets no closer to its spot for 0.5 s stops until he moves.
 - City heat: hurting or killing townsfolk on the island adds no city heat. An arrested city captain drops the clan's heat to heroJailHeat (30); a new captain comes out after heroJailSeconds (60); no bail.
 - Crew can't ride the boss's horse: ordered onto her, she shies (red ring, "✕ The boss's horse").
