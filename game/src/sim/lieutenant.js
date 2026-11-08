@@ -261,7 +261,7 @@ export function createLieutenantBrain(game, { clan }) {
         if (r.orders[order] && order === 'jobs' && r.jobRetryDay !== day()) { r.jobRetryDay = day(); delete r.jobDay; L.log?.(clan, 'The job ran out of time: trying another'); }
         out.push(tag({ id: b.id, type: 'contract', action: 'drop' })); recall(); return true;
       }
-      squad = squad.filter(id => standing(state.entities[id]) && state.entities[id].place !== 'world');
+      squad = squad.filter(id => standing(state.entities[id]) && state.entities[id].place !== 'world' && !state.entities[id].deployment?.transfer);
       if (!squad.length) squad = cityCrew(cap).slice(0, mine.kind === 'bandits' ? 3 : 2).map(u => u.id);
       if (!squad.length) { out.push(tag({ id: b.id, type: 'contract', action: 'drop' })); recall(); return true; }
       const job = { job: order }, x = state.businesses[mine.business];
@@ -304,7 +304,7 @@ export function createLieutenantBrain(game, { clan }) {
       .sort((p, q) => Math.hypot(p.x - u.x, p.z - u.z) - Math.hypot(q.x - u.x, q.z - u.z))[0] || null;
   }
   // the clan's crew left in the city who may go on a job (any group: the boss is away): not the captain, not in a Rally
-  const cityCrew = cap => game.clans.crewOf(clan).filter(u => standing(u) && u.id !== cap.id && !u.captain && u.place !== 'world' && !game.rally.participating(u))
+  const cityCrew = cap => game.clans.crewOf(clan).filter(u => standing(u) && !u.deployment?.transfer && u.id !== cap.id && !u.captain && u.place !== 'world' && !game.rally.participating(u))
     .sort((p, q) => (p.place !== 'street') - (q.place !== 'street'));
   return { tick, config: { lieutenant: true, clan }, saveState: () => ({ next, held: [...held], jobId, jobAt, squad }),
     loadState: d => { if (!d) return; next = d.next ?? 0; held.clear(); for (const id of d.held || []) held.add(id); jobId = d.jobId ?? null; jobAt = d.jobAt ?? 0; squad = d.squad || []; } };

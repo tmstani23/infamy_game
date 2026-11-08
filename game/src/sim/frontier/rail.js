@@ -14,6 +14,7 @@
 //   after ride.skipSeconds: straight to the far station). Riders carry e.aboard = 'rail:<train id>' (hidden, out
 //   of fights, like the omnibus) and e.railRide = { train, since }; they get off at the train's next station.
 // createRail({ state, data, world, worldData }) -> { command, tick, econTick, attach, endpoint, preview, linksOf }
+import { crewCommandGroup } from '../deployment_rally.js';
 import { createRailGrid, routeRail, pointAt, measure, roundCorners, openRun } from './rail_route.js';
 import { townExit, railCellsFor, clearRun } from './rail_town.js';
 import { stationParts } from './station_layout.js';
@@ -253,7 +254,7 @@ export function createRail({ state, data, world, worldData, stable }) {
   // train again (Space) boards at once. The hero must still be in the zone.
   function board(e, trainId) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    if (e.aboard) return say(e.owner, 'Step out first');
+    if (String(e.aboard || '').startsWith('rail:')) return say(e.owner, 'Already on a train');   // in a rickshaw or omnibus: he steps out to board
     const t = rec().trains[trainId], at = t && stationOf(t);
     if (t?.call?.hero === e.id) return allAboard(t);   // Space again: on at once (anywhere in the zone)
     if (!t || t.owner !== e.owner || !at || !atStation(e, e.owner, at)) return say(e.owner, 'No train standing here');
@@ -270,14 +271,31 @@ export function createRail({ state, data, world, worldData, stable }) {
   function inZone(t) {
     const c = t.call, e = c && state.entities[c.hero];
     if (!e) return [];
-    const ok = u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && !u.worker && !u.railGang
-      && u.type !== 'horse' && u.type !== 'rickshaw' && u.type !== 'omnibus' && !u.vehicle && u.place === c.place && Math.hypot(u.x - c.x, u.z - c.z) <= c.r;
-    return Object.values(state.entities).filter(ok).sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z));
+    // crew sitting in a rickshaw or omnibus count where the vehicle stands (they climb out; it stays, empty)
+    const at = u => { const v = vehicleOf(u); return v || u; };
+    // in the capital only the boss's own party boards: Hero group (or Rally) crew and settlers, never sector crew or
+    // HQ reserves walking past the station (Tim 2026-11-08: sector crew rode out to the island and could not be ordered)
+    const party = u => u.place !== 'street' || !u.deployment || (!u.deployment.transfer && crewCommandGroup(state, u) !== null && ['hero', 'rally'].includes(crewCommandGroup(state, u)));
+    const ok = u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && (!u.aboard || vehicleOf(u)) && !u.worker && !u.railGang && party(u)
+      && u.type !== 'horse' && u.type !== 'rickshaw' && u.type !== 'omnibus' && !u.vehicle && at(u).place === c.place && Math.hypot(at(u).x - c.x, at(u).z - c.z) <= c.r;
+    return Object.values(state.entities).filter(ok).sort((a, b) => Math.hypot(at(a).x - c.x, at(a).z - c.z) - Math.hypot(at(b).x - c.x, at(b).z - c.z));
+  }
+  // the rickshaw or omnibus a unit sits in, if any
+  function vehicleOf(u) {
+    const v = u.aboard && !String(u.aboard).startsWith('rail:') && state.entities[u.aboard];
+    return v && (v.type === 'rickshaw' || v.type === 'omnibus') ? v : null;
+  }
+  // out of the vehicle, which stays where it is, parked
+  function leaveVehicle(u) {
+    const v = vehicleOf(u); if (!v) return;
+    delete u.aboard; if (u.ride?.kind === 'omnibus') delete u.ride;
+    if (v.driver === u.id) { delete v.driver; v.heading = u.heading ?? v.heading; }
+    v.anim = 'idle'; v.trail = []; v.vorder = { kind: 'stay' };
   }
   function allAboard(t) {
     const c = t.call, e = c && state.entities[c.hero];
     delete t.call;
-    if (!e || e.dead || e.downed || e.jailed || e.aboard) return;
+    if (!e || e.dead || e.downed || e.jailed || String(e.aboard || '').startsWith('rail:')) return;
     const at = stationOf(t);
     if (!at) return say(e.owner, 'The train left without you');
     if (e.place !== c.place || Math.hypot(e.x - c.x, e.z - c.z) > c.r) { t.wait = Math.min(t.wait, 20); return say(e.owner, 'Boarding called off: you left the zone'); }
@@ -287,6 +305,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (!party.length) return say(e.owner, 'The train is full');
     const head = pointAt(rec().links[t.link], t.d);
     for (const u of party) {
+      leaveVehicle(u);   // rickshaws and omnibuses stay at the station, empty (Tim 2026-11-08)
       if (u.mounted) { delete u.mounted; delete u.ride; }   // crew horses stay at the station
       delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; runtime?.forget?.(u.id);
       Object.assign(u, { aboard: `rail:${t.id}`, railRide: { train: t.id, since: state.tick ?? 0 }, place: 'world', x: head.x, z: head.z, anim: 'idle' });

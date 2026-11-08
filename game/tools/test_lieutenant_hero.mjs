@@ -276,6 +276,9 @@ const fresh = (kind, ryo = 3000) => {
   C.board = [job(907, 'steal', rival[1])];
   t.run(1500);
   assert.ok(!C.active.player, 'one steal a night');
+  C.board = [job(907, 'steal', rival[1])];   // the board may have been refreshed meanwhile: offer it again
+  t.run(300);
+  assert.ok(!C.active.player, 'one steal a night');
   assert.equal(t.L.gate(t.hero, { type: 'contract', action: 'take', job: 907 }).why, 'one steal a night');
 }
 

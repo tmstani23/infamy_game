@@ -27,10 +27,13 @@ export function createSectorCleanup({state,deployment,rally,navigation,sees,down
     // Existing explicit channels/jobs always have priority over automatic work.
     if(e.execute||e.lootTarget||['loot','heal','enter'].includes(e.order?.kind))return false;
     if(!thinksNow(e))return false;   // looking for new work: lower rate while no player is in the city
+    // candidates first; who has claimed them is only worked out when there are any (same result, lag 2026-11-08)
+    const found=Object.values(state.entities).filter(t=>local(t)
+      &&((t.type!=='civilian'&&(!t.cop||(t.angry?.[e.owner]??-1)>state.tick)&&downedFoe(e,t))||lootable(e,t)));
+    if(!found.length)return false;
     const claimed=new Set(Object.values(state.entities).filter(u=>u.id!==e.id&&!u.dead&&!u.downed&&!u.jailed).map(u=>u.execute?.target||u.lootTarget||u.deployment?.cleanup?.target||(u.order?.kind==='loot'?u.order.target:null)).filter(Boolean));
     const grid=navigation(e);
-    const targets=Object.values(state.entities).filter(t=>!claimed.has(t.id)&&local(t)
-      &&((t.type!=='civilian'&&(!t.cop||(t.angry?.[e.owner]??-1)>state.tick)&&downedFoe(e,t))||lootable(e,t)))
+    const targets=found.filter(t=>!claimed.has(t.id))
       .sort((a,b)=>Number(!!b.downed)-Number(!!a.downed)||Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));
     for(const t of targets){
       const end=grid?.findPath(e.x,e.z,t.x,t.z)?.at(-1);

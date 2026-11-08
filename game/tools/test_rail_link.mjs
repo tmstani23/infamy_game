@@ -136,6 +136,10 @@ Object.assign(mate, { place: 'world', x: st.x + 5, z: st.z + 3, order: { kind: '
 // boarding zone (Tim 2026-11-08): anyone of yours standing in it comes, following or not; one outside it stays
 const pal = S.entities[g.spawn(mate.type, mate.model, st.x + 12, st.z + 10, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp, deployment: { ...(mate.deployment || {}), group: 'hero' } })];
 const far = S.entities[g.spawn(mate.type, mate.model, st.x + 30, st.z - 20, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp, deployment: { ...(mate.deployment || {}), group: 'hero' } })];
+// a crewman sitting in a parked rickshaw in the zone climbs out and boards; the rickshaw stays, empty (Tim 2026-11-08)
+const rk = S.entities[g.spawn('rickshaw', 'rickshaw', st.x + 8, st.z - 6, { omnibusOwner: 'player', place: 'world', vehicle: true, hp: 300, maxHp: 300 })];
+const sitter = S.entities[g.spawn(mate.type, mate.model, rk.x, rk.z, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp })];
+sitter.aboard = rk.id;
 g.step([]);
 const sv = rail.service(hero);
 assert.ok(sv.length && sv[0].eta === 0 && sv[0].to === 'capital', `the train here shows in service (${JSON.stringify(sv)})`);
@@ -143,13 +147,15 @@ assert.equal(sv[0].toName, 'the capital');
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);
 assert.ok(tr.call && !hero.aboard, 'All aboard is called: a zone, nobody on yet');
 assert.match(clan.notice?.text || '', /All aboard! Get your crew/);
-assert.equal(rail.inZone(tr).length, 2, 'the follower and the one about town are in the zone');
+assert.equal(rail.inZone(tr).length, 3, 'the follower, the one about town and the rickshaw rider are in the zone');
 for (let t = 0; t < R4.callSeconds * 20 + 2 && !hero.aboard; t++) g.step([]);
 assert.ok(!tr.call, 'the call ran out');
 assert.equal(hero.aboard, `rail:${tr.id}`, 'hero aboard');
 assert.equal(mate.aboard, `rail:${tr.id}`, 'follower aboard');
 assert.equal(pal.aboard, `rail:${tr.id}`, 'a crewman standing in the zone came along');
 assert.ok(!far.aboard, 'one outside the zone stays in town');
+assert.equal(sitter.aboard, `rail:${tr.id}`, 'the rickshaw rider climbed out and boarded');
+assert.ok(!rk.dead && rk.place === 'world' && !Object.values(S.entities).some(u => u.aboard === rk.id), 'the rickshaw stays at the station, empty');
 assert.match(clan.notice?.text || '', /All aboard for the capital/);
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'skip' }]);
 assert.match(clan.notice?.text || '', /in a moment/, 'no Skip straight away');

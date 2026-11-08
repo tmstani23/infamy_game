@@ -510,6 +510,14 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Police never chase, attack or arrest units on the island (place 'world') at any heat tier; officers out there return to the city.
 - Ride clips: every crew model has a ride clip (`coach_sitting`, art.json `ride` keys); the RIDE table in `tools/export_sprites.mjs` lists the riders.
 - Worker loads: a worker carrying a harvest shows a small icon over him with the amount: logs (timber), a stone block (stone), a fish on a net (fish), a basket (forage), a rice sack (other food) (`src/cargo_icons.js`).
+- All aboard zone: faint gold fill, soft dashed edge, dimmer countdown arc. Crew sitting in a rickshaw or omnibus inside the zone climb out and board; the vehicles stay.
+- Train from the capital: only the boss's party boards at the city station (Hero group or Rally crew and settlers); sector crew and HQ reserves in the zone stay.
+- Boss out on the island: Hero group crew left in the city become HQ reserves (they walk to the HQ; the lieutenant can staff sectors with them) and don't rejoin the Hero group on their own; new crew fill it once the boss is back. City crew can't be transferred to the Hero group while the boss is on the island. Sector crew or reserves out on the island with him join his Hero group and follow him.
+- Lieutenant's jobs: his job squad (Shinobi scout, bandits, steal) can be any city crew and goes where the job needs; afterwards anyone outside their area travels back to their group.
+- Rally: HQ reserves are called into a Rally but wait inside until given a Follow or move order.
+- Deployment transfers: the crew page keeps its list and Assign button while Traveling crew is open. Crew on their way show in the target group's list as "Transferring · from <group>". Downed crew don't take a place in their group (replacements can be assigned at once; if the group is full when they come round, they stay at HQ). Crew you transfer to HQ yourself are set to Keep at HQ; sending them elsewhere clears it.
+- Clinic: Release works whoever stands at the door for the clan (hero or a selected crewman).
+- Police: sector crew (patrol duty, a rifleman's skirmish, withdrawing to HQ) never hit street police on their own; they back off. An attack order, or officers defending a business you attack, still count.
 - Crew follow: while the boss moves, followers keep pace with their spot; while he stands, a follower that gets no closer to its spot for 0.5 s stops until he moves.
 - City heat: hurting or killing townsfolk on the island adds no city heat. An arrested city captain drops the clan's heat to heroJailHeat (30); a new captain comes out after heroJailSeconds (60); no bail.
 - Crew can't ride the boss's horse: ordered onto her, she shies (red ring, "✕ The boss's horse").

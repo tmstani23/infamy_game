@@ -77,7 +77,9 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   function counts(clan, excluding = []) {
     const excluded = new Set(excluding), result = Object.fromEntries(['hero', 'home', ...sectorIds].map(id => [id, 0]));
-    for (const e of members(clan)) if (!excluded.has(e.id)) {
+    // downed crew give up their place, so replacements can go in at once; when they come round and the group
+    // is full they stay at HQ (Tim 2026-11-08: couldn't send new crew to a sector whose crew were all down)
+    for (const e of members(clan)) if (!excluded.has(e.id) && !e.downed) {
       const group = e.deployment?.transfer?.to || e.deployment?.group;
       if (validGroup(group)) result[group]++;
     }
@@ -125,7 +127,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     return b ? { targetSector:sectorAt(...b.ring), room:b.room } : null;
   }
   function canOccupy(e, x, z, place = e.place) {
-    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.homeRecoveryTravel || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
+    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.homeRecoveryTravel || e.deployment?.ltJob || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e)) return true;
     const group = e.deployment?.group;
     const b = excursion(e);
     if (b && (place === b.room || (place === 'street' && [group, b.targetSector].includes(sectorAt(x,z))))) return true;
@@ -137,7 +139,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   }
   const canActAt = (e, x, z, place = e.place) => !e.deployment?.transfer && !e.deployment?.scattered && canOccupy(e, x, z, place);
   function navFor(e) {
-    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.homeRecoveryTravel || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
+    if (!D.restrictionsEnabled || !crew(e) || e.deployment?.homeRecoveryTravel || e.deployment?.ltJob || e.deployment?.transfer || e.deployment?.scattered || e.deployment?.group === 'hero' || isRallyParticipant(state, e) || e.place !== 'street') return null;
     const group = e.deployment.group, b = excursion(e), target = b?.targetSector;
     const patrol=!!e.order?.patrol||!!e.patrolPlanning||b?.kind==='sweep';
     const key = (b ? `excursion:${group}:${target}` : group === 'home' ? `home:${e.owner}` : group)+(patrol?':patrol':'');
@@ -169,6 +171,8 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     if (!D.restrictionsEnabled) return true;
     if (!e.deployment) return true;   // settlers and other escorts have no group or sector: they go where they are told
     let ok = !e.deployment?.transfer && !e.deployment?.scattered;
+    // a lieutenant's job squad (Shinobi jobs and steals while the boss is away) may come from any group (Tim 2026-11-08)
+    if (ok && c.by === 'lieutenant' && c.job && c.kind !== 'follow') { e.deployment.ltJob = true; return true; }
     if (ok && c.kind === 'follow') ok = e.deployment.group === 'hero' || isRallyParticipant(state, e);
     else if (ok && c.kind === 'attack') {
       const t = state.entities[c.target]; ok = !!t && canActAt(e, t.x, t.z, t.place);
@@ -244,6 +248,9 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     const wait = Math.max(0, 6 - (state.tick - Math.max(h.hitAt ?? -Infinity, h.foughtAt ?? -Infinity)) / 20);
     if (wait > 0) return { ok: false, why: `Hero in combat: transfers available in ${Math.ceil(wait)} s` };
     if (to === 'hero' && (h.dead || h.downed || h.jailed)) return { ok: false, why: 'Hero unavailable: choose HQ or a sector' };
+    // out on the island the Hero group is who went with him (Tim 2026-11-08): city crew do not walk out to join it
+    if (to === 'hero' && h.place === 'world' && ids.some(id => state.entities[id] && state.entities[id].place !== 'world'))
+      return { ok: false, why: 'The boss is on the island: city crew stay in the city' };
     return { ok: true, why: '' };
   }
   const quiet = e => state.tick - Math.max(e.hitAt ?? -Infinity, e.foughtAt ?? -Infinity) >= 120;
@@ -253,7 +260,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       && (!o || o.kind === 'stop' || (o.kind === 'move' && o.arrived) || (o.kind === 'station' && o.garrison));
   }
   const healthy = e => Number.isFinite(e.maxHp) && e.hp >= e.maxHp;
-  const ready = e => !e.deployment?.awaitingAssignment && active(e) && !e.downed && healthy(e) && quiet(e) && idle(e);
+  const ready = e => !e.deployment?.awaitingAssignment && !e.deployment?.ltJob && active(e) && !e.downed && healthy(e) && quiet(e) && idle(e);
   function startTransfer(e, to, target, automatic = false) {
     if(to!=='home')delete e.deployment.awaitingAssignment;
     clearCombat(e);
@@ -276,14 +283,42 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       const reserves = members(clan.id, 'home').filter(e => !e.deployment.transfer && !e.downed && !isRallyParticipant(state, e));
       for (const e of reserves) delete e.deployment.automatic;
       const heroUp = !h.dead && !h.downed && !h.jailed;
+      // the boss is out on the island (Tim 2026-11-08): Hero group crew left in the city become HQ reserves,
+      // so the lieutenant can staff sectors with them; new crew fill the Hero group again once he is back
+      if (h.place === 'world') for (const e of members(clan.id)) {
+        const g = e.deployment.transfer?.to ?? e.deployment.group;   // a transfer to the Hero group from the city stops too
+        if (g !== 'hero' || e.place === 'world' || isRallyParticipant(state, e) || e.swing || e.execute || inCombat(e)) continue;
+        delete e.deployment.transfer;
+        delete e.deployment.savedGroup;
+        if (e.downed) { e.deployment.group = 'home'; continue; }
+        const target = destination(e, 'home');
+        startTransfer(e, 'home', target, true);
+        if (!target || !route(e, target, true)) Object.assign(e.deployment.transfer, { status: 'blocked', retryAt: state.tick + 20 });
+      }
+      // a lieutenant's job squad, idle again: free roaming ends, and anyone outside their area travels back
+      if (!state.contracts?.active?.[clan.id]) for (const e of members(clan.id)) if (e.deployment.ltJob && !e.downed && idle(e)) {
+        delete e.deployment.ltJob;
+        if (e.place === 'world' || canOccupy(e, e.x, e.z)) continue;
+        const to = e.deployment.group, target = destination(e, to);
+        startTransfer(e, to, target, true);
+        if (!target || !route(e, target, true)) Object.assign(e.deployment.transfer, { status: 'blocked', retryAt: state.tick + 20 });
+      }
+      // and sector crew or reserves who ended up out on the island with him (a train from the capital took them
+      // before 2026-11-08) join his Hero group there, so they can be ordered again
+      if (h.place === 'world') for (const e of members(clan.id)) {
+        if (e.place !== 'world' || e.deployment.group === 'hero' || e.aboard || isRallyParticipant(state, e)) continue;
+        delete e.deployment.transfer; delete e.deployment.savedGroup; delete e.deployment.automatic; delete e.deployment.awaitingAssignment; delete e.deployment.keepAtHQ;
+        e.deployment.group = 'hero'; e.deployment.everAssigned = true;
+        if (!e.downed) { clearCombat(e); e.order = { kind: 'follow', target: h.id }; }
+      }
       // Revived and respawned crew go back to the group they came from; new crew fill the
       // hero group up to six first (Tim 2026-10-27). Neither waits for the hero's combat.
       const sent = new Set(), waiting = new Set();
       for (const e of reserves) {
-        if (e.deployment.awaitingAssignment || !quiet(e) || !idle(e) || e.deployment.keepAtHQ) continue;
+        if (e.deployment.awaitingAssignment || !quiet(e) || !idle(e) || e.deployment.keepAtHQ || e.deployment.ltJob) continue;
         const saved = e.deployment.savedGroup;
         let to = saved && saved !== 'home' && validGroup(saved) ? saved : null;
-        if (to && (!canAssign(clan.id, [e.id], to).ok || (to === 'hero' && !heroUp))) {
+        if (to && (!canAssign(clan.id, [e.id], to).ok || (to === 'hero' && (!heroUp || (h.place === 'world' && e.place !== 'world'))))) {
           if (to !== 'hero' || heroUp) { delete e.deployment.savedGroup; to = null; }
           else {
             waiting.add(e.id);
@@ -308,7 +343,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
         retained.add(e.id);
       }
       for (const e of reserves) {
-        if (sent.has(e.id) || !quiet(e) || !idle(e)) continue;
+        if (sent.has(e.id) || !quiet(e) || !idle(e) || e.deployment.ltJob) continue;
         let to;
         if (!waiting.has(e.id) && ready(e) && !retained.has(e.id)) to = nextAutomaticSector(clan.id);
         // Recruits and returnees held for recovery/reserve physically travel
@@ -389,7 +424,12 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       return { e, target, path: route(e, target, true) };
     });
     if (prepared.some(p => !p.path)) { result(false, 'Transfer blocked: no reachable route to that destination'); return; }
-    for (const { e, target } of prepared) startTransfer(e, c.to, target);
+    for (const { e, target } of prepared) {
+      startTransfer(e, c.to, target);
+      // crew you send to HQ yourself stay there (Keep at HQ) until you send them out: with Keep 0 ready crew the
+      // automatic fill walked them straight back to the sector they left (Tim 2026-11-08)
+      e.deployment.keepAtHQ = c.to === 'home';
+    }
     if(sectorIds.includes(c.to))D.clans[h.owner].autoSector=c.to;
     result(true, `TRANSFER STARTED — ${ids.length} crew travelling to ${c.to === 'hero' ? 'hero group' : c.to === 'home' ? 'HQ reserves' : D.sectors.find(s => s.id === c.to).name}`);
   }

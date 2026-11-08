@@ -290,7 +290,13 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
 
   const dist = (e, u) => Math.hypot(u.x - e.x, u.z - e.z);
   const nearest = (e, list) => list.slice().sort((a, b) => dist(e, a) - dist(e, b))[0] || null;
-  const heroOf = clanId => Object.values(state.entities).find(u => u.owner === clanId && u.type === 'hero' && !u.dead && !u.jailed);
+  // each clan's hero, remembered by id (a full entity scan per call was 5% of a sim tick; Tim 2026-11-08 lag)
+  const heroIds = new Map();
+  const heroOf = clanId => {
+    let h = state.entities[heroIds.get(clanId)];
+    if (!h || h.owner !== clanId || h.type !== 'hero') { h = Object.values(state.entities).find(u => u.owner === clanId && u.type === 'hero'); if (h) heroIds.set(clanId, h.id); }
+    return h && !h.dead && !h.jailed ? h : undefined;
+  };
   const tierFor = clanId => (state.clans?.[clanId] ? R.tiers[tierOf(clanId)] : null);
   const hunting = t => t?.hunt === 'hero' || t?.hunt === 'all';
 

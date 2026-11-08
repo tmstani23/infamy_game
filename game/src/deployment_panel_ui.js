@@ -167,17 +167,18 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     $('.group-summary span').textContent=task?`${TASK_LABELS[task.task]} · ${task.recovery?.state||task.operation?.state||list.find(e=>e.deployment.duty?.status)?.deployment.duty.status||'On duty'}`:'Command your selected crew';
     const allIds=new Set(members().map(e=>e.id));for(const [id,r]of rows)if(!allIds.has(id)){r.el.remove();rows.delete(id);}
     for(const [id,r]of incomingRows)if(!allIds.has(id)){r.el.remove();incomingRows.delete(id);}
-    const ordered=list.filter(e=>!e.deployment.transfer).map(e=>{
+    const inbound=members().filter(e=>e.deployment.transfer?.to===focus&&e.deployment.group!==focus);   // on their way in: shown here as Transferring (Tim 2026-11-08)
+    const ordered=[...list.filter(e=>!e.deployment.transfer),...inbound].map(e=>{
       const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);setText(r.name,`${unitName(units,e.type)} #${e.id}`);setText(r.hp,`${Math.ceil(e.hp)}/${e.maxHp}`);
       if(catalog){const image=portrait(catalog,e.model);if(image&&image!==r.image){r.image=image;r.name.style.backgroundImage='url('+image+')';r.name.classList.add('has-portrait');}}
-      setText(r.status,e.downed?'Downed':e.deployment.transfer?'Transferring':e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready');
+      setText(r.status,e.downed?'Downed':e.deployment.transfer?`Transferring · from ${names[e.deployment.transfer.from]||'?'}`:e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready');
       r.el.classList.toggle('selected',selected.has(e.id));return r.el;
     });paged('roster','.roster',ordered,(globalThis.innerHeight||900)<800?4:6);
     for(const e of list){const r=rows.get(e.id);if(r){r.pinLabel.hidden=focus!=='home';r.pin.checked=!!e.deployment.keepAtHQ;}}
     const ready=[...selected].some(id=>available(st.entities[id])),traveling=travelers(),cancel=primaryCancel();
     $('.transfer-start').disabled=transfer?!transfer.to||!game.deployment.canTransfer(heroId,transfer.ids,transfer.to).ok:!ready&&!cancel.length;
     $('.transfer-start').textContent=transfer?'Choose destination below or on map':!ready&&cancel.length?`Cancel transfer${cancel.length>1?`s (${cancel.length})`:''}`:'Transfer selected crew';
-    $('.active-transfers').hidden=!traveling.length;setText($('.travel-heading'),'Traveling crew · '+traveling.length);
+    $('.active-transfers').hidden=!traveling.length;if(!traveling.length)$('.active-transfers').open=false;setText($('.travel-heading'),'Traveling crew · '+traveling.length);
     const travelIds=new Set(traveling.map(e=>e.id));for(const[id,r]of travelRows)if(!travelIds.has(id)){r.el.remove();travelRows.delete(id);}
     paged('travel','.travel-roster',traveling.map(e=>{
       let r=travelRows.get(e.id);if(!r){const el=document.createElement('div'),text=document.createElement('span'),cancel=document.createElement('button');el.className='travel-member';cancel.type='button';el.append(text,cancel);cancel.addEventListener('click',()=>issue({action:'cancelTransfer',units:[e.id]}));r={el,text,cancel};travelRows.set(e.id,r);}

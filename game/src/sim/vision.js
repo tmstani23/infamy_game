@@ -1,3 +1,4 @@
+import { ownerIndex } from './util.js';
 // Fog of war: what each clan has explored and what it can see right now.
 // A grid over the district, one cell per world unit, per clan. The grids live here, not
 // in the state (the state stays plain JSON): a server sends each player only its own
@@ -56,6 +57,9 @@ export function createVision(state, bounds, rules = {}, territory = null, island
 
   // Can this clan see this unit now? Its own units always; others on the street when
   // in range of its standing units or businesses, in a room when one of the clan's units is in that room.
+  // each clan's units (sim/util.js ownerIndex, rebuilt each tick and after a spawn): canSee was the top sim cost,
+  // scanning every entity for every look (Tim 2026-11-08 lag). Positions and states are still read live.
+  const owned = ownerIndex(state), live = u => state.entities[u.id] === u;
   function canSee(clan, e) {
     if (!e || !clan) return false;
     if (e.owner === clan || e.workerOwner === clan) return true;
@@ -65,13 +69,13 @@ export function createVision(state, bounds, rules = {}, territory = null, island
     if (e.place === 'world') {
       if (!island) return false;
       const r = island.lightsNear?.(e.x, e.z, island.fireRadius).length ? island.fireRange : island.range;
-      return Object.values(state.entities).some(u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r * r);
+      return owned(clan).some(u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && live(u) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r * r);
     }
-    if (e.place !== 'street') return Object.values(state.entities).some(u => u.owner === clan && !u.dead && u.place === e.place);
+    if (e.place !== 'street') return owned(clan).some(u => u.owner === clan && !u.dead && u.place === e.place && live(u));
     // checked exactly rather than on the grid, so it is never a few ticks late
     const near = (x, z, r) => (x - e.x) ** 2 + (z - e.z) ** 2 <= r * r;
     if (territory && !e.hidden && territory.ownerAt(e.x, e.z) === clan) return true;   // your own streets (hidden ninja: the normal rules)
-    return Object.values(state.entities).some(u => eyes(u, clan) && near(u.x, u.z, range))
+    return owned(clan).some(u => eyes(u, clan) && near(u.x, u.z, range) && live(u))
       || Object.values(state.businesses).some(b => b.owner === clan && !territory?.areas().some(a => a.business === b.id) && near(b.x, b.z, businessRange));
   }
 

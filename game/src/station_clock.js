@@ -59,12 +59,12 @@ export function createStationClock({ game, heroId, view }) {
       const pts = Array.from({ length: 64 }, (_, i) => { const a = i / 64 * Math.PI * 2; return view.unitToScreen(c.x + Math.sin(a) * c.r, c.z + Math.cos(a) * c.r, 0.05); });
       const pulse = 0.5 + 0.5 * Math.sin(now * 5);
       ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
-      ctx.fillStyle = `rgba(255,211,77,${0.07 + 0.05 * pulse})`; ctx.fill();
-      ctx.setLineDash([10, 7]); ctx.lineDashOffset = -now * 18; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,225,140,.55)'; ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = `rgba(255,211,77,${0.04 + 0.02 * pulse})`;   // faint (Tim 2026-11-08: less bright) ctx.fill();
+      ctx.setLineDash([10, 7]); ctx.lineDashOffset = -now * 18; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,225,140,.28)'; ctx.stroke(); ctx.setLineDash([]);
       // the time left: a solid bright arc from the top of the ring, shrinking clockwise
       const m = Math.max(1, Math.round(64 * k));
       ctx.beginPath(); for (let i = 0; i <= m; i++) { const p = pts[(32 + i) % 64]; i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
-      ctx.lineWidth = 4; ctx.strokeStyle = `rgba(255,211,77,${0.75 + 0.25 * pulse})`; ctx.shadowColor = '#000'; ctx.shadowBlur = 4; ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.lineWidth = 3; ctx.strokeStyle = `rgba(236,196,92,${0.45 + 0.15 * pulse})`; ctx.shadowColor = '#000'; ctx.shadowBlur = 4; ctx.stroke(); ctx.shadowBlur = 0;
       // the banner over the far edge of the ring
       const top = pts.reduce((a, p) => p.y < a.y ? p : a, pts[0]), text = `ALL ABOARD!  ${Math.ceil(left)}`, sub = `${n} crew in the zone · Space boards now`;
       ctx.textAlign = 'center'; ctx.font = '800 20px system-ui,sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#1a1208';

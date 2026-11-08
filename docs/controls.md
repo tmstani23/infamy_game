@@ -215,6 +215,8 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Mouse at the screen edge | Pans the camera once it is off the hero (not while it follows the hero); Home goes back |
 | F3 (dev only) | Show footprint outlines (debugging) |
 | P | Show or hide the FPS readout |
+| Hire menu | Grid of crew cards (portrait, health, damage per second, reach, special, price, training time; number keys 1-N); hover shows full stats. Picking a card opens a bar with − / + quantity, total, Cancel and Hire N. Pages (hirePerPage 6), no scrollbar. Under the training bar the queue lists what is next (portrait, name, ×N); ✕ on an entry cancels one, Cancel training cancels the one in training, each refunding exactly what was paid. |
+| Hideout → Dismiss crew | Lists every crewman from any zone and in any state (hurt, downed) and each clinic patient, each for the usual refund (two clicks); Dismiss all lets everyone go at once. Pages (dismissPerPage 6). |
 | F2 | Hide all UI (panels, minimap, unit bars, selection rings, nameplates); F2 again shows it |
 | Town panel ✕ (or O / Esc) | Close the town panel |
 | Settings → Video | Resolution 1920×1080 (default) / 1600×900 / 1280×720 draws about that many pixels whatever the window shape; Sharp draws every screen pixel (up to 2 per page pixel); `?dpr=N` in the URL overrides. Toggles: Glow, Screen shake, Show FPS. Frame cap Off / 60 / 30. Applied live and kept in this browser (localStorage `infamy.video.v1`). |

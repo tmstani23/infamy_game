@@ -61,6 +61,8 @@ export function createRifleman({ state, vision, hit, stun, clearLine, clearComba
     }
     spoil(e);
     const t = threats.reduce((a, b) => dist(a, e) <= dist(b, e) ? a : b);
+    // street police: back off, never fight back on his own (+heat a hit; Tim 2026-11-08, heat 1072). An attack order still does.
+    if (t.cop && !t.wave) { if (!e.swing && flee(e, unit, t)) { e.rifleMode = 'fleeing'; return true; } return false; }
     e.cornered = dist(t, e) <= (unit.attackRange || 1.2) + 0.6 ? (e.cornered ?? state.tick) : null;
     e.fleeingSince ??= state.tick; e.calmSince = null;
     const stand = state.tick - e.fleeingSince >= R.fleeTicks || (e.cornered != null && state.tick - e.cornered >= R.cornerTicks);

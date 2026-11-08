@@ -174,6 +174,9 @@ export function createSectorRecovery({ state, deployment, rally, vision, cityAwa
       }
     }
   }
+  // crew never hit street police on their own: that is +heat a hit and the police pile in (Tim 2026-11-08, heat 1072);
+  // they still withdraw from them. Officers defending a business you attack (wave) are fair game.
+  const fightable = t => !t.cop || !!t.wave;
   const teamAttacked=(t,clan)=>Object.values(state.entities).some(u=>u.owner===clan&&(u.hitBy?.id===t.id&&state.tick-u.hitBy.tick<120||t.attackTarget===u.id||t.order?.kind==='attack'&&t.order.target===u.id||t.swing?.target===u.id));
   function step(e, unit) {
     if (!automated(e)) return false;
@@ -182,7 +185,7 @@ export function createSectorRecovery({ state, deployment, rally, vision, cityAwa
     if(r.home){
       e.deployment.duty={manual:false,status:r.state};e.deployment.homeRecoveryTravel=true;
       try{
-        const t=threats(e.owner).find(t=>t.place===e.place&&teamAttacked(t,e.owner)&&Math.hypot(t.x-e.x,t.z-e.z)<8);
+        const t=threats(e.owner).find(t=>t.place===e.place&&fightable(t)&&teamAttacked(t,e.owner)&&Math.hypot(t.x-e.x,t.z-e.z)<8);
         if(t){attackStep(e,unit,t);return true;}
         const result=r.point&&deployment.localTravel(e,unit,r.point);if(result!=='moving')e.anim='idle';return true;
       }finally{delete e.deployment.homeRecoveryTravel;}
@@ -194,7 +197,7 @@ export function createSectorRecovery({ state, deployment, rally, vision, cityAwa
       if (result !== 'blocked') { if (result === 'arrived') e.anim = 'idle'; return true; }
       r.blocked = true;
     }
-    const t = threats(e.owner).find(t => t.place === e.place && Math.hypot(t.x - e.x, t.z - e.z) <= (unit.attackRange || 1.2) + .6);
+    const t = threats(e.owner).find(t => t.place === e.place && fightable(t) && Math.hypot(t.x - e.x, t.z - e.z) <= (unit.attackRange || 1.2) + .6);
     if (t) attackStep(e, unit, t); else e.anim = 'idle';
     return true;
   }

@@ -210,7 +210,7 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
   #deploymentpanel .sweep-preview,#deploymentpanel .shakedown-preview,#deploymentpanel .ambush-preview {font-size:12px;}
 }
 
-#deploymentpanel .pane-crew:has(.active-transfers[open]) .crew-selection {display:none;}
+/* the crew section stays while Traveling crew is open: it used to hide, and once the travellers were gone the page stayed blank (Tim 2026-11-08) */
 #deploymentpanel .active-transfers summary {font-size:14px;padding:5px;}
 
 #deploymentpanel .crew-focus-actions {display:flex;flex-direction:column;gap:5px;}

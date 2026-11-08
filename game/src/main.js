@@ -304,7 +304,7 @@ async function start() {
     spotTip.hidden = twinkle.hidden = false;
   }
   const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, view, send: c => pending.push(c), onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();}, blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() });
-  const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
+  const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, catalog, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
   // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, Tim 2026-11-06); in the city it hires
   // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (Tim 2026-11-07)
   // Shift on a horse or driving: sprint on / off (Tim 2026-11-07; on foot Shift still walks while held)

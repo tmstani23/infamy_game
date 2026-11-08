@@ -4,6 +4,7 @@ import { charmProtected } from './charm_rules.js';
 import { dirIndex } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
+import { ownerIndex } from './util.js';
 export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true, onDefeat=()=>{}, shelter=()=>false }) {
   state.projectiles||=[];
   function launch(e,t,unit){
@@ -25,12 +26,14 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       }
     }
   }
+  const mates = ownerIndex(state);   // units (all, or a clan's), listed once a tick (lag 2026-11-08)
   function nearestEnemy(e, x, z, range) {
     let best = null, bd = range;
-    for (const t of Object.values(state.entities)) {
-      if (!hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;
+    for (const t of mates()) {
+      // distance first: it is cheap and rules most units out before the hostile / sight checks (same result; lag 2026-11-08)
       const d = Math.hypot(t.x - x, t.z - z);
-      if (d < bd) { bd = d; best = t; }
+      if (!(d < bd) || state.entities[t.id] !== t || !hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;
+      bd = d; best = t;
     }
     return best;
   }
@@ -126,7 +129,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   }
   function searchTarget(e, o) {
     // first stop anyone finishing off one of our downed crew nearby
-    const executor = Object.values(state.entities).find(t => t.execute && hostile(e, t) && !cop(t)
+    const executor = mates().find(t => t.execute && state.entities[t.id] === t && hostile(e, t) && !cop(t)
       && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
     if (executor) return executor;
     const [ax, az] = anchorOf(e);
@@ -139,8 +142,8 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const own = attacker(e);
     if (own) return own;
     const group=e.deployment?.group,task=state.deployment?.clans[e.owner]?.sectors[group];
-    if(task&&!e.deployment.transfer&&!e.deployment.duty?.manual)for(const u of Object.values(state.entities)){
-      if(u===e||u.owner!==e.owner||u.dead||u.downed||u.jailed||u.place!==e.place||u.deployment?.group!==group||u.deployment.transfer)continue;
+    if(task&&!e.deployment.transfer&&!e.deployment.duty?.manual)for(const u of mates(e.owner)){
+      if(u===e||state.entities[u.id]!==u||u.owner!==e.owner||u.dead||u.downed||u.jailed||u.place!==e.place||u.deployment?.group!==group||u.deployment.transfer)continue;
       const by=attacker(u);if(by)return by;
     }
     // crew of every clan, bots too, only pick fights on an attack-move, while stationed in a business, or
@@ -148,8 +151,8 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro
     const raidRoom = e.place !== 'street' && Object.values(state.attacks || {}).some(a => a.room === e.place && a.phase !== 'over');
     if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom) {
-      for (const u of Object.values(state.entities)) {
-        if (u === e || u.owner !== e.owner || u.dead || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > BACKUP_RANGE) continue;
+      for (const u of mates(e.owner)) {
+        if (u === e || u.owner !== e.owner || u.dead || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > BACKUP_RANGE || state.entities[u.id] !== u) continue;
         const by = attacker(u);
         if (by) return by;
       }

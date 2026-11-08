@@ -67,6 +67,7 @@ import { steer } from './vehicle_steer.js';
 import { createMounts } from './mounts.js';
 import { createGarage } from './vehicle_garage.js';
 import { createStationTravel } from './station_travel.js';
+import { rosterChanged } from './util.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -336,6 +337,7 @@ export function createGame(options) {
   function spawn(type, model, x, z, extra = {}) {
     const id = String(nextId++);
     state.entities[id] = { id, type, model, x, z, dir: 0, anim: 'idle', place: 'street', ...extra };
+    rosterChanged(state);   // per-tick owner indexes (sim/util.js) pick the new unit up at once
     const e = state.entities[id], hp = statsOf(e).hp;
     inventory.initialize(e);
     if (hp && e.hp === undefined) e.hp = hp+gearFlat(e,'maxHpFlat');
@@ -935,7 +937,7 @@ export function createGame(options) {
         if (!spot) { Object.assign(e, old, { place: from }); const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'No dry land there to travel to' }; }
         else { [e.x, e.z] = spot; delete paths[e.id]; delete intents[e.id]; gateCrew(e, from, { x: old.x, z: old.z, to: { x: e.x, z: e.z }, place: 'world' }, c.units); }
       }
-      if (c.type === 'hire' && clans) clans.hire(e, c.business, c.unit,c.count ?? 1);
+      if (c.type === 'hire' && clans) { if (c.action === 'cancel') clans.cancelHire(e, c.index); else clans.hire(e, c.business, c.unit,c.count ?? 1); }
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'permit') landOffice.buyPermit(e);
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'survey') landOffice.survey(e);
       if (c.type === 'expedition' && landOffice && areas && gate && !stunned(e, state.tick)) expedition(e, c);
@@ -953,7 +955,7 @@ export function createGame(options) {
         if (founding && townCount(e.owner) > before) omnibus.consume(e.owner);
       }
       if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}
-      if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business);
+      if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business, c.patient);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }

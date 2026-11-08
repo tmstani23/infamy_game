@@ -27,12 +27,17 @@ assert.equal(S[crew], undefined);
 assert.equal(clan.ryo - before, Math.floor(data('data/units.json').types.thug.price * DISMISS_REFUND_SHARE));
 assert.equal(g.clans.crewCount('player'), count - 1);
 
+// Hurt, downed and jailed crew can be dismissed too (Tim 2026-11-08), and clinic patients by index.
+for (const flags of [{ hp: 1 }, { downed: true }, { jailed: true }]) {
+  const u = g.spawn('thug', 'thug', -5, 0, { owner: 'player' }); Object.assign(S[u], flags);
+  assert.match(g.clans.dismiss(S[hero], u, home.id), /Thug dismissed/); assert.equal(S[u], undefined);
+}
+clan.clinic.push({ unit: 'thug', model: 'thug', kind: 'recover', left: 9, cost: 15 });
+let r0 = clan.ryo;
+assert.match(g.clans.dismiss(S[hero], null, home.id, 0), /dismissed from the clinic/);
+assert.equal(clan.clinic.length, 0); assert.equal(clan.ryo - r0, Math.floor(data('data/units.json').types.thug.price * DISMISS_REFUND_SHARE));
 const hurt = g.spawn('thug', 'thug', -5, 0, { owner: 'player' });
-S[hurt].hp--;
-assert.match(g.clans.dismiss(S[hero], hurt, home.id), /Only healthy/);
-assert.ok(S[hurt], 'hurt crew remains');
-S[hurt].hp = S[hurt].maxHp;
-assert.match(g.clans.dismiss(S[hero], enemy, home.id), /Only healthy/);
+assert.match(g.clans.dismiss(S[hero], enemy, home.id), /Only your own crew/);
 assert.ok(S[enemy], 'foreign crew remains');
 assert.match(g.clans.dismiss(S[hero], hurt, 'not-a-hideout'), /inside your own hideout/);
 const tea = Object.values(g.state.businesses).find(b => b.kind === 'teahouse');
@@ -58,7 +63,7 @@ const panel = () => { const handlers = {}; return { hidden: true, innerHTML: '',
 const hirePanel = panel(), hireSent = [];
 const hire = createHireMenu({ panel: hirePanel, money: { textContent: '' }, game: g, units: data('data/units.json'), heroId: hero, send: c => hireSent.push(c) });
 hire.toggle();
-assert.match(hirePanel.innerHTML,/title="Automatically forces all nearby enemies within 5 steps[^"]*">Instant Taunt</,'hiring exposes the Yakuza Taunt radius');
+assert.match(hirePanel.innerHTML,/Instant Taunt: Automatically forces all nearby enemies within 5 steps/,'hiring exposes the Yakuza Taunt radius (card hover, Tim 2026-11-08 redesign)');
 const nextCrew = g.spawn('thug', 'thug', -2, 0, { owner: 'player' });
 hire.update();
 hirePanel.click({closest:sel=>sel==='[data-crew-view]'?{dataset:{crewView:'dismiss'}}:null});
@@ -76,6 +81,25 @@ for (const group of ['hero', 'home', g.state.deployment.sectors[0].id]) {
   g.step([{ id: hero, type: 'dismiss', unit: remote, business: home.id }]);
   assert.equal(S[remote], undefined, `${group} crew can be dismissed through the authoritative command from another room`);
 }
+
+// Dismiss all: every crewman and clinic patient, from the hideout.
+{ const keep = Object.keys(S).length;
+  g.spawn('thug', 'thug', -2, 1, { owner: 'player' }); clan.clinic.push({ unit: 'thug', model: 'thug', kind: 'heal', left: 9, cost: 0 });
+  assert.match(g.clans.dismiss(S[hero], 'all', home.id), /crew dismissed/);
+  assert.equal(g.clans.crewOf('player').length, 0); assert.equal(clan.clinic.length, 0); assert.ok(S[hero]);
+  assert.ok(Object.keys(S).length < keep + 1); }
+
+// Cancel a queued hire: full refund of what was paid, queue order kept (Tim 2026-11-08).
+{ clan.ryo = 5000; clan.queue.length = 0; const r0 = clan.ryo;
+  g.step([{ id: hero, type: 'hire', business: home.id, unit: 'thug', count: 3 }]);
+  assert.equal(clan.queue.length, 3); const paid = r0 - clan.ryo;
+  assert.equal(clan.queue.reduce((n, q) => n + q.paid, 0), paid, 'each queued hire remembers its price');
+  const second = clan.queue[1].paid;
+  g.step([{ id: hero, type: 'hire', action: 'cancel', index: 1 }]);
+  assert.equal(clan.queue.length, 2); assert.equal(r0 - clan.ryo, paid - second);
+  g.step([{ id: hero, type: 'hire', action: 'cancel', index: 0 }, { id: hero, type: 'hire', action: 'cancel', index: 0 }]);
+  assert.equal(clan.queue.length, 0); assert.equal(clan.ryo, r0, 'all refunded');
+  g.step([{ id: hero, type: 'hire', action: 'cancel', index: 0 }]); assert.equal(clan.ryo, r0, 'empty queue: nothing'); }
 
 const clinicDoor = g.doors.find(d => d.menu === 'clinic');
 Object.assign(S[hero], { place: 'street', x: clinicDoor.x, z: clinicDoor.z });

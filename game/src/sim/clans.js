@@ -1,6 +1,6 @@
 import { modeRules } from './modes/index.js';
 import { canInteract } from './interactions.js';
-import { debitRyo } from './treasury.js';
+import { debitRyo, creditRyo } from './treasury.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
 import { noticeFor } from './util.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
@@ -102,24 +102,56 @@ export function createClans(state, units, opts = {}) {
     }
     else if (crewCount(clan.id) + queued(false)+count > crewCap(clan.id)) return say(clan, crewCap(clan.id) >= (rules.maxCrew ?? Infinity) ? `Crew is full: ${rules.maxCrew} is the most a clan can have` : 'Crew is full: hold more buildings for more crew');
     if (!settler && queued(false)+count > rules.maxQueue) return say(clan, 'Too many hires waiting');
-    const total=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)).reduce((n,v)=>n+v,0);
+    const prices=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)),total=prices.reduce((n,v)=>n+v,0);
     if (clan.ryo < total) return say(clan, `Not enough ryo (${total} needed)`);
     debitRyo(state, clan, total, 'Crew hired', { target: type });
     const duration=types[type].hireSeconds * (home && !office ? rules.hideout?.hireTimeFactor ?? 1 : 1);
-    for(let i=0;i<count;i++)clan.queue.push({ unit: type, business: b.id, left:duration, duration });
+    for(let i=0;i<count;i++)clan.queue.push({ unit: type, business: b.id, left:duration, duration, paid: prices[i] });
     return say(clan, count===1?`Hired a ${types[type].name || type} for ${total} ryo`:`Queued ${count} ${types[type].name || type} for ${total} ryo`);
   }
 
-  // Dismiss a healthy crew member at their clan's own hideout for a small refund.
-  function dismiss(hero, unitId, businessId) {
-    const clan = state.clans[hero?.owner], b = state.businesses[businessId], unit = state.entities[unitId];
-    if (!clan || clan.bot || !canInteract(hero) || hero.type !== 'hero') return null;
+  // Cancel one queued hire (index in clan.queue; 0 is the one in training) for the ryo paid for it (Tim 2026-11-08)
+  function cancelHire(hero, index) {
+    const clan = state.clans[hero?.owner];
+    if (!clan || clan.bot || (hero.type !== 'hero' && !hero.captain)) return null;
+    if (!Number.isInteger(index) || index < 0 || index >= clan.queue.length) return null;
+    const [q] = clan.queue.splice(index, 1), refund = Math.max(0, Math.round(q.paid ?? types[q.unit]?.price ?? 0));
+    if (refund) creditRyo(state, clan, refund, 'Hire cancelled', { target: q.unit });
+    return say(clan, `${typeName(q.unit)} cancelled${refund ? ` · ${refund} ryo back` : ''}`);
+  }
+
+  // Dismiss crew from the clan's own hideout for a small refund. Any crewman, from any zone and in any state
+  // (hurt, downed, jailed), and clinic patients too (patient = their index in clan.clinic) (Tim 2026-11-08:
+  // no running over to fetch them first). unitId 'all' dismisses every crewman and patient at once.
+  function dismiss(hero, unitId, businessId, patient = null) {
+    const clan = state.clans[hero?.owner], b = state.businesses[businessId];
+    if (!clan || clan.bot || !canInteract(hero)) return null;
     if (!b || b.kind !== 'hideout' || b.owner !== clan.id || !b.room || hero.place !== b.room)
       return say(clan, 'Dismiss crew inside your own hideout');
-    if (!unit || unit.owner !== clan.id || unit.type === 'hero' || unit.guard || unit.dead || unit.downed || unit.jailed || !unit.maxHp || unit.hp < unit.maxHp)
-      return say(clan, 'Only healthy, active crew can be dismissed');
-    const refund = Math.floor((types[unit.type]?.price || 0) * DISMISS_REFUND_SHARE);
-    delete state.entities[unitId];
+    const refundOf = type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE);
+    const drop = u => {
+      for (const h of Object.values(state.entities)) if (h.rider === u.id) { delete h.rider; h.anim = 'idle'; }   // off his horse
+      delete state.entities[u.id];
+      return refundOf(u.type);
+    };
+    if (unitId === 'all') {
+      const list = crewOf(clan.id).filter(u => !u.dead), n = list.length + clan.clinic.length;
+      if (!n) return say(clan, 'No crew to dismiss');
+      let refund = list.reduce((s, u) => s + drop(u), 0);
+      for (const p of clan.clinic.splice(0)) refund += refundOf(p.unit);
+      clan.ryo += refund;
+      return say(clan, `${n} crew dismissed${refund ? ` · ${refund} ryo refunded` : ''}`);
+    }
+    if (Number.isInteger(patient)) {
+      if (patient < 0 || patient >= clan.clinic.length) return null;
+      const [p] = clan.clinic.splice(patient, 1), refund = refundOf(p.unit);
+      clan.ryo += refund;
+      return say(clan, `${typeName(p.unit)} dismissed from the clinic${refund ? ` · ${refund} ryo refunded` : ''}`);
+    }
+    const unit = state.entities[unitId];
+    if (!unit || unit.owner !== clan.id || unit.type === 'hero' || unit.type === 'settler' || unit.guard || unit.captain || unit.dead)
+      return say(clan, 'Only your own crew can be dismissed');
+    const refund = drop(unit);
     clan.ryo += refund;
     return say(clan, `${typeName(unit.type)} dismissed${refund ? ` · ${refund} ryo refunded` : ''}`);
   }
@@ -208,7 +240,8 @@ export function createClans(state, units, opts = {}) {
   // Release a clinic patient without reviving them or taking payment, freeing the crew slot.
   function releasePatient(hero, patientIndex) {
     const clan = state.clans[hero?.owner];
-    if (!clan || clan.bot || !canInteract(hero) || hero.type !== 'hero') return null;
+    // the clinic's actor can be a selected crewman at the door, not only the hero (Tim 2026-11-08: Confirm release did nothing)
+    if (!clan || clan.bot || !canInteract(hero)) return null;
     if (!Number.isInteger(patientIndex) || patientIndex < 0 || patientIndex >= clan.clinic.length) return null;
     const [patient] = clan.clinic.splice(patientIndex, 1);
     return say(clan, `${typeName(patient.unit)} released from the clinic`);
@@ -263,5 +296,5 @@ export function createClans(state, units, opts = {}) {
     }
   }
 
-  return { addClan, hallOf, crewOf, settlersOf, crewCount, crewCap, hirePrice, setOwner, hire, dismiss, dismissRefund: type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE), tick, carryOff, checkIn, clinicOf, clinicMenu, releasePatient, reviveCost, healCost, hitWait };
+  return { addClan, hallOf, crewOf, settlersOf, crewCount, crewCap, hirePrice, setOwner, hire, cancelHire, dismiss, dismissRefund: type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE), tick, carryOff, checkIn, clinicOf, clinicMenu, releasePatient, reviveCost, healCost, hitWait };
 }
