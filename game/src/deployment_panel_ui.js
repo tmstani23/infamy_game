@@ -2,6 +2,7 @@ import { unitName } from './selection_panel.js';
 import { TASK_LABELS } from './deployment_map_data.js';
 import { syncChildren } from './stable_list.js';
 import { portrait } from './portraits.js';
+import { bossAway } from './sim/util.js';
 const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 
 // One focused command group. Transfer destination picking never changes the
@@ -43,7 +44,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     $('.'+name+'-prev').disabled=page.index===0;$('.'+name+'-next').disabled=page.index===count-1;
   }
   // out on the island (Tim 2026-11-08): the panel stays readable, orders wait until the boss is back in the city
-  const away = () => game.state.entities[heroId]?.place === 'world';
+  const away = () => bossAway(game.state.entities[heroId]);
   const issue = c => {
     if (away()) { $('.acceptance').hidden=false; $('.acceptance').className='acceptance rejected'; $('.acceptance').textContent=$('.away-note').textContent; return; }
     send({id:heroId,type:'deployment',...c,request:`panel-${++request}`});

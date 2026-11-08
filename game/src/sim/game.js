@@ -67,7 +67,7 @@ import { steer } from './vehicle_steer.js';
 import { createMounts } from './mounts.js';
 import { createGarage } from './vehicle_garage.js';
 import { createStationTravel } from './station_travel.js';
-import { rosterChanged } from './util.js';
+import { rosterChanged, bossAway } from './util.js';
 export { DEFAULT_MOVEMENT as UNITS } from './stats.js';
 
 export const TICK_RATE = 20;
@@ -893,7 +893,7 @@ export function createGame(options) {
       if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders
       // the boss out on the island gives the city no orders (Tim 2026-11-08): the lieutenant runs it (his commands carry
       // by), crew out on the island still take orders. Bots out there have their lieutenant brain instead.
-      if (e.type === 'hero' && e.place === 'world' && !c.by && !state.clans?.[e.owner]?.bot && !watchingCity.has(e.owner)
+      if (bossAway(e) && !c.by && !state.clans?.[e.owner]?.bot && !watchingCity.has(e.owner)
         && (c.type === 'deployment' || (c.type === 'order' && Array.isArray(c.units)))) {
         const asked = c.type === 'order' ? c.units.length : 0;
         if (c.type === 'order') c.units = c.units.filter(id => state.entities[id]?.place === 'world');
