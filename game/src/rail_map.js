@@ -25,8 +25,11 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
   for (const l of list) {
     const built = l.done ? l.length : Math.max(0, Math.min(l.length, l.built || 0));
     if (built < l.length) {   // the route still to lay: faint, dashed
-      ctx.setLineDash([width * 2, width * 2]); ctx.strokeStyle = 'rgba(255,224,160,.55)'; ctx.lineWidth = Math.max(1, width * 0.6);
-      stroke(ctx, stretch(l, built, l.length), at);
+      // a dark casing under bright dashes, so it reads over any ground (Tim 2026-11-08: hard to see)
+      const rest = stretch(l, built, l.length), dw = Math.max(1.5, width * 0.8);
+      ctx.setLineDash([]); ctx.strokeStyle = 'rgba(28,18,10,.6)'; ctx.lineWidth = dw + 2.5; stroke(ctx, rest, at);
+      ctx.setLineDash([width * 2.2, width * 1.6]); ctx.strokeStyle = 'rgba(255,232,170,.98)'; ctx.lineWidth = dw;
+      stroke(ctx, rest, at);
       ctx.setLineDash([]);
     }
     if (built > 0.5) {   // laid track: an amber glow with a dark rail line down the middle

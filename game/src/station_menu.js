@@ -75,7 +75,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     let k = 0, html = `<h3>${name ? `STATION · ${esc(name)}` : 'STATION'}</h3>`;
     if (now.length || next.length) {
       html += '<h3>TRAINS</h3><div class="row">' + now.map(s => `<button data-to="board:${esc(s.train)}"${s.riders >= s.seats ? ' disabled' : ''}>${++k}. Board the train to ${esc(s.toName)} (${s.seats - s.riders} seats, leaves in ${s.leaves ?? 0} s)</button>`).join('')
-        + next.map(s => `<button disabled>Train to ${esc(s.toName)} in ${s.eta < 90 ? `${s.eta} s` : `${Math.round(s.eta / 60)} min`}</button>`).join('') + '</div><p>You and the crew following you get on. Ride along, or Skip after a few seconds.</p>';
+        + next.map(s => `<button disabled>Train to ${esc(s.toName)} in ${s.eta < 90 ? `${s.eta} s` : `${Math.round(s.eta / 60)} min`}</button>`).join('') + '</div><p>Boarding calls All aboard: everyone of yours in the gold zone after 10 s gets on (Space boards at once). Ride along, or Skip after a few seconds.</p>';
     } else if (atCity()) html += '<p>No train here yet: lay track to the capital from the station in one of your towns.</p>';
     else if (t) html += `<p>${Object.values(game.state.frontier?.rail?.links || {}).some(l => l.owner === hero().owner && !l.done) ? 'No train here yet: it starts once the line is laid.'
       : t.list.length ? 'No train here yet: lay track to another of your towns below.' : 'No other station yet: build a railway station in another of your towns.'}</p>`;
@@ -96,6 +96,12 @@ export function createStationMenu({ panel, game, heroId, send }) {
   function close() { open = false; update(); }
   const at = () => riding() || !!trip() || trains().length > 0;
   // the on-screen prompt while a train stands here (main.js): which way it goes and when it leaves
+  // the All aboard call you made (Tim 2026-11-08): Space boards at once; the prompt counts down and counts the zone
+  const call = () => { return Object.values(game.state.frontier?.rail?.trains || {}).find(t => t.call?.hero === heroId) || null; };
+  const calling = () => !!call();
+  const boardCall = () => { const t = call(); if (t) send({ id: heroId, type: 'frontier', action: 'rail', mode: 'board', train: t.id }); };
+  const callPrompt = () => { const t = call(); if (!t) return ''; const n = rail()?.inZone?.(t)?.length ?? 0, s = Math.max(0, Math.ceil((t.call.until - game.state.tick) / 20));
+    return `Space  All aboard now: ${n} crew in the zone · boarding in ${s} s`; };
   const trainPrompt = () => { const s = boardNow()[0]; return s ? `Space  Board the train to ${s.toName}: leaves in ${s.leaves ?? 0} s` : ''; };
-  return { update, close, pick, riding, trainPrompt, isOpen: () => open || riding(), toggle() { if (riding()) return skip(); open = !open && (at() || atCity()); update(); }, at };
+  return { update, close, pick, riding, trainPrompt, calling, boardCall, callPrompt, isOpen: () => open || riding(), toggle() { if (riding()) return skip(); open = !open && (at() || atCity()); update(); }, at };
 }

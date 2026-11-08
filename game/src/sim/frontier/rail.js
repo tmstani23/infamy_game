@@ -182,6 +182,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       if (!((state.tick ?? 0) % 10) || t.seen === undefined) t.seen = watched(t, l);
       const v = t.seen ? Math.min(t.speed, T().viewSpeed ?? 20) : t.speed;
       t.v = v;
+      if (t.call && (state.tick ?? 0) >= t.call.until) allAboard(t);   // the boarding call ran out
       if (t.wait > 0) t.wait--;
       else {
         t.d += t.dir * v / 20;
@@ -226,35 +227,62 @@ export function createRail({ state, data, world, worldData, stable }) {
       return at && atStation(e, e.owner, at) ? { train: t.id, at, to: at === l.from ? l.to : l.from, toName: placeName(at === l.from ? l.to : l.from), riders: ridersOf(t.id).length, seats: seats(t) } : null;
     }).filter(Boolean);
   }
-  // every train serving a station the hero stands at: standing there now (eta 0) or seconds until it comes in
-  function service(e) {
-    if (!e || e.type !== 'hero') return [];
+  // every train serving one station of this owner: standing there now (eta 0) or seconds until it comes in
+  // (the station clock over each station reads this too, Tim 2026-11-08)
+  function serviceAt(owner, at) {
     const stop = (T().stopSeconds ?? 60) * 20;
-    return Object.values(rec().trains).filter(t => t.owner === e.owner).flatMap(t => {
-      const l = rec().links[t.link]; if (!l) return [];
-      return [l.from, l.to].filter(id => atStation(e, e.owner, id)).map(at => {
-        const end = at === l.to ? l.length : 0, to = at === l.from ? l.to : l.from, run = d => Math.abs(d) / Math.max(1, t.speed) * 20;
-        let ticks;
-        if (stationOf(t) === at) ticks = 0;
-        else if ((end - t.d) * t.dir > 0) ticks = Math.max(0, t.wait) + run(end - t.d);   // heading here
-        else ticks = Math.max(0, t.wait) + run(t.dir > 0 ? l.length - t.d : t.d) + stop + run(l.length);   // out to the far end first
-        return { train: t.id, at, to, toName: placeName(to), eta: Math.ceil(ticks / 20), leaves: ticks === 0 ? Math.ceil(Math.max(0, t.wait) / 20) : null, riders: ridersOf(t.id).length, seats: seats(t) };
-      });
+    return Object.values(rec().trains).filter(t => t.owner === owner).flatMap(t => {
+      const l = rec().links[t.link]; if (!l || (l.from !== at && l.to !== at)) return [];
+      const end = at === l.to ? l.length : 0, to = at === l.from ? l.to : l.from, run = d => Math.abs(d) / Math.max(1, t.speed) * 20;
+      let ticks;
+      if (stationOf(t) === at) ticks = 0;
+      else if ((end - t.d) * t.dir > 0) ticks = Math.max(0, t.wait) + run(end - t.d);   // heading here
+      else ticks = Math.max(0, t.wait) + run(t.dir > 0 ? l.length - t.d : t.d) + stop + run(l.length);   // out to the far end first
+      return [{ train: t.id, at, to, toName: placeName(to), eta: Math.ceil(ticks / 20), leaves: ticks === 0 ? Math.ceil(Math.max(0, t.wait) / 20) : null, riders: ridersOf(t.id).length, seats: seats(t) }];
     }).sort((a, b) => a.eta - b.eta);
   }
+  // every train serving a station the hero stands at
+  function service(e) {
+    if (!e || e.type !== 'hero') return [];
+    const ids = [...new Set(linksOf(e.owner).flatMap(l => [l.from, l.to]))].filter(id => atStation(e, e.owner, id));
+    return ids.flatMap(id => serviceAt(e.owner, id)).sort((a, b) => a.eta - b.eta);
+  }
+  // Boarding (Tim 2026-11-08): picking a train calls "All aboard!": a big zone (ride.zoneRadius) shows on the ground
+  // round the station for ride.callSeconds, or less if the train leaves sooner. When it runs out, everyone of yours standing in
+  // the zone gets on (horses and vehicles stay at the station), so crew you leave outside stay in town. Picking the
+  // train again (Space) boards at once. The hero must still be in the zone.
   function board(e, trainId) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
     if (e.aboard) return say(e.owner, 'Step out first');
     const t = rec().trains[trainId], at = t && stationOf(t);
+    if (t?.call?.hero === e.id) return allAboard(t);   // Space again: on at once (anywhere in the zone)
     if (!t || t.owner !== e.owner || !at || !atStation(e, e.owner, at)) return say(e.owner, 'No train standing here');
+    if (t.call) return say(e.owner, 'Boarding is already called');
+    // the call never holds the train (Tim 2026-11-08): with less than callSeconds before it leaves, that is all you get
+    const ticks = Math.max(1, Math.min(Math.round((RIDE().callSeconds ?? 10) * 20), t.wait - 1));
+    // the zone lies on the ground round the station (Tim 2026-11-08): a town's shed, the city railway station, or the
+    // line's end outside the island gate
+    const g = runtime?.gate, p = at === 'capital' ? (e.place === 'street' ? (g?.station && { x: g.station[0], z: g.station[1] }) : g?.island && { x: g.island[0], z: g.island[1] }) : endpoint(e.owner, at);
+    t.call = { hero: e.id, x: p?.x ?? e.x, z: p?.z ?? e.z, place: e.place, r: RIDE().zoneRadius ?? 25, until: (state.tick ?? 0) + ticks, ticks };
+    return say(e.owner, 'All aboard! Get your crew into the zone (Space boards now)');
+  }
+  // who is in the boarding zone: the hero and every unit of his on foot or on horseback (not horses, vehicles, workers)
+  function inZone(t) {
+    const c = t.call, e = c && state.entities[c.hero];
+    if (!e) return [];
+    const ok = u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && !u.worker && !u.railGang
+      && u.type !== 'horse' && u.type !== 'rickshaw' && u.type !== 'omnibus' && !u.vehicle && u.place === c.place && Math.hypot(u.x - c.x, u.z - c.z) <= c.r;
+    return Object.values(state.entities).filter(ok).sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z));
+  }
+  function allAboard(t) {
+    const c = t.call, e = c && state.entities[c.hero];
+    delete t.call;
+    if (!e || e.dead || e.downed || e.jailed || e.aboard) return;
+    const at = stationOf(t);
+    if (!at) return say(e.owner, 'The train left without you');
+    if (e.place !== c.place || Math.hypot(e.x - c.x, e.z - c.z) > c.r) { t.wait = Math.min(t.wait, 20); return say(e.owner, 'Boarding called off: you left the zone'); }
     if (e.mounted) { delete e.mounted; delete e.ride; }   // the horse stays at the station
-    // who comes along: crew following you close by, and (Tim 2026-11-07) every standing Hero group member in this town or
-    // station area (heroGroupRange), followed or not; Hero group crew left in another town stay there
-    const near = (u, r) => Math.hypot(u.x - e.x, u.z - e.z) <= r;
-    const group = Object.values(state.entities).filter(u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === e.place
-      && ((u.order?.kind === 'follow' && u.order.target === e.id && near(u, RIDE().followRange ?? 15))
-        || (u.deployment?.group === 'hero' && near(u, RIDE().heroGroupRange ?? 60))))
-      .sort((a, b) => (b.deployment?.group === 'hero') - (a.deployment?.group === 'hero') || Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z));   // Hero group first, then nearest
+    const group = inZone({ call: c });
     const room = seats(t) - ridersOf(t.id).length, party = [e, ...group].slice(0, Math.max(0, room));
     if (!party.length) return say(e.owner, 'The train is full');
     const head = pointAt(rec().links[t.link], t.d);
@@ -352,5 +380,5 @@ export function createRail({ state, data, world, worldData, stable }) {
   }
 
   function attach(services) { runtime = services; }
-  return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, atStation, trains: () => Object.values(rec().trains) };
+  return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, trains: () => Object.values(rec().trains) };
 }

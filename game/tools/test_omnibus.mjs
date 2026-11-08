@@ -68,11 +68,13 @@ assert.equal(hero.hp, hp, 'the hero is untouched');
 assert.equal(lead.hp, busHp - 100, 'the omnibus took it');
 delete S.entities[foe.id];
 
-// --- Q: everyone steps out, the omnibuses park; followers fall in behind the hero ---------------------------
+// --- Q: everyone steps out, the omnibuses park; the crew wait beside them until told (Tim 2026-11-08) ------------
 g.step([{ id: hero.id, type: 'omnibus', action: 'deploy' }]);
 assert.ok(!hero.aboard && !hero.ride, 'hero out');
 assert.ok(buses().every(b => !aboard(b).length), 'everyone out');
-assert.ok(crew.filter(u => u.deployment?.group === 'hero').every(u => u.order?.kind === 'follow' && u.order.target === hero.id), 'Hero-group crew follow him');
+assert.ok(crew.filter(u => u.deployment?.group === 'hero').every(u => u.order?.kind === 'stop'), 'the crew wait where they stepped out');
+g.step([{ id: hero.id, type: 'order', place: hero.place, units: Object.values(S.entities).filter(u => u.owner === 'player' && u.place === 'world' && u.order?.kind === 'stop').map(u => u.id), kind: 'follow' }]);
+assert.ok(crew.filter(u => u.deployment?.group === 'hero').every(u => u.order?.kind === 'follow' && u.order.target === hero.id), 'V: Hero-group crew follow him');
 assert.equal(buses().length, 2, 'both parked');
 assert.ok(Math.abs(g.stats.movement(hero, 'run') - 6) < 1e-6, 'back to his own speed');
 
@@ -82,6 +84,16 @@ Object.assign(hero, { x: lead.x + 1, z: lead.z });
 g.step([{ id: hero.id, type: 'omnibus', action: 'board' }]);
 assert.equal(hero.aboard, lead.id, 'back in the first');
 assert.equal(Object.values(S.entities).filter(u => u.aboard).length, 12, 'all twelve back in');
+
+// --- right-click one seat on the vehicle card: only that rider steps out (Tim 2026-11-08) -------------------------
+{
+  const one = crew.find(u => u.aboard && u.type !== 'settler');
+  g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [one.aboard], units: [one.id, hero.id] }]);
+  assert.ok(!one.aboard && one.order?.kind === 'stop', 'only he steps out and waits');
+  assert.ok(hero.aboard, 'the hero stays at the reins');
+  assert.equal(Object.values(S.entities).filter(u => u.aboard).length, 11, 'the rest stay aboard');
+}
+
 
 // --- wrecked: everyone piles out, that omnibus is gone ----------------------------------------------------------
 g.omnibus.shelter(hero, O.hp * 2);

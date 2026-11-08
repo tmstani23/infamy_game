@@ -45,7 +45,7 @@ Full plan: `/mnt/project-files/steam_trains/plan.md`. Built (2026-11-07): steps 
 - Steam (`render/train_fx.js`): from the chimney; slow wisps while standing, puffs while running (more with speed); on the whistle a thin upward plume for 1.6 s.
 - Capital station: at (92,-6), north of the east trail by the island gate (was (86,16)); about 21 units from the East trail camp.
 - Capital station (2026-11-08): the coach_house is mirrored so its open front faces east; a ticket hall (railway_station art) stands just west of it, and Space at its window opens the station menu. Line 1 runs through the shed; lines 2-4 idle on sidings along its north side.
-- Boarding takes your followers and the Hero group within 60 (`railways.json` heroGroupRange). The camera follows the train while you ride; a pan holds until Home.
+- Boarding is by All aboard (see controls.md, Space at a station); followRange and heroGroupRange are no longer used. The camera follows the train while you ride; a pan holds until Home. Horses and vehicles stay at the station you leave from.
 - Town station: one 3x2 placement (ticket hall, engine shed, railway slot). R turns it; an arrow on the ghost shows where the track leaves. Erasing a station with lines needs a second erase, which tears the lines up.
 - The rail gang keeps up with the railhead.
 - Track routing (2026-11-08): keeps 11 units (one town cell) from mountains, cliffs and water (`railways.json` route.clearance); corners round to arcs (route.minRadius 24). In towns it leaves a 3x2 station straight out of its mouth, then bends at most 45° with a straight cell between bends. A station whose mouth can't curve out is refused ("turn it (R) or clear a way").
@@ -509,6 +509,11 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Build bar rows: Lay out (Eraser apart at the right, muted red), Zones, Camps, Buildings. Capped buildings show used/allowed; buildings the tier doesn't allow yet are greyed and dashed with the unlocking tier's name. Town panel tabs are underlined; the panel has a ✕ close button.
 - Police never chase, attack or arrest units on the island (place 'world') at any heat tier; officers out there return to the city.
 - Ride clips: every crew model has a ride clip (`coach_sitting`, art.json `ride` keys); the RIDE table in `tools/export_sprites.mjs` lists the riders.
+- Crew follow: while the boss moves, followers keep pace with their spot; while he stands, a follower that gets no closer to its spot for 0.5 s stops until he moves.
+- City heat: hurting or killing townsfolk on the island adds no city heat. An arrested city captain drops the clan's heat to heroJailHeat (30); a new captain comes out after heroJailSeconds (60); no bail.
+- Crew can't ride the boss's horse: ordered onto her, she shies (red ring, "✕ The boss's horse").
+- A frontier rickshaw with anyone in it shows a seated coachman (`rickshaw_driver`, coach_sitting clip; drawing only). A parked empty rickshaw shows no one.
+- Fog never hides your own horses and vehicles. On the World map a line still being laid shows as bright dashes over a dark edge.
 - `test_eraser_caps` checks that every tier-capped building frees its slot when erased.
 
 ## Playtest fixes (2026-11-07)

@@ -35,6 +35,21 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     Object.assign(horse, { x, z, place: 'world', anim: 'idle' }); delete horse.called; delete horse.path; delete horse.callBest;
     delete horse.stored;
   }
+  // far away, stored or lost (Tim 2026-11-08): she turns up out of sight, arriveDistance off on the side she was on
+  // (else behind you), and gallops the rest of the way in, so she never just pops up beside you
+  function inbound(horse, hero) {
+    const R0 = R().arriveDistance ?? 40, there = !horse.stored && horse.place === 'world';
+    const base = there ? Math.atan2(horse.x - hero.x, horse.z - hero.z) : (hero.heading ?? 0) + Math.PI;
+    let spot = null;
+    for (const k of [0, 1, -1, 2, -2, 3, -3, 4]) {
+      const a = base + k * Math.PI / 4, x = hero.x + Math.sin(a) * R0, z = hero.z + Math.cos(a) * R0;
+      const p = nav()?.nearestFree(x, z) || [x, z];
+      if (Math.hypot(p[0] - x, p[1] - z) < R0 * 0.3) { spot = p; break; }
+    }
+    if (!spot) return beside(horse, hero);
+    Object.assign(horse, { x: spot[0], z: spot[1], place: 'world', anim: 'run' }); delete horse.stored; delete horse.path; delete horse.callBest;
+    horse.called = hero.id;
+  }
   function whistle(e, id) {
     const w = whistlesOf(e.owner).find(w => w.horse === id);
     if (!w) return say(e.owner, 'No such whistle');
@@ -45,13 +60,13 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     clanOf(e.owner).mount = id;
     if (!horse) {   // missing after a load: she comes back to the whistle
       const nid = spawn('horse', R().models?.[w.kind] || w.kind, e.x + 1.5, e.z + 1, { horseOwner: e.owner, horseKind: w.kind, name: w.name, place: 'world', hp: R().hp ?? 300, maxHp: R().hp ?? 300, holdFire: true, vehicle: true });
-      horse = state.entities[nid]; w.horse = nid; clanOf(e.owner).mount = nid; beside(horse, e);
-      return say(e.owner, `${w.name || 'Your horse'} answers the whistle`);
+      horse = state.entities[nid]; w.horse = nid; clanOf(e.owner).mount = nid; inbound(horse, e);
+      return say(e.owner, `${w.name || 'Your horse'} is on her way`);
     }
     if (horse.rider === e.id) return;
     if (horse.rider) { const r = state.entities[horse.rider]; if (r) dismount(r); }
     const far = horse.stored || horse.place !== 'world' || Math.hypot(horse.x - e.x, horse.z - e.z) > (R().whistleRange ?? 300);
-    if (far) { beside(horse, e); return say(e.owner, `${horse.name || 'Your horse'} answers the whistle`); }
+    if (far) { inbound(horse, e); return say(e.owner, `${horse.name || 'Your horse'} is on her way`); }
     if (Math.hypot(horse.x - e.x, horse.z - e.z) <= (R().reach ?? 4)) return say(e.owner, `${horse.name || 'Your horse'} is your mount (H to ride)`);
     horse.called = e.id; delete horse.path; delete horse.callBest;
     say(e.owner, `${horse.name || 'Your horse'} is on her way`);
@@ -108,10 +123,12 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     const group = c.units.map(id => state.entities[id]).filter(u => rider(u, e.owner) && u.place === 'world');
     if (!group.length) return command(e, { horse: c.horse });
     const onIt = group.find(u => u.ride?.horse === picked.id);
-    if (onIt) { dismount(onIt); return; }   // right-click the horse one of them rides: that one gets off
+    if (onIt) { dismount(onIt); onIt.order = { kind: 'stop' }; onIt.anim = 'idle'; return; }   // right-click the horse one of them rides: that one gets off and waits there (Tim 2026-11-08)
     const want = group.filter(u => !u.mounted).sort((a, b) => Math.hypot(a.x - picked.x, a.z - picked.z) - Math.hypot(b.x - picked.x, b.z - picked.z));
     if (!want.length) return;
-    if (picked.rider) { const r = state.entities[picked.rider]; if (r?.type === 'hero') dismount(r); else return say(e.owner, 'Someone already rides her'); }
+    // the boss's own mount carries only him (Tim 2026-11-08): she tosses her head (render: refuseMount)
+    if (picked.id === mountOf(e.owner)?.id || state.entities[picked.rider]?.type === 'hero') { state.casts?.push({ kind: 'refuseMount', a: picked.id, x: picked.x, z: picked.z, place: picked.place }); return; }
+    if (picked.rider) return say(e.owner, 'Someone already rides her');
     const mine = mountOf(e.owner);
     const free = [picked, ...Object.values(state.entities).filter(h => h.id !== picked.id && h.type === 'horse' && h.horseOwner === e.owner && !h.dead && !h.rider && !h.recall && h.id !== mine?.id && !(h.called && !want.some(u => u.id === h.called)))
       .sort((a, b) => (a.stored ? 1e9 : Math.hypot(a.x - picked.x, a.z - picked.z)) - (b.stored ? 1e9 : Math.hypot(b.x - picked.x, b.z - picked.z)))];
@@ -150,7 +167,9 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     if (e.aboard) return say(e.owner, 'Step out of the omnibus first (Q)');
     const horse = mountOf(e.owner);
     if (!horse) return say(e.owner, 'No horse yet: raise one at a stable in your town');
-    if (horse.stored || horse.place !== 'world') return whistle(e, horse.id);   // in the stable: she comes as to her whistle
+    // in the stable, or far off (rules.mount.whistleRange, e.g. after a train ride): H works as her whistle and she
+    // appears beside you (Tim 2026-11-08)
+    if (horse.stored || horse.place !== 'world' || Math.hypot(horse.x - e.x, horse.z - e.z) > (R().whistleRange ?? 300)) return whistle(e, horse.id);
     if (horse.rider) return;
     if (Math.hypot(horse.x - e.x, horse.z - e.z) <= (R().reach ?? 4)) { mount(e, horse); return; }
     horse.called = e.id; delete horse.path;

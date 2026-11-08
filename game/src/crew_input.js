@@ -29,6 +29,15 @@ export function bodyDistance(view, e, px, py) {
   const k = Math.max(0, Math.min(1, ((px - f.x) * vx + (py - f.y) * vy) / len2));
   return Math.hypot(px - (f.x + vx * k), py - (f.y + vy * k));
 }
+// A vehicle is long (horse in front, cart behind): the pointer's distance from a line down its whole length at
+// waist height, front to back along its heading (Tim 2026-11-08: the rickshaw was hard to click)
+export function vehicleDistance(view, e, px, py, length = 6) {
+  const h = e.heading ?? ((e.dir ?? 0) * Math.PI / 4), dx = Math.sin(h) * length / 2, dz = Math.cos(h) * length / 2;
+  const a = view.unitToScreen(e.x - dx, e.z - dz, 1), b = view.unitToScreen(e.x + dx, e.z + dz, 1);
+  const vx = b.x - a.x, vy = b.y - a.y, len2 = vx * vx + vy * vy || 1;
+  const k = Math.max(0, Math.min(1, ((px - a.x) * vx + (py - a.y) * vy) / len2));
+  return Math.min(Math.hypot(px - (a.x + vx * k), py - (a.y + vy * k)), bodyDistance(view, e, px, py));
+}
 
 // Tab targeting: the hero's next enemy (another clan's standing unit, never police,
 // townsfolk or downed ones) within TAB_RANGE and not hidden in the fog (`seen`), nearest first; pressing
@@ -163,7 +172,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const h = hero();
     if (!h) return null;
     const list = Object.values(game.state.entities).filter(b => (b.type === 'omnibus' || b.type === 'rickshaw') && b.omnibusOwner === h.owner && b.place === commandPlace());
-    return unitAt(px, py, list, 55);
+    let best = null, bd = 45;
+    for (const b of list) { const d = vehicleDistance(view, b, px, py, b.type === 'omnibus' ? 7 : 5.5); if (d < bd) { bd = d; best = b; } }
+    return best;
   }
   const busRiders = b => Object.values(game.state.entities).some(u => u.aboard === b.id);
   function horseAt(px, py) {
@@ -201,21 +212,25 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (e.button === 2 && !e.ctrlKey && pointed) { heroAt(e.clientX, e.clientY); return; }
     // right-click your omnibus (Tim 2026-11-06): everyone steps out, or a parked one takes the hero and the selected crew in
     // right-click one of your horses: ride her (she comes over if she is not beside you)
-    const horse = e.button === 2 && horseAt(e.clientX, e.clientY);
+    let horse = e.button === 2 && horseAt(e.clientX, e.clientY);
+    // a horse standing by a vehicle: the click goes to whichever is nearer the pointer (Tim 2026-11-08: crew sent at a rickshaw got horses)
+    { const v = horse && omnibusAt(e.clientX, e.clientY); if (v && vehicleDistance(view, v, e.clientX, e.clientY) < bodyDistance(view, horse, e.clientX, e.clientY)) horse = null; }
     // with crew selected (Tim 2026-11-07): they ride, the nearest on this horse, the rest on your other free horses
     const riders = horse ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && u.type !== 'horse' && !u.aboard && u.place === horse.place && !u.dead && !u.downed && !u.jailed && !u.garrison; }) : [];
     if (horse) { send({ id: heroId, type: 'mount', horse: horse.id, ...(riders.length ? { units: riders } : {}) }); return; }
     const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
     // selected crew walk over and get in on their own (Tim 2026-11-07), the rickshaw (2 seats) the same as the omnibus,
     // also into one that already has crew aboard; only with the hero right beside an empty one does he get in with them.
-    // Right-click with no crew selected (or only crew already inside it) lets them out.
+    // (2026-11-08: right-click never lets them out any more; Q or the crew-panel card does)
     const crewSel = bus ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && !u.aboard && u.place === bus.place && !u.dead && !u.downed && !u.jailed && !u.garrison; }) : [];   // only crew who could walk over (C also selects crew left in the capital or riding elsewhere)
-    const heroBeside = bus && !busRiders(bus) && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) <= 6;
+    const heroBeside = bus && !busRiders(bus) && !hero()?.mounted && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) <= 6;
     const aboardOrComing = bus ? Object.values(game.state.entities).filter(u => u.aboard === bus.id || u.boardBus === bus.id).length : 0;
     const full = bus && aboardOrComing >= (game.omnibus?.seatsOf?.(bus) ?? (bus.type === 'rickshaw' ? 2 : 8));   // full: right-click lets them out
-    const crewOnly = bus && !bus.driver && !full && crewSel.length > 0 && !heroBeside;
-    if (bus) { send(crewOnly ? { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: crewSel, crewOnly: true }
-      : busRiders(bus) ? { id: heroId, type: 'omnibus', action: 'deploy', vehicles: [bus.id] } : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly: false }); return; }
+    // a right-click on a vehicle only ever loads (Tim 2026-11-08: adding one to a full rickshaw let the others out);
+    // a full one says so on the vehicle. Unloading: Q, or right-click its card in the crew panel
+    const crewOnly = bus && !bus.driver && crewSel.length > 0 && !heroBeside;
+    if (bus) { if (crewOnly || !busRiders(bus)) send(crewOnly ? { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: crewSel, crewOnly: true }
+      : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly: false }); return; }   // a loaded one: nothing (no unloading here)
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -267,6 +282,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // any rickshaw or omnibus in sight (yours empty or driven, or someone else's) shows in the target frame (Tim 2026-11-07)
       const ride = !mate && !foe && !civ && unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => game.omnibus?.isVehicle(v) && !v.dead && v.place === commandPlace() && seen(v)), 45);
       looked = civ ? civ.id : mate ? mate.id : ride ? ride.id : null;
+      // a lone selected vehicle stays in the target frame while it is selected (Tim 2026-11-08: selection sticks until Esc)
+      if (!looked && selected.length === 1 && game.omnibus?.isVehicle(game.state.entities[selected[0]])) looked = selected[0];
       // double-click a crew member or vehicle: the camera follows it until you pan, click the map or press Home
       const clicked = mate || ride, now = performance.now();
       if (clicked && lastClick.id === clicked.id && now - lastClick.t < 400) { const id = clicked.id; view.watch?.(() => { const u = game.state.entities[id]; return u && !u.dead && !u.jailed ? { id, x: u.x, z: u.z, place: u.place } : null; }); }
@@ -318,12 +335,17 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen, commandPlace()); },
     tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { pruneTargets(); return looked; },
+    look(id) { looked = id || null; },   // show this unit in the target frame (a vehicle picked in the crew menu, Tim 2026-11-08)
     inspect(id) { looked=game.state.entities[id]?id:null; },
     // Q for the omnibus (also the Mount controls button): step out, or get in a parked one right beside the hero
     mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },
     mountUpKey() { if (!hero()) return false; send({ id: heroId, type: 'mount', group: true, units: mine() }); return true; },
     omnibusKey() { const h = hero(); if (!h) return false; const sel = mine().filter(id => game.omnibus?.isVehicle(game.state.entities[id]));
       if (h.aboard || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
+      // selected crew on horseback get off and wait there (Tim 2026-11-08: mounts work like vehicles)
+      const riding = mine().map(id => game.state.entities[id]).filter(u => u && u.type !== 'hero' && u.mounted && u.ride?.horse);
+      if (riding.length) { for (const u of riding) send({ id: heroId, type: 'mount', horse: u.ride.horse, units: [u.id] }); return true; }
+      if (h.mounted) { send({ id: heroId, type: 'mount' }); return true; }   // Q gets you off your horse too, like out of a vehicle (Tim 2026-11-08); H still works
       if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !game.omnibus.riders(b).length)) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },
     omnibusAt(px, py) { const b = omnibusAt(px, py); return b ? { id: b.id, x: b.x, z: b.z, full: busRiders(b) } : null; },
     hovered(px, py) {

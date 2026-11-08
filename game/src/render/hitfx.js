@@ -36,6 +36,14 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     numbers.push({ el, x: h.x, z: h.z, age: 0, drift: (Math.random() - 0.5) * 18, big: 0.85, subtle: true });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
+  // a refused order over the unit (Tim 2026-11-08: crew sent onto the boss's horse): a red cross and a short word
+  function addRefuse(x, z, text, cls = 'refuse', mark = '✕') {
+    const el = document.createElement('div');
+    el.className = 'dmg ' + cls; el.innerHTML = `<b>${mark}</b> ${text}`;
+    overlay.appendChild(el);
+    numbers.push({ el, x, z, age: 0, drift: 0, big: 1 });
+    while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
+  }
   function updateNumbers(dt) {
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i];
@@ -124,6 +132,8 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   return {
     heal: addHeal,
     dodge: addDodge,
+    refuse: addRefuse,
+    note: (x, z, text) => addRefuse(x, z, text, 'boarded', '▲'),   // a gold confirmation over a unit (crew popped into a vehicle)
     // h: one entry of state.hits; attacker: its entity (for facing), mine: the victim is on my side
     hit(h, attacker, mine) {
       const blade = BLADES.has(h.weapon);

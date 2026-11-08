@@ -62,7 +62,9 @@
   },
   "ride": {
     "_note": "placeholder, Tim to tune (train plan step 4). Board at a station while the train stands there: you and your followers (within followRange) ride, and every standing Hero group crew within heroGroupRange, following or not (Tim 2026-11-07); seatsPerCar = riders per carriage (the engine, tender and last wagon carry none). The train leaves departSeconds after you board. skipSeconds = how long you ride before Skip takes you straight to the far station. The capital end lands you just inside the island gate. reach = how close to a town's station you must stand.",
+    "_boarding": "Tim 2026-11-08: picking a train calls All aboard: a zone of zoneRadius on the ground round the station for callSeconds, or until the train leaves if sooner; everyone of yours in it then gets on, Space again boards at once. followRange and heroGroupRange are no longer used.",
     "seatsPerCar": 8,
+    "callSeconds": 10, "zoneRadius": 25,
     "followRange": 15, "heroGroupRange": 60,
     "departSeconds": 3,
     "skipSeconds": 5,

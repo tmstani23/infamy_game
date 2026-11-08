@@ -238,6 +238,30 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     s.ring.visible = selected.has(e.id);
     return s;
   }
+  // A frontier rickshaw with anyone in it gets a seated coachman on the seat (Tim 2026-11-08: no empty seat, but not
+  // the hero himself; a parked empty one stays empty). Drawing only: the rickshaw_driver coach_sitting sheet, placed
+  // per direction at the seat of the rickshaw_horse sheet (cell pixels, centre to centre; both sheets are 5.4/288 per px).
+  // Facing away the hood is in front of him, so he draws behind the cart.
+  const SEAT = [[0, -55], [59, -52], [86, -20], [75, 9], [0, 9], [-75, 9], [-98, -37], [-75, -60]], SEAT_PX = 5.4 / 288;
+  const BEHIND = [false, false, false, true, true, true, false, false];
+  const drivers = new Map();   // rickshaw id -> CharacterSprite (null while loading)
+  function syncDriver(e, s, dt, loaded) {
+    const want = e.type === 'rickshaw' && e.model === 'rickshaw_horse' && !e.dead && (!!e.driver || loaded.has(e.id));
+    let d = drivers.get(e.id);
+    if (!want) { if (d) { scene.remove(d.thing.mesh); d.dispose(); } if (d !== undefined) drivers.delete(e.id); return; }
+    if (d === undefined) {
+      drivers.set(e.id, null);
+      loadSheets(catalog, 'rickshaw_driver').then(sh => { if (!drivers.has(e.id)) return; const c = new CharacterSprite(sh); drivers.set(e.id, c); scene.add(c.thing.mesh); }).catch(() => {});
+      return;
+    }
+    if (!d) return;
+    const dir = ((e.dir ?? 0) % 8 + 8) % 8, [ox, oy] = SEAT[dir], m = s.thing.mesh;
+    d.update(dt, m.position.x, m.position.z, dir, 'ride', null, 1);
+    d.thing.mesh.position.copy(m.position).addScaledVector(CAM_RIGHT, ox * SEAT_PX).addScaledVector(CAM_UP, -oy * SEAT_PX)
+      .addScaledVector(VIEW_DIR, BEHIND[dir] ? -0.5 : 0.5);
+    d.thing.mesh.visible = m.visible;
+    d.behind = BEHIND[dir]; d.cart = m;
+  }
   function syncSprites(state) {
     for (const e of Object.values(state.entities)) if (!sprites.has(e.id)) { sprites.set(e.id, null); addSprite(e); }
     for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate); if (s.team) scene.remove(s.team); s.dispose(); sprites.delete(id); trickle.delete(id); }
@@ -335,6 +359,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // effects only; the rules keep running, so this never touches the game)
     const fdt = freezeT > 0 ? 0 : dt;
     freezeT = Math.max(0, freezeT - dt);
+    const loaded = new Set(); for (const u of Object.values(state.entities)) if (u.aboard) loaded.add(u.aboard);
+    for (const [id, d] of drivers) if (!state.entities[id]) { if (d) { scene.remove(d.thing.mesh); d.dispose(); } drivers.delete(id); }
     for (const [id, s] of sprites) {
       if (!s) continue;
       const e = state.entities[id];
@@ -348,6 +374,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
+      if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
       if (e.cannon) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp);   // salute cannons: no health bar
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero');
@@ -435,6 +462,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
     sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || [])]);
+    for (const d of drivers.values()) if (d?.cart) d.thing.mesh.renderOrder = d.cart.renderOrder + (d.behind ? -1 : 1);   // the coachman just before or after his rickshaw
     mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn
     const px = renderer.getDrawingBufferSize(bufSize).y / (camera.top - camera.bottom);
@@ -461,6 +489,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const c of casts) {
       abilityFx.cast(c);
       if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo
+      // crew sent onto the boss's horse (sim/mounts.js): she shies sideways, a red ring, and a cross with the reason
+      if (c.kind === 'refuseMount') { const s = sprites.get(c.a); if (s) { s.lean = 1; s.leanX = 1; s.leanZ = -0.4; } hitFx.refuse(c.x, c.z, c.text || "The boss's horse"); }
+      if (c.kind === 'boarded') { const s = sprites.get(c.a); if (s) s.flash = 0.7; hitFx.note(c.x, c.z, `${c.n} aboard`); }   // crew popped in (sim/omnibus.js)
       if (c.kind === 'cannonFire') { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
       if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.24; shakeAmp = 0.18; freezeT = Math.max(freezeT, 0.08); }   // a tiny pause so it lands hard (Shadow Step crit slash)

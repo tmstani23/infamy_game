@@ -7,7 +7,7 @@ import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
 import { spotYield, richReach, overwork, regrowChance, supportsWorkers } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
-import { workerPanelHTML, workerJob } from './worker_panel.js';
+import { workerPanelHTML, workerJob, workerStatus } from './worker_panel.js';
 import {workerDetails,workerPresentation} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
@@ -597,6 +597,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';
   }
   return { update, html, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen,
+    // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
+    selectedWorkers:()=>selected.length>1?selectedLive().map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),id:`worker:${p.w.id}`,wid:p.w.id,worker:true,status:workerStatus(p.w,spotIndex)})):[],
+    pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id]);},
     workerTarget:()=>{const p=selected.length===1 && selectedLive()[0];return p?{...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),workerDetail:workerDetails(p.w,spotIndex)}:null;},
     doubleClick(ds,s) {
       if(ds.act==='build-worker-select'){focusWorkers([ds.id]);return true;}

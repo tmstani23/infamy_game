@@ -117,7 +117,9 @@ const EXTRA = {
 const RIDE = Object.fromEntries(['ronin', 'ninja_leader', 'rival_yakuza',
   // every crew model rides too (Tim 2026-11-07: select crew, right-click a horse); enforcer = brute sheets, shinobi_geisha = geisha
   'thug', 'brute', 'swordsman', 'kuroda_spearman', 'koruda_enforcer', 'shinobi_enforcer', 'demolitions', 'lookout', 'ninja_grunt', 'ninja_tanto',
-  'mercenary', 'monk', 'monk2', 'geisha', 'archer', 'gunslinger'].map(m => [m, 'coach_sitting.fbx']));
+  'mercenary', 'monk', 'monk2', 'geisha', 'archer', 'gunslinger',
+  // the coachman drawn on a driven rickshaw (Tim 2026-11-08: no empty seat, not the hero himself; render/view.js)
+  'rickshaw_driver'].map(m => [m, 'coach_sitting.fbx']));
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx']);
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };

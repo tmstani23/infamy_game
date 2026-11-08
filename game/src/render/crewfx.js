@@ -21,6 +21,8 @@ export function createCrewFx({scene,spriteOf}){
     clear(){for(const map of [shots,bindings,braces]){for(const v of map.values())remove(v.mesh||v);map.clear();}for(const b of bursts)remove(b.mesh);bursts.length=0;},
     cast(c){
       if(!visible(c.a))return;
+      if(c.kind==='boarded'){for(const radius of [1.6,2.4]){const m=ring(radius,0xffd34d);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.5,expand:true});}}
+      if(c.kind==='refuseMount'){for(const radius of [1.1,1.6]){const m=ring(radius,0xff5a3c);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.55,expand:true});}}
       if(c.kind==='hamstringHit'){
         const m=ring(.9,0x83ffd1);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.6});
       }

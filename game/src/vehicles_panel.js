@@ -1,5 +1,5 @@
 // The Vehicles panel (Tim 2026-11-07): Shift+Y or the ⛟ icon. Every horse, rickshaw and omnibus you own: where it is,
-// who is aboard, and Look (camera), Select (vehicles: they take crew orders), Whistle (horses), Recall (back to your
+// who is aboard, and Look (camera), Select (vehicles: they take crew orders), Call (horses), Recall (back to your
 // nearest stable and stored there) or Take out (parked beside its stable). Commands: sim/vehicle_garage.js,
 // sim/mounts.js whistle. Room per stable comes from the town tiers (sim/frontier/stable.js).
 // Your horses and vehicles with name, status and where, in words (also used by the stable menu).
@@ -66,7 +66,7 @@ export function createVehiclesPanel({ root, game, heroId, send, view, crewInput 
         const btns = [
           !e.stored && e.place === 'world' ? `<button data-act="look" data-id="${esc(e.id)}">Look</button>` : '',
           e.type !== 'horse' && !e.stored && e.place === 'world' ? `<button data-act="select" data-id="${esc(e.id)}" title="Select it: loaded ones take crew orders">Select</button>` : '',
-          e.type === 'horse' ? `<button data-act="whistle" data-id="${esc(e.id)}"${onIsland ? '' : ' disabled title="Island only"'}>Whistle</button>` : '',
+          e.type === 'horse' ? `<button data-act="whistle" data-id="${esc(e.id)}"${onIsland ? '' : ' disabled title="Island only"'} title="Make her your mount and call her: she gallops to you (from far off she turns up a little way away first)">Call</button>` : '',
           e.stored ? `<button data-act="takeout" data-id="${esc(e.id)}">Take out</button>` : `<button data-act="recall" data-id="${esc(e.id)}"${e.recall ? ' disabled' : ''} title="Riders get off; it goes back to your nearest stable and is stored there">Recall</button>`,
         ].join('');
         html += `<div class="vrow"><div><b>${esc(name)}</b>${s ? ` · ${esc(s)}` : ''}<br><small>${esc(w)}</small></div><div class="vbtns">${btns}</div></div>`;

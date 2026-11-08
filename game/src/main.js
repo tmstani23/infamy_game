@@ -6,6 +6,7 @@ import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
 import { createSimWorkerClient } from './sim_worker_client.js';
 import { createStealthBadge } from './stealth_badge.js';
+import { createStationClock } from './station_clock.js';
 // Wires the game together: load data, run the rules at a fixed tick, draw every frame.
 import { createGame, TICK_RATE } from './sim/game.js';
 import { setupMatch } from './sim/setup_match.js';
@@ -169,6 +170,7 @@ async function start() {
   if (DEV) onKey('F3', () => view.toggleDebug());
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onKey(['Space', 'Enter'], () => {
+    if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (Tim 2026-11-08)
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
     if (stableMenu.isOpen() || stableMenu.at()) { stableMenu.toggle(); return; }
@@ -234,18 +236,8 @@ async function start() {
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
   addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
-  // hovering your omnibus: a small flashing icon says what a right-click does (Tim 2026-11-06)
-  const busIcon = $('busicon');
-  setInterval(() => {
-    if (!busIcon) return;
-    let b = null;
-    try { b = crewInput.omnibusAt(mouse.x, mouse.y); } catch { return; }   // crewInput is made further down
-    busIcon.hidden = !b;
-    if (!b) return;
-    const s = view.unitToScreen(b.x, b.z);
-    busIcon.textContent = b.full ? 'Step out' : 'Get in';
-    busIcon.style.left = `${s.x}px`; busIcon.style.top = `${s.y - 70}px`;
-  }, 100);
+  // no Get in / Step out label on hovering a vehicle any more (Tim 2026-11-08): a right-click pops the crew in, with a gold flash
+  const busIcon = $('busicon'); if (busIcon) busIcon.hidden = true;
   // Shinobi (Tim 2026-10-20): a lit lantern under the mouse, within snuffReach of the boss at night,
   // says "Snuff"; a left-click on it snuffs it (before the crew clicks see it)
   let hoverLamp = null;
@@ -317,7 +309,8 @@ async function start() {
   // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (Tim 2026-11-07)
   // Shift on a horse or driving: sprint on / off (Tim 2026-11-07; on foot Shift still walks while held)
   onKey(['ShiftLeft', 'ShiftRight'], () => { if (game.state.entities[heroId]?.ride) setSprint(!sprintOn()); });
-  onKey('KeyH', e => { if (game.state.entities[heroId]?.place === 'world') pending.push(e?.shiftKey ? { id: heroId, type: 'mount', group: true, units: crewInput.selected() } : { id: heroId, type: 'mount' }); else hireMenu.toggle(); });
+  // H calls your horse and rides her; Q gets you off (Tim 2026-11-08: H no longer gets you off). Shift+H is still Mount up / All off
+  onKey('KeyH', e => { const h = game.state.entities[heroId]; if (h?.place === 'world') { if (e?.shiftKey) pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else if (!h.mounted) pending.push({ id: heroId, type: 'mount' }); } else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
@@ -515,7 +508,7 @@ async function start() {
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
-  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id) });
+  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id), workers:()=>frontierBuildUI?.selectedWorkers?.()||[], pickWorker:wid=>frontierBuildUI?.pickWorker?.(wid) });
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, workerTarget:()=>frontierBuildUI?.workerTarget(), send: c => pending.push(c) });
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
@@ -570,6 +563,7 @@ async function start() {
   // Positions and sizes live in data/ui_layout.json (written through server.mjs)
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
   const stealthBadge = createStealthBadge({ root: $('stealth'), game, heroId, view });
+  const stationClock = createStationClock({ game, heroId, view });   // when the next train comes in, over each station (Tim 2026-11-08)
   const hudLayout = createHudLayout({ fromFile: uiFile.panels,onBegin:()=>setGameplayInput(false),onEnd:()=>{setGameplayInput(true);$('settingsbtn').focus();} });
   const deploymentCards=document.createElement('section'),mapCards=document.createElement('section');
   deploymentCards.className=mapCards.className='selection-dock';
@@ -773,13 +767,14 @@ async function start() {
       const stablePrompt = !door && !innerDoor && !knockable && stableMenu.at() && !stableMenu.isOpen();
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      $('prompt').textContent = knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
+      const allAboard = stationMenu.callPrompt();
+      $('prompt').textContent = allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : stablePrompt ? 'Space  Stable: buy horses, rickshaws, omnibuses'
         : travel ? (stationMenu.riding() ? 'Space  Skip to the station' : stationMenu.trainPrompt() || 'Space  Station: trains and track')
         : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
-      $('prompt').hidden = !door && !innerDoor && !knockable && !lamp && !travel && !stablePrompt;
-      stealthBadge.update();
+      $('prompt').hidden = !allAboard && !door && !innerDoor && !knockable && !lamp && !travel && !stablePrompt;
+      stealthBadge.update(); stationClock.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update(); updateSpotHover();
       { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), sig = townSignature(towns);   // E5: founded towns follow their records

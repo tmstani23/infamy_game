@@ -133,7 +133,16 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
       if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
       // on horseback (him or them) the ring is wider: a horse is longer than a man (Tim 2026-11-07)
       const wide = e.mounted || h.mounted ? 1.8 : 1, [ox, oz] = followOffset(o.slot).map(v => v * wide);
-      return { x: h.x + ox, z: h.z + oz, near: Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
+      // a hero on the move: keep pace with the slot instead of stopping on arrival and catching up the next tick
+      // (Tim 2026-11-08: crew on horses stuttered, moving every other tick)
+      const going = h.anim && h.anim !== 'idle';
+      // standing, a follower that gets no closer to its place for half a second (shoved by the spacing push, or the
+      // place is blocked) stops where it is until the hero moves on (Tim 2026-11-08: loaded horses ran on the spot)
+      const gx = h.x + ox, gz = h.z + oz, d = Math.hypot(gx - e.x, gz - e.z);
+      if (going) delete o.hold;
+      else if (!o.hold || d < o.hold.d - 0.1 || Math.hypot(gx - o.hold.gx, gz - o.hold.gz) > 0.5) o.hold = { d, gx, gz, tick: state.tick };   // a new spot (he jumped, got out) starts the wait again
+      else if (state.tick - o.hold.tick > 10 && d < 3 * wide) return { x: gx, z: gz, near: Infinity };
+      return { x: gx, z: gz, near: going ? 0.05 : Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
     }
     if (o.kind === 'attack') return null;
     return { x: o.x, z: o.z, near: 0.25, walk: !!o.patrol, stroll: !!o.patrol };   // patrol (house guards): walk the whole way

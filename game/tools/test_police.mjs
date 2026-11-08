@@ -458,4 +458,15 @@ console.log('tough police ok');
   assert.ok(!g.state.casts.some(c => c.kind === 'arrest' && c.target === h.id), 'no arrest out there');
   console.log('island out of reach ok');
 }
+// An arrested city captain cools the clan's heat like the boss
+// (Tim 2026-11-08: heat stuck at 1487)
+{
+  const g = newGame();
+  clan(g).heat = 900;
+  const cap = g.state.entities[g.spawn('city_captain', 'thug', 20, 10, { owner: 'player', captain: true })];
+  g.police.jailCaptain(cap);
+  assert.equal(clan(g).heat, P.heroJailHeat, 'captain arrested: heat drops');
+  assert.ok(clan(g).captainJailedUntil > g.state.tick, 'he serves his time');
+  console.log('captain arrest ok');
+}
 console.log('police tests passed');

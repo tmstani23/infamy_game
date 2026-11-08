@@ -84,7 +84,7 @@ export function createSiteMenu({ panel, game, heroId, selected = () => [], send 
         : `<p>No sites known yet. Walk out and scout first: sites you find on the island show up here.</p>`;
       body += `<div class="row">${all.length > PAGE ? `<button data-go="more">More (${from + 1}-${Math.min(from + PAGE, all.length)} of ${all.length})</button>` : ''}<button data-go="back">Back</button></div>`;
     } else {
-      body = t ? `<p>You and the crew following you get on. Ride along, or Skip after a few seconds.</p>`
+      body = t ? `<p>Boarding calls All aboard: everyone of yours in the gold zone after 10 s gets on (Space boards at once). Ride along, or Skip after a few seconds.</p>`
         + t.map((s, i) => `<div class="row"><span>${i + 1}. To ${esc(s.toName)} · ${when(s)}</span><button data-train="${esc(s.train)}"${s.eta === 0 && s.riders < s.seats ? '' : ' disabled'}>Board</button></div>`).join('') : '';
       body += `<div class="row"><button data-go="back">Back</button></div>`;
     }

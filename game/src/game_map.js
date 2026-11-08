@@ -296,7 +296,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     if (!worldMap.layers.rail || !links.length) return '';
     const laying = links.filter(l => !l.done).length;
     const laid = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5" stroke="rgba(255,196,96,.9)" stroke-width="4.5" stroke-linecap="round"/><line x1="1" y1="5" x2="21" y2="5" stroke="rgba(52,34,20,.95)" stroke-width="1.6" stroke-linecap="round"/></svg>';
-    const dash = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="16" y2="5" stroke="rgba(255,224,160,.55)" stroke-width="2" stroke-dasharray="4 3"/><circle cx="19" cy="5" r="2.6" fill="#ffd27a"/></svg>';
+    const dash = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="16" y2="5" stroke="rgba(28,18,10,.6)" stroke-width="4.5"/><line x1="1" y1="5" x2="16" y2="5" stroke="rgba(255,232,170,.98)" stroke-width="2" stroke-dasharray="4 3"/><circle cx="19" cy="5" r="2.6" fill="#ffd27a"/></svg>';
     return `<span title="Your railway lines">${laid}Railway <small>${links.length - laying} open</small></span>`
       + (laying ? `<span title="Track still to lay; the dot is the rail gang">${dash}Being laid <small>${laying} · dot: rail gang</small></span>` : '');
   }

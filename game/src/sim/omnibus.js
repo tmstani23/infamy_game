@@ -83,21 +83,28 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     return n;
   }
 
-  // everyone out of every omnibus of this clan (they stay parked); followers fall in behind the hero again
-  function deploy(hero, only = null) {
+  // everyone out of every omnibus of this clan (they stay parked); the crew wait beside it
+  function deploy(hero, only = null, units = null) {
     // Q with vehicles selected empties just those (Tim 2026-11-07); otherwise every one of the clan's
+    // units: only these riders step out (right-click one seat on a vehicle card, Tim 2026-11-08); never the hero
     const pick = Array.isArray(only) && only.length ? new Set(only) : null;
+    const who = Array.isArray(units) && units.length ? new Set(units) : null;
     const buses = mine(hero.owner).filter(b => riders(b).length && (!pick || pick.has(b.id) || b.id === hero.aboard));
     if (!buses.length) return false;
     let k = 0;
+    let out = 0;
     for (const b of buses) {
       for (const u of riders(b)) {
-        unseat(u, k++, b);
-        if (u.type !== 'hero') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); }
+        if (who && (!who.has(u.id) || u.type === 'hero')) continue;
+        unseat(u, k++, b); out++;
+        // crew stand where they stepped out until told to follow (V) or sent somewhere (Tim 2026-11-08); settlers keep with the hero
+        if (u.type === 'settler') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); }
+        else if (u.type !== 'hero') { u.order = { kind: 'stop' }; u.anim = 'idle'; }
       }
-      b.anim = 'idle'; b.trail = [];
+      if (!riders(b).length) { b.anim = 'idle'; b.trail = []; }
     }
-    say(hero.owner, 'Everyone steps out');
+    if (!out) return false;
+    say(hero.owner, who ? (out === 1 ? 'One steps out' : `${out} step out`) : 'Everyone steps out');
     return true;
   }
 
@@ -111,14 +118,18 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const bus = state.entities[c.omnibus];
     if (!isVehicle(bus) || bus.omnibusOwner !== hero.owner || bus.dead || bus.driver) return false;
     const room = seatsOf(bus) - riders(bus).length - Object.values(state.entities).filter(u => u.boardBus === bus.id).length;
-    if (room <= 0) { say(hero.owner, `The ${bus.type} is full`); return false; }
+    if (room <= 0) { state.casts?.push({ kind: 'refuseMount', a: bus.id, x: bus.x, z: bus.z, place: bus.place, text: 'Full' }); return false; }   // on the vehicle, like the boss's horse
     const group = (c.units || []).map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && u.type !== 'horse' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === bus.place);
     if (!group.length) return false;
     group.sort((a, b) => Math.hypot(a.x - bus.x, a.z - bus.z) - Math.hypot(b.x - bus.x, b.z - bus.z));   // a whole group: the nearest fill the seats
+    // crew within popRange pop straight in (Tim 2026-11-08), the vehicle flashes gold (render: boarded); further ones walk over
+    let popped = 0;
     for (const u of group.slice(0, room)) {
+      if (Math.hypot(u.x - bus.x, u.z - bus.z) <= (R().popRange ?? 40)) { seat(u, bus); bus.vorder = { kind: 'stay' }; popped++; continue; }
       if (u.mounted) { delete u.mounted; delete u.ride; }
       u.boardBus = bus.id; u.order = { kind: 'move', x: bus.x, z: bus.z, place: bus.place }; forget(u.id);
     }
+    if (popped) state.casts?.push({ kind: 'boarded', a: bus.id, x: bus.x, z: bus.z, n: popped, place: bus.place });
     if (group.length > room) say(hero.owner, `Room for ${room} in the ${bus.type}`);
     return true;
   }
@@ -182,7 +193,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   // Drive back to the gate was taken out (Tim 2026-11-07): drive or walk back, or take the train
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    if (c.action === 'deploy') deploy(e, c.vehicles);
+    if (c.action === 'deploy') deploy(e, c.vehicles, c.units);
     else if (c.action === 'board') board(e, c);
   }
 

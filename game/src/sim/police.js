@@ -130,6 +130,17 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     if (clan) say(clan, `Your boss was arrested: out in ${R.heroJailSeconds}s`);
     state.news.push({ kind: 'bossArrested', clan: h.owner, hero: h.id });
   }
+  // The city captain (sim/lieutenant.js) arrested while the boss is away (Tim 2026-11-08: heat stuck at 1487): he
+  // stands in for the boss, so the clan's heat drops to heroJailHeat as for the boss; no bail, a new captain comes
+  // out of the HQ after heroJailSeconds (clan.captainJailedUntil)
+  function jailCaptain(t) {
+    const clan = state.clans?.[t.owner];
+    if (!clan) return;
+    clan.captainJailedUntil = state.tick + secs(R.heroJailSeconds);
+    const drop = Math.round((clan.heat || 0) - R.heroJailHeat);
+    if (drop > 0) { clan.heat = R.heroJailHeat; state.heatGains.push({ clan: clan.id, amount: -drop, reason: 'Captain arrested' }); }
+    say(clan, `Your city captain was arrested: a new one in ${R.heroJailSeconds}s`);
+  }
   // Time served: out of the HQ door with full health
   function releaseHeroes() {
     for (const h of Object.values(state.entities)) {
@@ -564,7 +575,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     for (const id of Object.keys(mind)) if (!state.entities[id]) delete mind[id];
   }
 
-  return { tick, provoke, witnessAssault, knockedOut, jail, jailHero, menu, bribeCost, bribeBlocked, tierOf, tierIndex,
+  return { tick, provoke, witnessAssault, knockedOut, jail, jailHero, jailCaptain, menu, bribeCost, bribeBlocked, tierOf, tierIndex,
     clinicScale, payoutShare, heatScale, knownHero, searchSpot, track, hq, box, mind, rules: R,
     saveState: () => ({ s, mind, track, hunted, nextOut, owed, nextPatrol, patrolOwed }),
     loadState: d => { if (!d) return; s = d.s; for (const [k, o] of Object.entries({ mind, track, hunted, nextOut, owed, nextPatrol, patrolOwed })) refill(o, d[k]); } };

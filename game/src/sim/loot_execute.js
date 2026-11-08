@@ -108,6 +108,7 @@ export function createLootExecute({ items, AGGRO, LOOT_REACH, addHeat, anchorOf,
     if (cop(e)) {
       state.casts.push({ a: e.id, kind: 'arrest', target: t.id, x: t.x, z: t.z });
       if (t.type === 'hero') police.jailHero(t);
+      else if (t.captain) { police.jailCaptain(t); removeUnit(t.id); }
       else { police.jail(t); removeUnit(t.id); }
       delete e.execute;
       return true;
@@ -116,7 +117,7 @@ export function createLootExecute({ items, AGGRO, LOOT_REACH, addHeat, anchorOf,
     t.dead = true;
     t.diedAt = state.tick;
     state.casts.push({ a: e.id, kind: 'execute', target: t.id, x: t.x, z: t.z });
-    if (civ(t)) { addHeat(e.owner, heatFor('kill'), 'Townsperson killed'); police?.witnessAssault(e, t); }
+    if (civ(t) && t.place !== 'world') { addHeat(e.owner, heatFor('kill'), 'Townsperson killed'); police?.witnessAssault(e, t); }
     else {
       payExecute(e, t, state.casts[state.casts.length - 1]);
       items?.defeat(e,t);

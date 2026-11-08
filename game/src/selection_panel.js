@@ -67,19 +67,24 @@ export function unitWhere(e, state, district, info = {}) {
 const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
 
 // skip(ids): hide the panel for this selection (a lone enemy or townsperson shows in the target frame instead)
-export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false, hideOwnedBy = () => null, onInspect = () => {} }) {
+// workers(): town workers picked with a box (Tim 2026-11-08): [{ id, wid, status, ...unit-like }] when two or more are
+// selected; a card click asks pickWorker(wid) to select just that one (it then shows in the target frame)
+export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false, hideOwnedBy = () => null, onInspect = () => {}, workers = () => [], pickWorker = () => {} }) {
   let shown = '';
   const cards = {};
   root.addEventListener('mousedown', e => {
     const card = e.target.closest('.card');
+    if (card?.dataset.wid) { pickWorker(card.dataset.wid); return; }
     if (card) {crewInput.select([card.dataset.id]);onInspect(card.dataset.id);}
   });
 
   function update() {
-    const unit = id => game.state.entities[id] || prisonerOf(game.state, id);
-    const ids = crewInput.selected().filter(unit);
+    const picked = crewInput.selected().length ? [] : workers();
+    const byId = picked.length ? Object.fromEntries(picked.map(w => [w.id, w])) : null;
+    const unit = id => byId ? byId[id] : game.state.entities[id] || prisonerOf(game.state, id);
+    const ids = byId ? picked.map(w => w.id) : crewInput.selected().filter(unit);
     const owner = hideOwnedBy();
-    root.hidden = !ids.length || (owner && ids.every(id => unit(id).owner === owner)) || skip(ids);
+    root.hidden = !ids.length || (!byId && ((owner && ids.every(id => unit(id).owner === owner)) || skip(ids)));
     if (root.hidden) return;
     root.classList.toggle('many', ids.length > 8);
     const key = ids.join(',');
@@ -92,6 +97,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
         const c = document.createElement('div');
         c.className = 'card';
         c.dataset.id = id;
+        if (e.wid != null) c.dataset.wid = e.wid;
         c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
         c.querySelector('b').textContent = ((e.cannon || e.surveyor) && e.name) || entityName(units, e, e.civ || e.type);
         root.appendChild(c);
@@ -107,7 +113,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       const { frac, color } = healthBar(e.hp, e.maxHp);
       k.fill.style.width = `${frac * 100}%`;
       k.fill.style.background = css(color);
-      const st = unitStatus(e, game.state);
+      const st = e.status ?? unitStatus(e, game.state);
       if (k.status.textContent !== st) k.status.textContent = st;
       const at = where(e);
       if (k.where.textContent !== at) k.where.textContent = at;

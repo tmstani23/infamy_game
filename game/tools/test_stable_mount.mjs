@@ -125,21 +125,25 @@ for (const b of town.buildings) if (b.type === 'stable') b.stableJobs = [];
 // --- select crew and right-click a horse (Tim 2026-11-07): the nearest rides it, the others take free horses ------
 {
   if (hero.mounted) g.step([{ id: hero.id, type: 'mount' }]);
-  // h1: the hero's own mount (clicking a horse picks her even so), h2: another free one
+  // h1: the hero's own mount, h2: another free one
   const h1 = horses().find(h => h.id === clan.mount), h2 = horses().find(h => h.id !== clan.mount && !h.rider && !h.stored && h.place === 'world');
   assert.ok(h1 && h2, 'two horses out');
   const mk = dx => S.entities[g.spawn('thug', 'thug', h1.x + dx, h1.z, { owner: 'player', place: 'world', hp: 100, maxHp: 100 })];
   const a = mk(1), b2 = mk(2.5);
   Object.assign(h2, { x: h1.x + 60, z: h1.z });
+  // the boss's own mount carries only him (Tim 2026-11-08): crew sent onto her are refused, with a cue on her
   g.step([{ id: hero.id, type: 'mount', horse: h1.id, units: [b2.id, a.id] }]);
-  assert.ok(a.mounted && a.ride.horse === h1.id, 'the nearest crew member rides the clicked horse');
+  assert.ok(!a.mounted && !b2.mounted && !h1.rider, 'no crew on the boss\'s horse');
+  assert.ok(S.casts.some(c => c.kind === 'refuseMount' && c.a === h1.id), 'she refuses them (refuseMount)');
+  // another horse: the nearest crew member rides her (she comes over), right-click again and he gets off
+  g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [b2.id, a.id] }]);
   assert.ok(!hero.mounted, 'the hero stays on foot');
-  assert.equal(h2.called, b2.id, 'the next free horse comes to the other');
-  for (let t = 0; t < 200 && !b2.mounted; t++) g.step([]);
-  assert.ok(b2.mounted && b2.ride.horse === h2.id, 'and he rides her');
-  g.step([{ id: hero.id, type: 'mount', horse: h1.id, units: [a.id] }]);
-  assert.ok(!a.mounted && !h1.rider, 'right-click the horse he rides: he gets off');
-  g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [b2.id] }]);
+  assert.ok([a.id, b2.id].includes(h2.called), 'the clicked horse comes to the nearest');
+  const rider = S.entities[h2.called];
+  for (let t = 0; t < 200 && !rider.mounted; t++) g.step([]);
+  assert.ok(rider.mounted && rider.ride.horse === h2.id, 'and he rides her');
+  g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [rider.id] }]);
+  assert.ok(!rider.mounted && !h2.rider, 'right-click the horse he rides: he gets off');
   for (const u of [a, b2]) delete S.entities[u.id];
 }
 
@@ -212,7 +216,7 @@ g.step([{ id: hero.id, type: 'rickshaw', to: 'tS' }]);
 assert.equal(hero.place, 'world', 'back out at Stableton');
 assert.ok(Math.hypot(hero.x - sx, hero.z - sz) < 40);
 
-// --- whistles (Tim 2026-11-07): one per horse; far or lost horses appear beside you; a dead one takes hers ---------
+// --- whistles (Tim 2026-11-07): one per horse; far or lost horses turn up a little way off and gallop in; a dead one takes hers ---------
 Object.assign(hero, { place: 'world', x: town.x + 40, z: town.z + 40 }); if (hero.mounted) g.step([{ id: hero.id, type: 'mount' }]);
 const ws = () => clan.whistles || [];
 assert.equal(ws().length, horses().filter(h => !h.dead).length, `a whistle per horse (${ws().length})`);
@@ -220,7 +224,16 @@ const far = horses().find(h => h.id !== clan.mount);
 Object.assign(far, { x: hero.x + 900, z: hero.z });
 g.step([{ id: hero.id, type: 'mount', whistle: far.id }]);
 assert.equal(clan.mount, far.id, 'the whistle makes her the mount');
-assert.ok(Math.hypot(far.x - hero.x, far.z - hero.z) < 5, `far away: she appears beside you (${Math.hypot(far.x - hero.x, far.z - hero.z).toFixed(1)})`);
+{ const d = Math.hypot(far.x - hero.x, far.z - hero.z);   // Tim 2026-11-08: out of sight, then she gallops in
+  assert.ok(d > 20 && d < 60 && far.called === hero.id, `far away: she turns up a little way off and gallops in (${d.toFixed(1)})`); }
+for (let t = 0; t < 120 && !hero.mounted; t++) g.step([]);
+assert.ok(hero.mounted && hero.ride.horse === far.id, 'she came in and he is up');
+g.step([{ id: hero.id, type: 'mount' }]);
+// H does the same for a far horse (Tim 2026-11-08: H is the whistle)
+Object.assign(far, { x: hero.x + 900, z: hero.z });
+g.step([{ id: hero.id, type: 'mount' }]);
+assert.ok(far.called === hero.id && Math.hypot(far.x - hero.x, far.z - hero.z) < 60, 'H: a far horse turns up nearby and gallops in');
+delete far.called;
 const near = horses().find(h => h.id !== far.id);
 Object.assign(near, { x: hero.x + 40, z: hero.z });
 g.step([{ id: hero.id, type: 'mount', whistle: near.id }]);
@@ -230,7 +243,7 @@ assert.ok(hero.mounted && hero.ride.horse === near.id, 'she arrived and he is up
 g.step([{ id: hero.id, type: 'mount' }]);
 const lostName = far.name; delete S.entities[far.id];
 g.step([{ id: hero.id, type: 'mount', whistle: far.id }]);
-const back = horses().find(h => h.name === lostName && !h.dead && Math.hypot(h.x - hero.x, h.z - hero.z) < 5);
+const back = horses().find(h => h.name === lostName && !h.dead && Math.hypot(h.x - hero.x, h.z - hero.z) < 60);
 assert.ok(back && clan.mount === back.id && ws().some(w => w.horse === back.id), 'a horse lost after a load comes back to her whistle');
 back.dead = true; for (let t = 0; t < 21; t++) g.step([]);
 assert.ok(!ws().some(w => w.horse === back.id), 'a dead horse takes her whistle with her');

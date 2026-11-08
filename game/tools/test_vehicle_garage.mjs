@@ -53,7 +53,8 @@ gcmd('takeout', rk.id);
 assert.ok(!rk.stored && rk.place === 'world' && Math.hypot(rk.x - sx, rk.z - sz) < 25, 'out beside the stable');
 // a stored horse answers her whistle
 g.step([{ id: hero.id, type: 'mount', whistle: horse.id }]);
-assert.ok(!horse.stored && horse.place === 'world' && Math.hypot(horse.x - hero.x, horse.z - hero.z) < 5, 'whistled out of the stable');
+assert.ok(!horse.stored && horse.place === 'world' && Math.hypot(horse.x - hero.x, horse.z - hero.z) < 60 && horse.called === hero.id, 'called out of the stable: she gallops in');
+delete horse.called;
 // stuck: no closer for a few seconds, it is stored anyway
 horse.recall = { town: 'tS', x: sx, z: sz, best: 1, tick: S.tick };
 for (let t = 0; t < 6 * 20 + 2 && !horse.stored; t++) g.step([]);

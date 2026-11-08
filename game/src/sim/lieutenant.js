@@ -96,7 +96,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
       if (away(id)) r.awaySince ??= day(); else delete r.awaySince;
       if (away(id) && !cap) {
         const h = hq(id), d = h && doors.find(x => x.to && !x.ninja && x.place === h.room), t = units?.types?.[R.captain];
-        if (!d || !t) continue;
+        if (!d || !t || (c?.captainJailedUntil ?? -1) > state.tick) continue;   // arrested: serving his time (sim/police.js jailCaptain)
         if (r.captainDue !== undefined) {
           if (state.tick < r.captainDue) continue;
           const fee = Math.min(R.captainFee || 0, Math.max(0, c?.ryo || 0));

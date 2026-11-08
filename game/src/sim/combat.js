@@ -290,8 +290,10 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // Red Lantern: heal part of the damage dealt
     const steal = stats.lifesteal(a);
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
-    if (civ(t)) addHeat(a.owner, heatFor('hit'), 'Assault');
-    if (civ(t) && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
+    // townsfolk out on the island raise no city heat: the city police stop at the gate (Tim 2026-11-08, heat climbed
+    // to 1487 from frontier fights; frontier heat is a later phase)
+    if (civ(t) && t.place !== 'world') addHeat(a.owner, heatFor('hit'), 'Assault');
+    if (civ(t) && t.place !== 'world' && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
     if (civ(t)) police?.witnessAssault(a, t);
     if (wild(t)) bandits.provoke(t, a.owner);
     if (cop(a)) t.copHitAt = state.tick;     // the police box won't take a bribe right after (sim/police.js)
