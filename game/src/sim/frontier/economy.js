@@ -6,7 +6,7 @@
 // Per-town state is plain data on the settlement record (mood, safety, taxLevel, ...), created
 // lazily by init(), so older saves without these fields still run.
 import { residents } from './people.js';
-import { isFull, storageCap } from './storage.js';
+import { isFull, storageCap, defaultKeep } from './storage.js';
 import { upgradeTick } from './tiers.js';
 import { noteArrival, noteTierUp } from './arrivals.js';
 import { foldFlow } from './flow.js';
@@ -242,7 +242,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   function market(s) {
     const mk = data.market;
     if (!mk || !s.buildings.some(b => b.type === 'market' && b.stage === 'built')) return;
-    const keep = s.marketKeep ?? mk.keep, sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
+    const keep = s.marketKeep ?? defaultKeep(s, data, 'goods'), sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
     if (sell <= EPS) return;
     world.change(s.id, 'goods', -sell, 'market');
     // C4: each Influence tier of the owner raises the export price; sales count as frontier trade

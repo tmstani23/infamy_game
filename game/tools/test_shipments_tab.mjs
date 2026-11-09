@@ -9,6 +9,7 @@ import { resourceUsage } from '../src/sim/frontier/resource_usage.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), frontier = data('data/frontier.json'), railways = data('data/railways.json');
+railways.ship.keepShare = 0;   // these tests use the fixed keep defaults (keepShare is tested in test_shipments)
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),

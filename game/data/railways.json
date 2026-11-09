@@ -61,7 +61,8 @@
     "sellPrice": { "food": 2, "timber": 2, "stone": 3, "goods": 5 },
     "sell": { "on": true, "aboveShare": 0.7, "batch": 120 },
     "maxAuto": 4,
-    "keepMax": 100000
+    "keepMax": 100000,
+    "keepShare": 0.5, "_keepShare": "default keep amount = this share of the town storage cap per resource (goods too: market hold-back); a keep the player sets wins"
   },
   "train": {
     "_note": "placeholder, Tim to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end (Tim 2026-11-07: 60, long enough to walk over and board). cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first). viewSpeed (Tim 2026-11-07) = its speed while someone rides it or a player hero is within viewRange of the engine (a little under a horse, 22.5); with nobody near it runs at speed, so arrival times hold.",

@@ -4,9 +4,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
+import { storageCap } from '../src/sim/frontier/storage.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), frontier = data('data/frontier.json'), railways = data('data/railways.json');
+railways.ship.keepShare = 0;   // these tests use the fixed keep defaults (keepShare is tested in test_shipments)
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
@@ -71,6 +73,7 @@ assert.equal(orders().filter(x => x.auto && x.to === 'tB').length, railways.ship
 const A = F.settlements.tA;
 delete A.keep;
 assert.equal(sh.keepOf(A, 'timber'), railways.ship.keep.timber, 'default keep');
+railways.ship.keepShare = 0.5; assert.equal(sh.keepOf(A, 'timber'), Math.floor(storageCap(A, { ...frontier, railways }, 'timber') * 0.5), 'default keep = half the storage cap'); railways.ship.keepShare = 0;
 cmd({ mode: 'keep', town: 'tA', resource: 'timber', keep: 150 });
 assert.equal(sh.keepOf(A, 'timber'), 150);
 assert.equal(sh.free(A, 'timber'), 50, 'stock 200 - keep 150');

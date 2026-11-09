@@ -2665,7 +2665,7 @@ approach on water, so they also run when nobody is watching. Because the
 
 **Rail shipments S1-S6 (2026-11-09):** `sim/frontier/shipments.js`; state in `state.frontier.shipping`; data in the `railways.json` `ship` block.
 - Orders are filled first from the nearest linked town with spare stock; the rest is bought from the capital. Towns can also sell to the capital.
-- Keep amounts reserve stock in each town; the goods keep is the market hold-back. Storage is per resource.
+- Keep amounts reserve stock in each town; the goods keep is the market hold-back. Storage is per resource. Default keep = keepShare (0.5) × storage cap per resource (`sim/frontier/storage.js` defaultKeep; goods: market hold-back too); a keep the player sets wins.
 - Order cap: queueTrips (3) trainloads per line at the town, Sell orders included.
 - Rail clerk: auto orders, and sells goods above 70% of storage; runs only with governor Initiative On.
 - Robbery gameplay is not built; `shipments.rob()` exists for it to call.

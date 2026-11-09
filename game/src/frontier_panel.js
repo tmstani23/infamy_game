@@ -7,6 +7,7 @@ import {resourceUsage} from './sim/frontier/resource_usage.js';
 import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js';
 import { reportRows, governorSays, talkCommand } from './frontier_report.js';
 import { tierOf, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
+import { defaultKeep } from './sim/frontier/storage.js';
 import { workerCount } from './sim/frontier/people.js';
 import { createShipmentsTab } from './shipments_tab.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -104,7 +105,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     // Tim 2026-11-09: one goods keep for the market and rail shipments, so it shows with a market or a rail line
     const hasMarket = s.buildings?.some(x => x.type === 'market' && x.stage === 'built');
     if (data?.market && (hasMarket || railLinked(s))) {
-      const keep = s.marketKeep ?? data.market.keep, step = 100;
+      const keep = s.marketKeep ?? defaultKeep(s, data, 'goods'), step = 100;
       x += `<div class="row">${label('Goods keep', hasMarket ? `market sells and trains ship only above ${keep}` : `trains ship goods only above ${keep}`, `Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second. The same level is the goods keep amount for rail shipments (Shipments tab).`)}<span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} <input class="keepin" type="number" min="0" max="${data.market.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput"${tip('Type how many goods to keep, then Enter')}> ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>`;
     }
     // Stockade garrison (Tim 2026-11-06): shelter units inside a finished stockade

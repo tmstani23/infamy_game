@@ -22,7 +22,7 @@
 // Command { type: 'frontier', action: 'ship', mode: 'order', town, resource, amount, [pin, urgent, ryo, auto] }
 //   | { mode: 'cancel', order } | { mode: 'keep', town, resource, keep } | { mode: 'budget', town, ryo, [autoBuy] }
 // createShipments({ state, data, world }) -> { command, linked, keepOf, reservedOf, free, openIncoming, accept, release }
-import { storageCap } from './storage.js';
+import { storageCap, defaultKeep } from './storage.js';
 
 export function createShipments({ state, data, world }) {
   const S = () => data.railways?.ship || {};
@@ -32,7 +32,7 @@ export function createShipments({ state, data, world }) {
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
 
   // goods: ONE level with the market's hold-back (Tim 2026-11-09), s.marketKeep (default data.market.keep)
-  const keepOf = (s, res) => res === 'goods' && data.market ? s.marketKeep ?? data.market.keep ?? 0 : s.keep?.[res] ?? S().keep?.[res] ?? 0;
+  const keepOf = (s, res) => (res === 'goods' && data.market ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res);
   const reservedOf = (s, res) => s.reserved?.[res] ?? 0;
   const free = (s, res) => Math.max(0, (s.stock?.[res] ?? 0) - keepOf(s, res) - reservedOf(s, res));
   const openIncoming = (id, res) => orders().filter(o => o.state === 'open' && o.to === id && o.resource === res).reduce((a, o) => a + o.amount - o.got, 0);

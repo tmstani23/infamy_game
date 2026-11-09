@@ -7,6 +7,7 @@ import { setupMatch } from '../src/sim/setup_match.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), frontier = data('data/frontier.json'), railways = data('data/railways.json');
+railways.ship.keepShare = 0;   // these tests use the fixed keep defaults (keepShare is tested in test_shipments)
 railways.ship.wagonLoad = 60;
 railways.train.stopSeconds = 5;
 railways.train.consist = ['carriage', 'goods', 'goods', 'guard'];   // two goods wagons: 120 a trip

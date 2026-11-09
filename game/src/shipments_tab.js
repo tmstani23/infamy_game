@@ -4,6 +4,7 @@
 // { type: 'frontier', action: 'ship', ... } commands (sim/frontier/shipments.js).
 // createShipmentsTab({ game, data, cmd, usage }) -> { html(s), click(dataset, s) }   (usage = resourceUsage)
 import { createRailLedger } from './rail_ledger.js';
+import { defaultKeep } from './sim/frontier/storage.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
 const cap1 = r => r[0].toUpperCase() + r.slice(1);
@@ -21,7 +22,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const links = owner => Object.values(F().rail?.links || {}).filter(l => l.owner === owner && l.done && !l.closed);
   const hasLine = s => links(s.owner).some(l => l.from === s.id || l.to === s.id);
   const name = id => id === 'capital' ? 'the capital' : F().settlements?.[id]?.name || id;
-  const keepOf = (s, r) => r === 'goods' && data?.market ? s.marketKeep ?? data.market.keep ?? 0 : s.keep?.[r] ?? SH().keep?.[r] ?? 0;   // goods = the market hold-back
+  const keepOf = (s, r) => (r === 'goods' && data?.market ? s.marketKeep : s.keep?.[r]) ?? (data ? defaultKeep(s, data, r) : 0);   // goods = the market hold-back
   const capOf = (s, r) => { const st = data?.storage; if (!st || st.uncapped?.includes(r)) return Infinity; const c = st.caps || []; return (c[Math.min(c.length, Math.max(1, s.tier || 1)) - 1] ?? Infinity) + (st.perStorehouse || 0) * (s.buildings || []).filter(b => b.type === 'storehouse' && b.stage === 'built').length; };
   const moving = id => { let n = 0; for (const t of Object.values(F().rail?.trains || {})) for (const c of t.freight || []) if (c.order === id) n += c.amount; return n; };
   const incoming = (s, r) => orders().filter(o => o.state === 'open' && o.to === s.id && o.resource === r).reduce((a, o) => a + o.amount - o.got, 0);
