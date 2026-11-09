@@ -303,6 +303,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   });
   card.addEventListener('mousedown', e => { inspectionPressed = true; e.stopPropagation(); });
   review.addEventListener('mousedown', e => { reviewPressed = true; e.stopPropagation(); });
+  // typed worker count (Tim 2026-11-09: number settings are typeable boxes)
+  review.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
+  review.addEventListener('change', e => {
+    if (!e.target.hasAttribute?.('data-training-input') || !pendingPlan?.request) return;
+    pendingPlan.request.count = Math.max(1, Math.round(Number(e.target.value)) || 1); reviewHtml = '';
+  });
   review.addEventListener('click', e => {
     reviewPressed = false;
     const b = e.target.closest('button');
@@ -451,10 +457,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         const isTraining=pendingPlan.request.action==='train';
         const result = isTraining?workerTrainingPreview(plannedTown,pendingPlan.request.count,data):previewBuild(plannedTown,pendingPlan.request), enough = affordable(plannedTown,result.cost);
         const requirements=pendingPlan.request.action==='remove' ? '100% refund: '+(Object.entries(result.refund || {}).map(([r,n])=>`${n} ${r}`).join(', ') || 'no paid resources') : resourceRequirements(plannedTown,result.cost,isTraining?result.people:0);
-        const quantity=isTraining?`<div><button data-training-count="-1">−</button> ${pendingPlan.request.count} workers <button data-training-count="1">+</button></div><div>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. Training time: ${pendingPlan.request.count*data.workers.trainTicks/20}s, plus existing queue.</div>`:'';
+        const quantity=isTraining?`<div><button data-training-count="-1">−</button> <input type="number" class="numbox" min="1" data-training-input value="${pendingPlan.request.count}"> workers <button data-training-count="1">+</button></div><div>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. Training time: ${pendingPlan.request.count*data.workers.trainTicks/20}s, plus existing queue.</div>`:'';
         const html = `<b>${esc(townName(pendingPlan.tool))}${isTraining?'':' · '+(result.cells?.length || pendingPlan.request.cells.length)+' cell(s)'}</b>${quantity}<div class="requirements">${esc(requirements)}</div>`
           + `<div>${esc(result.reason || result.warning || '')}</div><button data-confirm ${result.ok && enough ? '' : 'disabled'}>Confirm</button><button data-cancel>Cancel</button>`;
-        if (html !== reviewHtml && !reviewPressed) { review.innerHTML = html; reviewHtml = html; }
+        if (html !== reviewHtml && !reviewPressed && !(document.activeElement?.hasAttribute?.('data-training-input') && review.contains(document.activeElement))) { review.innerHTML = html; reviewHtml = html; }
       }
     }
     if (!show) { hint.hidden = true; return; }

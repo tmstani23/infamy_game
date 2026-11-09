@@ -84,9 +84,16 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
     send(patient !== null ? { id: heroId, type: 'dismiss', patient, business: b.id } : { id: heroId, type: 'dismiss', unit: id, business: b.id });
   }
 
+  const maxQty = () => Math.max(units.rules.maxQueue, units.rules.settlers?.maxQueue || 10);
+  // typed hire count (Tim 2026-11-09: number settings are typeable boxes)
+  panel.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
+  panel.addEventListener('change', e => {
+    if (!e.target.hasAttribute?.('data-hire-input')) return;
+    quantity = Math.max(1, Math.min(maxQty(), Math.round(Number(e.target.value)) || 1)); shown = ''; update();
+  });
   panel.addEventListener('click', e => {
     const change=e.target.closest?.('[data-hire-quantity]')?.dataset.hireQuantity;
-    if(change) {quantity=Math.max(1,Math.min(Math.max(units.rules.maxQueue,units.rules.settlers?.maxQueue || 10),quantity+Number(change)));shown='';update();return;}
+    if(change) {quantity=Math.max(1,Math.min(maxQty(),quantity+Number(change)));shown='';update();return;}
     const unqueue=e.target.closest?.('[data-hire-unqueue]')?.dataset.hireUnqueue;
     if(unqueue!==undefined) {send({id:heroId,type:'hire',action:'cancel',index:Number(unqueue)});queueShown='';return;}
     if(e.target.closest?.('[data-hire-cancel]')) {planned=null;shown='';update();return;}
@@ -157,7 +164,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
       const limit = room(unit), seconds = t.hireSeconds * factor * quantity, ok = c.ryo >= total && quantity <= limit;
       const why = c.ryo < total ? `${Math.ceil(total - c.ryo)} ryo short` : quantity > limit ? (limit > 0 ? `room for ${limit}` : 'no room: crew cap or queue full') : `${seconds} s to train`;
       bar = `<div class="hm-bar"><span class="hm-pick">${escapeHireText(t.name || title(unit))}</span>`
-        + `<span class="hm-qty"><button data-hire-quantity="-1" ${quantity > 1 ? '' : 'disabled'}>−</button><b>${quantity}</b><button data-hire-quantity="1">+</button></span>`
+        + `<span class="hm-qty"><button data-hire-quantity="-1" ${quantity > 1 ? '' : 'disabled'}>−</button><input type="number" class="numbox" min="1" data-hire-input value="${quantity}"><button data-hire-quantity="1">+</button></span>`
         + `<span class="hm-total"><b>${total} ryo</b><small class="${ok ? '' : 'bad'}">${why}</small></span>`
         + `<button class="hm-cancel" data-hire-cancel>Cancel</button><button class="hm-go" data-hire-confirm ${ok ? '' : 'disabled'}>Hire ${quantity}</button></div>`;
     }
@@ -185,7 +192,8 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const head = `<div class="hm-head"><h3>${b.kind === 'hideout' ? 'YOUR HIDEOUT' : 'HIRE CREW'}</h3><span>Crew <b>${crew + crewQueued} / ${cap}</b> · <b>${Math.floor(c.ryo).toLocaleString()}</b> ryo</span></div>`;
     const html = `${head}${navigation}${dismissView ? dismiss : `<div class="hm-grid">${cards}</div>${pager(pages, page)}${bar}${waiting}`}${notice}<div class="waiting">${dismissView ? 'Select crew above' : 'Hover a card for full stats'} · H / Esc close</div>`;
-    if (html !== shown) { panel.innerHTML = html; shown = html; }
+    const typing = document.activeElement?.hasAttribute?.('data-hire-input') && panel.contains(document.activeElement);
+    if (html !== shown && !typing) { panel.innerHTML = html; shown = html; }
     const progress=panel.querySelector?.('[data-hire-training]'),h=c.queue[0];
     if(progress)progress.innerHTML=h?trainingBar(units.types[h.unit]?.name || title(h.unit),h.left,h.duration || units.types[h.unit].hireSeconds*(game.state.businesses[h.business]?.kind==='hideout'?(units.rules.hideout?.hireTimeFactor || 1):1)):'';
     // the queue list is only rebuilt when it changes, so its cancel buttons take clicks

@@ -207,7 +207,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   root.addEventListener('change', e => {
     if (e.target.dataset?.act === 'keepinput') { const s = pick(), v = Math.round(Number(e.target.value)); if (s && Number.isFinite(v) && v >= 0) cmd({ action: 'setMarketKeep', settlement: s.id, keep: v }); lastHtml = ''; render(); return; }
-    if (e.target.dataset?.act === 'shipinput') { shipTab.input(e.target.dataset, e.target.value); lastHtml = ''; render(); return; }
+    if (e.target.dataset?.act === 'shipinput') { shipTab.input(e.target.dataset, e.target.value, pick()); lastHtml = ''; render(); return; }
     const s=pick();if(s && buildUI?.change?.(e.target.dataset,e.target.value,s)) {lastHtml='';render();}
   });
   root.addEventListener('click', e => {

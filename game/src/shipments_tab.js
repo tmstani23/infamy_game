@@ -54,9 +54,14 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const CAP_TIP = 'Order cap: your own open orders into this town can add up to 3 trainloads for each rail line here, so new orders arrive within a few trips. It frees up as cargo is delivered. Build more lines to this town to raise it.';
   const capLine = (q, word) => `<div class="shnote dim"${tip(CAP_TIP.replace('3', SH().queueTrips ?? 3).replace('orders into', word === 'sell' ? 'sales out of' : 'orders into'))}>Order cap ⓘ: <b class="gold">${q.left}</b> more now · ${q.queued} / ${q.cap} booked on trains</div>`;
   // typed amounts (Order / Sell boxes)
-  function input(d, v) {
-    const n = Math.max(SH().minOrder ?? 10, Math.round(Number(v)) || 0);
-    if (d.id === 'amt') form.amount = n; else if (d.id === 'samt') sale.amount = n; else return false;
+  function input(d, v, s) {
+    const raw = Math.max(0, Math.round(Number(v)) || 0), n = Math.max(SH().minOrder ?? 10, raw);
+    const [k, r] = String(d.id).split(':');
+    if (k === 'amt') form.amount = n;
+    else if (k === 'samt') sale.amount = n;
+    else if (k === 'keep' && s && RES().includes(r)) cmd({ action: 'ship', mode: 'keep', town: s.id, resource: r, keep: raw });
+    else if (k === 'bud' && s) cmd({ action: 'ship', mode: 'budget', town: s.id, ryo: raw });
+    else return false;
     return true;
   }
   function status(s, r) {
@@ -123,9 +128,9 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
         + `<button class="shbig go wide" data-act="ship" data-id="sellgo"${sale.amount > spare(sale.resource) || sale.amount > queue(s, true).left ? ' disabled' : ''}${tip(SELL_TIP)}>Sell ${sale.amount} ${sale.resource}</button>`;
     } else if (sub === 'keep') {
       h += '<div class="dim shnote">Never shipped out below the keep amount. The governor orders up to it. Goods: the same level as the market hold-back.</div>';
-      for (const r of RES()) h += `<div class="shrow keeprow"><span>${cap1(r)} <span class="dim">· stock ${Math.floor(s.stock[r] ?? 0)}${s.reserved?.[r] ? ` · reserved ${Math.floor(s.reserved[r])}` : ''}</span></span><span><button data-act="ship" data-id="keep:${r}:-10">−</button> <b class="gold">${keepOf(s, r)}</b> <button data-act="ship" data-id="keep:${r}:10">+</button></span></div>`;
+      for (const r of RES()) h += `<div class="shrow keeprow"><span>${cap1(r)} <span class="dim">· stock ${Math.floor(s.stock[r] ?? 0)}${s.reserved?.[r] ? ` · reserved ${Math.floor(s.reserved[r])}` : ''}</span></span><span class="shamt"><button data-act="ship" data-id="keep:${r}:-100">−100</button><input type="number" min="0" step="10" data-act="shipinput" data-id="keep:${r}" value="${keepOf(s, r)}"><button data-act="ship" data-id="keep:${r}:100">+100</button></span></div>`;
       const bud = s.shipBudget ?? SH().budget ?? 150;
-      h += `<div class="shrow keeprow"><span${tip('Auto orders may buy from the capital with up to this much ryo tied up at once. Off: the governor never buys or sells from the capital.')}>Auto-buy from the capital</span><span><button data-act="ship" data-id="autobuy" class="${s.autoBuy === false ? '' : 'on'}">${s.autoBuy === false ? 'Off' : 'On'}</button> <button data-act="ship" data-id="bud:-50">−</button> <b class="gold">${bud}</b> <button data-act="ship" data-id="bud:50">+</button></span></div>`;
+      h += `<div class="shrow keeprow"><span${tip('Auto orders may buy from the capital with up to this much ryo tied up at once. Off: the governor never buys or sells from the capital.')}>Auto-buy from the capital</span><span><button data-act="ship" data-id="autobuy" class="${s.autoBuy === false ? '' : 'on'}">${s.autoBuy === false ? 'Off' : 'On'}</button> <span class="shamt"><button data-act="ship" data-id="bud:-100">−100</button><input type="number" min="0" step="50" data-act="shipinput" data-id="bud" value="${bud}"><button data-act="ship" data-id="bud:100">+100</button></span></span></div>`;
     } else {
       const pages = Math.max(1, Math.ceil(open.length / PAGE)); page = Math.min(page, pages - 1);
       h += open.length ? open.slice(page * PAGE, page * PAGE + PAGE).map(o => orderRow(s, o, true)).join('') : '<div class="dim shnote">No open orders.</div>';

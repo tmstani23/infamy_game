@@ -57,6 +57,7 @@ press('keep:food:10');
 assert.equal(B.keep.food, k0 + 10, 'keep +');
 press('autobuy'); assert.equal(B.autoBuy, false, 'auto-buy off');
 press('bud:50'); assert.equal(B.shipBudget, railways.ship.budget + 50, 'budget +');
+assert.match(tab.html(B), /data-id="keep:food"/); assert.ok(tab.input({ id: 'keep:food' }, '2500', B)); assert.equal(B.keep.food, 2500, 'typed keep'); assert.ok(tab.input({ id: 'keep:goods' }, '2000', B)); assert.equal(B.marketKeep, 2000, 'typed goods keep'); assert.ok(tab.input({ id: 'bud' }, '900', B)); assert.equal(B.shipBudget, 900, 'typed budget');
 
 // Open tab: cancel
 press('sub:open');

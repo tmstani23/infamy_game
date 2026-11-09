@@ -4,6 +4,8 @@ Repo layout, look tests, sprite export and tech overview.
 
 **UI rule: no scrollbars anywhere in the game UI** (including browser number spinners and similar controls). Long content uses Previous/Next pages or is split into several menus or tabs.
 
+**UI rule: number settings are typeable boxes.** −/+ step buttons are only an extra beside the box where useful, never the only control.
+
 ## Tech
 
 The browser client uses JavaScript ES modules and three.js, with isometric character sprites rendered from 3D models. The simulation owns game rules and state; the client sends commands and renders the results. A local Node server serves the game and saves. The architecture is designed for multiplayer later; a networked multiplayer release is not built yet.
