@@ -579,3 +579,90 @@ The shrine and hut variants should share their underlying designs wherever compa
 ## Later
 - Ninja hero
 - Effects (slashes, muzzle flashes)
+
+# War concept prompts, minimum set (2026-11-09)
+
+Only art the war phase can't get by reusing what exists. A person is 2 game units tall.
+
+**Reused, no prompt needed:** watchtower (ninja village watchtower), stockade/fort cutout, smithy (armory), sawmill and quarry (lumber and stone camps), stable, station (camp station), infirmary (field clinic), ninja village dojo (hidden dojo), field cannon and wooden cannon (rigged), spear, rifle, revolver, wooden club and fuse bomb items, foreign gunslinger body (mercenary pistolmen), grunt and enforcer bodies (plus army kit). Town hall tier 1 and the clan castles wait for the art pass.
+
+
+---
+
+## Tencent models (3D, then rig)
+
+Characters: attach `hero1.png` as the style reference. After Tencent they go through Mixamo.
+
+### 1. Kunoichi (Shinobi second special) — `kunoichi1.png`, standalone character
+```
+Using the attached image as a style reference, make a full-body character concept of a kunoichi, a female shinobi agent in 1870s Japan, for a dark, stylized game, sleek and not cartoony. Lean and athletic, sharp watchful eyes, dark hair tied in a tight high knot. She wears a close-fitting charcoal and deep plum shinobi outfit: a short wrapped jacket with tied sleeves, a dark obi with a small tanto sheathed at the back, fitted trousers bound at the shins, split-toe tabi and a cloth mask pulled down around the neck. Front view, standing straight in an A-pose with the arms held slightly away from the body and the legs slightly apart, nothing in the hands. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, muted and moody colours. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+```
+
+### 2. Horokubiya fire-bomb thrower (Shinobi siege) — `fire_bomber1.png`, standalone character
+The bomb itself is the existing `fuse_bomb` item.
+```
+Using the attached image as a style reference, make a full-body character concept of a shinobi fire-bomb thrower in 1870s Japan for a dark, stylized game, sleek and not cartoony. A wiry, soot-marked man with a scarred face and a cloth tied over his head. He wears a dark, singed work jacket with tied sleeves, a thick leather apron, dark trousers bound at the shins and straw sandals. A wide shoulder strap carries a padded satchel of round clay fire pots at his hip, a coil of slow match is looped through his belt, and a short knife is tucked in the front. Front view, standing straight in an A-pose with the arms held slightly away from the body and the legs slightly apart, nothing in the hands. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, muted and moody colours. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+```
+
+### 3. Dog handler (Yakuza second special) — `dog_handler1.png`, standalone character
+His club is the existing `wooden_club` item.
+```
+Using the attached image as a style reference, make a full-body character concept of a yakuza dog handler in 1870s Japan for a dark, stylized game, sleek and not cartoony. A broad, rough-looking man with a shaved head, a heavy jaw and old bite scars on his forearms. He wears a short dark happi jacket open over a belly wrap, tattoos showing on his chest and arms, dark tight trousers and straw sandals. Thick leather bracers on both forearms, a coiled rope leash and a few short chains hang from his belt. Front view, standing straight in an A-pose with the arms held slightly away from the body and the legs slightly apart, nothing in the hands. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern), even lighting, muted and moody colours. Keep the exact same art style, rendering, level of realism, lighting, textures and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+```
+
+### 4. Tosa fighting dog — `tosa_dog1.png`, standalone animal
+Needs a run and a bite clip (rig like the horse pipeline, or a short 2D sprite loop).
+```
+Painted concept art in muted colours of a Japanese Tosa fighting dog in the 1870s: a large, heavy mastiff-type dog with a short fawn-red coat, a broad wrinkled head, a black muzzle, small folded ears, a thick neck and a deep chest. It wears a plain braided rope collar. Side view standing on all four legs, legs clearly separate, mouth closed, tail down. One single animal, whole body in frame, even lighting, transparent background, no people, no text.
+```
+
+### 5. Gatling gun (Kuroda second special) — `gatling1.png`, standalone prop
+The 2 crew reuse Kuroda grunt bodies with the army kit.
+```
+Painted concept art in muted colours of an 1870s Gatling gun on a two-wheeled field carriage, as bought by Japanese domains in the Boshin War era. A cluster of six dark steel barrels in a brass-banded housing, a side crank handle, a gravity-feed magazine on top, mounted on a dark wooden trail carriage with two large spoked wooden wheels and an iron-shod trail resting on the ground. The wheels and crank are clearly separate parts. One single object shown as a three-quarter side view, whole object in frame, even lighting, transparent background, no people, no text.
+```
+
+### 6. Warhorse — `warhorse1.png`, standalone animal
+Body only; the existing saddle is fitted on afterwards (`saddle_fit.py`), and the mare rig script is reused.
+```
+Painted concept art in muted colours of a big, powerful cavalry warhorse of the 1870s: a tall, heavy-boned horse with a deep chest, a thick arched neck, a dark bay coat, black mane and tail, and feathering at the lower legs. No saddle, no bridle, no tack. Side view standing square on all four legs, legs clearly separate, head up. One single animal, whole body in frame, even lighting, transparent background, no people, no text.
+```
+
+---
+
+## Item (slab)
+
+### 7. Sashimono back banner (army kit) — `sashimono.png`, standalone item
+Used for every army unit; the clan colour is tinted in the game, so the cloth is painted plain.
+```
+Painted concept art in muted colours of a single sashimono, a small Japanese war banner worn on a soldier's back in the 1870s: a tall, narrow, plain off-white cloth flag with no symbol or writing, hung from a thin dark lacquered wooden pole with a short crossbar at the top, and a small bracket at the bottom to fix it to a back harness. One single object, straight front view, whole object in frame, even lighting, transparent background, no people, no text.
+```
+
+---
+
+## Buildings (2D cutouts)
+
+Attach `frontier_buildings1.png` as the style reference.
+
+### 8. War camp sheet — `war_camp_buildings1.png`, six standalone buildings
+```
+Using the attached image as a style reference, paint one image with a 3 x 2 grid of six separate buildings for a field army camp outside an 1870s Japanese frontier town in a dark, stylized game, on a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern). Each building is a single standalone piece, fully separated with clear space around it, at the same scale as the reference, with light from the upper left. Painted, muted and moody colours, soft brush texture, weathered timber, canvas, thatch and dark tile roofs. Three-quarter top-down view like an isometric town map, with each building's door and open side facing down-left. No text, no symbols, no people, no animals, no ground tiles, and no cast shadow beyond a small soft contact shadow. Keep the exact same art style, rendering, level of realism, lighting and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+
+Buildings (footprint in grid cells):
+1. Camp hall (3 cells): a field headquarters, a large command tent of dark canvas on a raised timber floor with a low curtain wall of plain cloth panels around it, a camp table with maps under an awning, a tall plain banner pole and a war drum.
+2. Barracks (2 cells): a long timber barracks hall on stone footings, a dark tile roof, a row of shuttered windows, a weapon rack of spears and swords under the eaves, and a small drill bell on a post.
+3. Rifle range (2 cells): an open-fronted timber firing shed with a low roof, a long shooting bench, a rack of rifles and ammunition crates, and two straw target bales on posts at one end.
+4. Clan hall (2 cells): a fine, dark timber hall with a curved tile roof, lacquered pillars and plain cloth curtains at the entrance, two stone lanterns at the door; it looks more important than the other camp buildings.
+5. Supply tents (1 cell): two or three dark canvas tents with rice sacks, barrels and crates stacked between them under a tarpaulin.
+6. Kennel (1 cell): a low timber dog house with a slatted front, a fenced dirt run with stout posts, water troughs and chains hanging from pegs.
+```
+
+### 9. Palisade and gate — `palisade_pieces1.png`, joining pieces
+```
+Using the attached image as a style reference, paint one image with three separate pieces of a wooden palisade wall for an 1870s Japanese field camp in a dark, stylized game, with clear space between them, on a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern). The pieces are modular and must join seamlessly: 1) a straight wall section, 1 grid cell long, running from the upper left to the lower right, made of sharpened upright logs lashed with rope on a low earth bank; its two short ends are cut straight so copies join end to end with no visible seam; 2) a corner post piece, a thicker bound log post where two sections meet at a right angle; 3) a gate piece, the same height and depth as the wall section and 2 cells long, with two heavy log doors, closed, between two taller gate posts with a small plank walkway across the top. Same scale as the reference, three-quarter top-down view like an isometric town map, light from the upper left. Painted, muted and moody colours, soft brush texture. No text, no people, no ground tiles, no cast shadow beyond a small soft contact shadow. Keep the exact same art style, rendering, level of realism, lighting and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+```
+
+### 10. War camp banner — `war_banner1.png`, standalone prop
+```
+Using the attached image as a style reference, paint a single war camp banner prop for an 1870s Japanese field camp in a dark, stylized game: a tall nobori war banner, a long plain off-white vertical cloth with no symbol or writing, hung on a dark wooden pole with a crossbar, planted in a small mound of earth ringed with stones and a couple of stacked rice bales. About 4 game units tall (twice a person). Single standalone object, three-quarter top-down view like an isometric town map, light from the upper left. Painted, muted and moody colours, soft brush texture. On a transparent background (if true transparency is not possible, a flat solid single-colour background with no shadow, gradient or checkerboard pattern). No text, no people, no ground tiles, no cast shadow beyond a small soft contact shadow. Keep the exact same art style, rendering, level of realism, lighting and detail as the attached image; do not restyle it or make it flatter or more cartoony.
+```
