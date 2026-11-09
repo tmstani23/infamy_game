@@ -192,7 +192,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${c.notice.text}</div>` : '';
     const head = `<div class="hm-head"><h3>${b.kind === 'hideout' ? 'YOUR HIDEOUT' : 'HIRE CREW'}</h3><span>Crew <b>${crew + crewQueued} / ${cap}</b> · <b>${Math.floor(c.ryo).toLocaleString()}</b> ryo</span></div>`;
     const html = `${head}${navigation}${dismissView ? dismiss : `<div class="hm-grid">${cards}</div>${pager(pages, page)}${bar}${waiting}`}${notice}<div class="waiting">${dismissView ? 'Select crew above' : 'Hover a card for full stats'} · H / Esc close</div>`;
-    const typing = document.activeElement?.hasAttribute?.('data-hire-input') && panel.contains(document.activeElement);
+    const typing = typeof document !== 'undefined' && document.activeElement?.hasAttribute?.('data-hire-input') && panel.contains(document.activeElement);
     if (html !== shown && !typing) { panel.innerHTML = html; shown = html; }
     const progress=panel.querySelector?.('[data-hire-training]'),h=c.queue[0];
     if(progress)progress.innerHTML=h?trainingBar(units.types[h.unit]?.name || title(h.unit),h.left,h.duration || units.types[h.unit].hireSeconds*(game.state.businesses[h.business]?.kind==='hideout'?(units.rules.hideout?.hireTimeFactor || 1):1)):'';

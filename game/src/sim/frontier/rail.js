@@ -24,7 +24,7 @@ import { dirIndex } from '../geometry.js';
 
 export function createRail({ state, data, world, worldData, stable }) {
   const R = data.railways, L = () => R?.link || {}, GANG = () => R?.gang || {};
-  let grid = null, runtime = null, arriveHook = null, departHook = null;
+  let grid = null, runtime = null, arriveHook = null, departHook = null, tearHook = null;
   const G = () => grid ||= worldData && R?.route ? createRailGrid(worldData, R.route) : null;
   const rec = () => { const r = state.frontier.rail ||= { seq: 0, links: {} }; r.trains ||= {}; return r; };
   const T = () => R?.train || {};
@@ -134,6 +134,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       for (const t of Object.values(rec().trains)) if (t.link === l.id) { for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; }
       dropGang(l); unreserve(l); delete rec().links[l.id];
     }
+    if (gone.length) tearHook?.(id, owner);   // shipments: yard cargo into the town, stranded reservations released
     if (gone.length && state.clans?.[owner]) state.clans[owner].notice = { tick: state.tick, text: `${gone.length === 1 ? 'Its railway line was' : `${gone.length} railway lines were`} torn up with the station` };
     return gone.length;
   }
@@ -400,6 +401,6 @@ export function createRail({ state, data, world, worldData, stable }) {
   }
 
   function attach(services) { runtime = services; }
-  const setShipping = (arrive, depart) => { arriveHook = arrive; departHook = depart; };
+  const setShipping = (arrive, depart, tear = null) => { arriveHook = arrive; departHook = depart; tearHook = tear; };
   return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
 }

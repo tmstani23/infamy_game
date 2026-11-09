@@ -52,7 +52,7 @@ state.news=[
   {kind:'renown',clan:'player',amount:0,reason:'Sweep secured'},
   {kind:'sweepSuccess',clan:'player',sector:'ward',ryo:0,scattered:0},
 ];ui.update();
-assert.deepEqual(calls.filter(c=>c[0].includes('Renown')), [
+assert.deepEqual(calls.filter(c=>c[0].includes('Renown')).map(c=>c.slice(0,2)), [
   ['Sweep secured · +37 Renown','win'], ['Sector cleared · +5 Renown','win'],
 ], 'only actual positive owner rewards appear; configured amounts and separately earned sector-clear reward are preserved');
 assert.equal(state.news[0].amount,37,'callout does not mutate reward data');

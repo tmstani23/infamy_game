@@ -266,7 +266,11 @@ export function createShipments({ state, data, world }) {
       if (n <= 0) continue;
       c.amount -= n; loot[c.resource] = (loot[c.resource] || 0) + n;
       const o = rec().orders[c.order];
-      if (o) { o.lost = (o.lost || 0) + n; (o.losses ||= []).push({ tick: state.tick ?? 0, amount: n, train: t.id, by }); if (o.kind === 'sell' || o.state !== 'open') continue; }
+      if (o) {
+        o.lost = (o.lost || 0) + n; (o.losses ||= []).push({ tick: state.tick ?? 0, amount: n, train: t.id, by });
+        // a sale that was robbed is a smaller sale (nothing re-sends it); done when what is left has arrived
+        if (o.kind === 'sell' && o.state === 'open') { o.amount = Math.max(o.got, o.amount - n); if (o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; } }
+      }
     }
     t.freight = freight.filter(c => c.amount > 1e-9);
     t.robbed = state.tick ?? 0;
@@ -308,7 +312,7 @@ export function createShipments({ state, data, world }) {
   function econTick() {
     // keep the newest ended orders for the Rail ledger's Delivered / Losses tabs, drop older ones
     const ended = orders().filter(o => o.state !== 'open').sort((a, b) => (b.done ?? 0) - (a.done ?? 0));
-    for (const o of ended.slice(S().keepEnded ?? 40)) delete rec().orders[o.id];
+    for (const o of ended.slice(S().keepEnded ?? 40)) if (inFlight(o.id) <= 1e-9) delete rec().orders[o.id];   // cargo still on its way keeps its order (it is delivered on arrival)
     if ((state.frontier.econTick ?? 0) % (data.governor?.reviewTicks || 1) === 0) coverManual();
   }
 
@@ -346,5 +350,27 @@ export function createShipments({ state, data, world }) {
     }
   }
 
-  return { clerk, coverManual, econTick, command, linked, route, keepOf, reservedOf, free, openIncoming, inFlight, accept, release, arrive, load, rob };
+  // A station was torn up (rail.js tearUp, after its lines are gone): cargo waiting in its yard goes into that town's
+  // stock (it stood at the town's own station), orders into a town with no line left are cancelled (their
+  // reservations released), and a source that can no longer reach its order gives its reserved stock back.
+  function tearDown(at) {
+    const yard = rec().yards[at] || [];
+    for (const c of yard) if (c.amount > 0 && town(at)) world.change(at, c.resource, c.amount, 'ship');
+    delete rec().yards[at];
+    for (const o of orders()) {
+      if (o.state !== 'open') continue;
+      const dest = o.kind === 'sell' ? 'capital' : o.to, from = o.kind === 'sell' ? o.sellFrom : null;
+      if (o.kind === 'sell' ? !route(o.owner, from, dest) : !Object.values(state.frontier.rail?.links || {}).some(l => l.owner === o.owner && l.done && !l.closed && (l.from === dest || l.to === dest))) {
+        release(o); o.state = 'cancelled'; o.done = state.tick ?? 0; continue;
+      }
+      for (const x of o.sources) {
+        if (x.from === 'capital' || route(o.owner, x.from, dest)) continue;
+        const s = town(x.from); if (s?.reserved) s.reserved[o.resource] = Math.max(0, reservedOf(s, o.resource) - x.amount);
+        x.amount = 0;
+      }
+      o.sources = o.sources.filter(x => x.amount > 0);
+    }
+  }
+
+  return { clerk, coverManual, econTick, command, linked, route, keepOf, reservedOf, free, openIncoming, inFlight, accept, release, arrive, load, rob, tearDown };
 }

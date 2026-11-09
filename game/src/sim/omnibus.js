@@ -139,7 +139,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     if (hero.mounted) { say(hero.owner, 'Get off your horse first (H)'); return false; }
     const reach = R().boardRange ?? 6;
     let buses = near(hero, reach * 2).filter(b => !riders(b).length);
-    if (c.omnibus) { const b = state.entities[c.omnibus]; if (b?.type === 'omnibus' && b.omnibusOwner === hero.owner) buses = [b, ...buses.filter(x => x !== b)]; }
+    if (c.omnibus) { const b = state.entities[c.omnibus]; if (isVehicle(b) && b.omnibusOwner === hero.owner && !b.dead) buses = [b, ...buses.filter(x => x !== b)]; }
     if (!buses.length) { say(hero.owner, 'No parked omnibus close enough'); return false; }
     if (Math.hypot(buses[0].x - hero.x, buses[0].z - hero.z) > reach) { say(hero.owner, 'Walk up to the omnibus to get in'); return false; }
     const ids = Array.isArray(c.units) && c.units.length ? c.units : Object.values(state.entities).filter(u => u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id).map(u => u.id);

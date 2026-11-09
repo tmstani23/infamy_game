@@ -276,7 +276,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
 
   function hit(a, t, damage, crit = false, kind = null) {
     if(t.shopkeeper||charmProtected(a,t,state))return;
-    if (t.garrison && shelter(t, damage, a)) return;   // inside a stockade: the building takes the hit (Tim 2026-11-06)
+    if ((t.garrison || t.aboard) && shelter(t, damage, a)) return;   // inside a stockade, an omnibus or a rickshaw: it takes the hit (Tim 2026-11-06; vehicles fixed 2026-11-09)
     // Assassinate's explicit current-health rule stays exact inside a formation.
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it

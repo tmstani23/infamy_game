@@ -68,7 +68,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   commandHooks.rail = rail;
   modules.push({ name: 'rail', rail, econTick: () => rail.econTick(), command: (e, c) => rail.command(e, c) });
   const shipments = createShipments({ state, data, world: live });   // rail shipments S1: orders, keep amounts, reserved stock
-  rail.setShipping(shipments.arrive, shipments.load);
+  rail.setShipping(shipments.arrive, shipments.load, shipments.tearDown);
   shipRef.clerk = shipments.clerk;
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick

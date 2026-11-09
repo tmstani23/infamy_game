@@ -101,6 +101,21 @@ assert.equal(sh.reservedOf(A, 'timber'), 150, 'cancel releases its 50');
 cmd({ mode: 'cancel', order: o.id });
 assert.match(note(), /no such open order/i);
 
+// --- a station torn up (rail.tearUp -> shipments.tearDown, 2026-11-09): yard cargo into the town, orders without a line
+// cancelled with their reservations released, a source that lost its route gives its reserved stock back -------------
+{
+  const B = F.settlements.tB, open = orders().filter(x => x.state === 'open' && x.to === 'tB');
+  assert.ok(open.length, 'open orders into tB');
+  const reservedBefore = sh.reservedOf(A, 'timber'), timberB = B.stock.timber;
+  (F.shipping.yards.tB ||= []).push({ order: open[0].id, resource: 'timber', amount: 7 });
+  for (const l of Object.values(F.rail.links)) if (l.from === 'tB' || l.to === 'tB') delete F.rail.links[l.id];
+  sh.tearDown('tB');
+  assert.equal(B.stock.timber, timberB + 7, 'yard cargo went into the town');
+  assert.ok(!F.shipping.yards.tB, 'yard cleared');
+  assert.ok(open.every(x => x.state === 'cancelled'), 'orders into a town with no line are cancelled');
+  assert.ok(sh.reservedOf(A, 'timber') < reservedBefore, `their reservations at tA released (${reservedBefore} -> ${sh.reservedOf(A, 'timber')})`);
+}
+
 // --- a stock change never touches reserved bookkeeping; saves keep the records ----------------------------------
 assert.ok(JSON.parse(JSON.stringify(F.shipping)).orders[o3.id], 'orders are plain data');
 console.log('test_shipments: ok');

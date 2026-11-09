@@ -16,8 +16,8 @@ const url = new URL(art.packedCharacters.rival_yakuza, new URL('../', import.met
 const manifest = read(fileURLToPath(url)), names = art.characters.rival_yakuza;
 // Backups are deliberately local/uncommitted. Compare them when available,
 // but the committed test also works on a fresh checkout without archives.
-const backupFile = path.join(root, manifest.codeBackup, 'game/data/art.json');
-if (fs.existsSync(backupFile)) {
+const backupFile = manifest.codeBackup ? path.join(root, manifest.codeBackup, 'game/data/art.json') : null;
+if (backupFile && fs.existsSync(backupFile)) {
   const originalArt = read(backupFile);
   assert.deepEqual(art.characters, originalArt.characters, 'all animation names/speeds and other models are unchanged');
   assert.deepEqual(art.characterFraming, originalArt.characterFraming);
@@ -35,7 +35,8 @@ const options = {url, model: 'rival_yakuza', names, requireGlow: true, loadJson:
     textures.set(address, texture); return texture;
   }};
 const sheets = await loadPackedSheets(options);
-assert.equal(textures.size, 31);
+const pageFiles = new Set(Object.values(manifest.sheets).flatMap(s => ['color', 'glow'].flatMap(k => (s[k]?.pages || []).map(p => p.file))));
+assert.equal(textures.size, pageFiles.size, 'every page loaded once, nothing else');   // was a fixed 31 before the catalog was repacked with the ride clip (2026-11-09)
 assert.equal(sheets.idle.tex, sheets.guard.tex, 'idle/guard aliases share textures');
 assert.equal(sheets.idle.packed, sheets.guard.packed);
 assert.equal(sheets.idle.speed, .5); assert.equal(sheets.guard.speed, 1);

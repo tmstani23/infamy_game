@@ -171,8 +171,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       // more farm cells only help when the farms are healthy (short timber/workers make new cells useless too)
       const farmZone = s.zones?.farm, sick = farmZone && farmZone.cells > 0 && (farmZone.health ?? 1) < data.zones.healthyAt;
       if (idle >= G.idleNeeded && !sick) return suggest(s, 'farm', 'Farm: food falling');
-      if (sick) s.report.next = 'Food falling: farms are short of upkeep or hands';
-      s.report.next = 'Food falling, need workers';
+      s.report.next = sick ? 'Food falling: farms are short of upkeep or hands' : 'Food falling, need workers';
     }
     // 1b goods target (2026-11-06 soak fix): at least goodsProfitPerMin, and while the next hall tier's goods cost is
     // not yet in stock, enough to save it up within upgradeGoalMinutes

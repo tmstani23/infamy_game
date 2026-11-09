@@ -374,7 +374,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     // Removing a storehouse reroutes a carried load; it never unloads into a vanished building.
     if(!dropoffs(s,cargoType(w)).some(b=>b.id===w.dropoff)) {
       if(!w.carrying) {w.trip=null;return;}
-      const drop=nearestDropoff(s,spot || {x:currentPoint(w)[0],z:currentPoint(w)[1]},cargoType(w));if(!drop)return;
+      const at=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,spot || {x:at[0],z:at[1]},cargoType(w));if(!drop)return;
       const here=position(w),backPath=path(here,drop.p);if(!backPath)return;
       const back=walkTicks(length(backPath));
       w.dropoff=drop.b.id;w.trip={...w.trip,origin:backPath.at(-1),destination:here,backPath,outPath:null,out:0,harvest:0,back,total:Math.max(1,back),harvested:true};w.elapsed=0;

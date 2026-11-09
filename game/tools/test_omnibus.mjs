@@ -58,7 +58,7 @@ assert.ok(gap > want * 0.6 && gap < want * 1.3, `second follows ${want} behind (
 for (const u of aboard(second)) assert.ok(Math.hypot(u.x - second.x, u.z - second.z) < 1e-6, 'its riders inside');
 
 // --- nobody inside can fight; hits land on the omnibus ------------------------------------------------------
-const foe = S.entities[g.spawn('thug', 'thug', hero.x + 1, hero.z, { owner: 'kuroda', place: 'world', hp: 100 })];
+const foe = S.entities[g.spawn('thug', 'thug', hero.x + 1, hero.z, { owner: 'kuroda', place: 'world', hp: 100, deployment: { group: 'hero', keepAtHQ: false, everAssigned: true } })];
 g.step([{ id: hero.id, type: 'attack', target: foe.id }]);
 assert.ok(!hero.attackTarget, 'no attacking from inside');
 assert.match(clan.notice?.text || '', /Step out/);
@@ -66,6 +66,12 @@ const hp = hero.hp, busHp = lead.hp;
 assert.ok(g.omnibus.shelter(hero, 100), 'absorbed');
 assert.equal(hero.hp, hp, 'the hero is untouched');
 assert.equal(lead.hp, busHp - 100, 'the omnibus took it');
+// through the real combat path too (2026-11-09 fix: hit() only sheltered garrison units, riders were hit directly)
+const rider = aboard(lead).find(u => u.type !== 'hero'), riderHp = rider.hp, busHp2 = lead.hp;
+foe.order = { kind: 'attack', target: rider.id }; Object.assign(foe, { x: lead.x + 0.8, z: lead.z });
+for (let i = 0; i < 60 && lead.hp === busHp2; i++) g.step([]);
+assert.equal(rider.hp, riderHp, 'a rider attacked by a foe is untouched');
+assert.ok(lead.hp < busHp2, `the omnibus takes a foe's hits (${busHp2} -> ${lead.hp})`);
 delete S.entities[foe.id];
 
 // --- Q: everyone steps out, the omnibuses park; the crew wait beside them until told (Tim 2026-11-08) ------------

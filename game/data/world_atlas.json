@@ -9,7 +9,7 @@
   "sourceImage": "assets/environment/island/atlas/atlas_illustration_v2.png",
   "sourceHashes": {
     "game/data/world.json": "d3b66e8dc781f0cc56fbfbcd1191a1556abc88280f9468a6692d8445bda2a445",
-    "game/data/world_paint.json": "c71a9bbc2c29b408fbcd46d260880d19d9d2df51c3cd4a09ee075aa874a78dec",
+    "game/data/world_paint.json": "d0aa8affa4345cc165a9671befb57e5586c9aa87674395c344378d920b524075",
     "game/art/maps/world_atlas_v2.png": "7f493f816014a7b4e97b394be13addd0dc92b5247ed112196b0991254c6fe912"
   }
 }
