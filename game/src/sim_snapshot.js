@@ -41,6 +41,8 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   return { version: f.version, econTick: f.econTick, settlements, spots,
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
+    // rail shipments (S1-S4): this clan's orders
+    shipping: { orders: Object.fromEntries(Object.entries(f.shipping?.orders || {}).filter(([, o]) => o.owner === clan)) },
     receipts: recent || (f.receipts || []).filter(r => r.clan === clan),
     siteClaims: f.siteClaims || {},   // E1: claimed sites are shut in everyone's Choose site menu
     // train plan: this clan's railway links (track drawn up to `built`)

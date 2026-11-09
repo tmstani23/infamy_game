@@ -2,6 +2,7 @@
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
 import { drawRailLines } from './rail_map.js';
+import { pointAt } from './sim/frontier/rail_route.js';
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots } from './resource_spot_props.js';
@@ -165,6 +166,11 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
     // your railway lines (Tim 2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
     if (st.rail && layers.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds });
+    // Rail ledger (Tim 2026-11-08): the selected shipment's train glows
+    const tr = st.rail?.highlight && st.rail.trains?.[st.rail.highlight], tl = tr && st.rail.links?.[tr.link];
+    if (tl?.points?.length > 1) { const q = pointAt(tl, tr.d), p = worldToCanvas(q.x, q.z, view), r = 9 + 3 * Math.sin(performance.now() / 180);
+      ctx.save(); ctx.shadowColor = 'rgba(255,224,156,.95)'; ctx.shadowBlur = 14; ctx.strokeStyle = '#ffe09c'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.px, p.py, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ffe09c'; ctx.beginPath(); ctx.arc(p.px, p.py, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); dirty = true; }
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
     if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);

@@ -276,3 +276,9 @@ Watch the city (2026-11-08): **Watch the city** button in Deployment → While I
 Out on the island (2026-11-08): the boss can't give city crew orders or use Deployment (transfers, staffing, Keep at HQ, reserve target, first zone, Rally); a notice says the lieutenant runs the city. The lieutenant's own commands still run. Orders to crew out on the island work. The map and the Deployment panel stay open to look at: the order tabs (Duties, Rally, HQ) and order controls (transfer, assign, staffing goal, select group) are hidden and a status line reads "Orders are not available: the lieutenant runs the city while you're away". On the island only the status line and While I'm away show; in Watch the city the group tabs, crew lists, Traveling crew and View crew show too. The Rally button is greyed out. Watch the city gives no orders either.
 
 Map and minimap in Watch the city (2026-11-08): the M map opens on the City tab while watching (out on the island otherwise it opens on the World tab). The minimap shows the capital map with the camera's view box; clicking it moves the watch camera there.
+
+Railway supply (2026-11-09):
+- World map: Rail ledger button: opens the Rail ledger (Open / Delivered / Losses); pick an order to highlight its train.
+- Town card: Shipments tab: Simple (Order 50/100 per resource) or Advanced (Order / Sell / Keep / Open; type an amount or use ±10/±100; shows cost and the order cap); opens the Rail ledger.
+- Town card: Governor tab, Building plans: the former Projects tab, suggestions first; the tab label shows a badge for waiting suggestions.
+- Settings: two-column menu; Pause music button pauses the music.

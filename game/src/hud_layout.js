@@ -91,8 +91,9 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   if(el.classList?.contains('tip')){const n=[...panels.keys()].filter(k=>k.startsWith('tooltip-')).length+1;register(el,`tooltip-${n}`,`Tooltip ${n}`);}
  }
  HUD_PANELS.forEach(id=>register(document.getElementById(id)));
- for(const el of document.body.children)enroll(el);
+ // the windows first (Tim 2026-11-09): enrolling body children would take the id for the full-screen backdrop
  for(const [id,selector]of [['gamesettings','.settings-window'],['characterpage','.character-window'],['hqstash','.stash-window'],['blacksmithshop','.shop-window'],['controls',null]]){const root=document.getElementById(id);if(root)register(selector?root.querySelector(selector)||root:root,id,NAMES[id]);}
+ for(const el of document.body.children)enroll(el);
  if(typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)enroll(n);}).observe(document.body,{childList:true});
  function update(){
   let hidden=0;

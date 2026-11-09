@@ -2662,3 +2662,15 @@ approach on water, so they also run when nobody is watching. Because the
   judgement and feel work for the default model plus Tim's playtests, not small-model work.
 
 **Lieutenant raids (2026-11-08):** standing order Raid (on by default; not for the Shinobi). The lieutenant buys a War Lantern from the treasury only while at least raidReserve (1000) ryo stays after it; it is not booked against his budget. At night he picks a rival business (the season leader's first, then the one with fewest defenders; never an HQ), calls a Rally of the HQ and sector groups (purpose raid), takes the crew and the city captain to its door, and the captain plants the lantern when raidMinCrew (3) crew are there or after 60 s. In the hold phase the crew go in and hold the back room. A raid not started within 120 s is dropped. Job squads stay out while their clan has a raid or contract going. Log lines: "Bought a War Lantern", "Called a Rally to raid", "Raiding the <business>". Code: `sim/lieutenant.js`, `lieutenant_panel.js` (Raid row), `sim/deployment.js`; test `tools/test_lieutenant_raid.mjs`.
+
+**Rail shipments S1-S6 (2026-11-09):** `sim/frontier/shipments.js`; state in `state.frontier.shipping`; data in the `railways.json` `ship` block.
+- Orders are filled first from the nearest linked town with spare stock; the rest is bought from the capital. Towns can also sell to the capital.
+- Keep amounts reserve stock in each town; the goods keep is the market hold-back. Storage is per resource.
+- Order cap: queueTrips (3) trainloads per line at the town, Sell orders included.
+- Rail clerk: auto orders, and sells goods above 70% of storage; runs only with governor Initiative On.
+- Robbery gameplay is not built; `shipments.rob()` exists for it to call.
+- Town card: the Projects tab is now the Building plans section of the Governor tab (suggestions first); the tab label shows a badge for waiting suggestions. New Shipments tab (`src/shipments_tab.js`): Simple mode = Order 50/100 per resource; Advanced = Order / Sell / Keep / Open, typed amounts with ±10/±100 buttons, cost estimate and order cap readout; it opens the Rail ledger.
+- Rail ledger (`src/rail_ledger.js`), from the world map: Open / Delivered / Losses; picking an order highlights its train.
+- Governor: with Initiative On he starts any project waiting for an OK. With no player budget he may start one project dearer than initiativeBudget at the start of a fresh window.
+- Settings: two columns, 880px wide, Pause music button, listed in the layout-mode windows.
+Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_tab.mjs`, `test_shipments_trains.mjs`, `test_rail_ledger.mjs`.

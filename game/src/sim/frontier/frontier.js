@@ -16,6 +16,7 @@ import { createGarrison } from './garrison.js';
 import { createInfirmary } from './infirmary.js';
 import { createStable } from './stable.js';
 import { createRail } from './rail.js';
+import { createShipments } from './shipments.js';
 import { livingWorldUnits } from './building_safety.js';
 import { createPlacement } from './placement.js';
 import { createZones } from './zones.js';
@@ -46,7 +47,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const trade = {};   // C4 Influence hooks (export price, trade volume), filled by attach()
   const economy = createEconomy({ state, data, world: live, zones, workers, trade });
   const construction = createConstruction({ state, data, world: live,resourceIndex:workers.index });
-  const governor = createGovernor({ state, data, world: live, economy, construction, zones, workers, placement: () => placement });
+  const shipRef = {};   // filled once shipments exist (the rail clerk)
+  const governor = createGovernor({ state, data, world: live, economy, construction, zones, workers, placement: () => placement, ship: shipRef });
   const modules = [{ name: 'workers', workers, econTick: () => workers.econTick() }, { name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
@@ -65,6 +67,10 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const rail = createRail({ state, data, world: live, worldData, stable });   // train plan: railway links between stations
   commandHooks.rail = rail;
   modules.push({ name: 'rail', rail, econTick: () => rail.econTick(), command: (e, c) => rail.command(e, c) });
+  const shipments = createShipments({ state, data, world: live });   // rail shipments S1: orders, keep amounts, reserved stock
+  rail.setShipping(shipments.arrive, shipments.load);
+  shipRef.clerk = shipments.clerk;
+  modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
@@ -107,5 +113,5 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   }
 
   function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, attach };
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, attach };
 }

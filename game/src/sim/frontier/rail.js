@@ -24,7 +24,7 @@ import { dirIndex } from '../geometry.js';
 
 export function createRail({ state, data, world, worldData, stable }) {
   const R = data.railways, L = () => R?.link || {}, GANG = () => R?.gang || {};
-  let grid = null, runtime = null;
+  let grid = null, runtime = null, arriveHook = null, departHook = null;
   const G = () => grid ||= worldData && R?.route ? createRailGrid(worldData, R.route) : null;
   const rec = () => { const r = state.frontier.rail ||= { seq: 0, links: {} }; r.trains ||= {}; return r; };
   const T = () => R?.train || {};
@@ -184,7 +184,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       const v = t.seen ? Math.min(t.speed, T().viewSpeed ?? 20) : t.speed;
       t.v = v;
       if (t.call && (state.tick ?? 0) >= t.call.until) allAboard(t);   // the boarding call ran out
-      if (t.wait > 0) t.wait--;
+      if (t.wait > 0) { t.wait--; if (!t.wait) departHook?.(t, l, t.d <= 0 ? l.from : l.to); }   // last chance to load before it leaves
       else {
         t.d += t.dir * v / 20;
         if (t.d >= l.length || t.d <= 0) { t.d = t.d >= l.length ? l.length : 0; arrive(t); continue; }
@@ -330,6 +330,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     const l = rec().links[t.link], at = t.d >= l.length ? l.to : l.from;
     t.dir = at === l.to ? -1 : 1; t.wait = Math.round((T().stopSeconds ?? 20) * 20);
     t.arrived = { at, tick: state.tick ?? 0 };
+    arriveHook?.(t, l, at);   // shipments: unload and load cargo
     const riders = ridersOf(t.id);
     if (!riders.length) return;
     const hero = riders.find(u => u.type === 'hero') || riders[0];
@@ -399,5 +400,6 @@ export function createRail({ state, data, world, worldData, stable }) {
   }
 
   function attach(services) { runtime = services; }
-  return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, trains: () => Object.values(rec().trains) };
+  const setShipping = (arrive, depart) => { arriveHook = arrive; departHook = depart; };
+  return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
 }

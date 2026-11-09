@@ -19,7 +19,7 @@ const TAX_STEPS = ['low', 'normal', 'high'];
 // one-off or surplus flows that say nothing about the town's running goods balance
 const ONCE_FLOW = new Set(['build', 'train', 'upgrade', 'refund', 'market', 'test']);
 
-export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null }) {
+export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null, ship = {} }) {
   const G = data.governor, f = () => state.frontier;
 
   function init(s) {
@@ -236,17 +236,27 @@ export function createGovernor({ state, data, world, economy, construction, zone
     construction.authorize(construction.queue(s.id, b.type, b.cell, { replaces: b.id }));
   }
 
+  // no budget set (the town panel has no budget control): initiative spends up to governor.initiativeBudget per window (2026-11-06)
+  // Fix (Tim 2026-11-09, storehouse stuck "waiting for OK" forever): a project dearer than the whole budget may start
+  // at the top of a fresh window (nothing spent yet) when you set no budget, and his own project left waiting is retried
+  // every review.
+  function tryAuthorize(s, pid) {
+    const cost = value(construction.find(pid).project.cost), cap = s.budget.ryo || (G.initiativeBudget ?? 400);
+    if (s.budget.spent + cost <= cap + EPS || (!s.budget.ryo && s.budget.spent <= EPS)) { construction.authorize(pid); s.budget.spent += cost; }
+  }
   function promote(s) {
-    if (!s.autoBuild || s.projects.length || !s.suggestions.length) return;
+    if (!s.autoBuild) return;
+    // any project left waiting for an OK (his own, or one from an older save / the first project) is his to start
+    const waiting = s.projects.find(p => !p.authorized);
+    if (waiting) { tryAuthorize(s, waiting.id); return; }
+    if (s.projects.length || !s.suggestions.length) return;
     const sg = s.suggestions.shift();
     const zk = zoneKind(s, sg.type);
     if (zk) { zones.autoZone(s, zk); return; }
     const pid = construction.queue(s.id, sg.type, null);
     if (!pid) return;
-    const cost = value(construction.find(pid).project.cost);
-    // no budget set (the town panel has no budget control): initiative spends up to governor.initiativeBudget per window (2026-11-06)
-    const cap = s.budget.ryo || (G.initiativeBudget ?? 400);
-    if (s.budget.spent + cost <= cap + EPS) { construction.authorize(pid); s.budget.spent += cost; }
+    construction.find(pid).project.byGov = true;
+    tryAuthorize(s, pid);
   }
 
   // Rule 6: mood keeper, only on auto taxes. The player's locked level is never touched.
@@ -283,6 +293,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     s.report.doing = p ? `${p.replaces ? 'Rebuilding' : 'Building'} ${p.type.replace('_', ' ')}${p.paid ? ` (${p.progress}/${p.need})` : p.authorized ? ' (waiting for materials)' : ' (waiting for OK)'}` : 'Keeping the town running';
     if (!s.report.next && s.suggestions.length) s.report.next = s.suggestions[0].reason;
     upgradeHint(s);
+    if (s.autoBuild) ship.clerk?.(s);   // rail shipments S3: the rail clerk works only while the governor is on auto (Tim 2026-11-09)
   }
 
   // B3: when the town presses on a tier limit and can afford the next tier, say so. The upgrade itself is

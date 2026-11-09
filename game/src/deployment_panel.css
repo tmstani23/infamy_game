@@ -115,7 +115,9 @@ body { user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
 input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:text; }
 #gamesettings { position:fixed; inset:0; z-index:70; display:grid; place-items:center; padding:20px; background:#05080cbf; color:#e9dfc8; font:14px system-ui; }
 #gamesettings[hidden] { display:none; }
-#gamesettings .settings-window { width:min(420px,calc(100vw - 64px)); padding:22px; background:#151c23; border:1px solid #8b7953; border-radius:8px; }
+#gamesettings .settings-window { width:min(880px,calc(100vw - 64px)); padding:22px; background:#151c23; border:1px solid #8b7953; border-radius:8px; }
+/* Tim 2026-11-09: wider, two columns (Save and load | Video and Audio) so it is not so long */
+#gamesettings .settings-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:0 36px; align-items:start; }
 #gamesettings header { display:flex; justify-content:space-between; align-items:center; }
 #gamesettings h2 { margin:0; font-size:22px; }
 #gamesettings h3 { color:#d7bc82; }

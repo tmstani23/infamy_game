@@ -49,6 +49,20 @@
       "move": "run"
     }
   },
+  "ship": {
+    "_note": "Rail shipments (Tim 2026-11-08), placeholders, Tim to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (Tim 2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 120 = 360, about 3 round trips, ~11 min on a capital line); maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = spare goods go to the capital once the store is above aboveShare full, batch at a time; keepMax = highest keep a player can set.",
+    "resources": ["food", "timber", "stone", "goods"],
+    "keep": { "food": 40, "timber": 30, "stone": 10, "goods": 10 },
+    "minOrder": 10,
+    "wagonLoad": 60,
+    "queueTrips": 3,
+    "budget": 150,
+    "buyPrice": { "food": 3, "timber": 4, "stone": 5, "goods": 8 },
+    "sellPrice": { "food": 2, "timber": 2, "stone": 3, "goods": 5 },
+    "sell": { "on": true, "aboveShare": 0.7, "batch": 120 },
+    "maxAuto": 4,
+    "keepMax": 100000
+  },
   "train": {
     "_note": "placeholder, Tim to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end (Tim 2026-11-07: 60, long enough to walk over and board). cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first). viewSpeed (Tim 2026-11-07) = its speed while someone rides it or a player hero is within viewRange of the engine (a little under a horse, 22.5); with nobody near it runs at speed, so arrival times hold.",
     "speed": 36,

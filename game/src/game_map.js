@@ -1,4 +1,5 @@
 import { modeRules } from './sim/modes/index.js';
+import { createRailLedger } from './rail_ledger.js';
 // The full game map (M, Tim 2026-10-20, docs/territory_plan.md): the whole district over the
 // screen with the same fog of war, territory (sim/territory.js) and switches for its layers.
 // The game keeps running underneath (no pause, as in multiplayer). Hover a business for its
@@ -233,11 +234,26 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(),
-      rail: { links: game.state.frontier?.rail?.links || {}, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600 } };
+      rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600 } };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
   // (the snapshot only carries those). Placed where the town hall actually stands (Tim 2026-11-05);
   // records without a position (old fixture towns, rival name-only records) fall back to their world site.
+  // Rail ledger (rail shipments S5, Tim 2026-11-08): a docked panel on the World tab
+  const ledger = createRailLedger({ game });
+  let ledgerOpen = false, ledgerEl = null, ledgerHtml = '';
+  function drawLedger() {
+    if (!ledgerEl) { ledgerEl = document.createElement('div'); ledgerEl.id = 'railledger'; ledgerEl.hidden = true; root.append(ledgerEl);
+      ledgerEl.addEventListener('mousedown', e => e.stopPropagation());
+      ledgerEl.addEventListener('click', e => { const b = e.target.closest('button[data-ledger]'); if (!b) return; const id = b.dataset.ledger;
+        if (id === 'close') { ledgerOpen = false; drawWorldSide(); } else ledger.click(id); ledgerHtml = ''; drawLedger(); worldMap?.invalidate(); b.blur(); }); }
+    ledgerEl.hidden = !(ledgerOpen && tab === 'world' && isOpen());
+    if (ledgerEl.hidden) return;
+    // Tim 2026-11-09: sit below the map's layer buttons, not over them
+    const bar = root.querySelector('.atlas-layers')?.getBoundingClientRect();
+    if (bar?.bottom > 0) ledgerEl.style.top = Math.round(bar.bottom + 10) + 'px';
+    const h = ledger.html(); if (h !== ledgerHtml) { ledgerEl.innerHTML = h; ledgerHtml = h; }
+  }
   let tourStop = null;   // the surveyor's tour (src/surveyor_talk.js): { x, z, r } ringed on the World tab
   const siteXZ = Object.fromEntries((world?.sites || []).map(t => [t.id, t]));
   function townsOnMap() {
@@ -269,7 +285,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const form = pinDraft ? `<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)" value="${esc(pinDraft.note)}"><div class="atlas-actions"><button type="button" class="pinsave">Save pin</button><button type="button" class="pincancel">Cancel</button></div>` : '';
     const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">${travelTo.city ? 'The Capital' : `${gridLabel(travelTo.x,travelTo.z)} · x ${travelTo.x.toLocaleString('en-US')} z ${travelTo.z.toLocaleString('en-US')}`} · Hero and following or selected crew</div><div class="atlas-actions"><button type="button" class="travelgo">Travel</button><button type="button" class="travelcancel">Cancel</button></div>` : '';
     const zoom = '<div class="atlas-navigation"><button type="button" data-locate title="Center on your location">Your location</button><button type="button" data-zoom="0.714" aria-label="Zoom out">−</button><button type="button" data-zoom="1.4" aria-label="Zoom in">+</button><button type="button" data-fit>Fit island</button></div>';
-    const toggles = [...ATLAS_LAYERS, ...(devTravel ? ATLAS_DEV_LAYERS : [])].map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('');
+    const toggles = [...ATLAS_LAYERS, ...(devTravel ? ATLAS_DEV_LAYERS : [])].map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('')
+      + `<button type="button" data-rail-ledger aria-pressed="${ledgerOpen}" title="Your rail shipments: open, delivered and lost">Rail ledger</button>`;
     worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel}${picked && !travelTo?.city ? box : ''}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up · 500-unit squares · Drag to pan · Wheel to zoom · Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
     updateWorldLocation(); updateWorldLegend();
     if (travelTo) {
@@ -316,6 +333,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       if (b.dataset.zoom) worldMap.zoomBy(+b.dataset.zoom);
       if (b.hasAttribute('data-fit')) worldMap.fit();
       if (b.hasAttribute('data-locate')) worldMap.centerOn(worldState().hero);
+      if (b.hasAttribute('data-rail-ledger')) { ledgerOpen = !ledgerOpen; if (!ledgerOpen) ledger.clear(); b.setAttribute('aria-pressed', String(ledgerOpen)); ledgerHtml = ''; drawLedger(); worldMap.invalidate(); }
       if (b.dataset.atlasLayer) {
         const id=b.dataset.atlasLayer, on=!worldMap.layers[id]; worldMap.setLayer(id,on); b.setAttribute('aria-pressed',String(on));
         if (picked && (ATLAS_MARKERS[picked.kind]?.layer===id || picked.kind === 'spot' && id === 'spots') && !on) { picked=null; drawWorldSide(); }
@@ -377,6 +395,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       worldMap.resize();
       worldMap.invalidate(); drawWorldSide();
     } else map?.invalidate();
+    drawLedger();
   }
 
   const isOpen = () => !root.hidden;
@@ -392,7 +411,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     }
     map.invalidate(); drawSide();
   }
-  function close() { if(root.hidden)return;root.hidden = true; tip.hidden = true; travelTo=null;pinDraft=null;picked=null;pointPicker = null; destinationPicker=null;onClose(); }
+  function close() { if(root.hidden)return;root.hidden = true; if (ledgerEl) ledgerEl.hidden = true; tip.hidden = true; travelTo=null;pinDraft=null;picked=null;pointPicker = null; destinationPicker=null;onClose(); }
   const toggle = () => (isOpen() ? close() : open());
 
   let shownData = null;
@@ -401,7 +420,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     if (isOpen() && tab === 'world' && worldMap) {
       const w = game.state.world?.pins?.[clan], revision = Math.floor(game.state.tick / 5) + ':' + (w?.length || 0);
       worldMap.frame(revision);
-      if (revision !== shownWorldRevision) { shownWorldRevision = revision; updateWorldLocation(); updateWorldLegend(); }
+      if (revision !== shownWorldRevision) { shownWorldRevision = revision; updateWorldLocation(); updateWorldLegend(); drawLedger(); }
       return;
     }
     if (!isOpen() || !map) return;

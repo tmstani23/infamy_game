@@ -8,6 +8,7 @@ import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js'
 import { reportRows, governorSays, talkCommand } from './frontier_report.js';
 import { tierOf, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
 import { workerCount } from './sim/frontier/people.js';
+import { createShipmentsTab } from './shipments_tab.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
 const arrow = { up: '<span class="up">▲</span>', down: '<span class="dn">▼</span>', flat: '<span class="dim">–</span>' };
@@ -43,7 +44,7 @@ const STEER = {
 export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null }) {
   // Tim 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
   // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
-  const TABS = [['town', 'Overview'], ['projects', 'Projects'], ['governor', 'Governor'], ['stable', 'Stable']];
+  const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
   let selected = null, mode = 'town', tab = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   const tips = bindTips(root);
   const data=game.frontier?.data;
@@ -54,6 +55,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     return `Stock ${u.stock.toFixed(2)} · actual consumption ${u.consumption.toFixed(3)}/s · full production needs ${u.demand.toFixed(3)}/s · estimated gathering ${u.gathering.toFixed(3)}/s · net production ${u.net.toFixed(3)}/s\n${u.entries.map(e=>`${e.name}: ${e.once?e.once+' once':e.rate.toFixed(3)+'/s'} · ${e.state}`).join('\n')}\nClick for Stock → Usage.`;
   };
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
+  const shipTab = createShipmentsTab({ game, data, cmd, usage: resourceUsage });
   const towns = () => ownTowns(game.state.frontier, clan);
   function pick() {
     const list = towns();
@@ -99,9 +101,11 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     let x = '<div class="lab">Steer</div>';
     x += `<div class="row">${label('Taxes', SHORT.tax[taxNow] + (st.taxLocked ? '' : ` · now ${st.tax}`), st.tips.tax)}<span>${['low', 'normal', 'high'].map(p => b('tax', p, p[0].toUpperCase() + p.slice(1), st.taxLocked && st.tax === p, STEER.tax[p])).join(' ')} ${b('tax', 'auto', 'Auto', !st.taxLocked, STEER.tax.auto)}</span></div>`;
     // Economy pass 2 D: market keep level (players and bots share setMarketKeep)
-    if (data?.market && s.buildings?.some(x => x.type === 'market' && x.stage === 'built')) {
+    // Tim 2026-11-09: one goods keep for the market and rail shipments, so it shows with a market or a rail line
+    const hasMarket = s.buildings?.some(x => x.type === 'market' && x.stage === 'built');
+    if (data?.market && (hasMarket || railLinked(s))) {
       const keep = s.marketKeep ?? data.market.keep, step = 100;
-      x += `<div class="row">${label('Market keeps', `sells goods above ${keep}`, `Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second.`)}<span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} <input class="keepin" type="number" min="0" max="${data.market.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput"${tip('Type how many goods to keep, then Enter')}> ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>`;
+      x += `<div class="row">${label('Goods keep', hasMarket ? `market sells and trains ship only above ${keep}` : `trains ship goods only above ${keep}`, `Market: sells goods above the keep level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second. The same level is the goods keep amount for rail shipments (Shipments tab).`)}<span>${b('keep', Math.max(0, keep - step), '−' + step, false, `Keep ${step} fewer goods: more are sold for ryo.`)} <input class="keepin" type="number" min="0" max="${data.market.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput"${tip('Type how many goods to keep, then Enter')}> ${b('keep', keep + step, '+' + step, false, `Keep ${step} more goods for upkeep and upgrades.`)}</span></div>`;
     }
     // Stockade garrison (Tim 2026-11-06): shelter units inside a finished stockade
     const fort = data?.buildings?.stockade?.garrison;
@@ -112,6 +116,15 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
     x += `<div class="row">${label('Initiative', SHORT.initiative[st.autoBuild ? 'on' : 'off'], st.tips.initiative)}<span>${b('auto', 'off', 'Ask first', !st.autoBuild, STEER.initiative.off)} ${b('auto', 'on', 'On', st.autoBuild, STEER.initiative.on)}</span></div>`;
     return x;
+  }
+  const railLinked = s => Object.values(game.state.frontier?.rail?.links || {}).some(l => l.done && !l.closed && (l.from === s.id || l.to === s.id));
+  // suggestions (Approve) first, then projects under way (Tim 2026-11-09: one section in the Governor tab)
+  function plansHtml(s, rows) {
+    let h = '';
+    if (!rows.projects.length && !rows.suggestions.length) return '<div class="hint">Nothing planned right now.</div>';
+    if (rows.suggestions.length) h += rows.suggestions.map(x => `<div class="row plan"><span>${esc(x.label)} <span class="dim">· ${esc(x.reason)}</span></span><button class="go" data-act="approve" data-id="${x.index}">Approve</button></div>`).join('');
+    if (rows.projects.length) h += rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">· ${esc(p.status)}${p.canAuthorize ? ' · ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
+    return h;
   }
   function render() {
     if (root.hidden) return;
@@ -124,10 +137,13 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     let h = '', overH = '', projectsH = '', stableH = '';
     const hasStable = !!s.buildings?.some(x => x.type === 'stable' && x.stage === 'built');
     if (tab === 'stable' && !hasStable) tab = 'town';
+    if (tab === 'projects') tab = 'governor';
     if (mode === 'town' && tab === 'governor') {
       const say = governorSays(rows);
       h += `<h1>Governor</h1><div class="sub">${esc(rows.title)}</div><div class="chat">“${esc(say.text)}”</div><div class="choices">`
         + say.choices.map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
+      // Tim 2026-11-09: projects live here now (no separate tab), open under a plain header; approving matters most
+      h += `<div class="lab"${tip('What the governor wants to build (Approve starts it) and what is being built now. With Initiative On he starts them himself, within his budget.')}>Building plans</div>` + plansHtml(s, rows);
       // Tim 2026-11-06: he says what each focus does, and you can pick one right here
       const st = rows.steer, pri = s.priority || st.priority;
       h += `<div class="lab">Focus</div><div class="row"><span class="focuscap">${esc(SHORT.focus[pri] || '')}</span><span class="seg">`
@@ -166,12 +182,12 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
     if (mode === 'town' && tab !== 'governor') {
       // h now holds the steer section; pick the body of the current tab
-      h = tab === 'projects' ? projectsH : tab === 'stable' ? stableH : overH;
+      h = tab === 'projects' ? projectsH : tab === 'stable' ? stableH : tab === 'ship' ? `<div class="shiptab">${shipTab.html(s)}</div>` : overH;
     }
     const rosterOpen = !!buildUI?.isRosterOpen?.();
     let tabsH = '';
     if (mode === 'town') {
-      tabsH = '<div class="ptabs">' + TABS.filter(([id]) => id !== 'stable' || hasStable).map(([id, label]) => `<button data-act="tab" data-id="${id}" class="${!rosterOpen && tab === id ? 'on' : ''}">${label}</button>`).join('')
+      tabsH = '<div class="ptabs">' + TABS.filter(([id]) => id !== 'stable' || hasStable).map(([id, label]) => `<button data-act="tab" data-id="${id}" class="${!rosterOpen && tab === id ? 'on' : ''}${id === 'ship' && !railLinked(s) ? ' dimtab' : ''}"${id === 'ship' && !railLinked(s) ? ' title="Needs a rail line"' : id === 'governor' && rows.suggestions.length ? ` title="${rows.suggestions.length} suggestion(s) waiting for your Approve"` : ''}>${label}${id === 'governor' && rows.suggestions.length ? ` <span class="badge">${rows.suggestions.length}</span>` : ''}</button>`).join('')
         + `<button data-act="build-workers" class="${rosterOpen ? 'on' : ''}">Workers (${s.workers?.length || 0})</button></div>`;
       const build = (tab === 'town' || rosterOpen) ? buildUI?.html(s) || '' : '';
       h = rosterOpen ? build : build + h;
@@ -180,7 +196,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     h = CLOSE + tabsH + h;
     if (failure && Date.now() - failure.at < 5000) h += `<div class="why">${esc(failure.text)}</div>`;
     const key = h + tab;
-    if (document.activeElement?.dataset?.act === 'keepinput' && root.contains(document.activeElement)) return;   // typing a keep level
+    if (['keepinput', 'shipinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; }
   }
   root.addEventListener('mousedown', e => e.stopPropagation());
@@ -191,6 +207,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   root.addEventListener('change', e => {
     if (e.target.dataset?.act === 'keepinput') { const s = pick(), v = Math.round(Number(e.target.value)); if (s && Number.isFinite(v) && v >= 0) cmd({ action: 'setMarketKeep', settlement: s.id, keep: v }); lastHtml = ''; render(); return; }
+    if (e.target.dataset?.act === 'shipinput') { shipTab.input(e.target.dataset, e.target.value); lastHtml = ''; render(); return; }
     const s=pick();if(s && buildUI?.change?.(e.target.dataset,e.target.value,s)) {lastHtml='';render();}
   });
   root.addEventListener('click', e => {
@@ -198,6 +215,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (b.dataset.act === 'panel-close') { close(); return; }
     const s = pick(), id = b.dataset.id, sid = s?.id;
     if (s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); return; }
+    if (s && shipTab.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (b.dataset.act === 'talk') buildUI?.close();
     switch (b.dataset.act) {
       case 'usage': if(data && (data.resources.includes(id) || id==='housing')){usageResource=id;mode='usage';usagePage=0;buildUI?.close();}break;
