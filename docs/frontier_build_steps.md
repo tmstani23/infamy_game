@@ -97,7 +97,7 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
    - The governor fills whatever the player hasn't placed or zoned, and never repaints the player's cells.
    - Today's types map to: house → housing zone, farm → farm zone, workshop → work zone; lumber_camp and quarry → placed node camps (drop-offs); town_hall, storehouse and stockade are placed.
 2. **Zone health** = needs met (food, workers, road access). Healthy zones grow; only housing grows in stages for now (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned: empty, no output; it recovers when needs return, nothing is destroyed. Building looks show zone health. Later, a zone's level unlocks options when clicked.
-3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6.1 tiers). **Updated (Tim, 2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b7).
+3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6 war hall tiers). **Updated (Tim, 2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b7).
 4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Zones, town buildings, walls and gates go only inside the tier's build ring (150 / 300 / 600 units; Tim, 2026-11-05, replaces the separate core); only roads and work camps may go outside. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
 5. **Construction phases:** cleared → frame → finished. Stock is paid at the start, then workers and time. Overgrown cells are cleared by workers automatically. Founding paints a cleared-ground patch under the new town; the current dirt-trail ground patch is the stand-in for the clearing texture.
 6. **Build bar (town panel).** Roads, walls, zone brushes (housing, farm, work), eraser, plus the placed buildings. Click-drag rectangles; the ghost is green (allowed) or red with the reason; right click or Esc cancels. Buildable ground only, not road or water. Zone cells grow only within a few cells of a town road ("needs road" otherwise). Farm cells become crop fields with a farmhouse every few cells. The zone tint shows only while the build bar is open, plus a health tint overlay. Clicking a building shows a tooltip: what it is, its zone, its state and the zone's state. Mock first, Tim approves before building.
@@ -455,7 +455,7 @@ session, read it before doing anything else.
 
 **Campaign loop checkpoints (Tim, 2026-11-05):** finish the campaign loop in 4 checkpoints, one fresh Sonnet thread each (Opus only for C2): (1) founding: Land Office permit, Choose-site menu, E6 bot expeditions, E6b remove the test starter towns; (2) C4 Influence (Campaign only; Classic unchanged); (3) C2 lieutenant + C3 standing orders; (4) C6 + E7 playtest. C5 still waits for F3. Economy balancing continues alongside playtests.
 
-**Hero horse (after the campaign loop checkpoints):** buy a horse for the hero at a stable in the city; the hero rides it on the island and on roads (about 3x walking speed, faster on roads). Price: to be set. Fast travel between your own towns follows F3 roads and shipments. Crew horses come with the F6.8 stables. Sprites: `mare`, `mare_saddled`, `calico` (see `cast_tracker.md`).
+**Hero horse (after the campaign loop checkpoints):** buy a horse for the hero at a stable in the city; the hero rides it on the island and on roads (about 3x walking speed, faster on roads). Price: to be set. Fast travel between your own towns follows F3 roads and shipments. Crew horses come with the war camp stables (F6 war). Sprites: `mare`, `mare_saddled`, `calico` (see `cast_tracker.md`).
 
 **Stockade garrison (built 2026-11-06):** Stockade: 4 cells (size 2), 200 timber, 150 economy ticks to build; Village 1, Town 2. Drawn with the fort cutout. Garrison (`frontier.json` `buildings.stockade.garrison`): capacity 40, range 14, heal 3x. The clan's hero, crew and workers can enter; inside they are not drawn, stand at the building and heal 3x faster, even right after a hit. Workers inside count as idle with status "Garrisoned in stockade"; crew show the same. A destroyed or removed stockade releases everyone. Code: `sim/frontier/garrison.js` (command `{ type: 'frontier', action: 'garrison', mode: 'enter'|'leave', town, units }`, flag `e.garrison`), regeneration in `sim/stats.js`, hostility in `sim/game.js`, hiding in `render/view.js`. Test: `game/tools/test_frontier_garrison.mjs`. Not yet checked in a browser.
 
@@ -1758,7 +1758,7 @@ as rich deposits ([Loop 3 design](#loop-3-design-tim-2026-11-04)). A town's work
 deposits within 600 units; a farther deposit needs a placed **work camp** (drop-off) linked by road
 (F5.7), which makes deposits worth fighting over. Pieces never run dry: they go through harvest
 stages, slow to a trickle and grow back. **Iron** from ore deposits becomes a 6th resource, used only for rifles, cannons and armory
-upgrades (arrives with F6.8; the early economy stays at 5), and the governor fetches it by itself.
+upgrades (arrives with F6 war; the early economy stays at 5), and the governor fetches it by itself.
 **Camps (decided, Tim 2026-11-02):** bandit camps are weaker near the capital and stronger farther
 out; a cleared camp stays clear for 5 days, then may return somewhere nearby; the first clear gives
 the better reward with a claim record, so reloads can't reroll it. Ruins and caches are one-time
@@ -1948,7 +1948,7 @@ Do: action `found { site }` is valid when the hero and at least the E1 number of
 on a buildable spot at least `founding.minSpacing` (1,600 from B4) units from other towns (bots: within 30 units of an unclaimed
 W1 site) in campaign mode. It pays the founding cost, turns the
 settlers into the town's first people, creates a settlement record (Shared design shape) with the
-spot's traits (computed from terrain), sets the owner, places a tier 1 town hall (F6.1) and queues a stockade project.
+spot's traits (computed from terrain), sets the owner, places a tier 1 town hall and queues a stockade project.
 Check (pass/fail): a valid found creates exactly one settlement and removes exactly those settler
 entities; founding on unbuildable ground, too close to a town, or with too few settlers, is rejected and changes
 nothing; a founded town survives save/load.
@@ -2165,7 +2165,7 @@ not separate rules. Health = needs met (food, workers, road access). Healthy zon
 in stages (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned (empty,
 no output) and recovers when needs return; nothing is destroyed. Zone cells grow only within a few
 cells of a town road (`waiting` "needs road"). Farm cells become crop fields with a farmhouse every
-few cells. Commercial and military buildings are placed, not zoned (F5.4, F6.1). The governor zones
+few cells. Commercial and military buildings are placed, not zoned (F5.4, F6 war). The governor zones
 and places only what the player hasn't, and never repaints the player's cells. Rules in the sim,
 numbers in `frontier.json`, same commands for players, bots and governors.
 Check (pass/fail): zoned cells next to a road grow; cells away from roads stay empty with "needs road";
@@ -2382,7 +2382,7 @@ Small checkpoints; each one leaves the game running and the Node tests in `game/
 
 Goal (Tim, 2026-11-02): the wilds are worth exploring: native villages with their own relations,
 one-time set-piece areas, and unique items you can only find out there. Builds on W4 (basic camps,
-nodes, the relation record) and runs after F7.
+nodes, the relation record) and runs after F6 war.
 
 Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: the existing loot and item-slot code (function list
 only).
@@ -2416,7 +2416,7 @@ threshold; a hostile village never raids past the caps; bots use the same comman
 Done note: "W5.2 native villages in."
 
 ### W5.3. Exploration areas  [STRONG]
-Needs: W5.1, W3 done, F7.4 (interior pattern)
+Needs: W5.1, W3 done, F6 war
 Files: `game/data/world.json` (`areas` list), new `game/src/sim/exploration.js`, interior data per
 area, new `game/tools/test_exploration.mjs`.
 Do: set pieces placed by the W1 generator (one per region) or by hand in `world_overrides.json`.
@@ -2449,7 +2449,7 @@ and place a relic in a town.
 Goal (Tim, 2026-11-02): the sea is part of the campaign: trade by ship, sail the coast yourself,
 fight pirates and rival navies. One phase for now; Tim will expand it later. W1 already stores harbor
 spots and sea lanes, F3.1 links carry a `mode`, and W3.1 plans a `water` movement layer, so this adds
-links, ships and a building, not a rewrite. Needs: W5 done (and F7 for naval sieges).
+links, ships and a building, not a rewrite. Needs: W5 done (and F6 war for naval attacks).
 
 Agreed outline (Tim, 2026-11-02), each line becomes one or more cards when the phase is expanded:
 1. **Harbors:** coastal towns build a harbor on their W1 harbor spot; the capital already has one.
@@ -2461,8 +2461,8 @@ Agreed outline (Tim, 2026-11-02), each line becomes one or more cards when the p
 4. **Pirates:** capped like bandits (F3.6), rare, never a chore; a pirate cove can be a set piece.
 5. **Navy, RTS style:** a **shipyard** (new military building) builds junks, then **steam gunboats**
    at keep tier. Ships are army units on the `water` layer, ordered like F6 armies: move, attack,
-   escort, blockade a harbor, ferry troops for landings, shell coastal towns in F7 sieges. Sea
-   battles use the F6.3b battle-area approach on water, so they run whether watched or not.
+   escort, blockade a harbor, ferry troops for landings, shell coastal towns in F6 wars. Sea
+   battles use the F6 war rules on water, so they run whether watched or not.
 Checklist line is added when the cards are written.
 
 
@@ -2512,14 +2512,14 @@ These parts of the campaign plan are not stepped yet because their open choices 
 Each becomes its own phase after a short design session with Tim:
 
 - **Classic / Campaign select in the main menu** (Tim, 2026-11-04): a proper mode select button on the start screen. Not part of Loop 3.
-- **Forts and conquest** (plan step 6; core now in F6 and F7): further center tiers, siege stages, garrison buildings, damage and
+- **Forts and conquest** (plan step 6; core now in F6 war): further center tiers, siege stages, garrison buildings, damage and
   repair. Needs: stage gates, control duration, garrison capacity.
 - **Exploration rewards** (plan step 5a, frontier part; now Phase W5): ruins and caches with first-clear claim
   records so reloads cannot reroll. The capital gear, shop and item slot are already built.
 - **Campaign rules** (plan step 7): expulsion, return, victory, season conversion, multiplayer
   authority.
 - **Armies at the capital city** (Tim, 2026-11-02: not possible at first; maybe much later): attackers pitch a siege camp outside the
-  city edge (F6.1). The city map is hand-made, so defenders don't build freely: `port_town.json`
+  city edge (F6 war). The city map is hand-made, so defenders don't build freely: `port_town.json`
   gets a few marked empty lots where defenders can drop quick structures (barricade, rifle nest,
   field barracks tent), and the HQ and owned businesses act as recruit points. Same commands as
   frontier building, so it adds lots and structures, not a new system.
@@ -2535,7 +2535,7 @@ Each becomes its own phase after a short design session with Tim:
 landing spot and steer it freely around the island with the normal movement keys (a boat entity
 using the `water` movement layer from W3.1, crew carried aboard), then land at any landing spot. **Sea warfare** (later, RTS style): ships are army units on the `water`
 layer, selected and ordered like F6 armies (move, attack, escort, blockade a harbor), fighting with
-the same combat rules (ranged broadsides as ranged attacks). Ship battles use the F6.3b battle-area
+the same combat rules (ranged broadsides as ranged attacks). Ship battles use the F6 war
 approach on water, so they also run when nobody is watching. Because the
   transport graph already has a `mode` per link (F3.1) and W1 stores harbors and lanes, this adds
   links and a ship unit, not a rewrite.
@@ -2550,7 +2550,7 @@ approach on water, so they also run when nobody is watching. Because the
 - **Blood** (Tim, 2026-11-01, later): a basic blood system (hit spatter, pools under the downed,
   fading over time), drawn by the renderer from existing hit events, with a Settings toggle. Check
   how it affects Steam's mature-content questionnaire before release.
-- **Scale** (plan step 8): more regions only after F6.6 and Firefox profiles show room.
+- **Scale** (plan step 8): more regions only after F6 war and Firefox profiles show room.
 - **Combat AI variety** (roadmap item 13): ranged units backing off, spreading out, flanking. This is
   judgement and feel work for the default model plus Tim's playtests, not small-model work.
 
