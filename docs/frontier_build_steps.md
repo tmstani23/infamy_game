@@ -82,9 +82,9 @@ Tim approved a broad functional **explore → found → gather → build → fig
 | [ ] Loop 4: complete the playthrough | Use existing hero/crew combat against W4 camps, persistent rewards, resupply and basic town defence. Exercise departure, founding, production, construction and fighting in one save. | Complete the loop through ordinary commands; save/load and walk away/return preserve outcomes. Players and bots use the same rules. |
 | [ ] Loop 5: scale the functional world | Increase representative active camps/units and founded towns in the canonical playtest setup; measure sim, chunk/render cost and UI responsiveness. | Report measured limits and fix the first actual bottleneck before increasing load again. Distant towns keep correct economy without permanently active chunks. |
 
-Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6/F7 are complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for Tim's review. Reuse the existing save and test setup; do not reset the capital save.
+Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6 (war) is complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for Tim's review. Reuse the existing save and test setup; do not reset the capital save.
 
-**Build order (Tim, 2026-11-04):** finish Loops 3 and 4 first (one playable save). After each loop, tick the phase steps it really closed. Then continue the phases as "deepen" passes (F3, rest of F5, F6, F7). Loop 5 (scale) runs after F3.
+**Build order (Tim, 2026-11-04):** finish Loops 3 and 4 first (one playable save). After each loop, tick the phase steps it really closed. Then continue the phases as "deepen" passes (F3, rest of F5, F6 war). Loop 5 (scale) runs after F3.
 
 ### Loop 3 design (Tim, 2026-11-04)
 
@@ -368,7 +368,7 @@ come back, and watch zones grow, then starve and recover.
 6. Visual joins: fix fence corner half-span overshoots and add diagonal/45-degree joins (Tim can provide a screenshot); round road corners and improve dirt/gravel textures. Ford mosaic and bridge art remain separate.
 7. Regression and manual acceptance: founding egress, complete worker trips/groups/cargo and conservation, usage and growth reasons, gates/completed collision, walking away and back, save/load, many workers and capital/frontier transition. Add new controls to the in-game Controls panel; preserve saves and use small, Node-tested checkpoints.
 
-**Current economy behavior:** Completed town halls, storehouses, lumber camps and quarries are all eligible dropoffs; workers use the nearest without resource-type restrictions and delivery credits town stock immediately, with no second haul. Gather-building passive jobs/output are excluded once a town has worker records. Storehouses have no storage cap; stockade defense rules remain pending F6/F7. Any specialization is future design, not current behavior.
+**Current economy behavior:** Completed town halls, storehouses, lumber camps and quarries are all eligible dropoffs; workers use the nearest without resource-type restrictions and delivery credits town stock immediately, with no second haul. Gather-building passive jobs/output are excluded once a town has worker records. Storehouses have no storage cap; stockade defense rules remain pending F6 (war). Any specialization is future design, not current behavior.
 
 **Fix implementation, pending playtest (2026-11-04; uncommitted):** Found now starts a mouse-following green/red hall ghost with shared validation for terrain, footprint, resources, units, range and escape approaches; right-click/Esc cancels. Legacy founding chooses an offset; construction waits for unit and escape clearance, and a one-time in-memory load repair moves embedded units to free ground while preserving worker cargo/routes. Workers wake around mid-route observers; distant owned workers have presentation-only camera-local views. Bounded non-resident planning grids, geometry-versioned route reuse and lighter snapshots address repeated work without disabling capital systems. Building and zone footprints reserve resource pieces, including regrowth; existing town contents remain intact. New worker move targets use crew spacing.
 
@@ -459,14 +459,14 @@ session, read it before doing anything else.
 
 **Stockade garrison (built 2026-11-06):** Stockade: 4 cells (size 2), 200 timber, 150 economy ticks to build; Village 1, Town 2. Drawn with the fort cutout. Garrison (`frontier.json` `buildings.stockade.garrison`): capacity 40, range 14, heal 3x. The clan's hero, crew and workers can enter; inside they are not drawn, stand at the building and heal 3x faster, even right after a hit. Workers inside count as idle with status "Garrisoned in stockade"; crew show the same. A destroyed or removed stockade releases everyone. Code: `sim/frontier/garrison.js` (command `{ type: 'frontier', action: 'garrison', mode: 'enter'|'leave', town, units }`, flag `e.garrison`), regeneration in `sim/stats.js`, hostility in `sim/game.js`, hiding in `render/view.js`. Test: `game/tools/test_frontier_garrison.mjs`. Not yet checked in a browser.
 
-**Stockade health (2026-11-06):** `frontier.json` `buildings.stockade.garrison.hp` = 1500. Any hit on a unit inside (area attacks such as dynamite or a cleave included) goes to the stockade instead. At 0 it is ruined, everyone inside piles out round it, and the governor rebuilds it on the same spot. The town panel's Stockade row shows its health. Code: `garrison.shelter()` in `sim/frontier/garrison.js`, called from `sim/combat.js`. Enemies attacking the building itself waits for F7 sieges.
+**Stockade health (2026-11-06):** `frontier.json` `buildings.stockade.garrison.hp` = 1500. Any hit on a unit inside (area attacks such as dynamite or a cleave included) goes to the stockade instead. At 0 it is ruined, everyone inside piles out round it, and the governor rebuilds it on the same spot. The town panel's Stockade row shows its health. Code: `garrison.shelter()` in `sim/frontier/garrison.js`, called from `sim/combat.js`. Enemies attacking the building itself waits for F6 (war).
 
 **Frontier building art (2026-11-06):** `tools/add_frontier_building_art.py` cuts `assets/environment/frontier_buildings1.png` into `game/art/buildings/`: fort 520 px, granary 400, sawmill 440, smithy 400, infirmary 440, pier_fish_house 440 (listed in `game/art/cutouts.json` and `game/data/art.json`). `frontier.json` `townArt`: stockade → fort, storehouse → granary, lumber_camp → sawmill, workshop, `zone:k` and the work stage → smithy. Infirmary and pier have no building type yet. Not yet checked in the game.
 
 **Capital spacing and worker Jobs (2026-11-06):** `frontier.json` `founding.capitalSpacing` = 600 is the least distance from a new town to `world.capital`; `minSpacing` 1600 still applies between towns and the capital no longer counts toward it (`founding.js` whyNot, `land_office.js` siteBlocked, the site menu Walk out text; test `test_founding.mjs`). The Workers pane has a Jobs row: one button per harvest kind in use with its count; click selects every worker on it, Ctrl or Shift + click adds; moving, holding, clearing or garrisoned workers are not counted (`worker_panel.js` `workerJob`/`JOB_ORDER`, `build-worker-job` in `frontier_build_ui.js`; test `test_frontier_build_ui.mjs`).
 
 Build order (Tim, 2026-11-01: map first, campaign starts with founding):
-F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 → F7 → W5 → S. (C5 waits for F3.) Phases appear in this order below.
+F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 (war) → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
 - [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `dev_classic`, `dev_frontier` and `campaign_test_yakuza` saves done via `game/tools/make_dev_save.mjs`; `test_params.js` stays until Tim sees the presets)
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
@@ -481,8 +481,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
-- [ ] **F6** Armies: [ ] 6.1 choices · [ ] 6.2 · [ ] 6.3a · [ ] 6.3b · [ ] 6.3c · [ ] 6.4 · [ ] 6.5 · [ ] 6.6 · [ ] 6.7 playtest · [ ] 6.8 second slice
-- [ ] **F7** Sieges: [ ] 7.1 rules · [ ] 7.2 · [ ] 7.3 · [ ] 7.4 · [ ] 7.5 · [ ] 7.6 playtest
+- [ ] **F6** War (planned, not built): [ ] 1 declare · [ ] 2 banner and camp · [ ] 3 camp economy · [ ] 4 camp buildings · [ ] 5 roster · [ ] 6 structures · [ ] 7 specials and stealth · [ ] 8 defender, win, loss · [ ] 9 mockups
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
 Last completed: Map first atlas, crossing/pass markers, close/travel layout fixes and named-region labels (2026-11-03). Tim loves the map. Next: approved Loop 1 in phased checkpoints; latest close/travel/labels refresh check, basic crossing fitting, then W4. Recheck clustering performance under mobs/camps load; unfinished MR4 traversal checks and F1.7 remain deferred.
@@ -541,8 +540,7 @@ is enough). If Tim prefers, he can let the building thread tick boxes in this on
 | E | Expedition and founding your first town | 7 | 4 / 1 / 2 |
 | F3 | Roads and real shipments | 5 | 5 / 0 / 0 |
 | F5 | Build your town: grid, clearing, zones, walls | 6 | 3 / 2 / 1 |
-| F6 | First frontier armies and road battles | 9 | 3 / 4 / 2 |
-| F7 | Sieges and conquest: walls, garrisons, taking towns | 6 | 1 / 3 / 2 |
+| F6 | War: declare, war camp, camp economy, assault, defender and after-war | 9 | - |
 | W5 | Exploration and natives: villages, set pieces, unique items | 5 | 2 / 1 / 2 |
 | S | Seafaring: harbors, cargo ships, piloting, pirates, navy (outline) | — | expand first |
 | Later | Campaign rules, scale | — | design first |
@@ -2220,270 +2218,165 @@ yourself in (should refuse), watch it fill and grow.
 
 ---
 
-## Phase F6: First frontier armies and battles
+## Phase F6: War (planned, not built)
 
-Goal: recruit troops at a barracks, march them on the road, and fight a real battle that runs the
-same whether or not anyone watches. This phase is the hardest and needs Tim's choices first.
+Replaces the earlier F6 armies/road battles and F7 sieges cards. Numbers are placeholders in `game/data/frontier.json` (or a new `war` block). Nothing here is built.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/combat_spec.md` (section list only),
-`game/src/sim/combat.js` (function list only).
+### Overview
 
-### F6.1. Troop roster and rival town  [TIM]
-Proposed (Tim to confirm numbers): troops reuse existing models (swordsmen, Kuroda riflemen, brutes,
-each clan's special unit; any new character uses the per-model sprite flow), 40 to 80 ryo of town
-stock each plus food upkeep. **RTS production (decided, Tim 2026-11-02):** each troop type comes
-from its own building, all one data list in `frontier.json` so more can be added later.
-- **Town hall** (the command centre): every town gets one when founded. It upgrades to a **keep**
-  (fortified, strongest defence) and its tier unlocks buildings, like an RTS age. Tier 1: barracks,
-  rifle range, clan hall, farms, clinic, watchtower. Tier 2 (keep): stables, foundry, armory.
-- **Barracks:** infantry (swordsmen, spearmen, brutes). **Rifle range:** riflemen. **Clan hall:** the
-  clan's special unit. **Stables:** cavalry (sword riders, mounted rifles; waits on the A1 horse
-  art). **Foundry:** field cannons, strong against walls and packed troops.
-- **Support:** farms (supply cap: how many troops a town can feed), clinic (heals troops; hero
-  recovers here), armory (blade and rifle upgrades), watchtower (sight, defence), supply depot
-  (armies near it refill).
-- **Outpost:** a small field camp built outside a town near the front, on your road network. It
-  can recruit infantry and riflemen, heal, and refill like a depot; it can be attacked and burned.
-  **Battles are RTS matches (Tim, 2026-11-02):** attacking and defending both use this build
-  process. When the fight is at an enemy town, the attacking army pitches a **siege camp** near it,
-  off your road network (a set distance outside its walls), and builds a base there during the
-  fight: barracks, rifle range, clan hall, farms (supply), clinic, then upgrades and tier 2
-  buildings, paid from the stock the army brought plus shipments. Defenders do the same inside
-  their own town: they keep building, upgrading and recruiting during the siege and can add quick
-  defences (barricades, a watchtower). The camp packs up or burns when the siege ends.
-  **Fights play like an RTS (Tim, 2026-11-02):** in a battle you command troops directly with the
-  existing crew controls (box select, right-click move and attack, groups), build and upgrade
-  your base, and keep supply up. Workers brought with the army (or the town's own, when defending)
-  gather from nodes near the camp, so the battle has its own small economy on top of shipments.
-  When you aren't there, a **general** runs your side: the same bot brain as rival armies, using
-  your army's stance and the aggressiveness setting, so unwatched battles still play out as RTS
-  fights.
-  **Attacker production (Tim, 2026-11-02):** the army sets out with **supply wagons** loaded from
-  the home town's stock (the player picks how much) plus a few workers; the wagons are the camp's
-  storehouse and starting bank. During the siege the camp earns from workers gathering nearby nodes
-  (slower than a town) and from shipments along the road from your nearest town. Camp recruits cost
-  stock and draw people from your towns, who walk in as reinforcements, so a big siege drains them.
-  The defender has a full town economy; the attacker needs a strong start or must cut the
-  defender's roads first.
-  **Cutting roads is hard (Tim, 2026-11-02):** there are many roads (W1.1), shipments reroute by
-  themselves around a block (F3.1 `route` skips blocked links), and a road is only blocked while an
-  enemy army stands on it, never destroyed. A camp is cut off only when every route to it is held.
-- **Every side gets all of it (Tim, 2026-11-02):** in every battle, attacker (siege camp) and
-  defender (town) build and upgrade the same way. The player and every bot clan have the same
-  building list, the town hall to keep tiers and the armory upgrades, attacking or defending, with
-  the same costs and rules. Only the clan hall's special unit differs per clan.
-First slice (F6.2 to F6.4): town hall tier 1, barracks, rifle range, clan hall, farms, clinic.
-Second slice (F6.8): keep tier, stables, foundry, armory, depot, watchtower, outposts. **Stances
-(decided):** the player picks per army how it fights: hold, fight to the last man, retreat at a set
-loss, or pursue and finish off a fleeing enemy. Bot armies use the same stances, chosen by their
-aggressiveness and retreat settings in `bots.json` (per difficulty). Rival towns come from E6 bot
-founding (the fixture towns are for tests only). Each town keeps a garrison that defends itself; the
-player only orders attacks. Hero recovery: the town clinic after 1 day (placeholder), or the city if
-the town has none.
+A war is a classic RTS match fought around one enemy town. The hero declares war at the town, plants a war camp banner outside it, and builds a camp: workers gather, buildings go up, troops are trained in queues, and the army attacks the town's forces and buildings. The defender fights back with the same rules from inside the town. All rules live in `game/src/sim` and run the same whether watched or not; players and bots use the same commands.
 
-### F6.2. Army records and recruiting  [SMALL]
-Needs: F6.1, F5 done
-Files: new `game/src/sim/frontier/armies.js`, `game/data/frontier.json` (troops),
-`game/tools/test_frontier_armies.mjs`.
-Do: `recruit { settlement, troop, count }` at the troop's own built building (F6.1 list) while
-the town is under its farm supply cap: pays from that town's stock, spawns
-real entities in the town area with `e.army = <army id>` and `e.origin = <settlement id>`; army
-record `{ id, owner, origin, units: [ids], order: null, stance: 'hold' }` (stances from F6.1;
-command `stance { army, kind, retreatAt }`). Armies can't attack the capital city (Tim, 2026-11-02): an `attack` order
-on the capital is rejected; armies only fight on the frontier. City fights stay the existing raids. `order { army, kind: 'move' | 'hold' |
-'attack', to }`.
-Check (pass/fail): a unit is in exactly one army; recruiting with too little stock, without the
-right building, or over the supply cap is rejected and changes nothing; army origin never changes when units move.
-Done note: "F6.2 army records in."
+### F6 phase 1: Declaring war
 
-### F6.3a. Armies travel the road  [SMALL]
-Needs: F6.2
-Files: `game/src/sim/frontier/armies.js`, `game/src/sim/frontier/logistics.js`,
-`game/tools/test_frontier_armies.mjs`.
-Do: an army ordered to another settlement leaves through the gate as a road traveller (same rules as
-shipments, F3.2) with `army.travel = { road, progress, dir }`. It sets the road `threatened` for
-the other side while on it and `blocked` while stopped on it. `meetings()` returns pairs of hostile
-travellers on the same road whose progress is within 20 units, or a traveller reaching a hostile
-shipment. Attacks on shipments obey the F3.6 caps (cooldown per road, never the whole cargo unless
-the escort is beaten in a real battle).
-Check (pass/fail): a lone army arrives at length ÷ speed; the road state changes while it passes;
-two hostile armies heading at each other are reported by `meetings()` exactly once; friendly armies
-never are.
-Done note: "F6.3a army road travel and meeting check in."
+- **War area:** a circle of radius 900 around the target town's town hall. One town per war. Towns are founded at least 1600 apart (`founding.minSpacing`), so a war circle never reaches a neighbouring town's 600 build ring.
+- **Several wars at once:** allowed; each needs its own declaration and its own camp.
+- **Declaring:** free. The hero must be inside the war circle; "Declare war" is clicked on the target's town hall.
+- **Rail lines and trains:** always attackable by anyone (outlaw acts: robbery, blasting a line), war or not. War gates armies, the camp and attacks on the town.
+- A rival capital cannot be targeted until the endgame opens capitals (after taking 9 of the 11 rival zones, per the endgame draft).
 
-### F6.3b. Road battle areas  [STRONG]
-Needs: F6.3a, W3.2
-Files: `game/src/sim/frontier/armies.js`, `game/src/sim/areas.js`, `game/tools/test_frontier_battle.mjs`.
-Do: on a meeting, create a small temporary area at that road point (own bounds, blockers, nav,
-vision), place both armies' entities into it as real units, and let the existing combat and crew AI
-fight. The player can enter the area and command their side with the crew controls; otherwise
-the general (F6.1) commands it. A meeting with a shipment pulls the shipment's cargo into the battle as a record (no body loot).
-The battle runs every tick whether viewed or not, and never calls render code.
-Check (pass/fail): Node test: two armies meet, a battle area exists, units fight with normal combat;
-the same seed and orders give the same result in Node; saving mid-battle and loading gives the same result as
-an unbroken run; a second battle on another road can run at the
-same time without cross-talk.
-Done note: "F6.3b road battle areas in."
+### F6 phase 2: The war camp banner
 
-### F6.3c. Battle end and return  [STRONG]
-Needs: F6.3b
-Files: `game/src/sim/frontier/armies.js`, `game/tools/test_frontier_battle.mjs`.
-Do: a battle ends when one side has no fighters left in the area or retreats by its stance
-(retreat at its set loss; 'last man' never retreats; a 'pursue' winner chases fleeing units until
-they leave the area or fall).
-Survivors return to the road as their army and continue or go home; downed units follow the F6.4
-recovery rules; captured cargo goes to the winner's nearest own settlement by shipment; the area is
-removed and its grids freed.
-Check (pass/fail): after a battle, every unit id is in exactly one army or downed list; cargo is
-conserved (totals); the area count returns to its starting value; a battle with one hidden straggler
-still ends within a set time.
-Done note: "F6.3c battle end and return in."
+- **Placement:** buildable ground between the target's build ring + 150 and ring + 300:
+  - Camp (tier 1, ring 150): 300–450 from the hall
+  - Village (tier 2, ring 300): 450–600
+  - Town (tier 3, ring 600): 750–900
+- **The camp is a mini town without zone painting:** placed buildings only.
+- **Bringing troops:** only the hero and his crew come as the vanguard; every other troop is trained at the new camp. Open, possible later add-on: a standing army that survives a war and follows the hero (troops could ride the train to the own town nearest the target via "All aboard", then march).
+- **Starting camp:** a camp hall (trains workers, workers' drop-off), 4 workers, 200 timber and 100 stone taken from the nearest own town. No starting ryo: the chest is what the hero brought (below).
+- **Hero brings the war chest:** before setting out, the player fills the chest from the pot the hero stands in (Clan treasury in the city, a town's coffers in that town; typeable box). The hero carries it, and it becomes the camp's war chest when the banner is planted. Taking it all leaves that town's coffers empty for its own defence; the fill box shows what the pot keeps (e.g. "Ōhama keeps 50"), red when below a basic defence. The camp station is optional: a war runs fine without one, on what the hero brought. More ryo mid-war needs a rail line: a camp station building where a line from the clan's network ends; once linked, the treasury and town-coffer boxes send ryo by train (existing shipments). The line can be attacked like any line. If the attacker wins, it stays (useful if the town was captured; otherwise left or torn up for some materials back). The camp station counts on the camp's morale bar like its military buildings, and must be destroyed before the defender can channel; so does the spur's track inside the war circle, split into a few sections. When the camp falls, the rest of the spur is wrecked automatically and its timber and stone go to the defender as spoils. Maybe later: the defender inherits the spur instead (needs lines that change owner).
 
-### F6.4. Hero knocked out on the frontier  [SMALL]
-Needs: F6.2
-Files: `game/src/sim/frontier/armies.js`, `game/tools/test_frontier_armies.mjs`.
-Do: if the hero goes down in a frontier area, frontier commands still work, the battle continues,
-and the hero recovers at the owning town's clinic after the F6.1 delay. No raid-loss rules apply.
-Gear stays equipped.
-Check (pass/fail): with the hero down, `recruit` and `order` still succeed; the hero returns after
-the delay with the same equipment.
-Done note: "F6.4 frontier KO rules in."
+### F6 phase 3: Camp economy
 
-### F6.5. Rival bot armies  [STRONG]
-Needs: F6.3
-Files: `game/src/sim/frontier/governor.js`, `game/src/sim/bot.js` (one new rule group),
-`game/data/bots.json`.
-Do: bot towns (E6, and the F2.9 fixture in tests) already run the same governor. Add bot army
-rules: build troop buildings and farms like the player, keep a garrison, send an army at a weak
-enemy town or road when its strength beats the target by its aggressiveness setting, and pick
-stances from its retreat settings (`bots.json`, per difficulty).
-Check (pass/fail): an all-bot Node run of 30 game minutes: both towns grow, no command is rejected
-for bad input, no stock goes negative, the run finishes under the time limit.
-Done note: "F6.5 rival town bot in."
+- Camp workers gather timber and stone from nodes inside the war circle and drop them at the camp hall or a camp lumber/stone camp.
+- **Materials pay for camp buildings.** **Troops are paid in ryo from the camp's war chest.**
+- **Three ryo pots, each with its own name and look:**
+  - **Clan treasury:** the city's ryo (HUD gold badge, `game/src/ryo_badge.js`); the capital's ryo mirrors it.
+  - **Town coffers:** each frontier town's own ryo (town panel, chest icon).
+  - **War chest:** one per camp; pays troops. Starts with what the hero brought; topped up from the clan treasury and town coffers (a per-town spare-ryo setting) by train once a camp station is linked. The camp panel lists its sources, e.g. "Treasury 800 · Ōhama coffers 200 (on the train)".
+- **Treasury-only purchase: foreign mercenaries.** Pistolmen hired at the port with Clan treasury ryo (not the war chest), a few per war (cap in data). They are an elite unit for every clan: expensive, no army kit, full visual effects. Ability "Six-shot volley" (auto plus smart casting): six quick revolver shots into one chosen target at short range, then a long reload. No random targeting. They use the foreign visitor (gunslinger) body with the existing revolver item and need a set of Mixamo pistol clips.
+- **HUD badge shows the local pot by hero location:** in the city, Clan treasury; inside an own town's ring, "<Town> coffers"; inside a war circle, War chest (red-banner badge). Hovering lists all three.
+- Number inputs (amounts sent to the war chest, queue counts) are typeable boxes; +/- buttons only as an extra.
 
-### F6.6. Battle benchmark  [SMALL]
-Needs: F6.3
-Files: new `game/tools/profile_frontier_battle.mjs`.
-Do: a Node script that spawns 100, then 200 combatants plus 30 workers in a battle area and reports
-average and worst ms per tick over 600 ticks. No browser.
-Check (pass/fail): the script runs and prints both results; the numbers go into the done note.
-Done note: "F6.6 benchmark: 100 units X ms/tick, 200 units Y ms/tick."
+### F6 phase 4: Camp buildings and training
 
-### F6.7. Playtest  [TIM]
-Recruit a squad, march it at the rival town, meet their army on the road, watch the fight, then try
-it again without looking (stay in the city) and compare results. Get knocked out on purpose and keep
-commanding. Capture a Firefox profile if it lags.
+- **Camp buildings (tier 1):** camp hall, barracks, rifle range, clan hall (clan specials), supply tents (each raises the camp's troop cap), field clinic (heals troops at the camp), lumber and stone camps (drop-off points near far nodes), watchtower (sight; shoots on its own; detects hidden units), palisade and gate.
+- **Behind a camp hall upgrade:** stables (cavalry), foundry (siege weapons), armory (blade and rifle upgrades).
+- **Training:** each building has its own queue with a typeable count. Troop costs about 60–120 ryo each (placeholder).
+- The defender builds the same military buildings inside the town (see Phase 6).
 
-**Phase end:** tests pass; Docs keeper commits "First frontier armies"; Tim playtest F6.7.
-Then F6.8 runs as its own checkpoint: Docs keeper commits "Second military slice" after Tim's g2g.
+#### Troop roster
 
-### F6.8. Second military slice  [STRONG]
-Needs: F6.7 playtest feels right, A1 (horse art) for stables
-Files: `game/src/sim/frontier/armies.js`, `game/src/sim/frontier/construction.js`,
-`game/data/frontier.json`, `game/data/units.json`, `game/tools/test_frontier_armies.mjs`.
-Do: add the F6.1 second slice: iron (6th resource, from ore nodes, used only for rifles, cannons and
-armory upgrades; the governor fetches it), town hall to keep upgrade (tier gate), stables and cavalry, foundry
-and field cannons (bonus against walls), armory upgrades, supply depot and watchtower, outposts
-(field camps on your road network that recruit, heal and refill, and can be burned), and siege
-camps pitched by an army near an enemy town. Defence while under attack: the town's own area loads (E5), the F5.4
-build bar stays live and adds quick builds from data (barricade, watchtower, spike wall; seconds to
-build, by workers or troops); recruiting keeps going; if the player is away, the governor barricades
-the gates and the garrison defends. Bot towns use the same commands. All from data.
-Check (pass/fail): tier 2 buildings are refused before the keep; an outpost off your road network is
-refused unless it is a siege camp within range of an enemy town; a quick build is accepted only
-while the town is under attack; cannons deal the wall bonus; a burned outpost leaves no units or stock behind.
-Done note: "F6.8 second military slice in."
+- **Shared by every clan:** grunt (sword), brutes, enforcers, archers, riflemen, sword riders, mounted pikemen.
+- **Enforcers:** a plain heavy melee unit every clan has, with no taunt or other ability in war. Shinobi use the Masked bodyguard look and Kuroda the shield guard look (both lose their city taunts in war). The Yakuza plain enforcer uses the Irezumi body. All plain enforcers wear the army kit. The Irezumi enforcer special keeps its taunt and its own look (no army kit).
+- **Grunts by clan:** Yakuza grunt is the city swordsman body, Kuroda grunt the Kuroda spearman (spear in place of sword, same grunt stats), Shinobi grunt the city ninja; all wear the army kit.
+- **Spearmen for everyone (open):** every clan gets both a sword grunt and a spearman, with Kuroda getting swordsmen too. Bodies and the sword vs spear difference are open. A Shinobi spearman can be the ninja grunt body with the existing spear item baked in at export (the Kuroda spearman is already the swordsman body plus the spear).
+- **Clan bonuses:** numbers-only bonuses on the shared roster (for example Shinobi archers cheaper and riflemen pricier; Kuroda the rifle clan). Values to set in data.
+- **War stats:** each unit type has a separate war stat block in data (health, damage, speed, attack rate) tuned for large battles. Every unit inside a war circle uses it, crew included. City fights keep their current numbers. In war mode no floating damage numbers or crit pop-ups are shown for any unit. Ordinary troops get lighter hit effects so 50-unit fights stay readable and cheap to run. Heroes and clan special units keep their full visual effects (glows, trails, ability effects). Health bars still show. Nameplates use the existing nameplate toggle.
+- **Hero and hero crew in war:** the hero's crew come along as an elite squad. The hero keeps all abilities. The hero and crew get war blocks too; ability damage values are retuned in the war block, ability durations stay as they are. A unit switches blocks when it enters or leaves a war circle, keeping its health as a percentage. War blocks start as multipliers on each type's city numbers (health, damage, ability damage); the hero's crew get larger multipliers than plain troops; any type can get exact values later. The hero's crew count toward the camp's troop cap and heal at the field clinic like troops. Outside a war they also heal at a frontier town's infirmary. The hero follows the same healing and respawn rules, whatever knocked him out (war troops, roving bandits or enemy crew). Knocked-out crew and hero respawn at the camp hall during a war (the camp hall always stands while the war lasts, since losing it loses the war), and otherwise at their nearest own town hall, the way they respawn at the HQ in the city, or at the city HQ if they own no town.
+- **Archers and riflemen:** similar damage per second. Archers fire faster at shorter range; riflemen fire slower, hit harder and reach farther. Archers have no arcing shot or other special trick.
+- **Yakuza Yumi archer:** stays a separate Yakuza-only unit beside the shared army archer, keeping its slowing (hamstring) arrow and its own look (no army kit). The shared army archer has a plain shot and wears the army kit. Handled like the Teppō beside army riflemen: trained at the clan hall, no army kit, keeps its effects. The slowing arrow is an ability: auto by default and castable through smart casting. The Yumi archer deals more damage than the regular archer.
+- **Army riflemen:** plain auto attack only. Aimed Shot belongs only to the Kuroda Teppō rifleman.
+- **Clan special unlocks:** clan specials are expensive. The first special unlocks earlier; the second special needs its own matching building: Gatling crew needs the foundry, dog handler a kennel, kunoichi a hidden dojo (names and requirements open). Kuroda also field plain army riflemen and archers, so clan specials stand apart by look: specials do not wear the army kit (they keep their own full look) and keep their glows and effects in war mode.
+- **Cavalry:** normal units with their own speed, health, damage and cost in data, fighting from the saddle. No charge bonus or counter rules. (Today `sim/mounts.js` dismounts on a hit or attack order; cavalry need their own rule.)
 
----
+#### Clan special units (trained at the clan hall)
 
-## Phase F7: Sieges and conquest
+| Clan | First special (exists) | Second special (new) | Siege weapon |
+|---|---|---|---|
+| Shinobi | Geisha (charm) | Kunoichi | Horokubiya fire-bomb throwers |
+| Kuroda | Teppō rifleman (Aimed Shot) | Gatling gun crew | Field cannon (Armstrong-style breech-loader) |
+| Yakuza | Irezumi enforcer (taunt) | Dog handler | Wooden cannon (mokuhō) |
 
-Goal (Tim, 2026-11-02): attacking a frontier town is a real RTS siege. The attacker camps outside,
-breaks the walls and takes the town hall; defenders fortify buildings and shoot from them. Frontier
-towns only: the capital can't be attacked (F6.1).
+- **Kunoichi:** war stealth "hidden until she acts": invisible to enemies at any distance; attacking, being hit or casting reveals her for a few seconds. Only the kunoichi has this. Melee auto attack. **Ambush strike** (passive): her first hit from hiding deals heavy bonus damage and gives her a short buff (faster, harder attacks for a few seconds). **Vanish** (passive, cooldown): when she runs away (stops attacking and moves off, e.g. on a move order) she drops straight back into hiding, even with enemies near, ready to ambush again. No buttons: she runs around hidden and strikes on her own or where she is ordered. High damage, low health (fragile once revealed). Her loop is hide, strike, vanish, strike. No Assassinate (that stays the ninja hero's). Best around battles: scouting, hit-and-run on gun lines and siege crews, worker raids, at night. No unit cap at first; add one only if playtests need it.
+- **Gatling gun crew:** a wheeled gun with 2 crew. Slow; must set up before firing; fires a cone that shreds packed troops; weak up close. Click: sweep and hold a chosen direction.
+- **Dog handler:** one normal unit with a club auto attack. Ability "Loose the dogs": 2–3 dog sprites run straight at the target like a projectile (no pathfinding, not selectable, cannot be attacked), bite (brief knockdown and damage), then vanish in a small dust puff. Cooldown 30–45 s. Auto: targets the nearest ranged or fleeing enemy. Passive: detects hidden units within a radius.
+- **Fire-bomb throwers:** strong against anything wooden (buildings, palisades, gates); the town hall and castle keep resist them.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: the War Lantern raid code (back-room hold only) and the city's building
-interior setup (how a business's rooms are a separate place).
+#### Abilities: auto plus smart casting
 
-### F7.1. Siege rules  [TIM]
-**Decided (Tim, 2026-11-02),** placeholders in data: the siege camp sits at least 150 units outside
-the walls, out of watchtower range. Walls and gates have HP; infantry batter gates slowly, foundry
-cannons break walls fast; a broken section becomes an opening in the F5 grid. The fight is outdoor RTS
-style everywhere except the **town hall, which is a real interior fight** (Tim, 2026-11-02): it has
-rooms like the city's businesses; attackers go in through the door, fight the defenders room by
-room, then hold the council room for a set time with no defenders inside (same pattern as the War
-Lantern back-room hold). Defenders can sally out, bring armies from other towns, rebuild walls and add quick
-defences; towns feed themselves, so no starving out. The winner picks **capture** (town changes
-owner, keeps people and buildings, mood drops for a while) or **plunder** (take its stock, burn some
-buildings, owner unchanged). Surviving defenders retreat to their nearest town. Workers repair damage
-afterwards. A captured town can't be retaken for 3 days, and a clan's **last town can be plundered but not
-captured**, like the HQ rule (both decided, Tim 2026-11-02).
+- Special abilities fire automatically by default and can also be cast on click.
+- **Smart casting:** with a group selected, the action bar shows a button per special ability in the group. Key or click, then target: the nearest ready unit of that type casts; the others stay on auto. The button shows how many are ready and the cooldown (e.g. "Charm 1 of 2 ready").
+- New and changed controls go in the Controls panel.
 
-### F7.2. Walls, gates and building damage  [SMALL]
-Needs: F7.1, F6 done
-Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/armies.js`,
-`game/data/frontier.json` (HP per building and wall, cannon bonus), new `game/tools/test_frontier_siege.mjs`.
-Do: walls, gates and buildings get HP in the town area; attacks on them use the normal combat
-damage with per-type multipliers (cannons high against structures). At 0 HP a wall cell becomes
-`breach` (passable, nav rebuilt for that chunk only), a building becomes `ruin`. Repair is a
-construction project.
-Check (pass/fail): a breach makes the inside reachable and only that chunk's nav changes; a ruined
-building stops producing; repair restores it; rejected attacks on own structures change nothing.
-Done note: "F7.2 structure damage in."
+#### Stealth detection
 
-### F7.3. Garrison buildings  [STRONG]
-Needs: F7.2
-Files: `game/src/sim/frontier/garrison.js` (new), `game/src/sim/combat.js` (one hook),
-`game/data/frontier.json` (capacity per building), the Controls panel rows in `game/src/main.js`,
-`game/tools/test_frontier_siege.mjs`.
-Do (Tim, 2026-11-02, like RA2): troops enter buildings (not the town hall, which is an interior,
-F7.4). Order troops into a building to **fortify** it (command `garrison
-{ building, units }` / `ungarrison`). Units inside can't be hit directly. Riflemen and other ranged
-units shoot out with a range bonus; melee units just hide. Each building has a capacity. Attackers
-must destroy the building to get at them: at 0 HP everyone inside is **ejected** (knocked down
-briefly, some damage) and the building becomes a ruin. Watchtowers and the keep are the best
-garrison spots. Attackers can garrison captured buildings too. Same rules for every clan and the
-bot general.
-Check (pass/fail): garrisoned units take no direct damage; a garrisoned rifleman out-ranges the same
-unit outside; destroying the building ejects every unit inside exactly once; capacity is never
-exceeded; a unit is never both inside and outside.
-Done note: "F7.3 garrisons in (controls.md line needed)."
+- Yakuza dog handler: detects hidden units within a radius.
+- Kuroda Teppō rifleman: passive short-radius detection.
+- Watchtowers (every clan): detect hidden units in range.
 
-### F7.4. Taking the town  [STRONG]
-Needs: F7.2
-Files: `game/src/sim/frontier/armies.js`, `game/src/sim/frontier/world.js`, `game/tools/test_frontier_siege.mjs`.
-Do: the town hall interior (an area with rooms built from data, using the same place and room
-system as the city's businesses; units enter by its door and fight inside with normal combat and
-indoor rules), the council-room hold, then the capture or plunder choice (command `conquest { settlement, kind }`),
-the last-town and retake-cooldown rules from F7.1, retreat of survivors, and alerts for both sides.
-Check (pass/fail): units enter and leave the town hall only by its door; the hold timer pauses
-while a defender is in the council room; capture moves owner, people and buildings exactly once; plunder moves only stock
-(conserved) and leaves owner unchanged; a last town can't be captured; a retake inside the cooldown
-is refused; Classic mode is unaffected.
-Done note: "F7.4 conquest in."
+#### Shinobi stealth on the frontier
 
-### F7.5. Bot sieges  [STRONG]
-Needs: F7.3, F7.4, F6.5
-Files: `game/src/sim/bot.js` (siege rule group), `game/data/bots.json`.
-Do: bot generals pitch camps, build cannons when walls are up, garrison when defending, and choose
-capture or plunder by their aggressiveness setting.
-Check (pass/fail): an all-bot Node run ends with at least one siege resolved; no command rejected for
-bad input; no stock negative.
-Done note: "F7.5 bot sieges in."
+`sim/stealth.js` today covers the city only (lanterns, rooms, day and night). The frontier gets its own rules:
+- **Open ground:** by day ninjas are seen from farther than in city streets; trees and tall grass (cover) shorten the range.
+- **Night:** the dark range applies; any light counts as lit ground: town lanterns, camp fires, the war camp and other frontier lights.
+- **Horses:** riding reveals a ninja.
+- **War circle:** inside a war circle only the kunoichi is hidden (her "hidden until she acts" rule). Ninja grunts and the ninja leader are visible there, and keep frontier stealth everywhere else.
+- **Ninja hero in war:** his Smoke Bomb makes him invisible, and he stays invisible when he walks out of the smoke, for about 6 s (the smoke's duration) or until he attacks. While hidden by his smoke, Assassinate is ready at once (no 3 s wait), inside or outside the smoke; real stealth still needs the 3 s. The same rule applies in the city too, replacing today's "smoke doesn't count" rule (the Shinobi bot's smoke and Assassinate use needs updating with it).
 
-### F7.6. Playtest  [TIM]
-Besiege the rival town: camp, build a foundry, breach a wall, clear a garrisoned watchtower, fight
-through the town hall's rooms, hold the council room and capture it. Then defend one with riflemen in buildings.
+### F6 phase 5: The assault
 
-**Phase end:** tests pass; Docs keeper commits "Sieges and conquest"; Tim playtest F7.6.
+- Troops use the existing crew controls: box select, right-click move and attack, groups.
+- **Structures:** buildings, walls and gates have health. Infantry damage them slowly, siege weapons fast. A broken wall section becomes a passable gap; a destroyed building becomes a ruin.
+- **Melee units torch buildings** quickly up close; ranged units do little damage to buildings.
+- **Watchtowers** shoot on their own.
+- **Town hall:** the strongest building; health grows with tier. Workers (and townsfolk) shelter inside, as the stockade shelters units today. Sheltering workers do not gather or farm. If the hall falls, everyone inside is pushed out.
+- The town hall fight is outdoors (no interior fight).
+- **Economy effects of attacks (current rules):** a healthy cell regrows one stage per minute, so a burned house in a well-stocked town is back in about 3 minutes. Without food, housing stops growing and is abandoned after about 40 economy ticks; without goods, houses regrow only to stage 1. Farms and workshops need about 0.5 workers per cell, so killing workers stops food, goods and gathering. Retraining a worker costs 10 ryo + 5 goods.
+- **Win: town morale.** The target town has a morale bar, shown on a war bar at the top of the screen for both sides. It drops only when military buildings (barracks and other military buildings, watchtowers, walls and gates) or the town hall are destroyed, so it works as a progress bar. Once all its military buildings are down, the attacker channels at the town hall to take it (the hero channels about 1 minute (data value), like planting a War Lantern, and any hit interrupts it, giving the defenders a last stand). The winner picks the outcome at the hall before channelling, and the channel carries it out (burn choices: flames build over the channel in the existing HQ fire look, `render/hq_fire.js`; capture: a different channel look, e.g. the clan banner going up). When the channel completes the town falls; any defending troops still alive rout (run out of the town ring and disband), so no straggler has to be hunted down. Rushing the hall does not end the war, because the channel needs every military building down first. Every drop is made clear: the bar flashes and a short line by the bar names the cause and amount (e.g. "Barracks destroyed −10"); hovering the bar lists what is left. Burning farms, houses and workshops does not drop morale; it hurts the defender through the economy instead. Outcomes (open): capture (town becomes yours, keeps its tier, ruins rebuild cheaply, counts toward the 9 zones), burn its defences / sack (town stays theirs, military buildings gone, part of its coffers taken; a clan's last town can only be sacked), burn everything (the defender loses the town entirely: it is wiped and the zone goes empty; the attacker gains nothing but has nothing to defend or upkeep; a burned zone does not count toward the 9; anyone, including the clan that burned it, can found a fresh town there at full cost with no wait, since a fresh town starts at the bottom tier and costs more than a capture; a town founded there counts toward the 9 like any zone you own; founding there works like any founding: the hero group brings settlers out from the Land Office, either along with the hero during the war (they wait at the camp and can be killed) or after the town is burned; the town is founded only once the war ends: every founding needs a permit with no cap on count,; a rising permit price only if playtests show town spam). Capture is usually best; burn everything and sack are for towns the attacker cannot hold. Holding a town costs only its military building upkeep; a just-captured town has no defences (they were destroyed to win), so its risk is being retaken once the cooldown ends. keep all three, since each has its own trade-off.
 
----
+### F6 phase 6: Defender, bots and the end of a war
 
-**Future notes (Tim, 2026-11-05; no step cards yet; see [Endgame and campaign length](frontier_campaign_plan.md#endgame-and-campaign-length-2026-11-05)):**
-- **Travel:** a horse for the hero (about 3x faster, roads faster still); fast travel between your own towns by rickshaw or boat for a small fee, shown as a ~5 s skippable ride on the map while the world keeps running; crew mounts come later with warfare.
-- **Boats:** cargo ship (`ship_coastal`) = the ride art for fast travel (needs no water phase). River boat (`boat_river`) = after the water phase (Phase S), for exploration and harbour life. Warship (`ship_war`, 1870s steam-and-sail corvette, broadside clip) = warfare phase. All three are modelled and animated in `assets/models/source/boat_rig/` (idle, sail, broadside for the warship), hulls cut at the waterline; the river boat's oarsman still needs a Mixamo rowing clip.
-- **Ruin and rebuild (F7):** buildings are standing or ruined, no half states. The attacker chooses spare / defences and hall only / burn everything. Ruins rebuild through the normal build phases at a fraction of the cost; houses lose their people but the town keeps its tier; no loyalty meter; a taken town is fully yours and the old owner does not raid it back.
-- **Surrender (F7):** a defender can surrender; the town falls with little damage and the defender's hero and crew retreat to their nearest town.
+- **Defenders** place the same military buildings inside their town, recruit from their town coffers, and fight with the same controls. walls, gates, watchtowers and military buildings can be built inside the town ring any time (town materials); military buildings only train while a war is declared on that town (paid from its coffers, the defender's war chest). To keep a prepared town from being too strong: military buildings in a town pay the normal frontier building upkeep (timber and stone), and the town hall tier caps how many military buildings a town can have. A muster delay: the defender's queues stay locked for a few minutes after declaration (length in data). The defender gets a war chest too, fed the same way: the town's own coffers plus amounts each side chooses to send from the clan treasury and other towns' coffers (typeable boxes, ryo by train). A war chest exists only while its war is on; there is no separate peacetime defence fund, so ryo sent to an attack leaves the treasury and coffers that would otherwise defend your towns, and two wars at once split the same money.
+- **Bot general:** runs any side nobody is watching (the player's side while away, and bot clans always).
+- **Attacker loses:** mirror of the win. The camp has its own morale bar on the war bar, dropping as its military buildings (barracks, ranges, clan hall, watchtowers, palisades and gates) fall. Once all are down, the defender channels at the camp hall for about 1 minute (same data value as the hall channel; the long channel gives far-off troops time to run back). A hit on the channeller resets the channel to zero (both channels). When either channel starts, the other side gets a clear alert and a map ping; any hit interrupts it, so the attacker's remaining troops rush in for a last stand. When it completes the camp burns and the attacker's troops rout; the crew need not be hunted down. Only the defending hero can channel, so the defender's hero has to come to the town to finish a camp off. What is left in the attacker's war chest goes to the town's coffers as spoils. Open: the attacking hero and crew respawn at their nearest own town.
+- **Surrender:** either side can surrender at any time; a surrendering defender's town falls with little damage.
+- **After a war (fresh build):** all war troops on both sides disband and leave the map; the camp packs up (its buildings are removed); the defender's town keeps its own military buildings. The hero and his crew stay. Unspent war chest ryo returns to the clan treasury (except when the camp falls: the attacker's chest goes to the defender as spoils); disbanding troops walk off and fade rather than vanishing on the spot. Possible later add-on: a standing army or garrisons (field force guarding lines and trains, clan-wide cap, frontier troop upkeep). Troops are only trained at a war camp, so troops lost outside a war can only be replaced at the next war camp. outside a war circle army troops cannot attack another clan's units or buildings (only bandits, fighting back, and stopping outlaw acts on lines and trains), and cannot enter another clan's town ring unless at war with that town.
+- **Cooldown:** about one game day after a war ends before anyone can declare war on that town again (data value). Repeat attacks on one town are mostly stopped by natural costs: every war needs a fresh camp and army, and a sacked town has little left in its coffers. The bot general skips freshly sacked towns. Optional: show the cooldown as a government truce on the town.
+
+### Town hall tiers and art
+
+- Three tiers stay. Tier 1 (Camp) gets new hall art; the current manor art becomes tier 2 (Village); tier 3 (Town) becomes a castle (tenshu keep or jin'ya compound, look to choose). Tiers 1–2 shared by all clans; the tier 3 castle may differ per clan.
+- Shinobi get their own building looks.
+- All of this art waits for the art pass after gameplay is done.
+
+### Art list (art pass after gameplay)
+
+
+- **Army kit** for every unit shared between clans: existing city bodies plus a clan-colour sashimono back banner and a uniform tint.
+- **Grunts:** existing bodies with army kit, no new model: Yakuza use the city swordsman, Kuroda the Kuroda spearman, Shinobi the city ninja.
+- **Cavalry:** riding sprite sheets for sword riders and mounted pikemen (ride, gallop, strike, fall), one set per type, shared by all clans; the pikeman reuses the existing spear item (`assets/models/items/spear.glb`). Rules can start on placeholder sprites.
+- **Horses:** coat recolours (bay, grey, chestnut) of the existing rig, plus one new Tencent warhorse body (reuses the mare rig script); the existing saddle is fitted onto it the way `mare_saddled` was made (`saddle_fit.py`). Later idea, probably not: Shinobi riders bareback on the unsaddled horse (own rider sheets).
+- **Siege:** field cannon and wooden cannon are already rigged and exported; fire-bomb throwers are new.
+- **Second specials:** kunoichi, Gatling gun and crew, dog handler plus a Tosa dog run and bite clip and a dust puff.
+- **Town halls:** tier 1 art, clan castles, Shinobi buildings.
+- Fire effects follow the existing HQ fire look (many small thin flames, `game/src/render/hq_fire.js`).
+
+### Open
+
+- Cost and training time of archers and riflemen.
+- Garrisons in zone buildings (house, workshop and farmhouse cells, 2–4 troops each, own health, ruin art when destroyed; melee hide and cannot attack; riflemen shoot out): include or not.
+- Whether burning a town should leave a lasting cost (ruins cleared with timber and stone, burned ground that can't regrow for a while, or slow return of townsfolk) or only matter during the war.
+- All clans' workers can douse fires, like RTS repair.
+- Rest of Phase 6: how the defender's pot is fed, the bot general, the attacker losing (camp hall falls), surrender, and whether military buildings the defender builds mid-war add to the morale bar.
+- Whether stables, foundry and armory come in the first build or a second slice.
+- Exactly what unlocks the first clan special (the clan hall alone, or a first camp hall upgrade).
+- Later addition: gun cavalry and pistolmen (mounted carbineers, foot and mounted pistolmen; rifle and revolver items exist). Foot pistolmen are the foreign mercenaries (see Phase 3); look and names of the gun cavalry open.
+- Foreign mercenary Six-shot volley auto targeting order (heroes, elites, siege crew, then others).
+- Frontier stealth numbers: detection ranges on open ground by day, how much cover shortens them, light radii.
+
+### Build outline
+
+Small checkpoints; each one leaves the game running and the Node tests in `game/tools` passing.
+
+1. War data block, war records and the `declare` command (war circle, several wars, cooldown).
+2. Banner placement rules and the starting camp.
+3. Camp workers, gathering and drop-off; war chest and its feeds; HUD badge by location.
+4. Camp buildings, the camp hall upgrade, training queues and supply cap.
+5. Shared roster and clan bonuses in data; cavalry rule.
+6. Structure health, breaches, ruins, torching, watchtower fire, town hall shelter.
+7. Clan specials, smart casting, war stealth and detection.
+8. Defender building in town, the bot general, win, loss, surrender and cooldown.
+9. Mockups before each new panel (camp panel, war chest, queues, action bar ability buttons). Controls panel updated in the same change as each new control.
 
 ## Phase W5: Exploration and natives
 

@@ -207,6 +207,8 @@ References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontie
 
 ## Frontier armies and the hero — agreed direction
 
+Superseded where it differs by [War (current design, 2026-11-09)](#war-current-design-2026-11-09).
+
 - Frontier fights use larger RTS groups than capital street fights.
 - The hero keeps current stats and the familiar hero group as the balancing baseline.
 - Do not add an automatic frontier-only hero nerf.
@@ -257,6 +259,8 @@ References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontie
 - No promise is made that every repeatable drop has absolutely zero incentive.
 
 ## Army origin and capability — agreed direction
+
+Superseded where it differs by [War (current design, 2026-11-09)](#war-current-design-2026-11-09).
 
 - An army has a persistent supply origin at a named settlement or network.
 - Actual facilities, stockpiles and technology at that origin determine recruitment and equipment access.
@@ -330,41 +334,21 @@ References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontie
 - After combat, repair and security permit civilian reuse.
 - A fully featured interior RTS is not required for the first frontier slice.
 
-## Conquest sequence — agreed direction
+## War (current design, 2026-11-09)
 
-- A stronghold attack has several stages so defenders have time to mobilize.
-- First, secure or contest the outer approach and intercept local response.
-- Next, breach or neutralize walls, gates, towers and other direct defenses.
-- Then reduce, capture or isolate military and supply support.
-- Finally, sustain an assault or control contest at the fortified center.
-- A stealth unit or fast runner cannot skip directly to the center and end the battle.
-- A healthy supporting city strengthens the center through finite real reserve troops, recruitment and resources.
-- Capturing intact support is a viable alternative to razing civilian homes.
-- Defender governors gather and reinforce from actual available units and stockpiles.
-- Reinforcements obey travel time and route access; none appear from thin air.
-- The battle must still finish if one hidden straggler cannot realistically contest control.
-- Exact stage gates, control duration, minimum force and contested-region conditions are open.
-- Existing raid timers and hero-KO win conditions are not copied by default.
+Planned, not built. Full design: `frontier_build_steps.md`, Phase F6: War. It replaces the earlier conquest-sequence and siege direction.
 
-## Destruction, occupation and aftermath
-
-**Agreed direction:**
-
-- Buildings have physical footprints and allow street combat around them.
-- Forts, gates and towers can take direct structural damage.
-- Military facilities can be disabled and later repaired or captured.
-- Homes and workshops start with simple intact, damaged and ruined states.
-- Capture, repair, occupation, garrison and restored stability produce a usable outpost.
-- Its supply foothold only works when a real route exists.
-- Repeated capture cannot mint free troops, stock or rebuild materials.
-- A newly captured settlement may still be unsafe or isolated.
-
-**Design options, not settled:**
-
-- Sack and withdraw may trade immediate resources for control and stability.
-- Raze may be a slow, interruptible operation rather than instant deletion.
-- Decide ownership, damage, salvage and civilian consequences of each choice.
-- Refugee flows are only a possible later feature and are deferred.
+- **Declaring:** free, by the hero inside the war circle (radius 900 round the target's town hall), on the target's town hall. One town per war; several wars at once allowed. Rail lines and trains are attackable by anyone at any time. Rival capitals open only in the endgame.
+- **War camp:** a banner placed between the target's build ring +150 and +300; a mini town of placed buildings (no zones). The hero and his crew come as the vanguard; all other troops are trained at the camp. Start: camp hall, 4 workers, 200 timber and 100 stone from the nearest own town.
+- **Three ryo pots:** Clan treasury (city), Town coffers (each town), War chest (one per camp, pays troops). The hero carries the war chest, filled before setting out from the pot he stands in (typeable box). An optional camp station on a rail spur lets the treasury and coffers send more ryo by train. The HUD badge shows the local pot by hero location. Foreign mercenary pistolmen are hired at the port with treasury ryo.
+- **Economy rule:** materials build camp buildings; troops are paid in ryo from the war chest.
+- **Roster:** shared grunt, brutes, enforcers, archers, riflemen, sword riders, mounted pikemen, in an army kit; numbers-only clan bonuses; separate war stat blocks used by every unit inside a war circle (crew and hero included). Clan specials (Geisha/Kunoichi, Teppō/Gatling crew, Irezumi/Dog handler) keep their own look and effects; siege weapons: fire-bomb throwers, field cannon, wooden cannon. Specials auto-cast and support smart casting.
+- **Frontier stealth:** open ground, cover, night lights and riding rules; inside a war circle only the kunoichi is hidden. Watchtowers, the dog handler and the Teppō detect hidden units.
+- **Morale bar:** each side's morale drops only when its military buildings (or hall) fall. With all military buildings down, the hero channels about 1 minute at the hall (any hit interrupts; a hit resets it). Outcomes chosen before the channel: capture, sack (burn defences, take part of the coffers; a clan's last town can only be sacked), or burn everything (zone goes empty; anyone can found a fresh town there at full cost once the war ends).
+- **Defender:** builds the same military buildings in town (upkeep in timber and stone, capped by hall tier), trains only during a war after a muster delay, and gets its own war chest. The attacker loses when the camp's morale empties and the defending hero completes the 1-minute channel at the camp hall; the attacker's chest goes to the town as spoils. Either side may surrender.
+- **After a war:** a fresh build. War troops on both sides disband, the camp packs up, unspent chest ryo returns to the treasury, the hero and crew stay. About one game day of cooldown before that town can be declared on again. Outside a war circle army troops cannot attack another clan.
+- **Art:** army kit, cavalry sheets, horse recolours and a warhorse, fire-bomb throwers, second specials, tier 1 hall art and clan castles, Shinobi buildings; after gameplay.
+- **Open:** see the Open list in Phase F6: War.
 
 ## Endgame and campaign length (2026-11-05)
 
@@ -888,6 +872,8 @@ and commands before expanding scale. Browser gameplay and profiling remain neces
 - Review repeat-reward and multiplayer loot rights before enabling persistent campaign drops.
 
 ### 6. Forts and conquest
+
+Superseded where it differs by [War (current design, 2026-11-09)](#war-current-design-2026-11-09).
 
 - Add center tiers, defensive structures, multistage siege, selected garrisons and occupation.
 - Add limited damage and repair states before broad destruction features.
