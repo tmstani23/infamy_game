@@ -1059,6 +1059,8 @@ export function createGame(options) {
       if (len < 0.1) {
         // knocking down a War Lantern (sim/businesses.js): busy, no auto attack (it only drew hits back)
         if (Object.values(state.attacks || {}).some(a => a.knock?.by === e.id)) { e.anim = 'idle'; continue; }
+        // right-click on your stockade (Tim 2026-11-10): the hero walks over; frontier/garrison.js admits him on arrival
+        if (e.type === 'hero' && e.order?.garrisonGo && !e.order.arrived) { delete e.swing; delete e.execute; if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.execute && executeStep(e, unit)) continue;
         if (swingStep(e, unit)) continue;
@@ -1079,6 +1081,7 @@ export function createGame(options) {
       delete e.swing;
       delete e.execute;
       delete e.lootTarget;
+      if (e.order?.garrisonGo) delete e.order;   // WASD takes back control from the walk to the stockade
       e.anim = c.walk ? 'walk' : 'run';
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns
         const kind = e.ride.kind === 'horse' ? 'mount' : state.entities[e.aboard]?.type || 'omnibus';

@@ -287,4 +287,4 @@ Frontier towns, War banner (2026-11-10, campaign; button beside War Lantern): In
 
 Garrison card (2026-11-10):
 - Left-click your stockade (or any garrisoned building): garrison card with health, slots, Prev/Next, Evacuate; hover a unit for its health, click it to walk it out.
-- Right-click your stockade with nothing selected: your hero goes in (within 14).
+- Right-click your stockade: the hero, selected crew and crew following him walk over and go in; WASD cancels the hero's walk.

@@ -148,7 +148,10 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     // right-click your finished stockade with crew selected (Tim 2026-11-07): they go in (far ones walk over first)
     const s = game.state.frontier?.settlements?.[p.town], ids = selected().length ? selected() : [heroId], b = s?.buildings?.find(x => x.id === p.id);
     if (p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner() && ids.length) {
-      send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, walk: true, units: ids });
+      const group = [...ids];
+      if (!group.includes(heroId)) group.push(heroId);   // the hero walks in too (Tim 2026-11-10)
+      for (const u of Object.values(game.state.entities || {})) if (u.owner === owner() && u.order?.kind === 'follow' && u.order.target === heroId && !group.includes(u.id)) group.push(u.id);   // and so does his following crew
+      send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, walk: true, units: group });
       return;
     }
     openTown(p.town);

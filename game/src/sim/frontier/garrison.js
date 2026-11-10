@@ -70,7 +70,7 @@ export function createGarrison({ state, data, world }) {
       if ((u.type === 'civilian' && !u.worker) || u.wild || u.cop) continue;
       if (Math.hypot(u.x - cx, u.z - cz) > R.range) {
         // right-click on the stockade (Tim 2026-11-07): far units walk over and go in when they arrive
-        if (c.walk && u.type !== 'hero' && !u.worker && !u.aboard && !u.mounted) { u.order = { kind: 'move', x: cx, z: cz, garrisonGo: s.id }; delete u.attackTarget; walking++; } else far++;
+        if (c.walk && !u.worker && !u.aboard && !u.mounted) { u.order = { kind: 'move', x: cx, z: cz, garrisonGo: s.id }; delete u.attackTarget; walking++; } else far++;
         continue;
       }
       if (room <= 0) return receipt(e, c, taken > 0, 'stockade is full');
