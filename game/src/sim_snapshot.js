@@ -67,7 +67,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   }));
   // F6 war: declared wars are public; a camp's chest and stores only to its own side
   const wars = f.wars && { cooldown: f.wars.cooldown || {}, list: Object.fromEntries(Object.entries(f.wars.list || {}).map(([id, w]) => [id,
-    w.attacker === clan ? (w.camp ? { ...w, camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : w) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: w.camp.buildings } }])) };
+    w.attacker === clan ? (w.camp ? { ...w, camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : w) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: (w.camp.buildings || []).map(({ queue, ...b }) => b) } }])) };
   return { version: f.version, econTick: f.econTick, settlements, spots, ...(wars ? { wars } : {}),
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),

@@ -38,7 +38,7 @@ export function createClans(state, units, opts = {}) {
   }
 
   // Crew a clan has now (everything it owns except its hero and its house guards)
-  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && e.type !== 'settler' && !e.guard && !e.captain);   // the city captain (C2) is not crew
+  const crewOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type !== 'hero' && e.type !== 'settler' && !e.guard && !e.captain && !e.warTroop);   // F6 war troops belong to their war, not the crew   // the city captain (C2) is not crew
   // settlers (frontier E2) are not crew: no cap, no deployment, no clinic
   const settlersOf = id => Object.values(state.entities).filter(e => e.owner === id && e.type === 'settler' && !e.dead);
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)

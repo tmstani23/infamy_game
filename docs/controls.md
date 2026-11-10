@@ -290,6 +290,8 @@ Garrison card (2026-11-10):
 - Right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.
 - Island minimap: recentres on the camera once it passes 85% of the way to the edge.
 
-War camp workers (2026-11-10):
-- Camp workers take the same right-click orders as town workers.
-- While the hero is in his own war circle, the war coin shows the war chest and a Hire workers box (typeable number + Hire button) sits under it: hires camp workers for ryo from the war chest, up to the camp limit. Hire cost 20 ryo and cap 24 are placeholders in the `frontier.json` `war` data.
+War camp (2026-11-10, campaign):
+- Click the red war coin or left-click a building of your war camp: opens the camp panel. Build tab: click a building card to place it; locked cards say what they need in their hover. Train tab: type how many in a building's box and click Train; Cancel last takes back the newest one in its queue for what you paid. Hall tab: Upgrade hall unlocks stables, foundry and armory. Hire workers (type how many, Hire) is under the camp hall art. All ryo comes from the war chest; timber and stone from the camp stores. Esc or its Esc button shuts it.
+- Placing a camp building: a green ghost can be placed, red says why not in the hint (within reach of another camp building, shown by the dashed rings, inside the war circle and outside the town ring). Left-click places it and up to three idle camp workers walk over and build it; Shift + left-click keeps placing; right-click or Esc stops placing.
+- Camp workers: same orders as town workers (select, right-click timber or stone in the war circle outside the town ring, or right-click ground to move).
+- Dev builds: browser console `infamy.startWar()` (war on the nearest rival town you have seen, you attack), `infamy.startWar(null, 'defend')` (a rival attacks your nearest town), `infamy.endWar()`.

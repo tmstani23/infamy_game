@@ -24,7 +24,7 @@ const CSS = `
 #warpack .lay{display:grid;grid-template-columns:170px 1fr}
 #warpack aside{padding:16px;border-right:1px solid #303238;background:linear-gradient(180deg,#9a3a3233,#11171d 70%);text-align:center}
 #warpack aside .art{height:150px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 45%,#c9473d40,transparent 65%)}
-#warpack aside img{width:118px;height:118px;image-rendering:auto;border-radius:6px}
+#warpack aside img{width:118px;height:118px;object-fit:contain;image-rendering:auto;border-radius:6px}
 #warpack .clan{display:block;color:#d8b56c;font-size:11px;text-transform:uppercase;letter-spacing:.15em;margin-top:8px}
 #warpack .name{font-size:19px;font-weight:500}
 #warpack main{padding:12px 18px}
@@ -43,9 +43,7 @@ const CSS = `
 #warcoin{position:fixed;right:165px;bottom:150px;width:90px;height:90px;border-radius:50%;display:grid;place-items:center;text-align:center;z-index:19;cursor:help;
   background:radial-gradient(#2b1714,#0f0a09 70%);box-shadow:0 0 0 4px #8e2d26,0 0 0 6px #2a0f0d,0 0 16px #c9473d88;color:#f6e6bf;font:600 11px/1.15 system-ui}
 #warcoin[hidden]{display:none}#warcoin b{display:block;font-size:18px}#warcoin small{display:block;font-size:9px;letter-spacing:.14em;color:#ee9a8c}
-#warhire{position:fixed;right:150px;bottom:100px;z-index:19;display:flex;gap:6px;align-items:center;padding:5px 8px;background:rgba(12,18,24,.94);border:1px solid #826f4c;border-radius:8px;font:600 12px system-ui;color:#f3e3bd}
-#warhire[hidden]{display:none}#warhire input{width:44px;background:#07090b;border:1px solid #826f4c;border-radius:4px;padding:3px 4px;text-align:right;font:600 13px system-ui;color:#f3e3bd}
-#warhire button{font:600 12px system-ui;padding:4px 9px;border:1px solid #e07b6c;border-radius:5px;background:linear-gradient(#8e2d26,#5e1c18);color:#ffe9dc;cursor:pointer}
+#warcoin.camp{cursor:pointer}
 #warsplash{position:fixed;left:0;right:0;top:22%;height:96px;z-index:58;pointer-events:none;text-align:center;
   background:linear-gradient(90deg,transparent,#7e231dee 14%,#a3332aee 50%,#7e231dee 86%,transparent);box-shadow:0 0 30px #c9473d55;animation:warsplash 4.2s ease-out forwards}
 #warsplash[hidden]{display:none}
@@ -55,7 +53,7 @@ const CSS = `
 #warbannerhint{position:fixed;pointer-events:none;z-index:22;padding:8px 11px;background:rgba(12,18,24,.94);max-width:300px;border:1px solid;border-radius:8px;font:12px/1.4 system-ui}
 `;
 
-export function createWarBanner({ button, game, heroId, view, catalog, send, blocked = () => false, onStart = () => {} }) {
+export function createWarBanner({ button, game, heroId, view, catalog, send, blocked = () => false, onStart = () => {}, openCamp = () => {} }) {
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   button.id = 'warbannerbtn'; button.type = 'button'; button.dataset.icon = '';
   const war = () => game.frontier?.war;
@@ -104,7 +102,8 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const h = hero(), v = war()?.packView(h); if (!v) return;
     lastView = v;
     const clan = clanOf();
-    $('.eyebrow').textContent = `${clan?.name || 'Your'} clan, prepare for war`;
+    const cn = clan?.name || 'Your';   // clan names may already end in "clan" (Kuroda clan)
+    $('.eyebrow').textContent = `${/ clan$/i.test(cn) ? cn : `${cn} clan`}, prepare for war`;
     $('.name').textContent = h?.name || 'Your hero';
     $('.from b').textContent = v.pot ? (v.pot.kind === 'city' ? 'Clan treasury' : `${v.pot.name} coffers and stores`) : 'nowhere';
     $('.from').title = 'The hero carries the pack. Planting a war banner by a rival town turns it into the camp\'s war chest and stores. Unpack returns every part to where it came from.';
@@ -130,7 +129,9 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     want = { ryo: v.pack?.ryo || 0, timber: v.pack?.timber || 0, stone: v.pack?.stone || 0 };
     root.hidden = false; $('.why').textContent = '';
     const img = $('aside img'), model = hero()?.model;
-    import('./portraits.js').then(({ portrait }) => { const u = portrait(catalog, model, () => { img.src = portrait(catalog, model) || ''; }); if (u) img.src = u; }).catch(() => {});
+    // the hero's sharp concept cut-out (menu_shell msConcept, Tim 2026-11-10: the sprite crop was blurry), else the sprite portrait
+    const sprite = () => import('./portraits.js').then(({ portrait }) => { const u = portrait(catalog, model, () => { img.src = portrait(catalog, model) || ''; }); if (u) img.src = u; }).catch(() => {});
+    import('./menu_shell.js').then(({ msConcept }) => { const u = msConcept?.(model); if (u) { img.onerror = () => { img.onerror = null; sprite(); }; img.src = u; } else sprite(); }).catch(sprite);
     fill();
   }
   function close() { root.hidden = true; }
@@ -211,16 +212,10 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
 
   // ---- war coin and splash ---------------------------------------------------------------
   const coin = document.createElement('div'); coin.id = 'warcoin'; coin.hidden = true; document.body.append(coin);
-  // Camp readout (checkpoint 3): inside the circle of a war you are fighting, the coin shows the camp chest, and a small
-  // control hires camp workers (ryo from the chest only; the sim checks cost and cap again).
-  const hire = document.createElement('div'); hire.id = 'warhire'; hire.hidden = true;
-  hire.innerHTML = '<span>Hire workers</span><input class="n" type="text" inputmode="numeric" value="1"><button type="button">Hire</button>'; document.body.append(hire);
+  // Camp readout (checkpoint 3): inside the circle of a war you are fighting, the coin shows the camp chest.
+  // Checkpoint 4: clicking it opens the camp panel (build, train, hire workers, hall upgrade).
   let campId = null;
-  hire.querySelector('button').addEventListener('click', () => {
-    const n = Math.floor(Number(hire.querySelector('input').value));
-    if (campId && n >= 1) send({ id: heroId, type: 'frontier', action: 'train', town: campId, count: n });
-  });
-  for (const ev of ['keydown', 'keyup', 'pointerdown']) hire.addEventListener(ev, e => e.stopPropagation());   // typing a number must not move the hero
+  coin.addEventListener('click', () => { if (campId) openCamp(campId); });
   function ownCamp() {
     const h = hero(), R = W()?.circleRadius ?? 900;
     if (!h) return null;
@@ -259,14 +254,13 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const camp = ownCamp(), C = W()?.camp || {};
     campId = camp?.id || null;
     const csig = camp ? `${camp.id}|${Math.floor(camp.camp.chest)}|${Math.floor(camp.camp.stock.timber)}|${Math.floor(camp.camp.stock.stone)}|${camp.camp.workers.length}|${(camp.camp.workerTraining || []).length}` : '';
-    hire.hidden = !camp;
+    coin.classList.toggle('camp', !pack && !!camp);
     if (!pack && camp) {
       if (csig !== coinSig) {
         coinSig = csig; coin.hidden = false;
         const k = camp.camp, n = k.workers.length, tr = (k.workerTraining || []).length;
         coin.innerHTML = `<div><b>${Math.floor(k.chest)}</b><small>WAR CHEST</small>${n} workers</div>`;
-        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${C.workerCap ?? '?'} workers.`;
-        hire.title = `Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} workers in all.`;
+        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${C.workerCap ?? '?'} workers. Click to open the camp panel.`;
       }
     } else if (sig !== coinSig) {
       coinSig = sig; coin.hidden = !pack;

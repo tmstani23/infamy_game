@@ -86,6 +86,15 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (dist(hero, t) > W.circleRadius) return `Come within ${W.circleRadius} of ${t.name}'s town hall`;
     if (!Number.isFinite(point?.x) || !Number.isFinite(point?.z)) return 'Choose a spot for the banner';
     if (dist(point, hero) > W.placeRange) return 'The banner is too far from the hero';
+    const spot = spotWhy(t, point);
+    if (spot) return spot;
+    const pack = state.clans?.[hero.owner]?.warPack, P = W.pack;   // optional; a min above 0 in data makes it required
+    if ((P?.min?.timber || P?.min?.stone) && ((pack?.timber || 0) < (P.min.timber || 0) || (pack?.stone || 0) < (P.min.stone || 0)))
+      return `Pack for war first (at least ${P.min.timber || 0} timber and ${P.min.stone || 0} stone)`;
+    return null;
+  }
+  // the ground rules for a banner spot by town t (band, other rings, other camps, ground, resources), or null
+  function spotWhy(t, point) {
     const [inner, outer] = band(t), d = dist(point, t);
     if (d < inner) return `Too close to ${t.name}: plant the banner ${Math.round(inner)} to ${Math.round(outer)} from its town hall`;
     if (d > outer) return `Too far from ${t.name}: plant the banner ${Math.round(inner)} to ${Math.round(outer)} from its town hall`;
@@ -96,9 +105,6 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     for (const w of active()) if (dist(point, w) < (W.campSpacing || 0)) return 'Too close to another war camp';
     if (!groundOk(point.x, point.z)) return 'This ground cannot be built on';
     if (resourceIndex && coversResources({ x: point.x, z: point.z, grid: { n: 1, cell: data.townGrid.cellSize } }, [0], resourceIndex, 1)) return 'The banner would cover a resource area';
-    const pack = state.clans?.[hero.owner]?.warPack, P = W.pack;   // optional; a min above 0 in data makes it required
-    if ((P?.min?.timber || P?.min?.stone) && ((pack?.timber || 0) < (P.min.timber || 0) || (pack?.stone || 0) < (P.min.stone || 0)))
-      return `Pack for war first (at least ${P.min.timber || 0} timber and ${P.min.stone || 0} stone)`;
     return null;
   }
 
@@ -113,18 +119,46 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function plant(hero, townId, point) {
     const r = check(hero, townId, point);
     if (!r.ok) return r;
-    const t = town(townId), fr = f(), id = `war${fr.nextId++}`;
-    const war = { id, town: t.id, attacker: hero.owner, defender: t.owner, x: r.point.x, z: r.point.z, started: state.tick ?? 0, state: 'active' };
-    // the pack becomes the camp (sealed: camp stores never go back to a town)
-    const clan = state.clans?.[hero.owner], pack = clan?.warPack || { ryo: 0, timber: 0, stone: 0 };
+    const clan = state.clans?.[hero.owner], war = start(hero.owner, town(townId), r.point, clan?.warPack || { ryo: 0, timber: 0, stone: 0 });
+    if (clan) delete clan.warPack;
+    return { ok: true, id: war.id, war };
+  }
+  // A new war record with its starting camp (the pack becomes the camp: sealed, camp stores never go back to a town)
+  function start(attacker, t, point, pack) {
+    const fr = f(), id = `war${fr.nextId++}`;
+    const war = { id, town: t.id, attacker, defender: t.owner, x: point.x, z: point.z, started: state.tick ?? 0, state: 'active' };
     const brought = { ryo: pack.ryo || 0, timber: pack.timber || 0, stone: pack.stone || 0 };
     war.camp = { x: war.x, z: war.z, chest: brought.ryo, stock: { timber: brought.timber, stone: brought.stone }, brought,
       workers: Array.from({ length: W.camp?.startWorkers ?? 0 }, () => ({ id: world?.newId ? world.newId('w') : `w${fr.nextId++}`, spot: null, dropoff: null, phase: 0, carrying: 0, entity: null, elapsed: 0, trip: null })), workerTraining: [], buildings: [{ id: `${id}:hall`, type: 'camp_hall', stage: 'built', x: war.x, z: war.z }] };
-    if (clan) delete clan.warPack;
     store().list[id] = war;
-    const who = state.clans?.[hero.owner]?.name || hero.owner;
+    const who = state.clans?.[attacker]?.name || attacker;
     if (state.clans?.[t.owner]) state.clans[t.owner].notice = { tick: state.tick, text: `${who} has declared war on ${t.name}!` };
-    return { ok: true, id, war };
+    return war;
+  }
+  // Dev build only: start a war at once, the player's clan attacking a rival town (side 'attack') or a rival clan
+  // attacking one of the player's towns (side 'defend'). The banner goes on the first good spot in the band; the
+  // camp gets war.dev.camp as its pack (or the attacker's own pack).
+  function devStart(e, c) {
+    const t = town(c.town);
+    if (!t || t.capital || !Number.isFinite(t.x) || t.owner == null) return { ok: false, reason: 'No such town' };
+    if (warOn(t.id)) return { ok: false, reason: `${t.name} is already at war` };
+    let attacker = e.owner;
+    if (c.side === 'defend') {
+      if (t.owner !== e.owner) return { ok: false, reason: 'Defend one of your own towns' };
+      attacker = state.clans?.[c.attacker] && c.attacker !== e.owner ? c.attacker : Object.keys(state.clans || {}).find(id => id !== e.owner && state.clans[id].bot);
+      if (!attacker) return { ok: false, reason: 'No rival clan to attack you' };
+    } else if (t.owner === e.owner) return { ok: false, reason: 'This is your own town' };
+    const [inner, outer] = band(t);
+    let point = null;
+    for (let r = Math.ceil((inner + outer) / 2); !point && r <= outer; r += 25) for (let a = 0; !point && a < 32; a++) {
+      const p = { x: Math.round(t.x + Math.cos(a * Math.PI / 16) * r), z: Math.round(t.z + Math.sin(a * Math.PI / 16) * r) };
+      if (!spotWhy(t, p)) point = p;
+    }
+    if (!point) return { ok: false, reason: 'No ground for a banner round that town' };
+    const clan = state.clans?.[attacker], pack = clan?.warPack || W.dev?.camp || { ryo: 0, timber: 0, stone: 0 };
+    const war = start(attacker, t, point, pack);
+    if (clan?.warPack) delete clan.warPack;
+    return { ok: true, id: war.id, war };
   }
 
   // End a war: result 'attackerWon' | 'defenderWon' | 'called off' etc. (later checkpoints decide it).
@@ -228,6 +262,218 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return { ok: true };
   }
 
+  // ---- camp buildings (checkpoint 4) ------------------------------------------------------
+  // Camp buildings are placed in a chain round the camp hall: each within war.chainDistance of another camp
+  // building, inside the war circle, never inside a town ring. Paid in timber and stone from the camp stock at
+  // once; camp workers then walk over and build the site (sim/frontier/workers.js campBuild).
+  // building = { id, type, stage: 'site' | 'built', x, z, progress, need }; the camp hall upgrade is
+  // hall.upgrade = { progress, need } until done, then hall.tier = 2.
+  const BD = () => W?.buildings || {};
+  const radiusOf = type => BD()[type]?.radius ?? 8;
+  const hallOf = camp => camp?.buildings?.find(b => b.type === 'camp_hall') || null;
+  const upgraded = camp => (hallOf(camp)?.tier || 1) >= 2;
+  const builtCount = (camp, type) => camp.buildings.filter(b => b.type === type && b.stage === 'built').length;
+  const nice = t => (t || '').replace(/_/g, ' ');
+  // what a building type still needs before it can be placed: [] when nothing
+  function missing(camp, type) {
+    const out = [];
+    for (const n of BD()[type]?.needs || []) {
+      if (n === 'upgrade') { if (!upgraded(camp)) out.push('the camp hall upgrade'); }
+      else if (!builtCount(camp, n)) out.push(`a built ${nice(n)}`);
+    }
+    return out;
+  }
+  const costText = cost => Object.entries(cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
+  function canPay(camp, cost) {
+    for (const [r, v] of Object.entries(cost || {})) {
+      const has = r === 'ryo' ? camp.chest || 0 : camp.stock?.[r] || 0;
+      if (has < v) return `Needs ${costText(cost)} (the camp has ${Math.floor(has)} ${r === 'ryo' ? 'ryo in the war chest' : r})`;
+    }
+    return null;
+  }
+  function pay(camp, cost, sign = -1) {
+    for (const [r, v] of Object.entries(cost || {})) {
+      if (r === 'ryo') camp.chest = Math.round(((camp.chest || 0) + sign * v) * 100) / 100;
+      else camp.stock[r] = Math.round(((camp.stock[r] || 0) + sign * v) * 100) / 100;
+    }
+  }
+  // Why a camp building cannot go at x, z, or null
+  function placeWhy(war, type, x, z) {
+    const def = BD()[type], camp = war?.camp;
+    if (!war || !camp) return 'No such war camp';
+    if (!def || type === 'camp_hall' || !def.cost) return 'Not a camp building';
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return 'Choose a spot';
+    const need = missing(camp, type);
+    if (need.length) return `Needs ${need.join(' and ')}`;
+    if (def.max && camp.buildings.filter(b => b.type === type).length >= def.max) return `A camp has at most ${def.max} ${nice(type)}`;
+    const t = town(war.town), r = radiusOf(type), p = { x, z };
+    if (!t) return 'No such town';
+    if (dist(p, t) + r > W.circleRadius) return 'Stay inside the war circle';
+    for (const s of Object.values(f().settlements)) {
+      if (s.capital || !Number.isFinite(s.x)) continue;
+      if (dist(p, s) - r <= ringRadius(s, data)) return `Inside ${s.name}'s town ring`;
+    }
+    const chain = W.chainDistance ?? 120;
+    if (!camp.buildings.some(b => dist(b, p) <= chain)) return `Place it within ${chain} of another camp building`;
+    for (const w of active()) for (const b of w.camp?.buildings || [])
+      if (dist(b, p) < r + radiusOf(b.type)) return w === war ? `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
+    const k = r * 0.7;
+    for (const [dx, dz] of [[0, 0], [k, 0], [-k, 0], [0, k], [0, -k]]) if (!groundOk(x + dx, z + dz)) return 'This ground cannot be built on';
+    if (resourceIndex && coversResources({ x, z, grid: { n: 1, cell: r * 2 } }, [0], resourceIndex, 1)) return 'It would cover a resource area';
+    return canPay(camp, def.cost);
+  }
+  // Read-only for the UI, bots and tests: { ok, reason, point }
+  function campCheck(warId, type, point) {
+    const war = byId(warId), p = point && { x: Math.round(point.x), z: Math.round(point.z) };
+    const reason = placeWhy(war, type, p?.x, p?.z);
+    return { ok: !reason, reason, point: p };
+  }
+  // The build list for a camp: [{ type, cost, need: [..], ok, reason, count, max }] (no point: everything but the ground)
+  function campBuildList(warId) {
+    const war = byId(warId), camp = war?.camp;
+    if (!camp) return [];
+    return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost).map(([type, d]) => {
+      const need = missing(camp, type), count = camp.buildings.filter(b => b.type === type).length;
+      const reason = need.length ? `Needs ${need.join(' and ')}` : d.max && count >= d.max ? `A camp has at most ${d.max} ${nice(type)}` : canPay(camp, d.cost);
+      return { type, cost: d.cost, need, ok: !reason, reason: reason || '', count, max: d.max || null };
+    });
+  }
+  function owns(e, war) { return !!war && !!e && e.owner === war.attacker; }
+  function campPlace(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const r = campCheck(c.war, c.kind, { x: c.x, z: c.z });   // kind = the building type (type is the command's own)
+    if (!r.ok) return r;
+    const def = BD()[c.kind];
+    pay(war.camp, def.cost);
+    war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, progress: 0, need: def.buildTicks || 1 });
+    return { ok: true };
+  }
+  // Cancel a site: full refund while no work is done, nothing back after
+  function campCancel(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const i = war.camp.buildings.findIndex(b => b.id === c.building && b.stage === 'site');
+    if (i < 0) return { ok: false, reason: 'No such building site' };
+    const b = war.camp.buildings[i];
+    if (!b.progress) pay(war.camp, BD()[b.type]?.cost, +1);
+    war.camp.buildings.splice(i, 1);
+    return { ok: true };
+  }
+  // The camp hall upgrade: materials and ryo at once, then workers build it like a site
+  function campUpgrade(e, c) {
+    const war = byId(c.war), U = W?.hallUpgrade;
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const hall = hallOf(war.camp);
+    if (!U || !hall || hall.stage !== 'built') return { ok: false, reason: 'No camp hall' };
+    if (upgraded(war.camp)) return { ok: false, reason: 'The camp hall is already upgraded' };
+    if (hall.upgrade) return { ok: false, reason: 'The upgrade is already under way' };
+    const why = canPay(war.camp, U.cost);
+    if (why) return { ok: false, reason: why };
+    pay(war.camp, U.cost);
+    hall.upgrade = { progress: 0, need: U.buildTicks || 1 };
+    return { ok: true };
+  }
+
+  // ---- training queues and the troop cap (checkpoint 4) ----------------------------------
+  // Each built building that trains has its own queue (building.queue = [{ unit, left }], the first one counts
+  // down). Paid in ryo from the war chest when queued. Troops alive plus queued stay within the troop cap:
+  // war.troopCap.base + each built supply tents' cap, never above war.troopCap.max. A finished troop appears at
+  // its building as a unit of the attacker tagged warTroop: <war id> (not city crew: no crew cap, no clinic).
+  let runtime = null;
+  const UD = () => W?.units || {};
+  const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).length;
+  const queuedOf = war => war.camp.buildings.reduce((n, b) => n + (b.queue?.length || 0), 0);
+  function troopCap(war) {
+    const T = W?.troopCap || {}, tents = war.camp.buildings.filter(b => b.stage === 'built').reduce((n, b) => n + (BD()[b.type]?.cap || 0), 0);
+    return Math.min(T.max ?? Infinity, (T.base ?? 0) + tents);
+  }
+  // { troops, queued, cap } for the UI and tests
+  const troopView = warId => { const w = byId(warId); return w?.camp ? { troops: troopsOf(w), queued: queuedOf(w), cap: troopCap(w) } : null; };
+  // which units a camp building trains: [unit ids]
+  const trainsAt = type => Object.entries(UD()).filter(([, u]) => u && typeof u === 'object' && (u.at || []).includes(type)).map(([id]) => id);
+  function campTrain(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const b = war.camp.buildings.find(x => x.id === c.building), u = UD()[c.unit];
+    if (!b || b.stage !== 'built') return { ok: false, reason: 'No such finished camp building' };
+    if (!u || !trainsAt(b.type).includes(c.unit)) return { ok: false, reason: `The ${nice(b.type)} does not train that` };
+    const n = c.count;
+    if (!Number.isSafeInteger(n) || n < 1) return { ok: false, reason: 'count must be a positive integer' };
+    if ((b.queue?.length || 0) + n > (W.queueMax ?? 20)) return { ok: false, reason: `At most ${W.queueMax ?? 20} waiting at one building` };
+    const left = troopCap(war) - troopsOf(war) - queuedOf(war);
+    if (n > left) return { ok: false, reason: left > 0 ? `Troop cap: room for ${left} more` : `Troop cap reached (${troopCap(war)}): build supply tents for more` };
+    const cost = (u.ryo || 0) * n;
+    if ((war.camp.chest || 0) < cost) return { ok: false, reason: `Needs ${cost} ryo from the war chest (it has ${Math.floor(war.camp.chest || 0)})` };
+    war.camp.chest = Math.round((war.camp.chest - cost) * 100) / 100;
+    b.queue ||= [];
+    for (let i = 0; i < n; i++) b.queue.push({ unit: c.unit, left: u.trainTicks || 1 });
+    return { ok: true };
+  }
+  // Cancel the last queued troop at a building: its ryo goes back to the war chest
+  function campUntrain(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const b = war.camp.buildings.find(x => x.id === c.building), q = b?.queue?.pop();
+    if (!q) return { ok: false, reason: 'Nothing waiting there' };
+    if (!b.queue.length) delete b.queue;
+    war.camp.chest = Math.round(((war.camp.chest || 0) + (UD()[q.unit]?.ryo || 0)) * 100) / 100;
+    return { ok: true };
+  }
+  function troopType(war, unit) {
+    const u = UD()[unit], faction = state.clans?.[war.attacker]?.faction || 'yakuza';
+    return typeof u.type === 'string' ? u.type : u.type?.[faction] || Object.values(u.type || {})[0];
+  }
+  function tick() {
+    // a war that is over takes its troops with it (they disband)
+    if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !byId(e.warTroop)) runtime.remove(e.id);
+    for (const war of active()) for (const b of war.camp?.buildings || []) {
+      const q = b.queue?.[0];
+      if (!q || b.stage !== 'built') continue;
+      if (q.left > 0) q.left--;
+      if (q.left > 0 || !runtime?.spawn) continue;   // without the game (bare tests) a ready troop waits at the front
+      const type = troopType(war, q.unit), u = UD()[q.unit], faction = state.clans?.[war.attacker]?.faction || 'yakuza';
+      const model = u.model?.[faction] || type, r = radiusOf(b.type) + 2, a = (f().nextId % 12) * Math.PI / 6;
+      runtime.spawn(type, model, b.x + Math.cos(a) * r, b.z + Math.sin(a) * r,
+        { owner: war.attacker, place: 'world', area: 'world', warTroop: war.id, order: { kind: 'stop' } });
+      f().nextId++;
+      b.queue.shift();
+      if (!b.queue.length) delete b.queue;
+    }
+    standIn();
+  }
+  // Stand-in defender (checkpoint 4; the bot general replaces it at 8d): a bot clan's town at war trains grunts
+  // from its coffers, one every standIn.trainTicks up to standIn.max, at the town hall. They stand at the hall and
+  // go for the nearest attacker unit inside the town ring (+ standIn.reach). A player defends his own town.
+  function standIn() {
+    const S = W?.standIn;
+    if (!S || !runtime?.spawn || (state.tick ?? 0) % 20 !== 0) return;
+    for (const war of active()) {
+      const t = town(war.town), clan = state.clans?.[war.defender];
+      if (!t || !clan?.bot) continue;
+      const mine = Object.values(state.entities).filter(e => e.warTroop === war.id && e.owner === war.defender && !e.dead);
+      war.standIn ||= { next: (state.tick ?? 0) + (S.trainTicks || 0) };
+      if (mine.length < S.max && (state.tick ?? 0) >= war.standIn.next && (t.stock?.ryo || 0) >= S.ryo) {
+        world.change(t.id, 'ryo', -S.ryo, 'war troops');
+        const faction = clan.faction || 'yakuza', a = (f().nextId % 12) * Math.PI / 6, r = S.hallDistance ?? 14;
+        const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r, type = S.type?.[faction] || 'swordsman';
+        const id = runtime.spawn(type, S.model?.[faction] || type, x, z, { owner: war.defender, place: 'world', area: 'world', warTroop: war.id, home: [x, z], order: { kind: 'station', x, z } });
+        if (id != null && state.entities[id]) mine.push(state.entities[id]);
+        f().nextId++;
+        war.standIn.next = (state.tick ?? 0) + (S.trainTicks || 0);
+      }
+      const reach = ringRadius(t, data) + (S.reach ?? 50);
+      const foes = Object.values(state.entities).filter(e => e.owner === war.attacker && e.place === 'world' && !e.dead && !e.downed && e.type !== 'civilian' && Math.hypot(e.x - t.x, e.z - t.z) <= reach);
+      for (const d of mine) {
+        if (d.downed) continue;
+        const foe = foes.map(e => ({ e, d: Math.hypot(e.x - d.x, e.z - d.z) })).sort((a, b) => a.d - b.d || (a.e.id < b.e.id ? -1 : 1))[0]?.e;
+        if (foe) { if (d.order?.kind !== 'attack' || d.order.target !== foe.id) d.order = { kind: 'attack', target: foe.id }; }
+        else if (d.order?.kind !== 'station' && d.home) d.order = { kind: 'station', x: d.home[0], z: d.home[1] };
+      }
+    }
+  }
+  function attach(services) { runtime = services; }
+
   function receipt(e, c, ok, reason = '') {
     const fr = f();
     fr.receiptSeq = (fr.receiptSeq || 0) + 1;
@@ -246,6 +492,17 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
+    if (['campPlace', 'campCancel', 'campUpgrade', 'campTrain', 'campUntrain'].includes(c.action)) {
+      const r = { campPlace, campCancel, campUpgrade, campTrain, campUntrain }[c.action](e, c);
+      if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
+      return receipt(e, c, r.ok, r.reason || '');
+    }
+    if (c.action === 'devStartWar') {   // dev build only (data.dev)
+      if (!data.dev) return receipt(e, c, false, 'dev only');
+      const r = devStart(e, c);
+      if (state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.ok ? `Dev war: ${r.war.id} on ${town(r.war.town).name}` : r.reason };
+      return receipt(e, c, r.ok, r.reason || '');
+    }
     if (c.action === 'devEndWar') {   // dev build only (data.dev): end a war to try the cooldown
       if (!data.dev) return receipt(e, c, false, 'dev only');
       return receipt(e, c, end(c.war, c.result || 'dev'), '');
@@ -253,5 +510,5 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, get data() { return W; } };
+  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campBuildList, upgraded, troopView, trainsAt, tick, attach, get data() { return W; } };
 }

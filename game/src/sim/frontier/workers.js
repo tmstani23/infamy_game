@@ -313,6 +313,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   // Replan a stalled saved route from the actual position. Preserve its harvested cargo.
   function reroute(s,w) {
     const here=currentPoint(w);if(!here)return false;
+    if(w.project && w.buildAt) {const route=path(here,w.buildAt);if(!route)return false;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;return true;}   // a camp builder on its way to a site
     // (no shared paths.clear(): one stuck worker replanning every tick made every worker re-search its routes)
     if(w.order?.kind==='move') {
       const route=path(here,w.order.target);if(!route)return false;
@@ -427,7 +428,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     w.phase=Math.min(1,w.elapsed/t.total);
     if(w.elapsed>=t.total) {
       if(w.carrying) {
-        const camp=cartRules(data) && s.buildings.find(b=>b.id===w.dropoff && isCamp(data,b));
+        const camp=!s.camp && cartRules(data) && s.buildings.find(b=>b.id===w.dropoff && isCamp(data,b));   // a war camp's own lumber camp or quarry hands straight into the camp stock
         if(camp) {camp.store ||= {};camp.store[t.resource]=Math.round(((camp.store[t.resource] || 0)+w.carrying)*100)/100;}
         else credit(s,t.resource,w.carrying);
         s.workerIncome ||= {};s.workerIncome[t.resource]=(s.workerIncome[t.resource] || 0)+w.carrying;
@@ -462,6 +463,49 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     if(!left.length) {p.phase='cleared';delete p.clearWork;for(const w of selected)delete w.project;}
     return new Set(selected);
+  }
+  // War camp construction (checkpoint 4): up to war.builders idle camp workers walk to each building site (and to
+  // the camp hall while it is upgraded) and build it, one progress point per worker per tick at the site. Workers the
+  // player has given their own picks are never taken; they can be sent by order later. Returns the busy builders.
+  function campBuild(s) {
+    const BD=data.war?.buildings || {},max=data.war?.builders ?? 3,busy=new Set();
+    const jobs=s.buildings.filter(b=>b.stage==='site' || b.upgrade),ids=new Set(jobs.map(b=>b.id));
+    for(const w of s.workers)if(w.project && !ids.has(w.project)) {
+      delete w.project;delete w.buildAt;
+      if(w.trip?.kind==='move'){w.departure=currentPoint(w) || w.departure;w.trip=null;w.elapsed=0;w.phase=0;}
+    }
+    for(const b of jobs) {
+      const job=b.upgrade || b,r=(BD[b.type]?.radius ?? 8)*0.8;
+      let crew=s.workers.filter(w=>w.project===b.id);
+      if(crew.length<max) {
+        const free=s.workers.filter(w=>!w.project && !w.order && !w.carrying && w.by!=='p' && w.trip?.kind!=='return')
+          .map(w=>({w,d:distance(currentPoint(w) || [s.x,s.z],[b.x,b.z])})).sort((a,c)=>a.d-c.d || compare(a.w.id,c.w.id));
+        for(const {w} of free.slice(0,max-crew.length)) {
+          const here=currentPoint(w) || [s.x,s.z],a=crew.length*2*Math.PI/max,goal=[b.x+Math.cos(a)*r,b.z+Math.sin(a)*r],route=path(here,goal);
+          if(!route)continue;
+          w.project=b.id;w.buildAt=route.at(-1);w.departure=here;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;delete w.status;delete w.retryAt;
+          crew.push(w);
+        }
+      }
+      let work=0;
+      for(const w of crew) {
+        busy.add(w);
+        const e=state.entities?.[w.entity];
+        if(w.trip) {
+          if(progress(s,w)) {w.elapsed++;w.phase=Math.min(1,w.elapsed/w.trip.total);if(w.elapsed>=w.trip.total){w.departure=[...w.trip.destination];w.trip=null;w.elapsed=0;w.phase=0;}}
+          continue;
+        }
+        work++;
+        if(e) {e.anim='hammer';e.dir=dirIndex(b.x-e.x,b.z-e.z);}
+      }
+      job.progress=Math.min(job.need,(job.progress || 0)+work);
+      if(job.progress>=job.need) {
+        if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
+        else {b.stage='built';delete b.progress;delete b.need;}
+        for(const w of crew){delete w.project;delete w.buildAt;busy.delete(w);}
+      }
+    }
+    return busy;
   }
   // nearest hall or storehouse to a camp, for its carts
   const cartHome=(s,b)=>{const p=point(s,b),h=homeDrops(s).map(x=>point(s,x)).sort((a,c)=>distance(a,p)-distance(c,p))[0];return h || [s.x,s.z];};
@@ -508,7 +552,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         if(enabled)w.departure=waitingPoint(s,w);
         s.workers.push(w);
       }
-      const busy=clear(s);
+      const busy=s.camp ? campBuild(s) : clear(s);
       for(const w of s.workers) {
         if(enabled && s.roadReserve && !w.order && !w.trip && !w.spot && !w.project && (!w.departure || townBlocked(...w.departure))) {
           w.departure=waitingPoint(s,w);
@@ -525,7 +569,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
             if(w.elapsed>=w.trip.total) {w.departure=[...w.trip.destination];w.trip=null;w.order={kind:'hold'};w.phase=0;}
           }
         } else if(!w.order && !busy.has(w) && !w.project && (w.spot || w.trip?.kind==='return'))gather(s,w);
-        else if(state.entities?.[w.entity])state.entities[w.entity].anim='idle';
+        else if(state.entities?.[w.entity] && !(s.camp && busy.has(w)))state.entities[w.entity].anim='idle';
         const current=position(w) || resting,e=state.entities?.[w.entity];
         if(e) {
           if(!near([e.x,e.z]) || !awake)suspend(w);

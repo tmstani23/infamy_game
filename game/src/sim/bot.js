@@ -54,7 +54,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const biz = () => Object.values(state.businesses);
   const home = () => biz().find(b => b.hideout === clan && b.owner === clan);
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
-  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u) && inHeroParty(game, u));
+  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && !u.warTroop && standing(u) && inHeroParty(game, u));
   const followers = () => crew().filter(u => u.order?.kind === 'follow');
   const sees = e => game.vision.canSee(clan, e)&&!charmProtected({owner:clan},e,state);
   const rivalClan = id => id && id !== clan && !!state.clans[id];

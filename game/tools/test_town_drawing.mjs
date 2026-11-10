@@ -131,5 +131,29 @@ try {
   assert.equal(map.hit(at.px, at.py)?.id, spot.id, 'the drawn spot is the hover target');
   map.setLayer('spots', false); assert.equal(map.items().some(p => p.kind === 'spot'), false);
 } finally { if (oldDocument === undefined) delete globalThis.document; else globalThis.document = oldDocument; }
+{ // F6 war checkpoint 4: a war camp draws its hall, banner, finished buildings where they were placed, and sites as building phases
+  const camp = { x: 500, z: 500, chest: 100, stock: { timber: 0, stone: 0 }, workers: [], buildings: [
+    { id: 'w1:hall', type: 'camp_hall', stage: 'built', x: 500, z: 500, upgrade: { progress: 10, need: 100 } },
+    { id: 'w1:b1', type: 'barracks', stage: 'built', x: 540, z: 470, queue: [{ unit: 'grunt', left: 5 }] },
+    { id: 'w1:b2', type: 'supply_tents', stage: 'site', x: 460, z: 520, progress: 60, need: 100 }] };
+  const fr = { settlements: {}, wars: { list: { w1: { id: 'w1', town: 't', attacker: 'player', defender: 'rival', camp } } } };
+  const [site] = drawableWarSites(fr, 'player');
+  assert.ok(site.camp === 'w1' && site.foreign && site.tierUpgrade?.total === 100, 'camp site carries its war id and the hall upgrade');
+  const props = townProps([site], art);
+  const at = id => props.find(p => p.key.startsWith(`w1:${id}`));
+  assert.ok(at('w1:b1:built')?.art === art.barracks && at('w1:b1:built').x === 540 && at('w1:b1:built').z === 470, 'built barracks drawn where placed with its art');
+  assert.ok(at('w1:b1:built').maxFootprint > 11, 'camp buildings have a placed footprint');
+  assert.ok(at('w1:hall:built')?.x === 500, 'camp hall at the camp');
+  assert.ok(props.some(p => p.key.startsWith('w1:w1:hall:up1')), 'hall upgrade shows building stages');
+  assert.ok(props.some(p => p.key === 'w1:w1:b2:frame2' && p.x === 460 && p.z === 520), 'site past half shows the second frame where placed');
+  const plots = townPlots([site]);
+  assert.ok(plots.every(p => p.camp === 'w1' && p.foreign), 'camp plots carry the war id');
+  const bp = plots.find(p => p.id === 'w1:b1');
+  assert.ok(plotInfo(fr, bp, frontier, null, 'player').lines.some(l => /Training 1/.test(l)) && plotInfo(fr, bp, frontier, null, 'player').lines.some(l => /camp panel/.test(l)), 'own camp hover');
+  assert.ok(!plotInfo(fr, bp, frontier, null, 'rival').lines.some(l => /camp panel/.test(l)), 'rival camp hover never offers the panel');
+  assert.ok(/Under construction: 60%/.test(plotInfo(fr, plots.find(p => p.id === 'w1:b2'), frontier, null, 'player').lines[0]), 'site hover shows progress');
+  for (const t of ['camp_hall', 'war_banner', 'barracks', 'supply_tents', 'watchtower', 'rifle_range', 'field_clinic', 'clan_hall', 'stable', 'foundry', 'armory', 'lumber_camp', 'quarry'])
+    assert.ok(catalog.items[art[t]] && existsSync(new URL(`../art/${catalog.items[art[t]].kind || 'buildings'}/${art[t]}.png`, import.meta.url)), `${t} art ${art[t]} exists`);
+}
 assert.equal(JSON.stringify(f), before, 'all presentation queries leave simulation state unchanged');
 console.log('test_town_drawing: ok');

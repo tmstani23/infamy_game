@@ -75,7 +75,7 @@ rejected('not on the island', /out on the island/, 'enemyTown', ex + mid, ez);
 // --- the war pack (checkpoint 2) ---------------------------------------------------------
 const clan = g.state.clans.player, P = W.pack;
 put(ex + mid, ez);
-const pack = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.find(r => r.action === c.action); };
+const pack = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.findLast(r => r.action === c.action); };
 // out on open ground: no pot
 { const r = pack({ action: 'warPack', ryo: 100, timber: 200, stone: 100 }); assert.ok(!r.ok && /city or in one of your towns/.test(r.reason), r.reason); assert.equal(clan.warPack, undefined); }
 // at the player's own town: everything from its stock
@@ -177,6 +177,93 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   g.frontier.world.checkInvariants();
 }
 
+// ---- checkpoint 4: camp buildings, hall upgrade, training queues, troop cap ------------------------
+{
+  const B = W.buildings, U = W.units;
+  const cmd = (c, who = hero) => { g.step([{ id: who.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.findLast(r => r.action === c.action); };
+  Object.assign(rec.camp.stock, { timber: 5000, stone: 5000 }); rec.camp.chest = 5000;
+  const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
+  const out = [(hall.x - ex) / Math.hypot(hall.x - ex, hall.z - ez), (hall.z - ez) / Math.hypot(hall.x - ex, hall.z - ez)];
+  const spotFor = (type, near = hall) => { for (const d of [35, 55, 75, 95]) for (let a = 0; a < 24; a++) { const r = war.campCheck(rec.id, type, { x: near.x + Math.cos(a * Math.PI / 12) * d, z: near.z + Math.sin(a * Math.PI / 12) * d }); if (r.ok) return r.point; } return null; };
+  assert.match(war.campCheck(rec.id, 'rifle_range', { x: hall.x + out[0] * 40, z: hall.z + out[1] * 40 }).reason, /Needs a built barracks/, 'locked until a barracks stands');
+  assert.match(war.campCheck(rec.id, 'barracks', { x: hall.x + out[0] * (W.chainDistance + 40), z: hall.z + out[1] * (W.chainDistance + 40) }).reason, /within 120 of another camp building/, 'chain distance');
+  assert.match(war.campCheck(rec.id, 'barracks', { x: hall.x + 3, z: hall.z }).reason, /Too close to the camp hall/, 'spacing');
+  assert.match(war.campCheck(rec.id, 'barracks', { x: ex + 10, z: ez }).reason, /town ring|war circle|within/, 'never in the town ring');
+  const p1 = spotFor('barracks');
+  assert.ok(p1, 'a barracks spot exists next to the hall');
+  { const defenderHero = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === rival);
+    war.command(defenderHero, { action: 'campPlace', war: rec.id, kind: 'barracks', ...p1 }); const r = g.state.frontier.receipts.at(-1);   // (bot heroes' step commands are not taken, so ask the war module directly)
+    assert.ok(r && r.action === 'campPlace' && !r.ok && /Not your war camp/.test(r.reason), 'only the attacker builds the camp'); }
+  const t0 = rec.camp.stock.timber, s0 = rec.camp.stock.stone;
+  { const r = cmd({ action: 'campPlace', war: rec.id, kind: 'barracks', ...p1 }); assert.ok(r?.ok, r?.reason); }
+  assert.deepEqual([rec.camp.stock.timber, rec.camp.stock.stone], [t0 - B.barracks.cost.timber, s0 - B.barracks.cost.stone], 'paid from the camp stock');
+  const barracks = rec.camp.buildings.at(-1);
+  assert.equal(barracks.stage, 'site');
+  // a second site, cancelled before any work: full refund
+  { const p2 = spotFor('supply_tents'); assert.ok(cmd({ action: 'campPlace', war: rec.id, kind: 'supply_tents', ...p2 })?.ok);
+    const tents = rec.camp.buildings.at(-1); tents.progress = 0;
+    assert.ok(cmd({ action: 'campCancel', war: rec.id, building: tents.id })?.ok);
+    assert.ok(!rec.camp.buildings.includes(tents)); }
+  for (let i = 0; i < 8000 && barracks.stage !== 'built'; i++) g.step([]);
+  assert.equal(barracks.stage, 'built', 'camp workers build the barracks');
+  assert.ok(rec.camp.workers.every(w => !w.project), 'builders go back to gathering');
+  assert.doesNotMatch(war.campCheck(rec.id, 'rifle_range', spotFor('rifle_range') || { x: 0, z: 0 }).reason || '', /Needs/, 'the barracks unlocks the rifle range');
+  assert.match(war.campBuildList(rec.id).find(b => b.type === 'stable').reason, /camp hall upgrade/, 'stables wait for the hall upgrade');
+  // the camp hall upgrade
+  const chestU = rec.camp.chest;
+  { const r = cmd({ action: 'campUpgrade', war: rec.id }); assert.ok(r?.ok, r?.reason); }
+  assert.equal(rec.camp.chest, chestU - W.hallUpgrade.cost.ryo, 'the upgrade takes ryo from the war chest');
+  for (let i = 0; i < 8000 && hall.tier !== 2; i++) g.step([]);
+  assert.equal(hall.tier, 2, 'workers build the upgrade');
+  assert.ok(war.upgraded(rec.camp) && war.campBuildList(rec.id).find(b => b.type === 'stable').ok, 'the upgrade unlocks stables');
+  // training and the troop cap
+  assert.deepEqual(war.troopView(rec.id), { troops: 0, queued: 0, cap: W.troopCap.base });
+  { const r = cmd({ action: 'campTrain', war: rec.id, building: barracks.id, unit: 'grunt', count: W.troopCap.base + 1 }); assert.ok(r && !r.ok && /Troop cap/.test(r.reason), 'over the cap is refused'); }
+  const chestT = rec.camp.chest;
+  { const r = cmd({ action: 'campTrain', war: rec.id, building: barracks.id, unit: 'grunt', count: 3 }); assert.ok(r?.ok, r?.reason); }
+  assert.equal(rec.camp.chest, chestT - 3 * U.grunt.ryo, 'troops paid from the war chest');
+  { const r = cmd({ action: 'campUntrain', war: rec.id, building: barracks.id }); assert.ok(r?.ok, r?.reason); }
+  assert.equal(rec.camp.chest, chestT - 2 * U.grunt.ryo, 'cancelling the last one refunds it');
+  for (let i = 0; i < U.grunt.trainTicks * 2 + 5; i++) g.step([]);
+  const troops = Object.values(g.state.entities).filter(e => e.warTroop === rec.id);
+  assert.equal(troops.length, 2, 'two troops trained');
+  assert.ok(troops.every(e => e.owner === 'player' && e.type === U.grunt.type[g.state.clans.player.faction] && e.place === 'world'), 'clan grunts of the attacker');
+  assert.ok(troops.every(e => Math.hypot(e.x - barracks.x, e.z - barracks.z) < 20), 'they appear at their barracks');
+  assert.deepEqual(war.troopView(rec.id), { troops: 2, queued: 0, cap: W.troopCap.base });
+  // supply tents raise the cap
+  { const p3 = spotFor('supply_tents'); assert.ok(cmd({ action: 'campPlace', war: rec.id, kind: 'supply_tents', ...p3 })?.ok); }
+  const tents = rec.camp.buildings.at(-1);
+  for (let i = 0; i < 8000 && tents.stage !== 'built'; i++) g.step([]);
+  assert.equal(war.troopView(rec.id).cap, W.troopCap.base + B.supply_tents.cap, 'supply tents raise the troop cap');
+  g.frontier.world.checkInvariants();
+}
+
+// ---- checkpoint 4: stand-in defender and the dev war command ----------------------------------------
+{
+  const S = W.standIn;
+  const cmd = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.findLast(r => r.action === c.action); };
+  assert.ok(g.state.clans[rival].bot, 'the defender is a bot clan');
+  fw.change(enemy.id, 'ryo', S.ryo * 3 - (enemy.stock.ryo || 0), 'test');
+  for (let i = 0; i < S.trainTicks * 4 + 40; i++) g.step([]);
+  const defenders = () => Object.values(g.state.entities).filter(e => e.warTroop === rec.id && e.owner === rival && !e.dead);
+  assert.ok(defenders().length >= 2 && defenders().length <= 3, 'the stand-in defender trains grunts while the coffers last');
+  assert.ok(enemy.stock.ryo < S.ryo, 'paid from the town coffers');
+  assert.ok(defenders().every(d => Math.hypot(d.x - ex, d.z - ez) < 40 && d.type === S.type[g.state.clans[rival].faction]), 'they guard the town hall');
+  const raider = Object.values(g.state.entities).find(e => e.warTroop === rec.id && e.owner === 'player' && !e.dead);
+  Object.assign(raider, { x: ex + 25, z: ez });
+  for (let i = 0; i < 21; i++) g.step([]);
+  assert.ok(defenders().some(d => d.order?.kind === 'attack' && d.order.target === raider.id), 'they go for an attacker inside the town ring');
+  // dev war: a rival attacks the player's own town
+  { const r = cmd({ action: 'devStartWar', town: 'myTown', side: 'defend' }); assert.ok(r?.ok, r?.reason); }
+  const dw = war.warOn('myTown');
+  assert.ok(dw && dw.defender === 'player' && dw.attacker !== 'player' && war.check(hero, 'myTown').band, 'dev war on your own town');
+  assert.equal(dw.camp.workers.length, W.camp.startWorkers);
+  assert.deepEqual(dw.camp.stock, { timber: W.dev.camp.timber, stone: W.dev.camp.stone });
+  { const r = cmd({ action: 'devStartWar', town: 'myTown', side: 'defend' }); assert.ok(r && !r.ok && /already at war/.test(r.reason)); }
+  { const r = cmd({ action: 'devEndWar', war: dw.id }); assert.ok(r?.ok); }
+  g.state.frontier.wars.cooldown = Object.fromEntries(Object.entries(g.state.frontier.wars.cooldown).filter(([k]) => k !== 'myTown'));
+}
+
 // save and load keep the war
 {
   const save = makeSave(g);
@@ -194,6 +281,8 @@ assert.equal(typeof g.state.frontier.wars.history.at(-1).camp.workers, 'number',
 for (let i = 0; i < 20; i++) g.step([]);
 assert.ok(!Object.values(g.state.entities).some(e => e.worker && e.town === rec.id), 'camp worker units leave with the war');
 assert.equal(war.cooldownDays('enemyTown'), W.cooldownDays);
+for (let i = 0; i < 20; i++) g.step([]);
+assert.ok(!Object.values(g.state.entities).some(e => e.warTroop === rec.id), 'troops disband when the war ends');
 rejected('cooldown', /under truce for 6 more days/, 'enemyTown', ex + mid, ez);
 g.state.tick += dayTicks * (W.cooldownDays - 1);
 rejected('cooldown last day', /1 more day\b/, 'enemyTown', ex + mid, ez);

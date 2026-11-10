@@ -100,6 +100,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     stable.tick();                 // the stable's production bar
     rail.tick();                   // the rail gang at each railhead
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
+    war.tick();                    // F6: camp training queues
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -115,6 +116,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);}
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);}
   return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, attach };
 }

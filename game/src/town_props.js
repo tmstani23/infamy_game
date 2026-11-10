@@ -11,6 +11,8 @@ const slotOf = (s, c, cells) => {
   const offsets = (cells?.length ? cells : [c]).map(i => cellOffset(s, i));
   return offsets.reduce(([x, z], [dx, dz]) => [x + dx / offsets.length, z + dz / offsets.length], [0, 0]);
 };
+// a war camp's buildings stand where they were placed (off: offset from the camp), not on a grid cell
+const spotOf = (s, b, i) => b.off || slotOf(s, b.cell ?? i, b.cells);
 
 // Which towns to draw: your own (full records, with a position) from the frontier snapshot.
 export function drawableTowns(frontier, clan) {
@@ -19,14 +21,19 @@ export function drawableTowns(frontier, clan) {
 
 // F6 war: rival towns on discovered ground (the snapshot gives them position, grid and buildings) and war
 // camps, drawn like towns but without Space doors (foreign: true). A camp is a small pseudo-town: its camp
-// hall and its banner (placeholder art until the war camp sheet is cut).
+// hall, its banner, its finished buildings and its building sites (checkpoint 4), each where it was placed.
 export function drawableWarSites(frontier, clan) {
   const out = Object.values(frontier?.settlements || {}).filter(s => s.owner !== clan && !s.capital && Number.isFinite(s.x) && Array.isArray(s.buildings))
     .map(s => ({ ...s, projects: s.projects || [], foreign: true }));
   for (const w of Object.values(frontier?.wars?.list || {})) {
     const c = w.camp; if (!c || !Number.isFinite(c.x)) continue;
-    out.push({ id: w.id, name: 'War camp', owner: w.attacker, x: c.x, z: c.z, grid: null, zones: {}, projects: [], foreign: true,
-      buildings: [{ id: 'hall', type: 'camp_hall', stage: 'built', cell: 0 }, { id: 'banner', type: 'war_banner', stage: 'built', cell: 1 }] });
+    const list = (c.buildings || []).filter(b => Number.isFinite(b.x)), off = b => [b.x - c.x, b.z - c.z];
+    const hall = list.find(b => b.type === 'camp_hall'), u = hall?.upgrade;
+    out.push({ id: w.id, camp: w.id, name: 'War camp', owner: w.attacker, x: c.x, z: c.z, grid: null, zones: {}, foreign: true,
+      ...(u ? { tierUpgrade: { left: Math.max(0, (u.need || 1) - (u.progress || 0)), total: u.need || 1 } } : {}),
+      buildings: [...(hall ? [] : [{ id: 'hall', type: 'camp_hall', stage: 'built', cell: 0 }]), { id: 'banner', type: 'war_banner', stage: 'built', cell: 1 },
+        ...list.filter(b => b.stage === 'built').map(b => ({ id: b.id, type: b.type, stage: 'built', off: off(b) }))],
+      projects: list.filter(b => b.stage === 'site').map(b => ({ id: b.id, type: b.type, off: off(b), paid: true, progress: b.progress || 0, need: b.need || 1 })) });
   }
   return out;
 }
@@ -41,8 +48,8 @@ export function hallPhase(s) {
 // A short string that changes whenever a drawn thing would change (so the renderer only rebuilds then).
 export function townSignature(towns) {
   return JSON.stringify(towns.map(s => [s.id, s.x, s.z,
-    s.buildings.map(b => [b.id, b.type, b.cell, b.cells, b.stage]),
-    s.projects.map(p => [p.id, p.type, p.cell, p.cells, p.phase, p.paid, p.progress > 0, p.progress * 2 >= p.need]), s.grid,
+    s.buildings.map(b => [b.id, b.type, b.cell, b.cells, b.stage, b.off]),
+    s.projects.map(p => [p.id, p.type, p.cell, p.cells, p.off, p.phase, p.paid, p.progress > 0, p.progress * 2 >= p.need]), s.grid,
     Object.entries(s.zones || {}).map(([kind, z]) => [kind, !!z.abandoned]), hallPhase(s)]));
 }
 
@@ -146,7 +153,7 @@ export function townProps(towns, townArt, townLights = {}) {
       }
     }
     s.buildings.forEach((b, i) => {
-      const art = townArt[b.type], [ox, oz] = slotOf(s, b.cell ?? i, b.cells);
+      const art = townArt[b.type], [ox, oz] = spotOf(s, b, i);
       const fit = townArt._placedFootprint?.[b.type], maxFootprint = fit ? (s.grid?.cell || 11) * fit : undefined;   // Tim 2026-11-07: placed buildings were far bigger than the townhouse
       // the 3x2 railway station (Tim 2026-11-07): the ticket hall (its Space ring) and the engine shed, its open front to the track
       const parts = b.type === 'station' && townArt._stationParts && stationParts(s, b);
@@ -160,7 +167,7 @@ export function townProps(towns, townArt, townLights = {}) {
       else if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
         ...(b.stage === 'built' && !s.foreign && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
       // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
-      const phase = b.type === 'town_hall' && b.stage === 'built' ? hallPhase(s) : 0;
+      const phase = (b.type === 'town_hall' || b.type === 'camp_hall') && b.stage === 'built' ? hallPhase(s) : 0;
       if (phase) {
         const c = s.grid?.cell || 11, site = townArt._hallUpgrade?.[phase - 1] || ['house_construction_1', 'house_construction_2', 'wall_planks'][phase - 1];
         for (const [k, dx, dz] of [[0, -0.95, 0.55], [1, 0.95, 0.55], [2, 0, -0.95]]) out.push({ key: `${s.id}:${b.id}:up${phase}:${k}`, art: k === 2 && phase < 3 ? 'wall_planks' : site, x: s.x + ox + dx * c, z: s.z + oz + dz * c });
@@ -170,7 +177,7 @@ export function townProps(towns, townArt, townLights = {}) {
     });
     for (const p of townCellsToProps(s.grid, townArt, s.zones)) out.push({ ...p, key: `${s.id}:${p.key}`, x: s.x + p.x, z: s.z + p.z });
     s.projects.forEach((p, i) => {
-      const art = townArt[p.type], [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells);
+      const art = townArt[p.type], [ox, oz] = spotOf(s, p, s.buildings.length + i);
       const x = s.x + ox, z = s.z + oz;
       // placed buildings go through the same build phases as zone houses (Tim 2026-11-05): site, then frame, then the building
       if (p.paid && p.progress > 0 && art) { const half = p.progress * 2 >= p.need, phases = townArt._buildPhases || ['house_construction_1', 'house_construction_2'];
@@ -193,8 +200,9 @@ export function townProps(towns, townArt, townLights = {}) {
 export function townPlots(towns) {
   const out = [];
   for (const s of towns) {
-    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i, b.cells); out.push({ town: s.id, kind: 'building', type: b.type, id: b.id, x: s.x + ox, z: s.z + oz, ...(s.foreign ? { foreign: true } : {}) }); });
-    s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz, ...(s.foreign ? { foreign: true } : {}) }); });
+    const tag = { ...(s.foreign ? { foreign: true } : {}), ...(s.camp ? { camp: s.camp } : {}) };
+    s.buildings.forEach((b, i) => { const [ox, oz] = spotOf(s, b, i); out.push({ town: s.id, kind: 'building', type: b.type, id: b.id, x: s.x + ox, z: s.z + oz, ...tag }); });
+    s.projects.forEach((p, i) => { const [ox, oz] = spotOf(s, p, s.buildings.length + i); out.push({ town: s.id, kind: 'project', type: p.type, id: p.id, x: s.x + ox, z: s.z + oz, ...tag }); });
   }
   return out;
 }
@@ -225,7 +233,19 @@ function rivalPlotInfo(s, plot) {
   return { title: nice(b.type), lines };
 }
 
-export function plotInfo(frontier, plot, data, entities = null) {
+// a war camp's building (checkpoint 4): your own camp says what it is, how far a site has got and that a click opens
+// the camp panel; a rival camp only says what stands there
+function campPlotInfo(frontier, plot, mine) {
+  const w = frontier?.wars?.list?.[plot.camp], b = w?.camp?.buildings?.find(x => x.id === plot.id);
+  const town = frontier?.settlements?.[w?.town]?.name, type = b?.type || plot.type;
+  if (!w || !type) return null;
+  const lines = [b?.stage === 'site' ? `Under construction: ${Math.round(100 * (b.progress || 0) / Math.max(1, b.need || 1))}%` : b?.upgrade ? `Upgrading: ${Math.round(100 * (b.upgrade.progress || 0) / Math.max(1, b.upgrade.need || 1))}%` : '',
+    (b?.queue || []).length ? `Training ${b.queue.length}` : '', `War camp${town ? ` at ${town}` : ''}`].filter(Boolean);
+  return { title: nice(type), lines: mine ? [...lines, 'Left-click: open the camp panel'] : lines };
+}
+
+export function plotInfo(frontier, plot, data, entities = null, clan = null) {
+  if (plot.camp) return campPlotInfo(frontier, plot, frontier?.wars?.list?.[plot.camp]?.attacker === clan);
   const s = frontier?.settlements?.[plot.town];
   if (!s) return null;
   if (plot.foreign) return rivalPlotInfo(s, plot);

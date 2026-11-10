@@ -3,13 +3,13 @@
 import { drawableTowns, drawableWarSites, townPlots, plotInfo, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
-export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null }) {
+export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
   const owner = () => game.state.entities[heroId]?.owner;
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
   function refresh() {
     // own towns plus rival towns you have seen (their hover shows stores once you walk up; F6 war)
-    const towns = drawableTowns(game.state.frontier, owner()).concat(drawableWarSites(game.state.frontier, owner()).filter(s => s.grid && game.state.frontier?.settlements?.[s.id]));
+    const towns = drawableTowns(game.state.frontier, owner()).concat(drawableWarSites(game.state.frontier, owner()).filter(s => s.camp || s.grid && game.state.frontier?.settlements?.[s.id]));   // war camps too (checkpoint 4)
     const key = towns.map(s => `${s.id}${s.buildings.length}${s.projects.length}`).join();
     if (key !== sig) { sig = key; plots = townPlots(towns); }
   }
@@ -104,7 +104,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     tipEl.hidden = false;
     tipEl.style.left = `${Math.min(innerWidth - 260, x + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, y + 16)}px`;
   }
-  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard');
+  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp');
   // keeps the cooldown counting down while the pointer rests on a gun
   setInterval(() => { if (hoverCannon) { const c = cannonAt(mouse.x, mouse.y); showCannon(c, mouse.x, mouse.y); if (!c) tipEl.hidden = true; } }, 250);
 
@@ -115,10 +115,10 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   }
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
-    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard');
+    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp');
     const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
     if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
-    const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities);
+    const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities, owner());
     if (!info) { tipEl.hidden = true; return; }
     const html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
     if (tipEl.dataset.html !== html) { tipEl.innerHTML = html; tipEl.dataset.html = html; }
@@ -130,6 +130,9 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
     const c = cannonAt(e.clientX, e.clientY);
     if (!c) {
+      // left-click one of your war camp's buildings: the camp panel (checkpoint 4)
+      const cp = openCamp && plotAt(e.clientX, e.clientY);
+      if (cp?.camp && game.state.frontier?.wars?.list?.[cp.camp]?.attacker === owner() && openCamp(cp.camp)) { e.stopImmediatePropagation(); e.preventDefault(); return; }
       // left-click one of your garrisoned buildings: the garrison card (Tim 2026-11-10)
       const p = openGarrison && plotAt(e.clientX, e.clientY), s = p && game.state.frontier?.settlements?.[p.town];
       if (p?.kind === 'building' && s?.owner === owner() && openGarrison(p.town, p.id)) { e.stopImmediatePropagation(); e.preventDefault(); }
@@ -140,7 +143,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   }, { capture: true });
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
-    if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard')) return;
+    if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp')) return;
     const p = plotAt(e.clientX, e.clientY);
     if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
     e.stopImmediatePropagation(); e.preventDefault();

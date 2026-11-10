@@ -5,6 +5,7 @@ import {watchCrewGroup} from './crew_watch.js';
 import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
 import { createWarBanner } from './war_banner.js';
+import { createWarCampPanel } from './war_camp_panel.js';
 import { createSimWorkerClient } from './sim_worker_client.js';
 import { createStealthBadge } from './stealth_badge.js';
 import { createStationClock } from './station_clock.js';
@@ -510,7 +511,10 @@ async function start() {
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
   // F6 war: one War banner button beside War Lantern (Pack for war at home, Plant banner near a rival town)
   const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
-  const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();},blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen()});
+  const warBlocked=()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen();
+  // F6 war checkpoint 4: the camp panel (build, train, hire, hall upgrade), opened from the war coin or a camp building
+  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
+  const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
@@ -620,6 +624,7 @@ async function start() {
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
     // Tim 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road
     // blocked) and alerts for the town you stand in show on their own; the rest fold into one
+      openCamp: id => warCamp.show(id),
     // "Towns: N need attention" line. Every alert opens the all-towns window (Y), worst towns first.
     // At most 3 lines on screen.
     const folded = new Map(); let foldBtn = null, foldTimer = 0;
@@ -649,6 +654,16 @@ async function start() {
   $('startscreen').remove();
   document.body.classList.remove('prematch');
   utilityMenu.update(true);
+    // F6 war checkpoint 4 (dev builds): infamy.startWar() starts a war on the nearest rival town you can see with you as the
+    // attacker (camp stocked from data war.dev); infamy.startWar(null, 'defend') puts a rival clan on your nearest town;
+    // a town id picks the town. infamy.endWar() ends your first war (or the war id you give).
+    if (DEV) window.infamy.startWar = (town = null, side = 'attack') => {
+      const h = game.state.entities[heroId], me = h?.owner, list = Object.values(game.state.frontier?.settlements || {}).filter(t => !t.capital && Number.isFinite(t.x) && (side === 'defend' ? t.owner === me : t.owner !== me && t.owner != null));
+      const t = town ? game.state.frontier?.settlements?.[town] : list.sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z))[0];
+      if (!t) return 'No town found';
+      pending.push({ id: heroId, type: 'frontier', action: 'devStartWar', town: t.id, side }); return `Starting a war on ${t.name}`;
+    };
+    if (DEV) window.infamy.endWar = (war = null) => { const me = game.state.entities[heroId]?.owner, w = war || Object.values(game.state.frontier?.wars?.list || {}).find(x => x.attacker === me || x.defender === me)?.id; if (!w) return 'No war'; pending.push({ id: heroId, type: 'frontier', action: 'devEndWar', war: w }); return `Ending ${w}`; };
   setGameplayInput(true);
 
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
@@ -836,7 +851,7 @@ async function start() {
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
-    warLantern.update();warBanner.update();utilityMenu.update();
+    warLantern.update();warBanner.update();warCamp.update();utilityMenu.update();
     hudLayout.update();
   });
 }

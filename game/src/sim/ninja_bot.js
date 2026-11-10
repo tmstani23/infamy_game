@@ -45,7 +45,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const dojo = () => biz().find(b => b.kind === 'dojo' && b.room);
   const shrine = () => game.doors.find(d => d.menu === 'contracts');
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
-  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && standing(u) && inHeroParty(game, u));
+  const crew = () => all().filter(u => u.owner === clan && u.type !== 'hero' && !u.guard && !u.warTroop && standing(u) && inHeroParty(game, u));
   const sees = e => game.vision.canSee(clan, e)&&!charmProtected({owner:clan},e,state);
   const rivalClan = id => id && id !== clan && !!state.clans[id];
   const foe = e => standing(e) && sees(e) && !e.civilian && (e.id === me().attackTarget
