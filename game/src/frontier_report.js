@@ -136,7 +136,11 @@ export const SORTS = { name: (a, b) => a.name.localeCompare(b.name), pop: (a, b)
 export function hoverCard(town, { clan = 'player', clanName = id => id, roads = {} } = {}) {
   if (!town) return null;
   if (town.owner !== clan || !town.stock) {
-    return { title: town.name, sub: town.owner ? `Held by ${clanName(town.owner)}` : 'No one holds it', lines: [], mine: false };
+    const n = v => Math.floor(v || 0), sub = town.owner ? `Held by ${clanName(town.owner)}` : 'No one holds it';
+    // a rival town one of your units is near (F6 war, Tim 2026-11-10): its stores and people
+    const lines = town.scouted && town.stock ? [['Pop', `${n(town.pop)} / ${n(town.housing)}`], ['Workers', n(town.workerCount)],
+      ['Food', n(town.stock.food)], ['Timber', n(town.stock.timber)], ['Stone', n(town.stock.stone)], ['Goods', n(town.stock.goods)], ['Ryo', n(town.stock.ryo)]] : [];
+    return { title: town.name, sub, lines, mine: false };
   }
   const rep = reportRows(town);
   const road = Object.values(roads).find(r => r.from === town.id || r.to === town.id);

@@ -17,6 +17,20 @@ export function drawableTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && Number.isFinite(s.x) && Array.isArray(s.buildings));
 }
 
+// F6 war: rival towns on discovered ground (the snapshot gives them position, grid and buildings) and war
+// camps, drawn like towns but without Space doors (foreign: true). A camp is a small pseudo-town: its camp
+// hall and its banner (placeholder art until the war camp sheet is cut).
+export function drawableWarSites(frontier, clan) {
+  const out = Object.values(frontier?.settlements || {}).filter(s => s.owner !== clan && !s.capital && Number.isFinite(s.x) && Array.isArray(s.buildings))
+    .map(s => ({ ...s, projects: s.projects || [], foreign: true }));
+  for (const w of Object.values(frontier?.wars?.list || {})) {
+    const c = w.camp; if (!c || !Number.isFinite(c.x)) continue;
+    out.push({ id: w.id, name: 'War camp', owner: w.attacker, x: c.x, z: c.z, grid: null, zones: {}, projects: [], foreign: true,
+      buildings: [{ id: 'hall', type: 'camp_hall', stage: 'built', cell: 0 }, { id: 'banner', type: 'war_banner', stage: 'built', cell: 1 }] });
+  }
+  return out;
+}
+
 // Town hall upgrade phase 1-3 while s.tierUpgrade runs (Tim 2026-11-05: the hall goes through construction stages), else 0
 export function hallPhase(s) {
   const u = s.tierUpgrade;
@@ -141,10 +155,10 @@ export function townProps(towns, townArt, townLights = {}) {
         // coach_house opens toward +z, mirrored toward +x; railway_station's platform faces +x, mirrored +z
         out.push({ key: `${s.id}:${b.id}:${b.stage}:shed`, art: P.shed, x: s.x + parts.shed[0], z: s.z + parts.shed[1], flip: along, opacity: op, maxFootprint: mf });
         out.push({ key: `${s.id}:${b.id}:${b.stage}:hall`, art: P.hall, x: s.x + parts.hall[0], z: s.z + parts.hall[1], flip: !along, opacity: op, maxFootprint: mf,
-          ...(b.stage === 'built' ? { spaceDoor: `${s.id}:${b.id}` } : {}) });
+          ...(b.stage === 'built' && !s.foreign ? { spaceDoor: `${s.id}:${b.id}` } : {}) });
       }
       else if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
-        ...(b.stage === 'built' && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
+        ...(b.stage === 'built' && !s.foreign && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
       // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
       const phase = b.type === 'town_hall' && b.stage === 'built' ? hallPhase(s) : 0;
       if (phase) {
@@ -179,8 +193,8 @@ export function townProps(towns, townArt, townLights = {}) {
 export function townPlots(towns) {
   const out = [];
   for (const s of towns) {
-    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i, b.cells); out.push({ town: s.id, kind: 'building', type: b.type, id: b.id, x: s.x + ox, z: s.z + oz }); });
-    s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz }); });
+    s.buildings.forEach((b, i) => { const [ox, oz] = slotOf(s, b.cell ?? i, b.cells); out.push({ town: s.id, kind: 'building', type: b.type, id: b.id, x: s.x + ox, z: s.z + oz, ...(s.foreign ? { foreign: true } : {}) }); });
+    s.projects.forEach((p, i) => { const [ox, oz] = slotOf(s, p.cell ?? s.buildings.length + i, p.cells); out.push({ town: s.id, kind: 'project', id: p.id, x: s.x + ox, z: s.z + oz, ...(s.foreign ? { foreign: true } : {}) }); });
   }
   return out;
 }
@@ -193,9 +207,28 @@ export function garrisonCount(frontier, entities, s) {
 }
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 // { title, lines } for a plot, read from the live snapshot so numbers stay current.
+// a rival town's building (F6 war): what it is; at the hall, its stores and people once one of your units
+// is close (snapshot scouted, Tim 2026-11-10), otherwise a hint to walk up. Never opens a town panel.
+function rivalPlotInfo(s, plot) {
+  const n = v => Math.floor(v || 0);
+  if (plot.kind === 'project') {
+    const p = (s.projects || []).find(x => x.id === plot.id);
+    return p ? { title: nice(p.type), lines: ['Under construction', s.name] } : null;
+  }
+  const b = (s.buildings || []).find(x => x.id === plot.id);
+  if (!b) return null;
+  if (b.type !== 'town_hall') return { title: nice(b.type), lines: [s.name] };
+  const lines = [s.name];
+  if (s.scouted && s.stock) lines.push(`${n(s.pop)} people, housing ${n(s.housing)}, ${n(s.workerCount)} workers`,
+    `Food ${n(s.stock.food)}, Timber ${n(s.stock.timber)}, Stone ${n(s.stock.stone)}`, `Goods ${n(s.stock.goods)}, Ryo ${n(s.stock.ryo)}`);
+  else lines.push('Come closer to see its stores and people');
+  return { title: nice(b.type), lines };
+}
+
 export function plotInfo(frontier, plot, data, entities = null) {
   const s = frontier?.settlements?.[plot.town];
   if (!s) return null;
+  if (plot.foreign) return rivalPlotInfo(s, plot);
   const lines = [];
   if (plot.kind === 'project') {
     const p = s.projects.find(x => x.id === plot.id);
@@ -217,5 +250,5 @@ export function plotInfo(frontier, plot, data, entities = null) {
     if (b.type === 'stockade' && b.stage === 'built' && entities && data?.buildings?.stockade?.garrison) lines.push(`Garrison ${garrisonCount(frontier, entities, s)} / ${data.buildings.stockade.garrison.capacity}`);
     lines.push(s.name);
   }
-  return { title: nice(b.type), lines: [...lines, b.type === 'stockade' && b.stage === 'built' ? 'Right-click: send selected crew in (none selected: open the town panel)' : 'Right-click: open the town panel'] };
+  return { title: nice(b.type), lines: [...lines, b.type === 'stockade' && b.stage === 'built' ? 'Right-click: send selected crew in (none selected: your hero goes in)' : 'Right-click: open the town panel'] };
 }

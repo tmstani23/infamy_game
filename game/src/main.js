@@ -4,6 +4,7 @@ import { createHQStash } from './inventory_ui.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
+import { createWarBanner } from './war_banner.js';
 import { createSimWorkerClient } from './sim_worker_client.js';
 import { createStealthBadge } from './stealth_badge.js';
 import { createStationClock } from './station_clock.js';
@@ -36,7 +37,7 @@ import { createFrontierPanel } from './frontier_panel.js';
 import { createFrontierBuildUI } from './frontier_build_ui.js';
 import { createFoundButton } from './found_button.js';
 import {withWorkerPresentations,workerLocation} from './worker_details.js';
-import { drawableTowns, townSignature, townProps } from './town_props.js';
+import { drawableTowns, drawableWarSites, townSignature, townProps } from './town_props.js';
 import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
@@ -506,6 +507,9 @@ async function start() {
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
   $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
+  // F6 war: one War banner button beside War Lantern (Pack for war at home, Plant banner near a rival town)
+  const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
+  const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();},blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen()});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
@@ -783,8 +787,8 @@ async function start() {
       stealthBadge.update(); stationClock.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update(); updateSpotHover();
-      { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), sig = townSignature(towns);   // E5: founded towns follow their records
-        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(towns, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); }
+      { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), shown = towns.concat(drawableWarSites(game.state.frontier, game.state.entities[heroId]?.owner)), sig = townSignature(shown);   // E5: founded towns follow their records; F6: rival towns on discovered ground and war camps
+        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(shown, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); }
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
@@ -829,7 +833,7 @@ async function start() {
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
-    warLantern.update();utilityMenu.update();
+    warLantern.update();warBanner.update();utilityMenu.update();
     hudLayout.update();
   });
 }

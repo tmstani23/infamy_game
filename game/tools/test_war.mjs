@@ -12,7 +12,7 @@ const world = data('data/world.json'), frontier = data('data/frontier.json'), se
 const options = () => ({ district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
-  settings, world, worldChunks: data('data/world_chunks.json'), frontier: { ...frontier, dev: true } });
+  settings, world, worldChunks: data('data/world_chunks.json'), frontier: { ...frontier, dev: true, railways: data('data/railways.json') } });
 function match(mode) {
   const g = createGame(options());
   const m = setupMatch(g, { clan: 'yakuza', difficulty: 'easy', mode, bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 5000 } });
@@ -72,6 +72,41 @@ rejected('not on the island', /out on the island/, 'enemyTown', ex + mid, ez);
   assert.equal(snap(), before, 'only a hero plants a banner');
 }
 
+// --- the war pack (checkpoint 2) ---------------------------------------------------------
+const clan = g.state.clans.player, P = W.pack;
+put(ex + mid, ez);
+const pack = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.find(r => r.action === c.action); };
+// out on open ground: no pot
+{ const r = pack({ action: 'warPack', ryo: 100, timber: 200, stone: 100 }); assert.ok(!r.ok && /city or in one of your towns/.test(r.reason), r.reason); assert.equal(clan.warPack, undefined); }
+// at the player's own town: everything from its stock
+Object.assign(hero, { x: mine.x + 20, z: mine.z, place: 'world' });
+fw.change('myTown', 'timber', 1000 - mine.stock.timber, 'test'); fw.change('myTown', 'stone', 500 - mine.stock.stone, 'test'); fw.change('myTown', 'ryo', 900 - mine.stock.ryo, 'test');
+{ const r = pack({ action: 'warPack', ryo: 100, timber: P.max.timber + 1, stone: 100 }); assert.ok(!r.ok && /at most/.test(r.reason)); }
+{ const r = pack({ action: 'warPack', ryo: 2000, timber: 200, stone: 100 }); assert.ok(!r.ok && /has only/.test(r.reason)); assert.equal(mine.stock.ryo, 900, 'a refusal changes nothing'); }
+{ const r = pack({ action: 'warPack', ryo: 600, timber: 400, stone: 200 }); assert.ok(r.ok, r.reason); }
+assert.deepEqual([mine.stock.ryo, mine.stock.timber, mine.stock.stone], [300, 600, 300], 'taken from the town');
+assert.deepEqual([clan.warPack.ryo, clan.warPack.timber, clan.warPack.stone], [600, 400, 200]);
+// in the city: only ryo, from the treasury (timber and stone must reach a town first)
+hero.place = 'street';
+const ryo0 = clan.ryo;
+{ const r = pack({ action: 'warPack', ryo: 600, timber: 500, stone: 200 }); assert.ok(!r.ok && /packed at one of your towns/.test(r.reason), r.reason); assert.equal(clan.ryo, ryo0); }
+{ const r = pack({ action: 'warPack', ryo: 700 }); assert.ok(r.ok, r.reason); }
+assert.equal(clan.ryo, ryo0 - 100, 'city: 100 more ryo from the treasury');
+// lowering returns the newest parts first, each where it came from (even from the city)
+{ const r = pack({ action: 'warPack', ryo: 550, timber: 350 }); assert.ok(r.ok, r.reason); }
+assert.equal(clan.ryo, ryo0, 'treasury part back to the treasury');
+assert.equal(mine.stock.ryo, 350, 'then town ryo back to the town');
+assert.equal(mine.stock.timber, 650, 'timber back to the town');
+// unpack anywhere puts it all back
+{ const r = pack({ action: 'warUnpack' }); assert.ok(r.ok, r.reason); }
+assert.equal(clan.warPack, undefined);
+assert.deepEqual([mine.stock.ryo, mine.stock.timber, mine.stock.stone], [900, 1000, 500], 'unpack restores the town');
+assert.equal(clan.ryo, ryo0);
+// pack again for the war
+Object.assign(hero, { x: mine.x + 20, z: mine.z, place: 'world' });
+{ const r = pack({ action: 'warPack', ryo: 600, timber: 400, stone: 200 }); assert.ok(r.ok, r.reason); }
+fw.checkInvariants();
+
 // the real thing
 put(ex + mid, ez);
 { const before = snap(); assert.ok(war.check(hero, 'enemyTown', { x: ex + mid, z: ez + 10 }).ok, 'read-only check passes'); assert.equal(snap(), before, 'check changes nothing'); }
@@ -80,6 +115,10 @@ assert.ok(ok?.ok, ok?.reason);
 const rec = war.warOn('enemyTown');
 assert.ok(rec && rec.attacker === 'player' && rec.defender === rival && rec.state === 'active' && rec.x === Math.round(ex + mid) && rec.z === Math.round(ez + 10));
 assert.match(g.state.clans[rival].notice?.text || '', /declared war on enemyTown/, 'the defender is told');
+assert.deepEqual(rec.camp.brought, { ryo: 600, timber: 400, stone: 200 }, 'the pack becomes the camp');
+assert.equal(rec.camp.chest, 600); assert.deepEqual(rec.camp.stock, { timber: 400, stone: 200 });
+assert.equal(rec.camp.workers, W.camp.startWorkers); assert.equal(rec.camp.buildings[0].type, 'camp_hall');
+assert.equal(clan.warPack, undefined, 'the pack is used up');
 assert.equal(war.warsAt(ex, ez).length, 1, 'the hall is inside the war circle');
 assert.equal(war.warsAt(ex + W.circleRadius + 5, ez).length, 0, 'outside the circle');
 assert.equal(war.warsOf(rival).length, 1);
@@ -103,8 +142,10 @@ rejected('cooldown', /under truce for 6 more days/, 'enemyTown', ex + mid, ez);
 g.state.tick += dayTicks * (W.cooldownDays - 1);
 rejected('cooldown last day', /1 more day\b/, 'enemyTown', ex + mid, ez);
 g.state.tick += dayTicks;
+put(ex + mid, ez);   // no pack: planting still works, the camp starts empty
 const again = plant('enemyTown', ex + mid, ez);
 assert.ok(again?.ok, `after the cooldown: ${again?.reason}`);
+assert.deepEqual(war.warOn('enemyTown').camp.stock, { timber: 0, stone: 0 }, 'no pack: an empty camp');
 
 // several wars at once: a second enemy town
 const third = spots[1];
@@ -115,6 +156,23 @@ put(enemy2.x + mid, enemy2.z);
 const second = plant('enemyTown2', enemy2.x + mid, enemy2.z);
 if (second?.ok) assert.equal(war.warsOf('player').length, 2, 'two wars at once');
 else assert.match(second.reason, /cannot be built|resource/, `second war only blocked by ground: ${second.reason}`);
+
+// Frontier protection (Tim 2026-11-10): heroes and crews may fight anywhere; townsfolk never; a town's
+// workers only by the other side of a war on that town
+{
+  const at = { place: 'world', area: 'world', holdFire: true, hp: 60 };
+  const mk = extra => g.state.entities[g.spawn('civilian', 'farmer', hero.x + 3, hero.z, { ...at, ...extra })];
+  const warWorker = mk({ worker: 'w1', town: 'enemyTown', workerOwner: rival });
+  const quietWorker = mk({ worker: 'w2', town: 'quietTown', workerOwner: rival });
+  const folk = mk({ townsfolk: 'enemyTown', seenBy: rival });
+  assert.ok(war.warOn('enemyTown'), 'a war is on for the worker check');
+  assert.equal(g.attackAllowed(hero, warWorker), true, 'workers of a town you are at war with can be hit');
+  assert.equal(g.attackAllowed(hero, quietWorker), false, 'workers of a town with no war are off limits');
+  assert.equal(g.attackAllowed(hero, folk), false, 'frontier townsfolk are never fair game');
+  const rivalCrew = g.state.entities[g.spawn('grunt', 'grunt', hero.x + 4, hero.z, { place: 'world', area: 'world', owner: rival })];
+  assert.equal(g.attackAllowed(hero, rivalCrew), true, 'rival crew can be fought anywhere on the frontier');
+  for (const e of [warWorker, quietWorker, folk, rivalCrew]) delete g.state.entities[e.id];
+}
 
 // Classic has no wars
 {

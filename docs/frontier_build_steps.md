@@ -481,7 +481,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
-- [ ] **F6** War (planned, not built): [x] 1 declare · [ ] 2 banner and camp · [ ] 3 camp economy · [ ] 4 camp buildings · [ ] 5 roster · [ ] 6 structures · [ ] 7 specials and stealth · [ ] 5b collisions · [ ] 8a win/loss · [ ] 8b defender · [ ] 8c surrender · [ ] 8d bot general
+- [ ] **F6** War (planned, not built): [x] 1 declare · [x] 2 banner and camp · [ ] 3 camp economy · [ ] 4 camp buildings · [ ] 5 roster · [ ] 6 structures · [ ] 7 specials and stealth · [ ] 5b collisions · [ ] 8a win/loss · [ ] 8b defender · [ ] 8c surrender · [ ] 8d bot general
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
 Last completed: Map first atlas, crossing/pass markers, close/travel layout fixes and named-region labels (2026-11-03). Tim loves the map. Next: approved Loop 1 in phased checkpoints; latest close/travel/labels refresh check, basic crossing fitting, then W4. Recheck clustering performance under mobs/camps load; unfinished MR4 traversal checks and F1.7 remain deferred.

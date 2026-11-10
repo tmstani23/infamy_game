@@ -4,14 +4,23 @@
 // State: state.frontier.wars = { list: { [id]: war }, cooldown: { [townId]: untilTick }, history: [] }
 //   war = { id, town, attacker, defender, x, z, started, state: 'active' }   (x, z = the banner)
 // Players and bots use the same command: { id: <hero id>, type: 'frontier', action: 'plantBanner', town, x, z }.
+// Checkpoint 2: the war pack. Before setting out the hero packs ryo, timber and stone from the pot he
+// stands in ({ action: 'warPack', ryo, timber, stone } sets the totals): in the city only ryo, from the
+// Clan treasury (timber and stone must first reach a town, by rail from the capital if need be); inside
+// one of the clan's own town rings everything comes from that town. Kept on the clan (clan.warPack) with
+// where each part came from, so lowering it or unpacking ('warUnpack') puts it back exactly there.
+// The pack is optional (the camp can start with nothing and gather); when there is one it becomes the camp:
+// war.camp = { x, z, chest, stock: { timber, stone }, brought, workers, buildings }. The camp is sealed
+// from the town economy: nothing in it ever flows back to a town.
 // One war per town at a time; a clan may run several wars. When a war ends the town is under
 // cooldown for war.cooldownDays game days before anyone can plant a banner on it again.
 import { modeRules } from '../modes/index.js';
 import { buildable, passable } from '../world_data.js';
 import { ringRadius } from './town_grid.js';
 import { coversResources } from './resource_clearance.js';
+import { debitRyo, creditRyo } from '../treasury.js';
 
-export function createWar({ state, data, worldData = null, resourceIndex = null, dayTicks = 12000 }) {
+export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000 }) {
   const W = data.war || null;
   const f = () => state.frontier;
   // old saves have no war records: add the empty shape on first use
@@ -20,7 +29,8 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
     if (!fr.wars) fr.wars = { list: {}, cooldown: {}, history: [] };
     return fr.wars;
   }
-  const active = () => Object.values(store().list);
+  // read-only helpers never create records (the screen's copy of the state is a snapshot)
+  const active = () => Object.values(f()?.wars?.list || {});
   const warOn = townId => active().find(w => w.town === townId) || null;
   const warsOf = clan => active().filter(w => w.attacker === clan || w.defender === clan);
   const town = id => f().settlements[id] || null;
@@ -33,7 +43,7 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
   }
   // Whole game days of cooldown left on a town (0 = none)
   function cooldownDays(townId) {
-    const until = store().cooldown[townId];
+    const until = f()?.wars?.cooldown?.[townId];
     if (!until || until <= (state.tick ?? 0)) return 0;
     return Math.ceil((until - (state.tick ?? 0)) / dayTicks);
   }
@@ -85,6 +95,9 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
     for (const w of active()) if (dist(point, w) < (W.campSpacing || 0)) return 'Too close to another war camp';
     if (!groundOk(point.x, point.z)) return 'This ground cannot be built on';
     if (resourceIndex && coversResources({ x: point.x, z: point.z, grid: { n: 1, cell: data.townGrid.cellSize } }, [0], resourceIndex, 1)) return 'The banner would cover a resource area';
+    const pack = state.clans?.[hero.owner]?.warPack, P = W.pack;   // optional; a min above 0 in data makes it required
+    if ((P?.min?.timber || P?.min?.stone) && ((pack?.timber || 0) < (P.min.timber || 0) || (pack?.stone || 0) < (P.min.stone || 0)))
+      return `Pack for war first (at least ${P.min.timber || 0} timber and ${P.min.stone || 0} stone)`;
     return null;
   }
 
@@ -101,6 +114,12 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
     if (!r.ok) return r;
     const t = town(townId), fr = f(), id = `war${fr.nextId++}`;
     const war = { id, town: t.id, attacker: hero.owner, defender: t.owner, x: r.point.x, z: r.point.z, started: state.tick ?? 0, state: 'active' };
+    // the pack becomes the camp (sealed: camp stores never go back to a town)
+    const clan = state.clans?.[hero.owner], pack = clan?.warPack || { ryo: 0, timber: 0, stone: 0 };
+    const brought = { ryo: pack.ryo || 0, timber: pack.timber || 0, stone: pack.stone || 0 };
+    war.camp = { x: war.x, z: war.z, chest: brought.ryo, stock: { timber: brought.timber, stone: brought.stone }, brought,
+      workers: W.camp?.startWorkers ?? 0, buildings: [{ id: `${id}:hall`, type: 'camp_hall', stage: 'built', x: war.x, z: war.z }] };
+    if (clan) delete clan.warPack;
     store().list[id] = war;
     const who = state.clans?.[hero.owner]?.name || hero.owner;
     if (state.clans?.[t.owner]) state.clans[t.owner].notice = { tick: state.tick, text: `${who} has declared war on ${t.name}!` };
@@ -128,6 +147,84 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
     for (const w of active()) if (!town(w.town)) end(w.id, 'town gone');
   }
 
+  // ---- the war pack ----------------------------------------------------------------------
+  const RES = ['ryo', 'timber', 'stone'];
+  // The pot the hero stands in: the city (Clan treasury), or one of his clan's towns (its ring), else null
+  function potAt(hero) {
+    if (!hero || hero.dead || hero.downed) return null;
+    if (hero.place && hero.place !== 'world') return { kind: 'city', id: 'treasury', name: 'Clan treasury' };
+    for (const s of Object.values(f().settlements)) {
+      if (s.capital || s.owner !== hero.owner || !Number.isFinite(s.x)) continue;
+      if (dist(hero, s) <= ringRadius(s, data)) return { kind: 'town', id: s.id, name: s.name, town: s };
+    }
+    return null;
+  }
+  // What the pot has of each resource
+  function potHas(pot, clan, r) {
+    if (pot.kind === 'town') return pot.town.stock?.[r] ?? 0;
+    return r === 'ryo' ? clan.ryo ?? 0 : 0;   // the city has no timber or stone to pack
+  }
+  // Read-only: { ok, reason, pot, limits } for the Pack for war window
+  function packView(hero) {
+    const clan = state.clans?.[hero?.owner], pot = potAt(hero), P = W?.pack || {};
+    const pack = clan?.warPack || { ryo: 0, timber: 0, stone: 0 };
+    const limits = Object.fromEntries(RES.map(r => [r, { min: P.min?.[r] ?? 0, max: P.max?.[r] ?? Infinity, has: pot && clan ? potHas(pot, clan, r) : 0 }]));
+    const reason = !W ? 'War is not available' : !modeRules(state).founding ? 'Wars are fought in a campaign'
+      : !hero || hero.type !== 'hero' ? 'Only a hero packs for war' : !pot ? 'Pack in the city or in one of your towns' : '';
+    return { ok: !reason, reason, pot: pot && { kind: pot.kind, id: pot.id, name: pot.name }, pack, limits };
+  }
+  function take(clan, pot, r, n) {   // n > 0 out of the pot into the pack
+    if (pot.kind === 'town') { world.change(pot.id, r, -n, 'war pack'); return { from: pot.id, res: r, amount: n }; }
+    debitRyo(state, clan, n, 'War pack');
+    world.syncCapital?.();
+    return { from: 'treasury', res: r, amount: n };
+  }
+  function giveBack(clan, src, n) {   // n of one source back where it came from
+    if (src.from === 'treasury') { creditRyo(state, clan, n, 'War pack returned'); world.syncCapital?.(); }
+    else if (f().settlements[src.from]) world.change(src.from, src.res, n, 'war pack returned');
+    // a town lost since packing: that part is simply gone
+  }
+  // Set the pack to the given totals. Raising takes from the pot the hero stands in; lowering returns
+  // the newest parts first, each to where it came from (anywhere: no need to stand in that pot).
+  function setPack(hero, want) {
+    const v = packView(hero), clan = state.clans?.[hero?.owner];
+    if (!clan) return { ok: false, reason: 'no clan' };
+    const pack = clan.warPack || { ryo: 0, timber: 0, stone: 0, sources: [] };
+    const goal = {};
+    for (const r of RES) {
+      const n = want?.[r] === undefined ? pack[r] || 0 : Number(want[r]);
+      if (!Number.isFinite(n) || n < 0) return { ok: false, reason: `${r} must be 0 or more` };
+      goal[r] = Math.floor(n);
+      const L = v.limits[r];
+      if (goal[r] > L.max) return { ok: false, reason: `Carry at most ${L.max} ${r}` };
+      if (goal[r] > 0 && goal[r] < L.min) return { ok: false, reason: `Carry at least ${L.min} ${r}, or none` };
+    }
+    const raise = RES.filter(r => goal[r] > (pack[r] || 0));
+    if (raise.length && !v.ok) return { ok: false, reason: v.reason };
+    if (raise.length) {   // check the whole bill first, so a refusal changes nothing
+      const extra = Object.fromEntries(raise.map(r => [r, goal[r] - (pack[r] || 0)]));
+      if (v.pot.kind === 'city') {
+        if (raise.some(r => r !== 'ryo')) return { ok: false, reason: 'Timber and stone are packed at one of your towns' };
+        if (extra.ryo > (clan.ryo ?? 0)) return { ok: false, reason: `The Clan treasury has only ${Math.floor(clan.ryo ?? 0)} ryo` };
+      } else for (const r of raise) if (extra[r] > (v.pot && f().settlements[v.pot.id]?.stock?.[r] || 0)) return { ok: false, reason: `${v.pot.name} has only ${Math.floor(f().settlements[v.pot.id]?.stock?.[r] || 0)} ${r}` };
+    }
+    const pot = potAt(hero);
+    for (const r of RES) {
+      let d = goal[r] - (pack[r] || 0);
+      if (d > 0) pack.sources.push(take(clan, pot, r, d));
+      while (d < 0) {
+        const i = pack.sources.findLastIndex(x => x.res === r);
+        if (i < 0) break;
+        const src = pack.sources[i], n = Math.min(src.amount, -d);
+        giveBack(clan, src, n); src.amount -= n; d += n;
+        if (src.amount <= 0) pack.sources.splice(i, 1);
+      }
+      pack[r] = goal[r];
+    }
+    if (RES.every(r => !pack[r])) delete clan.warPack; else clan.warPack = pack;
+    return { ok: true };
+  }
+
   function receipt(e, c, ok, reason = '') {
     const fr = f();
     fr.receiptSeq = (fr.receiptSeq || 0) + 1;
@@ -140,6 +237,12 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
+    if (c.action === 'warPack' || c.action === 'warUnpack') {
+      if (e.type !== 'hero') return receipt(e, c, false, 'Only a hero packs for war');
+      const r = setPack(e, c.action === 'warUnpack' ? { ryo: 0, timber: 0, stone: 0 } : c);
+      if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
+      return receipt(e, c, r.ok, r.reason || '');
+    }
     if (c.action === 'devEndWar') {   // dev build only (data.dev): end a war to try the cooldown
       if (!data.dev) return receipt(e, c, false, 'dev only');
       return receipt(e, c, end(c.war, c.result || 'dev'), '');
@@ -147,5 +250,5 @@ export function createWar({ state, data, worldData = null, resourceIndex = null,
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, warsAt, warOn, warsOf, active, cooldownDays, get data() { return W; } };
+  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, warsOf, active, cooldownDays, get data() { return W; } };
 }

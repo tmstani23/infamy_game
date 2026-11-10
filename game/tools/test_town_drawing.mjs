@@ -1,7 +1,7 @@
 // L3.7: presentation follows saved grid/spot state through the actual snapshot boundary.
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { townCellsToProps, townProps, townSignature } from '../src/town_props.js';
+import { townCellsToProps, townProps, townSignature, townPlots, plotInfo, drawableWarSites } from '../src/town_props.js';
 import { spotPiecesToProps, visibleSpots, coveredBySpot, spotInfo } from '../src/resource_spot_props.js';
 import { makeSpotIndex } from '../src/sim/resource_spots.js';
 import { placePiece } from '../src/sim/geometry.js';
@@ -18,12 +18,26 @@ const spot = { id: 'sp1', kind: 'timber', x: 100, z: 100, deposit: null, pieces:
 const unknown = { ...spot, id: 'sp2', x: 600 }, outside = { ...spot, id: 'sp3', x: 2000 };
 const spots = { spots: [spot, unknown, outside], chunkSize: 250, byChunk: { c0_0: ['sp1'], c2_0: ['sp2'], c8_0: ['sp3'] } };
 const index = makeSpotIndex(spots), known = (x, z) => x < 500;
-const f = { version: 5, econTick: 0, settlements: { t: town, enemy: { ...town, id: 'enemy', owner: 'rival', site: 'secret' } }, spots: { sp1: 'fhs', sp2: 'hhh' }, roads: {}, shipments: {}, receipts: [] };
+const f = { version: 5, econTick: 0, settlements: { t: town, enemy: { ...town, id: 'enemy', owner: 'rival', site: 'secret', x: 600, stock: { ryo: 9 } }, seen: { ...town, id: 'seen', owner: 'rival', site: 'secret', x: 300, stock: { ryo: 9 }, workers: [{ id: 'w1' }] } }, spots: { sp1: 'fhs', sp2: 'hhh' }, roads: {}, shipments: {}, receipts: [] };
 const before = JSON.stringify(f);
 const discovery = { isDiscovered: (clan, x, z) => known(x, z), siteDiscovered: () => false };
 const view = frontierFor(f, 'player', discovery, [], index);
 assert.deepEqual(view.settlements.t.grid, grid, 'the replica gets complete authoritative cell strings');
 assert.equal(view.settlements.enemy, undefined, 'unknown rival towns stay hidden');
+// F6 war: a rival town on discovered ground is drawn (grid, buildings), never with its stock or workers
+assert.ok(view.settlements.seen && view.settlements.seen.x === 300 && view.settlements.seen.grid && view.settlements.seen.buildings.length === 1, 'discovered rival town carries drawing fields');
+assert.equal(view.settlements.seen.stock, undefined, 'no rival stock'); assert.equal(view.settlements.seen.workers, undefined, 'no rival workers');
+// walk up to it and you see its stores and people (Tim 2026-11-10), still never the worker records
+const close = frontierFor(f, 'player', discovery, [], index, null, s => s.id === 'seen');
+assert.deepEqual(close.settlements.seen.stock, { ryo: 9 }, 'scouted rival stock'); assert.equal(close.settlements.seen.workerCount, 1, 'scouted worker count');
+assert.equal(close.settlements.seen.workers, undefined, 'never the worker records'); assert.equal(close.settlements.enemy, undefined, 'scouting never reveals unknown towns');
+{ // hover over a rival town's hall: stores once scouted, a hint before; never a town panel line
+  const plot = townPlots(drawableWarSites(close, 'player').filter(s => s.grid)).find(p => p.town === 'seen' && p.type === 'town_hall');
+  assert.ok(plot?.foreign, 'rival plots are marked foreign');
+  const near = plotInfo(close, plot, {}), far = plotInfo(view, plot, {});
+  assert.ok(near.lines.some(l => /Ryo 9/.test(l)) && !near.lines.some(l => /Right-click/.test(l)), 'scouted hall shows stores');
+  assert.ok(far.lines.some(l => /Come closer/.test(l)), 'unscouted hall hints to walk up');
+}
 assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stages cross the snapshot boundary');
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
 assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'tenements', 'townhouse']);

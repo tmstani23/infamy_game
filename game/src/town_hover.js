@@ -1,6 +1,6 @@
 // Hover tooltip and right-click on a founded town's buildings (frontier E5, Tim 2026-11-04). Reads the
 // frontier snapshot only; right-click opens the town panel for that town and flashes the plot.
-import { drawableTowns, townPlots, plotInfo, garrisonCount } from './town_props.js';
+import { drawableTowns, drawableWarSites, townPlots, plotInfo, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
 export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null }) {
@@ -8,7 +8,8 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   const owner = () => game.state.entities[heroId]?.owner;
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
   function refresh() {
-    const towns = drawableTowns(game.state.frontier, owner());
+    // own towns plus rival towns you have seen (their hover shows stores once you walk up; F6 war)
+    const towns = drawableTowns(game.state.frontier, owner()).concat(drawableWarSites(game.state.frontier, owner()).filter(s => s.grid && game.state.frontier?.settlements?.[s.id]));
     const key = towns.map(s => `${s.id}${s.buildings.length}${s.projects.length}`).join();
     if (key !== sig) { sig = key; plots = townPlots(towns); }
   }
@@ -136,7 +137,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls')) return;
     const p = plotAt(e.clientX, e.clientY);
-    if (!p) return;
+    if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
     e.stopImmediatePropagation(); e.preventDefault();
     flash(p);
     // right-click your finished stockade with crew selected (Tim 2026-11-07): they go in (far ones walk over first)
