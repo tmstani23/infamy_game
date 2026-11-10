@@ -481,7 +481,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [x] **B** Economy balance: [x] B0 soak test · [x] B1 workers eat and need a bed · [x] B2 storage caps · [x] B3 hall tiers and ring · [x] B4 founding spacing · [x] B5 upkeep and goods needs · [x] B6 tune · [x] B7 growth readable
 - [ ] **F3** Roads: [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 carts · [ ] 3.6 raids · [ ] 3.7 plan road
 - [ ] **F5** Town building: [ ] 5.1 · [ ] 5.2 · [ ] 5.3 · [ ] 5.4 · [ ] 5.5 art · [ ] 5.7 work camps · [ ] 5.6 playtest
-- [ ] **F6** War (planned, not built): [ ] 1 declare · [ ] 2 banner and camp · [ ] 3 camp economy · [ ] 4 camp buildings · [ ] 5 roster · [ ] 6 structures · [ ] 7 specials and stealth · [ ] 8 defender, win, loss · [ ] 9 mockups
+- [ ] **F6** War (planned, not built): [x] 1 declare · [ ] 2 banner and camp · [ ] 3 camp economy · [ ] 4 camp buildings · [ ] 5 roster · [ ] 6 structures · [ ] 7 specials and stealth · [ ] 5b collisions · [ ] 8a win/loss · [ ] 8b defender · [ ] 8c surrender · [ ] 8d bot general
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
 Last completed: Map first atlas, crossing/pass markers, close/travel layout fixes and named-region labels (2026-11-03). Tim loves the map. Next: approved Loop 1 in phased checkpoints; latest close/travel/labels refresh check, basic crossing fitting, then W4. Recheck clustering performance under mobs/camps load; unfinished MR4 traversal checks and F1.7 remain deferred.
@@ -2224,15 +2224,15 @@ Replaces the earlier F6 armies/road battles and F7 sieges cards. Numbers are pla
 
 ### Overview
 
-A war is a classic RTS match fought around one enemy town. The hero declares war at the town, plants a war camp banner outside it, and builds a camp: workers gather, buildings go up, troops are trained in queues, and the army attacks the town's forces and buildings. The defender fights back with the same rules from inside the town. All rules live in `game/src/sim` and run the same whether watched or not; players and bots use the same commands.
+A war is a classic RTS match fought around one enemy town. The hero plants a war camp banner outside it (planting the banner is the declaration), and builds a camp: workers gather, buildings go up, troops are trained in queues, and the army attacks the town's forces and buildings. The defender fights back with the same rules from inside the town. All rules live in `game/src/sim` and run the same whether watched or not; players and bots use the same commands.
 
 - **War length target:** a Camp war about 25 min, an average town 30–45 min, a fully built-up Town 45–60 min. Placeholder numbers are scaled to this.
 
 ### F6 phase 1: Declaring war
 
 - **War area:** a circle of radius 900 around the target town's town hall. One town per war. Towns are founded at least 1600 apart (`founding.minSpacing`), so a war circle never reaches a neighbouring town's 600 build ring.
-- **Several wars at once:** allowed; each needs its own declaration and its own camp.
-- **Declaring:** free. The hero must be inside the war circle; "Declare war" is clicked on the target's town hall.
+- **Wars at once:** one war per town at a time; no limit on how many wars a clan runs at once. The hero may leave a war and start another; the bot general runs the camp he left.
+- **Declaring:** free. Planting the war camp banner is the declaration; there is no separate "Declare war" click. Only the hero can plant it, inside the war circle.
 - **Rail lines and trains:** always attackable by anyone (outlaw acts: robbery, blasting a line), war or not. War gates armies, the camp and attacks on the town.
 - A rival capital cannot be targeted until the endgame opens capitals (after taking 9 of the 11 rival zones, per the endgame draft).
 
@@ -2244,7 +2244,7 @@ A war is a classic RTS match fought around one enemy town. The hero declares war
   - Town (tier 3, ring 600): 750–900
 - **The camp is a mini town without zone painting:** placed buildings only.
 - **Bringing troops:** only the hero and his crew come as the vanguard; every other troop is trained at the new camp. Open, possible later add-on: a standing army that survives a war and follows the hero (troops could ride the train to the own town nearest the target via "All aboard", then march).
-- **Starting camp:** a camp hall (trains workers, workers' drop-off), 4 workers, 200 timber and 100 stone taken from the nearest own town. No starting ryo: the chest is what the hero brought (below).
+- **Starting camp:** a camp hall (trains workers, workers' drop-off), 8 workers (data), and the timber and stone the hero brought. No starting ryo: the chest is what the hero brought (below).
 - **Hero brings the war chest:** before setting out, the player fills the chest from the pot the hero stands in (Clan treasury in the city, a town's coffers in that town; typeable box). The hero carries it, and it becomes the camp's war chest when the banner is planted. Taking it all leaves that town's coffers empty for its own defence; the fill box shows what the pot keeps (e.g. "Ōhama keeps 50"), red when below a basic defence. The camp station is optional: a war runs fine without one, on what the hero brought. More ryo mid-war needs a rail line: a camp station building where a line from the clan's network ends; once linked, the treasury and town-coffer boxes send ryo by train (existing shipments). The line can be attacked like any line. If the attacker wins, it stays (useful if the town was captured; otherwise left or torn up for some materials back). The camp station counts on the camp's morale bar like its military buildings, and must be destroyed before the defender can channel; so does the spur's track inside the war circle, split into a few sections. When the camp falls, the rest of the spur is wrecked automatically and its timber and stone go to the defender as spoils. Maybe later: the defender inherits the spur instead (needs lines that change owner).
 
 - **Camp supply line in war:** track outside the war circle can be blasted like any line (existing dynamite rule: closed 1 day, then 4-day cooldown). To cut the camp off, the defender destroys the camp station and a few marked rail sections inside the war circle (count in data). During a war these show red on the map (hover: "Camp supply line: destroy to cut the camp off") and are listed on the camp's morale bar (e.g. "Rail section 2 of 3 destroyed −5"). When the last one falls a notice says the camp is cut off from the rail network; the whole spur is removed when the camp falls. Camp timber and stone are not spoils; only the war chest goes to the defender.
@@ -2268,7 +2268,7 @@ A war is a classic RTS match fought around one enemy town. The hero declares war
   - After a barracks and a rifle range: clan hall (first clan special).
   - After the camp hall upgrade (materials + ryo + build time): stables (cavalry), foundry (siege weapons, Gatling), armory (blade and rifle upgrades).
   - After the clan hall and the camp hall upgrade: the second-special building (kennel, hidden dojo; the Gatling uses the foundry).
-  - The defender's town uses the same tree; the town hall tier stands in for the camp hall upgrade.
+  - The defender's town uses the same tree; a war upgrade bought at the town hall (same upgrade and price as the camp hall upgrade, any town tier) unlocks it.
 - **Training:** each building has its own queue with a typeable count. Troop costs about 60–120 ryo each (placeholder).
 - The defender builds the same military buildings inside the town (see Phase 6).
 
@@ -2333,13 +2333,13 @@ A war is a classic RTS match fought around one enemy town. The hero declares war
 - **Garrisons in zone buildings:** houses, workshops and farmhouses hold up to 10 troops (garrison code as the stockade: hits on units inside go to the building; at 0 everyone piles out). Melee inside cannot attack; ranged troops shoot out, no limit beyond the troop cap. No healing inside. Zone buildings are not on the morale bar.
 - The town hall fight is outdoors (no interior fight).
 - **Economy effects of attacks (current rules):** a healthy cell regrows one stage per minute, so a burned house in a well-stocked town is back in about 3 minutes. Without food, housing stops growing and is abandoned after about 40 economy ticks; without goods, houses regrow only to stage 1. Farms and workshops need about 0.5 workers per cell, so killing workers stops food, goods and gathering. Retraining a worker costs 10 ryo + 5 goods.
-- **Win: town morale.** The target town has a morale bar, shown on a war bar at the top of the screen for both sides. It drops only when military buildings (barracks and other military buildings, watchtowers, walls and gates) or the town hall are destroyed, so it works as a progress bar. Once all its military buildings are down, the attacker channels at the town hall to take it (the hero channels about 1 minute (data value), like planting a War Lantern, and any hit interrupts it, giving the defenders a last stand). The winner picks the outcome at the hall before channelling, and the channel carries it out (burn choices: flames build over the channel in the existing HQ fire look, `render/hq_fire.js`; capture: a different channel look, e.g. the clan banner going up). When the channel completes the town falls; any defending troops still alive rout (run out of the town ring and disband), so no straggler has to be hunted down. Rushing the hall does not end the war, because the channel needs every military building down first. Every drop is made clear: the bar flashes and a short line by the bar names the cause and amount (e.g. "Barracks destroyed −10"); hovering the bar lists what is left. Burning farms, houses and workshops does not drop morale; it hurts the defender through the economy instead. Outcomes (open): capture (town becomes yours, keeps its tier, ruins rebuild cheaply, counts toward the 9 zones), burn its defences / sack (town stays theirs, military buildings gone, part of its coffers taken; a clan's last town can only be sacked), burn everything (the defender loses the town entirely: it is wiped and the zone goes empty; the attacker gains nothing but has nothing to defend or upkeep; a burned zone does not count toward the 9; anyone, including the clan that burned it, can found a fresh town there at full cost with no wait, since a fresh town starts at the bottom tier and costs more than a capture; a town founded there counts toward the 9 like any zone you own; founding there works like any founding: the hero group brings settlers out from the Land Office, either along with the hero during the war (they wait at the camp and can be killed) or after the town is burned; the town is founded only once the war ends: every founding needs a permit with no cap on count,; a rising permit price only if playtests show town spam). Capture is usually best; burn everything and sack are for towns the attacker cannot hold. Holding a town costs only its military building upkeep; a just-captured town has no defences (they were destroyed to win), so its risk is being retaken once the cooldown ends. keep all three, since each has its own trade-off.
+- **Win: town morale.** The target town has a morale bar, shown on a war bar at the top of the screen for both sides. It drops only when military buildings (barracks and other military buildings, watchtowers, walls and gates) or the town hall are destroyed, so it works as a progress bar. Once all its military buildings are down, the attacker channels at the town hall to take it (the hero channels about 1 minute (data value), like planting a War Lantern, and any hit interrupts it, giving the defenders a last stand). The winner picks the outcome at the hall before channelling, and the channel carries it out (burn choices: flames build over the channel in the existing HQ fire look, `render/hq_fire.js`; capture: a different channel look, e.g. the clan banner going up). When the channel completes the town falls; any defending troops still alive rout (run out of the town ring and disband), so no straggler has to be hunted down. Rushing the hall does not end the war, because the channel needs every military building down first. Every drop is made clear: the bar flashes and a short line by the bar names the cause and amount (e.g. "Barracks destroyed −10"); hovering the bar lists what is left. Burning farms, houses and workshops does not drop morale; it hurts the defender through the economy instead. Outcomes: capture (town becomes yours, keeps its tier, ruins rebuild cheaply, counts toward the 9 zones), burn its defences / sack (town stays theirs, military buildings gone, part of its coffers taken; a clan's last town can only be sacked), burn everything (the defender loses the town entirely: it is wiped and the zone goes empty; the attacker gains nothing but has nothing to defend or upkeep; a burned zone does not count toward the 9; anyone, including the clan that burned it, can found a fresh town there at full cost with no wait, since a fresh town starts at the bottom tier and costs more than a capture; a town founded there counts toward the 9 like any zone you own; founding there works like any founding: the hero group brings settlers out from the Land Office, either along with the hero during the war (they wait at the camp and can be killed) or after the town is burned; the town is founded only once the war ends: every founding needs a permit with no cap on count,; a rising permit price only if playtests show town spam). Capture is usually best; burn everything and sack are for towns the attacker cannot hold. Holding a town costs only its military building upkeep; a just-captured town has no defences (they were destroyed to win), so its risk is being retaken once the cooldown ends. keep all three, since each has its own trade-off.
 
 ### F6 phase 6: Defender, bots and the end of a war
 
 - **Defenders** place the same military buildings inside their town, recruit from their town coffers, and fight with the same controls. walls, gates, watchtowers and military buildings can be built inside the town ring any time (town materials); military buildings only train while a war is declared on that town (paid from its coffers, the defender's war chest). To keep a prepared town from being too strong: military buildings in a town pay the normal frontier building upkeep (timber and stone), and the town hall tier caps how many military buildings a town can have. A muster delay: the defender's queues stay locked for a few minutes after declaration (length in data). The defender gets a war chest too, fed the same way: the town's own coffers plus amounts each side chooses to send from the clan treasury and other towns' coffers (typeable boxes, ryo by train). A war chest exists only while its war is on; there is no separate peacetime defence fund, so ryo sent to an attack leaves the treasury and coffers that would otherwise defend your towns, and two wars at once split the same money.
 - **Bot general:** runs any side nobody is watching (the player's side while away, and bot clans always). All clans play the same. Each bot rolls one of three hidden strategies at the start of a game and keeps it: Rush (fast cheap army, early pressure before the muster delay ends), Siege (palisade, towers, big army and siege, breaks defences one by one), Raider (workers, repair crews and supply incl. rail spurs, then pushes). Each has a matching defence style. The strategies are balanced with bot-vs-bot war runs in Node (like the economy soak).
-- **Attacker loses:** mirror of the win. The camp has its own morale bar on the war bar, dropping as its military buildings (barracks, ranges, clan hall, watchtowers, palisades and gates) fall. Once all are down, the defender channels at the camp hall for about 1 minute (same data value as the hall channel; the long channel gives far-off troops time to run back). A hit on the channeller resets the channel to zero (both channels). When either channel starts, the other side gets a clear alert and a map ping; any hit interrupts it, so the attacker's remaining troops rush in for a last stand. When it completes the camp burns and the attacker's troops rout; the crew need not be hunted down. Only the defending hero can channel, so the defender's hero has to come to the town to finish a camp off. What is left in the attacker's war chest goes to the town's coffers as spoils. Open: the attacking hero and crew respawn at their nearest own town.
+- **Attacker loses:** mirror of the win. The camp has its own morale bar on the war bar, dropping as its military buildings (barracks, ranges, clan hall, watchtowers, palisades and gates) fall. Once all are down, the defender channels at the camp hall for about 1 minute (same data value as the hall channel; the long channel gives far-off troops time to run back). A hit on the channeller resets the channel to zero (both channels). When either channel starts, the other side gets a clear alert and a map ping; any hit interrupts it, so the attacker's remaining troops rush in for a last stand. When it completes the camp burns and the attacker's troops rout; the crew need not be hunted down. Only the defending hero can channel, so the defender's hero has to come to the town to finish a camp off. What is left in the attacker's war chest goes to the town's coffers as spoils.
 - **Surrender:** either side can start a surrender at any time; it cannot be taken back and always ends in that side's loss. While terms are open there is a ceasefire: no attacks, everyone stands down (about 60 s per offer, data; running out counts as refused for good).
   - The surrendering side offers a ransom (typeable box, filled with a suggested price). The other side accepts, says no (a new offer can be made) or refuses for good.
   - Accepted: the ransom is paid. A defender keeps the town and its buildings. The attacker's hero and crew go to their nearest own town, the camp and troops pack up and leave, and the 1-day cooldown on that town starts.
@@ -2347,7 +2347,7 @@ A war is a classic RTS match fought around one enemy town. The hero declares war
   - **Bot terms:** a bot estimates its chance to win from what it has seen (towns it has found, troops spotted, buildings seen, what is still standing; never the other side's war chest), with some noise. Its price is roughly the town's worth (tier, coffers, buildings) times its win estimate; it accepts any offer at or above it. The same estimate fills the suggested ransom, and gives the player a "fair offer" hint when a bot offers terms. Bots start a surrender rarely: only when they estimate a loss as very likely (about 85%+, data), then by a small chance per check.
 - **Mid-war defender buildings:** military buildings the defender builds during a war count on the morale bar like the others.
 - **After a war (fresh build):** all war troops on both sides disband and leave the map; the camp packs up (its buildings are removed); the defender's town keeps its own military buildings. The hero and his crew stay. Unspent war chest ryo returns to the clan treasury (except when the camp falls: the attacker's chest goes to the defender as spoils); disbanding troops walk off and fade rather than vanishing on the spot. Possible later add-on: a standing army or garrisons (field force guarding lines and trains, clan-wide cap, frontier troop upkeep). Troops are only trained at a war camp, so troops lost outside a war can only be replaced at the next war camp. outside a war circle army troops cannot attack another clan's units or buildings (only bandits, fighting back, and stopping outlaw acts on lines and trains), and cannot enter another clan's town ring unless at war with that town.
-- **Cooldown:** about one game day after a war ends before anyone can declare war on that town again (data value). Repeat attacks on one town are mostly stopped by natural costs: every war needs a fresh camp and army, and a sacked town has little left in its coffers. The bot general skips freshly sacked towns. Optional: show the cooldown as a government truce on the town.
+- **Cooldown:** 6 game days (a game day is 10 real minutes; `cooldownDays`, data) after a war ends before anyone can declare war on that town again. Repeat attacks on one town are mostly stopped by natural costs: every war needs a fresh camp and army, and a sacked town has little left in its coffers. The bot general skips freshly sacked towns.
 
 ### Town hall tiers and art
 
@@ -2368,6 +2368,55 @@ A war is a classic RTS match fought around one enemy town. The hero declares war
 - Fire effects follow the existing HQ fire look (many small thin flames, `game/src/render/hq_fire.js`).
 
 - Minimum concept prompts for the war art: `assets/image_prompts.md` (War concept prompts) (6 Tencent models, sashimono item, camp building sheet, palisade pieces, war banner); everything else reuses existing art.
+### F6 war rules (2026-11-10)
+
+These rules take precedence over earlier bullets in this phase where they differ.
+
+**Win and loss**
+- The hall must be at 0 health (a ruin) before the channel can start, in addition to every military building being down. This holds for the town hall and the camp hall; the camp hall has health and a ruin state like the town hall.
+- Walls, palisades and gates are not on the morale bar and do not block the channel; they have health and can be breached. Only buildings count: barracks, rifle range, clan hall, stables, foundry, armory, second-special buildings, watchtowers, camp station and the stockade (a military building in a war, with its existing health).
+- Once a channel has started, new or repaired military buildings do not stop it. Only a hit on the hero resets it to zero (both channels).
+- Outcomes are capture, sack and burn. Sack takes half of the town's coffers (data). Capture transfers everything: people, workers, stores, governor settings, the station and the track inside the town ring; open shipments are cancelled and the town is cut from the old owner's rail network.
+- Spoils when a camp falls: the defender gets the war chest only; no materials from the camp or the rail spur.
+- Ransom is paid from the Clan treasury (attacker) or the town coffers plus treasury (defender), never from the war chest.
+- Respawn after a loss or surrender: hero and crew go to their nearest own town, or the city HQ if the clan has none.
+- Founding cap (`founding.permit.maxTowns`, raised by Influence) applies to founding only; captured towns ignore it. Founding on ground a clan burned counts as a normal founding under the cap; the outcome choice at the hall states this before Burn is picked (e.g. "You are at your founding limit: you could not found a town here").
+
+**Military buildings and tiers**
+- The tech tree is unlocked by a war upgrade bought at the town hall (same upgrade and price as the camp hall upgrade), at any town tier.
+- Both sides share one set of building limits (data); no per-tier limits. Tier gives hall health, workers, ring size and coffers.
+- Town military buildings pay the ordinary placed-building upkeep. Unpaid upkeep has no effect on placed or military buildings (town panel warning only).
+- War camps pay no upkeep (no building upkeep, no worker wages). Troops are a one-time ryo cost.
+- Troop cap: the same hard cap for both sides per war, about 60 (data), reached with supply tents.
+- No town hall tier upgrade starts while a war is on that town.
+
+**Camp economy**
+- The hero brings timber and stone like the war chest: a chosen amount from the pot he stands in (typeable box), at least 200 timber and 100 stone, up to a cap in data. More comes from gathering or by train through a camp station. The carried chest and materials stay with the hero through a knockout; he can add at any own pot before planting.
+- No limit on the ryo in the carried war chest.
+- Camp workers cost ryo only, from the war chest; fixed camp worker cap (data). Camp-only gather speed value in data (normal at first); town workers never gather faster because of a war.
+- The camp is sealed from the town economy: nothing a camp gathers goes to a town. A winner gets back at most the unused part of what was brought.
+- A linked camp station carries timber and stone from the clan's towns as well as ryo. A rail spur is built by camp workers at the normal rail cost from camp stock.
+- Camp buildings are placed in a chain: each within a set distance (data) of another camp building, anywhere inside the war circle, never inside the town's build ring.
+- No buildable ground in the banner band: the band widens outward in steps to the 900 circle.
+- The defender has a separate war chest, filled from the town coffers with a typeable box.
+
+**Units in a war circle**
+- War troops cannot leave their own war circle. Only the two sides of a war fight each other there; other clans, carts and trains pass through untouched. Both sides can still fight bandits and other hostiles.
+- Town workers can be attacked; wandering townsfolk cannot.
+- Only the town's owner can garrison its zone buildings.
+- Foreign mercenary pistolmen are trained in a queue at the camp hall or town hall with a longer training time, paid from the Clan treasury. Defenders can hire them too.
+- "One fire per building" covers torches and fire bombs. "Bombs stack" means several bombs can hit the same units.
+
+**Player away from a war**
+- The player picks Rush, Siege or Raider for his own bot general on the camp or town panel (default Siege) and gets an alert when a war is declared on his town.
+- A war can be watched from afar with no orders, like Watch the city.
+
+**Collisions**
+- Houses, workshops and farmhouses block movement; crop fields and roads stay open.
+- Group move orders share one route field and end in a loose, jittered spread; no formal formations.
+- Heavy units (horses, cannons, Gatling) push infantry and are barely pushed.
+- Blocked areas round placed buildings are trimmed to the art where they stick out.
+
 ### Open
 
 - Cost and training time of archers and riflemen.
@@ -2376,20 +2425,24 @@ A war is a classic RTS match fought around one enemy town. The hero declares war
 - Foreign mercenary Six-shot volley auto targeting order (heroes, elites, siege crew, then others).
 - Frontier stealth numbers: detection ranges on open ground by day, how much cover shortens them, light radii.
 
-- Hall channel at a ruined town hall: the channel happens at the hall whether standing or ruined (assumed; confirm in build).
 ### Build outline
 
 Small checkpoints; each one leaves the game running and the Node tests in `game/tools` passing.
 
-1. War data block, war records and the `declare` command (war circle, several wars, cooldown).
+Mockups before each new panel (camp panel, war chest, queues, action bar ability buttons). Controls panel updated in the same change as each new control. Each checkpoint adds its state to the save and the parity test. Checkpoints run on Opus; switch to Fable for checkpoint 8d, the bot general and its balance runs.
+
+1. War data block, war records, plant banner as the declaration, one war per town, cooldown. **Built 2026-11-10:** data in the `frontier.json` `war` block; records in `state.frontier.wars` {list, cooldown, history}; `sim/frontier/war.js` `createWar`, exposed as `frontier.war`. Command `{type:'frontier', action:'plantBanner', town, x, z}`: only the hero, on the island, inside the 900 circle, banner within placeRange of the hero, in the band ring+150 to ring+300 (widens outward if the ground can't be built on), never inside any town ring; one war per town; cooldownDays 6. Dev command `devEndWar`. Test `tools/test_war.mjs`. No UI yet.
 2. Banner placement rules and the starting camp.
 3. Camp workers, gathering and drop-off; war chest and its feeds; HUD badge by location.
-4. Camp buildings, the camp hall upgrade, training queues and supply cap.
-5. Shared roster and clan bonuses in data; cavalry rule.
+4. Camp buildings, the camp hall upgrade, training queues and supply cap. A simple stand-in defender (trains grunts, defends) and a dev command to start a war from either side, replaced later by the bot general.
+5. Shared roster and clan bonuses in data; cavalry rule. A Node speed benchmark (two wars at full caps).
+5b. Collisions: solid zone buildings, footprint trim, loose spread, unit weight.
 6. Structure health, breaches, ruins, torching, watchtower fire, town hall shelter.
 7. Clan specials, smart casting, war stealth and detection.
-8. Defender building in town, the bot general, win, loss, surrender and cooldown.
-9. Mockups before each new panel (camp panel, war chest, queues, action bar ability buttons). Controls panel updated in the same change as each new control.
+8a. Win and loss channels and outcomes.
+8b. Defender building and muster delay.
+8c. Surrender.
+8d. Bot general and Node balance runs.
 
 ## Phase W5: Exploration and natives
 

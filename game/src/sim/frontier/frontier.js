@@ -23,8 +23,9 @@ import { createZones } from './zones.js';
 import { createWorkers, ensureWorkers } from './workers.js';
 import { createArrivals } from './arrivals.js';
 import { createTownsfolk } from './townsfolk.js';
+import { createWar } from './war.js';
 
-export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null }) {
+export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null, dayTicks = 12000 }) {
   let world = createFrontierWorld({ state, data });
   const cadence = Math.max(1, data.cadenceTicks || 20);
   const ctx = { state, data, world };
@@ -71,6 +72,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   rail.setShipping(shipments.arrive, shipments.load, shipments.tearDown);
   shipRef.clerk = shipments.clerk;
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
+  const war = createWar({ state, data, worldData, resourceIndex: workers.index, dayTicks });   // F6 checkpoint 1: war records, planting the banner declares war
+  modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   function tick() {
@@ -113,5 +116,5 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   }
 
   function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, attach };
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, attach };
 }
