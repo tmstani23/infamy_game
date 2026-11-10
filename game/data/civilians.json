@@ -34,6 +34,7 @@
 
     "rickshaw":  { "model": "rickshaw",  "count": 2, "likes": ["street", "market", "teahouse"],   "nightOut": 0, "homes": ["rickshaw_station", "inn", "teahouse"], "vehicle": true },
     "ox_cart":   { "model": "ox_cart",   "count": 2, "likes": ["warehouse", "docks", "market"],   "nightOut": 0, "homes": ["rice_storehouse", "warehouse", "brewery"], "vehicle": true },
+    "town_dog": { "model": "tosa", "count": 5, "animal": true, "likes": ["street", "market", "docks", "shrine"], "nightOut": 0.2, "_note": "Tim 2026-11-10: a few dogs among the townsfolk (and in frontier towns); never chat, bow or freeze, can't be hit" },
     "omnibus":   { "model": "omnibus",   "count": 1, "likes": ["street", "market", "docks"],      "nightOut": 0, "homes": ["customs_house", "western_office", "dock_warehouse"], "vehicle": true }
   }
 }

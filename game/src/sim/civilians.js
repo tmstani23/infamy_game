@@ -39,6 +39,9 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
   // vehicles (rickshaws, ox carts, the omnibus; civilians.json "vehicle"): they drive between spots
   // like townsfolk but never chat, bow or freeze in fright; they just pull away (Tim 2026-11-06)
   const isVehicle = e => !!types[mind[e.id]?.kind]?.vehicle;
+  // animals (town dogs; civilians.json "animal", Tim 2026-11-10): walk the streets like townsfolk but never
+  // chat, bow or freeze; a fight nearby sends them running at once, and nobody can hit them (combat.js, game.js)
+  const isAnimal = e => !!types[mind[e.id]?.kind]?.animal;
 
   // --- Driving (vehicles, Tim 2026-11-06) ---------------------------------------------
   // Vehicles keep to the roads (roadNav: the district's road bands) and steer like a cart:
@@ -112,7 +115,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
   // One civilian of a type from civilians.json; returns its id
   function add(kind, x, z, extra = {}) {
     const t = types[kind];
-    const id = spawn('civilian', t.model, x, z, { civ: kind, hp: R.hp ?? 60 });
+    const id = spawn('civilian', t.model, x, z, { civ: kind, hp: R.hp ?? 60, ...(t.animal ? { animal: true } : {}) });
     mind[id] = { kind, nightOut: extra.nightOut ?? rng() < (t.nightOut || 0), home: extra.home || (homesOf(kind).length ? pick(homesOf(kind)).id : null), spot: extra.spot || null };
     return id;
   }
@@ -151,7 +154,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
       for (const src of own ? [own] : sources) {
         if (Math.hypot(src.x - e.x, src.z - e.z) > radius) continue;
         e.witness = { tick: state.tick, clan: state.entities[src.a]?.owner || null, x: src.x, z: src.z };
-        if (src.t === e.id || isVehicle(e)) {     // hit themselves (or a vehicle): no freezing, run from the attacker at once
+        if (src.t === e.id || isVehicle(e) || isAnimal(e)) {     // hit themselves (or a vehicle or a dog): no freezing, run from the attacker at once
           const by = state.entities[src.a] || src;
           delete e.scared; delete e.danger; delete e.talk;
           stopPath(e);
@@ -273,13 +276,13 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
     stopPath(e);
     m.arrived = state.tick;
     m.until = state.tick + secs(range(R.staySeconds || [4, 12]));
-    e.anim = m.act === 'bow' && !isVehicle(e) ? 'bow' : 'idle';
-    if (isVehicle(e)) return;
+    e.anim = m.act === 'bow' && !isVehicle(e) && !isAnimal(e) ? 'bow' : 'idle';
+    if (isVehicle(e) || isAnimal(e)) return;
     if (m.act === 'bow') { const p = spots.find(q => q.id === m.spot); if (p?.face) e.dir = dirIndex(p.face[0] - e.x, p.face[1] - e.z); return; }
     // someone idle here already, nobody to talk to: chat with them (at most once per reactSeconds)
     if (!reached || state.tick - (m.reactAt ?? -Infinity) < secs(R.reactSeconds ?? 3)) return;
     if (rng() >= (R.chatChance ?? 0.6)) return;
-    const other = Object.values(state.entities).find(o => o !== e && o.type === 'civilian' && !isVehicle(o) && !o.talk && !o.scared && !o.flee
+    const other = Object.values(state.entities).find(o => o !== e && o.type === 'civilian' && !isVehicle(o) && !isAnimal(o) && !o.talk && !o.scared && !o.flee
       && mind[o.id]?.until != null && o.anim === 'idle' && Math.hypot(o.x - e.x, o.z - e.z) < (R.chatRadius ?? 2.5));
     if (!other) return;
     const until = Math.max(m.until, mind[other.id].until);

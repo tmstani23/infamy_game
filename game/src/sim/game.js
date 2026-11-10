@@ -380,14 +380,14 @@ export function createGame(options) {
   const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !a.aboard && !a.mounted && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
-  const hostile=(a,b)=>!b?.shopkeeper&&baseHostile(a,b)&&!charmProtected(a,b,state);
+  const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&baseHostile(a,b)&&!charmProtected(a,b,state);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
   const fair = (a, b) => (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && !a.mounted && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
-  const attackAllowed=(a,b)=>!b?.shopkeeper&&fair(a,b)&&!charmProtected(a,b,state);
+  const attackAllowed=(a,b)=>!b?.shopkeeper&&!b?.animal&&fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
   // (night bandits) are not limited.
   // a hidden ninja (sim/stealth.js) is seen by nobody but its own side

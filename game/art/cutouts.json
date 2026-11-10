@@ -2408,5 +2408,12 @@
  "buildings/barracks": {"w":500,"h":361,"left":0,"right":499,"bottomX":164,"bottomY":359,"glows":[]},
  "buildings/artillery_shed": {"w":480,"h":373,"left":1,"right":478,"bottomX":276,"bottomY":371,"glows":[]},
  "buildings/ironworks": {"w":470,"h":416,"left":0,"right":468,"bottomX":311,"bottomY":415,"glows":[]},
- "buildings/market_hall": {"w":330,"h":259,"left":0,"right":329,"bottomX":125,"bottomY":258,"glows":[]}
+ "buildings/market_hall": {"w":330,"h":259,"left":0,"right":329,"bottomX":125,"bottomY":258,"glows":[]},
+ "buildings/camp_hall": {"w":560,"h":457,"left":0,"right":559,"bottomX":344,"bottomY":456,"glows":[]},
+ "buildings/camp_barracks": {"w":500,"h":431,"left":1,"right":499,"bottomX":137,"bottomY":430,"glows":[]},
+ "buildings/rifle_range": {"w":500,"h":387,"left":0,"right":499,"bottomX":154,"bottomY":386,"glows":[]},
+ "buildings/clan_hall": {"w":480,"h":376,"left":0,"right":479,"bottomX":281,"bottomY":375,"glows":[]},
+ "buildings/supply_tents": {"w":320,"h":227,"left":0,"right":319,"bottomX":201,"bottomY":226,"glows":[]},
+ "buildings/kennel": {"w":330,"h":245,"left":0,"right":329,"bottomX":139,"bottomY":244,"glows":[]},
+ "buildings/war_banner": {"w":72,"h":240,"left":0,"right":71,"bottomX":12,"bottomY":239,"glows":[]}
 }

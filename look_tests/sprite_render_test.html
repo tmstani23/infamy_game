@@ -456,7 +456,23 @@ function buildJitte() {
   const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
   return g;
 }
-const PROC_ITEMS = { club: buildClub, hammer: buildHammer, katana: buildKatana, jitte: buildJitte, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true) };
+// Dog handler's iron knuckles (tekko, Tim 2026-11-10): four chunky finger rings on a bar with studs,
+// along +z so the hand's hammer-grip dir lays it across the knuckle line; oversized and bright-edged to read at sprite size
+function buildKnuckles() {
+  const g = new THREE.Group();
+  const iron = std({ color: 0x5a606a, roughness: 0.3, metalness: 0.75, emissive: 0x161a20 }, [0xb8ccff, 1.2]);
+  for (let i = 0; i < 4; i++) {
+    const r = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 8, 18), iron);
+    r.rotation.y = Math.PI / 2; r.position.set(0, 0, 0.125 + i * 0.25); g.add(r);
+  }
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.07, 1.0), iron); bar.position.set(0, 0.13, 0.5); g.add(bar);
+  for (let i = 0; i < 4; i++) {
+    const stud = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.09, 8), iron);
+    stud.position.set(0, 0.2, 0.125 + i * 0.25); g.add(stud);
+  }
+  return g;
+}
+const PROC_ITEMS = { club: buildClub, hammer: buildHammer, katana: buildKatana, jitte: buildJitte, knuckles: buildKnuckles, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true) };
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
 // Hand distance (in character heights / 2) below which both hands hold the
@@ -583,6 +599,8 @@ function setItemOptions(o = {}) {
   if (shield) { shield.parent?.remove(shield); shield = null; }
   if (o.shield) { shield = o.shield==='long'?buildLongShield(std,longShieldTexture):buildShield(std); scene.add(shield); }
   itemPalmY = Number.isFinite(o.palmOffset) ? o.palmOffset : PALM_Y;
+  // thin: blade width and thickness factor, length unchanged (kunoichi's slim blade, Tim 2026-11-10)
+  if (itemBox) itemBox.scale.set(o.thin ?? 1, o.thin ?? 1, 1);
   if (o.mode) $('itemMode').value = o.mode;
   for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
     if (o[k] != null) $(id).value = o[k];

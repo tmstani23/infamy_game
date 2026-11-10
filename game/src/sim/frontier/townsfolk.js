@@ -17,7 +17,9 @@ const HZ = 20;
 export function createTownsfolk({ state, data, civilians = null }) {
   const T = data.townsfolk;
   // the capital's walkers, each as many times as its count (vehicles drive, they don't walk round a town)
-  const mix = Object.values(civilians?.types || {}).filter(t => !t.vehicle && t.model).flatMap(t => Array(Math.max(1, t.count || 1)).fill(t.model));
+  // (town dogs come along too, Tim 2026-11-10: { model, kind, animal } so they keep their name and can't be hit)
+  const mix = Object.entries(civilians?.types || {}).filter(([, t]) => !t.vehicle && t.model)
+    .flatMap(([kind, t]) => Array(Math.max(1, t.count || 1)).fill(t.animal ? { model: t.model, kind, animal: true } : t.model));
   const roamOf = s => T.roam?.[s.tier || 1] ?? T.roam?.[1] ?? Infinity;
   let runtime = null, danger = new Map();   // town id -> enemies inside the ring (refreshed once a second)
   const towns = () => Object.values(state.frontier?.settlements || {}).filter(s => !s.capital && s.grid && s.owner && s.founded !== undefined && Number.isFinite(s.x));
@@ -65,7 +67,9 @@ export function createTownsfolk({ state, data, civilians = null }) {
       // too few: one walks out of the hall each second
       if (out.length < want && now % HZ === 0) {
         const at = door(s), k = s.folk.length + now, models = T.models || (mix.length ? mix : null) || data.arrivals?.models || ['old_woman'];
-        const id = runtime.spawn('civilian', models[Math.floor(roll(s, k) * models.length)], ...at, { place: 'world', area: 'world', townsfolk: s.id, seenBy: s.owner, holdFire: true, hp: 60, maxHp: 60 });
+        const pick = models[Math.floor(roll(s, k) * models.length)], animal = typeof pick === 'object' ? pick : null;
+        const id = runtime.spawn('civilian', animal ? animal.model : pick, ...at, { place: 'world', area: 'world', townsfolk: s.id, seenBy: s.owner, holdFire: true, hp: 60, maxHp: 60,
+          ...(animal ? { animal: true, civ: animal.kind } : {}) });
         const f = { entity: id, path: null, step: 0, wait: 0, home: false };
         s.folk.push(f);
         const to = target(s, k); if (to) route(f, at, to);

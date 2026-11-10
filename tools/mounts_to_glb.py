@@ -2,7 +2,7 @@
 # Usage (pip bpy 5.2.3, Python 3.13): python mounts_to_glb.py -- in.blend out.glb ACTIONS|SCENE|NLA
 #   ACTIONS = one armature, one clip per action (mare, calico, ox); SCENE = grouped scene, clips play together.
 # Textures: unzip each Tencent *obj1.zip into TEX/<key>/ and add *_1k.png (1024 px) copies;
-# keys: bb black_beauty, calico, ox, om omnibus, sd saddle, oc ox cart, rk rickshaw, cn_field, cn_wooden, bt_riverboat, bt_coastalship, bt_warship.
+# keys: wh warhorse, tosa Tosa dog, bb black_beauty, calico, ox, om omnibus, sd saddle, oc ox cart, rk rickshaw, cn_field, cn_wooden, bt_riverboat, bt_coastalship, bt_warship.
 import bpy, sys, os, re
 args = sys.argv[sys.argv.index('--')+1:]
 src, out, mode = args[0], args[1], args[2]
@@ -13,7 +13,7 @@ for o in [o for o in bpy.data.objects if re.search(r'_(flash|smoke\d*)$', o.name
     bpy.data.objects.remove(o, do_unlink=True)
 for img in bpy.data.images:
     if img.packed_file: continue
-    m = re.search(r'/(bb|calico|ox|om|sd|oc|rk|cn_field|cn_wooden|bt_riverboat|bt_coastalship|bt_warship)/(texture_pbr_20250901(_normal|_metallic|_roughness)?)\.png$', img.filepath.replace('\\','/'))
+    m = re.search(r'/(bb|calico|ox|om|sd|oc|rk|cn_field|cn_wooden|bt_riverboat|bt_coastalship|bt_warship|wh|tosa)/(texture_pbr_20250901(_normal|_metallic|_roughness)?)\.png$', img.filepath.replace('\\','/'))
     if not m: print('  unmatched image', img.name, img.filepath); continue
     key, kind = m.group(1), m.group(3) or ''
     if kind in ('_metallic', '_roughness'): continue

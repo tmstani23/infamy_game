@@ -127,4 +127,25 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   console.log('townsfolk total ok');
 }
 
+// Town dogs (Tim 2026-11-10): never chat, bow or freeze; run from a fight at once; nobody can hurt them
+{
+  const g = newGame(), S = g.state.entities;
+  g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });
+  g.spawn('thug', 'thug', -4.6, 1, { owner: 'kuroda', order: { kind: 'station', x: -4.6, z: 1 } });
+  const dog = g.civilians.add('town_dog', -1, 1.5);
+  const biter = g.spawn('thug', 'thug', 3, 1.5, { owner: 'kuroda', order: { kind: 'attack', target: dog } });
+  const hp = S[dog].hp, seen = new Set();
+  let fled = false;
+  for (let i = 0; i < 20 * 6; i++) { g.step(); seen.add(S[dog].anim); if (S[dog].flee && S[dog].anim === 'run') fled = true; }
+  assert.ok(S[dog].animal, 'flagged as an animal');
+  assert.ok(fled, 'ran from the fight');
+  for (const a of ['scared', 'talk', 'bow']) assert.ok(!seen.has(a), `dog never plays ${a}`);
+  assert.equal(S[dog].hp, hp, 'nobody can hit a dog');
+  void biter;
+  g.civilians.populate();
+  run(g, 60);
+  for (const e of civs(g)) if (e.animal) assert.ok(!['talk', 'bow', 'scared'].includes(e.anim));
+  console.log('town dogs ok');
+}
+
 console.log('civilian tests passed');

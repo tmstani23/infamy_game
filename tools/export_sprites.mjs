@@ -54,7 +54,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { KURODA_SPRITES, KURODA_FRAMING } from './kuroda_sprite_config.mjs';
 import { TANK_SPRITES } from './tank_sprite_config.mjs';
 
-const SETS = ['combat', 'brawler', 'gunner', 'civilian', 'ninja', 'archer'];
+const SETS = ['combat', 'brawler', 'gunner', 'civilian', 'ninja', 'archer', 'firebomber'];
 const MODEL_SETS = {
   ronin: ['combat'],
   swordsman: ['combat'],
@@ -75,6 +75,11 @@ const MODEL_SETS = {
   ninja_grunt: ['ninja'],
   ninja_tanto: ['ninja'],
   archer: ['archer'],
+  // war specials (Tim 2026-11-10): kunoichi on the ninja set, dog handler on the brawler set,
+  // the fire-bomber on the brawler set plus his own throw and stab (animations/firebomber)
+  kunoichi: ['ninja'],
+  dog_handler: ['brawler'],
+  fire_bomber: ['brawler', 'firebomber'],
 };
 const DEFAULT_SETS = ['civilian'];
 const VARIANTS = { brute: 'mutant' };
@@ -102,6 +107,10 @@ const ITEMS = {
   // Police: iron jitte in the right hand, same hammer grip as the clubs
   police: { file: 'jitte', proc: 'jitte', mode: 'right', length: 0.55, grip: 0.18, dir: [0.92, 0.38, 0] },
   // Rail gang (Tim 2026-11-07): the laborer body holding a sledge in the right hand, same hammer grip
+  // war specials (Tim 2026-11-10): the kunoichi's tanto, the dog handler's club, the fire-bomber's short knife
+  kunoichi: { file: 'tanto', mode: 'right', length: 0.72, thin: 0.45, grip: 0.15, palmOffset: 0.03, idleBack: { drop: -45, hand: 'left', forward: true }, runBack: { drop: 5, roll: 0 } },   // longer, slimmer blade (Tim 2026-11-10)
+  dog_handler: { file: 'knuckles', proc: 'knuckles', mode: 'right', length: 0.26, grip: 0.5, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // iron knuckles (Tim 2026-11-10: the club is overused)
+  fire_bomber: { file: 'tanto', mode: 'right', length: 0.5, grip: 0.2, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // in the fist like the clubs (no dir = at the wrist)
   rail_worker: { file: 'hammer', proc: 'hammer', mode: 'right', length: 0.9, grip: 0.12, dir: [0.92, 0.38, 0] },
 };
 // Single clips borrowed from another set (path inside assets/animations)
@@ -136,6 +145,11 @@ const MOUNTS = {
   mare: { file: 'mare.glb', height: 2.4 },
   mare_saddled: { file: 'mare_saddled.glb', height: 2.4, ref: '^black_beauty' },
   calico: { file: 'calico.glb', height: 2.3 },
+  // War (2026-11-10): cavalry warhorse (quad_rig + front walk warp), saddled copy with the mare's saddle (assets/models/source/animal_rigs/warhorse_saddle.py),
+  // and the Yakuza dog handler's Tosa dog (tosa_straighten.py + quad_rig + tosa_bite.py: walk, run, bite)
+  warhorse: { file: 'warhorse.glb', height: 2.65, ref: '^warhorse' },
+  warhorse_saddled: { file: 'warhorse_saddled.glb', height: 2.65, ref: '^warhorse' },
+  tosa: { file: 'tosa.glb', height: 1.05 },
   ox: { file: 'ox.glb', height: 2.0 },
   ox_cart: { file: 'ox_cart.glb', height: 2.0, ref: '^ox$', merge: 'walk', supersample: 2,
     wheels: { mesh: 'ox_cart', fwd: 1, axle: [0.372, 0.425], list: [[-1.145, 0.315, 0.316]], spokes: 12 } },

@@ -201,5 +201,61 @@
     "fps": 6,
     "cellWorld": 6.6,
     "feetUp": 1.905
+  },
+  "warhorse_gallop": {
+    "size": 288,
+    "dirs": 8,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.357
+  },
+  "warhorse_walk": {
+    "size": 288,
+    "dirs": 8,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.357
+  },
+  "warhorse_saddled_gallop": {
+    "size": 288,
+    "dirs": 8,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.357
+  },
+  "warhorse_saddled_walk": {
+    "size": 288,
+    "dirs": 8,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 5.4,
+    "feetUp": 1.357
+  },
+  "tosa_bite": {
+    "size": 128,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.603
+  },
+  "tosa_run": {
+    "size": 128,
+    "dirs": 8,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.603
+  },
+  "tosa_walk": {
+    "size": 128,
+    "dirs": 8,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.603
   }
 }
