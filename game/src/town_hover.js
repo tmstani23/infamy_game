@@ -3,7 +3,7 @@
 import { drawableTowns, drawableWarSites, townPlots, plotInfo, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
-export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null }) {
+export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
   const owner = () => game.state.entities[heroId]?.owner;
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
@@ -104,7 +104,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     tipEl.hidden = false;
     tipEl.style.left = `${Math.min(innerWidth - 260, x + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, y + 16)}px`;
   }
-  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel');
+  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard');
   // keeps the cooldown counting down while the pointer rests on a gun
   setInterval(() => { if (hoverCannon) { const c = cannonAt(mouse.x, mouse.y); showCannon(c, mouse.x, mouse.y); if (!c) tipEl.hidden = true; } }, 250);
 
@@ -115,7 +115,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   }
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
-    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel');
+    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard');
     const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
     if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
     const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities);
@@ -129,19 +129,24 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
     const c = cannonAt(e.clientX, e.clientY);
-    if (!c) return;
+    if (!c) {
+      // left-click one of your garrisoned buildings: the garrison card (Tim 2026-11-10)
+      const p = openGarrison && plotAt(e.clientX, e.clientY), s = p && game.state.frontier?.settlements?.[p.town];
+      if (p?.kind === 'building' && s?.owner === owner() && openGarrison(p.town, p.id)) { e.stopImmediatePropagation(); e.preventDefault(); }
+      return;
+    }
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'salute', settlement: c.town.id });
   }, { capture: true });
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
-    if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls')) return;
+    if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard')) return;
     const p = plotAt(e.clientX, e.clientY);
     if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
     e.stopImmediatePropagation(); e.preventDefault();
     flash(p);
     // right-click your finished stockade with crew selected (Tim 2026-11-07): they go in (far ones walk over first)
-    const s = game.state.frontier?.settlements?.[p.town], ids = selected(), b = s?.buildings?.find(x => x.id === p.id);
+    const s = game.state.frontier?.settlements?.[p.town], ids = selected().length ? selected() : [heroId], b = s?.buildings?.find(x => x.id === p.id);
     if (p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner() && ids.length) {
       send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, walk: true, units: ids });
       return;

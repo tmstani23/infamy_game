@@ -40,6 +40,7 @@ import {withWorkerPresentations,workerLocation} from './worker_details.js';
 import { drawableTowns, drawableWarSites, townSignature, townProps } from './town_props.js';
 import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
+import { createGarrisonCard } from './garrison_card.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import { isDiscovered } from './world_map.js';
@@ -610,8 +611,10 @@ async function start() {
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
+    const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids) });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
-      send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges') });
+      send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
+      openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
     evacuateGarrison = () => townHover.evacuateAll();
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
