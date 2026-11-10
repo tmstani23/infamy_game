@@ -289,3 +289,7 @@ Garrison card (2026-11-10):
 - Left-click your stockade (or any garrisoned building): garrison card with health, slots, Prev/Next, Evacuate; hover a unit for its health; a click on a unit walks it out.
 - Right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.
 - Island minimap: recentres on the camera once it passes 85% of the way to the edge.
+
+War camp workers (2026-11-10):
+- Camp workers take the same right-click orders as town workers.
+- While the hero is in his own war circle, the war coin shows the war chest and a Hire workers box (typeable number + Hire button) sits under it: hires camp workers for ryo from the war chest, up to the camp limit. Hire cost 20 ryo and cap 24 are placeholders in the `frontier.json` `war` data.

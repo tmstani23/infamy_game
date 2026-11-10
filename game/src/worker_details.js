@@ -28,13 +28,17 @@ export function workerPresentation(w,s,data,entities={},at=null) {
   return {id:`worker:${w.id}`,worker:w.id,workerOwner:s.owner,type:'civilian',model:data.workers.model,name:`Worker ${w.id}`,place:'world',
     x:p[0],z:p[1],hp:w.hp ?? data.workers.hp,maxHp:data.workers.hp,carrying:w.carrying,dir:dirIndex(dx*(returning?-1:1),dz*(returning?-1:1)),anim:t?harvesting?'hammer':'walk':'idle'};
 }
+// A war camp as a work site for the screen: { id: war id, camp: true, owner, x, z, workers }
+export const campSitesOf=(frontier,owner)=>Object.values(frontier?.wars?.list || {}).filter(w=>w.attacker===owner && w.camp).map(w=>({id:w.id,camp:true,owner:w.attacker,x:w.camp.x,z:w.camp.z,workers:w.camp.workers || [],war:w}));
 export function withWorkerPresentations(state,data,focus) {
   if(!data?.workers || focus?.place!=='world')return state;
   const entities={...state.entities};
   // a worker that is a live unit is drawn as that unit only: the 4 Hz frontier record can still name no entity
   // (or an old one) for a few ticks after it wakes, which drew a second, stepping copy on top (Tim 2026-11-05)
   const live=new Set(Object.values(state.entities).filter(e=>e.worker && !e.dead).map(e=>`${e.town}:${e.worker}`));
-  for(const s of Object.values(state.frontier?.settlements || {}))if(s.owner===focus.owner)for(const w of s.workers || []) {
+  // own war camps count as work sites too (workers carry the war id as their town)
+  const sites=[...Object.values(state.frontier?.settlements || {}),...campSitesOf(state.frontier,focus.owner)];
+  for(const s of sites)if(s.owner===focus.owner)for(const w of s.workers || []) {
     if(entities[w.entity] || live.has(`${s.id}:${w.id}`))continue;
     const e=workerPresentation(w,s,data,entities,state.workerAt);
     if(Math.hypot(e.x-focus.x,e.z-focus.z)<=data.workers.spawnRadius)entities[e.id]=e;

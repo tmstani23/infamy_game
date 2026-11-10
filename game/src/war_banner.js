@@ -43,6 +43,9 @@ const CSS = `
 #warcoin{position:fixed;right:165px;bottom:150px;width:90px;height:90px;border-radius:50%;display:grid;place-items:center;text-align:center;z-index:19;cursor:help;
   background:radial-gradient(#2b1714,#0f0a09 70%);box-shadow:0 0 0 4px #8e2d26,0 0 0 6px #2a0f0d,0 0 16px #c9473d88;color:#f6e6bf;font:600 11px/1.15 system-ui}
 #warcoin[hidden]{display:none}#warcoin b{display:block;font-size:18px}#warcoin small{display:block;font-size:9px;letter-spacing:.14em;color:#ee9a8c}
+#warhire{position:fixed;right:150px;bottom:100px;z-index:19;display:flex;gap:6px;align-items:center;padding:5px 8px;background:rgba(12,18,24,.94);border:1px solid #826f4c;border-radius:8px;font:600 12px system-ui;color:#f3e3bd}
+#warhire[hidden]{display:none}#warhire input{width:44px;background:#07090b;border:1px solid #826f4c;border-radius:4px;padding:3px 4px;text-align:right;font:600 13px system-ui;color:#f3e3bd}
+#warhire button{font:600 12px system-ui;padding:4px 9px;border:1px solid #e07b6c;border-radius:5px;background:linear-gradient(#8e2d26,#5e1c18);color:#ffe9dc;cursor:pointer}
 #warsplash{position:fixed;left:0;right:0;top:22%;height:96px;z-index:58;pointer-events:none;text-align:center;
   background:linear-gradient(90deg,transparent,#7e231dee 14%,#a3332aee 50%,#7e231dee 86%,transparent);box-shadow:0 0 30px #c9473d55;animation:warsplash 4.2s ease-out forwards}
 #warsplash[hidden]{display:none}
@@ -208,6 +211,25 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
 
   // ---- war coin and splash ---------------------------------------------------------------
   const coin = document.createElement('div'); coin.id = 'warcoin'; coin.hidden = true; document.body.append(coin);
+  // Camp readout (checkpoint 3): inside the circle of a war you are fighting, the coin shows the camp chest, and a small
+  // control hires camp workers (ryo from the chest only; the sim checks cost and cap again).
+  const hire = document.createElement('div'); hire.id = 'warhire'; hire.hidden = true;
+  hire.innerHTML = '<span>Hire workers</span><input class="n" type="text" inputmode="numeric" value="1"><button type="button">Hire</button>'; document.body.append(hire);
+  let campId = null;
+  hire.querySelector('button').addEventListener('click', () => {
+    const n = Math.floor(Number(hire.querySelector('input').value));
+    if (campId && n >= 1) send({ id: heroId, type: 'frontier', action: 'train', town: campId, count: n });
+  });
+  for (const ev of ['keydown', 'keyup', 'pointerdown']) hire.addEventListener(ev, e => e.stopPropagation());   // typing a number must not move the hero
+  function ownCamp() {
+    const h = hero(), R = W()?.circleRadius ?? 900;
+    if (!h) return null;
+    for (const w of Object.values(game.state.frontier?.wars?.list || {})) {
+      const t = game.state.frontier.settlements?.[w.town];
+      if (w.attacker === h.owner && w.camp?.chest !== undefined && t && Math.hypot(h.x - t.x, h.z - t.z) <= R) return w;
+    }
+    return null;
+  }
   const splash = document.createElement('div'); splash.id = 'warsplash'; splash.hidden = true; splash.innerHTML = '<div class="t">WAR DECLARED</div><div class="s"></div>'; document.body.append(splash);
   let seenWars = null, splashTimer = 0, coinSig = '';
   function warsTick() {
@@ -234,7 +256,19 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     if (placing) draw();
     if (!root.hidden) { if (m.kind !== 'pack') close(); else fill(); }
     const pack = clanOf()?.warPack, sig = pack ? `${pack.ryo}|${pack.timber}|${pack.stone}` : '';
-    if (sig !== coinSig) {
+    const camp = ownCamp(), C = W()?.camp || {};
+    campId = camp?.id || null;
+    const csig = camp ? `${camp.id}|${Math.floor(camp.camp.chest)}|${Math.floor(camp.camp.stock.timber)}|${Math.floor(camp.camp.stock.stone)}|${camp.camp.workers.length}|${(camp.camp.workerTraining || []).length}` : '';
+    hire.hidden = !camp;
+    if (!pack && camp) {
+      if (csig !== coinSig) {
+        coinSig = csig; coin.hidden = false;
+        const k = camp.camp, n = k.workers.length, tr = (k.workerTraining || []).length;
+        coin.innerHTML = `<div><b>${Math.floor(k.chest)}</b><small>WAR CHEST</small>${n} workers</div>`;
+        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${C.workerCap ?? '?'} workers.`;
+        hire.title = `Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} workers in all.`;
+      }
+    } else if (sig !== coinSig) {
       coinSig = sig; coin.hidden = !pack;
       if (pack) { coin.innerHTML = `<div><b>${pack.ryo || 0}</b><small>WAR PACK</small>${pack.timber || pack.stone ? `${pack.timber || 0} / ${pack.stone || 0}` : ''}</div>`;
         coin.title = `War pack carried by your hero: ${pack.ryo || 0} ryo, ${pack.timber || 0} timber, ${pack.stone || 0} stone. Plant a war banner by a rival town to use it.`; }

@@ -34,6 +34,12 @@ function scoutedBy(game, clan) {
     return s => { const r = ringRadius(s, data) + range; return mine.some(e => Math.hypot(e.x - s.x, e.z - s.z) <= r); };
   };
 }
+// a camp worker as the screen needs it: no navigation paths (they belong to saves), plus where it is now
+function campWorker(w, camp, workerPosition) {
+  const { trip, ...record } = w;
+  const summary = trip && Object.fromEntries(Object.entries(trip).filter(([k]) => !['outPath', 'backPath'].includes(k)));
+  return { ...record, ...(trip ? { trip: summary } : {}), ...(workerPosition ? { location: workerPosition(w) || w.departure || [camp.x, camp.z] } : {}) };
+}
 export function frontierFor(f, clan, discovery, recent, spotIndex, workerPosition, scouted = null) {
   const settlements = {};
   for (const [id, s] of Object.entries(f.settlements || {})) {
@@ -61,7 +67,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   }));
   // F6 war: declared wars are public; a camp's chest and stores only to its own side
   const wars = f.wars && { cooldown: f.wars.cooldown || {}, list: Object.fromEntries(Object.entries(f.wars.list || {}).map(([id, w]) => [id,
-    w.attacker === clan ? w : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: w.camp.buildings } }])) };
+    w.attacker === clan ? (w.camp ? { ...w, camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : w) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: w.camp.buildings } }])) };
   return { version: f.version, econTick: f.econTick, settlements, spots, ...(wars ? { wars } : {}),
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
@@ -98,6 +104,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
         const workers = game.frontier?.modules?.find(m => m.name === 'workers')?.workers, at = {};
         if (workers?.position) for (const s of Object.values(st.frontier.settlements || {})) if (s.owner === clan) for (const w of s.workers || [])
           { const e = st.entities[w.entity], p = e ? [e.x, e.z] : workers.position(w); if (p) at[w.id] = [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100]; }   // every worker, live or asleep, so the camera can follow any of them per tick
+        for (const w of Object.values(st.frontier.wars?.list || {})) if (w.attacker === clan) for (const k of w.camp?.workers || [])
+          { const e = st.entities[k.entity], p = e ? [e.x, e.z] : workers?.position?.(k) || k.departure; if (p) at[k.id] = [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100]; }
         roots.workerAt = at;
       }
     }

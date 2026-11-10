@@ -2,7 +2,7 @@ import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
 import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from '../resource_spots.js';
-import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature } from './town_grid.js';
+import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature, ringRadius } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
 import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint } from './camp_carts.js';
@@ -88,10 +88,29 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     w.entity=runtime.spawn('civilian',R.model,...p,{place:'world',area:'world',worker:w.id,town:s.id,workerOwner:s.owner,holdFire:true,hp:w.hp ?? R.hp,maxHp:R.hp,carrying:w.carrying,phase:w.phase});
   }
   const towns=()=>Object.values(state.frontier.settlements).filter(s=>!s.capital);
+  // F6 war camps (checkpoint 3): a war camp is a work site like a town. The adapter below lets the worker code treat it
+  // as one: camp workers/training/stock live on the war record (state.frontier.wars.list[id].camp), sealed from every town.
+  const CW=()=>data.war?.camp || {};
+  const campRes=()=>CW().resources || ['timber','stone'];
+  const newWorker=()=>({id:world.newId('w'),spot:null,dropoff:null,phase:0,carrying:0,entity:null,elapsed:0,trip:null});
+  function campSite(war) {
+    const c=war.camp;if(!c)return null;
+    if(typeof c.workers==='number')c.workers=Array.from({length:c.workers},newWorker);   // older saves held a plain number
+    c.workers ||= [];c.workerTraining ||= [];
+    return {id:war.id,camp:true,war,townId:war.town,owner:war.attacker,name:'War camp',x:c.x,z:c.z,grid:null,projects:[],buildings:c.buildings,stock:c.stock,
+      get workers(){return c.workers;},set workers(v){c.workers=v;},
+      get workerTraining(){return c.workerTraining;},set workerTraining(v){c.workerTraining=v;},
+      get workerIncome(){return c.workerIncome ||= {};},set workerIncome(v){c.workerIncome=v;}};
+  }
+  const warSites=()=>Object.values(state.frontier.wars?.list || {}).map(campSite).filter(Boolean);
+  const sites=()=>[...towns(),...warSites()];
+  const siteOf=id=>{const w=state.frontier.wars?.list?.[id];return w?campSite(w):null;};
+  const credit=(s,res,n)=>{ if(s.camp){s.stock[res]=Math.round(((s.stock[res] || 0)+n)*100)/100;} else world.change(s.id,res,n,'gather'); };
+  const full=(s,r)=>s.camp ? false : isFull(s,data,r);
   const has=s=>!!s.workers?.length;
   const on=s=>!!R && Number.isFinite(s.x) && Number.isFinite(s.z);
   const walkTicks=d=>Math.ceil(d/R.speed*HZ);
-  const point=(s,b)=>s.grid && Number.isInteger(b.cell) ? cellToWorld(s,b.cell) : [s.x,s.z];
+  const point=(s,b)=>s.grid && Number.isInteger(b.cell) ? cellToWorld(s,b.cell) : Number.isFinite(b.x) && Number.isFinite(b.z) ? [b.x,b.z] : [s.x,s.z];
   // Tim 2026-11-07: a work camp takes only its own resource (R.campTakes: lumber camp timber, quarry stone); res unknown = any
   const takes=(b,res)=>!res || !R.campTakes?.[b.type] || R.campTakes[b.type].includes(res);
   const dropoffs=(s,res)=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !campFull(data,b) && takes(b,res));
@@ -101,8 +120,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   // Reach (Tim 2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
   const camps=s=>s.buildings.filter(b=>b.stage==='built' && (R.gatherBuildings || []).includes(b.type));
-  const inReach=(s,spot)=>distance([s.x,s.z],[spot.x,spot.z])<=R.range || camps(s).some(b=>takes(b,R.resources[spot.kind]) && distance(point(s,b),[spot.x,spot.z])<=(R.campReach || 0));
+  // war camp reach (Tim 2026-11-10): anywhere inside the war circle, but outside the town's build ring (that ground is the town's)
+  const campReachOk=(s,spot)=>{
+    const t=state.frontier.settlements[s.townId];if(!t || !Number.isFinite(t.x) || !campRes().includes(R.resources[spot.kind]))return false;
+    const d=distance([t.x,t.z],[spot.x,spot.z]);return d<=data.war.circleRadius && d>ringRadius(t,data);
+  };
+  const inReach=(s,spot)=>s.camp ? campReachOk(s,spot) : distance([s.x,s.z],[spot.x,spot.z])<=R.range || camps(s).some(b=>takes(b,R.resources[spot.kind]) && distance(point(s,b),[spot.x,spot.z])<=(R.campReach || 0));
   function reachSpots(s) {
+    if(s.camp){const t=state.frontier.settlements[s.townId];return t ? index.spotsNear(t.x,t.z,data.war.circleRadius).filter(p=>campReachOk(s,p)) : [];}
     const out=new Map(index.spotsNear(s.x,s.z,R.range).map(p=>[p.id,p]));
     if(R.campReach)for(const b of camps(s))for(const p of index.spotsNear(...point(s,b),R.campReach))if(takes(b,R.resources[p.kind]))out.set(p.id,p);
     return [...out.values()];
@@ -122,6 +147,19 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(workerCount(s)+count>workerCap(s,data))return result('town hall tier worker limit');
     ensureWorkers(s);
     world.change(s.id,'ryo',-count*R.cost,'train');if(R.goodsCost)world.change(s.id,'goods',-count*R.goodsCost,'train');world.changePop(s.id,-count*R.personCost,'train');
+    let readyAt=Math.max(state.tick || 0,s.workerTraining.at(-1)?.readyAt || 0);
+    for(let i=0;i<count;i++)s.workerTraining.push({id:world.newId('w'),readyAt:readyAt+=R.trainTicks});
+    return result();
+  }
+  // Camp workers cost ryo from the war chest only, up to a fixed cap (Tim 2026-11-10); training time as in a town.
+  function trainCamp(s,count) {
+    const C=CW(),c=s.war.camp;
+    if(!Number.isSafeInteger(count) || count<1)return result('count must be a positive integer');
+    if(!s.buildings.some(b=>b.type==='camp_hall' && b.stage==='built' && !(b.hp===0)))return result('the camp hall is down');
+    const cost=(C.workerCost ?? 0)*count;
+    if((c.chest || 0)<cost)return result('the war chest cannot afford workers');
+    if(s.workers.length+s.workerTraining.length+count>(C.workerCap ?? Infinity))return result(`a war camp holds at most ${C.workerCap} workers`);
+    c.chest=Math.round(((c.chest || 0)-cost)*100)/100;
     let readyAt=Math.max(state.tick || 0,s.workerTraining.at(-1)?.readyAt || 0);
     for(let i=0;i<count;i++)s.workerTraining.push({id:world.newId('w'),readyAt:readyAt+=R.trainTicks});
     return result();
@@ -149,11 +187,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   function assignIdle(s) {
     if(!on(s) || !has(s))return;
+    if(s.camp && !s.workers.some(w=>!w.spot && !w.project && !w.order && w.by!=='p'))return;   // camps check every second: skip the spot search when nobody is idle
     const spots=reachSpots(s).filter(p=>R.resources[p.kind]);
-    const resources=[...new Set(Object.values(R.resources))].filter(r=>!isFull(s,data,r)).sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
+    const resources=[...new Set(Object.values(R.resources))].filter(r=>(!s.camp || campRes().includes(r)) && !full(s,r)).sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
     // Tim 2026-11-06: the governor never puts more workers on a spot than it keeps busy (supportsWorkers) and moves
     // its own extras off an overworked one; the player's own picks stay put.
-    const count={};for(const t of towns())for(const w of t.workers || [])if(w.spot)count[w.spot]=(count[w.spot] || 0)+1;
+    const count={};for(const t of sites())for(const w of t.workers || [])if(w.spot)count[w.spot]=(count[w.spot] || 0)+1;
     const room=p=>{const n=spotRules?.stages ? supportsWorkers(p,spotRules.stages) : null;return n==null || (count[p.id] || 0)<n;};
     for(const w of s.workers) {
       // B2: governor-placed workers on a full resource are moved; the player's own picks stay put.
@@ -197,7 +236,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!outPath || !backPath) { w.status='No walking route to resource'; return false; }
     const out=walkTicks(length(outPath)),back=walkTicks(length(backPath));
     const stages=spotRules?.stages, saved=state.frontier.spots?.[spot.id];
-    const harvest=stages ? Math.ceil(R.harvestTicks*spot.pieces.length/spotYield(spot,saved,stages)) : R.harvestTicks;
+    const base=stages ? Math.ceil(R.harvestTicks*spot.pieces.length/spotYield(spot,saved,stages)) : R.harvestTicks;
+    const harvest=s.camp ? Math.ceil(base/Math.max(0.01,CW().gatherSpeed ?? 1)) : base;   // camp-only gather speed (Tim 2026-11-10); town workers never change
     w.trip={origin:backPath.at(-1),destination:outPath.at(-1),outPath,backPath,out,harvest,back,total:Math.max(1,out+back+harvest),resource:R.resources[spot.kind],load:R.load,harvested:false};
     delete w.departure;
     w.dropoff=drop.b.id;w.elapsed=0;w.phase=0;return true;
@@ -304,7 +344,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   function rescue(s,w) {
     const here=currentPoint(w) || [s.x,s.z],drop=nearestDropoff(s,{x:here[0],z:here[1]},cargoType(w));
     const at=drop?.p || [s.x,s.z],res=cargoType(w);
-    if(w.carrying>0 && res) {world.change(s.id,res,w.carrying,'gather');s.workerIncome ||= {};s.workerIncome[res]=(s.workerIncome[res] || 0)+w.carrying;}
+    if(w.carrying>0 && res) {credit(s,res,w.carrying);s.workerIncome ||= {};s.workerIncome[res]=(s.workerIncome[res] || 0)+w.carrying;}
     w.carrying=0;delete w.cargoResource;w.trip=null;w.elapsed=0;w.phase=0;w.departure=[...at];w.spot=null;
     if(w.order?.kind==='move')w.order={kind:'hold'};
     const e=state.entities?.[w.entity];if(e) {[e.x,e.z]=at;e.carrying=0;}
@@ -365,7 +405,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!w.trip) {
       if(w.retryAt>state.tick)return;
       // B2: a full store sends nobody out; the worker waits (Idle tab, governor may move it).
-      if(spot && isFull(s,data,R.resources[spot.kind])) {w.status='Store full';w.retryAt=state.tick+(R.retryTicks || 100);return;}
+      if(spot && full(s,R.resources[spot.kind])) {w.status='Store full';w.retryAt=state.tick+(R.retryTicks || 100);return;}
       if(w.status==='Store full')delete w.status;
       const started=start(s,w,spot,true);
       if(started==='later') {w.retryAt=state.tick+1;return;}   // one new route per tick: try again next tick
@@ -389,7 +429,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(w.carrying) {
         const camp=cartRules(data) && s.buildings.find(b=>b.id===w.dropoff && isCamp(data,b));
         if(camp) {camp.store ||= {};camp.store[t.resource]=Math.round(((camp.store[t.resource] || 0)+w.carrying)*100)/100;}
-        else world.change(s.id,t.resource,w.carrying,'gather');
+        else credit(s,t.resource,w.carrying);
         s.workerIncome ||= {};s.workerIncome[t.resource]=(s.workerIncome[t.resource] || 0)+w.carrying;
         const log=s.workerLog ||= [];
         log.push({tick:state.tick,worker:w.id,resource:t.resource,amount:w.carrying,dropoff:w.dropoff});
@@ -436,9 +476,15 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const anchors=enabled ? Object.values(state.entities).filter(e=>e.place==='world' && !e.worker && !e.worldCamp && e.type!=='civilian' && e.owner && !e.dead && !e.downed && !e.jailed) : [];
     const near=p=>p && anchors.some(e=>distance(p,[e.x,e.z])<=R.spawnRadius);
     let spawned=0;
-    for(const s of towns()) {
+    // workers of a war that is over (or whose camp is gone) go home with it
+    if(runtime && state.tick%20===0) {
+      const ids=new Set(sites().map(x=>x.id));
+      for(const e of Object.values(state.entities))if(e.worker && e.town && !ids.has(e.town))runtime.remove(e.id);
+    }
+    for(const s of sites()) {
       ensureWorkers(s);if(!on(s))continue;
-      if(cartRules(data)) {
+      if(s.camp && state.tick%20===0)assignIdle(s);   // no governor in a camp: idle hands pick timber or stone themselves
+      if(!s.camp && cartRules(data)) {
         stepCarts(s,data,world.change,point,cartHome);
         for(const b of s.buildings)for(const c of b.carts || []) {   // decoration: an ox cart on the road near your units
           const e=c.entity && state.entities?.[c.entity], at=enabled && b.cartTicks ? cartPoint(c,point(s,b),cartHome(s,b),b.cartTicks) : null;
@@ -499,5 +545,5 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(next===null)delete state.frontier.spots[id];else state.frontier.spots[id]=next;
     }
   }
-  return {tick,econTick,buyCampCart,train,assign,workerOrder,assignIdle,rebalance,has,position,index,attach};
+  return {tick,econTick,buyCampCart,train,trainCamp,siteOf,assign,workerOrder,assignIdle,rebalance,has,position,index,attach};
 }

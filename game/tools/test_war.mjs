@@ -12,7 +12,7 @@ const world = data('data/world.json'), frontier = data('data/frontier.json'), se
 const options = () => ({ district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
-  settings, world, worldChunks: data('data/world_chunks.json'), frontier: { ...frontier, dev: true, railways: data('data/railways.json') } });
+  settings, world, worldChunks: data('data/world_chunks.json'), resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json'), frontier: { ...frontier, dev: true, railways: data('data/railways.json') } });
 function match(mode) {
   const g = createGame(options());
   const m = setupMatch(g, { clan: 'yakuza', difficulty: 'easy', mode, bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 5000 } });
@@ -42,7 +42,7 @@ assert.deepEqual(war.band(enemy), [inner, outer], 'Camp tier band 300 to 450');
 
 const put = (x, z) => Object.assign(hero, { x, z, place: 'world' });
 war.active();   // old saves get the empty war records on first use
-const snap = () => JSON.stringify(g.state.frontier.wars);
+const snap = () => JSON.stringify(g.state.frontier.wars, (k, v) => k === 'workers' ? undefined : v);   // camp workers wake and sleep by themselves
 const plant = (town, x, z) => { g.step([{ id: hero.id, type: 'frontier', action: 'plantBanner', town, x, z }]); return g.state.frontier.receipts.find(r => r.action === 'plantBanner'); };
 const rejected = (why, re, town, x, z) => { const before = snap(), r = plant(town, x, z); assert.ok(r && !r.ok && re.test(r.reason), `${why}: ${r?.reason}`); assert.equal(snap(), before, `${why}: nothing changed`); };
 const ex = enemy.x, ez = enemy.z, mid = (inner + outer) / 2;
@@ -117,12 +117,65 @@ assert.ok(rec && rec.attacker === 'player' && rec.defender === rival && rec.stat
 assert.match(g.state.clans[rival].notice?.text || '', /declared war on enemyTown/, 'the defender is told');
 assert.deepEqual(rec.camp.brought, { ryo: 600, timber: 400, stone: 200 }, 'the pack becomes the camp');
 assert.equal(rec.camp.chest, 600); assert.deepEqual(rec.camp.stock, { timber: 400, stone: 200 });
-assert.equal(rec.camp.workers, W.camp.startWorkers); assert.equal(rec.camp.buildings[0].type, 'camp_hall');
+assert.equal(rec.camp.workers.length, W.camp.startWorkers, 'the camp starts with its workers'); assert.equal(rec.camp.buildings[0].type, 'camp_hall');
 assert.equal(clan.warPack, undefined, 'the pack is used up');
 assert.equal(war.warsAt(ex, ez).length, 1, 'the hall is inside the war circle');
 assert.equal(war.warsAt(ex + W.circleRadius + 5, ez).length, 0, 'outside the circle');
 assert.equal(war.warsOf(rival).length, 1);
 rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
+
+// ---- checkpoint 3: camp workers ----------------------------------------------------------------
+{
+  const wk = g.frontier.modules.find(m => m.name === 'workers').workers;
+  const ringR = frontier.tiers.list[0].ring;
+  assert.ok(rec.camp.workers.every(w => typeof w.id === 'string'), 'camp workers are real records');
+  const reach = wk.index.spotsNear(enemy.x, enemy.z, W.circleRadius).filter(p => ['timber', 'stone'].includes(frontier.workers.resources[p.kind]) && Math.hypot(p.x - enemy.x, p.z - enemy.z) > ringR);
+  assert.ok(reach.length, 'resource spots exist in the war circle outside the build ring');
+  const site = wk.siteOf(rec.id);
+  assert.ok(site && site.camp && site.owner === 'player', 'the camp is a work site');
+  const stock0 = { ...rec.camp.stock }, town0 = { timber: enemy.stock.timber, stone: enemy.stock.stone }, mine0 = { timber: mine.stock.timber, stone: mine.stock.stone };
+  for (let i = 0; i < 40; i++) g.step([]);
+  assert.ok(rec.camp.workers.some(w => w.spot), 'idle camp workers pick a spot by themselves');
+  assert.ok(rec.camp.workers.every(w => !w.spot || reach.some(p => p.id === w.spot)), 'only timber and stone, inside the circle, outside the town ring');
+  for (let i = 0; i < 6000; i++) g.step([]);
+  const income = rec.camp.workerIncome || {}, gained = r => Math.round((rec.camp.stock[r] - stock0[r]) * 100) / 100;
+  assert.ok((income.timber || 0) + (income.stone || 0) > 0, 'camp workers deliver to the camp hall');
+  for (const r of ['timber', 'stone']) assert.equal(gained(r), Math.round((income[r] || 0) * 100) / 100, `camp ${r} gain is exactly what the workers carried`);
+  assert.ok(!(income.food), 'camp workers never gather food');
+  // sealed: a camp never feeds a town (the towns only change by their own workers' deliveries, tracked by their own income)
+  const campIds = new Set(rec.camp.workers.map(w => w.id));
+  for (const t of [enemy, mine]) assert.ok(!(t.workerLog || []).some(l => campIds.has(l.worker)), `no camp delivery reaches ${t.id}`);
+  // hiring: ryo from the war chest only, fixed cap
+  const chest0 = rec.camp.chest, n0 = rec.camp.workers.length, treasury0 = clan.ryo;
+  g.step([{ id: hero.id, type: 'frontier', action: 'train', town: rec.id, count: 2 }]);
+  assert.equal(rec.camp.chest, chest0 - 2 * W.camp.workerCost, 'hired from the war chest');
+  assert.equal(rec.camp.workerTraining.length, 2);
+  assert.equal(clan.ryo, treasury0, 'clan treasury not touched');
+  const before = JSON.stringify(rec.camp.workerTraining);
+  g.step([{ id: hero.id, type: 'frontier', action: 'train', town: rec.id, count: W.camp.workerCap }]);
+  assert.equal(JSON.stringify(rec.camp.workerTraining), before, 'over the cap is refused');
+  g.step([{ id: Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === rival)?.id || 'none', type: 'frontier', action: 'train', town: rec.id, count: 1 }]);
+  assert.equal(rec.camp.workerTraining.length, 2, 'only the attacker hires camp workers');
+  for (let i = 0; i < frontier.workers.trainTicks * 3; i++) g.step([]);
+  assert.equal(rec.camp.workers.length, n0 + 2, 'trained workers join the camp');
+  assert.equal(rec.camp.workerTraining.length, 0);
+  assert.equal(g.state.frontier.wars.list[rec.id].camp.chest, chest0 - 2 * W.camp.workerCost, 'no wages: the chest is untouched after hiring');
+  // fighting rules: camp workers carry the war id as their town
+  const at = { place: 'world', area: 'world', holdFire: true, hp: 60 };
+  const cw = g.state.entities[g.spawn('civilian', 'farmer', ex + 40, ez, { ...at, worker: 'wx', town: rec.id, workerOwner: 'player' })];
+  const heroOf = clanId => { const h = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === clanId); return h && Object.assign(h, { place: 'world', area: 'world', x: ex + 41, z: ez }); };   // set out on the frontier for the check (nothing steps after)
+  const defender = heroOf(rival);   // the defending clan's own hero
+  assert.ok(defender, 'the rival clan has a hero');
+  assert.equal(g.attackAllowed(defender, cw), true, 'the defender can hit camp workers');
+  const third = Object.keys(g.state.clans).find(c => c !== 'player' && c !== rival);
+  if (third) {
+    const other = heroOf(third);
+    assert.ok(other, 'a third clan hero exists');
+    assert.equal(g.attackAllowed(other, cw), false, 'a third clan cannot hit camp workers');
+  }
+  delete g.state.entities[cw.id];
+  g.frontier.world.checkInvariants();
+}
 
 // save and load keep the war
 {
@@ -137,6 +190,9 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
 g.step([{ id: hero.id, type: 'frontier', action: 'devEndWar', war: rec.id }]);
 assert.equal(war.warOn('enemyTown'), null);
 assert.equal(g.state.frontier.wars.history.at(-1).id, rec.id);
+assert.equal(typeof g.state.frontier.wars.history.at(-1).camp.workers, 'number', 'history keeps a head count, not worker routes');
+for (let i = 0; i < 20; i++) g.step([]);
+assert.ok(!Object.values(g.state.entities).some(e => e.worker && e.town === rec.id), 'camp worker units leave with the war');
 assert.equal(war.cooldownDays('enemyTown'), W.cooldownDays);
 rejected('cooldown', /under truce for 6 more days/, 'enemyTown', ex + mid, ez);
 g.state.tick += dayTicks * (W.cooldownDays - 1);

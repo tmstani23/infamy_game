@@ -9,7 +9,7 @@ import { spotYield, richReach, overwork, regrowChance, supportsWorkers } from '.
 import { townPlots } from './town_props.js';
 import { workerPanelHTML, workerJob, workerStatus } from './worker_panel.js';
 import { cargoIcon, CARGO_ICON_SIZE } from './cargo_icons.js';
-import {workerDetails,workerPresentation} from './worker_details.js';
+import {workerDetails,workerPresentation,campSitesOf} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
 import { buildTooltip } from './build_tooltips.js';
 import { tierOf, placedGroup, placedCount } from './sim/frontier/tiers.js';
@@ -86,8 +86,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const outdoors = () => (view.commandPlace?.(game.state, heroId) || hero()?.place) === 'world';
   const command = c => send({ id: heroId, type: 'frontier', ...c });
   const previewBuild=(s,r)=>buildPreview(s,r,data,{state:game.state,resourceIndex:spotIndex});
-  const workers = () => towns().flatMap(s => (s.workers || []).map(w => ({ s, w, e: workerPresentation(w,s,data,game.state.entities,game.state.workerAt) })).filter(p => !p.e.dead && !p.e.downed));
-  const selectedLive = () => towns().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
+  const workSites = () => [...towns(), ...campSitesOf(game.state.frontier, hero()?.owner)];   // towns plus own war camps (checkpoint 3)
+  const workers = () => workSites().flatMap(s => (s.workers || []).map(w => ({ s, w, e: workerPresentation(w,s,data,game.state.entities,game.state.workerAt) })).filter(p => !p.e.dead && !p.e.downed));
+  const selectedLive = () => workSites().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
   // Workers row on a spot card (Tim 2026-11-06 22:23): how worked out the spot is now and about how many workers it
@@ -221,14 +222,14 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const p=follow();if(p){view.jumpTo?.(p.x,p.z);view.watch?.(follow);}
   }
   function assign(spot) {
-    for (const s of towns()) {
+    for (const s of workSites()) {
       const ids = selectedLive().filter(p => p.s.id === s.id).map(p => p.w.id);
       if (ids.length) command({ action: 'assign', town: s.id, workers: ids, spot: spot.id });
     }
     say(`Harvest order: ${townName(spot.kind)}`);
   }
   function orderSelected(kind,position={}) {
-    for(const s of towns()) {
+    for(const s of workSites()) {
       const ids=selectedLive().filter(p=>p.s.id===s.id).map(p=>p.w.id);
       if(ids.length)command({action:'workerOrder',town:s.id,workers:ids,kind,...position});
     }
@@ -236,7 +237,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function requestTraining(id) {cancel();pendingPlan={tool:'worker training',request:{action:'train',town:id,count:1}};}
   function requestDrop() {
-    cancel();pendingPlan={drop:towns().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
+    cancel();pendingPlan={drop:workSites().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
   }
   // Tim 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
   function hallUpgradeButton(s) {

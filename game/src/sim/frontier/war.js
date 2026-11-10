@@ -32,6 +32,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // read-only helpers never create records (the screen's copy of the state is a snapshot)
   const active = () => Object.values(f()?.wars?.list || {});
   const warOn = townId => active().find(w => w.town === townId) || null;
+  const byId = id => f()?.wars?.list?.[id] || null;   // a war by its own id (camp workers carry the war id as their town)
   const warsOf = clan => active().filter(w => w.attacker === clan || w.defender === clan);
   const town = id => f().settlements[id] || null;
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -118,7 +119,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const clan = state.clans?.[hero.owner], pack = clan?.warPack || { ryo: 0, timber: 0, stone: 0 };
     const brought = { ryo: pack.ryo || 0, timber: pack.timber || 0, stone: pack.stone || 0 };
     war.camp = { x: war.x, z: war.z, chest: brought.ryo, stock: { timber: brought.timber, stone: brought.stone }, brought,
-      workers: W.camp?.startWorkers ?? 0, buildings: [{ id: `${id}:hall`, type: 'camp_hall', stage: 'built', x: war.x, z: war.z }] };
+      workers: Array.from({ length: W.camp?.startWorkers ?? 0 }, () => ({ id: world?.newId ? world.newId('w') : `w${fr.nextId++}`, spot: null, dropoff: null, phase: 0, carrying: 0, entity: null, elapsed: 0, trip: null })), workerTraining: [], buildings: [{ id: `${id}:hall`, type: 'camp_hall', stage: 'built', x: war.x, z: war.z }] };
     if (clan) delete clan.warPack;
     store().list[id] = war;
     const who = state.clans?.[hero.owner]?.name || hero.owner;
@@ -133,6 +134,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!war) return false;
     delete st.list[warId];
     Object.assign(war, { state: 'ended', result, ended: state.tick ?? 0 });
+    // the history keeps only a head count of the camp workers (their units leave with the war; routes would bloat saves)
+    if (Array.isArray(war.camp?.workers)) { war.camp.workers = war.camp.workers.length; delete war.camp.workerTraining; }
     st.history.push(war);
     const max = W?.historyMax ?? 20;
     if (st.history.length > max) st.history.splice(0, st.history.length - max);
@@ -250,5 +253,5 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, warsOf, active, cooldownDays, get data() { return W; } };
+  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, get data() { return W; } };
 }

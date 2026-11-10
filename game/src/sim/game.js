@@ -386,7 +386,7 @@ export function createGame(options) {
   const civ = t => t?.type === 'civilian';
   // Frontier (Tim 2026-11-10): heroes and crews of different clans may fight anywhere out there, but frontier
   // townsfolk are never fair game and a town's workers only for the other side of a war on that town
-  const atWarWith = (clan, b) => { const w = frontier?.war?.warOn(b.town); return !!w && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
+  const atWarWith = (clan, b) => { const w = frontier?.war?.byId(b.town) || frontier?.war?.warOn(b.town); return !!w && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
   const frontierShield = (a, b) => b?.type === 'civilian' && b.place === 'world' && !!state.clans?.[a?.owner] && (!!b.townsfolk || (!!b.worker && b.workerOwner !== a.owner && !atWarWith(a.owner, b)));
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
   const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && !a.mounted && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
