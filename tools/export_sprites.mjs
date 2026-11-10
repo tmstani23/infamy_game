@@ -179,6 +179,8 @@ const MOUNTS = {
     wheels: { mesh: 'train_guard', fwd: 1, axle: [0.11, 0.17], list: [[-0.215, 0.1, 0.1], [0.255, 0.1, 0.1]], spokes: 12 } },
   // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
+  // Kuroda Gatling gun (2026-11-10, assets/models/source/gatling_rig/gatling_rig.py): 'fire' = barrels spin on their own axis + shudder; flash, smoke, bullets are effects
+  gatling: { file: 'gatling.glb', height: 1.1, merge: 'fire', yaw: 90 },
   cannon_wooden: { file: 'cannon_wooden.glb', height: 1.2, merge: 'fire', yaw: 90 },
   // Boats (hull cut at the waterline; the game draws the water): sized by hull length, and at half the
   // characters' pixel scale (pxPerUnit) so the big hulls stay a sane sheet size; fps 6 halves their frames (art.json plays them at speed 0.5; Tim 2026-11-06). Wake and spray come later as effects.

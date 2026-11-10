@@ -577,6 +577,8 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 
 ## Cannon salute (2026-11-07)
 
+The salute row has 4 cannons plus the Gatling (2026-11-10).
+
 Each town hall has 4 cannons beside it (2 `cannon_field` brass, 2 `cannon_wooden`). The governor fires a salute on the first talk after the town is founded, after each tier upgrade, and from the Fire a salute talk choice (2-minute cooldown). No damage. Code: `sim/cannon_salute.js`. Test: `tools/test_cannon_salute.mjs`.
 
 ## Lieutenant portraits (2026-11-06)

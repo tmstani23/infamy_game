@@ -257,5 +257,13 @@
     "fps": 12,
     "cellWorld": 2.4,
     "feetUp": 0.603
+  },
+  "gatling_fire": {
+    "size": 160,
+    "dirs": 8,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.552
   }
 }

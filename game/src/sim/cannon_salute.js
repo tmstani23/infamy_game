@@ -1,12 +1,14 @@
 // The governor's cannon salute (Tim 2026-11-07): four cannons beside each player town hall (2 brass field
-// cannons, then 2 wooden ones). Scenery only: ownerless guides, never targeted, no damage. The governor fires
+// cannons, then 2 wooden ones), then the Gatling gun (2026-11-10). Scenery only: ownerless guides, never targeted, no damage. The governor fires
 // them one after another the first time you talk to him in that town, after every tier upgrade, and on his
 // "Fire a salute" choice ({ type: 'frontier', action: 'salute', settlement }, cooldownSeconds apart).
 // Each shot: the cannon's 'attack' clip (e.swing) and a { kind: 'cannonFire' } cast for sound and effects.
 // createCannonSalute({ state, spawn, removeUnit, cell, rules }) -> { tick, salute, firstTalk }
-const MODELS = ['cannon_field', 'cannon_field', 'cannon_wooden', 'cannon_wooden'];
+// Tim 2026-11-10: the Kuroda Gatling gun joins the end of the row (to see its sprite, shots and sound): it fires one
+// burst of R.gatlingTicks: a 'gatlingShot' cast every 2 ticks (after R.gatlingWindup ticks of silent spin), then 'gatlingStop'
+const MODELS = ['cannon_field', 'cannon_field', 'cannon_wooden', 'cannon_wooden', 'gatling'];
 export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules = {} }) {
-  const R = { gapTicks: 16, cooldownSeconds: 10, spacing: 4.5, ahead: 1.6, dir: 1, ...rules };   // Tim 2026-11-07: salute every 10 s; dir 1 = facing down-left on screen
+  const R = { gapTicks: 16, cooldownSeconds: 10, spacing: 4.5, ahead: 1.6, dir: 1, gatlingTicks: 80, gatlingWindup: 20, ...rules };   // Gatling (Tim 2026-11-10): barrels spin 1 s in silence, then 3 s of shots   // Tim 2026-11-07: salute every 10 s; dir 1 = facing down-left on screen
   const say = (s, text) => { const c = state.clans?.[s.owner]; if (c) c.notice = { tick: state.tick, text }; };
   // an even row in front of the hall (Tim 2026-11-07: they ran into the house): R.ahead cells toward the camera
   // (screen down = +x +z), spread across the screen (screen right = +x -z), one gun per slot
@@ -43,9 +45,23 @@ export function createCannonSalute({ state, spawn, removeUnit, cell = 11, rules 
       const k = (state.tick - sa.start) / R.gapTicks;
       if (Number.isInteger(k) && k >= 0 && k < (s.cannons || []).length) {
         const e = state.entities[s.cannons[k]];
-        if (e) { e.swing = { start: state.tick, len: 20, salute: true }; e.anim = 'attack'; state.casts.push({ kind: 'cannonFire', a: e.id, x: e.x, z: e.z, place: e.place, dir: e.dir || 0, brass: k < 2 }); }
+        if (e && e.model === 'gatling') {
+          e.swing = { start: state.tick, len: 20, salute: true }; e.anim = 'attack'; e.burst = { start: state.tick, until: state.tick + R.gatlingTicks };
+          state.casts.push({ kind: 'gatlingFire', a: e.id, x: e.x, z: e.z, place: e.place, dir: e.dir || 0 });
+        } else if (e) { e.swing = { start: state.tick, len: 20, salute: true }; e.anim = 'attack'; state.casts.push({ kind: 'cannonFire', a: e.id, x: e.x, z: e.z, place: e.place, dir: e.dir || 0, brass: k < 2 }); }
       }
-      if (state.tick - sa.start > R.gapTicks * 4 + 40) { delete s.salute; for (const id of s.cannons || []) if (state.entities[id]) { delete state.entities[id].swing; state.entities[id].anim = 'idle'; } }
+      for (const id of s.cannons || []) {   // the Gatling's burst: a shot every 2 ticks, then the wind-down
+        const e = state.entities[id], b = e?.burst; if (!b) continue;
+        const at = { a: e.id, x: e.x, z: e.z, place: e.place, dir: e.dir || 0 };
+        if (state.tick >= b.until) { delete e.burst; delete e.swing; e.anim = 'idle'; state.casts.push({ kind: 'gatlingStop', ...at }); }
+        else {
+          if ((state.tick - b.start) % 20 === 0) e.swing = { start: state.tick, len: 20, salute: true };   // the 1 s fire clip loops (barrels keep spinning)
+          const t = state.tick - b.start - R.gatlingWindup;
+          if (t >= 0 && t % 2 === 0) state.casts.push({ kind: 'gatlingShot', ...at });
+        }
+      }
+      if (state.tick - sa.start > R.gapTicks * MODELS.length + R.gatlingTicks + 20) { delete s.salute; s.saluteReadyAt = state.tick + R.cooldownSeconds * 20;   // cleaning starts once the long Gatling burst is over
+        for (const id of s.cannons || []) if (state.entities[id] && !state.entities[id].burst) { delete state.entities[id].swing; state.entities[id].anim = 'idle'; } }
     }
   }
   return { tick, salute, firstTalk };

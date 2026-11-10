@@ -83,6 +83,30 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         life: rand(0.8, 1.3), size: rand(0.4, 0.7), grow: 1.4, color: [0.5, 0.44, 0.36], alpha: 0.35, shape: SHAPE.dot });
     }
   }
+  // the Gatling gun (Tim 2026-11-10, sim/cannon_salute.js gatlingShot every 2 ticks): a small muzzle flash, a hot
+  // tracer streaking out about 20 units, a puff of thin powder smoke and a little dust where the round lands
+  function gatlingShot(c) {
+    const th = (c.dir || 0) * Math.PI / 4, sx = -Math.sin(th), sy = Math.cos(th), S = Math.SQRT1_2;
+    const fx = (sx + sy) * S, fz = (-sx + sy) * S, mx = c.x + fx * 1.25, mz = c.z + fz * 1.25, y = 0.9;
+    const turn = a => [fx * Math.cos(a) - fz * Math.sin(a), fz * Math.cos(a) + fx * Math.sin(a)];
+    cards.glint(mx, y, mz, 0.7, 0xfff0c8, 0.05);
+    for (let i = 0; i < 7; i++) {   // flame tongue
+      const [dx, dz] = turn(rand(-0.35, 0.35)), sp = rand(4, 9);
+      glow.emit({ x: mx, y: y + rand(-0.04, 0.06), z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0, 0.3), drag: 9, life: rand(0.05, 0.12),
+        size: rand(0.14, 0.32), color: FLAME[Math.floor(Math.random() * 3)], alpha: 0.95, shape: SHAPE.dot });
+    }
+    const [bx, bz] = turn(rand(-0.06, 0.06)), V = 70, reach = rand(17, 23.5);   // Tim 2026-11-10: 30% farther
+    for (let k = 0; k < 4; k++)   // the round: a short bright streak of dots flying together
+      glow.emit({ x: mx - bx * k * 0.22, y: y - k * 0.005, z: mz - bz * k * 0.22, vx: bx * V, vz: bz * V, vy: -0.5, life: reach / V,
+        size: 0.13 - k * 0.02, color: [1, 0.86 - k * 0.08, 0.5 - k * 0.1], alpha: 1 - k * 0.2, shape: SHAPE.dot });
+    soot.emit({ x: mx + fx * 0.3, y: y + 0.05, z: mz + fz * 0.3, vx: fx * 1.5, vz: fz * 1.5, vy: rand(0.3, 0.6), drag: 2, sway: 0.3,
+      life: rand(1, 1.6), size: rand(0.35, 0.6), grow: 1.8, color: pick(SMOKE), alpha: 0.3, shape: SHAPE.dot });
+    if (Math.random() < 0.6) {
+      const lx = mx + bx * reach, lz = mz + bz * reach;
+      for (let i = 0; i < 2; i++) soot.emit({ x: lx + rand(-0.3, 0.3), y: 0.1, z: lz + rand(-0.3, 0.3), vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vy: rand(0.6, 1.4),
+        gravity: 1.5, drag: 1.5, life: rand(0.5, 0.9), size: rand(0.25, 0.45), grow: 1.4, color: [0.52, 0.45, 0.36], alpha: 0.45, shape: SHAPE.dot });
+    }
+  }
   const rallyCasts = new Map();   // hero id -> when they last cast Rally (the buff itself is crew-only)
   const outlines = new Map();   // "id:buff" -> glowing outline mesh
   const lanterns = new Map();   // unit id -> the lanterns circling a unit with Red Lantern on
@@ -157,6 +181,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     // c: one entry of state.casts
     cast(c) {
       if (c.kind === 'cannonFire') return cannonShot(c);
+      if (c.kind === 'gatlingShot') return gatlingShot(c);
+      if (c.kind === 'gatlingFire' || c.kind === 'gatlingStop') return;
       crewFx.cast(c);kurodaFx.cast(c);
       shakedownFx.cast(c);
       const s0 = spriteOf(c.a);

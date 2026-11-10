@@ -65,6 +65,8 @@ Held items (weapons, props) go in `assets/models/items/` as `.glb` (or `.fbx`), 
 
 Animals, vehicles and cannons are `.glb` files in `assets/models/mounts/` (git-ignored, like the other models). The `MOUNTS` table in `tools/export_sprites.mjs` lists each one with its file, size and clips; export them the same way (`node tools/export_sprites.mjs . mare --pack`). `tools/mounts_to_glb.py` (pip `bpy`) converts a Blender rig scene to that `.glb`. Export sizes and framing are written to `assets/sprites/mounts.json`.
 
+Gatling rig (2026-11-10): `assets/models/source/gatling_rig/` (`gatling_rig.blend`, `gatling_rig.py`). The whole barrel spins on its true axis and stays straight. The salute burst is 80 ticks: 1 s of silent barrel spin, then 3 s of shots (one every 2 ticks, `sim/cannon_salute.js`) with tracers and the firing loop, then the wind-down. Tracers reach about 20 units (`render/abilityfx.js` `gatlingShot`). Sounds: `gatling_loop_1.ogg` while firing, `gatling_end_1.ogg` on stop (`render/sound.js`); there is no start clip.
+
 Extra `MOUNTS` fields for vehicles:
 - `wheels`: wheels fused into the model are cut out and rebuilt as spinning spoked wheels (`addWheels` in `look_tests/sprite_render_test.html`); `mesh`, `fwd`, `axle`, `list` (Blender coordinates read off the model) and `spokes`.
 - `tilt`: turns one part about a pivot so it meets the ground (the rickshaw's cart).
