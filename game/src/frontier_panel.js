@@ -42,12 +42,12 @@ const STEER = {
     on: 'On: the governor zones, builds, lays roads, trains workers and sends idle workers gathering by himself.'
   }
 };
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, miniRoot = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null }) {
   // Tim 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
   // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
   const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
   let selected = null, mode = 'town', tab = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
-  const tips = bindTips(root);
+  const tips = bindTips(root); if (miniRoot) bindTips(miniRoot);
   const data=game.frontier?.data;
   let usageResource='timber',usagePage=0;
   const usageTip=(s,r)=>{
@@ -127,9 +127,20 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (rows.projects.length) h += rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">· ${esc(p.status)}${p.canAuthorize ? ' · ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
     return h;
   }
+  // Tim 2026-11-10: while the build bar is open only the small Build box shows (the rest of the HUD hides via body.buildmode)
+  let miniHtml = '';
+  function showMini(on, s) {
+    document.body?.classList?.toggle('buildmode', !!on);
+    if (!miniRoot) return;
+    miniRoot.hidden = !on; root.style.display = on ? 'none' : '';
+    if (on) { const h = buildUI.miniHtml(s); if (h !== miniHtml) { miniRoot.innerHTML = h; miniHtml = h; } } else miniHtml = '';
+  }
   function render() {
-    if (root.hidden) return;
+    if (root.hidden) { showMini(false); return; }
     const s = pick();
+    const building = !!(miniRoot && s && buildUI?.isOpen?.() && !buildUI.isRosterOpen?.());
+    showMini(building, s);
+    if (building) return;
     if (!s) { root.innerHTML = CLOSE + '<h1>Town</h1><div class="sub">Go near your town, or choose one in Towns (Y) or the World map.</div>'; return; }
     // arrows compare with the numbers from about a second ago
     const now = Date.now();
@@ -200,6 +211,13 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (['keepinput', 'shipinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; }
   }
+  if (miniRoot) {
+    miniRoot.addEventListener('mousedown', e => e.stopPropagation());
+    miniRoot.addEventListener('click', e => {
+      const b = e.target.closest('button[data-act]'), s = pick();
+      if (b && s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); }
+    });
+  }
   root.addEventListener('mousedown', e => e.stopPropagation());
   root.addEventListener('dblclick',e=>{
     const b=e.target.closest('button[data-act]'),s=pick();
@@ -253,6 +271,6 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   }
   setInterval(() => { watchReceipts(); render(); }, 1000);
   function open(id) { if (id) selected = id; else if (nearbyTown) selected = nearbyTown(); mode = 'town'; tab = 'town'; root.hidden = false; lastHtml = ''; render(); onOpen(); }
-  function close() { buildUI?.close(); if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
+  function close() { buildUI?.close(); showMini(false); if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); tab = 'governor'; render(); }, render };
 }

@@ -592,7 +592,7 @@ async function start() {
     let townPanel;
     frontierBuildUI = createFrontierBuildUI({ game, view, heroId, data: frontier, spotIndex, spotRules: resourceSpotRules,
       known: (x,z) => isDiscovered(world, game.state.world?.discovered?.[game.state.entities[heroId]?.owner] ?? '0', x,z),
-      send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id), onStable: id => stableMenu.openFor(id),
+      send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id), onMode: () => townPanel?.render(), onStable: id => stableMenu.openFor(id),
       blocked: () => foundButton.isPlacing() || gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
     const nearTown = () => {
       const h = game.state.entities[heroId];
@@ -600,7 +600,7 @@ async function start() {
       return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
         .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
     };
-    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, focus:(x,z)=>view.jumpTo(x,z),
+    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
       nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id) });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onKey('KeyO', () => townPanel.toggle());

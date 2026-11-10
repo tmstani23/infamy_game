@@ -62,7 +62,7 @@ export function buildPreview(s, request, data, {state,resourceIndex}={}) {
   return result;
 }
 
-export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onStable = () => {}, blocked = () => false }) {
+export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onMode = () => {}, onStable = () => {}, blocked = () => false }) {
   let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null, rot = 0;   // rot: R turns a station
   let eraseConfirm = null;   // { k, until }: the station erase waiting for its second click
   // how many railway lines run from the station under these cells (0 if none or no station)
@@ -170,7 +170,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     return out;
   }
   function cancel() { tool = null; drag = null; pendingPlan = null; review.hidden = true; mouse = null; preview = null; lastPreview = ''; hint.hidden = true; crewInput.cancelPointer(); }
-  function close() { cancel(); opened = false; workersOpen = false; }
+  function close() { const was = opened; cancel(); opened = false; workersOpen = false; if (was) onMode(); }
   function say(text) { hint.textContent = text; delete hint.dataset.ok; hint.hidden = false; hint.style.left = '24px'; hint.style.top = '130px'; messageUntil = Date.now() + 5000; }
   function spotAt(x, y) {
     const p = view.screenToGround(x, y), cfg = data.townArt._spots;
@@ -338,6 +338,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (e.code !== 'Escape' || e.target?.closest?.('input, select, textarea')) return;
     const active = outdoors() && !blocked() && (!!tool || !!drag || !!pendingPlan);
     cancel(); selected = []; inspect = null; card.hidden = true;
+    // Tim 2026-11-10: Esc with no brush in hand leaves build mode and the town panel comes back
+    if (!active && opened && outdoors() && !blocked()) { close(); consume(e); return; }
     // First Escape cancels a brush; a second follows the normal close-menu shortcut.
     if (active) consume(e);
   }, { capture: true });
@@ -577,7 +579,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     if (drag && !drag.build) { ctx.strokeStyle='#ffe08b'; ctx.strokeRect(drag.x,drag.y,mouse?.x-drag.x || 0,mouse?.y-drag.y || 0); }
   }
-  function html(s) {
+  function html(s, mini = false) {
     if (town !== s.id) { close(); town = s.id; }
     if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
@@ -596,16 +598,18 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const group = (name, ids, extra = '') => `<div class="bgroup"><span class="blab">${name}</span><div class="btns">${ids.map(t => button(t, camps.includes(t) ? townName(t).replace(/ camp$/i, '') : townName(t))).join('')}${extra}</div></div>`;
     const steps = [[s.grid.zone.includes('h'),'Housing'],[s.grid.zone.includes('f'),'Farms'],[/[rg]/.test(s.grid.use),'Roads'],[!!s.workers?.length,'Train worker'],[(s.workers || []).some(w=>spotIndex.get(w.spot)?.kind==='timber'),'Assign timber']];
     const guide = steps.map(([done,label])=>`${done ? '✓' : '○'} ${label}`).join(' → ');
-    return `<div class="townbuild"><button data-act="build-toggle" aria-expanded="${opened}">${opened ? 'Close build bar' : 'Build bar'}</button>`
-      + (opened ? `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
-        + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others)
-        + `</div><div class="hint">Drag, release, review requirements, then Confirm or Cancel. Right click / Esc cancels.<br>Zone previews match their buttons; amber border = short, red border = abandoned.</div>` : '')
+    // Tim 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
+    if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`
+      + `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
+      + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others)
+      + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.">Drag on the map, then Confirm. Right click cancels.</div>`;
+    return `<div class="townbuild"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>`
       + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
       + workerTrainingHTML(s,game.state.tick,data)
       + `<div class="hint">${guide}<br>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. The hall is a drop-off; a lumber camp is optional.</div>`
       + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';
   }
-  return { update, html, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen,
+  return { update, html, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen,
     // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
     selectedWorkers:()=>selected.length>1?selectedLive().map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),id:`worker:${p.w.id}`,wid:p.w.id,worker:true,status:workerStatus(p.w,spotIndex)})):[],
     pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id]);},
