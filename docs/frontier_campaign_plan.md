@@ -920,3 +920,9 @@ Durability, inventory Tetris, large random-affix pools and individual army bags
 are outside the first hero gear slice.
 
 **Worker hammers (2026-11-08):** harvest and camp workers use the rail_worker model with a sledge (`frontier.json` workers.model) and loop the hammer swing while collecting; harvest rates are unchanged. A quiet metal tap plays (`render/sound.js`): at most 3 at once, near the camera only, varied pitch, volume 0.16, about one per worker per second; it follows the Effects volume and mute.
+
+## Island sight and minimap (2026-11-10)
+
+- Island sight: 80 by day, 60 at night, 80 at night within 18 of a lit fire (`sim/vision.js`).
+- The island minimap shows enemy, police and wild units only while they are in sight, and camps, passes and rival buildings only in revealed areas.
+- The garrison card works for any building with garrison data in `frontier.json`; today that is the stockade.

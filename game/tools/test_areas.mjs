@@ -48,9 +48,10 @@ const rival = g.state.entities[g.spawn('hero', 'rival_yakuza', 0, 0, { owner: 'r
 const cityCrew = g.state.entities[g.spawn('thug', 'thug', 3, 3, { owner: 'player', holdFire: true })];
 Object.assign(rival, { place: 'world', x: cityCrew.x, z: cityCrew.z });
 assert.equal(g.vision.canSee('player', rival), false, 'a city unit never sees onto the island');
-Object.assign(rival, { x: hero.x + worldChunks.sight.range - 2, z: hero.z });
+const sightNow = !g.state.night && worldChunks.sight.dayRange ? worldChunks.sight.dayRange : worldChunks.sight.range;   // day sight is dayRange
+Object.assign(rival, { x: hero.x + sightNow - 2, z: hero.z });
 assert.equal(g.vision.canSee('player', rival), true, 'the hero sees a rival close by on the island');
-Object.assign(rival, { x: hero.x + worldChunks.sight.range + 5 });
+Object.assign(rival, { x: hero.x + sightNow + 5 });
 assert.equal(g.vision.canSee('player', rival), false, 'out of range on the island');
 Object.assign(cityCrew, { x: 0, z: 0 });
 rival.x = 0; rival.z = 0; rival.place = 'street';

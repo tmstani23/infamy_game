@@ -92,3 +92,14 @@ const explored = (g, clan, x, z) => g.vision.grid(clan).explored[g.vision.cellOf
   assert.deepEqual(JSON.parse(JSON.stringify(g.state)), g.state);
   console.log('plain state ok');
 }
+// island sight by day and night (Tim 2026-11-10): data/world_chunks.json sight
+{
+  const { createVision } = await import('../src/sim/vision.js');
+  const sight = JSON.parse((await import('node:fs')).readFileSync(new URL('../data/world_chunks.json', import.meta.url), 'utf8')).sight;
+  const state = { night: false, entities: { me: { id: 'me', owner: 'p', type: 'hero', place: 'world', x: 0, z: 0 }, foe: { id: 'foe', owner: 'q', type: 'bandit', place: 'world', x: 0, z: 0 } } };
+  const v = createVision(state, { minX: 0, minZ: 0, maxX: 4, maxZ: 4 }, {}, null, { ...sight, lightsNear: () => [] });
+  const at = d => { state.entities.foe.x = d; return v.canSee('p', state.entities.foe); };
+  state.night = false; assert.ok(at(sight.dayRange - 1) && !at(sight.dayRange + 1), 'day sight is dayRange');
+  state.night = true; assert.ok(at(sight.range - 1) && !at(sight.range + 1), 'night sight is range');
+  console.log('island day/night sight ok');
+}

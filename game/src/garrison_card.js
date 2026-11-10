@@ -19,6 +19,7 @@ const CSS = `
 #garrisoncard .s{aspect-ratio:1;border-radius:4px;background:#101318 center/cover no-repeat;border:1px solid #23262d;position:relative;overflow:hidden;cursor:pointer}
 #garrisoncard .s.e{border:1px dashed #3a352c;background:none;cursor:default}
 #garrisoncard .s .h{position:absolute;left:2px;right:2px;bottom:2px;height:3px;background:#22262e}#garrisoncard .s .h i{display:block;height:100%}
+#garrisoncard .s .ini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 14px system-ui,sans-serif;color:#8c8476}
 #garrisoncard .s.hero{border-color:#e9c27a}#garrisoncard .s.rest{opacity:.7}
 #garrisoncard .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
 #garrisoncard .dim{color:#8c8476}
@@ -51,25 +52,43 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     if (!isGarrisonable(s, b) || game.state.entities[heroId]?.place !== 'world') { close(); return; }
     const R = rulesOf(b.type), cap = R.capacity || 0, mem = members(s);
     const pages = Math.max(1, Math.ceil(cap / PER_PAGE)); page = Math.min(page, pages - 1);
-    const key = [site.town, page, Math.round(b.hp ?? 0), ...mem.map(m => m.id + ':' + Math.round(m.e?.hp ?? 0))].join();
-    if (key === sig) return;
-    sig = key;
+    // rebuild the grid only when who is inside, the page or the capacity changes; health just updates in place,
+    // so the native tooltip under the cursor is not destroyed every time someone heals (Tim 2026-11-10)
+    const key = [site.town, site.building, page, cap, ...mem.map(m => m.id)].join();
     root.hidden = false;
-    const hp = b.hp ?? R.hp, hpLine = R.hp ? `<div style="margin-top:6px"${tip(`Hits on units inside land on the building instead. If it breaks, everyone inside piles out and the governor rebuilds it.`)}>Health ${Math.round(hp)} / ${R.hp}</div><div class="bar"><i style="width:${100 * Math.min(1, hp / R.hp)}%;background:#7fa66a"></i></div>` : '';
+    const hp = b.hp ?? R.hp;
+    if (key === sig) { updateInPlace(mem, R, hp); return; }
+    sig = key;
+    const hpLine = R.hp ? `<div class="bh" style="margin-top:6px"${tip(`Hits on units inside land on the building instead. If it breaks, everyone inside piles out and the governor rebuilds it.`)}><span>Health ${Math.round(hp)} / ${R.hp}</span></div><div class="bar"><i class="bhi" style="width:${100 * Math.min(1, hp / R.hp)}%;background:#7fa66a"></i></div>` : '';
     let slots = '';
     for (let i = page * PER_PAGE; i < Math.min(cap, (page + 1) * PER_PAGE); i++) {
       const m = mem[i];
       if (!m) { slots += '<div class="s e" title="Empty slot"></div>'; continue; }
-      if (m.rest) { slots += `<div class="s rest" data-id="${m.id}" title="Worker, resting inside. Click: walk out"></div>`; continue; }
-      const e = m.e, { frac, color } = healthBar(e.hp, e.maxHp), url = portrait(catalog, e.model);
+      if (m.rest) { slots += `<div class="s rest" data-id="${m.id}" title="Worker, resting inside. Click: walk out"><b class="ini">W</b></div>`; continue; }
+      const e = m.e, { frac, color } = healthBar(e.hp, e.maxHp), url = portrait(catalog, e.model, () => { sig = ''; });   // null while the picture loads: the next render fills it
       const name = (e.cannon || e.surveyor) && e.name || entityName(units, e, e.civ || e.type);
-      slots += `<div class="s${e.id === heroId ? ' hero' : ''}" data-id="${m.id}" style="${url ? `background-image:url(${url})` : ''}" title="${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x. Click: walk out"><div class="h"><i style="width:${frac * 100}%;background:${css(color)}"></i></div></div>`;
+      slots += `<div class="s${e.id === heroId ? ' hero' : ''}" data-id="${m.id}" style="${url ? `background-image:url(${url})` : ''}" title="${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x. Click: walk out">${url ? '' : `<b class="ini">${initial(e)}</b>`}<div class="h"><i style="width:${frac * 100}%;background:${css(color)}"></i></div></div>`;
     }
     root.innerHTML = `<button class="x" data-act="close">X</button><h1>${nice(b.type)}</h1><div class="sub">${s.name || 'Your town'} - garrison</div>${hpLine}
       <div class="lab"><span>Inside ${mem.length} / ${cap}</span><span>${pages > 1 ? `Page ${page + 1} of ${pages}` : ''}</span></div>
       <div class="grid">${slots}</div>
       <div class="row"><span class="dim"${tip(`Units inside heal ${R.healFactor ?? 1}x faster and cannot be attacked.`)}>Heal ${R.healFactor ?? 1}x inside</span><span>${pages > 1 ? `<button data-act="prev"${page ? '' : ' disabled'}>Prev</button> <button data-act="next"${page < pages - 1 ? '' : ' disabled'}>Next</button> ` : ''}<button data-act="out"${mem.length ? '' : ' disabled'}${tip('Everyone inside walks out (Shift+K)')}>Evacuate</button></span></div>`;
   }
+  function updateInPlace(mem, R, hp) {
+    const bt = root.querySelector('.bh span'), bi = root.querySelector('.bhi');
+    if (bt) { const t = `Health ${Math.round(hp)} / ${R.hp}`; if (bt.textContent !== t) bt.textContent = t; }
+    if (bi) bi.style.width = `${100 * Math.min(1, hp / R.hp)}%`;
+    for (const m of mem) {
+      if (!m.e) continue;
+      const el = root.querySelector(`.s[data-id="${m.id}"]`); if (!el) continue;
+      const e = m.e, { frac, color } = healthBar(e.hp, e.maxHp), i = el.querySelector('.h i');
+      if (!el.style.backgroundImage) { const u = portrait(catalog, e.model, () => { sig = ''; }); if (u) { el.style.backgroundImage = `url(${u})`; el.querySelector('.ini')?.remove(); } }
+      if (i) { i.style.width = `${frac * 100}%`; i.style.background = css(color); }
+      const name = (e.cannon || e.surveyor) && e.name || entityName(units, e, e.civ || e.type), t = `${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x. Click: walk out`;
+      if (el.title !== t) el.title = t;
+    }
+  }
+  const initial = e => String(e.civ || e.type || '?').charAt(0).toUpperCase();   // a chip with no portrait shows its type's initial
   function tip(t) { return ` title="${t.replace(/"/g, '&quot;')}"`; }
 
   // act on mousedown: the card redraws as units heal, which would swallow a click between press and release

@@ -68,7 +68,8 @@ export function createVision(state, bounds, rules = {}, territory = null, island
     if (e.hidden) return false;   // a hidden ninja (sim/stealth.js)
     if (e.place === 'world') {
       if (!island) return false;
-      const r = island.lightsNear?.(e.x, e.z, island.fireRadius).length ? island.fireRange : island.range;
+      // daytime: dayRange (Tim 2026-11-10); night: range, or fireRange near a lit fire
+      const lit = island.lightsNear?.(e.x, e.z, island.fireRadius).length, r = !state.night && island.dayRange ? Math.max(island.dayRange, lit ? island.fireRange : 0) : lit ? island.fireRange : island.range;
       return owned(clan).some(u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && live(u) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r * r);
     }
     if (e.place !== 'street') return owned(clan).some(u => u.owner === clan && !u.dead && u.place === e.place && live(u));

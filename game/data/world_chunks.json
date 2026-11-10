@@ -26,9 +26,10 @@
     ]
   },
   "sight": {
-    "_note": "placeholder, Tim to tune. range = how far units see on the island; near a lit fire the range is fireRange",
-    "range": 26,
-    "fireRange": 40,
+    "_note": "placeholder, Tim to tune. dayRange = how far units see on the island by day; range = by night; near a lit fire the range is fireRange",
+    "dayRange": 80,
+    "range": 60,
+    "fireRange": 80,
     "fireRadius": 18
   },
   "clear": {

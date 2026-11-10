@@ -286,5 +286,6 @@ Railway supply (2026-11-09):
 Frontier towns, War banner (2026-11-10, campaign; button beside War Lantern): In the city or inside one of your town rings it opens Pack for war: type an amount or drag the bar for ryo, timber and stone the hero carries (city: ryo only, from the Clan treasury; towns: from that town; packs from several towns add up). Pack for war takes it; Unpack puts every part back where it came from. While carrying a pack, a red War pack coin sits above the ryo coin (hover lists it). Inside a rival town's war circle the button reads Plant banner: the green band on the ground shows where the war camp banner may go; left-click a green spot to plant it, which declares war on that town and turns the pack into the camp's war chest and stores. With no timber or stone packed a yellow warning shows first: left-click again to plant anyway. Right-click or Esc cancels. Red explains why a spot is refused (too close or too far, truce, other town ring). Esc closes the Pack for war window.
 
 Garrison card (2026-11-10):
-- Left-click your stockade (or any garrisoned building): garrison card with health, slots, Prev/Next, Evacuate; hover a unit for its health, click it to walk it out.
-- Right-click your stockade: the hero, selected crew and crew following him walk over and go in; WASD cancels the hero's walk.
+- Left-click your stockade (or any garrisoned building): garrison card with health, slots, Prev/Next, Evacuate; hover a unit for its health; a click on a unit walks it out.
+- Right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.
+- Island minimap: recentres on the camera once it passes 85% of the way to the edge.

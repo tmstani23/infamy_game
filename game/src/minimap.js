@@ -145,19 +145,29 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   });
   canvas.addEventListener('mouseleave', () => { tipBox.style.display = 'none'; });
   const ISLAND_SPAN = 450;   // units from the middle of the minimap to its edge
+  // the island window pages (Tim 2026-11-10): it stays put until the camera nears an edge, then recentres on the camera
+  let islandC = null;
+  function islandCentre() {
+    const me = game.state.entities[heroId], cam = view.cameraXZ?.() || me, half = ISLAND_SPAN / islandZoom;
+    if (!islandC || Math.abs(cam.x - islandC.x) > half * 0.85 || Math.abs(cam.z - islandC.z) > half * 0.85) {
+      const w = world.size || {}, m = half * 0.5;   // keep the window within half a window of the island
+      islandC = { x: Math.max(-m, Math.min((w.w ?? cam.x) + m, cam.x)), z: Math.max(-m, Math.min((w.h ?? cam.z) + m, cam.z)) };
+    }
+    return islandC;
+  }
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
   function paintIsland(state) {
-    const me = game.state.entities[heroId];
+    const me = game.state.entities[heroId], ic = islandCentre();
     if (!islandImg) islandImg = worldTerrainCache(world);
     const kk = size / 2 / ISLAND_SPAN * islandZoom;   // + / - zoom in on the island too
-    const mv = { cx: me.x, cz: me.z, scale: kk, w: size, h: size };
+    const mv = { cx: ic.x, cz: ic.z, scale: kk, w: size, h: size };
     const at = (x, z) => { const p = worldToCanvas(x, z, mv); return [p.px, p.py]; };
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, size, size);
     ctx.save();
     ctx.translate(size / 2, size / 2);
     ctx.scale(kk, kk);
-    ctx.translate(-me.x, -me.z);
+    ctx.translate(-ic.x, -ic.z);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(illustration || islandImg, 0, 0, world.size.w, world.size.h);
@@ -173,16 +183,19 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.closePath(); ctx.stroke();
     // camps, ruins, caches, sites and nodes appear once you are close (within the minimap's reach)
     const reach = ISLAND_SPAN / islandZoom * 1.25, camps = state.world?.camps || {};
-    const near = list => list.filter(f => Math.abs(f.x - me.x) < reach && Math.abs(f.z - me.z) < reach);
+    // fog of war (Tim 2026-11-10): other clans' units, camps and buildings show only where you currently see or have revealed
+    const grid = game.state.world?.discovered?.[clan] ?? '0';   // enemy units are already cut to what you see by fog.seen (data/world_chunks.json sight)
+    const revealed = f => (f.owner && f.owner === clan) || isDiscovered(world, grid, f.x, f.z);
+    const nearAll = list => list.filter(f => Math.abs(f.x - ic.x) < reach && Math.abs(f.z - ic.z) < reach), near = list => nearAll(list).filter(revealed);
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)';
     islandHits = []; const tipCtx = { camps, scouted: state.world?.scouted?.[clan] || [], rules: game.settings?.bandits?.worldCamps, rivers: world.rivers, world };
-    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: me.x, z: me.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: 0,
+    if (spotConfig) for (const spot of visibleSpots(spotIndex, { x: ic.x, z: ic.z, radius: ISLAND_SPAN / islandZoom * Math.SQRT2, zoom: islandZoom, minZoom: 0,
       known: (x, z) => isDiscovered(world, game.state.world?.discovered?.[clan] ?? '0', x, z) })) {
       const [u, v] = at(spot.x, spot.z);
       if (u < 0 || v < 0 || u > size || v > size) continue;
       drawSpotMarker(ctx, u, v, spot.deposit ? spot.nodeKind || spot.kind : spot.kind, !!spot.deposit); islandHits.push([u, v, 6, 'spot', spot, tipCtx]);
     }
-    for (const n of near(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 8, 'node', n, tipCtx]); drawSpotMarker(ctx, u, v, n.kind, true); }
+    for (const n of nearAll(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 8, 'node', n, tipCtx]); drawSpotMarker(ctx, u, v, n.kind, true); }
     for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill(); ctx.stroke(); }
     for (const f of near(world.fords || [])) {   // bridges (brown bar) and fords (pale x)
       const [u, v] = at(f.x, f.z); islandHits.push([u, v, 8, f.kind === 'bridge' ? 'bridge' : 'ford', f, tipCtx]);
@@ -231,7 +244,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.closePath(); ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
     }
     ctx.font = '600 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
-    ctx.fillStyle = '#f3dfae'; ctx.fillText(`World · ${gridLabel(me.x, me.z)}`, 10, size - 10);
+    ctx.fillStyle = '#f3dfae'; ctx.fillText(`World · ${gridLabel(ic.x, ic.z)}`, 10, size - 10);
   }
 
   function paintMap() {
@@ -244,6 +257,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const nowMs = performance.now();metrics.draws++;
     const state = fog.seen(game.state);
     if (onIsland()) { paintIsland(state); return; }
+    islandC = null;
     paintCells();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a';
@@ -395,8 +409,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   const draw=()=>{dirty=false;const start=performance.now();paintMap();const ms=performance.now()-start;metrics.drawMs+=ms;metrics.maxDrawMs=Math.max(metrics.maxDrawMs,ms);};
   const at = e => { const r = canvas.getBoundingClientRect(),u=(e.clientX-r.left)*size/r.width,v=(e.clientY-r.top)*size/r.height;
     if(onIsland()) {
-      const me=game.state.entities[heroId],scale=size/2/ISLAND_SPAN*islandZoom;
-      return {x:me.x+(u-size/2)/scale,z:me.z+(v-size/2)/scale};
+      const ic=islandC||islandCentre(),scale=size/2/ISLAND_SPAN*islandZoom;
+      return {x:ic.x+(u-size/2)/scale,z:ic.z+(v-size/2)/scale};
     }
     return toWorld(u,v);
   };

@@ -105,7 +105,7 @@ emit('mousedown',775,730);emit('mouseup',830,730);ui.update();
 review.listeners.click({target:{closest:()=>({hasAttribute:()=>false})}});
 assert.equal(review.hidden,true);assert.equal(sent.length,afterConfirm,'Cancel sends no command');
 assert.match(resourceRequirements({...s,stock:{timber:1}},{timber:3}),/need 3, have 1.*missing 2/);
-assert.match(ui.html(s),new RegExp(data.buildUI.zoneColors.housing));
+assert.match(ui.miniHtml(s),new RegExp(data.buildUI.zoneColors.housing));   // the tools now live in the small Build box (3de060a)
 ui.close();
 // The real spawned civilian can be selected and ordered through the client events.
 const idle=s.workers.find(worker=>!worker.spot),e=state.entities[idle.entity],pixel=view.unitToScreen(e.x,e.z);

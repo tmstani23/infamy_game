@@ -622,6 +622,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // jump to any point however far from the hero (double-click a crew name); stays there until the hero moves, uses a door or Home
     jumpTo(x, z) { watchFn = null; farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
     isPanned: () => !!freeCam,
+    cameraXZ: () => ({ x: camTarget.x, z: camTarget.z }),   // where the camera looks (the island minimap pages with it)
     flashBuilding(i) { if (i !== null && i !== undefined) flashes.set(i, 0); },
     // selection rings under these unit ids (selection is screen-only, not game state)
     setSelected(ids) { selected = new Set(ids); for (const [id, s] of sprites) if (s) s.ring.visible = selected.has(id); },
