@@ -9,6 +9,8 @@ How docs are kept in this folder (set up 2026-10-17 at Tim's request). One "Docs
 3. On Tim's OK, the channel session forwards the change to the Docs keeper thread.
 4. The Docs keeper writes it following the rules below. Nothing is written without Tim's OK.
 
+The ownership rule in [START_HERE.md](../START_HERE.md#working-rules) (the codebase is yours to keep building) applies to the Docs keeper too: merge repeated doc text and fix nearby doc problems found while writing a change.
+
 This covers anything under `docs/`, `README.md`, `START_HERE.md` and `assets/*.md`. Code, art and data JSON follow the normal plan-first rule instead.
 
 ## Which doc owns which topic

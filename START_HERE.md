@@ -4,6 +4,7 @@ Read this first. It links to the docs rather than repeating them.
 
 ## Working rules
 
+- This codebase is yours to keep building: merge repeated code and fix nearby problems you find, within the plan-first and checkpoint rules.
 - Usage: follow [docs/usage.md](docs/usage.md).
 - Usage awareness: keep routine work lean. Ask Tim before work likely to consume substantial usage, including broad archive/history searches, large reviews, or extensive testing. Prefer targeted reads and checks.
 - Test-param playtests: reuse one canonical manual playtest setup. Extend `game/src/test_params.js` instead of adding duplicate test-param simulation copies, and reuse an existing running playtest/server instead of launching parallel copies. See [docs/test_params.md](docs/test_params.md). Focused Node regression tests are still fine.
