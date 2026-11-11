@@ -48,8 +48,8 @@ export function createCrewFx({scene,spriteOf}){
         m.rotation.x=-Math.PI/2;m.rotation.z=-Math.PI*(1+c.dir)/4;m.position.set(c.x,.08,c.z);scene.add(m);bursts.push({mesh:m,time:0,life:.8});
       }
     },
-    update(dt,state,heroId){
-      const hero=state.entities[heroId],present=new Set();
+    update(dt,state,heroId,viewPlace=null){
+      const hero=viewPlace?{...state.entities[heroId],place:viewPlace}:state.entities[heroId],present=new Set();
       for(const p of state.projectiles||[]){
         if(hero?.place!==p.place||!visible(p.a))continue;
         const key=`${p.a}:${p.at}`;present.add(key);let v=shots.get(key);if(!v){v=shot(p);shots.set(key,v);}

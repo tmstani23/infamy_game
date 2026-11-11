@@ -1,6 +1,7 @@
 import { creditRyo, debitRyo } from './treasury.js';
 import { modeRules } from './modes/index.js';
 import { createDeploymentAI } from './deployment_ai.js';
+import { hireMix } from './hire_mix.js';
 // The lieutenant (frontier plan C2 + C3, Tim 2026-11-02/05). Campaign only (capability campaignCity).
 // While a clan's boss is out on the island, its city runs on a lieutenant: a bot brain that sends the
 // same commands a player could (tagged by: 'lieutenant'), limited to the standing orders the clan set
@@ -92,7 +93,18 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
       }
       const cap = state.entities[r.captain];
       // a fallen captain is replaced after captainWaitSeconds for captainFee ryo (free when the clan is broke) (Tim 2026-11-06)
-      if (cap?.dead || cap?.downed) { if (cap.dead) { r.captain = null; r.captainDue = state.tick + Math.round((R.captainWaitSeconds ?? 0) * 20); log(id, `The city captain fell: a new one in ${R.captainWaitSeconds ?? 0} s`); } }
+      // a knocked-out captain counts as fallen too (Tim 2026-11-10: "2 city captains"): he used to be carried to the
+      // clinic, a new captain took charge, and the old one came back from the clinic as an ordinary crewman
+      if (cap?.dead || cap?.downed) {
+        if (!cap.dead) removeUnit(cap.id);
+        r.captain = null; r.captainDue = state.tick + Math.round((R.captainWaitSeconds ?? 0) * 20); log(id, `The city captain fell: a new one in ${R.captainWaitSeconds ?? 0} s`);
+      }
+      // and any such leftover (old saves) is cleared: clinic and jail entries, and captains that are neither in charge nor the gate guide
+      if (state.tick % 40 === 0 && state.clans[id]) {
+        const c1 = state.clans[id];
+        for (const list of [c1.clinic, c1.jail, c1.respawning]) if (Array.isArray(list)) for (let i = list.length - 1; i >= 0; i--) if (list[i].unit === R.captain) list.splice(i, 1);
+        for (const e of Object.values(state.entities)) if (e.owner === id && e.type === R.captain && e.id !== r.captain && e.id !== r.guide) removeUnit(e.id);
+      }
       // weak city (Tim 2026-11-06): while the boss is away and the clan holds no business, a small stipend each new day
       const c = state.clans[id];
       if (away(id) && c && r.stipendDay !== day()) {
@@ -206,12 +218,7 @@ export function createLieutenantBrain(game, { clan }) {
   // (cheapest first on a tie). The basic units (hireBasic: thug, brute) are only a fallback while the treasury or the
   // whole day's budget cannot cover a real unit, and at the crew cap he lets a basic one go once he can afford better.
   const basicUnit = k => (L.rules?.hireBasic ?? ['thug', 'brute']).includes(k);
-  const hirePlan = c => {
-    const T = game.settings.units.types, list = Object.keys(T).map(k => [k, game.clans.hirePrice(clan, k)]).filter(([k, p]) => p !== null && !T[k].settler).sort((a, b) => a[1] - b[1]);
-    const real = list.filter(([k]) => !basicUnit(k)), pool = real.length ? real : list, n = {};
-    for (const k of [...game.clans.crewOf(clan).filter(u => !u.dead).map(u => u.type), ...c.queue.map(q => q.unit), ...c.clinic.map(p => p.unit), ...(c.jail || []).map(p => p.unit)]) n[k] = (n[k] || 0) + 1;
-    return { want: [...pool].sort((a, b) => (n[a[0]] || 0) - (n[b[0]] || 0) || a[1] - b[1])[0]?.[0] || null, fallback: list[0]?.[0] || null };
-  };
+  const hirePlan = () => hireMix(game, clan, L.rules?.hireBasic);
 
   function tick() {
     if (!L) return [];
@@ -232,6 +239,16 @@ export function createLieutenantBrain(game, { clan }) {
     }
     if (!L.away(clan)) return out.filter(x => x.type !== 'deployment' || ['rally', 'autoSector', 'staffing'].includes(x.action));
     const cap = L.captainOf(clan), home = L.hq(clan);
+    // the captain fights back (Tim 2026-11-10: he stood there and died to bandits): whoever hit him in the last few
+    // seconds comes first, before any errand
+    if (cap && standing(cap) && cap.hitBy && state.tick - cap.hitBy.tick < 80) {
+      const foe = state.entities[cap.hitBy.id];
+      if (standing(foe) && foe.owner !== clan && foe.place === cap.place && !foe.cop) {
+        next = Math.min(next, state.tick + 10);
+        if (!(cap.order?.kind === 'attack' && cap.order.target === foe.id)) out.push(tag({ id: b.id, type: 'order', units: [cap.id], kind: 'attack', target: foe.id, place: cap.place }));
+        return out;
+      }
+    }
     if (r.orders.defend) defendLantern(b, cap, out, tag);
     // retake: a business it held that is free again: the captain walks there and buys it back
     const price = x => game.businesses.rules[x.kind]?.price ?? Infinity, left = r.budget - r.spent;
@@ -277,7 +294,7 @@ export function createLieutenantBrain(game, { clan }) {
     // Shinobi jobs and steals (Tim 2026-11-06): the captain takes one at the shrine, city crew carry it out
     if (ninja && cap && runJob(b, cap, r, home, out, tag)) return out;
     // hire: the captain hires at the HQ up to the crew cap, inside the budget
-    const plan = hirePlan(c), type = plan.want;
+    const plan = hirePlan(), type = plan.want;
     if (r.orders.hire && cap && home && type) {
       if (cap.place !== home.room) { out.push(tag({ id: b.id, type: 'order', units: [cap.id], kind: 'enter', business: home.id })); return out; }
       const room = game.clans.crewCount(clan) + c.queue.length < game.clans.crewCap(clan), price = game.clans.hirePrice(clan, type);
@@ -310,8 +327,13 @@ export function createLieutenantBrain(game, { clan }) {
     if (a.knock) return;
     const reach = (game.businesses.raidRules.knockReach ?? 1.6) - 0.4, wait = (L.rules?.knockRetrySeconds ?? 3) * 20;
     const d = u => Math.hypot(u.x - a.lantern.x, u.z - a.lantern.z);
-    const who = [...game.clans.crewOf(clan), ...(cap ? [cap] : [])].filter(u => standing(u) && u.place === 'street' && !u.guard).sort((p, q) => d(p) - d(q))[0];
+    const all = [...game.clans.crewOf(clan), ...(cap ? [cap] : [])].filter(u => standing(u) && !u.guard);
+    // nobody out on the street (Tim 2026-11-10: everyone was at home when the HQ was lit up): one of the crew inside
+    // the HQ steps out to do it, the captain last
+    const home = L.hq(clan)?.room, inside = all.filter(u => home && u.place === home).sort((p, q) => (p.captain ? 1 : 0) - (q.captain ? 1 : 0))[0];
+    const who = all.filter(u => u.place === 'street').sort((p, q) => d(p) - d(q))[0] || inside;
     if (!who) return;
+    if (who.place !== 'street') { if (!(who.order?.kind === 'move' && who.order.place === 'street')) out.push(tag({ id: b.id, type: 'order', units: [who.id], kind: 'move', place: 'street', x: a.lantern.x, z: a.lantern.z })); return; }
     if (d(who) > reach) { out.push(tag({ id: b.id, type: 'order', units: [who.id], kind: 'move', place: 'street', x: a.lantern.x, z: a.lantern.z })); return; }
     if (who.hitBy && state.tick - who.hitBy.tick < wait) return;   // under attack: fight first
     out.push(tag({ id: b.id, type: 'business', action: 'knock', business: a.business }));

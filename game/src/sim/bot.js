@@ -10,6 +10,7 @@ import { charmProtected } from './charm_rules.js';
 // tick() returns this tick's commands for game.step.
 import { createAISupport } from './ai_support.js';
 import { isShinobiHQ } from './hq_raids.js';
+import { bossHire } from './hire_mix.js';
 import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 import { dist, refill } from './util.js';
 import { createBotExpedition } from './frontier/bot_expedition.js';
@@ -64,13 +65,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const priceOf = b => game.businesses.rules[b.kind]?.price;
   const raidTarget = b => !b.hideout || (isShinobiHQ(state, b) && !(state.hqRaids?.[b.id]?.protectedUntil > state.tick));
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
-  // one clan special (Kuroda rifleman, Yakuza enforcer) once the crew has 4, like the Shinobi bot's geisha (sim/ninja_bot.js)
-  const hireType = () => {
-    const sp = B.special, have = sp && [...game.clans.crewOf(clan), ...myClan().queue, ...myClan().clinic, ...(myClan().jail || [])].some(e => (e.type || e.unit) === sp);
-    const extra=myClan().faction==='kuroda'?'kuroda_enforcer':'archer';
-    if(game.clans.crewCount(clan)>=6&&game.clans.hirePrice(clan,extra)!==null&&![...game.clans.crewOf(clan),...myClan().queue,...myClan().clinic,...(myClan().jail||[])].some(e=>(e.type||e.unit)===extra))return extra;
-    return sp && !have && game.clans.crewCount(clan) >= (B.specialAt ?? 4) && game.clans.hirePrice(clan, sp) !== null ? sp : B.hireType;
-  };
+  // hiring mix (Tim 2026-11-10): the boss cycles the clan's real units like the city captain (sim/hire_mix.js);
+  // thugs only while the treasury cannot cover the wanted unit
+  const hireType = () => bossHire(game, clan, game.lieutenant?.rules?.hireBasic) || B.hireType;
   const canHireNow = () => {
     const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;

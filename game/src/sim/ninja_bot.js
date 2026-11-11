@@ -1,4 +1,5 @@
 import { charmProtected } from './charm_rules.js';
+import { bossHire } from './hire_mix.js';
 // Shinobi bot clan brain (Tim 2026-10-20: 3 clans, the two you don't play are bots). A client like
 // sim/bot.js: it reads the state, sees only what its clan sees (sim/vision.js) and sends the same
 // commands as a Shinobi player ('move', 'use', 'hire', 'contract', 'attack', 'order', 'ability',
@@ -53,14 +54,8 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const job = () => state.contracts?.active?.[clan] || null;
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
-  const hireType = () => {
-    if(game.clans.crewCount(clan)>=6&&game.clans.hirePrice(clan,'shinobi_enforcer')!==null&&![...game.clans.crewOf(clan),...myClan().queue,...myClan().clinic,...(myClan().jail||[])].some(e=>(e.type||e.unit)==='shinobi_enforcer'))return 'shinobi_enforcer';
-    if (state.deployment?.restrictionsEnabled && game.clans.crewCount(clan) >= 8 && game.clans.hirePrice(clan, 'shinobi_geisha') !== null
-      && !game.clans.crewOf(clan).some(e => e.type === 'shinobi_geisha') && ![...myClan().queue, ...myClan().clinic, ...(myClan().jail || [])].some(e => e.unit === 'shinobi_geisha')) return 'shinobi_geisha';
-    if (B.hireType !== 'ninja' || !game.settings.units.types.ninja_tanto) return B.hireType;
-    const count = type => game.clans.crewOf(clan).filter(u => u.type === type).length + myClan().queue.filter(q => q.unit === type).length;
-    return count('ninja_tanto') < count('ninja') ? 'ninja_tanto' : 'ninja';
-  };
+  // hiring mix (Tim 2026-11-10): ninja, tanto ninja, geisha and masked bodyguard in turn (sim/hire_mix.js)
+  const hireType = () => bossHire(game, clan, game.lieutenant?.rules?.hireBasic) || B.hireType;
   const canHireNow = () => {
     const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;

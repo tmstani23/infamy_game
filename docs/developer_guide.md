@@ -161,3 +161,14 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - Irezumi enforcer (yakuza_enforcer) taunt: cooldownTicks 180 (9 s), durationTicks 80 (4 s), radius 5, all enemies in radius, damage taken x0.85.
 - Masked bodyguard (shinobi_enforcer): damage 21, attack interval 1.2 s. Taunt effect: violet wave to the taunt radius and a seal that follows the taunted enemy for 3 s; her taunt sound plays louder and higher.
 - units.json attackSpeed is the seconds between swings; damage per second = damage / attackSpeed.
+
+### Rival hiring mix, crew fight back, Watch the city effects (2026-11-11)
+
+- Hiring mix (sim/hire_mix.js): hireMix(game, clan, basic) returns the hireable non-settler unit the clan has fewest of (crew, hire queue, clinic and jail counted; cheapest on a tie) and the cheapest unit as fallback; units in settings lieutenant.hireBasic (thug, brute) are left out of the cycle unless nothing else is hireable. Used by the city captain (sim/lieutenant.js) and by rival bosses hiring in person (bossHire in sim/bot.js and sim/ninja_bot.js: the wanted unit when the treasury covers its price, else the cheapest).
+- Sweep (sim/sweep.js): in every sweep state a squad member attacks whoever hit a squad member in the last 4 s (any owner except police and townsfolk, same place, within 9, visible), after the sweep's own targets.
+- City captain (sim/lieutenant.js): attacks whoever hit him in the last 4 s before any errand (lieutenant-tagged attack order with place). He has no abilities.
+- City captain replacement: a knocked-out captain is removed and replaced after captainWaitSeconds like a dead one. Every 2 s clinic, jail and respawn entries of the captain type and captain units that are neither the captain in charge nor the gate guide are removed.
+- War Lantern defence (defendLantern): the nearest own crew on the street knocks it down; with none on the street, one crew member inside the clan's HQ room (the captain last) gets a street move order to the lantern.
+- Deployment: while the boss's place is 'world', keepAtHQ is cleared on HQ reserves. The Keep at HQ checkbox is removed from crew cards; a hand transfer to HQ reserves pins crew while the boss is in the city. Crew card status for HQ reserves: "Recovering, deploys at full health" when hurt, "Kept at HQ, move to a sector to deploy" when pinned.
+- Watch the city: render/view.js passes the camera's place to abilityFx.update and banners.update, so sweepfx, shakedownfx, crewfx and the raid ground markers draw for the place on screen (the city street, or a room viewed with Inside). Esc closes menus only; the Return to hero button and Home end Watch the city.
+- Controls panel (index.html): Watch the city row and the Out on the island row updated for the above.

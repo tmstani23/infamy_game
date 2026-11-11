@@ -31,9 +31,9 @@ export function createSweepFx({scene,spriteOf}){
     return {group,trail,shields,ring,progress,history:createSweepTrail()};
   }
   function remove(key){const p=active.get(key);scene.remove(p.group);for(const m of p.group.children){m.dispose?.();m.material.dispose();}active.delete(key);}
-  function update(state,followId){
+  function update(state,followId,viewPlace=null){
     const hero=state.entities[followId],own=hero?.owner,seen=new Set();
-    if(hero?.place==='street')for(const [clan,config] of Object.entries(state.deployment?.clans||{}))for(const [sector,task]of Object.entries(config.sectors)){
+    if((viewPlace||hero?.place)==='street')for(const [clan,config] of Object.entries(state.deployment?.clans||{}))for(const [sector,task]of Object.entries(config.sectors)){
       const op=task.operation;if(op?.kind!=='sweep'||op.state==='Returning')continue;
       const team=op.units.map(id=>state.entities[id]).filter(e=>e&&!e.dead&&!e.downed&&e.place==='street');
       const visible=team.filter(e=>clan===own||spriteOf(e.id)?.thing.mesh.visible);

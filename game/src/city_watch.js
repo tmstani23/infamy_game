@@ -2,7 +2,7 @@
 // Presentation only: the camera shows the capital street (render/view.js setCityWatch), what you see is what
 // your city units see (fog is per clan), you can pan, click crew and businesses for status and open the
 // lieutenant's orders, but no orders reach the crew (filterCommands). The sim is told with { type: 'watchCity', on }
-// so the capital thinks at full speed meanwhile (sim/game.js). Home, Esc, the big banner button, or the boss
+// so the capital thinks at full speed meanwhile (sim/game.js). Home, the big banner button, or the boss
 // being hurt end it.
 const BLOCKED = new Set(['order', 'deployment', 'attack', 'stopattack', 'cancel', 'execute', 'loot', 'mount', 'omnibus', 'garage', 'rickshaw', 'business', 'hire', 'contract', 'clinic', 'police']);
 export function createCityWatch({ game, view, heroId, send, notify = () => {}, sound = null, onStart = () => {} }) {
@@ -16,7 +16,7 @@ export function createCityWatch({ game, view, heroId, send, notify = () => {}, s
   const canWatch = () => { const h = hero(); return !!h && h.place === 'world' && !h.dead && !h.downed && !!game.lieutenant?.away?.(h.owner) && !!hqSpot(); };
   const banner = document.createElement('div');
   banner.id = 'citywatch'; banner.hidden = true;
-  banner.innerHTML = '<span>Watching your city. Your boss is still out on the island.</span><button type="button">Return to hero (Home / Esc)</button>';
+  banner.innerHTML = '<span>Watching your city. Your boss is still out on the island.</span><button type="button">Return to hero (Home)</button>';
   const style = document.createElement('style');
   style.textContent = '#citywatch{position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:16px;padding:10px 18px;'
     + 'background:rgba(10,12,16,.9);border:2px solid #e9c27a;border-radius:6px;color:#f3e6c4;font-size:15px;box-shadow:0 0 24px rgba(233,194,122,.45)}'

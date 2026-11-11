@@ -50,8 +50,8 @@ export function createShakedownFx({scene,overlay,unitToScreen}) {
       }
     }
   }
-  function update(dt,state,followId) {
-    place=state.entities[followId]?.place||'street';
+  function update(dt,state,followId,viewPlace=null) {
+    place=viewPlace||state.entities[followId]?.place||'street';
     const own=state.entities[followId]?.owner,visible=new Set();
     for(const bomb of state.shakedowns?.bombs||[]){
       if(bomb.place!==place)continue;

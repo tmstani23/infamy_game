@@ -284,6 +284,8 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       const reserves = members(clan.id, 'home').filter(e => !e.deployment.transfer && !e.downed && !isRallyParticipant(state, e));
       for (const e of reserves) delete e.deployment.automatic;
       const heroUp = !h.dead && !h.downed && !h.jailed;
+      // crew he pinned at the HQ by hand are the lieutenant's to use once the boss has left the city (Tim 2026-11-10)
+      if (h.place === 'world') for (const e of reserves) e.deployment.keepAtHQ = false;
       // the boss is out on the island (Tim 2026-11-08): Hero group crew left in the city become HQ reserves,
       // so the lieutenant can staff sectors with them; new crew fill the Hero group again once he is back
       if (h.place === 'world') for (const e of members(clan.id)) {

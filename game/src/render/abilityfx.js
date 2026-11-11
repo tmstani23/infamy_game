@@ -444,10 +444,10 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       cards.glint(h.x, rand(1, 1.4), h.z, h.crit ? 1.8 : 1.1, 0xff9a40, 0.25);
     },
 
-    update(dt, state, heroId) {
-      crewFx.update(dt,state,heroId);kurodaFx.update(dt, state, heroId);
-      shakedownFx.update(dt, state, heroId);
-      sweepFx.update(state,heroId);
+    update(dt, state, heroId, viewPlace = null) {
+      crewFx.update(dt,state,heroId,viewPlace);kurodaFx.update(dt, state, heroId);
+      shakedownFx.update(dt, state, heroId, viewPlace);
+      sweepFx.update(state,heroId,viewPlace);
       const aiming = new Set();
       for (const e of Object.values(state.entities)) {
         // the red aim line shows only at night, faint, fading toward the target (Tim 2026-10-29)

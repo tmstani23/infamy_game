@@ -448,11 +448,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateCamera(state, followId, dt, hero?.pos);
 
     // clan banners at owned businesses; a gold burst where one just changed hands
-    for (const b of banners.update(state, time, state.entities[followId]?.owner, cityView ? 'street' : state.entities[followId]?.place)) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
+    for (const b of banners.update(state, time, state.entities[followId]?.owner, cameraPlace(state.entities[followId]))) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
-    abilityFx.update(fdt, state, presentationId);
+    abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
     shakeT = Math.max(0, shakeT - dt);
     if (shakeT > 0 && video.shake) {
       const a = shakeAmp * shakeT / 0.18;

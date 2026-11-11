@@ -56,4 +56,33 @@ for (const kind of Object.keys(REAL)) {
   assert.ok(REAL.yakuza.some(k => t.count()[k]), 'a real unit hired in his place');
   assert.ok(t.g.clans.crewCount('player') + t.clan.queue.length <= cap, 'never over the cap');
 }
+// the captain fights back (Tim 2026-11-10: he stood there and died to bandits): whoever hit him is attacked first
+{
+  const t = fresh('yakuza', 6000);
+  t.run(400, () => !!t.L.captainOf('player'));
+  const cap = t.L.captainOf('player'); assert.ok(cap, 'a captain');
+  const rival = Object.keys(t.S.clans).find(c => c !== 'player' && t.S.clans[c].faction);
+  const foe = t.S.entities[t.g.spawn('thug', t.U.thug.sprite, cap.x + 1, cap.z, { owner: rival, place: cap.place, hp: 400, maxHp: 400, holdFire: true })];
+  let ordered = false;
+  for (let i = 0; i < 400 && foe.hp === 400; i++) { cap.hitBy = { id: foe.id, tick: t.S.tick }; t.run(1); ordered ||= cap.order?.kind === 'attack' && cap.order.target === foe.id; }
+  assert.ok(ordered, `the captain was sent at his attacker: ${JSON.stringify(cap.order)}`);
+  assert.ok(foe.hp < 400, 'and hit him');
+}
+// one captain only (Tim 2026-11-10 "2 city captains"): a knocked-out captain is gone for good and replaced, and a
+// leftover captain from an old save (back from the clinic as crew) is cleared
+{
+  const t = fresh('yakuza', 6000);
+  t.run(400, () => !!t.L.captainOf('player'));
+  const cap = t.L.captainOf('player'), caps = () => Object.values(t.S.entities).filter(e => e.owner === 'player' && e.type === 'city_captain' && !e.dead && !e.guide);
+  const stray = t.g.spawn('city_captain', t.U.city_captain.sprite, cap.x + 1, cap.z, { owner: 'player', place: cap.place, hp: 100 });
+  t.clan.clinic.push({ unit: 'city_captain', kind: 'recover', left: 5, cost: 10 });
+  t.run(45);
+  assert.ok(!t.S.entities[stray], 'the stray captain is removed'); assert.ok(!t.clan.clinic.some(p => p.unit === 'city_captain'), 'and the clinic entry');
+  assert.equal(caps().length, 1);
+  cap.downed = true; t.run(2);
+  assert.ok(!t.S.entities[cap.id], 'a knocked-out captain is not carried to the clinic');
+  t.run(1400, () => !!t.L.captainOf('player'));
+  assert.ok(t.L.captainOf('player') && t.L.captainOf('player').id !== cap.id, 'a new captain takes charge');
+  assert.equal(caps().length, 1, 'one captain');
+}
 console.log('lieutenant mix ok');

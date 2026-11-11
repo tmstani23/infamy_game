@@ -169,7 +169,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     root.dataset.flow=incoming?'assign':transfer?'transfer':'normal';
     if(incoming||transfer)setPage('crew');
     const arriving=members().filter(e=>e.deployment.transfer?.to===focus).length;
-    setText($('.staffing-summary'),task?list.filter(e=>!e.deployment.transfer).length+' assigned + '+arriving+' incoming / goal '+task.desired+'. Goals request ready HQ crew; they do not recall field crew.':focus==='home'?'Available reserves can fill staffing goals. Keep at HQ prevents automatic deployment.':'Up to six crew follow your hero outside Rally.');
+    setText($('.staffing-summary'),task?list.filter(e=>!e.deployment.transfer).length+' assigned + '+arriving+' incoming / goal '+task.desired+'. Goals request ready HQ crew; they do not recall field crew.':focus==='home'?'Healthy reserves go out to fill staffing goals. Crew you move here by hand stay until you move them to a sector.':'Up to six crew follow your hero outside Rally.');
     for(const [id,b]of tabs){setText(b,`${names[id]} ${counts[id]}${id==='hero'?'/6':''}`);b.setAttribute('aria-pressed',String(id===focus));}
     setText($('.group-summary h4'),names[focus]);
     setText($('.group-summary strong'),`${selected.size} crew selected`);
@@ -180,10 +180,10 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     const ordered=[...list.filter(e=>!e.deployment.transfer),...inbound].map(e=>{
       const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);setText(r.name,`${unitName(units,e.type)} #${e.id}`);setText(r.hp,`${Math.ceil(e.hp)}/${e.maxHp}`);
       if(catalog){const image=portrait(catalog,e.model);if(image&&image!==r.image){r.image=image;r.name.style.backgroundImage='url('+image+')';r.name.classList.add('has-portrait');}}
-      setText(r.status,e.downed?'Downed':e.deployment.transfer?`Transferring, from ${names[e.deployment.transfer.from]||'?'}`:e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||'Ready');
+      setText(r.status,e.downed?'Downed':e.deployment.transfer?`Transferring, from ${names[e.deployment.transfer.from]||'?'}`:e.deployment.duty?.manual?'Manual order':e.deployment.duty?.status||(e.deployment.group==='home'&&e.hp<e.maxHp?'Recovering, deploys at full health':e.deployment.group==='home'&&e.deployment.keepAtHQ?'Kept at HQ, move to a sector to deploy':'Ready'));
       r.el.classList.toggle('selected',selected.has(e.id));return r.el;
     });paged('roster','.roster',ordered,(globalThis.innerHeight||900)<800?4:6);
-    for(const e of list){const r=rows.get(e.id);if(r){r.pinLabel.hidden=focus!=='home';r.pin.checked=!!e.deployment.keepAtHQ;}}
+    for(const e of list){const r=rows.get(e.id);if(r){r.pinLabel.hidden=true;r.pin.checked=!!e.deployment.keepAtHQ;}}
     const ready=[...selected].some(id=>available(st.entities[id])),traveling=travelers(),cancel=primaryCancel();
     $('.transfer-start').disabled=transfer?!transfer.to||!game.deployment.canTransfer(heroId,transfer.ids,transfer.to).ok:!ready&&!cancel.length;
     $('.transfer-start').textContent=transfer?'Choose destination below or on map':!ready&&cancel.length?`Cancel transfer${cancel.length>1?`s (${cancel.length})`:''}`:'Transfer selected crew';

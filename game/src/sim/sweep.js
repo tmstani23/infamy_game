@@ -22,6 +22,11 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
   const rivals = (e,op) => Object.values(state.entities).filter(t=>alive(t)&&t.owner===op.targetClan
     &&t.type!=='civilian'&&!t.cop&&!t.wild&&e.place==='street'&&t.place==='street'
     &&deployment.sectorAt(t.x,t.z)===op.targetSector&&distance(e,t)<=7&&hostile(e,t)&&sees(e,t));
+  // self-defence (Tim 2026-11-10: a sweep squad stood still while bandits hit it): whoever hit this crew member or a
+  // squad mate in the last few seconds (bandits, any clan), in any sweep state
+  const attacker = (e,op) => op.units.map(id=>state.entities[id]).filter(u=>alive(u)&&u.hitBy&&state.tick-u.hitBy.tick<80)
+    .map(u=>state.entities[u.hitBy.id]).filter(t=>alive(t)&&t.owner!==e.owner&&t.type!=='civilian'&&!t.cop&&t.place===e.place&&distance(e,t)<=9&&sees(e,t))
+    .sort((a,b)=>distance(e,a)-distance(e,b))[0];
   const targetOf = (e,op) => rivals(e,op).sort((a,b)=>distance(e,a)-distance(e,b))[0];
   function eligibility(clan,sector,target,targetClan) {
     const task=taskOf(clan,sector),destination=state.deployment.sectors.find(s=>s.id===target);
@@ -174,7 +179,7 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
     if(task?.recovery)return false;
     if(op?.kind!=='sweep'||!op.units.includes(e.id)||e.deployment.transfer||e.deployment.scattered||rally.participating(e))return false;
     e.deployment.duty={manual:false,status:'Sweep: '+op.state.toLowerCase()};
-    const foe=op.state!=='Returning'&&targetOf(e,op);
+    const foe=(op.state!=='Returning'&&targetOf(e,op))||attacker(e,op);
     op.targets||={};
     if(op.targets[e.id]!==foe?.id){clearCombat(e);delete op.travel?.[e.id];}
     if(foe){op.targets[e.id]=foe.id;e.deployment.duty.status='Sweep: fighting';attackStep(e,unit,foe);return true;}
