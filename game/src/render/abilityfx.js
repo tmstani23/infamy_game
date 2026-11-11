@@ -331,6 +331,12 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         for(const t of c.victims||[{id:c.t,x:c.tx,z:c.tz}])cards.seal(t.x, t.z, 1.1, '怒', 0xff4020, 2.0, { follow: () => posOf(t.id) });
         if (s0) s0.flash = 0.6;
       }
+      if (c.kind === 'taunt' && c.style === 'shinobi_enforcer') {
+        // Masked bodyguard (Tim 2026-11-10: the taunt was hard to notice): a violet wave out to her reach and a
+        // seal that stays on the taunted enemy for the length of the taunt
+        wave(c.x, c.z, c.radius || 4.5, 0xba9fff, 0.7, 0, THIN_WAVE_GEO);
+        for (const t of c.victims || [{ id: c.t, x: c.tx, z: c.tz }]) cards.seal(t.x, t.z, 1.1, '挑', 0xba9fff, 3.0, { follow: () => posOf(t.id) });
+      }
       if (c.kind === 'rifleshot') {
         // Black-powder shot: muzzle flame and forward sparks, a smaller side burst at the
         // breech, then grey-white barrel smoke and a lingering muzzle wisp.

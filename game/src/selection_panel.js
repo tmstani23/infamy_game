@@ -39,6 +39,8 @@ export function unitStatus(e, state) {
     if (e.anim === 'bow') return 'Praying';
     return e.anim === 'walk' || e.anim === 'run' ? 'Walking' : 'Idle';
   }
+  // a rickshaw or omnibus says what it is doing itself (Tim 2026-11-10: a staying omnibus read 'Patrolling')
+  if (e.type === 'omnibus' || e.type === 'rickshaw') return e.stored ? 'In the stable' : e.recall ? 'Going to the stable' : e.driver ? 'Driven by you' : e.vorder?.kind === 'stay' ? 'Staying' : e.vorder?.kind === 'move' ? 'Driving there' : e.vorder?.kind === 'follow' && (e.anim === 'run' || e.anim === 'trot') ? 'Following' : e.vorder?.kind === 'follow' ? 'Waiting to follow' : 'Parked';
   const task=state.deployment?.clans[e.owner]?.sectors[e.deployment?.group];
   if(!e.deployment?.duty?.manual){if(task?.recovery)return task.recovery.state;if(task?.operation?.units?.includes(e.id))return task.operation.kind.replaceAll('_',' ')+', '+task.operation.state;if(e.deployment?.duty?.status)return e.deployment.duty.status;}
   const k = e.order?.kind, moving = e.anim === 'walk' || e.anim === 'run';
@@ -84,7 +86,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     const unit = id => byId ? byId[id] : game.state.entities[id] || prisonerOf(game.state, id);
     const ids = byId ? picked.map(w => w.id) : crewInput.selected().filter(unit);
     const owner = hideOwnedBy();
-    root.hidden = !ids.length || (!byId && ((owner && ids.every(id => unit(id).owner === owner)) || skip(ids)));
+    root.hidden = !ids.length || (!byId && ((owner && ids.every(id => { const u = unit(id); return (u.owner ?? u.omnibusOwner ?? u.horseOwner) === owner; })) || skip(ids)));
     if (root.hidden) return;
     root.classList.toggle('many', ids.length > 8);
     // condensed (Tim 2026-11-11): past 8, small tiles in two rows at most, then one +N tile

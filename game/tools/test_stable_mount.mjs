@@ -136,11 +136,14 @@ for (const b of town.buildings) if (b.type === 'stable') b.stableJobs = [];
   assert.ok(!a.mounted && !b2.mounted && !h1.rider, 'no crew on the boss\'s horse');
   assert.ok(S.casts.some(c => c.kind === 'refuseMount' && c.a === h1.id), 'she refuses them (refuseMount)');
   // another horse: the nearest crew member rides her (she comes over), right-click again and he gets off
+  for (let t = 0; t < 25; t++) g.step([]);   // new crew join the Hero group on the island first (sim/deployment.js)
   g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [b2.id, a.id] }]);
   assert.ok(!hero.mounted, 'the hero stays on foot');
-  assert.ok([a.id, b2.id].includes(h2.called), 'the clicked horse comes to the nearest');
-  const rider = S.entities[h2.called];
-  for (let t = 0; t < 200 && !rider.mounted; t++) g.step([]);
+  // Tim 2026-11-10: the nearest one runs over to her himself; she does not come
+  assert.ok(!h2.called, 'the clicked horse stays where she is');
+  const rider = [a, b2].find(u => u.mountGo === h2.id);
+  assert.ok(rider && [a, b2].filter(u => u.mountGo).length === 1, 'one of them runs over');
+  for (let t = 0; t < 400 && !rider.mounted; t++) g.step([]);
   assert.ok(rider.mounted && rider.ride.horse === h2.id, 'and he rides her');
   g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [rider.id] }]);
   assert.ok(!rider.mounted && !h2.rider, 'right-click the horse he rides: he gets off');

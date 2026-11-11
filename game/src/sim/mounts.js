@@ -131,18 +131,14 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     // the boss's own mount carries only him (Tim 2026-11-08): she tosses her head (render: refuseMount)
     if (picked.id === mountOf(e.owner)?.id || state.entities[picked.rider]?.type === 'hero') { state.casts?.push({ kind: 'refuseMount', a: picked.id, x: picked.x, z: picked.z, place: picked.place }); return; }
     if (picked.rider) return say(e.owner, 'Someone already rides her');
-    const mine = mountOf(e.owner);
-    const free = [picked, ...Object.values(state.entities).filter(h => h.id !== picked.id && h.type === 'horse' && h.horseOwner === e.owner && !h.dead && !h.rider && !h.recall && h.id !== mine?.id && !(h.called && !want.some(u => u.id === h.called)))
-      .sort((a, b) => (a.stored ? 1e9 : Math.hypot(a.x - picked.x, a.z - picked.z)) - (b.stored ? 1e9 : Math.hypot(b.x - picked.x, b.z - picked.z)))];
-    let short = 0;
-    for (const u of want) {
-      const horse = free.shift();
-      if (!horse) { short++; continue; }
-      if (horse.stored || horse.place !== 'world' || Math.hypot(horse.x - u.x, horse.z - u.z) > (R().whistleRange ?? 300)) beside(horse, u);
-      if (Math.hypot(horse.x - u.x, horse.z - u.z) <= (R().reach ?? 4)) { mount(u, horse); continue; }
-      horse.called = u.id; delete horse.path; delete horse.callBest;
-    }
-    say(e.owner, short ? `${short} crew have no horse: buy more at a stable` : want.length > 1 ? 'Mount up!' : `${picked.name || 'The horse'} is theirs to ride`);
+    // one right-click, one rider (Tim 2026-11-10): only the nearest of them takes this horse, and he runs over to
+    // her himself; no other horse is called. Right-click each horse you want ridden. (Shift+H still mounts a group.)
+    const u = want[0];
+    if (picked.stored || picked.place !== 'world') return say(e.owner, `${picked.name || 'The horse'} is in the stable`);
+    if (Math.hypot(picked.x - u.x, picked.z - u.z) <= (R().crewMountRange ?? 5)) { Object.assign(u, { x: picked.x, z: picked.z }); mount(u, picked); return; }
+    delete picked.called; delete picked.path; delete picked.callBest;
+    u.mountGo = picked.id; u.order = { kind: 'move', x: picked.x, z: picked.z, place: 'world' };
+    say(e.owner, `${picked.name || 'The horse'} is theirs to ride`);
   }
   // Stay here: she stays where she is; you get off if you ride her, and a call is off
   function stay(e) {
@@ -243,6 +239,14 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
         else if (state.tick - horse.callBest.tick > (R().stuckSeconds ?? 5) * 20) { beside(horse, caller); continue; }
         gallop(horse, caller, dt);
       } else if (horse.anim !== 'idle') horse.anim = 'idle';
+    }
+    // crew running over to a horse they were sent to (crewRide): up once within crewMountRange
+    for (const u of Object.values(state.entities)) {
+      if (!u.mountGo) continue;
+      const horse = state.entities[u.mountGo];
+      if (!horse || horse.dead || horse.stored || horse.rider || horse.recall || u.dead || u.downed || u.jailed || u.aboard || u.mounted || u.place !== 'world' || u.order?.kind !== 'move') { delete u.mountGo; continue; }
+      if (Math.hypot(horse.x - u.x, horse.z - u.z) <= (R().crewMountRange ?? 5)) { delete u.mountGo; delete u.order; Object.assign(u, { x: horse.x, z: horse.z }); mount(u, horse); continue; }   // he gets up where she stands
+      if (Math.hypot(horse.x - u.order.x, horse.z - u.order.z) > 2) { u.order.x = horse.x; u.order.z = horse.z; }   // she moved: follow her
     }
     // a bot boss rides his horse on the island (every 5 s)
     if (state.tick % 100 === 0) for (const clan of Object.values(state.clans || {})) {

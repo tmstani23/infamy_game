@@ -231,6 +231,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const crewOnly = bus && !bus.driver && crewSel.length > 0 && !heroBeside;
     if (bus) { if (crewOnly || !busRiders(bus)) send(crewOnly ? { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: crewSel, crewOnly: true }
       : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly: false });
+      // a loaded one with a seat free and the hero right beside it, no crew selected to get in: he gets in too (Tim 2026-11-10)
+      else if (!full && !bus.driver && !hero()?.aboard && !hero()?.mounted && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) <= 6) send({ id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: [], crewOnly: false });
       return; }   // a loaded one: nothing. Getting off is only Q or a right-click on the card in the crew panel (Tim 2026-11-10)
     if (e.button === 0 && attackMove) {
       attackMove = false;
@@ -356,7 +358,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const riding = mine().map(id => game.state.entities[id]).filter(u => u && u.type !== 'hero' && u.mounted && u.ride?.horse);
       if (riding.length) { for (const u of riding) send({ id: heroId, type: 'mount', horse: u.ride.horse, units: [u.id] }); return true; }
       if (h.mounted) { send({ id: heroId, type: 'mount' }); return true; }   // Q gets you off your horse too, like out of a vehicle (Tim 2026-11-08); H still works
-      if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !game.omnibus.riders(b).length)) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },
+      if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !b.driver && game.omnibus.riders(b).length < game.omnibus.seatsOf(b))) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },
     omnibusAt(px, py) { const b = omnibusAt(px, py); return b ? { id: b.id, x: b.x, z: b.z, full: busRiders(b) } : null; },
     hovered(px, py) {
       const h = hero();
@@ -378,8 +380,10 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       });
     },
     selectAll() {
-      if(!game.state.deployment?.restrictionsEnabled){setSelected(Object.keys(game.state.entities).filter(groupable));return;}
-      setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
+      // only crew where the hero is (Tim 2026-11-10): out on the island the island crew, in the capital the capital crew
+      const island=commandPlace()==='world',here=e=>(e?.place==='world')===island;
+      if(!game.state.deployment?.restrictionsEnabled){setSelected(Object.keys(game.state.entities).filter(id=>groupable(id)&&here(game.state.entities[id])));return;}
+      setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&here(e)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
     },
     selectUnit,
     assignGroup(number) {

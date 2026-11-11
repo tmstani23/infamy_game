@@ -24,10 +24,10 @@ assert.ok(big.buffs?.bulwark,'bulwark while the taunt holds');
 const seen=[];for(let i=0;i<60;i++){g.step();seen.push(...st.hits.filter(h=>h.t===big.id||h.a===foe.id),...(st.dodges||[]).map(d=>({dodge:d})));if(process.env.DBG&&i>16&&i<40)console.log(st.tick,JSON.stringify(foe.swing),i,foe.anim,foe.order?.kind,!!foe.taunted,foe.swing?.target,Math.hypot(foe.x-big.x,foe.z-big.z).toFixed(2),big.hp,mate.hp);}
 if(process.env.DBG)console.log(JSON.stringify(seen),big.hp,big.maxHp);
 assert.ok(big.hp<big.maxHp,'taunted enemy attacks the enforcer');
-const mateHp=mate.hp;for(let i=0;i<20;i++)g.step();assert.equal(mate.hp,mateHp,'and leaves the clanmate alone');
-assert.ok(foe.taunted,'automatically renews taunt: '+JSON.stringify({tick:st.tick,actor:{hp:big.hp,order:big.order,duty:big.deployment.duty,taunt:big.taunt},foe:{hp:foe.hp,downed:foe.downed,taunted:foe.taunted},distance:Math.hypot(big.x-foe.x,big.z-foe.z)}));
-const ready=big.taunt.readyAt;assert.equal(R.cooldownTicks,80);
+const mateHp=mate.hp;for(let i=0;i<12;i++)g.step();assert.equal(mate.hp,mateHp,'and leaves the clanmate alone');
+for(let i=0;i<12;i++)g.step();assert.ok(!foe.taunted,'the taunt lapses until the nine-second cooldown is up (Tim 2026-11-10)');
+const ready=big.taunt.readyAt;assert.equal(R.cooldownTicks,180);
 while(st.tick<=ready)g.step();
-assert.equal(big.taunt.readyAt,ready+80,'automatically taunts again on the four-second cooldown');
+assert.equal(big.taunt.readyAt,ready+180,'automatically taunts again on the nine-second cooldown');
 assert.doesNotThrow(()=>JSON.stringify(st));
 console.log('Enforcer: Yakuza-only hire, taunt priority/forced attack/bulwark/duration/cooldown, sprite sets passed');

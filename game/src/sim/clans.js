@@ -127,7 +127,8 @@ export function createClans(state, units, opts = {}) {
   // prisoner: index in clan.jail (Tim 2026-11-10: jailed crew can be dismissed too, same refund, frees the slot)
   function dismiss(hero, unitId, businessId, patient = null, prisoner = null) {
     const clan = state.clans[hero?.owner], b = state.businesses[businessId];
-    if (!clan || clan.bot || !canInteract(hero)) return null;
+    // the city captain lets a basic crewman go to make room for a better hire (sim/lieutenant.js, Tim 2026-11-10), rivals too
+    if (!clan || (clan.bot && !hero.captain) || !canInteract(hero)) return null;
     if (!b || b.kind !== 'hideout' || b.owner !== clan.id || !b.room || hero.place !== b.room)
       return say(clan, 'Dismiss crew inside your own hideout');
     const refundOf = type => Math.floor((types[type]?.price || 0) * DISMISS_REFUND_SHARE);

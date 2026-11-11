@@ -268,7 +268,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (SWORDS.has(a?.model) && (c.kind==='dash'||c.kind==='assassinate'||(c.kind==='shadowstep'&&c.crit))) swordSlash(.4*v);
         if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);
         if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
-        if (c.kind === 'taunt') play(SOFT, 0.6 * v, 0.5);
+        if (c.kind === 'taunt') play(SOFT, (c.style === 'shinobi_enforcer' ? 0.8 : 0.6) * v, c.style === 'shinobi_enforcer' ? 0.75 : 0.5);
         if (c.kind === 'loot') play(pickCustom('loot_coins_1'), 0.6 * v);
         if (c.kind === 'horseWhistle') play(pickCustom('horse_whistle_1'), 0.7 * v);
         if (c.kind === 'rally') play('katana_clash_1', 0.5 * v);

@@ -139,3 +139,25 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 
 ### Art and sounds
 - art.json: rail_gate and lieutenant_post placed; cannon_battery, siege_workshop, burned_ruin, water_tower cut, unplaced. tools/add_buildings6_art.py cuts them from the buildings6 sheet.
+
+### Vehicles, captain hiring, enforcers (2026-11-11)
+
+- Vehicle boarding: selected crew run to the vehicle and get in once within rules.omnibus.popRange (default 10).
+- Right-click a horse with crew selected: the nearest unmounted crew member gets a move order to her (unit.mountGo) and mounts within rules.mount.crewMountRange (default 5). No other horse is called. A stored horse refuses. Shift+H group mount is unchanged.
+- Omnibus command { action: 'deploy', vehicles, units, hero: true }: the hero in units steps out alone; the vehicle's order becomes stay when riders remain.
+- Hero boarding (omnibus board): any own vehicle with a free seat and no driver, loaded or empty; riders aboard keep their seats. With no units given: crew following the hero plus crew with a stop order or no order within reach x 2.5. Units given but farther: they walk to the vehicle (boardBus), also when the hero already sits in it.
+- Client: right-click a loaded own vehicle with a free seat, hero within 6 and no crew selected to board: the hero boards. Q beside a vehicle with a free seat boards.
+- Target frame status for a rickshaw or omnibus: In the stable, Going to the stable, Driven by you, Staying, Driving there, Following, Waiting to follow, Parked.
+- The multi-unit selection panel is hidden when every selected unit is the player's, counting omnibusOwner and horseOwner.
+- C (crewInput.selectAll) selects only crew where the hero is: place 'world' when he is on the island, any other place when he is in the capital.
+- Vehicle separation (omnibus.js separate): the vehicle the hero drives is never the one pushed; pushed vehicles keep exact positions on free ground.
+- Following vehicles (closeOn): step toward the place in the line = top speed x min(1, 0.2 + distance / 2.5); anim trot below 60% of top speed, run above. The line is measured from the hero's current position.
+- drive(): arrival within stopAt + 0.02.
+- Watch view: #attackbar sits at top 164px (under the watch banner and the Outside button) while body.city-watching.
+- Lieutenant hiring (sim/lieutenant.js hirePlan): under the Hire order the city captain hires the clan's hireable non-settler unit he has fewest of (crew, hire queue, clinic and jail counted; cheapest on a tie). Units in settings lieutenant.hireBasic (thug, brute) are left out of that cycle and hired only when the treasury after reserves or the whole daily budget cannot cover the wanted unit. With no other unit hireable the basic units are the cycle.
+- At the crew cap with an empty hire queue the captain dismisses one basic crewman in the city (not in a Rally, vehicle or saddle; normal dismiss refund) when the wanted unit fits the day's budget and the treasury, then hires it. Log line: "Let a thug go to hire better".
+- Lieutenant command gate: a captain command { type: 'dismiss', unit, business } for one unit needs the Hire order. clans.dismiss accepts the captain of a bot clan. Player and rival captains share the rule; rival bosses at home (bot.js) are unchanged.
+- While I'm away panel: the Hire crew box has a hover describing the rule.
+- Irezumi enforcer (yakuza_enforcer) taunt: cooldownTicks 180 (9 s), durationTicks 80 (4 s), radius 5, all enemies in radius, damage taken x0.85.
+- Masked bodyguard (shinobi_enforcer): damage 21, attack interval 1.2 s. Taunt effect: violet wave to the taunt radius and a seal that follows the taunted enemy for 3 s; her taunt sound plays louder and higher.
+- units.json attackSpeed is the seconds between swings; damage per second = damage / attackSpeed.

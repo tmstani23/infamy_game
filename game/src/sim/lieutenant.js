@@ -34,6 +34,8 @@ function orderFor(c, state) {
   if (c.type === 'use') return c.job === 'raid' ? 'raid' : null;   // raiders step in through the door (Tim 2026-11-08)
   if (c.type === 'order') return c.job ? (c.job === 'steal' ? 'steal' : c.job === 'raid' ? 'raid' : 'jobs') : c.expand ? 'buy' : c.retake ? 'retake' : c.care ? 'hire' : 'defend';
   if (c.type === 'hire') return 'hire';
+  // hiring mix (Tim 2026-11-10): the captain lets one basic crewman go to make room for a real unit, under Hire
+  if (c.type === 'dismiss') return c.unit != null && c.unit !== 'all' && c.patient == null && c.prisoner == null ? 'hire' : null;
   // crew care (Tim 2026-11-10): the captain bails prisoners out and fetches recovered patients, under Hire
   if (c.type === 'police') return c.action === 'bail' ? 'hire' : null;
   if (c.type === 'clinic') return c.action === 'revive' ? 'hire' : null;
@@ -152,7 +154,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (!order) return { ok: false, why: 'not a lieutenant command' };
     if (order !== 'any' && !r.orders[order]) return { ok: false, why: `standing order ${order} is off` };
     if (!away(id) && !DEFEND_ONLY.has(order)) return { ok: false, why: 'the boss is home: defend only' };
-    if (['hire', 'police', 'clinic'].includes(c.type) && e.id !== r.captain) return { ok: false, why: 'the captain hires' };
+    if (['hire', 'police', 'clinic', 'dismiss'].includes(c.type) && e.id !== r.captain) return { ok: false, why: 'the captain hires' };
     if (order === 'buy' && ninja) return { ok: false, why: 'Shinobi do not own businesses' };
     if ((order === 'jobs' || order === 'steal') && !ninja) return { ok: false, why: 'only Shinobi take contracts' };
     if (order === 'raid' && ninja) return { ok: false, why: 'Shinobi do not capture businesses' };
@@ -174,7 +176,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     const name = id => state.businesses[id]?.kind?.replace(/_/g, ' ') || 'business';
     const job = take && state.contracts.board.find(x => x.id === c.job);
     const said = c.type === 'police' ? `Bailed out a ${clan.jail[c.prisoner].unit} (${price} ryo)` : c.type === 'clinic' ? `Fetched a ${clan.clinic[c.patient].unit} from the clinic (${price} ryo)`
-      : c.type === 'hire' ? `Hired a ${c.unit} (${price} ryo)` : buyNew ? `Buying the ${name(c.business)} (${price} ryo)` : c.type === 'business' && c.action === 'buy' ? `Buying back the ${name(c.business)} (${price} ryo)`
+      : c.type === 'dismiss' ? `Let a ${state.entities[c.unit]?.type || 'crewman'} go to hire better` : c.type === 'hire' ? `Hired a ${c.unit} (${price} ryo)` : buyNew ? `Buying the ${name(c.business)} (${price} ryo)` : c.type === 'business' && c.action === 'buy' ? `Buying back the ${name(c.business)} (${price} ryo)`
       : take ? `Took a contract: ${job?.label || job?.kind}` : c.type === 'contract' && c.action === 'drop' ? 'Called off the contract'
       : c.type === 'deployment' && c.action === 'shakedown' ? `Shakedown on the ${name(c.business)}` : c.type === 'deployment' && c.action === 'sweep' ? 'Sent a Sweep'
       : lantern ? `Bought a War Lantern (${lanternPrice} ryo)` : c.type === 'business' && c.action === 'raid' ? `Raiding the ${name(c.business)}`
@@ -200,8 +202,16 @@ export function createLieutenantBrain(game, { clan }) {
   const day = () => state.clock?.day ?? 1;
   const standing = u => u && !u.dead && !u.downed && !u.jailed;
   const boss = () => Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero');
-  const hireType = () => Object.keys(game.settings.units.types).map(k => [k, game.clans.hirePrice(clan, k)])
-    .filter(([k, p]) => p !== null && !game.settings.units.types[k].settler).sort((a, b) => a[1] - b[1])[0]?.[0] || null;
+  // Hiring mix (Tim 2026-11-10): the captain cycles through the clan's real units, always the one he has fewest of
+  // (cheapest first on a tie). The basic units (hireBasic: thug, brute) are only a fallback while the treasury or the
+  // whole day's budget cannot cover a real unit, and at the crew cap he lets a basic one go once he can afford better.
+  const basicUnit = k => (L.rules?.hireBasic ?? ['thug', 'brute']).includes(k);
+  const hirePlan = c => {
+    const T = game.settings.units.types, list = Object.keys(T).map(k => [k, game.clans.hirePrice(clan, k)]).filter(([k, p]) => p !== null && !T[k].settler).sort((a, b) => a[1] - b[1]);
+    const real = list.filter(([k]) => !basicUnit(k)), pool = real.length ? real : list, n = {};
+    for (const k of [...game.clans.crewOf(clan).filter(u => !u.dead).map(u => u.type), ...c.queue.map(q => q.unit), ...c.clinic.map(p => p.unit), ...(c.jail || []).map(p => p.unit)]) n[k] = (n[k] || 0) + 1;
+    return { want: [...pool].sort((a, b) => (n[a[0]] || 0) - (n[b[0]] || 0) || a[1] - b[1])[0]?.[0] || null, fallback: list[0]?.[0] || null };
+  };
 
   function tick() {
     if (!L) return [];
@@ -267,7 +277,7 @@ export function createLieutenantBrain(game, { clan }) {
     // Shinobi jobs and steals (Tim 2026-11-06): the captain takes one at the shrine, city crew carry it out
     if (ninja && cap && runJob(b, cap, r, home, out, tag)) return out;
     // hire: the captain hires at the HQ up to the crew cap, inside the budget
-    const type = hireType();
+    const plan = hirePlan(c), type = plan.want;
     if (r.orders.hire && cap && home && type) {
       if (cap.place !== home.room) { out.push(tag({ id: b.id, type: 'order', units: [cap.id], kind: 'enter', business: home.id })); return out; }
       const room = game.clans.crewCount(clan) + c.queue.length < game.clans.crewCap(clan), price = game.clans.hirePrice(clan, type);
@@ -276,7 +286,17 @@ export function createLieutenantBrain(game, { clan }) {
       // a boss out on the island with a permit still has a town to pay for: hiring never eats the founding money
       const founding = c.permit ? (game.frontier?.data?.founding?.cost || 0) : 0;
       const keep = Math.max(50, Number.isFinite(saveFor) ? saveFor : 0) + founding;
-      if (room && price !== null && c.ryo - price >= keep && r.spent + price <= r.budget && c.queue.length < 2) out.push(tag({ id: cap.id, type: 'hire', business: home.id, unit: type }));
+      const can = p => p !== null && c.ryo - p >= keep && r.spent + p <= r.budget;
+      if (room && c.queue.length < 2) {
+        // a basic unit only while the treasury or the whole day's budget cannot cover the real one (not just today's leftover)
+        const low = plan.fallback, tight = price !== null && (c.ryo - price < keep || price > r.budget);
+        const pick = can(price) ? type : low !== type && tight && can(game.clans.hirePrice(clan, low)) ? low : null;
+        if (pick) out.push(tag({ id: cap.id, type: 'hire', business: home.id, unit: pick }));
+      } else if (!room && !c.queue.length && !basicUnit(type) && price !== null && r.spent + price <= r.budget) {
+        // at the crew cap: one basic crewman in the city makes room once the better unit is affordable
+        const spare = cityCrew(cap).filter(u => basicUnit(u.type) && !u.aboard && !u.mounted).sort((a, b) => (game.settings.units.types[a.type].price || 0) - (game.settings.units.types[b.type].price || 0))[0];
+        if (spare && c.ryo + game.clans.dismissRefund(spare.type) - price >= keep) out.push(tag({ id: cap.id, type: 'dismiss', unit: spare.id, business: home.id }));
+      }
     }
     return out;
   }

@@ -47,9 +47,9 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   // put a group into vehicles in order, filling each one's seats (the hero first, as driver of the first)
   function fill(hero, group, buses) {
     seat(hero, buses[0]);
-    let k = 0, used = 1;
+    let k = 0, used = riders(buses[0]).length;   // those already aboard keep their seats
     for (const u of group) {
-      while (buses[k] && used >= seatsOf(buses[k])) { k++; used = 0; }
+      while (buses[k] && used >= seatsOf(buses[k])) { k++; used = buses[k] ? riders(buses[k]).length : 0; }
       if (!buses[k]) break;
       seat(u, buses[k]); used++;
     }
@@ -84,7 +84,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   }
 
   // everyone out of every omnibus of this clan (they stay parked); the crew wait beside it
-  function deploy(hero, only = null, units = null) {
+  function deploy(hero, only = null, units = null, heroToo = false) {
     // Q with vehicles selected empties just those (Tim 2026-11-07); otherwise every one of the clan's
     // units: only these riders step out (right-click one seat on a vehicle card, Tim 2026-11-08); never the hero
     const pick = Array.isArray(only) && only.length ? new Set(only) : null;
@@ -95,13 +95,14 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     let out = 0;
     for (const b of buses) {
       for (const u of riders(b)) {
-        if (who && (!who.has(u.id) || u.type === 'hero')) continue;
+        if (who && (!who.has(u.id) || (u.type === 'hero' && !heroToo))) continue;   // heroToo: his own seat was right-clicked, only he steps out (Tim 2026-11-10)
         unseat(u, k++, b); out++;
         // crew stand where they stepped out until told to follow (V) or sent somewhere (Tim 2026-11-08); settlers keep with the hero
         if (u.type === 'settler') { u.order = { kind: 'follow', target: hero.id }; u.order.slot = freeSlot(hero.id, u.id); }
         else if (u.type !== 'hero') { u.order = { kind: 'stop' }; u.anim = 'idle'; }
       }
       if (!riders(b).length) { b.anim = 'idle'; b.trail = []; }
+      else if (heroToo && who) b.vorder = { kind: 'stay' };   // he got out alone: it waits there with the rest aboard
     }
     if (!out) return false;
     say(hero.owner, who ? (out === 1 ? 'One steps out' : `${out} step out`) : 'Everyone steps out');
@@ -122,10 +123,10 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const group = (c.units || []).map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && u.type !== 'horse' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === bus.place);
     if (!group.length) return false;
     group.sort((a, b) => Math.hypot(a.x - bus.x, a.z - bus.z) - Math.hypot(b.x - bus.x, b.z - bus.z));   // a whole group: the nearest fill the seats
-    // crew within popRange pop straight in (Tim 2026-11-08), the vehicle flashes gold (render: boarded); further ones walk over
+    // crew within popRange (10, Tim 2026-11-10; was 40) get straight in, the vehicle flashes gold (render: boarded); further ones run over first
     let popped = 0;
     for (const u of group.slice(0, room)) {
-      if (Math.hypot(u.x - bus.x, u.z - bus.z) <= (R().popRange ?? 40)) { seat(u, bus); bus.vorder = { kind: 'stay' }; popped++; continue; }
+      if (Math.hypot(u.x - bus.x, u.z - bus.z) <= (R().popRange ?? 10)) { seat(u, bus); bus.vorder = { kind: 'stay' }; popped++; continue; }
       if (u.mounted) { delete u.mounted; delete u.ride; }
       u.boardBus = bus.id; u.order = { kind: 'move', x: bus.x, z: bus.z, place: bus.place }; forget(u.id);
     }
@@ -138,13 +139,25 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     if (c.crewOnly) return crewBoard(hero, c);
     if (hero.mounted) { say(hero.owner, 'Get off your horse first (H)'); return false; }
     const reach = R().boardRange ?? 6;
-    let buses = near(hero, reach * 2).filter(b => !riders(b).length);
-    if (c.omnibus) { const b = state.entities[c.omnibus]; if (isVehicle(b) && b.omnibusOwner === hero.owner && !b.dead) buses = [b, ...buses.filter(x => x !== b)]; }
+    // any of his with a seat free, crew already aboard or not (Tim 2026-11-10: he could not get into a loaded omnibus)
+    let buses = near(hero, reach * 2).filter(b => riders(b).length < seatsOf(b) && !b.driver);
+    if (c.omnibus) { const b = state.entities[c.omnibus]; if (isVehicle(b) && b.omnibusOwner === hero.owner && !b.dead && riders(b).length < seatsOf(b)) buses = [b, ...buses.filter(x => x !== b)]; }
     if (!buses.length) { say(hero.owner, 'No parked omnibus close enough'); return false; }
     if (Math.hypot(buses[0].x - hero.x, buses[0].z - hero.z) > reach) { say(hero.owner, 'Walk up to the omnibus to get in'); return false; }
-    const ids = Array.isArray(c.units) && c.units.length ? c.units : Object.values(state.entities).filter(u => u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id).map(u => u.id);
-    const group = ids.map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === hero.place && Math.hypot(u.x - hero.x, u.z - hero.z) <= reach * 2.5);
+    // nobody selected: those following him, and crew standing by him (Tim 2026-11-10: a man who had stepped out and
+    // waited there was left behind, only the hero got in)
+    const picked = Array.isArray(c.units) && c.units.length;
+    const ids = picked ? c.units : Object.values(state.entities).filter(u => u.owner === hero.owner && ((u.order?.kind === 'follow' && u.order.target === hero.id) || ((!u.order || u.order.kind === 'stop') && !u.guard && !u.guide && !u.worker && u.type !== 'worker'))).map(u => u.id);
+    const able = ids.map(id => state.entities[id]).filter(u => u && u !== hero && u.owner === hero.owner && u.type !== 'hero' && !isVehicle(u) && u.type !== 'horse' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard && u.place === hero.place)
+      .sort((p, q) => Math.hypot(p.x - hero.x, p.z - hero.z) - Math.hypot(q.x - hero.x, q.z - hero.z));
+    const group = able.filter(u => Math.hypot(u.x - hero.x, u.z - hero.z) <= reach * 2.5);
     fill(hero, group, buses);
+    // selected crew too far to get in with him run over and take the seats left in his vehicle
+    const late = picked ? able.filter(u => !u.aboard) : [];
+    if (late.length && riders(buses[0]).length < seatsOf(buses[0])) for (const u of late.slice(0, seatsOf(buses[0]) - riders(buses[0]).length)) {
+      if (u.mounted) { delete u.mounted; delete u.ride; }
+      u.boardBus = buses[0].id; u.order = { kind: 'move', x: buses[0].x, z: buses[0].z, place: buses[0].place }; forget(u.id);
+    }
     for (const b of buses.slice(1)) b.trail = [];
     return true;
   }
@@ -178,7 +191,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   // one step of a vehicle driving itself toward (tx, tz); true while it still moves
   function drive(b, tx, tz, stopAt, dt) {
     const dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz);
-    if (d <= stopAt) { b.anim = 'idle'; return false; }
+    if (d <= stopAt + 0.02) { b.anim = 'idle'; return false; }
     const r = steer(b, Math.atan2(dx, dz), { turnDegrees: R(b.type).turnDegrees ?? 120 }, dt);
     // smoother self-driving (Tim 2026-11-10: clunky on move orders): it pulls away and draws up over a moment, and
     // turns nearly on the spot when the way is behind it, so it never circles a spot it cannot turn into
@@ -199,7 +212,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   // Drive back to the gate was taken out (Tim 2026-11-07): drive or walk back, or take the train
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    if (c.action === 'deploy') deploy(e, c.vehicles, c.units);
+    if (c.action === 'deploy') deploy(e, c.vehicles, c.units, c.hero === true);
     else if (c.action === 'board') board(e, c);
   }
 
@@ -242,8 +255,11 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
       if (d >= need) continue;
       if (d < 0.01) { dx = 1; dz = 0; d = 1; }
       const busy = e => !!e.driver || e.anim === 'run' || e.anim === 'trot';
-      const mover = busy(b) && !busy(a) ? a : b, sign = mover === b ? 1 : -1, step = Math.min(0.4, need - d);
-      const nx = mover.x + sign * dx / d * step, nz = mover.z + sign * dz / d * step, [fx, fz] = nav()?.nearestFree(nx, nz) || [nx, nz];
+      // the one the hero drives is never the one pushed (Tim 2026-11-10: driving up close to another he was shoved back
+      // every tick and could not move); free ground keeps the exact spot, no jump to a cell centre
+      const mover = b.driver && !a.driver ? a : a.driver && !b.driver ? b : busy(b) && !busy(a) ? a : b, sign = mover === b ? 1 : -1, step = Math.min(0.4, need - d);
+      if (mover.driver) continue;
+      const nx = mover.x + sign * dx / d * step, nz = mover.z + sign * dz / d * step, nvg = nav(), [fx, fz] = !nvg || nvg.free?.(nx, nz) ? [nx, nz] : nvg.nearestFree(nx, nz) || [nx, nz];
       if (Math.hypot(fx - nx, fz - nz) > 2) continue;
       Object.assign(mover, { x: fx, z: fz });
       for (const u of riders(mover)) Object.assign(u, { x: fx, z: fz });
@@ -261,6 +277,18 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     return null;
   }
 
+  // a follower closes on its place in the line at a pace that grows with how far behind it is, full speed from about
+  // 2 back (Tim 2026-11-10: at a trot it raced up at full speed, jumped onto the spot and twitched back and forth)
+  function closeOn(b, p) {
+    const dx = p[0] - b.x, dz = p[1] - b.z, far = Math.hypot(dx, dz);
+    if (far <= 0.03) { b.anim = 'idle'; return; }
+    const top = (R(b.type).speed ?? 3) * HERO_RUN / 20, step = Math.min(far, top * Math.min(1, 0.2 + far / 2.5));
+    steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20);
+    const nx = b.x + dx / far * step, nz = b.z + dz / far * step, nvg = nav(), [fx, fz] = !nvg || nvg.free?.(nx, nz) ? [nx, nz] : nvg.nearestFree(nx, nz) || [nx, nz];
+    if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return; }   // blocked: wait there
+    b.anim = step < 0.04 ? 'idle' : step > top * 0.6 ? 'run' : 'trot';
+    Object.assign(b, { x: fx, z: fz });
+  }
   function selfDrive(b) {
     const o = b.vorder;
     if (o.kind === 'move') {
@@ -282,9 +310,9 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     for (const u of Object.values(state.entities)) {   // crew walking over to get in (crewBoard)
       if (!u.boardBus) continue;
       const bus = state.entities[u.boardBus];
-      if (!bus || bus.dead || u.dead || u.downed || u.aboard || bus.driver || u.order?.kind !== 'move' || riders(bus).length >= seatsOf(bus)) { delete u.boardBus; continue; }
-      if (Math.hypot(bus.x - u.x, bus.z - u.z) > (R().boardRange ?? 6) * 0.6) continue;
-      delete u.boardBus; seat(u, bus); bus.vorder = { kind: 'stay' };
+      if (!bus || bus.dead || u.dead || u.downed || u.aboard || u.order?.kind !== 'move' || riders(bus).length >= seatsOf(bus)) { delete u.boardBus; continue; }   // one the hero sits in is fine too (he got in first, Tim 2026-11-10)
+      if (Math.hypot(bus.x - u.x, bus.z - u.z) > (R().popRange ?? 10)) continue;   // they run up to within popRange, then get in (Tim 2026-11-10: no popping in from far off)
+      delete u.boardBus; seat(u, bus); if (!bus.driver) bus.vorder = { kind: 'stay' };
     }
     const byOwner = {};
     for (const b of Object.values(state.entities)) if (isVehicle(b)) (byOwner[b.omnibusOwner] ||= []).push(b);
@@ -307,12 +335,10 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
           if (b === lead || !riders(b).length) continue;
           if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
           const ahead = prev; gap += spacing(prev, b); prev = b;
-          const p = back(lead.trail, gap);
+          const p = back([...lead.trail, [h.x, h.z]], gap);   // measured from where he is now, not his last crumb (it moved in half-step jumps)
           if (p && tooClose(ahead, b, p)) { b.anim = 'idle'; continue; }   // never into the one ahead
           if (!p) { b.anim = 'idle'; continue; }
-          const dx = p[0] - b.x, dz = p[1] - b.z, d = Math.hypot(dx, dz);
-          if (d > 0.01) { steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20); b.anim = 'run'; } else b.anim = 'idle';   // the row sweeps round (sim/vehicle_steer.js)
-          Object.assign(b, { x: p[0], z: p[1], place: lead.place });
+          b.place = lead.place; closeOn(b, p);   // the row sweeps round (sim/vehicle_steer.js)
         }
       } else {
         for (const b of list) if (b.driver && !state.entities[b.driver]?.aboard) delete b.driver;
@@ -329,10 +355,10 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
           const ahead = prev; gap += spacing(prev, b); prev = b;
           const p = ht.length && back([...ht, [hero.x, hero.z]], gap);
           if (ahead && tooClose(ahead, b, p || [hero.x, hero.z])) { b.anim = 'idle'; continue; }   // never into the one ahead
-          if (!p || Math.hypot(p[0] - b.x, p[1] - b.z) > 4) { if (p) drive(b, p[0], p[1], 0.5, 1 / 20); else drive(b, hero.x, hero.z, gap, 1 / 20); continue; }   // catch up first
-          const dx = p[0] - b.x, dz = p[1] - b.z;
-          if (Math.hypot(dx, dz) > 0.01) { steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20); b.anim = hero.ride && hero.gallop ? 'run' : 'trot'; } else b.anim = 'idle';
-          Object.assign(b, { x: p[0], z: p[1] });
+          if (!p) { drive(b, hero.x, hero.z, gap, 1 / 20); continue; }
+          // it closes on its place in the line at a pace that grows with how far behind it is (Tim 2026-11-10: at a
+          // trot it raced up at full speed, jumped onto the spot and twitched back and forth); full speed from about 2 back
+          closeOn(b, p);
         }
       }
       for (const b of list) for (const u of riders(b)) {   // riders sit inside

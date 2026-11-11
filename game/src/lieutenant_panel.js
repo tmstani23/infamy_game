@@ -30,6 +30,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   const boxes = Object.fromEntries(Object.entries(LABELS).map(([k, label]) => {
     const l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox';
     c.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', orders: { [k]: c.checked } }));
+    if (k === 'hire') l.title = 'The captain hires one of each of your clan units in turn and keeps the mix even. He buys a thug only when money is tight, and swaps it for a better unit once he can pay. He also bails out jailed crew and fetches crew from the clinic.';
     l.append(c, ' ' + label); pane.querySelector('.away-orders').appendChild(l); return [k, c];
   }));
   const budget = pane.querySelector('.away-budget'), home = pane.querySelector('.away-home');
