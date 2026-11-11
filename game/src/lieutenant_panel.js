@@ -2,7 +2,7 @@
 // Standing order toggles, a daily budget slider and the lieutenant's last 20 log lines. Sends only
 // { type: 'lieutenant', orders | budget | defendAtHome }; the rules are in sim/lieutenant.js.
 const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', shakedown: 'Shakedowns', sweep: 'Sweeps', contracts: 'Ambush contracts', hire: 'Hire crew',
-  buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)',
+  buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout, Sabotage or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)',
   raid: 'Raid rival businesses at night (War Lantern from the treasury, with a Rally)' };
 // Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
 const FOR_NINJA = { buy: false, jobs: true, steal: true, raid: false };
@@ -30,7 +30,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   const boxes = Object.fromEntries(Object.entries(LABELS).map(([k, label]) => {
     const l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox';
     c.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', orders: { [k]: c.checked } }));
-    if (k === 'hire') l.title = 'The captain hires one of each of your clan units in turn and keeps the mix even. He buys a thug only when money is tight, and swaps it for a better unit once he can pay. He also bails out jailed crew and fetches crew from the clinic.';
+    if (k === 'hire') l.title = 'The captain hires one of each of your clan units in turn and keeps the mix even. He waits for the money rather than buy thugs, unless the city is down to a couple of crew or your budget is too small for a real unit. Thugs get swapped for a better unit once he can pay. He also bails out jailed crew and fetches crew from the clinic.';
     l.append(c, ' ' + label); pane.querySelector('.away-orders').appendChild(l); return [k, c];
   }));
   const budget = pane.querySelector('.away-budget'), home = pane.querySelector('.away-home');

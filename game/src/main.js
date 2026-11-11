@@ -79,6 +79,7 @@ import { bindGameShell } from './game_shell.js';
 import { createSelectionDock } from './selection_dock.js';
 import { createNewsCallouts } from './news_callouts.js';
 import { createTopBar } from './top_bar.js';
+import { createStandingsPanel } from './standings_panel.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
@@ -453,7 +454,7 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -556,23 +557,6 @@ async function start() {
     onManageSector: id => deploymentPanel.openGroup(id),
     onSelectSector: id => deploymentPanel.openGroup(id), onClose:()=>deploymentPanel.close() });
   onKey('KeyM', () => { if(gameMap.isOpen())gameMap.close();else deploymentPanel.open(); });
-  // the season score in the top bar (sim/territory.js): day of the season, then every clan's points
-  const scoreText = () => {
-    const s = game.state.season, t = game.territory;
-    if (!s || !t) return '';
-    const parts = t.standings().map(r => `${r.clan === 'player' ? 'You' : (game.state.clans[r.clan]?.name || r.clan).replace(/ clan$/, '')} <b>${r.score}</b>`);
-    const clock = game.state.clock;
-    const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
-    const timer = timeLeft == null ? '' : `, ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
-    const owner = game.state.entities[heroId]?.owner;
-    // Campaign has no season: Influence and its next unlock instead of the clans' season points (Tim 2026-11-10)
-    if (!modeRules(game.state).seasonEnds) {
-      const st = game.influence?.status(owner);
-      const inf = st ? `, Influence <b>${st.value}</b>${st.next ? ` / ${st.next.at}` : ''}, Tier ${st.tier}` : '';
-      return `Crew ${game.clans.crewCount(owner)} (cap ${game.clans.crewCap(owner)}), Campaign, Day ${s.day}${timer}${inf}`;
-    }
-    return `Crew ${game.clans.crewCount(owner)} (cap ${game.clans.crewCap(owner)}), Day ${Math.min(s.day, s.cycles)}/${s.cycles}${timer}, ${parts.join(', ')}`;
-  };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
     const s = game.state.season, el = $('seasonend');
@@ -604,6 +588,7 @@ async function start() {
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
   let frontierBuildUI = null, vehiclesPanel = null;
+  const standingsPanel = createStandingsPanel({ root: $('standingspanel'), game, heroId });   // click a clan chip in the top bar
   // Town panel (frontier F4.4, replaces the F2.4b dev text box): key O. The console helper stays in the dev build.
   if (game.state.frontier) {
     let townPanel;
@@ -694,7 +679,7 @@ async function start() {
   const clock = {alpha:()=>simClient.alpha(),diagnostics:()=>simClient.diagnostics()};
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
   const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n) });
-  const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, scoreText });
+  const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, onClan: id => standingsPanel.open(id) });
   let last = performance.now() / 1000, labelTick = -Infinity, lostCops = false;
   function observeRaidAlarms() {
     const a = raidOnMe();
@@ -826,7 +811,7 @@ async function start() {
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
-      landOfficeMenu.update(); lieutenantTalk.update(); surveyorTalk.update(); stationMenu.update(); stableMenu.update(); vehiclesPanel?.update(); siteMenu.update();
+      landOfficeMenu.update(); lieutenantTalk.update(); surveyorTalk.update(); stationMenu.update(); stableMenu.update(); vehiclesPanel?.update(); standingsPanel.update(); siteMenu.update();
       contractMenu.update();
       if (deploymentPanel.isOpen() && !gameMap.isOpen()) deploymentPanel.close();   // closing the map closes its docked menu
       deploymentPanel.update();

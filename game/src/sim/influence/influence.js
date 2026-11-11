@@ -42,5 +42,5 @@ export function createInfluence({ state, rules, businessesHeld = () => 0 }) {
       }
     }
   }
-  return { value, tier, status, maxTowns, exportFactor, importFactor, sold, tick };
+  return { value, tier, status, maxTowns, exportFactor, importFactor, sold, tick, tiers: () => (on() ? R.tiers : []).map(t => ({ at: t.at, label: t.label })) };
 }

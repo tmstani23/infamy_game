@@ -6,7 +6,7 @@
 :root, body { --ms-accent: #c9473d; --ms-accent-lt: #e0786c; --ms-dk1: #5e1c18; --ms-dk2: #2a1513; --ms-go1: #8e2d26; --ms-go-line: #e07b6c; --ms-go-hi1: #a3342c; --ms-go-hi2: #6c201b; --ms-on-text: #ffe9dc; }
 body[data-clan="kuroda"] { --ms-accent: #c0703f; --ms-accent-lt: #e8a07a; --ms-dk1: #6a3418; --ms-dk2: #2a170c; --ms-go1: #9a4d24; --ms-go-line: #e3946a; --ms-go-hi1: #b05a2b; --ms-go-hi2: #74381b; --ms-on-text: #ffeadc; }
 body[data-clan="shinobi"], body[data-clan="ninja"] { --ms-accent: #8e6cc9; --ms-accent-lt: #b69ae5; --ms-dk1: #3f2a66; --ms-dk2: #1d142e; --ms-go1: #5d3f94; --ms-go-line: #b69ae5; --ms-go-hi1: #6c4aa8; --ms-go-hi2: #45306e; --ms-on-text: #f0e8ff; }
-#hire.ms, #clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #lttalk.ms, #svtalk.ms {
+#hire.ms, #clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #standingspanel.ms, #lttalk.ms, #svtalk.ms {
   --ms-gold: #d8b56c; --ms-text: #eadfc6; --ms-dim: #9aa3a6; --ms-line: #303238;
   padding: 0; overflow: hidden; max-height: none; color: var(--ms-text); font: 13px/1.4 system-ui, sans-serif;
   background: linear-gradient(180deg, #171c21, #0f1317); border: 1px solid #4d3b2a; border-top: 2px solid var(--ms-accent);
@@ -14,7 +14,7 @@ body[data-clan="shinobi"], body[data-clan="ninja"] { --ms-accent: #8e6cc9; --ms-
 }
 #hire.ms::before, #clinic.ms::before, #police.ms::before, #contracts.ms::before { display: none; }
 /* door menus (clinic, police, land office, gate, stable, station): one size, art on the left */
-#clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms { width: min(620px, 94vw); }
+#clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #standingspanel.ms { width: min(620px, 94vw); }
 .ms .ms-chip.renown i { border-radius: 2px; transform: rotate(45deg) scale(.8); background: linear-gradient(var(--ms-accent-lt), var(--ms-go1)); }
 .ms button { font: 600 12px system-ui, sans-serif; cursor: pointer; }
 .ms .ms-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 11px 16px 10px; border-bottom: 1px solid #2a2d31;

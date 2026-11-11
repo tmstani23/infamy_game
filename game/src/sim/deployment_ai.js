@@ -4,7 +4,7 @@ export const inHeroParty = (game, e) => !game.state.deployment?.restrictionsEnab
   || (!e.deployment?.transfer && (e.deployment?.group === 'hero' || game.rally.participating(e)));
 
 export function createDeploymentAI(game, { clan, hero }) {
-  let next = 0;
+  let next = 0, guards = {};   // guards: sector -> { business, at, objective, route } set by guardDuty below
   function tick() {
     const st = game.state, h = st.entities[hero], out = [];
     if (!st.deployment?.restrictionsEnabled || !h || st.tick < next) return out;
@@ -34,6 +34,38 @@ export function createDeploymentAI(game, { clan, hero }) {
       const follow = members.filter(e=>inHeroParty(game,e)&&!e.deployment.transfer&&idle(e)&&e.place===h.place).map(e=>e.id);
       if (follow.length && !raid) out.push({id:hero,type:'order',kind:'follow',units:follow});
     }
+    // Guard duty (Tim 2026-11-10): every day half the sectors where the clan holds a business guard their most
+    // expensive one and the other half patrol; the halves swap each day. A business being raided or shaken down is
+    // guarded at once by its sector while the hit is on. A duty set by hand (a guard this brain did not set) is left alone.
+    if (st.clans[clan].kind !== 'ninja') {
+      const own = {}, price = b => game.businesses?.rules?.[b.kind]?.price || 0;
+      for (const b of Object.values(st.businesses)) {
+        if (b.owner !== clan || b.hideout || !b.room || !b.ring) continue;
+        const sector = game.deployment.sectorAt(...b.ring);
+        if (sector && record.sectors[sector] && (!own[sector] || price(b) > price(own[sector]))) own[sector] = b;
+      }
+      const hit = Object.values(st.attacks || {}).filter(a => a.mode === 'raid' && a.defender === clan && !a.hq).map(a => a.business);
+      for (const other of Object.values(st.deployment.clans)) for (const t of Object.values(other.sectors)) if (t.operation?.kind === 'shakedown' && t.operation.defender === clan) hit.push(t.operation.business);
+      const want = {}, dayNo = st.season?.day ?? st.clock?.day ?? 0;
+      Object.keys(own).sort().forEach((sector, i) => { if ((i + dayNo) % 2 === 0) want[sector] = own[sector].id; });
+      for (const id of hit) { const b = st.businesses[id], sector = b?.ring && b.room && !b.hideout && b.owner === clan ? game.deployment.sectorAt(...b.ring) : null; if (sector && record.sectors[sector]) want[sector] = id; }
+      for (const [sector, task] of Object.entries(record.sectors)) {
+        const g = guards[sector], ours = !!g && task.task === 'guard' && task.business === g.business;
+        if (g && !ours && g.at !== st.tick) delete guards[sector];   // changed by hand since
+        if (g?.at === st.tick || task.operation || task.recovery) continue;
+        const to = want[sector] || null;
+        if (task.task === 'patrol' && to) {
+          guards[sector] = { business: to, at: st.tick, objective: { ...task.objective }, route: (task.route || []).map(p => ({ ...p })) };
+          command({ action: 'assignment', sector, task: 'guard', business: to, fallback: task.fallback });
+        } else if (ours && to && to !== g.business) {
+          g.business = to; g.at = st.tick;
+          command({ action: 'assignment', sector, task: 'guard', business: to, fallback: task.fallback });
+        } else if (ours && !to) {
+          command({ action: 'assignment', sector, task: 'patrol', objective: g.objective, fallback: task.fallback, route: g.route });
+          delete guards[sector];
+        }
+      }
+    }
     let targeting = !!record.hunt;
     if(st.night&&st.clans[clan].faction==='yakuza'&&game.shakedown&&!rally.active&&!raid&&st.clans[clan].heat<60)for(const [id,task]of Object.entries(record.sectors)){
       const squad=members.filter(e=>e.deployment.group===id&&!e.deployment.transfer&&!e.deployment.duty?.manual&&!game.rally.participating(e));
@@ -58,5 +90,5 @@ export function createDeploymentAI(game, { clan, hero }) {
     }
     return out;
   }
-  return {tick,saveState:()=>({next}),loadState:d=>{if(d)next=d.next;}};
+  return {tick,saveState:()=>({next,guards}),loadState:d=>{if(d){next=d.next;guards=d.guards||{};}}};
 }

@@ -1,10 +1,11 @@
 import { bossAway } from './sim/util.js';
-import { modeRules } from './sim/modes/index.js';
+import { standingsModel, createStandingsBar } from './top_bar_standings.js';
 // Top bar paints once per frame; observe preserves each tick's badge events.
 // Rally, Unstuck, jail banner, heat, ryo and the season
 // score (moved out of main.js, phase 7 split, 2026-10-29). Reads the state only.
-export function createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, scoreText }) {
+export function createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, onClan = null }) {
   let scoreTick = -Infinity;
+  const paintStandings = createStandingsBar($('score'), onClan);   // clock block + clan chips (src/top_bar_standings.js)
   function update() {
     { const r = game.rally.status(game.state.entities[heroId].owner), b = $('rallybtn');
       const away = bossAway(game.state.entities[heroId]);   // the lieutenant runs the city while you're out (Tim 2026-11-08)
@@ -22,16 +23,7 @@ export function createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, 
     ryoBadge.update();
     if (game.state.tick - scoreTick >= 10) {
       scoreTick = game.state.tick;
-      const t = scoreText(); if ($('score').innerHTML !== t) $('score').innerHTML = t;
-      // hover: where each clan's points come from (sim/territory.js breakdown)
-      const owner = game.state.entities[heroId]?.owner, c = game.state.clans[owner];
-      const crew = `Crew ${game.clans.crewOf(owner).length} in roster (hero and house guards excluded). Occupied slots ${game.clans.crewCount(owner) + (c?.queue?.length || 0)} / unlocked cap ${game.clans.crewCap(owner)}: roster + clinic ${c?.clinic?.length || 0} + jail ${c?.jail?.length || 0} + respawning ${c?.respawning?.length || 0} + queued hires ${c?.queue?.length || 0}.`;
-      // Campaign: where Influence comes from and what the next tier unlocks; Classic: the season points
-      const st = modeRules(game.state).seasonEnds ? null : game.influence?.status(owner), ir = game.state.influence?.[owner];
-      const scores = st ? `Influence ${st.value}: Renown ${Math.floor(c?.renown || 0)} + businesses held ${Math.floor(ir?.days || 0)} + town trade ${Math.floor(ir?.trade || 0)}.\n${st.next ? `Next at ${st.next.at}: ${st.next.label}` : 'All Influence tiers reached'}`
-        : game.territory ? game.territory.standings().map(r => `${r.clan === 'player' ? 'You' : game.state.clans[r.clan]?.name}: ${game.territory.breakdown(r.clan).map(x => `${x.label} ${x.points}`).join(' + ') || 'no businesses'} = ${r.score}`).join('\n') : '';
-      const why = `${crew}\n${scores}`;
-      if ($('score').title !== why) $('score').title = why;
+      paintStandings(standingsModel(game, game.state.entities[heroId]?.owner, TICK_RATE));
     }
   }
   return { update, observe() { heatBadge.observe(); ryoBadge.observe(); } };

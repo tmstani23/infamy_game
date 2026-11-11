@@ -222,6 +222,7 @@ The unit frames (your frame and the target frame, small squares top middle under
 | Hideout → Dismiss crew | Lists every crewman from any zone and in any state (hurt, downed, jailed) and each clinic patient, each for the usual refund (two clicks); a jailed crewman leaves jail and frees his slot. Dismiss all lets everyone go at once. Pages (dismissPerPage 6). |
 | F2 | Hide all UI (panels, minimap, unit bars, selection rings, nameplates); F2 again shows it |
 | Town panel Esc button (or O / Esc) | Close the town panel |
+| Click a clan in the top bar | Opens the Standings panel: a tab per clan with Influence, tier, Renown and businesses (Classic: points, Renown, businesses, crew), where Influence comes from and the tier list. Esc, its Esc button or a second click on the same chip closes it. Hover a chip for its breakdown. |
 | Settings → Video | Resolution 1920×1080 (default) / 1600×900 / 1280×720 draws about that many pixels whatever the window shape; Sharp draws every screen pixel (up to 2 per page pixel); `?dpr=N` in the URL overrides. Toggles: Glow, Screen shake, Show FPS. Frame cap Off / 60 / 30. Applied live and kept in this browser (localStorage `infamy.video.v1`). |
 | ` (backquote), Pause, or the Pause button | Pause / resume (single player): the game stops, menus still work |
 | ? or the Controls button | Open the controls panel (Esc closes it) |

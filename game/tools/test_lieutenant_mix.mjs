@@ -43,6 +43,14 @@ for (const kind of Object.keys(REAL)) {
   assert.equal(t.clan.queue[0]?.unit, 'thug', `fallback thug when the treasury is tight: ${t.log().slice(-1)}`);
   assert.equal(t.count().thug, (had.thug || 0) + 1, 'one more thug');
 }
+// a city with a few crew and a treasury near what he keeps back: he waits instead of buying thugs
+{
+  const t = fresh('yakuza', 6000), hq = t.L.hq('player'), d = t.g.doors.find(x => x.to && x.place === hq.room);
+  for (let i = 0; i < 3; i++) t.g.spawn('swordsman', t.U.swordsman.sprite, d.x, d.z + 1, { owner: 'player', hp: t.U.swordsman.hp, deployment: { group: 'home', everAssigned: true } });
+  t.clan.ryo = 50 + t.g.clans.hirePrice('player', 'thug') + 5;
+  t.run(1200, () => t.clan.queue.length > 0);
+  assert.equal(t.clan.queue.length, 0, `no thug bought while he saves: ${t.log().slice(-1)}`);
+}
 // at the crew cap with thugs and money: one thug is let go, a real unit takes the place
 {
   const t = fresh('yakuza', 6000), cap = t.g.clans.crewCap('player'), hq = t.L.hq('player');

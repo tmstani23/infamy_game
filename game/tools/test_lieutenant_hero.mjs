@@ -261,7 +261,7 @@ const fresh = (kind, ryo = 3000) => {
   const renown0 = t.clan.renown || 0, kinds = new Set();
   const sent = t.run(3000, () => { const a = C.active.player; if (a) kinds.add(a.kind); return (t.clan.renown || 0) > renown0; });
   assert.ok((t.clan.renown || 0) > renown0, 'the scout job was done');
-  assert.deepEqual([...kinds], ['scout'], 'by day: a Scout, never Sabotage, the boss or a daytime Steal');
+  assert.deepEqual([...kinds], ['scout'], 'by day: a Scout first, never the boss or a daytime Steal');
   assert.ok(sent.filter(c => c.type === 'contract' && c.action === 'take').every(c => c.job === 904));
   assert.ok(t.L.record('player').log.some(x => /Took a contract: scout test/.test(x.text)));
   assert.ok(t.g.clans.crewOf('player').every(u => u.place !== 'world'), 'the city crew stay in the city');
@@ -282,6 +282,14 @@ const fresh = (kind, ryo = 3000) => {
   assert.ok(!C.active.player, 'one steal a night');
   C.board = [job(907, 'steal', rival[1])];   // on the board when asked (a refresh in the run above would make it 'not a lieutenant command')
   assert.equal(t.L.gate(t.hero, { type: 'contract', action: 'take', job: 907 }).why, 'one steal a night');
+  // next day: Sabotage in turn after the Scout (Tim 2026-11-10); the squad plants and holds the mark
+  t.g.step([{ type: 'time', night: false }]);
+  C.readyAt.player = 0; delete C.active.player;
+  C.board = [job(908, 'scout', rival[1]), job(909, 'mark', rival[0])];
+  const r2 = t.clan.renown, seen = new Set();
+  t.run(9000, () => { const a = C.active.player; if (a) seen.add(a.kind); C.board = C.board.filter(j => j.id >= 908); return t.clan.renown > r2; });
+  assert.deepEqual([...seen], ['mark'], 'the captain took the Sabotage');
+  assert.ok(t.clan.renown > r2 && rival[0].sabotaged, `the Sabotage was done: ${t.clan.notice?.text}`);
 }
 
 // --- a rival bot's lieutenant hires for the city: the recruit does not walk out to its absent boss -------------------
