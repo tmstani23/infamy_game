@@ -300,6 +300,7 @@ Menu look (2026-11-11):
 - The action bar, character page and buff icons show drawn icons (game/src/hud_icons.js) next to each ability's name and key. Utility and command buttons use drawn icons too. UI text is plain, with no symbol glyphs.
 - Season end: a "Season over" line above the title; New game is the highlighted button.
 - Edit layout: every panel shows a plain name.
+- Town cards (click a town building, zone, resource spot or worker) use the same look; the town hall card shows Tier, People and Workers coins with Build, Train worker and Upgrade buttons.
 
 War camp (2026-11-10, campaign):
 - Click the red war coin or left-click a building of your war camp: opens the camp panel. Build tab: click a building card to place it; locked cards say what they need in their hover. Train tab: type how many in a building's box and click Train; Cancel last takes back the newest one in its queue for what you paid. Hall tab: Upgrade hall unlocks stables, foundry and armory. Hire workers (type how many, Hire) is under the camp hall art. All ryo comes from the war chest; timber and stone from the camp stores. Esc or its Esc button shuts it.

@@ -200,7 +200,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       const name = BUFFS[n] || n;
       return `<span class="buff ${n}" style="--remaining:${pct * 100}%" tabindex="0" role="img" aria-label="${name}, ${Math.ceil(left)} seconds remaining" title="${name}"><i></i><b aria-hidden="true">${hudIcon(n)}</b><small>${Math.ceil(left)}s</small></span>`;
     }).join('');
-    if (buffs.innerHTML !== html) buffs.innerHTML = html;
+    // compare with the last string written: the browser re-serialises the SVG icons, so an innerHTML compare never matched (rebuilt every frame)
+    if (buffs._html !== html) { buffs._html = html; buffs.innerHTML = html; }
 
     // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out
     // (jailed ones can be picked: the selection panel says they are in jail)

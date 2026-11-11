@@ -141,7 +141,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
         const seconds = Math.ceil((b.until - now) / 20);
         return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%" tabindex="0" role="img" aria-label="${fullName}, ${seconds} seconds remaining" title="${fullName}">${hudIcon(name)}<small>${seconds}s</small></span>`;
       }).join('');
-      if (f.effects.innerHTML !== html) f.effects.innerHTML = html;
+      if (f.effects._html !== html) { f.effects._html = html; f.effects.innerHTML = html; }   // last string, not innerHTML (SVG re-serialises)
     }
     f.c.classList.toggle('down', !!e.downed);
     if (f.tag) set(f.tag, 'textContent', game.state.clans?.[e.owner]?.name || r.tag);

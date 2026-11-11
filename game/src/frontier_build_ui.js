@@ -16,6 +16,7 @@ import { tierOf, placedGroup, placedCount } from './sim/frontier/tiers.js';
 import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
 import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
 import { residents } from './sim/frontier/people.js';
+import { msArt } from './menu_shell.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -144,17 +145,17 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function campCardHTML(b, s) {
     const C = data.workers.carts, used = Object.values(b.store || {}).reduce((a, v) => a + v, 0), pct = Math.min(100, Math.round(100 * used / C.cap));
     const col = pct >= 100 ? '#d9694a' : pct >= 75 ? '#d9a25a' : '#7fc27a', carts = b.carts || [];
-    const res = Object.entries(b.store || {}).filter(([, v]) => v > 0).map(([r, v]) => `${Math.round(v)} ${esc(r)}`).join(' · ') || 'empty';
+    const res = Object.entries(b.store || {}).filter(([, v]) => v > 0).map(([r, v]) => `${Math.round(v)} ${esc(r)}`).join(', ') || 'empty';
     const where = { camp: 'At camp', out: 'To town', back: 'Returning' }, secs = t => `${Math.ceil((t || 0) / 20)}s`;
     const chip = c => { const load = Object.values(c.load || {}).reduce((a, v) => a + v, 0);
-      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;margin:2px 0;border-radius:4px;background:rgba(255,255,255,.06)"><span>🐂 ${where[c.at] || c.at}${c.t ? ` · ${secs(c.t)}` : ''}</span><span>${c.at === 'out' ? `${Math.round(load)} / ${C.maxLoad}` : `max ${C.maxLoad}`}</span></div>`; };
+      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;margin:2px 0;border-radius:4px;background:rgba(255,255,255,.06)"><span>Cart, ${where[c.at] || c.at}${c.t ? `, ${secs(c.t)}` : ''}</span><span>${c.at === 'out' ? `${Math.round(load)} / ${C.maxLoad}` : `max ${C.maxLoad}`}</span></div>`; };
     const perMin = b.cartTicks ? carts.length * C.maxLoad * 1200 / (2 * b.cartTicks) : null, keep = perMin && C.workerPerMin ? Math.floor(perMin / C.workerPerMin) : null;
     const cost = Object.entries(C.extraCost).map(([r, v]) => `${v} ${r}`).join(', ');
-    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Camp storage</span><span>${Math.round(used)} / ${C.cap} · ${Math.max(0, Math.round(C.cap - used))} free</span></div>`
+    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Camp storage</span><span>${Math.round(used)} / ${C.cap}, ${Math.max(0, Math.round(C.cap - used))} free</span></div>`
       + `<div style="height:8px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden;margin:3px 0"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`
-      + `<div style="font-size:12px;opacity:.8">${res}${pct >= 100 ? ' · <span style="color:#d9a25a">full: workers walk to town</span>' : ''}</div>`
-      + `<div style="font-size:12px;margin-top:6px">Ox carts ${carts.length} / ${C.max} · take ${Math.round(C.share * 100)}% each visit</div>${carts.map(chip).join('')}`
-      + (keep != null ? `<div style="font-size:12px;opacity:.8">Carts keep up with about ${keep} workers${b.cartTicks ? ` · round trip ${secs(2 * b.cartTicks)}` : ''}</div>` : '')
+      + `<div style="font-size:12px;opacity:.8">${res}${pct >= 100 ? ', <span style="color:#d9a25a">full: workers walk to town</span>' : ''}</div>`
+      + `<div style="font-size:12px;margin-top:6px">Ox carts ${carts.length} / ${C.max}, take ${Math.round(C.share * 100)}% each visit</div>${carts.map(chip).join('')}`
+      + (keep != null ? `<div style="font-size:12px;opacity:.8">Carts keep up with about ${keep} workers${b.cartTicks ? `, round trip ${secs(2 * b.cartTicks)}` : ''}</div>` : '')
       + (carts.length < C.max ? `<button data-buy-cart="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="One more ox cart for this camp">Buy cart (${esc(cost)})</button>` : '')
       + `</div>`;
   }
@@ -242,20 +243,26 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   // Tim 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
   function hallUpgradeButton(s) {
     const next = nextTier(s, data);
-    if (s.tierUpgrade) return `<div class="hint">Upgrading to ${esc(next?.name || '')}… ${Math.max(0, s.tierUpgrade.left)}s</div>`;
+    if (s.tierUpgrade) return `<div class="hint">Upgrading to ${esc(next?.name || '')}, ${Math.max(0, s.tierUpgrade.left)} s</div>`;
     if (!next?.upgrade) return '';
     const chk = upgradeCheck(s, data), cost = Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people`;
-    return `<button data-upgrade="${esc(s.id)}"${chk.ok ? '' : ' class="no"'} title="${esc(`Upgrade the town hall to ${next.name}: ${cost}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}">Upgrade to ${esc(next.name)}</button>`;
+    return `<button data-upgrade="${esc(s.id)}" class="ti-up${chk.ok ? '' : ' no'}" title="${esc(`Upgrade the town hall to ${next.name}: ${cost}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}">Upgrade to ${esc(next.name)}</button>`;
   }
   const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost,...(data.workers.goodsCost?{goods:data.workers.goodsCost}:{})},data.workers.personCost)
     + `\nTrains a selectable worker for harvesting and ground clearing.\nRequires a finished town hall. Training: ${data.workers.trainTicks / 20} seconds. Keep ${data.opening?.reservePeople || 0} townsperson for food/building.\nTechnology: none.\nEnables manual move, stop, group and resource orders.`;
+  // card look (menu restyle, Tim 2026-11-11): a header with art, eyebrow and title, label / value rows, plain text
+  const tiHead = (eyebrow, title, art = '') => `<div class="ti-head">${art ? `<img class="ti-art" src="${art}" alt="" onerror="this.remove()">` : ''}<div class="ti-name"><div class="ti-eye">${esc(eyebrow)}</div><b class="ti-title">${esc(title)}</b></div><button data-close class="ti-x" aria-label="Close inspection" title="Close (Esc)">Close</button></div>`;
+  const tiRow = l => {
+    const good = l[0] === '\u0001', warn = l[0] === '\u0002', t = String(l).replace(/^[\u0001\u0002]/, '').replace(/ · /g, ', ').replace(/…/g, '...'), m = /^([A-Z][A-Za-z ]{1,26}): (.+)$/.exec(t);
+    return `<div class="ti-row${good ? ' good' : warn ? ' warn' : ''}">${m ? `<span>${esc(m[1])}</span><b>${esc(m[2])}</b>` : `<span class="ti-txt">${esc(t)}</span>`}</div>`;
+  };
   function showInspection() {
     if(!inspect && selected.length===1 && outdoors() && !blocked()) {
       const p=selectedLive()[0];if(!p){card.hidden=true;return;}
-      const d=workerDetails(p.w,spotIndex),html=`<button data-close aria-label="Close inspection">×</button><b>Worker ${esc(p.w.id)}</b>`
-        +`<div>${d.harvesting?`Harvesting ${esc(d.resource)} · ${d.left}s left · load progress ${d.gathered.toFixed(2)}/${p.w.trip.load}`:d.cargo?`Carrying ${d.cargo} ${esc(d.resource)}`:esc(p.w.status || 'Ready for orders')}</div>`
-        +(d.harvesting?`<progress value="${1-d.progress}" max="1"></progress>`:'')
-        +(d.cargo?'<button data-return>Return resources</button><button data-drop>Drop resources…</button>':'');
+      const d=workerDetails(p.w,spotIndex),html=tiHead(p.w.spot?`Worker, ${p.w.spot}`:'Worker',/^w\d+$/.test(p.w.id)?`Worker ${p.w.id.slice(1)}`:`Worker ${p.w.id}`)
+        +`<div class="ti-row"><span class="ti-txt">${d.harvesting?`Harvesting ${esc(d.resource)}, ${d.left} s left, load ${d.gathered.toFixed(1)} of ${p.w.trip.load}`:d.cargo?`Carrying ${d.cargo} ${esc(d.resource)}`:esc(p.w.status || 'Ready for orders')}</span></div>`
+        +(d.harvesting?`<div class="ti-prog"><i style="width:${Math.round(Math.max(0,Math.min(1,1-d.progress))*100)}%"></i></div>`:'')
+        +(d.cargo?'<div class="ti-acts"><button data-return>Return resources</button><button data-drop>Drop resources...</button></div>':'');
       if(html!==inspectionHtml && !inspectionPressed){card.innerHTML=html;inspectionHtml=html;}card.hidden=false;return;
     }
     if (!inspect || !outdoors() || blocked()) { card.hidden = true; return; }
@@ -276,13 +283,22 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       info = townCellTip(trainTown, inspect.cell, data);
     }
     if (!info) { card.hidden = true; return; }
-    const html = `<button data-close aria-label="Close inspection">×</button><b>${esc(info.title)}</b>`
-      + info.lines.map(l => `<div>${esc(l)}</div>`).join('')
+    const bt = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell))?.type : null;
+    const art = bt && data.townArt?.[bt] ? msArt(data.townArt[bt]) : '';
+    const lines = info.lines.filter(l => !/^Town: /.test(l) && !/^Zone: none/.test(l));
+    let hallH = '';
+    if (info.hall) {   // the town hall: its tier, people and workers as coins, then Build, Train worker and Upgrade
+      const t = tierOf(trainTown, data), nw = (trainTown.workers || []).length;
+      hallH = `<div class="ti-coins"><div title="Town hall tier"><b>${esc(t.name)}</b><span>Tier ${trainTown.tier || 1}</span></div><div title="Townsfolk and beds"><b>${Math.floor(trainTown.pop || 0)} / ${Math.floor(trainTown.housing || 0)}</b><span>People</span></div><div title="Workers and the most this tier allows"><b>${nw} / ${t.workers}</b><span>Workers</span></div></div>`
+        + `<div class="ti-acts"><button class="ti-go" data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker <small>${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</small></button></div><div data-worker-training></div>` + hallUpgradeButton(trainTown);
+    }
+    const html = tiHead(inspect.spot ? 'Resource spot' : info.hall ? `${trainTown.name}, town hall` : trainTown?.name || 'Your town', info.title, art)
+      + `<div class="ti-rows">${lines.map(tiRow).join('')}</div>`
       + (info.work || '')
       + (info.camp && info.camp.id ? campCardHTML(info.camp, trainTown) : '')
       + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built work camp of the same kind.">Place camp here</button>` : '')
-      + (info.stable ? `<button data-stable="${esc(trainTown.id)}" title="Buy horses, rickshaws and omnibuses here">Open stable</button>` : '')
-      + (info.hall ? `<button data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</button><div data-worker-training></div>` + hallUpgradeButton(trainTown) : '');
+      + (info.stable ? `<div class="ti-acts"><button class="ti-go" data-stable="${esc(trainTown.id)}" title="Buy horses, rickshaws and omnibuses here">Open stable</button></div>` : '')
+      + hallH;
     // Compare source strings, not browser-normalized innerHTML (data-close becomes data-close="").
     if (inspectionHtml !== html && !inspectionPressed) { const open = card.querySelector?.('details')?.open; card.innerHTML = html; inspectionHtml = html; if (open) { const d = card.querySelector?.('details'); if (d) d.open = true; } }
     const training=card.querySelector?.('[data-worker-training]');

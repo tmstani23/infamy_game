@@ -324,7 +324,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     if (worldState().hero) counts.hero=1;
     const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ', hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>Spots <small>${counts.spot} in view, green timber, grey stone, blue fish, tan forage</small></span>` : '')
       + railKey();
-    if (el.innerHTML !== html) el.innerHTML=html;
+    if (el._html !== html) { el._html = html; el.innerHTML = html; }   // last string: SVG re-serialises, so an innerHTML compare never matched
   }
   function ensureWorldMap() {
     if (worldMap) return;

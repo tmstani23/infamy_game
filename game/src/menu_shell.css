@@ -485,3 +485,34 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .gseg button.on { background: linear-gradient(var(--ms-dk1), var(--ms-dk2)); color: var(--ms-on-text); }
 #townpanel .gkeep { display: inline-flex; align-items: center; gap: 5px; } #townpanel .gkeep small { font-size: 10px; color: #9b9c98; }
 #townpanel .gkeep input.keepin { width: 80px; text-align: right; }
+
+/* town cards (#towninspect) in the menu look (Tim 2026-11-11): the town hall card and every other town building, zone, spot or worker card */
+#towninspect { width: 320px; max-width: calc(100vw - 24px); box-sizing: border-box; padding: 10px 12px 12px; background: linear-gradient(180deg, #171c21, #0f1317);
+  border: 1px solid #4d3b2a; border-top: 2px solid var(--ms-accent); border-radius: 8px; box-shadow: 0 12px 44px #000b, 0 0 0 1px #000; color: #eadfc6; font: 12px/1.4 system-ui, sans-serif; }
+#towninspect button { margin-top: 0; font: 600 12px/14px system-ui, sans-serif; color: #eadfc6; background: #20262d; border: 1px solid #61543e; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
+#towninspect button:hover:not(:disabled) { border-color: #ffe0a1; background: #262d35; }
+#towninspect button.no { opacity: .55; }
+#towninspect .ti-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+#towninspect .ti-art { flex: none; width: 64px; height: 52px; object-fit: contain; filter: drop-shadow(0 4px 6px #000); }
+#towninspect .ti-name { flex: 1; min-width: 0; }
+#towninspect .ti-eye { font: 600 10px/12px system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--ms-accent-lt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#towninspect .ti-title { display: block; font: 500 18px/22px system-ui, sans-serif; color: #f2e6c9; }
+#towninspect button.ti-x { float: none; margin: 0; align-self: flex-start; padding: 3px 9px; font-size: 11px; }
+#towninspect .ti-rows { display: flex; flex-direction: column; border-top: 1px solid #3c3b36; }
+#towninspect .ti-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid #25272a; }
+#towninspect .ti-row span { color: #9b9c98; } #towninspect .ti-row b { color: #eadfc6; font-weight: 600; text-align: right; }
+#towninspect .ti-row .ti-txt { color: #cfc6b4; }
+#towninspect .ti-row.good .ti-txt, #towninspect .ti-row.good b { color: #a5d8a4; } #towninspect .ti-row.warn .ti-txt, #towninspect .ti-row.warn b { color: #e3b06a; }
+#towninspect .ti-coins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 9px 0 2px; }
+#towninspect .ti-coins > div { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 9px; border: 1px solid #6a5636; background: radial-gradient(#2b2520, #121110 80%); }
+#towninspect .ti-coins b { font: 600 13px/16px system-ui, sans-serif; color: #f6e6bf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#towninspect .ti-coins span { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #9b9c98; }
+#towninspect .ti-acts { display: flex; gap: 6px; margin-top: 8px; }
+#towninspect .ti-acts button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 6px; }
+#towninspect .ti-acts button small { font: 400 10px/12px system-ui, sans-serif; color: #b9b3a6; }
+#towninspect button.ti-go { border-color: var(--ms-go-line); background: linear-gradient(var(--ms-go1), var(--ms-dk1)); color: var(--ms-on-text); box-shadow: 0 0 10px color-mix(in srgb, var(--ms-accent) 30%, transparent); }
+#towninspect button.ti-go:hover { background: linear-gradient(var(--ms-go-hi1), var(--ms-go-hi2)); }
+#towninspect button.ti-up { width: 100%; margin-top: 6px; }
+#towninspect [data-worker-training]:not(:empty) { margin-top: 6px; }
+#towninspect .ti-prog { height: 6px; margin-top: 4px; border-radius: 3px; background: #0b0d0f; border: 1px solid #3a3530; overflow: hidden; }
+#towninspect .ti-prog i { display: block; height: 100%; background: linear-gradient(90deg, #8a7a4a, #e9c27a); }

@@ -9,7 +9,7 @@ export function workerTrainingHTML(s,tick,data) {
   const queue=s.workerTraining || [];if(!queue.length)return '';
   const first=queue[0],duration=data.workers.trainTicks/20;
   return trainingBar('Worker',Math.max(0,(first.readyAt-tick)/20),duration)
-    + `<div class="hint">${queue.length-1} more queued · all complete in ${Math.max(0,(queue.at(-1).readyAt-tick)/20).toFixed(1)}s</div>`;
+    + `<div class="hint">${queue.length-1} more queued, all complete in ${Math.max(0,(queue.at(-1).readyAt-tick)/20).toFixed(1)}s</div>`;
 }
 export function workerTrainingPreview(s,count,data) {
   const cost={ryo:count*data.workers.cost,...(data.workers.goodsCost?{goods:count*data.workers.goodsCost}:{})},people=count*data.workers.personCost,reserve=data.opening?.reservePeople || 0;
