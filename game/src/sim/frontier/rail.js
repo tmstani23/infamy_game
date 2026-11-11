@@ -34,7 +34,7 @@ export function createRail({ state, data, world, worldData, stable }) {
 
   // where a station's track ends: the capital end just outside the island gate, a town's at its station
   function endpoint(owner, id) {
-    if (id === 'capital') { const g = runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }
+    if (id === 'capital') { const g = runtime?.gate?.rail || runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }   // east of the city station (Tim 2026-11-10), else the gate
     const s = town(id), b = s && s.owner === owner && stable?.of(s, 'station');
     if (!b) return null;
     const parts = stationParts(s, b);   // the 3x2 station (Tim 2026-11-07): the line ends in its shed
@@ -62,7 +62,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       for (const [i, id] of Object.entries(t.railCells)) if (id === l.id) delete t.railCells[i];
   }
   // why a link can't be ordered (or null), plus the route when it can
-  function preview(owner, from, to) {
+  function preview(owner, from, to, relay = null) {   // relay: a link being re-routed (capitalEnds), not counted as laid
     const s = town(from);
     if (!s || s.owner !== owner) return { error: 'not your town' };
     if (to !== 'capital' && town(to)?.owner !== owner) return { error: 'Lines only run to your own towns' };
@@ -71,10 +71,12 @@ export function createRail({ state, data, world, worldData, stable }) {
     const a = endpoint(owner, from), b = endpoint(owner, to);
     if (!a) return { error: `Build a railway station in ${s.name} first` };
     if (!b) return { error: to === 'capital' ? 'The capital end is not ready' : `Build a railway station in ${town(to).name} first` };
-    if (linked(owner, from, to)) return { error: 'Those stations are already linked' };
+    if (!relay && linked(owner, from, to)) return { error: 'Those stations are already linked' };
     const g = G();
     if (!g) return { error: 'no railway data' };
-    const coarse = routeRail(g, a, b, { reuse: linksOf(owner).map(l => l) });
+    // the capital: routed to a point out in front of the wall, then straight in through it to the end (Tim 2026-11-10)
+    const ap = to === 'capital' && runtime?.gate?.rail && runtime.gate.railApproach, target = ap ? { x: ap[0], z: ap[1] } : b;
+    const coarse = routeRail(g, a, target, { reuse: linksOf(owner).filter(l => l !== relay) });
     if (!coarse) return { error: 'No way to lay track there' };
     // inside the end towns the track takes a fine path round buildings and houses (Tim 2026-11-07)
     // a 3x2 station (Tim 2026-11-07): out of the shed straight through the railway slot, then round the town
@@ -90,7 +92,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       const back = exitOf(town(to), [...pts].reverse());
       if (!back) return { error: boxed(town(to)) };
       pts = back.reverse();
-    }
+    } else if (ap) pts.push([b.x, b.z]);
     // round every corner to a curve a train could take (Tim 2026-11-08), keeping clear of rock, water and buildings
     const ends = [s, town(to)].filter(t => t?.grid).map(t => { const st = stable.of(t, 'station'); return [t, new Set(st ? (st.cells || [st.cell]) : [])]; });
     // strict first (a cell clear of rock and water), then just off rock and buildings where the strict curve won't fit
@@ -215,8 +217,9 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (id === 'capital') {
       const g = runtime?.gate; if (!g) return false;
       const st = g.station || g.city;   // the city railway station (Tim 2026-11-07), else the gate
+      // with a city station the train stands inside the wall: boarding only at the station in the city (Tim 2026-11-10)
       return (e.place === 'street' && Math.hypot(e.x - st[0], e.z - st[1]) <= (RIDE().gateReach ?? 6))
-        || (e.place === 'world' && Math.hypot(e.x - g.island[0], e.z - g.island[1]) <= (RIDE().reach ?? 18) + 6);
+        || (!g.rail && e.place === 'world' && Math.hypot(e.x - (g.rail || g.island)[0], e.z - (g.rail || g.island)[1]) <= (RIDE().reach ?? 18) + 6);
     }
     const p = endpoint(owner, id);
     return !!p && e.place === 'world' && Math.hypot(e.x - p.x, e.z - p.z) <= (RIDE().reach ?? 18);
@@ -259,16 +262,20 @@ export function createRail({ state, data, world, worldData, stable }) {
     const t = rec().trains[trainId], at = t && stationOf(t);
     if (t?.call?.hero === e.id) return allAboard(t);   // Space again: on at once (anywhere in the zone)
     if (!t || t.owner !== e.owner || !at || !atStation(e, e.owner, at)) return say(e.owner, 'No train standing here');
+    // no leaving the capital with a Rally up (Tim 2026-11-10): rallied sector crew rode out, the Hero group went far over
+    // six on the island and the city was left short. Once the Rally is over only the Hero group boards (inZone).
+    if (at === 'capital' && e.place === 'street' && rallyUp(e.owner)) return say(e.owner, 'A Rally is up: the train waits until your crew are back at their posts');
     if (t.call) return say(e.owner, 'Boarding is already called');
     // the call never holds the train (Tim 2026-11-08): with less than callSeconds before it leaves, that is all you get
     const ticks = Math.max(1, Math.min(Math.round((RIDE().callSeconds ?? 10) * 20), t.wait - 1));
     // the zone lies on the ground round the station (Tim 2026-11-08): a town's shed, the city railway station, or the
     // line's end outside the island gate
-    const g = runtime?.gate, p = at === 'capital' ? (e.place === 'street' ? (g?.station && { x: g.station[0], z: g.station[1] }) : g?.island && { x: g.island[0], z: g.island[1] }) : endpoint(e.owner, at);
+    const g = runtime?.gate, p = at === 'capital' ? (e.place === 'street' ? (g?.station && { x: g.station[0], z: g.station[1] }) : endpoint(e.owner, 'capital')) : endpoint(e.owner, at);
     t.call = { hero: e.id, x: p?.x ?? e.x, z: p?.z ?? e.z, place: e.place, r: RIDE().zoneRadius ?? 25, until: (state.tick ?? 0) + ticks, ticks };
     return say(e.owner, 'All aboard! Get your crew into the zone (Space boards now)');
   }
   // who is in the boarding zone: the hero and every unit of his on foot or on horseback (not horses, vehicles, workers)
+  const rallyUp = owner => { const r = state.deployment?.clans?.[owner]?.rally; return !!r?.active && r.endsAt > (state.tick ?? 0); };
   function inZone(t) {
     const c = t.call, e = c && state.entities[c.hero];
     if (!e) return [];
@@ -276,7 +283,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     const at = u => { const v = vehicleOf(u); return v || u; };
     // in the capital only the boss's own party boards: Hero group (or Rally) crew and settlers, never sector crew or
     // HQ reserves walking past the station (Tim 2026-11-08: sector crew rode out to the island and could not be ordered)
-    const party = u => u.place !== 'street' || !u.deployment || (!u.deployment.transfer && crewCommandGroup(state, u) !== null && ['hero', 'rally'].includes(crewCommandGroup(state, u)));
+    const party = u => u.place !== 'street' || !u.deployment || (!u.deployment.transfer && (u.deployment.group || 'hero') === 'hero');
     const ok = u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && (!u.aboard || vehicleOf(u)) && !u.worker && !u.railGang && party(u)
       && u.type !== 'horse' && u.type !== 'rickshaw' && u.type !== 'omnibus' && !u.vehicle && at(u).place === c.place && Math.hypot(at(u).x - c.x, at(u).z - c.z) <= c.r;
     return Object.values(state.entities).filter(ok).sort((a, b) => Math.hypot(at(a).x - c.x, at(a).z - c.z) - Math.hypot(at(b).x - c.x, at(b).z - c.z));
@@ -300,6 +307,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     const at = stationOf(t);
     if (!at) return say(e.owner, 'The train left without you');
     if (e.place !== c.place || Math.hypot(e.x - c.x, e.z - c.z) > c.r) { t.wait = Math.min(t.wait, 20); return say(e.owner, 'Boarding called off: you left the zone'); }
+    if (c.place === 'street' && rallyUp(e.owner)) return say(e.owner, 'Boarding called off: a Rally is up');
     if (e.mounted) { delete e.mounted; delete e.ride; }   // the horse stays at the station
     const group = inZone({ call: c });
     const room = seats(t) - ridersOf(t.id).length, party = [e, ...group].slice(0, Math.max(0, room));
@@ -360,6 +368,7 @@ export function createRail({ state, data, world, worldData, stable }) {
 
   // the gang at the railhead: spawn near someone on the island, hammer a few seconds, catch up, repeat
   function tick() {
+    if (runtime?.gate) capitalEnds();
     runTrains();
     if (!runtime?.spawn) return;
     const enabled = modeRules(state).island, g = GANG(), size = g.size ?? 3;
@@ -401,6 +410,23 @@ export function createRail({ state, data, world, worldData, stable }) {
   }
 
   function attach(services) { runtime = services; }
+  // Lines laid before the capital end moved from the gate to the station (Tim 2026-11-10): routed again to the new end,
+  // once; trains and laying progress keep their share of the way. A line with no way there keeps its old end.
+  function capitalEnds() {
+    const p = endpoint(null, 'capital'), r = rec(); if (!p) return;
+    const key = `${p.x},${p.z}`; if (r.capitalEnd === key) return;
+    r.capitalEnd = key;
+    for (const l of Object.values(r.links)) {
+      const end = l.to === 'capital' && l.points?.at(-1);
+      if (!end || Math.hypot(end[0] - p.x, end[1] - p.z) < 1) continue;
+      const n = preview(l.owner, l.from, 'capital', l).line; if (!n) continue;
+      const k = n.length / (l.length || n.length);
+      for (const t of Object.values(r.trains)) if (t.link === l.id) t.d = t.d >= l.length - 0.01 ? n.length : Math.max(0, Math.min(n.length, t.d * k));
+      unreserve(l);
+      Object.assign(l, { points: n.points, dist: n.dist, length: n.length, bridges: n.bridges, built: Math.min(n.length, (l.built || 0) * k) });
+      reserve(l);
+    }
+  }
   const setShipping = (arrive, depart, tear = null) => { arriveHook = arrive; departHook = depart; tearHook = tear; };
   return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
 }

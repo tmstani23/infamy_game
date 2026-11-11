@@ -50,6 +50,8 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     Object.assign(horse, { x: spot[0], z: spot[1], place: 'world', anim: 'run' }); delete horse.stored; delete horse.path; delete horse.callBest;
     horse.called = hero.id;
   }
+  // the whistle is heard (render/sound.js horse_whistle_1, Tim 2026-11-10)
+  const blow = e => state.casts?.push({ kind: 'horseWhistle', a: e.id, x: e.x, z: e.z, place: e.place });
   function whistle(e, id) {
     const w = whistlesOf(e.owner).find(w => w.horse === id);
     if (!w) return say(e.owner, 'No such whistle');
@@ -60,15 +62,15 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     clanOf(e.owner).mount = id;
     if (!horse) {   // missing after a load: she comes back to the whistle
       const nid = spawn('horse', R().models?.[w.kind] || w.kind, e.x + 1.5, e.z + 1, { horseOwner: e.owner, horseKind: w.kind, name: w.name, place: 'world', hp: R().hp ?? 300, maxHp: R().hp ?? 300, holdFire: true, vehicle: true });
-      horse = state.entities[nid]; w.horse = nid; clanOf(e.owner).mount = nid; inbound(horse, e);
+      horse = state.entities[nid]; w.horse = nid; clanOf(e.owner).mount = nid; inbound(horse, e); blow(e);
       return say(e.owner, `${w.name || 'Your horse'} is on her way`);
     }
     if (horse.rider === e.id) return;
     if (horse.rider) { const r = state.entities[horse.rider]; if (r) dismount(r); }
     const far = horse.stored || horse.place !== 'world' || Math.hypot(horse.x - e.x, horse.z - e.z) > (R().whistleRange ?? 300);
-    if (far) { inbound(horse, e); return say(e.owner, `${horse.name || 'Your horse'} is on her way`); }
+    if (far) { inbound(horse, e); blow(e); return say(e.owner, `${horse.name || 'Your horse'} is on her way`); }
     if (Math.hypot(horse.x - e.x, horse.z - e.z) <= (R().reach ?? 4)) return say(e.owner, `${horse.name || 'Your horse'} is your mount (H to ride)`);
-    horse.called = e.id; delete horse.path; delete horse.callBest;
+    horse.called = e.id; delete horse.path; delete horse.callBest; blow(e);
     say(e.owner, `${horse.name || 'Your horse'} is on her way`);
   }
 
@@ -205,16 +207,28 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       clan.whistles = clan.whistles.filter(w => !gone.includes(w));
       for (const w of gone) say(clan.id, `${w.name || 'Your horse'} has died`);
     }
+    // a rider flag with no horse under it is dropped (Tim 2026-11-10: left over after a train or vehicle ride, it kept
+    // the unit from fighting, riding again or showing in its group)
+    if (state.tick % 20 === 0) for (const u of Object.values(state.entities)) {
+      if (!u.mounted) continue;
+      const horse = u.ride?.kind === 'horse' && state.entities[u.ride.horse];
+      if (horse && !horse.dead && !horse.stored && horse.rider === u.id) continue;
+      delete u.mounted; if (u.ride?.kind === 'horse') delete u.ride;
+    }
     for (const horse of Object.values(state.entities)) {
       if (horse.type !== 'horse' || horse.stored) continue;
       const rider = horse.rider && state.entities[horse.rider];
+      if (horse.rider && !rider) delete horse.rider;   // her rider is gone (Tim 2026-11-10: she could not be ridden, called or recalled)
+      if (horse.recall) continue;                      // on her way to the stable (sim/vehicle_garage.js moves her)
       if (rider) {
         if (rider.ride?.horse !== horse.id) { delete horse.rider; continue; }
         if (rider.place !== 'world' || rider.dead || rider.downed || rider.jailed) { dismount(rider); continue; }
         if (rider.hp < (rider.maxHp || 0) * (R().throwShare ?? 0.33)) { dismount(rider, rider.type === 'hero' ? 'Thrown from the saddle!' : ''); continue; }
         // crew get off to fight: hit, or told to attack (Tim 2026-11-07); the horse waits there
         if (rider.type !== 'hero' && (rider.attackTarget || ['attack', 'attackmove'].includes(rider.order?.kind) || (rider.hitBy && state.tick - rider.hitBy.tick < 10))) { dismount(rider); continue; }
-        const moved = Math.hypot(rider.x - horse.x, rider.z - horse.z) > 0.01;
+        // really travelling, not nudged by the crowd around her (Tim 2026-11-10: stopped crew horses ran on the spot)
+        if (Math.hypot(rider.x - horse.x, rider.z - horse.z) > (R().moveStep ?? 0.12)) horse.wentAt = state.tick;
+        const moved = horse.wentAt != null && state.tick - horse.wentAt <= 2;
         Object.assign(horse, { x: rider.x, z: rider.z, dir: rider.dir ?? horse.dir, heading: rider.heading ?? horse.heading, anim: moved ? (rider.type === 'hero' && !rider.gallop ? 'trot' : 'run') : 'idle' });
         delete rider.attackTarget; delete rider.swing;
         continue;

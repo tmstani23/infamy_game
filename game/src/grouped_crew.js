@@ -52,6 +52,12 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     const el=document.createElement('section'),head=document.createElement('button'),list=document.createElement('div');
     el.className='crew-section';el.dataset.group=id;head.className='crew-group-select';head.type='button';list.className='crew-group-pips';
     head.addEventListener('dblclick',()=>watchGroup(id));
+    // right-click the Frontier crew header (Tim 2026-11-10): everyone gets off, out of every vehicle and off every horse
+    if(id==='vehicles')head.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();
+      const owner=game.state.entities[heroId]?.owner,O=game.omnibus,all=Object.values(game.state.entities);
+      const vs=O?all.filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[];
+      if(vs.length)send({id:heroId,type:'omnibus',action:'deploy',vehicles:vs});
+      for(const u of all)if(u.owner===owner&&u.type!=='hero'&&u.mounted&&u.ride?.horse&&!u.dead)send({id:heroId,type:'mount',horse:u.ride.horse,units:[u.id]});});
     head.addEventListener('click',()=>{
       // a header selects just what its section shows (Tim 2026-11-08): the vehicles header its vehicles, a group
       // header its crew on foot or horseback (riders show in their vehicle's card)
@@ -114,12 +120,12 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     const mounts=crew.filter(e=>e.mounted&&e.ride?.kind==='horse'&&!e.dead);
     const vs=createSection('vehicles','Frontier crew');vs.count=vehicles.length+mounts.length;
     const vk=`v${vehicles.length}|${mounts.length}`;
-    if(vs.headKey!==vk){vs.headKey=vk;vs.head.textContent=`Frontier crew · ${[vehicles.length?`${vehicles.length} vehicle${vehicles.length===1?'':'s'}`:'',mounts.length?`${mounts.length} mounted`:''].filter(Boolean).join(' · ')}`;}
+    if(vs.headKey!==vk){vs.headKey=vk;vs.head.title='Click selects them; right-click gets everyone off: out of every vehicle and off every horse';vs.head.textContent=`Frontier crew · ${[vehicles.length?`${vehicles.length} vehicle${vehicles.length===1?'':'s'}`:'',mounts.length?`${mounts.length} mounted`:''].filter(Boolean).join(' · ')}`;}
     const vnodes=vehicles.map(v=>{
       let p=pips.get('veh:'+v.id);
       if(!p){const el=document.createElement('div'),name=document.createElement('div'),hp=document.createElement('div'),seats=document.createElement('div');
         el.className='mate veh';el.dataset.out='⏏ Unload';name.className='vname';hp.className='pip';seats.className='seats';el.append(name,hp,seats);
-        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>{crewInput.select([v.id]);crewInput.look?.(v.id);});   // like a click on it in the world: it shows in the target frame (Tim 2026-11-08)
+        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>{crewInput.select([v.id]);crewInput.look?.(v.id);});el.addEventListener('dblclick',()=>crewInput.watch?.(v.id));   // like a click on it in the world: it shows in the target frame (Tim 2026-11-08)
         // right-click the card: everyone in it steps out, the same as right-clicking it in the world (Tim 2026-11-08)
         el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id]});});
         p={el,name,hp,seats,key:''};pips.set('veh:'+v.id,p);}
@@ -131,20 +137,20 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
           // right-click one rider's seat: only he steps out and waits (Tim 2026-11-08); the hero's seat unloads the whole vehicle like the card
           if(r.type!=='hero'){const nm=unitName(units,r.type);d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c)c.dataset.out=`⏏ ${nm} out`;});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c)c.dataset.out='⏏ Unload';});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id]});});}}return d;}));}
       p.el.classList.toggle('picked',selected.has(v.id));
-      p.el.title=`${p.name.textContent} · ${Math.ceil(v.hp)}/${v.maxHp} health · ${rs.length} of ${n} seats. Click selects it: right-click the ground to send it, V to follow, Z to stay, Q or right-click this card to let them out.`;
+      p.el.title=`${p.name.textContent} · ${Math.ceil(v.hp)}/${v.maxHp} health · ${rs.length} of ${n} seats. Click selects it: right-click the ground to send it, V to follow, Z to stay, Q or right-click this card to let them out; double-click: the camera follows it.`;
       return p.el;});
     const mnodes=mounts.map(u=>{
       let p=pips.get('mnt:'+u.id);
       if(!p){const el=document.createElement('div'),name=document.createElement('div'),hp=document.createElement('div'),seats=document.createElement('div'),d=document.createElement('span');
         el.className='mate veh mount';el.dataset.out='⏏ Dismount';name.className='vname';hp.className='pip';seats.className='seats';d.className='seat';seats.append(d);el.append(name,hp,seats);
-        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>crewInput.select([u.id]));
+        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>crewInput.select([u.id]));el.addEventListener('dblclick',()=>crewInput.watch?.(u.id));
         el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();const r=game.state.entities[u.id];if(r?.ride?.horse)send({id:heroId,type:'mount',horse:r.ride.horse,units:[u.id]});});
         p={el,name,hp,seats,d};pips.set('mnt:'+u.id,p);}
       const horse=game.state.entities[u.ride.horse];
       p.name.textContent=`Mount · ${horse?.name||'Horse'}`;p.d.textContent=unitName(units,u.type).slice(0,1);p.d.title=unitName(units,u.type);
       p.hp.style.setProperty('--hp',`${Math.max(0,u.hp/u.maxHp*100)}%`);
       p.el.classList.toggle('picked',selected.has(u.id));
-      p.el.title=`${unitName(units,u.type)} on ${horse?.name||'a horse'} · ${Math.ceil(u.hp)}/${u.maxHp} HP. Click selects him: right-click the ground to send him, V to follow, Z to stay, Q or right-click this card to get him off.`;
+      p.el.title=`${unitName(units,u.type)} on ${horse?.name||'a horse'} · ${Math.ceil(u.hp)}/${u.maxHp} HP. Click selects him: right-click the ground to send him, V to follow, Z to stay, Q or right-click this card to get him off; double-click: the camera follows him.`;
       return p.el;});
     for(const [id,p]of pips)if((id.startsWith('veh:')&&!vehicles.some(v=>'veh:'+v.id===id))||(id.startsWith('mnt:')&&!mounts.some(u=>'mnt:'+u.id===id))){p.el.remove();pips.delete(id);}
     syncChildren(vs.list,[...vnodes,...mnodes]);if(vehicles.length||mounts.length)ordered.splice(1,0,vs.el);

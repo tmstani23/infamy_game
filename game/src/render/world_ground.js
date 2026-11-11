@@ -43,7 +43,7 @@ const GROUND = {
 const SPLAT_RES = 0.5;   // weight-map pixels per world unit
 const TRAIL = 3;         // half width of a corridor trail
 
-export function createWorldGround({ scene, renderer, world, cfg, catalog, cutouts, bounds, gate, resourceSpots, spotConfig }) {
+export function createWorldGround({ scene, renderer, world, cfg, catalog, cutouts, bounds, gate, railZ = null, resourceSpots, spotConfig }) {
   const S = cfg.chunk, seed = world.seed ?? 1, city = cityOnIsland(world, bounds);
   const cols = Math.ceil(world.size.w / S), rows = Math.ceil(world.size.h / S);
   const loaded = new Map();     // 'cx,cz' -> { gen, mesh, used }
@@ -66,11 +66,23 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   // W3.10: the walled city seen from the island. Its box is a walk blocker (sim/chunk_gen.js), so a line of
   // stone wall pieces marks its edges, open at the gate and left out over water (data: world_paint.json cityWall).
   const CW = cfg.paint?.cityWall, wall = [];
+  // the gate stands in the wall line (Tim 2026-11-10), not out at the gate ring: the wall's gap is as wide as the gate art
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const gateAt = gate && CW ? { x: clamp(gate.x, city.minX - CW.out, city.maxX + CW.out), z: clamp(gate.z, city.minZ - CW.out, city.maxZ + CW.out) } : gate;
   if (CW && gate) {
-    const o = CW.out, add = (x, z, flip) => { if (terrainAt(world, x, z) !== 'w' && Math.hypot(x - gate.x, z - gate.z) > CW.gap) wall.push({ art: CW.art, x, z, flip }); };
+    // railZ: the city station's track goes out through its own opening in the east wall (Tim 2026-11-10)
+    const rz = railZ === null ? null : city.minZ - bounds.minZ + railZ, RH = CW.railHalf ?? 2.7, onRail = (x, z) => rz !== null && x > city.maxX && Math.abs(z - rz) < RH + CW.step / 2;
+    const o = CW.out, add = (x, z, flip) => { if (terrainAt(world, x, z) !== 'w' && !onRail(x, z) && Math.hypot(x - gateAt.x, z - gateAt.z) > (CW.gateHalf ?? CW.gap)) wall.push({ art: CW.art, x, z, flip }); };
     for (let x = city.minX + CW.step / 2; x < city.maxX; x += CW.step) { add(x, city.minZ - o, false); add(x, city.maxZ + o, false); }
     for (let z = city.minZ + CW.step / 2; z < city.maxZ; z += CW.step) { add(city.minX - o, z, true); add(city.maxX + o, z, true); }
+    // the wall grid rarely lands on the railway gate's ends: one extra piece butts against each end of the gate
+    // (it overlaps the next grid piece), so no gap is left (Tim 2026-11-10)
+    if (rz !== null) for (const s of [-1, 1]) wall.push({ art: CW.art, x: city.maxX + o, z: rz + s * (RH + CW.step / 2 - (CW.railLap ?? 0.15)), flip: true });
   }
+  // fog behind the wall (Tim 2026-11-10): the city is not drawn from the island, so its box is dark, not open grass
+  const cityFog = CW ? new THREE.Mesh(new THREE.PlaneGeometry(city.maxX - city.minX + CW.out * 2, city.maxZ - city.minZ + CW.out * 2),
+    new THREE.MeshBasicMaterial({ color: 0x06080c, transparent: true, opacity: CW.fog ?? 0.94, depthTest: false, depthWrite: false })) : null;
+  if (cityFog) { cityFog.rotation.x = -Math.PI / 2; cityFog.position.set((city.minX + city.maxX) / 2, 0.04, (city.minZ + city.maxZ) / 2); cityFog.renderOrder = -0.3; cityFog.visible = false; scene.add(cityFog); }
   const segs = [];
   for (const c of world.corridors || []) for (let k = 1; k < c.points.length; k++) segs.push([c.points[k - 1], c.points[k]]);
 
@@ -245,10 +257,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
     glow?.update(glowItems, active, viewScale);
     if (!active) {
-      if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; }
+      if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; if (cityFog) cityFog.visible = false; }
       return;
     }
-    if (!shown) { for (const c of loaded.values()) { c.mesh.visible = true; if (c.coastMesh) c.coastMesh.visible = true; } shown = true; }
+    if (!shown) { for (const c of loaded.values()) { c.mesh.visible = true; if (c.coastMesh) c.coastMesh.visible = true; } shown = true; if (cityFog) cityFog.visible = true; }
     frame++;
     const vx = last && dt > 0 ? (x - last[0]) / dt : 0, vz = last && dt > 0 ? (z - last[1]) / dt : 0;
     last = [x, z];
@@ -289,7 +301,9 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     const cleared = p => rail.has(Math.floor(p.x / 1.5) * 100003 + Math.floor(p.z / 1.5)) || patches.some(t => Math.abs(p.x - t.x) < t.width / 2 && Math.abs(p.z - t.z) < t.height / 2);
     for (const spot of spots) for (const p of spotPiecesToProps(spot, snapshot?.spots?.[spot.id], catalog.spotArt, spotConfig))
       if (Math.hypot(p.x - x, p.z - z) < R && !cleared(p)) want.set(p.key, p);
-    if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gate.x,z:gate.z});
+    if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gateAt.x,z:gateAt.z});
+    // the railway gate in the east wall, where the capital's lines go in (Tim 2026-11-10, art rail_gate)
+    if(CW&&gate&&railZ!==null&&cfg.islandArt?.enabled){const gx=city.maxX+CW.out,gz=city.minZ-bounds.minZ+railZ;if(Math.hypot(gx-x,gz-z)<R+30)want.set('rail-gate',{art:'rail_gate',x:gx,z:gz});}
     for (const p of towns) if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`town:${p.key}`, p);
     wall.forEach((p, i) => { if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`city-wall:${i}`, p); });
     for (const c of loaded.values()) {

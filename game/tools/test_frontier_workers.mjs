@@ -153,7 +153,7 @@ function walking({saved=null,near=true,obstacle=true}={}) {
   const run=n=>{for(let i=0;i<n;i++){
     const previous=Object.fromEntries(Object.values(f.state.entities).filter(e=>e.worker).map(e=>[e.id,[e.x,e.z]]));
     areas.update(Object.values(f.state.entities));f.run(1);
-    for(const e of Object.values(f.state.entities))if(e.worker && previous[e.id])assert.ok(Math.hypot(e.x-previous[e.id][0],e.z-previous[e.id][1])<=f.data.workers.speed/20+1e-8,'loaded navigation never teleports or exceeds worker speed');
+    for(const e of Object.values(f.state.entities))if(e.worker && previous[e.id])assert.ok(Math.hypot(e.x-previous[e.id][0],e.z-previous[e.id][1])<=f.data.workers.speed/20+0.25,'loaded navigation never teleports or exceeds worker speed (plus the lane easing, Tim 2026-11-10)');
   }};
   f.state.entities.hero.x=near?1000:1800;
   const train=count=>{f.send({action:'train',count});run(count*f.data.workers.trainTicks);return f.s.workers;};
@@ -169,7 +169,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
     assert.ok(units(a).length<=3);assert.equal(units(b).length,0);
     for(const w of a.s.workers) {
       const e=a.state.entities[w.entity],p=a.workers.position(w);
-      if(e && p) {assert.ok(Math.hypot(e.x-p[0],e.z-p[1])<1e-8);assert.ok(a.areas.nav.free(e.x,e.z));assert.equal(e.carrying,w.carrying);assert.equal(e.phase,w.phase);assert.equal(e.type,'civilian');assert.equal(e.owner,undefined,'workers never fight or scout as clan troops');}
+      if(e && p) {assert.ok(Math.hypot(e.x-p[0],e.z-p[1])<=a.data.workers.lane.max+a.data.workers.lane.sway+1e-8,'within its lane of the route');assert.ok(a.areas.nav.free(e.x,e.z));assert.equal(e.carrying,w.carrying);assert.equal(e.phase,w.phase);assert.equal(e.type,'civilian');assert.equal(e.owner,undefined,'workers never fight or scout as clan troops');}
     }
   }
   assert.ok(a.s.stock.timber>before,'loaded units actually deliver');
@@ -184,7 +184,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   f.areas.update(Object.values(f.state.entities));assert.deepEqual(f.areas.activeIds(),[],'workers do not keep chunks awake');
   f.run(3);const saved=JSON.parse(JSON.stringify(f.state)),g=walking({saved});
   for(const h of [f,g]) {h.state.entities.hero.place='world';h.run(1);assert.equal(units(h).length,2,'global spawn budget');
-    for(const w of h.s.workers.filter(w=>w.entity!==null)) {const e=h.state.entities[w.entity],p=h.workers.position(w);assert.ok(Math.hypot(e.x-p[0],e.z-p[1])<=1);}
+    for(const w of h.s.workers.filter(w=>w.entity!==null)) {const e=h.state.entities[w.entity],p=h.workers.position(w);assert.ok(Math.hypot(e.x-p[0],e.z-p[1])<=1+h.data.workers.lane.max+h.data.workers.lane.sway);}
     h.run(2);assert.equal(units(h).length,5);}
   assert.deepEqual(g.s.stock,f.s.stock);
   const victim=f.s.workers[0],survivors=f.s.workers.slice(1).map(w=>w.id),entity=f.state.entities[victim.entity];

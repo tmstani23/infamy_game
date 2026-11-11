@@ -11,7 +11,7 @@ import { debitRyo } from './treasury.js';
 import { largeFights, retreatZone, retreatSpot } from './large_fights.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
 import { distractionStep } from './distraction.js';
-import { noticeFor, refill } from './util.js';
+import { noticeFor, refill, bossAway } from './util.js';
 const TICK_RATE = 20, DT = 1 / TICK_RATE;
 export const POLICE = 'police';    // the owner every officer has (not a clan: nobody hires or runs it)
 
@@ -211,7 +211,7 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
     return null;
   }
   function release(clan, p, hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero')) {
-    const extra = { owner: clan.id, hp: types[p.unit]?.hp, deployment: restoredDeployment(p), ...(hero ? { order: { kind: 'follow', target: hero.id } } : {}) };
+    const extra = { owner: clan.id, hp: types[p.unit]?.hp, deployment: restoredDeployment(p), ...(hero && !bossAway(hero) ? { order: { kind: 'follow', target: hero.id } } : {}) };   // boss on the island: back to their own group (Tim 2026-11-10)
     const model = p.model || types[p.unit]?.sprite;
     if (hq) spawnOutside(p.unit, model, hq, extra);
     else { const [x, z] = edges[0] || [0, 0]; spawn(p.unit, model, x, z, extra); }

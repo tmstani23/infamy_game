@@ -83,9 +83,21 @@ console.log('island respawn: ok');
   for (let i = 0; i < 10; i++) g.step([]);
   assert.equal(hero.infirmary, undefined, 'not when far away');
   console.log('island respawn infirmary: ok');
-  // no governor figure any more (Tim 2026-11-07): Space at your town hall talks to its governor
+  // the governor stands by the hall by day, nobody's crew and not attackable; inside at night (Tim 2026-11-10)
+  g.step([{ type: 'time', night: false }]);
   for (let i = 0; i < 20; i++) g.step([]);
-  assert.ok(!Object.values(g.state.entities).some(e => e.governor), 'no governor figure in the town');
+  const gov = Object.values(g.state.entities).filter(e => e.governor === 'tNear');
+  assert.equal(gov.length, 1, 'one governor figure by day');
+  assert.ok(gov[0].guide && !gov[0].owner && gov[0].place === 'world', 'a guide with no owner');
+  assert.ok(!g.attackAllowed(hero, gov[0]), 'not attackable');
+  const [gx0, gz0] = [gov[0].x, gov[0].z];
+  for (let i = 0; i < 40; i++) g.step([]);
+  assert.ok(gov[0].x === gx0 && gov[0].z === gz0 && gov[0].hp === 100, 'he stays put');
+  Object.assign(hero, { place: 'world', x: gx0 + 1, z: gz0 - 1, dead: false });
+  assert.equal(g.governorNear(hero.id)?.governor, 'tNear', 'Space beside him talks');
+  g.step([{ type: 'time', night: true }]);
+  for (let i = 0; i < 20; i++) g.step([]);
+  assert.ok(!Object.values(g.state.entities).some(e => e.governor), 'inside at night');
   Object.assign(hero, { place: 'world', x: near.x + 5, z: near.z, dead: false });
   assert.equal(g.governorNear(hero.id)?.governor, 'tNear', 'Space by the hall talks to its governor');
   Object.assign(hero, { x: near.x + 60 });

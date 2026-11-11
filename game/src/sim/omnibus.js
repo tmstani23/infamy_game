@@ -55,7 +55,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     }
   }
   function seat(u, bus) {
-    if (u.mounted && u.type !== 'hero') { delete u.mounted; delete u.ride; }   // a crew horse stays where it is
+    if (u.mounted) { delete u.mounted; if (u.ride?.kind === 'horse') delete u.ride; }   // the horse stays where it is (the boss's too: a stale mounted flag kept him from riding again)
     u.aboard = bus.id; if (!bus.vorder) bus.vorder = { kind: 'follow' };
     delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; forget(u.id);
     Object.assign(u, { x: bus.x, z: bus.z, place: 'world', anim: 'idle' });
@@ -180,8 +180,14 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz);
     if (d <= stopAt) { b.anim = 'idle'; return false; }
     const r = steer(b, Math.atan2(dx, dz), { turnDegrees: R(b.type).turnDegrees ?? 120 }, dt);
-    const step = Math.min(d - stopAt, (R(b.type).speed ?? 3) * HERO_RUN * dt * (r.slow ?? 1));
-    const nx = b.x + r.hx * step, nz = b.z + r.hz * step, [fx, fz] = nav()?.nearestFree(nx, nz) || [nx, nz];
+    // smoother self-driving (Tim 2026-11-10: clunky on move orders): it pulls away and draws up over a moment, and
+    // turns nearly on the spot when the way is behind it, so it never circles a spot it cannot turn into
+    const D = R().drive || {}, turn = Math.abs(r.diff) > (D.pivotDegrees ?? 70) * Math.PI / 180 ? D.pivotSpeed ?? 0.15 : r.slow ?? 1;
+    b.pace = state.tick - (b.paceAt ?? -99) > 3 ? D.startPace ?? 0.25 : Math.min(1, (b.pace ?? 0) + dt / (D.pullAwaySeconds ?? 0.7)); b.paceAt = state.tick;
+    const ease = () => Math.min(1, (D.startPace ?? 0.25) + (d - stopAt) / (D.drawUp ?? 8));
+    const step = Math.min(d - stopAt, (R(b.type).speed ?? 3) * HERO_RUN * dt * turn * b.pace * (b.vorder?.last === false ? 1 : ease()));
+    // free ground keeps the exact spot (nearestFree answers a cell centre: the drive went in 1-step jumps, Tim 2026-11-10 'clunky')
+    const nx = b.x + r.hx * step, nz = b.z + r.hz * step, nvg = nav(), [fx, fz] = !nvg || nvg.free?.(nx, nz) ? [nx, nz] : nvg.nearestFree(nx, nz) || [nx, nz];
     if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return false; }   // blocked: wait there
     // never drive into another vehicle that is on the move: the later one (by id) waits for it to pass
     if (Object.values(state.entities).some(o => o !== b && isVehicle(o) && !o.dead && o.place === b.place && (o.anim === 'run' || o.anim === 'trot' || o.driver) && o.id < b.id
@@ -257,8 +263,20 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
 
   function selfDrive(b) {
     const o = b.vorder;
-    if (o.kind === 'move' && !drive(b, o.x, o.z, 1, 1 / 20) && Math.hypot(o.x - b.x, o.z - b.z) <= 1.5) b.vorder = { kind: 'stay' };
-    if (o.kind === 'stay') b.anim = 'idle';
+    if (o.kind === 'move') {
+      // along a planned way round buildings and water (Tim 2026-11-10: it drove straight at the spot and stuck)
+      const n = nav(), plan = () => { const pts = n?.findPath?.(b.x, b.z, o.x, o.z); o.pts = pts?.length ? [...pts] : null; o.replanAt = pts?.replanAt; o.planned = state.tick; };
+      if (o.planned == null || (o.replanAt && o.pts && o.pts.length <= o.replanAt && state.tick - o.planned > 20)) plan();
+      while (o.pts?.length > 1 && Math.hypot(o.pts[0][0] - b.x, o.pts[0][1] - b.z) < (R(b.type).length ?? 6) * 0.7) o.pts.shift();
+      // a later corner in plain sight: cut to it, so the drive is a sweep, not cell by cell
+      while (o.pts?.length > 1 && n?.clearLine?.(b.x, b.z, o.pts[1][0], o.pts[1][1])) o.pts.shift();
+      const last = !o.pts || o.pts.length <= 1, [tx, tz] = last ? [o.x, o.z] : o.pts[0];
+      o.last = last;
+      const going = drive(b, tx, tz, last ? 1 : 0, 1 / 20);
+      if (!going && Math.hypot(o.x - b.x, o.z - b.z) <= 1.5) b.vorder = { kind: 'stay' };
+      else if (!going && state.tick - o.planned > 20) plan();   // held up: look for another way, once a second
+    }
+    if (b.vorder.kind === 'stay') b.anim = 'idle';
   }
   function tick() {
     for (const u of Object.values(state.entities)) {   // crew walking over to get in (crewBoard)
@@ -271,6 +289,11 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const byOwner = {};
     for (const b of Object.values(state.entities)) if (isVehicle(b)) (byOwner[b.omnibusOwner] ||= []).push(b);
     separate(Object.values(byOwner).flat());
+    // an empty vehicle stands still (Tim 2026-11-10: a rickshaw kept running on the spot after its riders left by train)
+    for (const b of Object.values(byOwner).flat()) {
+      if (b.driver && state.entities[b.driver]?.aboard !== b.id) delete b.driver;
+      if (!riders(b).length && !b.driver && !b.recall && b.anim !== 'idle') b.anim = 'idle';
+    }
     for (const list of Object.values(byOwner)) {
       const lead = list.find(b => b.driver && state.entities[b.driver]?.aboard === b.id);
       if (lead) {
@@ -318,6 +341,14 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
         Object.assign(u, { x: b.x, z: b.z, place: b.place, anim: 'idle' });
         delete u.order; delete u.attackTarget; delete u.swing; forget(u.id);
       }
+    }
+    // not really getting anywhere (held by the one beside it, a wall, or nudged on the spot): it stands still
+    // (Tim 2026-11-10: stopped vehicles with crew kept their wheels running)
+    for (const b of Object.values(byOwner).flat()) {
+      const w = b.was;
+      if (w && Math.hypot(b.x - w[0], b.z - w[1]) > (R().moveStep ?? 0.02)) b.wentAt = state.tick;
+      b.was = [b.x, b.z];
+      if (b.anim !== 'idle' && !(b.wentAt != null && state.tick - b.wentAt <= 2)) b.anim = 'idle';
     }
   }
 

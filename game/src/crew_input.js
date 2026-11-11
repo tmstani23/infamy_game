@@ -230,7 +230,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // a full one says so on the vehicle. Unloading: Q, or right-click its card in the crew panel
     const crewOnly = bus && !bus.driver && crewSel.length > 0 && !heroBeside;
     if (bus) { if (crewOnly || !busRiders(bus)) send(crewOnly ? { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: crewSel, crewOnly: true }
-      : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly: false }); return; }   // a loaded one: nothing (no unloading here)
+      : { id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: mine(), crewOnly: false });
+      return; }   // a loaded one: nothing. Getting off is only Q or a right-click on the card in the crew panel (Tim 2026-11-10)
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -275,25 +276,32 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
       // vehicles are bigger than people: a wider reach so a click on a loaded one of yours selects it (Tim 2026-11-07)
-      const mate = unitAt(e.clientX, e.clientY, myCrew().filter(u => !u.aboard)) || unitAt(e.clientX, e.clientY, myVehicles(), 45)   // crew inside a vehicle: the click is on the vehicle || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
+      const mate = unitAt(e.clientX, e.clientY, myCrew().filter(u => !u.aboard)) || unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => game.omnibus?.isVehicle(v) && v.omnibusOwner === hero()?.owner && !v.dead && !v.stored && v.place === commandPlace()), 45)   // any of your vehicles, loaded or empty (Tim 2026-11-10); crew inside a vehicle: the click is on the vehicle || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);
       // any rickshaw or omnibus in sight (yours empty or driven, or someone else's) shows in the target frame (Tim 2026-11-07)
       const ride = !mate && !foe && !civ && unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => game.omnibus?.isVehicle(v) && !v.dead && v.place === commandPlace() && seen(v)), 45);
-      looked = civ ? civ.id : mate ? mate.id : ride ? ride.id : null;
+      // any of your horses or empty vehicles (Tim 2026-11-10): a click selects it (ring and card; it takes no crew orders)
+      const horse = !mate && !foe && !civ && !ride && unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => v.type === 'horse' && v.horseOwner === hero()?.owner && !v.dead && !v.stored && v.place === commandPlace()), 40);
+      // a horse one of your crew rides: the click picks her rider, who takes the orders
+      const horseman = horse && horse.rider && horse.rider !== heroId ? game.state.entities[horse.rider] : null;
+      const own = horseman || (ride && ride.omnibusOwner === hero()?.owner ? ride : horse || null);
+      looked = civ ? civ.id : mate ? mate.id : ride ? ride.id : horseman ? horseman.id : horse ? horse.id : null;
       // a lone selected vehicle stays in the target frame while it is selected (Tim 2026-11-08: selection sticks until Esc)
-      if (!looked && selected.length === 1 && game.omnibus?.isVehicle(game.state.entities[selected[0]])) looked = selected[0];
+      if (!looked && selected.length === 1 && (game.omnibus?.isVehicle(game.state.entities[selected[0]]) || game.state.entities[selected[0]]?.type === 'horse')) looked = selected[0];
       // double-click a crew member or vehicle: the camera follows it until you pan, click the map or press Home
-      const clicked = mate || ride, now = performance.now();
+      const clicked = mate || ride || horse, now = performance.now();
       if (clicked && lastClick.id === clicked.id && now - lastClick.t < 400) { const id = clicked.id; view.watch?.(() => { const u = game.state.entities[id]; return u && !u.dead && !u.jailed ? { id, x: u.x, z: u.z, place: u.place } : null; }); }
       lastClick = { id: clicked?.id ?? null, t: now };
       if (mate) picked = [mate.id];
+      if (own) { picked = [own.id]; setSelected([own.id]); }
       // nothing there but a building: look at the building
       const b = mate || foe || civ || ride || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
-      if (mate) {
-        if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id, !!game.omnibus?.isVehicle(mate));   // a vehicle on its own (it has no command group)
+      if (mate && game.omnibus?.isVehicle(mate)) setSelected([mate.id]);   // a vehicle: always selected by a click, never toggled off (Tim 2026-11-10)
+      else if (mate) {
+        if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id, true);   // a click picks just that one (Tim 2026-11-10: it took his whole group); the group header in the crew panel picks the group
         else setSelected(selected.includes(mate.id) ? selected.filter(id => id !== mate.id) : [...selected, mate.id]);
       }
       if (foe) picked = [foe.id];
@@ -335,7 +343,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     markers() { pruneTargets(); return targetMarkers(game.state, heroId, tabbed, seen, commandPlace()); },
     tabbed() { pruneTargets(); return tabbed; },   // for the target frame (src/unit_frames.js)
     looked() { pruneTargets(); return looked; },
-    look(id) { looked = id || null; },   // show this unit in the target frame (a vehicle picked in the crew menu, Tim 2026-11-08)
+    look(id) { looked = id || null; },
+    // the camera follows this unit until you pan, click the map or press Home (a double-click on its crew panel card, Tim 2026-11-10)
+    watch(id) { view.watch?.(() => { const u = game.state.entities[id]; return u && !u.dead && !u.jailed ? { id, x: u.x, z: u.z, place: u.place } : null; }); },   // show this unit in the target frame (a vehicle picked in the crew menu, Tim 2026-11-08)
     inspect(id) { looked=game.state.entities[id]?id:null; },
     // Q for the omnibus (also the Mount controls button): step out, or get in a parked one right beside the hero
     mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },

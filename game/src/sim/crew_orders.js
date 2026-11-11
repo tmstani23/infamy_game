@@ -95,7 +95,8 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
         u.order = { kind: 'enter', room: door.place, x, z, k, n: crew.length, ...(door.ninja ? { window: true } : {}) };
         return;
       }
-      const [ox, oz] = blockOffset(k, crew.length);
+      // riders need a horse length each (Tim 2026-11-10: a mounted group clustered on one spot and ran in place)
+      const [ox, oz] = blockOffset(k, crew.length, crew.some(m => m.mounted) ? 2.8 : 1.1);
       const place = c.place || hero.place;
       const grid = (place === 'street' ? deployment.navFor({ ...u, place }) : null) || navOf(place);
       const [x, z] = grid?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
@@ -169,10 +170,13 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
         hold = true;
       }
     }
+    // lag fix (Tim 2026-11-10): a search that found no way is not run again every tick (a failed search is the dearest
+    // kind: it walks the whole reachable grid). The same goal is tried again once a second.
+    if (p?.failed && Math.hypot(p.gx - gx, p.gz - gz) <= 1.2 && state.tick < p.at + 20) return false;
     if (!p || (!hold && Math.hypot(p.gx - gx, p.gz - gz) > 1.2) || !p.pts.length || (p.replanAt && p.pts.length <= p.replanAt)) {
       const pts = grid.findPath(e.x, e.z, gx, gz) || [];
       p = paths[e.id] = pts.replanAt ? { pts, gx, gz, replanAt: pts.replanAt, at: state.tick } : { pts, gx, gz, at: state.tick };
-      if (!p.pts.length) return false;
+      if (!p.pts.length) { p.failed = true; return false; }
     }
     // the last leg goes straight at the live goal (keeps up with a moving hero or enemy)
     let [wx, wz] = p.pts.length === 1 ? [gx, gz] : p.pts[0];

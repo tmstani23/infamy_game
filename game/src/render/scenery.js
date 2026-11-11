@@ -274,7 +274,7 @@ export function doorRings(doors) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), d.ninja ? windowDoorMaterial : doorMaterial);
     m.rotation.x = -Math.PI / 2;
     m.position.set(d.x, 0.02, d.z);
-    m.renderOrder = d.ninja ? 99800 : 1;   // a back window ring shows through the wall in front of it
+    m.renderOrder = d.ninja || d.gate ? 99800 : 1;   // a back window ring shows through the wall in front of it; the gate's over the gate art's ground (Tim 2026-11-10)
     if (d.gate) m.scale.setScalar(1.8);   // the island gate: a bigger ring (W3.5)
     m.userData.door = d;
     return m;
@@ -290,7 +290,7 @@ export function markCrewDoors(rings, state, owner) {
     const business = d.ninja && state.businesses[d.business];
     m.visible = !business?.hideout || business.owner === owner;
     m.material = crew ? (d.ninja ? crewWindowDoorMaterial : crewDoorMaterial) : d.ninja ? windowDoorMaterial : doorMaterial;
-    m.scale.setScalar(crew ? 1.4 : 1);   // a bigger ring, so it is easy to spot
+    m.scale.setScalar(crew ? 1.4 : d.gate ? 1.8 : 1);   // a bigger ring, so it is easy to spot
   }
 }
 

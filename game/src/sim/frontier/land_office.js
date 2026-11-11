@@ -133,6 +133,10 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   }
   // settlers waiting at the HQ (Tim 2026-11-06): they all go with the hero through the gate
   const settlersWaiting = id => state.clans?.[id]?.settlersWaiting || 0;
+  // The island gate (Tim 2026-11-10): a clan (the player's or a rival's) goes out only with a founding permit, or once it holds a
+  // town or already has someone out there
+  const mayLeave = id => { const c = state.clans?.[id]; return !c || !!c.permit || Object.values(fr()?.settlements || {}).some(s => s.owner === id)
+    || Object.values(state.entities).some(e => e.owner === id && e.place === 'world'); };
   // { ok, reason, settlers, waiting, site } for 'expedition' (validation only; game.js moves the party and spawns the waiting)
   function expeditionCheck(e, c) {
     const clan = state.clans?.[e?.owner];
@@ -141,6 +145,10 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (!atGate(e)) return { ok: false, reason: 'Stand at the island gate' };
     const settlers = partyAtGate(e, c.units), waiting = settlersWaiting(clan.id), n = settlers.length + waiting;
     const crew = heroCrew(e);
+    if (!mayLeave(clan.id)) return { ok: false, reason: 'The island gate opens once you hold a founding permit (telegraph office)' };
+    // nobody leaves with a Rally up, rivals included (Tim 2026-11-10): rallied crew would go along and leave the city short
+    const rally = state.deployment?.clans?.[clan.id]?.rally;
+    if (rally?.active && rally.endsAt > state.tick) return { ok: false, reason: 'A Rally is up: the gate opens once your crew are back at their posts' };
     if (c.action === 'walk') return { ok: true, settlers, waiting, crew };
     if (!clan.permit) return { ok: false, reason: 'Buy a founding permit at the Land Office first' };
     if (n < D.minSettlers) return { ok: false, reason: `Bring at least ${D.minSettlers} settlers (${n} with you)` };
@@ -209,6 +217,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
+  return { mayLeave, office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botBudget, botSite, settlerPrice, day };
 }

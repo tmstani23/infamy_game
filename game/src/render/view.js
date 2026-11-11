@@ -18,6 +18,7 @@ import { entityName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
+import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
@@ -99,13 +100,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const door of built.partitionDoors) blueprintDoors.push({ ...door, at: door.at * scale, a: door.a * scale, b: door.b * scale,
       room: r.name, ox: r.origin.x, oz: r.origin.z, fade: baseOpacity, baseOpacity });
   }
-  const rings = doorRings(doors.filter(d => d.menu !== 'surveyor'));   // the surveyor has a quest mark over his head instead (render/banners.js)
+  const rings = doorRings(doors.filter(d => d.menu !== 'surveyor' && d.menu !== 'lieutenant'));   // the lieutenant too (Tim 2026-11-10)   // the surveyor has a quest mark over his head instead (render/banners.js)
   for (const d of rings) scene.add(d);
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
-  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), resourceSpots, spotConfig }) : null;
+  const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), railZ: (district.buildings || []).find(b => b.railStation)?.z ?? null, resourceSpots, spotConfig }) : null;
   // train plan: railway track on the island; each train car is a sprite (train_* art, Tim 2026-11-07), only its body and shadow
-  const railTrack = worldGround ? createRailTrack({ scene, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
+  const railTrack = worldGround ? createRailTrack({ scene, hide: (() => { const c = cityOnIsland(world, district.bounds); return (x, z) => x > c.minX && x < c.maxX + 0.6 && z > c.minZ && z < c.maxZ; })(), carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // the capital's railway station (Tim 2026-11-07): an engine with its nose out and a track off the east edge, in the city
   const cityStationAt = (district.buildings || []).find(b => b.railStation);
   const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
@@ -434,7 +435,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.veiled = veiled;
       s.shimmer = shim;
       // sheltering in a stockade garrison (Tim 2026-11-06): not drawn, shown again when sent out
-      const sheltered = !!e.garrison || !!e.aboard;   // or riding inside the omnibus (sim/omnibus.js)
+      const sheltered = !!e.garrison || !!e.aboard || !!e.stored;   // stored in a stable (sim/vehicle_garage.js): not drawn   // or riding inside the omnibus (sim/omnibus.js)
       if (sheltered || s.sheltered) {
         for (const m of [s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate, s.team]) if (m) m.visible = !sheltered && (m !== s.ring || selected.has(id));
         s.sheltered = sheltered;

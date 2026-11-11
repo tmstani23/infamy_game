@@ -130,7 +130,7 @@ function carPose(sp, dx, dz) {
   sp.row = row; sp.heading = a; sp.roll = Math.max(-MAX_ROLL, Math.min(MAX_ROLL, r));
 }
 
-export function createRailTrack({ scene, carSprite = null }) {
+export function createRailTrack({ scene, carSprite = null, hide = null }) {   // hide(x, z): behind the city wall, where cars are not drawn (Tim 2026-11-10)
   let track = null, bridge = null;
   const shown = new Map();   // link id -> { key, meshes: [{ mesh, d0, n }] }
   const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png')); };
@@ -215,6 +215,7 @@ export function createRailTrack({ scene, carSprite = null }) {
           const f = pointAt(rl, mid + t.dir * half), b = pointAt(rl, mid - t.dir * half);
           carPose(c.sprite, f.x - b.x, f.z - b.z);
           const x = (f.x + b.x) / 2, z = (f.z + b.z) / 2;
+          if (hide?.(x, z)) { c.sprite.thing.mesh.visible = c.sprite.shadow.visible = false; c.glow?.hide(); continue; }
           c.sprite.update(dt, x, z, c.sprite.row, moving ? 'run' : 'idle', null, 1);
           c.sprite.thing.mesh.visible = c.sprite.shadow.visible = true;
           if (c.kind === 'carriage') (c.glow ||= carriageGlow(scene)).set(x, z, night);

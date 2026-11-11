@@ -35,7 +35,7 @@ export function createStationClock({ game, heroId, view }) {
       if (id === 'capital') {
         const st = game.gate?.station;
         if (place === 'street' && st) out.push({ id, x: st[0], z: st[1] });
-        else if (place === 'world') { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }
+        else if (place === 'world' && !game.gate?.rail) { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }   // no board out there: the train stands inside the wall (Tim 2026-11-10)
       } else if (place === 'world') { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }
     }
     return out;
@@ -59,14 +59,16 @@ export function createStationClock({ game, heroId, view }) {
       const pts = Array.from({ length: 64 }, (_, i) => { const a = i / 64 * Math.PI * 2; return view.unitToScreen(c.x + Math.sin(a) * c.r, c.z + Math.cos(a) * c.r, 0.05); });
       const pulse = 0.5 + 0.5 * Math.sin(now * 5);
       ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
-      ctx.fillStyle = `rgba(255,211,77,${0.04 + 0.02 * pulse})`;   // faint (Tim 2026-11-08: less bright) ctx.fill();
+      ctx.fillStyle = `rgba(255,211,77,${0.07 + 0.03 * pulse})`; ctx.fill();   // faint (Tim 2026-11-08: less bright); the fill had slid into this comment, so no zone showed (Tim 2026-11-10)
       ctx.setLineDash([10, 7]); ctx.lineDashOffset = -now * 18; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,225,140,.28)'; ctx.stroke(); ctx.setLineDash([]);
       // the time left: a solid bright arc from the top of the ring, shrinking clockwise
       const m = Math.max(1, Math.round(64 * k));
       ctx.beginPath(); for (let i = 0; i <= m; i++) { const p = pts[(32 + i) % 64]; i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
       ctx.lineWidth = 3; ctx.strokeStyle = `rgba(236,196,92,${0.45 + 0.15 * pulse})`; ctx.shadowColor = '#000'; ctx.shadowBlur = 4; ctx.stroke(); ctx.shadowBlur = 0;
       // the banner over the far edge of the ring
-      const top = pts.reduce((a, p) => p.y < a.y ? p : a, pts[0]), text = `ALL ABOARD!  ${Math.ceil(left)}`, sub = `${n} crew in the zone · Space boards now`;
+      // kept on the screen when the ring's far edge is off it (the zone is wider than a zoomed-in view, Tim 2026-11-10)
+      const far = pts.reduce((a, p) => p.y < a.y ? p : a, pts[0]), top = { x: Math.max(160, Math.min(innerWidth - 160, far.x)), y: Math.max(150, Math.min(innerHeight - 40, far.y)) };
+      const text = `ALL ABOARD!  ${Math.ceil(left)}`, sub = `${n} crew in the zone. Space boards now`;
       ctx.textAlign = 'center'; ctx.font = '800 20px system-ui,sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#1a1208';
       ctx.strokeText(text, top.x, top.y - 22); ctx.fillStyle = '#ffd34d'; ctx.fillText(text, top.x, top.y - 22);
       ctx.font = '600 12px system-ui,sans-serif'; ctx.lineWidth = 3; ctx.strokeText(sub, top.x, top.y - 6); ctx.fillStyle = '#f3e3bb'; ctx.fillText(sub, top.x, top.y - 6);

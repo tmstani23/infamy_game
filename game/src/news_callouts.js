@@ -61,7 +61,7 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
       if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
       if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');
       if (n.kind === 'lanternDown' && n.raider === me) callout('Your War Lantern was destroyed', 'loss');
-      if (n.kind === 'doorsOpen' && n.raider === me) callout('The doors are open: get inside!', 'news');
+      if (n.kind === 'doorsOpen' && n.raider === me) callout(game.state.entities[heroId]?.place === 'world' ? 'Your captain\'s raid: the doors are open' : 'The doors are open: get inside!', 'news');
       if (n.kind === 'backRoom' && n.state === 'taking' && n.defender === me) callout('Your back room is being taken!', 'loss');
       if (n.kind === 'backRoom' && n.state === 'contested' && (n.defender === me || n.raider === me)) callout('Back room contested!', 'news');
       if (!presentation.map && n.kind === 'crewOut' && n.clan === me) view.flashBuilding(n.building);   // your crew stepping out

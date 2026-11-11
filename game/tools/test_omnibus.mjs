@@ -22,7 +22,7 @@ assert.ok(g.omnibus, 'campaign games have the omnibus');
 
 // --- out through the gate with 5 settlers and 6 Hero-group crew: two omnibuses (12 people, 8 seats) ----
 Object.assign(hero, { place: 'street', x: g.gate.city[0], z: g.gate.city[1] });
-clan.settlersWaiting = 5;
+clan.settlersWaiting = 5; clan.permit = true;   // the gate opens with a founding permit (Tim 2026-11-10)
 const crew = [];
 for (let k = 0; k < 6; k++) crew.push(S.entities[g.spawn('thug', 'thug', hero.x + 1, hero.z + k * 0.3, { owner: 'player', place: 'street', hp: 100, order: { kind: 'follow', target: hero.id } })]);
 g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: crew.map(u => u.id) }]);
@@ -118,6 +118,11 @@ assert.ok(aboard(second).length > 0, 'the other omnibus still holds its riders')
   for (let t = 0; t < 80; t++) g.step([]);
   assert.ok(Math.hypot(second.x - tx, second.z - tz) < 2.5, `drove to the spot (${Math.hypot(second.x - tx, second.z - tz).toFixed(1)})`);
   assert.equal(second.vorder.kind, 'stay', 'then stays');
+  for (let t = 0; t < 10; t++) g.step([]);
+  assert.equal(second.anim, 'idle', 'stands still once there');
+  // held on the spot (turning, blocked, nudged): no wheels running in place (Tim 2026-11-10)
+  second.anim = 'run'; for (let t = 0; t < 5; t++) g.step([]);
+  assert.equal(second.anim, 'idle', 'a vehicle that is not getting anywhere stands still');
   Object.assign(hero, { x: hero.x - 25 }); const sx = second.x;
   for (let t = 0; t < 40; t++) g.step([]);
   assert.ok(Math.abs(second.x - sx) < 1e-6, 'staying vehicle does not follow');

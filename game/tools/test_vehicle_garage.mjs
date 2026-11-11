@@ -68,4 +68,32 @@ for (let t = 0; t < 30 * 20 && !(horse.stored && rk.stored); t++) g.step([]);
 assert.ok(horse.stored && rk.stored, 'both stored');
 g.step([{ id: hero.id, type: 'garage', action: 'recallAll' }]);
 assert.match(clan.notice?.text || '', /already in a stable/, 'nothing left out');
+// Tim 2026-11-10: Recall all stores every one, also a horse with a leftover rider id and a vehicle with someone still inside
+gcmd('takeout', horse.id); gcmd('takeout', rk.id);
+Object.assign(horse, { x: sx + 60, z: sz + 10 }); Object.assign(rk, { x: sx + 80, z: sz + 30 });
+horse.rider = 'gone-rider';
+const U2 = g.settings.units.types, mate = S.entities[g.spawn('thug', U2.thug.sprite, rk.x, rk.z, { owner: 'player', hp: U2.thug.hp, place: 'world', aboard: rk.id })];
+for (let t = 0; t < 3; t++) g.step([]);
+g.step([{ id: hero.id, type: 'garage', action: 'recallAll' }]);
+for (let t = 0; t < 30 * 20 && !(horse.stored && rk.stored); t++) g.step([]);
+assert.ok(horse.stored, 'the horse with a leftover rider is stored');
+assert.ok(rk.stored && !mate.aboard, 'the loaded rickshaw is stored and its rider is out');
+// a single recall of such a horse works too
+gcmd('takeout', horse.id); horse.rider = 'gone-rider'; Object.assign(horse, { x: sx + 60, z: sz + 10 });
+gcmd('recall', horse.id);
+for (let t = 0; t < 30 * 20 && !horse.stored; t++) g.step([]);
+assert.ok(horse.stored, 'single recall stores her');
+// taken out, they park apart around the stable, off the town's buildings (Tim 2026-11-10)
+{
+  const { townBlockersIn } = await import('../src/sim/frontier/town_grid.js');
+  const extra = [0, 1, 2].map(i => S.entities[g.spawn('horse', horse.model, sx, sz, { horseOwner: 'player', place: 'stable', stored: { town: 'tS' }, hp: 300, maxHp: 300, vehicle: true })]);
+  if (!rk.stored) { gcmd('recall', rk.id); for (let t = 0; t < 30 * 20 && !rk.stored; t++) g.step([]); }
+  const all = [horse, rk, ...extra];
+  for (const v of all) gcmd('takeout', v.id);
+  for (const v of all) {
+    assert.ok(!v.stored && v.place === 'world' && Math.hypot(v.x - sx, v.z - sz) < 30, 'out near the stable');
+    assert.equal(townBlockersIn(S.frontier, v.x, v.z, v.x, v.z).length, 0, 'not on a building');
+    for (const o of all) if (o !== v) assert.ok(Math.hypot(o.x - v.x, o.z - v.z) >= 4, `not stacked (${Math.hypot(o.x - v.x, o.z - v.z).toFixed(1)})`);
+  }
+}
 console.log('test_vehicle_garage: ok');

@@ -36,6 +36,7 @@ const party = crew.slice(0, 2), stay = crew.slice(2);
 party.forEach((u, i) => Object.assign(u, { x: gate.x - 0.6 * (i + 1), z: gate.z - 0.6, order: { kind: 'follow', target: hero.id }, deployment: { ...u.deployment, group: 'hero' } }));
 stay.forEach(u => { if (u.deployment?.group === 'hero') u.deployment.group = 'home'; });
 assert.ok(!L.captainOf('player'), 'no captain while the boss is home');
+clan.permit = true;   // the gate opens with a founding permit (Tim 2026-11-10)
 g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]);
 assert.equal(hero.place, 'world', clan.notice?.text);
 const cap = L.captainOf('player'), hq = L.hq('player');
@@ -195,7 +196,7 @@ assert.ok(logged(/captain takes charge/));
   assert.ok(c, 'captain again');
   home();
   assert.ok(!L.captainOf('player') && !g.state.entities[c.id], 'stands down when the boss is home');
-  const cap2 = Object.values(g.state.entities).filter(e => e.captain && e.owner === 'player');
+  const cap2 = Object.values(g.state.entities).filter(e => e.captain && !e.guide && e.owner === 'player');   // not the lieutenant by the gate
   assert.equal(cap2.length, 0, 'no captain left behind');
 }
 
@@ -279,6 +280,7 @@ const fresh = (kind, ryo = 3000) => {
   C.board = [job(907, 'steal', rival[1])];   // the board may have been refreshed meanwhile: offer it again
   t.run(300);
   assert.ok(!C.active.player, 'one steal a night');
+  C.board = [job(907, 'steal', rival[1])];   // on the board when asked (a refresh in the run above would make it 'not a lieutenant command')
   assert.equal(t.L.gate(t.hero, { type: 'contract', action: 'take', job: 907 }).why, 'one steal a night');
 }
 

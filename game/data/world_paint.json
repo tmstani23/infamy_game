@@ -1053,10 +1053,14 @@
   ]
  },
  "cityWall": {
-  "_note": "stone wall pieces drawn along the city's edges on the island (the city box is a walk blocker); gap = half width left open at the gate",
+  "_note": "stone wall pieces drawn along the city's edges on the island (the city box is a walk blocker); gap = half width left open at the gate when gateHalf is unset; gateHalf (Tim 2026-11-10) = half width of the gap measured along the wall from the gate art, which stands in the wall line",
   "art": "stone_wall",
   "step": 2.45,
   "gap": 5.5,
+  "gateHalf": 5.2,
+  "railHalf": 3.8,
+  "railLap": 0.15,
+  "fog": 0.94,
   "out": 0.6
  }
 }

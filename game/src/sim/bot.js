@@ -290,7 +290,16 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (goal.started) {
       if (!a || a.clan !== clan || a.phase === 'over') return true;        // won, lost or given up
       const open = raid ? a.phase === 'hold' : true;
-      if (!open) { walk(out, b.ring[0], b.ring[1], 1.2); return false; }   // the warm-up: wait by the door
+      if (!open) {
+        // someone is knocking the War Lantern down (Tim 2026-11-10): the boss and his crew go for him at once
+        const k = a.knock && state.entities[a.knock.by];
+        if (standing(k) && k.place === 'street') {
+          if (h.place === 'street') out.push({ id: hero, type: 'attack', target: k.id });
+          out.push(...order(crew().filter(u => u.place === 'street'), 'attack', { target: k.id, resume: true }));
+          return false;
+        }
+        walk(out, b.ring[0], b.ring[1], 1.2); return false;   // the warm-up: wait by the door
+      }
       if (h.place === 'street') {
         if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: crew().filter(u => u.place === 'street').map(u => u.id) });
         return false;

@@ -216,6 +216,11 @@ export function createGame(options) {
   const railStation = gate && district.buildings.find(b => b.railStation && b.door);
   // the ticket hall beside it (Tim 2026-11-07, railway_station art): its window ring opens the menu and trains let you off there
   const ticketHall = railStation && district.buildings.find(b => b.ticketHall && b.door);
+  // the capital end of the lines on the island (Tim 2026-11-10): level with the station's open east front. The track comes
+  // straight in from railApproach, through its own opening in the city wall, and ends railRun inside (gate.rail), so a
+  // train rolls into the city and stands at the station; nobody boards out there (sim/frontier/rail.js endpoint, preview)
+  if (railStation && gate.side === 'E') { const rz = areas.city.minZ - district.bounds.minZ + railStation.z;
+    gate.rail = [areas.city.maxX - 70, rz]; gate.railApproach = [areas.city.maxX + 30, rz]; }
   if (railStation) { gate.station = ringAt(ticketHall || railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' }); }
   // the capital stable (Tim 2026-11-07, the old rickshaw station): Space at its ring opens the stable menu (src/stable_menu.js)
   const capitalStable = gate && district.buildings.find(b => b.capitalStable && b.door);
@@ -535,14 +540,21 @@ export function createGame(options) {
     }
   }
 
-  // Tim 2026-11-07: no governor figure stands in the town any more (he warped about and read as crew); Space at your
-  // town hall talks to him. Old saves' governor figures are removed. Later he may walk about as a townsperson.
+  // the governor stands in front of each player town hall by day and is inside at night (Tim 2026-11-10). He is
+  // nobody's crew (no owner, so he cannot be selected or ordered) and not attackable (guide). Space beside him or at
+  // the hall talks to him, day or night. Look: units.json rules.governorModel; spot: rules.governorSpot (in cells).
   function townGovernors() {
     if (!state.frontier || state.tick % 20) return;
+    const model = units?.rules?.governorModel || 'merchant', cell = options.frontier?.townGrid?.cellSize || 11;
+    const [ox, oz] = units?.rules?.governorSpot || [0.15, -0.62];
     for (const s of Object.values(state.frontier.settlements || {})) {
       const g = s.governorNpc && state.entities[s.governorNpc];
-      if (g) removeUnit(g.id);
-      delete s.governorNpc;
+      const want = !state.night && s.founded && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);
+      if (g && (!want || g.owner || g.governorOf !== s.owner || g.dead || g.downed)) { removeUnit(g.id); delete s.governorNpc; continue; }
+      if (!want) { delete s.governorNpc; continue; }
+      const x = s.x + cell * ox, z = s.z + cell * oz;
+      if (!g) s.governorNpc = spawn('city_captain', model, x, z, { owner: null, place: 'world', guide: true, governor: s.id, governorOf: s.owner, holdFire: true, hp: 100, name: 'Governor' });
+      else Object.assign(g, { x, z, place: 'world', anim: 'idle' });
     }
   }
   // the old surveyor outside the Land Office (Tim 2026-11-06 20:45): one figure, nobody's crew, not attackable (guide),
@@ -562,7 +574,9 @@ export function createGame(options) {
   // Space at your town hall talks to its governor (Tim 2026-11-07): within reach of the hall's middle
   const governorNear = (id, reach = null) => { const h = state.entities[id]; if (!h || h.place !== 'world') return null;
     const cell = options.frontier?.townGrid?.cellSize || 11, r = reach ?? cell * 1.5;
-    const s = Object.values(state.frontier?.settlements || {}).find(s => s.owner === h.owner && s.founded && Number.isFinite(s.x) && Math.hypot(s.x - h.x, s.z - h.z) < r);
+    const fig = s => state.entities[s.governorNpc];   // standing beside the governor himself also counts
+    const s = Object.values(state.frontier?.settlements || {}).find(s => s.owner === h.owner && s.founded && Number.isFinite(s.x)
+      && (Math.hypot(s.x - h.x, s.z - h.z) < r || (fig(s) && Math.hypot(fig(s).x - h.x, fig(s).z - h.z) < 3.5)));
     return s ? { governor: s.id, owner: s.owner, x: s.x, z: s.z } : null; };
 
   // Crew each tick: duties, pursuit, indoor duty and going through doors: sim/crew_step.js
@@ -762,7 +776,7 @@ export function createGame(options) {
   // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
-  const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
@@ -889,10 +903,15 @@ export function createGame(options) {
     leader.tick(lastNews);   // leader bounties for last tick's raids and Shakedowns
     rewards.renownTick(lastNews);   // property-clan Renown for the same moments
     if (state.clock && --state.clock.left <= 0) setNight(!state.night);
+    // notices raised by a lieutenant's own commands ("War Lantern planted", "Rally accepted") are not shown to the
+    // boss as if he had given them (Tim 2026-11-10): his log has them; results (won, failed) still come through
+    const ltNotice = new Map(), ownCommand = new Set();
     for (const c of commands) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
       const e = state.entities[c.id];
       if (!e) continue;
+      if (c.by !== 'lieutenant') ownCommand.add(e.owner);
+      else if (!ltNotice.has(e.owner) && state.clans?.[e.owner] && !state.clans[e.owner].bot) ltNotice.set(e.owner, state.clans[e.owner].notice);
       if (c.type === 'watchCity') { if (c.on && e.type === 'hero') watchingCity.add(e.owner); else watchingCity.delete(e.owner); continue; }
       if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders
       // the boss out on the island gives the city no orders (Tim 2026-11-08): the lieutenant runs it (his commands carry
@@ -910,6 +929,9 @@ export function createGame(options) {
       // C2: a lieutenant's command runs only inside its standing orders and budget (sim/lieutenant.js)
       if (c.by === 'lieutenant' && !lieutenant?.gate(e, c).ok) continue;
       if (c.type === 'lieutenant' && c.guide === 'governor') cannons.firstTalk(state.frontier?.settlements?.[governorNear(e.id)?.governor]);   // first talk in a town: a salute (Tim 2026-11-07)
+      // a goal talk only counts while its card is up (Tim 2026-11-10: he always stands at the gate now, so an early chat
+      // must not skip Meet your lieutenant or Give him his orders)
+      if (c.type === 'lieutenant' && (c.guide === 'met' || c.guide === 'opened') && goals?.current(e.owner)?.key !== (c.guide === 'met' ? 'lieutenant' : 'orders')) continue;
       if (c.type === 'lieutenant') { lieutenant?.command(e, c); continue; }
       itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
@@ -931,10 +953,17 @@ export function createGame(options) {
         const d = doorNear(c.id);
         // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
         if (d?.gate && !modeRules(state).island) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The gate to the island opens in a campaign' }; }
+        // out to the island only with a founding permit, or once you have a town (Tim 2026-11-10)
+        else if (d?.gate && d.place === 'world' && landOffice && !landOffice.mayLeave(e.owner)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The island gate opens once you hold a founding permit (telegraph office)' }; }
+        // nor with a Rally up (Tim 2026-11-10): rallied crew would follow him out and leave the city short
+        else if (d?.gate && d.place === 'world' && e.type === 'hero' && rally.status(e.owner)?.active) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'A Rally is up: the gate opens once your crew are back at their posts' }; }
         else if (d?.to && deployment.canActAt(e, d.to.x, d.to.z, d.place) && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
           const from = e.place;
           e.x = d.to.x; e.z = d.to.z; e.place = d.place;
           delete paths[e.id];
+          // a lieutenant's raider heads for the back room at once: his street order would walk him straight back out
+          const held = c.job === 'raid' && Object.values(state.attacks || {}).find(a => a.room === d.place && a.clan === e.owner && a.hold);
+          if (held) e.order = { kind: 'move', x: held.hold.x, z: held.hold.z, place: d.place, job: 'raid' };
           if (e.type === 'hero') (d.gate ? gateCrew : bringCrew)(e, from, d, c.units);
         }
       }
@@ -1022,6 +1051,11 @@ export function createGame(options) {
         const access = serviceAt(e.id, 'contracts');
         contracts.command(access?.actor || e, c, access?.door || doorNear(e.id));
       }
+    }
+    for (const [owner, before] of ltNotice) {
+      const clan = state.clans[owner];
+      if (ownCommand.has(owner) || clan.notice === before || clan.notice?.tick !== state.tick) continue;
+      if (before) clan.notice = before; else delete clan.notice;
     }
     kuroda.tick();
     unstuck.tick();

@@ -170,6 +170,12 @@ assert.equal(L.permitStatus('player').ok, false, 'maxTowns: no second permit unt
   const gate = g.doors.find(d => d.gate && d.place === 'world');
   Object.assign(hero, { place: 'street', x: gate.x, z: gate.z });
   const s = g.spawn('settler', 'laborer', gate.x + 1, gate.z + 1, { owner: 'player', holdFire: true, order: { kind: 'follow', target: hero.id } });
+  // no permit, no town: the gate stays shut (Tim 2026-11-10), by expedition and by Space at the gate alike
+  g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]);
+  assert.equal(hero.place, 'street'); assert.match(g.state.clans.player.notice?.text || '', /founding permit/);
+  g.step([{ id: hero.id, type: 'use', units: [] }]);
+  assert.equal(hero.place, 'street', 'Space at the gate does not let him out either');
+  g.state.clans.player.permit = true;
   g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]);
   assert.equal(hero.place, 'world'); assert.equal(g.state.entities[s].place, 'world');
   assert.ok(Math.hypot(hero.x - gate.to.x, hero.z - gate.to.z) < 3, 'just outside the gate');

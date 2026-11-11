@@ -19,7 +19,11 @@ const options = { district: data('data/port_town.json'), catalog: data('data/art
 const g = createGame(options);
 const m = setupMatch(g, { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options.district.spawns, test: { playerRyo: 5000 }, seed: 41 });
 const S = g.state, hero = S.entities[m.heroId], clan = S.clans.player;
-const gx = g.gate.island[0], gz = g.gate.island[1];
+// the capital end of the line (Tim 2026-11-10): level with the city railway station, not the gate; the track comes
+// straight in from railApproach, through the wall, and ends inside the city's box
+const [gx, gz] = g.gate.railApproach, [ex, ez] = g.gate.rail;
+assert.ok(Math.abs(gz - g.gate.island[1]) > 5 && ez === gz, 'north of the gate, level with the station');
+assert.ok(ex < g.gate.island[0] - 5 && gx > g.gate.island[0], 'ends inside the wall, approached from outside it');
 const site = world.sites.filter(s => Math.hypot(s.x - gx, s.z - gz) > 1200).sort((a, b) => Math.hypot(a.x - gx, a.z - gz) - Math.hypot(b.x - gx, b.z - gz))[0];
 g.frontier.world.addTown({ id: 'tR', name: 'Railton', owner: 'player', x: site.x, z: site.z, pop: 3, stock: { food: 500, goods: 300, timber: 400, stone: 200 }, buildings: [{ type: frontier.founding.townHall, stage: 'built', cell: 0 }] });
 const town = S.frontier.settlements.tR;
@@ -52,7 +56,9 @@ assert.equal(links.length, 1, 'one link');
 const l = links[0];
 const [sx, sz] = g.frontier.stable.centre(town, town.buildings.find(b => b.type === 'station'));
 assert.deepEqual(l.points[0], [Math.round(sx * 10) / 10, Math.round(sz * 10) / 10], 'starts at the station');
-assert.ok(Math.hypot(l.points.at(-1)[0] - gx, l.points.at(-1)[1] - gz) < 1, 'ends at the island gate');
+assert.ok(Math.hypot(l.points.at(-1)[0] - ex, l.points.at(-1)[1] - ez) < 1, 'ends inside the wall, level with the station');
+{ let d = l.length - 90; const p0 = pointAt(l, d), p1 = pointAt(l, l.length - 1);
+  assert.ok(Math.abs(p0.z - ez) < 0.6 && Math.abs(p1.z - ez) < 0.6 && p0.x > p1.x, 'the last stretch runs straight in, heading west'); }
 assert.ok(l.length > 1000, 'a real distance');
 cmd({ mode: 'link', to: 'capital' });
 assert.match(clan.notice?.text || '', /already being laid|already linked/i, 'one at a time');
@@ -175,6 +181,17 @@ Object.assign(hero, { x: g.gate.station[0] + 1, z: g.gate.station[1] });
 const sc = rail.service(hero);
 assert.ok(sc.length && sc[0].at === 'capital' && sc[0].eta === 0, 'the train shows at the city station');
 assert.ok(g.doors.some(d => d.menu === 'rail_station'), 'the station door ring opens the station menu');
+// no boarding at the capital while a Rally is up (Tim 2026-11-10)
+{
+  const D = g.state.deployment.clans[hero.owner];
+  if (D) {
+    const was = D.rally; D.rally = { ...(was || {}), active: true, endsAt: g.state.tick + 9999, participants: [], groups: [] };
+    g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);
+    assert.ok(!tr.call && !hero.aboard, 'no boarding with a Rally up');
+    assert.match(clan.notice?.text || '', /Rally is up/);
+    D.rally = was;
+  }
+}
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);
 g.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'board', train: tr.id }]);   // Space again: on at once
 assert.equal(hero.aboard, `rail:${tr.id}`, 'aboard from the city');
@@ -197,4 +214,21 @@ console.log('rail ride OK (board, Skip after 5 s, ride along, both ends)');
     assert.equal(town.grid.zone[free], '.', 'no zoning on the track');
   }
   console.log(`rail through town OK (${reserved.length} cells kept clear)`);
+}
+
+// --- a line laid to the old end at the gate (an older save) is routed again to the station end, once (Tim 2026-11-10) ---
+{
+  const l = Object.values(S.frontier.rail.links).find(x => x.to === 'capital' && x.done);
+  assert.ok(l, 'a finished capital line');
+  const tr = Object.values(S.frontier.rail.trains).find(t => t.link === l.id), share = tr ? tr.d / l.length : 0;
+  l.points = [...l.points.slice(0, -1), [g.gate.island[0], g.gate.island[1]]];   // as an old save had it
+  delete S.frontier.rail.capitalEnd;
+  g.step([]);
+  assert.ok(Math.hypot(l.points.at(-1)[0] - ex, l.points.at(-1)[1] - ez) < 1, 'the old line now ends inside the wall');
+  assert.ok(l.done && l.length > 1000 && l.dist.length === l.points.length, 'still a whole, finished line');
+  if (tr) assert.ok(tr.d >= 0 && tr.d <= l.length && Math.abs(tr.d / l.length - share) < 0.05, 'its train kept its place along the way');
+  const pts = JSON.stringify(l.points);
+  g.step([]);
+  assert.equal(JSON.stringify(l.points), pts, 'routed again once only');
+  console.log('old capital line re-routed OK');
 }

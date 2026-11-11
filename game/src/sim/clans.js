@@ -2,7 +2,7 @@ import { modeRules } from './modes/index.js';
 import { canInteract } from './interactions.js';
 import { debitRyo, creditRyo } from './treasury.js';
 import { storedDeployment, restoredDeployment } from './deployment.js';
-import { noticeFor } from './util.js';
+import { noticeFor, bossAway } from './util.js';
 // Clans: money, the businesses they hold and their crew cap. Plain data inside the
 // game state, so players and bot clans follow exactly the same rules.
 // Numbers come from game/data/units.json (docs/crew_recruiting_plan.md).
@@ -87,6 +87,7 @@ export function createClans(state, units, opts = {}) {
     const office = b?.kind === 'land_office';
     if (office) {
       if (!types[type]?.settler) return say(clan, 'The Land Office hires settlers only');
+      if (!clan.bot && !clan.permit) return say(clan, 'Buy a founding permit first: settlers sign up for a town');   // Tim 2026-11-10
       if (hero.place !== 'street' || !b.ring || Math.hypot(hero.x - b.ring[0], hero.z - b.ring[1]) > (rules.buyReach ?? 2.5) + 0.5) return say(clan, 'Hire settlers at the Land Office door');
     } else if (types[type]?.settler) return say(clan, 'Hire settlers at the Land Office');
     if (!office && (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room)) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
@@ -231,7 +232,7 @@ export function createClans(state, units, opts = {}) {
       debitRyo(state, clan, cost, 'Crew revived', { target: p.unit });
       clan.clinic.splice(c.patient, 1);
       const leader = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
-      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, noGearLoot: true, deployment: restoredDeployment(p), ...(clan.bot && leader && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: leader.id } } : {}) });
+      spawn(p.unit, p.model || types[p.unit].sprite, b, { owner: clan.id, hp: types[p.unit].hp, noGearLoot: true, deployment: restoredDeployment(p), ...(clan.bot && leader && !bossAway(leader) && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: leader.id } } : {}) });
       return say(clan, `Your ${p.unit} is back on their feet (${cost} ryo)`);
     }
     if (c.action === 'heal') {
@@ -278,7 +279,7 @@ export function createClans(state, units, opts = {}) {
         clan.clinic.splice(clan.clinic.indexOf(c), 1);
         const hero = Object.values(state.entities).find(e => e.owner === clan.id && e.type === 'hero');
         spawn(c.unit, c.model || types[c.unit].sprite, b,
-          { owner: clan.id, hp: types[c.unit].hp, noGearLoot: true, deployment: restoredDeployment(c), ...(clan.bot && hero && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
+          { owner: clan.id, hp: types[c.unit].hp, noGearLoot: true, deployment: restoredDeployment(c), ...(clan.bot && hero && !bossAway(hero) && !state.deployment?.restrictionsEnabled ? { order: { kind: 'follow', target: hero.id } } : {}) });
         say(clan, `Your ${c.unit} is back from the clinic`);
       }
     }

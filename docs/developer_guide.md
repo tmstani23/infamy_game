@@ -86,3 +86,56 @@ Vehicle footprint shadows are set in `game/data/art.json` `characterFraming` as 
 ### Music (2026-11-07)
 
 Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/`, `ceremony/`, `stealth/`); the list is in `game/src/menu_music.js`. The in-game shuffle plays every song once per cycle with no repeats; subfolders do not change the playlist.
+
+## Campaign pass (2026-11-11)
+
+### Campaign goals and first town
+- Goal steps for the first town: founding permit, talk to the old surveyor (while clan.surveyPending), hire settlers, then the earlier steps.
+- A lieutenant or surveyor guide talk counts toward a goal only while its card is the current goal.
+- Quest marks (render/banners.js): over the lieutenant figure; over the governor figure by day, or the town hall when he is inside, until metGovernor.
+- Lieutenant budget is a typeable box with a Set button.
+- Campaign top bar shows Influence and the next tier.
+
+### Permit gate and Rally
+- land_office.mayLeave(clan): holds a permit, or owns a settlement, or already has crew in the world. Without it: the island gate refuses 'use', expeditions refuse, the player cannot hire settlers. Applies to rival clans too.
+- While a Rally is active for a clan: no boarding at the capital station (rail.js board and allAboard), the hero cannot use the island gate, expeditionCheck refuses. All clans.
+- At the capital only deployment group 'hero' boards a train; Rally crew do not.
+- Hero group limit 6 counts crew left on the island; the crew cap counts crew everywhere.
+
+### Rival founding (unchanged behaviour, sim/bot_expedition.js)
+- A bot leaves once the player founded a first town or on founding.bots.fallbackDay 30, staggered 2 days per bot, when it can pay permit + 5 settlers + founding cost + reserve and is not raided or under half health. One town per bot. The boss stays in the town; the lieutenant runs the city.
+
+### Town governor
+- game.js townGovernors: model units.rules.governorModel (governer1) at rules.governorSpot (cells, default [0.15, -0.62]) in front of each player town hall by day; owner null, guide true, not attackable; removed at night. Space near him or the hall talks.
+
+### Lieutenant raids and crew care
+- A raider entering with job 'raid' gets a move order to the attack's hold spot; the lieutenant sends 'use' only when businesses.entryStatus is ok.
+- Notices caused by lieutenant-tagged commands are restored to the boss's previous notice; results from ticks still show. Attack bar and doorsOpen callout read "Your captain is raiding..." while the hero is in the world.
+- War Lantern warm-up: lieutenant raiders attack a unit channeling the knock-down (rules knockGuardSeconds 4); the brain ticks every 10 ticks while a lantern is up. Rival boss and crew (bot.js assault) do the same.
+- defendLantern: with the boss away and the Defend order on, the nearest street crew or the captain walks to a rival lantern and knocks; after a hit he retries after knockRetrySeconds 3.
+- Crew care: under the Hire order the city captain bails jailed crew and revives clinic crew within the budget; same for AI clans.
+
+### Workers and carts (data/frontier.json workers)
+- lane {min 0.5, max 1.4, sway 0.2, ease 0.12}: each worker's drawn position is offset sideways by a fixed amount from a hash of its id; trip times unchanged; Move orders ease the lane to zero.
+- buildingPad 1.2: the planner pads town building boxes, falling back to unpadded.
+- War camp drop point: the edge of the camp building toward the worker.
+- carts.stopEdge 0.5: ox carts are drawn between building edges; timing unchanged.
+
+### Horses and vehicles
+- Stored units (e.stored, place 'stable') are not drawn.
+- Recall all stores every horse and vehicle: a rider id with no entity is cleared; remaining vehicle riders are set outside.
+- A 'mounted' flag with no horse under it is dropped every second. An empty vehicle is idle.
+- Take out (vehicle_garage.js parkSpot): rings around the stable from rules.garage.parkRing 9, step parkStep 4, clear of town buildings and at least a length plus parkGap 1 from other horses and vehicles.
+- Whistle summon: H, the Mount menu button, the Vehicles panel button. Sound: custom clip horse_whistle_1 (cast 'horseWhistle').
+- Left-click: one crew member selects only that one; any of your horses, rickshaws or omnibuses (loaded or empty) is selected and shown in the target frame; a horse ridden by crew selects her rider. Empty ones take no orders.
+- Right-click in the world only loads or mounts. Getting off: Q, right-click the vehicle card or Mount card in the crew panel, right-click one seat for one rider, right-click the Frontier crew header for everyone.
+- Double-click a vehicle card or Mount card: the camera follows it.
+- Group move with mounted crew: block spacing 2.8 (1.1 on foot).
+- Horses with riders and vehicles are idle unless they really move (rules moveStep: horses 0.12, vehicles 0.02 per tick).
+- Self-driving on a move order (omnibus.js): planned path (nav.findPath, corners cut with clearLine), exact positions on free ground, pull-away and draw-up pace, pivot when the way is behind. Optional rules.omnibus.drive {pivotDegrees 70, pivotSpeed 0.15, startPace 0.25, pullAwaySeconds 0.7, drawUp 8}.
+
+### Sim performance
+- crew_orders.moveTo: a failed findPath for the same goal is retried after 20 ticks.
+
+### Art and sounds
+- art.json: rail_gate and lieutenant_post placed; cannon_battery, siege_workshop, burned_ruin, water_tower cut, unplaced. tools/add_buildings6_art.py cuts them from the buildings6 sheet.

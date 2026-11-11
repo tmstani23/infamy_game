@@ -235,7 +235,7 @@ export function createBanners({ scene }) {
   const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
   // the old surveyor's quest mark (Tim 2026-11-07): a gold ! above his head instead of a ground ring;
   // it flashes while he has a report for you (clan.surveyPending, after a permit is bought)
-  let questMark = null, questId = null;
+  let questMark = null, questId = null, ltMark = null, govMark = null;
   function questTexture() {
     const c = document.createElement('canvas'); c.width = c.height = 128;
     const g = c.getContext('2d');
@@ -243,6 +243,37 @@ export function createBanners({ scene }) {
     g.lineWidth = 7; g.strokeStyle = '#e8c06a'; g.stroke();
     g.fillStyle = '#ffd77a'; g.font = 'bold 84px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('!', 64, 68);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }
+  // the same mark over your lieutenant at the island gate (Tim 2026-11-10); it flashes until you have first talked to him
+  function updateLieutenantMark(state, time, me, place) {
+    const e = Object.values(state.entities).find(u => u.guide && u.captain && u.owner === me && !u.dead && u.place === place);
+    if (!e) { if (ltMark) ltMark.visible = false; return; }
+    if (!ltMark) {
+      ltMark = new THREE.Sprite(new THREE.SpriteMaterial({ map: questTexture(), transparent: true, depthTest: false, depthWrite: false }));
+      ltMark.renderOrder = 99820; ltMark.frustumCulled = false; scene.add(ltMark);
+    }
+    const c = state.clans?.[me], active = !!c?.permit && !c?.milestones?.metLieutenant, beat = active ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
+    ltMark.visible = true;
+    ltMark.position.set(e.x, 3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0), e.z);
+    ltMark.scale.setScalar(active ? 0.8 + 0.12 * beat : 0.62);
+    ltMark.material.opacity = active ? 0.75 + 0.25 * beat : 0.55;
+  }
+  // and over your first town's governor until you have met him (Tim 2026-11-10); at night he is inside, so the mark
+  // sits over the hall, where Space still talks to him
+  function updateGovernorMark(state, time, me, place) {
+    const met = state.clans?.[me]?.milestones?.metGovernor;
+    const s = !met && place === 'world' ? Object.values(state.frontier?.settlements || {}).find(t => t.owner === me && t.founded !== undefined && Number.isFinite(t.x)) : null;
+    if (!s) { if (govMark) govMark.visible = false; return; }
+    if (!govMark) {
+      govMark = new THREE.Sprite(new THREE.SpriteMaterial({ map: questTexture(), transparent: true, depthTest: false, depthWrite: false }));
+      govMark.renderOrder = 99820; govMark.frustumCulled = false; scene.add(govMark);
+    }
+    const beat = 0.5 + 0.5 * Math.sin(time * 5);
+    govMark.visible = true;
+    const fig = state.entities[s.governorNpc];
+    govMark.position.set(fig ? fig.x : s.x, (fig ? 3.3 : 7) + 0.15 * Math.sin(time * 2.5), fig ? fig.z : s.z);
+    govMark.scale.setScalar((fig ? 0.8 : 1.1) + 0.15 * beat);
+    govMark.material.opacity = 0.75 + 0.25 * beat;
   }
   function updateQuestMark(state, time, me, place) {
     let e = state.entities[questId];
@@ -262,6 +293,8 @@ export function createBanners({ scene }) {
   function update(state, time, me, place = 'street') {
     updateSpaceRings(state, me, place, time);
     updateQuestMark(state, time, me, place);
+    updateLieutenantMark(state, time, me, place);
+    updateGovernorMark(state, time, me, place);
     if (assignmentTick !== state.tick || assignmentOwner !== me) {
       assignmentTick=state.tick;assignmentOwner=me;staffed.clear();
       for (const e of Object.values(state.entities)) if (e.owner===me && e.type!=='hero' && !e.guard && !e.dead) staffed.add(e.deployment?.group);

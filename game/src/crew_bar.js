@@ -72,8 +72,8 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
   mountDetail.className = 'mountdetail'; mountDetail.hidden = true;
   const mountActs = document.createElement('div');
   mountActs.className = 'mountacts';
-  const stayBtn = make('button', '', 'Stay here', 'She stays where she is: you get off if you ride her, and a call is off'), stableBtn = make('button', '', 'Send to stable', 'Back to your nearest stable, where she is stored (H brings her out)');
-  stayBtn.type = stableBtn.type = 'button'; stayBtn.dataset.m = 'stay'; stableBtn.dataset.m = 'stable'; mountActs.append(stayBtn, stableBtn);
+  const callBtn = make('button', '', 'Whistle summon', 'H: she comes to you, out of the stable or from wherever she is'), stayBtn = make('button', '', 'Stay here', 'She stays where she is: you get off if you ride her, and a call is off'), stableBtn = make('button', '', 'Send to stable', 'Back to your nearest stable, where she is stored (H brings her out)');
+  callBtn.type = stayBtn.type = stableBtn.type = 'button'; callBtn.dataset.m = 'call'; stayBtn.dataset.m = 'stay'; stableBtn.dataset.m = 'stable'; mountActs.append(callBtn, stayBtn, stableBtn);
   const mountStrip = document.createElement('div');
   mountStrip.className = 'crewcmds mountcmds';
   mountDetail.append(mountActs, mountStrip);
@@ -84,7 +84,8 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
   mPic.addEventListener('dblclick', () => { const horse = myHorse(), h = game.state.entities[heroId]; if (horse && !horse.stored && horse.place === h?.place) jump(horse); });
   mountActs.addEventListener('click', e => {
     const m = e.target.closest?.('button')?.dataset.m, horse = myHorse(); if (!m || !horse) return;
-    if (m === 'stay') send({ id: heroId, type: 'mount', stay: true });
+    if (m === 'call') send({ id: heroId, type: 'mount', whistle: horse.id });
+    else if (m === 'stay') send({ id: heroId, type: 'mount', stay: true });
     else send({ id: heroId, type: 'garage', action: 'recall', unit: horse.id });
     e.target.blur();
   });
@@ -102,6 +103,7 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
     mStat.textContent = status;
     mPic.style.backgroundImage = url ? `url(${url})` : ''; mPic.textContent = url ? '' : '♞';
     const stay = stayBtn, stable = stableBtn;
+    callBtn.disabled = !horse || h?.place !== 'world' || horse.rider === heroId;
     stay.disabled = !horse || !!horse.stored || horse.place !== 'world';
     stable.disabled = !horse || !!horse.stored || !!horse.recall;
   }

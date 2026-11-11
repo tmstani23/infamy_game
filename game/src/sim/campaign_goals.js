@@ -11,10 +11,10 @@ import { SHOP } from './gear_catalog.js';
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (Tim 2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'settlers', 'lieutenant', 'orders', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'surveyor', 'settlers', 'lieutenant', 'orders', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
-export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null }) {
+export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null }) {
   const D = data.founding || {}, P = D.permit || {}, G = data.goals || {};
   const townsOf = id => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === id && s.founded).length;
   const heroOf = id => Object.values(state.entities).find(e => e.type === 'hero' && e.owner === id);
@@ -133,7 +133,10 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
   const count = (str, re) => (str?.match(re) || []).length;
   function holdRow(id) {
     const need = G.holdBusinesses ?? 6, have = landOffice.businessesHeld(id);
-    return row('business', 'Capital businesses', have, need, 'Raid rival businesses at night: War Lantern from the moneylender (M), then Raid at a rival door');
+    // out on the island the boss cannot raid: the lieutenant does it (Tim 2026-11-10)
+    const out = heroOf(id)?.place === 'world';
+    return row('business', 'Capital businesses', have, need, out ? 'Your lieutenant raids for you while you are away (his Raid order); back in the city you can raid yourself at night'
+      : 'Raid rival businesses at night: War Lantern from the moneylender (M), then Raid at a rival door');
   }
   function townSetupGoal(id, S0, steps) {
     const town = Object.values(state.frontier?.settlements || {}).filter(s => s.owner === id && s.founded && s.grid)
@@ -220,6 +223,10 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
           : 'Then buy it at the telegraph office (East Ward, past Police HQ)'));
         return { key: `permit${towns}`, title: `Buy a ${nth}founding permit`, step: S0 + MAIN_STEPS.indexOf('permit'), steps, rows };
       }
+      // the old surveyor's report on this permit (Tim 2026-11-10: he had no card and was easy to miss)
+      if (!clan.bot && clan.surveyPending) { const d = surveyorAt();
+        return { key: `surveyor${towns}`, title: 'Talk to the old surveyor', step: S0 + MAIN_STEPS.indexOf('surveyor'), steps,
+          rows: [{ ...row('office', 'Surveyor report', 0, 1, 'He stands outside the telegraph office with a gold mark over his head: stand beside him, press Space, then Show me on the map'), at: d ? spot(d.x, d.z) : null }] }; }
       // settlers waiting safely at the HQ (a count) plus any already walking with the hero
       const need = D.minSettlers ?? 5, have = clans.settlersOf(id).length + (clan.settlersWaiting || 0);
       if (have < need)
@@ -234,14 +241,14 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       if (!out && towns === 0 && !clan.bot && !m.budgetSet)
         return { key: 'orders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('orders'), steps,
           rows: [row('office', 'Open While I’m away', m.ordersOpened ? 1 : 0, 1, 'Click Deployment (gold) in the icon menu, then the While I’m away tab (gold)'),
-            row('ryo', 'Set his budget', 0, 1, 'Move the Budget slider (gold) to what he may spend each day; every order starts on')] };
+            row('ryo', 'Set his budget', 0, 1, 'Type what he may spend each day in the Budget box (gold) and press Set; every order starts on')] };
       if (!out)
         return { key: `leave${towns}`, title: 'Leave the city', step: S0 + MAIN_STEPS.indexOf('leave'), steps, gate: true,
           rows: [row('settler', 'Settlers ready', have, need, ''),
             row('gate', 'Out through the island gate', 0, 1, 'Your settlers wait at your HQ and join you outside the gate: go to the island gate (gold marker, east trail) and press Space')] };
       const rows = [row('settler', 'Settlers', have, need, '')];
       if (cost) rows.push(row('ryo', 'Ryo', Math.floor(clan.ryo || 0), cost, 'Collect business payouts at dawn'));
-      rows.push(row('town', 'Town founded', 0, 1, 'With the settlers beside you, click Found a town here'));
+      rows.push(row('town', 'Town founded', 0, 1, 'With the settlers beside you, click the Found a town button, then click where the town hall goes'));
       return { key: `found${towns}`, title: `Found your ${nth}town`, step: S0 + MAIN_STEPS.indexOf('found'), steps, rows };
     }
     const st = influence?.status(id);

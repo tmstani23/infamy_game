@@ -60,11 +60,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     // lag fix (Tim 2026-11-08): build the island route graph now, while loading, not on the first worker detour (~100 ms)
     runtime?.areas.ensureGraph?.();
   }
+  // worker routes keep R.buildingPad further from town buildings than their hard blocking box (Tim 2026-11-10: they
+  // cut through the corners of the art); the ends of a route may still sit closer (the planner starts from the nearest free cell)
+  const planBlocked = (x,z) => { const k=R.buildingPad || 0; return townBlockersIn(state.frontier,x-k,z-k,x+k,z+k,data).length>0; };
   function path(a,b) {
     if(!runtime)return [a,b];
     const key=JSON.stringify([a,b,geometryRevision()]);
     if(paths.has(key))return paths.get(key);
-    let p=runtime.areas.nav.workerPath(...a,...b,townBlocked);
+    let p=runtime.areas.nav.workerPath(...a,...b,planBlocked) || runtime.areas.nav.workerPath(...a,...b,townBlocked);
     if(p && distance(a,p[0])>1e-6 && runtime.areas.nav.clearLine(...a,...p[0]))p=[a,...p];
     paths.set(key,p);if(paths.size>R.pathCacheSize)paths.delete(paths.keys().next().value);
     return p;
@@ -115,8 +118,16 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const takes=(b,res)=>!res || !R.campTakes?.[b.type] || R.campTakes[b.type].includes(res);
   const dropoffs=(s,res)=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !campFull(data,b) && takes(b,res));
   const homeDrops=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !isCamp(data,b));
+  // a site without a town grid (a war camp): hand in at the edge of the building, on the side the worker comes from
+  // (Tim 2026-11-10: they walked into the middle of the camp hall)
+  function edgePoint(s,b,from) {
+    const c=point(s,b),r=data.war?.buildings?.[b.type]?.radius || 0,d=distance(c,[from.x,from.z]);
+    if(!r || d<=r)return c;
+    const p=[Math.round((c[0]+(from.x-c[0])*r/d)*2)/2,Math.round((c[1]+(from.z-c[1])*r/d)*2)/2];
+    return !runtime || runtime.areas.nav.free(...p) ? p : c;
+  }
   function nearestDropoff(s,spot,res=R.resources[spot?.kind]) {
-    return dropoffs(s,res).map(b=>({b,p:waitingPoint(s,null,b)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
+    return dropoffs(s,res).map(b=>({b,p:s.grid || !spot ? waitingPoint(s,null,b) : edgePoint(s,b,spot)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
   }
   // Reach (Tim 2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
   const camps=s=>s.buildings.filter(b=>b.stage==='built' && (R.gatherBuildings || []).includes(b.type));
@@ -390,9 +401,25 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         (t.legOk ||= {})[key]=1;
       }
     }
-    const dx=target[0]-e.x,dz=target[1]-e.z;
+    // each gathering worker keeps its own lane beside the route (Tim 2026-11-10): drawn position only, the trip clock
+    // above is untouched. e.lane = the offset now, eased toward the worker's own fixed offset plus a small sway.
+    const L=R.lane,was=e.lane || [0,0];
+    const dx=target[0]-(e.x-was[0]),dz=target[1]-(e.z-was[1]);
     if(dx || dz) {e.dir=dirIndex(dx,dz);e.anim='walk';}
-    [e.x,e.z]=target;return true;
+    let lane=[0,0];
+    if(L) {
+      let h=2166136261;for(const ch of String(w.id))h=Math.imul(h^ch.charCodeAt(0),16777619);h>>>=0;
+      const angle=(h%360)*Math.PI/180,r=L.min+(L.max-L.min)*((h>>>9)%100)/99,d=Math.hypot(dx,dz);
+      const sway=d ? (L.sway || 0)*Math.sin(state.tick*0.12+(h%97)) : 0;
+      // an ordered Move keeps its own formation spacing: no lane, the offset eases away
+      const want=t.kind==='move' ? [0,0] : [Math.cos(angle)*r+(d ? -dz/d*sway : 0),Math.sin(angle)*r+(d ? dx/d*sway : 0)],k=L.ease || 0.12;
+      lane=[was[0]+(want[0]-was[0])*k,was[1]+(want[1]-was[1])*k];
+      if(Math.hypot(...lane)<0.02)lane=[0,0];
+      if(!runtime.areas.nav.free(target[0]+lane[0],target[1]+lane[1]))lane=[was[0]*0.6,was[1]*0.6];   // no room beside the route here: ease back onto it
+      if(!runtime.areas.nav.free(target[0]+lane[0],target[1]+lane[1]))lane=[0,0];
+    }
+    if(lane[0] || lane[1])e.lane=lane;else delete e.lane;
+    e.x=target[0]+lane[0];e.z=target[1]+lane[1];return true;
   }
   function harvest(spot) {
     if(!spotRules?.stages)return;
@@ -514,6 +541,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const err=buyCart(s,data,b,cost=>{if(Object.entries(cost).some(([r,v])=>(s.stock[r] || 0)<v))return false;for(const [r,v] of Object.entries(cost))world.change(s.id,r,-v,'cart');return true;});
     return err ? result(err) : result();
   }
+  // where a drawn cart starts and stops: the edges of the camp and of the hall or storehouse, not their centres (Tim 2026-11-10)
+  function cartEnds(s,b) {
+    const a=point(s,b),h=cartHome(s,b),d=distance(a,h),cell=s.grid?.cell || data.townGrid?.cellSize || 11,k=cartRules(data).stopEdge ?? 0.5;
+    const hb=homeDrops(s).find(x=>distance(point(s,x),h)<1e-6),ra=cell*k*(data.buildings?.[b.type]?.size || 1),rh=cell*k*(data.buildings?.[hb?.type]?.size || 1);
+    if(d<=ra+rh+1)return [a,h];
+    return [[a[0]+(h[0]-a[0])*ra/d,a[1]+(h[1]-a[1])*ra/d],[h[0]+(a[0]-h[0])*rh/d,h[1]+(a[1]-h[1])*rh/d]];
+  }
   function tick() {
     if(!R)return;
     const enabled=runtime && modeRules(state).island;
@@ -531,7 +565,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(!s.camp && cartRules(data)) {
         stepCarts(s,data,world.change,point,cartHome);
         for(const b of s.buildings)for(const c of b.carts || []) {   // decoration: an ox cart on the road near your units
-          const e=c.entity && state.entities?.[c.entity], at=enabled && b.cartTicks ? cartPoint(c,point(s,b),cartHome(s,b),b.cartTicks) : null;
+          const e=c.entity && state.entities?.[c.entity], at=enabled && b.cartTicks ? cartPoint(c,...cartEnds(s,b),b.cartTicks) : null;
           // Tim 2026-11-07: carts stay drawn out to carts.viewRadius (about 1.25 zoomed-out screens), never hidden by fog
           const cr=cartRules(data).viewRadius ?? R.spawnRadius;
           if(!at || !anchors.some(u=>distance(at,[u.x,u.z])<=cr)) {if(e)runtime.remove(e.id);c.entity=null;continue;}

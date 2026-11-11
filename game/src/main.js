@@ -565,7 +565,13 @@ async function start() {
     const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
     const timer = timeLeft == null ? '' : `, ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
     const owner = game.state.entities[heroId]?.owner;
-    return `Crew ${game.clans.crewCount(owner)} (cap ${game.clans.crewCap(owner)}), ${!modeRules(game.state).seasonEnds ? `Campaign, Day ${s.day}` : `Day ${Math.min(s.day, s.cycles)}/${s.cycles}`}${timer}, ${parts.join(', ')}`;
+    // Campaign has no season: Influence and its next unlock instead of the clans' season points (Tim 2026-11-10)
+    if (!modeRules(game.state).seasonEnds) {
+      const st = game.influence?.status(owner);
+      const inf = st ? `, Influence <b>${st.value}</b>${st.next ? ` / ${st.next.at}` : ''}, Tier ${st.tier}` : '';
+      return `Crew ${game.clans.crewCount(owner)} (cap ${game.clans.crewCap(owner)}), Campaign, Day ${s.day}${timer}${inf}`;
+    }
+    return `Crew ${game.clans.crewCount(owner)} (cap ${game.clans.crewCap(owner)}), Day ${Math.min(s.day, s.cycles)}/${s.cycles}${timer}, ${parts.join(', ')}`;
   };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
@@ -624,13 +630,13 @@ async function start() {
     const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
       send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
+      openCamp: id => warCamp.show(id),
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
     evacuateGarrison = () => townHover.evacuateAll();
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
     // Tim 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road
     // blocked) and alerts for the town you stand in show on their own; the rest fold into one
-      openCamp: id => warCamp.show(id),
     // "Towns: N need attention" line. Every alert opens the all-towns window (Y), worst towns first.
     // At most 3 lines on screen.
     const folded = new Map(); let foldBtn = null, foldTimer = 0;
@@ -654,12 +660,6 @@ async function start() {
       clearTimeout(foldTimer); foldTimer = setTimeout(() => { foldBtn?.remove(); folded.clear(); }, 8000);
     };
     if (DEV) window.infamy.blockRoad = (road = 'r1', st = 'blocked') => pending.push({ id: heroId, type: 'frontier', action: 'devRoadState', road, state: st });   // try the F4.4c alerts
-    if (DEV) window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
-  }
-  $('loading').remove();
-  $('startscreen').remove();
-  document.body.classList.remove('prematch');
-  utilityMenu.update(true);
     // F6 war checkpoint 4 (dev builds): infamy.startWar() starts a war on the nearest rival town you can see with you as the
     // attacker (camp stocked from data war.dev); infamy.startWar(null, 'defend') puts a rival clan on your nearest town;
     // a town id picks the town. infamy.endWar() ends your first war (or the war id you give).
@@ -670,6 +670,12 @@ async function start() {
       pending.push({ id: heroId, type: 'frontier', action: 'devStartWar', town: t.id, side }); return `Starting a war on ${t.name}`;
     };
     if (DEV) window.infamy.endWar = (war = null) => { const me = game.state.entities[heroId]?.owner, w = war || Object.values(game.state.frontier?.wars?.list || {}).find(x => x.attacker === me || x.defender === me)?.id; if (!w) return 'No war'; pending.push({ id: heroId, type: 'frontier', action: 'devEndWar', war: w }); return `Ending ${w}`; };
+    if (DEV) window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
+  }
+  $('loading').remove();
+  $('startscreen').remove();
+  document.body.classList.remove('prematch');
+  utilityMenu.update(true);
   setGameplayInput(true);
 
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
@@ -735,7 +741,11 @@ async function start() {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' ');
           bar.classList.toggle('hold', a.phase === 'hold');
           const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE), opens = Math.ceil((a.opensAt - game.state.tick) / TICK_RATE);
-          bar.textContent = a.phase === 'warmup' ? `Raid on the ${where}: the doors open in ${opens} s`
+          // the boss is out on the island: his captain runs the raid, so report it and ask nothing of him (Tim 2026-11-10)
+          const led = a.mode === 'raid' && game.state.entities[heroId]?.place === 'world';
+          bar.textContent = led ? (a.phase === 'warmup' ? `Your captain is raiding the ${where}: the doors open in ${opens} s`
+              : `Your captain is raiding the ${where}: ${a.holding ? `holding the back room, ${Math.ceil(a.holdLeft / TICK_RATE)} s` : a.away > 0 ? 'the crew are going in' : 'fighting for the back room'}`)
+            : a.phase === 'warmup' ? `Raid on the ${where}: the doors open in ${opens} s`
             : wait > 0 ? `Attacking the ${where}: police arrive in ${wait} s, get inside` : a.phase === 'hold'
             ? a.mode === 'raid' && a.away > 0   // nobody of yours inside: get in before the raid fails (Tim 2026-10-20)
               ? `Get inside the ${where}: ${Math.max(0, Math.ceil(((game.businesses.raidRules.leaveSeconds || 10) * TICK_RATE - a.away) / TICK_RATE))} s or the raid fails`

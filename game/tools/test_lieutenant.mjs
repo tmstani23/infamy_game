@@ -35,6 +35,7 @@ const mine = brains.find(b => b.config?.lieutenant && b.config.clan === 'player'
 assert.ok(mine && brains.filter(b => b.config?.lieutenant).length === Object.keys(g.state.clans).length, 'one lieutenant per clan, bots too');
 
 // standing orders: validated, a rejected command changes nothing
+g.step([]);   // the lieutenant takes his place by the gate first (Tim 2026-11-10: there whenever the boss is in the city)
 const before = JSON.stringify(L.record('player'));
 for (const bad of [{ orders: { pillage: true } }, { orders: { defend: 'yes' } }, { budget: -5 }, { budget: CC.lieutenant.maxBudget + 1 }, { budget: 1.5 }])
   g.step([{ id: hero.id, type: 'lieutenant', ...bad }]);

@@ -74,7 +74,7 @@ export function createVehiclesPanel({ root, game, heroId, send, view, crewInput 
       const btns = [
         out ? msBtn({ label: 'Look', data: `data-act="look" data-id="${id}"`, hover: 'Move the camera to it' }) : '',
         e.type !== 'horse' && out ? msBtn({ label: 'Select', data: `data-act="select" data-id="${id}"`, hover: 'Select it: loaded ones take crew orders' }) : '',
-        e.type === 'horse' ? msBtn({ label: 'Call', data: `data-act="whistle" data-id="${id}"`, off: !onIsland, hover: onIsland ? 'Make her your mount and call her: she gallops to you (from far off she turns up a little way away first)' : 'Island only' }) : '',
+        e.type === 'horse' ? msBtn({ label: 'Whistle summon', data: `data-act="whistle" data-id="${id}"`, off: !onIsland, hover: onIsland ? 'Make her your mount and whistle for her: she gallops to you (from far off she turns up a little way away first)' : 'Island only' }) : '',
         e.stored ? msBtn({ label: 'Take out', data: `data-act="takeout" data-id="${id}"`, go: true, hover: 'Parked beside its stable' }) : msBtn({ label: 'Recall', data: `data-act="recall" data-id="${id}"`, off: !!e.recall, hover: 'Riders get off; it goes back to your nearest stable and is stored there' }),
       ].join('');
       return msRow({ name: msEsc(name) + (s ? ` <span class="ms-small">${msEsc(s)}</span>` : ''), sub: msEsc(w), right: btns });

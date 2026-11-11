@@ -45,3 +45,4 @@ Built from a clip by Tim, layered with rifle shots. There is no start clip.
 |---|---|
 | gatling_loop_1.ogg | Gatling firing loop |
 | gatling_end_1.ogg | Gatling wind-down |
+| horse_whistle_1.ogg | Horse whistle summon (Tim, Stable Audio) |

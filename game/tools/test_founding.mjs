@@ -35,6 +35,10 @@ g.step([{ id: hero.id, type: 'hire', business: hq.id, unit: 'settler' }]);
 assert.equal(clan.queue.length, 0, 'E1: no settlers at HQ any more');
 const office = Object.values(g.state.businesses).find(b => b.kind === 'land_office');
 Object.assign(hero, { place: 'street', x: office.ring[0], z: office.ring[1] });
+// no settlers before a founding permit (Tim 2026-11-10)
+g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler' }]);
+assert.equal(clan.queue.length, 0); assert.match(clan.notice?.text || '', /founding permit first/);
+clan.permit = true;
 const crewBefore = g.clans.crewCount('player'), ryoBefore = clan.ryo;
 for (let i = 0; i < 5; i++) g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler' }]);
 assert.equal(clan.queue.length, 5);
@@ -77,7 +81,7 @@ const snap = () => JSON.stringify([Object.keys(g.state.frontier.settlements), cl
 const found = () => { g.step([{ id: hero.id, type: 'frontier', action: 'found' }]); return g.state.frontier.receipts.find(r => r.action === 'found'); };
 const rejected = (why, re) => { const before = snap(), r = found(); assert.ok(r && !r.ok && re.test(r.reason), `${why}: ${r?.reason}`); assert.equal(snap(), before, `${why}: nothing changed`); };
 
-put(plain[0], plain[1]);                         rejected('no permit', /founding permit/);
+clan.permit = false; put(plain[0], plain[1]);                         rejected('no permit', /founding permit/);
 clan.permit = true;   // E1: bought at the Land Office (tools/test_land_office.mjs)
 put(plain[0], plain[1], 4);                      rejected('too few settlers', /at least 5/);
 put(mountain[0], mountain[1]);                   rejected('unbuildable ground', /cannot be built/);

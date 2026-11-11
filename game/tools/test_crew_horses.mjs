@@ -44,6 +44,21 @@ const x0 = crew[0].x;
 for (let t = 0; t < 60; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
 for (let t = 0; t < 20; t++) g.step([]);
 assert.ok(Math.hypot(crew[0].x - hero.x, crew[0].z - hero.z) < 20, `mounted crew kept up (${Math.hypot(crew[0].x - hero.x, crew[0].z - hero.z).toFixed(1)})`);
+// a group move while mounted (Tim 2026-11-10): riders end a horse length apart and the horses stand still
+{
+  const tx = hero.x + 30, tz = hero.z + 20;
+  g.step([{ id: hero.id, type: 'order', units: crew.map(u => u.id), kind: 'move', x: tx, z: tz }]);
+  for (let t = 0; t < 20 * 15; t++) g.step([]);
+  for (const u of crew) {
+    assert.ok(u.mounted && Math.hypot(u.x - tx, u.z - tz) < 8, `rider got there (${Math.hypot(u.x - tx, u.z - tz).toFixed(1)})`);
+    for (const o of crew) if (o !== u) assert.ok(Math.hypot(o.x - u.x, o.z - u.z) > 2, `riders not clustered (${Math.hypot(o.x - u.x, o.z - u.z).toFixed(1)})`);
+  }
+  let running = 0;
+  for (let t = 0; t < 40; t++) { g.step([]); running += myHorses().filter(h => h.rider && h.rider !== hero.id && h.anim !== 'idle').length; }
+  assert.equal(running, 0, 'stopped horses stand still');
+  g.step([{ id: hero.id, type: 'order', units: crew.map(u => u.id), kind: 'follow' }]);
+  for (let t = 0; t < 20 * 10; t++) g.step([]);
+}
 const ridden = state => myHorses().find(h => h.rider === crew[1].id);
 const h1 = ridden();
 assert.ok(h1 && Math.hypot(h1.x - crew[1].x, h1.z - crew[1].z) < 0.01, 'the horse is under him');
