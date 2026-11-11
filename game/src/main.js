@@ -30,6 +30,7 @@ import { createGoalCard } from './goal_card.js';
 import { createSiteMenu } from './site_menu.js';
 import { createLieutenantPanel } from './lieutenant_panel.js';
 import { createCityWatch } from './city_watch.js';
+import { createInteriorPeek } from './interior_peek.js';
 import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
 import { createFps } from './fps.js';
@@ -427,6 +428,9 @@ async function start() {
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
   // Watch the city (Tim 2026-11-08): camera to the capital while the boss stays on the island; Home / Esc / the banner return
   const cityWatch = createCityWatch({ game, view, heroId, send: c => pending.push(c), notify: (...a) => callout(...a), sound: { clip: (...a) => sound.clip(...a), bell: () => sound.bell() }, onStart: () => { deploymentPanel.close(); gameMap.close(); crewInput.clear(); } });
+  // Interior view (Tim 2026-11-10): Inside / Outside button, End key, double-click a building with your crew inside
+  const interiorPeek = createInteriorPeek({ game, view, heroId, crewInput, canvas: $('view') });
+  onKey('End', () => interiorPeek.toggle());
   const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, cityWatch, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
@@ -830,6 +834,7 @@ async function start() {
     const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !hqStash.isOpen() && !shop.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
     $('snap').hidden = !view.isPanned() || cityWatch.isOn();
+    interiorPeek.update();
     cityWatch.update(); mapWatchBtn.hidden = !cityWatch.canWatch();
     fog.update(dt);
     // through the island gate (W3.5): a one-second fade from black

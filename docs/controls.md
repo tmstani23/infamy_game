@@ -134,6 +134,10 @@ The unit frames (your frame and the target frame, small squares top middle under
 |---|---|
 | Arrow keys | Pan the camera around, anywhere on the map (it stays there until you snap back) |
 | Home, or the "Back to hero" button (bottom right, shown while panned) | Snap the camera back to your hero |
+| Double-click a crew name whose crew is inside a building | The camera goes inside with them and stays in that room while panning. Also works in Watch the city. |
+| End, or the Inside / Outside button | Switch between the room your crew is in and the street outside its door. |
+| Double-click a building with your crew inside | Look inside it. |
+| Interior view limit | Only rooms holding living units of yours can be viewed. |
 | Mouse wheel, or = and - | Zoom in and out |
 | N (dev only) | Switch between day and night (in the sim; townsfolk follow). The button shows the time until the next automatic flip |
 | M, or the Map button | Open or close the full game map (Esc closes it too): territory, businesses, police, units, quarters, season score. The game keeps running. Click a spot to move the camera there |

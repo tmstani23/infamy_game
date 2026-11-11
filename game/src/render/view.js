@@ -50,17 +50,22 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
   let watchedPlace=null,watchedId=null;
+  let roomView=null;       // interior view (Tim 2026-11-10): the room the camera stays in after following crew inside, until it goes back out
+  const indoorPlace=p=>!!p&&p!=='street'&&p!=='world';
   let cityView=false,cityExit=null;   // Watch the city (Tim 2026-11-08): the boss is on the island, the camera shows the capital street
   let watchFn = null;      // camera follow target (double-click a crew name or group header): () => { x, z } or null
   const PAN_SPEED = 16;
   // Indoors the camera may also travel to the street to command outdoor crew.
   const B = district.bounds, inMap = p => {
+    const rv = roomView && rooms.find(r => r.name === roomView);
+    if (rv) { const sz = (rv.renderLayout || rv).size, k = rv.worldScale || 1;   // inside a room: stay over its floor
+      p.x = THREE.MathUtils.clamp(p.x, rv.origin.x - 1, rv.origin.x + sz[0] * k + 1); p.z = THREE.MathUtils.clamp(p.z, rv.origin.z - 1, rv.origin.z + sz[1] * k + 1); return p; }
     if (heroPlace === 'world' && !cityView) return p;   // out on the island (frontier W3): no city edges
     const farX = heroPlace === 'street' || cityView ? B.maxX + 4 : Math.max(B.maxX + 4, ...rooms.map(r => r.origin.x + (r.renderLayout || r).size[0] * (r.worldScale || 1) + 4));
     p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, farX);
     p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4);
     return p; };
-  const cameraPlace = h => cityView ? 'street' : watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
+  const cameraPlace = h => roomView && !(watchFn && watchedPlace) ? roomView : cityView && !(watchFn && indoorPlace(watchedPlace)) ? 'street' : watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -549,14 +554,16 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // aboard a train (Tim 2026-11-07): the camera follows the drawn engine; boarding drops a pan or a watch,
     // panning afterwards keeps the camera there until Home
     const ride = typeof h.aboard === 'string' && h.aboard.startsWith('rail:') ? h.aboard.slice(5) : null, eng = ride && railTrack?.focus(ride);
-    if (ride !== lastRide) { if (ride) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; } lastRide = ride; }
+    if (ride !== lastRide) { if (ride) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; } lastRide = ride; }
     if (eng && Math.hypot(eng.x - h.x, eng.z - h.z) <= 60) cameraPoint.set(eng.x, 0, eng.z);
-    if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; camTarget.copy(cameraPoint); }
+    if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; camTarget.copy(cameraPoint); }
     const w = watchFn && watchFn();
     if (watchFn && !w) watchFn = null;
     watchedPlace = w?.place ?? null; watchedId = w?.id ?? null;
+    if (w) roomView = indoorPlace(w.place) && w.place !== h.place ? w.place : null;   // followed crew went in or came out: the view goes with them
+    else if (roomView && (h.place !== heroPlace || h.place === roomView)) roomView = null;
     if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, cameraPoint.y, w.z); }
-    else if (farCam && (h.place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(cameraPoint) > 0.3))) { farCam = false; freeCam = null; }
+    else if (farCam && !roomView && (h.place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(cameraPoint) > 0.3))) { farCam = false; freeCam = null; }
     heroPlace = h.place;
     if (!camReady || camTarget.distanceTo(cameraPoint) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(cameraPoint); camReady = true; freeCam = null; }
     camTarget.lerp(freeCam || cameraPoint, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
@@ -603,10 +610,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
       inMap(freeCam);
     },
-    snapBack() { freeCam = null; farCam = false; watchFn = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } },
+    snapBack() { freeCam = null; farCam = false; watchFn = null; roomView = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } },
     // Watch the city: show the capital street from the island, camera at (x, z); onExit runs when Home / snapBack ends it
     setCityWatch(on, x = 0, z = 0, onExit = null) {
-      cityView = !!on; cityExit = on ? onExit : null; watchFn = null;
+      cityView = !!on; cityExit = on ? onExit : null; watchFn = null; roomView = null;
       if (on) { farCam = true; jumpFrom = null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); inMap(freeCam); }
       else { freeCam = null; farCam = false; }
     },
@@ -614,13 +621,16 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // keep the camera on fn() = { x, z } every frame (null ends it); pans, map clicks and Home stop it
     watch(fn) { watchFn = fn;watchedPlace=fn?.()?.place??null; },
     // look at a ground point (minimap click); stays there until snapBack, like panning
+    // interior view: the room the camera is in while the hero is elsewhere (null on the street), and the way back out
+    roomView: () => roomView || (watchFn && indoorPlace(watchedPlace) && watchedPlace !== heroPlace ? watchedPlace : null),
+    leaveRoom(x, z) { watchFn = null; roomView = null; farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
     lookAt(x, z) {
-      farCam = false; watchFn = null;
+      farCam = false; watchFn = null; roomView = null;
       freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z);
       inMap(freeCam);
     },
     // jump to any point however far from the hero (double-click a crew name); stays there until the hero moves, uses a door or Home
-    jumpTo(x, z) { watchFn = null; farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
+    jumpTo(x, z) { watchFn = null; roomView = null; farCam = true; jumpFrom = heroPos?.clone() ?? null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); },
     isPanned: () => !!freeCam,
     cameraXZ: () => ({ x: camTarget.x, z: camTarget.z }),   // where the camera looks (the island minimap pages with it)
     flashBuilding(i) { if (i !== null && i !== undefined) flashes.set(i, 0); },
