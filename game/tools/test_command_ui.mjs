@@ -21,7 +21,7 @@ class Node {
   assert.equal(root.children.length,3);assert.match(buttons[0].getAttribute('aria-label'),/Map.*M/);
   for(let i=0;i<100;i++)menu.update();assert.equal(reads,1,'stationary icon menu does not force layout per frame');
   buttons[1].textContent='Resume (`)';buttons[1].setAttribute('aria-pressed','true');menu.update();
-  assert.equal(buttons[1].dataset.icon,'▶');assert.match(buttons[1].getAttribute('aria-label'),/Resume/);
+  assert.equal(buttons[1].dataset.icon,'play');assert.match(buttons[1].getAttribute('aria-label'),/Resume/);
   anchor.style.cssText='left:30px';menu.update();assert.equal(reads,2,'menu tracks moved Ryo badge');
   win.innerWidth=800;menu.update();assert.equal(reads,3,'viewport resize repositions menu');
 }

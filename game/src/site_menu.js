@@ -5,6 +5,8 @@
 //   3. Take the train (Tim 2026-11-07, train plan step 4): once a line runs to the capital; a third page of the Since the city railway station (Tim 2026-11-07) trains board there, so this page only shows when one stands within reach of the gate.
 //      trains standing at the gate or due in (sim/frontier/rail.js service). Instant rickshaw trips are off.
 // Sends 'expedition', 'use' or frontier 'rail' board commands only; the rules are in sim/frontier/land_office.js.
+// Look: the shared menu shell (menu_shell.js, menu restyle 2026-11-10).
+import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msNote } from './menu_shell.js';
 const TAGS = { coast: 'coast', pass: 'pass', river: 'river', crossing: 'crossing', lake: 'lake' };
 const PAGE = 5;
 export function createSiteMenu({ panel, game, heroId, selected = () => [], send }) {
@@ -53,8 +55,9 @@ export function createSiteMenu({ panel, game, heroId, selected = () => [], send 
     const s = trips()?.[i]; if (s && s.eta === 0 && s.riders < s.seats) board(s.train);
   }
   const need = () => game.frontier?.data?.founding?.minSettlers ?? 5;
+  msInstall(panel, () => close());
   panel.addEventListener('click', e => {
-    const b = e.target.closest?.('button'); if (!b) return;
+    const b = e.target.closest?.('button'); if (!b || b.dataset.msClose !== undefined) return;
     if (b.dataset.site) ride(b.dataset.site);
     else if (b.dataset.train) board(b.dataset.train);
     else if (b.dataset.go) choose(b.dataset.go);
@@ -67,29 +70,33 @@ export function createSiteMenu({ panel, game, heroId, selected = () => [], send 
     const c = clan();
     if (!open || !c) return;
     const n = settlers(), N = need(), t = trips();
-    const head = `<h3>THE ISLAND GATE</h3><p>${expedition() ? `${n} settler${n === 1 ? '' : 's'} with you: they ride in the omnibus. Crew stay in the city.` : 'The road out to the frontier.'}</p>`;
     let body = '';
     if (page === 'main') {
-      const rows = [`<button data-go="walk">Walk out</button><small>through the gate${expedition() ? ', settlers in the omnibus; found anywhere far enough from other towns' : ''}</small>`];
-      if (expedition()) rows.push(`<button data-go="sites">Ride to a known site</button><small>straight there by omnibus${n < N ? ` · ${N} settlers needed` : ''}</small>`);
-      if (t) rows.push(`<button data-go="train">Take the train</button><small>${t.some(s => s.eta === 0) ? 'a train is standing at the gate' : `next one ${when(t[0])}`}</small>`);
-      body = rows.map((r, i) => `<div class="row"><span>${i + 1}.</span>${r}</div>`).join('');
+      const rows = [msRow({ key: 1, name: 'Walk out', sub: expedition() ? 'Through the gate, settlers in the omnibus' : 'Through the gate on foot',
+        hover: expedition() ? 'Found anywhere far enough from other towns.' : '', right: msBtn({ label: 'Walk', data: 'data-go="walk"', go: true }) })];
+      if (expedition()) rows.push(msRow({ key: rows.length + 1, name: 'Ride to a known site', sub: n < N ? `${N} settlers needed` : 'Straight there by omnibus', subClass: n < N ? 'ms-bad' : '',
+        right: msBtn({ label: 'Sites', data: 'data-go="sites"' }) }));
+      if (t) rows.push(msRow({ key: rows.length + 1, name: 'Take the train', sub: t.some(s => s.eta === 0) ? 'A train is standing at the gate' : `Next one ${when(t[0])}`,
+        right: msBtn({ label: 'Trains', data: 'data-go="train"' }) }));
+      body = msSec('Ways out', expedition() ? `${n} settler${n === 1 ? '' : 's'} with you` : '', expedition() ? 'Your settlers ride in the omnibus. Crew stay in the city.' : 'The road out to the frontier.') + rows.join('');
     } else if (page === 'sites') {
       const all = known(), list = all.slice(from, from + PAGE);
-      body = all.length ? `<p>You and your settlers ride straight there by omnibus. Found your town there.</p>` + list.map((s, i) => {
+      body = msSec('Known sites', all.length ? `${from + 1} to ${Math.min(from + PAGE, all.length)} of ${all.length}` : '', 'You and your settlers ride straight there by omnibus. Found your town there.');
+      body += all.length ? list.map((s, i) => {
         const tags = s.tags.map(x => TAGS[x]).filter(Boolean).join(', ');
-        return `<div class="row"><span>${i + 1}. ${esc(s.id)} · ${esc(s.region)}${tags ? ` · ${tags}` : ''} · ${(s.far / 1000).toFixed(1)}k<br><small>soil ${s.traits.soil} · water ${s.traits.water} · defence ${s.traits.defense}`
-          + `${s.campWarn ? ` · <span class="warn">bandit camp ${s.campDistance} away</span>` : ''}</small></span><button data-site="${esc(s.id)}"${n >= N ? '' : ' disabled'}>Go</button></div>`;
-      }).join('') + (n < N ? `<div class="waiting">${N} settlers needed to ride to a site</div>` : '')
-        : `<p>No sites known yet. Walk out and scout first: sites you find on the island show up here.</p>`;
-      body += `<div class="row">${all.length > PAGE ? `<button data-go="more">More (${from + 1}-${Math.min(from + PAGE, all.length)} of ${all.length})</button>` : ''}<button data-go="back">Back</button></div>`;
+        return msRow({ key: i + 1, name: `${esc(s.id)}, ${esc(s.region)}`, sub: `${tags ? `${tags}, ` : ''}${(s.far / 1000).toFixed(1)}k away. Soil ${s.traits.soil}, water ${s.traits.water}, defence ${s.traits.defense}`
+          + `${s.campWarn ? `. <span class="ms-bad">Bandit camp ${s.campDistance} away</span>` : ''}`, right: msBtn({ label: 'Go', data: `data-site="${esc(s.id)}"`, go: true, off: n < N }) });
+      }).join('') + (n < N ? msNote(`${N} settlers needed to ride to a site`) : '') : msNote('No sites known yet. Walk out and scout first: sites you find on the island show up here.');
+      body += `<div class="ms-foot"><span></span><span>${all.length > PAGE ? msBtn({ label: 'More', data: 'data-go="more"' }) : ''}${msBtn({ label: 'Back', data: 'data-go="back"' })}</span></div>`;
     } else {
-      body = t ? `<p>Boarding calls All aboard: everyone of yours in the gold zone after 10 s gets on (Space boards at once). Ride along, or Skip after a few seconds.</p>`
-        + t.map((s, i) => `<div class="row"><span>${i + 1}. To ${esc(s.toName)} · ${when(s)}</span><button data-train="${esc(s.train)}"${s.eta === 0 && s.riders < s.seats ? '' : ' disabled'}>Board</button></div>`).join('') : '';
-      body += `<div class="row"><button data-go="back">Back</button></div>`;
+      body = msSec('Trains', '', 'All aboard: everyone of yours in the gold zone after 10 s gets on (Space boards at once). Ride along, or Skip after a few seconds.');
+      body += t ? t.map((s, i) => msRow({ key: i + 1, name: `To ${esc(s.toName)}`, sub: when(s), right: msBtn({ label: 'Board', data: `data-train="${esc(s.train)}"`, go: true, off: !(s.eta === 0 && s.riders < s.seats) }) })).join('') : '';
+      body += `<div class="ms-foot"><span></span><span>${msBtn({ label: 'Back', data: 'data-go="back"' })}</span></div>`;
     }
-    const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? `<div class="notice">${esc(c.notice.text)}</div>` : '';
-    const html = `${head}${body}${notice}<div class="waiting">number keys pick · Space / Esc close</div>`;
+    const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? msNote(c.notice.text, true) : '';
+    const aside = msAside({ art: msArt('gatehouse'), label: 'Island gate', coins: [
+      { v: n, label: 'Settlers', red: true, tip: 'Settlers coming with you' }, { v: known().length, label: 'Sites', tip: 'Sites you have found' }] });
+    const html = msShell({ eyebrow: 'Leave the city', title: 'The island gate', escTip: 'Close (Space or Esc). Number keys pick.', aside, body: body + notice });
     if (html !== shown) { panel.innerHTML = html; shown = html; }
   }
   function close() { open = false; page = 'main'; update(); }

@@ -6,8 +6,8 @@ import {itemOf, itemArt, detailHtml} from './item_detail.js';
 export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{},hidden=()=>false}){
   const root=document.createElement('section');root.id='blacksmithshop';root.hidden=true;
   root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Blacksmith shop');
-  root.innerHTML='<div class="shop-window"><header><div><small>BLACKSMITH · FIELD OUTFITTER</small><h2>Blacksmith</h2></div><div class="shop-tabs" role="tablist"><button type="button" role="tab" data-tab="buy">Buy</button><button type="button" role="tab" data-tab="sell">Sell</button></div><button type="button" class="shop-close" aria-label="Close shop">✕</button></header><div class="shop-body"><div class="shop-grid"></div><aside class="shop-detail"><div class="detail-body"></div><div class="shop-confirm"><button type="button" class="shop-go"></button><button type="button" class="shop-cancel">Cancel</button></div><p class="shop-why"></p></aside></div><footer><span class="shop-money"></span><button type="button" class="shop-claim"></button><span class="inventory-notice" role="status"></span><span class="shop-help">Click an item to see it, then confirm</span></footer></div>';
-  const icon=document.createElement('button');icon.id='shopmarker';icon.textContent='⚒ Shop';icon.title='Blacksmith — approach to buy and sell (Space)';
+  root.innerHTML='<div class="shop-window"><header class="ms-head"><div><div class="ms-eyebrow">Blacksmith, field outfitter</div><h2>Blacksmith</h2></div><div class="shop-tabs" role="tablist"><button type="button" role="tab" data-tab="buy">Buy</button><button type="button" role="tab" data-tab="sell">Sell</button></div><button type="button" class="shop-close" aria-label="Close shop" title="Close (Esc)">Esc</button></header><div class="shop-body"><div class="shop-grid"></div><aside class="shop-detail"><div class="detail-body"></div><div class="shop-confirm"><button type="button" class="shop-go"></button><button type="button" class="shop-cancel">Cancel</button></div><p class="shop-why"></p></aside></div><footer><span class="shop-money"></span><button type="button" class="shop-claim"></button><span class="inventory-notice" role="status"></span><span class="shop-help">Click an item to see it, then confirm</span></footer></div>';
+  const icon=document.createElement('button');icon.id='shopmarker';icon.textContent='Shop';icon.title='Blacksmith: walk up to buy and sell (Space)';
   document.body.append(root,icon);const $=s=>root.querySelector(s),put=(el,v)=>{if(el.textContent!==v)el.textContent=v;};let open=false,focus,tab='buy',picked=null,hover=null;
   const hero=()=>game.state.entities[heroId],command=(action,extra={})=>send({id:heroId,type:'item',action,...extra});
   const stockIds=[...SHOP_ITEM_IDS,'bandage','war_lantern'];
@@ -26,12 +26,12 @@ export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{}
   function entry(key){
     const e=hero(),clan=game.state.clans[e?.owner],inv=clan?.inventory;if(!inv)return null;
     if(tab==='sell'){const id=inv.bag[+key],item=ITEMS[id];if(!item)return {id:null};
-      return {id,label:`${item.sell??0} ryo`,ok:!!item.sell,why:item.sell?'':'This keepsake cannot be sold',verb:`Sell · ${item.sell} ryo`};}
+      return {id,label:`${item.sell??0} ryo`,ok:!!item.sell,why:item.sell?'':'This keepsake cannot be sold',verb:`Sell for ${item.sell} ryo`};}
     const id=key,price=ITEMS[id]?.buy||(id==='bandage'?CONSUMABLES.bandage.buy:game.businesses.raidRules.lanternPrice);
     const why=ITEMS[id]?(!inv.bag.includes(null)?'Your bag is full':''):id==='bandage'?((inv.bandages||0)>=2?'You carry the most bandages (2)':'')
       :clan.kind==='ninja'?'Shinobi cannot buy War Lanterns':(clan.lanterns||0)>=(game.businesses.raidRules.lanternCarry||1)?'You already carry a War Lantern':'';
     const poor=clan.ryo<price?`Need ${price} ryo`:'';
-    return {id,label:`${price} ryo${id==='bandage'?` · ${inv.bandages||0}/2`:''}`,ok:!why&&!poor,why:why||poor,verb:`Buy · ${price} ryo`,price};
+    return {id,label:`${price} ryo${id==='bandage'?`, ${inv.bandages||0} of 2`:''}`,ok:!why&&!poor,why:why||poor,verb:`Buy for ${price} ryo`,price};
   }
   function render(){
     if(!open)return;const e=hero(),inv=game.state.clans[e?.owner]?.inventory;if(!inv)return;
@@ -69,7 +69,7 @@ export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{}
       if(k!==lastMarker){lastMarker=k;icon.style.left=`${Math.round(p.x)}px`;icon.style.top=`${Math.round(p.y)-2}px`;icon.disabled=!near;}}
     if(!open)return;if(!near||hidden())return close();
     const inv=clan.inventory;render();
-    put($('.shop-money'),`${Math.floor(clan.ryo)} ryo · Bag ${inv.bag.filter(Boolean).length}/${INVENTORY_SLOTS}`);
+    put($('.shop-money'),`${Math.floor(clan.ryo)} ryo, bag ${inv.bag.filter(Boolean).length} of ${INVENTORY_SLOTS}`);
     $('.shop-claim').hidden=!inv.pending?.length;put($('.shop-claim'),`Claim waiting rewards (${inv.pending?.length||0})`);
     put($('.inventory-notice'),clan.notice&&game.state.tick-clan.notice.tick<100?clan.notice.text:'');
   }

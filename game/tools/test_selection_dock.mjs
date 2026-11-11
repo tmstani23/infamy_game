@@ -44,7 +44,7 @@ try{
  let selected=[];const input={selected:()=>selected,looked:()=>null,tabbed:()=>r.id};
  const frames=createUnitFrames({game,units:{types:{hero:{name:'Hero'},ninja:{name:'Ninja'}}},catalog:{},heroId:'h',crewInput:input,view:{commandPlace:()=> 'street'}});
  frames.inspect('n');const card=docBody.children.find(el=>el.id==='utarget');
- assert.equal(card.querySelector('.hp span').textContent,'40 / 80');assert.equal(card.querySelector('i').textContent,'Transferring → West Ward','live transfer destination belongs to inspected crew');
+ assert.equal(card.querySelector('.hp span').textContent,'40 / 80');assert.equal(card.querySelector('i').textContent,'Transferring to West Ward','live transfer destination belongs to inspected crew');
  assert.equal(card.hidden,false,'own crew remains inspectable while traveling inside another room');
  frames.clearInspection();assert.match(card.title,/Rival clan/,'closing map restores the normal enemy target context');
  const list=new FrameElement(),selection=createSelectionPanel({root:list,game,units:{types:{hero:{name:'Hero'},ninja:{name:'Ninja'}}},catalog:{},crewInput:input,hideOwnedBy:()=>h.owner});

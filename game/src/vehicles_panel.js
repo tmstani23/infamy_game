@@ -1,4 +1,4 @@
-// The Vehicles panel (Tim 2026-11-07): Shift+Y or the ⛟ icon. Every horse, rickshaw and omnibus you own: where it is,
+// The Vehicles panel (Tim 2026-11-07): Shift+Y or the Vehicles icon. Menu restyle 2026-11-10: shared shell, a tab per kind, pages. Every horse, rickshaw and omnibus you own: where it is,
 // who is aboard, and Look (camera), Select (vehicles: they take crew orders), Call (horses), Recall (back to your
 // nearest stable and stored there) or Take out (parked beside its stable). Commands: sim/vehicle_garage.js,
 // sim/mounts.js whistle. Room per stable comes from the town tiers (sim/frontier/stable.js).
@@ -21,7 +21,7 @@ export function listVehicles(game, heroId) {
     if (e.place !== 'world') return 'Away';
     let near = null;
     for (const t of Object.values(st.frontier?.settlements || {})) { const d = Math.hypot(t.x - e.x, t.z - e.z); if (d < 220 && (!near || d < near.d)) near = { t, d }; }
-    const far = h && h.place === 'world' ? ` · ${Math.round(Math.hypot(h.x - e.x, h.z - e.z))} from you` : '';
+    const far = h && h.place === 'world' ? `, ${Math.round(Math.hypot(h.x - e.x, h.z - e.z))} from you` : '';
     return (near ? `In ${near.t.name}` : 'Out on the island') + far;
   }
   function status(e) {
@@ -35,16 +35,21 @@ export function listVehicles(game, heroId) {
   return mine().map(({ e, kind }) => ({ e, kind, name: e.type === 'horse' ? e.name || 'Horse' : `${e.type === 'omnibus' ? 'Omnibus' : 'Rickshaw'} ${++k[kind]}`, status: status(e), where: where(e) }));
 }
 
+import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msPager, msNote, msEsc } from './menu_shell.js';
+const PER = 5, KINDS = ['horse', 'rickshaw', 'omnibus'];
+
 export function createVehiclesPanel({ root, game, heroId, send, view, crewInput }) {
-  let open = false, shown = '';
+  let open = false, shown = '', tab = 'horse', page = 0;
   const hero = () => game.state.entities[heroId];
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const NAMES = { horse: 'Horses', rickshaw: 'Rickshaws', omnibus: 'Omnibuses' };
   const mine = () => listVehicles(game, heroId);
+  msInstall(root, () => close());
   root.addEventListener('click', ev => {
     const b = ev.target.closest?.('button'); if (!b || b.disabled) return;
-    const d = b.dataset, e = d.id && game.state.entities[d.id];
-    if (d.close !== undefined) return close();
+    const d = b.dataset;
+    if (d.vtab) { tab = d.vtab; page = 0; shown = ''; return update(); }
+    if (d.vpage) { page += Number(d.vpage); shown = ''; return update(); }
+    const e = d.id && game.state.entities[d.id];
     if (!e) return;
     if (d.act === 'look') view.jumpTo(e.x, e.z);
     if (d.act === 'select') { crewInput.selectUnit(e.id, true); view.jumpTo(e.x, e.z); }
@@ -56,24 +61,27 @@ export function createVehiclesPanel({ root, game, heroId, send, view, crewInput 
   function update() {
     if (!open) return;
     const list = mine(), S = game.frontier?.stable, me = hero()?.owner, onIsland = hero()?.place === 'world';
-    let html = '<header><h3>VEHICLES</h3><button data-close aria-label="Close">✕</button></header>';
-    if (S) html += `<p>${['horse', 'rickshaw', 'omnibus'].map(c => `${NAMES[c]} <b>${S.have(me, c)}</b> / ${S.room(me, c)}`).join(' · ')}<br><small>Room: all your stables together, by each town's tier. Buy more in a stable menu.</small></p>`;
-    for (const cat of ['horse', 'rickshaw', 'omnibus']) {
-      const rows = list.filter(r => r.kind === cat);
-      if (!rows.length) continue;
-      html += `<h4>${NAMES[cat]}</h4>`;
-      for (const { e, name, status: s, where: w } of rows) {
-        const btns = [
-          !e.stored && e.place === 'world' ? `<button data-act="look" data-id="${esc(e.id)}">Look</button>` : '',
-          e.type !== 'horse' && !e.stored && e.place === 'world' ? `<button data-act="select" data-id="${esc(e.id)}" title="Select it: loaded ones take crew orders">Select</button>` : '',
-          e.type === 'horse' ? `<button data-act="whistle" data-id="${esc(e.id)}"${onIsland ? '' : ' disabled title="Island only"'} title="Make her your mount and call her: she gallops to you (from far off she turns up a little way away first)">Call</button>` : '',
-          e.stored ? `<button data-act="takeout" data-id="${esc(e.id)}">Take out</button>` : `<button data-act="recall" data-id="${esc(e.id)}"${e.recall ? ' disabled' : ''} title="Riders get off; it goes back to your nearest stable and is stored there">Recall</button>`,
-        ].join('');
-        html += `<div class="vrow"><div><b>${esc(name)}</b>${s ? ` · ${esc(s)}` : ''}<br><small>${esc(w)}</small></div><div class="vbtns">${btns}</div></div>`;
-      }
-    }
-    if (!list.length) html += '<p>No horses or vehicles yet. Build a stable in one of your towns, then click it to buy them.</p>';
-    html += '<div class="waiting">Shift+Y / Esc close</div>';
+    const count = c => list.filter(r => r.kind === c).length;
+    if (!count(tab)) tab = KINDS.find(count) || tab;
+    const coins = KINDS.map(c => ({ v: S ? `${S.have(me, c)}/${S.room(me, c)}` : count(c), label: NAMES[c], red: c === tab,
+      tip: 'Owned and room: all your stables together, by each town tier. Buy more in a stable menu.' }));
+    const aside = msAside({ art: msArt('stable'), label: 'Your stables', labelTip: 'Room: all your stables together, by each town tier. Buy more in a stable menu.', coins });
+    let body = `<div class="ms-tabs">${KINDS.map(c => `<button class="ms-tab${c === tab ? ' on' : ''}" data-vtab="${c}">${NAMES[c]} ${count(c)}</button>`).join('')}</div>`;
+    const rows = list.filter(r => r.kind === tab), pages = Math.max(1, Math.ceil(rows.length / PER)); page = Math.max(0, Math.min(page, pages - 1));
+    body += msSec(NAMES[tab], rows.length ? `${rows.length} owned` : '');
+    body += rows.slice(page * PER, page * PER + PER).map(({ e, name, status: s, where: w }) => {
+      const id = msEsc(e.id), out = !e.stored && e.place === 'world';
+      const btns = [
+        out ? msBtn({ label: 'Look', data: `data-act="look" data-id="${id}"`, hover: 'Move the camera to it' }) : '',
+        e.type !== 'horse' && out ? msBtn({ label: 'Select', data: `data-act="select" data-id="${id}"`, hover: 'Select it: loaded ones take crew orders' }) : '',
+        e.type === 'horse' ? msBtn({ label: 'Call', data: `data-act="whistle" data-id="${id}"`, off: !onIsland, hover: onIsland ? 'Make her your mount and call her: she gallops to you (from far off she turns up a little way away first)' : 'Island only' }) : '',
+        e.stored ? msBtn({ label: 'Take out', data: `data-act="takeout" data-id="${id}"`, go: true, hover: 'Parked beside its stable' }) : msBtn({ label: 'Recall', data: `data-act="recall" data-id="${id}"`, off: !!e.recall, hover: 'Riders get off; it goes back to your nearest stable and is stored there' }),
+      ].join('');
+      return msRow({ name: msEsc(name) + (s ? ` <span class="ms-small">${msEsc(s)}</span>` : ''), sub: msEsc(w), right: btns });
+    }).join('') || msNote('No horses or vehicles yet. Build a stable in one of your towns, then click it to buy them.');
+    if (pages > 1) body += msPager(pages, page, 'data-vpage');
+    body += msNote('Shift+Y or Esc closes.');
+    const html = msShell({ eyebrow: 'Horses and vehicles', title: 'Vehicles', escTip: 'Close (Shift+Y or Esc)', aside, body });
     if (html !== shown) { root.innerHTML = html; shown = html; }
     root.hidden = false;
   }

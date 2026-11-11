@@ -24,7 +24,7 @@ const L = createRailLedger({ game: g });
 assert.match(L.html(), /No shipments on the way/);
 g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: 'tB', resource: 'timber', amount: 50 }]);
 const o = Object.values(F.shipping.orders)[0];
-assert.match(L.html(), /Open 1/); assert.match(L.html(), /Timber 50/); assert.match(L.html(), /tA → tB/);
+assert.match(L.html(), /Open 1/); assert.match(L.html(), /Timber 50/); assert.match(L.html(), /tA to tB/);
 // wait until it is aboard, then pick it: the ledger names its train for the map highlight
 for (let i = 0; i < 4000 && !Object.values(F.rail.trains).some(t => t.freight?.length); i++) g.step([]);
 assert.ok(L.click('pick:' + o.id));
@@ -38,5 +38,5 @@ L.click('tab:lost'); assert.match(L.html(), /No cargo lost/);
 // pages: never more than 6 rows
 for (let i = 0; i < 9; i++) g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: 'tB', resource: 'food', amount: 10 }]);
 L.click('tab:open');
-assert.equal((L.html().match(/class="lgrow/g) || []).length, 6); assert.match(L.html(), /Next ▶/);
+assert.equal((L.html().match(/class="lgrow/g) || []).length, 6); assert.match(L.html(), />Next</);
 console.log('test_rail_ledger: ok');

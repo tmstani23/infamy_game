@@ -9,25 +9,25 @@ import { entityName } from './selection_panel.js';
 
 const PER_PAGE = 24;
 const CSS = `
-#garrisoncard{position:fixed;left:380px;top:110px;width:340px;box-sizing:border-box;padding:10px;z-index:34;background:rgba(12,14,18,.95);border:1px solid #5c4a2c;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.6);font:12px/16px system-ui,sans-serif;color:#e8e2d4}
+#garrisoncard{position:fixed;left:380px;top:110px;width:340px;box-sizing:border-box;padding:10px 12px 12px;z-index:34;background:linear-gradient(180deg,#171c21,#0f1317);border:1px solid #4d3b2a;border-top:2px solid var(--ms-accent);border-radius:8px;box-shadow:0 12px 44px #000b,0 0 0 1px #000;font:12px/16px system-ui,sans-serif;color:#eadfc6}
 #garrisoncard[hidden]{display:none}
-#garrisoncard h1{margin:0;font:700 16px/20px system-ui,sans-serif;color:#e9d6a8}
-#garrisoncard .sub{font:italic 11px/14px system-ui,sans-serif;color:#b8b0a0}
-#garrisoncard .lab{color:#8c8476;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin:9px 0 4px;border-top:1px solid #2c2a26;padding-top:6px;display:flex;justify-content:space-between}
+#garrisoncard h1{margin:2px 0 0;font:500 19px/22px system-ui,sans-serif;color:#eadfc6}
+#garrisoncard .sub{font:600 10px/12px system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--ms-accent-lt)}
+#garrisoncard .lab{color:#9b9c98;font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:9px 0 6px;border-bottom:1px solid #3c3b36;padding-bottom:5px;display:flex;justify-content:space-between}#garrisoncard .lab span:last-child{color:#d8b56c}
 #garrisoncard .bar{height:6px;background:#22262e;border-radius:3px;margin-top:3px;overflow:hidden}#garrisoncard .bar i{display:block;height:100%}
 #garrisoncard .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-#garrisoncard .s{aspect-ratio:1;border-radius:4px;background:#101318 center/cover no-repeat;border:1px solid #23262d;position:relative;overflow:hidden;cursor:pointer}
+#garrisoncard .s{aspect-ratio:1;border-radius:5px;background:#1d1a16 center/cover no-repeat;border:1px solid #665944;position:relative;overflow:hidden;cursor:pointer}
 #garrisoncard .s.e{border:1px dashed #3a352c;background:none;cursor:default}
 #garrisoncard .s .h{position:absolute;left:2px;right:2px;bottom:2px;height:3px;background:#22262e}#garrisoncard .s .h i{display:block;height:100%}
 #garrisoncard .s .ini{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 14px system-ui,sans-serif;color:#8c8476}
-#garrisoncard .s.hero{border-color:#e9c27a}#garrisoncard .s.rest{opacity:.7}
+#garrisoncard .s.hero{border-color:var(--ms-accent);box-shadow:0 0 6px color-mix(in srgb, var(--ms-accent) 53%, transparent)}#garrisoncard .s.rest{opacity:.7}
 #garrisoncard .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
 #garrisoncard .dim{color:#8c8476}
-#garrisoncard button{font:600 11px/14px system-ui,sans-serif;color:#f2d48a;background:#1b1e25;border:1px solid rgba(233,194,122,.5);border-radius:4px;padding:3px 8px;cursor:pointer}
+#garrisoncard button{font:600 12px/14px system-ui,sans-serif;color:#eadfc6;background:#20262d;border:1px solid #61543e;border-radius:5px;padding:4px 10px;cursor:pointer}#garrisoncard button:hover:not(:disabled){border-color:#ffe0a1;background:#262d35}#garrisoncard button[data-act=out]{border-color:var(--ms-go-line);background:linear-gradient(var(--ms-go1),var(--ms-dk1));color:var(--ms-on-text)}
 #garrisoncard button:disabled{opacity:.4;cursor:default}
 #garrisoncard .x{position:absolute;top:8px;right:10px}`;
 
-export function createGarrisonCard({ game, heroId, frontierData, units, catalog, send, select }) {
+export function createGarrisonCard({ game, heroId, frontierData, units, catalog, send, select, selected = () => [] }) {
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const root = document.createElement('div'); root.id = 'garrisoncard'; root.hidden = true; document.body.appendChild(root);
   let site = null, page = 0, sig = '';   // site = { town, building id }
@@ -69,9 +69,10 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
       const name = (e.cannon || e.surveyor) && e.name || entityName(units, e, e.civ || e.type);
       slots += `<div class="s${e.id === heroId ? ' hero' : ''}" data-id="${m.id}" style="${url ? `background-image:url(${url})` : ''}" title="${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x. Click: walk out">${url ? '' : `<b class="ini">${initial(e)}</b>`}<div class="h"><i style="width:${frac * 100}%;background:${css(color)}"></i></div></div>`;
     }
-    root.innerHTML = `<button class="x" data-act="close">X</button><h1>${nice(b.type)}</h1><div class="sub">${s.name || 'Your town'} - garrison</div>${hpLine}
+    root.innerHTML = `<button class="x" data-act="close" title="Close">Close</button><div class="sub">${s.name || 'Your town'}, garrison</div><h1>${nice(b.type)}</h1>${hpLine}
       <div class="lab"><span>Inside ${mem.length} / ${cap}</span><span>${pages > 1 ? `Page ${page + 1} of ${pages}` : ''}</span></div>
       <div class="grid">${slots}</div>
+      <div class="row"><span class="dim"${tip(`Units must stand within ${R.range ?? ''} of the building to go in.`)}>Send in</span><span><button data-act="in-sel"${tip('Send your selected units inside')}>Selected</button> <button data-act="in-crew"${tip('Send your hero and crew inside')}>Hero and crew</button></span></div>
       <div class="row"><span class="dim"${tip(`Units inside heal ${R.healFactor ?? 1}x faster and cannot be attacked.`)}>Heal ${R.healFactor ?? 1}x inside</span><span>${pages > 1 ? `<button data-act="prev"${page ? '' : ' disabled'}>Prev</button> <button data-act="next"${page < pages - 1 ? '' : ' disabled'}>Next</button> ` : ''}<button data-act="out"${mem.length ? '' : ' disabled'}${tip('Everyone inside walks out (Shift+K)')}>Evacuate</button></span></div>`;
   }
   function updateInPlace(mem, R, hp) {
@@ -99,6 +100,11 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     const a = ev.target.closest('[data-act]')?.dataset.act, slot = ev.target.closest('.s[data-id]');
     if (a === 'close') return close();
     if (a === 'prev') page--; else if (a === 'next') page++;
+    else if (a === 'in-sel' || a === 'in-crew') {   // Tim 2026-11-11: moved here from the Governor tab
+      const mine = game.state.entities[heroId]?.owner;
+      const ids = a === 'in-sel' ? selected() : Object.values(game.state.entities).filter(u => u.owner === mine && !u.garrison && u.place === 'world' && !u.worker && u.type !== 'civilian').map(u => u.id);
+      if (ids.length) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: site.town, units: ids });
+    }
     else if (a === 'out') send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town });
     else if (slot) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, units: [slot.dataset.id] });   // click a unit: it walks out (Tim 2026-11-10)
     sig = ''; render();

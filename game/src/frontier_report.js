@@ -5,15 +5,15 @@ const fix = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString();
 
 export function frontierReport(frontier) {
   if (!frontier) return 'frontier: off';
-  const lines = [`frontier · economy tick ${frontier.econTick}`];
+  const lines = [`frontier, economy tick ${frontier.econTick}`];
   for (const s of Object.values(frontier.settlements || {})) {
     if (s.capital || !s.stock) continue;   // rival towns arrive as name only (F4.2)
-    const stock = Object.entries(s.stock).map(([r, v]) => `${r} ${fix(v)}`).join(' · ');
+    const stock = Object.entries(s.stock).map(([r, v]) => `${r} ${fix(v)}`).join(', ');
     const jobs = (s.buildings || []).reduce((n, b) => n + (b.stage === 'built' ? b.workers || 0 : 0), 0);
-    lines.push(`${s.name} (${s.id}) owner ${s.owner ?? '-'} · pop ${s.pop}/${s.housing} · jobs ${jobs}${s.mood !== undefined ? ` · mood ${fix(s.mood, 0)}` : ''}`);
+    lines.push(`${s.name} (${s.id}) owner ${s.owner ?? '-'}, pop ${s.pop}/${s.housing}, jobs ${jobs}${s.mood !== undefined ? `, mood ${fix(s.mood, 0)}` : ''}`);
     lines.push(`  ${stock}`);
     const r = s.report || {};
-    if (r.doing || r.next || r.waiting?.length) lines.push(`  ${r.doing || ''}${r.next ? ' → ' + r.next : ''}${r.waiting?.length ? ' · waiting: ' + r.waiting.join(', ') : ''}`);
+    if (r.doing || r.next || r.waiting?.length) lines.push(`  ${r.doing || ''}${r.next ? ' to ' + r.next : ''}${r.waiting?.length ? ', waiting: ' + r.waiting.join(', ') : ''}`);
   }
   return lines.join('\n');
 }
@@ -68,7 +68,7 @@ export function reportRows(s, prev) {
     stock,
     pop: { pop: residents(s), housing: s.housing, text: `${s.pop} townsfolk + ${workerCount(s)} workers / ${Math.floor(s.housing)} beds`, growth: r.growth?.text || '', goodsWait: (r.waiting || []).includes('goods for housing'), fill: s.housing ? Math.min(1, residents(s) / s.housing) : 0 },
     jobs, jobsTip: TIPS.jobs, idle: r.idle || 0, unfilled: r.unfilled || 0,
-    jobsText: `Jobs ${jobs.reduce((n, j) => n + j.workers, 0)} filled · ${r.unfilled || 0} free · ${r.idle || 0} idle${r.idle ? ' (half tax)' : ''}`,
+    jobsText: `Jobs ${jobs.reduce((n, j) => n + j.workers, 0)} filled, ${r.unfilled || 0} free, ${r.idle || 0} idle${r.idle ? ' (half tax)' : ''}`,
     doing: r.doing || '', next: r.next || '', waiting, waitingInfo: (r.waiting || []).map(w => waitInfo(s, w)),
     projects, suggestions, suggestionsTip: TIPS.suggestions,
     steer: { priority: s.priority, tax: s.taxLevel, taxLocked: !!s.taxLocked, autoBuild: !!s.autoBuild, tips: { focus: TIPS.focus, tax: TIPS.tax, initiative: TIPS.initiative } }
@@ -123,8 +123,8 @@ export function overviewRows(frontier, clan, prev = {}, alerts = {}) {
       moodTip:rep.mood.why.map(w=>w.tip).join('\n') || TIPS.mood,foodTip:s.report?.statusTips?.food || TIPS.food,shortageTip:rep.waitingInfo[0]?.tip || '',
       food: rep.stock[0].arrow, foodValue: rep.stock[0].value,
       ryo: rep.stock[4].value, ryoArrow: rep.stock[4].arrow,
-      shortage: rep.waiting[0] || '', project: proj ? `${proj.label} · ${proj.status}` : '',
-      road: road ? road.state : 'none', garrison: '–',
+      shortage: rep.waiting[0] || '', project: proj ? `${proj.label}, ${proj.status}` : '',
+      road: road ? road.state : 'none', garrison: '-',
       priority: s.priority, tax: s.taxLocked ? s.taxLevel : 'auto', alerts: alerts[s.id] || [],
       need: s.need?.level || 'ok', needScore: s.need?.score || 0, needWhy: (s.need?.why || []).map(w => w.text) };   // Tim 2026-11-06: sim/frontier/alerts.js townNeed
   });
@@ -144,9 +144,9 @@ export function hoverCard(town, { clan = 'player', clanName = id => id, roads = 
   }
   const rep = reportRows(town);
   const road = Object.values(roads).find(r => r.from === town.id || r.to === town.id);
-  const lines = [['Pop', `${town.pop} / ${town.housing}`], ['Mood', `${rep.mood.value}${rep.mood.why[0] ? ' · ' + rep.mood.why[0].text : ''}`],
-    ['Food', rep.stock[0].value + (rep.stock[0].arrow === 'down' ? ' ▼' : rep.stock[0].arrow === 'up' ? ' ▲' : '')],
-    ['Building', rep.projects[0] ? `${rep.projects[0].label} · ${rep.projects[0].status}` : 'Nothing'], ['Road', road ? road.state : 'none']];
+  const lines = [['Pop', `${town.pop} / ${town.housing}`], ['Mood', `${rep.mood.value}${rep.mood.why[0] ? ', ' + rep.mood.why[0].text : ''}`],
+    ['Food', rep.stock[0].value + (rep.stock[0].arrow === 'down' ? ' down' : rep.stock[0].arrow === 'up' ? ' up' : '')],
+    ['Building', rep.projects[0] ? `${rep.projects[0].label}, ${rep.projects[0].status}` : 'Nothing'], ['Road', road ? road.state : 'none']];
   if (rep.waiting.length) lines.push(['Short of', rep.waiting[0].replace('Waiting for ', '')]);
-  return { title: town.name, sub: 'Yours · click to open', lines, mine: true };
+  return { title: town.name, sub: 'Yours, click to open', lines, mine: true };
 }

@@ -94,7 +94,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const snapshot = deploymentData.get();
     for (const s of snapshot.sectors) {
       const row = sectorButtons.get(s.id);
-      row.status.textContent = `${s.taskLabel} · ${s.count}/${s.desired} · ${s.status}${s.missing ? ` · needs ${s.missing}` : ''}`;
+      row.status.textContent = `${s.taskLabel}, ${s.count}/${s.desired}, ${s.status}${s.missing ? `, needs ${s.missing}` : ''}`;
       row.button.setAttribute('aria-pressed', String(s.id === selectedSector));
       row.button.classList.toggle('sector-alert', game.state.tick - (s.alertAt ?? -Infinity) < 100);
     }
@@ -113,7 +113,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
         const image = catalog && portrait(catalog, e.model);
         if (image) { b.style.backgroundImage = `url(${image})`; b.textContent = ''; }
         else b.textContent = (units?.types[e.type]?.name || e.type).slice(0, 2);
-        b.title = `${units?.types[e.type]?.name || e.type} #${e.id} · ${e.deployment.group} · ${Math.ceil(e.hp)}/${e.maxHp} HP. Select group.`;
+        b.title = `${units?.types[e.type]?.name || e.type} #${e.id}, ${e.deployment.group}, ${Math.ceil(e.hp)}/${e.maxHp} HP. Select group.`;
         b.classList.toggle('selected', selected().includes(e.id));
       }
     }
@@ -124,9 +124,9 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       recent.dataset.key = targetKey; recent.replaceChildren();
       for (const t of targets) {
         const row = document.createElement('div'), inspect = document.createElement('button'), arm = document.createElement('button');
-        inspect.type = arm.type = 'button'; inspect.textContent = `${units?.types[t.type]?.name || units?.models[t.model]?.name || t.type} · ${t.tracked ? 'tracked' : t.live ? 'in sight' : `${Math.floor(t.age)}s ago`} · ${t.sector || 'town'}`;
+        inspect.type = arm.type = 'button'; inspect.textContent = `${units?.types[t.type]?.name || units?.models[t.model]?.name || t.type}, ${t.tracked ? 'tracked' : t.live ? 'in sight' : `${Math.floor(t.age)}s ago`}, ${t.sector || 'town'}`;
         inspect.addEventListener('click', () => onSelectTarget(t.id));
-        arm.textContent = hunt?.target === t.id ? 'Armed · Cancel' : 'Ambush';
+        arm.textContent = hunt?.target === t.id ? 'Armed, Cancel' : 'Ambush';
         arm.addEventListener('click', () => send({ id: heroId, type: 'deployment', action: hunt?.target === t.id ? 'cancelAmbush' : 'armAmbush', target: t.id }));
         row.append(inspect, arm); recent.appendChild(row);
       }
@@ -134,9 +134,9 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     if (document.activeElement !== staffing) staffing.value = s.desired;
     const notice = game.state.clans[clan]?.notice;
     controls.querySelector('.sector-notice').textContent = notice && game.state.tick - notice.tick < 160 ? notice.text : '';
-    const presence = s.presence.map(c => `${c.owner === clan ? 'Your crew' : c.name}: ${c.count}`).join(' · ');
+    const presence = s.presence.map(c => `${c.owner === clan ? 'Your crew' : c.name}: ${c.count}`).join(', ');
     const lost = snapshot.contacts.filter(c => !c.live && c.sector === s.id).length;
-    deploymentSide.querySelector('.sector-detail').textContent = `${s.name}\nSaved task: ${s.taskLabel}\n${s.living} available · ${s.incoming} incoming${s.assigned > s.living ? ` · ${s.assigned - s.living} downed` : ''}\n${Math.ceil(s.hp)} / ${s.maxHp} HP · ${s.status}${presence ? `\nSpotted presence: ${presence}` : ''}${lost ? `\n${lost} last-known contact${lost === 1 ? '' : 's'}` : ''}`;
+    deploymentSide.querySelector('.sector-detail').textContent = `${s.name}\nSaved task: ${s.taskLabel}\n${s.living} available, ${s.incoming} incoming${s.assigned > s.living ? `, ${s.assigned - s.living} downed` : ''}\n${Math.ceil(s.hp)} / ${s.maxHp} HP, ${s.status}${presence ? `\nSpotted presence: ${presence}` : ''}${lost ? `\n${lost} last-known contact${lost === 1 ? '' : 's'}` : ''}`;
   }
   function positionTip(e) {
     const r = root.querySelector('.mapbox').getBoundingClientRect(), width=tip.offsetWidth, height=tip.offsetHeight;
@@ -145,15 +145,15 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   }
   function hoverSector(s, e) {
     if (!s) { tip.hidden = true; return; }
-    const presence = s.presence.map(c => `${c.owner === clan ? 'Your crew' : c.name}: ${c.count}`).join(' · ');
-    const text = `${s.name}\n${s.taskLabel} (saved) · ${s.count}/3 · ${s.status}${presence ? `\n${presence}` : ''}\n${pointPicker ? 'Choose a point inside the selected sector' : 'Click to manage your crew'}`;
+    const presence = s.presence.map(c => `${c.owner === clan ? 'Your crew' : c.name}: ${c.count}`).join(', ');
+    const text = `${s.name}\n${s.taskLabel} (saved), ${s.count}/3, ${s.status}${presence ? `\n${presence}` : ''}\n${pointPicker ? 'Choose a point inside the selected sector' : 'Click to manage your crew'}`;
     if(tip.textContent!==text)tip.textContent=text;
     tip.hidden = false; positionTip(e);
   }
   syncLayers();
   // clicks on the map screen never reach the crew controls underneath (they listen on the window)
   for (const type of ['mousedown', 'mouseup', 'click', 'contextmenu', 'pointerdown', 'pointerup']) root.addEventListener(type, e => { e.stopPropagation(); if (type === 'contextmenu') e.preventDefault(); });
-  root.querySelector('.mapclose').textContent='Close map ✕';
+  root.querySelector('.mapclose').textContent='Close map';
   root.querySelector('.mapclose').addEventListener('click', e => { close(); e.currentTarget.blur(); });
 
   // hover: what is known about that business (a rival's owner once you have seen it)
@@ -168,13 +168,13 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       const cell = game.vision.cellOf(b.x, b.z), visible = !fog.isOn() || (cell >= 0 && vg.visible[cell]);
       const loot = b.members.reduce((n, kind) => n + (game.settings.bandits?.types?.[kind]?.ryo || 0), 0);
       lines[0] = `<b>${b.name}</b>`;
-      lines.push(`${b.members.length} bandits · ${loot} ryo to loot`);
+      lines.push(`${b.members.length} bandits, ${loot} ryo to loot`);
       lines.push(visible ? `${b.units.filter(id => st.entities[id] && !st.entities[id].dead).length} remaining` : 'Not in sight');
       lines.push('Cleared camps return at dawn');
     }
     if (b.hideout) lines.push(b.owner === clan ? 'Your hideout' : `${st.clans[b.owner]?.name || 'Rival'} hideout`);
     else if (owner) lines.push(owner);
-    if (R?.payout) lines.push(`Pays ${R.payout} ryo at dawn · ${R.score || 0} season point${R.score === 1 ? '' : 's'}`);
+    if (R?.payout) lines.push(`Pays ${R.payout} ryo at dawn, ${R.score || 0} season point${R.score === 1 ? '' : 's'}`);
     if (q) lines.push(q.name);
     if (b.owner && seen && R) {
       const guards = Object.values(st.entities).filter(g => g.guard === b.id && !g.dead).length;
@@ -209,10 +209,10 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       return `<div class="row q"><span>${q.name}</span><em>${!o ? 'nobody holds it all' : o === clan ? 'yours (+payout)' : `held by ${st.clans[o]?.name}`}</em></div>`;
     }).join('')+'</details>';
     // a short key (Tim 2026-10-20: just these three)
-    const legend = `<h4>Key</h4><div class="key">B · Bandit camp</div><div class="key">Q · Pawnshop · A · Bathhouse</div><div class="key">K · Sake brewery · R · Manor</div><div class="key">U · Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
+    const legend = `<h4>Key</h4><div class="key">B, Bandit camp</div><div class="key">Q, Pawnshop, A, Bathhouse</div><div class="key">K, Sake brewery, R, Manor</div><div class="key">U, Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
-    const html = `<h4>${!modeRules(st).seasonEnds ? `Campaign · day ${s.day}` : `Season · day ${Math.min(s.day, s.cycles)} of ${s.cycles}`}</h4>${rows}${quarters}${legend}`;
+    const html = `<h4>${!modeRules(st).seasonEnds ? `Campaign, day ${s.day}` : `Season, day ${Math.min(s.day, s.cycles)} of ${s.cycles}`}</h4>${rows}${quarters}${legend}`;
     if (side.innerHTML !== html) side.innerHTML = html;
   }
 
@@ -261,7 +261,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const at = t => Number.isFinite(t.x) && Number.isFinite(t.z) ? { x: t.x, z: t.z } : siteXZ[t.site ?? ''] ? { x: siteXZ[t.site].x, z: siteXZ[t.site].z } : null;
     return Object.values(f.settlements || {}).filter(t => !t.capital && at(t)).map(t => ({ ...t, ...at(t) }));
   }
-  const TRAIT = v => '●'.repeat(v) + '○'.repeat(Math.max(0, 3 - v));
+  const TRAIT = v => '<i class="tdot on"></i>'.repeat(v) + '<i class="tdot"></i>'.repeat(Math.max(0, 3 - v));   // drawn dots, no glyphs
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // W4.4: scouting report lines (nodes within 600 units, nearest bandit camp)
   function siteReportHtml(site) {
@@ -274,20 +274,20 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     let box = '<span class="atlas-hint">Click a marked feature for details.</span>';
     if (picked?.kind === 'site') {
       const region = world.regions.find(r => r.id === picked.region);
-      box = `<h4>Site ${placeNo(picked.id)}</h4><div class="key">${esc(region?.name || 'Region ' + picked.region)} · ${picked.tags.includes('coast') ? 'coast' : 'inland'}</div>`
+      box = `<h4>Site ${placeNo(picked.id)}</h4><div class="key">${esc(region?.name || 'Region ' + picked.region)}, ${picked.tags.includes('coast') ? 'coast' : 'inland'}</div>`
         + (scouted.has(picked.id) || worldMap.layers.revealAll ? Object.entries(picked.traits).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${TRAIT(v)}</b></div>`).join('')
-          + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ' · harbor' : ''}</div>` + siteReportHtml(picked) : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
+          + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ', harbor' : ''}</div>` + siteReportHtml(picked) : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
     } else if (picked?.kind === 'capital') box = `<h4>The Capital</h4><div class="key">Your home port city.</div>`;
-    else if (picked?.kind === 'camp') box = `<h4>${picked.featureKind === 'bandit' ? 'Bandit camp' : picked.featureKind === 'ruin' ? 'Ruin' : 'Cache'} ${placeNo(picked.id)}</h4><div class="key">Tier ${picked.tier}${game.state.world?.camps?.[picked.id]?.cleared ? ' · Cleared on day '+game.state.world.camps[picked.id].clearedDay : ''}</div>`;
+    else if (picked?.kind === 'camp') box = `<h4>${picked.featureKind === 'bandit' ? 'Bandit camp' : picked.featureKind === 'ruin' ? 'Ruin' : 'Cache'} ${placeNo(picked.id)}</h4><div class="key">Tier ${picked.tier}${game.state.world?.camps?.[picked.id]?.cleared ? ', Cleared on day '+game.state.world.camps[picked.id].clearedDay : ''}</div>`;
     else if (picked?.kind === 'pin') box = `<h4>Your pin</h4><div class="key">${esc(picked.note || '(no note)')}</div><div class="key">Right-click it to remove.</div>`;
-    else if (picked) box = `<h4>${esc(atlasFeatureName(picked))}</h4>` + (picked.kind === 'resource' ? `<div class="key">${esc(picked.featureKind)} · richness ${esc(picked.richness)}</div>` : '');
-    if (picked) box += `<div class="key">${esc(gridLabel(picked.x,picked.z))} · x ${Math.round(picked.x).toLocaleString('en-US')} z ${Math.round(picked.z).toLocaleString('en-US')} · ${esc(worldMap.biomeAt(picked.x,picked.z).name)}</div>`;
+    else if (picked) box = `<h4>${esc(atlasFeatureName(picked))}</h4>` + (picked.kind === 'resource' ? `<div class="key">${esc(picked.featureKind)}, richness ${esc(picked.richness)}</div>` : '');
+    if (picked) box += `<div class="key">${esc(gridLabel(picked.x,picked.z))}, x ${Math.round(picked.x).toLocaleString('en-US')} z ${Math.round(picked.z).toLocaleString('en-US')}, ${esc(worldMap.biomeAt(picked.x,picked.z).name)}</div>`;
     const form = pinDraft ? `<h4>New pin</h4><input class="pinnote" maxlength="40" placeholder="Note (optional)" value="${esc(pinDraft.note)}"><div class="atlas-actions"><button type="button" class="pinsave">Save pin</button><button type="button" class="pincancel">Cancel</button></div>` : '';
-    const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">${travelTo.city ? 'The Capital' : `${gridLabel(travelTo.x,travelTo.z)} · x ${travelTo.x.toLocaleString('en-US')} z ${travelTo.z.toLocaleString('en-US')}`} · Hero and following or selected crew</div><div class="atlas-actions"><button type="button" class="travelgo">Travel</button><button type="button" class="travelcancel">Cancel</button></div>` : '';
-    const zoom = '<div class="atlas-navigation"><button type="button" data-locate title="Center on your location">Your location</button><button type="button" data-zoom="0.714" aria-label="Zoom out">−</button><button type="button" data-zoom="1.4" aria-label="Zoom in">+</button><button type="button" data-fit>Fit island</button></div>';
+    const travel = travelTo ? `<h4>${travelTo.city ? 'Travel back to the city? (test)' : 'Travel here? (test)'}</h4><div class="key">${travelTo.city ? 'The Capital' : `${gridLabel(travelTo.x,travelTo.z)}, x ${travelTo.x.toLocaleString('en-US')} z ${travelTo.z.toLocaleString('en-US')}`}, Hero and following or selected crew</div><div class="atlas-actions"><button type="button" class="travelgo">Travel</button><button type="button" class="travelcancel">Cancel</button></div>` : '';
+    const zoom = '<div class="atlas-navigation"><button type="button" data-locate title="Center on your location">Your location</button><button type="button" data-zoom="0.714" aria-label="Zoom out">-</button><button type="button" data-zoom="1.4" aria-label="Zoom in">+</button><button type="button" data-fit>Fit island</button></div>';
     const toggles = [...ATLAS_LAYERS, ...(devTravel ? ATLAS_DEV_LAYERS : [])].map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('')
       + `<button type="button" data-rail-ledger aria-pressed="${ledgerOpen}" title="Your rail shipments: open, delivered and lost">Rail ledger</button>`;
-    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel}${picked && !travelTo?.city ? box : ''}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up · 500-unit squares · Drag to pan · Wheel to zoom · Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
+    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel}${picked && !travelTo?.city ? box : ''}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up, 500-unit squares, Drag to pan, Wheel to zoom, Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
     updateWorldLocation(); updateWorldLegend();
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
@@ -304,7 +304,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   function updateWorldLocation() {
     const h = game.state.entities[heroId], p = h && game.discovery?.worldPos?.(h), el = worldSide.querySelector('.worldlocation');
     if (!el) return;
-    const label = p ? `You · ${gridLabel(p.x, p.z)} · x ${Math.floor(p.x).toLocaleString('en-US')} z ${Math.floor(p.z).toLocaleString('en-US')}` : '';
+    const label = p ? `You, ${gridLabel(p.x, p.z)}, x ${Math.floor(p.x).toLocaleString('en-US')} z ${Math.floor(p.z).toLocaleString('en-US')}` : '';
     if (el.textContent !== label) el.textContent = label;
   }
   // the railway key (Tim 2026-11-08): shown while the Railways switch is on and you have a line
@@ -315,14 +315,14 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const laid = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5" stroke="rgba(255,196,96,.9)" stroke-width="4.5" stroke-linecap="round"/><line x1="1" y1="5" x2="21" y2="5" stroke="rgba(52,34,20,.95)" stroke-width="1.6" stroke-linecap="round"/></svg>';
     const dash = '<svg viewBox="0 0 22 10" width="22" height="10" aria-hidden="true"><line x1="1" y1="5" x2="16" y2="5" stroke="rgba(28,18,10,.6)" stroke-width="4.5"/><line x1="1" y1="5" x2="16" y2="5" stroke="rgba(255,232,170,.98)" stroke-width="2" stroke-dasharray="4 3"/><circle cx="19" cy="5" r="2.6" fill="#ffd27a"/></svg>';
     return `<span title="Your railway lines">${laid}Railway <small>${links.length - laying} open</small></span>`
-      + (laying ? `<span title="Track still to lay; the dot is the rail gang">${dash}Being laid <small>${laying} · dot: rail gang</small></span>` : '');
+      + (laying ? `<span title="Track still to lay; the dot is the rail gang">${dash}Being laid <small>${laying}, dot: rail gang</small></span>` : '');
   }
   function updateWorldLegend() {
     const el=worldSide.querySelector('.atlas-legend'); if (!el || !worldMap) return;
     const counts = {};
     for (const it of worldMap.items()) counts[it.kind]=(counts[it.kind] || 0)+1;
     if (worldState().hero) counts.hero=1;
-    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ' · hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>• Spots <small>${counts.spot} in view · green timber · grey stone · blue fish · tan forage</small></span>` : '')
+    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ', hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>Spots <small>${counts.spot} in view, green timber, grey stone, blue fish, tan forage</small></span>` : '')
       + railKey();
     if (el.innerHTML !== html) el.innerHTML=html;
   }
@@ -346,7 +346,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
     worldMap = createWorldMap({ canvas: worldCanvas, world, resourceSpots, paintConfig, atlasConfig, getState: worldState, onHover: info => {
       const el=worldSide.querySelector('.atlas-hover'); if (!el) return;
-      const text=info ? `${info.feature ? info.feature + ' · ' : ''}${info.zone ? info.zone + ' · ' : ''}${info.biome} · ${info.grid} · x ${Math.floor(info.x).toLocaleString('en-US')} z ${Math.floor(info.z).toLocaleString('en-US')}` : 'Hover the map for zone, biome, grid square and coordinates.';
+      const text=info ? `${info.feature ? info.feature + ', ' : ''}${info.zone ? info.zone + ', ' : ''}${info.biome}, ${info.grid}, x ${Math.floor(info.x).toLocaleString('en-US')} z ${Math.floor(info.z).toLocaleString('en-US')}` : 'Hover the map for zone, biome, grid square and coordinates.';
       if (el.textContent!==text) el.textContent=text;
     } }); worldMap.attach();
     const local = e => { const r = worldCanvas.getBoundingClientRect(); return [(e.clientX - r.left) * worldMap.view.w / r.width, (e.clientY - r.top) * worldMap.view.h / r.height]; };

@@ -92,7 +92,7 @@ const getJSON = async url => {
 
 async function start() {
   setGameplayInput(false);
-  status('Loading the district…');
+  status('Loading the district...');
   const [district, catalog, cutouts, interiors, parts, recipes, unitsFile, civilians, bandits, buildingInfo, police, settings, bots, world, frontier, worldChunksFile, worldPaint, crossings, biomeProps, coastline, worldAtlas, resourceSpots, resourceSpotRules] = await Promise.all([
     getJSON('data/port_town.json'), getJSON('data/art.json'),
     getJSON('art/cutouts.json'), getJSON('data/interiors.json'), getJSON('data/interior_parts.json'),
@@ -107,7 +107,7 @@ async function start() {
     ? { clan: TEST.ninja ? 'shinobi' : 'yakuza', difficulty: bots.difficulty }
     : await chooseMatch({ root: $('startscreen'), loading: $('loading'), difficulty: bots.difficulty,
       startRyo: settings.costs?.startRyo ?? unitsFile.rules.startRyo, cycles: settings.season?.cycles ?? 10, drawCrest, saves: startSaves });
-  status('Preparing the city…');
+  status('Preparing the city...');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
   // Lean Classic (Tim 2026-11-05): the mode is fixed once here (start screen or the save), and a match
@@ -131,9 +131,10 @@ async function start() {
     selected.difficulty = game.state.match?.difficulty ?? bots.difficulty;
     if (bootSave) history.replaceState(null, '', location.pathname);   // consume the one-shot load request
   } else ({ heroId } = setupMatch(game, matchOptions));
+  { const c = game.state.clans?.[game.state.entities[heroId]?.owner]; document.body.dataset.clan = c?.faction || c?.kind || 'yakuza'; }   // menu accent colour per clan (menu_shell.css)
   const simClient = await createSimWorkerClient({game,options:simOptions,match:matchOptions,save:saveFile,
     onError:error=>{status(error.message);const banner=$('pausedbanner');banner.hidden=false;
-      banner.textContent='Simulation stopped: '+error.message+' · Reload to restart';console.error(error);}});
+      banner.textContent='Simulation stopped: '+error.message+', Reload to restart';console.error(error);}});
   // Prevent accidental browser-console calls from creating a second simulation.
   game.step = () => { throw new Error('Simulation runs in its worker; send commands instead'); };
   addEventListener('pagehide',()=>simClient.dispose(),{once:true});
@@ -280,7 +281,7 @@ async function start() {
   const spotIndex = makeSpotIndex(resourceSpots), spotConfig = frontier?.townArt?._spots;
   const spotTip = document.createElement('div'), twinkle = document.createElement('div');
   spotTip.className = 'townhover'; spotTip.hidden = twinkle.hidden = true;
-  twinkle.textContent = '✦';
+  twinkle.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z" fill="currentColor"/></svg>';   // drawn sparkle, no glyph
   twinkle.style.cssText = 'position:fixed;pointer-events:none;color:#fff0bd;z-index:12;line-height:1';
   document.body.append(spotTip, twinkle);
   let spotMouse = null;
@@ -301,21 +302,21 @@ async function start() {
     }
     if (!picked) return;
     const info = spotInfo(picked.spot, game.state.frontier?.spots?.[picked.spot.id]);
-    spotTip.textContent = `${info.title}: ${info.lines.join(' · ')}`;
+    spotTip.textContent = `${info.title}: ${info.lines.join(', ')}`;
     Object.assign(spotTip.style, { left: `${Math.min(innerWidth - 260, spotMouse.x + 16)}px`, top: `${Math.min(innerHeight - 110, spotMouse.y + 16)}px` });
     const screen = view.unitToScreen(picked.x, picked.z, 1);
     Object.assign(twinkle.style, { left: `${screen.x}px`, top: `${screen.y}px`, fontSize: `${spotConfig.twinkleSize * (1 + spotConfig.twinklePulse * Math.sin(performance.now() / spotConfig.twinklePeriodMs))}px` });
     spotTip.hidden = twinkle.hidden = false;
   }
   const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, view, send: c => pending.push(c), onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();}, blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() });
-  const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, catalog, openStash:() => {hireMenu.close();hqStash.open();}, send: c => pending.push(c) });
+  const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, catalog, openStash:() => {hireMenu.close();hqStash.open({back:() => hireMenu.toggle()});}, send: c => pending.push(c) });
   // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, Tim 2026-11-06); in the city it hires
   // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (Tim 2026-11-07)
   // Shift on a horse or driving: sprint on / off (Tim 2026-11-07; on foot Shift still walks while held)
   onKey(['ShiftLeft', 'ShiftRight'], () => { if (game.state.entities[heroId]?.ride) setSprint(!sprintOn()); });
   // H calls your horse and rides her; Q gets you off (Tim 2026-11-08: H no longer gets you off). Shift+H is still Mount up / All off
   onKey('KeyH', e => { const h = game.state.entities[heroId]; if (h?.place === 'world') { if (e?.shiftKey) pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else if (!h.mounted) pending.push({ id: heroId, type: 'mount' }); } else hireMenu.toggle(); });
-  const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
   // Every Goal card step with a place pings the same way (the minimap pulse and the street blink).
@@ -352,7 +353,7 @@ async function start() {
     const ms = c?.milestones || {};
     if (h && lastPlace === 'world' && h.place !== 'world' && !ms.reportDue && !ms.reportRead && game.state.lieutenants?.[c.id]) {
       pending.push({ id: heroId, type: 'lieutenant', guide: 'back' });
-      callout('Lieutenant’s report: open Deployment → While I’m away to read what he did while you were out', 'news', 8000);
+      callout('Report from your lieutenant: open Deployment, While I am away to read what he did while you were out', 'news', 8000);
     }
     if (h) lastPlace = h.place;
     const report = !!ms.reportDue && !ms.reportRead && !orders && !op;
@@ -373,13 +374,13 @@ async function start() {
     const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-act="build-workers"]', '[data-build]'];
     const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]'] : ['[data-act="priority"]'],
-      stone: () => ['@stone', '[data-act="build-workers"]'],
-      workers: () => ['@timber', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
+      stone: () => ['@stone', '[data-act="build-worker-tab"][data-id="spots"]', '[data-act="build-workers"]'],
+      workers: () => ['@timber', '[data-act="build-worker-tab"][data-id="spots"]', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
       market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
     for (const el of document.querySelectorAll('#townpanel .goal-flash, #towninspect .goal-flash')) el.classList.remove('goal-flash');
     let target = null;
-    // '@timber' (Tim 2026-11-06): the nearest timber button under "Nearby discovered spots" on the Workers pane
-    const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.textContent.startsWith(sel.slice(1)) && el.offsetParent !== null)
+    // '@timber' (Tim 2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
+    const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.dataset.kind === sel.slice(1) && el.offsetParent !== null)
       : [...document.querySelectorAll(`#townpanel ${sel}, #towninspect ${sel}`)].find(el => el.offsetParent !== null);
     if (step) for (const sel of step()) { target = pick(sel); if (target) break; }
     target?.classList.add('goal-flash');
@@ -397,7 +398,7 @@ async function start() {
   const lieutenantTalk = createLieutenantTalk({ panel: $('lttalk'), game, heroId, send: c => pending.push(c), showOrders: () => { if (!deploymentPanel.isOpen()) $('deploymentbtn').click(); setTimeout(() => document.querySelector('#deploymentpanel .show-away')?.click(), 0); } });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
-  const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
+  const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, view, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
@@ -485,7 +486,7 @@ async function start() {
   const toggleControls = () => { controlTips.hide(); $('controls').hidden = !$('controls').hidden; };
   onKey('Slash', toggleControls);
   $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
-  const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse · Waterfront"
+  const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse, Waterfront"
   // where the camera should look for a unit: itself, or its building's door if it is inside one the hero isn't in
   const lookPoint = u => {
     const door = u.owner !== game.state.entities[heroId]?.owner && u.place !== 'street' && u.place !== game.state.entities[heroId]?.place && game.doors.find(d => d.to && d.place === u.place);
@@ -506,8 +507,8 @@ async function start() {
   // F2: hide every panel, bar and nameplate for screenshots, F2 again brings them back (Tim 2026-11-08)
   onKey('F2', () => { const on = document.body.classList.toggle('ui-hidden'); view.setUnitOverlays(!on); });
   const actionCommands=document.createElement('div');actionCommands.className='action-commands';
-  const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='♨';
-  $('rallybtn').dataset.icon='⚑';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
+  const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='lantern';
+  $('rallybtn').dataset.icon='rally';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
   const warLantern=createWarLanternButton({button:lanternButton,game,heroId,send:c=>pending.push(c)});
   // F6 war: one War banner button beside War Lantern (Pack for war at home, Plant banner near a rival town)
   const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
@@ -520,7 +521,8 @@ async function start() {
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
-  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id), workers:()=>frontierBuildUI?.selectedWorkers?.()||[], pickWorker:wid=>frontierBuildUI?.pickWorker?.(wid) });
+  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id), workers:()=>frontierBuildUI?.isRosterOpen?.() && !$('townpanel').hidden ? [] : frontierBuildUI?.selectedWorkers?.()||[],   // Tim 2026-11-11: hidden while the Workers pane shows the same cards
+ pickWorker:wid=>frontierBuildUI?.pickWorker?.(wid) });
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, workerTarget:()=>frontierBuildUI?.workerTarget(), send: c => pending.push(c) });
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
   const bldPanel = createBuildingPanel({ root: $('bldpanel'), game, district, info: buildingInfo, units, scenery: game.scenery, crewInput, clan: 'player', heroId, send: c => pending.push(c), openService: menu => {
@@ -557,9 +559,9 @@ async function start() {
     const parts = t.standings().map(r => `${r.clan === 'player' ? 'You' : (game.state.clans[r.clan]?.name || r.clan).replace(/ clan$/, '')} <b>${r.score}</b>`);
     const clock = game.state.clock;
     const timeLeft = clock ? Math.max(0, Math.ceil(clock.left / TICK_RATE)) : null;
-    const timer = timeLeft == null ? '' : ` · ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
+    const timer = timeLeft == null ? '' : `, ${game.state.night ? 'Night' : 'Day'} ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
     const owner = game.state.entities[heroId]?.owner;
-    return `Crew ${game.clans.crewOf(owner).length} (cap ${game.clans.crewCap(owner)}) · ${!modeRules(game.state).seasonEnds ? `Campaign · Day ${s.day}` : `Day ${Math.min(s.day, s.cycles)}/${s.cycles}`}${timer} · ${parts.join(' · ')}`;
+    return `Crew ${game.clans.crewCount(owner)} (cap ${game.clans.crewCap(owner)}), ${!modeRules(game.state).seasonEnds ? `Campaign, Day ${s.day}` : `Day ${Math.min(s.day, s.cycles)}/${s.cycles}`}${timer}, ${parts.join(', ')}`;
   };
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
@@ -568,7 +570,7 @@ async function start() {
     const me = 'player', win = s.winner === me;
     el.querySelector('h2').textContent = win ? 'You win the season!' : s.winner ? `${game.state.clans[s.winner]?.name || 'A rival'} wins the season` : 'The season ends in a draw';
     const points = Object.entries(units.rules.businesses).map(([kind, rule]) => `${kind.replace(/_/g, ' ')} ${rule.score || 0}`).join(', ');
-    el.querySelector('.sub').textContent = `${s.cycles} days and nights · the clan with the most points wins (${points})`;
+    el.querySelector('.sub').textContent = `${s.cycles} days and nights. The clan with the most points wins.`; el.querySelector('.sub').title = `Points per business: ${points}`;
     el.querySelector('.list').innerHTML = s.final.map(r => `<div class="row"><i style="background:${game.state.clans[r.clan]?.color}"></i><span>${r.clan === me ? 'You' : game.state.clans[r.clan]?.name}</span><b>${r.score}</b></div>`).join('');
     el.hidden = false;
   }
@@ -615,7 +617,7 @@ async function start() {
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
-    const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids) });
+    const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
       send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
@@ -745,15 +747,15 @@ async function start() {
         if (visit) {
           const name = game.state.clans[visit.owner]?.name || 'Rival clan';
           el.classList.toggle('penalty', visit.active);
-          el.querySelector('.label').textContent = visit.active ? visit.inside ? `Leave ${name}'s HQ area · camping adds infamy`
-            : `Stay clear of ${name}'s HQ · reset in ${Math.ceil(visit.remaining)}s`
-            : `Leave ${name}'s HQ area · camping penalty in ${Math.max(0, Math.ceil(game.hqCamping.rules.activateSeconds - visit.seconds))}s`;
+          el.querySelector('.label').textContent = visit.active ? visit.inside ? `Leave ${name}'s HQ area, camping adds infamy`
+            : `Stay clear of ${name}'s HQ, reset in ${Math.ceil(visit.remaining)}s`
+            : `Leave ${name}'s HQ area, camping penalty in ${Math.max(0, Math.ceil(game.hqCamping.rules.activateSeconds - visit.seconds))}s`;
           const decay = el.querySelector('.decay');
           decay.hidden = !visit.active;
           if (visit.active) {
             decay.querySelector('.fill').style.width = `${100 * Math.max(0, Math.min(1, visit.remaining / visit.clearSeconds))}%`;
             el.querySelector('.decaylabel').textContent = visit.inside ? `${visit.clearSeconds}s outside needed to reset`
-              : `${Math.ceil(visit.remaining)}s remaining outside · re-entry restarts decay`;
+              : `${Math.ceil(visit.remaining)}s remaining outside, re-entry restarts decay`;
           }
         }
       }
@@ -764,8 +766,8 @@ async function start() {
         if (a) {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
           const s = Math.ceil((a.phase === 'warmup' ? a.opensAt - game.state.tick : a.holdLeft) / TICK_RATE);
-          const b = `Your ${where} is being raided!`, t = a.phase === 'warmup' ? `${who} planted a War Lantern · doors open in ${s} s`
-            : `${who} ${a.holding ? 'hold' : 'fight for'} the back room · ${s} s left${a.holding ? '' : ' (held off)'}`;
+          const b = `Your ${where} is being raided!`, t = a.phase === 'warmup' ? `${who} planted a War Lantern, doors open in ${s} s`
+            : `${who} ${a.holding ? 'hold' : 'fight for'} the back room, ${s} s left${a.holding ? '' : ' (held off)'}`;
           if (el.querySelector('b').textContent !== b) el.querySelector('b').textContent = b;
           if (el.querySelector('span').textContent !== t) el.querySelector('span').textContent = t;
         }
@@ -778,7 +780,7 @@ async function start() {
         if (k) {
           kb.querySelector('i').style.width = `${Math.min(100, (game.state.tick - k.start) / (k.ticks || (game.businesses.raidRules.knockSeconds || 4) * TICK_RATE) * 100)}%`;
           const u = game.state.entities[k.by], who = `${game.state.clans[u?.owner]?.name || 'A rival'}${u?.type === 'hero' ? ' boss' : ''}`;
-          const txt = k === foe ? `${who} is knocking down your War Lantern · click to target` : 'Knocking down the War Lantern';
+          const txt = k === foe ? `${who} is knocking down your War Lantern, click to target` : 'Knocking down the War Lantern';
           if (kb.querySelector('span').textContent !== txt) kb.querySelector('span').textContent = txt;
           kb.dataset.by = k.by;
         }
@@ -800,7 +802,7 @@ async function start() {
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : stablePrompt ? 'Space  Stable: buy horses, rickshaws, omnibuses'
         : travel ? (stationMenu.riding() ? 'Space  Skip to the station' : stationMenu.trainPrompt() || 'Space  Station: trains and track')
-        : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern…' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
+        : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern...' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
       $('prompt').hidden = !allAboard && !door && !innerDoor && !knockable && !lamp && !travel && !stablePrompt;
       stealthBadge.update(); stationClock.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();

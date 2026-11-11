@@ -123,7 +123,8 @@ export function createClans(state, units, opts = {}) {
   // Dismiss crew from the clan's own hideout for a small refund. Any crewman, from any zone and in any state
   // (hurt, downed, jailed), and clinic patients too (patient = their index in clan.clinic) (Tim 2026-11-08:
   // no running over to fetch them first). unitId 'all' dismisses every crewman and patient at once.
-  function dismiss(hero, unitId, businessId, patient = null) {
+  // prisoner: index in clan.jail (Tim 2026-11-10: jailed crew can be dismissed too, same refund, frees the slot)
+  function dismiss(hero, unitId, businessId, patient = null, prisoner = null) {
     const clan = state.clans[hero?.owner], b = state.businesses[businessId];
     if (!clan || clan.bot || !canInteract(hero)) return null;
     if (!b || b.kind !== 'hideout' || b.owner !== clan.id || !b.room || hero.place !== b.room)
@@ -135,12 +136,19 @@ export function createClans(state, units, opts = {}) {
       return refundOf(u.type);
     };
     if (unitId === 'all') {
-      const list = crewOf(clan.id).filter(u => !u.dead), n = list.length + clan.clinic.length;
+      const list = crewOf(clan.id).filter(u => !u.dead), n = list.length + clan.clinic.length + (clan.jail?.length || 0);
       if (!n) return say(clan, 'No crew to dismiss');
       let refund = list.reduce((s, u) => s + drop(u), 0);
       for (const p of clan.clinic.splice(0)) refund += refundOf(p.unit);
+      for (const p of (clan.jail || []).splice(0)) refund += refundOf(p.unit);
       clan.ryo += refund;
       return say(clan, `${n} crew dismissed${refund ? ` · ${refund} ryo refunded` : ''}`);
+    }
+    if (Number.isInteger(prisoner)) {
+      if (prisoner < 0 || prisoner >= (clan.jail?.length || 0)) return null;
+      const [p] = clan.jail.splice(prisoner, 1), refund = refundOf(p.unit);
+      clan.ryo += refund;
+      return say(clan, `${typeName(p.unit)} dismissed from jail${refund ? ` · ${refund} ryo refunded` : ''}`);
     }
     if (Number.isInteger(patient)) {
       if (patient < 0 || patient >= clan.clinic.length) return null;

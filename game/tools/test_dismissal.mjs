@@ -67,9 +67,9 @@ assert.match(hirePanel.innerHTML,/Instant Taunt: Automatically forces all nearby
 const nextCrew = g.spawn('thug', 'thug', -2, 0, { owner: 'player' });
 hire.update();
 hirePanel.click({closest:sel=>sel==='[data-crew-view]'?{dataset:{crewView:'dismiss'}}:null});
-assert.match(hirePanel.innerHTML,/DISMISS CREW · ALL ZONES/);
+assert.match(hirePanel.innerHTML,/Dismiss crew, all zones/);
 assert.match(hirePanel.innerHTML,/HQ reserves/);
-assert.doesNotMatch(hirePanel.innerHTML,/HIRE CREW/,'dismissal has a separate roster view');
+assert.doesNotMatch(hirePanel.innerHTML,/data-pick=/,'dismissal has a separate roster view');
 // Mock closest() answers only its own selector, as a real button does.
 const dismissButton = { closest: sel => sel === '[data-dismiss]' ? { dataset: { dismiss: nextCrew } } : null, blur() {} };
 hirePanel.click(dismissButton); hirePanel.click(dismissButton);
@@ -110,4 +110,10 @@ clinic.toggle();
 const releaseButton = { closest: sel => sel === '[data-release]' ? { dataset: { release: '0' } } : null, blur() {} };
 clinicPanel.click(releaseButton); clinicPanel.click(releaseButton);
 assert.deepEqual(clinicSent[0], { id: hero, type: 'clinic', action: 'release', patient: 0 });
+// Jailed crew can be dismissed from the hideout too (Tim 2026-11-10): leaves jail, refund, frees the slot.
+{
+  S[hero].place = home.room; const before = clan.ryo; clan.jail = [{ id: 'jailX', unit: 'thug', model: 'thug', bail: 50 }];
+  assert.match(g.clans.dismiss(S[hero], null, home.id, null, 0) || '', /dismissed from jail/);
+  assert.equal(clan.jail.length, 0); assert.equal(clan.ryo - before, Math.floor(data('data/units.json').types.thug.price * DISMISS_REFUND_SHARE));
+}
 console.log('dismissal, release and confirmation controls passed');

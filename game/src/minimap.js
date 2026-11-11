@@ -139,7 +139,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     if (!best) { tipBox.style.display = 'none'; return; }
     const w=best[3]==='worker'?best[4]:null,detail=w?workerDetails(w,spotIndex):null;
     const bld=best[3]==='building'?best[4]:null;
-    const t = bld ? {title:bld.name,lines:[bld.town,bld.owner&&bld.owner===clan?'Yours':'']} : w ? {title:`Worker ${w.id}`,lines:[detail.cargo?`Carrying ${detail.cargo} ${detail.resource}`:detail.harvesting?`Harvesting ${detail.resource} · ${detail.left}s remaining`:'Working / travelling',w.status || '']} : best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
+    const t = bld ? {title:bld.name,lines:[bld.town,bld.owner&&bld.owner===clan?'Yours':'']} : w ? {title:`Worker ${w.id}`,lines:[detail.cargo?`Carrying ${detail.cargo} ${detail.resource}`:detail.harvesting?`Harvesting ${detail.resource}, ${detail.left}s remaining`:'Working / travelling',w.status || '']} : best[3] === 'spot' ? spotInfo(best[4], game.state.frontier?.spots?.[best[4].id]) : featureTip(best[3], best[4], best[5]);
     tipBox.innerHTML = `<b>${t.title}</b>` + t.lines.map(l => `<div>${l}</div>`).join('');
     tipBox.style.left = `${e.clientX - 250}px`; tipBox.style.top = `${e.clientY + 14}px`; tipBox.style.display = 'block';
   });
@@ -244,7 +244,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.closePath(); ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
     }
     ctx.font = '600 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
-    ctx.fillStyle = '#f3dfae'; ctx.fillText(`World · ${gridLabel(ic.x, ic.z)}`, 10, size - 10);
+    ctx.fillStyle = '#f3dfae'; ctx.fillText(`World, ${gridLabel(ic.x, ic.z)}`, 10, size - 10);
   }
 
   function paintMap() {

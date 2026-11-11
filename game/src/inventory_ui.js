@@ -31,10 +31,10 @@ export function createItemGrid(root, { equipment = false, activate }) {
 export function createHQStash({ game, heroId, send, onOpen = () => {}, onClose = () => {} }) {
   const root = document.createElement('section'); root.id = 'hqstash'; root.hidden = true;
   root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'HQ stash');
-  root.innerHTML = '<div class="stash-window"><header><div><small>CLAN STORAGE</small><h2>HQ stash</h2></div><button class="stash-close" type="button" aria-label="Close stash">✕</button></header><div class="stash-columns"><section><h3>Stash <span class="stash-count"></span></h3><div class="gear-grid stash-items"></div></section><section><h3>Carried <span class="bag-count"></span></h3><div class="gear-grid carried-items"></div></section></div><footer>Right-click or click to transfer · Equipment stays on your character · Esc closes<div class="inventory-notice" role="status"></div></footer></div>';
+  root.innerHTML = '<div class="stash-window"><header><div><small>CLAN STORAGE</small><h2>HQ stash</h2></div><span><button class="stash-back" type="button" hidden title="Back to the hire menu">Back</button> <button class="stash-close" type="button" aria-label="Close stash" title="Close (Esc)">Esc</button></span></header><div class="stash-columns"><section><h3>Stash <span class="stash-count"></span></h3><div class="gear-grid stash-items"></div></section><section><h3>Carried <span class="bag-count"></span></h3><div class="gear-grid carried-items"></div></section></div><footer>Right-click or click to transfer, Equipment stays on your character, Esc closes<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s);
-  let open = false, previousFocus;
+  let open = false, previousFocus, back = null;   // back: reopens the menu the stash was opened from (Hire, Tim 2026-11-10)
   const command = (action, index) => send({id:heroId, type:'inventory', action, index});
   const stash = createItemGrid($('.stash-items'), {activate:index => command('withdraw', index)});
   const carried = createItemGrid($('.carried-items'), {activate:index => command('deposit', index)});
@@ -52,6 +52,7 @@ export function createHQStash({ game, heroId, send, onOpen = () => {}, onClose =
     $('.inventory-notice').textContent = notice && game.state.tick - notice.tick < 100 ? notice.text : '';
   }
   $('.stash-close').addEventListener('click', close);
+  $('.stash-back').addEventListener('click', () => { const to = back; close(); to?.(); });
   root.addEventListener('click', e => { if (e.target === root) close(); });
   for (const event of ['mousedown','mouseup','contextmenu','wheel']) root.addEventListener(event, e => {e.stopPropagation(); if(event==='contextmenu')e.preventDefault();});
   root.addEventListener('keydown', e => {
@@ -62,9 +63,10 @@ export function createHQStash({ game, heroId, send, onOpen = () => {}, onClose =
       else if (!e.shiftKey && document.activeElement === last) {e.preventDefault();first.focus();}
     }
   });
-  return { update, close, isOpen:() => open, open() {
+  return { update, close, isOpen:() => open, open({ back: from = null } = {}) {
     const inv = game.inventory.status(game.state.entities[heroId]);
     if (open || !inv.available || !inv.atHQ) return;
+    back = from; $('.stash-back').hidden = !from;
     previousFocus = document.activeElement; open = true; root.hidden = false; onOpen(); update(); $('.stash-close').focus();
   }};
 }

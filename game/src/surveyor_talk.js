@@ -4,10 +4,11 @@
 // stop at a time, with a short word on resources the first time. "Show me again" replays the last report.
 // Reads the state and sends commands only. Wording on resources only states what the rules do today.
 import { RICH_NAME, RICH_GIVES } from './sim/resource_spots.js';
+import { msInstall, msShell, msAside, msBtn, msConcept, msEsc } from './menu_shell.js';
 // each world node near a site is a rich deposit (names from sim/resource_spots.js); camps and quarries near
 // forests and stone veins work faster (frontier.json traits.nodeKinds)
 const BONUS = { forest: 'lumber camps here cut faster', quarry: 'quarries here dig faster' };
-const NODE = Object.fromEntries(Object.keys(RICH_NAME).map(k => [k, n => `${n > 1 ? `${n} × ` : ''}${RICH_NAME[k]}: ${RICH_GIVES[k]}${BONUS[k] ? `; ${BONUS[k]}` : ''}`]));
+const NODE = Object.fromEntries(Object.keys(RICH_NAME).map(k => [k, n => `${n > 1 ? `${n} x ` : ''}${RICH_NAME[k]}: ${RICH_GIVES[k]}${BONUS[k] ? `; ${BONUS[k]}` : ''}`]));
 const INTRO = [
   'Every site has three marks. Soil feeds your farms: good soil, more food. Water and defence are noted too, for the wells and walls to come.',
   'Then the ground round it. A Rich forest or a Rich stone vein near a town makes its lumber camps and quarries work faster, more for each one close by. Rich fishing and fertile grounds are food your people can gather. Ore veins are dug as stone for now; iron comes later.',
@@ -33,12 +34,12 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
     const list = siteRows(c.survey?.sites || []), out = [];
     if (!list.length) return [{ text: 'I found no open sites near enough. Walk out and scout; sites you find show up on your map.' }];
     if (c.survey.n === 1) out.push({ site: list[0].id, span: 5200, title: 'HOW TO READ A SITE', text: INTRO });
-    for (const s of list) out.push({ site: s.id, title: `${s.region} · ${s.id}`, text: [`Soil ${s.traits.soil} · water ${s.traits.water} · defence ${s.traits.defense}`, ...(nodesOf(s).length ? nodesOf(s) : ['No resource nodes close by']),
+    for (const s of list) out.push({ site: s.id, title: `${s.region}, ${s.id}`, text: [`Soil ${s.traits.soil}, water ${s.traits.water}, defence ${s.traits.defense}`, ...(nodesOf(s).length ? nodesOf(s) : ['No resource nodes close by']),
       ...(s.campWarn ? [`Bandits camp ${s.campDistance} away: bring crew`] : [])] });
     const best = [...list].sort((a, b) => score(b) - score(a))[0], why = [];
     if (best.traits.soil >= 2) why.push('the soil is good'); if ((best.traits.nodes?.forest || 0) + (best.traits.nodes?.quarry || 0)) why.push('timber and stone are close');
     if (!best.campWarn) why.push('no bandits nearby'); if (best.traits.defense >= 2) why.push('it is easy to hold');
-    out.push({ site: best.id, title: 'MY PICK', text: [`${best.region} · ${best.id}${why.length ? `: ${why.join(', ')}.` : '.'}`, 'Take at least 5 settlers through the island gate and choose Ride to a known site.'] });
+    out.push({ site: best.id, title: 'MY PICK', text: [`${best.region}, ${best.id}${why.length ? `: ${why.join(', ')}.` : '.'}`, 'Take at least 5 settlers through the island gate and choose Ride to a known site.'] });
     return out;
   }
   function startTour() { const c = clan(); if (!c?.survey) return; tour = { list: stops(c), i: 0 }; close(); show(); }
@@ -47,9 +48,9 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
     const s = tour.list[tour.i];
     if (s.site) map.tourTo(s.site, s.span);
     const last = tour.i === tour.list.length - 1;
-    const html = `<h3>THE OLD SURVEYOR${s.title ? ` · ${esc(s.title)}` : ''}</h3>${[].concat(s.text).map(t => `<p>${esc(t)}</p>`).join('')}`
+    const html = `<div class="ms-eyebrow">The old surveyor</div><h3>${esc(s.title || 'On the map')}</h3>${[].concat(s.text).map(t => `<p>${esc(t)}</p>`).join('')}`
       + `<div class="row">${tour.i ? '<button data-sv="back">Back</button>' : ''}<button data-sv="${last ? 'done' : 'next'}" class="goal-flash">${last ? 'Done' : 'Next'}</button></div>`
-      + `<div class="waiting">${tour.i + 1} of ${tour.list.length} · Esc closes</div>`;
+      + `<div class="waiting">${tour.i + 1} of ${tour.list.length}, Esc closes</div>`;
     card.hidden = false;
     if (html !== cardShown) { card.innerHTML = html; cardShown = html; }
   }
@@ -65,6 +66,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
     else if (a === 'again') startTour();
     else close();
   }
+  msInstall(panel, () => close());
   panel.addEventListener('click', e => { const a = e.target.dataset?.pick; if (a) act(a); });
   function buttons(c) { return c?.surveyPending ? [['survey', 'Show me on the map']] : c?.survey ? [['again', 'Show me again'], ['close', 'Later']] : [['close', 'Later']]; }
   function update() {
@@ -74,8 +76,11 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
     if (open && !at()) open = false;
     panel.hidden = !open;
     if (!open) return;
-    const html = `<h3>THE OLD SURVEYOR</h3>${lines(c).map(t => `<p>${esc(t)}</p>`).join('')}<div class="row">${buttons(c).map(([a, t], i) => `<button data-pick="${a}"${!i && a !== 'close' ? ' class="goal-flash"' : ''}>${i + 1}. ${t}</button>`).join('')}</div>`
-      + '<div class="waiting">Space / Esc close</div>';
+    // menu restyle (Tim 2026-11-10): the shared shell with his 3D still
+    const aside = msAside({ art: msConcept('surveyor1') || '', label: 'Land Office', labelTip: 'He walks you round the sites a founding permit shows.' });
+    const body = `<div class="ms-speech">${lines(c).map(t => `<p>${msEsc(t)}</p>`).join('')}</div>`
+      + `<div class="ms-foot"><span class="ms-small">Number keys, Space or Esc</span><span>${buttons(c).map(([a, t], i) => `<button class="ms-btn${!i && a !== 'close' ? ' ms-go goal-flash' : ''}" data-pick="${a}">${i + 1}. ${msEsc(t)}</button>`).join('')}</span></div>`;
+    const html = msShell({ eyebrow: 'Outside the Land Office', title: 'The old surveyor', escTip: 'Close (Space or Esc)', aside, body });
     if (html !== shown) { panel.innerHTML = html; shown = html; }
   }
   function close() { open = false; update(); }

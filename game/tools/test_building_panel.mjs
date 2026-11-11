@@ -55,8 +55,8 @@ assert.equal(row(d, 'Inside'), undefined);
 d = at(idx('inn'));
 assert.deepEqual(d, { name: 'Inn', owner: 'No business here yet', rows: [] });
 
-assert.equal(unitWhere(g.state.entities[hero], g.state, district, info), 'Teahouse · Waterfront');
+assert.equal(unitWhere(g.state.entities[hero], g.state, district, info), 'Teahouse, Waterfront');
 assert.equal(unitWhere({ place: 'street' }, g.state, district, info), 'Waterfront');
 const den = g.state.businesses[`b${idx('gambling_den')}`];
-assert.equal(unitWhere({ place: den.room }, g.state, district, info), 'Gambling den · Waterfront');
+assert.equal(unitWhere({ place: den.room }, g.state, district, info), 'Gambling den, Waterfront');
 console.log('building panel ok');

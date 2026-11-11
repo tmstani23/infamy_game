@@ -10,14 +10,15 @@ import { lieutenantPortrait } from './lieutenant_portrait.js';
 export function createLieutenantPanel({ root, game, heroId, send, cityWatch = null }) {
   const L = () => game.lieutenant, tabs = root.querySelector('.page-tabs'), work = root.querySelector('.workspace');
   if (!tabs || !work) return { update() {} };
-  const tab = document.createElement('button'); tab.type = 'button'; tab.className = 'show-away'; tab.textContent = 'While I’m away';
+  const tab = document.createElement('button'); tab.type = 'button'; tab.className = 'show-away'; tab.textContent = "While I'm away";
   const pane = document.createElement('section'); pane.className = 'pane-away';
-  pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I’m away</h4></div><p class="away-status"></p><button type="button" class="away-watch">Watch the city</button><div class="away-orders"></div>'
-    + '<label>Budget <input class="away-budget" type="range" min="0" step="50"> <span class="away-budget-value"></span> ryo a day</label>'
-    + '<label><input class="away-home" type="checkbox"> Keep defending when I’m back</label><h4>Log</h4><ol class="away-log"></ol>';
+  pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I&#39;m away</h4></div><p class="away-status"></p><button type="button" class="away-watch">Watch the city</button><div class="away-orders"></div>'
+    // a typeable box and Set (Tim 2026-11-10: no sliders; Set also completes the goal step when the number is unchanged)
+    + '<div class="away-budget-row">Budget <input class="away-budget" type="number" min="0" step="50" inputmode="numeric" title="What your lieutenant may spend each day"> ryo a day <button type="button" class="away-budget-set" title="Set the daily budget">Set</button><span class="away-budget-value" hidden></span></div>'
+    + '<label><input class="away-home" type="checkbox"> Keep defending when I&#39;m back</label><h4>Log</h4><ol class="away-log"></ol>';
   tabs.appendChild(tab); work.appendChild(pane);
   const style = document.createElement('style');
-  style.textContent = '#deploymentpanel:not([data-page="away"]) .pane-away{display:none}#deploymentpanel .pane-away label{display:block;margin:4px 0}#deploymentpanel .away-log{max-height:160px;overflow-y:auto;font-size:11px;padding-left:18px}';
+  style.textContent = '#deploymentpanel:not([data-page="away"]) .pane-away{display:none}#deploymentpanel .pane-away label{display:block;margin:4px 0}#deploymentpanel .away-budget-row{margin:4px 0}#deploymentpanel .away-budget{width:6em}#deploymentpanel .away-log{max-height:160px;overflow-y:auto;font-size:11px;padding-left:18px}';
   document.head.appendChild(style);
   tab.addEventListener('click', () => {
     root.dataset.page = 'away';
@@ -32,7 +33,9 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     l.append(c, ' ' + label); pane.querySelector('.away-orders').appendChild(l); return [k, c];
   }));
   const budget = pane.querySelector('.away-budget'), home = pane.querySelector('.away-home');
-  budget.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', budget: Number(budget.value) }));
+  const setBudget = () => { const max = Number(budget.max) || 2000, v = Math.max(0, Math.min(max, Math.round(Number(budget.value) || 0))); budget.value = String(v); send({ id: heroId, type: 'lieutenant', budget: v }); budget.blur(); };
+  pane.querySelector('.away-budget-set').addEventListener('click', setBudget);
+  budget.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') setBudget(); });
   budget.addEventListener('input', () => { pane.querySelector('.away-budget-value').textContent = budget.value; });
   home.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', defendAtHome: home.checked }));
   const watchBtn = pane.querySelector('.away-watch');

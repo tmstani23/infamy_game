@@ -31,34 +31,37 @@ assert.match(h, /Needs a rail line/, 'greyed without a line');
 assert.match(h, /Auto orders <b>off<\/b>/, 'says auto orders are off');
 F.rail.links.r1 = { id: 'r1', owner: 'player', from: 'tA', to: 'tB', done: true, length: 100, points: [[0, 0], [100, 0]], dist: [0, 100] };
 h = tab.html(B);
-assert.match(h, /Order 50/); assert.match(h, /Order 100/);
+assert.match(h, /data-id="order:timber"/); assert.match(h, /data-act="shipinput" data-id="amt:timber"/);
 assert.ok(!/overflow|scroll/.test(h), 'no scrolling');
+assert.match(h, /class="shres low"/, 'an empty town lights up its low rows');
+assert.match(h, /class="shmeter"/); assert.match(h, /~\d+ ryo/, 'cost chip'); assert.match(h, /Order cap/);
 
-// Simple: one click
-press('quick:timber:50');
+// one row, one click: type the amount, Order
+assert.ok(tab.input({ id: 'amt:timber' }, '50'));
+press('order:timber');
 assert.equal(open().length, 1, 'one click placed an order');
 assert.equal(open()[0].sources[0].from, 'tA', 'from the town with spare');
-assert.match(tab.html(B), /On the way/);
+assert.equal(open()[0].amount, 50, 'typed amount');
+// a row that can't order says why instead of greying out
+tab.input({ id: 'amt:food' }, '99999');
+assert.match(tab.html(B), /Room for \d+|Storage full/, 'says why');
+tab.input({ id: 'amt:food' }, '100');
 
-// Advanced: New order with a pin and urgent
-press('mode:advanced');
-assert.match(tab.html(B), /Place order/);
-assert.match(tab.html(B), /Cost ⓘ.*~\d+ ryo/); assert.match(tab.html(B), /data-act="shipinput" data-id="amt"/); assert.ok(tab.input({ id: "amt" }, "230")); assert.match(tab.html(B), /value="230"/); tab.input({ id: "amt" }, "100"); assert.match(tab.html(B), /Order cap ⓘ/);
-press('res:stone'); press('amt:-10'); press('pin'); press('urgent');
-assert.match(tab.html(B), /tA ▸/, 'source pin cycles to tA');
-press('place');
+// options: source pin, urgent, capital budget box
+assert.ok(tab.input({ id: 'amt:stone' }, '230')); assert.match(tab.html(B), /data-id="amt:stone" value="230"/);
+tab.input({ id: 'amt:stone' }, '90'); press('pin'); press('urgent');
+assert.match(tab.html(B), />tA</, 'source pin cycles to tA');
+assert.ok(tab.input({ id: 'cbud' }, '40')); assert.match(tab.html(B), /data-id="cbud" value="40"/); tab.input({ id: 'cbud' }, '');
+press('order:stone');
 const o = open().find(x => x.resource === 'stone');
-assert.ok(o && o.pin === 'tA' && o.urgent && o.amount === 90, 'advanced order placed');
+assert.ok(o && o.pin === 'tA' && o.urgent && o.amount === 90, 'pinned urgent order placed');
 assert.match(tab.html(B), /Open 2/);
 
 // Keep tab
 press('sub:keep');
-const k0 = B.keep?.food ?? railways.ship.keep.food;
-press('keep:food:10');
-assert.equal(B.keep.food, k0 + 10, 'keep +');
+assert.match(tab.html(B), /data-id="keep:food"/);
 press('autobuy'); assert.equal(B.autoBuy, false, 'auto-buy off');
-press('bud:50'); assert.equal(B.shipBudget, railways.ship.budget + 50, 'budget +');
-assert.match(tab.html(B), /data-id="keep:food"/); assert.ok(tab.input({ id: 'keep:food' }, '2500', B)); assert.equal(B.keep.food, 2500, 'typed keep'); assert.ok(tab.input({ id: 'keep:goods' }, '2000', B)); assert.equal(B.marketKeep, 2000, 'typed goods keep'); assert.ok(tab.input({ id: 'bud' }, '900', B)); assert.equal(B.shipBudget, 900, 'typed budget');
+assert.ok(tab.input({ id: 'keep:food' }, '2500', B)); assert.equal(B.keep.food, 2500, 'typed keep'); assert.ok(tab.input({ id: 'keep:goods' }, '2000', B)); assert.equal(B.marketKeep, 2000, 'typed goods keep'); assert.ok(tab.input({ id: 'bud' }, '900', B)); assert.equal(B.shipBudget, 900, 'typed budget');
 
 // Open tab: cancel
 press('sub:open');
@@ -70,24 +73,25 @@ assert.equal(o.state, 'cancelled');
 B.autoBuild = true;
 assert.match(tab.html(B), /Auto orders <b>on<\/b>/);
 // Sell tab: needs a line to the capital
-press('mode:advanced'); press('sub:sell');
+press('sub:sell');
 assert.match(tab.html(B), /Needs a rail line to the capital/);
 F.rail.links.rc = { id: 'rc', owner: 'player', from: 'capital', to: 'tA', done: true, length: 100, points: [[0, 0], [100, 0]], dist: [0, 100] };
 const A = F.settlements.tA, g0 = A.stock.goods;
 const TA = createShipmentsTab({ game: g, data: g.frontier.data, cmd: c => g.step([{ id: hero.id, type: 'frontier', ...c }]), usage: resourceUsage });
 const pa = id => assert.ok(TA.click({ act: 'ship', id }, A));
-pa('mode:advanced'); pa('sub:sell'); pa('sres:goods'); pa('samt:-50');
+pa('sub:sell'); assert.ok(TA.input({ id: 'samt:goods' }, '50'));
 assert.match(TA.html(A), /Sell 50 goods/);
-pa('sellgo');
+pa('sell:goods');
 const sale = Object.values(F.shipping.orders).find(o => o.kind === 'sell' && !o.auto);
 assert.ok(sale && sale.amount === 50 && sale.sellFrom === 'tA', 'sale placed');
 assert.equal(A.reserved.goods, 50, 'reserved until the train loads it');
 const r0 = A.stock.ryo;
 for (let i = 0; i < 6000 && sale.state === 'open'; i++) g.step([]);
 assert.equal(sale.state, 'done'); assert.ok(A.stock.ryo >= r0 + 50 * railways.ship.sellPrice.goods, 'paid on arrival');
-// the Rail ledger from the tab, and Back
-press('ledger');
-assert.match(tab.html(B), /Back to Shipments/); assert.match(tab.html(B), /data-id="lg~tab:done"/);
-press('lg~tab:done'); press('lg~close');
-assert.match(tab.html(B), /Rail ledger ▸/, 'back on the Shipments tab');
+// the Rail ledger as a full tab
+press('sub:ledger');
+assert.match(tab.html(B), /data-id="lg~tab:done"/); assert.ok(!/Back to Shipments/.test(tab.html(B)), 'a tab, no Back button');
+press('lg~tab:done'); assert.match(tab.html(B), /Delivered/);
+press('sub:new');
+assert.match(tab.html(B), /data-id="order:timber"/, 'back on the Order tab');
 console.log('test_shipments_tab: ok');

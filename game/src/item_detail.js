@@ -26,11 +26,12 @@ export function effectOf(item) {
   const kind = item.visual?.kind;
   return { text: EFFECT[kind] || 'Subtle light on your hero', short: SHORT[kind] || item.slot, color: css(item.visual?.color || item.glow) };
 }
+const LANTERN = '<svg class="item-svg" viewBox="0 0 24 32" aria-hidden="true"><rect x="9" y="1" width="6" height="3" rx="1" fill="#3a2614"/><path d="M12 4v1" stroke="#3a2614"/><ellipse cx="12" cy="16" rx="9" ry="11" fill="#c9473d" stroke="#2a0d0a"/><ellipse cx="12" cy="16" rx="4.5" ry="9" fill="#ffd07a" opacity=".35"/><path d="M4 11.5h16M3.2 16h17.6M4 20.5h16" stroke="#8e2d26" fill="none"/><rect x="9" y="27" width="6" height="3" rx="1" fill="#3a2614"/></svg>';
 export function itemArt(id) {
   const item = ITEMS[id];
   if (item) return item.id ? `<img src="../assets/items/${item.id}.png" alt="">` : ICONS[item.slot];
   if (id === 'bandage') return '<img src="../assets/items/bandage.png" alt="">';
-  if (id === 'war_lantern') return '<span class="item-emoji">🏮</span>';
+  if (id === 'war_lantern') return LANTERN;   // drawn paper lantern (menu restyle: no emoji)
   return '<span class="empty-slot"></span>';
 }
 const ABOUT = { bandage: 'Heal 25% of maximum HP over 6 s; moving, attacking or taking damage interrupts it; 60 s cooldown; carry 2',
@@ -41,11 +42,11 @@ export function detailHtml(id, { rows = [], equipped = null } = {}) {
   const item = itemOf(id); if (!item) return '<p class="detail-empty">Hover or click an item to see its details.</p>';
   const gear = !!ITEMS[id], rarity = item.rarity === 'green' ? 'Fine' : gear ? 'Common' : 'Supply';
   const lines = (item.about || ABOUT[id] || '').replace(/\.$/, '').split(/;\s*/).filter(Boolean)
-    .map(t => `<div class="detail-stat ${/^[+−]/.test(t) ? 'good' : /\d/.test(t) ? 'cost' : ''}">${esc(t)}</div>`).join('');
+    .map(t => `<div class="detail-stat ${/^[+−]/.test(t) ? 'good' : /\d/.test(t) ? 'cost' : ''}">${esc(t.replace(/−/g, '-'))}</div>`).join('');
   const effect = effectOf(item);
-  const same = equipped && equipped !== item ? `<p class="detail-compare">Replaces equipped <b>${esc(equipped.name)}</b>: ${esc((equipped.about || '').replace(/\.$/, ''))}</p>`
+  const same = equipped && equipped !== item ? `<p class="detail-compare">Replaces equipped <b>${esc(equipped.name)}</b>: ${esc((equipped.about || '').replace(/\.$/, '').replace(/−/g, '-'))}</p>`
     : equipped === item ? '<p class="detail-compare">Currently equipped.</p>' : '';
-  return `<div class="detail-top"><span class="detail-art${item.rarity === 'green' ? ' green' : ''}">${itemArt(id)}</span><div><small>${gear ? item.slot : 'supply'} · ${rarity}</small><h3>${esc(item.name)}</h3></div></div>
+  return `<div class="detail-top"><span class="detail-art${item.rarity === 'green' ? ' green' : ''}">${itemArt(id)}</span><div><small>${gear ? item.slot : 'supply'}, ${rarity}</small><h3>${esc(item.name)}</h3></div></div>
     <div class="detail-stats">${lines}${rows.map(([a, b, k]) => `<div class="detail-row ${k || ''}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('')}</div>
     ${effect ? `<p class="detail-effect"><i style="--fx:${effect.color}"></i>Visual effect when equipped: ${effect.text}</p>` : `<p class="detail-effect none">No visual effect on your hero${id === 'war_lantern' ? ' (it hangs a War Lantern at the business you raid)' : ''}</p>`}${same}`;
 }

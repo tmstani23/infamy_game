@@ -14,7 +14,7 @@ import { createTargetMemory } from './target_memory.js';
 const CROP = { x: 0.33, y: 0.17, w: 0.34 };
 const EFFECT_NAMES = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke', ambush: 'Ambush', veil: 'Vanish', reprisal: 'Reprisal', pursuit: 'Speed', formation: 'Formation', stunned: 'Stunned' };
 const DEBUFFS = new Set(['intimidated', 'snared', 'stunned']);
-const EFFECT_ICONS = { charming:'✦', rally:'⚡', lantern:'☀', intimidated:'☠', snared:'⛓', shroud:'◌', ambush:'⌖', veil:'◈', reprisal:'⚔', pursuit:'➤', formation:'⬟', stunned:'✹' };
+import { hudIcon } from './hud_icons.js';
 
 // Which unit the target frame shows (plain state, so Node can check it): a lone left-clicked unit
 // that isn't the hero's, else the hero's attack target or swing, else the Tab target
@@ -139,7 +139,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
         const remaining = Math.max(0, Math.min(100, (b.until - now) / effectStarts.get(key).total * 100));
         const fullName = b.hamstring ? 'Hamstring' : EFFECT_NAMES[name] || name;
         const seconds = Math.ceil((b.until - now) / 20);
-        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%" tabindex="0" role="img" aria-label="${fullName}, ${seconds} seconds remaining" title="${fullName}">${EFFECT_ICONS[name] || '✦'}<small>${seconds}s</small></span>`;
+        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%" tabindex="0" role="img" aria-label="${fullName}, ${seconds} seconds remaining" title="${fullName}">${hudIcon(name)}<small>${seconds}s</small></span>`;
       }).join('');
       if (f.effects.innerHTML !== html) f.effects.innerHTML = html;
     }
@@ -162,7 +162,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     cached=targetMemory.read(focus,live,visible,game.state.tick);
     const worker=workerTarget(),shown = worker || memory || cached?.entity;
     target.c.hidden = !shown; target.c.classList.toggle('known', !!memory);
-    if(worker){const d=worker.workerDetail;fill(target,worker,h);target.status.textContent=d?.cargo?`Carrying ${d.cargo} ${d.resource}`:d?.harvesting?`Harvesting ${d.resource} · ${d.left}s left`:'Worker · use Workers pane for orders';}
+    if(worker){const d=worker.workerDetail;fill(target,worker,h);target.status.textContent=d?.cargo?`Carrying ${d.cargo} ${d.resource}`:d?.harvesting?`Harvesting ${d.resource}, ${d.left}s left`:'Worker, use Workers pane for orders';}
     else if (memory) {
       target.c.dataset.owner=memory.owner;
       target.id = memory.id;
@@ -171,10 +171,10 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       target.hp.textContent = 'Last sighting'; target.fill.style.width = '0%'; target.effects.replaceChildren();
       target.status.textContent = memory.tracked ? 'Contract tracking' : memory.live ? 'In sight' : `Seen ${Math.floor(memory.age)}s ago`;
       target.c.style.setProperty('--c', '#9779b0'); target.c.title = `${target.name.textContent}: ${target.status.textContent}`;
-    } else if(cached){fill(target,cached.entity,h);if(!cached.visible){target.status.textContent='Out of sight · last known';target.effects.replaceChildren();target.c.title='Last observed information; right-click to attack after reacquiring sight';}}
+    } else if(cached){fill(target,cached.entity,h);if(!cached.visible){target.status.textContent='Out of sight, last known';target.effects.replaceChildren();target.c.title='Last observed information; right-click to attack after reacquiring sight';}}
     const eligible = shown && shown.owner !== h.owner && game.state.clans[shown.owner] && !shown.guard && !shown.cop && !shown.wild && shown.type !== 'civilian';
     ambush.hidden = game.state.clans[h.owner]?.kind !== 'ninja' || !eligible;
-    ambush.textContent = game.state.deployment.clans[h.owner]?.hunt?.target === target.id ? 'Armed · Cancel' : 'Arm Ambush';
+    ambush.textContent = game.state.deployment.clans[h.owner]?.hunt?.target === target.id ? 'Armed, Cancel' : 'Arm Ambush';
   }
   function updateHover(pointer, overWorld) {
     const h = game.state.entities[heroId], id = overWorld && crewInput.hovered(pointer.x, pointer.y);

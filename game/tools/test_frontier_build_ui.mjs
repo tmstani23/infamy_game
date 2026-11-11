@@ -121,13 +121,13 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   const keep=s.workers;
   s.workers=[{id:'j1',spot:'tree'},{id:'j2',spot:'tree'},{id:'j3',spot:null},{id:'j4',spot:'tree',order:{kind:'hold'}}];
   ui.click({act:'build-worker-select',id:'j3'},s);
-  assert.match(ui.html(s),/Jobs: .*Timber \(2\)/s,'one button per job in use with its count; standing workers do not count');
+  assert.match(ui.html(s),/data-act="build-worker-job" data-id="timber"[^>]*><span class="wico">.*?<\/span><b>2<\/b><span>Timber<\/span>/s,'one coin per job with its count; standing workers do not count');
   ui.click({act:'build-worker-job',id:'timber'},s);
   assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/); assert.match(ui.html(s),/data-id="j3" aria-pressed="false"/,'plain click replaces the selection');
   ui.click({act:'build-worker-select',id:'j3'},s);ui.click({act:'build-worker-select',id:'j1'},s);ui.click({act:'build-worker-select',id:'j2'},s);
   ui.click({act:'build-worker-job',id:'timber'},s,{ctrlKey:true});
   assert.match(ui.html(s),/data-id="j3" aria-pressed="true"/); assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/,'Ctrl+click adds');
-  s.workers=[{id:'k1',spot:null}];assert.doesNotMatch(ui.html(s),/Jobs:/,'no Jobs row when nobody harvests');
+  s.workers=[{id:'k1',spot:null}];assert.match(ui.html(s),/class="wcoin none" data-act="build-worker-job" data-id="timber"/,'job coins are greyed when nobody harvests');
   s.workers=keep;
 }
 console.log('test_frontier_build_ui: ok');

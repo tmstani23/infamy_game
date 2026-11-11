@@ -974,7 +974,7 @@ export function createGame(options) {
         if (founding && townCount(e.owner) > before) omnibus.consume(e.owner);
       }
       if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}
-      if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business, c.patient);
+      if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business, c.patient, c.prisoner);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }

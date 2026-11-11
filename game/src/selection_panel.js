@@ -22,7 +22,7 @@ export function unitStatus(e, state) {
   if (e.deployment?.scattered) return 'Scattered: '+e.deployment.scattered.phase.toLowerCase();
   if (e.deployment?.transfer) {
     const t=e.deployment.transfer,to=t.to==='hero'?'Hero group':t.to==='home'?'HQ reserves':state.deployment?.sectors.find(s=>s.id===t.to)?.name||t.to;
-    return `${t.status==='blocked'?'Transfer blocked':'Transferring'} → ${to}`;
+    return `${t.status==='blocked'?'Transfer blocked':'Transferring'} to ${to}`;
   }
   if(e.deployment?.awaitingAssignment)return 'Waiting for assignment';
   if(e.buffs?.charming?.until>state.tick)return 'Charming';
@@ -40,7 +40,7 @@ export function unitStatus(e, state) {
     return e.anim === 'walk' || e.anim === 'run' ? 'Walking' : 'Idle';
   }
   const task=state.deployment?.clans[e.owner]?.sectors[e.deployment?.group];
-  if(!e.deployment?.duty?.manual){if(task?.recovery)return task.recovery.state;if(task?.operation?.units?.includes(e.id))return task.operation.kind.replaceAll('_',' ')+' · '+task.operation.state;if(e.deployment?.duty?.status)return e.deployment.duty.status;}
+  if(!e.deployment?.duty?.manual){if(task?.recovery)return task.recovery.state;if(task?.operation?.units?.includes(e.id))return task.operation.kind.replaceAll('_',' ')+', '+task.operation.state;if(e.deployment?.duty?.status)return e.deployment.duty.status;}
   const k = e.order?.kind, moving = e.anim === 'walk' || e.anim === 'run';
   if (k === 'stop') return 'Passive (stopped)';
   if (e.order?.garrison) return 'Patrolling';
@@ -52,16 +52,16 @@ export function unitStatus(e, state) {
   return moving ? 'Moving' : 'Idle';
 }
 
-// Where a unit is: "Teahouse · Waterfront" inside a building, just the district outside.
+// Where a unit is: "Teahouse, Waterfront" inside a building, just the district outside.
 // info = game/data/buildings.json (the building names)
 export function unitWhere(e, state, district, info = {}) {
   const zone = district.name || 'Street';
-  if (e?.prisoner) return `${info.names?.police_hq || 'Police HQ'} · ${zone}`;
+  if (e?.prisoner) return `${info.names?.police_hq || 'Police HQ'}, ${zone}`;
   if (!e || e.place === 'street') return zone;
   const b = Object.values(state.businesses).find(b => b.room === e.place);
   const art = b && district.buildings[Number(b.id.slice(1))]?.art;
   const name = info.names?.[art] || (e.place.charAt(0).toUpperCase() + e.place.slice(1)).replace(/_/g, ' ');
-  return `${name} · ${zone}`;
+  return `${name}, ${zone}`;
 }
 
 const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
@@ -87,7 +87,10 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     root.hidden = !ids.length || (!byId && ((owner && ids.every(id => unit(id).owner === owner)) || skip(ids)));
     if (root.hidden) return;
     root.classList.toggle('many', ids.length > 8);
-    const key = ids.join(',');
+    // condensed (Tim 2026-11-11): past 8, small tiles in two rows at most, then one +N tile
+    const extra = ids.length > 18 ? ids.length - 17 : 0;
+    if (extra) ids.length = 17;
+    const key = ids.join(',') + '|' + extra;
     if (key !== shown) {
       shown = key;
       root.innerHTML = '';
@@ -103,6 +106,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
         root.appendChild(c);
         cards[id] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
+      if (extra) { const m = document.createElement('div'); m.className = 'card more'; m.textContent = `+${extra}`; m.title = `${extra} more selected`; root.appendChild(m); }
     }
     for (const id of ids) {
       const e = unit(id), k = cards[id];

@@ -1,6 +1,7 @@
 import { createItemGrid } from './inventory_ui.js';
 import { createHeroPreview } from './render/hero_preview.js';
 import { effectOf } from './item_detail.js';
+import { hudIcon } from './hud_icons.js';
 import { ITEMS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 // Character page formats authoritative snapshots; it owns no stat formulas.
 import { formatStat, modifierDisplay } from './character_stat_format.js';
@@ -8,7 +9,7 @@ export { formatStat, modifierDisplay };
 
 export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
   const root = document.createElement('section'); root.id = 'characterpage'; root.hidden = true; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Hero character');
-  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page">✕</button></header><div class="character-layout"><aside><div class="hero-art"><canvas class="hero-preview" aria-label="Hero preview with equipped effects"></canvas></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip · Right-click equipped gear to remove · I / J close<div class="inventory-notice" role="status"></div></footer></div>';
+  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page" title="Close (Esc)">Esc</button></header><div class="character-layout"><aside><div class="hero-art"><canvas class="hero-preview" aria-label="Hero preview with equipped effects"></canvas></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip, Right-click equipped gear to remove, I / J close<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
   const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
@@ -49,10 +50,10 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     const hero = game.state.entities[heroId], snapshot = game.stats.snapshot(hero); if (!snapshot) return;
     const inv = game.inventory.status(hero);
     const supply=game.state.clans[hero.owner],cooldown=Math.max(0,Math.ceil(((inv.bandageReadyAt||0)-game.state.tick)/20));
-    $('.use-bandage').textContent=`Bandage · ${inv.bandages||0}/2${hero.bandaging?' · Healing…':cooldown?' · '+cooldown+'s':''}`;
+    $('.use-bandage').textContent=`Bandage, ${inv.bandages||0}/2${hero.bandaging?', Healing...':cooldown?', '+cooldown+'s':''}`;
     $('.use-bandage').disabled=!inv.available||!(inv.bandages>0)||cooldown>0||!!hero.bandaging||hero.hp>=hero.maxHp;
     raidTarget=Object.values(game.state.businesses).find(b=>game.businesses.canRaid(heroId,b.id).ok)?.id;
-    $('.use-lantern').textContent=`War Lantern · ${supply.lanterns||0}${raidTarget?' · Raid '+(game.state.businesses[raidTarget].name||'this business'):''}`;
+    $('.use-lantern').textContent=`War Lantern, ${supply.lanterns||0}${raidTarget?', Raid '+(game.state.businesses[raidTarget].name||'this business'):''}`;
     $('.use-lantern').disabled=!raidTarget;
     $('.supplies-hint').textContent='Bandage: stand still for 6s; damage and actions interrupt. War Lantern: approach a rival business at night.';
     bag(inv.bag, inv.available); equipment(inv.equipment, inv.available && inv.bag?.includes(null), 'Remove to inventory');
@@ -80,7 +81,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
       record.label.textContent = row.label; record.base.textContent = formatStat(row, row.base); record.modifier.textContent = change.text; record.current.textContent = formatStat(row, row.value);
       record.el.dataset.group = row.group; record.modifier.className = `stat-modifier ${change.kind}`;
       record.current.className = change.changed ? `modified ${change.kind}` : '';
-      const detail = [...row.sources, row.note].filter(Boolean).join(' · ') || 'Base value; no active modifiers.';
+      const detail = [...row.sources, row.note].filter(Boolean).join(', ') || 'Base value; no active modifiers.';
       record.el.title = detail; record.modifier.title = detail;
       record.el.setAttribute('aria-label', `${row.label}: base ${formatStat(row, row.base)}, modifier ${change.text}, current ${formatStat(row, row.value)}. ${detail}`);
     }
@@ -91,7 +92,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     }
     for (const a of snapshot.abilities) {
       let el = abilities.get(a.key);
-      if (!el) { el = document.createElement('details'); el.innerHTML = '<summary><kbd></kbd><b></b><span></span></summary><p></p>'; $('.character-abilities > div').appendChild(el); abilities.set(a.key, el); }
+      if (!el) { el = document.createElement('details'); el.innerHTML = '<summary><i class="ab-ico"></i><kbd></kbd><b></b><span></span></summary><p></p>'; el.querySelector('.ab-ico').innerHTML = hudIcon(a.kind); $('.character-abilities > div').appendChild(el); abilities.set(a.key, el); }
       el.querySelector('kbd').textContent = a.key; el.querySelector('b').textContent = a.name;
       el.querySelector('span').textContent = a.remaining > 0 ? `${Math.ceil(a.remaining)}s remaining` : `${a.cooldown}s cooldown`;
       el.querySelector('p').textContent = a.about;

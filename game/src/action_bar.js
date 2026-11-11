@@ -9,6 +9,7 @@ import { baseStats } from './sim/stats.js';
 import { createGroupedCrew } from './grouped_crew.js';
 import { CONSUMABLES } from './sim/gear_catalog.js';
 import { itemArt } from './item_detail.js';
+import { hudIcon } from './hud_icons.js';
 
 // Usable items share ONE action-bar slot (key B, Tim 2026-11-01): the first one carried shows
 // there with its count and cooldown sweep; nothing carried = empty frame. Add new usables here.
@@ -19,7 +20,6 @@ export const USABLE_ITEMS = [
 ];
 
 const BUFFS = { charming:'Charming', rally: 'Rally', lantern: 'Red Lantern', intimidated: 'Intimidated', snared: 'Slowed', shroud: 'Smoke (healing)', ambush: 'Ambush (+20% crit)', veil: 'Vanish', reprisal: 'Reprisal (cleave)', pursuit: 'Reprisal (+30% run)', formation: 'Iron Formation', stunned: 'Stunned', downed: 'Downed' };
-const BUFF_ICONS = { charming:'✦', rally:'⚡', lantern:'☀', intimidated:'☠', snared:'⛓', shroud:'◌', ambush:'⌖', veil:'◈', reprisal:'⚔', pursuit:'➤', formation:'⬟', stunned:'✹', downed:'✚' };
 
 const pct = k => `${Math.round(k * 100)}%`;
 // MMO-style tooltip lines for a slot, with numbers worked out from the hero's stats
@@ -35,7 +35,7 @@ function tooltip(a, key, stats) {
     lantern: [['Damage', `+${pct(a.damage - 1)} (${Math.round(dmg * a.damage)} per hit)`], ['Lifesteal', `${pct(a.lifesteal)} of damage dealt`], ['Duration', `${a.seconds} s`]],
     sweep: [['Damage', `${Math.round(dmg * a.damageMultiplier)} (${pct(a.damageMultiplier)})`], ['Area', `${a.radius} steps`], ['Slow', `${pct(1-a.snareSpeed)} for ${a.snareSeconds} s`]],
     reprisal: [['Brace', `up to ${a.channelSeconds} s; damage to you or nearby crew activates`], ['Counter', `your next normal hit stuns ${a.stunSeconds} s`], ['Cleave', `${pct(a.splash)} splash for ${a.seconds} s`], ['Nearby crew', `${pct(a.crewSplash ?? .2)} splash for ${a.crewSeconds ?? 3} s within ${a.crewRadius ?? 6} steps; no stun`], ['Move to break', `+${pct(a.escapeSpeed-1)} run speed for ${a.escapeSeconds} s instead`]],
-    threefold: [['Damage', `${a.strikes} × ${Math.round(dmg * a.damageMultiplier)} (${pct(a.damageMultiplier)} each)`], ['Duration', `${a.seconds} s; movement cancels`]],
+    threefold: [['Damage', `${a.strikes} x ${Math.round(dmg * a.damageMultiplier)} (${pct(a.damageMultiplier)} each)`], ['Duration', `${a.seconds} s; movement cancels`]],
     formation: [['Protection', `${pct(1-a.damageTaken)} less damage inside`], ['Area', `${a.radius} steps; fixed on the ground`], ['Duration', `${a.seconds} s`]] }[a.kind] || [];
   return { name: a.name + (key === 'F' ? ' (ultimate)' : ''), key, lines: [['Cost', a.cost ? `${a.cost} ryo` : 'None'], ['Cooldown', `${a.cooldown} s`], ...lines], about: a.about };
 }
@@ -92,7 +92,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const buffTimers = new Map();
   const addSlot = (key, kind, a) => {
     const s = el('div', 'slot', row);
-    el('div', 'icon', s, a ? a.name : 'Auto attack');
+    // drawn icon with the name under it (Tim 2026-11-11: icons, and the name stays readable)
+    el('div', 'icon', s).innerHTML = `<span class="ab-ico">${hudIcon(a ? a.kind : 'attack')}</span><span class="ab-name">${a ? a.name : 'Auto attack'}</span>`;
     s.addEventListener('mouseenter', () => {
       const current = game.stats?.effective(hero()) || stats;
       const t = tooltip(a, key, a ? stats : { ...current, damage: Math.round(current.damage || 0) });
@@ -161,8 +162,8 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     face.classList.toggle('hurt', !ko && t - (h.hitAt ?? -Infinity) < tickRate * 0.85);
     const back = ko ? Math.max(0, Math.ceil((units.rules?.heroRespawnSeconds ?? 20) - (t - h.diedAt) / tickRate)) : 0;
     koNotice.hidden = !ko;
-    if (ko) koNotice.textContent = `Knocked out · returning to the clinic in ${back}s`;
-    hpText.textContent = ko ? `Knocked out · ${back}s` : `${Math.ceil(h.hp)} / ${h.maxHp}`;
+    if (ko) koNotice.textContent = `Knocked out, returning to the clinic in ${back}s`;
+    hpText.textContent = ko ? `Knocked out, ${back}s` : `${Math.ceil(h.hp)} / ${h.maxHp}`;
     hpBar.classList.toggle('low', k < 0.25);
 
     for (const sl of slots) {
@@ -193,11 +194,11 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       if (!shown[name] || b.until > shown[name].until) shown[name] = active;
     }
     for (const [name, timer] of buffTimers) if (timer.until <= t) buffTimers.delete(name);
-    const passiveHtml = (game.stats?.passives(h) || []).map(p => `<span class="clan-passive ${p.active ? 'active' : ''}" tabindex="0" role="img" aria-label="${p.name}" title="${p.name}: ${p.status}. ${p.description}">${p.icon === 'shield' ? '⛨' : '◉'}</span>`).join('');
+    const passiveHtml = (game.stats?.passives(h) || []).map(p => `<span class="clan-passive ${p.active ? 'active' : ''}" tabindex="0" role="img" aria-label="${p.name}" title="${p.name}: ${p.status}. ${p.description}">${hudIcon(p.icon === 'shield' ? 'shield' : 'passive')}</span>`).join('');
     const html = passiveHtml + Object.entries(shown).map(([n, { until, total }]) => {
       const left = Math.max(0, (until - t) / tickRate), pct = Math.max(0, Math.min(1, left / total));
       const name = BUFFS[n] || n;
-      return `<span class="buff ${n}" style="--remaining:${pct * 100}%" tabindex="0" role="img" aria-label="${name}, ${Math.ceil(left)} seconds remaining" title="${name}"><i></i><b aria-hidden="true">${BUFF_ICONS[n] || '✦'}</b><small>${Math.ceil(left)}s</small></span>`;
+      return `<span class="buff ${n}" style="--remaining:${pct * 100}%" tabindex="0" role="img" aria-label="${name}, ${Math.ceil(left)} seconds remaining" title="${name}"><i></i><b aria-hidden="true">${hudIcon(n)}</b><small>${Math.ceil(left)}s</small></span>`;
     }).join('');
     if (buffs.innerHTML !== html) buffs.innerHTML = html;
 

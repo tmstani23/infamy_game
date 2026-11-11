@@ -582,7 +582,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function html(s, mini = false) {
     if (town !== s.id) { close(); town = s.id; }
-    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage})}</div>`;
+    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
     const capOf = id => { const g = placedGroup(id, data), max = tierOf(s, data)?.placed?.[g]; if (max === undefined) return null;
       const used = placedCount(s, id, data), next = (data.tiers?.list || []).find(t => (t.placed?.[g] ?? 0) > 0);
@@ -638,8 +638,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-stop')orderSelected('hold');
       if (ds.act === 'build-worker-return')orderSelected('return');
       if (ds.act === 'build-worker-drop')requestDrop();
+      // Tim 2026-11-11: sending workers into the stockade moved here from the Governor tab
+      if (ds.act === 'build-worker-stockade')for(const t of workSites()){const units=selectedLive().filter(p=>p.s.id===t.id && p.w.entity!=null && !p.w.garrison).map(p=>p.w.entity);if(units.length)command({action:'garrison',mode:'enter',town:t.id,units});}
       if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
-      if (ds.act === 'build-worker-tab') {workerTab=['log','idle'].includes(ds.id)?ds.id:'roster';workerLogPage=0;}
+      if (ds.act === 'build-worker-tab') {workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}
       if (ds.act === 'build-worker-log-page')workerLogPage=Number(ds.id);
       if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}
       return true;

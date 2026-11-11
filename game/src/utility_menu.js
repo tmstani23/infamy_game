@@ -1,14 +1,15 @@
 // Existing buttons keep their handlers and live labels. Only presentation moves.
-const ICONS = { deploymentbtn:'▧',characterbtn:'♙',inventorybtn:'▦',settingsbtn:'⚙',unstuckbtn:'⌂',pausebtn:'Ⅱ',mutebtn:'♫',fullscreenbtn:'⛶',ctlbtn:'?',townbtn:'⌂⌂',townsbtn:'☰',vehiclesbtn:'♞',daynight:'☀',goalbtn:'印' };
+// the pictures are drawn masks in menu_shell.css (Tim 2026-11-11: no glyphs); data-icon only names them
+const ICONS = { deploymentbtn:'map',characterbtn:'hero',inventorybtn:'bag',settingsbtn:'gear',unstuckbtn:'home',pausebtn:'pause',mutebtn:'music',fullscreenbtn:'screen',ctlbtn:'help',townbtn:'town',townsbtn:'towns',vehiclesbtn:'vehicles',daynight:'sun',goalbtn:'goals' };
 export function createUtilityMenu({ root, anchor, buttons, win = window }) {
   root.setAttribute('aria-label','Game menu');
-  for (const b of buttons) { b.classList.add('utility-button');b.dataset.icon=ICONS[b.id]||'•';root.appendChild(b); }
+  for (const b of buttons) { b.classList.add('utility-button');b.dataset.icon=ICONS[b.id]||'dot';root.appendChild(b); }
   let positionKey = null;
   function update(force = false) {
     for (const b of buttons) {
-      const label = b.textContent + (b.title ? ` · ${b.title}` : '');
+      const label = b.textContent + (b.title ? `, ${b.title}` : '');
       if(b.getAttribute('aria-label')!==label)b.setAttribute('aria-label',label);
-      if(b.id==='pausebtn')b.dataset.icon=b.getAttribute('aria-pressed')==='true'?'▶':'Ⅱ';
+      if(b.id==='pausebtn')b.dataset.icon=b.getAttribute('aria-pressed')==='true'?'play':'pause';
     }
     if(root.dataset.layoutPinned==='true')return;
     const key=[win.innerWidth,win.innerHeight,anchor.style.cssText,root.dataset.layoutPinned].join('|');
