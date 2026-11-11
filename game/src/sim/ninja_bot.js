@@ -57,6 +57,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   // hiring mix (Tim 2026-11-10): ninja, tanto ninja, geisha and masked bodyguard in turn (sim/hire_mix.js)
   const hireType = () => bossHire(game, clan, game.lieutenant?.rules?.hireBasic) || B.hireType;
   const canHireNow = () => {
+    if (expedition?.saving()) return false;   // E6: saving up for permit, settlers and founding (Tim 2026-11-11: it rehired itself broke)
     const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;
     const established = (myClan().renown || 0) >= (U.renownPerCrew || 75);

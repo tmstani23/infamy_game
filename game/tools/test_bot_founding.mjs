@@ -40,12 +40,20 @@ const botTowns = g => Object.values(g.state.frontier.settlements).filter(s => s.
   g.state.clock.day = B.fallbackDay;
   assert.equal(g.landOffice.botDue('kuroda', 0), true, 'fallbackDay: they go anyway');
   assert.equal(g.landOffice.botDue('kuroda', 1), false, 'the second bot leaves staggerDays later');
+  // Tim 2026-11-11: after the player's first town the first bot waits afterPlayerDays
+  g.state.clock.day = 3; g.state.frontier.firstPlayerTownDay = 3;
+  assert.equal(g.landOffice.botDue('kuroda', 0), B.afterPlayerDays === 0, 'the player is first');
+  g.state.clock.day = 3 + B.afterPlayerDays;
+  assert.equal(g.landOffice.botDue('kuroda', 0), true);
+  assert.equal(g.landOffice.botDue('kuroda', 1), false);
+  g.state.clock.day = 3 + B.afterPlayerDays + B.staggerDays;
+  assert.equal(g.landOffice.botDue('kuroda', 1), true);
 }
 
 // the real run: the player has founded, the bots walk the whole way and found
 {
   const { g, bots } = match('campaign');
-  g.state.frontier.firstPlayerTownDay = g.state.clock.day;
+  g.state.frontier.firstPlayerTownDay = g.state.clock.day - B.afterPlayerDays - B.businessWaitDays;   // their day has come, businesses or not
   const rejected = [], cmds = [];
   let foundBy = null;
   for (let i = 0; i < 30000 && botTowns(g).length < 2; i++) {

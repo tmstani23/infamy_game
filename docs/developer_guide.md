@@ -102,8 +102,13 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - At the capital only deployment group 'hero' boards a train; Rally crew do not.
 - Hero group limit 6 counts crew left on the island; the crew cap counts crew everywhere.
 
-### Rival founding (unchanged behaviour, sim/bot_expedition.js)
-- A bot leaves once the player founded a first town or on founding.bots.fallbackDay 30, staggered 2 days per bot, when it can pay permit + 5 settlers + founding cost + reserve and is not raided or under half health. One town per bot. The boss stays in the town; the lieutenant runs the city.
+### Rival founding (sim/bot_expedition.js; founding.bots in data/frontier.json)
+- The first bot leaves founding.bots.afterPlayerDays (2) days after the player's first town; each next bot staggerDays (2) later. With no player town, bots leave from fallbackDay (10).
+- A bot leaves when it can pay permit + 5 settlers + founding cost + reserve and is not raided or under half health. One town per bot. The boss stays in the town; the lieutenant runs the city.
+- Yakuza and Kuroda bots first hold minBusinesses (2) businesses, waiting at most businessWaitDays (4) past their leave day.
+- Bots (Shinobi included) save for the trip only from their leave day on.
+- A city captain holding no business saves for a first one once he has 3 crew.
+- A governor with initiative builds a lumber camp toward the nearest trees first when none are within worker range.
 
 ### Town governor
 - game.js townGovernors: model units.rules.governorModel (governer1) at rules.governorSpot (cells, default [0.15, -0.62]) in front of each player town hall by day; owner null, guide true, not attackable; removed at night. Space near him or the hall talks.

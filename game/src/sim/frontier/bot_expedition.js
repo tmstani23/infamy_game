@@ -26,8 +26,12 @@ export function createBotExpedition(game, { clan, hero, ai }) {
     return (c.permit ? 0 : (D.permit?.ryo || 0)) + missing * L.settlerPrice() + D.cost + (D.bots?.reserve ?? 0);
   };
   const due = () => L.botDue(clan, Math.max(0, order()));
+  // Tim 2026-11-11: a Yakuza or Kuroda bot holds bots.minBusinesses before it saves and leaves (it left with none and
+  // its capital stayed empty), for at most bots.businessWaitDays past its day
+  const held = () => Object.values(state.businesses).filter(b => b.owner === clan && !b.hideout).length;
+  const building = () => myClan().kind !== 'ninja' && held() < (D.bots?.minBusinesses ?? 0) && L.day() < L.botDay(Math.max(0, order())) + (D.bots?.businessWaitDays ?? 0);
   // due but still saving up: the city brain skips buying and hiring
-  const saving = () => me()?.place !== 'world' && due() && myClan().ryo < need();
+  const saving = () => me()?.place !== 'world' && due() && !building() && myClan().ryo < need();
 
   // a hall spot near the claimed site that founding accepts
   function hallSpot(h, site) {
@@ -55,7 +59,7 @@ export function createBotExpedition(game, { clan, hero, ai }) {
       if (spot) out.push({ id: hero, type: 'frontier', action: 'found', x: spot.x, z: spot.z });
       return true;
     }
-    if (!due() || raided() || c.ryo < need() || h.hp < h.maxHp * 0.5) return false;
+    if (!due() || building() || raided() || c.ryo < need() || h.hp < h.maxHp * 0.5) return false;
     if (!ai.toStreet(out)) return true;
     const b = office();
     if (!b?.ring) return false;

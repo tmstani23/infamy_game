@@ -215,7 +215,7 @@
     "siteMenu": { "_note": "Choose-site menu at the island gate (E1): campWarn = warn when a bandit camp is this close to a site", "campWarn": 700 },
     "bots": {
       "_note": "E6 2026-11-05 placeholders, Tim to tune. Bots go once the player founds a first town, or by fallbackDay anyway. Departures are staggerDays apart per bot. Site score = traits (soil+water+defense) + clan taste - travel cost/travelScale + a seeded random roll up to randomRoll; a bot picks at random among the topPick best free sites. reserve = ryo kept back on top of permit, settlers and founding cost.",
-      "fallbackDay": 30, "staggerDays": 2, "richNode": 0.5, "_richNodeNote": "Tim 2026-11-06: site score bonus per rich deposit within workers.range + campReach of the site", "topPick": 3, "randomRoll": 3, "travelScale": 6000, "reserve": 50,
+      "fallbackDay": 10, "afterPlayerDays": 2, "minBusinesses": 2, "businessWaitDays": 4, "_leaveNote": "Tim 2026-11-11: the first bot leaves afterPlayerDays after the player's first town (the next staggerDays later), or from fallbackDay if the player has no town by then. A Yakuza or Kuroda bot first holds minBusinesses, for at most businessWaitDays past its day. Bots save for the trip only from their day on.", "staggerDays": 2, "richNode": 0.5, "_richNodeNote": "Tim 2026-11-06: site score bonus per rich deposit within workers.range + campReach of the site", "topPick": 3, "randomRoll": 3, "travelScale": 6000, "reserve": 50,
       "taste": {
         "kuroda": { "tags": { "pass": 3 }, "terrain": { "h": 2, "m": 2 }, "traits": { "defense": 1 } },
         "yakuza": { "tags": { "coast": 3, "crossing": 1, "river": 1 }, "traits": { "water": 1 } },

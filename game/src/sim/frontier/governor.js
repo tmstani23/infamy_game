@@ -139,16 +139,44 @@ export function createGovernor({ state, data, world, economy, construction, zone
       const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;   // grid cell toward the deposit
       if (Math.hypot(p.x - tx, p.z - tz) > reach) continue;
       if (!s.autoBuild) { s.report.next = `Rich deposit within camp reach: place a ${type.replace('_', ' ')} toward it`; return false; }
-      const g = s.grid, n2 = g.n, c0 = worldToCell(s, tx, tz);
-      if (c0 < 0) continue;
-      const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
-      for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
-      cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-      for (const [, i] of cand) {
-        if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
-        const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
-        if (r.ok && r.project) { construction.authorize(r.project); s.report.next = `Building a ${type.replace('_', ' ')} toward a rich deposit`; return true; }
-      }
+      if (placeNear(s, type, tx, tz, `Building a ${type.replace('_', ' ')} toward a rich deposit`)) return true;
+    }
+    return false;
+  }
+  // a camp on the free grid cell nearest a point, authorized at once
+  function placeNear(s, type, tx, tz, text) {
+    const g = s.grid, n2 = g.n, c0 = worldToCell(s, tx, tz);
+    if (c0 < 0) return false;
+    const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
+    for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
+    cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    for (const [, i] of cand) {
+      if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
+      const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+      if (r.ok && r.project) { construction.authorize(r.project); s.report.next = text; return true; }
+    }
+    return false;
+  }
+
+  // Tim 2026-11-11: no trees in worker reach (4 of the 60 sites) and the town can never earn timber: a bot town spent
+  // its start timber on a quarry and sat at 5 people for good. With initiative the governor first puts a lumber camp
+  // on the grid toward the nearest trees a camp reaches. true = placed; 'save' = wanted but not affordable yet (the
+  // other camp rules wait, so they never spend its timber).
+  function timberCampRule(s) {
+    const R = data.workers, reach = R.campReach || 0;
+    if (!s.autoBuild || !workers?.index?.spotsNear || !placement() || !data.buildings?.lumber_camp || !reach) return false;
+    if (s.buildings.some(b => b.type === 'lumber_camp') || s.projects.some(p => p.type === 'lumber_camp')) return false;
+    const grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
+    const trees = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === 'timber')
+      .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
+    if (!trees.length || trees[0].d <= R.range) return false;
+    if (placedRoom(s, 'lumber_camp', data) < 1) return false;
+    if (s.projects.some(p => !p.replaces)) return 'save';
+    if (!Object.entries(data.buildings.lumber_camp.cost).every(([r, v]) => (s.stock[r] || 0) >= v)) { s.report.next = 'Saving for a lumber camp: no trees within reach of the town'; return 'save'; }
+    for (const { p, d } of trees) {
+      const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;
+      if (Math.hypot(p.x - tx, p.z - tz) > reach) continue;
+      if (placeNear(s, 'lumber_camp', tx, tz, 'Building a lumber camp toward the nearest trees')) return true;
     }
     return false;
   }
@@ -285,7 +313,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     s.report.next = '';
     maintain(s);
     trainWorker(s);
-    if (!campRule(s) && !richCampRule(s)) rules(s);
+    const timber = timberCampRule(s);
+    if (timber === 'save' || (!timber && !campRule(s) && !richCampRule(s))) rules(s);
     promote(s);
     moodKeeper(s);
     const p = s.projects.find(x => x.authorized) || s.projects[0];

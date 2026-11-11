@@ -189,8 +189,13 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   function botDue(id, order = 0) {
     const B = D.bots || {}, clan = state.clans?.[id];
     if (!on() || !clan?.bot || townsOf(id) >= (P.maxTowns ?? 1)) return false;
-    const startDay = fr().firstPlayerTownDay ?? (B.fallbackDay ?? 30);
-    return day() >= Math.min(startDay, B.fallbackDay ?? 30) + order * (B.staggerDays ?? 2);
+    return day() >= botDay(order);
+  }
+  // the day bot number `order` may leave (Tim 2026-11-11): afterPlayerDays after the player's first town, or from
+  // fallbackDay when the player has no town by then; staggerDays apart per bot
+  function botDay(order = 0) {
+    const B = D.bots || {}, fb = B.fallbackDay ?? 30, p = fr().firstPlayerTownDay;
+    return (p == null || p >= fb ? fb : p + (B.afterPlayerDays ?? 0)) + order * (B.staggerDays ?? 2);
   }
   const settlerPrice = () => units?.types?.settler?.price ?? 0;
   const botBudget = () => (P.ryo || 0) + D.minSettlers * settlerPrice() + D.cost + (D.bots?.reserve ?? 0);
@@ -218,5 +223,5 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   }
 
   return { mayLeave, office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
-    expeditionCheck, claim, founded, inGrace, botDue, botBudget, botSite, settlerPrice, day };
+    expeditionCheck, claim, founded, inGrace, botDue, botDay, botBudget, botSite, settlerPrice, day };
 }

@@ -302,7 +302,9 @@ export function createLieutenantBrain(game, { clan }) {
       const room = game.clans.crewCount(clan) + c.queue.length < game.clans.crewCap(clan), price = game.clans.hirePrice(clan, type);
       // with Buy on he saves for the cheapest free business first, so hiring never eats the money for it (soak 2026-11-06)
       // below hireFirstShare of the crew cap he hires first and saves for a business after (Tim 2026-11-10: he sat at 2 of 7 crew)
-      const filled = game.clans.crewCount(clan) + c.queue.length >= Math.ceil(game.clans.crewCap(clan) * (R.hireFirstShare ?? 0.5));
+      // holding no business at all he saves for the first one once he has a few crew (Tim 2026-11-11: a capital left with none stayed empty)
+      const noBusiness = !Object.values(state.businesses).some(x => x.owner === clan && !x.hideout) && game.clans.crewCount(clan) + c.queue.length >= (R.hireBasicBelow ?? 3);
+      const filled = noBusiness || game.clans.crewCount(clan) + c.queue.length >= Math.ceil(game.clans.crewCap(clan) * (R.hireFirstShare ?? 0.5));
       const saveFor = filled && !ninja && r.orders.buy && r.boughtDay !== day() ? Math.min(...Object.values(state.businesses).filter(x => !x.owner && !x.hideout && x.ring).map(x => game.businesses.rules[x.kind]?.price ?? Infinity)) + (R.reserve ?? 200) : 0;
       // a boss out on the island with a permit still has a town to pay for: hiring never eats the founding money
       const founding = c.permit ? (game.frontier?.data?.founding?.cost || 0) : 0;
