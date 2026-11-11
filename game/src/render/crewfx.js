@@ -12,7 +12,7 @@ export function createCrewFx({scene,spriteOf}){
   function ring(radius,color){const m=add(new THREE.RingGeometry(radius-.04,radius+.04,40),color);m.rotation.x=-Math.PI/2;return m;}
   function shot(p){
     const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.hamstring?0x8affcb:0xe5c882;
-    const shaft=new THREE.Mesh(p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):new THREE.CylinderGeometry(.022,.022,.65,5),material(color));group.add(shaft);
+    const shaft=new THREE.Mesh(p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.012,.012,.9,4):new THREE.CylinderGeometry(.022,.022,.65,5),material(color));   // bullet: thin tracer (war riflemen)group.add(shaft);
     if(p.kind==='arrow'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.07,.19,5),material(color));tip.position.y=.4;group.add(tip);}
     const trail=new THREE.Mesh(new THREE.CylinderGeometry(.015,.005,p.hamstring?.9:.45,5),material(color));trail.position.y=-.6;trail.material.opacity=.35;group.add(trail);
     scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};

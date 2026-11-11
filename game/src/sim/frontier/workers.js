@@ -1,3 +1,4 @@
+import { addCampStock } from './camp_stock.js';
 import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
@@ -108,7 +109,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const warSites=()=>Object.values(state.frontier.wars?.list || {}).map(campSite).filter(Boolean);
   const sites=()=>[...towns(),...warSites()];
   const siteOf=id=>{const w=state.frontier.wars?.list?.[id];return w?campSite(w):null;};
-  const credit=(s,res,n)=>{ if(s.camp){s.stock[res]=Math.round(((s.stock[res] || 0)+n)*100)/100;} else world.change(s.id,res,n,'gather'); };
+  const credit=(s,res,n)=>{ if(s.camp){addCampStock(s.war.camp,res,n);} else world.change(s.id,res,n,'gather'); };
   const full=(s,r)=>s.camp ? false : isFull(s,data,r);
   const has=s=>!!s.workers?.length;
   const on=s=>!!R && Number.isFinite(s.x) && Number.isFinite(s.z);

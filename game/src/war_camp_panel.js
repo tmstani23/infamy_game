@@ -96,7 +96,9 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const list = war()?.campBuildList(open) || [], pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); page = Math.min(page, pages - 1);
     const sites = c.buildings.filter(b => b.stage === 'site' || b.upgrade);
     const trainers = c.buildings.filter(b => b.stage === 'built' && (war()?.trainsAt(b.type) || []).length);
-    const tpages = Math.max(1, Math.ceil(trainers.length / ROWS)); tpage = Math.min(tpage, tpages - 1);
+    const trows = trainers.flatMap(b => war().trainsAt(b.type).map(u => [b, u]));   // one row per building and unit, ROWS a page (checkpoint 5: a barracks trains three)
+    const tpages = Math.max(1, Math.ceil(trows.length / ROWS)); tpage = Math.min(tpage, tpages - 1);
+    const me = hero()?.owner, ryoOf = u => war()?.ryoOf?.(me, u) ?? U[u]?.ryo ?? 0, ticksOf = u => war()?.ticksOf?.(me, u) ?? U[u]?.trainTicks ?? 0;
     const builders = id => (c.workers || []).filter(k => k.project === id).length, maxB = W().builders ?? 3;
     const next = JSON.stringify([open, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length,
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind]);
@@ -123,14 +125,14 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       const cap = v.cap, cells = Math.max(cap, 1);
       body = `<div class="sec"><span>Troop cap</span><b>${v.troops} out, ${v.queued} training, ${Math.max(0, cap - v.troops - v.queued)} free of ${cap}</b></div>
         <div class="capbar" title="${esc(`Troop cap ${cap}: ${W().troopCap?.base ?? 0} at the start, more for each built supply tents, ${W().troopCap?.max ?? '?'} at most. Troops in training count.`)}">${Array.from({ length: cells }, (_, i) => `<i class="${i < v.troops ? 'u' : i < v.troops + v.queued ? 'w' : ''}"></i>`).join('')}</div>
-        ${trainers.length ? trainers.slice(tpage * ROWS, tpage * ROWS + ROWS).map(b => { const idx = c.buildings.filter(x => x.type === b.type).indexOf(b) + 1;
-          return war().trainsAt(b.type).map(u => { const d = U[u] || {}, q = b.queue || [], first = q[0];
+        ${trows.length ? trows.slice(tpage * ROWS, tpage * ROWS + ROWS).map(([b, u]) => { const idx = c.buildings.filter(x => x.type === b.type).indexOf(b) + 1;
+          { const q = b.queue || [], first = q[0], price = ryoOf(u);
             return `<div class="tq"><div class="bimg"><img src="${esc(artUrl(b.type))}" alt=""></div><div>
-              <div style="display:flex;justify-content:space-between;align-items:center"><div class="unit"><div class="port">${esc((u[0] || '').toUpperCase())}</div><div><div style="font-weight:600;color:#f3e3bd">${esc(nice(u))}</div><div class="cost" style="justify-content:flex-start"><span class="chip ryo${(c.chest || 0) < (d.ryo || 0) ? ' short' : ''}"><i></i>${d.ryo || 0}</span><span class="small">${Math.round((d.trainTicks || 0) / 20)} s</span></div></div></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><div class="unit"><div class="port">${esc((u[0] || '').toUpperCase())}</div><div><div style="font-weight:600;color:#f3e3bd">${esc(nice(u))}</div><div class="cost" style="justify-content:flex-start"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span><span class="small">${Math.round(ticksOf(u) / 20)} s</span></div></div></div>
               <div style="display:flex;gap:6px">${num(`t:${b.id}:${u}`)}<button class="go" data-train="${esc(b.id)}" data-unit="${esc(u)}">Train</button></div></div>
-              <div class="pips">${q.slice(0, 10).map((x, i) => `<i class="${i ? 'q' : ''}" style="${i ? '' : `background:conic-gradient(#e0b85a 0 ${Math.round(100 * (1 - x.left / Math.max(1, d.trainTicks || 1)))}%,#14130f 0)`}"></i>`).join('')}
+              <div class="pips">${q.slice(0, 10).map((x, i) => `<i class="${i ? 'q' : ''}" style="${i ? '' : `background:conic-gradient(#e0b85a 0 ${Math.round(100 * (1 - x.left / Math.max(1, ticksOf(x.unit) || 1)))}%,#14130f 0)`}"></i>`).join('')}
                 <span class="small" style="margin-left:6px">${esc(nice(b.type))} ${idx}${first ? `, next in ${Math.ceil(first.left / 20)} s` : ', idle'}</span>
-                ${q.length ? `<button style="margin-left:auto;padding:2px 8px" data-untrain="${esc(b.id)}">Cancel last</button>` : ''}</div></div></div>`; }).join(''); }).join('')
+                ${q.length ? `<button style="margin-left:auto;padding:2px 8px" data-untrain="${esc(b.id)}">Cancel last</button>` : ''}</div></div></div>`; } }).join('')
           : '<div class="small" style="padding:10px 0">Build a barracks to train troops.</div>'}
         <div class="foot"><span class="small">Page ${tpage + 1} of ${tpages}</span><span><button data-tpage="-1"${tpage ? '' : ' disabled'}>Prev</button> <button data-tpage="1"${tpage < tpages - 1 ? '' : ' disabled'}>Next</button></span></div>`;
     } else {

@@ -1,5 +1,6 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, dev_frontier.json, campaign_test_yakuza.json, rail_test_kuroda.json
+//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, dev_frontier.json, war_test_yakuza.json, rail_test_kuroda.json
+//   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 4).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -21,10 +22,10 @@ const SAVES = {
   dev_classic: { clan: 'yakuza', difficulty: 'medium', ticks: 400, playerRyo: 3000 },
   // A campaign match (the island gate is open, W3.5) with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
   dev_frontier: { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', ticks: 400, playerRyo: 3000, frontier: true, settlers: 6 },
-  // Campaign as a real game (no fixture towns), ready to test the campaign loop (Tim 2026-11-06): the city's businesses
-  // are shared out evenly between the clans that hold them, and every clan has the Renown, 11 crew (3 spare over the permit's 8, so an early fight does not drop below it) and ryo to buy a
-  // permit, hire settlers and found a town. Nobody holds a permit yet; rivals leave once you found (the real rule).
-  campaign_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 11 },
+  // War test (Tim 2026-11-11, replaces campaign_test_yakuza): Yakuza already at war on a rival Kuroda town out on the
+  // island. The hero and his crew stand at the war camp; the camp has a barracks, rifle range, supply tents and stables
+  // built, the hall upgraded, and a full chest and stores, so every roster unit can be trained at once.
+  war_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, warTest: true },
   // Railway test (Tim 2026-11-07, train plan): Kuroda hero on the island beside the omnibus station (the railway
   // station) of his Village-tier (tier 2) town, founded the real way, laid out with roads, zones and buildings, the
   // governor met and on autobuild, stock to lay a line or two to the capital. Four crew follow him.
@@ -117,6 +118,58 @@ function railTown(game, heroId) {
   return town;
 }
 
+// The war test: a rival town on open ground far from the capital, the real banner planted next to it (the hero's
+// war pack), then the camp buildings placed with the real command and finished at once.
+function warTest(game, heroId) {
+  const S = game.state, hero = S.entities[heroId], W = options.frontier.war, wd = options.world, war = game.frontier.war;
+  const rival = Object.keys(S.clans).find(id => id !== hero.owner && S.clans[id].faction === 'kuroda') || Object.keys(S.clans).find(id => id !== hero.owner);
+  const [gx, gz] = game.gate.island, far = s => Math.hypot(s.x - gx, s.z - gz);
+  const sites = wd.sites.filter(s => far(s) > 1400 && far(s) < 2800).sort((a, b) => far(a) - far(b));
+  let rec = null;
+  for (const site of sites) {
+    if (Object.values(S.frontier.settlements).some(t => Math.hypot(t.x - site.x, t.z - site.z) < 1600)) continue;
+    const town = game.frontier.world.addTown({ id: 'war_test_town', name: 'Kurogane', region: null, owner: rival, x: site.x, z: site.z, site: site.id ?? null,
+      traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 8, stock: { food: 300, timber: 300, stone: 300, goods: 200, ryo: 600 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
+    game.step([]);   // the hub gives the town its grid
+    const [inner, outer] = war.band(town), mid = (inner + outer) / 2;
+    S.clans[hero.owner].warPack = { ryo: 5000, timber: 3000, stone: 2000 };
+    for (let a = 0; a < 16 && !rec; a++) {
+      const x = Math.round(town.x + Math.cos(a * Math.PI / 8) * mid), z = Math.round(town.z + Math.sin(a * Math.PI / 8) * mid);
+      Object.assign(hero, { place: 'world', area: 'world', x: x + 3, z }); delete hero.aboard;
+      if (!war.check(hero, town.id, { x, z }).ok) continue;
+      game.step([{ id: hero.id, type: 'frontier', action: 'plantBanner', town: town.id, x, z }]);
+      rec = war.warOn(town.id);
+    }
+    if (rec) break;
+    delete S.frontier.settlements.war_test_town;
+  }
+  if (!rec) throw new Error('war_test_yakuza: could not start the war');
+  delete S.clans[hero.owner].warPack;
+  const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
+  hall.tier = 2;
+  const place = kind => {
+    for (const d of [40, 60, 80, 100, 120]) for (let a = 0; a < 24; a++) {
+      const r = war.campCheck(rec.id, kind, { x: hall.x + Math.cos(a * Math.PI / 12) * d, z: hall.z + Math.sin(a * Math.PI / 12) * d });
+      if (!r.ok) continue;
+      game.step([{ id: hero.id, type: 'frontier', action: 'campPlace', war: rec.id, kind, ...r.point }]);
+      const b = rec.camp.buildings.at(-1);
+      if (b.type === kind && b.stage === 'site') { b.stage = 'built'; b.progress = b.need; return; }
+    }
+    throw new Error('war_test_yakuza: no room for ' + kind);
+  };
+  for (const kind of ['barracks', 'rifle_range', 'supply_tents', 'supply_tents', 'stable']) place(kind);
+  for (const w of rec.camp.workers) delete w.project;
+  rec.camp.chest = 5000; Object.assign(rec.camp.stock, { timber: 2000, stone: 1500 });
+  // the hero and his crew by the camp hall
+  Object.assign(hero, { x: hall.x + 6, z: hall.z + 4 });
+  let k = 0;
+  for (const u of Object.values(S.entities)) if (u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id) {
+    Object.assign(u, { place: 'world', area: 'world', x: hall.x + 8 + (k % 4) * 1.2, z: hall.z + 6 + Math.floor(k / 4) * 1.2 }); delete u.aboard; k++;
+  }
+  game.areas.update(Object.values(S.entities));
+  for (let i = 0; i < 20; i++) game.step([]);
+}
+
 // Shares out the free businesses (the kinds that give crew room) between the clans that may hold them (the
 // Shinobi clan holds none; its crew room comes from Renown). Biggest first, snake order, so the shares stay even.
 function shareCity(game) {
@@ -150,6 +203,7 @@ export function build(name, spec) {
   const bots = makeBots(game, m.rivals);
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
   if (spec.railTown) railTown(game, m.heroId);
+  if (spec.warTest) warTest(game, m.heroId);
   if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });
   // E2: settlers waiting round the hero, following him (dev travel on the World map takes them along), so founding can be tried at once.
   if (spec.settlers) game.state.clans.player.permit = true;   // E1: founding needs a permit (Land Office); the dev save holds one
@@ -160,7 +214,9 @@ export function build(name, spec) {
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('make_dev_save.mjs')) {
   mkdirSync(dir, { recursive: true });
+  const only = process.argv.slice(2);
   for (const [name, spec] of Object.entries(SAVES)) {
+    if (only.length && !only.includes(name)) continue;
     if (!validName(name)) throw new Error('Bad save name ' + name);
     const file = build(name, spec), path = new URL(name + '.json', dir), tmp = new URL(name + '.json.tmp', dir);
     writeFileSync(tmp, JSON.stringify(file)); renameSync(tmp, path);

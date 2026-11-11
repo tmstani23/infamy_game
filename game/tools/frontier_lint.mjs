@@ -7,7 +7,7 @@ import { join, relative, sep } from 'node:path';
 
 // field -> the only files (relative to game/src, with '/') allowed to assign it on frontier records
 export const OWNERS = {
-  stock: ['sim/frontier/world.js'],
+  stock: ['sim/frontier/world.js', 'sim/frontier/camp_stock.js'],   // camp_stock.js: the war camp's own pot
   owner: ['sim/frontier/world.js'],
   units: ['sim/frontier/world.js', 'sim/frontier/armies.js'],
   cargo: ['sim/frontier/world.js', 'sim/frontier/logistics.js']

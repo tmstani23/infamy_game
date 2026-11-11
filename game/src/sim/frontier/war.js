@@ -14,6 +14,7 @@
 // from the town economy: nothing in it ever flows back to a town.
 // One war per town at a time; a clan may run several wars. When a war ends the town is under
 // cooldown for war.cooldownDays game days before anyone can plant a banner on it again.
+import { addCampStock } from './camp_stock.js';
 import { modeRules } from '../modes/index.js';
 import { buildable, passable } from '../world_data.js';
 import { ringRadius } from './town_grid.js';
@@ -294,7 +295,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function pay(camp, cost, sign = -1) {
     for (const [r, v] of Object.entries(cost || {})) {
       if (r === 'ryo') camp.chest = Math.round(((camp.chest || 0) + sign * v) * 100) / 100;
-      else camp.stock[r] = Math.round(((camp.stock[r] || 0) + sign * v) * 100) / 100;
+      else addCampStock(camp, r, sign * v);
     }
   }
   // Why a camp building cannot go at x, z, or null
@@ -382,6 +383,11 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // its building as a unit of the attacker tagged warTroop: <war id> (not city crew: no crew cap, no clinic).
   let runtime = null;
   const UD = () => W?.units || {};
+  const factionOf = clanId => state.clans?.[clanId]?.faction || 'yakuza';
+  // clan bonus multiplier (war.clanBonus[faction][unit][key], checkpoint 5): ryo, trainTicks, hp, damage
+  const bonus = (clanId, unit, key) => W?.clanBonus?.[factionOf(clanId)]?.[unit]?.[key] ?? 1;
+  const ryoOf = (clanId, unit) => Math.round((UD()[unit]?.ryo || 0) * bonus(clanId, unit, 'ryo'));
+  const ticksOf = (clanId, unit) => Math.max(1, Math.round((UD()[unit]?.trainTicks || 1) * bonus(clanId, unit, 'trainTicks')));
   const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).length;
   const queuedOf = war => war.camp.buildings.reduce((n, b) => n + (b.queue?.length || 0), 0);
   function troopCap(war) {
@@ -403,11 +409,11 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if ((b.queue?.length || 0) + n > (W.queueMax ?? 20)) return { ok: false, reason: `At most ${W.queueMax ?? 20} waiting at one building` };
     const left = troopCap(war) - troopsOf(war) - queuedOf(war);
     if (n > left) return { ok: false, reason: left > 0 ? `Troop cap: room for ${left} more` : `Troop cap reached (${troopCap(war)}): build supply tents for more` };
-    const cost = (u.ryo || 0) * n;
+    const each = ryoOf(war.attacker, c.unit), cost = each * n;
     if ((war.camp.chest || 0) < cost) return { ok: false, reason: `Needs ${cost} ryo from the war chest (it has ${Math.floor(war.camp.chest || 0)})` };
     war.camp.chest = Math.round((war.camp.chest - cost) * 100) / 100;
     b.queue ||= [];
-    for (let i = 0; i < n; i++) b.queue.push({ unit: c.unit, left: u.trainTicks || 1 });
+    for (let i = 0; i < n; i++) b.queue.push({ unit: c.unit, left: ticksOf(war.attacker, c.unit), paid: each });
     return { ok: true };
   }
   // Cancel the last queued troop at a building: its ryo goes back to the war chest
@@ -417,25 +423,47 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const b = war.camp.buildings.find(x => x.id === c.building), q = b?.queue?.pop();
     if (!q) return { ok: false, reason: 'Nothing waiting there' };
     if (!b.queue.length) delete b.queue;
-    war.camp.chest = Math.round(((war.camp.chest || 0) + (UD()[q.unit]?.ryo || 0)) * 100) / 100;
+    war.camp.chest = Math.round(((war.camp.chest || 0) + (q.paid ?? UD()[q.unit]?.ryo ?? 0)) * 100) / 100;
     return { ok: true };
   }
-  function troopType(war, unit) {
-    const u = UD()[unit], faction = state.clans?.[war.attacker]?.faction || 'yakuza';
-    return typeof u.type === 'string' ? u.type : u.type?.[faction] || Object.values(u.type || {})[0];
+  // A trained troop of a roster unit: its clan's body, clan bonus hp and damage, and a cavalry unit comes already on
+  // its horse (war.units cavalry: true, numbers in war.cavalry): it never gets off (sim/mounts.js skips cavalry), and rider and horse fall together.
+  // (owner: the attacker's camp trains them; the Node benchmark and later the defender give their own side)
+  function spawnTroop(war, unit, x, z, owner = war.attacker) {
+    const u = UD()[unit], faction = factionOf(owner), type = typeof u.type === 'string' ? u.type : u.type?.[faction] || Object.values(u.type || {})[0];
+    const extra = { owner, place: 'world', area: 'world', warTroop: war.id, warUnit: unit, order: { kind: 'stop' } };
+    const hpMul = bonus(owner, unit, 'hp'), dmgMul = bonus(owner, unit, 'damage');
+    if (dmgMul !== 1) extra.warDamage = dmgMul;
+    const id = runtime.spawn(type, u.model?.[faction] || type, x, z, extra), e = state.entities[id];
+    if (!e) return id;
+    if (hpMul !== 1 && e.hp != null) { e.hp = e.maxHp = Math.round(e.maxHp * hpMul); }
+    if (u.cavalry) {
+      const C = W?.cavalry || {};
+      const hid = runtime.spawn('horse', C.horse?.[faction] || 'mare_saddled', x, z, { horseOwner: owner, warTroop: war.id, cavalry: true, place: 'world', area: 'world', hp: e.maxHp, maxHp: e.maxHp, holdFire: true, vehicle: true });
+      const horse = state.entities[hid];
+      if (horse) {
+        e.cavalry = true; e.mounted = true; e.ride = { kind: 'horse', speed: C.speed ?? 2, horse: hid };
+        horse.rider = id;
+      }
+    }
+    return id;
   }
   function tick() {
     // a war that is over takes its troops with it (they disband)
     if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !byId(e.warTroop)) runtime.remove(e.id);
+    // a cavalry horse whose rider fell goes with him (checkpoint 5)
+    if (runtime?.remove && (state.tick ?? 0) % 5 === 0) for (const h of Object.values(state.entities || {})) {
+      if (!h.cavalry || h.type !== 'horse') continue;
+      const rider = state.entities[h.rider];
+      if (!rider || rider.dead || rider.downed) runtime.remove(h.id);
+    }
     for (const war of active()) for (const b of war.camp?.buildings || []) {
       const q = b.queue?.[0];
       if (!q || b.stage !== 'built') continue;
       if (q.left > 0) q.left--;
       if (q.left > 0 || !runtime?.spawn) continue;   // without the game (bare tests) a ready troop waits at the front
-      const type = troopType(war, q.unit), u = UD()[q.unit], faction = state.clans?.[war.attacker]?.faction || 'yakuza';
-      const model = u.model?.[faction] || type, r = radiusOf(b.type) + 2, a = (f().nextId % 12) * Math.PI / 6;
-      runtime.spawn(type, model, b.x + Math.cos(a) * r, b.z + Math.sin(a) * r,
-        { owner: war.attacker, place: 'world', area: 'world', warTroop: war.id, order: { kind: 'stop' } });
+      const r = radiusOf(b.type) + 2, a = (f().nextId % 12) * Math.PI / 6;
+      spawnTroop(war, q.unit, b.x + Math.cos(a) * r, b.z + Math.sin(a) * r);
       f().nextId++;
       b.queue.shift();
       if (!b.queue.length) delete b.queue;
@@ -510,5 +538,5 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campBuildList, upgraded, troopView, trainsAt, tick, attach, get data() { return W; } };
+  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, get data() { return W; } };
 }

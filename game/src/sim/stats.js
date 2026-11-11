@@ -16,7 +16,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const base = e => baseStats(units, e, roamers);
   const buff = (e, id) => { const b = e?.buffs?.[id]; return b && (b.until == null || b.until > state.tick) ? b : null; };
   const clamp = n => Math.max(0, Math.min(1, n));
-  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1); }
+  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (e.warDamage || 1); }   // warDamage: war clan bonus (frontier.json war.clanBonus)
   function damage(e) { return (base(e).damage || 0) * gearMultiplier(e, 'damage') * damageMultiplier(e); }
   function attackInterval(e) { return (base(e).attackSpeed || 1) * gearMultiplier(e, 'attackInterval') / (buff(e, 'rally')?.boost || 1); }
   function criticalChance(e) {

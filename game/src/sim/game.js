@@ -382,7 +382,7 @@ export function createGame(options) {
   // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
-  const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !a.aboard && !a.mounted && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+  const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !a.aboard && (!a.mounted || a.cavalry) && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
   const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&baseHostile(a,b)&&!charmProtected(a,b,state);
@@ -394,7 +394,7 @@ export function createGame(options) {
   const atWarWith = (clan, b) => { const w = frontier?.war?.byId(b.town) || frontier?.war?.warOn(b.town); return !!w && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
   const frontierShield = (a, b) => b?.type === 'civilian' && b.place === 'world' && !!state.clans?.[a?.owner] && (!!b.townsfolk || (!!b.worker && b.workerOwner !== a.owner && !atWarWith(a.owner, b)));
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
-  const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && !a.mounted && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
+  const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && (!a.mounted || a.cavalry) && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
   const attackAllowed=(a,b)=>!b?.shopkeeper&&!b?.animal&&fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
@@ -589,7 +589,7 @@ export function createGame(options) {
     const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed);
     separateUnits(all.filter(e => e.place === 'street'),e=>statsOf(e).radius,tryMove);
     const island = all.filter(e => e.place === 'world' && looseOnIsland(e));
-    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted?2.5:1),tryMove);
+    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),tryMove);   // war cavalry carry their own radius (units.json)
   }
 
   // Spawn a unit just outside a building's door, on a spot that is free of walls and
@@ -937,7 +937,7 @@ export function createGame(options) {
       // a hero lying down or in jail can still order his crew, nothing else
       if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;
       // inside the omnibus (sim/omnibus.js): no fighting or looting; a door (the gate) steps everyone out first
-      if ((e.aboard || e.mounted) && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: e.aboard ? 'Step out of the omnibus first (Q)' : 'Get off your horse first (H)' }; continue; }
+      if ((e.aboard || (e.mounted && !e.cavalry)) && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: e.aboard ? 'Step out of the omnibus first (Q)' : 'Get off your horse first (H)' }; continue; }
       if (e.aboard && c.type === 'use') omnibus?.deploy(e);
       if (e.mounted && c.type === 'use') mounts?.dismount(e);
       // Selection and crew commands cannot replace the hero's current execution.

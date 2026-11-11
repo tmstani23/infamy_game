@@ -245,7 +245,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
         if(h.kind==='dynamite'||h.kind==='fire'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
-        if(h.kind==='arrow'||h.kind==='geishabolt'){ /* flight and ability cues supply the ranged sound */ }
+        if(h.kind==='arrow'||h.kind==='geishabolt'||h.kind==='bullet'){ /* flight and ability cues supply the ranged sound */ }
         else if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
         else if (SWORDS.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
         else if (CLUBS.has(h.weapon)) variant('club_thud_1',.6*v,HEAVY_FISTS.has(h.weapon)?.9:1);
@@ -260,6 +260,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='arrow')swordSlash(.16*v); // quiet existing whoosh until a dedicated arrow-flight recording is supplied
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);
+        if(c.kind==='bullet')play('rifle_shot_1',.5*v,1.05);   // war army rifleman (units.json army_rifleman): the Teppo shot, a little lighter
         if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
         if (ABILITY_CUE[c.kind] && a?.type === 'hero') variant(ABILITY_CUE[c.kind][0], 0.55 * v, ABILITY_CUE[c.kind][1]);

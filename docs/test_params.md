@@ -35,8 +35,8 @@ Not covered by `DEV` (audited 2026-10-19): `game/server.mjs` saving the HUD layo
 
 ## Dev test saves (2026-11-06)
 
-`node game/tools/make_dev_save.mjs` rebuilds the dev saves in `saves/`; load them from the normal Load menu.
+`node game/tools/make_dev_save.mjs` rebuilds the dev saves in `saves/`; load them from the normal Load menu. `node game/tools/make_dev_save.mjs <name>` rebuilds only the saves named.
 
 - `dev_classic`: a Classic city match.
 - `dev_frontier`: a campaign save with the fixture towns and road, map revealed, spare ryo and a permit.
-- `campaign_test_yakuza` (replaces the planned `dev_campaign_start`): a real campaign game (no fixture towns) as Yakuza. The city's businesses are shared out evenly between the clans; every clan has 300 Renown, 8 crew and 3,000 ryo, ready to buy a permit, hire settlers and found. Nobody holds a permit yet; rivals leave once you found.
+- `war_test_yakuza`: Yakuza at war on a rival Kuroda town (Kurogane) out on the island. The hero and 6 crew stand at the war camp; barracks, rifle range, two supply tents and stables are built, the camp hall is upgraded, the chest holds 5000 ryo and the stores 2000 timber and 1500 stone, so every roster unit can be trained at once.

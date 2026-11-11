@@ -81,6 +81,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     Object.assign(horse, { x: hero.x, z: hero.z });
   }
   function dismount(hero, why = '') {
+    if (hero.cavalry) return;   // war cavalry never get off (sim/frontier/war.js, checkpoint 5)
     const horse = hero.ride?.kind === 'horse' && state.entities[hero.ride.horse];
     delete hero.ride; delete hero.mounted;
     if (!horse) return;
@@ -218,6 +219,12 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       if (horse.recall) continue;                      // on her way to the stable (sim/vehicle_garage.js moves her)
       if (rider) {
         if (rider.ride?.horse !== horse.id) { delete horse.rider; continue; }
+        if (horse.cavalry) {   // war cavalry fight from the saddle: no throw, no getting off; the horse just carries him
+          if (Math.hypot(rider.x - horse.x, rider.z - horse.z) > (R().moveStep ?? 0.12)) horse.wentAt = state.tick;
+          const going = horse.wentAt != null && state.tick - horse.wentAt <= 2;
+          Object.assign(horse, { x: rider.x, z: rider.z, dir: rider.dir ?? horse.dir, heading: rider.heading ?? horse.heading, anim: going ? 'run' : 'idle', place: rider.place });
+          continue;
+        }
         if (rider.place !== 'world' || rider.dead || rider.downed || rider.jailed) { dismount(rider); continue; }
         if (rider.hp < (rider.maxHp || 0) * (R().throwShare ?? 0.33)) { dismount(rider, rider.type === 'hero' ? 'Thrown from the saddle!' : ''); continue; }
         // crew get off to fight: hit, or told to attack (Tim 2026-11-07); the horse waits there

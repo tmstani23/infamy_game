@@ -238,6 +238,87 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   g.frontier.world.checkInvariants();
 }
 
+// ---- checkpoint 5: shared roster, clan bonuses, cavalry ----------------------------------------------
+{
+  const U = W.units, types = options().units.types;
+  const cmd = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.findLast(r => r.action === c.action); };
+  rec.camp.chest = 20000; Object.assign(rec.camp.stock, { timber: 5000, stone: 5000 });
+  const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
+  const spotFor = type => { for (const d of [35, 55, 75, 95, 115]) for (let a = 0; a < 24; a++) { const r = war.campCheck(rec.id, type, { x: hall.x + Math.cos(a * Math.PI / 12) * d, z: hall.z + Math.sin(a * Math.PI / 12) * d }); if (r.ok) return r.point; } return null; };
+  // every roster unit is trained somewhere, and war-only types are never for hire in the city
+  for (const [id, u] of Object.entries(U)) if (id !== '_note') {
+    assert.ok(u.at?.length && u.ryo > 0 && u.trainTicks > 0, `${id} has a building, ryo and train time`);
+    for (const fct of ['yakuza', 'kuroda', 'shinobi']) {
+      const t = typeof u.type === 'string' ? u.type : u.type[fct];
+      assert.ok(types[t], `${id}: ${t} is a units.json type`);
+      assert.ok(u.model?.[fct], `${id} has a ${fct} body`);
+      if (types[t].war) assert.ok(!types[t].price && g.clans.hirePrice('player', t) == null, `${t} is war-only`);
+    }
+  }
+  assert.deepEqual(war.trainsAt('barracks').sort(), ['brute', 'enforcer', 'grunt'], 'enforcers train at the barracks (Tim 2026-11-11)');
+  assert.deepEqual(war.trainsAt('rifle_range').sort(), ['archer', 'rifleman']);
+  assert.deepEqual(war.trainsAt('stable').sort(), ['mounted_pikeman', 'sword_rider']);
+  // archers fire faster at shorter range, riflemen slower, harder, farther; similar damage per second
+  { const a = types.army_archer, r = types.army_rifleman, dps = t => t.damage / t.attackSpeed;
+    assert.ok(a.attackSpeed < r.attackSpeed && a.attackRange < r.attackRange && a.damage < r.damage && !a.projectile.hamstring && !r.rifle);
+    assert.ok(Math.abs(dps(a) - dps(r)) / dps(a) < 0.25, 'similar damage per second'); }
+  // clan bonuses on cost
+  const clan = g.state.clans.player, was = clan.faction;
+  clan.faction = 'kuroda'; assert.equal(war.ryoOf('player', 'rifleman'), Math.round(U.rifleman.ryo * W.clanBonus.kuroda.rifleman.ryo), 'Kuroda riflemen cost less');
+  clan.faction = 'shinobi'; assert.equal(war.ryoOf('player', 'archer'), Math.round(U.archer.ryo * W.clanBonus.shinobi.archer.ryo), 'Shinobi archers cost less');
+  clan.faction = was;
+  // build a rifle range and stables, then train one of everything
+  const built = type => { const p = spotFor(type); assert.ok(p, `room for a ${type}`); const r = cmd({ action: 'campPlace', war: rec.id, kind: type, ...p }); assert.ok(r?.ok, r?.reason);
+    const b = rec.camp.buildings.at(-1); for (let i = 0; i < 12000 && b.stage !== 'built'; i++) g.step([]); assert.equal(b.stage, 'built', `${type} built`); return b; };
+  const range = built('rifle_range'), stable = built('stable'), barracks = rec.camp.buildings.find(b => b.type === 'barracks' && b.stage === 'built');
+  const before = new Set(Object.keys(g.state.entities));
+  const chest0 = rec.camp.chest;
+  for (const [b, unit] of [[barracks, 'brute'], [barracks, 'enforcer'], [range, 'archer'], [range, 'rifleman'], [stable, 'sword_rider'], [stable, 'mounted_pikeman']]) {
+    const r = cmd({ action: 'campTrain', war: rec.id, building: b.id, unit, count: 1 }); assert.ok(r?.ok, `${unit}: ${r?.reason}`);
+  }
+  assert.equal(rec.camp.chest, chest0 - ['brute', 'enforcer', 'archer', 'rifleman', 'sword_rider', 'mounted_pikeman'].reduce((n, u) => n + war.ryoOf('player', u), 0), 'paid with clan prices');
+  { const r = cmd({ action: 'campTrain', war: rec.id, building: range.id, unit: 'grunt', count: 1 }); assert.ok(r && !r.ok && /does not train/.test(r.reason), 'a building trains only its own units'); }
+  for (let i = 0; i < 2000 && rec.camp.buildings.some(b => b.queue?.length); i++) g.step([]);
+  const fresh = Object.values(g.state.entities).filter(e => !before.has(e.id) && e.warTroop === rec.id);
+  const by = unit => fresh.find(e => e.warUnit === unit && e.type !== 'horse');
+  for (const unit of ['brute', 'enforcer', 'archer', 'rifleman', 'sword_rider', 'mounted_pikeman']) assert.ok(by(unit), `${unit} trained`);
+  assert.equal(by('enforcer').model, U.enforcer.model.yakuza, 'the clan body');
+  assert.equal(by('enforcer').maxHp, Math.round(types.war_enforcer.hp * W.clanBonus.yakuza.enforcer.hp), 'Yakuza melee are tougher');
+  assert.ok(!by('enforcer').taunt && !types.war_enforcer.taunt, 'no taunt in war');
+  assert.equal(war.troopView(rec.id).troops, 8, 'two grunts plus six; horses are not troops');
+  // cavalry: on the horse from the start, and never get off
+  const rider = by('sword_rider'), horse = g.state.entities[rider.ride?.horse];
+  assert.ok(rider.mounted && rider.cavalry && horse?.type === 'horse' && horse.rider === rider.id && horse.cavalry, 'cavalry spawn mounted');
+  assert.ok(g.stats.effective(rider).run > types.sword_rider.run * 1.5, 'cavalry ride fast');
+  g.mounts.dismount(rider);
+  assert.ok(rider.mounted, 'cavalry cannot be told to get off');
+  { // save and load keep the cavalry on their horses and the clan bonuses on the troops
+    const g2 = createGame(options());
+    setupMatch(g2, { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 5000 } });
+    loadSave(g2, JSON.parse(JSON.stringify(makeSave(g))));
+    const r2 = g2.state.entities[rider.id], h2 = g2.state.entities[horse.id];
+    assert.ok(r2?.mounted && r2.cavalry && r2.ride?.horse === horse.id && h2?.rider === rider.id && h2.cavalry, 'cavalry survive save/load');
+    assert.equal(g2.state.entities[by('enforcer').id]?.maxHp, by('enforcer').maxHp, 'bonus health survives save/load');
+    for (let i = 0; i < 25; i++) g2.step([]);
+    assert.ok(g2.state.entities[rider.id]?.mounted && g2.state.entities[horse.id], 'still riding after load');
+  }
+  const foe = g.state.entities[g.spawn('swordsman', 'swordsman', rider.x + 3, rider.z, { owner: rival, place: 'world', area: 'world', order: { kind: 'stop' } })];
+  const foeHp = foe.hp;
+  rider.hp = rider.maxHp * 0.2;   // below the throw share
+  rider.order = { kind: 'attack', target: foe.id };
+  for (let i = 0; i < 80; i++) g.step([]);
+  assert.ok(rider.mounted && g.state.entities[horse.id], 'still in the saddle after attacking, being hit and dropping low');
+  assert.ok(foe.dead || !g.state.entities[foe.id] || foe.hp < foeHp, 'cavalry fight from the saddle');
+  // rider and horse fall together
+  rider.dead = true;
+  for (let i = 0; i < 6; i++) g.step([]);
+  assert.ok(!g.state.entities[horse.id], 'the horse goes with her fallen rider');
+  // tidy: remove the new troops so the stand-in test below sees the old field
+  for (const e of fresh) delete g.state.entities[e.id];
+  if (g.state.entities[foe.id]) delete g.state.entities[foe.id];
+  g.frontier.world.checkInvariants();
+}
+
 // ---- checkpoint 4: stand-in defender and the dev war command ----------------------------------------
 {
   const S = W.standIn;

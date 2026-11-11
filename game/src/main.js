@@ -645,16 +645,6 @@ async function start() {
       clearTimeout(foldTimer); foldTimer = setTimeout(() => { foldBtn?.remove(); folded.clear(); }, 8000);
     };
     if (DEV) window.infamy.blockRoad = (road = 'r1', st = 'blocked') => pending.push({ id: heroId, type: 'frontier', action: 'devRoadState', road, state: st });   // try the F4.4c alerts
-    // F6 war checkpoint 4 (dev builds): infamy.startWar() starts a war on the nearest rival town you can see with you as the
-    // attacker (camp stocked from data war.dev); infamy.startWar(null, 'defend') puts a rival clan on your nearest town;
-    // a town id picks the town. infamy.endWar() ends your first war (or the war id you give).
-    if (DEV) window.infamy.startWar = (town = null, side = 'attack') => {
-      const h = game.state.entities[heroId], me = h?.owner, list = Object.values(game.state.frontier?.settlements || {}).filter(t => !t.capital && Number.isFinite(t.x) && (side === 'defend' ? t.owner === me : t.owner !== me && t.owner != null));
-      const t = town ? game.state.frontier?.settlements?.[town] : list.sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z))[0];
-      if (!t) return 'No town found';
-      pending.push({ id: heroId, type: 'frontier', action: 'devStartWar', town: t.id, side }); return `Starting a war on ${t.name}`;
-    };
-    if (DEV) window.infamy.endWar = (war = null) => { const me = game.state.entities[heroId]?.owner, w = war || Object.values(game.state.frontier?.wars?.list || {}).find(x => x.attacker === me || x.defender === me)?.id; if (!w) return 'No war'; pending.push({ id: heroId, type: 'frontier', action: 'devEndWar', war: w }); return `Ending ${w}`; };
     if (DEV) window.infamy.frontierReport = () => { const text = frontierReport(game.state.frontier); console.log(text); return text; };
   }
   $('loading').remove();

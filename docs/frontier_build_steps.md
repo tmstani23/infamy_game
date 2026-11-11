@@ -2435,7 +2435,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
 2. Banner placement rules and the starting camp.
 3. Camp workers, gathering and drop-off; war chest and its feeds; HUD badge by location.
 4. Camp buildings, the camp hall upgrade, training queues and supply cap. A simple stand-in defender (trains grunts, defends) and a dev command to start a war from either side, replaced later by the bot general.
-5. Shared roster and clan bonuses in data; cavalry rule. A Node speed benchmark (two wars at full caps).
+5. Shared roster and clan bonuses in data; cavalry rule. A Node speed benchmark (two wars at full caps). **Built 2026-11-11:** roster in `frontier.json` `war.units` (ryo, trainTicks, at, type and model per clan): barracks grunt, brute, enforcer; rifle range archer, rifleman; stables sword rider, mounted pikeman (`cavalry: true`). War-only units.json types without a price (never in city hire menus): war_enforcer (no taunt), army_archer (plain arrow), army_rifleman (plain shot), sword_rider, mounted_pikeman. `war.clanBonus` multiplies ryo, trainTicks, hp and damage per clan and unit. Cavalry spawn on a horse (`war.cavalry` speed and horse per clan), never get off, fight from the saddle, and the horse is removed when its rider falls. Bodies are stand-ins until the army kit and cavalry art pass. Benchmark `tools/bench_war.mjs`.
 5b. Collisions: solid zone buildings, footprint trim, loose spread, unit weight.
 6. Structure health, breaches, ruins, torching, watchtower fire, town hall shelter.
 7. Clan specials, smart casting, war stealth and detection.
