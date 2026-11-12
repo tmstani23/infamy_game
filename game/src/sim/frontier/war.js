@@ -299,14 +299,14 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     }
   }
   // Why a camp building cannot go at x, z, or null
-  function placeWhy(war, type, x, z) {
+  function placeWhy(war, type, x, z, opts = {}) {
     const def = BD()[type], camp = war?.camp;
     if (!war || !camp) return 'No such war camp';
     if (!def || type === 'camp_hall' || !def.cost) return 'Not a camp building';
     if (!Number.isFinite(x) || !Number.isFinite(z)) return 'Choose a spot';
     const need = missing(camp, type);
     if (need.length) return `Needs ${need.join(' and ')}`;
-    if (def.max && camp.buildings.filter(b => b.type === type).length >= def.max) return `A camp has at most ${def.max} ${nice(type)}`;
+    if (def.max && camp.buildings.filter(b => b.type === type).length + (opts.more || 0) >= def.max) return `A camp has at most ${def.max} ${nice(type)}`;
     const t = town(war.town), r = radiusOf(type), p = { x, z };
     if (!t) return 'No such town';
     if (dist(p, t) + r > W.circleRadius) return 'Stay inside the war circle';
@@ -315,17 +315,59 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (dist(p, s) - r <= ringRadius(s, data)) return `Inside ${s.name}'s town ring`;
     }
     const chain = W.chainDistance ?? 120;
-    if (!camp.buildings.some(b => dist(b, p) <= chain)) return `Place it within ${chain} of another camp building`;
-    for (const w of active()) for (const b of w.camp?.buildings || [])
-      if (dist(b, p) < r + radiusOf(b.type)) return w === war ? `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
+    if (!opts.chained && !camp.buildings.some(b => dist(b, p) <= chain)) return `Place it within ${chain} of another camp building`;
+    for (const w of active()) for (const b of w.camp?.buildings || []) {
+      if (opts.replace === b) continue;                                   // a gate takes the place of this palisade piece
+      const gap = def.line && BD()[b.type]?.line && w === war ? (opts.step ?? Math.min(r, radiusOf(b.type))) * 0.9 : r + radiusOf(b.type);   // palisade pieces stand side by side
+      if (dist(b, p) < gap) return w === war ? `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
+    }
     const k = r * 0.7;
     for (const [dx, dz] of [[0, 0], [k, 0], [-k, 0], [0, k], [0, -k]]) if (!groundOk(x + dx, z + dz)) return 'This ground cannot be built on';
     if (resourceIndex && coversResources({ x, z, grid: { n: 1, cell: r * 2 } }, [0], resourceIndex, 1)) return 'It would cover a resource area';
-    return canPay(camp, def.cost);
+    return opts.free ? null : canPay(camp, def.cost);
+  }
+  // ---- palisade and gate (checkpoint 6-6) ------------------------------------------------------------------
+  // A palisade is placed as a line: pieces every buildings.palisade.length from a to b, each a camp building
+  // { type: 'palisade', rot: the line's angle } built by the camp workers like any site. Paid at once for the whole
+  // run. A gate is one piece: placed on a palisade piece it takes its place and its angle; elsewhere it stands alone.
+  // Read-only: { ok, reason, points: [{ x, z }], rot, cost }
+  function campLineCheck(warId, a, b) {
+    const war = byId(warId), def = BD().palisade, camp = war?.camp;
+    if (!camp || !def?.line) return { ok: false, reason: 'No such war camp', points: [] };
+    if (![a?.x, a?.z, b?.x, b?.z].every(Number.isFinite)) return { ok: false, reason: 'Choose a start and an end', points: [] };
+    const L = def.length || 5, len = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.round(len / L) + 1), rot = Math.round(Math.atan2(b.z - a.z, b.x - a.x) * 1000) / 1000;
+    const most = def.lineMax ?? 40;
+    if (n > most) return { ok: false, reason: `At most ${most} pieces in one run`, points: [], rot };
+    const points = [];
+    for (let k = 0; k < n; k++) { const t = n === 1 ? 0 : k / (n - 1); points.push({ x: Math.round((a.x + (b.x - a.x) * t) * 10) / 10, z: Math.round((a.z + (b.z - a.z) * t) * 10) / 10 }); }
+    const cost = Object.fromEntries(Object.entries(def.cost || {}).map(([r, v]) => [r, v * n]));
+    const chain = W.chainDistance ?? 120;
+    if (!points.some(p => camp.buildings.some(c => dist(c, p) <= chain))) return { ok: false, reason: `Start within ${chain} of another camp building`, points, rot, cost };
+    for (let k = 0; k < n; k++) { const why = placeWhy(war, 'palisade', points[k].x, points[k].z, { chained: true, free: true, more: k, step: n > 1 ? len / (n - 1) : L }); if (why) return { ok: false, reason: why, points, rot, cost, bad: k }; }
+    const pay = canPay(camp, cost);
+    return { ok: !pay, reason: pay || '', points, rot, cost };
+  }
+  function campLine(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const r = campLineCheck(c.war, { x: c.x0, z: c.z0 }, { x: c.x1, z: c.z1 });
+    if (!r.ok) return r;
+    pay(war.camp, r.cost);
+    for (const p of r.points) war.camp.buildings.push({ id: `${war.id}:palisade${f().nextId++}`, type: 'palisade', stage: 'site', x: p.x, z: p.z, rot: r.rot, progress: 0, need: BD().palisade.buildTicks || 1 });
+    return { ok: true };
+  }
+  // the palisade piece a gate at this point would replace, or null
+  function gateSpot(war, x, z) {
+    const L = (BD().palisade?.length || 5) * 0.75;
+    return (war?.camp?.buildings || []).filter(b => b.type === 'palisade' && Math.hypot(b.x - x, b.z - z) <= L).sort((p, q) => Math.hypot(p.x - x, p.z - z) - Math.hypot(q.x - x, q.z - z) || (p.id < q.id ? -1 : 1))[0] || null;
   }
   // Read-only for the UI, bots and tests: { ok, reason, point }
   function campCheck(warId, type, point) {
     const war = byId(warId), p = point && { x: Math.round(point.x), z: Math.round(point.z) };
+    if (type === 'palisade') return { ok: false, reason: 'A palisade is placed as a line', point: p };
+    // a gate on a palisade piece takes its place
+    const on = type === 'gate' && p ? gateSpot(war, p.x, p.z) : null;
+    if (on) { const reason = placeWhy(war, type, on.x, on.z, { replace: on, chained: true }); return { ok: !reason, reason, point: { x: on.x, z: on.z }, replaces: on.id, rot: on.rot || 0 }; }
     const reason = placeWhy(war, type, p?.x, p?.z);
     return { ok: !reason, reason, point: p };
   }
@@ -347,7 +389,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!r.ok) return r;
     const def = BD()[c.kind];
     pay(war.camp, def.cost);
-    war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, progress: 0, need: def.buildTicks || 1 });
+    if (r.replaces) war.camp.buildings.splice(war.camp.buildings.findIndex(b => b.id === r.replaces), 1);
+    war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, ...(r.rot !== undefined ? { rot: r.rot } : {}), progress: 0, need: def.buildTicks || 1 });
     return { ok: true };
   }
   // Cancel a site: full refund while no work is done, nothing back after
@@ -520,8 +563,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
-    if (['campPlace', 'campCancel', 'campUpgrade', 'campTrain', 'campUntrain'].includes(c.action)) {
-      const r = { campPlace, campCancel, campUpgrade, campTrain, campUntrain }[c.action](e, c);
+    if (['campPlace', 'campLine', 'campCancel', 'campUpgrade', 'campTrain', 'campUntrain'].includes(c.action)) {
+      const r = { campPlace, campLine, campCancel, campUpgrade, campTrain, campUntrain }[c.action](e, c);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
@@ -538,5 +581,5 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, get data() { return W; } };
+  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, get data() { return W; } };
 }

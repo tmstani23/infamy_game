@@ -779,7 +779,7 @@ export function createGame(options) {
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
   const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
-  frontier?.attach({areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
+  frontier?.attach({moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -891,6 +891,7 @@ export function createGame(options) {
     rally.tick();
     rally.cleanBuffs();
     const lastNews = state.news || [];
+    delete state.structureHits;   // this tick's hits on war structures (sim/frontier/structures.js)
     state.hits = [];      // this tick's hits and ability uses, for the renderer
     state.dodges = [];
     state.casts = [];
@@ -1007,6 +1008,8 @@ export function createGame(options) {
       if (c.type === 'item') {if(c.action==='claim')itemServices.claim(e);else itemServices.command(e,c);}
       if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business, c.patient, c.prisoner);
       if (c.type === 'business' && businesses) businesses.command(e, c);
+      // war checkpoint 6: right-click on an enemy structure of a war (sim/frontier/structures.js)
+      if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero' && !e.dead && !e.downed && !e.jailed) { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } if (!frontier?.structures?.order(e, c) && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
       if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
@@ -1099,6 +1102,8 @@ export function createGame(options) {
         if (e.type === 'hero' && e.order?.garrisonGo && !e.order.arrived) { delete e.swing; delete e.execute; if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.execute && executeStep(e, unit)) continue;
+        // the hero sent at an enemy structure of a war (checkpoint 6): he walks over and hits it until it falls or WASD takes over
+        if (e.type === 'hero' && e.order?.kind === 'raze') { if (frontier?.structures?.step(e, unit)) continue; delete e.order; }
         if (swingStep(e, unit)) continue;
         // a locked target (Ctrl + right-click): no chasing (Tim 2026-10-17), the hero hits it
         // whenever it is in reach and the player keeps him there with WASD; the lock drops when
@@ -1117,7 +1122,7 @@ export function createGame(options) {
       delete e.swing;
       delete e.execute;
       delete e.lootTarget;
-      if (e.order?.garrisonGo) delete e.order;   // WASD takes back control from the walk to the stockade
+      if (e.order?.garrisonGo || e.order?.kind === 'raze') delete e.order;   // WASD takes back control from the walk to the stockade or to a structure
       e.anim = c.walk ? 'walk' : 'run';
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns
         const kind = e.ride.kind === 'horse' ? 'mount' : state.entities[e.aboard]?.type || 'omnibus';
@@ -1258,7 +1263,8 @@ export function createGame(options) {
   function tryMove(e, r, dx, dz) {
     if (stunned(e, state.tick)) return;
     r *= roomBodyScales[e.place] || 1;
-    if(e.place==='world'&&areas){const [x,z]=slideWorld(e.x,e.z,r,dx,dz,areas.blockersNear,options.worldChunks?.islandArt?.cornerSlip??.6);if(deployment.canOccupy(e,x,z)){e.x=x;e.z=z;}return;}
+    if(e.place==='world'&&areas){const gates=frontier?.structures?.gateBlockers(e);   // war checkpoint 6: an enemy gate is solid for the other side of its war
+      const [x,z]=slideWorld(e.x,e.z,r,dx,dz,gates?(...b)=>[...areas.blockersNear(...b),...gates(...b)]:areas.blockersNear,options.worldChunks?.islandArt?.cornerSlip??.6);if(deployment.canOccupy(e,x,z)){e.x=x;e.z=z;}return;}
     let x = e.x + dx, z = e.z + dz;
     const near = e.place === 'world' && areas ? areas.blockersNear : blockersNear;
     for (const b of near(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
@@ -1274,9 +1280,9 @@ export function createGame(options) {
 
   const heroAbilities = createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild });
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
-  const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
-  const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
-  const combat = createCombat({ decide, shelter: (t, d) => omnibus?.shelter(t, d) || (frontier?.garrison?.shelter(t, d) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const crewOrders = createCrewOrders({ gateNav: e => frontier?.structures?.gateNav(e) || null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
+  const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
+  const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
   // Closure state that lives outside game.state. Values are copied by the save encoder.

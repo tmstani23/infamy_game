@@ -4,7 +4,7 @@ import { allowCharmAttack } from './charm_rules.js';
 import { dirIndex, blockOffset } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules = null, sees, state, stats, tryMove }) {
+export function createCrewOrders({ gateNav = () => null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules = null, sees, state, stats, tryMove }) {
   // Places around a hero for followers: rings of 6, 12 and 18 (enough for 36 crew)
   function followOffset(k) {
     for (const [r, n] of [[1.5, 6], [2.7, 12], [3.9, 18]]) {
@@ -125,7 +125,7 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     if (grouped) {
       const cx = crew.reduce((n, u) => n + u.x, 0) / crew.length, cz = crew.reduce((n, u) => n + u.z, 0) / crew.length;
       const lead = crew.filter(u => u.place === 'world').sort((a, b) => Math.hypot(a.x - cx, a.z - cz) - Math.hypot(b.x - cx, b.z - cz) || (a.id < b.id ? -1 : 1))[0];
-      const pts = lead && grouped.findPath(lead.x, lead.z, c.x, c.z);
+      const pts = lead && (gateNav(lead) || grouped).findPath(lead.x, lead.z, c.x, c.z);
       if (pts?.length) { shared = pts; groupLegs.set(groupId, [{ tick: state.tick, from: [lead.x, lead.z], pts }]); if (groupLegs.size > 64) groupLegs.delete(groupLegs.keys().next().value); }
     }
     crew.forEach((u, k) => {
@@ -240,7 +240,7 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
   // Walk one tick toward (gx, gz) along a street path; false when there is no way
   function moveTo(e, unit, gx, gz, walk) {
     if (stunned(e, state.tick)) { e.anim = 'idle'; return true; }
-    const grid = deployment.navFor(e) || navOf(e.place);
+    const grid = deployment.navFor(e) || gateNav(e) || navOf(e.place);   // gateNav: enemy gates are closed ground for the other side of a war (checkpoint 6)
     if (!grid) paths[e.id] = { pts: [[gx, gz]], gx, gz };   // a place with no walk grid: walk straight
     let p = paths[e.id];
     // replanAt (island paths, sim/areas.js): only the first part of a long trip is walked in detail;

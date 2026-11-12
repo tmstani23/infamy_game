@@ -145,6 +145,18 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp')) return;
     const p = plotAt(e.clientX, e.clientY);
+    // war checkpoint 6: right-click an enemy building of a war you are in (the town you attack, or the camp attacking
+    // you): the selected crew walk over and attack it; with the hero selected or nothing selected he goes too
+    if (p?.kind === 'building' && (p.foreign || p.camp)) {
+      const w = p.camp ? game.state.frontier?.wars?.list?.[p.camp] : Object.values(game.state.frontier?.wars?.list || {}).find(x => x.town === p.town);
+      const s = p.camp ? null : game.state.frontier?.settlements?.[p.town], b = (p.camp ? w?.camp?.buildings : s?.buildings)?.find(x => x.id === p.id);
+      if (w && (p.camp ? w.defender === owner() : w.attacker === owner()) && b?.stage === 'built' && p.type !== 'war_banner') {
+        e.stopImmediatePropagation(); e.preventDefault(); flash(p);
+        const sel = selected(), ents = game.state.entities || {};
+        send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, slack: 6, units: sel.filter(id => id !== heroId && ents[id]?.type !== 'hero'), hero: !sel.length || sel.includes(heroId) });
+      }
+      return;
+    }
     if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
     e.stopImmediatePropagation(); e.preventDefault();
     flash(p);

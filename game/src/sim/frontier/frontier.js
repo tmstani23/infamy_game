@@ -24,6 +24,7 @@ import { createWorkers, ensureWorkers } from './workers.js';
 import { createArrivals } from './arrivals.js';
 import { createTownsfolk } from './townsfolk.js';
 import { createWar } from './war.js';
+import { createStructures } from './structures.js';
 
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null, dayTicks = 12000 }) {
   let world = createFrontierWorld({ state, data });
@@ -60,7 +61,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
   const commandHooks = {};   // .rail once it exists (a removed station tears up its lines)
   const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers, hooks: commandHooks });
-  const garrison = createGarrison({ state, data, world: live });
+  const garrison = createGarrison({ state, data, world: live, atWar: (clan, s) => { const w = war.warOn(s.id); return !!w && w.attacker === clan; } });
   const infirmary = createInfirmary({ state, data });   // Tim 2026-11-06: heals nearby units, revives the island's fallen
   const stable = createStable({ state, data, world: live, capitalYard });   // capitalYard: the island side of the city gate (the capital stable)   // Tim 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
@@ -74,6 +75,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
   const war = createWar({ state, data, world: live, worldData, resourceIndex: workers.index, dayTicks });   // F6 checkpoint 1: war records, planting the banner declares war
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
+  const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   // collision checkpoint 5b: a unit standing where a house grows or a war camp building is finished steps to the
@@ -121,6 +123,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     rail.tick();                   // the rail gang at each railhead
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     war.tick();                    // F6: camp training queues
+    structures.tick();             // F6: fires on torched structures
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -136,6 +139,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, attach };
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);structures.attach(services);}
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, structures, attach };
 }

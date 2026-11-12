@@ -42,6 +42,7 @@ import {withWorkerPresentations,workerLocation} from './worker_details.js';
 import { drawableTowns, drawableWarSites, townSignature, townProps } from './town_props.js';
 import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
+import { createStructureBars } from './structure_bars.js';
 import { createGarrisonCard } from './garrison_card.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
@@ -618,6 +619,7 @@ async function start() {
       openCamp: id => warCamp.show(id),
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
     evacuateGarrison = () => townHover.evacuateAll();
+    createStructureBars({ game, view, heroId, root: $('structbars') });   // war checkpoint 6: health bars over damaged structures
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
     // Tim 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road

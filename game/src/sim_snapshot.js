@@ -40,7 +40,7 @@ function campWorker(w, camp, workerPosition) {
   const summary = trip && Object.fromEntries(Object.entries(trip).filter(([k]) => !['outPath', 'backPath'].includes(k)));
   return { ...record, ...(trip ? { trip: summary } : {}), ...(workerPosition ? { location: workerPosition(w) || w.departure || [camp.x, camp.z] } : {}) };
 }
-export function frontierFor(f, clan, discovery, recent, spotIndex, workerPosition, scouted = null) {
+export function frontierFor(f, clan, discovery, recent, spotIndex, workerPosition, scouted = null, structures = null) {
   const settlements = {};
   for (const [id, s] of Object.entries(f.settlements || {})) {
     if (s.owner === clan) settlements[id] = {...s,workers:(s.workers || []).map(w=>{
@@ -54,7 +54,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
       // F6 war: a rival town on discovered ground is drawn in the world and can be attacked, so it carries what
       // drawing and the banner rules need (position, tier, grid, buildings), never stock, workers or orders
       if (!s.capital && Number.isFinite(s.x)) Object.assign(settlements[id], { x: s.x, z: s.z, tier: s.tier || 1, grid: s.grid,
-        buildings: (s.buildings || []).map(({ id, type, cell, cells, stage, rot }) => ({ id, type, cell, cells, stage, rot })),
+        buildings: (s.buildings || []).map(({ id, type, cell, cells, stage, rot }) => ({ id, type, cell, cells, stage, rot })), ...(s.breaches ? { breaches: s.breaches } : {}),
         projects: (s.projects || []).map(({ id, type, cell, cells, phase, paid, progress, need }) => ({ id, type, cell, cells, phase, paid, progress, need })),
         zones: Object.fromEntries(Object.entries(s.zones || {}).map(([k, z]) => [k, { abandoned: !!z.abandoned }])), tierUpgrade: s.tierUpgrade || null });
       // walked up to it (Tim 2026-11-10): one of your units near the town sees everything there, stores and people included
@@ -68,7 +68,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   // F6 war: declared wars are public; a camp's chest and stores only to its own side
   const wars = f.wars && { cooldown: f.wars.cooldown || {}, list: Object.fromEntries(Object.entries(f.wars.list || {}).map(([id, w]) => [id,
     w.attacker === clan ? (w.camp ? { ...w, camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : w) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: (w.camp.buildings || []).map(({ queue, ...b }) => b) } }])) };
-  return { version: f.version, econTick: f.econTick, settlements, spots, ...(wars ? { wars } : {}),
+  return { version: f.version, econTick: f.econTick, settlements, spots, ...(wars ? { wars } : {}), ...(structures?.length ? { structures } : {}),   // structures: damaged or burning ones of this clan's wars (checkpoint 6)
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
     // rail shipments (S1-S4): this clan's orders
@@ -96,7 +96,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     if (st.influence) roots.influence = { [clan]: st.influence[clan] || null };   // C4: own Influence only
     if (st.lieutenants) roots.lieutenants = { [clan]: st.lieutenants[clan] || null };   // C3: own standing orders and log only
     if (st.frontier) {
-      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position, scoutedBy(game, clan)(st))); frontierAt = st.tick; }
+      if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position, scoutedBy(game, clan)(st), game.frontier?.structures?.viewFor(clan))); frontierAt = st.tick; }
       roots.frontier = frontierView;
       // Sleeping workers move every tick but the frontier view is 4 Hz: send just their positions each tick so
       // they glide on screen instead of stepping 4 times a second (Tim 2026-11-05 "morse code" workers).

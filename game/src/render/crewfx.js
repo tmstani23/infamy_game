@@ -51,7 +51,7 @@ export function createCrewFx({scene,spriteOf}){
     update(dt,state,heroId,viewPlace=null){
       const hero=viewPlace?{...state.entities[heroId],place:viewPlace}:state.entities[heroId],present=new Set();
       for(const p of state.projectiles||[]){
-        if(hero?.place!==p.place||!visible(p.a))continue;
+        if(hero?.place!==p.place||(!p.tower&&!visible(p.a)))continue;   // tower: a watchtower's arrow has no unit behind it (war checkpoint 6)
         const key=`${p.a}:${p.at}`;present.add(key);let v=shots.get(key);if(!v){v=shot(p);shots.set(key,v);}
         v.elapsed=Math.max(v.elapsed+dt*20,state.tick-p.at-1);
         const u=Math.min(1,v.elapsed/(p.until-p.at)),dx=p.tx-p.x,dz=p.tz-p.z;

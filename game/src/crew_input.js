@@ -256,6 +256,10 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // also the hideout your Shinobi have a Steal job on: the crew climb in by its back window (Tim 2026-10-21)
       if (biz && biz.room && (biz.owner === hero()?.owner || game.contracts?.mayClimb(hero(), biz.room))) { if (mine().length) view.flashBuilding(i); order({ units: mine(), kind: 'enter', business: biz.id }); return; }
       const p = view.screenToGround(e.clientX, e.clientY);
+      // at war out on the island (checkpoint 6): a right-click on an enemy wall, gate or house sends them to attack it; the sim
+      // looks under the point and falls back to the plain move when nothing is there
+      const atWar = p && commandPlace() === 'world' && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === hero()?.owner || w.defender === hero()?.owner);
+      if (atWar) { send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, units: mine().filter(id => game.state.entities[id]?.type !== 'hero'), hero: false, fallback: e.ctrlKey ? 'station' : 'move', place: 'world' }); return; }
       if (p) order({ units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }
   });

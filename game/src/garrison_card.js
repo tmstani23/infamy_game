@@ -37,7 +37,7 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
 
   // everyone inside the town's garrison: entities plus resting workers with no entity right now
   function members(s) {
-    const out = Object.values(game.state.entities).filter(e => e.garrison?.town === s.id).map(e => ({ id: e.id, e }));
+    const out = Object.values(game.state.entities).filter(e => e.garrison?.town === s.id && !e.garrison.hall).map(e => ({ id: e.id, e }));
     for (const w of s.workers || []) if (w.garrison && !game.state.entities[w.entity]) out.push({ id: 'w:' + w.id, rest: true });
     return out;
   }

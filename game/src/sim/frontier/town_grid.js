@@ -95,12 +95,29 @@ function campBoxesOf(camp,data) {
   const art=data?.townArt,boxes=[];
   for(const b of camp.buildings || []) {
     if(b.stage!=='built' || !Number.isFinite(b.x))continue;
+    if(b.type==='gate')continue;   // a gate stops only the other side of the war (sim/frontier/structures.js gateBlockers)
+    if(b.type==='palisade'){boxes.push(lineBox(b,data));continue;}
     const fit=art?._placedFootprint?.[b.type];
     for(const o of artBoxes(data,art?.[b.type],fit?11*fit:0) || [])boxes.push({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ});
   }
   blockerVersion++;
   campCache.set(camp,{data,key:campKey(camp),epoch:blockerEpoch,boxes});
   return boxes;
+}
+// War structures (checkpoint 6): the solid boxes of one town cell map and of one camp building
+export function townCellBoxes(s,data){return cellBoxesOf(s,townArtData(data));}
+// a palisade or gate piece (6-6): one box along its line (rot = the line's angle), as thick as war.buildings.<type>.thickness
+const LINE_TYPES=new Set(['palisade','gate']);
+function lineBox(b,data) {
+  const d=data?.war?.buildings?.[b.type] || {},half=(d.length || 5)/2+0.2,thick=(d.thickness || 1.2)/2,c=Math.abs(Math.cos(b.rot || 0)),s=Math.abs(Math.sin(b.rot || 0));
+  const hx=c*half+s*thick,hz=s*half+c*thick;
+  return {minX:b.x-hx,maxX:b.x+hx,minZ:b.z-hz,maxZ:b.z+hz};
+}
+export function campBuildingBoxes(b,data) {
+  data=townArtData(data);
+  if(LINE_TYPES.has(b.type))return [lineBox(b,data)];
+  const art=data?.townArt,fit=art?._placedFootprint?.[b.type];
+  return (artBoxes(data,art?.[b.type],fit?11*fit:0) || []).map(o=>({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ}));
 }
 // what blocks in the war camps, as a string (worker path cache key, like townBlockSignature)
 export function campBlockSignature(frontier){return campsOf(frontier).map(w=>`${w.id}:${campKey(w.camp)}`).join('|');}

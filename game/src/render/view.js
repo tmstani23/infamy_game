@@ -16,6 +16,7 @@ import { createBanners } from './banners.js';
 import { placePiece } from '../sim/geometry.js';
 import { entityName } from '../selection_panel.js';
 import { createHQFire } from './hq_fire.js';
+import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
@@ -450,6 +451,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     // clan banners at owned businesses; a gold burst where one just changed hands
     for (const b of banners.update(state, time, state.entities[followId]?.owner, cameraPlace(state.entities[followId]))) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
+    structureFire.update(state, cameraPlace(state.entities[followId]));   // torched war structures (checkpoint 6)
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
@@ -489,6 +491,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // hit effects: damage numbers, trails, sparks, flash and lean, a little shake on kills near the hero
   const banners = createBanners({ scene });
   const hqFire = createHQFire({ scene, things, lights });
+  const structureFire = createStructureFire({ scene });
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });

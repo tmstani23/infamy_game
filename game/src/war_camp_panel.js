@@ -195,7 +195,21 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     for (const b of w.camp.buildings) ring(ctx, b.x, b.z, chain, 'rgba(224,184,90,.45)', 1.5, [8, 8]);
     if (!mouse) { hint.hidden = true; return; }
     const p = view.screenToGround(mouse.x, mouse.y); if (!p) { hint.hidden = true; return; }
-    const next = `${Math.round(p.x)},${Math.round(p.z)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}`;
+    const next = `${Math.round(p.x)},${Math.round(p.z)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}|${placing.from ? `${placing.from.x},${placing.from.z}` : ''}`;
+    // a palisade is a line (checkpoint 6-6): the first click sets the start, the second the end; every piece is shown
+    if (placing.kind === 'palisade') {
+      const a = placing.from || { x: Math.round(p.x), z: Math.round(p.z) }, b = { x: Math.round(p.x), z: Math.round(p.z) };
+      if (next !== key) { key = next; preview = war()?.campLineCheck(placing.war, a, b); }
+      const color = preview?.ok ? '#65ef88' : '#ff655f';
+      (preview?.points || []).forEach((q, k) => { const c = view.unitToScreen(q.x, q.z, 0); ctx.beginPath(); ctx.ellipse(c.x, c.y, 7, 4, 0, 0, Math.PI * 2); ctx.fillStyle = (preview.bad === k ? '#ff655f' : color) + '66'; ctx.fill(); ctx.strokeStyle = preview.bad === k ? '#ff655f' : color; ctx.lineWidth = 2; ctx.stroke(); });
+      if (placing.from) { const c0 = view.unitToScreen(a.x, a.z, 0), c1 = view.unitToScreen(b.x, b.z, 0); ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c1.x, c1.y); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]); }
+      const costText = Object.entries(preview?.cost || {}).map(([r, v]) => `${v} ${r}`).join(', ');
+      hint.hidden = false; hint.style.color = color; hint.style.borderColor = color;
+      hint.textContent = !placing.from ? (preview?.ok ? 'Palisade: left-click where the line starts. Right-click or Esc cancels.' : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`)
+        : preview?.ok ? `Palisade: ${preview.points.length} pieces, ${costText}. Left-click to build the line, Shift carries on from its end, right-click or Esc cancels.` : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`;
+      hint.style.left = `${Math.max(8, Math.min(innerWidth - 320, mouse.x + 18))}px`; hint.style.top = `${Math.max(8, Math.min(innerHeight - 100, mouse.y + 18))}px`;
+      return;
+    }
     if (next !== key) { key = next; preview = war()?.campCheck(placing.war, placing.kind, p); }
     const color = preview?.ok ? '#65ef88' : '#ff655f', r = W().buildings?.[placing.kind]?.radius ?? 8;
     const c0 = view.unitToScreen(p.x, p.z, 0), c1 = view.unitToScreen(p.x + r, p.z, 0), px = Math.max(8, Math.abs(c1.x - c0.x));
@@ -213,6 +227,15 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     if (e.button === 2) { cancelPlacing(); consume(e); return; }
     if (e.button !== 0) return;
     consume(e); mouse = { x: e.clientX, y: e.clientY }; key = ''; draw();
+    if (placing.kind === 'palisade') {
+      const p = view.screenToGround(e.clientX, e.clientY); if (!p) return;
+      const here = { x: Math.round(p.x), z: Math.round(p.z) };
+      if (!placing.from) { if (preview?.ok || preview?.points?.length) { placing.from = here; key = ''; draw(); } return; }
+      if (!preview?.ok) return;
+      send({ id: heroId, type: 'frontier', action: 'campLine', war: placing.war, x0: placing.from.x, z0: placing.from.z, x1: here.x, z1: here.z });
+      if (e.shiftKey) { placing.from = here; key = ''; } else cancelPlacing();
+      return;
+    }
     if (!preview?.ok) return;
     send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: placing.kind, x: preview.point.x, z: preview.point.z });
     if (!e.shiftKey) cancelPlacing();

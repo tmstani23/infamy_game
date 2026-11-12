@@ -157,3 +157,22 @@ try {
 }
 assert.equal(JSON.stringify(f), before, 'all presentation queries leave simulation state unchanged');
 console.log('test_town_drawing: ok');
+
+// war checkpoint 6: ruins and breaches draw the ruin sheet art (assets/environment/ruined_buildings1.png)
+{
+  const R = art._ruin;
+  for (const n of [R.art, R.wall, R.gate, ...Object.values(R.byType)]) assert.ok(catalog.items[n] && cutouts[`buildings/${n}`] && existsSync(new URL(`../art/buildings/${n}.png`, import.meta.url)), n + ' is registered and cut');
+  const ruinTown = structuredClone(town);
+  const hall = ruinTown.buildings.find(b => b.type === 'town_hall'); hall.stage = 'ruined';
+  const wallCell = [...ruinTown.grid.use].findIndex(u => u === '.');
+  ruinTown.breaches = [{ cell: wallCell, was: 'w' }, { cell: wallCell + 1, was: 'g' }];
+  const props = townProps([ruinTown], art);
+  assert.equal(props.find(p => p.key === `${ruinTown.id}:${hall.id}:ruined`)?.art, R.byType.town_hall, 'a fallen town hall shows the burned hall');
+  assert.equal(props.find(p => p.key === `${ruinTown.id}:breach:${wallCell}`)?.art, R.wall, 'a wall gap shows the broken wall');
+  assert.equal(props.find(p => p.key === `${ruinTown.id}:breach:${wallCell + 1}`)?.art, R.gate, 'a gate gap shows the broken gate');
+  const camp = { id: 'w1', camp: 'w1', name: 'War camp', owner: 'player', x: 40, z: 40, grid: null, zones: {}, foreign: true, projects: [],
+    buildings: [{ id: 'p1', type: 'palisade', stage: 'ruined', off: [3, 0], rot: 0 }, { id: 'p2', type: 'palisade', stage: 'ruined', off: [0, 3], rot: Math.PI / 2 }, { id: 'wt', type: 'watchtower', stage: 'ruined', off: [6, 6] }, { id: 'ar', type: 'armory', stage: 'ruined', off: [9, 9] }] };
+  const cp = townProps([camp], art), at = id => cp.find(p => p.key === `w1:${id}:ruined`);
+  assert.equal(at('p1')?.art, R.byType.palisade); assert.notEqual(!!at('p1').flip, !!at('p2').flip, 'a broken palisade piece follows its line');
+  assert.equal(at('wt')?.art, R.byType.watchtower); assert.equal(at('ar')?.art, R.art, 'other buildings show the burned ruin');
+}

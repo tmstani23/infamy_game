@@ -9,7 +9,7 @@
 // createGarrison({ state, data, world }) -> { command, tick, members, capacity, shelter }
 import { cellToWorld, townBlockersIn } from './town_grid.js';
 
-export function createGarrison({ state, data, world }) {
+export function createGarrison({ state, data, world, atWar = () => false }) {
   const rules = () => data.buildings?.stockade?.garrison || null;
   const finished = (s, b) => b.type === 'stockade' && b.stage === 'built';
   const stockadeOf = s => (s.buildings || []).find(b => finished(s, b)) || null;
@@ -21,7 +21,7 @@ export function createGarrison({ state, data, world }) {
   const workerOf = (s, u) => u.worker ? s.workers?.find(w => w.id === u.worker) : null;
   // everyone inside: garrisoned entities plus sleeping garrisoned workers that have no entity right now
   const members = (s) => {
-    const out = Object.values(state.entities || {}).filter(e => e.garrison?.town === s.id);
+    const out = Object.values(state.entities || {}).filter(e => e.garrison?.town === s.id && !e.garrison.hall);
     for (const w of s.workers || []) if (w.garrison && !state.entities?.[w.entity]) out.push({ id: 'w:' + w.id, worker: w.id, sleeping: true });
     return out;
   };
@@ -88,19 +88,24 @@ export function createGarrison({ state, data, world }) {
   }
 
   // a hit on a sheltered unit: the stockade takes the damage; true when it was absorbed
-  function shelter(u, damage) {
+  function shelter(u, damage, by = null) {
     const g = u.garrison, s = g && world.settlement(g.town), b = s?.buildings?.find(x => x.id === g.building && finished(s, x));
+    if (g?.hall) return true;   // workers sheltering in the town hall during a war (sim/frontier/structures.js): the hall takes it, unharmed
     if (!b) return false;
     const max = rules()?.hp || 0;
     if (!max) return true;   // no building health set: the stockade cannot be broken
+    // a clan's hits reach the stockade only in a war on this town (checkpoint 6); bandits and the like as before
+    if (by && state.clans?.[by.owner] && !atWar(by.owner, s)) return true;
     b.hp = Math.max(0, (b.hp ?? max) - Math.max(0, damage || 0));
     b.hitAt = state.tick ?? 0;
     if (b.hp > 0) return true;
     // broken: ruined (the governor rebuilds it) and everyone inside piles out round it
     b.stage = 'ruined'; delete b.hp;
-    for (const m of members(s)) if (m.sleeping || m.garrison?.building === b.id) release(s, m, b);
+    breakOut(s, b);
     return true;
   }
+  // the stockade fell: everyone inside piles out round it
+  function breakOut(s, b) { for (const m of members(s)) if (m.sleeping || m.garrison?.building === b.id) release(s, m, b); }
 
   // every tick: garrisoned units stand at the stockade; a stockade that is gone lets them out
   function tick() {
@@ -118,7 +123,7 @@ export function createGarrison({ state, data, world }) {
       }
     }
     for (const u of Object.values(state.entities || {})) {
-      const g = u.garrison; if (!g) continue;
+      const g = u.garrison; if (!g || g.hall) continue;   // hall shelter is run by sim/frontier/structures.js
       const s = world.settlement(g.town), b = s?.buildings?.find(x => x.id === g.building && finished(s, x));
       if (!s || s.owner !== (u.owner ?? u.workerOwner) || !b) { delete u.garrison; const w = s && workerOf(s, u); if (w) { delete w.garrison; delete w.order; } continue; }
       if (u.dead || u.downed || u.jailed) { delete u.garrison; continue; }
@@ -127,5 +132,5 @@ export function createGarrison({ state, data, world }) {
       delete u.order; delete u.attackTarget;
     }
   }
-  return { command, tick, members, capacity, shelter };
+  return { command, tick, members, capacity, shelter, breakOut };
 }

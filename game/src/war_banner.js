@@ -4,6 +4,7 @@
 // the banner band drawn on the ground); anywhere else it is greyed with the reason on hover.
 // Also the red war coin above the ryo coin while a pack is carried, and the War declared splash.
 // No special characters in game text (Tim 2026-11-10); long text lives in hover titles.
+import { modeRules } from './sim/modes/index.js';
 const FLAG = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 2v20" stroke="#3a2614" stroke-width="2.4"/><path d="M5 2v20" stroke="#c9a46a" stroke-width="1.2"/>
   <path d="M6 3h12v12l-3-2-3 2-3-2-3 2z" fill="#b8372e" stroke="#2a0d0a" stroke-width="1"/><path d="M4 2h9" stroke="#3a2614" stroke-width="2"/></svg>`;
 const ICON = {
@@ -75,7 +76,7 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
   function mode() {
     const h = hero(), w = war();
     if (!w?.data || !h) return { kind: 'none', why: '' };
-    if (!game.state.match || game.state.match.mode !== 'campaign') return { kind: 'none', why: '' };
+    if (!modeRules(game.state).island) return { kind: 'none', why: '' };
     if (h.dead || h.downed) return { kind: 'off', why: 'Your hero is down' };
     const v = w.packView(h);
     if (v.ok) return { kind: 'pack', view: v };

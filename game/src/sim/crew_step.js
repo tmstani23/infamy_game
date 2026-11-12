@@ -3,7 +3,7 @@
 import { distractionStep } from './distraction.js';
 import { stunned } from './kuroda.js';
 import { DOOR_RADIUS } from './game.js';
-export function createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt }) {
+export function createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
   function crewStep(e, unit) {
     if(e.crewJob&&(e.dead||e.downed||e.jailed||e.deployment?.transfer||stunned(e,state.tick)))crewJobs.cancel(e);
     if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
@@ -76,6 +76,18 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
       e.anim = 'idle'; delete paths[e.id];
       return;
     }
+    // war checkpoint 6: on a raze order the unit walks to the structure and hits it (sim/frontier/structures.js);
+    // one that came from an attack-move drops it for any enemy unit that shows up
+    if (e.order?.kind === 'raze') {
+      const o = e.order;
+      if (o.from === 'attackmove') {
+        e.order = { kind: 'attackmove', x: o.ax, z: o.az };
+        const foe = crewTarget(e);
+        if (foe) { if (e.swing?.structure) delete e.swing; engage(e, unit, foe); return; }
+        e.order = o;
+      }
+      if (structures()?.step(e, unit)) return;
+    }
     if (e.execute && executeStep(e, unit)) return;
     if (swingStep(e, unit)) return;
     if (e.order?.kind === 'loot') {   // Ctrl + right-click on a body: walk there and take its ryo
@@ -87,6 +99,11 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
     const t = crewTarget(e);
     if (t) { engage(e, unit, t); return; }
     if (fight[e.id]) delete fight[e.id].target;
+    // attack-move with nobody to fight: go for an enemy structure of a war in reach (checkpoint 6)
+    if (e.order?.kind === 'attackmove' && e.place === 'world' && state.tick % 10 === 0) {
+      const st = structures()?.pick(e);
+      if (st) { e.order = { kind: 'raze', structure: st.key, x: st.x, z: st.z, from: 'attackmove', ax: e.order.x, az: e.order.z }; delete paths[e.id]; return; }
+    }
     if (botExecute(e)) return;
     const goal = crewGoal(e);
     const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;

@@ -94,6 +94,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if ((kind === 'road' || kind === 'gate') && cover.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', cover);
     if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
     if (cover.some(i => g.use[i] !== '.' || g.zone[i] !== '.')) return bad('occupied', cover);
+    // war checkpoint 6: a breach stays open while the war is on (no repairs during a war)
+    if (s.breaches?.length && Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id) && cover.some(i => s.breaches.some(b => b.cell === i))) return bad('breached: rebuild after the war', cover);
     if (kind !== 'road' && kind !== 'gate' && cover.some(i => s.railCells?.[i])) return bad('railway track', cover);   // roads may cross (Tim 2026-11-07)
     if(kind==='wall' || !LINES[kind]) {
       const reason=buildingSafety(s,cover,state,data.founding?.unitClearance);
@@ -121,6 +123,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
   function place(s, { kind, cells, by = 'p', rot = 0 }) {
     const r = check(s, { kind, cells, rot });
     if (!r.ok) return r;
+    if (s.breaches) { s.breaches = s.breaches.filter(b => !r.cells.includes(b.cell)); if (!s.breaches.length) delete s.breaches; }   // built over: the rubble goes
     const g = s.grid, mark = by === 'g' ? 'g' : 'p';
     const stamp = i => { g.by = put(g.by, i, mark); };
     if (LINES[kind]) {

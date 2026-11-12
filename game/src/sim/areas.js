@@ -517,7 +517,15 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     } finally { planning = null; planningBlocked = null; freeMemo = null; searchSteps = null; }
   }
   const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
+  // War checkpoint 6 (gates stop only the enemy): the same walk grid with extra ground closed for one side.
+  // blocked(x, z) -> true where that side may not walk. Normal navigation is untouched.
+  function blockedNav(blocked) {
+    const wrap = fn => (...a) => { const pb = planningBlocked, fm = freeMemo; planningBlocked = blocked; freeMemo = null; try { return fn(...a); } finally { planningBlocked = pb; freeMemo = fm; } };
+    return { findPath: wrap(findPath), clearLine: wrap(clearLine), free: wrap(nav.free), nearestFree: wrap(nav.nearestFree), workerPath: (ax, az, bx, bz) => workerPath(ax, az, bx, bz, blocked),
+      beginPath: wrap((...a) => { const job = beginPath(...a); return { advance: wrap(b => job.advance(b)), get work() { return job.work; }, get steps() { return job.steps; }, get done() { return job.done; }, get path() { return job.path; } }; }) };
+  }
   return {
+    blockedNav,
     nav, update, route, editChunk, portalsOf, blockersNear, lightsNear, ensureGraph,
     chunkSize: S, chunkOf: (x, z) => [Math.floor(x / S), Math.floor(z / S)], chunkId,
     activeIds: () => [...active.values()].map(c => c.id).sort(),
