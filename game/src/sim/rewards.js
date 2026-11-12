@@ -65,6 +65,13 @@ export function createRewards(state, rules = {}) {
       if (s && s !== 'village') ((present[s] ||= {})[e.owner] = (present[s][e.owner] || 0) + 1);
     }
     const F = state.sectorFights;
+    // a clear needs a fight (Tim 2026-11-11: rivals walking through and leaving paid a bystander): while clans share a
+    // sector, note whose blow put a clan's unit down there ('*' = unknown)
+    for (const e of Object.values(state.entities)) {
+      if (!state.clans?.[e.owner] || e.guard || e.place !== 'street' || !(e.downed || e.dead)) continue;
+      const f = F[sectorAt(e.x, e.z)];
+      if (f?.most?.[e.owner]) (f.downs ||= {})[state.entities[e.hitBy?.id]?.owner ?? '*'] = true;
+    }
     for (const s of new Set([...Object.keys(present), ...Object.keys(F)])) {
       const here = present[s] || {}, ids = Object.keys(here);
       if (ids.length >= 2) {
@@ -73,13 +80,15 @@ export function createRewards(state, rules = {}) {
       } else if (F[s] && ids.length === 1 && F[s].most[ids[0]]) {
         const winner = state.clans[ids[0]], rivals = Object.entries(F[s].most).filter(([id]) => id !== ids[0]).reduce((n, [, c]) => n + c, 0);
         F[s].claimed ||= {};
-        if (rivals >= minRivals && state.tick >= (F[s].claimed[ids[0]] ?? -Infinity)) {
-          award(winner.id,s,bonus,'clear');
-          state.news.push({ kind: 'sectorCleared', clan: winner.id, sector: s, ryo: bonus });
-          winner.notice = { tick: state.tick, text: `Sector cleared: +${bonus} ryo` };
-          F[s].most = {};
-        } else F[s].most = {};
-      } else if (F[s] && !ids.length) F[s].most = {};
+        if (rivals >= minRivals && (F[s].downs?.[ids[0]] || F[s].downs?.['*']) && state.tick >= (F[s].claimed[ids[0]] ?? -Infinity)) {
+          // a Shinobi clan gets a share of it (Tim 2026-11-11: they hold no businesses and their ryo piled up)
+          const pay = winner.kind === 'ninja' ? Math.round(bonus * (rules.sectorClearShinobiShare ?? 1)) : bonus;
+          award(winner.id,s,pay,'clear');
+          state.news.push({ kind: 'sectorCleared', clan: winner.id, sector: s, ryo: pay });
+          winner.notice = { tick: state.tick, text: `Sector cleared: +${pay} ryo` };
+          F[s].most = {}; delete F[s].downs;
+        } else { F[s].most = {}; delete F[s].downs; }
+      } else if (F[s] && !ids.length) { F[s].most = {}; delete F[s].downs; }
     }
   }
   // Property clans earn Renown toward season points too (Tim 2026-10-30, phase 8), not crew slots.

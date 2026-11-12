@@ -62,7 +62,7 @@ export function createDiversion({state,deployment,vision,thinksNow=()=>true,deci
       t.order={kind:'stop',charmed:state.tick};onCharmed(t,e.owner);return true;
     }
     if((e.lure?.readyAt??0)<=state.tick&&thinksNow(e)&&begin(e))return true;
-    if(e.order?.kind!=='attack'){const foe=decide('geishaFoe',e,()=>{const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));return foes[0]||null;},t=>alive(t)&&t.place===e.place&&hostile(e,t));if(foe){attackStep(e,unit,foe);return true;}}
+    if(e.order?.kind!=='attack'){const foe=decide('geishaFoe',e,()=>{const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&(!t.cop||t.wave)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));return foes[0]||null;},t=>alive(t)&&t.place===e.place&&hostile(e,t));if(foe){attackStep(e,unit,foe);return true;}}
     return false;
   }
   function tick(){for(const e of Object.values(state.entities)){

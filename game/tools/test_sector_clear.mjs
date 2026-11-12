@@ -21,6 +21,20 @@ assert.equal(state.clans.a.ryo, 200, 'one claim per sector per cooldown');
 state.tick += 20 * 200; state.entities.b1.x = 5; rewards.sectorTick(at);
 state.entities.b1.x = 99; state.tick += 20; rewards.sectorTick(at);
 assert.equal(state.clans.a.ryo, 200, 'one rival unit leaving is not a clear');
+// rivals who only walk through and leave are not a clear (Tim 2026-11-11), and a rival put down by a third clan does not pay you
+{
+  const s = { tick: 0, news: [], ryoGains: [], casts: [], clans: { a: { id: 'a', ryo: 0 }, b: { id: 'b', ryo: 0 }, c: { id: 'c', ryo: 0 } },
+    entities: { a1: unit('a1', 'a', 1), b1: unit('b1', 'b', 3), b2: unit('b2', 'b', 4), c1: unit('c1', 'c', 90) } };
+  const r = createRewards(s, { sectorClearBonus: 200 });
+  r.sectorTick(at); s.entities.b1.x = s.entities.b2.x = 99; s.tick += 20; r.sectorTick(at);
+  assert.equal(s.clans.a.ryo, 0, 'walking through is not a clear');
+  s.entities.b1.x = 3; s.entities.b2.x = 4; s.tick += 20; r.sectorTick(at);
+  Object.assign(s.entities.b1, { downed: true, hitBy: { id: 'c1', tick: s.tick } }); s.entities.b2.x = 99; s.tick += 20; r.sectorTick(at);
+  assert.equal(s.clans.a.ryo, 0, 'another clan put him down');
+  delete s.entities.b1.downed; s.entities.b2.x = 4; s.tick += 20; r.sectorTick(at);
+  Object.assign(s.entities.b1, { downed: true, hitBy: { id: 'a1', tick: s.tick } }); s.entities.b2.x = 99; s.tick += 20; r.sectorTick(at);
+  assert.equal(s.clans.a.ryo, 200, 'your own knock-down pays');
+}
 console.log('sector clear bonus ok');
 // A clear during Sweep contributes 200; completing that same attempt adds only 300.
 {

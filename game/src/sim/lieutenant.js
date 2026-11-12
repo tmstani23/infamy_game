@@ -275,6 +275,9 @@ export function createLieutenantBrain(game, { clan }) {
         else out.push(tag({ id: cap.id, ...cmd }));
         return true;
       };
+      // a rival's captain pays the police off at Wanted, like its boss does at home (Tim 2026-11-11)
+      const bribe = c.bot ? game.police?.bribeCost?.(clan) : null;
+      if (bribe != null && (c.heat || 0) >= (R.bribeAtHeat ?? 60) && can(bribe) && care('police_box', { type: 'police', action: 'bribe' })) return out;
       const prisoner = (c.jail || []).map((p, i) => [p.bail, i]).filter(([n]) => can(n)).sort((p, q) => p[0] - q[0])[0]?.[1];
       if (prisoner !== undefined && care('police_hq', { type: 'police', action: 'bail', prisoner })) return out;
       const patient = c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && can(game.clans.reviveCost(p, clan)));

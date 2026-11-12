@@ -190,3 +190,12 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - Standings panel (src/standings_panel.js, #standingspanel): opens on a click on a clan chip, closes on Esc, its Esc button or a second click on the same chip. A tab per clan. Left column: Influence, Tier, Renown, Businesses (Classic: Points, Renown, Businesses, Crew). Body in Campaign: Influence sources (Renown, businesses held, town trade), progress to the next tier, the tier list five to a page. Body in Classic: the point sources five to a page.
 - Controls panel (index.html): new row "Click a clan in the top bar". Lieutenant panel: the Shinobi jobs label reads "Scout, Sabotage or Thin out the bandits (one a day)"; the Hire hover describes the fallback.
 - Settings (data/settings.json, lieutenant): hireBasicBelow 3, hireFirstShare 0.5, markJobMinutes 5.
+
+### Rival police, HQ raids, Shinobi economy (2026-11-11)
+
+- Rival police handling: the Shinobi rival boss bribes at heat 60 (ninja_bot bribeAtHeat) and bails jailed crew; the Kuroda and Yakuza rival bosses bail jailed crew (they already bribed and revived); a rival city captain bribes at heat 60. Arrested rival crew go to clan.jail (no longer removed). Shinobi rival crew wait outside rival HQ camping zones (waitSpot). The rival Shinobi boss does not hit back at patrol officers. Geisha never auto-target patrol officers (player geisha too). Test tools/test_rival_police.mjs.
+- HQ raid (units.json rules.hqRaid): a won raid takes treasuryShare 0.33 of the defender's ryo, no cap; burnShare 0.5 of that is destroyed, the rest goes to the raider plus the bounty. Rival bosses put the Shinobi HQ first among raid targets and raid more often the further the Shinobi lead the standings (bot.js ahead, hqLeadBoost 0.5), and keep a War Lantern price in reserve for it.
+- Shinobi contract ryo: scout 90, mark 180, boss 240, bandits 120; steal share 0.12, max 300, capPerBusinessPoint 60. Renown unchanged.
+- Sector cleared (200 ryo; Shinobi get sectorClearShinobiShare 0.5) is paid only when the winning clan knocked down a rival unit in that sector during the contest.
+- Shinobi hire prices: ninja 135, tanto ninja 135, geisha 210, masked bodyguard 255 (clinic, bail and dismiss follow price).
+- tools/mode_baseline.json holds the baseline for these rules; tools/test_shinobi_pass.mjs and test_contract_pacing.mjs read contract numbers from units.json.

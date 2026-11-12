@@ -75,8 +75,8 @@ for (const bot of [false, true]) {
   assert.ok(g.state.news.some(n => n.kind === 'raidWon' && n.hq && n.raider === 'player' && n.defender === 'shinobi'), 'every clan hears the raid was won');
   const wasInside = h.place === b.room;
   assert.equal(b.hideout, 'shinobi');
-  assert.equal(clan.ryo, beforeRyo + 723, '600 bounty plus floor(10% treasury)');
-  assert.equal(g.state.clans.shinobi.ryo, 1111, 'only theft is charged to defender');
+  assert.equal(clan.ryo, beforeRyo + 804, '600 bounty plus the unburned half of a third of the treasury (Tim 2026-11-11)');
+  assert.equal(g.state.clans.shinobi.ryo, 827, 'the defender loses a third, burned half included');
   assert.equal(g.state.clans.shinobi.renown, 0, 'cancelled contract grants no Renown');
   assert.equal(g.state.contracts.active.shinobi, undefined, 'active contract cancelled before completion');
   assert.ok(g.state.news.some(n => n.kind === 'contractFailed' && n.why === 'your HQ was raided'));
@@ -95,7 +95,7 @@ for (const bot of [false, true]) {
   const details = buildingInfo({ state: g.state, district: data('data/port_town.json'), units: g.settings.units }, Number(b.id.slice(1)), 'shinobi');
   assert.ok(details.rows.some(([label]) => label === 'On fire'), 'building panel explains active suppression');
   run(2);
-  assert.equal(clan.ryo, beforeRyo + 723, 'victory effects paid exactly once');
+  assert.equal(clan.ryo, beforeRyo + 804, 'victory effects paid exactly once');
   assert.equal(clan.raidPoints, 2);
   run(50);
   assert.ok(wasInside && h.place === 'street', 'raiders are put out front a few seconds after the win');
@@ -133,6 +133,15 @@ for (const bot of [false, true]) {
   assert.equal(g.state.clans.player.raidPoints || 0, 0, 'failure grants no points');
 }
 
+// burnShare and no cap (units.json hqRaid, Tim 2026-11-11): the defender loses the whole share, the raider gets the unburned part
+{
+  const state = { tick: 50, businesses: { h: { id: 'h', owner: 's', hideout: 's' } }, clans: { a: { ryo: 0 }, s: { kind: 'ninja', ryo: 9000 } }, ryoGains: [],
+    news: [{ kind: 'hqRaidWon', at: 50, business: 'h', raider: 'a', defender: 's' }] };
+  createHQRaidEffects({ state, rules: { treasuryShare: 0.33, treasuryCap: null, burnShare: 0.5 } }).tick();
+  assert.equal(state.clans.s.ryo, 9000 - 2970, 'a third of the treasury, no cap');
+  assert.equal(state.clans.a.ryo, 600 + 1485, 'half of it reaches the raider');
+  assert.equal(state.news.find(n => n.kind === 'hqSuppressed').burned, 1485);
+}
 for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
   const state = { tick: 50, businesses: { h: { id: 'h', owner: 's', hideout: 's' } },
     clans: { a: { ryo: 0 }, s: { kind: 'ninja', ryo: treasury } }, ryoGains: [],

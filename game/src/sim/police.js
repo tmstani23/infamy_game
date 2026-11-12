@@ -108,11 +108,10 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   // Called by the game when an officer finishes an arrest on a downed unit. Crew go to jail
   // until the player bails them out at the HQ, no time limit (Tim 2026-10-18); each prisoner
   // has an id ('jail1', ...) so the action bar and the selection panel can show it.
-  // Bot clans' crew are taken away for good, like their carried-off crew.
+  // Bot clans' crew go to jail too (Tim 2026-11-11): the boss or the city captain bails them out.
   function jail(t) {
     const clan = state.clans?.[t.owner], ty = types[t.type];
     if (!clan) return;
-    if (clan.bot) return;
     state.jailSeq = (state.jailSeq || 0) + 1;
     (clan.jail ||= []).push({ id: `jail${state.jailSeq}`, unit: t.type, model: t.model, deployment: storedDeployment(t), bail: Math.round((ty?.price || 0) * R.bailShare) });
     say(clan, `Your ${t.type} was arrested: bail at the police HQ`);

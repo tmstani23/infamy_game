@@ -68,6 +68,12 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   // hiring mix (Tim 2026-11-10): the boss cycles the clan's real units like the city captain (sim/hire_mix.js);
   // thugs only while the treasury cannot cover the wanted unit
   const hireType = () => bossHire(game, clan, game.lieutenant?.rules?.hireBasic) || B.hireType;
+  // a Shinobi clan ahead of it on the public Standings draws raids on its HQ (Tim 2026-11-11: their Renown shows how
+  // fat the longhouse is; the bot never reads their treasury). ahead(b) = how far ahead, for their HQ only.
+  const ahead = b => { if (!isShinobiHQ(state, b)) return 0; const t = game.territory?.standings?.() || [], s = id => t.find(r => r.clan === id)?.score || 0; return Math.max(0, s(b.owner) - s(clan)); };
+  // with a raiding crew and no War Lantern it saves the lantern money (it spent everything on crew and never raided)
+  const savingForHQ = () => B.raidChance > 0 && !(myClan().lanterns > 0) && crew().length >= B.raidMinCrew
+    && biz().some(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && ahead(b) > 0);
   const canHireNow = () => {
     const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;
@@ -78,7 +84,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // Once it owns property it fills fillShare of its cap (Tim 2026-10-28: easy 0.8, medium 0.9, hard 1).
     // With no property and nothing left to buy it builds a raiding crew to win one back (phase 6: it used to stop at 1 for good).
     const desired = owned ? Math.max(Math.ceil(game.clans.crewCap(clan) * (B.fillShare ?? 1)), open ? 0 : B.raidMinCrew) : open ? 1 : B.raidMinCrew;
-    return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
+    return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (savingForHQ() ? RD.lanternPrice + B.raidReserve : count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
 
   // remember how many defenders it saw at rival businesses (scouting)
@@ -95,6 +101,8 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
 
   // the first recovered crew member at the clinic it can pay to revive, or -1
   const readyPatient = c => c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && c.ryo >= game.clans.reviveCost(p, clan));
+  // its cheapest jailed crew member it can pay the bail for, or -1
+  const cheapestPrisoner = c => (c.jail || []).map((p, i) => [p.bail, i]).filter(([n]) => c.ryo >= n).sort((a, b) => a[0] - b[0])[0]?.[1] ?? -1;
 
   // --- deciding (rules top first) ---------------------------------------------------------
   function think() {
@@ -107,6 +115,8 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     if (box && !ai.blocked('bribe:') && c.heat >= B.bribeAtHeat && c.ryo >= (game.police?.bribeCost(clan) ?? Infinity)) return { kind: 'bribe' };
     // fetch its downed crew from the clinic once they have recovered (cheapest then; Tim 2026-10-19)
     if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
+    // bail its cheapest prisoner out of the police HQ (Tim 2026-11-11: a rival's arrested crew sit in jail like yours)
+    if (cheapestPrisoner(c) >= 0 && !ai.blocked('bail:')) return { kind: 'bail' };
     const income = biz().filter(b => b.owner === clan && !b.hideout).reduce((n, b) => n + (game.businesses.rules[b.kind]?.payout || 0), 0);
     if (expedition?.saving()) return null;   // E6: saving up for permit, settlers and founding
     if (home() && income > 0 && crew().length < Math.min(3, B.escort) && canHireNow() && !ai.blocked(`hire:${home().id}`)) return { kind: 'hire', business: home().id };
@@ -121,7 +131,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       return (rule.payout + slots * 30 + (rule.score || 1) * 10) / priceOf(b) / (12 + ai.route(...b.ring));
     };
     const rivalProperty = biz().some(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && (priceOf(b) || isShinobiHQ(state, b)));
-    const warBudget = B.raidChance > 0 && rivalProperty && income >= 300 && !(c.lanterns > 0) ? RD.lanternPrice + B.raidReserve : 0;
+    const warBudget = (B.raidChance > 0 && rivalProperty && income >= 300 && !(c.lanterns > 0)) || savingForHQ() ? RD.lanternPrice + B.raidReserve : 0;
     const buy = expansion.filter(b => priceOf(b) <= c.ryo - warBudget && buyScore(b) > 0)
       .sort((a, b) => buyScore(b) - buyScore(a))[0];
     if (buy) return { kind: 'buy', business: buy.id };
@@ -131,11 +141,13 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // its mind (raidChance) it sticks to the plan: lantern, scout by day, raid at night
     // the season leader's places first (phase 6 ganging up, sim/leader.js)
     const lead = game.leader?.leader(), leadFirst = (a, b) => (b.owner === lead) - (a.owner === lead);
+    // their HQ goes first and the raid is likelier the further a Shinobi clan is ahead (ahead(), above)
     const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !state.raidsTonight?.[clan]?.includes(b.owner) && !ai.blocked(`raid:${b.id}`)
-      && (game.lieutenant?.raidable?.(clan, b.owner) ?? true)).sort(leadFirst);   // an absent boss is raided less (Tim 2026-11-06)
+      && (game.lieutenant?.raidable?.(clan, b.owner) ?? true)).sort((a, b) => ahead(b) - ahead(a) || leadFirst(a, b));   // an absent boss is raided less (Tim 2026-11-06)
+    const hqLead = Math.max(0, ...targets.map(ahead));
     const able = targets.length && crew().length >= B.raidMinCrew && ((c.lanterns || 0) > 0 || c.ryo >= RD.lanternPrice + B.raidReserve);
     if (!able) raidPlan = false;
-    else if (!raidPlan && rnd() < B.raidChance) raidPlan = true;
+    else if (!raidPlan && rnd() < B.raidChance * (1 + hqLead * (B.hqLeadBoost ?? 0.5))) raidPlan = true;
     if (raidPlan) {
       const scoutable = targets.filter(b => !ai.blocked(`scout:${b.id}`));
       // Visit new targets before refreshing old reports: with more businesses,
@@ -144,7 +156,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
         || (!state.night && scoutable.find(b => !fresh(b)));
       if (!(c.lanterns > 0)) return { kind: 'raid', business: targets[0].id };      // buys the lantern first
       if (stale) return { kind: 'scout', business: stale.id };
-      const t = targets.filter(b => seen[b.id]).sort((a, b) => leadFirst(a, b) || seen[a.id].defenders - seen[b.id].defenders)[0];
+      const t = targets.filter(b => seen[b.id]).sort((a, b) => ahead(b) - ahead(a) || leadFirst(a, b) || seen[a.id].defenders - seen[b.id].defenders)[0];
       // Hard avoids a visible defending boss; private police heat is not knowledge.
       const owner = t && enemies().find(e => e.owner === t.owner && e.type === 'hero');
       const weak = !B.raidWhenWeak || !owner || dist(owner, t) > 25;
@@ -218,6 +230,14 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
         if (!toStreet(out)) return false;
         if (!walk(out, door.x, door.z, 0.8)) return false;
         out.push({ id: hero, type: 'clinic', action: 'revive', patient: k });   // one a tick until none left it can pay for
+        return false;
+      }
+      case 'bail': {
+        const door = game.doors.find(d => d.menu === 'police_hq'), k = cheapestPrisoner(c);
+        if (!door || k < 0) return true;
+        if (!toStreet(out)) return false;
+        if (!walk(out, door.x, door.z, 0.8)) return false;
+        out.push({ id: hero, type: 'police', action: 'bail', prisoner: k });   // one a tick until none left it can pay for
         return false;
       }
       case 'bribe': {

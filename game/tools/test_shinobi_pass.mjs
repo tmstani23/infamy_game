@@ -7,6 +7,10 @@ import { createNinjaBot } from '../src/sim/ninja_bot.js';
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const units = data('data/units.json'), STEAL_TICKS = 20 * (units.rules.contracts.steal.seconds + 1), scores = Object.fromEntries(Object.entries(units.rules.businesses).map(([k, v]) => [k, v.score]));
 
+// contract ryo follows units.json (business score 10 doubles the base pay)
+const PAY = Object.fromEntries(['scout', 'mark', 'boss'].map(k => [k, units.rules.contracts[k].ryo * 2]));
+const SC = units.rules.contracts.steal, CAP = SC.max + SC.capPerBusinessPoint * 10;
+
 function fixture() {
   const state = { tick: 0, dawn: false, hits: [], news: [], ryoGains: [],
     clans: { shinobi: { id: 'shinobi', kind: 'ninja', ryo: 0, renown: 0 }, rival: { id: 'rival', kind: 'yakuza', ryo: 10000 }, other: { id: 'other', kind: 'yakuza', ryo: 0 } },
@@ -30,49 +34,49 @@ function fixture() {
 {
   const f = fixture();
   assert.equal(f.contracts.businessScore('rival'), 10);
-  assert.deepEqual(['scout', 'mark', 'boss'].map(kind => f.contracts.quote({ kind, target: 'rival' }).ryo), [300, 600, 800]);
+  assert.deepEqual(['scout', 'mark', 'boss'].map(kind => f.contracts.quote({ kind, target: 'rival' }).ryo), [PAY.scout, PAY.mark, PAY.boss]);
   for (let i = 0; i < 40; i++) {
     f.contracts.post();
     assert.ok(f.state.contracts.board.every(j => !f.state.businesses[j.business]?.hideout), 'no HQ contracts');
   }
   const job = f.take('scout');
-  assert.equal(job.ryo, 300); assert.equal(job.renown, 15);
+  assert.equal(job.ryo, PAY.scout); assert.equal(job.renown, 15);
   assert.equal(job.rewardLocked, true);
   f.state.businesses.manor.owner = 'other';
-  assert.equal(f.contracts.quote({ kind: 'scout', target: 'rival' }).ryo, 240, 'new board quotes reflect current strength');
-  assert.equal(f.contracts.quote(job).ryo, 300, 'accepted reward stays fixed');
+  assert.equal(f.contracts.quote({ kind: 'scout', target: 'rival' }).ryo, PAY.scout * 0.8, 'new board quotes reflect current strength');
+  assert.equal(f.contracts.quote(job).ryo, PAY.scout, 'accepted reward stays fixed');
   assert.equal(f.contracts.quote(job).renown, 15, 'accepted Renown stays fixed');
   for (const kind of ['scout', 'mark', 'steal', 'boss', 'bandits'])
     assert.equal(f.contracts.quote({ kind, target: 'rival' }).renown, units.rules.contracts[kind].renown, 'Renown ignores business score');
   Object.assign(f.ninja, { place: 'teahouse' }); f.tick(20 * 11);
-  assert.equal(f.state.clans.shinobi.ryo, 300); assert.equal(f.state.clans.shinobi.renown, 19);
+  assert.equal(f.state.clans.shinobi.ryo, PAY.scout); assert.equal(f.state.clans.shinobi.renown, 19);
 }
 {
   const f = fixture(), job = f.take('steal');
-  assert.equal(job.stealCap, 1500); assert.equal(job.renown, 25);
-  assert.match(f.contracts.reward(job), /max 1500/);
+  assert.equal(job.stealCap, CAP); assert.equal(job.renown, 25);
+  assert.match(f.contracts.reward(job), new RegExp(`max ${CAP}`));
   f.state.businesses.manor.owner = 'other';
   Object.assign(f.ninja, { place: 'teahouse', x: 20, z: 20 });
   f.tick(STEAL_TICKS);
-  assert.equal(f.state.clans.shinobi.ryo, 1500, 'accepted ceiling survives target score changes');
-  assert.equal(f.state.clans.rival.ryo, 8500, 'theft transfers the money from its actual victim');
+  assert.equal(f.state.clans.shinobi.ryo, CAP, 'accepted ceiling survives target score changes');
+  assert.equal(f.state.clans.rival.ryo, 10000 - CAP, 'theft transfers the money from its actual victim');
   for (const treasury of [0, 2000]) {
     const t = fixture(); t.take('steal'); t.state.clans.rival.ryo = treasury;
     Object.assign(t.ninja, { place: 'teahouse', x: 20, z: 20 }); t.tick(STEAL_TICKS);
-    assert.equal(t.state.clans.shinobi.ryo, treasury * .2, 'actual payout uses completion-time treasury, including zero');
+    assert.equal(t.state.clans.shinobi.ryo, Math.floor(treasury * SC.share), 'actual payout uses completion-time treasury, including zero');
     assert.equal(t.state.clans.shinobi.renown, 31);
   }
 }
 {
   const f = fixture(), job = f.take('mark');
-  assert.equal(job.ryo, 600); assert.equal(job.renown, 30);
+  assert.equal(job.ryo, PAY.mark); assert.equal(job.renown, 30);
   f.state.night = true; Object.assign(f.ninja, { place: 'teahouse', x: 10, z: 10 }); f.tick(20 * 95);
   assert.equal(f.state.businesses.teahouse.sabotaged, true);
-  assert.equal(f.state.clans.shinobi.ryo, 600);
+  assert.equal(f.state.clans.shinobi.ryo, PAY.mark);
   const b = fixture(); b.take('boss'); b.state.hits = [{ a: 'ninja', t: 'boss', kill: true }]; b.tick();
-  assert.equal(b.state.clans.shinobi.ryo, 800); assert.equal(b.state.clans.shinobi.renown, 40);
+  assert.equal(b.state.clans.shinobi.ryo, PAY.boss); assert.equal(b.state.clans.shinobi.renown, 40);
   const town = fixture(), bandits = town.take('bandits');
-  assert.equal(bandits.ryo, 200); assert.equal(bandits.renown, 20, 'town contracts never scale with rival strength');
+  assert.equal(bandits.ryo, units.rules.contracts.bandits.ryo); assert.equal(bandits.renown, 20, 'town contracts never scale with rival strength');
 }
 for (const reason of ['drop', 'owner']) {
   const f = fixture(); f.take('scout');

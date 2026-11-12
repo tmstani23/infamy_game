@@ -58,7 +58,7 @@ for (const treasury of [0, 9, 1000, 10000]) {
   take(find('steal')); c.tick();
   const job = state.contracts.active.s;
   job.progress = job.need - 1; c.tick(); c.tick();
-  const stolen = Math.min(600, Math.floor(treasury * .2));
+  const stolen = Math.min(rules.steal.max + rules.steal.capPerBusinessPoint, Math.floor(treasury * rules.steal.share));   // one business point (units.json contracts.steal)
   assert.equal(state.clans.r.ryo, treasury - stolen);
   assert.equal(state.clans.s.ryo, stolen, 'treasury loss and thief payment agree');
   assert.equal(state.clans.s.renown, 31, 'fixed base reward plus rounded hidden bonus');

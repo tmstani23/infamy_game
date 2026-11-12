@@ -18,7 +18,7 @@ import { createDeploymentAI, inHeroParty } from './deployment_ai.js';
 import { dist } from './util.js';
 
 export const NINJA_BOT_DEFAULTS = {
-  thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4, fillShare: 0.9,
+  thinkSeconds: 2, reactSeconds: 1, reserve: 40, hireType: 'ninja', stuckSeconds: 4, fillShare: 0.9, bribeAtHeat: 60,
   // Allowed jobs in preference order; reward, time and risk also affect the choice.
   jobs: ['bandits', 'scout', 'boss', 'steal', 'mark'],
   huntRange: 12, fleeHp: 0.3, restUntilHp: 0.8, smokeHp: 0.5, snuff: true,
@@ -65,6 +65,8 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
   };
   const readyPatient = c => c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && c.ryo >= game.clans.reviveCost(p, clan));
+  // its cheapest jailed crew member it can pay the bail for, or -1
+  const cheapestPrisoner = c => (c.jail || []).map((p, i) => [p.bail, i]).filter(([n]) => c.ryo >= n).sort((a, b) => a[0] - b[0])[0]?.[1] ?? -1;
   // the back window of a business (outside end), for the sneaking jobs
   const windowOf = b => game.doors.find(d => d.ninja && d.place === b.room);
   // Contract feasibility is independent of day/night.
@@ -102,7 +104,11 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const c = myClan(), h = me();
     const raid = Object.values(state.attacks || {}).find(a => a.hq && a.defender === clan);
     if (raid) return { kind: 'defend', business: raid.business };
+    // bribe the police at Wanted, like the other rivals (Tim 2026-11-11: its heat ran past Most Wanted and it never paid)
+    if (game.doors.some(d => d.menu === 'police_box') && !ai.blocked('bribe:') && !job() && c.heat >= B.bribeAtHeat && c.ryo >= (game.police?.bribeCost(clan) ?? Infinity)) return { kind: 'bribe' };
     if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
+    // bail its cheapest prisoner out of the police HQ (Tim 2026-11-11: a rival's arrested crew sit in jail like yours)
+    if (cheapestPrisoner(c) >= 0 && !ai.blocked('bail:')) return { kind: 'bail' };
     if (dojo() && canHireNow() && !job() && !ai.blocked(`hire:${dojo().id}`)) return { kind: 'hire', business: dojo().id };
     // A leader indoors cannot count recruits waiting outside in its immediate
     // combat strength. Assemble before judging the early camp/contract options.
@@ -140,7 +146,19 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     out.push({ id: hero, type: 'snuff' });
     return true;
   }
-  const crewWait = (x, z) => order(crew().filter(u => u.place === 'street'), 'station', { x, z });
+  // crew wait outside a rival hideout's camping circle (Tim 2026-11-11: waiting by the window there ran up Camping heat)
+  function waitSpot(x, z) {
+    for (const zone of state.hqCamping?.zones || []) {
+      const d = Math.hypot(x - zone.x, z - zone.z), far = zone.radius + 3;
+      if (zone.owner === clan || d >= far) continue;
+      const h = me(), hd = Math.hypot(h.x - zone.x, h.z - zone.z);
+      const [ux, uz] = d > 0.5 ? [(x - zone.x) / d, (z - zone.z) / d] : hd > 0.5 ? [(h.x - zone.x) / hd, (h.z - zone.z) / hd] : [1, 0];
+      const spot = game.nav?.nearestFree?.(zone.x + ux * far, zone.z + uz * far);
+      return spot && Math.hypot(spot[0] - zone.x, spot[1] - zone.z) > zone.radius ? { x: spot[0], z: spot[1] } : { x: zone.x + ux * far, z: zone.z + uz * far };
+    }
+    return { x, z };
+  }
+  const crewWait = (x, z) => order(crew().filter(u => u.place === 'street'), 'station', waitSpot(x, z));
   const crewFollow = () => { const out = []; ai.recall(out); return out; };
 
   // --- doing: true when the goal is over ----------------------------------------------------
@@ -152,6 +170,22 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
         if (!toStreet(out)) return false;
         if (!goal.called) { out.push(...crewFollow()); goal.called = true; goal.until = state.tick + secs(8); }
         return crew().every(u => u.place === h.place && dist(u, h) < 12) || state.tick >= goal.until;
+      }
+      case 'bail': {
+        const door = game.doors.find(d => d.menu === 'police_hq'), k = cheapestPrisoner(c);
+        if (!door || k < 0) return true;
+        if (!toStreet(out)) return false;
+        if (!walk(out, door.x, door.z, 0.8)) return false;
+        out.push({ id: hero, type: 'police', action: 'bail', prisoner: k });   // one a tick until none left it can pay for
+        return false;
+      }
+      case 'bribe': {
+        const box = game.doors.filter(d => d.menu === 'police_box').sort((a, d) => dist(a, h) - dist(d, h))[0];
+        if (!box || c.heat < B.bribeAtHeat) return true;
+        if (!toStreet(out)) return false;
+        if (!walk(out, box.x, box.z, 0.8)) return false;
+        out.push({ id: hero, type: 'police', action: 'bribe' });
+        return true;
       }
       case 'revive': {
         const door = game.doors.find(d => d.menu === 'clinic'), k = readyPatient(c);
@@ -306,7 +340,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     // hit back at whoever is hitting it (unless it is hidden and on a sneaking job)
     const sneaking = ['scout', 'mark', 'steal'].includes(job()?.kind);
     const by = h.hitBy && state.tick - h.hitBy.tick < secs(5) && state.entities[h.hitBy.id];
-    if (by && standing(by) && by.place === h.place && !sneaking) out.push({ id: hero, type: 'attack', target: by.id });
+    if (by && standing(by) && by.place === h.place && !sneaking && (!by.cop || by.wave)) out.push({ id: hero, type: 'attack', target: by.id });
     if (!close.length) return;
     if (h.hp < h.maxHp * B.smokeHp && cast('R')) return;
     // Assassinate: hidden long enough, a target right next to it

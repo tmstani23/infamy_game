@@ -9,7 +9,7 @@ export const contractLockoutUntil = (state, clan) => Math.max(0, ...Object.value
 // Victory effects run between business raids and contract progress, so an HQ
 // victory cancels even a contract that would otherwise complete on this tick.
 export function createHQRaidEffects({ state, rules = {}, dayNight = {} }) {
-  const R = { suppressionSeconds: 180, bounty: 600, treasuryShare: 0.1, treasuryCap: 400, seasonPoints: 2, ...rules };
+  const R = { suppressionSeconds: 180, bounty: 600, treasuryShare: 0.1, treasuryCap: 400, burnShare: 0, seasonPoints: 2, ...rules };
   const ticks = seconds => Math.round(seconds * 20);
   state.hqRaids ||= {};
   function tick() {
@@ -17,8 +17,11 @@ export function createHQRaidEffects({ state, rules = {}, dayNight = {} }) {
       const b = state.businesses[n.business], attacker = state.clans[n.raider], defender = state.clans[n.defender];
       if (n.at !== state.tick || !attacker || !defender || !isShinobiHQ(state, b) || b.owner !== n.defender
         || state.hqRaids[b.id]?.protectedUntil > state.tick) continue;
-      const stolen = Math.min(R.treasuryCap, Math.floor(Math.max(0, defender.ryo || 0) * R.treasuryShare));
-      debitRyo(state, defender, stolen, 'HQ raid theft', { by: n.raider, target: b.id, notify: true });
+      // the defender loses treasuryShare of its ryo (no cap when treasuryCap is null); burnShare of that is gone for
+      // good and the raider takes the rest (Tim 2026-11-11)
+      const lost = Math.min(R.treasuryCap ?? Infinity, Math.floor(Math.max(0, defender.ryo || 0) * R.treasuryShare));
+      const burned = Math.floor(lost * (R.burnShare || 0)), stolen = lost - burned;
+      debitRyo(state, defender, lost, 'HQ raid theft', { by: n.raider, target: b.id, notify: true });
       attacker.ryo += R.bounty + stolen;
       attacker.raidPoints = (attacker.raidPoints || 0) + R.seasonPoints;
       const suppressedUntil = state.tick + ticks(R.suppressionSeconds);
@@ -28,7 +31,7 @@ export function createHQRaidEffects({ state, rules = {}, dayNight = {} }) {
         ejectAt: state.tick + ticks(R.ejectSeconds ?? 2.5) };   // the raiders are put out front (sim/game.js, Tim 2026-10-26)
       state.ryoGains.push({ clan: n.raider, amount: R.bounty + stolen, reason: 'Shinobi HQ raid' });
       state.news.push({ kind: 'hqSuppressed', business: b.id, defender: n.defender, raider: n.raider,
-        bounty: R.bounty, stolen, points: R.seasonPoints, suppressedUntil });
+        bounty: R.bounty, stolen, burned, points: R.seasonPoints, suppressedUntil });
     }
     for (const r of Object.values(state.hqRaids)) if (!r.recovered && state.tick >= r.suppressedUntil) {
       r.recovered = true;
