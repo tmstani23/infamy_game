@@ -55,8 +55,9 @@ assert.equal(road16.road.arms[2], 1, 'vertical road connections reach the neighb
 assert.equal(road16.road.arms[1], 1, 'road bends join both axes');
 assert.equal(road16.texture, `art/ground/road/road_${road16.road.mask}.png`, 'tile picked by neighbour mask');
 assert.equal(cells.filter(p => p.key.startsWith('16:road:')).length, 0, 'no overlapping stub blobs');
-assert.ok(cells.some(p => p.art === 'bamboo_fence') && cells.some(p => p.art === 'village_gate'));
-assert.ok(cells.filter(p => p.art === 'bamboo_fence').some(p => p.flip === false));
+const WALL = art._walls.w.art, GATE = art._walls.g.art;
+assert.ok(cells.some(p => p.art === WALL) && cells.some(p => p.art === GATE));
+assert.ok(cells.filter(p => p.art === WALL).some(p => p.flip === false));
 assert.ok(cells.some(p => p.key.endsWith(':field')), 'farm cells become crop fields (rows are in the texture)');
 assert.equal(cells.some(p => p.cell === 24), false, 'unbuildable cells have no props');
 assert.equal(townCellsToProps({ n: 5, cell: 11 }, art).length, 0, 'old partial replicas do not crash');
@@ -70,8 +71,9 @@ assert.notEqual(townSignature([town]), townSignature([roadEdit]), 'road edits in
 const recovering = structuredClone(town); recovering.zones.housing.health = 0.5;
 assert.equal(townSignature([town]), townSignature([recovering]), 'health bookkeeping alone does not rebuild unchanged art');
 const corner = structuredClone(grid); corner.use = '......ww...w.............';
-const cornerProps = townCellsToProps(corner, art).filter(p => p.cell === 6 && p.art === 'bamboo_fence');
+const cornerProps = townCellsToProps(corner, art).filter(p => p.cell === 6 && p.art === WALL);
 assert.ok(cornerProps.some(p => p.flip) && cornerProps.some(p => !p.flip), 'wall corners join both directions');
+if (art._walls.w.post) assert.ok(townCellsToProps(corner, art).some(p => p.cell === 6 && p.art === art._walls.w.post), 'a corner post stands where two runs meet');
 const worldProps = townProps([town], art, frontier.townLights);
 assert.ok(worldProps.some(p => p.art === 'manor' && p.x === 100 && p.z === 100));
 assert.ok(worldProps.some(p => p.cell === 0 && p.x === 78 && p.z === 78), 'local grid instructions are translated once');

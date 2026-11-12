@@ -2450,7 +2450,18 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Ruin art: tools/add_ruins_art.py cuts ruin_wall, ruin_gate, ruin_palisade, ruin_palisade_gate, ruin_house, ruin_hall, ruin_watchtower, ruin_tent from ruined_buildings1_cut.png (made by tools/key_checker_sheet.py); `townArt._ruin` maps them; other ruins show burned_ruin.
    - Tests: tools/test_structures.mjs, tools/test_gates.mjs.
    - Open: ranged hits on structures show no projectile; the stand-in defender does not attack camp structures (8d); fire-bomb throwers, cannons and Gatling as trained units (7); the long-distance island route graph does not know about gates; ruins and breaches after a war (8a); ruin wall and gate facing not checked by eye.
-7. Clan specials, smart casting, war stealth and detection.
+7. Clan specials, smart casting, war stealth and detection. **Built 2026-11-12** (numbers are placeholders in data):
+   - 7-0 Torch: a plain right-click on an enemy structure attacks without fire; Shift + right-click (or the Torch button) sends every selected melee unit to set it on fire. `war.structures.fire.maxFeeders` 3.
+   - 7-1 Ability row (src/ability_rows.js, sim/special_cast.js): Shift + Q/E/R/F by position, one caster per press, right-click for auto (e.autoCast). Clan hall trains geisha (Shinobi), Teppo rifleman (Kuroda), Irezumi enforcer and Yumi archer (Yakuza).
+   - 7-2 Foundry: field cannon (Kuroda), wooden cannon (Yakuza), fire-bomb thrower (Shinobi). Cannons deal siege damage to structures and are heavy in separation. Fire bombs: area damage to troops and fire on wood; reduced damage and no fire on stone (town hall, town wall). Ranged shots at structures fly as projectiles (state.frontier.shots) and damage lands on arrival.
+   - 7-3 Kennel (Yakuza, needs the clan hall): dog handler. Loose the dogs (sim/dogs.js): 3 dogs run at one enemy, bite with a short knockdown, then vanish. Auto picks ranged or fleeing enemies.
+   - 7-4 Gatling gun crew (Kuroda, foundry; sim/gatling.js): sets up before firing, packs up to move, fires a cone, no fire inside its minimum range, no melee. Hold aim fixes its facing until it packs up.
+   - 7-5 Hidden dojo (Shinobi, needs the clan hall): kunoichi, hidden on the island until she acts, shown a few seconds after attacking or being hit, ambush first hit, Vanish on a move order (cooldown). Detected by an enemy dog handler (wide), Teppo rifleman (short) or a built watchtower in range. Inside a war circle no other Shinobi unit is hidden, the hero included.
+   - The governor does not rebuild ruins while a war is on the town.
+   - Art: town wall, wall post, gate, watchtower, war armory and field clinic cut by tools/add_warcamp2_art.py; kennel and dojo have ground blockers.
+   - Dev save war_test_yakuza: clan hall, foundry, kennel, three supply tents, 8000 ryo.
+   - Tests: test_special_cast, test_siege, test_dogs, test_gatling, test_kunoichi.
+   - Open: 7b frontier stealth; stand-in sounds for dogs and fire bombs; cannons have no minimum range; the stand-in defender trains no specials (8d); moving clips for cannon and Gatling.
 8a. Win and loss channels and outcomes.
 8b. Defender building and muster delay.
 8c. Surrender.

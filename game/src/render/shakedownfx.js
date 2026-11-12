@@ -32,7 +32,7 @@ export function createShakedownFx({scene,overlay,unitToScreen}) {
     const s=unitToScreen(p.x,p.z,3);el.style.transform=`translate(${s.x}px,${s.y}px) translate(-50%,-50%)`;
   }
   function cast(c) {
-    if(c.kind==='dynamiteBlast'&&c.place===place){
+    if((c.kind==='dynamiteBlast'||c.kind==='firebombBurst')&&c.place===place){   // firebombBurst: a fire-bomb thrower's bomb (war checkpoint 7-2)
       cards.glint(c.x,.55,c.z,c.radius*2.1,0xffd690,.32);cards.ink(c.x,c.z,c.radius,.55,0x24150e);
       for(let i=0;i<42;i++){
         const a=rand(0,Math.PI*2),v=rand(1,5);

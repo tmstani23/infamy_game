@@ -258,6 +258,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
   // Repairs and rebuilds on the same spot, at normal cost; materials may be short, construction waits.
   function maintain(s) {
     if (s.projects.length) return;
+    // no rebuilding while a war is on the town (war checkpoint 6: ruins stay as they are until it ends)
+    if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return;
     const b = s.buildings.find(x => x.stage !== 'built' && !s.projects.some(p => p.replaces === x.id));
     if (!b) return;
     construction.authorize(construction.queue(s.id, b.type, b.cell, { replaces: b.id }));

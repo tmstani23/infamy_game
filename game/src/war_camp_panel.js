@@ -95,8 +95,9 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const clan = game.state.clans?.[w.attacker], C = W().camp || {};
     const list = war()?.campBuildList(open) || [], pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); page = Math.min(page, pages - 1);
     const sites = c.buildings.filter(b => b.stage === 'site' || b.upgrade);
-    const trainers = c.buildings.filter(b => b.stage === 'built' && (war()?.trainsAt(b.type) || []).length);
-    const trows = trainers.flatMap(b => war().trainsAt(b.type).map(u => [b, u]));   // one row per building and unit, ROWS a page (checkpoint 5: a barracks trains three)
+    const mine = game.state.entities[heroId]?.owner;   // checkpoint 7: only this clan's specials show
+    const trainers = c.buildings.filter(b => b.stage === 'built' && (war()?.trainsAt(b.type, mine) || []).length);
+    const trows = trainers.flatMap(b => war().trainsAt(b.type, mine).map(u => [b, u]));   // one row per building and unit, ROWS a page (checkpoint 5: a barracks trains three)
     const tpages = Math.max(1, Math.ceil(trows.length / ROWS)); tpage = Math.min(tpage, tpages - 1);
     const me = hero()?.owner, ryoOf = u => war()?.ryoOf?.(me, u) ?? U[u]?.ryo ?? 0, ticksOf = u => war()?.ticksOf?.(me, u) ?? U[u]?.trainTicks ?? 0;
     const builders = id => (c.workers || []).filter(k => k.project === id).length, maxB = W().builders ?? 3;

@@ -157,9 +157,11 @@ function warTest(game, heroId) {
     }
     throw new Error('war_test_yakuza: no room for ' + kind);
   };
-  for (const kind of ['barracks', 'rifle_range', 'supply_tents', 'supply_tents', 'stable']) place(kind);
+  // checkpoint 7: the clan hall, the foundry and the clan's own building stand ready, so the specials can be trained at once
+  const own = { yakuza: ['kennel'], shinobi: ['hidden_dojo'] }[S.clans[hero.owner].faction] || [];
+  for (const kind of ['barracks', 'rifle_range', 'supply_tents', 'supply_tents', 'supply_tents', 'stable', 'clan_hall', 'foundry', ...own]) place(kind);
   for (const w of rec.camp.workers) delete w.project;
-  rec.camp.chest = 5000; Object.assign(rec.camp.stock, { timber: 2000, stone: 1500 });
+  rec.camp.chest = 8000; Object.assign(rec.camp.stock, { timber: 2000, stone: 1500 });
   // the hero and his crew by the camp hall
   Object.assign(hero, { x: hall.x + 6, z: hall.z + 4 });
   let k = 0;

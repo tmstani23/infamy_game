@@ -69,7 +69,8 @@ assert.ok(ST.damage('player', sStore, 100, 'ranged')); assert.equal(sStore.b.hp,
 assert.ok(ST.damage('player', sStore, 100, 'siege')); assert.equal(sStore.b.hp, S.town.storehouse - 100 * S.damage.ranged - 100 * S.damage.siege, 'siege does a lot');
 assert.equal(g.state.frontier.fires, undefined, 'ranged and siege hits light no fire');
 assert.ok(ST.damage('player', sWall, 50, 'melee')); assert.equal(enemy.cellHp[WALL], S.wall - 50);
-assert.ok(g.state.frontier.fires[sWall.key], 'a melee hit sets it alight');
+assert.equal(g.state.frontier.fires, undefined, 'a plain melee hit lights no fire (checkpoint 7-0: only a Torch order does)');
+assert.ok(ST.ignite('player', sWall, 'x1')); assert.ok(g.state.frontier.fires[sWall.key], 'a torch hit sets it alight'); assert.equal(ST.ignite(third, sWall, 'x2'), false);
 assert.equal(ST.damage(third, sWall, 50), false);
 
 // ---- fire: burns while fed, dies after ---------------------------------------------------------
@@ -85,6 +86,14 @@ for (let k = 0; k < 6; k++) troops.push(war.spawnTroop(rec, 'grunt', sStore.x + 
 const archer = war.spawnTroop(rec, 'archer', sStore.x + 16, sStore.z + 18);
 g.step([{ id: hero.id, type: 'order', kind: 'raze', structure: sStore.key, units: [...troops, archer] }]);
 assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the order is taken');
+// a plain attack never lights it; the Torch order does, for melee units only, and the fire strength is capped
+{ const hp0 = sStore.b.hp; let t = 0; for (; t < 600 && sStore.b.hp === hp0; t++) g.step([]);
+  assert.ok(sStore.b.hp < hp0, 'plain hits land'); assert.equal(g.state.frontier.fires?.[sStore.key], undefined, 'and light no fire');
+  assert.equal(ST.torchers([...troops, archer]), troops.length, 'the archer cannot torch');
+  g.step([{ id: hero.id, type: 'order', kind: 'raze', torch: true, structure: sStore.key, units: [...troops, archer] }]);
+  assert.ok(troops.every(id => g.state.entities[id].order?.torch), 'melee take the Torch order'); assert.ok(!g.state.entities[archer].order?.torch, 'the archer keeps its plain attack');
+  let most = 0; for (let i = 0; i < 200 && sStore.b.stage === 'built' && most < 2; i++) { g.step([]); most = Math.max(most, Object.keys(g.state.frontier.fires?.[sStore.key]?.fed || {}).length); }
+  assert.ok(most >= 2, `several units feed one fire (${most})`); assert.ok(S.fire.maxFeeders >= 1); }
 { const hp0 = sStore.b.hp; let hits = 0, fireSeen = false, t = 0;
   for (; t < 1200 && sStore.b.stage === 'built'; t++) { g.step([]); hits += g.state.structureHits?.length || 0; fireSeen ||= !!g.state.frontier.fires?.[sStore.key]; assert.ok(Object.keys(g.state.frontier.fires || {}).length <= 1); }
   assert.ok(hits > 3 && fireSeen, `troops hit it (${hits} hits) and it burned`);
@@ -188,6 +197,8 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.ok(!enemy.shelter && enemy.workers.every(w => !w.shelter), 'the hall fell: pushed out');
   for (let i = 0; i < 45; i++) g.step([]);
   assert.ok(!enemy.shelter, 'no hall, no shelter');
+  enemy.autoBuild = true; for (let i = 0; i < 400; i++) g.step([]);
+  assert.equal(hall.stage, 'ruined', 'the governor does not rebuild a ruin while the war is on'); assert.ok(!enemy.projects.some(p => p.replaces === hall.id));
   delete g.state.entities[r2.id]; hall.stage = 'built'; }
 
 // ---- watchtower fire: arrows at the nearest enemy of the war in range; a ruined tower is silent ---------

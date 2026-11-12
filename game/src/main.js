@@ -43,6 +43,7 @@ import { drawableTowns, drawableWarSites, townSignature, townProps } from './tow
 import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
 import { createStructureBars } from './structure_bars.js';
+import { createAbilityRows } from './ability_rows.js';
 import { createGarrisonCard } from './garrison_card.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
@@ -261,7 +262,9 @@ async function start() {
     pending.push({ id: heroId, type: 'snuff', prop: hoverLamp.prop });
     e.stopImmediatePropagation(); e.preventDefault();
   }, true);
-  for (const slot of ['Q', 'E', 'R', 'F']) onKey(`Key${slot}`, () => {
+  for (const [slotIndex, slot] of ['Q', 'E', 'R', 'F'].entries()) onKey(`Key${slot}`, event => {
+    // Shift + Q, E, R, F: the ability row over the bar (ability_rows.js), slot for slot
+    if (event?.shiftKey) { abilityRows?.key(slotIndex, view.screenToGround(mouse.x, mouse.y)); return; }
     // the omnibus (sim/omnibus.js, Tim 2026-11-06): Q inside steps everyone out; Q right by a parked one gets in
     if (slot === 'Q' && crewInput.omnibusKey()) return;
     const p = view.screenToGround(mouse.x, mouse.y);
@@ -316,7 +319,11 @@ async function start() {
   // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, Tim 2026-11-06); in the city it hires
   // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (Tim 2026-11-07)
   // Shift on a horse or driving: sprint on / off (Tim 2026-11-07; on foot Shift still walks while held)
-  onKey(['ShiftLeft', 'ShiftRight'], () => { if (game.state.entities[heroId]?.ride) setSprint(!sprintOn()); });
+  // only a clean tap of Shift (Tim 2026-11-12): Shift held for an ability key or a Shift + click does not flip it
+  { let cleanShift = false;
+    addEventListener('keydown', e => { if (e.key === 'Shift') { if (!e.repeat) cleanShift = true; } else cleanShift = false; }, true);
+    addEventListener('mousedown', () => { cleanShift = false; }, true);
+    addEventListener('keyup', e => { if (e.key === 'Shift' && cleanShift) { cleanShift = false; if (!e.target?.closest?.('input, select, textarea') && game.state.entities[heroId]?.ride) setSprint(!sprintOn()); } }, true); }
   // H calls your horse and rides her; Q gets you off (Tim 2026-11-08: H no longer gets you off). Shift+H is still Mount up / All off
   onKey('KeyH', e => { const h = game.state.entities[heroId]; if (h?.place === 'world') { if (e?.shiftKey) pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else if (!h.mounted) pending.push({ id: heroId, type: 'mount' }); } else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -455,7 +462,8 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { crewInput.cancelTarget(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  let abilityRows = null;   // war checkpoint 7: made after the action bar
   bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -507,6 +515,8 @@ async function start() {
   // double-click a group header: follow the middle of the group's biggest cluster
   const watchGroup=(group,ids=null)=>view.watch(()=>watchCrewGroup(game.state,game.state.entities[heroId]?.owner,group,ids));
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c), onInspect: id => unitFrames.inspect(id), onHeroFocus: () => view.snapBack() });
+  abilityRows = createAbilityRows({ root: $('bar'), marks: $('structbars'), game, units, view, heroId, crewInput, tickRate: TICK_RATE, send: c => pending.push(c) });
+  crewInput.onShiftRight(p => abilityRows.shiftRight(p));   // war checkpoint 7: special abilities of the selection (Torch)
   onKey('KeyB', () => bar.useItem());   // usable-item slot
   let nameplatesOn = false;
   onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });

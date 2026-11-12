@@ -7,6 +7,7 @@
 //  - Otherwise he moves and fights like any other crew member.
 import { alive, dist } from './util.js';
 import {dirIndex,SCREEN_DOWN,SCREEN_RIGHT} from './geometry.js';
+import { castWanted, autoOn } from './special_cast.js';   // war checkpoint 7-1: auto switch and a cast the player asked for
 export const TAUNT = { radius: 5, durationTicks: 80, cooldownTicks: 80, damageTaken: 0.85 };
 export function createTaunt({ state, vision, hostile = () => false, clearCombat = () => {}, attackStep = () => {}, addBuff = () => {}, fightTarget = () => null, rules = {}, rulesFor=()=>null, engagementTarget=()=>null, reveal=()=>{}, allowed=()=>true }) {
   const isEnforcer = e => e?.type === 'yakuza_enforcer'||!!rulesFor(e);
@@ -51,11 +52,13 @@ export function createTaunt({ state, vision, hostile = () => false, clearCombat 
     if (e.taunted) { const a = state.entities[e.taunted.source]; if (alive(e)&&e.taunted.until>state.tick && alive(a) && a.place===e.place && a.owner!==e.owner) { if(e.buffs?.stunned?.until>state.tick)e.anim='idle';else attackStep(e, unit, a); return true; } delete e.taunted; }
     if (!isEnforcer(e) || !alive(e) || e.deployment?.transfer || e.deployment?.scattered || e.holdFire || e.smokePassive || e.execute || e.crewJob || e.buffs?.stunned?.until>state.tick) return false;
     const R={...TAUNT,...rules,...rulesFor(e)};
-    if(R.engagementOnly&&(e.order?.kind==='stop'||!engagementTarget(e)))return false;
+    const want=castWanted(state,e);   // asked for by the player: now, whatever he was doing, also with auto off
+    if(!want&&!autoOn(e))return false;
+    if(!want&&R.engagementOnly&&(e.order?.kind==='stop'||!engagementTarget(e)))return false;
     const moving = (e.order?.kind === 'move' && !e.order.arrived && !e.order.duty) || ['enter', 'heal', 'loot'].includes(e.order?.kind) || (e.order?.kind==='follow'&&e.order.regrouping);
-    if(moving){if(e.taunt)e.taunt.castUntil=state.tick;return false;}
+    if(moving&&!want){if(e.taunt)e.taunt.castUntil=state.tick;return false;}
     if ((e.taunt?.readyAt ?? 0) <= state.tick && bellow(e)) {
-      e.anim = 'taunt';
+      e.anim = 'taunt'; delete e.castReq;
       // The effect lands before pursuit; no channel or animation movement lock.
       const target=state.entities[e.taunt.target];
       if(target&&e.order?.kind!=='stop')attackStep(e,unit,target);

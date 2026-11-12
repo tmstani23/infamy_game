@@ -233,7 +233,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         if (e.cannon) continue;   // the salute's cast plays the boom
         const v = near(me, e.x, e.z, e.place);
-        if(e.model==='archer'||e.type==='shinobi_geisha')continue; // ranged cue is emitted at projectile release
+        if(e.model==='archer'||e.type==='shinobi_geisha'||e.model==='cannon_field'||e.model==='cannon_wooden'||e.model==='fire_bomber')continue; // ranged cue is emitted at projectile release
         if (SWORDS.has(e.model)) swordSlash(0.35*v);
         else if (SPEARS.has(e.model)) {
           // These clips contain the complete thrust. Special attacks have their
@@ -263,6 +263,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if(c.kind==='bullet')play('rifle_shot_1',.5*v,1.05);   // war army rifleman (units.json army_rifleman): the Teppo shot, a little lighter
         if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
+        if(c.kind==='dogsLoose')play(pickCustom('horse_whistle_1'),.45*v,1.2);   // he whistles them off
+        if(c.kind==='dogsBite')variant('club_thud_1',.5*v,1.15);   // the dog handler's pack lands (sim/dogs.js); stand-in until a bark and bite clip is supplied
+        if(c.kind==='firebombBurst')play(pickCustom('dynamite_1'),.3*v,1.5);   // fire-bomb thrower (war checkpoint 7-2): a smaller, sharper burst
         if (ABILITY_CUE[c.kind] && a?.type === 'hero') variant(ABILITY_CUE[c.kind][0], 0.55 * v, ABILITY_CUE[c.kind][1]);
         if(c.kind==='shakedownSuccess'||c.kind==='sweepSuccess')play(pickCustom('loot_coins_1'),.65*v);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);

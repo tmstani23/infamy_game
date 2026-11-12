@@ -3,7 +3,7 @@
 import { distractionStep } from './distraction.js';
 import { stunned } from './kuroda.js';
 import { DOOR_RADIUS } from './game.js';
-export function createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
+export function createCrewStep({ gatling = { step: () => false }, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
   function crewStep(e, unit) {
     if(e.crewJob&&(e.dead||e.downed||e.jailed||e.deployment?.transfer||stunned(e,state.tick)))crewJobs.cancel(e);
     if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
@@ -21,6 +21,7 @@ export function createCrewStep({ assignments, blockOffset, botExecute, businesse
     if (deployment.travelStep(e, unit)) return;
     if(crewJobs.step(e,unit))return;
     if (e.taunted && taunt.step(e, unit)) return;
+    if (gatling.step(e, unit)) return;   // war checkpoint 7-4: a Gatling crew sets up, fires and packs up on its own (sim/gatling.js)
     if (shakedown.step(e, unit) || sweep.step(e, unit)) return;
     if (sectorRecovery.step(e, unit)) return;
     if (assignments.avoidCamping(e,unit)) return;

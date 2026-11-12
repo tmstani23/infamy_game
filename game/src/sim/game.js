@@ -42,7 +42,10 @@ import { createSweep } from './sweep.js';
 import { createDiversion } from './diversion.js';
 import { charmProtected,allowCharmAttack } from './charm_rules.js';
 import { createRifleman } from './rifleman.js';
+import { createGatling } from './gatling.js';   // war checkpoint 7-4: the Kuroda Gatling gun crew
+import { createDogs } from './dogs.js';   // war checkpoint 7-3: the Yakuza dog handler
 import { createTaunt } from './taunt.js';
+import { specialCommand } from './special_cast.js';
 import { createSectorRecovery } from './sector_recovery.js';
 import { createShinobiIntelligence } from './shinobi_intelligence.js';
 import { clearSight } from './perception.js';
@@ -236,7 +239,7 @@ export function createGame(options) {
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
   const opaqueStreet = scenery.filter(s => s.solid && !s.indoor && s.item?.kind === 'buildings').map(s => s.solid);
-  const stealth = createStealth({ state, scenery, rooms, rules: units?.rules?.stealth,
+  const stealth = createStealth({ inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length, warRules: e => units?.types?.[e?.type]?.kunoichi || null, detectOf: e => units?.types?.[e?.type]?.detect || 0, towers: () => frontier?.structures?.watchers?.() || [], state, scenery, rooms, rules: units?.rules?.stealth,
     observerKnown: (e, u) => vision.canSee(e.owner, u),
     lineOfSight: (a, b) => clearSight(a, b, a.place === 'street' ? opaqueStreet : [...roomBlockers, ...interiorDoors.filter(d => d.place === a.place && !state.interiorDoors[d.id]).map(d => d.blocker)]),
     say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
@@ -335,6 +338,8 @@ export function createGame(options) {
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), canOccupy: (e, x, z, p) => deployment.canOccupy(e, x, z, p),
     fightTarget: id => fight[id]?.target, inCombat: e => !!fight[e.id]?.target, rules: units?.types?.kuroda_rifleman?.rifle, inRally: e => rally.participating(e),
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
+  const dogs = createDogs({ state, units, vision, spawn: (...a) => spawn(...a), hit: (...a) => hit(...a), hostile: (a, b) => hostile(a, b), allowed: (a, b) => attackAllowed(a, b), reveal: (e, v) => stealth.reveal(e, v) });
+  const gatling = createGatling({ state, units, vision, paths, hit: (...a) => hit(...a), moveTo: (...a) => moveTo(...a), hostile: (a, b) => hostile(a, b), allowed: (a, b) => attackAllowed(a, b), reveal: (e, v) => stealth.reveal(e, v) });
   const taunt = createTaunt({ state, vision, rulesFor:e=>units.types[e?.type]?.taunt, engagementTarget:e=>crewTarget(e), reveal:(e,v)=>stealth.reveal(e,v),allowed:(a,b)=>attackAllowed(a,b)&&sees(a,b), hostile: (a, b) => hostile(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, fightTarget: id => fight[id]?.target, rules: units?.types?.yakuza_enforcer?.taunt,
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
@@ -402,7 +407,7 @@ export function createGame(options) {
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
   // (night bandits) are not limited.
   // a hidden ninja (sim/stealth.js) is seen by nobody but its own side
-  const sees = (a, b) => !(b?.hidden && b.owner !== a.owner) && !(b && blind(a, b)) && (!state.clans?.[a.owner] || vision.canSee(a.owner, b));
+  const sees = (a, b) => !(b?.hidden && b.owner !== a.owner && !(b.detectedBy?.[a.owner] > state.tick)) && !(b && blind(a, b)) && (!state.clans?.[a.owner] || vision.canSee(a.owner, b));
   const reachOf = (a, b) => (statsOf(a).attackRange || 1) + statsOf(b).radius;
 
   // City decisions at a lower rate while no player is in the city (lag step 1, Tim 2026-11-05).
@@ -588,10 +593,10 @@ export function createGame(options) {
   // and scenery keep their places. Each place separately: street and island coordinates overlap
   const looseOnIsland = e => e.owner && !e.aboard && !e.guide && !e.garrison && e.type !== 'horse' && e.type !== 'omnibus' && e.type !== 'rickshaw';
   function separate() {
-    const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed);
+    const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed && !e.pack);
     separateUnits(all.filter(e => e.place === 'street'),e=>statsOf(e).radius,tryMove);
     const island = all.filter(e => e.place === 'world' && looseOnIsland(e));
-    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),tryMove);   // war cavalry carry their own radius (units.json)
+    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),tryMove,e=>statsOf(e).weight||1);   // war cavalry carry their own radius (units.json)
   }
 
   // Spawn a unit just outside a building's door, on a spot that is free of walls and
@@ -779,7 +784,7 @@ export function createGame(options) {
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
   const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
-  frontier?.attach({moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
+  frontier?.attach({unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -1013,6 +1018,17 @@ export function createGame(options) {
       if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
+      // war checkpoint 7-1: a special ability of selected crew or troops cast by the player, or its auto switch (sim/special_cast.js)
+      if (c.type === 'special' && e.type === 'hero' && !e.dead && !e.downed && !e.jailed) {
+        specialCommand({ state, units }, e, c);
+        // the slowing arrow rides on the archer's next shot: send the asked ones at the enemy nearest the spot
+        if (c.ability === 'hamstring' && typeof c.auto !== 'boolean' && Number.isFinite(c.x) && Number.isFinite(c.z)) {
+          const who = (c.units || []).filter(id => { const u = state.entities[id]; return u?.owner === e.owner && u.castReq?.until > state.tick && u.castReq.x === c.x && u.castReq.z === c.z; });
+          let best = null, bd = 4;
+          for (const t of who.length ? Object.values(state.entities) : []) { const a = state.entities[who[0]]; if (t.dead || t.downed || t.owner === e.owner || t.place !== a.place || t.type === 'civilian' || t.cop || !hostile(a, t)) continue; const d = Math.hypot(t.x - c.x, t.z - c.z); if (d < bd) { bd = d; best = t; } }
+          if (best) giveOrder(e, { id: e.id, type: 'order', kind: 'attack', target: best.id, units: who }); else for (const id of who) delete state.entities[id].castReq;
+        }
+      }
       if (c.type === 'unstuck') unstuck.command(e);   // a stuck hero back to his hideout (sim/unstuck.js)
       if (c.type === 'snuff') stealth.snuff(e, c.prop);   // a Shinobi boss puts out a lantern (sim/stealth.js)
       if((c.type==='execute'||c.type==='loot')&&c.crewJob&&e.type==='hero'){
@@ -1080,6 +1096,7 @@ export function createGame(options) {
     for (const f of Object.values(fight)) f.cd = Math.max(0, f.cd - DT);
     for (const e of Object.values(state.entities)) {
       const unit = statsOf(e);
+      if (e.pack) continue;   // a dog handler's loosed dog (sim/dogs.js moves it)
       if (e.type === 'civilian' || e.wild || e.cop) continue;   // townsfolk, bandits and police move in their own ticks below
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
@@ -1201,6 +1218,7 @@ export function createGame(options) {
     diversion.tick();
     taunt.tick();
     combat.projectileTick();
+    dogs.tick();
     // Losing sight drops the lock, queued swing and crew assignment immediately,
     // including while a hero is moving. Revealing the target does not reacquire it.
     for (const e of Object.values(state.entities)) {
@@ -1281,7 +1299,7 @@ export function createGame(options) {
   const heroAbilities = createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild });
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ gateNav: e => frontier?.structures?.gateNav(e) || null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
-  const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
+  const crewSteps = createCrewStep({ gatling, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
   const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---

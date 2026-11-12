@@ -11,6 +11,7 @@ import { dirIndex } from './geometry.js';
 import { createFlee } from './flee.js';
 import { WILD } from './bandits.js';
 import { alive, dist } from './util.js';
+import { castWanted, autoOn } from './special_cast.js';   // war checkpoint 7-1: auto switch and a cast the player asked for
 
 export const RIFLE = { range: 10, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
@@ -25,12 +26,14 @@ export function createRifleman({ state, vision, hit, stun, clearLine, clearComba
     && vision.canSee(e.owner, t) && dist(e, t) <= R.range && clearLine(e, t);
   function pick(e) {
     const ordered = e.order?.kind === 'attack' && state.entities[e.order.target];
-    if (ordered) return shootable(e, ordered) ? ordered : null;
+    const want = castWanted(state, e);   // asked for by the player: the shootable enemy nearest that spot
+    if (ordered && !want) return shootable(e, ordered) ? ordered : null;
     const mine = Object.values(state.entities).filter(u => u.owner === e.owner && alive(u) && u.place === e.place);
     let best = null, bestScore = Infinity;
     for (const t of Object.values(state.entities)) {
       if (!shootable(e, t)) continue;
-      const score = (mine.some(u => targets(t, u.id)) ? 0 : 100) + dist(e, t);
+      // an asked-for shot goes to the enemy nearest the spot that no other rifleman of ours is already aiming at
+      const score = want ? Math.hypot(t.x - want.x, t.z - want.z) + (mine.some(u => u !== e && u.rifle?.aim?.target === t.id) ? 1000 : 0) : (mine.some(u => targets(t, u.id)) ? 0 : 100) + dist(e, t);
       if (score < bestScore) { bestScore = score; best = t; }
     }
     return best;
@@ -75,7 +78,7 @@ export function createRifleman({ state, vision, hit, stun, clearLine, clearComba
     const r = e.rifle ||= { readyAt: 0 };
     // in the hero group he moves like any other crew member; your move-type orders always come first
     const moving = (e.order?.kind === 'move' && !e.order.arrived) || ['enter', 'heal', 'loot'].includes(e.order?.kind);
-    if (moving) { spoil(e); return false; }
+    if (moving && !castWanted(state, e)) { spoil(e); return false; }
     if (onDuty(e) && skirmish(e, unit, r)) return true;
     // A loaded attack opens with the gun even at close range. Melee is available
     // while reloading; attack-move may stop to fire just like an explicit attack.
@@ -97,8 +100,11 @@ export function createRifleman({ state, vision, hit, stun, clearLine, clearComba
       if (od <= R.range && shootable(e, ordered)) { clearCombat(e); e.dir = dirIndex(ordered.x - e.x, ordered.z - e.z); e.anim = since < 70 ? 'reload' : 'idle'; return true; }   // ordered: reload in place
       return false;
     }
+    // auto off: he only aims when the player asks (an attack order on a target still shoots it)
+    if (!autoOn(e) && !castWanted(state, e) && e.order?.kind !== 'attack') return false;
     const t = pick(e);
     if (!t) return false;
+    delete e.castReq;
     r.aim = { target: t.id, until: state.tick + R.aimTicks, at: state.tick };
     clearCombat(e); e.dir = dirIndex(t.x - e.x, t.z - e.z); e.anim = 'aim';
     return true;

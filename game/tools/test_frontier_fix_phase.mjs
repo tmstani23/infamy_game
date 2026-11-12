@@ -37,7 +37,9 @@ const spot={id:'tree',x:s.x+44,z:s.z,kind:'timber',pieces:[[0,0]]},idx=makeSpotI
 const {createPlacement}=await import('../src/sim/frontier/placement.js');
 assert.match(createPlacement({data,resourceIndex:idx}).check(s,{kind:'quarry',cells:[C+4]}).reason,/resource area/);
 const g={n:5,cell:11,ground:'c'.repeat(25),zone:'.'.repeat(25),stage:'0'.repeat(25),use:'......ww...w.............'};
-const corners=townCellsToProps(g,data.townArt).filter(p=>p.cell===6 && p.art==='bamboo_fence');
+// the 45-degree corner connector is the rule for walls without a corner post (the fence stand-in); with a post the runs meet square
+const fenceArt={...data.townArt,_walls:{...data.townArt._walls,w:{art:'bamboo_fence',count:4,scale:1}}};
+const corners=townCellsToProps(g,fenceArt).filter(p=>p.cell===6 && p.art==='bamboo_fence');
 assert.ok(corners.some(p=>p.fenceHeading && Math.abs(p.fenceHeading[0])===Math.abs(p.fenceHeading[1])),'corner connector follows a 45-degree ground segment');
 assert.ok(corners.every(p=>p.x>=-11 && p.z>=-11),'corner never sprouts into its two unconnected directions');
 const roads=townCellsToProps({...g,use:put('.'.repeat(25),12,'r')},data.townArt).filter(p=>p.key.includes(':road'));

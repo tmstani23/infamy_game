@@ -248,7 +248,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   // every roster unit is trained somewhere, and war-only types are never for hire in the city
   for (const [id, u] of Object.entries(U)) if (id !== '_note') {
     assert.ok(u.at?.length && u.ryo > 0 && u.trainTicks > 0, `${id} has a building, ryo and train time`);
-    for (const fct of ['yakuza', 'kuroda', 'shinobi']) {
+    for (const fct of u.clan ? [u.clan] : ['yakuza', 'kuroda', 'shinobi']) {   // a clan special (checkpoint 7) only needs its own clan's body
       const t = typeof u.type === 'string' ? u.type : u.type[fct];
       assert.ok(types[t], `${id}: ${t} is a units.json type`);
       assert.ok(u.model?.[fct], `${id} has a ${fct} body`);
@@ -258,6 +258,14 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   assert.deepEqual(war.trainsAt('barracks').sort(), ['brute', 'enforcer', 'grunt'], 'enforcers train at the barracks (Tim 2026-11-11)');
   assert.deepEqual(war.trainsAt('rifle_range').sort(), ['archer', 'rifleman']);
   assert.deepEqual(war.trainsAt('stable').sort(), ['mounted_pikeman', 'sword_rider']);
+  // checkpoint 7-1: the clan hall trains only the camp clan's own specials
+  assert.deepEqual(war.trainsAt('clan_hall').sort(), ['geisha', 'irezumi', 'teppo', 'yumi']);
+  // 7-3: clan-only camp buildings (kennel = Yakuza, hidden dojo = Shinobi) show only for their clan
+  { const fac = g.state.clans[rec.attacker].faction, types = war.campBuildList(rec.id).map(x => x.type);
+    assert.equal(types.includes('kennel'), fac === 'yakuza'); assert.equal(types.includes('hidden_dojo'), fac === 'shinobi'); assert.ok(types.includes('clan_hall'));
+    assert.deepEqual(war.trainsAt('kennel'), ['dog_handler']); }
+  { const mineSpecials = war.trainsAt('clan_hall', rec.attacker), fac = g.state.clans[rec.attacker].faction;
+    assert.ok(mineSpecials.length >= 1 && mineSpecials.every(u => W.units[u].clan === fac), `only ${fac} specials: ${mineSpecials}`); }
   // archers fire faster at shorter range, riflemen slower, harder, farther; similar damage per second
   { const a = types.army_archer, r = types.army_rifleman, dps = t => t.damage / t.attackSpeed;
     assert.ok(a.attackSpeed < r.attackSpeed && a.attackRange < r.attackRange && a.damage < r.damage && !a.projectile.hamstring && !r.rifle);

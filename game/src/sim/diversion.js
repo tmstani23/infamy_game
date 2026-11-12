@@ -1,4 +1,5 @@
 // Geisha: a defensive charm takes priority over melee; other crew use ordinary combat.
+import { castWanted, autoOn } from './special_cast.js';   // war checkpoint 7-1: auto switch and a cast the player asked for
 export const DIVERSION={radius:6,durationTicks:120,cooldownTicks:200,castTicks:20,snareSpeed:.25,castLeash:1.5};
 export function createDiversion({state,deployment,vision,thinksNow=()=>true,decide=(k,e,search)=>search(),reveal,clearCombat,hostile=()=>false,
   attackStep=()=>{},moveTo=()=>false,nearestFree=(x,z)=>[x,z],fightTarget=()=>null,clearLine=()=>true,onCharmed=()=>{}}){
@@ -25,13 +26,16 @@ export function createDiversion({state,deployment,vision,thinksNow=()=>true,deci
   function release(t){const d=t.distracted;if(!d?.source)return;
     if(t.order?.charmed===d.at)t.order=d.prevOrder||{kind:'stop'};delete t.distracted;clearCombat(t);
   }
-  function begin(e){
+  // want = a cast the player asked for at a spot: the valid enemy nearest that spot, whoever it is fighting
+  function begin(e,want=null){
     const allies=team(e),hero=allies.find(a=>a.type==='hero');
     const candidates=Object.values(state.entities).filter(t=>valid(e,t)&&!(t.buffs?.charmSnare?.until>state.tick)
-      &&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));
+      &&(want||allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));
     const distance=t=>Math.min(...allies.map(a=>Math.hypot(a.x-t.x,a.z-t.z)));
     candidates.sort((a,b)=>{const rank=t=>targets(t,e.id)?0:hero&&targets(t,hero.id)?1:2;return rank(a)-rank(b)||distance(a)-distance(b)||(String(a.id)<String(b.id)?-1:1);});
+    if(want)candidates.sort((a,b)=>Math.hypot(a.x-want.x,a.z-want.z)-Math.hypot(b.x-want.x,b.z-want.z)||(String(a.id)<String(b.id)?-1:1));
     const t=candidates[0];if(!t)return false;
+    delete e.castReq;
     clearCombat(e);e.anim='dance';
     e.lure={target:t.id,readyAt:state.tick+DIVERSION.cooldownTicks,castUntil:state.tick+DIVERSION.castTicks,casting:true};
     (e.buffs||={}).charming={start:state.tick,until:e.lure.castUntil};
@@ -61,7 +65,7 @@ export function createDiversion({state,deployment,vision,thinksNow=()=>true,deci
       t.distracted={source:e.id,clan:e.owner,x:t.x,z:t.z,place:t.place,at:state.tick,until:state.tick+DIVERSION.durationTicks,prevOrder:t.order?structuredClone(t.order):null};
       t.order={kind:'stop',charmed:state.tick};onCharmed(t,e.owner);return true;
     }
-    if((e.lure?.readyAt??0)<=state.tick&&thinksNow(e)&&begin(e))return true;
+    {const want=castWanted(state,e);if((e.lure?.readyAt??0)<=state.tick&&(want?begin(e,want):autoOn(e)&&thinksNow(e)&&begin(e)))return true;}
     if(e.order?.kind!=='attack'){const foe=decide('geishaFoe',e,()=>{const allies=team(e),foes=Object.values(state.entities).filter(t=>alive(t)&&t.place===e.place&&hostile(e,t)&&(!t.cop||t.wave)&&vision.canSee(e.owner,t)&&Math.hypot(t.x-e.x,t.z-e.z)<=DIVERSION.radius&&(allies.some(a=>targets(t,a.id))||targets(e,t.id)||['attackmove','station'].includes(e.order?.kind)));foes.sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z));return foes[0]||null;},t=>alive(t)&&t.place===e.place&&hostile(e,t));if(foe){attackStep(e,unit,foe);return true;}}
     return false;
   }

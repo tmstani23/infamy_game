@@ -11,8 +11,8 @@ export function createCrewFx({scene,spriteOf}){
   const visible=id=>!!spriteOf(id)?.thing.mesh.visible;
   function ring(radius,color){const m=add(new THREE.RingGeometry(radius-.04,radius+.04,40),color);m.rotation.x=-Math.PI/2;return m;}
   function shot(p){
-    const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.hamstring?0x8affcb:0xe5c882;
-    const shaft=new THREE.Mesh(p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.012,.012,.9,4):new THREE.CylinderGeometry(.022,.022,.65,5),material(color));   // bullet: thin tracer (war riflemen)group.add(shaft);
+    const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:0xe5c882;
+    const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(.17,8,6):p.kind==='firebomb'?new THREE.SphereGeometry(.12,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.012,.012,.9,4):new THREE.CylinderGeometry(.022,.022,.65,5),material(color));   // bullet: thin tracer (war riflemen)group.add(shaft);
     if(p.kind==='arrow'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.07,.19,5),material(color));tip.position.y=.4;group.add(tip);}
     const trail=new THREE.Mesh(new THREE.CylinderGeometry(.015,.005,p.hamstring?.9:.45,5),material(color));trail.position.y=-.6;trail.material.opacity=.35;group.add(trail);
     scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
@@ -23,6 +23,8 @@ export function createCrewFx({scene,spriteOf}){
       if(!visible(c.a))return;
       if(c.kind==='boarded'){for(const radius of [1.6,2.4]){const m=ring(radius,0xffd34d);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.5,expand:true});}}
       if(c.kind==='refuseMount'){for(const radius of [1.1,1.6]){const m=ring(radius,0xff5a3c);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.55,expand:true});}}
+      if(c.kind==='dogsGone'){const m=ring(.45,0xcbb48a);m.position.set(c.x,.12,c.z);bursts.push({mesh:m,time:0,life:.45,expand:true});}   // a loosed dog vanishes in a dust puff (sim/dogs.js)
+      if(c.kind==='dogsBite'){const m=ring(.7,0xff6a4a);m.position.set(c.x,.14,c.z);bursts.push({mesh:m,time:0,life:.4});}
       if(c.kind==='hamstringHit'){
         const m=ring(.9,0x83ffd1);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.6});
       }
@@ -56,7 +58,7 @@ export function createCrewFx({scene,spriteOf}){
         v.elapsed=Math.max(v.elapsed+dt*20,state.tick-p.at-1);
         const u=Math.min(1,v.elapsed/(p.until-p.at)),dx=p.tx-p.x,dz=p.tz-p.z;
         // A shallow arc remains readable without making a close shot look lobbed.
-        v.mesh.position.set(p.x+dx*u,1.2+.25*Math.sin(Math.PI*u),p.z+dz*u);
+        v.mesh.position.set(p.x+dx*u,1.2+(p.kind==='firebomb'?1.6:p.kind==='cannonball'?.8:.25)*Math.sin(Math.PI*u),p.z+dz*u);   // bombs and cannon balls are lobbed
         direction.set(dx,.25*Math.PI*Math.cos(Math.PI*u),dz).normalize();v.mesh.quaternion.setFromUnitVectors(up,direction);
       }
       for(const [key,v] of shots)if(!present.has(key)){remove(v.mesh);shots.delete(key);}

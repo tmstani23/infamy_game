@@ -2163,6 +2163,38 @@
     223,
     72
    ]
+  ],
+  "blocks": [
+   [
+    -160.5,
+    -202.9,
+    26.8,
+    -169.1
+   ],
+   [
+    53.5,
+    -202.9,
+    80.3,
+    -169.1
+   ],
+   [
+    -160.5,
+    -169.1,
+    160.5,
+    135.3
+   ],
+   [
+    -133.8,
+    135.3,
+    160.5,
+    169.1
+   ],
+   [
+    -80.3,
+    169.1,
+    -26.8,
+    202.9
+   ]
   ]
  },
  "buildings/longhouse": {
@@ -4387,7 +4419,45 @@
   "right": 248,
   "bottomX": 196,
   "bottomY": 270,
-  "glows": []
+  "glows": [],
+  "blocks": [
+   [
+    -137.9,
+    -36.8,
+    91.9,
+    -30.6
+   ],
+   [
+    -137.9,
+    -30.6,
+    114.9,
+    -12.3
+   ],
+   [
+    -137.9,
+    -12.3,
+    137.9,
+    18.4
+   ],
+   [
+    -114.9,
+    18.4,
+    137.9,
+    24.5
+   ],
+   [
+    23.0,
+    24.5,
+    46.0,
+    30.6
+   ],
+   [
+    68.9,
+    24.5,
+    137.9,
+    30.6
+   ]
+  ]
  },
  "buildings/gate_x": {
   "w": 367,
@@ -4396,7 +4466,45 @@
   "right": 363,
   "bottomX": 340,
   "bottomY": 342,
-  "glows": []
+  "glows": [],
+  "blocks": [
+   [
+    -159.3,
+    -16.3,
+    119.5,
+    -2.7
+   ],
+   [
+    -159.3,
+    -2.7,
+    159.3,
+    0.0
+   ],
+   [
+    -159.3,
+    0.0,
+    199.2,
+    8.1
+   ],
+   [
+    -119.5,
+    8.1,
+    239.0,
+    10.8
+   ],
+   [
+    -119.5,
+    10.8,
+    -79.7,
+    13.6
+   ],
+   [
+    39.8,
+    10.8,
+    199.2,
+    16.3
+   ]
+  ]
  },
  "buildings/gate_z": {
   "w": 367,
@@ -4765,7 +4873,39 @@
   "right": 329,
   "bottomX": 139,
   "bottomY": 244,
-  "glows": []
+  "glows": [],
+  "blocks": [
+   [
+    -81.9,
+    -44.8,
+    32.8,
+    -22.4
+   ],
+   [
+    -81.9,
+    -22.4,
+    98.3,
+    67.2
+   ],
+   [
+    -81.9,
+    67.2,
+    81.9,
+    89.6
+   ],
+   [
+    -65.5,
+    89.6,
+    81.9,
+    112.0
+   ],
+   [
+    -49.1,
+    112.0,
+    -32.8,
+    134.4
+   ]
+  ]
  },
  "buildings/war_banner": {
   "w": 72,
@@ -4830,12 +4970,176 @@
   "bottomY": 377,
   "glows": []
  },
- "buildings/ruin_wall": {"w":320,"h":215,"left":0,"right":319,"bottomX":164,"bottomY":214,"glows":[]},
- "buildings/ruin_gate": {"w":340,"h":314,"left":0,"right":339,"bottomX":122,"bottomY":313,"glows":[]},
- "buildings/ruin_palisade": {"w":300,"h":245,"left":0,"right":299,"bottomX":93,"bottomY":244,"glows":[]},
- "buildings/ruin_palisade_gate": {"w":340,"h":261,"left":0,"right":339,"bottomX":181,"bottomY":260,"glows":[]},
- "buildings/ruin_house": {"w":320,"h":286,"left":0,"right":319,"bottomX":193,"bottomY":285,"glows":[]},
- "buildings/ruin_hall": {"w":480,"h":342,"left":0,"right":478,"bottomX":212,"bottomY":341,"glows":[]},
- "buildings/ruin_watchtower": {"w":300,"h":334,"left":0,"right":299,"bottomX":226,"bottomY":333,"glows":[]},
- "buildings/ruin_tent": {"w":320,"h":210,"left":0,"right":319,"bottomX":171,"bottomY":209,"glows":[]}
+ "buildings/ruin_wall": {
+  "w": 320,
+  "h": 215,
+  "left": 0,
+  "right": 319,
+  "bottomX": 164,
+  "bottomY": 214,
+  "glows": []
+ },
+ "buildings/ruin_gate": {
+  "w": 340,
+  "h": 314,
+  "left": 0,
+  "right": 339,
+  "bottomX": 122,
+  "bottomY": 313,
+  "glows": []
+ },
+ "buildings/ruin_palisade": {
+  "w": 300,
+  "h": 245,
+  "left": 0,
+  "right": 299,
+  "bottomX": 93,
+  "bottomY": 244,
+  "glows": []
+ },
+ "buildings/ruin_palisade_gate": {
+  "w": 340,
+  "h": 261,
+  "left": 0,
+  "right": 339,
+  "bottomX": 181,
+  "bottomY": 260,
+  "glows": []
+ },
+ "buildings/ruin_house": {
+  "w": 320,
+  "h": 286,
+  "left": 0,
+  "right": 319,
+  "bottomX": 193,
+  "bottomY": 285,
+  "glows": []
+ },
+ "buildings/ruin_hall": {
+  "w": 480,
+  "h": 342,
+  "left": 0,
+  "right": 478,
+  "bottomX": 212,
+  "bottomY": 341,
+  "glows": []
+ },
+ "buildings/ruin_watchtower": {
+  "w": 300,
+  "h": 334,
+  "left": 0,
+  "right": 299,
+  "bottomX": 226,
+  "bottomY": 333,
+  "glows": []
+ },
+ "buildings/ruin_tent": {
+  "w": 320,
+  "h": 210,
+  "left": 0,
+  "right": 319,
+  "bottomX": 171,
+  "bottomY": 209,
+  "glows": []
+ },
+ "buildings/town_wall": {
+  "w": 330,
+  "h": 257,
+  "left": 0,
+  "right": 329,
+  "bottomX": 36,
+  "bottomY": 256,
+  "glows": []
+ },
+ "buildings/town_wall_post": {
+  "w": 150,
+  "h": 251,
+  "left": 1,
+  "right": 149,
+  "bottomX": 71,
+  "bottomY": 250,
+  "glows": []
+ },
+ "buildings/town_gate": {
+  "w": 400,
+  "h": 299,
+  "left": 0,
+  "right": 399,
+  "bottomX": 42,
+  "bottomY": 298,
+  "glows": []
+ },
+ "buildings/town_watchtower": {
+  "w": 300,
+  "h": 490,
+  "left": 0,
+  "right": 299,
+  "bottomX": 146,
+  "bottomY": 489,
+  "glows": []
+ },
+ "buildings/war_armory": {
+  "w": 400,
+  "h": 321,
+  "left": 0,
+  "right": 398,
+  "bottomX": 140,
+  "bottomY": 319,
+  "glows": [],
+  "blocks": [
+   [
+    -0.0,
+    -91.2,
+    99.0,
+    -30.4
+   ],
+   [
+    -0.0,
+    -30.4,
+    82.5,
+    152.0
+   ],
+   [
+    -0.0,
+    152.0,
+    66.0,
+    182.4
+   ]
+  ]
+ },
+ "buildings/field_clinic": {
+  "w": 400,
+  "h": 290,
+  "left": 1,
+  "right": 399,
+  "bottomX": 295,
+  "bottomY": 289,
+  "glows": [],
+  "blocks": [
+   [
+    -173.2,
+    -73.5,
+    103.9,
+    -61.3
+   ],
+   [
+    -173.2,
+    -61.3,
+    138.6,
+    36.8
+   ],
+   [
+    -138.6,
+    36.8,
+    138.6,
+    61.3
+   ],
+   [
+    -138.6,
+    61.3,
+    103.9,
+    73.5
+   ]
+  ]
+ }
 }

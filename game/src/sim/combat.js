@@ -5,14 +5,16 @@ import { dirIndex } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
 import { ownerIndex, spatialIndex } from './util.js';
+import { castWanted, autoOn } from './special_cast.js';   // war checkpoint 7-1: auto switch and a cast the player asked for
 export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true, onDefeat=()=>{}, shelter=()=>false }) {
   state.projectiles||=[];
   function launch(e,t,unit){
-    const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian';
-    if(hamstring)e.hamstringReadyAt=state.tick+r.hamstring.cooldownTicks;
+    const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian'&&(autoOn(e)||!!castWanted(state,e));
+    if(hamstring){e.hamstringReadyAt=state.tick+r.hamstring.cooldownTicks;delete e.castReq;}
     const duration=Math.max(2,Math.ceil(Math.hypot(t.x-e.x,t.z-e.z)/r.speed*20)),crit=rng()<stats.criticalChance(e);
     const p={kind:r.kind,a:e.id,t:t.id,x:e.x,z:e.z,tx:t.x,tz:t.z,place:e.place,at:state.tick,until:state.tick+duration,damage:Math.round(stats.damage(e)*(crit?unit.critMultiplier||2:1)),crit,hamstring};
     state.projectiles.push(p);state.casts.push({...p,kind:r.kind,flightTicks:duration});stealth.reveal(e,true);
+    if(unit.siege)state.casts.push({kind:'cannonFire',a:e.id,x:e.x,z:e.z,place:e.place,dir:e.dir||0,brass:!!unit.brass});   // war cannon (7-2): the salute's flash and boom
   }
   function projectileTick(){
     const due=state.projectiles.filter(p=>p.until<=state.tick);state.projectiles=state.projectiles.filter(p=>p.until>state.tick);
@@ -20,6 +22,10 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       if(!a||a.dead||a.downed||a.jailed||!t||a.place!==p.place||t.place!==p.place||!attackAllowed(a,t)||!sees(a,t)||!clearShot(a,t))continue;
       if(rng()<stats.dodgeChance(t)){state.dodges.push({a:a.id,t:t.id,x:t.x,z:t.z});continue;}
       const hp=t.hp;hit(a,t,p.damage,p.crit,p.kind);
+      // a fire bomb (war checkpoint 7-2): everyone hostile around the target takes a share; bombs stack
+      const area=stats.base(a).projectile?.area;
+      if(area){state.casts.push({kind:'firebombBurst',a:a.id,x:t.x,z:t.z,place:p.place,radius:area.radius});
+        for(const o of Object.values(state.entities)){if(o===t||o.dead||o.downed||o.place!==p.place||o.owner===a.owner||Math.hypot(o.x-t.x,o.z-t.z)>area.radius||!attackAllowed(a,o))continue;hit(a,o,Math.round(p.damage*(area.share??0.5)),false,p.kind);}}
       if(p.hamstring&&t.hp<hp&&!t.dead&&!t.downed){const r=stats.base(a).projectile.hamstring,old=t.buffs?.snared;
         (t.buffs||={}).snared={until:Math.max(old?.until||0,state.tick+r.durationTicks),speed:Math.min(old?.until>state.tick?old.speed??1:1,r.speed),hamstring:true};
         state.casts.push({kind:'hamstringHit',a:a.id,t:t.id,x:t.x,z:t.z,place:t.place});
@@ -139,7 +145,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       const t = state.entities[o.target];
       // A deliberate order keeps tracking a visible-at-order-time enemy across fog and screens.
       // Stealth still breaks the lock; a recall or new order replaces it.
-      if (attackAllowed(e, t) && !(t.hidden && t.owner !== e.owner)) return t;
+      if (attackAllowed(e, t) && !(t.hidden && t.owner !== e.owner && !(t.detectedBy?.[e.owner] > state.tick))) return t;
       endAttack(e);                                    // target gone: back to the old order, or stand there
       return null;
     }
@@ -310,6 +316,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     if(t.shopkeeper||t.animal||charmProtected(a,t,state))return;   // town dogs can't be hit either (sim/civilians.js)
     if ((t.garrison || t.aboard) && shelter(t, damage, a)) return;   // inside a stockade, an omnibus or a rickshaw: it takes the hit (Tim 2026-11-06; vehicles fixed 2026-11-09)
     // Assassinate's explicit current-health rule stays exact inside a formation.
+    { const amb = stealth.ambush?.(a, t); if (amb) damage = Math.round(damage * amb); }   // a kunoichi's first hit from hiding (war checkpoint 7-5)
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
     stealth.reveal(a, true); stealth.reveal(t);   // outgoing hits consume the smoke veil; incoming hits cannot reveal it
     t.hp = Math.max(0, t.hp - damage);

@@ -49,7 +49,7 @@ export function tabTarget(state, heroId, current, seen = () => true, place = nul
   place ||= h.place;
   origin ||= h;
   const list = Object.values(state.entities)
-    .filter(e => e.owner && e.owner !== h.owner && e.owner !== POLICE && !e.hidden && !e.dead && !e.downed && !e.jailed && e.place === place && Math.hypot(e.x - origin.x, e.z - origin.z) <= TAB_RANGE && seen(e))
+    .filter(e => e.owner && e.owner !== h.owner && e.owner !== POLICE && (!e.hidden || e.detectedBy?.[h.owner] > state.tick) && !e.dead && !e.downed && !e.jailed && e.place === place && Math.hypot(e.x - origin.x, e.z - origin.z) <= TAB_RANGE && seen(e))
     .sort((a, b) => Math.hypot(a.x - origin.x, a.z - origin.z) - Math.hypot(b.x - origin.x, b.z - origin.z) || (a.id < b.id ? -1 : 1));
   if (!list.length) return null;
   const knocker = list.find(e => Object.values(state.attacks || {}).some(a => a.clan === h.owner && a.knock?.by === e.id));
@@ -64,7 +64,7 @@ export function targetMarkers(state, heroId, tabbed, seen = () => true, place = 
   const h = state.entities[heroId], S = state.entities;
   if (!h) return [];
   place ||= h.place;
-  const live = id => S[id] && !S[id].dead && !S[id].jailed && (!S[id].hidden || S[id].owner === h.owner) && S[id].place === place && seen(S[id]);
+  const live = id => S[id] && !S[id].dead && !S[id].jailed && (!S[id].hidden || S[id].owner === h.owner || S[id].detectedBy?.[h.owner] > state.tick) && S[id].place === place && seen(S[id]);
   const heroT = h.place === place && !h.dead && !h.downed && !h.jailed ? [h.attackTarget, h.swing?.target].find(live) : null;
   const crewT = new Set(Object.values(S).filter(u => u.owner === h.owner && u.type !== 'hero' && !u.guard && !u.dead && !u.downed && !u.jailed && u.place === place)
     .map(u => u.order?.kind === 'attack' ? u.order.target : u.execute?.target || u.swing?.target).filter(live));
@@ -79,6 +79,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   const groups = new Map(); // Local selection shortcuts; assignment never changes orders.
   let drag = null;
   let attackMove = false;     // X pressed: the next left-click on the ground is an attack-move
+  let shiftRight = null;      // ability_rows.js: fn({ x, z }) -> true when it took a Shift + right-click on the ground
+  let targetPick = null;      // an ability waiting for its target (ability_rows.js): { fn, id }; the next left-click on the ground goes to fn
   let tabbed = null;          // the Tab (or left-click) target: red, purple when sharing the hero's attack
   let lastClick = { id: null, t: 0 };   // for double-click to follow with the camera
   let looked = null;          // a townsperson (or other non-enemy) left-clicked to look at in the target frame
@@ -93,7 +95,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     && e.place === commandPlace() && game.omnibus.riders(e).length && !e.driver);
   const outdoors = () => commandPlace() === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
-  const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner) && (!game.vision || game.vision.canSee(hero()?.owner, e));
+  const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner || e.detectedBy?.[hero()?.owner] > game.state.tick) && (!game.vision || game.vision.canSee(hero()?.owner, e));
   function pruneTargets() {
     const gone=id=>!game.state.entities[id]||(seen(game.state.entities[id])&&(game.state.entities[id].dead||game.state.entities[id].jailed));
     if (tabbed && gone(tabbed)) tabbed = null;
@@ -234,6 +236,14 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // a loaded one with a seat free and the hero right beside it, no crew selected to get in: he gets in too (Tim 2026-11-10)
       else if (!full && !bus.driver && !hero()?.aboard && !hero()?.mounted && Math.hypot(bus.x - (hero()?.x ?? 0), bus.z - (hero()?.z ?? 0)) <= 6) send({ id: heroId, type: 'omnibus', action: 'board', omnibus: bus.id, units: [], crewOnly: false });
       return; }   // a loaded one: nothing. Getting off is only Q or a right-click on the card in the crew panel (Tim 2026-11-10)
+    // Shift + right-click (ability_rows.js): Torch on an enemy structure, when the selection can
+    if (e.button === 2 && e.shiftKey && shiftRight) { const p = view.screenToGround(e.clientX, e.clientY); if (p && shiftRight(p)) { targetPick = null; document.body.style.cursor = ''; return; } }
+    if (targetPick) {
+      const pick = targetPick;
+      targetPick = null; document.body.style.cursor = '';
+      if (e.button === 0) { const p = view.screenToGround(e.clientX, e.clientY); if (p) pick.fn(p, e); }
+      return;   // any other button only cancels the aim
+    }
     if (e.button === 0 && attackMove) {
       attackMove = false;
       document.body.style.cursor = '';
@@ -410,7 +420,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     clear() {
       const units=selected.filter(id=>game.state.deployment?.clans[hero()?.owner]?.sectors[game.state.entities[id]?.deployment?.group]);
       if(units.length)send({id:heroId,type:'deployment',action:'return',units,selectionChange:true});
-      setSelected([]); looked = null; tabbed=null; building = null; attackMove = false; document.body.style.cursor = '';
+      setSelected([]); looked = null; tabbed=null; building = null; attackMove = false; targetPick = null; document.body.style.cursor = '';
     },
     returnToDutyAndSelectHero(ids = mine()) {
       const S = game.state.entities, owner = hero()?.owner, sectors = game.state.deployment?.clans[owner]?.sectors || {};
@@ -422,10 +432,15 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const heroCrew = Object.values(S).filter(e => e.owner === owner && groupable(e.id) && e.deployment?.group === 'hero'
         && !e.deployment.transfer && !e.downed && !e.jailed).map(e => e.id);
       setSelected(heroCrew, true, units);
-      looked = null; building = null; attackMove = false; document.body.style.cursor = '';
+      looked = null; building = null; attackMove = false; targetPick = null; document.body.style.cursor = '';
     },
     cancelAction() { send({ id: heroId, type: 'cancel', units: mine() }); },
     armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
+    // an ability that needs a target: the next left-click on the ground calls fn({ x, z }); right-click or Escape cancels
+    armTarget(fn, id = true) { attackMove = false; targetPick = { fn, id }; document.body.style.cursor = 'crosshair'; },
+    targetArmed() { return targetPick?.id || null; },
+    onShiftRight(fn) { shiftRight = fn; },
+    cancelTarget() { if (!targetPick) return false; targetPick = null; document.body.style.cursor = ''; return true; },
     // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')
     stopSelected() { if (mine().length) order({ units: mine(), kind: 'stop' }); },
     followMe() { const units = mine().filter(id => ['street', hero()?.place].includes(game.state.entities[id]?.place)); if (units.length) order({ units, kind: 'follow' }); },

@@ -12,9 +12,11 @@
 // At 0 health: a building becomes stage 'ruined' (stops working and blocking; a training queue is lost),
 // a wall or gate cell becomes open ground (settlement.breaches lists them for the rubble), a zone cell
 // drops to an empty plot (stage 0) and regrows by the zone rules.
-// Torching: a melee hit sets the structure alight (one fire per structure, state.frontier.fires[key] =
-// { until, by }); the fire burns for fire.damage every second while it is fed and dies fire.lingerTicks
-// after the last melee hit.
+// Torching (checkpoint 7-0, Tim 2026-11-12): never automatic. Melee units on a Torch order (a raze order with
+// torch: true, from the Torch ability button) set the structure alight with their hits: one fire per structure,
+// state.frontier.fires[key] = { until, by, fed: { unitId: tick of its last torch hit } }. Every second the fire
+// burns for fire.damage x the units that fed it within fire.lingerTicks (at most fire.maxFeeders), and it dies
+// fire.lingerTicks after the last torch hit. A plain raze order (right-click, attack-move) only hits.
 // Order: { id: <hero id>, type: 'order', kind: 'raze', structure: <key> | x, z (the structure at that ground point),
 //   units: [crew ids], hero: true|false, fallback: 'move' | 'station' (the crew order when nothing is there) }.
 // createStructures({ state, data, world, war, garrison }) -> { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, attach }
@@ -160,7 +162,10 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   }
 
   // ---- damage, fire, ruin ------------------------------------------------------------------------
-  const kindOf = unit => unit?.siege ? 'siege' : unit?.projectile ? 'ranged' : 'melee';
+  // siege = cannons (units.json siege: true), bomb = fire-bomb throwers (projectile.bomb), checkpoint 7-2
+  const kindOf = unit => unit?.siege ? 'siege' : unit?.projectile?.bomb ? 'bomb' : unit?.projectile ? 'ranged' : 'melee';
+  // stone resists fire bombs (war.structures.stone: types and the bomb damage factor); camp palisades and gates are wood
+  const isStone = st => !st.camp && (R().stone?.types || []).includes(st.type);
   function note(st, text) {
     const w = st.camp ? war.byId(st.war) : war.warOn(st.town);
     for (const id of w ? [w.attacker, w.defender] : []) if (state.clans?.[id]) state.clans[id].notice = { tick: state.tick ?? 0, text };
@@ -191,9 +196,8 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // amount of raw damage from a clan; false when that clan may not damage it
   function damage(clan, st, amount, kind = 'melee') {
     if (!canDamage(clan, st)) return false;
-    const mult = kind === 'fire' ? 1 : R().damage?.[kind] ?? 1;
+    const mult = kind === 'fire' ? 1 : (R().damage?.[kind] ?? 1) * (kind === 'bomb' && isStone(st) ? R().stone?.bomb ?? 1 : 1);
     const hp = Math.max(0, hpOf(st) - Math.max(0, amount * mult));
-    if (kind === 'melee' && R().fire) (f().fires ||= {})[st.key] = { until: (state.tick ?? 0) + (R().fire.lingerTicks ?? 60), by: clan };
     if (hp > 0) { setHp(st, hp); return true; }
     ruin(st, clan);
     return true;
@@ -247,6 +251,18 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
+  // set it alight, or feed its fire (a torch hit; later a fire bomb): feeder = the unit's id
+  function ignite(clan, st, feeder) {
+    if (!R()?.fire || !canDamage(clan, st)) return false;
+    const now = state.tick ?? 0, fires = f().fires ||= {}, old = fires[st.key];
+    const fire = fires[st.key] = { until: now + (R().fire.lingerTicks ?? 60), by: clan, fed: old?.by === clan ? old.fed || {} : {} };
+    if (feeder != null) fire.fed[feeder] = now;
+    return true;
+  }
+  const isMelee = unit => kindOf(unit) === 'melee' && !unit?.gatling;   // a Gatling crew neither torches nor attacks structures (7-4)
+  // how many of these units could take a Torch order (the ability button's count)
+  function torchers(ids) { return (ids || []).filter(id => { const u = state.entities[id]; return u && !u.dead && !u.downed && u.place === 'world' && !u.garrison && !u.aboard && rt?.unitOf && isMelee(rt.unitOf(u)); }).length; }
+
   // ---- units attacking a structure -----------------------------------------------------------------
   function order(hero, c) {
     const st = hero && (c.structure ? find(c.structure) : Number.isFinite(c.x) && Number.isFinite(c.z) && hero.place === 'world' ? at(hero.owner, c.x, c.z, c.slack ?? 1.5) : null);
@@ -255,16 +271,41 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       delete u.swing; delete u.execute; delete u.attackTarget; delete u.holdFire;
       if (rt?.fight?.[u.id]) delete rt.fight[u.id].target;
       if (rt?.paths) delete rt.paths[u.id];
-      u.order = { kind: 'raze', structure: st.key, x: st.x, z: st.z };
+      u.order = { kind: 'raze', structure: st.key, x: st.x, z: st.z, ...(c.torch ? { torch: true } : {}) };
     };
+    // a Torch order is for melee units only; the rest of the selection keeps what it was doing
+    const can = u => !rt?.unitOf?.(u)?.gatling && (!c.torch || (rt?.unitOf ? isMelee(rt.unitOf(u)) : true));
     let n = 0;
     for (const id of Array.isArray(c.units) ? c.units : []) {
       const u = state.entities[id];
-      if (!u || u.owner !== hero.owner || u.type === 'hero' || u.dead || u.downed || u.jailed || u.place !== 'world' || u.garrison || u.aboard || u.guard || u.type === 'civilian' || u.type === 'horse') continue;
+      if (!u || u.owner !== hero.owner || u.type === 'hero' || u.dead || u.downed || u.jailed || u.place !== 'world' || u.garrison || u.aboard || u.guard || u.type === 'civilian' || u.type === 'horse' || !can(u)) continue;
       set(u); n++;
     }
-    if (c.hero && hero.type === 'hero' && !hero.dead && !hero.downed && hero.place === 'world' && !hero.aboard && !hero.garrison) { set(hero); n++; }
+    if (c.hero && hero.type === 'hero' && !hero.dead && !hero.downed && hero.place === 'world' && !hero.aboard && !hero.garrison && can(hero)) { set(hero); n++; }
     return n > 0;
+  }
+  // a ranged unit's shot at a structure (7-2): drawn as a state.projectiles entry with no target unit; the damage waits in
+  // frontier.shots = [{ key, by, a, damage, kind, at }] until it lands. A fire bomb sets wood alight (stone only takes reduced damage).
+  function shoot(e, st, unit) {
+    const now = state.tick ?? 0, pr = unit.projectile, flight = Math.max(2, Math.ceil(Math.hypot(st.x - e.x, st.z - e.z) / (pr.speed || 30) * 20));
+    (state.projectiles ||= []).push({ kind: pr.kind, a: e.id, t: null, structure: st.key, x: e.x, z: e.z, tx: st.x, tz: st.z, place: 'world', at: now, until: now + flight, damage: 0 });
+    (state.casts ||= []).push({ kind: pr.kind, a: e.id, x: e.x, z: e.z, tx: st.x, tz: st.z, place: 'world', flightTicks: flight });
+    if (unit.siege) state.casts.push({ kind: 'cannonFire', a: e.id, x: e.x, z: e.z, place: 'world', dir: e.dir || 0, brass: !!unit.brass });
+    (f().shots ||= []).push({ key: st.key, by: e.owner, a: e.id, damage: rt.damageOf(e), kind: kindOf(unit), at: now + flight });
+  }
+  function shotsTick() {
+    const fr = f(), now = state.tick ?? 0;
+    if (!fr.shots) return;
+    const due = fr.shots.filter(s => s.at <= now);
+    if (!due.length) return;
+    fr.shots = fr.shots.filter(s => s.at > now);
+    if (!fr.shots.length) delete fr.shots;
+    for (const s of due) {
+      const st = find(s.key);
+      if (!st || !canDamage(s.by, st)) continue;
+      if (s.kind === 'bomb') { (state.casts ||= []).push({ kind: 'firebombBurst', a: s.a, x: st.x, z: st.z, place: 'world', radius: 2 }); if (!isStone(st)) ignite(s.by, st, s.a); }
+      damage(s.by, st, s.damage, s.kind);
+    }
   }
   // one tick of a unit on a raze order; false when the order is over (the caller carries on as usual)
   function step(e, unit) {
@@ -279,7 +320,9 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const w = e.swing;
     if (w?.structure) {
       if ((state.tick ?? 0) === w.strike) {
-        damage(e.owner, st, rt.damageOf(e), kindOf(unit));
+        if (unit.projectile) shoot(e, st, unit);   // an arrow, bullet, ball or bomb flies; it lands in tick()
+        else damage(e.owner, st, rt.damageOf(e), kindOf(unit));
+        if (o.torch && isMelee(unit)) ignite(e.owner, st, e.id);
         (state.structureHits ||= []).push({ a: e.id, key: st.key, x: st.x, z: st.z, kind: kindOf(unit) });
       }
       if ((state.tick ?? 0) >= w.start + w.len) delete e.swing; else { e.anim = 'attack'; return true; }
@@ -408,13 +451,18 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const fr = f(); if (!fr || !R()) return;
     towers();
     shelterTick();
+    shotsTick();
     const fires = fr.fires;
     if (!fires) return;
     const now = state.tick ?? 0, F = R().fire || {};
     for (const key of Object.keys(fires)) {
       const fire = fires[key], st = find(key);
       if (!st || fire.until <= now || !canDamage(fire.by, st)) { delete fires[key]; continue; }
-      if (now % 20 === 0) damage(fire.by, st, F.damage ?? 0, 'fire');
+      if (now % 20 === 0) {
+        let n = 0;
+        if (fire.fed) for (const id of Object.keys(fire.fed)) { if (now - fire.fed[id] > (F.lingerTicks ?? 60)) delete fire.fed[id]; else n++; }
+        damage(fire.by, st, (F.damage ?? 0) * Math.max(1, Math.min(F.maxFeeders ?? 3, n)), 'fire');
+      }
     }
     if (!Object.keys(fires).length) delete fr.fires;
   }
@@ -428,6 +476,8 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
     return out;
   }
+  // 7-5: the built watchtowers of every war, for war stealth detection: [{ owner, x, z, range }]
+  function watchers() { const T = R()?.tower; return T ? list().filter(st => st.type === 'watchtower' && hpOf(st) > 0).map(st => ({ owner: st.owner, x: st.x, z: st.z, range: T.detect ?? T.range ?? 0 })) : []; }
   function attach(services) { rt = services; }
-  return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, attach };
+  return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, ignite, torchers, watchers, attach };
 }

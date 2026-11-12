@@ -93,7 +93,8 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       const axes = use === 'w' && alongX && alongZ ? [false, true] : [alongZ];
       const wall = art._walls?.[use];
       const turn=use==='w' && alongX && alongZ && [joins(-1,0),joins(1,0),joins(0,-1),joins(0,1)].filter(Boolean).length===2;
-      const bend=grid.cell*(art._walls?.cornerCut || 0.25);
+      // wall art painted along z (alongZ) is mirrored for runs along x; with a corner post the two runs meet square at the post
+      const bend=wall?.post ? 0 : grid.cell*(art._walls?.cornerCut || 0.25);
       if (wall) for (const vertical of axes) {
         const corner=use==='w' && alongX && alongZ;
         const low=corner && !joins(vertical?0:-1,vertical?-1:0)?turn?bend:0:-grid.cell/2;
@@ -101,10 +102,11 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
         const count=Math.max(1,Math.round(wall.count*(high-low)/grid.cell));
         for(let k=0;k<count;k++) {
           const d=low+(k+.5)*(high-low)/count;
-          out.push({ ...base, key: `${i}:${use}:${vertical}:${k}`, x: x + (vertical ? 0 : d), z: z + (vertical ? d : 0), art: wall.art, flip: vertical, s: wall.scale, noLights: true });
+          out.push({ ...base, key: `${i}:${use}:${vertical}:${k}`, x: x + (vertical ? 0 : d), z: z + (vertical ? d : 0), art: wall.art, flip: wall.alongZ ? !vertical : vertical, s: wall.scale, noLights: true });
         }
       }
-      if(wall && turn) {
+      if(wall?.post && use==='w' && alongX && alongZ) out.push({ ...base, key: `${i}:w:post`, x, z, art: wall.post, s: wall.postScale ?? wall.scale, noLights: true });
+      else if(wall && turn) {
         const a=[joins(-1,0)?-bend:bend,0],b=[0,joins(0,-1)?-bend:bend],dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz),count=Math.max(1,Math.ceil(length/(grid.cell/wall.count)));
         for(let k=0;k<count;k++)out.push({...base,key:`${i}:w:corner:${k}`,x:x+a[0]+dx*(k+.5)/count,z:z+a[1]+dz*(k+.5)/count,art:wall.art,flip:false,
           fenceHeading:[dx,dz],fenceMinWidth:art._walls.cornerMinWidth,s:wall.scale*length/count/(grid.cell/wall.count),noLights:true});

@@ -375,7 +375,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campBuildList(warId) {
     const war = byId(warId), camp = war?.camp;
     if (!camp) return [];
-    return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost).map(([type, d]) => {
+    // (checkpoint 7: a building with clan: '<faction>' is only for that clan: the kennel, the hidden dojo)
+    return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost && (!d.clan || d.clan === factionOf(war.attacker))).map(([type, d]) => {
       const need = missing(camp, type), count = camp.buildings.filter(b => b.type === type).length;
       const reason = need.length ? `Needs ${need.join(' and ')}` : d.max && count >= d.max ? `A camp has at most ${d.max} ${nice(type)}` : canPay(camp, d.cost);
       return { type, cost: d.cost, need, ok: !reason, reason: reason || '', count, max: d.max || null };
@@ -385,6 +386,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campPlace(e, c) {
     const war = byId(c.war);
     if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    if (BD()[c.kind]?.clan && BD()[c.kind].clan !== factionOf(war.attacker)) return { ok: false, reason: `Your clan does not build the ${nice(c.kind)}` };
     const r = campCheck(c.war, c.kind, { x: c.x, z: c.z });   // kind = the building type (type is the command's own)
     if (!r.ok) return r;
     const def = BD()[c.kind];
@@ -440,13 +442,14 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // { troops, queued, cap } for the UI and tests
   const troopView = warId => { const w = byId(warId); return w?.camp ? { troops: troopsOf(w), queued: queuedOf(w), cap: troopCap(w) } : null; };
   // which units a camp building trains: [unit ids]
-  const trainsAt = type => Object.entries(UD()).filter(([, u]) => u && typeof u === 'object' && (u.at || []).includes(type)).map(([id]) => id);
+  // (checkpoint 7: a unit with clan: '<faction>' is that clan's special; with a clan id given, other clans' specials are left out)
+  const trainsAt = (type, clanId = null) => Object.entries(UD()).filter(([, u]) => u && typeof u === 'object' && (u.at || []).includes(type) && (!u.clan || clanId == null || u.clan === factionOf(clanId))).map(([id]) => id);
   function campTrain(e, c) {
     const war = byId(c.war);
     if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
     const b = war.camp.buildings.find(x => x.id === c.building), u = UD()[c.unit];
     if (!b || b.stage !== 'built') return { ok: false, reason: 'No such finished camp building' };
-    if (!u || !trainsAt(b.type).includes(c.unit)) return { ok: false, reason: `The ${nice(b.type)} does not train that` };
+    if (!u || !trainsAt(b.type, war.attacker).includes(c.unit)) return { ok: false, reason: `The ${nice(b.type)} does not train that` };
     const n = c.count;
     if (!Number.isSafeInteger(n) || n < 1) return { ok: false, reason: 'count must be a positive integer' };
     if ((b.queue?.length || 0) + n > (W.queueMax ?? 20)) return { ok: false, reason: `At most ${W.queueMax ?? 20} waiting at one building` };

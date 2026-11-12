@@ -14,7 +14,7 @@ const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, reve
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
 
 export const indoorLightId = (room,index) => `room:${room}:${index}`;
-export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false }) {
+export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false, warRules = () => null, detectOf = () => 0, towers = () => [], inWarCircle = () => false }) {
   const R = { ...DEFAULTS, ...rules };
   // the lanterns the sim knows about: lit props (lantern posts, stone lanterns, braziers...)
   const lights = scenery.filter(s => !s.indoor && s.prop !== undefined && s.item?.lights?.length).map(s => ({ prop: s.prop, x: s.x, z: s.z,place:'street',radius:R.lightRadius }));
@@ -44,9 +44,47 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   const knocking = e => Object.values(state.attacks || {}).some(a => a.knock?.by === e.id);
   const exposed = e => knocking(e) || !!(e.swing || e.attackTarget);
   function reveal(e, attacking = false) {
+    { const K = e && warRules(e); if (K) { if (!e.dead && !e.downed) { e.revealUntil = state.tick + (K.revealTicks ?? 80); e.hidden = false; delete e.detectedBy; } return; } }   // war stealth: shown for a few seconds
     if (!e || !canHide(e) || (!attacking && veiled(e))) return;
     if (attacking && e.buffs) delete e.buffs.veil;
     e.revealUntil = state.tick + secs(R.revealSeconds); e.hidden = false; e.hiddenAt = null;
+  }
+
+  // ---- war stealth (war checkpoint 7-5, Tim 2026-11-12): the Shinobi kunoichi (units.json kunoichi.kunoichi) ----------
+  // On the island she is hidden until she acts: e.hidden as for city ninja (enemies neither see nor target her, her own
+  // side sees her faded). Attacking or being hit shows her for revealTicks (reveal above). Vanish: shown and sent away
+  // with a move order, she hides again at once, every vanishCooldownTicks. Ambush: her first hit from hiding does
+  // ambush.damage times the damage and gives her a short damage buff (ambush(), called by sim/combat.js hit).
+  // Detection: within the detect radius of an enemy unit that has one (dog handler, Teppo rifleman) or the range of an
+  // enemy built watchtower she is seen by that clan while she stays there: e.detectedBy = { clan: until tick }.
+  const seenByClan = (e, clan) => (e?.detectedBy?.[clan] ?? -1) > state.tick;
+  function warStep(e, K, all) {
+    const now = state.tick;
+    if (e.dead || e.downed || e.jailed || e.place !== 'world') { e.hidden = false; delete e.detectedBy; return; }
+    const shown = (e.revealUntil ?? -1) > now;
+    if (shown && (e.vanishReadyAt || 0) <= now && e.order?.kind === 'move' && !e.order.arrived && !e.swing && !e.attackTarget) {
+      e.revealUntil = now; e.vanishReadyAt = now + (K.vanishCooldownTicks ?? 400);
+      state.casts.push({ kind: 'kunoichiVanish', a: e.id, x: e.x, z: e.z, place: e.place });
+    }
+    e.hidden = !((e.revealUntil ?? -1) > now);
+    if (!e.hidden) { delete e.detectedBy; return; }
+    if ((now + (Number(e.id) || 0)) % 5) return;
+    const seen = {};
+    for (const u of all) {
+      if (!u.owner || u.owner === e.owner || u.dead || u.downed || u.jailed || u.place !== e.place) continue;
+      const D = detectOf(u);
+      if (D && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= D * D) seen[u.owner] = now + 6;
+    }
+    for (const t of towers()) if (t.owner !== e.owner && (t.x - e.x) ** 2 + (t.z - e.z) ** 2 <= t.range * t.range) seen[t.owner] = now + 6;
+    if (Object.keys(seen).length) e.detectedBy = seen; else delete e.detectedBy;
+  }
+  // the damage factor of this hit when it is an ambush (else 0); arms the short buff
+  function ambush(a, t) {
+    const K = a && warRules(a);
+    if (!K?.ambush || !a.hidden || a.dead || a.downed) return 0;
+    (a.buffs ||= {}).ambush = { until: state.tick + (K.ambush.buffTicks ?? 60), damage: K.ambush.buffDamage ?? 1 };
+    state.casts.push({ kind: 'ambush', a: a.id, t: t?.id, x: a.x, z: a.z, place: a.place });
+    return K.ambush.damage ?? 1;
   }
 
   function tick() {
@@ -70,6 +108,9 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     if (state.tick % R.every) return;
     const all = Object.values(state.entities);
     for (const e of all) {
+      { const K = warRules(e); if (K) { warStep(e, K, all); continue; } }
+      // inside a war circle only the kunoichi is hidden (Tim 2026-11-12): no other Shinobi unit, the hero included
+      if (e.place === 'world' && canHide(e) && inWarCircle(e.x, e.z)) { if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }
       if (!canHide(e)) { if (e.hidden) e.hidden = false; delete e.stealthStatus; suspicion.delete(e.id); continue; }
       const lighting = e.place !== 'street' ? lit(e.x,e.z,e.place)?'indoors · lit':'indoors · dark' : lit(e.x, e.z) ? 'lit' : 'dark';
       e.stealthStatus = { lighting, movement: e.anim === 'run' ? 'running' : e.anim === 'walk' ? 'walking' : 'still', range: range(e),
@@ -118,6 +159,6 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     state.casts?.push({ kind: 'snuff', a: e.id, x: e.x, z: e.z, tx: l.x, tz: l.z });   // the smoke flash (render/abilityfx.js)
   }
 
-  return { tick, lit, reveal, veiled, exposed, snuff, snuffable, snuffsLeft, lights, canHide, rules: R,
+  return { ambush, seenByClan, tick, lit, reveal, veiled, exposed, snuff, snuffable, snuffsLeft, lights, canHide, rules: R,
     saveState: () => ({ suspicion }), loadState: d => { if (d) refill(suspicion, d.suspicion); } };
 }
