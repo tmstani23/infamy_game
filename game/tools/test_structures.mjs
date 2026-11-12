@@ -121,7 +121,13 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
 
 // ---- a house drops to an empty plot ---------------------------------------------------------------
 { house(); const st = ST.find(key(HOUSE)); assert.ok(st);
-  assert.ok(ST.damage('player', st, st.max + 1, 'siege')); assert.equal(G.stage[HOUSE], '0'); assert.equal(G.zone[HOUSE], 'h', 'still zoned: it regrows by the zone rules'); assert.equal(ST.find(key(HOUSE)), null); }
+  assert.ok(ST.damage('player', st, st.max + 1, 'siege')); assert.equal(G.stage[HOUSE], '0'); assert.equal(G.zone[HOUSE], 'h', 'still zoned: it regrows by the zone rules'); assert.equal(ST.find(key(HOUSE)), null);
+  // 7c: it does not grow back while the war is on the town (Tim 2026-11-12); it does once the war is over
+  const Z = g.frontier.modules.find(m => m.name === "zones").zones, grow = () => { enemy.zoneGrow = { [HOUSE]: 1e9 }; Z.tick(enemy); return G.stage[HOUSE]; };
+  const use0 = G.use; for (let c = 1; c <= 5; c++) G.use = put(G.use, HOUSE + c, 'r');   // a road from the hall, so only the war holds it back
+  assert.ok(war.warOn(enemy.id), 'war is on the town'); assert.ok(Z.roadNear(enemy, HOUSE, 2), 'road reaches the plot'); assert.equal(grow(), '0', 'no regrowth during the war');
+  Z.setFrozen(() => false); const after = grow(); Z.setFrozen(s => !!war.warOn(s.id)); G.stage = put(G.stage, HOUSE, '0'); delete enemy.zoneGrow[HOUSE]; G.use = use0;
+  assert.equal(after, '1', 'regrows when no war is on the town'); }
 
 // ---- attack-move with nobody to fight goes for a structure ----------------------------------------
 { const st = ST.find(key(hall.cell));

@@ -60,6 +60,7 @@ export function createVision(state, bounds, rules = {}, territory = null, island
   // each clan's units (sim/util.js ownerIndex, rebuilt each tick and after a spawn): canSee was the top sim cost,
   // scanning every entity for every look (Tim 2026-11-08 lag). Positions and states are still read live.
   const owned = ownerIndex(state), live = u => state.entities[u.id] === u;
+  const towerMemo = { tick: -1, list: [] };
   const litMemo = new Map(), witness = new Map();   // island sight helpers (never saved; they only shorten the search)
   function canSee(clan, e) {
     if (!e || !clan) return false;
@@ -88,6 +89,11 @@ export function createVision(state, bounds, rules = {}, territory = null, island
       if (w && looks(w)) return true;
       for (const u of owned(clan)) if (looks(u)) { seen.set(e.id, u); return true; }
       if (w) seen.delete(e.id);
+      // 7c (Tim 2026-11-12): a built watchtower sees the ground round it (island.towers: [{ owner, x, z, sight }], listed once a tick)
+      if (island.towers) {
+        if (towerMemo.tick !== state.tick) { towerMemo.tick = state.tick; towerMemo.list = island.towers() || []; }
+        for (const t of towerMemo.list) if (t.owner === clan && t.sight > 0 && (t.x - e.x) ** 2 + (t.z - e.z) ** 2 <= t.sight * t.sight) return true;
+      }
       return false;
     }
     if (e.place !== 'street') return owned(clan).some(u => u.owner === clan && !u.dead && u.place === e.place && live(u));

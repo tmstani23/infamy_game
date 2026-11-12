@@ -176,7 +176,8 @@ export function createCrewOrders({ gateNav = () => null, roomOf, clans, contract
         let x = c.x, z = c.z;
         for (let t = 0; t < 12; t++) {
           const [ox, oz] = spreadOffset(k + t * crew.length, crew.length * (t + 1), u.id, spacing);
-          [x, z] = grouped.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
+          // 7c: the exact place when its ground is free (snapping every place to a cell centre made rows once the spread got tight)
+          [x, z] = grouped.free?.(c.x + ox, c.z + oz) ? [c.x + ox, c.z + oz] : grouped.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
           if (!taken.some(p => Math.hypot(p[0] - x, p[1] - z) < spacing * 0.75)) break;
         }
         taken.push([x, z]);

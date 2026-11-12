@@ -452,6 +452,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const b of banners.update(state, time, state.entities[followId]?.owner, cameraPlace(state.entities[followId]))) if(!resumingPresentation)abilityFx.claim(...banners.spot(b));
     hqFire.update(state);
     structureFire.update(state, cameraPlace(state.entities[followId]));   // torched war structures (checkpoint 6)
+    structureFire.updateSmoke(dt, cameraPlace(state.entities[followId]));   // 7c: moving smoke over ruins
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
@@ -586,6 +587,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   return {
     render, renderer, scene, addHits, addCasts, updateCamera,
     setTowns: list => {
+      structureFire.setRuins(list.filter(p => p.ruinSmoke).map(p => ({ x: p.x, z: p.z, w: Math.min(8, (p.maxFootprint || 11) * 0.4) })));   // 7c: moving smoke over ruins
       worldGround?.setTowns(list);
       // Space rings at the front door (Tim 2026-11-07): the middle of the art's front (+z, screen down-left) edge, as drawn
       const spots = new Map();

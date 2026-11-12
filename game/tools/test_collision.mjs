@@ -133,7 +133,7 @@ assert.equal(round(plot).length, 0, 'an empty housing plot stays open');
   for (const [x, z] of spots) assert.ok(Math.hypot(x - tx, z - tz) <= R, 'every place is inside the spread');
   for (let i = 0; i < spots.length; i++) for (let j = 0; j < i; j++) assert.ok(Math.hypot(spots[i][0] - spots[j][0], spots[i][1] - spots[j][1]) > G.spacing * 0.7, 'no two units share a place, each has room');
   // no rows: the old block put every unit on one of five lines each way
-  assert.ok(new Set(spots.map(p => p[0].toFixed(1))).size > 8, 'the spread is not a block of rows');
+  assert.ok(new Set(spots.map(p => p[0].toFixed(2))).size > 8, 'the spread is not a block of rows');   // 7c: the spread is twice as tight, so two decimals
   const at0 = units.map(u => [u.x, u.z]);
   order();
   assert.deepEqual(units.map(u => [u.order.x, u.order.z]), spots, 'the same order gives the same places again');

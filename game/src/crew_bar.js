@@ -14,6 +14,7 @@ const CMDS = [
   { key: 'X', action: 'attackMove', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
   { key: 'G', action: 'heal', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
   { key: 'C', action: 'selectAll', name: 'Hero', tip: 'Select your hero group, replacing the current selection. During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
+  { key: 'Shift+C', action: 'selectTroops', name: 'Troops', tip: 'Select all your war troops where your hero is, replacing the current selection. Your hero group is left out (C selects it).', act: c => c.selectTroops(), need: 'troops' },
 ];
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
@@ -24,13 +25,13 @@ const MOUNT_CMDS = [
 ];
 
 const CSS = `
-  #crewcommands .crewcmds { display: grid; grid-template-columns:repeat(auto-fit,minmax(min(38px,100%),1fr)); gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
+  #crewcommands .crewcmds { display: grid; grid-template-columns:repeat(auto-fit,minmax(min(46px,100%),1fr)); gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
     border: 1px solid rgba(233,194,122,.28); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
-  #crewcommands .ccmd { position: relative; width: auto; min-height: 38px; height: auto; border-radius: 5px; border: 1px solid #5c4a2c; cursor: pointer;
+  #crewcommands .ccmd { position: relative; width: auto; min-height: 44px; height: auto; border-radius: 5px; border: 1px solid #5c4a2c; cursor: pointer;
     background: radial-gradient(circle at 50% 40%, #2b2f38, #101216); box-shadow: inset 0 0 6px rgba(0,0,0,.8); }
   #crewcommands .ccmd:hover { border-color: #ffd34d; }
-  #crewcommands .ccmd .key { position: absolute; left: 3px; top: 1px; font: 700 10px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
-  #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 9px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
+  #crewcommands .ccmd .key { position: absolute; left: 3px; top: 2px; font: 700 12px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+  #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 11px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
   #crewcommands .ccmd.off { filter: grayscale(1) brightness(.5); cursor: default; }
   #crewcommands .mounthead { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 3px 5px; background: linear-gradient(#14171d, #0b0d11);
     border: 1px solid rgba(233,194,122,.28); border-radius: 8px; font: 11px/1.2 system-ui, sans-serif; color: #e9d6a8; }
@@ -159,9 +160,10 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
     const riding = !!h?.ride;   // on a horse or driving a rickshaw / omnibus
     if (!riding && sprintOn()) setSprint(false);
     for (const { b, cmd } of buttons) if (cmd.need === 'riding') { b.classList.toggle('on', sprintOn()); setName(b, sprintOn() ? 'Galloping' : 'Sprint'); }
-    const available = { sel, follow, street, outdoor, crew, sector, bus, horse, riding };
+    const troops = Object.values(S).some(e => usable(e) && e.warTroop && !e.downed);
+    const available = { sel, follow, street, outdoor, crew, sector, bus, horse, riding, troops };
     updateMount(h);
-    for (const { b, cmd } of buttons) b.classList.toggle('off', !available[cmd.need]);
+    for (const { b, cmd } of buttons) { b.classList.toggle('off', !available[cmd.need]); if (cmd.need === 'troops') b.hidden = !troops; }   // the Troops button shows only while you have war troops
   }
   return { update };
 }

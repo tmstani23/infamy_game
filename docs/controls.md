@@ -331,3 +331,6 @@ War camp (2026-11-10, campaign):
 - Unit ability row (above the action bar, only when the selection has special abilities): Shift + Q, E, R, F by position, then click to target; one press sends one caster (the ready unit nearest the click). Each button shows ready out of total; grey with the shortest cooldown when none is ready.
 - Right-click a unit ability button: auto on or off (moving dotted border and the word Auto).
 - Shift while riding: the sprint toggle fires only on a clean tap.
+- Shift + C or the Troops button (crew command bar, shown while you have war troops): selects every war troop where the hero is, hero group left out. C selects the hero group only and never picks war troops.
+- Double-click a war troop: selects every war troop of that type within 100; double-click one of them again centres the camera on it.
+- Placing a camp building or palisade line closes the build menu; hold Shift to keep placing.

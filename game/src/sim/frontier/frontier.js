@@ -75,6 +75,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
   const war = createWar({ state, data, world: live, worldData, resourceIndex: workers.index, dayTicks });   // F6 checkpoint 1: war records, planting the banner declares war
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
+  zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 

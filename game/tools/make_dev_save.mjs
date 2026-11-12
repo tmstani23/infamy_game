@@ -146,7 +146,7 @@ function warTest(game, heroId) {
   if (!rec) throw new Error('war_test_yakuza: could not start the war');
   delete S.clans[hero.owner].warPack;
   const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
-  hall.tier = 2;
+  // 7c (Tim 2026-11-12): the war test starts with only the camp hall (tier 1) and enough ryo, timber and stone to build everything
   const place = kind => {
     for (const d of [40, 60, 80, 100, 120]) for (let a = 0; a < 24; a++) {
       const r = war.campCheck(rec.id, kind, { x: hall.x + Math.cos(a * Math.PI / 12) * d, z: hall.z + Math.sin(a * Math.PI / 12) * d });
@@ -157,11 +157,9 @@ function warTest(game, heroId) {
     }
     throw new Error('war_test_yakuza: no room for ' + kind);
   };
-  // checkpoint 7: the clan hall, the foundry and the clan's own building stand ready, so the specials can be trained at once
-  const own = { yakuza: ['kennel'], shinobi: ['hidden_dojo'] }[S.clans[hero.owner].faction] || [];
-  for (const kind of ['barracks', 'rifle_range', 'supply_tents', 'supply_tents', 'supply_tents', 'stable', 'clan_hall', 'foundry', ...own]) place(kind);
+  for (const kind of []) place(kind);   // buildings to start with, built at once (none: Tim builds the camp himself)
   for (const w of rec.camp.workers) delete w.project;
-  rec.camp.chest = 8000; Object.assign(rec.camp.stock, { timber: 2000, stone: 1500 });
+  rec.camp.chest = 40000; Object.assign(rec.camp.stock, { timber: 12000, stone: 10000 });
   // the hero and his crew by the camp hall
   Object.assign(hero, { x: hall.x + 6, z: hall.z + 4 });
   let k = 0;

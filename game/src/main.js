@@ -453,6 +453,7 @@ async function start() {
     return selectInteractionDoor(game, heroId, crewInput.selected());
   }
   onAction('selectAll', () => crewInput.selectAll());
+  onAction('selectTroops', () => crewInput.selectTroops());
   onAction('followMe', () => crewInput.followMe());
   onAction('attackMove', () => crewInput.armAttackMove());
   onAction('stop', () => crewInput.stopSelected());   // stop + passive until the next order (Tim 2026-10-18)

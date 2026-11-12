@@ -150,6 +150,15 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     view.setSelected(selected);
   }
   const commandGroup=e=>crewCommandGroup(game.state,e);
+  // 7c: war troops of one type near a clicked one (TYPE_REACH world units). Already the selection: the camera centres on the clicked one.
+  const TYPE_REACH = 100;
+  function selectType(u) {
+    const S = game.state.entities;
+    const same = Object.values(S).filter(e => groupable(e.id) && e.warTroop && e.type === u.type && !e.downed && e.place === u.place && Math.hypot(e.x - u.x, e.z - u.z) <= TYPE_REACH).map(e => e.id);
+    const already = same.every(id => id === u.id || selected.includes(id)) && selected.every(id => id === u.id || S[id]?.type === u.type);
+    setSelected(same);
+    if (already) view.jumpTo?.(u.x, u.z);
+  }
   function selectUnit(id, individual=false) {
     const e=game.state.entities[id];
     if(!e){setSelected([id]);return;}
@@ -308,7 +317,10 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (!looked && selected.length === 1 && (game.omnibus?.isVehicle(game.state.entities[selected[0]]) || game.state.entities[selected[0]]?.type === 'horse')) looked = selected[0];
       // double-click a crew member or vehicle: the camera follows it until you pan, click the map or press Home
       const clicked = mate || ride || horse, now = performance.now();
-      if (clicked && lastClick.id === clicked.id && now - lastClick.t < 400) { const id = clicked.id; view.watch?.(() => { const u = game.state.entities[id]; return u && !u.dead && !u.jailed ? { id, x: u.x, z: u.z, place: u.place } : null; }); }
+      const dbl = !!clicked && lastClick.id === clicked.id && now - lastClick.t < 400;
+      // 7c (Tim 2026-11-12), war troops only: a double-click selects every troop of that type in a wide area; again centres the camera on it
+      const typeDbl = dbl && !!mate?.warTroop && !game.omnibus?.isVehicle(mate);
+      if (dbl && !typeDbl) { const id = clicked.id; view.watch?.(() => { const u = game.state.entities[id]; return u && !u.dead && !u.jailed ? { id, x: u.x, z: u.z, place: u.place } : null; }); }
       lastClick = { id: clicked?.id ?? null, t: now };
       if (mate) picked = [mate.id];
       if (own) { picked = [own.id]; setSelected([own.id]); }
@@ -316,6 +328,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const b = mate || foe || civ || ride || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
       if (mate && game.omnibus?.isVehicle(mate)) setSelected([mate.id]);   // a vehicle: always selected by a click, never toggled off (Tim 2026-11-10)
+      else if (typeDbl) selectType(mate);
       else if (mate) {
         if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id, true);   // a click picks just that one (Tim 2026-11-10: it took his whole group); the group header in the crew panel picks the group
         else setSelected(selected.includes(mate.id) ? selected.filter(id => id !== mate.id) : [...selected, mate.id]);
@@ -396,9 +409,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     selectAll() {
       // only crew where the hero is (Tim 2026-11-10): out on the island the island crew, in the capital the capital crew
       const island=commandPlace()==='world',here=e=>(e?.place==='world')===island;
-      if(!game.state.deployment?.restrictionsEnabled){setSelected(Object.keys(game.state.entities).filter(id=>groupable(id)&&here(game.state.entities[id])));return;}
-      setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&here(e)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
+      // 7c (Tim 2026-11-12): C is the hero group only, never the war troops (they have their own button, selectTroops)
+      if(!game.state.deployment?.restrictionsEnabled){setSelected(Object.keys(game.state.entities).filter(id=>groupable(id)&&!game.state.entities[id].warTroop&&here(game.state.entities[id])));return;}
+      setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&!e.warTroop&&here(e)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
     },
+    // 7c: every war troop where the hero is, the hero group left out
+    selectTroops() { const island=commandPlace()==='world'; setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&e.warTroop&&!e.downed&&(e.place==='world')===island).map(e=>e.id)); },
     selectUnit,
     assignGroup(number) {
       if (![1, 2, 3, 4].includes(number)) return;

@@ -477,7 +477,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     return out;
   }
   // 7-5: the built watchtowers of every war, for war stealth detection: [{ owner, x, z, range }]
-  function watchers() { const T = R()?.tower; return T ? list().filter(st => st.type === 'watchtower' && hpOf(st) > 0).map(st => ({ owner: st.owner, x: st.x, z: st.z, range: T.detect ?? T.range ?? 0 })) : []; }
+  function watchers() { const T = R()?.tower; return T ? list().filter(st => st.type === 'watchtower' && hpOf(st) > 0).map(st => ({ owner: st.owner, x: st.x, z: st.z, range: T.detect ?? T.range ?? 0, sight: T.sight ?? 0 })) : []; }
   function attach(services) { rt = services; }
   return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, ignite, torchers, watchers, attach };
 }

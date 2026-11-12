@@ -27,7 +27,8 @@ export const KEY_ACTIONS = [
   A('zoomOut', 'Zoom out', 'Camera', ['Minus', 'NumpadSubtract']),
   A('interiorPeek', 'Inside or outside view', 'Camera', 'End'),
   // Crew orders
-  A('selectAll', 'Select all crew', 'Crew orders', 'KeyC'),
+  A('selectAll', 'Select hero group', 'Crew orders', 'KeyC'),
+  A('selectTroops', 'Select all war troops', 'Crew orders', 'Shift+KeyC'),
   A('followMe', 'Crew follow me', 'Crew orders', 'KeyV'),
   A('attackMove', 'Attack move', 'Crew orders', 'KeyX'),
   A('stop', 'Stop and hold', 'Crew orders', 'KeyZ'),

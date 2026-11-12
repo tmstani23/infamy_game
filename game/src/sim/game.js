@@ -232,7 +232,7 @@ export function createGame(options) {
   if (capitalStable) { const [x, z] = ringAt(capitalStable); doors.push({ x, z, place: 'street', menu: 'capital_stable', label: 'Capital stable: horses, rickshaws and omnibuses' }); }
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
-  const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear });
+  const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear, towers: () => frontier?.structures?.watchers?.() });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
   const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit, capitalYard: gate?.island || null, civilians: civData, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000 }) : null;   // settlement economy (sim/frontier/, F2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),

@@ -234,12 +234,12 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       if (!placing.from) { if (preview?.ok || preview?.points?.length) { placing.from = here; key = ''; draw(); } return; }
       if (!preview?.ok) return;
       send({ id: heroId, type: 'frontier', action: 'campLine', war: placing.war, x0: placing.from.x, z0: placing.from.z, x1: here.x, z1: here.z });
-      if (e.shiftKey) { placing.from = here; key = ''; } else cancelPlacing();
+      if (e.shiftKey) { placing.from = here; key = ''; } else { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (Tim 2026-11-12)
       return;
     }
     if (!preview?.ok) return;
     send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: placing.kind, x: preview.point.x, z: preview.point.z });
-    if (!e.shiftKey) cancelPlacing();
+    if (!e.shiftKey) { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (Tim 2026-11-12)
   }, { capture: true });
   addEventListener('contextmenu', e => { if (placing && e.target?.closest?.('canvas#view')) consume(e); }, { capture: true });
   addEventListener('keydown', e => { if (placing && e.code === 'Escape') { cancelPlacing(); consume(e); } }, { capture: true });

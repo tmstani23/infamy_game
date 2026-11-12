@@ -28,6 +28,7 @@ export function createZones({ state, data, world,resourceIndex }) {
   const wait = (s, what) => { if (!s.report.waiting.includes(what)) s.report.waiting.push(what); };
   const bad = (reason, cells = []) => ({ ok: false, reason, cost: {}, cells });
   const stageOf = (s, i) => Number(s.grid.stage[i]);
+  let frozen = () => false;   // set by the frontier once the war module exists: true while a war is on the town
 
   function rec(s) {
     s.zones ||= {};
@@ -223,6 +224,7 @@ export function createZones({ state, data, world,resourceIndex }) {
         if (st >= max) { delete s.zoneGrow[i]; continue; }
         if (!roadNear(s, i, needs.roadReach)) { z.noRoad++; continue; }
         if (z.abandoned || z.health < D.healthyAt) continue;
+        if (frozen(s)) continue;   // 7c: nothing grows (or grows back) while a war is on the town (Tim 2026-11-12)
         // B5: housing grows to stage 2+ only while its goods are paid (short goods never lower a level)
         if (k.housing && st >= 1 && (data.upkeep?.goodsByStage?.[st] || 0) > 0 && (s.goodsShort || !(s.stock.goods > 0))) { wait(s, 'goods for housing'); continue; }
         const t = (s.zoneGrow[i] || 0) + 1;
@@ -287,5 +289,5 @@ export function createZones({ state, data, world,resourceIndex }) {
     return zone(s, { kind, cells: picked, by: 'g' });
   }
 
-  return { on, zone, migrate, slots, setWorkers, tick, autoZone, busy, roadNear, linkedRoads };
+  return { on, zone, migrate, slots, setWorkers, tick, autoZone, busy, roadNear, linkedRoads, setFrozen: fn => { frozen = fn; } };
 }

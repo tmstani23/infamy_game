@@ -497,6 +497,17 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function tick() {
     // a war that is over takes its troops with it (they disband)
     if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !byId(e.warTroop)) runtime.remove(e.id);
+    // 7c (Tim 2026-11-12): war troops cannot leave their war circle. One past the edge is set back on it and stops;
+    // a move order to a spot outside ends at the edge.
+    if ((state.tick ?? 0) % 5 === 0) for (const e of Object.values(state.entities || {})) {
+      if (!e.warTroop || e.dead || e.place !== 'world') continue;
+      const w = byId(e.warTroop), t = w && town(w.town); if (!t) continue;
+      const R = W.circleRadius, pull = (x, z, r) => { const d = Math.hypot(x - t.x, z - t.z); return d > r ? [t.x + (x - t.x) * r / d, t.z + (z - t.z) * r / d] : null; };
+      const o = e.order, goal = o && Number.isFinite(o.x) && Number.isFinite(o.z) && pull(o.x, o.z, R - 2);
+      if (goal) { o.x = goal[0]; o.z = goal[1]; }
+      const back = pull(e.x, e.z, R);
+      if (back) { e.x = back[0]; e.z = back[1]; if (!goal) e.order = { kind: 'stop' }; }
+    }
     // a cavalry horse whose rider fell goes with him (checkpoint 5)
     if (runtime?.remove && (state.tick ?? 0) % 5 === 0) for (const h of Object.values(state.entities || {})) {
       if (!h.cavalry || h.type !== 'horse') continue;

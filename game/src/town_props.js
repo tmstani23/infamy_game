@@ -163,7 +163,7 @@ export function townProps(towns, townArt, townLights = {}) {
         const fitR = R.footprint?.[b.type] ?? townArt._placedFootprint?.[b.type];
         out.push({ key: `${s.id}:${b.id}:ruined`, art: own || (lineArt ? R.rubble : R.art) || (townArt._buildPhases || ['house_construction_1'])[0], x: s.x + ox, z: s.z + oz,
           ...(lineArt ? (own ? { flip: alongX } : { tint: R.tint || '#4a403a' }) : R.artTint || !(own || R.art) ? { tint: R.artTint || '#4a403a' } : {}),
-          ...(fitR ? { maxFootprint: (s.grid?.cell || 11) * fitR } : lineArt ? { maxFootprint: 3 } : {}), noLights: true });
+          ...(fitR ? { maxFootprint: (s.grid?.cell || 11) * fitR } : lineArt ? { maxFootprint: 3 } : {}), noLights: true, ...(lineArt ? {} : { ruinSmoke: true }) });
         return;
       }
       const fit = townArt._placedFootprint?.[b.type], maxFootprint = fit ? (s.grid?.cell || 11) * fit : undefined;   // Tim 2026-11-07: placed buildings were far bigger than the townhouse

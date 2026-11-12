@@ -14,14 +14,19 @@ export function createInfirmary({ state, data }) {
   // every 10 ticks: mark the units standing near their own clan's finished infirmary
   function tick() {
     const R = rules();
-    if (!R || (state.tick ?? 0) % 10) return;
+    if (!R || (state.tick ?? 0) % 10) return;   // (the field clinic rides on the infirmary rules being there)
     const spots = [];
-    for (const s of Object.values(state.frontier?.settlements || {})) { const b = s.owner && s.grid && of(s); if (b) spots.push([s.owner, ...centre(s, b)]); }
+    for (const s of Object.values(state.frontier?.settlements || {})) { const b = s.owner && s.grid && of(s); if (b) spots.push([s.owner, ...centre(s, b), R.radius, R.healFactor]); }
+    // 7c (Tim 2026-11-12): a war camp's finished field clinic does the same for the attacker's troops, hero and crew near it
+    // (war.buildings.field_clinic.heal: radius and healFactor)
+    const C = data.war?.buildings?.field_clinic?.heal;
+    if (C) for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (b.type === 'field_clinic' && b.stage === 'built') spots.push([w.attacker, b.x, b.z, C.radius, C.healFactor]);
     for (const u of Object.values(state.entities || {})) {
       if (u.place !== 'world') { if (u.infirmary) delete u.infirmary; continue; }
       const owner = u.owner ?? u.workerOwner;
-      const near = owner && spots.some(([o, x, z]) => o === owner && Math.hypot(u.x - x, u.z - z) <= R.radius);
-      if (near) u.infirmary = R.healFactor; else if (u.infirmary) delete u.infirmary;
+      let heal = 0;
+      if (owner) for (const [o, x, z, r, f] of spots) if (o === owner && f > heal && Math.hypot(u.x - x, u.z - z) <= r) heal = f;
+      if (heal) u.infirmary = heal; else if (u.infirmary) delete u.infirmary;
     }
   }
   return { tick, of, centre };

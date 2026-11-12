@@ -11,10 +11,12 @@ export function createCrewFx({scene,spriteOf}){
   const visible=id=>!!spriteOf(id)?.thing.mesh.visible;
   function ring(radius,color){const m=add(new THREE.RingGeometry(radius-.04,radius+.04,40),color);m.rotation.x=-Math.PI/2;return m;}
   function shot(p){
-    const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:0xe5c882;
-    const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(.17,8,6):p.kind==='firebomb'?new THREE.SphereGeometry(.12,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.012,.012,.9,4):new THREE.CylinderGeometry(.022,.022,.65,5),material(color));   // bullet: thin tracer (war riflemen)group.add(shaft);
-    if(p.kind==='arrow'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.07,.19,5),material(color));tip.position.y=.4;group.add(tip);}
-    const trail=new THREE.Mesh(new THREE.CylinderGeometry(.015,.005,p.hamstring?.9:.45,5),material(color));trail.position.y=-.6;trail.material.opacity=.35;group.add(trail);
+    const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:p.kind==='bullet'?0xfff2b0:0xf3dc9a;
+    const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(.34,10,8):p.kind==='firebomb'?new THREE.SphereGeometry(.22,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.035,.035,1.5,5):new THREE.CylinderGeometry(.04,.04,1.0,5),material(color));   // bullet: bright tracer (war riflemen)
+    group.add(shaft);   // 7c (Tim 2026-11-12): shots are much easier to see; the body was never added before, only the faint trail showed
+    if(p.kind==='cannonball'){shaft.material.opacity=1;const smoke=new THREE.Mesh(new THREE.CylinderGeometry(.2,.04,1.8,6),material(0xd8d2c4));smoke.position.y=-1.1;smoke.material.opacity=.45;group.add(smoke);}
+    if(p.kind==='arrow'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.11,.3,5),material(color));tip.position.y=.62;group.add(tip);}
+    const trail=new THREE.Mesh(new THREE.CylinderGeometry(.03,.008,p.hamstring?1.4:p.kind==='bullet'?1.6:.9,5),material(color));trail.position.y=p.kind==='bullet'?-1.5:-.9;trail.material.opacity=.5;group.add(trail);
     scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
   }
   return {

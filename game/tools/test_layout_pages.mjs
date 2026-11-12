@@ -26,10 +26,10 @@ try{
  const controls=new Node();controls.items=Array.from({length:6},()=>new Node());createLayoutPages(controls,'controls').update(800,600);
  assert.equal(controls.items.filter(e=>!e.classes.has('layout-page-hidden')).length,1,'Controls sections page without a scrolling window');
  assert.equal(createLayoutPages(new Node(),'ryo'),null,'fixed-shape UI is unaffected');
- const commands=new Node(),sent=[];const crewInput={selected:()=>['c'],returnToDutyAndSelectHero:()=>sent.push('duty'),followMe:()=>sent.push('follow'),crewAttack:()=>sent.push('attack'),stopSelected:()=>sent.push('stop'),armAttackMove:()=>sent.push('amove'),healSelected:()=>sent.push('clinic'),selectAll:()=>sent.push('hero')};
+ const commands=new Node(),sent=[];const crewInput={selected:()=>['c'],returnToDutyAndSelectHero:()=>sent.push('duty'),followMe:()=>sent.push('follow'),crewAttack:()=>sent.push('attack'),stopSelected:()=>sent.push('stop'),armAttackMove:()=>sent.push('amove'),healSelected:()=>sent.push('clinic'),selectAll:()=>sent.push('hero'),selectTroops:()=>sent.push('troops')};
  const game={state:{entities:{h:{owner:'p',type:'hero',place:'street'},c:{owner:'p',type:'thug',place:'street',deployment:{group:'ward'}}},deployment:{clans:{p:{sectors:{ward:{}}}}}}};
  const bar=createCrewBar({root:commands,game,heroId:'h',crewInput});bar.update();
- const buttons=commands.children[0].children;assert.equal(buttons.length,7);
+ const buttons=commands.children[0].children;assert.equal(buttons.length,8);   // 7c: the Troops button (off and hidden with no war troops, so it sends nothing here)
  buttons.forEach(b=>b.handlers.mousedown({button:0,stopPropagation(){}}));assert.deepEqual(sent,['duty','follow','attack','stop','amove','clinic','hero'],'separate commands keep shared input actions');
  console.log('No-scroll panel pages: every crew entry reachable, resize/count changes, selection preserved, Controls paging and independent crew commands passed');
 }finally{globalThis.document=previous;globalThis.addEventListener=previousEvents;}
