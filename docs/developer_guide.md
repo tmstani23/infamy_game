@@ -8,6 +8,8 @@ Repo layout, look tests, sprite export and tech overview.
 
 UI menus are built with the helpers in game/src/menu_shell.js (msShell, msAside, msRow, msBtn, msSec, msPager, msNote, msConcept, msPaginate) and styled by game/src/menu_shell.css; the clan accent comes from body[data-clan] (CSS variables --ms-accent and friends). HUD icons are inline SVG in game/src/hud_icons.js (hudIcon(name)).
 
+Key bindings: game/src/keybinds.js holds the action table, defaults, saved changes, lookup and swap/take/clear/reset; game/src/controls_settings.js is the Settings > Controls tab; game/src/key_hints.js writes key text on HUD buttons and in the Controls panel (kbd data-k templates in index.html). Test tools/test_keybinds.mjs.
+
 ## Tech
 
 The browser client uses JavaScript ES modules and three.js, with isometric character sprites rendered from 3D models. The simulation owns game rules and state; the client sends commands and renders the results. A local Node server serves the game and saves. The architecture is designed for multiplayer later; a networked multiplayer release is not built yet.

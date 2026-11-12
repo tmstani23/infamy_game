@@ -10,6 +10,8 @@
 // word Auto while on). Units on a Torch order carry a small flame mark over their heads.
 // Presentation and input only; the rules are in sim/frontier/structures.js and sim/special_cast.js.
 import { SPECIALS, specialView } from './sim/special_cast.js';
+import { sharedKeybinds } from './keybinds.js';
+const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONS = {
   torch: svg('<path d="M12 3c1 3 4 4.500 4 8a4 4 0 0 1-8 0c0-1.500.700-2.500 1.500-3.500C10 9 12 7 12 3z"/><path d="M10 15l-1.500 6h7L14 15"/>'),
@@ -115,8 +117,9 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     k = 0;
     for (const { a, v } of shown) {
       const s = slot(a);
-      s.v = v; s.keyText = a.keyText || `Shift + ${ABILITY_KEYS[k++]}`;
-      set(s.key, a.special ? `S+${s.keyText.slice(-1)}` : 'S+RMB');
+      const act = a.special ? `special${++k}` : null;
+      s.v = v; s.keyText = a.keyText || keybinds.label(act);
+      set(s.key, act ? keybinds.badge(act) : 'S+RMB'); s.key.classList.toggle('unbound', !!act && keybinds.isUnbound(act));
       set(s.count, a.special ? `${v.ready}/${v.have}` : `${v.have}`);
       const cooling = !v.ready;
       s.b.classList.toggle('cooling', cooling);

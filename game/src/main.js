@@ -15,7 +15,7 @@ import { setupMatch } from './sim/setup_match.js';
 import { loadSave, heroOf, decode } from './sim/save.js';
 import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
-import { onKey, moveCommand, panAxes, edgeAxes, setGameplayInput, setSprint, sprintOn } from './input.js';
+import { onKey, onAction, onKeyFirst, keybinds, moveCommand, panAxes, edgeAxes, setGameplayInput, setSprint, sprintOn } from './input.js';
 import { createHireMenu } from './hire_menu.js';
 import { interactionDoor as selectInteractionDoor } from './door_interaction.js';
 import { createClinicMenu } from './clinic_menu.js';
@@ -82,6 +82,7 @@ import { createSelectionDock } from './selection_dock.js';
 import { createNewsCallouts } from './news_callouts.js';
 import { createTopBar } from './top_bar.js';
 import { createStandingsPanel } from './standings_panel.js';
+import { refreshKeyHints } from './key_hints.js';
 
 const $ = id => document.getElementById(id);
 bindFullscreen($('fullscreenbtn'));
@@ -178,7 +179,7 @@ async function start() {
   label();
   if (DEV) onKey('F3', () => view.toggleDebug());
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
-  onKey(['Space', 'Enter'], () => {
+  onAction('use', () => {
     if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (Tim 2026-11-08)
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
@@ -262,9 +263,10 @@ async function start() {
     pending.push({ id: heroId, type: 'snuff', prop: hoverLamp.prop });
     e.stopImmediatePropagation(); e.preventDefault();
   }, true);
-  for (const [slotIndex, slot] of ['Q', 'E', 'R', 'F'].entries()) onKey(`Key${slot}`, event => {
-    // Shift + Q, E, R, F: the ability row over the bar (ability_rows.js), slot for slot
-    if (event?.shiftKey) { abilityRows?.key(slotIndex, view.screenToGround(mouse.x, mouse.y)); return; }
+  // the unit ability row over the bar (ability_rows.js): special1..4, by default Shift + Q, E, R, F
+  for (let i = 0; i < 4; i++) onAction(`special${i + 1}`, () => { abilityRows?.key(i, view.screenToGround(mouse.x, mouse.y)); });
+  // hero abilities: ability1..4 run the sim's slots Q, E, R, F (the slot names stay; the keys are rebindable)
+  for (const [slotIndex, slot] of ['Q', 'E', 'R', 'F'].entries()) onAction(`ability${slotIndex + 1}`, () => {
     // the omnibus (sim/omnibus.js, Tim 2026-11-06): Q inside steps everyone out; Q right by a parked one gets in
     if (slot === 'Q' && crewInput.omnibusKey()) return;
     const p = view.screenToGround(mouse.x, mouse.y);
@@ -273,10 +275,10 @@ async function start() {
     pending.push({ id: heroId, type: 'ability', slot, ...(p ? { x: p.x, z: p.z } : {}), ...(target ? { target } : {}) });
   });
   // Camera: arrow keys pan, Home or the button snaps back to the hero
-  onKey('Home', () => view.snapBack());
+  onAction('cameraHero', () => view.snapBack());
   $('snap').addEventListener('click', e => { view.snapBack(); e.currentTarget.blur(); });
-  onKey(['Equal', 'NumpadAdd'], () => view.zoomBy(1.1));
-  onKey(['Minus', 'NumpadSubtract'], () => view.zoomBy(0.9));
+  onAction('zoomIn', () => view.zoomBy(1.1));
+  onAction('zoomOut', () => view.zoomBy(0.9));
   addEventListener('wheel', e => view.zoomBy(e.deltaY > 0 ? 0.9 : 1.1), { passive: true });
 
   const hqStash = createHQStash({game, heroId, send:c => pending.push(c),
@@ -325,7 +327,8 @@ async function start() {
     addEventListener('mousedown', () => { cleanShift = false; }, true);
     addEventListener('keyup', e => { if (e.key === 'Shift' && cleanShift) { cleanShift = false; if (!e.target?.closest?.('input, select, textarea') && game.state.entities[heroId]?.ride) setSprint(!sprintOn()); } }, true); }
   // H calls your horse and rides her; Q gets you off (Tim 2026-11-08: H no longer gets you off). Shift+H is still Mount up / All off
-  onKey('KeyH', e => { const h = game.state.entities[heroId]; if (h?.place === 'world') { if (e?.shiftKey) pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else if (!h.mounted) pending.push({ id: heroId, type: 'mount' }); } else hireMenu.toggle(); });
+  onAction('horse', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') { if (!h.mounted) pending.push({ id: heroId, type: 'mount' }); } else hireMenu.toggle(); });
+  onAction('mountGroup', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
@@ -425,8 +428,8 @@ async function start() {
   const crewInput = createCrewInput({ game, view, heroId, send: c => pending.push(c), box: $('selbox') });
   const characterPanel = createCharacterPanel({ game, heroId, catalog, button: $('characterbtn'), send:c => pending.push(c),
     onOpen: () => setGameplayInput(false), onClose: () => setGameplayInput(true) });
-  onKey(['KeyJ'], () => characterPanel.toggle());
-  onKey(['KeyI'], () => characterPanel.showInventory());
+  onAction('character', () => characterPanel.toggle());
+  onAction('inventory', () => characterPanel.showInventory());
   $('inventorybtn').addEventListener('click', () => characterPanel.showInventory());
   const lootNotice = createLootNotice({ game, heroId, view, button: $('inventorybtn') });
   const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, catalog, heroId, crewInput, send: c => pending.push(c),
@@ -439,24 +442,24 @@ async function start() {
   const cityWatch = createCityWatch({ game, view, heroId, send: c => pending.push(c), notify: (...a) => callout(...a), sound: { clip: (...a) => sound.clip(...a), bell: () => sound.bell() }, onStart: () => { deploymentPanel.close(); gameMap.close(); crewInput.clear(); } });
   // Interior view (Tim 2026-11-10): Inside / Outside button, End key, double-click a building with your crew inside
   const interiorPeek = createInteriorPeek({ game, view, heroId, crewInput, canvas: $('view') });
-  onKey('End', () => interiorPeek.toggle());
+  onAction('interiorPeek', () => interiorPeek.toggle());
   const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, cityWatch, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
   // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
   const unstuck = () => { const h = game.state.entities[heroId], no = h?.unstuck ? null : game.unstuck.why(h); if (no) callout(no, 'loss'); else pending.push({ id: heroId, type: 'unstuck' }); };
-  onKey('KeyU', unstuck);
+  onAction('unstuck', unstuck);
   $('unstuckbtn').addEventListener('click', e => { unstuck(); e.currentTarget.blur(); });
   function interactionDoor() {
     return selectInteractionDoor(game, heroId, crewInput.selected());
   }
-  onKey('KeyC', () => crewInput.selectAll());
-  onKey('KeyV', () => crewInput.followMe());
-  onKey('KeyX', () => crewInput.armAttackMove());
-  onKey('KeyZ', () => crewInput.stopSelected());   // stop + passive until the next order (Tim 2026-10-18)
-  onKey('Tab', () => crewInput.tab());
+  onAction('selectAll', () => crewInput.selectAll());
+  onAction('followMe', () => crewInput.followMe());
+  onAction('attackMove', () => crewInput.armAttackMove());
+  onAction('stop', () => crewInput.stopSelected());   // stop + passive until the next order (Tim 2026-10-18)
+  onAction('cycleTarget', () => crewInput.tab());
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
-  onKey('KeyT', () => crewInput.crewAttack());
-  onKey('KeyG', () => crewInput.healSelected());
+  onAction('crewAttack', () => crewInput.crewAttack());
+  onAction('heal', () => crewInput.healSelected());
   let openTownHook = () => {};   // opens a town panel (F4.4d)
   let evacuateGarrison = () => {};   // Shift+K: everyone out of your stockades (Tim 2026-11-07)
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
@@ -464,7 +467,7 @@ async function start() {
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
   onKey('Escape', () => { crewInput.cancelTarget(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
-  bindCrewNumberKeys({ onKey, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
+  bindCrewNumberKeys({ onAction, onKeyFirst, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
   sound.subscribe(settings=>music.setSettings(settings));
@@ -479,26 +482,30 @@ async function start() {
       const check=usableSave(file);if(!check.ok)throw new Error(check.message);
       if(!hero||!file.state?.clans?.player)throw new Error('This save has no player hero');
       location.assign(saveLoadURL(name,location.href));}};
-  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,video,saves,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
-  const updateMute=s=>{$('mutebtn').textContent=s.muted?'Unmute (K)':'Mute (K)';};
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,video,saves,keybinds,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
+  const updateMute=s=>{$('mutebtn').textContent=(s.muted?'Unmute':'Mute')+keybinds.hint('mute');};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
-  const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = m ? 'Unmute (K)' : 'Mute (K)'; };
-  onKey('KeyK', e => e?.shiftKey ? evacuateGarrison() : mute());
+  const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = (m ? 'Unmute' : 'Mute') + keybinds.hint('mute'); };
+  onAction('mute', mute);
+  onAction('evacuate', () => evacuateGarrison());
   $('mutebtn').addEventListener('click', e => { mute(); e.currentTarget.blur(); });
   // Pause (Tim 2026-10-27, single player): the sim stops stepping, drawing and menus keep going
   let paused = false;
   let gatePlace = null;   // the hero's place last frame, for the gate fade
-  const togglePause = () => { paused = !paused; $('pausedbanner').hidden = !paused; $('pausebtn').textContent = paused ? 'Resume (`)' : 'Pause (`)'; $('pausebtn').setAttribute('aria-pressed', String(paused)); };
-  onKey(['Backquote', 'Pause'], togglePause);
+  const togglePause = () => { paused = !paused; $('pausedbanner').hidden = !paused; $('pausebtn').textContent = (paused ? 'Resume' : 'Pause') + keybinds.hint('pause'); $('pausebtn').setAttribute('aria-pressed', String(paused)); };
+  onAction('pause', togglePause);
   $('pausebtn').addEventListener('click', e => { togglePause(); e.currentTarget.blur(); });
   const fps = createFps({diagnostics:()=>view.graphicsStats(),sim:()=>simClient.diagnostics()});
-  onKey('KeyP', () => fps.toggle());
+  onAction('fps', () => fps.toggle());
   fps.show(video.get().showFps);
   video.subscribe(v => fps.show(v.showFps));
   // Controls panel: the button or ? opens it, Esc closes it
   const toggleControls = () => { controlTips.hide(); $('controls').hidden = !$('controls').hidden; };
-  onKey('Slash', toggleControls);
+  onAction('controls', toggleControls);
+  // key text on buttons and in the Controls panel follows rebinding (Tim 2026-11-12)
+  const refreshKeys = () => { refreshKeyHints(); updateMute(sound.getSettings()); $('pausebtn').textContent = (paused ? 'Resume' : 'Pause') + keybinds.hint('pause'); };
+  refreshKeys(); keybinds.subscribe(refreshKeys);
   $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
   const where = e => unitWhere(e, game.state, district, buildingInfo);   // "Teahouse, Waterfront"
   // where the camera should look for a unit: itself, or its building's door if it is inside one the hero isn't in
@@ -517,11 +524,11 @@ async function start() {
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c), onInspect: id => unitFrames.inspect(id), onHeroFocus: () => view.snapBack() });
   abilityRows = createAbilityRows({ root: $('bar'), marks: $('structbars'), game, units, view, heroId, crewInput, tickRate: TICK_RATE, send: c => pending.push(c) });
   crewInput.onShiftRight(p => abilityRows.shiftRight(p));   // war checkpoint 7: special abilities of the selection (Torch)
-  onKey('KeyB', () => bar.useItem());   // usable-item slot
+  onAction('useItem', () => bar.useItem());   // usable-item slot
   let nameplatesOn = false;
-  onKey('KeyL', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
+  onAction('nameplates', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
   // F2: hide every panel, bar and nameplate for screenshots, F2 again brings them back (Tim 2026-11-08)
-  onKey('F2', () => { const on = document.body.classList.toggle('ui-hidden'); view.setUnitOverlays(!on); });
+  onAction('hideUi', () => { const on = document.body.classList.toggle('ui-hidden'); view.setUnitOverlays(!on); });
   const actionCommands=document.createElement('div');actionCommands.className='action-commands';
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='lantern';
   $('rallybtn').dataset.icon='rally';actionCommands.append($('rallybtn'),lanternButton);$('bar').querySelector('.row').appendChild(actionCommands);
@@ -567,7 +574,7 @@ async function start() {
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
     onManageSector: id => deploymentPanel.openGroup(id),
     onSelectSector: id => deploymentPanel.openGroup(id), onClose:()=>deploymentPanel.close() });
-  onKey('KeyM', () => { if(gameMap.isOpen())gameMap.close();else deploymentPanel.open(); });
+  onAction('map', () => { if(gameMap.isOpen())gameMap.close();else deploymentPanel.open(); });
   // the season is over: the results, then a new game (reload) or keep playing
   function showResults() {
     const s = game.state.season, el = $('seasonend');
@@ -616,10 +623,11 @@ async function start() {
     townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
       nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id) });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
-    onKey('KeyO', () => townPanel.toggle());
+    onAction('townPanel', () => townPanel.toggle());
     // the Vehicles panel (Tim 2026-11-07): Shift+Y or its icon
     vehiclesPanel = createVehiclesPanel({ root: $('vehiclespanel'), game, heroId, send: c => pending.push(c), view, crewInput });
-    onKey('KeyY', e => e?.shiftKey ? vehiclesPanel.toggle() : overview.toggle());
+    onAction('overview', () => overview.toggle());
+    onAction('vehicles', () => vehiclesPanel.toggle());
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
@@ -652,7 +660,7 @@ async function start() {
         foldBtn.addEventListener('click', () => { overview.showNeed(); foldBtn.remove(); folded.clear(); });
         showLine(foldBtn, 600000);
       }
-      foldBtn.textContent = folded.size === 1 ? `${n.text} (Y)` : `Towns: ${folded.size} need attention (Y)`;
+      foldBtn.textContent = (folded.size === 1 ? n.text : `Towns: ${folded.size} need attention`) + keybinds.hint('overview');
       foldBtn.title = [...folded.values()].join('\n');
       clearTimeout(foldTimer); foldTimer = setTimeout(() => { foldBtn?.remove(); folded.clear(); }, 8000);
     };
@@ -799,11 +807,13 @@ async function start() {
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
       const allAboard = stationMenu.callPrompt();
-      $('prompt').textContent = allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
+      // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
+      const usePrompt = t => typeof t === 'string' && t.startsWith('Space  ') ? keybinds.badge('use') + t.slice(5) : t;
+      $('prompt').textContent = usePrompt(allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : stablePrompt ? 'Space  Stable: buy horses, rickshaws, omnibuses'
         : travel ? (stationMenu.riding() ? 'Space  Skip to the station' : stationMenu.trainPrompt() || 'Space  Station: trains and track')
-        : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern...' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '';
+        : lamp ? (game.state.entities[heroId].snuffing ? 'Snuffing the lantern...' : left ? `Space  Snuff the lantern (${left} left tonight)` : 'No more lanterns tonight') : '');
       $('prompt').hidden = !allAboard && !door && !innerDoor && !knockable && !lamp && !travel && !stablePrompt;
       stealthBadge.update(); stationClock.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();

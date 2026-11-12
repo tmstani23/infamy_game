@@ -5,6 +5,8 @@ import { hudIcon } from './hud_icons.js';
 import { ITEMS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 // Character page formats authoritative snapshots; it owns no stat formulas.
 import { formatStat, modifierDisplay } from './character_stat_format.js';
+import { sharedKeybinds, SLOT_ACTION } from './keybinds.js';
+const keybinds = sharedKeybinds();   // J / I (or their new keys) close the page
 export { formatStat, modifierDisplay };
 
 export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
@@ -36,7 +38,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
   root.addEventListener('click', e => { if (e.target === root) setOpen(false); });
   root.addEventListener('keydown', e => {
     e.stopPropagation();
-    if (e.key === 'Escape' || ['KeyJ', 'KeyI'].includes(e.code)) { e.preventDefault(); setOpen(false); }
+    if (e.key === 'Escape' || ['character', 'inventory'].includes(keybinds.lookup(e))) { e.preventDefault(); setOpen(false); }
     if (e.key === 'Tab') {
       const stops = [...root.querySelectorAll('button:not(:disabled), summary, [tabindex="0"]')].filter(el => el.getClientRects().length), first = stops[0], last = stops.at(-1);
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
@@ -93,7 +95,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     for (const a of snapshot.abilities) {
       let el = abilities.get(a.key);
       if (!el) { el = document.createElement('details'); el.innerHTML = '<summary><i class="ab-ico"></i><kbd></kbd><b></b><span></span></summary><p></p>'; el.querySelector('.ab-ico').innerHTML = hudIcon(a.kind); $('.character-abilities > div').appendChild(el); abilities.set(a.key, el); }
-      el.querySelector('kbd').textContent = a.key; el.querySelector('b').textContent = a.name;
+      { const kb = el.querySelector('kbd'), t = SLOT_ACTION[a.key] ? keybinds.badge(SLOT_ACTION[a.key]) : a.key; kb.textContent = t; kb.classList.toggle('unbound', t === 'Unbound'); } el.querySelector('b').textContent = a.name;
       el.querySelector('span').textContent = a.remaining > 0 ? `${Math.ceil(a.remaining)}s remaining` : `${a.cooldown}s cooldown`;
       el.querySelector('p').textContent = a.about;
     }

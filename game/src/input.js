@@ -1,13 +1,24 @@
 // Keyboard -> commands for the game rules, plus view shortcuts.
+// Keys are rebindable (Tim 2026-11-12): game code asks for an action ('heal', 'moveUp'), keybinds.js says which keys
+// run it. onKey(code) stays only for keys that never move (Escape, dev keys).
+import { sharedKeybinds } from './keybinds.js';
+export const keybinds = sharedKeybinds();
 const keys = new Set();
-const handlers = {};
+const handlers = {};        // raw code -> fn (fixed keys)
+const actions = {};         // action id -> fn
+const firsts = [];          // fn(e) -> true when it used the key (menu number picks)
 let gameplayInput = true;
 export function setGameplayInput(enabled) { gameplayInput = enabled; keys.clear(); }
 
 addEventListener('keydown', e => {
   if (!gameplayInput || e.target?.closest?.('input, select, textarea')) return;
-  if (['F2', 'F3', 'Space', 'Tab', 'Slash', 'Quote', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(e.code)) e.preventDefault();
-  if (!e.repeat) handlers[e.code]?.(e);
+  const id = keybinds.lookup(e);
+  if (id || ['F2', 'F3', 'Space', 'Tab', 'Slash', 'Quote', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home'].includes(e.code)) e.preventDefault();
+  if (!e.repeat) {
+    if (firsts.some(f => f(e))) { keys.add(e.code); return; }
+    if (id && actions[id]) actions[id](e);
+    else handlers[e.code]?.(e);
+  }
   keys.add(e.code);
 });
 addEventListener('keyup', e => keys.delete(e.code));
@@ -21,13 +32,17 @@ addEventListener('mousemove', shiftCheck, { capture: true });
 addEventListener('mousedown', shiftCheck, { capture: true });
 document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
 
-// Run fn when a key is pressed (once per press)
+// Run fn when a fixed key (event code) is pressed, once per press
 export function onKey(codes, fn) { for (const c of [].concat(codes)) handlers[c] = fn; }
+// Run fn when the key(s) bound to an action are pressed, once per press
+export function onAction(ids, fn) { for (const id of [].concat(ids)) actions[id] = fn; }
+// fn(e) runs before any action and returns true when it used the key
+export function onKeyFirst(fn) { firsts.push(fn); }
 
 const axis = (neg, pos) => (pos.some(k => keys.has(k)) ? 1 : 0) - (neg.some(k => keys.has(k)) ? 1 : 0);
 
 // Arrow keys pan the camera: -1..1 right and up on screen
-export const panAxes = () => ({ right: axis(['ArrowLeft'], ['ArrowRight']), up: axis(['ArrowDown'], ['ArrowUp']) });
+export const panAxes = () => ({ right: axis(keybinds.codesFor('panLeft'), keybinds.codesFor('panRight')), up: axis(keybinds.codesFor('panDown'), keybinds.codesFor('panUp')) });
 
 // Edge scrolling (Tim 2026-10-20): the mouse at the edge of the window pans the camera like the
 // arrow keys, -1..1 right and up on screen; nothing while it is outside the window
@@ -51,8 +66,8 @@ export function setSprint(on) { sprintLock = !!on; }
 export function moveCommand(id) {
   return {
     id, type: 'move',
-    right: axis(['KeyA'], ['KeyD']),
-    down: axis(['KeyW'], ['KeyS']),
+    right: axis(keybinds.codesFor('moveLeft'), keybinds.codesFor('moveRight')),
+    down: axis(keybinds.codesFor('moveUp'), keybinds.codesFor('moveDown')),
     walk: keys.has('ShiftLeft') || keys.has('ShiftRight'),
     sprint: sprintLock,
   };

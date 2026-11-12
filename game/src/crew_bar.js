@@ -1,24 +1,26 @@
 import { sprintOn, setSprint } from './input.js';
 import { portrait } from './portraits.js';
+import { sharedKeybinds } from './keybinds.js';
+const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 // Independent crew command panel; wraps buttons into the chosen width,
 // styled like the ability slots with the key in the corner (Tim 2026-10-19).
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
 // Only reads the state; orders go out as the same commands the keys send.
 const CMDS = [
   { key: '↩', name: 'Duty', tip: 'Return selected sector crew to their saved duty, deselect them and select your hero group. Escape also returns released manual sector crew to duty while clearing selection.', act: c => c.returnToDutyAndSelectHero(), need: 'sector' },
-  { key: 'V', name: 'Follow', tip: 'Selected crew follow the hero; outdoor crew enter your building. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
-  { key: 'T', name: 'Attack', tip: 'Attack the selected target with the current command group. Tab selects only. Right-click a target portrait, enemy nameplate or enemy body also attacks.', act: c => c.crewAttack(), need: 'sel' },
-  { key: 'Z', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
-  { key: 'X', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
-  { key: 'G', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
-  { key: 'C', name: 'Hero', tip: 'Select your hero group, replacing the current selection. During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
+  { key: 'V', action: 'followMe', name: 'Follow', tip: 'Selected crew follow the hero; outdoor crew enter your building. Tell them to Follow while inside and keep them selected to bring them out with you. Follow from outside never recalls indoor crew; an explicit street move can bring them out.', act: c => c.followMe(), need: 'follow' },
+  { key: 'T', action: 'crewAttack', name: 'Attack', tip: 'Attack the selected target with the current command group. Tab selects only. Right-click a target portrait, enemy nameplate or enemy body also attacks.', act: c => c.crewAttack(), need: 'sel' },
+  { key: 'Z', action: 'stop', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
+  { key: 'X', action: 'attackMove', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
+  { key: 'G', action: 'heal', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
+  { key: 'C', action: 'selectAll', name: 'Hero', tip: 'Select your hero group, replacing the current selection. During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
 ];
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
-  { key: 'H', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; Q gets you off (so does this button while riding). Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
+  { key: 'H', action: 'horse', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; Q gets you off (so does this button while riding). Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
   { key: 'Shift', name: 'Sprint', tip: 'On a horse or driving a rickshaw or omnibus: gallop at full speed (horse 3.75x, rickshaw 3.5x, omnibus 3x run speed). Press Shift or click here: it stays on until you press or click again, or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
-  { key: 'Shift+H', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
-  { key: 'Q', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
+  { key: 'Shift+H', action: 'mountGroup', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
+  { key: 'Q', action: 'ability1', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
 ];
 
 const CSS = `
@@ -107,10 +109,15 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
     stay.disabled = !horse || !!horse.stored || horse.place !== 'world';
     stable.disabled = !horse || !!horse.stored || !!horse.recall;
   }
+  // key badges follow rebinding; Unbound shows red (Tim 2026-11-12)
+  const keyOf = cmd => cmd.action ? keybinds.badge(cmd.action) : cmd.key;
+  const keyEls = [];
+  const paintKeys = () => { for (const [n, cmd] of keyEls) { if (!n) continue; const t = keyOf(cmd); n.textContent = t; n.classList.toggle('unbound', t === 'Unbound'); } };
   const buttons = [...CMDS, ...MOUNT_CMDS].map(cmd => {
     const b = document.createElement('div');
     b.className = 'ccmd';
-    b.innerHTML = `<span class="key">${cmd.key}</span><span class="nm">${cmd.name}</span>`;
+    b.innerHTML = `<span class="key"></span><span class="nm">${cmd.name}</span>`;
+    keyEls.push([b.querySelector('.key'), cmd]);
     b.addEventListener('mousedown', e => {
       if (e.button !== 0 || b.classList.contains('off')) return;
       e.stopPropagation();
@@ -119,7 +126,8 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
       setTimeout(() => b.classList.remove('press'), 150);
     });
     b.addEventListener('mouseenter', () => {
-      tip.innerHTML = `<b>${cmd.name}</b><i>${cmd.key}</i><p>${cmd.tip}</p>`;
+      const k = keyOf(cmd);
+      tip.innerHTML = `<b>${cmd.name}</b><i${k === 'Unbound' ? ' class="unbound"' : ''}>${k}</i><p>${cmd.tip}</p>`;
       tip.hidden = false;
       const r = b.getBoundingClientRect();
       tip.style.left = `${Math.min(innerWidth - 270, Math.max(10, r.left + r.width / 2 - 130))}px`;
@@ -130,6 +138,7 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
     (MOUNT_CMDS.includes(cmd) ? mountStrip : strip).appendChild(b);
     return { b, cmd };
   });
+  paintKeys(); keybinds.subscribe(paintKeys);
 
   function update() {
     const S = game.state.entities, h = S[heroId];

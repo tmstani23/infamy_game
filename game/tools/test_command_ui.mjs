@@ -50,7 +50,7 @@ const read=f=>readFileSync(new URL('../'+f,import.meta.url),'utf8');
 const main=read('src/main.js'),html=read('index.html'),map=read('src/game_map.js');
 assert.ok(!html.includes('id="mapbtn"'),'only one map/deployment button');
 assert.match(main,/onClose:\(\)=>deploymentPanel.close\(\)/);assert.match(main,/gameMap.dock\(false\); gameMap.close\(\)/);
-assert.match(main,/onKey\('KeyM'.*deploymentPanel.open\(\)/);
+assert.match(main,/onAction\('map'.*deploymentPanel.open\(\)/);
 assert.match(map,/destinationPicker=null;onClose\(\)/,'map close synchronously closes its deployment pane');
 assert.match(main,/crewRoot:\$\('partyframes'\)/);assert.match(main,/createCrewBar\(\{ root: crewCommands/);
 assert.match(html,/Utility icons beside Ryo/);assert.match(html,/Rally \/ War Lantern buttons/);

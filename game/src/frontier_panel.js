@@ -11,6 +11,8 @@ import { defaultKeep } from './sim/frontier/storage.js';
 import { workerCount } from './sim/frontier/people.js';
 import { createShipmentsTab } from './shipments_tab.js';
 import { msPaginate, msConcept } from './menu_shell.js';
+import { sharedKeybinds } from './keybinds.js';
+const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
 const arrow = { up: '<span class="up tri"></span>', down: '<span class="dn tri"></span>', flat: '<span class="dim">-</span>' }   // drawn triangles, no glyphs (Tim 2026-11-10);
@@ -147,7 +149,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const building = !!(miniRoot && s && buildUI?.isOpen?.() && !buildUI.isRosterOpen?.());
     showMini(building, s);
     if (building) return;
-    if (!s) { root.innerHTML = CLOSE + '<h1>Town</h1><div class="sub">Go near your town, or choose one in Towns (Y) or the World map.</div>'; return; }
+    if (!s) { root.innerHTML = CLOSE + '<h1>Town</h1><div class="sub">Go near your town, or choose one in Towns' + keybinds.hint('overview') + ' or the World map.</div>'; return; }
     // arrows compare with the numbers from about a second ago
     const now = Date.now();
     if (now - prevAt > 1000) { prevAt = now; prevStock[s.id] = { prev: prevStock[s.id]?.cur, cur: structuredClone(s) }; }

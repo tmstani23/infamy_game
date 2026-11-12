@@ -57,26 +57,29 @@ try {
   assert.equal(input.groupOf('c'), 3, 'drag selection keeps membership');
   input.selectAll(); assert.deepEqual(input.selected(), ['a', 'b', 'c'], 'C includes indoor and outdoor crew');
 
-  const keys = {}, menus = [0, 1, 2, 3].map(() => ({ open: false, picks: [], isOpen() { return this.open; }, pick(i) { this.picks.push(i); } }));
-  bindCrewNumberKeys({ onKey: (key, fn) => keys[key] = fn, crewInput: input, menus });
-  const keyEvent = ctrlKey => ({ ctrlKey, preventDefault() { this.prevented = true; } });
-  input.select(['a', 'b']); keys.Digit4(keyEvent(true));
-  input.clear(); keys.Digit4(keyEvent(false)); assert.deepEqual(input.selected(), ['a', 'b']);
+  // number keys go through the rebindable key table (Tim 2026-11-12): menus first, then group actions
+  const acts = {}, firsts = [], menus = [0, 1, 2, 3].map(() => ({ open: false, picks: [], isOpen() { return this.open; }, pick(i) { this.picks.push(i); } }));
+  bindCrewNumberKeys({ onAction: (id, fn) => acts[id] = fn, onKeyFirst: f => firsts.push(f), crewInput: input, menus });
+  const { createKeybinds } = await import('../src/keybinds.js'), kb = createKeybinds(null);
+  const keyEvent = (ctrlKey, code) => ({ ctrlKey, code, preventDefault() { this.prevented = true; } });
+  const fire = (code, ctrlKey) => { const e = keyEvent(ctrlKey, code); if (firsts.some(f => f(e))) return; acts[kb.lookup(e)]?.(e); };
+  input.select(['a', 'b']); fire('Digit4', true);
+  input.clear(); fire('Digit4', false); assert.deepEqual(input.selected(), ['a', 'b']);
   for (const menu of menus) {
     menu.open = true;
-    keys.Digit1(keyEvent(false)); keys.Digit4(keyEvent(true)); keys.Digit9(keyEvent(false));
+    fire('Digit1', false); fire('Digit4', true); fire('Digit9', false);
     assert.deepEqual(menu.picks, [0, 3, 8], 'each open service/hiring menu consumes number keys');
     assert.deepEqual(input.selected(), ['a', 'b']); assert.equal(input.groupOf('a'), 4);
     menu.open = false;
   }
   // Exercise modifier forwarding through the real keyboard dispatcher as well.
-  const { onKey } = await import('../src/input.js');
-  bindCrewNumberKeys({ onKey, crewInput: input, menus });
+  const { onAction, onKeyFirst } = await import('../src/input.js');
+  bindCrewNumberKeys({ onAction, onKeyFirst, crewInput: input, menus });
   input.select(['a', 'c']);
   const press = ctrlKey => handlers.keydown.forEach(fn => fn({ ...keyEvent(ctrlKey), code: 'Digit2', repeat: false }));
   press(true); input.clear(); press(false);
   assert.deepEqual(input.selected(), ['a', 'c'], 'real keydown forwards Ctrl for assignment versus recall');
-  input.select(['a', 'b']); keys.Digit4(keyEvent(true));
+  input.select(['a', 'b']); fire('Digit4', true);
 
   const root = new Element(), jumps = [];
   const bar = createActionBar({ root, game, units: { types: { hero: {}, thug: { name: 'Thug' } } }, heroId: 'h', tickRate: 20, crewInput: input, jump: u => jumps.push(u.id) });

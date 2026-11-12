@@ -10,6 +10,8 @@ import { createGroupedCrew } from './grouped_crew.js';
 import { CONSUMABLES } from './sim/gear_catalog.js';
 import { itemArt } from './item_detail.js';
 import { hudIcon } from './hud_icons.js';
+import { sharedKeybinds, SLOT_ACTION } from './keybinds.js';
+const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 
 // Usable items share ONE action-bar slot (key B, Tim 2026-11-01): the first one carried shows
 // there with its count and cooldown sweep; nothing carried = empty frame. Add new usables here.
@@ -89,6 +91,11 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);
 
   const slots = [];
+  // the key text on each slot: the slot's bound key, RMB stays (Tim 2026-11-12: Unbound in red when it has none)
+  const keyShown = k => SLOT_ACTION[k] ? keybinds.badge(SLOT_ACTION[k]) : k === 'B' ? keybinds.badge('useItem') : k;
+  const keyEls = [];
+  const paintKeys = () => { for (const [n, k] of keyEls) { const t = keyShown(k); n.textContent = t; n.classList.toggle('unbound', t === 'Unbound'); } };
+  keybinds.subscribe(paintKeys);
   const buffTimers = new Map();
   const addSlot = (key, kind, a) => {
     const s = el('div', 'slot', row);
@@ -97,14 +104,14 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     s.addEventListener('mouseenter', () => {
       const current = game.stats?.effective(hero()) || stats;
       const t = tooltip(a, key, a ? stats : { ...current, damage: Math.round(current.damage || 0) });
-      tip.innerHTML = `<b>${t.name}</b><i>${t.key}</i>` + t.lines.map(([k, v]) => `<div><span>${k}</span>${v}</div>`).join('') + `<p>${t.about}</p>`;
+      tip.innerHTML = `<b>${t.name}</b><i${keyShown(key) === 'Unbound' ? ' class="unbound"' : ''}>${keyShown(key)}</i>` + t.lines.map(([k, v]) => `<div><span>${k}</span>${v}</div>`).join('') + `<p>${t.about}</p>`;
       tip.hidden = false;
       const r = s.getBoundingClientRect();
       tip.style.left = `${Math.min(innerWidth - 270, Math.max(10, r.left + r.width / 2 - 130))}px`;
       tip.style.bottom = `${innerHeight - r.top + 10}px`;
     });
     s.addEventListener('mouseleave', () => { tip.hidden = true; });
-    el('div', 'key', s, key);
+    keyEls.push([el('div', 'key', s, keyShown(key)), key]);
     const sweep = el('div', 'sweep', s), secs = el('div', 'secs', s);
     slots.push({ s, key, a, sweep, secs, wasReady: true });
   };
@@ -113,7 +120,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
   // the usable-item slot, right of F
   const itemSlot = el('div', 'slot item-slot empty', row), itemIcon = el('div', 'icon', itemSlot);
-  el('div', 'key', itemSlot, 'B');
+  keyEls.push([el('div', 'key', itemSlot, keyShown('B')), 'B']); paintKeys();
   const itemCount = el('div', 'count', itemSlot), itemSweep = el('div', 'sweep', itemSlot), itemSecs = el('div', 'secs', itemSlot);
   let itemShown = null, itemWasReady = true;
   const inv = () => (game.inventory?.status(hero()) || {});

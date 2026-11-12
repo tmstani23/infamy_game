@@ -516,3 +516,30 @@ body .uf .pic { background-color: #1d1a16; }
 #towninspect [data-worker-training]:not(:empty) { margin-top: 6px; }
 #towninspect .ti-prog { height: 6px; margin-top: 4px; border-radius: 3px; background: #0b0d0f; border: 1px solid #3a3530; overflow: hidden; }
 #towninspect .ti-prog i { display: block; height: 100%; background: linear-gradient(90deg, #8a7a4a, #e9c27a); }
+/* Settings > Controls (Tim 2026-11-12): types on the left, one type's keys on the right, pages, no scrollbars */
+#gamesettings .settings-window.ms.wide { width: min(800px, calc(100vw - 32px)); }
+#gamesettings .kb-wrap { display: grid; grid-template-columns: 158px 1fr; gap: 12px; }
+#gamesettings .kb-types { display: flex; flex-direction: column; gap: 4px; }
+#gamesettings .kb-types button.ms-btn { text-align: left; padding: 5px 9px; }
+#gamesettings .kb-types button.on { border-color: #e9c27a; background: #3a2a1a; color: #ffe7b0; }
+#gamesettings .kb-types button.unbound { color: #ff8a7a; border-color: #a8443a; }
+#gamesettings .kb-body { display: flex; flex-direction: column; min-width: 0; }
+#gamesettings .kb-rows { min-height: 245px; }
+#gamesettings .kb-row { display: grid; grid-template-columns: minmax(0, 1fr) 118px 118px auto auto; gap: 5px; align-items: center; padding: 3px 6px; margin: 0 0 3px; border: 1px solid transparent; border-radius: 5px; }
+#gamesettings .kb-row:nth-child(odd) { background: rgba(255,255,255,.03); }
+#gamesettings .kb-row.unbound { border-color: #a8443a; background: rgba(168,68,58,.16); }
+#gamesettings .kb-row.unbound .kb-name { color: #ff8a7a; }
+#gamesettings .kb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#gamesettings .kb-row.fixed .kb-name { color: #a9a08c; }
+#gamesettings .kb-fixed { grid-column: 2 / -1; color: #a9a08c; font-size: 12px; padding: 5px 0; }
+#gamesettings button.kb-key { padding: 4px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#gamesettings button.kb-key.empty { color: #7d7564; font-weight: 400; }
+#gamesettings button.kb-key.unbound { color: #ff8a7a; border-color: #a8443a; background: #3a1d1a; }
+#gamesettings button.kb-key.waiting { border-color: #ffe0a1; background: #3a2a1a; color: #ffe7b0; }
+#gamesettings button.kb-clear, #gamesettings button.kb-reset { padding: 4px 7px; font-weight: 500; }
+#gamesettings .kb-note { min-height: 1.2em; margin: 6px 0 4px; color: #acbeb3; font-size: 12px; }
+#gamesettings .kb-ask { margin: 0 0 6px; padding: 6px 8px; border: 1px solid #a8443a; border-radius: 5px; background: rgba(168,68,58,.14); }
+#gamesettings .kb-ask[hidden] { display: block; visibility: hidden; }
+#gamesettings .kb-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+#gamesettings .kb-pager button { margin-left: 4px; }
+#gamesettings section[data-pane="keys"]:focus { outline: none; }

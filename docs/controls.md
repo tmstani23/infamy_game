@@ -6,6 +6,22 @@ What works in the game now (updated 2026-10-21). Keep this file up to date whene
 
 Start game (2026-10-22): choose clan and difficulty, then Start; [match rules](gameplay_and_design.md#starting-paths-settled). On the start screen, **Exit Game** asks the browser or app to close; if it cannot, it explains how to close the tab. Kuroda Q/E/R/F use [its own kit](combat_spec.md#kuroda-leader-kit-tim-2026-10-22); the hero table below describes Ronin abilities.
 
+## Rebinding keys
+
+Keys shown in the tables below are defaults; Settings > Controls changes them, and the in-game Controls panel always shows the current keys.
+
+- Settings > Controls tab: action types listed on the left (Movement, Camera, Crew orders, Crew groups, Hero abilities, Horses and vehicles, Panels and menus, Interface, Building). One type is shown at a time; Prev / Next pages when a type has more than 7 rows. No scrollbars.
+- Each action has a main key and an optional second key. Click a key button, then press the new key (Ctrl, Alt or Shift may be held). Esc cancels.
+- A key used by another action in the same context asks: Swap (the other action gets the old key), Take it (the other action becomes unbound), or Cancel.
+- Clear removes an action's keys. Reset returns one action to its default. Reset all keys (click twice) returns every action to its default.
+- An action with no key is Unbound: shown in red in the Settings tab (its row and its type button), in the Controls panel (? key), on HUD key badges (action bar, crew commands, unit ability row, Character page) and in tooltips.
+- Keys only: mouse buttons are fixed (Torch is Shift + right-click; right-click a unit ability button toggles auto). Fixed rows shown greyed: Walk (Shift), Pick in an open menu (1 to 9), Close or cancel (Esc), Fullscreen (Alt + Enter), Torch, Unit ability auto.
+- Keys that cannot be bound: Esc, F1, F3, F5, F11, F12, Alt + Enter, Alt + F4, Ctrl + W, Ctrl + R, Ctrl + T, Ctrl + N, Ctrl + Tab, Alt + Tab. Dev-only keys (N day and night, F3 footprints) are not rebindable.
+- Saved in this browser (localStorage infamy.keys.v1), not in game saves. Only changed actions are stored.
+- With only Shift held, a key with no Shift binding runs its plain action (Shift + J still opens the Character page while walking). Ctrl or Alt with a key runs only an action bound to exactly that combo.
+- Building context: Turn a station (R) and Selected workers hold (Z) apply while placing or with workers selected, and may share keys with world actions.
+- If a game update gives a new action a default key the player already uses, the player's binding keeps it and the new action shows Unbound.
+
 ## Hero
 
 | Key | What it does |

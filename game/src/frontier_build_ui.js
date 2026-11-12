@@ -18,6 +18,8 @@ import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers
 import { residents } from './sim/frontier/people.js';
 import { msArt } from './menu_shell.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
+import { sharedKeybinds } from './keybinds.js';
+const keybinds = sharedKeybinds();   // rebindable keys (Tim 2026-11-12): Turn a station, Workers hold
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -346,10 +348,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   addEventListener('mouseup', () => { inspectionPressed = false; reviewPressed = false; });
   addEventListener('keydown', e => {
     // R turns a station while placing it (Tim 2026-11-07); otherwise R stays the hero's ability
-    if(e.code==='KeyR' && tool && !pendingPlan && shapeOf(data.buildings[tool]) && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
+    if(keybinds.lookup(e,['build'])==='rotateBuilding' && tool && !pendingPlan && shapeOf(data.buildings[tool]) && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
       rot=(rot+1)%4;lastPreview='';consume(e);return;
     }
-    if(e.code==='KeyZ' && selected.length && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
+    if(keybinds.lookup(e,['build'])==='workersHold' && selected.length && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
       orderSelected('hold');consume(e);return;
     }
     if (e.code !== 'Escape' || e.target?.closest?.('input, select, textarea')) return;

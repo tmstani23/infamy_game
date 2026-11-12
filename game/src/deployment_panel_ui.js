@@ -3,6 +3,8 @@ import { TASK_LABELS } from './deployment_map_data.js';
 import { syncChildren } from './stable_list.js';
 import { portrait } from './portraits.js';
 import { bossAway } from './sim/util.js';
+import { sharedKeybinds } from './keybinds.js';
+const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 
 // One focused command group. Transfer destination picking never changes the
@@ -149,7 +151,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
   $('.staffing-target').addEventListener('input',()=>{staffingDirty=true;});
   function update(force=false) {
     const first=!!game.deployment.needsFirstSector?.(owner());
-    button.textContent=first?'Map & deployment, choose first zone (M)':'Map & deployment (M)';button.classList.toggle('needs-zone',first);
+    button.textContent=(first?'Map & deployment, choose first zone':'Map & deployment')+keybinds.hint('map');button.classList.toggle('needs-zone',first);
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
     root.classList.toggle('away',away());$('.away-note').hidden=!away();
     if(away()&&['duty','rally','reserves'].includes(root.dataset.page))setPage('crew');   // those pages are orders only
