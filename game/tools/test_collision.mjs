@@ -25,7 +25,8 @@ for (const name of new Set(names)) {
   const bs = artBoxes(F, name);
   assert.ok(Array.isArray(bs), `${name} has a blocking shape`);
   if (name === 'war_banner') { assert.equal(bs.length, 0, 'the war banner blocks nothing (Tim 2026-11-11)'); continue; }
-  assert.ok(bs.length > 0 && bs.length <= 12, `${name}: a few boxes (${bs.length})`);
+  assert.ok(bs.length > 0 && bs.length <= 16, `${name}: a few boxes (${bs.length})`);
+  if (opt.catalog.items[name].blockShape) continue;   // a hand-made outline (stockade, town hall) is cut to the art itself by the tool, not to the measured footprint
   // no blocked edge reaches beyond the art's own footprint
   const item = artItem(opt.catalog, name), f = footprint(item, opt.cutouts[`${item.kind}/${name}`]);
   for (const b of bs) assert.ok(b.minX >= -f.fa / 2 - 0.01 && b.maxX <= f.fa / 2 + 0.01 && b.minZ >= -f.fb / 2 - 0.01 && b.maxZ <= f.fb / 2 + 0.01, `${name} stays inside its art`);

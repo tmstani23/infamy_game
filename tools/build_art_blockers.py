@@ -50,8 +50,24 @@ def to_px(cx, cy, p, q):
     return cx + (p - q) * S, cy + (p + q) * S * SL
 
 
-def blocks(img, name, m, shape=None):
+def sheared(img, sh):
+    """The art as the game draws it: art.json "shear" slides every column up or down round the middle of the art
+    (render/scenery.js spriteQuad). Returns the image, padded top and bottom, and the padding."""
+    if not sh: return img, 0
+    a = np.array(img); h, w = a.shape[:2]; pad = int(math.ceil(abs(sh) * w / 2)) + 1
+    out = np.zeros((h + 2 * pad, w, 4), np.uint8)
+    for x in range(w):
+        d = pad - int(round(sh * (x - w / 2)))
+        out[d:d + h, x] = a[:, x]
+    return Image.fromarray(out), pad
+
+
+def blocks(img, name, m, shape=None, sh=0):
     fa, fb, cx, cy = centre(m)
+    w0 = img.width
+    img, pad = sheared(img, sh)
+    cy += pad
+    if shape: shape = [(x, y - sh * (x - w0 / 2) + pad) for x, y in shape]
     P0, Q0, N = -fa / 2, -fb / 2, 12
     if shape:
         # a hand-made outline: filled, kept inside the art, and gridded over its own ground box (finer: it may be turned)
@@ -60,7 +76,7 @@ def blocks(img, name, m, shape=None):
         g = pm.fill_holes(a) & (np.array(poly) > 0)
         gp = [(((x - cx) / S + (y - cy) / (S * SL)) / 2, ((y - cy) / (S * SL) - (x - cx) / S) / 2) for x, y in shape]
         P0, Q0 = min(p for p, q in gp), min(q for p, q in gp)
-        fa, fb, N = max(p for p, q in gp) - P0, max(q for p, q in gp) - Q0, 16
+        fa, fb, N = max(p for p, q in gp) - P0, max(q for p, q in gp) - Q0, 28
     else:
         g, _ = pm.ground_mask(img, name)
     h, w = g.shape
@@ -89,9 +105,10 @@ def blocks(img, name, m, shape=None):
     return [[round(v, 1) for v in b] for b in out]
 
 
-def card(label, img, m, bs, cell=440):
+def card(label, img, m, bs, cell=440, sh=0):
+    img, pad = sheared(img, sh)
     over = Image.new('RGBA', img.size, (0, 0, 0, 0)); d = ImageDraw.Draw(over)
-    _, _, cx, cy = centre(m)
+    _, _, cx, cy = centre(m); cy += pad
     for p0, q0, p1, q1 in bs:
         d.polygon([to_px(cx, cy, p, q) for p, q in ((p0, q0), (p1, q0), (p1, q1), (p0, q1))], fill=(60, 220, 255, 120), outline=(60, 240, 255, 255))
     both = Image.alpha_composite(img, over)
@@ -117,10 +134,10 @@ def main():
         if key in cut: cut[key].pop('blocks', None)
         if name in skip or a.get('foot') or a.get('kind') != 'buildings' or key not in cut: continue
         img = Image.open(os.path.join(ROOT, 'game', 'art', 'buildings', name + '.png')).convert('RGBA')
-        bs = blocks(img, name, cut[key], a.get('blockShape'))
+        bs = blocks(img, name, cut[key], a.get('blockShape'), a.get('shear', 0))
         cut[key]['blocks'] = bs
         print(name, len(bs))
-        if '--preview' in sys.argv and (not only or name in only): cards.append(card(name, img, cut[key], bs, 760 if only else 440))
+        if '--preview' in sys.argv and (not only or name in only): cards.append(card(name, img, cut[key], bs, 760 if only else 440, a.get('shear', 0)))
     with open(cpath, 'w') as f: json.dump(cut, f, indent=1)
     if cards:
         out = os.path.join(ROOT, 'to_delete', '_collision_preview'); cell = 440
