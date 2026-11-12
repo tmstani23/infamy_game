@@ -330,6 +330,16 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     } else if (w) delete e.swing;
     const reach = (unit.attackRange || 1.5) + (unit.radius || 0.35) + 0.4;
     const d = gap(st, e.x, e.z);
+    // 7c: a melee unit walks all the way to its own slot round the structure before it hits (ranged units stop in range)
+    if (isMelee(unit) && !o.noSlot && !o.atSlot && !o.contact) {
+      const [sx, sz] = slotSpot(st, e, unit, o), ds = Math.hypot(sx - e.x, sz - e.z), now = state.tick ?? 0;
+      if (ds <= 0.4) o.atSlot = true;
+      else {
+        if (o.slotBest == null || ds < o.slotBest - 0.15) { o.slotBest = ds; o.slotAt = now; }
+        else if (now - o.slotAt > 30) { if (d <= reach) o.atSlot = true; else o.noSlot = true; }   // stuck short of it: hit from here, or go for the nearest wall
+        if (!o.atSlot && !o.noSlot) { if (!rt.moveTo(e, unit, sx, sz, false)) o.noSlot = true; else return true; }
+      }
+    }
     if (d > reach && !o.contact) {
       // walk to the nearest wall of it; standing against something solid close by counts as there
       if (o.bestD == null || d < o.bestD - 0.15) { o.bestD = d; o.bestAt = state.tick ?? 0; }
@@ -347,6 +357,35 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     e.anim = 'attack';
     fight.cd = speed;
     return true;
+  }
+  // 7c (Tim 2026-11-12: attackers converged and stacked on a building): each attacker of a clan on a structure takes its own
+  // slot round it, at least slotGap (war.structures, default 1.3) from the others' slots; a unit takes the free one
+  // nearest its own side. The spot is where a line from the centre at that angle leaves the solid boxes, plus a
+  // step. Kept on the order (o.slot, o.sx, o.sz); o.noSlot: the slot could not be reached, use the nearest wall.
+  const inBoxes = (st, x, z) => st.boxes.some(b => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ);
+  function slotSpot(st, e, unit, o) {
+    if (o.noSlot) return approach(st, e, unit);
+    if (o.sx == null) {
+      const pad = (unit.radius || 0.35) + 0.5, ext = Math.max(st.r || 4, ...(st.boxes || []).map(b => Math.max(Math.abs(b.minX - st.x), Math.abs(b.maxX - st.x), Math.abs(b.minZ - st.z), Math.abs(b.maxZ - st.z))));
+      const gapW = R().slotGap ?? 1.3, m = Math.max(12, Math.ceil(2 * Math.PI * (ext + pad) / 0.3)), cell = 2 * Math.PI / m;
+      const taken = [];
+      for (const u of Object.values(state.entities)) if (u !== e && u.owner === e.owner && !u.dead && u.order?.kind === 'raze' && u.order.structure === o.structure && u.order.sx != null) taken.push([u.order.sx, u.order.sz]);
+      const spotAt = k => {
+        const a = k * cell, ux = Math.cos(a), uz = Math.sin(a);
+        let t = 0;
+        if (st.boxes?.length) { while (t < ext + 2 && inBoxes(st, st.x + ux * t, st.z + uz * t)) t += 0.25; } else t = st.r || 4;
+        return [st.x + ux * (t + pad), st.z + uz * (t + pad)];
+      };
+      const want = Math.round(Math.atan2(e.z - st.z, e.x - st.x) / cell);
+      let k = want, spot = null;
+      for (let i = 0; i < m && !spot; i++) {
+        const c = want + (i % 2 ? (i + 1) / 2 : -i / 2), p = spotAt(c);
+        if (taken.every(q => Math.hypot(q[0] - p[0], q[1] - p[1]) >= gapW)) { k = c; spot = p; }
+      }
+      spot ||= spotAt(want);   // every place round it taken: share the nearest
+      o.slot = ((k % m) + m) % m; [o.sx, o.sz] = spot;
+    }
+    return [o.sx, o.sz];
   }
   // where to walk: just outside the nearest solid box, on the unit's side
   function approach(st, e, unit) {

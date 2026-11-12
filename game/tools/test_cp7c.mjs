@@ -76,5 +76,25 @@ const troop = (x, z) => { const b = ids(); war.spawnTroop(rec, 'grunt', x, z); r
   const before = [hero.x, hero.z]; Object.assign(hero, { x: enemy.x + ux * (R + 50), z: enemy.z + uz * (R + 50) }); run(6);
   assert.ok(Math.hypot(hero.x - enemy.x, hero.z - enemy.z) > R, 'the hero is not leashed'); Object.assign(hero, { x: before[0], z: before[1] }); }
 
+// ---- attackers spread round a building, and stand still once it falls ------------------------------------
+{ const ST = g.frontier.structures, st = ST.list().find(s => s.town === 'enemyTown' && s.type === 'town_hall'); assert.ok(st, 'the town hall is a structure');
+  const crew = []; for (let k = 0; k < 10; k++) crew.push(troop(st.x + 25 + (k % 2) * 0.5, st.z + 4 + Math.floor(k / 2) * 0.5));
+  for (const t of crew) t.hp = t.maxHp = 1e6;   // nobody falls to the defenders while we look
+  g.step([{ id: hero.id, type: 'order', kind: 'raze', structure: st.key, units: crew.map(t => t.id) }]);
+  run(400);
+  const minGap = () => { let m = Infinity; for (let i = 0; i < crew.length; i++) for (let j = 0; j < i; j++) m = Math.min(m, Math.hypot(crew[i].x - crew[j].x, crew[i].z - crew[j].z)); return m; };
+  const hitting = crew.filter(t => t.order?.kind === 'raze' && ST.gap(st, t.x, t.z) < 3).length;
+  assert.ok(hitting >= 8, `most are at the building (${hitting})`);
+  assert.ok(new Set(crew.map(t => t.order.slot)).size === crew.length, 'each has its own slot');
+  assert.ok(minGap() > 1, `not stacked while hitting it (closest pair ${minGap().toFixed(2)})`);
+  ST.damage('player', st, 1e9, 'siege'); run(80);
+  assert.ok(crew.every(t => t.order?.kind === 'move'), 'the order ends when it falls');
+  const at = crew.map(t => [t.x, t.z]); let moving = 0;
+  for (let i = 0; i < 100; i++) { g.step([]); moving += crew.filter(t => t.anim === 'run' || t.anim === 'walk').length; }
+  const drift = Math.max(...crew.map((t, i) => Math.hypot(t.x - at[i][0], t.z - at[i][1])));
+  assert.ok(moving === 0 && drift < 0.3, `nobody runs in place afterwards (${moving} running ticks, drift ${drift.toFixed(2)})`);
+  assert.ok(minGap() > 1, `still spread afterwards (closest pair ${minGap().toFixed(2)})`);
+  for (const t of crew) t.dead = true; }
+
 fw.checkInvariants();
 console.log('test_cp7c: ok');

@@ -235,6 +235,17 @@ export function createCrewOrders({ gateNav = () => null, roomOf, clans, contract
       return { x: gx, z: gz, near: going ? 0.05 : Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
     }
     if (o.kind === 'attack') return null;
+    // 7c (Tim 2026-11-12: units ran in place after a fight): a unit that is there keeps the spot the spacing push
+    // gives it instead of walking back into the crowd (only one shoved further than 1.5 walks back), and one
+    // that gets no closer to its last step for half a second, with others in the way, stops where it is. On the island only.
+    if (o.kind === 'move' && !o.patrol && e.place === 'world') {   // the island only: city raids hold their exact spots
+      const d = Math.hypot(o.x - e.x, o.z - e.z);
+      if (o.arrived && d <= 1.5) { o.x = e.x; o.z = e.z; return { x: e.x, z: e.z, near: Infinity }; }
+      if (!o.arrived && d < 1.2) {
+        if (!o.stall || d < o.stall.d - 0.05) o.stall = { d, t: state.tick };
+        else if (state.tick - o.stall.t > 10) { delete o.stall; o.x = e.x; o.z = e.z; return { x: e.x, z: e.z, near: Infinity }; }
+      }
+    }
     return { x: o.x, z: o.z, near: 0.25, walk: !!o.patrol, stroll: !!o.patrol };   // patrol (house guards): walk the whole way
   }
 
