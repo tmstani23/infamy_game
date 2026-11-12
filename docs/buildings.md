@@ -5,6 +5,7 @@ Index of every building image (2026-10-18). Use the # to name a building in chat
 - **Code id:** the key in `game/art/cutouts.json`; for buildings placed on the map, also the business id `b<n>` (its index in `buildings` in `game/data/port_town.json`; b0-b13 keep their old waterfront ids). "On the map" means placed in `port_town.json` (2026-10-19).
 - **Sorted copy:** a copy of every image grouped by area in `assets/environment/buildings/` (town, waterfront, wilderness, ninja_village; source sheets listed in its `index.txt`). The game still loads the **Image** path.
 - Town and waterfront buildings are cut by `tools/cut_environment.py` from the sheets in `assets/environment/`. Cells are read left to right, top to bottom.
+- After changing or adding building art used by frontier towns or war camps, run `python tools/build_art_blockers.py` (from `tools/`) to rebuild the blocking shapes; `--preview` writes sheets to `to_delete/_collision_preview/`.
 
 ## Town and waterfront
 

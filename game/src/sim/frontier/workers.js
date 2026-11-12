@@ -3,7 +3,7 @@ import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
 import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from '../resource_spots.js';
-import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature, ringRadius } from './town_grid.js';
+import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature, campBlockSignature, ringRadius } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
 import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint } from './camp_carts.js';
@@ -25,13 +25,25 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   let geometry='',geometryAt=-1,geometryState=null,revision=0;
   function geometryRevision() {
     if(geometryAt!==state.tick || geometryState!==state.frontier) {
-      const next=JSON.stringify(towns().map(s=>[s.id,townBlockSignature(s,data)]));   // perf 2026-11-07: only what blocks walking, so growing fields do not throw away every worker path
-      if(next!==geometry || geometryState!==state.frontier){geometry=next;revision++;waiting.clear();paths.clear();}
+      const next=JSON.stringify(towns().map(s=>[s.id,townBlockSignature(s,data)]))+campBlockSignature(state.frontier);   // perf 2026-11-07: only what blocks walking, so growing fields do not throw away every worker path
+      if(next!==geometry || geometryState!==state.frontier) {
+        // collision 5b-1: a newly grown house only throws away the kept routes that now run through something solid
+        if(geometryState!==state.frontier)paths.clear();
+        else for(const [k,p] of paths)if(!p || crossesBlocker(p))paths.delete(k);
+        geometry=next;revision++;waiting.clear();
+      }
       geometryAt=state.tick;geometryState=state.frontier;
     }
     return revision;
   }
   const townBlocked = (x,z) => townBlockersIn(state.frontier,x,z,x,z,data).length>0;
+  function crossesBlocker(p) {
+    for(let i=1;i<p.length;i++) {
+      const [ax,az]=p[i-1],[bx,bz]=p[i],n=Math.max(1,Math.ceil(Math.hypot(bx-ax,bz-az)));
+      for(let k=1;k<n;k++)if(townBlocked(ax+(bx-ax)*k/n,az+(bz-az)*k/n))return true;
+    }
+    return false;
+  }
   function waitingPoint(s,w,building=null) {
     const origin=building ? point(s,building) : [s.x,s.z];
     if (!runtime || !s.grid || !s.roadReserve && !townBlocked(...origin)) return origin;
@@ -66,7 +78,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const planBlocked = (x,z) => { const k=R.buildingPad || 0; return townBlockersIn(state.frontier,x-k,z-k,x+k,z+k,data).length>0; };
   function path(a,b) {
     if(!runtime)return [a,b];
-    const key=JSON.stringify([a,b,geometryRevision()]);
+    geometryRevision();
+    const key=JSON.stringify([a,b]);
     if(paths.has(key))return paths.get(key);
     let p=runtime.areas.nav.workerPath(...a,...b,planBlocked) || runtime.areas.nav.workerPath(...a,...b,townBlocked);
     if(p && distance(a,p[0])>1e-6 && runtime.areas.nav.clearLine(...a,...p[0]))p=[a,...p];
@@ -243,8 +256,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   function start(s,w,spot,defer=false) {
     if(defer && runtime) { if(startTick===state.tick)return 'later'; startTick=state.tick; }   // without island navigation routes are free
     const drop=nearestDropoff(s,spot);if(!drop)return false;
-    const backPath=path([spot.x,spot.z],drop.p);
     const outPath=path(w.departure || drop.p,[spot.x,spot.z]);
+    // the way back starts where the way out ends (collision 5b: a spot hard against a building is reached from beside it)
+    const backPath=path(outPath?.at(-1) || [spot.x,spot.z],drop.p);
     if(!outPath || !backPath) { w.status='No walking route to resource'; return false; }
     const out=walkTicks(length(outPath)),back=walkTicks(length(backPath));
     const stages=spotRules?.stages, saved=state.frontier.spots?.[spot.id];

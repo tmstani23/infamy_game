@@ -4,7 +4,7 @@ import { charmProtected } from './charm_rules.js';
 import { dirIndex } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-import { ownerIndex } from './util.js';
+import { ownerIndex, spatialIndex } from './util.js';
 export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild, clearShot=()=>true, onDefeat=()=>{}, shelter=()=>false }) {
   state.projectiles||=[];
   function launch(e,t,unit){
@@ -26,16 +26,38 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       }
     }
   }
-  const mates = ownerIndex(state);   // units (all, or a clan's), listed once a tick (lag 2026-11-08)
+  const mates = ownerIndex(state);
+  const where = spatialIndex(state);   // who is where, once a tick (speed pass 5b-5)   // units (all, or a clan's), listed once a tick (lag 2026-11-08)
   function nearestEnemy(e, x, z, range) {
-    let best = null, bd = range;
-    for (const t of mates()) {
-      // distance first: it is cheap and rules most units out before the hostile / sight checks (same result; lag 2026-11-08)
-      const d = Math.hypot(t.x - x, t.z - z);
-      if (!(d < bd) || state.entities[t.id] !== t || !hostile(e, t) || !sees(e, t) || (cop(t) && !cop(e) && !t.wave)) continue;
-      bd = d; best = t;
+    // speed pass (war collision checkpoint 5b-5): the same pick as before (the nearest that passes every check, the
+    // earlier unit on a tie), but the dear hostile and sight checks now run nearest first and stop at the first pass,
+    // in place of running for every unit that was nearer than the best so far. Own units, the fallen and units in
+    // another place can never be hostile, so they drop out on the cheap checks.
+    // first the nearest by the cheap checks alone: it nearly always passes, and then nothing else is needed
+    // Only the units in the ground squares round the point are looked at (sim/util.js spatialIndex).
+    // (squared distances: Math.hypot was the dearest line of a big fight)
+    const all = where.all(), ks = where.near(x, z, range), count = ks ? ks.length : all.length;
+    const owner = e.owner, place = e.place, r2 = range * range;
+    let first = null, fd = r2, fk = -1;
+    for (let n = 0; n < count; n++) {
+      const k = ks ? ks[n] : n, t = all[k];
+      if (t.owner === owner || t.dead || t.downed || t.place !== place) continue;
+      const dx = t.x - x, dz = t.z - z, d = dx * dx + dz * dz;
+      if (d < fd || (d === fd && first && k < fk)) { fd = d; first = t; fk = k; }
     }
-    return best;
+    if (!first) return null;
+    const ok = t => state.entities[t.id] === t && hostile(e, t) && sees(e, t) && !(cop(t) && !cop(e) && !t.wave);
+    if (ok(first)) return first;
+    const near = [];
+    for (let n = 0; n < count; n++) {
+      const k = ks ? ks[n] : n, t = all[k];
+      if (t === first || t.owner === owner || t.dead || t.downed || t.place !== place) continue;
+      const dx = t.x - x, dz = t.z - z, d = dx * dx + dz * dz;
+      if (d < r2) near.push({ t, d, k });
+    }
+    near.sort((a, b) => a.d - b.d || a.k - b.k);
+    for (const { t } of near) if (ok(t)) return t;
+    return null;
   }
 
   // Where a crew member is tied to: its hero, its station, or where it is going
@@ -129,13 +151,19 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   }
   function searchTarget(e, o) {
     // first stop anyone finishing off one of our downed crew nearby
-    const executor = mates().find(t => t.execute && state.entities[t.id] === t && hostile(e, t) && !cop(t)
-      && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO);
-    if (executor) return executor;
+    { const all = where.all(), ks = where.near(e.x, e.z, AGGRO), count = ks ? ks.length : all.length;
+      let found = null, fk = Infinity;
+      for (let n = 0; n < count; n++) {
+        const k = ks ? ks[n] : n, t = all[k];
+        if (t.execute && k < fk && state.entities[t.id] === t && hostile(e, t) && !cop(t)
+          && state.entities[t.execute.target]?.owner === e.owner && Math.hypot(t.x - e.x, t.z - e.z) < AGGRO) { found = t; fk = k; }
+      }
+      if (found) return found; }
     const [ax, az] = anchorOf(e);
     const attacker = u => {
       const by = u.hitBy && state.tick - u.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[u.hitBy.id];
-      return by && u.hitBy.tick > (o.recalledAt ?? -1) && hostile(e, by) && sees(e,by) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH ? by : null;
+      // (speed pass 5b-5: the cheap checks first; the same answer)
+      return by && u.hitBy.tick > (o.recalledAt ?? -1) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH && hostile(e, by) && sees(e,by) ? by : null;
     };
     // Standing duties must answer a shot from outside their acquisition radius,
     // still within their normal leash and sector/visibility restrictions.
@@ -151,12 +179,16 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro
     const raidRoom = e.place !== 'street' && Object.values(state.attacks || {}).some(a => a.room === e.place && a.phase !== 'over');
     if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom) {
-      for (const u of mates(e.owner)) {
-        if (u === e || u.owner !== e.owner || u.dead || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > BACKUP_RANGE || state.entities[u.id] !== u) continue;
+      // the first mate (in unit order) near enough who was hit lately by someone this unit may fight
+      const all = where.all(), ks = where.near(e.x, e.z, BACKUP_RANGE), count = ks ? ks.length : all.length;
+      let pick = null, pk = Infinity;
+      for (let n = 0; n < count; n++) {
+        const k = ks ? ks[n] : n, u = all[k];
+        if (k > pk || u === e || !u.hitBy || u.owner !== e.owner || u.dead || u.place !== e.place || (u.x - e.x) ** 2 + (u.z - e.z) ** 2 > BACKUP_RANGE * BACKUP_RANGE || state.entities[u.id] !== u) continue;
         const by = attacker(u);
-        if (by) return by;
+        if (by) { pick = by; pk = k; }
       }
-      return null;
+      return pick;
     }
     const f = fight[e.id];
     const old = f && state.entities[f.target];

@@ -121,6 +121,32 @@
     109,
     54
    ]
+  ],
+  "blocks": [
+   [
+    -93.8,
+    -89.0,
+    0.0,
+    -71.2
+   ],
+   [
+    -117.3,
+    -71.2,
+    93.8,
+    -53.4
+   ],
+   [
+    -117.3,
+    -53.4,
+    117.3,
+    17.8
+   ],
+   [
+    -93.8,
+    17.8,
+    117.3,
+    89.0
+   ]
   ]
  },
  "buildings/shop": {
@@ -303,6 +329,38 @@
     416,
     157,
     60
+   ]
+  ],
+  "blocks": [
+   [
+    -135.5,
+    -63.4,
+    27.1,
+    -31.7
+   ],
+   [
+    108.4,
+    -63.4,
+    162.6,
+    -31.7
+   ],
+   [
+    -135.5,
+    -31.7,
+    162.6,
+    126.8
+   ],
+   [
+    -108.4,
+    126.8,
+    162.6,
+    158.5
+   ],
+   [
+    -81.3,
+    158.5,
+    162.6,
+    190.2
    ]
   ]
  },
@@ -1829,6 +1887,38 @@
     231,
     30
    ]
+  ],
+  "blocks": [
+   [
+    -170.3,
+    -72.1,
+    170.3,
+    -54.1
+   ],
+   [
+    -170.3,
+    -54.1,
+    204.4,
+    -36.1
+   ],
+   [
+    -170.3,
+    -36.1,
+    170.3,
+    54.1
+   ],
+   [
+    -68.1,
+    54.1,
+    204.4,
+    72.1
+   ],
+   [
+    68.1,
+    72.1,
+    170.3,
+    90.2
+   ]
   ]
  },
  "buildings/police_box": {
@@ -2138,6 +2228,38 @@
     182,
     178
    ]
+  ],
+  "blocks": [
+   [
+    -126.6,
+    -146.4,
+    84.4,
+    -122.0
+   ],
+   [
+    -126.6,
+    -122.0,
+    105.5,
+    -97.6
+   ],
+   [
+    -126.6,
+    -97.6,
+    126.6,
+    97.6
+   ],
+   [
+    -105.5,
+    97.6,
+    126.6,
+    122.0
+   ],
+   [
+    -63.3,
+    122.0,
+    105.5,
+    146.4
+   ]
   ]
  },
  "buildings/training_yard": {
@@ -2198,41 +2320,343 @@
     86,
     34
    ]
+  ],
+  "blocks": [
+   [
+    -87.7,
+    -106.8,
+    14.6,
+    -89.0
+   ],
+   [
+    -87.7,
+    -89.0,
+    43.8,
+    -71.2
+   ],
+   [
+    -87.7,
+    -71.2,
+    87.7,
+    35.6
+   ],
+   [
+    -73.1,
+    35.6,
+    87.7,
+    53.4
+   ],
+   [
+    -58.5,
+    53.4,
+    87.7,
+    71.2
+   ],
+   [
+    -43.8,
+    71.2,
+    73.1,
+    89.0
+   ]
   ]
  },
- "interior/inspection_table": {"w":300,"h":174,"left":0,"right":299,"bottomX":150,"bottomY":173,"glows":[]},
- "interior/ledger_stack": {"w":300,"h":216,"left":0,"right":299,"bottomX":150,"bottomY":215,"glows":[]},
- "interior/records_shelf": {"w":185,"h":300,"left":0,"right":184,"bottomX":92,"bottomY":299,"glows":[]},
- "interior/customs_notice_board": {"w":300,"h":295,"left":0,"right":299,"bottomX":150,"bottomY":294,"glows":[]},
- "interior/merchandise_shelf": {"w":300,"h":270,"left":0,"right":299,"bottomX":150,"bottomY":269,"glows":[]},
- "interior/pawn_display": {"w":300,"h":246,"left":0,"right":299,"bottomX":150,"bottomY":245,"glows":[]},
- "interior/soaking_tub": {"w":300,"h":203,"left":0,"right":299,"bottomX":150,"bottomY":202,"glows":[]},
- "interior/bath_bucket_stool": {"w":300,"h":272,"left":0,"right":299,"bottomX":150,"bottomY":271,"glows":[]},
- "interior/towel_shelf": {"w":209,"h":300,"left":0,"right":208,"bottomX":104,"bottomY":299,"glows":[]},
- "interior/weapon_rack": {"w":300,"h":265,"left":0,"right":299,"bottomX":150,"bottomY":264,"glows":[]},
- "interior/practice_dummy": {"w":173,"h":300,"left":0,"right":172,"bottomX":86,"bottomY":299,"glows":[]},
- "interior/brewing_vat": {"w":300,"h":243,"left":0,"right":299,"bottomX":150,"bottomY":242,"glows":[]},
- "interior/shop_dry_goods_shelf": {"w":300,"h":256,"left":0,"right":299,"bottomX":150,"bottomY":255,"glows":[]},
- "interior/shop_textile_shelf": {"w":300,"h":288,"left":0,"right":299,"bottomX":150,"bottomY":287,"glows":[]},
- "interior/pawn_valuables_display": {"w":300,"h":200,"left":0,"right":299,"bottomX":150,"bottomY":199,"glows":[]},
- "interior/brewery_bottle_shelf": {"w":291,"h":300,"left":0,"right":290,"bottomX":145,"bottomY":299,"glows":[]},
- "interior/brewery_ceramic_shelf": {"w":300,"h":268,"left":0,"right":299,"bottomX":150,"bottomY":267,"glows":[]},
- "interior/manor_reception_table": {"w":300,"h":145,"left":0,"right":299,"bottomX":150,"bottomY":144,"glows":[]},
-  "interior/manor_reception_chair": {"w":1272,"h":1237,"left":184,"right":1044,"bottomX":682,"bottomY":1197,"glows":[]},
-  "interior/manor_reception_chair_back": {"w":1272,"h":1236,"left":176,"right":1124,"bottomX":744,"bottomY":1174,"glows":[]},
- "interior/manor_armor_display": {"w":195,"h":300,"left":0,"right":194,"bottomX":97,"bottomY":299,"glows":[]},
- "interior/manor_scroll_cabinet": {"w":300,"h":198,"left":0,"right":299,"bottomX":150,"bottomY":197,"glows":[]},
- "interior/tenement_futon": {"w":300,"h":167,"left":0,"right":299,"bottomX":150,"bottomY":166,"glows":[]},
- "interior/tenement_communal_table": {"w":300,"h":191,"left":0,"right":299,"bottomX":150,"bottomY":190,"glows":[]},
- "interior/tenement_storage_shelf": {"w":183,"h":277,"left":0,"right":182,"bottomX":91,"bottomY":276,"glows":[]},
- "interior/teahouse_tea_cabinet": {"w":245,"h":334,"left":0,"right":244,"bottomX":122,"bottomY":333,"glows":[]},
- "interior/floor_cushion_indigo": {"w":293,"h":176,"left":0,"right":292,"bottomX":146,"bottomY":175,"glows":[]},
- "interior/floor_cushion_straw": {"w":290,"h":164,"left":0,"right":289,"bottomX":145,"bottomY":163,"glows":[]},
- "interior/floor_cushion_red": {"w":242,"h":182,"left":0,"right":241,"bottomX":121,"bottomY":181,"glows":[]},
- "interior/den_card_table": {"w":360,"h":217,"left":0,"right":359,"bottomX":180,"bottomY":216,"glows":[]},
- "interior/den_dice_table": {"w":360,"h":236,"left":0,"right":359,"bottomX":180,"bottomY":235,"glows":[]},
- "interior/den_side_bar": {"w":430,"h":419,"left":0,"right":429,"bottomX":215,"bottomY":418,"glows":[]},
- "interior/den_corner_bar": {"w":450,"h":446,"left":0,"right":449,"bottomX":225,"bottomY":445,"glows":[]},
+ "interior/inspection_table": {
+  "w": 300,
+  "h": 174,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 173,
+  "glows": []
+ },
+ "interior/ledger_stack": {
+  "w": 300,
+  "h": 216,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 215,
+  "glows": []
+ },
+ "interior/records_shelf": {
+  "w": 185,
+  "h": 300,
+  "left": 0,
+  "right": 184,
+  "bottomX": 92,
+  "bottomY": 299,
+  "glows": []
+ },
+ "interior/customs_notice_board": {
+  "w": 300,
+  "h": 295,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 294,
+  "glows": []
+ },
+ "interior/merchandise_shelf": {
+  "w": 300,
+  "h": 270,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 269,
+  "glows": []
+ },
+ "interior/pawn_display": {
+  "w": 300,
+  "h": 246,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 245,
+  "glows": []
+ },
+ "interior/soaking_tub": {
+  "w": 300,
+  "h": 203,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 202,
+  "glows": []
+ },
+ "interior/bath_bucket_stool": {
+  "w": 300,
+  "h": 272,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 271,
+  "glows": []
+ },
+ "interior/towel_shelf": {
+  "w": 209,
+  "h": 300,
+  "left": 0,
+  "right": 208,
+  "bottomX": 104,
+  "bottomY": 299,
+  "glows": []
+ },
+ "interior/weapon_rack": {
+  "w": 300,
+  "h": 265,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 264,
+  "glows": []
+ },
+ "interior/practice_dummy": {
+  "w": 173,
+  "h": 300,
+  "left": 0,
+  "right": 172,
+  "bottomX": 86,
+  "bottomY": 299,
+  "glows": []
+ },
+ "interior/brewing_vat": {
+  "w": 300,
+  "h": 243,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 242,
+  "glows": []
+ },
+ "interior/shop_dry_goods_shelf": {
+  "w": 300,
+  "h": 256,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 255,
+  "glows": []
+ },
+ "interior/shop_textile_shelf": {
+  "w": 300,
+  "h": 288,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 287,
+  "glows": []
+ },
+ "interior/pawn_valuables_display": {
+  "w": 300,
+  "h": 200,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 199,
+  "glows": []
+ },
+ "interior/brewery_bottle_shelf": {
+  "w": 291,
+  "h": 300,
+  "left": 0,
+  "right": 290,
+  "bottomX": 145,
+  "bottomY": 299,
+  "glows": []
+ },
+ "interior/brewery_ceramic_shelf": {
+  "w": 300,
+  "h": 268,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 267,
+  "glows": []
+ },
+ "interior/manor_reception_table": {
+  "w": 300,
+  "h": 145,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 144,
+  "glows": []
+ },
+ "interior/manor_reception_chair": {
+  "w": 1272,
+  "h": 1237,
+  "left": 184,
+  "right": 1044,
+  "bottomX": 682,
+  "bottomY": 1197,
+  "glows": []
+ },
+ "interior/manor_reception_chair_back": {
+  "w": 1272,
+  "h": 1236,
+  "left": 176,
+  "right": 1124,
+  "bottomX": 744,
+  "bottomY": 1174,
+  "glows": []
+ },
+ "interior/manor_armor_display": {
+  "w": 195,
+  "h": 300,
+  "left": 0,
+  "right": 194,
+  "bottomX": 97,
+  "bottomY": 299,
+  "glows": []
+ },
+ "interior/manor_scroll_cabinet": {
+  "w": 300,
+  "h": 198,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 197,
+  "glows": []
+ },
+ "interior/tenement_futon": {
+  "w": 300,
+  "h": 167,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 166,
+  "glows": []
+ },
+ "interior/tenement_communal_table": {
+  "w": 300,
+  "h": 191,
+  "left": 0,
+  "right": 299,
+  "bottomX": 150,
+  "bottomY": 190,
+  "glows": []
+ },
+ "interior/tenement_storage_shelf": {
+  "w": 183,
+  "h": 277,
+  "left": 0,
+  "right": 182,
+  "bottomX": 91,
+  "bottomY": 276,
+  "glows": []
+ },
+ "interior/teahouse_tea_cabinet": {
+  "w": 245,
+  "h": 334,
+  "left": 0,
+  "right": 244,
+  "bottomX": 122,
+  "bottomY": 333,
+  "glows": []
+ },
+ "interior/floor_cushion_indigo": {
+  "w": 293,
+  "h": 176,
+  "left": 0,
+  "right": 292,
+  "bottomX": 146,
+  "bottomY": 175,
+  "glows": []
+ },
+ "interior/floor_cushion_straw": {
+  "w": 290,
+  "h": 164,
+  "left": 0,
+  "right": 289,
+  "bottomX": 145,
+  "bottomY": 163,
+  "glows": []
+ },
+ "interior/floor_cushion_red": {
+  "w": 242,
+  "h": 182,
+  "left": 0,
+  "right": 241,
+  "bottomX": 121,
+  "bottomY": 181,
+  "glows": []
+ },
+ "interior/den_card_table": {
+  "w": 360,
+  "h": 217,
+  "left": 0,
+  "right": 359,
+  "bottomX": 180,
+  "bottomY": 216,
+  "glows": []
+ },
+ "interior/den_dice_table": {
+  "w": 360,
+  "h": 236,
+  "left": 0,
+  "right": 359,
+  "bottomX": 180,
+  "bottomY": 235,
+  "glows": []
+ },
+ "interior/den_side_bar": {
+  "w": 430,
+  "h": 419,
+  "left": 0,
+  "right": 429,
+  "bottomX": 215,
+  "bottomY": 418,
+  "glows": []
+ },
+ "interior/den_corner_bar": {
+  "w": 450,
+  "h": 446,
+  "left": 0,
+  "right": 449,
+  "bottomX": 225,
+  "bottomY": 445,
+  "glows": []
+ },
  "buildings/rope_bridge": {
   "w": 494,
   "h": 321,
@@ -2253,173 +2677,2103 @@
    ]
   ]
  },
- "props/cliff_forest_a": {"w":1536,"h":1024,"left":1,"right":1534,"bottomX":1385,"bottomY":1023,"glows":[]},
- "props/cliff_forest_b": {"w":1536,"h":1024,"left":3,"right":1533,"bottomX":1389,"bottomY":1022,"glows":[]},
- "props/rim_forest": {"w":1536,"h":1024,"left":11,"right":1525,"bottomX":1413,"bottomY":955,"glows":[]},
- "props/corner_out_forest": {"w":1024,"h":1024,"left":7,"right":1015,"bottomX":521,"bottomY":976,"glows":[]},
- "props/corner_in_forest": {"w":1024,"h":1024,"left":8,"right":1018,"bottomX":121,"bottomY":971,"glows":[]},
- "props/outcrop_moss": {"w":1024,"h":1024,"left":21,"right":1010,"bottomX":549,"bottomY":922,"glows":[]},
- "props/cliff_snow_a": {"w":1536,"h":1024,"left":5,"right":1528,"bottomX":1389,"bottomY":1019,"glows":[]},
- "props/cliff_snow_b": {"w":1536,"h":1024,"left":7,"right":1528,"bottomX":1390,"bottomY":1019,"glows":[]},
- "props/rim_snow": {"w":1536,"h":1024,"left":11,"right":1525,"bottomX":1374,"bottomY":999,"glows":[]},
- "props/corner_out_snow": {"w":1024,"h":1024,"left":6,"right":1016,"bottomX":518,"bottomY":978,"glows":[]},
- "props/corner_in_snow": {"w":1024,"h":1024,"left":4,"right":1021,"bottomX":127,"bottomY":975,"glows":[]},
- "props/outcrop_snow": {"w":1024,"h":1024,"left":53,"right":969,"bottomX":607,"bottomY":908,"glows":[]},
- "props/cliff_dry_a": {"w":1536,"h":1024,"left":4,"right":1530,"bottomX":1373,"bottomY":1020,"glows":[]},
- "props/cliff_dry_b": {"w":1536,"h":1024,"left":3,"right":1531,"bottomX":1355,"bottomY":1023,"glows":[]},
- "props/rim_dry": {"w":1536,"h":1024,"left":16,"right":1519,"bottomX":1413,"bottomY":968,"glows":[]},
- "props/corner_out_dry": {"w":1024,"h":1024,"left":5,"right":1020,"bottomX":519,"bottomY":972,"glows":[]},
- "props/corner_in_dry": {"w":1024,"h":1024,"left":9,"right":1020,"bottomX":367,"bottomY":952,"glows":[]},
- "props/outcrop_dry": {"w":1024,"h":1024,"left":28,"right":996,"bottomX":764,"bottomY":907,"glows":[]},
- "props/pass_gate": {"w":1536,"h":1024,"left":10,"right":1526,"bottomX":247,"bottomY":1018,"glows":[]},
- "props/city_gate": {"w":1536,"h":1024,"left":16,"right":1525,"bottomX":296,"bottomY":1011,"glows":[]},
- "props/city_gate_se": {"w":1536,"h":1024,"left":40,"right":1518,"bottomX":1274,"bottomY":1002,"glows":[]},
- "props/river_ford": {"w":1024,"h":1024,"left":44,"right":984,"bottomX":543,"bottomY":1006,"glows":[]},
- "props/lake_edge": {"w":1024,"h":1024,"left":84,"right":997,"bottomX":792,"bottomY":978,"glows":[]},
- "props/rim_forest_opposite": {"w":1536,"h":1024,"left":11,"right":1526,"bottomX":1333,"bottomY":963,"glows":[]},
- "props/rim_forest_opposite_mirrored": {"w":1536,"h":1024,"left":12,"right":1525,"bottomX":169,"bottomY":972,"glows":[]},
- "props/rim_snow_opposite": {"w":1536,"h":1024,"left":12,"right":1522,"bottomX":1280,"bottomY":963,"glows":[]},
- "props/rim_snow_opposite_mirrored": {"w":1536,"h":1024,"left":10,"right":1526,"bottomX":152,"bottomY":974,"glows":[]},
- "props/snow_pine": {"w":601,"h":517,"left":0,"right":600,"bottomX":202,"bottomY":511,"glows":[]},
- "props/snow_cedar": {"w":385,"h":549,"left":0,"right":384,"bottomX":187,"bottomY":543,"glows":[]},
- "props/snow_bush": {"w":429,"h":274,"left":0,"right":428,"bottomX":173,"bottomY":268,"glows":[]},
- "props/snow_boulders": {"w":446,"h":278,"left":0,"right":445,"bottomX":114,"bottomY":272,"glows":[]},
- "props/snow_fallen_log": {"w":575,"h":214,"left":0,"right":574,"bottomX":525,"bottomY":208,"glows":[]},
- "props/snow_stump": {"w":356,"h":247,"left":0,"right":355,"bottomX":274,"bottomY":242,"glows":[]},
- "props/meadow_grass": {"w":458,"h":291,"left":0,"right":457,"bottomX":260,"bottomY":285,"glows":[]},
- "props/meadow_flowers": {"w":461,"h":334,"left":0,"right":460,"bottomX":160,"bottomY":328,"glows":[]},
- "props/meadow_broadleaf_tree": {"w":516,"h":501,"left":0,"right":515,"bottomX":193,"bottomY":495,"glows":[]},
- "props/hill_heather": {"w":453,"h":285,"left":0,"right":452,"bottomX":220,"bottomY":279,"glows":[]},
- "props/dry_scrub": {"w":489,"h":296,"left":0,"right":488,"bottomX":284,"bottomY":291,"glows":[]},
- "props/dry_grass_tussock": {"w":491,"h":283,"left":0,"right":490,"bottomX":153,"bottomY":277,"glows":[]},
- "props/sandstone_stones": {"w":429,"h":275,"left":0,"right":428,"bottomX":237,"bottomY":270,"glows":[]},
- "props/bleached_log": {"w":491,"h":252,"left":0,"right":490,"bottomX":421,"bottomY":247,"glows":[]},
- "props/dune_grass": {"w":445,"h":287,"left":0,"right":444,"bottomX":109,"bottomY":280,"glows":[]},
- "props/coastal_driftwood": {"w":461,"h":176,"left":0,"right":460,"bottomX":49,"bottomY":171,"glows":[]},
- "props/snow_drift": {"w":497,"h":187,"left":0,"right":496,"bottomX":302,"bottomY":181,"glows":[]},
- "props/trail_cairn": {"w":254,"h":229,"left":0,"right":253,"bottomX":113,"bottomY":223,"glows":[]},
- "props/snow_stone_lantern": {"w":180,"h":357,"left":0,"right":179,"bottomX":91,"bottomY":351,"glows":[]},
- "props/snow_frozen_well": {"w":393,"h":466,"left":0,"right":392,"bottomX":215,"bottomY":461,"glows":[]},
- "props/snow_ruined_shed": {"w":509,"h":403,"left":0,"right":508,"bottomX":321,"bottomY":397,"glows":[]},
- "props/snow_fence_x": {"w":442,"h":329,"left":0,"right":441,"bottomX":411,"bottomY":323,"glows":[]},
- "props/snow_fence_z": {"w":435,"h":322,"left":0,"right":434,"bottomX":28,"bottomY":317,"glows":[]},
- "props/snow_half_buried_shrine": {"w":427,"h":377,"left":0,"right":426,"bottomX":232,"bottomY":371,"glows":[]},
- "props/snow_icicle_grotto": {"w":504,"h":360,"left":0,"right":503,"bottomX":230,"bottomY":354,"glows":[]},
- "props/snow_frost_covered_standing_stones": {"w":457,"h":343,"left":0,"right":456,"bottomX":288,"bottomY":337,"glows":[]},
- "props/snow_giant_broken_cedar": {"w":545,"h":432,"left":0,"right":544,"bottomX":326,"bottomY":426,"glows":[]},
- "props/plains_abandoned_farmstead": {"w":637,"h":420,"left":0,"right":636,"bottomX":322,"bottomY":415,"glows":[]},
- "props/plains_ruined_granary": {"w":366,"h":401,"left":0,"right":365,"bottomX":158,"bottomY":395,"glows":[]},
- "props/plains_overgrown_cemetery": {"w":451,"h":334,"left":0,"right":450,"bottomX":258,"bottomY":328,"glows":[]},
- "props/plains_collapsed_watchtower": {"w":421,"h":411,"left":0,"right":420,"bottomX":143,"bottomY":405,"glows":[]},
- "props/plains_neglected_orchard": {"w":693,"h":407,"left":0,"right":692,"bottomX":511,"bottomY":401,"glows":[]},
- "props/plains_roadside_shrine": {"w":306,"h":358,"left":0,"right":305,"bottomX":111,"bottomY":353,"glows":[]},
- "props/hills_abandoned_mine_entrance": {"w":468,"h":398,"left":0,"right":467,"bottomX":172,"bottomY":393,"glows":[]},
- "props/hills_ruined_signal_tower": {"w":421,"h":465,"left":0,"right":420,"bottomX":242,"bottomY":459,"glows":[]},
- "props/hills_old_quarry_workings": {"w":579,"h":379,"left":0,"right":578,"bottomX":341,"bottomY":373,"glows":[]},
- "props/hills_cliff_grotto": {"w":462,"h":320,"left":0,"right":461,"bottomX":187,"bottomY":314,"glows":[]},
- "props/hills_hermits_hut": {"w":442,"h":343,"left":0,"right":441,"bottomX":257,"bottomY":338,"glows":[]},
- "props/hills_weathered_stone_circle": {"w":538,"h":334,"left":0,"right":537,"bottomX":314,"bottomY":328,"glows":[]},
- "props/dry_exposed_dinosaur_rib_cage": {"w":511,"h":370,"left":0,"right":510,"bottomX":328,"bottomY":365,"glows":[]},
- "props/dry_fossil_skull_in_sandstone": {"w":427,"h":305,"left":0,"right":426,"bottomX":256,"bottomY":300,"glows":[]},
- "props/dry_ruined_plaster_and_timber_building": {"w":562,"h":413,"left":0,"right":561,"bottomX":350,"bottomY":407,"glows":[]},
- "props/dry_ancient_dry_well": {"w":370,"h":386,"left":0,"right":369,"bottomX":191,"bottomY":380,"glows":[]},
- "props/dry_abandoned_caravan_camp": {"w":544,"h":365,"left":0,"right":543,"bottomX":164,"bottomY":359,"glows":[]},
- "props/dry_shaded_rock_grotto": {"w":528,"h":377,"left":0,"right":527,"bottomX":371,"bottomY":371,"glows":[]},
- "props/coast_broken_shipwreck_hull": {"w":606,"h":377,"left":0,"right":605,"bottomX":457,"bottomY":372,"glows":[]},
- "props/coast_ruined_coastal_lookout": {"w":381,"h":451,"left":0,"right":380,"bottomX":157,"bottomY":445,"glows":[]},
- "props/coast_washed_up_cargo_cache": {"w":408,"h":331,"left":0,"right":407,"bottomX":267,"bottomY":326,"glows":[]},
- "props/coast_sea_cave": {"w":543,"h":446,"left":0,"right":542,"bottomX":177,"bottomY":440,"glows":[]},
- "props/coast_abandoned_fishermans_shack": {"w":522,"h":391,"left":0,"right":521,"bottomX":271,"bottomY":386,"glows":[]},
- "props/coast_seaside_memorial": {"w":347,"h":394,"left":0,"right":346,"bottomX":175,"bottomY":389,"glows":[]},
- "props/forest_root_covered_shrine": {"w":438,"h":417,"left":0,"right":437,"bottomX":255,"bottomY":412,"glows":[]},
- "props/forest_giant_hollow_cedar": {"w":510,"h":543,"left":0,"right":509,"bottomX":282,"bottomY":537,"glows":[]},
- "props/forest_moss_covered_ruins": {"w":495,"h":331,"left":0,"right":494,"bottomX":195,"bottomY":326,"glows":[]},
- "props/forest_old_charcoal_kiln": {"w":454,"h":305,"left":0,"right":453,"bottomX":276,"bottomY":299,"glows":[]},
- "props/forest_collapsed_woodland_gate": {"w":512,"h":372,"left":0,"right":511,"bottomX":188,"bottomY":366,"glows":[]},
- "props/forest_fern_lined_grotto": {"w":488,"h":360,"left":0,"right":487,"bottomX":122,"bottomY":354,"glows":[]},
-"props/jungle_large_buttress_tree": {"w":455,"h":481,"left":0,"right":454,"bottomX":266,"bottomY":476,"glows":[]},
-"props/jungle_large_broad_canopy_tree": {"w":446,"h":445,"left":0,"right":445,"bottomX":165,"bottomY":440,"glows":[]},
-"props/jungle_large_banyan_tree": {"w":485,"h":432,"left":0,"right":484,"bottomX":206,"bottomY":427,"glows":[]},
-"props/jungle_medium_palm": {"w":294,"h":373,"left":0,"right":293,"bottomX":151,"bottomY":368,"glows":[]},
-"props/jungle_medium_broadleaf_tree": {"w":421,"h":375,"left":0,"right":420,"bottomX":200,"bottomY":370,"glows":[]},
-"props/jungle_small_sapling": {"w":192,"h":275,"left":0,"right":191,"bottomX":72,"bottomY":270,"glows":[]},
-"props/jungle_broadleaf_clump": {"w":490,"h":460,"left":0,"right":489,"bottomX":181,"bottomY":455,"glows":[]},
-"props/jungle_fan_palm_clump": {"w":461,"h":367,"left":0,"right":460,"bottomX":243,"bottomY":362,"glows":[]},
-"props/jungle_large_fern_clump": {"w":503,"h":387,"left":0,"right":502,"bottomX":247,"bottomY":382,"glows":[]},
-"props/jungle_vine_root_tangle": {"w":463,"h":309,"left":0,"right":462,"bottomX":161,"bottomY":304,"glows":[]},
-"props/jungle_low_dense_shrub": {"w":501,"h":351,"left":0,"right":500,"bottomX":205,"bottomY":346,"glows":[]},
-"props/jungle_tall_grass_clump": {"w":498,"h":349,"left":0,"right":497,"bottomX":140,"bottomY":344,"glows":[]},
-"props/jungle_strangler_root_staircase": {"w":513,"h":469,"left":0,"right":512,"bottomX":220,"bottomY":464,"glows":[]},
-"props/jungle_overgrown_stone_cistern": {"w":502,"h":413,"left":0,"right":501,"bottomX":176,"bottomY":408,"glows":[]},
-"props/jungle_giant_termite_mound": {"w":455,"h":477,"left":0,"right":454,"bottomX":244,"bottomY":472,"glows":[]},
-"props/jungle_fallen_giant": {"w":520,"h":455,"left":0,"right":519,"bottomX":377,"bottomY":450,"glows":[]},
-"props/jungle_abandoned_expedition_camp": {"w":509,"h":389,"left":0,"right":508,"bottomX":188,"bottomY":384,"glows":[]},
-"props/jungle_ruined_tree_lookout": {"w":461,"h":506,"left":0,"right":460,"bottomX":268,"bottomY":501,"glows":[]},
-"props/forest_brown_mushrooms": {"w":350,"h":347,"left":0,"right":349,"bottomX":194,"bottomY":342,"glows":[]},
-"props/forest_cream_mushrooms": {"w":366,"h":212,"left":0,"right":365,"bottomX":164,"bottomY":207,"glows":[]},
-"props/forest_russet_mushrooms": {"w":411,"h":338,"left":0,"right":410,"bottomX":267,"bottomY":333,"glows":[]},
-"props/forest_glowing_mushrooms": {"w":249,"h":323,"left":0,"right":248,"bottomX":114,"bottomY":318,"glows":[]},
-"props/forest_broad_fern": {"w":612,"h":401,"left":0,"right":611,"bottomX":520,"bottomY":396,"glows":[]},
-"props/forest_feathery_fern": {"w":501,"h":413,"left":0,"right":500,"bottomX":240,"bottomY":408,"glows":[]},
-"props/marsh_tall_reeds": {"w":438,"h":510,"left":0,"right":437,"bottomX":204,"bottomY":505,"glows":[]},
-"props/marsh_cattails": {"w":426,"h":512,"left":0,"right":425,"bottomX":233,"bottomY":507,"glows":[]},
-"props/marsh_rushes": {"w":466,"h":371,"left":0,"right":465,"bottomX":226,"bottomY":366,"glows":[]},
-"props/marsh_sedge_tussock": {"w":536,"h":394,"left":0,"right":535,"bottomX":379,"bottomY":389,"glows":[]},
-"props/marsh_lily_pads": {"w":414,"h":277,"left":0,"right":413,"bottomX":177,"bottomY":272,"glows":[]},
-"props/marsh_duckweed": {"w":449,"h":217,"left":0,"right":448,"bottomX":158,"bottomY":212,"glows":[]},
-"props/marsh_leaning_willow": {"w":481,"h":460,"left":0,"right":480,"bottomX":142,"bottomY":455,"glows":[]},
-"props/marsh_stunted_wetland_tree": {"w":480,"h":401,"left":0,"right":479,"bottomX":183,"bottomY":396,"glows":[]},
-"props/marsh_dead_snag": {"w":336,"h":470,"left":0,"right":335,"bottomX":201,"bottomY":465,"glows":[]},
-"props/marsh_waterlogged_stump": {"w":436,"h":349,"left":0,"right":435,"bottomX":227,"bottomY":344,"glows":[]},
-"props/marsh_fallen_rotting_trunk": {"w":452,"h":293,"left":0,"right":451,"bottomX":74,"bottomY":288,"glows":[]},
-"props/marsh_exposed_root_clump": {"w":470,"h":253,"left":0,"right":469,"bottomX":221,"bottomY":248,"glows":[]},
-"props/marsh_half_sunken_shrine": {"w":433,"h":400,"left":0,"right":432,"bottomX":182,"bottomY":395,"glows":[]},
-"props/marsh_reed_cutters_shelter": {"w":485,"h":415,"left":0,"right":484,"bottomX":192,"bottomY":410,"glows":[]},
-"props/marsh_stranded_wooden_boat": {"w":495,"h":307,"left":0,"right":494,"bottomX":210,"bottomY":302,"glows":[]},
-"props/marsh_collapsed_fishing_platform": {"w":460,"h":349,"left":0,"right":459,"bottomX":271,"bottomY":344,"glows":[]},
-"props/marsh_drowned_grove": {"w":465,"h":489,"left":0,"right":464,"bottomX":262,"bottomY":484,"glows":[]},
-"props/marsh_old_stone_sluice": {"w":558,"h":339,"left":0,"right":557,"bottomX":220,"bottomY":334,"glows":[]},
- "buildings/house_construction_1": {"w":400,"h":270,"left":0,"right":399,"bottomX":226,"bottomY":269,"glows":[]},
- "buildings/house_construction_2": {"w":400,"h":326,"left":0,"right":399,"bottomX":177,"bottomY":325,"glows":[]},
- "buildings/abandoned_housing": {"w":400,"h":349,"left":0,"right":399,"bottomX":219,"bottomY":347,"glows":[]},
- "buildings/abandoned_workshop": {"w":440,"h":293,"left":0,"right":438,"bottomX":208,"bottomY":292,"glows":[]},
- "buildings/fort": {"w":520,"h":457,"left":0,"right":519,"bottomX":369,"bottomY":455,"glows":[]},
- "buildings/granary": {"w":400,"h":441,"left":0,"right":398,"bottomX":197,"bottomY":439,"glows":[]},
- "buildings/sawmill": {"w":440,"h":383,"left":1,"right":439,"bottomX":191,"bottomY":382,"glows":[]},
- "buildings/smithy": {"w":400,"h":375,"left":1,"right":398,"bottomX":206,"bottomY":373,"glows":[]},
- "buildings/infirmary": {"w":440,"h":364,"left":1,"right":437,"bottomX":204,"bottomY":363,"glows":[]},
- "buildings/pier_fish_house": {"w":440,"h":366,"left":1,"right":439,"bottomX":139,"bottomY":365,"glows":[]},
- "buildings/stable": {"w":480,"h":364,"left":2,"right":478,"bottomX":241,"bottomY":362,"glows":[]},
- "buildings/coach_house": {"w":500,"h":402,"left":0,"right":499,"bottomX":264,"bottomY":400,"glows":[]},
- "buildings/frontier_watchtower": {"w":260,"h":441,"left":2,"right":258,"bottomX":138,"bottomY":439,"glows":[]},
- "buildings/palisade": {"w":400,"h":390,"left":2,"right":398,"bottomX":346,"bottomY":389,"glows":[]},
- "buildings/gatehouse": {"w":440,"h":390,"left":3,"right":438,"bottomX":394,"bottomY":388,"glows":[]},
- "buildings/mine": {"w":480,"h":392,"left":2,"right":478,"bottomX":315,"bottomY":390,"glows":[]},
- "buildings/gate_v1": {"w":415,"h":260,"left":3,"right":412,"bottomX":216,"bottomY":258,"glows":[]},
- "buildings/gate_v5": {"w":415,"h":259,"left":3,"right":412,"bottomX":208,"bottomY":257,"glows":[]},
- "buildings/palisade_wall_v1": {"w":346,"h":220,"left":2,"right":343,"bottomX":184,"bottomY":214,"glows":[]},
- "buildings/palisade_wall_v5": {"w":356,"h":211,"left":2,"right":351,"bottomX":157,"bottomY":208,"glows":[]},
- "buildings/palisade_wall_z": {"w":250,"h":273,"left":1,"right":248,"bottomX":53,"bottomY":270,"glows":[]},
- "buildings/palisade_wall_x": {"w":250,"h":273,"left":1,"right":248,"bottomX":196,"bottomY":270,"glows":[]},
- "buildings/gate_x": {"w":367,"h":345,"left":2,"right":363,"bottomX":340,"bottomY":342,"glows":[]},
- "buildings/gate_z": {"w":367,"h":345,"left":3,"right":364,"bottomX":26,"bottomY":342,"glows":[]},
- "buildings/forage_camp": {"w":320,"h":254,"left":0,"right":318,"bottomX":156,"bottomY":253,"glows":[]},
- "buildings/railway_station": {"w":500,"h":358,"left":0,"right":498,"bottomX":209,"bottomY":356,"glows":[]},
- "buildings/barracks": {"w":500,"h":361,"left":0,"right":499,"bottomX":164,"bottomY":359,"glows":[]},
- "buildings/artillery_shed": {"w":480,"h":373,"left":1,"right":478,"bottomX":276,"bottomY":371,"glows":[]},
- "buildings/ironworks": {"w":470,"h":416,"left":0,"right":468,"bottomX":311,"bottomY":415,"glows":[]},
- "buildings/market_hall": {"w":330,"h":259,"left":0,"right":329,"bottomX":125,"bottomY":258,"glows":[]},
- "buildings/camp_hall": {"w":560,"h":457,"left":0,"right":559,"bottomX":344,"bottomY":456,"glows":[]},
- "buildings/camp_barracks": {"w":500,"h":431,"left":1,"right":499,"bottomX":137,"bottomY":430,"glows":[]},
- "buildings/rifle_range": {"w":500,"h":387,"left":0,"right":499,"bottomX":154,"bottomY":386,"glows":[]},
- "buildings/clan_hall": {"w":480,"h":376,"left":0,"right":479,"bottomX":281,"bottomY":375,"glows":[]},
- "buildings/supply_tents": {"w":320,"h":227,"left":0,"right":319,"bottomX":201,"bottomY":226,"glows":[]},
- "buildings/kennel": {"w":330,"h":245,"left":0,"right":329,"bottomX":139,"bottomY":244,"glows":[]},
- "buildings/war_banner": {"w":72,"h":240,"left":0,"right":71,"bottomX":12,"bottomY":239,"glows":[]},
- "props/rail_gate": {"w":605,"h":549,"left":1,"right":603,"bottomX":35,"bottomY":548,"glows":[]},
- "props/lieutenant_post": {"w":300,"h":307,"left":1,"right":299,"bottomX":185,"bottomY":305,"glows":[]},
- "buildings/cannon_battery": {"w":480,"h":362,"left":1,"right":478,"bottomX":288,"bottomY":361,"glows":[]},
- "buildings/siege_workshop": {"w":480,"h":399,"left":2,"right":478,"bottomX":240,"bottomY":398,"glows":[]},
- "buildings/burned_ruin": {"w":480,"h":381,"left":2,"right":479,"bottomX":262,"bottomY":380,"glows":[]},
- "buildings/water_tower": {"w":320,"h":378,"left":1,"right":318,"bottomX":197,"bottomY":377,"glows":[]}
+ "props/cliff_forest_a": {
+  "w": 1536,
+  "h": 1024,
+  "left": 1,
+  "right": 1534,
+  "bottomX": 1385,
+  "bottomY": 1023,
+  "glows": []
+ },
+ "props/cliff_forest_b": {
+  "w": 1536,
+  "h": 1024,
+  "left": 3,
+  "right": 1533,
+  "bottomX": 1389,
+  "bottomY": 1022,
+  "glows": []
+ },
+ "props/rim_forest": {
+  "w": 1536,
+  "h": 1024,
+  "left": 11,
+  "right": 1525,
+  "bottomX": 1413,
+  "bottomY": 955,
+  "glows": []
+ },
+ "props/corner_out_forest": {
+  "w": 1024,
+  "h": 1024,
+  "left": 7,
+  "right": 1015,
+  "bottomX": 521,
+  "bottomY": 976,
+  "glows": []
+ },
+ "props/corner_in_forest": {
+  "w": 1024,
+  "h": 1024,
+  "left": 8,
+  "right": 1018,
+  "bottomX": 121,
+  "bottomY": 971,
+  "glows": []
+ },
+ "props/outcrop_moss": {
+  "w": 1024,
+  "h": 1024,
+  "left": 21,
+  "right": 1010,
+  "bottomX": 549,
+  "bottomY": 922,
+  "glows": []
+ },
+ "props/cliff_snow_a": {
+  "w": 1536,
+  "h": 1024,
+  "left": 5,
+  "right": 1528,
+  "bottomX": 1389,
+  "bottomY": 1019,
+  "glows": []
+ },
+ "props/cliff_snow_b": {
+  "w": 1536,
+  "h": 1024,
+  "left": 7,
+  "right": 1528,
+  "bottomX": 1390,
+  "bottomY": 1019,
+  "glows": []
+ },
+ "props/rim_snow": {
+  "w": 1536,
+  "h": 1024,
+  "left": 11,
+  "right": 1525,
+  "bottomX": 1374,
+  "bottomY": 999,
+  "glows": []
+ },
+ "props/corner_out_snow": {
+  "w": 1024,
+  "h": 1024,
+  "left": 6,
+  "right": 1016,
+  "bottomX": 518,
+  "bottomY": 978,
+  "glows": []
+ },
+ "props/corner_in_snow": {
+  "w": 1024,
+  "h": 1024,
+  "left": 4,
+  "right": 1021,
+  "bottomX": 127,
+  "bottomY": 975,
+  "glows": []
+ },
+ "props/outcrop_snow": {
+  "w": 1024,
+  "h": 1024,
+  "left": 53,
+  "right": 969,
+  "bottomX": 607,
+  "bottomY": 908,
+  "glows": []
+ },
+ "props/cliff_dry_a": {
+  "w": 1536,
+  "h": 1024,
+  "left": 4,
+  "right": 1530,
+  "bottomX": 1373,
+  "bottomY": 1020,
+  "glows": []
+ },
+ "props/cliff_dry_b": {
+  "w": 1536,
+  "h": 1024,
+  "left": 3,
+  "right": 1531,
+  "bottomX": 1355,
+  "bottomY": 1023,
+  "glows": []
+ },
+ "props/rim_dry": {
+  "w": 1536,
+  "h": 1024,
+  "left": 16,
+  "right": 1519,
+  "bottomX": 1413,
+  "bottomY": 968,
+  "glows": []
+ },
+ "props/corner_out_dry": {
+  "w": 1024,
+  "h": 1024,
+  "left": 5,
+  "right": 1020,
+  "bottomX": 519,
+  "bottomY": 972,
+  "glows": []
+ },
+ "props/corner_in_dry": {
+  "w": 1024,
+  "h": 1024,
+  "left": 9,
+  "right": 1020,
+  "bottomX": 367,
+  "bottomY": 952,
+  "glows": []
+ },
+ "props/outcrop_dry": {
+  "w": 1024,
+  "h": 1024,
+  "left": 28,
+  "right": 996,
+  "bottomX": 764,
+  "bottomY": 907,
+  "glows": []
+ },
+ "props/pass_gate": {
+  "w": 1536,
+  "h": 1024,
+  "left": 10,
+  "right": 1526,
+  "bottomX": 247,
+  "bottomY": 1018,
+  "glows": []
+ },
+ "props/city_gate": {
+  "w": 1536,
+  "h": 1024,
+  "left": 16,
+  "right": 1525,
+  "bottomX": 296,
+  "bottomY": 1011,
+  "glows": []
+ },
+ "props/city_gate_se": {
+  "w": 1536,
+  "h": 1024,
+  "left": 40,
+  "right": 1518,
+  "bottomX": 1274,
+  "bottomY": 1002,
+  "glows": []
+ },
+ "props/river_ford": {
+  "w": 1024,
+  "h": 1024,
+  "left": 44,
+  "right": 984,
+  "bottomX": 543,
+  "bottomY": 1006,
+  "glows": []
+ },
+ "props/lake_edge": {
+  "w": 1024,
+  "h": 1024,
+  "left": 84,
+  "right": 997,
+  "bottomX": 792,
+  "bottomY": 978,
+  "glows": []
+ },
+ "props/rim_forest_opposite": {
+  "w": 1536,
+  "h": 1024,
+  "left": 11,
+  "right": 1526,
+  "bottomX": 1333,
+  "bottomY": 963,
+  "glows": []
+ },
+ "props/rim_forest_opposite_mirrored": {
+  "w": 1536,
+  "h": 1024,
+  "left": 12,
+  "right": 1525,
+  "bottomX": 169,
+  "bottomY": 972,
+  "glows": []
+ },
+ "props/rim_snow_opposite": {
+  "w": 1536,
+  "h": 1024,
+  "left": 12,
+  "right": 1522,
+  "bottomX": 1280,
+  "bottomY": 963,
+  "glows": []
+ },
+ "props/rim_snow_opposite_mirrored": {
+  "w": 1536,
+  "h": 1024,
+  "left": 10,
+  "right": 1526,
+  "bottomX": 152,
+  "bottomY": 974,
+  "glows": []
+ },
+ "props/snow_pine": {
+  "w": 601,
+  "h": 517,
+  "left": 0,
+  "right": 600,
+  "bottomX": 202,
+  "bottomY": 511,
+  "glows": []
+ },
+ "props/snow_cedar": {
+  "w": 385,
+  "h": 549,
+  "left": 0,
+  "right": 384,
+  "bottomX": 187,
+  "bottomY": 543,
+  "glows": []
+ },
+ "props/snow_bush": {
+  "w": 429,
+  "h": 274,
+  "left": 0,
+  "right": 428,
+  "bottomX": 173,
+  "bottomY": 268,
+  "glows": []
+ },
+ "props/snow_boulders": {
+  "w": 446,
+  "h": 278,
+  "left": 0,
+  "right": 445,
+  "bottomX": 114,
+  "bottomY": 272,
+  "glows": []
+ },
+ "props/snow_fallen_log": {
+  "w": 575,
+  "h": 214,
+  "left": 0,
+  "right": 574,
+  "bottomX": 525,
+  "bottomY": 208,
+  "glows": []
+ },
+ "props/snow_stump": {
+  "w": 356,
+  "h": 247,
+  "left": 0,
+  "right": 355,
+  "bottomX": 274,
+  "bottomY": 242,
+  "glows": []
+ },
+ "props/meadow_grass": {
+  "w": 458,
+  "h": 291,
+  "left": 0,
+  "right": 457,
+  "bottomX": 260,
+  "bottomY": 285,
+  "glows": []
+ },
+ "props/meadow_flowers": {
+  "w": 461,
+  "h": 334,
+  "left": 0,
+  "right": 460,
+  "bottomX": 160,
+  "bottomY": 328,
+  "glows": []
+ },
+ "props/meadow_broadleaf_tree": {
+  "w": 516,
+  "h": 501,
+  "left": 0,
+  "right": 515,
+  "bottomX": 193,
+  "bottomY": 495,
+  "glows": []
+ },
+ "props/hill_heather": {
+  "w": 453,
+  "h": 285,
+  "left": 0,
+  "right": 452,
+  "bottomX": 220,
+  "bottomY": 279,
+  "glows": []
+ },
+ "props/dry_scrub": {
+  "w": 489,
+  "h": 296,
+  "left": 0,
+  "right": 488,
+  "bottomX": 284,
+  "bottomY": 291,
+  "glows": []
+ },
+ "props/dry_grass_tussock": {
+  "w": 491,
+  "h": 283,
+  "left": 0,
+  "right": 490,
+  "bottomX": 153,
+  "bottomY": 277,
+  "glows": []
+ },
+ "props/sandstone_stones": {
+  "w": 429,
+  "h": 275,
+  "left": 0,
+  "right": 428,
+  "bottomX": 237,
+  "bottomY": 270,
+  "glows": []
+ },
+ "props/bleached_log": {
+  "w": 491,
+  "h": 252,
+  "left": 0,
+  "right": 490,
+  "bottomX": 421,
+  "bottomY": 247,
+  "glows": []
+ },
+ "props/dune_grass": {
+  "w": 445,
+  "h": 287,
+  "left": 0,
+  "right": 444,
+  "bottomX": 109,
+  "bottomY": 280,
+  "glows": []
+ },
+ "props/coastal_driftwood": {
+  "w": 461,
+  "h": 176,
+  "left": 0,
+  "right": 460,
+  "bottomX": 49,
+  "bottomY": 171,
+  "glows": []
+ },
+ "props/snow_drift": {
+  "w": 497,
+  "h": 187,
+  "left": 0,
+  "right": 496,
+  "bottomX": 302,
+  "bottomY": 181,
+  "glows": []
+ },
+ "props/trail_cairn": {
+  "w": 254,
+  "h": 229,
+  "left": 0,
+  "right": 253,
+  "bottomX": 113,
+  "bottomY": 223,
+  "glows": []
+ },
+ "props/snow_stone_lantern": {
+  "w": 180,
+  "h": 357,
+  "left": 0,
+  "right": 179,
+  "bottomX": 91,
+  "bottomY": 351,
+  "glows": []
+ },
+ "props/snow_frozen_well": {
+  "w": 393,
+  "h": 466,
+  "left": 0,
+  "right": 392,
+  "bottomX": 215,
+  "bottomY": 461,
+  "glows": []
+ },
+ "props/snow_ruined_shed": {
+  "w": 509,
+  "h": 403,
+  "left": 0,
+  "right": 508,
+  "bottomX": 321,
+  "bottomY": 397,
+  "glows": []
+ },
+ "props/snow_fence_x": {
+  "w": 442,
+  "h": 329,
+  "left": 0,
+  "right": 441,
+  "bottomX": 411,
+  "bottomY": 323,
+  "glows": []
+ },
+ "props/snow_fence_z": {
+  "w": 435,
+  "h": 322,
+  "left": 0,
+  "right": 434,
+  "bottomX": 28,
+  "bottomY": 317,
+  "glows": []
+ },
+ "props/snow_half_buried_shrine": {
+  "w": 427,
+  "h": 377,
+  "left": 0,
+  "right": 426,
+  "bottomX": 232,
+  "bottomY": 371,
+  "glows": []
+ },
+ "props/snow_icicle_grotto": {
+  "w": 504,
+  "h": 360,
+  "left": 0,
+  "right": 503,
+  "bottomX": 230,
+  "bottomY": 354,
+  "glows": []
+ },
+ "props/snow_frost_covered_standing_stones": {
+  "w": 457,
+  "h": 343,
+  "left": 0,
+  "right": 456,
+  "bottomX": 288,
+  "bottomY": 337,
+  "glows": []
+ },
+ "props/snow_giant_broken_cedar": {
+  "w": 545,
+  "h": 432,
+  "left": 0,
+  "right": 544,
+  "bottomX": 326,
+  "bottomY": 426,
+  "glows": []
+ },
+ "props/plains_abandoned_farmstead": {
+  "w": 637,
+  "h": 420,
+  "left": 0,
+  "right": 636,
+  "bottomX": 322,
+  "bottomY": 415,
+  "glows": []
+ },
+ "props/plains_ruined_granary": {
+  "w": 366,
+  "h": 401,
+  "left": 0,
+  "right": 365,
+  "bottomX": 158,
+  "bottomY": 395,
+  "glows": []
+ },
+ "props/plains_overgrown_cemetery": {
+  "w": 451,
+  "h": 334,
+  "left": 0,
+  "right": 450,
+  "bottomX": 258,
+  "bottomY": 328,
+  "glows": []
+ },
+ "props/plains_collapsed_watchtower": {
+  "w": 421,
+  "h": 411,
+  "left": 0,
+  "right": 420,
+  "bottomX": 143,
+  "bottomY": 405,
+  "glows": []
+ },
+ "props/plains_neglected_orchard": {
+  "w": 693,
+  "h": 407,
+  "left": 0,
+  "right": 692,
+  "bottomX": 511,
+  "bottomY": 401,
+  "glows": []
+ },
+ "props/plains_roadside_shrine": {
+  "w": 306,
+  "h": 358,
+  "left": 0,
+  "right": 305,
+  "bottomX": 111,
+  "bottomY": 353,
+  "glows": []
+ },
+ "props/hills_abandoned_mine_entrance": {
+  "w": 468,
+  "h": 398,
+  "left": 0,
+  "right": 467,
+  "bottomX": 172,
+  "bottomY": 393,
+  "glows": []
+ },
+ "props/hills_ruined_signal_tower": {
+  "w": 421,
+  "h": 465,
+  "left": 0,
+  "right": 420,
+  "bottomX": 242,
+  "bottomY": 459,
+  "glows": []
+ },
+ "props/hills_old_quarry_workings": {
+  "w": 579,
+  "h": 379,
+  "left": 0,
+  "right": 578,
+  "bottomX": 341,
+  "bottomY": 373,
+  "glows": []
+ },
+ "props/hills_cliff_grotto": {
+  "w": 462,
+  "h": 320,
+  "left": 0,
+  "right": 461,
+  "bottomX": 187,
+  "bottomY": 314,
+  "glows": []
+ },
+ "props/hills_hermits_hut": {
+  "w": 442,
+  "h": 343,
+  "left": 0,
+  "right": 441,
+  "bottomX": 257,
+  "bottomY": 338,
+  "glows": []
+ },
+ "props/hills_weathered_stone_circle": {
+  "w": 538,
+  "h": 334,
+  "left": 0,
+  "right": 537,
+  "bottomX": 314,
+  "bottomY": 328,
+  "glows": []
+ },
+ "props/dry_exposed_dinosaur_rib_cage": {
+  "w": 511,
+  "h": 370,
+  "left": 0,
+  "right": 510,
+  "bottomX": 328,
+  "bottomY": 365,
+  "glows": []
+ },
+ "props/dry_fossil_skull_in_sandstone": {
+  "w": 427,
+  "h": 305,
+  "left": 0,
+  "right": 426,
+  "bottomX": 256,
+  "bottomY": 300,
+  "glows": []
+ },
+ "props/dry_ruined_plaster_and_timber_building": {
+  "w": 562,
+  "h": 413,
+  "left": 0,
+  "right": 561,
+  "bottomX": 350,
+  "bottomY": 407,
+  "glows": []
+ },
+ "props/dry_ancient_dry_well": {
+  "w": 370,
+  "h": 386,
+  "left": 0,
+  "right": 369,
+  "bottomX": 191,
+  "bottomY": 380,
+  "glows": []
+ },
+ "props/dry_abandoned_caravan_camp": {
+  "w": 544,
+  "h": 365,
+  "left": 0,
+  "right": 543,
+  "bottomX": 164,
+  "bottomY": 359,
+  "glows": []
+ },
+ "props/dry_shaded_rock_grotto": {
+  "w": 528,
+  "h": 377,
+  "left": 0,
+  "right": 527,
+  "bottomX": 371,
+  "bottomY": 371,
+  "glows": []
+ },
+ "props/coast_broken_shipwreck_hull": {
+  "w": 606,
+  "h": 377,
+  "left": 0,
+  "right": 605,
+  "bottomX": 457,
+  "bottomY": 372,
+  "glows": []
+ },
+ "props/coast_ruined_coastal_lookout": {
+  "w": 381,
+  "h": 451,
+  "left": 0,
+  "right": 380,
+  "bottomX": 157,
+  "bottomY": 445,
+  "glows": []
+ },
+ "props/coast_washed_up_cargo_cache": {
+  "w": 408,
+  "h": 331,
+  "left": 0,
+  "right": 407,
+  "bottomX": 267,
+  "bottomY": 326,
+  "glows": []
+ },
+ "props/coast_sea_cave": {
+  "w": 543,
+  "h": 446,
+  "left": 0,
+  "right": 542,
+  "bottomX": 177,
+  "bottomY": 440,
+  "glows": []
+ },
+ "props/coast_abandoned_fishermans_shack": {
+  "w": 522,
+  "h": 391,
+  "left": 0,
+  "right": 521,
+  "bottomX": 271,
+  "bottomY": 386,
+  "glows": []
+ },
+ "props/coast_seaside_memorial": {
+  "w": 347,
+  "h": 394,
+  "left": 0,
+  "right": 346,
+  "bottomX": 175,
+  "bottomY": 389,
+  "glows": []
+ },
+ "props/forest_root_covered_shrine": {
+  "w": 438,
+  "h": 417,
+  "left": 0,
+  "right": 437,
+  "bottomX": 255,
+  "bottomY": 412,
+  "glows": []
+ },
+ "props/forest_giant_hollow_cedar": {
+  "w": 510,
+  "h": 543,
+  "left": 0,
+  "right": 509,
+  "bottomX": 282,
+  "bottomY": 537,
+  "glows": []
+ },
+ "props/forest_moss_covered_ruins": {
+  "w": 495,
+  "h": 331,
+  "left": 0,
+  "right": 494,
+  "bottomX": 195,
+  "bottomY": 326,
+  "glows": []
+ },
+ "props/forest_old_charcoal_kiln": {
+  "w": 454,
+  "h": 305,
+  "left": 0,
+  "right": 453,
+  "bottomX": 276,
+  "bottomY": 299,
+  "glows": []
+ },
+ "props/forest_collapsed_woodland_gate": {
+  "w": 512,
+  "h": 372,
+  "left": 0,
+  "right": 511,
+  "bottomX": 188,
+  "bottomY": 366,
+  "glows": []
+ },
+ "props/forest_fern_lined_grotto": {
+  "w": 488,
+  "h": 360,
+  "left": 0,
+  "right": 487,
+  "bottomX": 122,
+  "bottomY": 354,
+  "glows": []
+ },
+ "props/jungle_large_buttress_tree": {
+  "w": 455,
+  "h": 481,
+  "left": 0,
+  "right": 454,
+  "bottomX": 266,
+  "bottomY": 476,
+  "glows": []
+ },
+ "props/jungle_large_broad_canopy_tree": {
+  "w": 446,
+  "h": 445,
+  "left": 0,
+  "right": 445,
+  "bottomX": 165,
+  "bottomY": 440,
+  "glows": []
+ },
+ "props/jungle_large_banyan_tree": {
+  "w": 485,
+  "h": 432,
+  "left": 0,
+  "right": 484,
+  "bottomX": 206,
+  "bottomY": 427,
+  "glows": []
+ },
+ "props/jungle_medium_palm": {
+  "w": 294,
+  "h": 373,
+  "left": 0,
+  "right": 293,
+  "bottomX": 151,
+  "bottomY": 368,
+  "glows": []
+ },
+ "props/jungle_medium_broadleaf_tree": {
+  "w": 421,
+  "h": 375,
+  "left": 0,
+  "right": 420,
+  "bottomX": 200,
+  "bottomY": 370,
+  "glows": []
+ },
+ "props/jungle_small_sapling": {
+  "w": 192,
+  "h": 275,
+  "left": 0,
+  "right": 191,
+  "bottomX": 72,
+  "bottomY": 270,
+  "glows": []
+ },
+ "props/jungle_broadleaf_clump": {
+  "w": 490,
+  "h": 460,
+  "left": 0,
+  "right": 489,
+  "bottomX": 181,
+  "bottomY": 455,
+  "glows": []
+ },
+ "props/jungle_fan_palm_clump": {
+  "w": 461,
+  "h": 367,
+  "left": 0,
+  "right": 460,
+  "bottomX": 243,
+  "bottomY": 362,
+  "glows": []
+ },
+ "props/jungle_large_fern_clump": {
+  "w": 503,
+  "h": 387,
+  "left": 0,
+  "right": 502,
+  "bottomX": 247,
+  "bottomY": 382,
+  "glows": []
+ },
+ "props/jungle_vine_root_tangle": {
+  "w": 463,
+  "h": 309,
+  "left": 0,
+  "right": 462,
+  "bottomX": 161,
+  "bottomY": 304,
+  "glows": []
+ },
+ "props/jungle_low_dense_shrub": {
+  "w": 501,
+  "h": 351,
+  "left": 0,
+  "right": 500,
+  "bottomX": 205,
+  "bottomY": 346,
+  "glows": []
+ },
+ "props/jungle_tall_grass_clump": {
+  "w": 498,
+  "h": 349,
+  "left": 0,
+  "right": 497,
+  "bottomX": 140,
+  "bottomY": 344,
+  "glows": []
+ },
+ "props/jungle_strangler_root_staircase": {
+  "w": 513,
+  "h": 469,
+  "left": 0,
+  "right": 512,
+  "bottomX": 220,
+  "bottomY": 464,
+  "glows": []
+ },
+ "props/jungle_overgrown_stone_cistern": {
+  "w": 502,
+  "h": 413,
+  "left": 0,
+  "right": 501,
+  "bottomX": 176,
+  "bottomY": 408,
+  "glows": []
+ },
+ "props/jungle_giant_termite_mound": {
+  "w": 455,
+  "h": 477,
+  "left": 0,
+  "right": 454,
+  "bottomX": 244,
+  "bottomY": 472,
+  "glows": []
+ },
+ "props/jungle_fallen_giant": {
+  "w": 520,
+  "h": 455,
+  "left": 0,
+  "right": 519,
+  "bottomX": 377,
+  "bottomY": 450,
+  "glows": []
+ },
+ "props/jungle_abandoned_expedition_camp": {
+  "w": 509,
+  "h": 389,
+  "left": 0,
+  "right": 508,
+  "bottomX": 188,
+  "bottomY": 384,
+  "glows": []
+ },
+ "props/jungle_ruined_tree_lookout": {
+  "w": 461,
+  "h": 506,
+  "left": 0,
+  "right": 460,
+  "bottomX": 268,
+  "bottomY": 501,
+  "glows": []
+ },
+ "props/forest_brown_mushrooms": {
+  "w": 350,
+  "h": 347,
+  "left": 0,
+  "right": 349,
+  "bottomX": 194,
+  "bottomY": 342,
+  "glows": []
+ },
+ "props/forest_cream_mushrooms": {
+  "w": 366,
+  "h": 212,
+  "left": 0,
+  "right": 365,
+  "bottomX": 164,
+  "bottomY": 207,
+  "glows": []
+ },
+ "props/forest_russet_mushrooms": {
+  "w": 411,
+  "h": 338,
+  "left": 0,
+  "right": 410,
+  "bottomX": 267,
+  "bottomY": 333,
+  "glows": []
+ },
+ "props/forest_glowing_mushrooms": {
+  "w": 249,
+  "h": 323,
+  "left": 0,
+  "right": 248,
+  "bottomX": 114,
+  "bottomY": 318,
+  "glows": []
+ },
+ "props/forest_broad_fern": {
+  "w": 612,
+  "h": 401,
+  "left": 0,
+  "right": 611,
+  "bottomX": 520,
+  "bottomY": 396,
+  "glows": []
+ },
+ "props/forest_feathery_fern": {
+  "w": 501,
+  "h": 413,
+  "left": 0,
+  "right": 500,
+  "bottomX": 240,
+  "bottomY": 408,
+  "glows": []
+ },
+ "props/marsh_tall_reeds": {
+  "w": 438,
+  "h": 510,
+  "left": 0,
+  "right": 437,
+  "bottomX": 204,
+  "bottomY": 505,
+  "glows": []
+ },
+ "props/marsh_cattails": {
+  "w": 426,
+  "h": 512,
+  "left": 0,
+  "right": 425,
+  "bottomX": 233,
+  "bottomY": 507,
+  "glows": []
+ },
+ "props/marsh_rushes": {
+  "w": 466,
+  "h": 371,
+  "left": 0,
+  "right": 465,
+  "bottomX": 226,
+  "bottomY": 366,
+  "glows": []
+ },
+ "props/marsh_sedge_tussock": {
+  "w": 536,
+  "h": 394,
+  "left": 0,
+  "right": 535,
+  "bottomX": 379,
+  "bottomY": 389,
+  "glows": []
+ },
+ "props/marsh_lily_pads": {
+  "w": 414,
+  "h": 277,
+  "left": 0,
+  "right": 413,
+  "bottomX": 177,
+  "bottomY": 272,
+  "glows": []
+ },
+ "props/marsh_duckweed": {
+  "w": 449,
+  "h": 217,
+  "left": 0,
+  "right": 448,
+  "bottomX": 158,
+  "bottomY": 212,
+  "glows": []
+ },
+ "props/marsh_leaning_willow": {
+  "w": 481,
+  "h": 460,
+  "left": 0,
+  "right": 480,
+  "bottomX": 142,
+  "bottomY": 455,
+  "glows": []
+ },
+ "props/marsh_stunted_wetland_tree": {
+  "w": 480,
+  "h": 401,
+  "left": 0,
+  "right": 479,
+  "bottomX": 183,
+  "bottomY": 396,
+  "glows": []
+ },
+ "props/marsh_dead_snag": {
+  "w": 336,
+  "h": 470,
+  "left": 0,
+  "right": 335,
+  "bottomX": 201,
+  "bottomY": 465,
+  "glows": []
+ },
+ "props/marsh_waterlogged_stump": {
+  "w": 436,
+  "h": 349,
+  "left": 0,
+  "right": 435,
+  "bottomX": 227,
+  "bottomY": 344,
+  "glows": []
+ },
+ "props/marsh_fallen_rotting_trunk": {
+  "w": 452,
+  "h": 293,
+  "left": 0,
+  "right": 451,
+  "bottomX": 74,
+  "bottomY": 288,
+  "glows": []
+ },
+ "props/marsh_exposed_root_clump": {
+  "w": 470,
+  "h": 253,
+  "left": 0,
+  "right": 469,
+  "bottomX": 221,
+  "bottomY": 248,
+  "glows": []
+ },
+ "props/marsh_half_sunken_shrine": {
+  "w": 433,
+  "h": 400,
+  "left": 0,
+  "right": 432,
+  "bottomX": 182,
+  "bottomY": 395,
+  "glows": []
+ },
+ "props/marsh_reed_cutters_shelter": {
+  "w": 485,
+  "h": 415,
+  "left": 0,
+  "right": 484,
+  "bottomX": 192,
+  "bottomY": 410,
+  "glows": []
+ },
+ "props/marsh_stranded_wooden_boat": {
+  "w": 495,
+  "h": 307,
+  "left": 0,
+  "right": 494,
+  "bottomX": 210,
+  "bottomY": 302,
+  "glows": []
+ },
+ "props/marsh_collapsed_fishing_platform": {
+  "w": 460,
+  "h": 349,
+  "left": 0,
+  "right": 459,
+  "bottomX": 271,
+  "bottomY": 344,
+  "glows": []
+ },
+ "props/marsh_drowned_grove": {
+  "w": 465,
+  "h": 489,
+  "left": 0,
+  "right": 464,
+  "bottomX": 262,
+  "bottomY": 484,
+  "glows": []
+ },
+ "props/marsh_old_stone_sluice": {
+  "w": 558,
+  "h": 339,
+  "left": 0,
+  "right": 557,
+  "bottomX": 220,
+  "bottomY": 334,
+  "glows": []
+ },
+ "buildings/house_construction_1": {
+  "w": 400,
+  "h": 270,
+  "left": 0,
+  "right": 399,
+  "bottomX": 226,
+  "bottomY": 269,
+  "glows": []
+ },
+ "buildings/house_construction_2": {
+  "w": 400,
+  "h": 326,
+  "left": 0,
+  "right": 399,
+  "bottomX": 177,
+  "bottomY": 325,
+  "glows": [],
+  "blocks": [
+   [
+    -62.6,
+    -52.3,
+    125.2,
+    130.8
+   ],
+   [
+    -41.7,
+    130.8,
+    104.3,
+    157.0
+   ]
+  ]
+ },
+ "buildings/abandoned_housing": {
+  "w": 400,
+  "h": 349,
+  "left": 0,
+  "right": 399,
+  "bottomX": 219,
+  "bottomY": 347,
+  "glows": [],
+  "blocks": [
+   [
+    -154.9,
+    -127.3,
+    103.2,
+    -106.1
+   ],
+   [
+    -154.9,
+    -106.1,
+    129.0,
+    -84.9
+   ],
+   [
+    -154.9,
+    -84.9,
+    154.9,
+    84.9
+   ],
+   [
+    -129.0,
+    84.9,
+    154.9,
+    106.1
+   ],
+   [
+    -103.2,
+    106.1,
+    129.0,
+    127.3
+   ]
+  ]
+ },
+ "buildings/abandoned_workshop": {
+  "w": 440,
+  "h": 293,
+  "left": 0,
+  "right": 438,
+  "bottomX": 208,
+  "bottomY": 292,
+  "glows": [],
+  "blocks": [
+   [
+    24.5,
+    -81.3,
+    147.1,
+    -54.2
+   ],
+   [
+    -122.6,
+    -54.2,
+    147.1,
+    81.3
+   ],
+   [
+    -98.1,
+    81.3,
+    147.1,
+    135.5
+   ],
+   [
+    -98.1,
+    135.5,
+    73.5,
+    162.6
+   ]
+  ]
+ },
+ "buildings/fort": {
+  "w": 520,
+  "h": 457,
+  "left": 0,
+  "right": 519,
+  "bottomX": 369,
+  "bottomY": 455,
+  "glows": [],
+  "blocks": [
+   [
+    -130.5,
+    -106.1,
+    130.5,
+    -88.4
+   ],
+   [
+    -173.9,
+    -88.4,
+    173.9,
+    -17.7
+   ],
+   [
+    -173.9,
+    -17.7,
+    217.4,
+    70.7
+   ],
+   [
+    -130.5,
+    70.7,
+    217.4,
+    106.1
+   ]
+  ]
+ },
+ "buildings/granary": {
+  "w": 400,
+  "h": 441,
+  "left": 0,
+  "right": 398,
+  "bottomX": 197,
+  "bottomY": 439,
+  "glows": [],
+  "blocks": [
+   [
+    -116.1,
+    -142.1,
+    46.4,
+    -118.4
+   ],
+   [
+    -116.1,
+    -118.4,
+    69.7,
+    -94.8
+   ],
+   [
+    -116.1,
+    -94.8,
+    92.9,
+    -71.1
+   ],
+   [
+    -116.1,
+    -71.1,
+    116.1,
+    -47.4
+   ],
+   [
+    -116.1,
+    -47.4,
+    92.9,
+    0.0
+   ],
+   [
+    -116.1,
+    0.0,
+    116.1,
+    47.4
+   ],
+   [
+    -92.9,
+    47.4,
+    92.9,
+    94.8
+   ],
+   [
+    -92.9,
+    94.8,
+    46.4,
+    118.4
+   ],
+   [
+    92.9,
+    94.8,
+    116.1,
+    118.4
+   ],
+   [
+    -69.7,
+    118.4,
+    46.4,
+    142.1
+   ]
+  ]
+ },
+ "buildings/sawmill": {
+  "w": 440,
+  "h": 383,
+  "left": 1,
+  "right": 439,
+  "bottomX": 191,
+  "bottomY": 382,
+  "glows": [],
+  "blocks": [
+   [
+    -112.0,
+    -146.1,
+    89.6,
+    -116.9
+   ],
+   [
+    -112.0,
+    -116.9,
+    112.0,
+    -87.7
+   ],
+   [
+    -112.0,
+    -87.7,
+    134.4,
+    116.9
+   ],
+   [
+    -89.6,
+    116.9,
+    134.4,
+    146.1
+   ],
+   [
+    -67.2,
+    146.1,
+    112.0,
+    175.4
+   ]
+  ]
+ },
+ "buildings/smithy": {
+  "w": 400,
+  "h": 375,
+  "left": 1,
+  "right": 398,
+  "bottomX": 206,
+  "bottomY": 373,
+  "glows": [],
+  "blocks": [
+   [
+    -48.3,
+    -67.9,
+    145.0,
+    -45.3
+   ],
+   [
+    -72.5,
+    -45.3,
+    145.0,
+    113.1
+   ],
+   [
+    -72.5,
+    113.1,
+    96.6,
+    135.8
+   ]
+  ]
+ },
+ "buildings/infirmary": {
+  "w": 440,
+  "h": 364,
+  "left": 1,
+  "right": 437,
+  "bottomX": 204,
+  "bottomY": 363,
+  "glows": [],
+  "blocks": [
+   [
+    -119.6,
+    -109.8,
+    143.5,
+    82.4
+   ],
+   [
+    -95.7,
+    82.4,
+    143.5,
+    109.8
+   ],
+   [
+    -71.8,
+    109.8,
+    119.6,
+    137.3
+   ],
+   [
+    -71.8,
+    137.3,
+    71.8,
+    164.8
+   ]
+  ]
+ },
+ "buildings/pier_fish_house": {
+  "w": 440,
+  "h": 366,
+  "left": 1,
+  "right": 439,
+  "bottomX": 139,
+  "bottomY": 365,
+  "glows": []
+ },
+ "buildings/stable": {
+  "w": 480,
+  "h": 364,
+  "left": 2,
+  "right": 478,
+  "bottomX": 241,
+  "bottomY": 362,
+  "glows": [],
+  "blocks": [
+   [
+    -112.7,
+    -139.7,
+    140.8,
+    -111.7
+   ],
+   [
+    -169.0,
+    -111.7,
+    169.0,
+    -55.9
+   ],
+   [
+    -169.0,
+    -55.9,
+    140.8,
+    0.0
+   ],
+   [
+    -169.0,
+    0.0,
+    169.0,
+    55.9
+   ],
+   [
+    -140.8,
+    55.9,
+    140.8,
+    111.7
+   ],
+   [
+    -112.7,
+    111.7,
+    140.8,
+    139.7
+   ],
+   [
+    -84.5,
+    139.7,
+    140.8,
+    167.6
+   ]
+  ]
+ },
+ "buildings/coach_house": {
+  "w": 500,
+  "h": 402,
+  "left": 0,
+  "right": 499,
+  "bottomX": 264,
+  "bottomY": 400,
+  "glows": [],
+  "blocks": [
+   [
+    -93.3,
+    -166.2,
+    -62.2,
+    -138.5
+   ],
+   [
+    -31.1,
+    -166.2,
+    31.1,
+    -138.5
+   ],
+   [
+    -93.3,
+    -138.5,
+    155.6,
+    -83.1
+   ],
+   [
+    -124.5,
+    -83.1,
+    186.7,
+    27.7
+   ],
+   [
+    -124.5,
+    27.7,
+    155.6,
+    110.8
+   ],
+   [
+    -93.3,
+    110.8,
+    155.6,
+    138.5
+   ],
+   [
+    -93.3,
+    138.5,
+    62.2,
+    166.2
+   ]
+  ]
+ },
+ "buildings/frontier_watchtower": {
+  "w": 260,
+  "h": 441,
+  "left": 2,
+  "right": 258,
+  "bottomX": 138,
+  "bottomY": 439,
+  "glows": []
+ },
+ "buildings/palisade": {
+  "w": 400,
+  "h": 390,
+  "left": 2,
+  "right": 398,
+  "bottomX": 346,
+  "bottomY": 389,
+  "glows": []
+ },
+ "buildings/gatehouse": {
+  "w": 440,
+  "h": 390,
+  "left": 3,
+  "right": 438,
+  "bottomX": 394,
+  "bottomY": 388,
+  "glows": []
+ },
+ "buildings/mine": {
+  "w": 480,
+  "h": 392,
+  "left": 2,
+  "right": 478,
+  "bottomX": 315,
+  "bottomY": 390,
+  "glows": []
+ },
+ "buildings/gate_v1": {
+  "w": 415,
+  "h": 260,
+  "left": 3,
+  "right": 412,
+  "bottomX": 216,
+  "bottomY": 258,
+  "glows": []
+ },
+ "buildings/gate_v5": {
+  "w": 415,
+  "h": 259,
+  "left": 3,
+  "right": 412,
+  "bottomX": 208,
+  "bottomY": 257,
+  "glows": []
+ },
+ "buildings/palisade_wall_v1": {
+  "w": 346,
+  "h": 220,
+  "left": 2,
+  "right": 343,
+  "bottomX": 184,
+  "bottomY": 214,
+  "glows": []
+ },
+ "buildings/palisade_wall_v5": {
+  "w": 356,
+  "h": 211,
+  "left": 2,
+  "right": 351,
+  "bottomX": 157,
+  "bottomY": 208,
+  "glows": []
+ },
+ "buildings/palisade_wall_z": {
+  "w": 250,
+  "h": 273,
+  "left": 1,
+  "right": 248,
+  "bottomX": 53,
+  "bottomY": 270,
+  "glows": []
+ },
+ "buildings/palisade_wall_x": {
+  "w": 250,
+  "h": 273,
+  "left": 1,
+  "right": 248,
+  "bottomX": 196,
+  "bottomY": 270,
+  "glows": []
+ },
+ "buildings/gate_x": {
+  "w": 367,
+  "h": 345,
+  "left": 2,
+  "right": 363,
+  "bottomX": 340,
+  "bottomY": 342,
+  "glows": []
+ },
+ "buildings/gate_z": {
+  "w": 367,
+  "h": 345,
+  "left": 3,
+  "right": 364,
+  "bottomX": 26,
+  "bottomY": 342,
+  "glows": []
+ },
+ "buildings/forage_camp": {
+  "w": 320,
+  "h": 254,
+  "left": 0,
+  "right": 318,
+  "bottomX": 156,
+  "bottomY": 253,
+  "glows": [],
+  "blocks": [
+   [
+    -91.9,
+    -95.5,
+    55.2,
+    -76.4
+   ],
+   [
+    -91.9,
+    -76.4,
+    73.5,
+    -57.3
+   ],
+   [
+    -91.9,
+    -57.3,
+    91.9,
+    -38.2
+   ],
+   [
+    -91.9,
+    -38.2,
+    110.3,
+    0.0
+   ],
+   [
+    -73.5,
+    0.0,
+    110.3,
+    38.2
+   ],
+   [
+    -55.2,
+    38.2,
+    110.3,
+    76.4
+   ],
+   [
+    -36.8,
+    76.4,
+    110.3,
+    95.5
+   ],
+   [
+    -36.8,
+    95.5,
+    73.5,
+    114.6
+   ]
+  ]
+ },
+ "buildings/railway_station": {
+  "w": 500,
+  "h": 358,
+  "left": 0,
+  "right": 498,
+  "bottomX": 209,
+  "bottomY": 356,
+  "glows": [],
+  "blocks": [
+   [
+    -24.6,
+    -102.2,
+    147.8,
+    -68.1
+   ],
+   [
+    -49.3,
+    -68.1,
+    147.8,
+    0.0
+   ],
+   [
+    -73.9,
+    0.0,
+    147.8,
+    170.3
+   ],
+   [
+    -73.9,
+    170.3,
+    123.2,
+    204.4
+   ]
+  ]
+ },
+ "buildings/barracks": {
+  "w": 500,
+  "h": 361,
+  "left": 0,
+  "right": 499,
+  "bottomX": 164,
+  "bottomY": 359,
+  "glows": []
+ },
+ "buildings/artillery_shed": {
+  "w": 480,
+  "h": 373,
+  "left": 1,
+  "right": 478,
+  "bottomX": 276,
+  "bottomY": 371,
+  "glows": []
+ },
+ "buildings/ironworks": {
+  "w": 470,
+  "h": 416,
+  "left": 0,
+  "right": 468,
+  "bottomX": 311,
+  "bottomY": 415,
+  "glows": [],
+  "blocks": [
+   [
+    -146.6,
+    -111.0,
+    146.6,
+    -92.5
+   ],
+   [
+    -146.6,
+    -92.5,
+    183.3,
+    92.5
+   ],
+   [
+    -110.0,
+    92.5,
+    146.6,
+    111.0
+   ]
+  ]
+ },
+ "buildings/market_hall": {
+  "w": 330,
+  "h": 259,
+  "left": 0,
+  "right": 329,
+  "bottomX": 125,
+  "bottomY": 258,
+  "glows": [],
+  "blocks": [
+   [
+    -58.9,
+    -120.2,
+    73.7,
+    -96.2
+   ],
+   [
+    -58.9,
+    -96.2,
+    88.4,
+    120.2
+   ],
+   [
+    -44.2,
+    120.2,
+    -14.7,
+    144.2
+   ]
+  ]
+ },
+ "buildings/camp_hall": {
+  "w": 560,
+  "h": 457,
+  "left": 0,
+  "right": 559,
+  "bottomX": 344,
+  "bottomY": 456,
+  "glows": [],
+  "blocks": [
+   [
+    -121.6,
+    -152.0,
+    162.2,
+    -101.4
+   ],
+   [
+    -121.6,
+    -101.4,
+    202.7,
+    25.3
+   ],
+   [
+    -81.1,
+    25.3,
+    202.7,
+    50.7
+   ],
+   [
+    -121.6,
+    50.7,
+    202.7,
+    152.0
+   ]
+  ]
+ },
+ "buildings/camp_barracks": {
+  "w": 500,
+  "h": 431,
+  "left": 1,
+  "right": 499,
+  "bottomX": 137,
+  "bottomY": 430,
+  "glows": [],
+  "blocks": [
+   [
+    -96.2,
+    -213.3,
+    64.1,
+    -128.0
+   ],
+   [
+    -96.2,
+    -128.0,
+    96.2,
+    128.0
+   ],
+   [
+    -96.2,
+    128.0,
+    80.1,
+    170.6
+   ],
+   [
+    -80.1,
+    170.6,
+    80.1,
+    213.3
+   ],
+   [
+    -64.1,
+    213.3,
+    80.1,
+    256.0
+   ]
+  ]
+ },
+ "buildings/rifle_range": {
+  "w": 500,
+  "h": 387,
+  "left": 0,
+  "right": 499,
+  "bottomX": 154,
+  "bottomY": 386,
+  "glows": [],
+  "blocks": [
+   [
+    -54.4,
+    -162.6,
+    108.9,
+    0.0
+   ],
+   [
+    -36.3,
+    0.0,
+    108.9,
+    40.7
+   ],
+   [
+    -54.4,
+    40.7,
+    108.9,
+    203.3
+   ],
+   [
+    -54.4,
+    203.3,
+    54.4,
+    244.0
+   ]
+  ]
+ },
+ "buildings/clan_hall": {
+  "w": 480,
+  "h": 376,
+  "left": 0,
+  "right": 479,
+  "bottomX": 281,
+  "bottomY": 375,
+  "glows": [],
+  "blocks": [
+   [
+    -33.1,
+    -93.3,
+    66.2,
+    -70.0
+   ],
+   [
+    -33.1,
+    -70.0,
+    132.5,
+    70.0
+   ],
+   [
+    -33.1,
+    70.0,
+    165.6,
+    140.0
+   ]
+  ]
+ },
+ "buildings/supply_tents": {
+  "w": 320,
+  "h": 227,
+  "left": 0,
+  "right": 319,
+  "bottomX": 201,
+  "bottomY": 226,
+  "glows": [],
+  "blocks": [
+   [
+    -94.8,
+    -83.4,
+    118.4,
+    0.0
+   ],
+   [
+    -94.8,
+    0.0,
+    142.1,
+    27.8
+   ],
+   [
+    -94.8,
+    27.8,
+    118.4,
+    41.7
+   ],
+   [
+    -71.1,
+    41.7,
+    142.1,
+    69.5
+   ],
+   [
+    -71.1,
+    69.5,
+    71.1,
+    83.4
+   ]
+  ]
+ },
+ "buildings/kennel": {
+  "w": 330,
+  "h": 245,
+  "left": 0,
+  "right": 329,
+  "bottomX": 139,
+  "bottomY": 244,
+  "glows": []
+ },
+ "buildings/war_banner": {
+  "w": 72,
+  "h": 240,
+  "left": 0,
+  "right": 71,
+  "bottomX": 12,
+  "bottomY": 239,
+  "glows": []
+ },
+ "props/rail_gate": {
+  "w": 605,
+  "h": 549,
+  "left": 1,
+  "right": 603,
+  "bottomX": 35,
+  "bottomY": 548,
+  "glows": []
+ },
+ "props/lieutenant_post": {
+  "w": 300,
+  "h": 307,
+  "left": 1,
+  "right": 299,
+  "bottomX": 185,
+  "bottomY": 305,
+  "glows": []
+ },
+ "buildings/cannon_battery": {
+  "w": 480,
+  "h": 362,
+  "left": 1,
+  "right": 478,
+  "bottomX": 288,
+  "bottomY": 361,
+  "glows": []
+ },
+ "buildings/siege_workshop": {
+  "w": 480,
+  "h": 399,
+  "left": 2,
+  "right": 478,
+  "bottomX": 240,
+  "bottomY": 398,
+  "glows": []
+ },
+ "buildings/burned_ruin": {
+  "w": 480,
+  "h": 381,
+  "left": 2,
+  "right": 479,
+  "bottomX": 262,
+  "bottomY": 380,
+  "glows": []
+ },
+ "buildings/water_tower": {
+  "w": 320,
+  "h": 378,
+  "left": 1,
+  "right": 318,
+  "bottomX": 197,
+  "bottomY": 377,
+  "glows": []
+ }
 }

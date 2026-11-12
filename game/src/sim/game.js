@@ -19,6 +19,7 @@ import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
 import { createAreas } from './areas.js';
 import { townBlockersIn, townBlockersVersion } from './frontier/town_grid.js';
+import { registerTownArt } from './frontier/art_blocks.js';
 import { cityOnIsland } from './chunk_gen.js';
 import { createTerritory } from './territory.js';
 import { createStealth } from './stealth.js';
@@ -84,6 +85,7 @@ export function createGame(options) {
   const S = options.settings ? applySettings(options, options.settings) : { ...options, dayNight: null };
   const { units = null, civilians: civData = null, bandits: banditData = null, police: policeData = null, dayNight } = S;
   const scenery = placeScenery(district, catalog, cutouts);
+  registerTownArt(options.frontier, catalog, cutouts);   // town, zone and war camp buildings block the ground their art stands on
 
   // Rooms for buildings that have an interior, and the doors between them
   const rooms = [], doors = [], roomBlockers = [], roomOf = {};
@@ -1272,7 +1274,7 @@ export function createGame(options) {
 
   const heroAbilities = createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild });
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
-  const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove });
+  const crewOrders = createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, sweep, swingStep, taunt });
   const combat = createCombat({ decide, shelter: (t, d) => omnibus?.shelter(t, d) || (frontier?.garrison?.shelter(t, d) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();

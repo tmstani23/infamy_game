@@ -11,6 +11,8 @@ import { terrainAt, buildable } from '../world_data.js';
 import { townSlot } from './town_layout.js';
 import {wallSegments} from './wall_segments.js';
 import { tierOf } from './tiers.js';
+import { artBoxes, townArtData } from './art_blocks.js';
+import { stationParts } from './station_layout.js';
 
 const OVERGROWN = new Set(['f', 'b']);   // forest and bamboo start overgrown; open ground starts cleared
 
@@ -71,26 +73,85 @@ let blockerVersion=0,versionEpoch=-1,versionTowns='';
 export function townBlockersVersion(frontier,data) {
   if(versionEpoch===blockerEpoch)return blockerVersion;
   versionEpoch=blockerEpoch;
-  const list=Object.values(frontier?.settlements || {}).filter(s=>s.grid && Number.isFinite(s.x)),ids=list.map(s=>s.id).join(',');
+  data=townArtData(data);
+  const list=Object.values(frontier?.settlements || {}).filter(s=>s.grid && Number.isFinite(s.x)),camps=campsOf(frontier),ids=list.map(s=>s.id).join(',')+'|'+camps.map(w=>w.id).join(',');
   if(ids!==versionTowns){versionTowns=ids;blockerVersion++;}
   for(const s of list)cellBoxesOf(s,data);
+  for(const w of camps)campBoxesOf(w.camp,data);
   return blockerVersion;
 }
 const builtKey=s=>s.buildings.map(b=>b.stage==='built'?b.id ?? (b.cells || [b.cell]).join('.'):'').join(',');
+// War camps (collision checkpoint 5b-2): a built camp building blocks the ground its art stands on; building
+// sites stay open, so builders and troops are never walled in. Kept per camp until its built buildings change.
+const campCache=new WeakMap();
+const campsOf=frontier=>Object.values(frontier?.wars?.list || {}).filter(w=>w.camp && Number.isFinite(w.camp.x));
+const campKey=camp=>(camp.buildings || []).map(b=>b.stage==='built' && Number.isFinite(b.x)?`${b.id}@${b.x},${b.z}`:'').join(';');
+function campBoxesOf(camp,data) {
+  let e=campCache.get(camp);
+  if(e && e.data===data) {
+    if(e.epoch===blockerEpoch)return e.boxes;
+    if(campKey(camp)===e.key){e.epoch=blockerEpoch;return e.boxes;}
+  }
+  const art=data?.townArt,boxes=[];
+  for(const b of camp.buildings || []) {
+    if(b.stage!=='built' || !Number.isFinite(b.x))continue;
+    const fit=art?._placedFootprint?.[b.type];
+    for(const o of artBoxes(data,art?.[b.type],fit?11*fit:0) || [])boxes.push({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ});
+  }
+  blockerVersion++;
+  campCache.set(camp,{data,key:campKey(camp),epoch:blockerEpoch,boxes});
+  return boxes;
+}
+// what blocks in the war camps, as a string (worker path cache key, like townBlockSignature)
+export function campBlockSignature(frontier){return campsOf(frontier).map(w=>`${w.id}:${campKey(w.camp)}`).join('|');}
+// the art a grown zone cell shows (the same pick as town_props.js townCellsToProps)
+function zoneArt(s,i,art) {
+  const def=art?._zones?.[s.grid.zone[i]],stage=Number(s.grid.stage[i]);
+  if(!def?.stages || stage<1)return null;
+  return s.zones?.[def.kind]?.abandoned && def.abandoned || def.stages[Math.min(stage,def.stages.length)-1];
+}
+const abandonedKey=s=>Object.entries(s.zones || {}).map(([k,z])=>z?.abandoned?k:'').join(',');
 function cellBoxesOf(s,data) {
   const g=s.grid;
   let per=blockerCache.get(s);if(!per)blockerCache.set(s,per=new Map());
   const dk=data || per;let e=per.get(dk);
   if(e && e.use===g.use && e.stage===g.stage && e.zone===g.zone && e.ground===g.ground && e.x===s.x && e.z===s.z && e.n===s.buildings.length) {
     if(e.epoch===blockerEpoch)return e.cells;
-    const key=builtKey(s);if(key===e.key){e.epoch=blockerEpoch;return e.cells;}
+    const key=builtKey(s);if(key===e.key && e.ab===abandonedKey(s)){e.epoch=blockerEpoch;return e.cells;}
   }
   const key=builtKey(s);
   const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;
   const owner=new Map();for(const b of s.buildings)if(b.stage==='built')for(const i of b.cells || [b.cell])owner.set(i,b);
   const cells=new Map();
+  const push=(i,b)=>{const l=cells.get(i);if(l)l.push(b);else cells.set(i,[b]);};
+  // a box that matches the art may reach over a cell edge: each cell keeps its own part
+  const spread=b=>{
+    const c0=Math.max(0,Math.round((b.minX-s.x)/g.cell+mid)),c1=Math.min(g.n-1,Math.round((b.maxX-s.x)/g.cell+mid));
+    const r0=Math.max(0,Math.round((b.minZ-s.z)/g.cell+mid)),r1=Math.min(g.n-1,Math.round((b.maxZ-s.z)/g.cell+mid));
+    for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++) {
+      const x=s.x+(c-mid)*g.cell,z=s.z+(r-mid)*g.cell;
+      const part={minX:Math.max(b.minX,x-half),maxX:Math.min(b.maxX,x+half),minZ:Math.max(b.minZ,z-half),maxZ:Math.min(b.maxZ,z+half)};
+      if(part.maxX-part.minX>1e-6 && part.maxZ-part.minZ>1e-6)push(r*g.n+c,part);
+    }
+  };
+  // art drawn at (x, z): its boxes, or false when the art is unknown (the caller keeps the old tile rule)
+  const artAt=(name,x,z,max,flip)=>{const bs=artBoxes(data,name,max,flip);if(!bs)return false;for(const o of bs)spread({minX:x+o.minX,maxX:x+o.maxX,minZ:z+o.minZ,maxZ:z+o.maxZ});return true;};
+  const art=data?.townArt,byArt=new Set();
+  // placed buildings block the ground their art stands on (5b-0, Tim 2026-11-11), drawn as in town_props.js
+  for(const b of s.buildings) {
+    if(b.stage!=='built')continue;
+    const cs=b.cells || [b.cell];let cx=0,cz=0;for(const j of cs){cx+=s.x+(j%g.n-mid)*g.cell;cz+=s.z+(Math.floor(j/g.n)-mid)*g.cell;}cx/=cs.length;cz/=cs.length;
+    const fit=art?._placedFootprint?.[b.type],max=fit?g.cell*fit:0,parts=b.type==='station' && art?._stationParts && stationParts(s,b);
+    let done;
+    if(parts) {
+      const P=art._stationParts,along=parts.rot%2===0,mf=g.cell*(P.fit ?? 1.6);
+      const a=artAt(P.shed,s.x+parts.shed[0],s.z+parts.shed[1],mf,along),h=artAt(P.hall,s.x+parts.hall[0],s.z+parts.hall[1],mf,!along);
+      done=a && h;
+    } else done=artAt(art?.[b.type],cx,cz,max,false);
+    if(done)byArt.add(b);
+  }
   for(let i=0;i<g.n*g.n;i++) {
-    const out=[];const add=b=>out.push(b);
+    const add=b=>push(i,b);
     const c=i%g.n,r=Math.floor(i/g.n),x=s.x+(c-mid)*g.cell,z=s.z+(r-mid)*g.cell;
     if(g.use[i]==='w') {
       for(const [a,b] of wallSegments(g,i,data?.townArt?._walls?.cornerCut || 0)) {
@@ -100,7 +161,7 @@ function cellBoxesOf(s,data) {
           add({minX:Math.min(ax,bx)-pad,maxX:Math.max(ax,bx)+pad,minZ:Math.min(az,bz)-pad,maxZ:Math.max(az,bz)+pad});
         }
       }
-    } else if(g.use[i]==='B' && owner.has(i)) {
+    } else if(g.use[i]==='B' && owner.has(i) && !byArt.has(owner.get(i))) {
       // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (Tim 2026-11-07)
       const b=owner.get(i),k=data?.buildings?.[b.type]?.collide ?? data?.townGrid?.buildingCollide;
       if(k>0 && k<1) {
@@ -108,18 +169,20 @@ function cellBoxesOf(s,data) {
         const sx=v=>cx+(v-cx)*k,sz=v=>cz+(v-cz)*k;add({minX:sx(x-half),maxX:sx(x+half),minZ:sz(z-half),maxZ:sz(z+half)});
       } else add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
     } else if(zoneStructureAt(s,i,data)) {
-      const h=half*data.townGrid.zoneFootprint;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});
+      // a grown house or workshop blocks the ground its art stands on (5b-1)
+      const zf=art?._ground?.zoneFootprint || 0.8;
+      if(!artAt(zoneArt(s,i,art),x,z,g.cell*zf,false)){const h=half*zf;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});}
     }
-    if(out.length)cells.set(i,out);
   }
   blockerVersion++;
-  per.set(dk,{use:g.use,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
+  per.set(dk,{ab:abandonedKey(s),use:g.use,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
   return cells;
 }
 // which cells block walking, as a string: changes only when something solid appears or goes (worker path cache key)
-export function townBlockSignature(s,data){return s.grid && Number.isFinite(s.x)?[...cellBoxesOf(s,data).keys()].join(','):'';}
+export function townBlockSignature(s,data){data=townArtData(data);return s.grid && Number.isFinite(s.x)?[...cellBoxesOf(s,data).keys()].join(','):'';}
 export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
-  const out=[];
+  const out=[];data=townArtData(data);
+  for(const w of campsOf(frontier))for(const b of campBoxesOf(w.camp,data))if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)out.push(b);
   for(const s of Object.values(frontier?.settlements || {})) {
     const g=s.grid;if(!g || !Number.isFinite(s.x))continue;
     const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;

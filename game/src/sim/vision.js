@@ -60,6 +60,7 @@ export function createVision(state, bounds, rules = {}, territory = null, island
   // each clan's units (sim/util.js ownerIndex, rebuilt each tick and after a spawn): canSee was the top sim cost,
   // scanning every entity for every look (Tim 2026-11-08 lag). Positions and states are still read live.
   const owned = ownerIndex(state), live = u => state.entities[u.id] === u;
+  const litMemo = new Map(), witness = new Map();   // island sight helpers (never saved; they only shorten the search)
   function canSee(clan, e) {
     if (!e || !clan) return false;
     if (e.owner === clan || e.workerOwner === clan) return true;
@@ -69,8 +70,24 @@ export function createVision(state, bounds, rules = {}, territory = null, island
     if (e.place === 'world') {
       if (!island) return false;
       // daytime: dayRange (Tim 2026-11-10); night: range, or fireRange near a lit fire
-      const lit = island.lightsNear?.(e.x, e.z, island.fireRadius).length, r = !state.night && island.dayRange ? Math.max(island.dayRange, lit ? island.fireRange : 0) : lit ? island.fireRange : island.range;
-      return owned(clan).some(u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && live(u) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r * r);
+      // speed pass (war collision checkpoint 5b-5): the same answers, worked out with less. By day the fire check is
+      // skipped when a fire could not add range; a unit's fire check is kept while it stands on the same spot in the
+      // same tick; and the unit that saw it last is asked first, before the whole clan.
+      const day = !state.night && island.dayRange;
+      let lit = false;
+      if (!(day && island.dayRange >= island.fireRange)) {
+        let m = litMemo.get(e.id);
+        if (!m || m.tick !== state.tick || m.x !== e.x || m.z !== e.z) litMemo.set(e.id, m = { tick: state.tick, x: e.x, z: e.z, lit: !!island.lightsNear?.(e.x, e.z, island.fireRadius).length });
+        lit = m.lit;
+      }
+      const r = day ? Math.max(island.dayRange, lit ? island.fireRange : 0) : lit ? island.fireRange : island.range, rr = r * r;
+      const looks = u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && live(u) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= rr;
+      let seen = witness.get(clan); if (!seen) witness.set(clan, seen = new Map());
+      const w = seen.get(e.id);
+      if (w && looks(w)) return true;
+      for (const u of owned(clan)) if (looks(u)) { seen.set(e.id, u); return true; }
+      if (w) seen.delete(e.id);
+      return false;
     }
     if (e.place !== 'street') return owned(clan).some(u => u.owner === clan && !u.dead && u.place === e.place && live(u));
     // checked exactly rather than on the grid, so it is never a few ticks late

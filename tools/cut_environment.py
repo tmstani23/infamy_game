@@ -366,6 +366,12 @@ def main():
         for name, (c, r) in tiles.items():
             box = (round(c * W / 4) + 8, round(r * H / 4) + 8, round((c + 1) * W / 4) - 8, round((r + 1) * H / 4) - 8)
             a.crop(box).save(os.path.join(OUT, 'ground', name + '.jpg'), quality=90)
+    # blocking shapes (tools/build_art_blockers.py) are kept; run that tool again after changing building art
+    try:
+        for k, v in json.load(open(os.path.join(OUT, 'cutouts.json'))).items():
+            if 'blocks' in v and k in meta: meta[k]['blocks'] = v['blocks']
+    except FileNotFoundError:
+        pass
     with open(os.path.join(OUT, 'cutouts.json'), 'w') as f:
         json.dump(meta, f, indent=1)
     print(f'{len(meta)} cutouts written to {OUT}')

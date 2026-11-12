@@ -4,7 +4,7 @@ import { allowCharmAttack } from './charm_rules.js';
 import { dirIndex, blockOffset } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, sees, state, stats, tryMove }) {
+export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules = null, sees, state, stats, tryMove }) {
   // Places around a hero for followers: rings of 6, 12 and 18 (enough for 36 crew)
   function followOffset(k) {
     for (const [r, n] of [[1.5, 6], [2.7, 12], [3.9, 18]]) {
@@ -21,7 +21,70 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     while (used.has(k)) k++;
     return k;
   }
-  // A square block of places around a clicked point, one per unit
+  // ---- group moves on the island (war collision checkpoint 5b-3, Tim 2026-11-11) ----
+  // One move order for a group works out one route; every unit walks it in its own lane (a small sideways offset)
+  // and ends in a loose scattered spread round the clicked spot: no rows. Numbers: units.json rules.groupMove.
+  const GM = () => ({ spacing: 2, mountedSpacing: 3.2, jitter: 0.3, lane: 1.2, joinPoints: 3, legReach: 8, legTicks: 100, ...(rules?.groupMove || {}) });
+  // a steady number from 0 to 1 out of a unit's id (the same in every replay and for every player)
+  function idShare(id, salt = 0) {
+    let h = 2166136261 ^ salt;
+    for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15;
+    return (h >>> 0) / 4294967296;
+  }
+  // place k of n in the spread: a sunflower spiral (even, no rows) that grows with the group, shaken by the unit's id
+  function spreadOffset(k, n, id, spacing) {
+    const G = GM(), R = spacing * 0.7 * Math.sqrt(n), r = n > 1 ? R * Math.sqrt((k + 0.5) / n) : 0, a = k * 2.399963;
+    const j = spacing * G.jitter, ja = idShare(id, 1) * 2 * Math.PI, jr = idShare(id, 2) * j;
+    return [Math.cos(a) * r + Math.cos(ja) * jr, Math.sin(a) * r + Math.sin(ja) * jr];
+  }
+  // a unit's own copy of a shared route: joined at the furthest of its first points the unit can walk straight to,
+  // each detailed waypoint moved sideways into the unit's lane where that ground is free. null: the unit cannot
+  // join it (something is in the way), so it finds its own path as before.
+  function laneCopy(u, grid, route, goal, wide) {
+    if (!route?.length || !grid?.clearLine) return null;
+    const G = GM();
+    let j = -1;
+    for (let i = Math.min(G.joinPoints, route.length) - 1; i >= 0 && j < 0; i--) if (grid.clearLine(u.x, u.z, route[i][0], route[i][1])) j = i;
+    if (j < 0) return null;
+    const lane = (idShare(u.id, 3) * 2 - 1) * G.lane * wide, rough = route.replanAt || 0, pts = [];
+    let prev = [u.x, u.z];
+    for (let i = j; i < route.length; i++) {
+      let pt = route[i];
+      const last = i === route.length - 1;
+      if (last && !rough) pt = goal;
+      else if (i < route.length - rough && !last) {
+        const a = route[Math.max(0, i - 1)], b = route[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz);
+        if (len > 1e-6) {
+          const q = [pt[0] - dz / len * lane, pt[1] + dx / len * lane];
+          if ((!grid.free || grid.free(q[0], q[1])) && grid.clearLine(prev[0], prev[1], q[0], q[1]) && grid.clearLine(q[0], q[1], b[0], b[1])) pt = q;
+        }
+      }
+      pts.push(pt); prev = pt;
+    }
+    if (rough) pts.replanAt = rough;
+    return pts;
+  }
+  // long trips are walked a part at a time (replanAt): the first of a group to need the next part searches, the
+  // others near that spot take a lane copy of it
+  const groupLegs = new Map();
+  function groupLeg(e, grid, gx, gz) {
+    const id = e.order?.group;
+    if (!id || !grid?.findPath) return null;
+    const G = GM(), wide = e.mounted ? 1.8 : 1;
+    let legs = groupLegs.get(id);
+    if (legs) for (const leg of legs) {
+      if (state.tick - leg.tick > G.legTicks || Math.hypot(leg.from[0] - e.x, leg.from[1] - e.z) > G.legReach) continue;
+      const pts = laneCopy(e, grid, leg.pts, [gx, gz], wide);
+      if (pts) return pts;
+    }
+    const pts = grid.findPath(e.x, e.z, gx, gz) || [];
+    if (pts.length) {
+      if (!legs) { groupLegs.set(id, legs = []); if (groupLegs.size > 64) groupLegs.delete(groupLegs.keys().next().value); }
+      legs.push({ tick: state.tick, from: [e.x, e.z], pts }); if (legs.length > 8) legs.shift();
+    }
+    return pts;
+  }
 
   // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
@@ -55,6 +118,16 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     }
     const recalling = c.kind === 'move' || c.kind === 'follow';
     if (recalling && Array.isArray(hero.assistCrew)) hero.assistCrew = hero.assistCrew.filter(id => !crew.some(u => u.id === id));
+    // a group move on the island: one route for all, a loose spread at the end (5b-3)
+    const grouped = ['move', 'station', 'attackmove'].includes(c.kind) && (c.place || hero.place) === 'world' && crew.length > 1 && navOf('world');
+    let shared = null;
+    const taken = [], groupId = grouped ? `${hero.id}:${state.tick}` : null;
+    if (grouped) {
+      const cx = crew.reduce((n, u) => n + u.x, 0) / crew.length, cz = crew.reduce((n, u) => n + u.z, 0) / crew.length;
+      const lead = crew.filter(u => u.place === 'world').sort((a, b) => Math.hypot(a.x - cx, a.z - cz) - Math.hypot(b.x - cx, b.z - cz) || (a.id < b.id ? -1 : 1))[0];
+      const pts = lead && grouped.findPath(lead.x, lead.z, c.x, c.z);
+      if (pts?.length) { shared = pts; groupLegs.set(groupId, [{ tick: state.tick, from: [lead.x, lead.z], pts }]); if (groupLegs.size > 64) groupLegs.delete(groupLegs.keys().next().value); }
+    }
     crew.forEach((u, k) => {
       if(crewJobs?.intercept(u,c))return;
       manualCrew(u);
@@ -96,8 +169,23 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
         return;
       }
       // riders need a horse length each (Tim 2026-11-10: a mounted group clustered on one spot and ran in place)
-      const [ox, oz] = blockOffset(k, crew.length, crew.some(m => m.mounted) ? 2.8 : 1.1);
       const place = c.place || hero.place;
+      if (grouped) {
+        const G = GM(), riders = crew.some(m => m.mounted), spacing = riders ? G.mountedSpacing : G.spacing;
+        // the unit's place in the spread; a place another unit already took (two snapped onto one free cell) moves on round the spiral
+        let x = c.x, z = c.z;
+        for (let t = 0; t < 12; t++) {
+          const [ox, oz] = spreadOffset(k + t * crew.length, crew.length * (t + 1), u.id, spacing);
+          [x, z] = grouped.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
+          if (!taken.some(p => Math.hypot(p[0] - x, p[1] - z) < spacing * 0.75)) break;
+        }
+        taken.push([x, z]);
+        u.order = { kind: c.kind, x, z, place, group: groupId };
+        const pts = u.place === 'world' && laneCopy(u, grouped, shared, [x, z], u.mounted ? 1.8 : 1);
+        if (pts) paths[u.id] = pts.replanAt ? { pts, gx: x, gz: z, replanAt: pts.replanAt, at: state.tick } : { pts, gx: x, gz: z, at: state.tick };
+        return;
+      }
+      const [ox, oz] = blockOffset(k, crew.length, crew.some(m => m.mounted) ? 2.8 : 1.1);
       const grid = (place === 'street' ? deployment.navFor({ ...u, place }) : null) || navOf(place);
       const [x, z] = grid?.nearestFree(c.x + ox, c.z + oz) || [c.x, c.z];
       u.order = { kind: c.kind, x, z, place };
@@ -174,7 +262,7 @@ export function createCrewOrders({ roomOf, clans, contracts, crewJobs, deploymen
     // kind: it walks the whole reachable grid). The same goal is tried again once a second.
     if (p?.failed && Math.hypot(p.gx - gx, p.gz - gz) <= 1.2 && state.tick < p.at + 20) return false;
     if (!p || (!hold && Math.hypot(p.gx - gx, p.gz - gz) > 1.2) || !p.pts.length || (p.replanAt && p.pts.length <= p.replanAt)) {
-      const pts = grid.findPath(e.x, e.z, gx, gz) || [];
+      const pts = groupLeg(e, grid, gx, gz) || grid.findPath(e.x, e.z, gx, gz) || [];
       p = paths[e.id] = pts.replanAt ? { pts, gx, gz, replanAt: pts.replanAt, at: state.tick } : { pts, gx, gz, at: state.tick };
       if (!p.pts.length) { p.failed = true; return false; }
     }

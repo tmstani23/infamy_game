@@ -74,7 +74,7 @@
       "glows": true
     },
     "warehouse": {"kind":"buildings"},
-    "townhouse": {"kind":"buildings","glows":true},
+    "townhouse": {"kind":"buildings","glows":true,"blockWall":0.5},
     "shop": {"kind":"buildings","glows":true},
     "shrine": {"kind":"buildings"},
     "sake_brewery": {"kind":"buildings"},

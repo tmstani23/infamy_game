@@ -1,6 +1,7 @@
 {
   "_note": "Crew unit types and clan rules for the sim (docs/crew_recruiting_plan.md). Starting numbers, tune in playtests. Speeds and ranges in world units (the ronin is 2 tall), attackSpeed in seconds between hits, hireSeconds = queue timer, price in ryo before the crew-size step. HP doubled 2026-10-16 (Tim: died too fast). regenPerSecond = share of max HP healed per second once a unit has not been hit for regenAfterSeconds (stand-in until the hospital). 'later' types are listed but cannot be hired yet.",
   "rules": {
+    "groupMove": { "_note": "War collision checkpoint 5b-3 (Tim 2026-11-11), placeholders, Tim to tune. A group move on the island: one shared route, each unit in its own lane, ending in a loose scattered spread (no rows). spacing = ground per unit in the spread (mountedSpacing when any rider is in the group); jitter = how far a unit is shaken off its place, as a share of spacing; lane = most a unit walks to the side of the shared route; joinPoints = how many of the route's first points a unit may join at; legReach and legTicks = how near and how fresh another unit's next part of a long trip must be to share it.", "spacing": 2, "mountedSpacing": 3.2, "jitter": 0.3, "lane": 1.2, "joinPoints": 3, "legReach": 8, "legTicks": 100 },
     "governorModel": "governer1", "surveyorModel": "surveyor1",
     "startRyo": 200,
     "vision": { "range": 18, "businessRange": 10 },

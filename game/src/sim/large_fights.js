@@ -18,7 +18,7 @@ export function largeFights(state) {
     for (let i = 0; i < group.length; i++) {
       for (let j = pending.length - 1; j >= 0; j--) {
         const e = pending[j], p = group[i];
-        if (e.place === p.place && Math.hypot(e.x - p.x, e.z - p.z) <= 14) group.push(...pending.splice(j, 1));
+        if (e.place === p.place && (e.x - p.x) ** 2 + (e.z - p.z) ** 2 <= 196) group.push(...pending.splice(j, 1));   // 14 apart (squared: speed pass 5b-5)
       }
     }
     const sides = {};

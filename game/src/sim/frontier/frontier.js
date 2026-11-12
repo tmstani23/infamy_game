@@ -11,7 +11,7 @@ import { createGovernor } from './governor.js';
 import { createCommands } from './commands.js';
 import { createAlerts } from './alerts.js';
 import { createFounding } from './founding.js';
-import { ensureGrid, townBlockersIn, townBlockersTick } from './town_grid.js';
+import { ensureGrid, townBlockersIn, townBlockersTick, townBlockersVersion } from './town_grid.js';
 import { createGarrison } from './garrison.js';
 import { createInfirmary } from './infirmary.js';
 import { createStable } from './stable.js';
@@ -76,9 +76,29 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
+  // collision checkpoint 5b: a unit standing where a house grows or a war camp building is finished steps to the
+  // nearest open ground (checked only when something solid appears or goes)
+  let nudgedAt=-1,nudgedFor=null;
+  function nudgeOut() {
+    const v=townBlockersVersion(state.frontier,data);
+    if(v===nudgedAt && nudgedFor===state.frontier)return;
+    nudgedAt=v;nudgedFor=state.frontier;
+    const solid=(x,z,pad=0)=>townBlockersIn(state.frontier,x-pad,z-pad,x+pad,z+pad,data).length>0;
+    for(const e of livingWorldUnits(state)) {
+      if(e.garrison || e.worker || e.cart || e.townsfolk || !solid(e.x,e.z))continue;   // workers, carts and townsfolk follow their own routes
+      search: for(let r=0.5;r<=20;r+=0.5)for(let k=0;k<16;k++) {
+        const x=e.x+Math.cos(k*Math.PI/8)*r,z=e.z+Math.sin(k*Math.PI/8)*r;
+        if(solid(x,z,0.4) || runtime?.areas && runtime.areas.nav?.free && !runtime.areas.nav.free(x,z))continue;
+        e.x=x;e.z=z;
+        for(const s of Object.values(state.frontier.settlements)){const w=s.workers?.find(w=>w.entity===e.id);if(w){w.departure=[x,z];delete w.retryAt;}}
+        break search;
+      }
+    }
+  }
   function tick() {
     townBlockersTick();
     ensure();
+    nudgeOut();
     // Older collision checkpoints could save a unit inside a finished hall. Repair only
     // actual overlap once on load; use the same terrain-aware navigation as worker trips.
     if(runtime?.areas && recovered!==state.frontier) {

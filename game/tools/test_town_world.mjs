@@ -19,7 +19,7 @@ for (const [type, art] of Object.entries(frontier.townArt)) {
   if (type.startsWith('_')) continue;
   // zone:<letter> keys draw zoned cells (housing/farm/work), not buildings
   if (type.startsWith('zone:')) assert.ok(frontier.townArt._zones[type.slice(5)], `${type} is a zone`);
-  else assert.ok(frontier.buildings[type], `${type} is a building`);
+  else assert.ok(frontier.buildings[type] || frontier.war?.buildings?.[type] || type === 'war_banner', `${type} is a town or war camp building`);
   assert.ok(placePiece({ name: art, x: 0, z: 0, flip: false }, catalog, cutouts), `${type} -> ${art} has art`);
 }
 

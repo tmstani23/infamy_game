@@ -52,3 +52,7 @@ console.log(`bench_war: ${start} troops in 2 wars (${SIDE} a side), ${TICKS} tic
 console.log(`  no battles: avg ${ms(base.avg)} ms, p95 ${ms(base.p95)}, max ${ms(base.max)}`);
 console.log(`  battles   : avg ${ms(fight.avg)} ms, p95 ${ms(fight.p95)}, max ${ms(fight.max)}  (one tick = 50 ms at 20 Hz)`);
 console.log(`  troops still standing: ${alive()} of ${start}`);
+// the same fight must end the same way after a speed change: every troop's health and place, as one number
+{ let h = 2166136261;
+  for (const e of Object.values(g.state.entities).filter(e => e.warTroop).sort((a, b) => a.id < b.id ? -1 : 1)) for (const ch of `${e.id}:${e.dead ? 'x' : Math.round(e.hp)}:${e.x.toFixed(2)},${e.z.toFixed(2)};`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  console.log(`  outcome fingerprint: ${(h >>> 0).toString(16)}`); }
