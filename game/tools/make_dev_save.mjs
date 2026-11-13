@@ -7,7 +7,7 @@ import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
 import { makeBots, makeSave, loadSave, heroOf } from '../src/sim/save.js';
 import { makeFile, validName } from '../src/save_store.js';
-import { cellToWorld, zoneStructureAt } from '../src/sim/frontier/town_grid.js';
+import { cellToWorld, zoneStructureAt, centreCell } from '../src/sim/frontier/town_grid.js';
 import { storageCap } from '../src/sim/frontier/storage.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
@@ -144,6 +144,15 @@ function warTest(game, heroId) {
     delete S.frontier.settlements.war_test_town;
   }
   if (!rec) throw new Error('war_test_yakuza: could not start the war');
+  // Kurogane gets grown houses and workshops, so the defender's archers have somewhere to garrison (7c-3b)
+  { const G = S.frontier.settlements.war_test_town.grid, n = G.n, C = centreCell(n), put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
+    const want = [['h', 2], ['h', 2], ['h', 3], ['h', 2], ['k', 1], ['k', 1]]; let k = 0;
+    for (let r = 3; r <= 7 && k < want.length; r += 2) for (let a = 0; a < 8 && k < want.length; a++) {
+      const dx = Math.round(Math.cos(a * Math.PI / 4) * r), dz = Math.round(Math.sin(a * Math.PI / 4) * r), i = C + dz * n + dx;
+      if (G.ground[i] === 'x' || G.use[i] !== '.' || G.zone[i] !== '.') continue;
+      G.ground = put(G.ground, i, 'c'); G.zone = put(G.zone, i, want[k][0]); G.stage = put(G.stage, i, String(want[k][1])); G.by = put(G.by, i, 'g'); k++;
+    }
+    if (k < want.length) throw new Error('war_test_yakuza: no room for Kurogane houses'); }
   delete S.clans[hero.owner].warPack;
   const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
   // 7c (Tim 2026-11-12): the war test starts with only the camp hall (tier 1) and enough ryo, timber and stone to build everything

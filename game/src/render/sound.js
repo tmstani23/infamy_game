@@ -14,7 +14,7 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
-const CUSTOM = { gatling_loop_1: [], gatling_end_1: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [] };
+const CUSTOM = { gatling_loop_1: [], gatling_end_1: [], arrow_whoosh_1: [], arrow_whoosh_2: [], arrow_hit_1: [], arrow_hit_2: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [] };
 // hero ability activation cues (Tim's clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
 // Each clip used once per hero so skills don't sound alike (Tim); abilities not listed keep only their old sounds
 const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
@@ -245,7 +245,8 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
         if(h.kind==='dynamite'||h.kind==='fire'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
-        if(h.kind==='arrow'||h.kind==='geishabolt'||h.kind==='bullet'){ /* flight and ability cues supply the ranged sound */ }
+        if(h.kind==='arrow'){ if(buffers.arrow_hit_1)variant('arrow_hit_1',.5*v,.95+Math.random()*.1); }   // Tim's arrow clips 2026-11-12: a thud where it lands
+        else if(h.kind==='geishabolt'||h.kind==='bullet'){ /* flight and ability cues supply the ranged sound */ }
         else if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
         else if (SWORDS.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
         else if (CLUBS.has(h.weapon)) variant('club_thud_1',.6*v,HEAVY_FISTS.has(h.weapon)?.9:1);
@@ -258,7 +259,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'gatlingShot' || c.kind === 'gatlingStop') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / (HEAR * 1.5)) ** 2 : 0; gatling(c, Math.max(ear(me), ear(me?.hero))); continue; }
         if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / (HEAR * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
-        if(c.kind==='arrow')swordSlash(.16*v); // quiet existing whoosh until a dedicated arrow-flight recording is supplied
+        if(c.kind==='arrow'){ if(buffers.arrow_whoosh_1)variant('arrow_whoosh_1',.4*v,.94+Math.random()*.12); else swordSlash(.16*v); }   // Tim's arrow flight clips (2026-11-12), the old quiet whoosh without them
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);
         if(c.kind==='bullet')play('rifle_shot_1',.5*v,1.05);   // war army rifleman (units.json army_rifleman): the Teppo shot, a little lighter
         if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);

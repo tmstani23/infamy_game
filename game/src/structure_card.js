@@ -21,7 +21,9 @@ const CSS = `
 #structcard .x{position:absolute;top:5px;right:6px;padding:1px 6px;font-size:10px}
 #structcard button{font-size:11px;padding:3px 7px}
 .zonegar{position:fixed;transform:translate(-50%,-100%);pointer-events:none;min-width:18px;height:18px;border-radius:9px;padding:0 5px;box-sizing:border-box;display:grid;place-items:center;font:700 11px system-ui;color:#f6e6bf;background:rgba(20,16,12,.9);border:1px solid #d8b56c}
-.zonegar.foe{border-color:#e0786c}`;
+.zonegar.foe{border-color:#e0786c}
+#garhint{position:fixed;z-index:60;pointer-events:none;padding:3px 8px;border-radius:5px;background:rgba(12,14,18,.92);border:1px solid #d8b56c;color:#f6e6bf;font:600 11px/14px system-ui,sans-serif;white-space:nowrap}
+#garhint[hidden]{display:none}`;
 const NAMES = { town_hall: 'Town hall', housing: 'House', work: 'Workshop', farm: 'Farmhouse', wall: 'Wall', gate: 'Gate', camp_hall: 'Camp hall' };
 const nice = t => NAMES[t] || (t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -119,6 +121,16 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', structure: st.key, walk: true, units: ids });
   }, { capture: true });
+  // a nudge (Tim 2026-11-12): with troops selected, pointing at your own house, workshop or farmhouse shows how to garrison
+  const nudge = Object.assign(document.createElement('div'), { id: 'garhint', hidden: true, textContent: 'Ctrl + right-click to garrison' }); document.body.append(nudge);
+  let nudgeAt = 0;
+  addEventListener('mousemove', e => {
+    const now = performance.now(); if (now - nudgeAt < 80) return; nudgeAt = now;
+    const st = !e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp') && troopsSelected().length ? at(e.clientX, e.clientY) : null;
+    const show = !!st && st.owner === owner() && zoneOk(st) && ST().hpOf(st) > 0;
+    nudge.hidden = !show;
+    if (show) { nudge.style.left = `${e.clientX + 16}px`; nudge.style.top = `${e.clientY + 18}px`; }
+  });
   // number badges over garrisoned houses you can see
   const badges = new Map();
   setInterval(() => {

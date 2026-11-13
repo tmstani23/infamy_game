@@ -46,3 +46,14 @@ Built from a clip by Tim, layered with rifle shots. There is no start clip.
 | gatling_loop_1.ogg | Gatling firing loop |
 | gatling_end_1.ogg | Gatling wind-down |
 | horse_whistle_1.ogg | Horse whistle summon (Tim, Stable Audio) |
+
+## ElevenLabs arrow clips (Tim, 2026-11-12)
+
+Cut from Tim's ElevenLabs clips arrowoosh1.wav and arrowoosh2.wav (each holds a flight and an impact). Used in `render/sound.js`.
+
+| File | Used for |
+|---|---|
+| arrow_whoosh_1.ogg | Arrow in flight (from arrowoosh1, 0.50 to 1.045 s) |
+| arrow_whoosh_2.ogg | Arrow in flight (from arrowoosh2, 0.80 to 1.235 s) |
+| arrow_hit_1.ogg | Arrow hitting a unit (from arrowoosh1, 1.045 to 1.45 s) |
+| arrow_hit_2.ogg | Arrow hitting a unit (from arrowoosh2, 1.235 to 1.65 s) |
