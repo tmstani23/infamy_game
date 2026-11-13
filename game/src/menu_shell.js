@@ -45,7 +45,7 @@ export const msProg = frac => `<div class="ms-prog"><i style="width:${(Math.max(
 const STILLS = new Set(['gunslinger', 'western_dockworker', 'archer', 'ronin', 'bandit', 'police', 'thug', 'brute', 'koruda_enforcer', 'shinobi_enforcer', 'enforcer',
   'demolitions', 'lieutenant1', 'lookout', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto', 'rival_yakuza', 'kuroda_spearman', 'mercenary', 'monk', 'monk2',
   'old_woman', 'merchant', 'governer1', 'surveyor1', 'geisha', 'shinobi_geisha', 'fisherman', 'sailor', 'laborer', 'rail_worker', 'kunoichi', 'dog_handler', 'fire_bomber',
-  'train_guard', 'rickshaw_driver']);
+  'train_guard', 'rickshaw_driver', 'cannon_field', 'cannon_wooden', 'gatling']);   // 7c-3: war train cards
 export const msConcept = model => STILLS.has(model) ? `../assets/sprites/portraits/stills/${model}.png` : null;
 
 // Pages by height for windows whose content is built elsewhere (Town panel, menu restyle 2026-11-10: no scrollbars).

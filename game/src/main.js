@@ -45,6 +45,7 @@ import { createTownHover } from './town_hover.js';
 import { createStructureBars } from './structure_bars.js';
 import { createAbilityRows } from './ability_rows.js';
 import { createGarrisonCard } from './garrison_card.js';
+import { createStructureCard } from './structure_card.js';   // 7c-3b: town building card, house garrisons
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import { isDiscovered } from './world_map.js';
@@ -538,7 +539,7 @@ async function start() {
   const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
   const warBlocked=()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen();
   // F6 war checkpoint 4: the camp panel (build, train, hire, hall upgrade), opened from the war coin or a camp building
-  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
+  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
@@ -632,10 +633,11 @@ async function start() {
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
+    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, send: c => pending.push(c), selected: () => crewInput.selected(), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
     const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
       send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
-      openCamp: id => warCamp.show(id),
+      openCamp: (id, b) => warCamp.show(id, b),   // 7c-3: the clicked building's own menu
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
     evacuateGarrison = () => townHover.evacuateAll();
     createStructureBars({ game, view, heroId, root: $('structbars') });   // war checkpoint 6: health bars over damaged structures

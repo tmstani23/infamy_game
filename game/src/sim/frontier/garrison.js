@@ -7,6 +7,12 @@
 // dynamite or a cleave cannot reach the people. At 0 the stockade is ruined and everyone piles out;
 // the town governor rebuilds it on the same spot. Enemies attacking the building itself waits for F7 sieges.
 // createGarrison({ state, data, world }) -> { command, tick, members, capacity, shelter }
+// 7c-3b (Tim 2026-11-12, war plan 2026-11-09b): garrisons in a town's houses, workshops and farmhouses. The town owner's
+// troops and crew (not the hero, not workers) go in, up to war.structures.zoneGarrison.capacity per building:
+// { action: 'garrison', mode: 'enter' | 'leave', structure: <structure key>, units, walk }. Inside: e.garrison =
+// { town, key, zone: true, x, z }. Hits on them go to the building (structures.damage), at 0 everyone piles out
+// (breakOutKey), melee inside cannot attack, ranged troops shoot out (sim/frontier/structures.js garrisonFire), no
+// healing inside. Not the stockade's members().
 import { cellToWorld, townBlockersIn } from './town_grid.js';
 
 export function createGarrison({ state, data, world, atWar = () => false }) {
@@ -19,9 +25,58 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
   }
   const workerOf = (s, u) => u.worker ? s.workers?.find(w => w.id === u.worker) : null;
+  // ---- 7c-3b zone garrisons ----
+  const Z = () => data.war?.structures?.zoneGarrison || null;
+  let structs = null;   // sim/frontier/structures.js, set once both exist
+  const zoneSt = key => structs?.find?.(key) || null;
+  const zoneOk = st => !!st && !!Z() && (st.kind === 'zone' || st.kind === 'building') && (Z().types || []).includes(st.type);
+  const inZone = key => Object.values(state.entities || {}).filter(e => e.garrison?.zone && e.garrison.key === key && !e.dead);
+  function outAt(u, cx, cz) {
+    delete u.garrison;
+    const reach = 7;
+    for (let r = 0; r < 6; r++) for (let k = 0; k < 8; k++) {
+      const a = (k + r * 0.5) * Math.PI / 4, d = reach + r * 1.5, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      if (!townBlockersIn(state.frontier, x, z, x, z, data).length) { u.x = x; u.z = z; u.order = { kind: 'move', x, z, arrived: true }; return; }
+    }
+  }
+  function breakOutKey(key) { for (const u of inZone(key)) outAt(u, u.garrison.x ?? u.x, u.garrison.z ?? u.z); }
+  // a bot defender's ranged troop walks into the nearest building of its own town with room (stand-in defender, 7c-3b)
+  function defendIn(u, townId) {
+    const Q = Z(); if (!Q || !structs || !u || u.garrison) return false;
+    const s = world.settlement(townId); if (!s || s.owner !== u.owner) return false;
+    const going = key => Object.values(state.entities || {}).filter(e => !e.dead && e.order?.garrisonKey === key).length;
+    const pick = structs.list().filter(st => st.town === townId && zoneOk(st) && structs.hpOf(st) > 0 && inZone(st.key).length + going(st.key) < (Q.capacity ?? 10))
+      .map(st => ({ st, d: Math.hypot(st.x - u.x, st.z - u.z) })).sort((a, b) => a.d - b.d || (a.st.key < b.st.key ? -1 : 1))[0]?.st;
+    if (!pick) return false;
+    u.order = { kind: 'move', x: pick.x, z: pick.z, garrisonGo: s.id, garrisonKey: pick.key }; delete u.attackTarget;
+    return true;
+  }
+  function admitZone(u, st) { u.garrison = { town: st.town, key: st.key, zone: true, x: st.x, z: st.z }; delete u.order; delete u.swing; delete u.attackTarget; u.x = st.x; u.z = st.z; }
+  function zoneCommand(e, c) {
+    const st = zoneSt(c.structure), s = st && world.settlement(st.town), Q = Z();
+    if (!Q || !st || !s) return receipt(e, c, false, 'no such building');
+    if (s.owner == null || s.owner !== e.owner) return receipt(e, c, false, 'not your town');
+    if (!zoneOk(st)) return receipt(e, c, false, 'troops cannot garrison that');
+    if (c.mode === 'leave') { const ids = Array.isArray(c.units) && c.units.length ? new Set(c.units) : null; for (const u of inZone(st.key)) if (!ids || ids.has(u.id)) outAt(u, st.x, st.z); return receipt(e, c, true); }
+    if (c.mode !== 'enter') return receipt(e, c, false, 'enter or leave');
+    let room = (Q.capacity ?? 10) - inZone(st.key).length, taken = 0, far = 0, walking = 0;
+    for (const id of Array.isArray(c.units) ? c.units : []) {
+      const u = state.entities[id];
+      if (!u || u.owner !== e.owner || u.type === 'hero' || u.worker || u.garrison || u.dead || u.downed || u.jailed || u.place !== 'world' || u.aboard || u.mounted) continue;
+      if (u.type === 'civilian' || u.type === 'horse' || u.wild || u.cop || u.guide || u.gatling) continue;
+      if (room - walking <= 0) break;
+      if (Math.hypot(u.x - st.x, u.z - st.z) > (Q.range ?? 9)) {
+        if (c.walk) { u.order = { kind: 'move', x: st.x, z: st.z, garrisonGo: s.id, garrisonKey: st.key }; delete u.attackTarget; walking++; } else far++;
+        continue;
+      }
+      admitZone(u, st); room--; taken++;
+    }
+    if (!taken && !walking) return receipt(e, c, false, room <= 0 ? 'it is full' : far ? 'move closer' : 'nobody can go in');
+    return receipt(e, c, true);
+  }
   // everyone inside: garrisoned entities plus sleeping garrisoned workers that have no entity right now
   const members = (s) => {
-    const out = Object.values(state.entities || {}).filter(e => e.garrison?.town === s.id && !e.garrison.hall);
+    const out = Object.values(state.entities || {}).filter(e => e.garrison?.town === s.id && !e.garrison.hall && !e.garrison.zone);
     for (const w of s.workers || []) if (w.garrison && !state.entities?.[w.entity]) out.push({ id: 'w:' + w.id, worker: w.id, sleeping: true });
     return out;
   };
@@ -49,6 +104,7 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
 
   function command(e, c) {
     if (c.action !== 'garrison') return false;
+    if (c.structure) return zoneCommand(e, c);   // 7c-3b: a house, workshop or farmhouse
     const R = rules();
     const s = typeof c.town === 'string' ? world.settlement(c.town) : null;
     if (!R || !s || s.capital) return receipt(e, c, false, 'no such town');
@@ -90,7 +146,12 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
   // a hit on a sheltered unit: the stockade takes the damage; true when it was absorbed
   function shelter(u, damage, by = null) {
     const g = u.garrison, s = g && world.settlement(g.town), b = s?.buildings?.find(x => x.id === g.building && finished(s, x));
-    if (g?.hall) return true;   // workers sheltering in the town hall during a war (sim/frontier/structures.js): the hall takes it, unharmed
+    if (g?.hall) return true;
+    if (g?.zone) {   // 7c-3b: the house takes the hit, in a war on its town; otherwise nothing gets through
+      const st = zoneSt(g.key); if (!st) return false;
+      if (by && state.clans?.[by.owner] && atWar(by.owner, s)) structs.damage(by.owner, st, damage, 'melee');
+      return true;
+    }   // workers sheltering in the town hall during a war (sim/frontier/structures.js): the hall takes it, unharmed
     if (!b) return false;
     const max = rules()?.hp || 0;
     if (!max) return true;   // no building health set: the stockade cannot be broken
@@ -115,6 +176,14 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     }
     for (const u of Object.values(state.entities || {})) {   // units sent by right-click go in once they are within range
       const go = u.order?.garrisonGo; if (!go || u.garrison) continue;
+      if (u.order.garrisonKey) {   // 7c-3b: walking to a house
+        const st = zoneSt(u.order.garrisonKey), s = st && world.settlement(st.town);
+        if (!st || !zoneOk(st) || s?.owner !== u.owner || u.dead || u.downed || u.jailed) { delete u.order.garrisonGo; delete u.order.garrisonKey; continue; }
+        if (Math.hypot(u.x - st.x, u.z - st.z) <= (Z().range ?? 9) - 1 || u.order.arrived) {
+          if (Math.hypot(u.x - st.x, u.z - st.z) <= (Z().range ?? 9) + 2 && inZone(st.key).length < (Z().capacity ?? 10)) admitZone(u, st); else { delete u.order.garrisonGo; delete u.order.garrisonKey; }
+        }
+        continue;
+      }
       const s = world.settlement(go), b = s && stockadeOf(s), R = rules();
       if (!s || !b || !R || s.owner !== (u.owner ?? u.workerOwner) || u.dead || u.downed || u.jailed) { if (u.order) delete u.order.garrisonGo; continue; }
       const [cx, cz] = centre(s, b);
@@ -124,6 +193,13 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     }
     for (const u of Object.values(state.entities || {})) {
       const g = u.garrison; if (!g || g.hall) continue;   // hall shelter is run by sim/frontier/structures.js
+      if (g.zone) {
+        const st = zoneSt(g.key), s = world.settlement(g.town);
+        if (u.dead || u.downed || u.jailed) { delete u.garrison; continue; }
+        if (!st || !s || s.owner !== u.owner) { outAt(u, g.x ?? u.x, g.z ?? u.z); continue; }
+        u.x = st.x; u.z = st.z; u.anim = 'idle'; delete u.order; delete u.attackTarget;
+        continue;
+      }
       const s = world.settlement(g.town), b = s?.buildings?.find(x => x.id === g.building && finished(s, x));
       if (!s || s.owner !== (u.owner ?? u.workerOwner) || !b) { delete u.garrison; const w = s && workerOf(s, u); if (w) { delete w.garrison; delete w.order; } continue; }
       if (u.dead || u.downed || u.jailed) { delete u.garrison; continue; }
@@ -132,5 +208,5 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
       delete u.order; delete u.attackTarget;
     }
   }
-  return { command, tick, members, capacity, shelter, breakOut };
+  return { command, tick, members, capacity, shelter, breakOut, breakOutKey, inZone, zoneOk, defendIn, setStructures: s => { structs = s; } };
 }

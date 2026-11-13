@@ -215,7 +215,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     // Tim 2026-11-07: out on the island the bar lists only the crew out there with you; crew left in the capital are not shown
     // or tracked (also not its clinic / jail lines). One predicate, so a per-town split can replace it later.
     const listed = e => h.place !== 'world' || e.place === 'world';
-    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && e.maxHp && listed(e));
+    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && !e.warTroop && e.maxHp && listed(e));   // war troops show only in the selection panel (Tim 2026-11-12)
     const clinic = h.place === 'world' ? [] : game.state.clans?.[h.owner]?.clinic || [];
     const jail = h.place === 'world' ? [] : game.state.clans?.[h.owner]?.jail || [];
     if(game.state.deployment?.restrictionsEnabled){grouped.update(crewList,clinic,jail);return;}

@@ -1,7 +1,9 @@
 // War camp panel (frontier plan F6, checkpoint 4): presentation only, the sim checks every command again.
-// Opens from a left-click on your own camp's buildings or the red war coin. Tabs: Build (camp building cards
-// with their art, under-construction list), Train (a queue per training building, troop cap bar), Hall (hall
-// upgrade). Picking a building card places it: its art follows the mouse with a green or red ring and the
+// 7c-3 (Tim 2026-11-12): one menu per building. A left-click on the camp hall (or the red war coin) opens the hall:
+// tabs Build (camp building cards with their art, under-construction list), War chest, Hall (hall upgrade), and the
+// worker hire box. A left-click on any other camp building opens only its own menu: a training building shows a card
+// per unit it trains (sprite still, health, damage a second, range, speed, cost, time; abilities in the hover) and
+// its queue; a site shows its progress; the rest say what they do. Picking a building card places it: its art follows the mouse with a green or red ring and the
 // reason in a hint; left-click places (Shift keeps placing), right-click or Esc cancels. No scrollbars: pages.
 const CSS = `
 #warcamp{position:fixed;left:50%;top:50%;transform:translate(-50%,-52%);z-index:40;width:690px;color:#eadfc6;font:13px/1.35 system-ui,sans-serif}
@@ -60,14 +62,45 @@ const CSS = `
 #warcamp .capbar{display:flex;gap:2px;margin-top:4px}#warcamp .capbar i{flex:1;height:10px;background:#22262e;border-radius:2px}#warcamp .capbar i.u{background:#c9473d}#warcamp .capbar i.w{background:#7e5a28}
 #warcamp .why{color:#ed8b7c;font-size:12px;min-height:16px;margin-top:6px}
 #warcamp .unl{display:flex;gap:8px;margin-top:6px}#warcamp .unl .thumb{width:60px;height:46px}#warcamp .unl .thumb img{max-width:56px;max-height:42px;opacity:1}
+#warcamp .ugrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+#warcamp .ucard{border:1px solid #3d352a;border-radius:7px;background:radial-gradient(ellipse at 50% 30%,#2a2620,#121314 80%);padding:7px;cursor:help}
+#warcamp .ucard:hover{border-color:#ffe0a1}#warcamp .ucard .uhead{display:grid;grid-template-columns:62px 1fr;gap:7px}
+#warcamp .ustill{height:84px;border:1px solid #826f4c;border-radius:6px;background:#2a2620 center 20%/cover no-repeat}#warcamp .ustill.concept{background-size:140%;background-position:center 18%}
+#warcamp .un{font-weight:700;color:#f3e3bd;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#warcamp .sr{display:flex;justify-content:space-between;font-size:11px;color:#9aa3a6;line-height:1.45}#warcamp .sr b{color:#eadfc6}
+#warcamp .ab{min-height:14px;margin-top:3px;color:#d8b56c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#warcamp .chestbox{display:grid;grid-template-columns:150px 1fr;gap:16px;margin-top:14px;align-items:start}
+#warcamp .chestcoin{border-radius:50%;width:140px;height:140px;display:grid;place-content:center;text-align:center;background:radial-gradient(#5a2a20,#1a0c0a 72%);box-shadow:0 0 0 3px #c9473d,0 0 0 5px #2a0f0d,0 0 24px #c9473d77;cursor:help}
+#warcamp .chestcoin b{font-size:28px;color:#ffe9b0}#warcamp .chestcoin span{font-size:10px;letter-spacing:.12em;color:#ee9a8c;text-transform:uppercase;padding:0 18px}
 #warcamphint{position:fixed;pointer-events:none;z-index:22;padding:8px 11px;background:rgba(12,18,24,.94);max-width:300px;border:1px solid;border-radius:8px;font:12px/1.4 system-ui}
 #warcamphint[hidden]{display:none}
 `;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-const PER_PAGE = 8, ROWS = 3;
+const PER_PAGE = 8, UPP = 3;
+import { msConcept } from './menu_shell.js';
+import { portrait } from './portraits.js';
+import { SPECIALS } from './sim/special_cast.js';
+import { ABOUT } from './ability_rows.js';
+// what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
+const TRAITS = {
+  kunoichi: 'Hidden on the island until she attacks or is hit; her first hit is an ambush. Vanish on a move order while seen. Dog handlers, Teppo riflemen and watchtowers can spot her.',
+  fire_bomber: 'Throws fire bombs: area damage to troops, sets wooden buildings alight; stone takes less.',
+  field_cannon: 'Siege gun: heavy damage to buildings, long range, slow to reload. Hard to push.',
+  wooden_cannon: 'Siege gun: heavy damage to buildings, long range, slow to reload. Hard to push.',
+  gatling_crew: 'Sets up before it fires a cone of bullets, packs up to move. Cannot fire up close or fight hand to hand.',
+  war_enforcer: 'Heavy infantry: lots of health, holds the line.', brute: 'Tough brawler.',
+  sword_rider: 'Cavalry: fast, hits hard on the charge.', mounted_pikeman: 'Cavalry with a long reach.',
+};
+// what a building does (its own menu, when it trains nothing)
+const DOES = {
+  supply_tents: d => `Adds ${d.cap ?? 0} to the troop cap.`, watchtower: () => 'Shoots arrows at enemies in range and lets you see the ground round it, day and night.',
+  field_clinic: () => 'Your troops, hero and crew near it recover much faster once they are out of the fight.', armory: () => 'Troop upgrades come later.',
+  palisade: () => 'A wall: blocks the way.', gate: () => 'A gate in the palisade: your troops pass, enemies must break it.',
+  lumber_camp: () => 'Camp workers drop timber here.', quarry: () => 'Camp workers drop stone here.',
+};
 
-export function createWarCampPanel({ game, heroId, view, catalog, frontierData, send, blocked = () => false, onStart = () => {} }) {
+export function createWarCampPanel({ game, heroId, view, catalog, frontierData, units = null, send, blocked = () => false, onStart = () => {} }) {
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
@@ -83,10 +116,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   }).join('');
 
   const root = document.createElement('div'); root.id = 'warcamp'; root.hidden = true; document.body.append(root);
-  let open = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '';
+  let open = null, bid = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '';
   const counts = {};   // typed train / hire counts by box, kept across refreshes
-  function show(id) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; open = id; tab = 'build'; page = tpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
-  function close() { open = null; root.hidden = true; }
+  function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; open = id; tab = 'build'; page = tpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
+  function close() { open = null; bid = null; root.hidden = true; }
 
   function fill() {
     const w = rec(open); if (!w) { close(); return; }
@@ -96,19 +129,61 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const list = war()?.campBuildList(open) || [], pages = Math.max(1, Math.ceil(list.length / PER_PAGE)); page = Math.min(page, pages - 1);
     const sites = c.buildings.filter(b => b.stage === 'site' || b.upgrade);
     const mine = game.state.entities[heroId]?.owner;   // checkpoint 7: only this clan's specials show
-    const trainers = c.buildings.filter(b => b.stage === 'built' && (war()?.trainsAt(b.type, mine) || []).length);
-    const trows = trainers.flatMap(b => war().trainsAt(b.type, mine).map(u => [b, u]));   // one row per building and unit, ROWS a page (checkpoint 5: a barracks trains three)
-    const tpages = Math.max(1, Math.ceil(trows.length / ROWS)); tpage = Math.min(tpage, tpages - 1);
     const me = hero()?.owner, ryoOf = u => war()?.ryoOf?.(me, u) ?? U[u]?.ryo ?? 0, ticksOf = u => war()?.ticksOf?.(me, u) ?? U[u]?.trainTicks ?? 0;
     const builders = id => (c.workers || []).filter(k => k.project === id).length, maxB = W().builders ?? 3;
-    const next = JSON.stringify([open, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length,
-      c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind]);
-    if (next === sig || root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
+    const bld = bid ? c.buildings.find(x => x.id === bid) || null : null; if (bid && !bld) bid = null;
+    const faction = clan?.faction, ST = game.frontier?.structures, stOf = x => ST?.find?.(`c|${open}|${x.id}`) || null;
+    const next = JSON.stringify([open, bid, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length,
+      c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
+      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
+    if (next === sig) return;
     sig = next;
+    // a count box being typed in keeps its focus and text across the redraw (it used to block the redraw instead)
+    const typing = root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT' ? { n: document.activeElement.dataset.n, a: document.activeElement.selectionStart, b: document.activeElement.selectionEnd } : null;
+    const stats = key => {
+      const e = U[key] || {}, t = typeof e.type === 'string' ? e.type : e.type?.[faction] || Object.values(e.type || {})[0], u = units?.types?.[t] || {};
+      const model = (typeof e.model === 'string' ? e.model : e.model?.[faction] || Object.values(e.model || {})[0]) || u.sprite || t;
+      const dps = u.gatling ? u.gatling.damage * 20 / Math.max(1, u.gatling.everyTicks) : (u.damage || 0) / Math.max(0.1, u.attackSpeed || 1);
+      const range = u.rifle?.range ?? u.gatling?.range ?? u.attackRange ?? 1;
+      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => `${S.name}: ${ABOUT[id] || ''}`);
+      if (TRAITS[t]) abil.push(TRAITS[t]);
+      return { t, u, model, name: u.name || nice(key), hp: u.hp ?? 0, dps, range, speed: u.run ?? 0, abil };
+    };
+    const face = model => msConcept(model) || (catalog && typeof document !== 'undefined' ? portrait(catalog, model, () => { sig = ''; }) : null) || '';
+    function buildingBody(b) {
+      const d = B[b.type] || {}, idx = c.buildings.filter(x => x.type === b.type).indexOf(b) + 1;
+      if (b.stage === 'site' || b.upgrade) {
+        const j = b.upgrade || b, n = builders(b.id);
+        return `<div class="sec"><span>Under construction</span><b>${n} of ${maxB} builders</b></div><div class="prog" style="margin-top:10px"><i style="width:${Math.round(100 * (j.progress || 0) / Math.max(1, j.need))}%"></i></div>
+          <div class="small" style="margin-top:8px">${Math.round(100 * (j.progress || 0) / Math.max(1, j.need))}% built. Camp workers build it.</div>
+          ${b.upgrade ? '' : `<div style="margin-top:10px"><button data-cancel="${esc(b.id)}" title="${esc(j.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button></div>`}`;
+      }
+      const list = war()?.trainsAt(b.type, mine) || [];
+      if (!list.length) return `<div class="sec"><span>${esc(nice(b.type))} ${idx}</span></div><div style="margin-top:10px;font-size:14px">${esc((DOES[b.type] || (() => 'A camp building.'))(d))}</div>`;
+      const tps = Math.max(1, Math.ceil(list.length / UPP)); tpage = Math.min(tpage, tps - 1);
+      const q = b.queue || [], first = q[0], cap = v.cap;
+      const cards = list.slice(tpage * UPP, tpage * UPP + UPP).map(u => {
+        const S = stats(u), price = ryoOf(u), pic = face(S.model);
+        const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${price} ryo from the war chest, ${Math.round(ticksOf(u) / 20)} s to train.${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
+        return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
+          <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
+          <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span><span class="small">${Math.round(ticksOf(u) / 20)} s each</span></div>
+          <div class="small ab">${S.abil.length ? esc(S.abil.map(x => x.split(':')[0].split('.')[0]).join(', ')) : '&nbsp;'}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${b.id}:${u}`)}<button class="go" data-train="${esc(b.id)}" data-unit="${esc(u)}">Train</button></div></div>`;
+      }).join('');
+      const sameRun = q.slice(1).reduce((out, x) => { const l = out.at(-1); if (l?.unit === x.unit) l.n++; else out.push({ unit: x.unit, n: 1 }); return out; }, []);
+      return `<div class="sec"><span>Train</span><b>One at a time per building</b></div><div class="ugrid">${cards}</div>
+        ${tps > 1 ? `<div class="foot"><span class="small">Page ${tpage + 1} of ${tps}</span><span><button data-tpage="-1"${tpage ? '' : ' disabled'}>Prev</button> <button data-tpage="1"${tpage < tps - 1 ? '' : ' disabled'}>Next</button></span></div>` : ''}
+        <div class="sec"><span>Queue</span><b>Troop cap: ${v.troops} out, ${v.queued} training, ${Math.max(0, cap - v.troops - v.queued)} free of ${cap}</b></div>
+        <div class="pips">${q.slice(0, 10).map((x, i) => `<i class="${i ? 'q' : ''}" style="${i ? '' : `background:conic-gradient(#e0b85a 0 ${Math.round(100 * (1 - x.left / Math.max(1, ticksOf(x.unit) || 1)))}%,#14130f 0)`}"></i>`).join('')}
+          <span class="small" style="margin-left:6px">${first ? `${esc(stats(first.unit).name)}, next in ${Math.ceil(first.left / 20)} s${sameRun.length ? `. Then ${esc(sameRun.map(r => `${r.n} ${stats(r.unit).name.toLowerCase()}`).join(', '))}` : ''}` : 'Idle'}</span>
+          ${q.length ? `<button style="margin-left:auto;padding:2px 8px" data-untrain="${esc(b.id)}">Cancel last</button>` : ''}</div>`;
+    }
     const num = (key, d = 1) => `<input class="num" type="text" inputmode="numeric" data-n="${esc(key)}" value="${esc(counts[key] ?? d)}">`;
     const coin = (cls, n, label, tip) => `<div class="coin ${cls}" title="${esc(tip)}"><b>${n}</b><span>${label}</span></div>`;
     let body = '';
-    if (tab === 'build') {
+    if (bld) body = buildingBody(bld);
+    else if (tab === 'build') {
       body = `<div class="grid">${list.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE).map(x => {
         const d = B[x.type] || {}, tip = `${nice(x.type)}: ${Object.entries(d.cost || {}).map(([r, n]) => `${n} ${r}`).join(', ')}.${d.cap ? ` Adds ${d.cap} to the troop cap.` : ''}${(war()?.trainsAt(x.type) || []).length ? ` Trains ${war().trainsAt(x.type).join(', ')}.` : ''}${x.need.length ? ` Needs ${x.need.join(' and ')}.` : ''}${x.reason && !x.need.length ? ` ${x.reason}.` : ''}`;
         return `<div class="card${x.need.length ? ' lock' : ''}${placing?.kind === x.type ? ' sel' : ''}" data-build="${esc(x.type)}" title="${esc(tip)}">${x.max ? `<span class="badge">${x.count}/${x.max}</span>` : ''}
@@ -122,20 +197,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
           <div class="pipw" title="${n} of ${maxB} builders. Idle camp workers walk over and build; workers you gave their own orders keep them.">${Array.from({ length: maxB }, (_, i) => `<i class="${i < n ? '' : 'off'}"></i>`).join('')}</div>
           ${b.upgrade ? '<span></span>' : `<button data-cancel="${esc(b.id)}" title="${esc(j.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button>`}</div>`; }).join('') + (sites.length > 3 ? `<div class="small" style="margin-top:4px">and ${sites.length - 3} more</div>` : '')
         : '<div class="small" style="padding:8px 0">Nothing being built. Pick a building above, then click the ground near your camp.</div>'}`;
-    } else if (tab === 'train') {
-      const cap = v.cap, cells = Math.max(cap, 1);
-      body = `<div class="sec"><span>Troop cap</span><b>${v.troops} out, ${v.queued} training, ${Math.max(0, cap - v.troops - v.queued)} free of ${cap}</b></div>
-        <div class="capbar" title="${esc(`Troop cap ${cap}: ${W().troopCap?.base ?? 0} at the start, more for each built supply tents, ${W().troopCap?.max ?? '?'} at most. Troops in training count.`)}">${Array.from({ length: cells }, (_, i) => `<i class="${i < v.troops ? 'u' : i < v.troops + v.queued ? 'w' : ''}"></i>`).join('')}</div>
-        ${trows.length ? trows.slice(tpage * ROWS, tpage * ROWS + ROWS).map(([b, u]) => { const idx = c.buildings.filter(x => x.type === b.type).indexOf(b) + 1;
-          { const q = b.queue || [], first = q[0], price = ryoOf(u);
-            return `<div class="tq"><div class="bimg"><img src="${esc(artUrl(b.type))}" alt=""></div><div>
-              <div style="display:flex;justify-content:space-between;align-items:center"><div class="unit"><div class="port">${esc((u[0] || '').toUpperCase())}</div><div><div style="font-weight:600;color:#f3e3bd">${esc(nice(u))}</div><div class="cost" style="justify-content:flex-start"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span><span class="small">${Math.round(ticksOf(u) / 20)} s</span></div></div></div>
-              <div style="display:flex;gap:6px">${num(`t:${b.id}:${u}`)}<button class="go" data-train="${esc(b.id)}" data-unit="${esc(u)}">Train</button></div></div>
-              <div class="pips">${q.slice(0, 10).map((x, i) => `<i class="${i ? 'q' : ''}" style="${i ? '' : `background:conic-gradient(#e0b85a 0 ${Math.round(100 * (1 - x.left / Math.max(1, ticksOf(x.unit) || 1)))}%,#14130f 0)`}"></i>`).join('')}
-                <span class="small" style="margin-left:6px">${esc(nice(b.type))} ${idx}${first ? `, next in ${Math.ceil(first.left / 20)} s` : ', idle'}</span>
-                ${q.length ? `<button style="margin-left:auto;padding:2px 8px" data-untrain="${esc(b.id)}">Cancel last</button>` : ''}</div></div></div>`; } }).join('')
-          : '<div class="small" style="padding:10px 0">Build a barracks to train troops.</div>'}
-        <div class="foot"><span class="small">Page ${tpage + 1} of ${tpages}</span><span><button data-tpage="-1"${tpage ? '' : ' disabled'}>Prev</button> <button data-tpage="1"${tpage < tpages - 1 ? '' : ' disabled'}>Next</button></span></div>`;
+    } else if (tab === 'chest') {
+      body = `<div class="chestbox"><div class="chestcoin" title="Ryo for troops and camp workers"><b>${Math.floor(c.chest || 0)}</b><span>ryo in the war chest</span></div>
+        <div><div style="font-size:16px;color:#f3e3bd">What it pays for</div><div class="small" style="margin-top:4px">Every troop you train at a camp building and every camp worker you hire is paid from here. Camp buildings are paid in timber and stone from the camp stores instead.</div>
+        <div style="font-size:16px;color:#f3e3bd;margin-top:12px">Where the ryo comes from</div><div class="small" style="margin-top:4px">What you packed for war at the capital when you planted the banner, and refunds from cancelled training. Only this war can spend it; what is left comes home when the war ends.</div></div></div>`;
     } else {
       const H = W().hallUpgrade || {}, unlocks = Object.entries(B).filter(([, d]) => (d?.needs || []).includes('upgrade')).map(([t]) => t);
       body = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
@@ -146,14 +211,18 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         <div><div class="sec" style="padding-top:0"><span>Unlocks</span></div><div class="unl">${unlocks.map(t => `<div class="thumb" title="${esc(nice(t))}"><img src="${esc(artUrl(t))}" alt=""></div>`).join('')}</div>
           <div class="small" style="margin-top:4px">${esc(unlocks.map(nice).join(', '))}</div></div></div>`;
     }
-    root.innerHTML = `<div class="win" role="dialog" aria-label="War camp"><header><div><div class="eyebrow">${esc(/ clan$/i.test(clan?.name || '') ? clan.name : `${clan?.name || 'Your'} clan`)}, war camp</div><h2>Siege of ${esc(town?.name || 'the town')}</h2></div><button data-close="1">Esc</button></header>
-      <div class="lay"><aside><div class="art"><img class="hall" src="${esc(artUrl('camp_hall'))}" alt=""><img class="flag" src="${esc(artUrl('war_banner'))}" alt=""></div>
-        <span class="tier">Camp hall, tier ${tier}</span>${hall?.upgrade ? `<div class="small">Upgrading ${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%</div>` : ''}
+    root.innerHTML = `<div class="win" role="dialog" aria-label="War camp"><header><div><div class="eyebrow">${esc(/ clan$/i.test(clan?.name || '') ? clan.name : `${clan?.name || 'Your'} clan`)}, war camp</div><h2>${bld ? esc(nice(bld.type)) : `Siege of ${esc(town?.name || 'the town')}`}</h2></div><button data-close="1">Esc</button></header>
+      <div class="lay"><aside>${bld ? (() => { const st = stOf(bld), idx = c.buildings.filter(x => x.type === bld.type).indexOf(bld) + 1;
+        return `<div class="art"><img class="hall" src="${esc(artUrl(bld.type))}" alt=""></div><span class="tier">${esc(nice(bld.type))} ${idx}</span>${st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : bld.stage === 'site' ? '<div class="small">Under construction</div>' : ''}
+        <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it. Click the camp hall for more.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}</div>
+        <div class="small" style="margin-top:10px">Click the camp hall to build and upgrade. Each training building has its own menu.</div></aside>`; })() : `<div class="art"><img class="hall" src="${esc(artUrl('camp_hall'))}" alt=""><img class="flag" src="${esc(artUrl('war_banner'))}" alt=""></div>
+        <span class="tier">Camp hall, tier ${tier}</span>${(() => { const st = stOf(hall || {}); return st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : ''; })()}${hall?.upgrade ? `<div class="small">Upgrading ${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%</div>` : ''}
         <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}
           ${coin('', Math.floor(c.stock.timber || 0), 'Timber', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', Math.floor(c.stock.stone || 0), 'Stone', 'Camp stores: pays for camp buildings. Camp workers gather more.')}</div>
         <div class="upg" title="${esc(`Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} in all. They gather timber and stone anywhere in the war circle outside the town ring and build your camp.`)}"><b>Workers ${(c.workers || []).length + (c.workerTraining || []).length} of ${C.workerCap ?? '?'}</b>
-          <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div></div></aside>
-      <main><div class="tabs">${['build', 'train', 'hall'].map(t => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${nice(t)}</button>`).join('')}</div>${body}<div class="why">${esc(why)}</div></main></div></div>`;
+          <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div></div></aside>`}
+      <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['chest', 'War chest'], ['hall', 'Hall']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
+    if (typing?.n) { const el = [...root.querySelectorAll('input')].find(x => x.dataset.n === typing.n); if (el) { el.focus(); try { el.setSelectionRange(typing.a, typing.b); } catch {} } }
   }
   root.addEventListener('input', e => { const k = e.target?.dataset?.n; if (k) counts[k] = e.target.value; });
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });

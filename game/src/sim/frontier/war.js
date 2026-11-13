@@ -519,8 +519,11 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!q || b.stage !== 'built') continue;
       if (q.left > 0) q.left--;
       if (q.left > 0 || !runtime?.spawn) continue;   // without the game (bare tests) a ready troop waits at the front
-      const r = radiusOf(b.type) + 2, a = (f().nextId % 12) * Math.PI / 6;
-      spawnTroop(war, q.unit, b.x + Math.cos(a) * r, b.z + Math.sin(a) * r);
+      // Tim 2026-11-12: new troops come out on the side facing the town and gather in one spot there, a little spread
+      const t = town(war.town), r = radiusOf(b.type) + 2, a = t ? Math.atan2(t.z - b.z, t.x - b.x) : 0;
+      const gx = b.x + Math.cos(a) * (r + 6), gz = b.z + Math.sin(a) * (r + 6), k = b.rally = ((b.rally || 0) % 24) + 1;
+      const id = spawnTroop(war, q.unit, b.x + Math.cos(a) * r, b.z + Math.sin(a) * r), e = state.entities[id];
+      if (e) e.order = { kind: 'move', x: gx + Math.cos(k * 2.4) * 1.3 * Math.sqrt(k), z: gz + Math.sin(k * 2.4) * 1.3 * Math.sqrt(k) };
       f().nextId++;
       b.queue.shift();
       if (!b.queue.length) delete b.queue;
@@ -541,22 +544,26 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (mine.length < S.max && (state.tick ?? 0) >= war.standIn.next && (t.stock?.ryo || 0) >= S.ryo) {
         world.change(t.id, 'ryo', -S.ryo, 'war troops');
         const faction = clan.faction || 'yakuza', a = (f().nextId % 12) * Math.PI / 6, r = S.hallDistance ?? 14;
-        const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r, type = S.type?.[faction] || 'swordsman';
-        const id = runtime.spawn(type, S.model?.[faction] || type, x, z, { owner: war.defender, place: 'world', area: 'world', warTroop: war.id, home: [x, z], order: { kind: 'station', x, z } });
-        if (id != null && state.entities[id]) mine.push(state.entities[id]);
+        const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
+        const ranged = S.ranged && ((war.standIn.n = (war.standIn.n || 0) + 1) % (S.ranged.every || 3) === 0);   // every few troops is an archer who holds a house
+        const type = ranged ? S.ranged.type : (S.type?.[faction] || 'swordsman'), model = ranged ? (S.ranged.model || type) : (S.model?.[faction] || type);
+        const id = runtime.spawn(type, model, x, z, { owner: war.defender, place: 'world', area: 'world', warTroop: war.id, home: [x, z], order: { kind: 'station', x, z } });
+        if (id != null && state.entities[id]) { mine.push(state.entities[id]); if (ranged) state.entities[id].holdHouse = true; }
         f().nextId++;
         war.standIn.next = (state.tick ?? 0) + (S.trainTicks || 0);
       }
       const reach = ringRadius(t, data) + (S.reach ?? 50);
       const foes = Object.values(state.entities).filter(e => e.owner === war.attacker && e.place === 'world' && !e.dead && !e.downed && e.type !== 'civilian' && Math.hypot(e.x - t.x, e.z - t.z) <= reach);
       for (const d of mine) {
-        if (d.downed) continue;
+        if (d.downed || d.garrison || d.order?.garrisonKey) continue;
+        if (d.holdHouse && garrisonHook?.defendIn?.(d, war.town)) continue;   // archers go into a house while one has room
         const foe = foes.map(e => ({ e, d: Math.hypot(e.x - d.x, e.z - d.z) })).sort((a, b) => a.d - b.d || (a.e.id < b.e.id ? -1 : 1))[0]?.e;
         if (foe) { if (d.order?.kind !== 'attack' || d.order.target !== foe.id) d.order = { kind: 'attack', target: foe.id }; }
         else if (d.order?.kind !== 'station' && d.home) d.order = { kind: 'station', x: d.home[0], z: d.home[1] };
       }
     }
   }
+  let garrisonHook = null;
   function attach(services) { runtime = services; }
 
   function receipt(e, c, ok, reason = '') {
@@ -595,5 +602,5 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, get data() { return W; } };
+  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; } };
 }

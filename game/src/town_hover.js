@@ -132,7 +132,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     if (!c) {
       // left-click one of your war camp's buildings: the camp panel (checkpoint 4)
       const cp = openCamp && plotAt(e.clientX, e.clientY);
-      if (cp?.camp && game.state.frontier?.wars?.list?.[cp.camp]?.attacker === owner() && openCamp(cp.camp)) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+      if (cp?.camp && game.state.frontier?.wars?.list?.[cp.camp]?.attacker === owner() && openCamp(cp.camp, cp.kind === 'building' ? cp.id : null)) { e.stopImmediatePropagation(); e.preventDefault(); return; }
       // left-click one of your garrisoned buildings: the garrison card (Tim 2026-11-10)
       const p = openGarrison && plotAt(e.clientX, e.clientY), s = p && game.state.frontier?.settlements?.[p.town];
       if (p?.kind === 'building' && s?.owner === owner() && openGarrison(p.town, p.id)) { e.stopImmediatePropagation(); e.preventDefault(); }

@@ -13,7 +13,7 @@ export const unitName = (units, type) => units.types[type]?.name || units.models
 export function unitStatus(e, state) {
   if (e.prisoner) return `In jail: bail ${e.prisoner.bail} ryo at the police HQ`;
   if (e.dead) return 'Dead';
-  if (e.garrison) return 'Garrisoned in stockade';
+  if (e.garrison) return e.garrison.zone ? 'Inside a building' : 'Garrisoned in stockade';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
   if(e.distracted?.source&&e.distracted.until>state.tick)return 'Charmed';
@@ -77,21 +77,53 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
   root.addEventListener('mousedown', e => {
     const card = e.target.closest('.card');
     if (card?.dataset.wid) { pickWorker(card.dataset.wid); return; }
+    if (card?.dataset.ids) { crewInput.select(card.dataset.ids.split(',')); return; }
     if (card) {crewInput.select([card.dataset.id]);onInspect(card.dataset.id);}
   });
 
+  const GROUP_AT = 18;
+  function drawGroups(groups) {
+    groups.sort((a, b) => b.ids.length - a.ids.length || (a.t < b.t ? -1 : 1));
+    const key = 'g|' + groups.map(g => `${g.t}:${g.ids.join('.')}`).join(',');
+    if (key !== shown) {
+      shown = key; root.innerHTML = ''; for (const id in cards) delete cards[id];
+      for (const g of groups) {
+        const e = game.state.entities[g.ids[0]], c = document.createElement('div');
+        c.className = 'card'; c.dataset.ids = g.ids.join(',');
+        c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
+        c.querySelector('b').textContent = `${entityName(units, e, e.civ || e.type)} x${g.ids.length}`;
+        root.appendChild(c);
+        cards['g:' + g.t] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
+      }
+    }
+    for (const g of groups) {
+      const k = cards['g:' + g.t]; if (!k) continue;
+      if (!k.hasPic) { const url = portrait(catalog, k.model); if (url) { k.pic.style.backgroundImage = `url(${url})`; k.hasPic = true; } }
+      let hp = 0, max = 0, down = 0; for (const id of g.ids) { const e = game.state.entities[id]; if (!e) continue; hp += Math.max(0, e.hp || 0); max += e.maxHp || 0; if (e.downed) down++; }
+      const { frac, color } = healthBar(hp, max || 1);
+      k.fill.style.width = `${frac * 100}%`; k.fill.style.background = css(color);
+      const st = down ? `${down} down` : 'Click to pick these';
+      if (k.status.textContent !== st) k.status.textContent = st;
+      k.c.title = `${g.ids.length} selected: ${Math.ceil(hp)} of ${max} health in all`;
+    }
+  }
   function update() {
     const picked = crewInput.selected().length ? [] : workers();
     const byId = picked.length ? Object.fromEntries(picked.map(w => [w.id, w])) : null;
     const unit = id => byId ? byId[id] : game.state.entities[id] || prisonerOf(game.state, id);
-    const ids = byId ? picked.map(w => w.id) : crewInput.selected().filter(unit);
     const owner = hideOwnedBy();
-    root.hidden = !ids.length || (!byId && ((owner && ids.every(id => { const u = unit(id); return (u.owner ?? u.omnibusOwner ?? u.horseOwner) === owner; })) || skip(ids)));
+    // your own crew show in the crew panel, not here; your war troops (and other units that are not crew) show here only (Tim 2026-11-12)
+    const crewOf = u => owner && (u.owner ?? u.omnibusOwner ?? u.horseOwner) === owner && !u.warTroop;
+    let ids = byId ? picked.map(w => w.id) : crewInput.selected().filter(unit).filter(id => !crewOf(unit(id)));
+    root.hidden = !ids.length || (!byId && skip(ids));
     if (root.hidden) return;
-    root.classList.toggle('many', ids.length > 8);
-    // condensed (Tim 2026-11-11): past 8, small tiles in two rows at most, then one +N tile
-    const extra = ids.length > 18 ? ids.length - 17 : 0;
-    if (extra) ids.length = 17;
+    // past GROUP_AT selected, one card per unit type (count and their health together); a click picks that type
+    const groups = !byId && ids.length > GROUP_AT ? Object.values(ids.reduce((o, id) => { const u = unit(id), t = u.type; (o[t] ||= { t, ids: [] }).ids.push(id); return o; }, {})) : null;
+    root.classList.toggle('many', !groups && ids.length > 8);
+    root.classList.toggle('grouped', !!groups);
+    if (groups) return drawGroups(groups);
+    // condensed (Tim 2026-11-11): past 8, small tiles in two rows at most
+    const extra = 0;
     const key = ids.join(',') + '|' + extra;
     if (key !== shown) {
       shown = key;

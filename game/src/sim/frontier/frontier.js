@@ -77,6 +77,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
   zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
+  garrison.setStructures(structures); war.setGarrison(garrison);   // 7c-3b: garrisons in houses, workshops and farmhouses
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
   // collision checkpoint 5b: a unit standing where a house grows or a war camp building is finished steps to the

@@ -190,6 +190,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (st.s.lineCosts) delete st.s.lineCosts[st.cell];
       clearHp(st);
     }
+    garrison?.breakOutKey?.(st.key);   // 7c-3b: troops in a fallen house pile out
     (state.news ||= []).push({ kind: 'structureDown', key: st.key, type: st.type, what: st.kind, x: st.x, z: st.z, owner: st.owner, by: by ?? null, ...(st.camp ? { war: st.war } : { town: st.town }) });
     if (st.kind !== 'zone') note(st, `${nameOf(st)} destroyed`);
   }
@@ -486,9 +487,41 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
+  // ---- 7c-3b: ranged troops in a garrisoned house shoot out (melee ones cannot attack) --------------------------
+  // frontier.garrisonShots = [{ a, t, until, damage, kind }]: the hit lands through the game's hit() when the shot arrives.
+  function garrisonFire() {
+    const fr = f(), now = state.tick ?? 0;
+    if (!rt?.hit || !rt.unitOf) return;
+    if (fr.garrisonShots) {
+      for (const s of fr.garrisonShots) if (s.until <= now) { const a = state.entities[s.a], t = state.entities[s.t]; if (a && t && !t.dead && !t.downed && !t.garrison) rt.hit(a, t, s.damage, false, s.kind); }
+      fr.garrisonShots = fr.garrisonShots.filter(s => s.until > now); if (!fr.garrisonShots.length) delete fr.garrisonShots;
+    }
+    if (now % 2) return;
+    for (const u of Object.values(state.entities)) {
+      const g = u.garrison; if (!g?.zone || u.dead || (g.next ?? 0) > now) continue;
+      const unit = rt.unitOf(u); if (!unit?.projectile && !unit?.rifle) continue;
+      const w = war.warOn(g.town); if (!w) continue;
+      const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3;
+      let best = null, bd = reach * reach;
+      for (const e of Object.values(state.entities)) {
+        if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.hidden || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
+        const d = (e.x - u.x) ** 2 + (e.z - u.z) ** 2;
+        if (d < bd || (d === bd && best && e.id < best.id)) { bd = d; best = e; }
+      }
+      if (!best) continue;
+      const every = unit.rifle ? unit.rifle.cooldownTicks ?? 60 : Math.max(4, Math.round((rt.intervalOf?.(u) ?? 1.5) * 20));
+      g.next = now + every;
+      const kind = unit.projectile?.kind || 'bullet', flight = Math.max(2, Math.ceil(Math.sqrt(bd) / (unit.projectile?.speed || 90) * 20));
+      (fr.garrisonShots ||= []).push({ a: u.id, t: best.id, until: now + flight, damage: unit.rifle ? unit.rifle.damage ?? rt.damageOf(u) : rt.damageOf(u), kind: unit.rifle ? 'bullet' : kind });
+      (state.projectiles ||= []).push({ kind, garrison: true, a: u.id, t: best.id, x: u.x, z: u.z, tx: best.x, tz: best.z, place: 'world', at: now, until: now + flight, damage: 0 });
+      (state.casts ||= []).push({ kind, garrison: true, a: u.id, t: best.id, x: u.x, z: u.z, tx: best.x, tz: best.z, place: 'world', flightTicks: flight });
+    }
+  }
+
   function tick() {
     const fr = f(); if (!fr || !R()) return;
     towers();
+    garrisonFire();
     shelterTick();
     shotsTick();
     const fires = fr.fires;

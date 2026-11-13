@@ -22,7 +22,7 @@ const ICONS = {
   gatling: svg('<circle cx="7" cy="15" r="4"/><path d="M9 12l11-5M10 14l11-5M20 7v2"/>'),
   dogs: svg('<path d="M4 9l3-3 2 3h6l3-3 2 3v5a6 6 0 0 1-6 5h-4a6 6 0 0 1-6-5V9z"/><path d="M9.500 13h.010M14.500 13h.010M11 16.500h2"/>'),
 };
-const ABOUT = {
+export const ABOUT = {
   charm: 'Then left-click near an enemy. The nearest ready geisha charms the enemy closest to the click. An enemy already charmed is skipped.',
   aimed: 'Then left-click near an enemy. The nearest ready rifleman takes a slow, heavy shot at the enemy closest to the click. A target another rifleman is already aiming at is avoided.',
   taunt: 'The ready enforcer nearest the pointer taunts the enemies around him so they turn on him. Enemies already taunted are skipped.',

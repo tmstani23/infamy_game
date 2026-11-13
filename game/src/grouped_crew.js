@@ -64,7 +64,7 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       const owner=game.state.entities[heroId]?.owner,O=game.omnibus;
       if(id==='vehicles'){crewInput.select([...(O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[]),
         ...Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&e.mounted&&!e.dead).map(e=>e.id)]);return;}
-      const crew=Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.guard&&!e.dead&&!e.downed&&!e.jailed&&!e.aboard&&!e.deployment?.transfer&&key(e)===id);
+      const crew=Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.guard&&!e.warTroop&&!e.dead&&!e.downed&&!e.jailed&&!e.aboard&&!e.deployment?.transfer&&key(e)===id);
       crewInput.select(crew.map(e=>e.id));
     });const note=document.createElement('div');note.className='crew-drop-note';el.append(head,list,note);root.appendChild(el);const s={el,head,list,label,note,headKey:''};sections.set(id,s);return s;
   };
