@@ -307,7 +307,7 @@ Frontier towns, War banner (2026-11-10, campaign; button beside War Lantern): In
 
 Garrison card (2026-11-10):
 - Left-click your stockade (or any garrisoned building): garrison card with health, slots, Prev/Next, Send in (Selected, Hero and crew) and Evacuate; hover a unit for its health; a click on a unit walks it out.
-- Right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.
+- Ctrl + right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.
 - Island minimap: recentres on the camera once it passes 85% of the way to the edge.
 
 Menu look (2026-11-11):
@@ -320,9 +320,10 @@ Menu look (2026-11-11):
 - Town cards (click a town building, zone, resource spot or worker) use the same look; the town hall card shows Tier, People and Workers coins with Build, Train worker and Upgrade buttons.
 
 War camp (2026-11-10, campaign):
-- Click the red war coin or the camp hall: opens the hall menu with tabs Build (click a building card to place it; locked cards say what they need in their hover), War chest and Hall. Left-click any other camp building: its own menu with art, health, chest and troop coins. Training buildings show a card per unit (still, health, damage a second, range, speed, price, seconds each, abilities, count box, Train), queue pips with a countdown, Cancel last and the troop cap. Other buildings say what they do.
-- Left-click a town building of your towns, or of a town or camp of a war you are in: a card with its name, health and troops inside.
-- Right-click your house, workshop or farmhouse with troops selected: they walk in (up to 10; not the hero, workers, Gatling crews or riders). Ranged troops inside shoot out, melee do not; hits land on the building and at 0 health all pile out. A number badge shows over garrisoned buildings.
+- Click the red war coin, or right-click the camp hall: opens the hall menu with tabs Build (click a building card to place it; locked cards say what they need in their hover), War chest and Hall. Right-click any other camp building: its own menu with art, health, chest and troop coins. Training buildings show a card per unit (still, health, damage a second, range, speed, price, seconds each, abilities, count box, Train), queue pips with a countdown, Cancel last and the troop cap. Other buildings say what they do.
+- Left-click any building on the island: the Building pane with name, health, what it is doing (being built, training, burning, damaged, ruined) and how many troops are inside; yours or an enemy town or war camp. A unit under the pointer is selected instead; a click on open ground puts the pane away. Move it in Edit layout (Building pane).
+- Right-click your own building: opens its menu (a war camp building its camp menu, the camp hall and banner the hall menu, your stockade its garrison card, any other town building the town panel). Right-click an enemy building of a war you are in: your selected troops attack it.
+- Ctrl + right-click your house, workshop or farmhouse with troops selected: they walk in (up to 10; not the hero, workers, Gatling crews or riders). Ranged troops inside shoot out, melee do not; hits land on the building and at 0 health all pile out. A number badge shows over garrisoned buildings.
 - Placing a camp building: a green ghost can be placed, red says why not in the hint (within reach of another camp building, shown by the dashed rings, inside the war circle and outside the town ring). Left-click places it and up to three idle camp workers walk over and build it; Shift + left-click keeps placing; right-click or Esc stops placing.
 - Camp workers: same orders as town workers (select, right-click timber or stone in the war circle outside the town ring, or right-click ground to move).
 - Right-click an enemy building, wall, gate or house in a war: selected crew and troops walk over and attack it without fire; the hero too when he is selected or nothing is selected.
