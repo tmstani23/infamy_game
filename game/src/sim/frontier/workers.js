@@ -45,6 +45,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     return false;
   }
   function waitingPoint(s,w,building=null) {
+    // Tim 2026-11-12: a new camp worker steps out in front of the camp hall, not inside it; side by side in a short arc
+    const hall=!building && s.camp && s.buildings.find(b=>b.type==='camp_hall');
+    if(hall && Number.isFinite(hall.x)) {
+      const r=(data.war?.buildings?.camp_hall?.radius ?? 8)+1.5,k=s.workers.filter(o=>o.fresh).length,a=Math.PI/2+((k%7)-3)*0.22;
+      return [hall.x+Math.cos(a)*r,hall.z+Math.sin(a)*r];
+    }
     const origin=building ? point(s,building) : [s.x,s.z];
     if (!runtime || !s.grid || !s.roadReserve && !townBlocked(...origin)) return origin;
     const key=building && `${s.id}:${building.id}:${geometryRevision()}`;
@@ -204,7 +210,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     // A new harvest assignment returns existing cargo before collecting another resource.
     for(const w of selected) {
-      w.by=by;
+      w.by=by;delete w.fresh;
       delete w.order;delete w.nextOrder;delete w.status;delete w.retryAt;
       if(w.carrying>0){setReturnTrip(w,returns.get(w));w.nextSpot=spot.id;}
       else { w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);w.spot=spot.id;w.trip=null;w.elapsed=0;w.phase=0;w.dropoff=null;delete w.project;delete w.buildAt; }
@@ -226,7 +232,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       const sp=w.spot && index.get(w.spot),cap=sp && spotRules?.stages ? supportsWorkers(sp,spotRules.stages) : null;
       const extra=w.by==='g' && cap!=null && count[w.spot]>cap && !w.carrying && !w.trip;
       const stuck=extra || w.by==='g' && w.spot && !w.carrying && !w.trip && w.status==='Store full';
-      if((w.spot && !stuck) || w.project || w.order || w.by==='p')continue;
+      if((w.spot && !stuck) || w.project || w.order || w.by==='p' || w.fresh)continue;
       if(extra) {count[w.spot]--;w.spot=null;}
       const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r && room(p)).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
       if(spot) {assign(s,[w.id],spot.id,'g');count[spot.id]=(count[spot.id] || 0)+1;}
@@ -292,6 +298,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!Array.isArray(ids) || !ids.length || new Set(ids).size!==ids.length)return result('workers must list each id once');
     const selected=ids.map(id=>s.workers?.find(w=>w.id===id));
     if(selected.some(w=>!w))return result('unknown worker');
+    if(kind!=='group')for(const w of selected)delete w.fresh;
     if(kind==='drop') {
       if(confirm!==true)return result('Confirm: dropped resources are permanently lost');
       for(const w of selected) {
@@ -305,7 +312,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       const plans=loaded.map(w=>({w,...returnPlan(s,w)}));
       if(plans.some(p=>!p.route || !p.resource))return result('No walking route to a resource drop-off');
       for(const plan of plans) {
-        const {w}=plan;setReturnTrip(w,plan);w.nextOrder={kind:'hold'};w.by='p';
+        const {w}=plan;setReturnTrip(w,plan);w.by='p';
+        if(w.spot && !w.order)delete w.nextOrder;else w.nextOrder={kind:'hold'};   // Tim 2026-11-12: a harvester goes back to its spot after unloading
         delete w.order;delete w.nextSpot;delete w.project;delete w.buildAt;delete w.job;delete w.status;delete w.retryAt;
       }
       return result();
@@ -534,6 +542,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   // building site (or the camp hall while it is upgraded) and build it, one progress point per worker per tick at the
   // site: more workers build faster. A site with nobody on it is marked b.idle (it flashes on screen). Only a bot
   // clan's camp still sends up to war.builders idle workers by itself. Returns the busy builders.
+  // Tim 2026-11-12 playtest: the player's workers wait where they are for orders (a new worker outside the hall, a
+  // builder or repairer by the finished job) unless the site runs itself (a bot clan, or a town with Automatic on)
+  const selfRun=s=>!!state.clans?.[s.owner]?.bot || (!s.camp && !!s.autoBuild);
+  function waitHere(s,w) {
+    if(selfRun(s)) {delete w.by;return;}
+    if(w.trip?.kind==='move' || !w.trip){w.departure=currentPoint(w) || w.departure;w.trip=null;w.elapsed=0;w.phase=0;}
+    w.order={kind:'hold'};w.by='p';w.spot=null;delete w.nextSpot;delete w.nextOrder;
+  }
   function campBuild(s) {
     const BD=data.war?.buildings || {},max=state.clans?.[s.owner]?.bot ? data.war?.builders ?? 3 : 0,busy=new Set();
     const jobs=s.buildings.filter(b=>b.stage==='site' || b.upgrade),ids=new Set(jobs.map(b=>b.id));
@@ -571,7 +587,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
         else {b.stage='built';delete b.progress;delete b.need;}
         delete b.idle;
-        for(const w of crew){delete w.project;delete w.buildAt;delete w.by;busy.delete(w);}   // done: back to the camp's own work
+        for(const w of crew){delete w.project;delete w.buildAt;busy.delete(w);waitHere(s,w);}   // done: they wait by it (a bot clan's go back to the camp's own work)
       }
     }
     return busy;
@@ -597,7 +613,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       }
       const r=!t ? 'done' : n ? jobs.work(s,key,n) : 'working';
       for(const w of crew) {
-        if(r==='done') {delete w.job;delete w.by;delete w.status;busy.delete(w);if(w.trip?.kind==='move'){w.departure=currentPoint(w) || w.departure;w.trip=null;w.elapsed=0;w.phase=0;}}
+        if(r==='done') {delete w.job;delete w.status;busy.delete(w);waitHere(s,w);}
         else if(r==='waiting')w.status='waiting for timber or stone';else delete w.status;
       }
     }
@@ -659,6 +675,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       while(s.workerTraining.length && s.workerTraining[0].readyAt<=(state.tick || 0)) {
         const job=s.workerTraining.shift(),w={id:job.id,spot:null,dropoff:null,phase:0,carrying:0,entity:null,elapsed:0,trip:null};
         if(enabled)w.departure=waitingPoint(s,w);
+        if(s.camp && !selfRun(s))w.fresh=true;   // Tim 2026-11-12: a new camp worker waits outside the hall for orders (a town's waits unless Automatic is on)
         s.workers.push(w);
       }
       const busy=s.camp ? campBuild(s) : clear(s),onJob=jobWork(s);
@@ -691,7 +708,26 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
           else {e.carrying=w.carrying;e.phase=w.phase;}
         } else if(awake && near(current) && spawned<R.spawnPerTick && runtime.areas.nav.free(...current)) {wake(w,current,s);spawned++;}
       }
+      spaceOut(s);
     }
+  }
+  // Tim 2026-11-13: workers standing still (waiting, holding, building) never stack on one spot: any two closer than
+  // workers.restSpacing ease apart a little each tick, onto open ground only; the new spot becomes where they rest
+  function spaceOut(s) {
+    const S=R.restSpacing ?? 0.8,nav=runtime?.areas?.nav,still=s.workers.filter(w=>!w.trip && state.entities?.[w.entity]);
+    if(!nav || still.length<2)return;
+    const moved=new Set();
+    for(let i=0;i<still.length;i++)for(let j=i+1;j<still.length;j++) {
+      const a=state.entities[still[i].entity],b=state.entities[still[j].entity];
+      let ux=b.x-a.x,uz=b.z-a.z;const d=Math.hypot(ux,uz);
+      if(d>=S)continue;
+      if(d<1e-3) {let h=2166136261;for(const ch of String(still[j].id))h=Math.imul(h^ch.charCodeAt(0),16777619);const ang=((h>>>0)%360)*Math.PI/180;ux=Math.cos(ang);uz=Math.sin(ang);}
+      else {ux/=d;uz/=d;}
+      const step=Math.min(0.06,(S-d)/2);
+      if(nav.free(a.x-ux*step,a.z-uz*step)) {a.x-=ux*step;a.z-=uz*step;moved.add(still[i]);}
+      if(nav.free(b.x+ux*step,b.z+uz*step)) {b.x+=ux*step;b.z+=uz*step;moved.add(still[j]);}
+    }
+    for(const w of moved) {const e=state.entities[w.entity];w.departure=[e.x,e.z];}
   }
   function econTick() {
     if(!R || !spotRules?.stages)return;

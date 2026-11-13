@@ -53,11 +53,12 @@ const fireOn = st => g.state.frontier.fires?.[st.key];
 // ---- who can torch ----------------------------------------------------------------------------------------
 const gr = spawn('grunt', hall.x + 16, hall.z + 16), sp = spawn('spearman', hall.x + 18, hall.z + 16), brute = spawn('brute', hall.x + 20, hall.z + 16),
   enf = spawn('enforcer', hall.x + 22, hall.z + 16), rider = spawn('sword_rider', hall.x + 24, hall.z + 20), arch = spawn('archer', hall.x + 26, hall.z + 16);
-assert.equal(ST.torchers([gr.id, sp.id, brute.id, enf.id, rider.id, arch.id]), 2, 'only the grunt and the spearman can torch');
+assert.equal(ST.torchers([gr.id, sp.id, brute.id, enf.id, rider.id, arch.id]), 4, 'every barracks unit can torch, not riders or archers');
 assert.ok(ST.canTorch(hero, g.units?.types?.hero || U.hero) === !U.hero.projectile, 'a melee hero can torch');
 g.step([{ id: hero.id, type: 'order', kind: 'raze', torch: true, structure: hall.key, units: [gr.id, sp.id, brute.id, enf.id, rider.id, arch.id] }]);
-assert.ok(gr.order?.torch && sp.order?.torch, 'they take the Torch order');
-assert.ok(!brute.order?.torch && !enf.order?.torch && !rider.order?.torch && !arch.order?.torch, 'the others keep what they were doing');
+assert.ok(gr.order?.torch && sp.order?.torch && brute.order?.torch && enf.order?.torch, 'they take the Torch order');
+assert.ok(!rider.order?.torch && !arch.order?.torch, 'the others keep what they were doing');
+brute.dead = enf.dead = true;
 
 // ---- the cast: 1 second, broken by a stun, not by a plain hit; then one fire and they keep hitting ------------
 { sp.dead = true;   // one caster, to time it

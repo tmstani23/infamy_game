@@ -184,7 +184,11 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // inside a business being raided or attacked (Tim 2026-10-19/20). Otherwise they swing back at whoever
     // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro
     const raidRoom = e.place !== 'street' && Object.values(state.attacks || {}).some(a => a.room === e.place && a.phase !== 'over');
-    if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom) {
+    // on the island (Tim 2026-11-13) a unit standing or following attacks any enemy that comes in range unless told Z (stop);
+    // only a move it is still walking (and heal, enter, loot) keeps it from turning off its way
+    // (only against the other side of a war its clan is in: rival clans out on the island are not picked on sight)
+    const islandReady = e.place === 'world' && (!o.kind || o.kind === 'follow' || (o.kind === 'move' && o.arrived));
+    if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom && !islandReady) {
       // the first mate (in unit order) near enough who was hit lately by someone this unit may fight
       const all = where.all(), ks = where.near(e.x, e.z, BACKUP_RANGE), count = ks ? ks.length : all.length;
       let pick = null, pk = Infinity;
@@ -199,7 +203,12 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const f = fight[e.id];
     const old = f && state.entities[f.target];
     if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
-    return nearestEnemy(e, e.x, e.z, AGGRO);
+    const near = nearestEnemy(e, e.x, e.z, AGGRO);
+    if (islandReady && !e.guard && near) {
+      const foe = near.owner || near.workerOwner;
+      return Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe)) ? near : null;
+    }
+    return near;
   }
 
   // Close in on the target, then swing at it every attackSpeed seconds. A swing has a

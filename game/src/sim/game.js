@@ -395,7 +395,9 @@ export function createGame(options) {
   const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !a.aboard && (!a.mounted || a.cavalry) && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
-  const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&baseHostile(a,b)&&!charmProtected(a,b,state);
+  // Tim 2026-11-13: an enemy clan's workers in a war on their town are combatants (attack-move and auto-attack pick them; they belong to no clan, so baseHostile alone skips them)
+  const warWorker = (a, b) => !!b?.worker && !!a?.owner && b.workerOwner !== a.owner && a !== b && !a.garrison && !a.aboard && (!a.mounted || a.cavalry) && !a.guide && !b.dead && !b.downed && a.place === b.place && !blind(a, b) && atWarWith(a.owner, b) && deployment.canActAt(a, b.x, b.z, b.place);
+  const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&(baseHostile(a,b)||warWorker(a,b))&&!charmProtected(a,b,state);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';

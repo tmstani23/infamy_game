@@ -75,7 +75,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   let inspectionHtml = '', inspectionPressed = false;
   let pendingPlan = null, reviewHtml = '', reviewPressed = false;
   let workerPage = 0;
-  let workerTab='roster',workerLogPage=0,workerSpotPage=0;
+  let workerTab='roster',workerLogPage=0,workerSpotPage=0,workerFilter=null;   // workerFilter: the job coin showing only its workers (Tim 2026-11-12)
   let workersOpen = false;
   let rosterClick=null;
   let lastPreview = '', preview = null, seen = 0, messageUntil = 0;
@@ -640,7 +640,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function html(s, mini = false) {
     if (town !== s.id) { close(); town = s.id; }
-    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
+    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
     const capOf = id => { const g = placedGroup(id, data), max = tierOf(s, data)?.placed?.[g]; if (max === undefined) return null;
       const used = placedCount(s, id, data), next = (data.tiers?.list || []).find(t => (t.placed?.[g] ?? 0) > 0);
@@ -678,7 +678,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const res = data.war?.camp?.resources || ['timber', 'stone'], R = data.war?.circleRadius ?? 0;
     const spots = t && Number.isFinite(t.x) ? spotIndex.spotsNear(t.x, t.z, R).filter(p => res.includes(data.workers?.resources?.[p.kind]) && Math.hypot(p.x - t.x, p.z - t.z) > ringRadius(t, data) && known(p.x, p.z)) : [];
     const spotState = p => ({ rich: isRich(p), yieldText: spotRules?.stages ? `${spotYield(p, game.state.frontier?.spots?.[p.id], spotRules.stages)} a trip` : '' });
-    return `<div class="campworkers">${workerPanelHTML(s, { overworked: overworkedSpots(s), selected, index: spotIndex, data, page: workerPage, known, tab: workerTab, logPage: workerLogPage, camp: true, spots, spotPage: workerSpotPage, spotState })}</div>`;
+    return `<div class="campworkers">${workerPanelHTML(s, { overworked: overworkedSpots(s), selected, index: spotIndex, data, page: workerPage, known, tab: workerTab, logPage: workerLogPage, filter: workerFilter, camp: true, spots, spotPage: workerSpotPage, spotState })}</div>`;
   }
   return { update, html, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen, campWorkersHtml, campSite,
     // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
@@ -702,8 +702,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-train') requestTraining(s.id);
       if (ds.act === 'build-workers') {cancel();opened=false;workersOpen=!workersOpen;}
       if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id]);
-      if (ds.act === 'build-worker-all')select((s.workers || []).map(w=>w.id));
-      if (ds.act === 'build-worker-job') {const ids=(s.workers || []).filter(w=>workerTask(w,spotIndex)===ds.id).map(w=>w.id);select(e?.ctrlKey || e?.shiftKey?[...new Set([...selected,...ids])]:ids);}
+      if (ds.act === 'build-worker-all'){select((s.workers || []).map(w=>w.id));workerFilter=null;if(workerTab==='idle')workerTab='roster';workerPage=0;}
+      if (ds.act === 'build-worker-job') {workerFilter=ds.id;if(workerTab==='idle')workerTab='roster';workerPage=0;const ids=(s.workers || []).filter(w=>workerTask(w,spotIndex)===ds.id).map(w=>w.id);select(e?.ctrlKey || e?.shiftKey?[...new Set([...selected,...ids])]:ids);}
       if (ds.act === 'build-worker-group')select((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));
       if (ds.act === 'build-worker-stop')orderSelected('hold');
       if (ds.act === 'build-worker-return')orderSelected('return');
@@ -711,7 +711,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       // Tim 2026-11-11: sending workers into the stockade moved here from the Governor tab
       if (ds.act === 'build-worker-stockade')for(const t of workSites()){const units=selectedLive().filter(p=>p.s.id===t.id && p.w.entity!=null && !p.w.garrison).map(p=>p.w.entity);if(units.length)command({action:'garrison',mode:'enter',town:t.id,units});}
       if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
-      if (ds.act === 'build-worker-tab') {workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}
+      if (ds.act === 'build-worker-tab') {workerFilter=null;workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}
       if (ds.act === 'build-worker-log-page')workerLogPage=Number(ds.id);
       if (ds.act === 'build-worker-spot-page')workerSpotPage=Number(ds.id);
       if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}

@@ -210,7 +210,8 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: barracks.id }); assert.ok(r?.ok, r?.reason); }
   for (let i = 0; i < 8000 && barracks.stage !== 'built'; i++) g.step([]);
   assert.equal(barracks.stage, 'built', 'camp workers build the barracks');
-  assert.ok(rec.camp.workers.every(w => !w.project), 'builders go back to gathering');
+  assert.ok(rec.camp.workers.every(w => !w.project), 'builders are done');
+  assert.ok(rec.camp.workers.every(w => w.order?.kind === 'hold' && !w.spot), 'they wait by the finished building for orders (Tim 2026-11-12)');
   assert.doesNotMatch(war.campCheck(rec.id, 'rifle_range', spotFor('rifle_range') || { x: 0, z: 0 }).reason || '', /Needs/, 'the barracks unlocks the rifle range');
   assert.match(war.campBuildList(rec.id).find(b => b.type === 'stable').reason, /camp hall upgrade/, 'stables wait for the hall upgrade');
   // the camp hall upgrade

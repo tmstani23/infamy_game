@@ -117,6 +117,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
   const MAX_LOOPS = 4, HORSES = new Set(['calico', 'mare', 'mare_saddled']), loops = new Map(), lastPos = new Map();
   const loopOf = (e, speed) => {
     const m = e.model || e.type;
+    if (e.cavalry && speed > 1) return ['hoof_gallop_1', 0.5, 1];   // war cavalry always gallops when it moves (Tim 2026-11-12)
     if (e.mounted || (HORSES.has(m) && !e.rider)) return speed > 12 ? ['hoof_gallop_1', 0.5, 1] : ['hoof_walk_1', 0.45, 1];
     if (m === 'omnibus') return ['omnibus_roll_1', 0.5, 1];
     if (m === 'rickshaw' || m === 'rickshaw_horse') return ['rickshaw_roll_1', 0.45, 1];

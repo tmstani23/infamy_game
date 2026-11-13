@@ -111,7 +111,9 @@ export function createCrewStep({ gatling = { step: () => false }, firebomb = { s
     const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;
     if (!goal || dist < goal.near) {
       e.anim = 'idle'; delete paths[e.id];
-      if (e.order?.kind === 'attackmove') e.order = { kind: 'move', x: e.order.x, z: e.order.z };   // arrived: hold there
+      // arrived: hold there. On the island an attack-move stays on (Tim 2026-11-13: attack at will, anyone in reach, until a
+      // Stop or a new move order); in town it becomes a plain hold
+      if (e.order?.kind === 'attackmove') { if (e.place === 'world') e.order.arrived = true; else e.order = { kind: 'move', x: e.order.x, z: e.order.z }; }
       if (e.order?.kind === 'heal') {                                       // at the clinic door: go in (or wait if broke)
         if (clans?.hitWait(e) > 0) return;                                  // hit lately: wait at the door till it's safe (Tim 2026-10-20)
         if (clans?.checkIn(e)) { delete state.entities[e.id]; delete intents[e.id]; delete fight[e.id]; return; }

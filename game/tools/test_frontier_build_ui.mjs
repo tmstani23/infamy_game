@@ -123,9 +123,10 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   ui.click({act:'build-worker-select',id:'j3'},s);
   assert.match(ui.html(s),/data-act="build-worker-job" data-id="timber"[^>]*><span class="wico">.*?<\/span><b>2<\/b><span>Timber<\/span>/s,'one coin per job with its count; standing workers do not count');
   ui.click({act:'build-worker-job',id:'timber'},s);
-  assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/); assert.match(ui.html(s),/data-id="j3" aria-pressed="false"/,'plain click replaces the selection');
+  assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/); assert.doesNotMatch(ui.html(s),/data-id="j3"/,'the coin shows only its workers (Tim 2026-11-12)');
+  ui.click({act:'build-worker-tab',id:'roster'},s); assert.match(ui.html(s),/data-id="j3" aria-pressed="false"/,'plain click replaces the selection; the Workers tab shows everyone again');
   ui.click({act:'build-worker-select',id:'j3'},s);ui.click({act:'build-worker-select',id:'j1'},s);ui.click({act:'build-worker-select',id:'j2'},s);
-  ui.click({act:'build-worker-job',id:'timber'},s,{ctrlKey:true});
+  ui.click({act:'build-worker-job',id:'timber'},s,{ctrlKey:true});ui.click({act:'build-worker-tab',id:'roster'},s);
   assert.match(ui.html(s),/data-id="j3" aria-pressed="true"/); assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/,'Ctrl+click adds');
   s.workers=[{id:'k1',spot:null}];assert.match(ui.html(s),/class="wcoin none" data-act="build-worker-job" data-id="timber"/,'job coins are greyed when nobody harvests');
   s.workers=keep;

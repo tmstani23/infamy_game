@@ -8,7 +8,7 @@
 // A button shows ready / total; with none ready it is grey and counts down the shortest cooldown in the group.
 // Right-click a button: auto-cast on or off for the selected units of that type (a moving dotted border and the
 // word Auto while on). Units on a Torch order carry a small flame mark over their heads.
-// 7c-2: only grunts, spearmen, plain melee crew and a melee hero torch (a 1 second cast); Fire bomb is a special.
+// 7c-2: only barracks troops (grunts, spearmen, brutes, enforcers), plain melee crew and a melee hero torch (a 1 second cast); Fire bomb is a special.
 // Presentation and input only; the rules are in sim/frontier/structures.js and sim/special_cast.js.
 import { SPECIALS, specialView } from './sim/special_cast.js';
 import { sharedKeybinds } from './keybinds.js';

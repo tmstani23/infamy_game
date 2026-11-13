@@ -21,7 +21,9 @@ export function workerJob(w,index) {
   return index.get(w.spot)?.kind || null;
 }
 // Task filter (7c-4): the harvest job, or 'build' (a camp builder) or 'repair' (repairing or dousing)
-export const workerTask=(w,index)=>w.job?'repair':w.project && w.buildAt?'build':workerJob(w,index);
+// Tim 2026-11-12: a worker carrying anything is listed under what he carries (food goes under its spot's kind, else forage)
+const CARRY_KIND={timber:'timber',stone:'stone',food:'forage'};
+export const workerTask=(w,index)=>w.job?'repair':w.project && w.buildAt?'build':workerJob(w,index) || (w.carrying>0 ? (index.get(w.spot)?.kind || CARRY_KIND[w.cargoResource || w.trip?.resource] || null) : null);
 const TASK_ICON={
  build:'<svg viewBox="0 0 22 18"><g stroke="#2a1d10" stroke-width="1"><rect x="9.500" y="6" width="3" height="11" rx="1" fill="#a8844a"/><rect x="4" y="2" width="14" height="5" rx="1.500" fill="#9c988c"/></g></svg>',
  repair:'<svg viewBox="0 0 22 18"><g stroke="#2a1d10" stroke-width="1"><path d="M11 2c2 3 5 4.500 5 8.500a5 5 0 0 1-10 0C6 8 8 7 9 5c.500 1.500 1 2 2 2.500C11 5.500 11 4 11 2z" fill="#e0703a"/><path d="M11 9c1 1.500 2 2 2 3.500a2 2 0 0 1-4 0c0-1 .500-1.500 2-3.500z" fill="#ffd27a"/></g></svg>',
@@ -39,11 +41,12 @@ const RES_ICON={
 const resIcon=k=>`<span class="wico">${RES_ICON[k]||TASK_ICON[k]||''}</span>`;
 const cap1=k=>k?k[0].toUpperCase()+k.slice(1):'';
 const nameOf=id=>/^w\d+$/.test(id)?`Worker ${id.slice(1)}`:`Worker ${id}`;
-const HELP='Click a worker to select it, double-click a worker or group to follow it with the camera. Right-click ground to move and wait, or a resource spot to harvest. Right-click a building site to build it, or a damaged or burning building of yours to repair it and put the fire out. Z stops selected workers. Return resources unloads then holds. Dropped cargo is lost; you can reassign immediately afterward.';
+const HELP='Click a worker to select it, double-click a worker or group to follow it with the camera. Right-click ground to move and wait, or a resource spot to harvest. Right-click a building site to build it, or a damaged or burning building of yours to repair it and put the fire out. Z stops selected workers. Return unloads, then a harvester goes back to its spot. Dropped cargo is lost; you can reassign immediately afterward.';
 // camp (7c-4, a war camp's pane): task coins timber, stone, building and repair; spots = the camp's resource spots
 // (every one in its reach, rich or not), paged with spotPage. A town shows a Repair coin only while someone repairs.
-export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null}) {
-  const all=s.workers || [],idle=all.filter(w=>workerIdle(w,index)),workers=tab==='idle'?idle:all,groups=data.workers.groups || 4,rows=data.workers.panelRows || 6;
+// filter (Tim 2026-11-12): a job coin shows only those workers until another coin or All is clicked; one filter at a time
+export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null,filter=null}) {
+  const all=s.workers || [],idle=all.filter(w=>workerIdle(w,index)),workers=tab==='idle'?idle:filter?all.filter(w=>workerTask(w,index)===filter):all,groups=data.workers.groups || 4,rows=data.workers.panelRows || 6;
   const button=(act,id,label,on=false,extra='')=>`<button data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" class="${on?'on':''}"${extra}>${esc(label)}</button>`;
   const pager=(act,at,pages,prev='Prev',next='Next')=>pages>1?`<div class="wpager"><span>Page ${at+1} of ${pages}</span><span>${button(act,Math.max(0,at-1),prev,false,at?'':' disabled')}${button(act,Math.min(pages-1,at+1),next,false,at<pages-1?'':' disabled')}</span></div>`:'';
   // job coins: click selects every worker on that job (Ctrl or Shift adds them), like the old Jobs buttons
@@ -51,8 +54,8 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
   const kinds=camp?['timber','stone','build','repair']:[...JOB_ORDER,...(jobs.repair?['repair']:[])];
   const taskName=k=>k==='build'?'Building':k==='repair'?'Repair':cap1(k),taskTip=k=>k==='build'?'Select every worker building':k==='repair'?'Select every worker repairing or putting out a fire':`Select every worker harvesting ${k}`;
   const coin=(act,id,v,label,icon,on,tip,cls='')=>`<button class="wcoin${cls}${on?' on':''}" data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" title="${esc(tip)}">${icon}<b>${v}</b><span>${esc(label)}</span></button>`;
-  const coins=`<div class="wcoins"${kinds.length!==4?` style="grid-template-columns:repeat(${kinds.length+2},minmax(0,1fr))"`:''}>${coin('all','',all.length,'All','',false,camp?'Select every worker of this camp':'Select every worker in this town')}`
-    +kinds.map(k=>coin('job',k,(jobs[k]||[]).length,taskName(k),resIcon(k),!!jobs[k]?.length && jobs[k].every(id=>selected.includes(id)),`${taskTip(k)}; Ctrl+click adds them`,jobs[k]?.length?'':' none')).join('')
+  const coins=`<div class="wcoins"${kinds.length!==4?` style="grid-template-columns:repeat(${kinds.length+2},minmax(0,1fr))"`:''}>${coin('all','',all.length,'All','',!filter && tab!=='idle',camp?'Show and select every worker of this camp':'Show and select every worker in this town')}`
+    +kinds.map(k=>coin('job',k,(jobs[k]||[]).length,taskName(k),resIcon(k),filter===k && tab!=='idle',`${taskTip(k)} and show only them; Ctrl+click adds them`,jobs[k]?.length?'':' none')).join('')
     +coin('tab','idle',idle.length,'Idle','',tab==='idle',idle.length?'Workers standing, waiting for orders or stuck: show only them':'Nobody is idle',idle.length?' idle':' none')+'</div>';
   const T=(id,label,tip='')=>`<button role="tab" data-act="build-worker-tab" data-id="${id}" aria-selected="${tab===id || (id==='roster' && tab==='idle')}" class="${tab===id || (id==='roster' && tab==='idle')?'on':''}"${tip?` title="${esc(tip)}"`:''}>${label}</button>`;
   const tabs=`<div class="wtabs" role="tablist" aria-label="Worker views">${T('roster',`Workers ${all.length}`,HELP)}${T('groups','Groups')}${T('spots','Spots')}${T('log','Log')}</div>`;

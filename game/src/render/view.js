@@ -15,6 +15,7 @@ import { fxShared } from './vfx.js';
 import { createBanners } from './banners.js';
 import { placePiece } from '../sim/geometry.js';
 import { entityName } from '../selection_panel.js';
+import { specialOf } from '../sim/special_cast.js';
 import { createHQFire } from './hq_fire.js';
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
@@ -176,7 +177,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   // thin ring under every character, coloured by who they are to you, over a faint dark
   // edge so it reads on light and dark ground, day or night
-  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2, police: 0x4a78e6 };
+  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2, police: 0x4a78e6, worker: 0x9be05a };   // worker: your workers (Tim 2026-11-12)
   // Turning arcs (Tim 2026-11-01, mock C): three soft arcs with gaps and small beads that slowly
   // rotate, a faint inner line and a dark under-shadow so it reads on any ground. One shared quad
   // and one shader material per team: no textures, no per-unit memory beyond the mesh itself.
@@ -210,12 +211,42 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c)]));
   function teamOf(e, me) {
     if (e.id === me?.id) return 'hero';
+    if (e.worker) return me && e.workerOwner === me.owner ? 'worker' : 'enemy';   // workers stand out from townsfolk and crew (Tim 2026-11-12)
     if (e.type === 'civilian') return 'townsfolk';
     if (me && e.owner === me.owner) return 'crew';
     if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
     // police: blue, red while after your clan
     if (e.owner === 'police') return e.angry?.[me?.owner] !== undefined ? 'enemy' : 'police';
     return 'enemy';
+  }
+  // Special-unit auras (Tim 2026-11-12): a soft glow under every unit with a special ability, its own colour and motion
+  // per special (sim/special_cast.js SPECIALS). style 0 pulse, 1 flicker, 2 ripples, 3 turning ticks.
+  const AURA = { firebomb: [0xff7a2a, 1], taunt: [0xff3b30, 0], charm: [0xff7ad2, 2], aimed: [0x9fd8ff, 3], dogs: [0xe0a650, 2], gatling: [0xdfe6ee, 3], hamstring: [0x7ee07a, 2] };
+  const AURA_GEO = new THREE.PlaneGeometry(2.4, 2.4);
+  const auraMat = ([c, style]) => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uStyle: { value: style } },
+    vertexShader: `varying vec2 vP;
+      void main() { vP = (uv - 0.5) * 2.4;
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform vec3 uColor; uniform float uTime, uStyle; varying vec2 vP;
+      void main() {
+        float r = length(vP), t = uTime, glow = exp(-r * r / 0.35), k;
+        if (uStyle < 0.5) k = glow * (0.55 + 0.25 * sin(t * 2.2));
+        else if (uStyle < 1.5) k = glow * (0.5 + 0.12 * sin(t * 3.1) + 0.08 * sin(t * 4.7 + r * 3.0));
+        else if (uStyle < 2.5) { float w = fract(r * 0.9 - t * 0.5); k = glow * 0.35 + exp(-pow(w - 0.5, 2.0) / 0.006) * exp(-r * r / 0.9) * 0.5; }
+        else { float a = atan(vP.y, vP.x) + t * 0.6; k = glow * 0.35 + step(0.8, fract(a * 4.0 / 6.2832)) * exp(-pow(r - 0.8, 2.0) / 0.004) * 0.7; }
+        k *= 0.5;   // kept soft (Tim 2026-11-13: lighter, no flicker on the move)
+        if (k < 0.004) discard;
+        gl_FragColor = vec4(uColor * k, 1.0);
+      }` });
+  const AURA_MAT = Object.fromEntries(Object.entries(AURA).map(([k, v]) => [k, auraMat(v)]));
+  function updateAura(s, e) {
+    const sp = !e.dead && !e.downed && !e.jailed && !e.worker && e.type !== 'hero' && (!e.hidden || s.ghost) ? specialOf(units, e) : null;
+    if (!sp || !AURA_MAT[sp]) { if (s.aura) s.aura.visible = false; return; }
+    if (!s.aura) { s.aura = new THREE.Mesh(AURA_GEO, AURA_MAT[sp]); s.aura.rotation.x = -Math.PI / 2; s.aura.renderOrder = 1; scene.add(s.aura); }
+    s.aura.material = AURA_MAT[sp]; s.aura.visible = s.thing.mesh.visible !== false;
+    s.aura.position.set(s.pos.x, 0.015, s.pos.z); s.aura.scale.setScalar(s.size);
   }
   function updateTeamRing(s, e, me) {
     if (!s.team) {
@@ -272,7 +303,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
   function syncSprites(state) {
     for (const e of Object.values(state.entities)) if (!sprites.has(e.id)) { sprites.set(e.id, null); addSprite(e); }
-    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate); if (s.team) scene.remove(s.team); s.dispose(); sprites.delete(id); trickle.delete(id); }
+    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate); if (s.team) scene.remove(s.team); if (s.aura) scene.remove(s.aura); s.dispose(); sprites.delete(id); trickle.delete(id); }
   }
 
   function updateLights(time) {
@@ -403,6 +434,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       gu.uVeil.value = veiled ? 1 : 0;
       s.ghost = ghost;
       updateTeamRing(s, e, state.entities[followId]);
+      updateAura(s, e);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
       if (lit) {

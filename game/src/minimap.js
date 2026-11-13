@@ -219,12 +219,14 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     }
     for (const e of Object.values(state.entities)) {
       if (e.place !== 'world' || e.dead) continue;
-      if(e.worker)continue;
-      const [col, r] = colorOf(e, me.owner), [u, v] = at(e.x, e.z);
+      if(e.worker && e.workerOwner === me.owner)continue;   // yours are drawn below from the worker records
+      const [col, r] = e.worker ? ['#ff4632', 2.2] : colorOf(e, me.owner), [u, v] = at(e.x, e.z);   // an enemy worker in sight: a red dot (Tim 2026-11-12)
       ctx.beginPath(); ctx.arc(u, v, r * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
-      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.stroke();
+      ctx.lineWidth = 1; ctx.strokeStyle = e.warTroop && e.owner === me.owner ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.8)'; ctx.stroke();   // your war troops: a white rim (Tim 2026-11-12)
     }
-    for(const s of Object.values(game.state.frontier?.settlements || {}))if(s.owner===clan)for(const w of s.workers || []) {
+    // your workers: town workers and war camp workers (Tim 2026-11-12: camp workers were missing)
+    const workerSites = [...Object.values(game.state.frontier?.settlements || {}).filter(s => s.owner === clan), ...Object.values(game.state.frontier?.wars?.list || {}).filter(w => w.attacker === clan && w.camp).map(w => w.camp)];
+    for(const s of workerSites)for(const w of s.workers || []) {
       const p=workerLocation(w,game.state.entities);if(!p)continue;
       const [u,v]=at(...p);if(u<0 || v<0 || u>size || v>size)continue;
       ctx.beginPath();ctx.arc(u,v,2.5,0,Math.PI*2);ctx.fillStyle='#60ddd0';ctx.fill();ctx.stroke();

@@ -212,6 +212,8 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
 { const T = S.tower, tw = { id: 'tw', type: 'watchtower', stage: 'built', x: campHall.x - 40, z: campHall.z + 40 }; rec.camp.buildings.push(tw);
   const spawn = (owner, dx) => { const id = g.spawn('swordsman', 'swordsman', tw.x + dx, tw.z, { owner, place: 'world', area: 'world', order: { kind: 'stop' } }); return g.state.entities[typeof id === 'object' ? id.id : id]; };
   const foe = spawn(rival, T.range - 4), far = spawn(rival, T.range + 6), other = spawn(third, 6), own = spawn('player', 5);
+  // all four hold fire: on the island an idle or following unit attacks war enemies in range by itself (Tim 2026-11-13)
+  for (const e of [foe, far, other, own]) e.holdFire = true;
   const hp = [foe, far, other, own].map(e => e.hp);
   let arrows = 0;
   for (let i = 0; i < T.everyTicks * 4 + 20; i++) { g.step([]); arrows += (g.state.casts || []).filter(c => c.tower).length; Object.assign(foe, { x: tw.x + T.range - 4, z: tw.z }); Object.assign(far, { x: tw.x + T.range + 6, z: tw.z }); Object.assign(other, { x: tw.x + 6, z: tw.z }); }

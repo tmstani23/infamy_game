@@ -105,13 +105,9 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     }
   }
 
-  // ---- impact sparks (one pooled points cloud) --------------------------------------
+  // ---- impact sparks (pooled points, blood and dust) --------------------------------------
   // Tim 2026-11-13: blood instead of sparks. Dark red droplets spray from the hit and fall (normal blending, so they read
   // as paint, not light); hits on carts, guns and vehicles throw a little brown dust instead.
-  const pos = new Float32Array(MAX_SPARKS * 3), col = new Float32Array(MAX_SPARKS * 4);
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
   // Tim 2026-11-13: square points looked like pixel blocks; each spark is now a soft round dab (radial falloff)
   const dab = (() => {
     const cv = document.createElement('canvas'); cv.width = cv.height = 32;
@@ -120,13 +116,21 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
     return new THREE.CanvasTexture(cv);
   })();
-  const points = new THREE.Points(geo, new THREE.PointsMaterial({
-    size: 8, map: dab, sizeAttenuation: false, vertexColors: true, transparent: true,
-    blending: THREE.NormalBlending, depthTest: false, depthWrite: false,
-  }));
-  points.renderOrder = 99800;
-  points.frustumCulled = false;
-  scene.add(onFxLayer(points));
+  // two layers: blood droplets 4 px (Tim 2026-11-13: 8 was too big, 1.6 too small), dust puffs 8 px
+  const layer = size => {
+    const pos = new Float32Array(MAX_SPARKS * 3), col = new Float32Array(MAX_SPARKS * 4), geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    const points = new THREE.Points(geo, new THREE.PointsMaterial({
+      size, map: dab, sizeAttenuation: false, vertexColors: true, transparent: true,
+      blending: THREE.NormalBlending, depthTest: false, depthWrite: false,
+    }));
+    points.renderOrder = 99800;
+    points.frustumCulled = false;
+    scene.add(onFxLayer(points));
+    return { pos, col, geo };
+  };
+  const bloodLayer = layer(4), dustLayer = layer(8);
   const sparks = [];
   const BLOOD = [new THREE.Color(0.55, 0.05, 0.04), new THREE.Color(0.68, 0.08, 0.06), new THREE.Color(0.42, 0.03, 0.03)], DUST = new THREE.Color(0.45, 0.38, 0.3);
   function addSparks(h, blade, bleeds = true) {
@@ -143,13 +147,18 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       if (p.age >= p.life) { sparks.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y = Math.max(0.05, p.y + p.vy * dt); p.z += p.vz * dt; p.vy -= 9 * dt; if (p.y <= 0.05) p.vx = p.vz = 0;   // droplets land and stop
     }
-    sparks.forEach((p, i) => {
-      pos.set([p.x, p.y, p.z], i * 3);
-      const f = 1 - p.age / p.life;
-      col.set([p.c.r, p.c.g, p.c.b, p.a * Math.sqrt(f)], i * 4);
-    });
-    geo.setDrawRange(0, sparks.length);
-    geo.attributes.position.needsUpdate = geo.attributes.color.needsUpdate = true;
+    for (const L of [bloodLayer, dustLayer]) {
+      let i = 0;
+      for (const p of sparks) {
+        if ((p.c === DUST) !== (L === dustLayer)) continue;
+        L.pos.set([p.x, p.y, p.z], i * 3);
+        const f = 1 - p.age / p.life;
+        L.col.set([p.c.r, p.c.g, p.c.b, p.a * Math.sqrt(f)], i * 4);
+        i++;
+      }
+      L.geo.setDrawRange(0, i);
+      L.geo.attributes.position.needsUpdate = L.geo.attributes.color.needsUpdate = true;
+    }
   }
 
   return {

@@ -221,3 +221,28 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - Melee swing: a tapered brush stroke, thin at both ends, fading at the tail.
 - Torch cast (1 s): a toned ember ring at the unit's feet, a lit torch held up with a soft warm glow, a faint light pool on the ground.
 - Burning structures: the small-flame fire toned toward warm umber, about 40 percent see-through, with a soft warm glow and a light pool on the ground. The HQ raid fire is unchanged.
+
+### War playtest fixes 6 (2026-11-13)
+
+- combat.js crewTarget: on place 'world', a unit with no order, a follow order, or an arrived move auto-acquires the nearest enemy within AGGRO. The target must belong to the other side of an active war of its clan (state.frontier.wars.list). Guards, holdFire, smokePassive and stop are excluded.
+- crew_step.js: an attack-move on 'world' keeps kind 'attackmove' with arrived:true after arriving. Elsewhere it still becomes a plain move hold.
+- game.js warWorker(a, b): a frontier worker entity (no owner, workerOwner set) is hostile to a clan at war with its town (atWarWith).
+- frontier.json war.structures.torch.types also includes brute and war_enforcer.
+- workers.js:
+  - waitHere: the player's builders and repairers hold where they finished. Bot clans and towns with Automatic on go back to the governor.
+  - New camp workers get w.fresh and wait in front of the camp hall (waitingPoint); assignIdle skips them.
+  - Return: a worker with a spot goes back to it after unloading.
+  - spaceOut: still workers (no trip) ease apart to workers.restSpacing (0.8) onto free nav, and their departure becomes the new spot.
+- worker_panel.js: workerTask falls back to the cargo kind (CARRY_KIND) while carrying. workerPanelHTML takes a filter option.
+- minimap.js:
+  - Camp workers are drawn for the attacker's own war camps.
+  - Own war troops get a white stroke.
+  - Enemy workers in sight are red dots.
+- view.js:
+  - Own workers get a green team ring (TEAM.worker).
+  - Special units get a ground aura per special (AURA map: colour and style), additive, at half strength, with one shared timing (no per-position phase).
+- sound.js: cavalry moving above walk speed plays hoof_gallop_1.
+- hitfx.js: blood droplets are 4 px points; the brown dust stays at 8 px (two point layers).
+- crewfx.js: the cannonball is radius 0.21 with a soft wake of 8 fading puff sprites, and no tube or line trail.
+- units.json: cannonball projectile speed is 52 (field cannon) and 48 (wooden cannon), double the old values. The fire rate is unchanged.
+- main.js frame loop: warCamp.update() and utilityMenu.update() run every frame on their own line.

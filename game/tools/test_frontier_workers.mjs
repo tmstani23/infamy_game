@@ -262,7 +262,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'return'}).ok,true);
   const saved=JSON.parse(JSON.stringify(f.state)),h=fixture({saved,changes:{harvestTicks:20}});
   for(let i=0;i<100;i++){f.run(1);h.run(1);assert.deepEqual(h.s.workers,f.s.workers);assert.deepEqual(h.s.stock,f.s.stock);}
-  assert.equal(f.s.stock.timber,stock+3);assert.equal(w.order.kind,'hold');assert.equal(w.carrying,0);
+  assert.ok(f.s.stock.timber>=stock+3);assert.equal(w.spot,'far','a harvester goes back to its spot after Return (Tim 2026-11-12)');assert.ok(!w.order);
   assert.ok(f.s.workerLog.some(n=>n.worker===w.id && n.amount===3 && n.resource==='timber'));
   assert.deepEqual(h.s.workerLog,f.s.workerLog,'delivery history survives save/load without duplication');
   assert.ok(!(f.state.news || []).some(n=>n.event==='delivery'),'routine deliveries never create alert popups');
