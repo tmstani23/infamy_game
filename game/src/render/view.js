@@ -395,7 +395,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // your hidden ninja (sim/stealth.js) are drawn a little see-through (Tim 2026-10-20: half as see-through as before); nobody else is shown them at all
       const ghost = !!e.hidden && !grey;
       const veiled = ghost && !e.dead && !e.downed && (e.buffs?.veil?.until ?? -1) > state.tick;
-      gu.uOpacity.value = grey ? 0.55 : veiled ? 0.18 : ghost ? 0.8 : 1;
+      // a body (Tim 2026-11-13): one with no fall to play (horses, guns) fades at once; on the island the others fade out over
+      // the last 1.5 s of sim/game.js islandCorpseSeconds (20); bodies with loot on them and the hero are left alone
+      const deadFor = e.dead && e.type !== 'hero' && e.diedAt != null ? (state.tick - e.diedAt) / 20 : -1;
+      const fall = deadFor < 0 ? 1 : !s.sheets?.death ? Math.max(0, 1 - deadFor / 0.8) : e.place === 'world' && !e.loot && !e.gearItem && e.owner !== 'police' ? Math.min(1, Math.max(0, (20 - deadFor) / 1.5)) : 1;
+      gu.uOpacity.value = (grey ? 0.55 : veiled ? 0.18 : ghost ? 0.8 : 1) * fall;
       gu.uVeil.value = veiled ? 1 : 0;
       s.ghost = ghost;
       updateTeamRing(s, e, state.entities[followId]);
@@ -532,7 +536,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const h of hits) {
       const a = state.entities[h.a], t = state.entities[h.t];
       if (h.crit) sprites.get(h.a)?.shadowBlade?.critical();
-      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world');   // no damage numbers on the frontier (Tim 2026-11-12)
+      const dry = t && (t.cart || /cannon|gatling|omnibus|rickshaw$|ox_cart|train_/.test(t.model || t.type || ''));   // no blood from carts, guns and vehicles
+      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world', !dry);   // no damage numbers on the frontier (Tim 2026-11-12)
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
       if (h.kind === 'dash') { abilityFx.cut(h, a); freezeT = Math.max(freezeT, 0.07); }

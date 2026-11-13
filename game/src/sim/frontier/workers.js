@@ -653,7 +653,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       s.workers=s.workers.filter(w=>{
         if(w.entity===null)return true;
         const e=state.entities?.[w.entity];
-        if(!e || e.dead || e.downed || e.hp<=0) {if(e)runtime?.remove(e.id);return false;}
+        if(!e || e.dead || e.downed || e.hp<=0) {if(e && !e.dead)runtime?.remove(e.id);return false;}   // a dead one lies there as a body (sim/game.js cleanUpDead, Tim 2026-11-13)
         return true;
       });
       while(s.workerTraining.length && s.workerTraining[0].readyAt<=(state.tick || 0)) {

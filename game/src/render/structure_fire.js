@@ -3,17 +3,23 @@
 // or burning structures of the player's wars); drawing only.
 import { createGroundFirePatch } from './hq_fire.js';
 import { createParticles, SHAPE } from './vfx.js';
+import * as THREE from 'three';
 
 export function createStructureFire({ scene }) {
   const burning = new Map();
-  function drop(key) { const m = burning.get(key); if (!m) return; scene.remove(m); m.material.dispose(); burning.delete(key); }
+  // Tim 2026-11-13: a warm light pool on the ground round each fire (added light, soft edge)
+  let glowMap = null;
+  const glowTex = () => { if (glowMap) return glowMap; const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return glowMap = new THREE.CanvasTexture(cv); };
+  function drop(key) { const m = burning.get(key); if (!m) return; scene.remove(m); m.material.dispose(); if (m.userData.pool) { scene.remove(m.userData.pool); m.userData.pool.geometry.dispose(); m.userData.pool.material.dispose(); } burning.delete(key); }
   function update(state, place) {
     const list = place === 'world' ? (state.frontier?.structures || []).filter(s => s.fire) : [];
     const want = new Set(list.map(s => s.key));
     for (const key of [...burning.keys()]) if (!want.has(key)) drop(key);
     for (const s of list) {
       if (burning.has(s.key)) continue;
-      const mesh = createGroundFirePatch(s.x, s.z, Math.max(2.5, Math.min(7, s.r || 4)), (s.x * 7 + s.z * 13) % 97);
+      const mesh = createGroundFirePatch(s.x, s.z, Math.max(2.5, Math.min(7, s.r || 4)), (s.x * 7 + s.z * 13) % 97, 1);   // soft: muted and see-through (Tim 2026-11-13)
+      const r = Math.max(2.5, Math.min(7, s.r || 4)), pool = new THREE.Mesh(new THREE.CircleGeometry(r * 1.7, 32), new THREE.MeshBasicMaterial({ map: glowTex(), color: 0xdb7a3d, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
+      pool.rotation.x = -Math.PI / 2; pool.position.set(s.x, 0.1, s.z); pool.renderOrder = 99804; scene.add(pool); mesh.userData.pool = pool;
       scene.add(mesh); burning.set(s.key, mesh);
     }
   }

@@ -528,7 +528,8 @@ export function createGame(options) {
       if (!e.dead) continue;
       const secs = (state.tick - e.diedAt) * DT;
       // a knocked-out officer lies there downedMinSeconds too before he is taken away (Tim 2026-10-20)
-      const lie = e.loot ? (banditData?.rules?.lootSeconds ?? 60) : cop(e) ? (units?.rules?.downedMinSeconds ?? 10) : CORPSE_SECONDS;
+      // on the island the fallen lie there islandCorpseSeconds (Tim 2026-11-13: troops, workers and enemies leave a body for a while)
+      const lie = e.loot ? (banditData?.rules?.lootSeconds ?? 60) : cop(e) ? (units?.rules?.downedMinSeconds ?? 10) : e.place === 'world' ? (units?.rules?.islandCorpseSeconds ?? 20) : CORPSE_SECONDS;
       if (e.type !== 'hero' && secs >= lie) {
         delete state.entities[e.id];
         delete intents[e.id];

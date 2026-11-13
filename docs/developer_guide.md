@@ -208,3 +208,16 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - Hit feedback: sprite hit tint 0.15, swing streak plain blend at 0.12 opacity, fewer and dimmer sparks.
 - No floating damage numbers on the frontier.
 - Arrow sounds: shots play arrow_whoosh_1 or 2 (no back-to-back repeat, pitch 0.94 to 1.06); hits on units play arrow_hit_1 or 2 (pitch 0.95 to 1.05). Without the files the old quiet sword whoosh plays for the shot.
+
+### War playtest fixes 5 (2026-11-13)
+
+- House, workshop and farmhouse health by growth stage: 600, 900, 1200 (war.structures.zone).
+- Troops shot from a garrisoned building attack that building by themselves, with their idle mates within 8 (no order, a finished move or an attack-move). Not the hero, workers or Gatling crews. Test tools/test_garrison_answer.mjs.
+- On the island a fallen unit (troops, enemies, workers) plays its death fall and lies there for units.rules.islandCorpseSeconds (default 20), fading out over the last 1.5 s. Models with no death animation (horses, guns) fade out at once. Bodies with loot keep their own time. The city is unchanged (3 s).
+- Frontier workers die when they fall (no knockout) and leave a body.
+- Camp hall menu: workers in training show under the Hire box with a bar, the seconds left and how many more are queued.
+- Barracks unit cards: three equal columns; the line under each card shows the first sentence of its traits, the full text in the hover.
+- Hits on units: dark red blood drops spray from the hit, arc and land (soft round dabs, normal blending). Hits on carts, guns and vehicles throw grey brown dust.
+- Melee swing: a tapered brush stroke, thin at both ends, fading at the tail.
+- Torch cast (1 s): a toned ember ring at the unit's feet, a lit torch held up with a soft warm glow, a faint light pool on the ground.
+- Burning structures: the small-flame fire toned toward warm umber, about 40 percent see-through, with a soft warm glow and a light pool on the ground. The HQ raid fire is unchanged.

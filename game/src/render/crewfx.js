@@ -9,6 +9,8 @@ export function createCrewFx({scene,spriteOf}){
   function add(geometry,color){const m=new THREE.Mesh(geometry,material(color));scene.add(m);onFxLayer(m);return m;}
   function remove(m){scene.remove(m);m.traverse?.(n=>{n.geometry?.dispose();if(n.material)n.material.dispose();});}
   const visible=id=>!!spriteOf(id)?.thing.mesh.visible;
+  let glow=null;   // a soft round light, made once (torch glow)
+  function glowTex(){if(glow)return glow;const cv=document.createElement('canvas');cv.width=cv.height=64;const x=cv.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return glow=new THREE.CanvasTexture(cv);}
   function ring(radius,color){const m=add(new THREE.RingGeometry(radius-.04,radius+.04,40),color);m.rotation.x=-Math.PI/2;return m;}
   function shot(p){
     const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:p.kind==='bullet'?0xfff2b0:0xf3dc9a;
@@ -47,6 +49,18 @@ export function createCrewFx({scene,spriteOf}){
         const fill=new THREE.Mesh(new THREE.CircleGeometry(c.radius,40),material(0xff7a2a));fill.userData.fxOpacity=.28;m.add(fill);
         const core=new THREE.Mesh(new THREE.RingGeometry(c.radius*.45-.05,c.radius*.45+.05,32),material(0xffc070));core.userData.fxOpacity=.8;m.add(core);
         m.position.set(c.x,.15,c.z);bursts.push({mesh:m,time:0,life:(c.ticks||40)/20,steady:true});
+      }
+      if(c.kind==='torchCast'){   // Tim 2026-11-13: the 1 s Torch channel in the fire bomb look, toned to the softer building fire, with a warm glow
+        const life=(c.ticks||20)/20,m=ring(.85,0xd36134);m.userData.fxOpacity=.8;
+        const fill=new THREE.Mesh(new THREE.CircleGeometry(.85,32),material(0xdb7a3d));fill.userData.fxOpacity=.24;m.add(fill);
+        m.position.set(c.x,.15,c.z);bursts.push({mesh:m,time:0,life,steady:true});
+        const flame=new THREE.Group(),outer=new THREE.Mesh(new THREE.ConeGeometry(.17,.48,8),material(0xd66d31)),inner=new THREE.Mesh(new THREE.ConeGeometry(.08,.3,8),material(0xf4c175)),stick=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.5,5),material(0x5a3b22));
+        outer.userData.fxOpacity=.7;inner.userData.fxOpacity=.8;inner.position.y=-.05;stick.userData.fxOpacity=1;stick.position.y=-.45;flame.add(outer,inner,stick);
+        const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xeca767,transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
+        halo.scale.set(1.5,1.5,1);halo.position.y=.05;halo.userData.fxOpacity=.38;flame.add(halo);
+        const pool=new THREE.Mesh(new THREE.CircleGeometry(1.3,32),new THREE.MeshBasicMaterial({map:glowTex(),color:0xdb7a3d,transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
+        pool.rotation.x=-Math.PI/2;pool.position.set(c.x,.12,c.z);pool.userData.fxOpacity=.22;scene.add(pool);pool.traverse(onFxLayer);bursts.push({mesh:pool,time:0,life,steady:true});   // light on the ground round him
+        flame.position.set(c.x,1.75,c.z);scene.add(flame);flame.traverse(onFxLayer);bursts.push({mesh:flame,time:0,life,steady:true});
       }
       if(c.kind==='dogsBite'){const m=ring(.7,0xff6a4a);m.position.set(c.x,.14,c.z);bursts.push({mesh:m,time:0,life:.4});}
       if(c.kind==='hamstringHit'){

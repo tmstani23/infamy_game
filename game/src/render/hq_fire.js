@@ -12,7 +12,7 @@ const PAD_W = 1.25, PAD_H = 1.9;      // quad size relative to the building art
 const SOURCES = 72;
 
 const fireFragment = (sourceCount = SOURCES) => /* glsl */`
-uniform float uTime; uniform float uNight; uniform float uAspect; uniform float uSeed;
+uniform float uTime; uniform float uNight; uniform float uAspect; uniform float uSeed; uniform float uSoft;
 uniform vec4 uSrc[${sourceCount}];   // x, y in art space (0..1, y up from the art's bottom), size, seed
 ${FOG_QUAD}
 varying vec2 vUv;
@@ -102,13 +102,18 @@ void main() {
   float fo = fa * 0.92;
   col = col * (1.0 - fo) + ramp(f) * fa; a = a * (1.0 - fo) + fo;
   col += vec3(1.0, 0.42, 0.12) * halo * 0.1 * mix(0.4, 1.0, uNight) + vec3(1.0, 0.55, 0.2) * ember;
+  // uSoft (structure fires on the island, Tim 2026-11-13: too stark against the painted art): toned toward warm
+  // umber and see-through; 0 keeps the HQ raid fire as approved
+  col = mix(col, vec3(dot(col, vec3(0.3, 0.55, 0.15))) * vec3(1.1, 0.82, 0.6), uSoft * 0.4);
+  col *= 1.0 - uSoft * 0.4; a *= 1.0 - uSoft * 0.4;
+  col += vec3(0.85, 0.45, 0.2) * halo * 0.16 * uSoft * mix(0.6, 1.0, uNight);   // and a soft warm glow round the flames (added light)
   float fog = fogGlow(fogGround());
   gl_FragColor = vec4(col * fog, a * fog);
 }`;
 
-function fireMaterial(aspect, sources, seed) {
+function fireMaterial(aspect, sources, seed, soft = 0) {
   return new THREE.ShaderMaterial({
-    uniforms: { ...shared, uAspect: { value: aspect }, uSeed: { value: seed },
+    uniforms: { ...shared, uAspect: { value: aspect }, uSeed: { value: seed }, uSoft: { value: soft },
       uSrc: { value: sources.map(s => new THREE.Vector4(...s)) } },
     vertexShader: `varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -146,9 +151,9 @@ function fireSources(aspect) {
 
 const ground = new THREE.Vector3();
 // Small ground patches reuse the HQ's curling flame, smoke and ember shader.
-export function createGroundFirePatch(x,z,radius,seed=1) {
+export function createGroundFirePatch(x,z,radius,seed=1,soft=0) {
   const sources=Array.from({length:9},(_,i)=>[.5+(i-4)*.045,.06,.2+Math.random()*.1,seed+i*7.3]);
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),fireMaterial(1,sources,seed));
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),fireMaterial(1,sources,seed,soft));
   mesh.quaternion.copy(CAM_QUAT);mesh.scale.set(radius*3.4,radius*3.4*PAD_H/PAD_W,1);
   mesh.position.set(x,0,z).addScaledVector(CAM_UP,mesh.scale.y/2);
   mesh.frustumCulled=false;mesh.renderOrder=99805;

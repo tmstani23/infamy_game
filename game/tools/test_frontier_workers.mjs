@@ -211,7 +211,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   for(let i=0;i<100 && !w.carrying;i++)f.run(1);
   assert.equal(w.carrying,3);
   const count=f.s.workers.length,id=w.entity;f.state.entities[id].dead=true;f.run(1);
-  assert.equal(f.s.workers.length,count-1);assert.equal(f.state.entities[id],undefined,'carried cargo dies with its worker');
+  assert.equal(f.s.workers.length,count-1);assert.ok(f.state.entities[id]?.dead !== false,'carried cargo dies with its worker');assert.ok(!f.s.workers.some(x=>x.entity===id),'the body is no longer a worker (it lies there until sim/game.js cleanUpDead takes it, Tim 2026-11-13)');
   assert.equal(f.fr.world.checkInvariants(),true);
 }
 // A real game starts, restores walking entities without duplicating them, and normal combat
@@ -232,7 +232,8 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   // Keep the combat fixture beside the hero's safe position, outside the solid hall.
   victim.spot=null;victim.trip=null;victim.carrying=0;Object.assign(e,{hp:1,x:g.state.entities[id].x+0.5,z:g.state.entities[id].z});
   g.step([{id,type:'attack',target:e.id}]);for(let i=0;i<80 && s.workers.includes(victim);i++)g.step([]);
-  assert.equal(s.workers.length,1,'real combat knockout removes one worker record');assert.equal(g.state.entities[e.id],undefined);
+  assert.equal(s.workers.length,1,'real combat knockout removes one worker record');assert.ok(g.state.entities[e.id]?.dead,'he falls and lies there (Tim 2026-11-13)');
+  for(let i=0;i<20*21;i++)g.step([]);assert.equal(g.state.entities[e.id],undefined,'the body is gone after islandCorpseSeconds');
 }
 {
   const f=walking({near:false});const active=f.areas.activeIds(),cached=f.areas.cached();

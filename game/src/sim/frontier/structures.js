@@ -516,13 +516,32 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
+  // Tim 2026-11-13: troops shot from a garrisoned house fight back at the house (they cannot reach the shooters inside).
+  // The one hit and its idle mates within 8 (no order, a finished move or an attack-move, no live fight) get a raze
+  // order on it; not the hero (the player steers him), workers, gatling crews or anyone already busy.
+  function answerGarrison(t, a) {
+    const st = a.garrison?.key && find(a.garrison.key);
+    if (!st || t.dead || t.downed || !canDamage(t.owner, st)) return;
+    const idle = u => { const o = u.order; return !o || (o.kind === 'move' && o.arrived && !o.garrisonGo) || o.kind === 'attackmove'; };
+    for (const u of Object.values(state.entities)) {
+      if (u.owner !== t.owner || u.type === 'hero' || u.dead || u.downed || u.jailed || u.garrison || u.aboard || u.guard || u.worker || u.place !== 'world' || u.type === 'civilian' || u.type === 'horse') continue;
+      if (u !== t && (u.x - t.x) ** 2 + (u.z - t.z) ** 2 > 64) continue;
+      if (!idle(u) || u.attackTarget || u.swing || u.execute) continue;
+      const f = rt.fight?.[u.id], ft = f?.target && state.entities[f.target];
+      if (ft && !ft.dead && !ft.downed && !ft.garrison) continue;
+      const unit = rt.unitOf(u); if (!unit || unit.gatling) continue;
+      const am = u.order?.kind === 'attackmove' ? { from: 'attackmove', ax: u.order.x, az: u.order.z } : {};
+      if (f) delete f.target; if (rt.paths) delete rt.paths[u.id];
+      u.order = { kind: 'raze', structure: st.key, x: st.x, z: st.z, auto: true, ...am };
+    }
+  }
   // ---- 7c-3b: ranged troops in a garrisoned house shoot out (melee ones cannot attack) --------------------------
   // frontier.garrisonShots = [{ a, t, until, damage, kind }]: the hit lands through the game's hit() when the shot arrives.
   function garrisonFire() {
     const fr = f(), now = state.tick ?? 0;
     if (!rt?.hit || !rt.unitOf) return;
     if (fr.garrisonShots) {
-      for (const s of fr.garrisonShots) if (s.until <= now) { const a = state.entities[s.a], t = state.entities[s.t]; if (a && t && !t.dead && !t.downed && !t.garrison) rt.hit(a, t, s.damage, false, s.kind); }
+      for (const s of fr.garrisonShots) if (s.until <= now) { const a = state.entities[s.a], t = state.entities[s.t]; if (a && t && !t.dead && !t.downed && !t.garrison) { rt.hit(a, t, s.damage, false, s.kind); answerGarrison(t, a); } }
       fr.garrisonShots = fr.garrisonShots.filter(s => s.until > now); if (!fr.garrisonShots.length) delete fr.garrisonShots;
     }
     if (now % 2) return;

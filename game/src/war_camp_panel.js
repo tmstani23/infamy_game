@@ -62,8 +62,8 @@ const CSS = `
 #warcamp .capbar{display:flex;gap:2px;margin-top:4px}#warcamp .capbar i{flex:1;height:10px;background:#22262e;border-radius:2px}#warcamp .capbar i.u{background:#c9473d}#warcamp .capbar i.w{background:#7e5a28}
 #warcamp .why{color:#ed8b7c;font-size:12px;min-height:16px;margin-top:6px}
 #warcamp .unl{display:flex;gap:8px;margin-top:6px}#warcamp .unl .thumb{width:60px;height:46px}#warcamp .unl .thumb img{max-width:56px;max-height:42px;opacity:1}
-#warcamp .ugrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-#warcamp .ucard{border:1px solid #3d352a;border-radius:7px;background:radial-gradient(ellipse at 50% 30%,#2a2620,#121314 80%);padding:7px;cursor:help}
+#warcamp .ugrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+#warcamp .ucard{min-width:0;border:1px solid #3d352a;border-radius:7px;background:radial-gradient(ellipse at 50% 30%,#2a2620,#121314 80%);padding:7px;cursor:help}
 #warcamp .ucard:hover{border-color:#ffe0a1}#warcamp .ucard .uhead{display:grid;grid-template-columns:62px 1fr;gap:7px}
 #warcamp .ustill{height:84px;border:1px solid #826f4c;border-radius:6px;background:#2a2620 center 20%/cover no-repeat}#warcamp .ustill.concept{background-size:140%;background-position:center 18%}
 #warcamp .un{font-weight:700;color:#f3e3bd;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -86,8 +86,8 @@ import { drawBuildArea } from './camp_build_area.js';   // 7c-4: one merged buil
 // what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
 const TRAITS = {
   kunoichi: 'Hidden on the island until she attacks or is hit; her first hit is an ambush. Vanish on a move order while seen. Dog handlers, Teppo riflemen and watchtowers can spot her.',
-  fire_bomber: 'Fights with a weak knife. His fire bomb is a special with a long cooldown and a short throw.',
-  spearman: 'Longer reach and more damage than the sword grunt, a little less health. Can torch buildings.', swordsman: 'Sword grunt. Can torch buildings.', ninja: 'Sword grunt, fast and light. Can torch buildings.', shinobi_spearman: 'Longer reach and more damage than the ninja, a little less health. Can torch buildings.',
+  fire_bomber: 'Knife and fire bomb. Fights with a weak knife. His fire bomb is a special with a long cooldown and a short throw.',
+  spearman: 'Spear grunt. Longer reach and more damage than the sword grunt, a little less health. Can torch buildings.', swordsman: 'Sword grunt. Can torch buildings.', ninja: 'Sword grunt, fast and light. Can torch buildings.', shinobi_spearman: 'Spear grunt. Longer reach and more damage than the ninja, a little less health. Can torch buildings.',
   field_cannon: 'Siege gun: heavy damage to buildings, long range, slow to reload. Hard to push.',
   wooden_cannon: 'Siege gun: heavy damage to buildings, long range, slow to reload. Hard to push.',
   gatling_crew: 'Sets up before it fires a cone of bullets, packs up to move. Cannot fire up close or fight hand to hand.',
@@ -116,6 +116,13 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
+  // Tim 2026-11-13: camp workers in training show in the hall menu like the town's (a bar, the seconds left, how many more)
+  const workerLeft = c => { const q = c?.workerTraining || []; return q.length ? Math.max(0, Math.ceil((q[0].readyAt - (game.state.tick ?? 0)) / 20)) : -1; };
+  function workerQueueHtml(c) {
+    const q = c?.workerTraining || []; if (!q.length) return '';
+    const now = game.state.tick ?? 0, total = frontierData?.workers?.trainTicks ?? 100, left = Math.max(0, q[0].readyAt - now), all = Math.max(0, q.at(-1).readyAt - now);
+    return `<div class="small" style="margin-top:7px;color:#e9d6a8">Training worker, ${Math.ceil(left / 20)} s</div><div class="prog" style="margin-top:3px"><i style="width:${Math.round(100 * (1 - Math.min(1, left / Math.max(1, total))))}%"></i></div>${q.length > 1 ? `<div class="small" style="margin-top:3px">${q.length - 1} more queued, all done in ${Math.ceil(all / 20)} s</div>` : ''}`;
+  }
   const hero = () => game.state.entities[heroId];
   const rec = id => game.state.frontier?.wars?.list?.[id] || null;
   const artName = type => frontierData?.townArt?.[type] || type;
@@ -146,7 +153,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const bld = bid ? c.buildings.find(x => x.id === bid) || null : null; if (bid && !bld) bid = null;
     const faction = clan?.faction, ST = game.frontier?.structures, stOf = x => ST?.find?.(`c|${open}|${x.id}`) || null;
     const workersH = !bld && tab === 'workers' ? (ensureWorkerCss(), buildUI()?.campWorkersHtml?.(open) || '<div class="small" style="padding:8px 0">The worker list is not ready yet.</div>') : '';
-    const next = JSON.stringify([open, bid, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length,
+    const next = JSON.stringify([open, bid, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
       bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
@@ -235,7 +242,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}
           ${coin('', Math.floor(c.stock.timber || 0), 'Timber', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', Math.floor(c.stock.stone || 0), 'Stone', 'Camp stores: pays for camp buildings. Camp workers gather more.')}</div>
         <div class="upg" title="${esc(`Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} in all. They gather timber and stone anywhere in the war circle outside the town ring and build your camp.`)}"><b>Workers ${(c.workers || []).length + (c.workerTraining || []).length} of ${C.workerCap ?? '?'}</b>
-          <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div></div></aside>`}
+          <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div>${workerQueueHtml(c)}</div></aside>`}
       <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['workers', 'Workers'], ['chest', 'War chest'], ['hall', 'Hall']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
     if (typing?.n) { const el = [...root.querySelectorAll('input')].find(x => x.dataset.n === typing.n); if (el) { el.focus(); try { el.setSelectionRange(typing.a, typing.b); } catch {} } }
   }

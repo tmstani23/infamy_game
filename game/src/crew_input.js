@@ -95,7 +95,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     && e.place === commandPlace() && game.omnibus.riders(e).length && !e.driver);
   const outdoors = () => commandPlace() === 'street';
   // units hidden in the fog of war (sim/vision.js) can't be clicked, tabbed or sent for
-  const seen = e => !!e && (!e.hidden || e.owner === hero()?.owner || e.detectedBy?.[hero()?.owner] > game.state.tick) && (!game.vision || game.vision.canSee(hero()?.owner, e));
+  // a rival inside a building (stockade, garrisoned house) is not drawn and cannot be clicked: the click goes to the building (Tim 2026-11-13)
+  const seen = e => !!e && !(e.garrison && e.owner !== hero()?.owner) && (!e.hidden || e.owner === hero()?.owner || e.detectedBy?.[hero()?.owner] > game.state.tick) && (!game.vision || game.vision.canSee(hero()?.owner, e));
   function pruneTargets() {
     const gone=id=>!game.state.entities[id]||(seen(game.state.entities[id])&&(game.state.entities[id].dead||game.state.entities[id].jailed));
     if (tabbed && gone(tabbed)) tabbed = null;

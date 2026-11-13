@@ -146,6 +146,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     // war checkpoint 6: right-click an enemy building of a war you are in (the town you attack, or the camp attacking
     // you): the selected crew walk over and attack it; with the hero selected or nothing selected he goes too
     if (p?.kind === 'building' && (p.foreign || p.camp)) {
+      if (e.shiftKey) return;   // Shift + right-click is Torch: crew_input.js hands it to ability_rows.js (Tim 2026-11-13: it was taken here as a plain attack)
       const w = p.camp ? game.state.frontier?.wars?.list?.[p.camp] : Object.values(game.state.frontier?.wars?.list || {}).find(x => x.town === p.town);
       const s = p.camp ? null : game.state.frontier?.settlements?.[p.town], b = (p.camp ? w?.camp?.buildings : s?.buildings)?.find(x => x.id === p.id);
       if (w && (p.camp ? w.defender === owner() : w.attacker === owner()) && b?.stage === 'built' && p.type !== 'war_banner') {

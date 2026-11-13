@@ -61,11 +61,24 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
 
   // ---- slash trails -----------------------------------------------------------------
   const trails = [];
-  const bladeGeo = new THREE.RingGeometry(0.55, 0.72, 24, 1, -0.2, 2.3);
-  const clubGeo = new THREE.RingGeometry(0.4, 0.75, 18, 1, -0.1, 1.9);
+  // Tim 2026-11-13: the hard-edged band read as blocky. A tapered brush stroke instead: thin at both ends, thickest
+  // just past the middle, faded at the tail (vertex alpha), so it reads painted rather than pixel cut.
+  function strokeGeo(r, w, a0, span, n = 28) {
+    const p = [], c = [], idx = [];
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, a = a0 + span * u, t = w * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.1)), 0.7), al = Math.sin(Math.PI * u) * (0.35 + 0.65 * u);
+      for (const rr of [r - t / 2, r + t / 2]) { p.push(Math.cos(a) * rr, Math.sin(a) * rr, 0); c.push(1, 1, 1, al); }
+      if (i) { const k = 2 * i; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(c, 4)); g.setIndex(idx);
+    return g;
+  }
+  const bladeGeo = strokeGeo(0.64, 0.16, -0.2, 2.3);
+  const clubGeo = strokeGeo(0.58, 0.3, -0.1, 1.9, 22);
   function addTrail(attacker, blade) {
     const mat = new THREE.MeshBasicMaterial({
-      color: blade ? 0xd8dde6 : 0xb08a60, transparent: true, opacity: 0.12, side: THREE.DoubleSide,
+      color: blade ? 0xd8dde6 : 0xb08a60, vertexColors: true, transparent: true, opacity: 0.12, side: THREE.DoubleSide,
       blending: THREE.NormalBlending, depthTest: false, depthWrite: false,   // Tim 2026-11-12: several swings at once added up to a bright blob; plain blending no longer stacks to white
     });
     const m = new THREE.Mesh(blade ? bladeGeo : clubGeo, mat);
@@ -93,24 +106,34 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   }
 
   // ---- impact sparks (one pooled points cloud) --------------------------------------
-  const pos = new Float32Array(MAX_SPARKS * 3), col = new Float32Array(MAX_SPARKS * 3);
+  // Tim 2026-11-13: blood instead of sparks. Dark red droplets spray from the hit and fall (normal blending, so they read
+  // as paint, not light); hits on carts, guns and vehicles throw a little brown dust instead.
+  const pos = new Float32Array(MAX_SPARKS * 3), col = new Float32Array(MAX_SPARKS * 4);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+  // Tim 2026-11-13: square points looked like pixel blocks; each spark is now a soft round dab (radial falloff)
+  const dab = (() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+    const x = cv.getContext('2d'), gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
+    return new THREE.CanvasTexture(cv);
+  })();
   const points = new THREE.Points(geo, new THREE.PointsMaterial({
-    size: 5, sizeAttenuation: false, vertexColors: true, transparent: true,
-    blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false,
+    size: 8, map: dab, sizeAttenuation: false, vertexColors: true, transparent: true,
+    blending: THREE.NormalBlending, depthTest: false, depthWrite: false,
   }));
   points.renderOrder = 99800;
   points.frustumCulled = false;
   scene.add(onFxLayer(points));
   const sparks = [];
-  const STEEL = new THREE.Color(0.85, 0.92, 1), DUST = new THREE.Color(1, 0.72, 0.4), GOLD = new THREE.Color(1, 0.82, 0.3);
-  function addSparks(h, blade) {
-    const n = h.crit ? 8 : h.kill ? 6 : 3, c = h.crit ? GOLD : blade ? STEEL : DUST;   // fewer sparks (Tim 2026-11-12, was 16/14/8)
+  const BLOOD = [new THREE.Color(0.55, 0.05, 0.04), new THREE.Color(0.68, 0.08, 0.06), new THREE.Color(0.42, 0.03, 0.03)], DUST = new THREE.Color(0.45, 0.38, 0.3);
+  function addSparks(h, blade, bleeds = true) {
+    const n = (h.crit ? 12 : h.kill ? 10 : 5) + (blade ? 2 : 0);
     for (let i = 0; i < n && sparks.length < MAX_SPARKS; i++) {
-      const a = Math.random() * Math.PI * 2, up = 1.5 + Math.random() * 2.5, sp = 1.5 + Math.random() * (h.crit ? 4 : 2.5);
-      sparks.push({ x: h.x, y: 1.1, z: h.z, vx: Math.cos(a) * sp, vy: up, vz: Math.sin(a) * sp, age: 0, life: SPARK_LIFE * (0.6 + Math.random() * 0.6), c });
+      const a = Math.random() * Math.PI * 2, up = 1 + Math.random() * 2.2, sp = 0.8 + Math.random() * (h.crit ? 3 : 1.8);
+      sparks.push({ x: h.x, y: 1.0 + Math.random() * 0.3, z: h.z, vx: Math.cos(a) * sp, vy: up, vz: Math.sin(a) * sp, age: 0, life: 0.45 + Math.random() * 0.35, c: bleeds ? BLOOD[i % 3] : DUST, a: bleeds ? 0.9 : 0.45 });
     }
   }
   function updateSparks(dt) {
@@ -118,12 +141,12 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       const p = sparks[i];
       p.age += dt;
       if (p.age >= p.life) { sparks.splice(i, 1); continue; }
-      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vy -= 9 * dt;
+      p.x += p.vx * dt; p.y = Math.max(0.05, p.y + p.vy * dt); p.z += p.vz * dt; p.vy -= 9 * dt; if (p.y <= 0.05) p.vx = p.vz = 0;   // droplets land and stop
     }
     sparks.forEach((p, i) => {
       pos.set([p.x, p.y, p.z], i * 3);
       const f = 1 - p.age / p.life;
-      col.set([p.c.r * f * 0.3, p.c.g * f * 0.3, p.c.b * f * 0.3], i * 3);   // much dimmer (Tim 2026-11-12)
+      col.set([p.c.r, p.c.g, p.c.b, p.a * Math.sqrt(f)], i * 4);
     });
     geo.setDrawRange(0, sparks.length);
     geo.attributes.position.needsUpdate = geo.attributes.color.needsUpdate = true;
@@ -136,10 +159,10 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     note: (x, z, text) => addRefuse(x, z, text, 'boarded', '▲'),   // a gold confirmation over a unit (crew popped into a vehicle)
     // h: one entry of state.hits; attacker: its entity (for facing), mine: the victim is on my side
     // quiet: no floating damage number (Tim 2026-11-12: none on the frontier)
-    hit(h, attacker, mine, quiet = false) {
+    hit(h, attacker, mine, quiet = false, bleeds = true) {
       const blade = BLADES.has(h.weapon);
       if (!quiet) addNumber(h, mine);
-      addSparks(h, blade);
+      addSparks(h, blade, bleeds);
       const d = attacker ? Math.hypot(h.x - attacker.x, h.z - attacker.z) || 1 : 0;
       if (attacker && d <= 4) {   // a swing trail only for a close-up hit, not at an archer or rifleman far away
         addTrail({ x: attacker.x, z: attacker.z, fx: (h.x - attacker.x) / d, fz: (h.z - attacker.z) / d }, blade);

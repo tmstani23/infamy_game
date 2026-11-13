@@ -6,6 +6,7 @@
 // Small number badges float over every garrisoned house you can see. Presentation only: it reads the game's
 // structures (sim/frontier/structures.js) and sends the frontier 'garrison' command with a structure key.
 import { healthBar } from './render/health.js';
+import { cellToWorld } from './sim/frontier/town_grid.js';
 
 const CSS = `
 #structcard{position:fixed;right:560px;bottom:175px;width:200px;box-sizing:border-box;padding:7px 9px 9px;z-index:34;background:linear-gradient(180deg,#171c21,#0f1317);border:1px solid #4d3b2a;border-top:2px solid #c9473d;border-radius:8px;box-shadow:0 8px 30px #000a;color:#eadfc6;font:13px/1.35 system-ui,sans-serif}
@@ -23,7 +24,8 @@ const CSS = `
 .zonegar{position:fixed;transform:translate(-50%,-100%);pointer-events:none;min-width:18px;height:18px;border-radius:9px;padding:0 5px;box-sizing:border-box;display:grid;place-items:center;font:700 11px system-ui;color:#f6e6bf;background:rgba(20,16,12,.9);border:1px solid #d8b56c}
 .zonegar.foe{border-color:#e0786c}
 #garhint{position:fixed;z-index:60;pointer-events:none;padding:3px 8px;border-radius:5px;background:rgba(12,14,18,.92);border:1px solid #d8b56c;color:#f6e6bf;font:600 11px/14px system-ui,sans-serif;white-space:nowrap}
-#garhint[hidden]{display:none}`;
+#garhint[hidden]{display:none}
+#structcard .bar.build i{background:#d8b56c}`;
 const NAMES = { town_hall: 'Town hall', housing: 'House', work: 'Workshop', farm: 'Farmhouse', wall: 'Wall', gate: 'Gate', camp_hall: 'Camp hall' };
 const nice = t => NAMES[t] || (t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -45,7 +47,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   function at(x, y) {
     if (!onIsland()) return null;
     let best = null, bd = Infinity;
-    for (const st of visible()) {
+    for (const st of [...visible(), ...sites()]) {
       const u = view.unitToScreen(st.x, st.z, 0), a = view.unitToScreen(st.x + 1, st.z, 0), k = Math.hypot(a.x - u.x, a.y - u.y) || 1;
       const big = st.kind === 'building' ? Math.max(1, (st.r || 5) / 5.5) : 1, dx = Math.abs(x - u.x), dy = y - u.y;
       if (dx <= 5 * k * big && dy >= -7 * k * big && dy <= 3 * k * big && dx + Math.abs(dy) < bd) { best = st; bd = dx + Math.abs(dy); }
@@ -55,12 +57,62 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   // a unit under the pointer wins over the building behind it
   const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
   const troopsSelected = () => selected().filter(id => { const e = game.state.entities[id]; return e && e.owner === owner() && e.type !== 'hero' && !e.worker && !e.garrison; });
+  // Tim 2026-11-13: a building being built gets the pane too (it is not a structure until it stands): its builders,
+  // how much faster they make it and a build bar. Camp sites and camp hall upgrades gain one point of work per builder
+  // at the site each tick (sim/frontier/workers.js campBuild); a town's project gains the town's builders each
+  // economy tick, one project at a time (sim/frontier/construction.js).
+  const WD = () => frontierData?.war || {};
+  function sites() {
+    const out = [];
+    for (const w of wars()) for (const b of w.camp?.buildings || []) if (b.stage === 'site' && Number.isFinite(b.x))
+      out.push({ key: `site|c|${w.id}|${b.id}`, site: true, kind: 'building', war: w.id, owner: w.attacker, type: b.type, job: b, workers: Array.isArray(w.camp.workers) ? w.camp.workers : [], id: b.id, x: b.x, z: b.z, r: WD().buildings?.[b.type]?.radius ?? 8 });
+    for (const s of Object.values(game.state.frontier?.settlements || {})) {
+      if (!s.grid) continue;
+      for (const p of s.projects || []) {
+        const cs = p.cells?.length ? p.cells : Number.isInteger(p.cell) ? [p.cell] : [];
+        if (!p.authorized || !cs.length) continue;
+        const pts = cs.map(i => cellToWorld(s, i)), x = pts.reduce((a, q) => a + q[0], 0) / pts.length, z = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+        out.push({ key: `site|t|${s.id}|${p.id}`, site: true, kind: 'building', town: s.id, owner: s.owner, type: p.type, job: p, s, x, z, r: Math.sqrt(cs.length) * s.grid.cell / 2 });
+      }
+    }
+    return out;
+  }
+  const findAny = k => typeof k === 'string' && k.startsWith('site|') ? sites().find(x => x.key === k) || null : ST()?.find?.(k);
+  // the build lines for a site or an upgrade: { pct, text, tip }
+  function buildInfo(st) {
+    const own = st.owner === owner(), j = st.job, pct = Math.round(100 * (j.progress || 0) / Math.max(1, j.need || 1));
+    if (st.town) {
+      const s = st.s, auth = s.projects.filter(x => x.authorized), first = auth.find(x => x.paid) || auth.find(x => Object.entries(x.cost || {}).every(([r, k]) => (s.stock?.[r] ?? 0) + 1e-9 >= k)) || auth[0], n = first === j && j.paid ? s.builders || 0 : 0;
+      const wait = !j.paid ? 'Waiting for its materials' : first !== j ? 'Waiting for the project ahead' : j.phase === 'clearing' ? 'Workers clearing the ground' : null;
+      if (!own) return { pct, text: `${pct}% built`, tip: '' };
+      return { pct, text: wait || (n ? `${n} of ${frontierData?.rates?.maxBuilders ?? 3} builders, ${n === 1 ? 'one builder pace' : `${n} times as fast as one`}` : 'No builders free'),
+        tip: 'A town builds one project at a time. Each builder adds the same amount of work, so 3 builders finish it 3 times as fast as one.' };
+    }
+    const ws = (st.workers || []).filter(w => w.project === (st.id ?? st.b?.id)), at = ws.filter(w => !w.trip).length;
+    const left = Math.max(0, (j.need || 0) - (j.progress || 0)), secs = at ? Math.ceil(left / at / 20) : null;
+    if (!own) return { pct, text: `${pct}% built`, tip: '' };
+    return { pct, text: ws.length ? `${ws.length} builder${ws.length === 1 ? '' : 's'}${ws.length > 1 ? `, ${ws.length} times as fast as one` : ''}${secs != null ? `, about ${secs} s left` : ', walking over'}` : 'No builders. Send camp workers to it.',
+      tip: 'Each camp worker at the site adds the same work, so 3 builders finish it 3 times as fast as one. Select workers and right-click the site to send them.' };
+  }
+  function drawSite(st) {
+    const own = st.owner === owner(), info = buildInfo(st), town = st.town ? game.state.frontier?.settlements?.[st.town] : null;
+    const next = [st.key, info.pct, info.text].join('|'); if (next === sig) return; sig = next;
+    const sub = st.war ? (own ? 'Your war camp' : 'Enemy war camp') : own ? (town?.name || 'Your town') : (town?.name || 'Enemy town');
+    root.innerHTML = `<button class="x" data-x="1">Esc</button><div class="sub">${esc(sub)}</div><h1>${esc(nice(st.type))}</h1>
+      <div class="stat">Under construction</div>
+      <div class="bar build" title="${info.pct}% built"><i style="width:${info.pct}%"></i></div>
+      <div class="row"><span class="dim">${info.pct}% built</span></div>
+      <div class="dim" style="margin-top:4px"${info.tip ? ` title="${esc(info.tip)}"` : ''}>${esc(info.text)}</div>`;
+    root.hidden = false;
+  }
   function draw() {
     if (!key) return;
-    const st = ST()?.find?.(key);
+    const st = findAny(key);
     if (!st) { close(); return; }
+    if (st.site) return drawSite(st);
     const hp = Math.ceil(ST().hpOf(st)), n = inside(st), own = st.owner === owner(), canG = own && zoneOk(st), cap = Z().capacity ?? 10;
-    const stat = status(st, hp), next = [key, hp, n, troopsSelected().length, stat].join('|'); if (next === sig) return; sig = next;
+    const up = st.war && st.b?.upgrade ? buildInfo({ ...st, job: st.b.upgrade, id: st.b.id, workers: (wars().find(w => w.id === st.war)?.camp?.workers) || [] }) : null;   // the camp hall upgrade
+    const stat = status(st, hp), next = [key, hp, n, troopsSelected().length, stat, up?.pct, up?.text].join('|'); if (next === sig) return; sig = next;
     const { frac, color } = healthBar(hp, st.max), town = st.town ? game.state.frontier?.settlements?.[st.town] : null;
     const atWar = st.town ? wars().some(w => w.town === st.town) : true;
     const sub = st.war ? (own ? 'Your war camp' : 'Enemy war camp') : own ? (town?.name || 'Your town') : `${town?.name || 'Enemy town'}${atWar ? ', at war' : ''}`;
@@ -68,6 +120,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     root.innerHTML = `<button class="x" data-x="1">Esc</button><div class="sub">${esc(sub)}</div><h1>${esc(nice(st.type))}</h1>
       <div class="bar" title="Health ${hp} of ${st.max}"><i style="width:${Math.round(frac * 100)}%;background:rgb(${color.map(c => Math.round(c * 255)).join(',')})"></i></div>
       <div class="stat">${esc(stat)}</div>
+      ${up ? `<div class="bar build" title="${up.pct}% upgraded"><i style="width:${up.pct}%"></i></div><div class="dim" style="margin:4px 0 2px"${up.tip ? ` title="${esc(up.tip)}"` : ''}>${esc(up.text)}</div>` : ''}
       <div class="row"><span class="dim">Health ${hp} of ${st.max}</span><span title="${esc(zoneOk(st) || st.type === 'stockade' ? 'Troops inside' : 'Nobody can garrison this')}"><span class="gar">${n}</span>${canG ? `<span class="dim"> of ${cap}</span>` : ''}</span></div>
       ${canG ? `<div class="row"><button data-in="1"${troopsSelected().length ? '' : ' disabled'} title="Your selected troops walk over and go in. Melee troops inside cannot fight; ranged troops shoot out. Hits on them go to the building.">Garrison selected</button><button data-out="1"${n ? '' : ' disabled'}>Send all out</button></div>
         <div class="dim" style="margin-top:6px">Ctrl + right-click it with troops selected to send them in.</div>` : ''}${hint ? `<div class="dim" style="margin-top:6px">${esc(hint)}</div>` : ''}`;
@@ -117,7 +170,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     if (e.button !== 2 || !e.ctrlKey || e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp')) return;
     const ids = troopsSelected(); if (!ids.length) return;
     const st = at(e.clientX, e.clientY);
-    if (!st || st.owner !== owner() || !zoneOk(st)) return;
+    if (!st || st.site || st.owner !== owner() || !zoneOk(st)) return;
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', structure: st.key, walk: true, units: ids });
   }, { capture: true });
@@ -127,7 +180,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   addEventListener('mousemove', e => {
     const now = performance.now(); if (now - nudgeAt < 80) return; nudgeAt = now;
     const st = !e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp') && troopsSelected().length ? at(e.clientX, e.clientY) : null;
-    const show = !!st && st.owner === owner() && zoneOk(st) && ST().hpOf(st) > 0;
+    const show = !!st && !st.site && st.owner === owner() && zoneOk(st) && ST().hpOf(st) > 0;
     nudge.hidden = !show;
     if (show) { nudge.style.left = `${e.clientX + 16}px`; nudge.style.top = `${e.clientY + 18}px`; }
   });
