@@ -129,22 +129,20 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
     const c = cannonAt(e.clientX, e.clientY);
-    if (!c) {
-      // left-click one of your war camp's buildings: the camp panel (checkpoint 4)
-      const cp = openCamp && plotAt(e.clientX, e.clientY);
-      if (cp?.camp && game.state.frontier?.wars?.list?.[cp.camp]?.attacker === owner() && openCamp(cp.camp, cp.kind === 'building' ? cp.id : null)) { e.stopImmediatePropagation(); e.preventDefault(); return; }
-      // left-click one of your garrisoned buildings: the garrison card (Tim 2026-11-10)
-      const p = openGarrison && plotAt(e.clientX, e.clientY), s = p && game.state.frontier?.settlements?.[p.town];
-      if (p?.kind === 'building' && s?.owner === owner() && openGarrison(p.town, p.id)) { e.stopImmediatePropagation(); e.preventDefault(); }
-      return;
-    }
+    if (!c) return;   // Tim 2026-11-12: a left-click on a building shows its pane (structure_card.js); right-click opens its menu
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'salute', settlement: c.town.id });
   }, { capture: true });
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
-    if (e.button !== 2 || e.ctrlKey || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp')) return;
+    if (e.button !== 2 || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #structcard')) return;
     const p = plotAt(e.clientX, e.clientY);
+    // right-click one of your war camp's buildings: its menu (the camp hall and the banner open the hall menu)
+    if (!e.ctrlKey && p?.camp && openCamp && game.state.frontier?.wars?.list?.[p.camp]?.attacker === owner()) {
+      if (openCamp(p.camp, p.kind === 'building' ? p.id : null)) { e.stopImmediatePropagation(); e.preventDefault(); }
+      return;
+    }
+    if (e.ctrlKey && !(p?.kind === 'building' && p.type === 'stockade' && !p.foreign)) return;   // Ctrl + right-click is for garrisons (and the ground's hold order)
     // war checkpoint 6: right-click an enemy building of a war you are in (the town you attack, or the camp attacking
     // you): the selected crew walk over and attack it; with the hero selected or nothing selected he goes too
     if (p?.kind === 'building' && (p.foreign || p.camp)) {
@@ -160,9 +158,10 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
     e.stopImmediatePropagation(); e.preventDefault();
     flash(p);
-    // right-click your finished stockade with crew selected (Tim 2026-11-07): they go in (far ones walk over first)
+    // Ctrl + right-click your finished stockade with crew selected (Tim 2026-11-07, Ctrl since 2026-11-12): they go in (far ones walk over first)
     const s = game.state.frontier?.settlements?.[p.town], ids = selected().length ? selected() : [heroId], b = s?.buildings?.find(x => x.id === p.id);
-    if (p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner() && ids.length) {
+    if (!e.ctrlKey && p.kind === 'building' && p.type === 'stockade' && s?.owner === owner() && openGarrison?.(p.town, p.id)) return;   // plain right-click: its garrison card
+    if (e.ctrlKey && p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner() && ids.length) {
       // the hero goes in only when he is selected or nothing is selected; crew selected without him go alone (Tim 2026-11-10)
       const ents = game.state.entities || {}, group = [...ids];
       const heroGoes = ids.includes(heroId) || !selected().length;

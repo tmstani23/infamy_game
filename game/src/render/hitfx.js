@@ -65,7 +65,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   const clubGeo = new THREE.RingGeometry(0.4, 0.75, 18, 1, -0.1, 1.9);
   function addTrail(attacker, blade) {
     const mat = new THREE.MeshBasicMaterial({
-      color: blade ? 0xe4ecff : 0xe0a060, transparent: true, opacity: 0.9, side: THREE.DoubleSide,
+      color: blade ? 0xe4ecff : 0xe0a060, transparent: true, opacity: 0.4, side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false,
     });
     const m = new THREE.Mesh(blade ? bladeGeo : clubGeo, mat);
@@ -85,7 +85,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       t.age += dt;
       const k = t.age / TRAIL_LIFE;
       if (k >= 1) { scene.remove(t.m); t.m.material.dispose(); trails.splice(i, 1); continue; }
-      t.m.material.opacity = 0.9 * (1 - k);
+      t.m.material.opacity = 0.4 * (1 - k);   // Tim 2026-11-12: much dimmer (was 0.9)
       t.m.rotateZ(dt * 9 * Math.sign(t.m.scale.x));
       const s = 1 + 0.25 * k;
       t.m.scale.set(Math.sign(t.m.scale.x) * s, s, 1);
@@ -123,7 +123,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     sparks.forEach((p, i) => {
       pos.set([p.x, p.y, p.z], i * 3);
       const f = 1 - p.age / p.life;
-      col.set([p.c.r * f, p.c.g * f, p.c.b * f], i * 3);
+      col.set([p.c.r * f * 0.5, p.c.g * f * 0.5, p.c.b * f * 0.5], i * 3);   // half as bright (Tim 2026-11-12)
     });
     geo.setDrawRange(0, sparks.length);
     geo.attributes.position.needsUpdate = geo.attributes.color.needsUpdate = true;
@@ -139,8 +139,8 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       const blade = BLADES.has(h.weapon);
       addNumber(h, mine);
       addSparks(h, blade);
-      if (attacker) {
-        const d = Math.hypot(h.x - attacker.x, h.z - attacker.z) || 1;
+      const d = attacker ? Math.hypot(h.x - attacker.x, h.z - attacker.z) || 1 : 0;
+      if (attacker && d <= 4) {   // a swing trail only for a close-up hit, not at an archer or rifleman far away
         addTrail({ x: attacker.x, z: attacker.z, fx: (h.x - attacker.x) / d, fz: (h.z - attacker.z) / d }, blade);
       }
     },
