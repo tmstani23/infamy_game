@@ -111,7 +111,8 @@ export function createCrewOrders({ gateNav = () => null, roomOf, clans, contract
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
         && deployment.allowsOrder(u, c, hero, door));
-    if(state.deployment.restrictionsEnabled){
+    // the one-group rule is for the city; on the island crew and war troops take one order together (Tim 2026-11-12)
+    if(state.deployment.restrictionsEnabled&&!crew.every(u=>u.place==='world')){
       // settlers (and other escorts) carry no deployment record: they travel with the hero group
       const group=u=>{const g=u.deployment?.group ?? 'hero';return rally.status(hero.owner).active&&(g==='hero'||rally.participating(u))?'rally':g;};
       if(new Set(crew.map(group)).size>1)return;

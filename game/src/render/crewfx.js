@@ -15,6 +15,22 @@ export function createCrewFx({scene,spriteOf}){
     const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(.34,10,8):p.kind==='firebomb'?new THREE.SphereGeometry(.22,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.035,.035,1.5,5):new THREE.CylinderGeometry(.04,.04,1.0,5),material(color));   // bullet: bright tracer (war riflemen)
     group.add(shaft);   // 7c (Tim 2026-11-12): shots are much easier to see; the body was never added before, only the faint trail showed
     if(p.kind==='cannonball'){shaft.material.opacity=1;const smoke=new THREE.Mesh(new THREE.CylinderGeometry(.2,.04,1.8,6),material(0xd8d2c4));smoke.position.y=-1.1;smoke.material.opacity=.45;group.add(smoke);}
+    // Tim 2026-11-12: arrows and bullets looked the same; an arrow is a wooden shaft with an iron head and pale
+    // fletching, a bullet a small hot ball with a thin fading streak, flying flat
+    if(p.kind==='arrow'&&!p.hamstring){
+      shaft.geometry.dispose();shaft.geometry=new THREE.CylinderGeometry(.03,.03,1.15,5);shaft.material.color.set(0x8a6440);shaft.material.opacity=1;
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(.08,.26,5),material(0x2e2f33));tip.material.opacity=1;tip.position.y=.7;group.add(tip);
+      for(const r of [0,Math.PI/2]){const f=new THREE.Mesh(new THREE.PlaneGeometry(.1,.18),material(0xe8e2d4));f.position.y=-.48;f.rotation.y=r;f.material.opacity=.95;group.add(f);}
+      scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
+    }
+    if(p.kind==='bullet'){
+      // a solid slug (Tim 2026-11-12: it read as an effect): a dull lead body with a rounded nose, a faint grey wake
+      shaft.geometry.dispose();shaft.geometry=new THREE.CylinderGeometry(.065,.065,.26,8);shaft.material.color.set(0x6d6558);shaft.material.opacity=1;
+      const nose=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6,0,Math.PI*2,0,Math.PI/2),material(0x8a8070));nose.material.opacity=1;nose.position.y=.13;group.add(nose);
+      const glint=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.16,5),material(0xd8cfb8));glint.material.opacity=.9;glint.position.set(.03,0,.03);group.add(glint);
+      const streak=new THREE.Mesh(new THREE.CylinderGeometry(.025,.003,.7,5),material(0xcfc8b8));streak.position.y=-.45;streak.material.opacity=.22;group.add(streak);
+      scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
+    }
     if(p.kind==='arrow'){const tip=new THREE.Mesh(new THREE.ConeGeometry(.11,.3,5),material(color));tip.position.y=.62;group.add(tip);}
     const trail=new THREE.Mesh(new THREE.CylinderGeometry(.03,.008,p.hamstring?1.4:p.kind==='bullet'?1.6:.9,5),material(color));trail.position.y=p.kind==='bullet'?-1.5:-.9;trail.material.opacity=.5;group.add(trail);
     scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
@@ -60,8 +76,8 @@ export function createCrewFx({scene,spriteOf}){
         v.elapsed=Math.max(v.elapsed+dt*20,state.tick-p.at-1);
         const u=Math.min(1,v.elapsed/(p.until-p.at)),dx=p.tx-p.x,dz=p.tz-p.z;
         // A shallow arc remains readable without making a close shot look lobbed.
-        v.mesh.position.set(p.x+dx*u,1.2+(p.kind==='firebomb'?1.6:p.kind==='cannonball'?.8:.25)*Math.sin(Math.PI*u),p.z+dz*u);   // bombs and cannon balls are lobbed
-        direction.set(dx,.25*Math.PI*Math.cos(Math.PI*u),dz).normalize();v.mesh.quaternion.setFromUnitVectors(up,direction);
+        v.mesh.position.set(p.x+dx*u,1.2+(p.kind==='firebomb'?1.6:p.kind==='cannonball'?.8:p.kind==='bullet'?0:.25)*Math.sin(Math.PI*u),p.z+dz*u);   // bombs and cannon balls are lobbed
+        direction.set(dx,(p.kind==='bullet'?0:.25)*Math.PI*Math.cos(Math.PI*u),dz).normalize();v.mesh.quaternion.setFromUnitVectors(up,direction);
       }
       for(const [key,v] of shots)if(!present.has(key)){remove(v.mesh);shots.delete(key);}
       const activeBindings=new Set(),activeBraces=new Set();

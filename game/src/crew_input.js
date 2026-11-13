@@ -136,7 +136,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const S = game.state.entities;
     let next = [...new Set(ids.map(id => { const v = S[id]?.aboard && S[S[id].aboard]; return v && game.omnibus?.isVehicle(v) && v.omnibusOwner === hero()?.owner && !v.driver ? v.id : id; }))];
     const group = id => commandGroup(game.state.entities[id]);
-    if (game.state.deployment?.restrictionsEnabled) {
+    // one command group at a time is a city rule; on the island a drag box takes crew and war troops together (Tim 2026-11-12)
+    if (game.state.deployment?.restrictionsEnabled && commandPlace() !== 'world') {
       const first = next.map(id=>game.state.entities[id]).find(e=>groupable(e?.id));
       if(first)next=next.filter(id=>!groupable(id)||commandGroup(game.state.entities[id])===commandGroup(first));
     }
@@ -265,7 +266,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // crew orders: Ctrl + right-click a unit to attack it or finish it off (the nearest
       // selected crew member does that); right-click the ground to go there (Ctrl: hold it),
       // or the hero to follow
-      if (!mine().length) return;
+      // with nothing selected at war, a right-click on an enemy house, wall or gate sends the hero at it (Tim 2026-11-12)
+      if (!mine().length) { const p = !e.ctrlKey && commandPlace() === 'world' && view.screenToGround(e.clientX, e.clientY); if (p && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === hero()?.owner || w.defender === hero()?.owner)) send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, slack: 3, units: [], hero: true, place: 'world' }); return; }
       const foe = target();
       if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine(),crewJob:true, crewOnly: true }); return; }
       if (foe) { order({ units: mine(), kind: 'attack', target: foe.id }); return; }
@@ -278,7 +280,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // at war out on the island (checkpoint 6): a right-click on an enemy wall, gate or house sends them to attack it; the sim
       // looks under the point and falls back to the plain move when nothing is there
       const atWar = p && commandPlace() === 'world' && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === hero()?.owner || w.defender === hero()?.owner);
-      if (atWar) { send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, units: mine().filter(id => game.state.entities[id]?.type !== 'hero'), hero: false, fallback: e.ctrlKey ? 'station' : 'move', place: 'world' }); return; }
+      if (atWar) { send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, units: mine().filter(id => game.state.entities[id]?.type !== 'hero'), hero: mine().includes(heroId), fallback: e.ctrlKey ? 'station' : 'move', place: 'world' }); return; }
       if (p) order({ units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }
   });
@@ -414,6 +416,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&!e.warTroop&&here(e)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
     },
     // 7c: every war troop where the hero is, the hero group left out
+    // a double-click on a troop's card (selection pane, target frame) does what one on the troop does (Tim 2026-11-12)
+    selectTypeOf(id) { const u = game.state.entities[id]; if (u?.warTroop && u.owner === hero()?.owner && !u.dead) { selectType(u); return true; } return false; },
     selectTroops() { const island=commandPlace()==='world'; setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&e.warTroop&&!e.downed&&(e.place==='world')===island).map(e=>e.id)); },
     selectUnit,
     assignGroup(number) {

@@ -25,7 +25,9 @@ addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 // a browser menu (Shift+right-click forces it in some browsers) swallows the key-ups, so held keys stuck and the hero
 // kept moving or galloping (Tim 2026-11-07): forget held keys when a menu opens, and drop a Shift the mouse says is up
-addEventListener('contextmenu', () => keys.clear(), { capture: true });
+// only when the browser menu really shows: the game cancels it on every right-click, and clearing then dropped WASD
+// on each right-click move order, so the hero stopped or stuttered until the key repeat came back (Tim 2026-11-12)
+addEventListener('contextmenu', e => { setTimeout(() => { if (!e.defaultPrevented) keys.clear(); }, 0); }, { capture: true });
 addEventListener('mousedown', e => { if (e.button === 2 && e.shiftKey) keys.clear(); }, { capture: true });
 const shiftCheck = e => { if (!e.shiftKey) { keys.delete('ShiftLeft'); keys.delete('ShiftRight'); } };
 addEventListener('mousemove', shiftCheck, { capture: true });

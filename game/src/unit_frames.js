@@ -105,7 +105,10 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
   hover.c.hidden = true;
   hover.tag = document.createElement('em');
   hover.name.after(hover.tag);
+  let lastTarget = { id: null, t: 0 };
   target.c.addEventListener('click', () => {
+    // a double-click on one of your troops here selects all of its type nearby (Tim 2026-11-12)
+    { const now = performance.now(), id = target.id; if (id && lastTarget.id === id && now - lastTarget.t < 400 && crewInput.selectTypeOf?.(id)) { lastTarget = { id: null, t: 0 }; return; } lastTarget = { id, t: now }; }
     const worker=workerTarget();if(worker){view.jumpTo?.(worker.x,worker.z);return;}
     const known = remembered && knownTarget();
     if (known) view.lookAt(known.x, known.z);

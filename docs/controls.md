@@ -336,4 +336,8 @@ War camp (2026-11-10, campaign):
 - Shift while riding: the sprint toggle fires only on a clean tap.
 - Shift + C or the Troops button (crew command bar, shown while you have war troops): selects every war troop where the hero is, hero group left out. C selects the hero group only and never picks war troops.
 - Double-click a war troop: selects every war troop of that type within 100; double-click one of them again centres the camera on it.
+- Drag box on the island: selects crew and war troops together (not the hero). One right-click sends the whole selection on one shared route. In the city a selection stays one command group.
+- Right-click an enemy building, wall, gate or house of a war you are in with nothing selected: the hero attacks it. With the hero in the selection he goes with the troops.
+- Double-click one of your war troops' cards in the selection pane, or one of your troops in the target frame: selects every troop of that type nearby. Selection pane cards show the unit's control group number in the corner of the picture.
+- Frontier: no floating damage numbers.
 - Placing a camp building or palisade line closes the build menu; hold Shift to keep placing.

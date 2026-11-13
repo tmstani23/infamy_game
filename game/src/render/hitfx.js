@@ -65,8 +65,8 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   const clubGeo = new THREE.RingGeometry(0.4, 0.75, 18, 1, -0.1, 1.9);
   function addTrail(attacker, blade) {
     const mat = new THREE.MeshBasicMaterial({
-      color: blade ? 0xe4ecff : 0xe0a060, transparent: true, opacity: 0.4, side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false,
+      color: blade ? 0xd8dde6 : 0xb08a60, transparent: true, opacity: 0.12, side: THREE.DoubleSide,
+      blending: THREE.NormalBlending, depthTest: false, depthWrite: false,   // Tim 2026-11-12: several swings at once added up to a bright blob; plain blending no longer stacks to white
     });
     const m = new THREE.Mesh(blade ? bladeGeo : clubGeo, mat);
     m.quaternion.copy(CAM_QUAT);
@@ -85,7 +85,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       t.age += dt;
       const k = t.age / TRAIL_LIFE;
       if (k >= 1) { scene.remove(t.m); t.m.material.dispose(); trails.splice(i, 1); continue; }
-      t.m.material.opacity = 0.4 * (1 - k);   // Tim 2026-11-12: much dimmer (was 0.9)
+      t.m.material.opacity = 0.12 * (1 - k);   // Tim 2026-11-12: much dimmer (was 0.9)
       t.m.rotateZ(dt * 9 * Math.sign(t.m.scale.x));
       const s = 1 + 0.25 * k;
       t.m.scale.set(Math.sign(t.m.scale.x) * s, s, 1);
@@ -107,7 +107,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   const sparks = [];
   const STEEL = new THREE.Color(0.85, 0.92, 1), DUST = new THREE.Color(1, 0.72, 0.4), GOLD = new THREE.Color(1, 0.82, 0.3);
   function addSparks(h, blade) {
-    const n = h.crit ? 16 : h.kill ? 14 : 8, c = h.crit ? GOLD : blade ? STEEL : DUST;
+    const n = h.crit ? 8 : h.kill ? 6 : 3, c = h.crit ? GOLD : blade ? STEEL : DUST;   // fewer sparks (Tim 2026-11-12, was 16/14/8)
     for (let i = 0; i < n && sparks.length < MAX_SPARKS; i++) {
       const a = Math.random() * Math.PI * 2, up = 1.5 + Math.random() * 2.5, sp = 1.5 + Math.random() * (h.crit ? 4 : 2.5);
       sparks.push({ x: h.x, y: 1.1, z: h.z, vx: Math.cos(a) * sp, vy: up, vz: Math.sin(a) * sp, age: 0, life: SPARK_LIFE * (0.6 + Math.random() * 0.6), c });
@@ -123,7 +123,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     sparks.forEach((p, i) => {
       pos.set([p.x, p.y, p.z], i * 3);
       const f = 1 - p.age / p.life;
-      col.set([p.c.r * f * 0.5, p.c.g * f * 0.5, p.c.b * f * 0.5], i * 3);   // half as bright (Tim 2026-11-12)
+      col.set([p.c.r * f * 0.3, p.c.g * f * 0.3, p.c.b * f * 0.3], i * 3);   // much dimmer (Tim 2026-11-12)
     });
     geo.setDrawRange(0, sparks.length);
     geo.attributes.position.needsUpdate = geo.attributes.color.needsUpdate = true;
@@ -135,9 +135,10 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     refuse: addRefuse,
     note: (x, z, text) => addRefuse(x, z, text, 'boarded', '▲'),   // a gold confirmation over a unit (crew popped into a vehicle)
     // h: one entry of state.hits; attacker: its entity (for facing), mine: the victim is on my side
-    hit(h, attacker, mine) {
+    // quiet: no floating damage number (Tim 2026-11-12: none on the frontier)
+    hit(h, attacker, mine, quiet = false) {
       const blade = BLADES.has(h.weapon);
-      addNumber(h, mine);
+      if (!quiet) addNumber(h, mine);
       addSparks(h, blade);
       const d = attacker ? Math.hypot(h.x - attacker.x, h.z - attacker.z) || 1 : 0;
       if (attacker && d <= 4) {   // a swing trail only for a close-up hit, not at an archer or rifleman far away

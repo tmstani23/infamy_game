@@ -201,3 +201,9 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - Sector cleared (200 ryo; Shinobi get sectorClearShinobiShare 0.5) is paid only when the winning clan knocked down a rival unit in that sector during the contest.
 - Shinobi hire prices: ninja 135, tanto ninja 135, geisha 210, masked bodyguard 255 (clinic, bail and dismiss follow price).
 - tools/mode_baseline.json holds the baseline for these rules; tools/test_shinobi_pass.mjs and test_contract_pacing.mjs read contract numbers from units.json.
+
+### War projectiles and hit feedback (2026-11-13)
+
+- Arrows: wooden shaft, iron head, pale fletching, shallow arc. Bullets: small lead slug, faint grey wake, flat flight (render/crewfx.js).
+- Hit feedback: sprite hit tint 0.15, swing streak plain blend at 0.12 opacity, fewer and dimmer sparks.
+- No floating damage numbers on the frontier.

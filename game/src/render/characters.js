@@ -232,7 +232,7 @@ export class CharacterSprite {
       : f % sheet.frames;
     // hit flash fades out; the lean eases back
     this.flash = Math.max(0, (this.flash || 0) - dt / 0.12);
-    this.material.uniforms.uFlash.value = Math.min(1, this.flash) * 0.3;   // Tim 2026-11-12: the white hit flash read as a strobe at night (was 0.85)
+    this.material.uniforms.uFlash.value = Math.min(1, this.flash) * 0.15;   // Tim 2026-11-12: the white hit flash read as a strobe at night (was 0.85)
     this.lean = Math.max(0, (this.lean || 0) - dt / 0.18);
     const lk = Math.sin(this.lean * Math.PI / 2) * 0.16;
     x += (this.leanX || 0) * lk; z += (this.leanZ || 0) * lk;

@@ -532,7 +532,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const h of hits) {
       const a = state.entities[h.a], t = state.entities[h.t];
       if (h.crit) sprites.get(h.a)?.shadowBlade?.critical();
-      hitFx.hit(h, a, t?.owner === me?.owner);
+      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world');   // no damage numbers on the frontier (Tim 2026-11-12)
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
       if (h.kind === 'dash') { abilityFx.cut(h, a); freezeT = Math.max(freezeT, 0.07); }

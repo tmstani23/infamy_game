@@ -74,8 +74,12 @@ const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
 export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false, hideOwnedBy = () => null, onInspect = () => {}, workers = () => [], pickWorker = () => {} }) {
   let shown = '';
   const cards = {};
+  let lastDown = { id: null, t: 0 };   // a second press on the same unit's card within 400 ms: all of its type nearby
   root.addEventListener('mousedown', e => {
     const card = e.target.closest('.card');
+    const did = card?.dataset.id || card?.dataset.ids?.split(',')[0], now = performance.now();
+    if (did && lastDown.id === did && now - lastDown.t < 400 && crewInput.selectTypeOf?.(did)) { lastDown = { id: null, t: 0 }; return; }
+    lastDown = { id: did || null, t: now };
     if (card?.dataset.wid) { pickWorker(card.dataset.wid); return; }
     if (card?.dataset.ids) { crewInput.select(card.dataset.ids.split(',')); return; }
     if (card) {crewInput.select([card.dataset.id]);onInspect(card.dataset.id);}
@@ -90,10 +94,10 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       for (const g of groups) {
         const e = game.state.entities[g.ids[0]], c = document.createElement('div');
         c.className = 'card'; c.dataset.ids = g.ids.join(',');
-        c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
+        c.innerHTML = '<div class="pic"><em class="grp"></em></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
         c.querySelector('b').textContent = `${entityName(units, e, e.civ || e.type)} x${g.ids.length}`;
         root.appendChild(c);
-        cards['g:' + g.t] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
+        cards['g:' + g.t] = { c, pic: c.querySelector('.pic'), grp: c.querySelector('.grp'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
     }
     for (const g of groups) {
@@ -105,6 +109,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       const st = down ? `${down} down` : 'Click to pick these';
       if (k.status.textContent !== st) k.status.textContent = st;
       k.c.title = `${g.ids.length} selected: ${Math.ceil(hp)} of ${max} health in all`;
+      { const ns = new Set(g.ids.map(id => crewInput.groupOf?.(id) || 0)), n = ns.size === 1 ? [...ns][0] || '' : ''; if (k.grp.textContent !== String(n)) k.grp.textContent = n; }   // their group, when they share one
     }
   }
   function update() {
@@ -135,10 +140,10 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
         c.className = 'card';
         c.dataset.id = id;
         if (e.wid != null) c.dataset.wid = e.wid;
-        c.innerHTML = '<div class="pic"></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
+        c.innerHTML = '<div class="pic"><em class="grp"></em></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
         c.querySelector('b').textContent = ((e.cannon || e.surveyor) && e.name) || entityName(units, e, e.civ || e.type);
         root.appendChild(c);
-        cards[id] = { c, pic: c.querySelector('.pic'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
+        cards[id] = { c, pic: c.querySelector('.pic'), grp: c.querySelector('.grp'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
       if (extra) { const m = document.createElement('div'); m.className = 'card more'; m.textContent = `+${extra}`; m.title = `${extra} more selected`; root.appendChild(m); }
     }
@@ -155,6 +160,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       if (k.status.textContent !== st) k.status.textContent = st;
       const at = where(e);
       if (k.where.textContent !== at) k.where.textContent = at;
+      { const n = crewInput.groupOf?.(id) || ''; if (k.grp.textContent !== String(n)) k.grp.textContent = n; }   // control group number (Tim 2026-11-12)
       k.c.classList.toggle('down', !!e.downed);
       k.c.classList.toggle('jailed', !!e.prisoner);
       k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${((e.cannon || e.surveyor) && e.name) || entityName(units, e, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
