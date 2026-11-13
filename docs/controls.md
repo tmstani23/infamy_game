@@ -327,7 +327,7 @@ War camp (2026-11-10, campaign):
 - Placing a camp building: a green ghost can be placed, red says why not in the hint (within reach of another camp building, shown by the dashed rings, inside the war circle and outside the town ring). Left-click places it and up to three idle camp workers walk over and build it; Shift + left-click keeps placing; right-click or Esc stops placing.
 - Camp workers: same orders as town workers (select, right-click timber or stone in the war circle outside the town ring, or right-click ground to move).
 - Right-click an enemy building, wall, gate or house in a war: selected crew and troops walk over and attack it without fire; the hero too when he is selected or nothing is selected.
-- Shift + right-click an enemy structure in a war (or the Torch button, then left-click): Torch. Every selected melee unit goes and sets it on fire (fire strength capped at 3 feeders). A flame mark shows over units on a Torch order. Firefox may show its own menu on Shift + right-click.
+- Shift + right-click an enemy structure in a war (or the Torch button, then left-click): Torch. Only grunts, spearmen, ninja and a melee hero can torch, never mounted. Each does a 1 second cast (broken by stun, stagger, knockdown, charm and taunt, not by plain hits) and retries until it burns, then keeps hitting it. One fire per building; it burns until workers douse it or the building falls. A flame mark shows over units on a Torch order. Firefox may show its own menu on Shift + right-click.
 - X then left-click (attack-move) in a war: with no enemy unit near, units attack structures in reach (military buildings and the hall first, then other buildings, walls and gates, then houses).
 - War camp panel, Build, Palisade: click the start, click the end to place a line (cost shown); Shift carries on from the end.
 - War camp panel, Build, Gate: place it on a palisade piece or on its own.
@@ -340,4 +340,10 @@ War camp (2026-11-10, campaign):
 - Right-click an enemy building, wall, gate or house of a war you are in with nothing selected: the hero attacks it. With the hero in the selection he goes with the troops.
 - Double-click one of your war troops' cards in the selection pane, or one of your troops in the target frame: selects every troop of that type nearby. Selection pane cards show the unit's control group number in the corner of the picture.
 - Frontier: no floating damage numbers.
+- Fire bomb (fire-bomb thrower special, in the unit ability row, auto or Shift + key): a 1.5 s channel with a ring on the ground where it lands; burns a wooden building or splashes units; stone resists.
+- Select camp workers, right-click a building site: they build it; more workers build faster. A site with no workers flashes Needs workers. Finished builders go back to gathering.
+- Select workers, right-click your damaged or burning building: they put the fire out, then repair it, paid in timber and stone from the town or camp stock.
+- Rebuild (button on a ruin's card, or right-click the ruin with workers selected): the town's builders rebuild it at normal cost; not during a war.
+- Town panel, Overview, Ox carts: Recall and Send out for the town's carts.
+- Camp menu, Workers tab: task coins (timber, stone, building, repair) and Spots listing every timber and stone spot in reach, paged.
 - Placing a camp building or palisade line closes the build menu; hold Shift to keep placing.

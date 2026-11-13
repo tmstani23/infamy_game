@@ -52,7 +52,7 @@ const run = (n, fn) => { for (let i = 0; i < n; i++) { g.step([]); if (fn?.()) r
 const order = (ids, st, extra = {}) => g.step([{ id: hero.id, type: 'order', kind: 'raze', structure: st.key, units: ids, ...extra }]);
 
 // ---- data and training ----------------------------------------------------------------------------
-assert.ok(U.field_cannon.siege && U.wooden_cannon.siege && U.fire_bomber.projectile.bomb && U.fire_bomber.projectile.area.radius > 0);
+assert.ok(U.field_cannon.siege && U.wooden_cannon.siege && U.fire_bomber.bomb && U.fire_bomber.bomb.radius > 0);   // 7c-2: the bomb is a special (sim/firebomb.js)
 assert.deepEqual(war.trainsAt('foundry', 'player'), ['wooden_cannon'], 'a Yakuza foundry trains the wooden cannon only');
 assert.deepEqual(war.trainsAt('foundry').sort(), ['cannon', 'fire_bomber', 'gatling', 'wooden_cannon'], 'each clan has its siege weapon, the Kuroda also the Gatling crew');
 assert.ok(S.damage.bomb > 0 && S.stone.types.includes('wall') && S.stone.bomb < 1);
@@ -79,17 +79,17 @@ run(60);
   assert.ok(du > 0.3 && dc < du / 3, `the grunt gives way (${du.toFixed(2)}), the cannon hardly (${dc.toFixed(2)})`);
   u.dead = true; }
 
-// ---- fire bombs: wood burns, stone does not and takes less -------------------------------------------
+// ---- fire bombs (7c-2: a special, on auto it goes for the structure of the raze order): wood burns, stone does not and takes less
 const bomber = war.spawnTroop(rec, 'fire_bomber', sStore.x + 8, sStore.z + 8);
 order([bomber], sStore);
 { let bomb = false, burst = false;
   run(400, () => { bomb ||= g.state.projectiles.some(p => p.kind === 'firebomb'); burst ||= g.state.casts.some(c => c.kind === 'firebombBurst'); return !!g.state.frontier.fires?.[sStore.key]; });
   assert.ok(bomb && burst && g.state.frontier.fires?.[sStore.key], 'a bomb on a wooden building starts its fire');
   assert.equal(Object.keys(g.state.frontier.fires).length, 1); }
-order([bomber], sWall);
+g.state.entities[bomber].bomb.readyAt = 0; order([bomber], sWall);
 { const hp0 = ST.hpOf(sWall);
   run(600, () => ST.hpOf(sWall) < hp0);
-  assert.equal(hp0 - ST.hpOf(sWall), U.fire_bomber.damage * S.damage.bomb * S.stone.bomb, 'stone takes reduced bomb damage');
+  assert.equal(hp0 - ST.hpOf(sWall), U.fire_bomber.bomb.structureDamage * S.damage.bomb * S.stone.bomb, 'stone takes reduced bomb damage');
   assert.equal(g.state.frontier.fires?.[sWall.key], undefined, 'and does not catch fire'); }
 g.state.entities[bomber].order = { kind: 'stop' };
 
@@ -97,12 +97,12 @@ g.state.entities[bomber].order = { kind: 'stop' };
 { const b = g.state.entities[bomber], foes = [0, 1, 2].map(k => g.state.entities[war.spawnTroop(rec, 'grunt', b.x + 4 + k * 0.8, b.z + 3, rival)]);
   const far = g.state.entities[war.spawnTroop(rec, 'grunt', b.x + 4, b.z + 12, rival)];
   for (const e of [...foes, far]) { e.holdFire = true; e.order = { kind: 'station', x: e.x, z: e.z }; }
-  const hp0 = foes.map(e => e.hp), farHp = far.hp;
+  const hp0 = foes.map(e => e.hp), farHp = far.hp; b.bomb.readyAt = 0;
   g.step([{ id: hero.id, type: 'order', kind: 'attack', target: foes[1].id, units: [bomber] }]);
   run(300, () => foes[1].hp < hp0[1]);
   assert.ok(foes[1].hp < hp0[1], 'the target is hit');
   assert.ok(foes[0].hp < hp0[0] && foes[2].hp < hp0[2], 'those beside it too');
-  assert.ok(hp0[0] - foes[0].hp < hp0[1] - foes[1].hp, 'for a share of the damage');
+  assert.equal(hp0[1] - foes[1].hp, U.fire_bomber.bomb.damage, 'the bomb does its damage (7c-2: the same to everyone in the blast)');
   assert.equal(far.hp, farHp, 'not the one far off');
   for (const e of [...foes, far]) e.dead = true; b.order = { kind: 'stop' }; }
 

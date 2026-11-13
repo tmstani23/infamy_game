@@ -270,6 +270,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // building = { id, type, stage: 'site' | 'built', x, z, progress, need }; the camp hall upgrade is
   // hall.upgrade = { progress, need } until done, then hall.tier = 2.
   const BD = () => W?.buildings || {};
+  const isResourceCamp = type => (data.workers?.gatherBuildings || []).includes(type);
   const radiusOf = type => BD()[type]?.radius ?? 8;
   const hallOf = camp => camp?.buildings?.find(b => b.type === 'camp_hall') || null;
   const upgraded = camp => (hallOf(camp)?.tier || 1) >= 2;
@@ -314,8 +315,16 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (s.capital || !Number.isFinite(s.x)) continue;
       if (dist(p, s) - r <= ringRadius(s, data)) return `Inside ${s.name}'s town ring`;
     }
+    // 7c-4 (Tim 2026-11-12): the build area is the ground within chainDistance of a normal camp building. A resource
+    // camp (lumber camp, quarry) may also stand outside it, by its resource (within resourceCampReach of a spot it
+    // takes); resource camps never extend the area.
     const chain = W.chainDistance ?? 120;
-    if (!opts.chained && !camp.buildings.some(b => dist(b, p) <= chain)) return `Place it within ${chain} of another camp building`;
+    if (!opts.chained && !camp.buildings.some(b => !isResourceCamp(b.type) && dist(b, p) <= chain)) {
+      if (!isResourceCamp(type)) return 'Outside the build area: place it nearer a camp building (resource camps do not extend the area)';
+      const takes = data.workers?.campTakes?.[type] || [], reach = W.resourceCampReach ?? 45;
+      const by = resourceIndex?.spotsNear ? resourceIndex.spotsNear(x, z, reach).some(sp => takes.includes(data.workers?.resources?.[sp.kind]) && Math.hypot(sp.x - x, sp.z - z) <= reach) : false;
+      if (!by) return `Outside the build area a ${nice(type)} must stand by ${takes.join(' or ') || 'its resource'}`;
+    }
     for (const w of active()) for (const b of w.camp?.buildings || []) {
       if (opts.replace === b) continue;                                   // a gate takes the place of this palisade piece
       const gap = def.line && BD()[b.type]?.line && w === war ? (opts.step ?? Math.min(r, radiusOf(b.type))) * 0.9 : r + radiusOf(b.type);   // palisade pieces stand side by side
@@ -602,5 +611,5 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; } };
+  return { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; } };
 }

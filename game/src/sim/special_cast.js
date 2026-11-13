@@ -1,7 +1,7 @@
 // Special abilities of crew and war troops as the player sees them (war checkpoint 7-1, Tim 2026-11-12):
 // which ability a unit has, when it is ready, the auto-cast switch and a cast asked for by the player.
 // The abilities themselves stay in their own modules (sim/diversion.js Charm, sim/rifleman.js Aimed Shot,
-// sim/taunt.js Taunt, sim/combat.js the Yumi archer's slowing arrow, sim/dogs.js Loose the dogs); they read two fields from the unit:
+// sim/taunt.js Taunt, sim/combat.js the Yumi archer's slowing arrow, sim/dogs.js Loose the dogs, sim/firebomb.js Fire bomb); they read two fields from the unit:
 //   e.autoCast === false   the unit does not use its ability on its own (default: it does)
 //   e.castReq = { x, z, until } | { until }   the player asked for a cast (at that spot, for targeted ones);
 //                          the module casts as soon as it can, at the valid enemy nearest the spot, also
@@ -16,6 +16,7 @@ export const SPECIALS = {
   taunt: { name: 'Taunt', targeted: false, has: (u, e) => e.type === 'yakuza_enforcer' || !!u?.taunt, readyAt: e => e.taunt?.readyAt ?? 0 },
   dogs: { name: 'Loose the dogs', targeted: true, has: u => !!u?.dogs, readyAt: e => e.dogsReadyAt ?? 0 },   // sim/dogs.js (7-3)
   gatling: { name: 'Hold aim', targeted: true, noAuto: true, has: u => !!u?.gatling, readyAt: () => 0 },   // sim/gatling.js (7-4): no cooldown, no auto switch
+  firebomb: { name: 'Fire bomb', targeted: true, has: u => !!u?.bomb, readyAt: e => e.bomb?.channel ? e.bomb.channel.until + 1 : e.bomb?.readyAt ?? 0 },   // sim/firebomb.js (7c-2)
   hamstring: { name: 'Slowing arrow', targeted: true, has: u => !!u?.projectile?.hamstring, readyAt: e => e.hamstringReadyAt ?? 0 },
 };
 export function specialOf(units, e) {

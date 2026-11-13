@@ -43,6 +43,7 @@ import { createDiversion } from './diversion.js';
 import { charmProtected,allowCharmAttack } from './charm_rules.js';
 import { createRifleman } from './rifleman.js';
 import { createGatling } from './gatling.js';   // war checkpoint 7-4: the Kuroda Gatling gun crew
+import { createFireBomb } from './firebomb.js';   // war 7c-2: the Shinobi fire-bomb thrower's channelled bomb
 import { createDogs } from './dogs.js';   // war checkpoint 7-3: the Yakuza dog handler
 import { createTaunt } from './taunt.js';
 import { specialCommand } from './special_cast.js';
@@ -338,12 +339,14 @@ export function createGame(options) {
     moveTo: (e, unit, x, z, walk) => moveTo(e, unit, x, z, walk), nearestFree: (x, z, e) => (e && (deployment.navFor(e) || navOf(e.place)) || nav).nearestFree(x, z), canOccupy: (e, x, z, p) => deployment.canOccupy(e, x, z, p),
     fightTarget: id => fight[id]?.target, inCombat: e => !!fight[e.id]?.target, rules: units?.types?.kuroda_rifleman?.rifle, inRally: e => rally.participating(e),
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
+  const firebomb = createFireBomb({ state, units, vision, hit: (...a) => hit(...a), hostile: (a, b) => hostile(a, b), allowed: (a, b) => attackAllowed(a, b), reveal: (e, v) => stealth.reveal(e, v), structures: () => frontier?.structures,
+    clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
   const dogs = createDogs({ state, units, vision, spawn: (...a) => spawn(...a), hit: (...a) => hit(...a), hostile: (a, b) => hostile(a, b), allowed: (a, b) => attackAllowed(a, b), reveal: (e, v) => stealth.reveal(e, v) });
   const gatling = createGatling({ state, units, vision, paths, hit: (...a) => hit(...a), moveTo: (...a) => moveTo(...a), hostile: (a, b) => hostile(a, b), allowed: (a, b) => attackAllowed(a, b), reveal: (e, v) => stealth.reveal(e, v) });
   const taunt = createTaunt({ state, vision, rulesFor:e=>units.types[e?.type]?.taunt, engagementTarget:e=>crewTarget(e), reveal:(e,v)=>stealth.reveal(e,v),allowed:(a,b)=>attackAllowed(a,b)&&sees(a,b), hostile: (a, b) => hostile(a, b), addBuff: (e, name, seconds, extra) => addBuff(e, name, seconds, extra),
     attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); }, fightTarget: id => fight[id]?.target, rules: units?.types?.yakuza_enforcer?.taunt,
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  function manualCrew(e) { delete e.charmAttack; crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); sweep.manual(e); assignments.manual(e); }
+  function manualCrew(e) { delete e.charmAttack; crewJobs?.cancel(e);sectorCleanup.cancel(e);contracts?.interruptScrub(e); diversion.manual(e); rifleman.manual(e); firebomb.manual(e); shinobiAssignments.manual(e); shakedown.manual(e); sweep.manual(e); assignments.manual(e); }
   let nextId = 1;
 
   function spawn(type, model, x, z, extra = {}) {
@@ -399,7 +402,9 @@ export function createGame(options) {
   // Frontier (Tim 2026-11-10): heroes and crews of different clans may fight anywhere out there, but frontier
   // townsfolk are never fair game and a town's workers only for the other side of a war on that town
   const atWarWith = (clan, b) => { const w = frontier?.war?.byId(b.town) || frontier?.war?.warOn(b.town); return !!w && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
-  const frontierShield = (a, b) => b?.type === 'civilian' && b.place === 'world' && !!state.clans?.[a?.owner] && (!!b.townsfolk || (!!b.worker && b.workerOwner !== a.owner && !atWarWith(a.owner, b)));
+  // 7c-5: an ox cart is fair game only for the attacker of a war on its town (it is destroyed at 0 health)
+  const cartFoe = (clan, b) => { const w = frontier?.war?.warOn(b.town); return !!w && w.attacker === clan && w.defender === b.cartOwner; };
+  const frontierShield = (a, b) => b?.type === 'civilian' && b.place === 'world' && !!state.clans?.[a?.owner] && (!!b.townsfolk || (!!b.cart && !cartFoe(a.owner, b)) || (!!b.worker && b.workerOwner !== a.owner && !atWarWith(a.owner, b)));
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
   const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && (!a.mounted || a.cavalry) && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
@@ -1219,6 +1224,7 @@ export function createGame(options) {
     taunt.tick();
     combat.projectileTick();
     dogs.tick();
+    firebomb.tick();
     // Losing sight drops the lock, queued swing and crew assignment immediately,
     // including while a hero is moving. Revealing the target does not reacquire it.
     for (const e of Object.values(state.entities)) {
@@ -1299,7 +1305,7 @@ export function createGame(options) {
   const heroAbilities = createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack, fair, fight, hit, hostile, inSmoke, kuroda, navOf, paths, rally, reachOf, secs, sees, state, statsOf, stealth, tryMove, wild });
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ gateNav: e => frontier?.structures?.gateNav(e) || null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
-  const crewSteps = createCrewStep({ gatling, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
+  const crewSteps = createCrewStep({ gatling, firebomb, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
   const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---

@@ -186,7 +186,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   const out = [(hall.x - ex) / Math.hypot(hall.x - ex, hall.z - ez), (hall.z - ez) / Math.hypot(hall.x - ex, hall.z - ez)];
   const spotFor = (type, near = hall) => { for (const d of [35, 55, 75, 95]) for (let a = 0; a < 24; a++) { const r = war.campCheck(rec.id, type, { x: near.x + Math.cos(a * Math.PI / 12) * d, z: near.z + Math.sin(a * Math.PI / 12) * d }); if (r.ok) return r.point; } return null; };
   assert.match(war.campCheck(rec.id, 'rifle_range', { x: hall.x + out[0] * 40, z: hall.z + out[1] * 40 }).reason, /Needs a built barracks/, 'locked until a barracks stands');
-  assert.match(war.campCheck(rec.id, 'barracks', { x: hall.x + out[0] * (W.chainDistance + 40), z: hall.z + out[1] * (W.chainDistance + 40) }).reason, /within 120 of another camp building/, 'chain distance');
+  assert.match(war.campCheck(rec.id, 'barracks', { x: hall.x + out[0] * (W.chainDistance + 40), z: hall.z + out[1] * (W.chainDistance + 40) }).reason, /Outside the build area/, 'chain distance');   // 7c-4 wording
   assert.match(war.campCheck(rec.id, 'barracks', { x: hall.x + 3, z: hall.z }).reason, /Too close to the camp hall/, 'spacing');
   assert.match(war.campCheck(rec.id, 'barracks', { x: ex + 10, z: ez }).reason, /town ring|war circle|within/, 'never in the town ring');
   const p1 = spotFor('barracks');
@@ -204,6 +204,10 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
     const tents = rec.camp.buildings.at(-1); tents.progress = 0;
     assert.ok(cmd({ action: 'campCancel', war: rec.id, building: tents.id })?.ok);
     assert.ok(!rec.camp.buildings.includes(tents)); }
+  // 7c-4 (Tim 2026-11-12): builders are sent by hand; a site with nobody on it waits and is flagged idle
+  for (let i = 0; i < 200; i++) g.step([]);
+  assert.ok(!barracks.progress && barracks.idle, 'nobody builds a site by himself');
+  { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: barracks.id }); assert.ok(r?.ok, r?.reason); }
   for (let i = 0; i < 8000 && barracks.stage !== 'built'; i++) g.step([]);
   assert.equal(barracks.stage, 'built', 'camp workers build the barracks');
   assert.ok(rec.camp.workers.every(w => !w.project), 'builders go back to gathering');
@@ -213,6 +217,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   const chestU = rec.camp.chest;
   { const r = cmd({ action: 'campUpgrade', war: rec.id }); assert.ok(r?.ok, r?.reason); }
   assert.equal(rec.camp.chest, chestU - W.hallUpgrade.cost.ryo, 'the upgrade takes ryo from the war chest');
+  { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: hall.id }); assert.ok(r?.ok, r?.reason); }   // 7c-4: sent by hand
   for (let i = 0; i < 8000 && hall.tier !== 2; i++) g.step([]);
   assert.equal(hall.tier, 2, 'workers build the upgrade');
   assert.ok(war.upgraded(rec.camp) && war.campBuildList(rec.id).find(b => b.type === 'stable').ok, 'the upgrade unlocks stables');
@@ -233,7 +238,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   // supply tents raise the cap
   { const p3 = spotFor('supply_tents'); assert.ok(cmd({ action: 'campPlace', war: rec.id, kind: 'supply_tents', ...p3 })?.ok); }
   const tents = rec.camp.buildings.at(-1);
-  for (let i = 0; i < 8000 && tents.stage !== 'built'; i++) g.step([]);
+  cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: tents.id }); for (let i = 0; i < 8000 && tents.stage !== 'built'; i++) g.step([]);
   assert.equal(war.troopView(rec.id).cap, W.troopCap.base + B.supply_tents.cap, 'supply tents raise the troop cap');
   g.frontier.world.checkInvariants();
 }
@@ -255,7 +260,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
       if (types[t].war) assert.ok(!types[t].price && g.clans.hirePrice('player', t) == null, `${t} is war-only`);
     }
   }
-  assert.deepEqual(war.trainsAt('barracks').sort(), ['brute', 'enforcer', 'grunt'], 'enforcers train at the barracks (Tim 2026-11-11)');
+  assert.deepEqual(war.trainsAt('barracks').sort(), ['brute', 'enforcer', 'grunt', 'spearman'], 'enforcers train at the barracks (Tim 2026-11-11), spearmen too (7c-2)');
   assert.deepEqual(war.trainsAt('rifle_range').sort(), ['archer', 'rifleman']);
   assert.deepEqual(war.trainsAt('stable').sort(), ['mounted_pikeman', 'sword_rider']);
   // checkpoint 7-1: the clan hall trains only the camp clan's own specials
@@ -277,7 +282,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   clan.faction = was;
   // build a rifle range and stables, then train one of everything
   const built = type => { const p = spotFor(type); assert.ok(p, `room for a ${type}`); const r = cmd({ action: 'campPlace', war: rec.id, kind: type, ...p }); assert.ok(r?.ok, r?.reason);
-    const b = rec.camp.buildings.at(-1); for (let i = 0; i < 12000 && b.stage !== 'built'; i++) g.step([]); assert.equal(b.stage, 'built', `${type} built`); return b; };
+    const b = rec.camp.buildings.at(-1); cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: b.id }); for (let i = 0; i < 12000 && b.stage !== 'built'; i++) g.step([]); assert.equal(b.stage, 'built', `${type} built`); return b; };
   const range = built('rifle_range'), stable = built('stable'), barracks = rec.camp.buildings.find(b => b.type === 'barracks' && b.stage === 'built');
   const before = new Set(Object.keys(g.state.entities));
   const chest0 = rec.camp.chest;

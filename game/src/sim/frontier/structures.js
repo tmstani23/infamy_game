@@ -12,15 +12,19 @@
 // At 0 health: a building becomes stage 'ruined' (stops working and blocking; a training queue is lost),
 // a wall or gate cell becomes open ground (settlement.breaches lists them for the rubble), a zone cell
 // drops to an empty plot (stage 0) and regrows by the zone rules.
-// Torching (checkpoint 7-0, Tim 2026-11-12): never automatic. Melee units on a Torch order (a raze order with
-// torch: true, from the Torch ability button) set the structure alight with their hits: one fire per structure,
-// state.frontier.fires[key] = { until, by, fed: { unitId: tick of its last torch hit } }. Every second the fire
-// burns for fire.damage x the units that fed it within fire.lingerTicks (at most fire.maxFeeders), and it dies
-// fire.lingerTicks after the last torch hit. A plain raze order (right-click, attack-move) only hits.
+// Torching (7c-2, Tim 2026-11-12): never automatic. Only units that can torch (war.structures.torch.types, and a
+// melee hero; never riders) take a Torch order (a raze order with torch: true, from the Torch ability button).
+// At the structure the unit casts for torch.castTicks (order.cast = { until, last }); a tick in which it could not
+// act (stagger, stun, knockdown, charm, taunt) breaks the cast and it starts again, plain hits do not. A finished
+// cast lights the fire and the unit carries on hitting. One fire per structure:
+// state.frontier.fires[key] = { by, at, until? }. Every second it burns for fire.damage until it is doused
+// (douse(), workers, 7c-4), the structure is a ruin, or fire.burnTicks have passed (0 = no end).
+// A fire bomb lights the same fire on wood. A plain raze order (right-click, attack-move) only hits.
 // Order: { id: <hero id>, type: 'order', kind: 'raze', structure: <key> | x, z (the structure at that ground point),
 //   units: [crew ids], hero: true|false, fallback: 'move' | 'station' (the crew order when nothing is there) }.
 // createStructures({ state, data, world, war, garrison }) -> { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, attach }
 import { cellToWorld, setUse, zoneStructureAt, townCellBoxes, campBuildingBoxes, ringRadius } from './town_grid.js';
+import { addCampStock } from './camp_stock.js';
 
 export function createStructures({ state, data, world, war, garrison = null, workers = null }) {
   const R = () => data.war?.structures || null;
@@ -239,6 +243,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (!s.shelter || now % 10) continue;
       const cell = s.grid?.cell || 11, near = (S.enterRange ?? 1.6) * cell;
       for (const k of s.workers || []) {
+        if (k.job) continue;   // sent to repair or douse (7c-4): they work on under attack
         if (!k.shelter) {
           const keep = { spot: k.spot ?? null, dropoff: k.dropoff ?? null, by: k.by };
           const r = workers.workerOrder(s, [k.id], 'move', { x: s.x, z: s.z + cell });
@@ -252,17 +257,23 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
-  // set it alight, or feed its fire (a torch hit; later a fire bomb): feeder = the unit's id
-  function ignite(clan, st, feeder) {
+  // set it alight (a finished torch cast or a fire bomb); one fire per structure, a burning one stays as it is
+  function ignite(clan, st) {
     if (!R()?.fire || !canDamage(clan, st)) return false;
-    const now = state.tick ?? 0, fires = f().fires ||= {}, old = fires[st.key];
-    const fire = fires[st.key] = { until: now + (R().fire.lingerTicks ?? 60), by: clan, fed: old?.by === clan ? old.fed || {} : {} };
-    if (feeder != null) fire.fed[feeder] = now;
+    const now = state.tick ?? 0, fires = f().fires ||= {};
+    if (fires[st.key]) return true;
+    const burn = R().fire.burnTicks || 0;
+    fires[st.key] = { by: clan, at: now, ...(burn > 0 ? { until: now + burn } : {}) };
     return true;
   }
+  const burning = st => !!f().fires?.[st.key];
+  // put a fire out (workers, 7c-4); true when there was one
+  function douse(st) { const fires = f().fires; if (!fires?.[st?.key]) return false; delete fires[st.key]; if (!Object.keys(fires).length) delete f().fires; return true; }
   const isMelee = unit => kindOf(unit) === 'melee' && !unit?.gatling;   // a Gatling crew neither torches nor attacks structures (7-4)
+  // who can torch (7c-2): the unit types of war.structures.torch.types (grunts, spearmen and plain melee crew) and a melee hero; never from the saddle
+  const canTorch = (e, unit) => !!e && !!unit && isMelee(unit) && !e.mounted && !e.cavalry && (e.type === 'hero' || (R()?.torch?.types || []).includes(e.type));
   // how many of these units could take a Torch order (the ability button's count)
-  function torchers(ids) { return (ids || []).filter(id => { const u = state.entities[id]; return u && !u.dead && !u.downed && u.place === 'world' && !u.garrison && !u.aboard && rt?.unitOf && isMelee(rt.unitOf(u)); }).length; }
+  function torchers(ids) { return (ids || []).filter(id => { const u = state.entities[id]; return u && !u.dead && !u.downed && u.place === 'world' && !u.garrison && !u.aboard && rt?.unitOf && canTorch(u, rt.unitOf(u)); }).length; }
 
   // ---- units attacking a structure -----------------------------------------------------------------
   function order(hero, c) {
@@ -274,8 +285,8 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (rt?.paths) delete rt.paths[u.id];
       u.order = { kind: 'raze', structure: st.key, x: st.x, z: st.z, ...(c.torch ? { torch: true } : {}) };
     };
-    // a Torch order is for melee units only; the rest of the selection keeps what it was doing
-    const can = u => !rt?.unitOf?.(u)?.gatling && (!c.torch || (rt?.unitOf ? isMelee(rt.unitOf(u)) : true));
+    // a Torch order is only for units that can torch; the rest of the selection keeps what it was doing
+    const can = u => !rt?.unitOf?.(u)?.gatling && (!c.torch || (rt?.unitOf ? canTorch(u, rt.unitOf(u)) : true));
     let n = 0;
     for (const id of Array.isArray(c.units) ? c.units : []) {
       const u = state.entities[id];
@@ -304,9 +315,17 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     for (const s of due) {
       const st = find(s.key);
       if (!st || !canDamage(s.by, st)) continue;
-      if (s.kind === 'bomb') { (state.casts ||= []).push({ kind: 'firebombBurst', a: s.a, x: st.x, z: st.z, place: 'world', radius: 2 }); if (!isStone(st)) ignite(s.by, st, s.a); }
+      if (s.kind === 'bomb') { (state.casts ||= []).push({ kind: 'firebombBurst', a: s.a, x: st.x, z: st.z, place: 'world', radius: 2 }); if (!isStone(st)) ignite(s.by, st); }
       damage(s.by, st, s.damage, s.kind);
     }
+  }
+  // a fire bomb lands (7c-2, sim/firebomb.js): the enemy structure it was thrown at (key), else one within slack of the
+  // spot, takes the bomb's damage (stone: reduced) and, when it is wood, catches fire
+  function bombAt(clan, x, z, key, amount, slack = 2) {
+    const st = (key && find(key)) || at(clan, x, z, slack);
+    if (!st || !canDamage(clan, st)) return false;
+    if (!isStone(st)) ignite(clan, st);
+    return damage(clan, st, amount, 'bomb');
   }
   // one tick of a unit on a raze order; false when the order is over (the caller carries on as usual)
   function step(e, unit) {
@@ -323,7 +342,6 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if ((state.tick ?? 0) === w.strike) {
         if (unit.projectile) shoot(e, st, unit);   // an arrow, bullet, ball or bomb flies; it lands in tick()
         else damage(e.owner, st, rt.damageOf(e), kindOf(unit));
-        if (o.torch && isMelee(unit)) ignite(e.owner, st, e.id);
         (state.structureHits ||= []).push({ a: e.id, key: st.key, x: st.x, z: st.z, kind: kindOf(unit) });
       }
       if ((state.tick ?? 0) >= w.start + w.len) delete e.swing; else { e.anim = 'attack'; return true; }
@@ -352,6 +370,17 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     delete rt.paths[e.id];
     const want = rt.dirIndex(st.x - e.x, st.z - e.z), diff = (want - e.dir + 8) % 8;
     if (diff) { e.dir = (e.dir + (diff <= 4 ? 1 : 7)) % 8; if (diff !== 1 && diff !== 7) { e.anim = 'idle'; return true; } }
+    // 7c-2 Torch: a cast of torch.castTicks at the structure. A tick this unit could not act (stun, stagger, knockdown,
+    // charm, taunt: step() is not reached then) breaks it and it starts over; plain hits do not. Once it burns, he hits.
+    if (o.torch && !burning(st) && canTorch(e, unit)) {
+      const now = state.tick ?? 0;
+      if (!o.cast || o.cast.last !== now - 1) { o.cast = { until: now + (R().torch?.castTicks ?? 20) }; (state.casts ||= []).push({ kind: 'torchCast', a: e.id, x: e.x, z: e.z, place: 'world', ticks: R().torch?.castTicks ?? 20 }); }
+      o.cast.last = now;
+      e.anim = 'attack';
+      if (now >= o.cast.until) { delete o.cast; ignite(e.owner, st); }
+      return true;
+    }
+    if (o.cast) delete o.cast;
     if (fight.cd > 0) { e.anim = 'idle'; return true; }
     const speed = rt.intervalOf(e), len = rt.swingTicks(unit, speed);
     e.swing = { start: state.tick ?? 0, len, strike: (state.tick ?? 0) + Math.round(len * (unit.strikeFraction ?? 0.4)), structure: st.key };
@@ -518,8 +547,91 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
+  // ---- workers repair and douse (7c-4, Tim 2026-11-12: manual) ----------------------------------------------------
+  // Workers sent by a 'work' order (sim/frontier/workers.js) to one of their own site's structures put its fire out
+  // first (repair.douseWork worker ticks), then mend it: repair.hpPerTick health per worker a tick, paid per health
+  // point from the site's stock (repair.cost; no stock, no repair). A ruined town hall is mended the same way: after
+  // repair.ruinShare of its health in work it stands again (damaged), and the town can place and train once more.
+  // They can be attacked while at it (they do not shelter).
+  const REP = () => R()?.repair || {};
+  const ownSt = (s, key) => { const st = find(key); return st && (s.camp ? st.camp && st.war === s.id : !st.camp && st.town === s.id) ? st : null; };
+  function hallRuin(s, key) {
+    if (s.camp || typeof key !== 'string') return null;
+    const [side, id, cell] = key.split('|');
+    return side === 't' && id === s.id ? (s.buildings || []).find(b => b.type === 'town_hall' && b.stage === 'ruined' && String(cellsOf(b)[0]) === cell) || null : null;
+  }
+  const ruinSpot = (s, b) => { const pts = cellsOf(b).map(i => cellToWorld(s, i)); return { x: pts.reduce((n, p) => n + p[0], 0) / pts.length, z: pts.reduce((n, p) => n + p[1], 0) / pts.length, r: Math.sqrt(pts.length) * (s.grid?.cell || 11) / 2 + 1 }; };
+  // the key a worker order needs for a ruined town hall of this town (null when it stands)
+  function hallRuinKey(s) { const b = (s?.buildings || []).find(x => x.type === 'town_hall' && x.stage === 'ruined'); return b ? `t|${s.id}|${cellsOf(b)[0]}` : null; }
+  function workTarget(s, key) {
+    const st = ownSt(s, key);
+    if (st) return hpOf(st) > 0 && (burning(st) || hpOf(st) < st.max) ? { x: st.x, z: st.z, r: (st.r || 4) + 1 } : null;
+    const b = hallRuin(s, key);
+    return b ? ruinSpot(s, b) : null;
+  }
+  const workWhy = (s, key) => ownSt(s, key) ? 'It is not damaged or burning' : find(key) ? 'Not one of your buildings' : 'Nothing to build, repair or put out there';
+  // pay for `hp` health points of repair from the site's stock; false when it is short (whole units, the rest is kept as a debt)
+  function payRepair(s, hp) {
+    const cost = REP().cost || {}, debt = s.camp ? (s.war.camp.repairDebt ||= {}) : (s.repairDebt ||= {});
+    const stock = s.camp ? s.war.camp.stock || {} : s.stock || {};
+    const due = {};
+    for (const [r, v] of Object.entries(cost)) { const d = (debt[r] || 0) + hp * v; due[r] = d; if (Math.floor(d) > (stock[r] || 0)) return false; }
+    for (const [r, d] of Object.entries(due)) {
+      const whole = Math.floor(d); debt[r] = d - whole;
+      if (whole > 0) { if (s.camp) addCampStock(s.war.camp, r, -whole); else world.change(s.id, r, -whole, 'repair'); }
+    }
+    return true;
+  }
+  function workOn(s, key, n) {
+    const st = ownSt(s, key), per = (REP().hpPerTick ?? 1) * n;
+    if (st) {
+      const fire = f().fires?.[st.key];
+      if (fire) { fire.doused = (fire.doused || 0) + n; if (fire.doused >= (REP().douseWork ?? 60)) douse(st); return 'working'; }
+      const hp = hpOf(st);
+      if (hp <= 0 || hp >= st.max) return 'done';
+      const gain = Math.min(st.max - hp, per);
+      if (!payRepair(s, gain)) return 'waiting';
+      if (hp + gain >= st.max - 1e-6) { clearHp(st); return 'done'; }
+      setHp(st, hp + gain);
+      return 'working';
+    }
+    const b = hallRuin(s, key);
+    if (!b) return 'done';
+    const max = townMax(s, b) || 1, need = max * (REP().ruinShare ?? 0.5);
+    if (!payRepair(s, per)) return 'waiting';
+    b.repair = (b.repair || 0) + per;
+    if (b.repair >= need) {
+      b.stage = 'built'; b.hp = Math.min(max, Math.round(b.repair)); delete b.repair;
+      world.recount?.(s.id);
+      note({ camp: false, town: s.id }, 'Town hall repaired');
+    }
+    return 'working';
+  }
+  // a worker leaves the hall shelter for his job
+  function workLeave(s, w) {
+    if (!w.shelter) return;
+    const u = state.entities?.[w.entity];
+    if (u?.garrison?.hall) delete u.garrison;
+    delete w.shelter;
+  }
+  workers?.attachJobs?.({ target: workTarget, why: workWhy, work: workOn, leave: workLeave });
+  // Stand-in until the bot general (8d): a bot clan's workers douse their own burning structures by themselves,
+  // repair.botDousers at a time (the player's never do: his are manual)
+  function botDouse() {
+    const fires = f().fires, n = REP().botDousers ?? 0;
+    if (!fires || !n || !workers?.workerOrder) return;
+    for (const key of Object.keys(fires)) {
+      const st = find(key); if (!st || !state.clans?.[st.owner]?.bot) continue;
+      const s = st.camp ? workers.siteOf?.(st.war) : st.s; if (!s?.workers?.length) continue;
+      const on = s.workers.filter(w => w.job?.key === key).length; if (on >= n) continue;
+      const free = s.workers.filter(w => !w.job && !w.project).map(w => { const p = workers.position?.(w) || w.departure || [s.x, s.z]; return { w, d: Math.hypot(p[0] - st.x, p[1] - st.z) }; }).sort((a, b) => a.d - b.d).slice(0, n - on).map(o => o.w.id);
+      if (free.length) workers.workerOrder(s, free, 'work', { target: key });
+    }
+  }
+
   function tick() {
     const fr = f(); if (!fr || !R()) return;
+    if ((state.tick ?? 0) % 20 === 7) botDouse();
     towers();
     garrisonFire();
     shelterTick();
@@ -529,12 +641,8 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const now = state.tick ?? 0, F = R().fire || {};
     for (const key of Object.keys(fires)) {
       const fire = fires[key], st = find(key);
-      if (!st || fire.until <= now || !canDamage(fire.by, st)) { delete fires[key]; continue; }
-      if (now % 20 === 0) {
-        let n = 0;
-        if (fire.fed) for (const id of Object.keys(fire.fed)) { if (now - fire.fed[id] > (F.lingerTicks ?? 60)) delete fire.fed[id]; else n++; }
-        damage(fire.by, st, (F.damage ?? 0) * Math.max(1, Math.min(F.maxFeeders ?? 3, n)), 'fire');
-      }
+      if (!st || (fire.until && fire.until <= now) || !canDamage(fire.by, st)) { delete fires[key]; continue; }
+      if ((now - (fire.at || 0)) % 20 === 19) damage(fire.by, st, F.damage ?? 0, 'fire');   // once a second from when it was lit
     }
     if (!Object.keys(fires).length) delete fr.fires;
   }
@@ -551,5 +659,5 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // 7-5: the built watchtowers of every war, for war stealth detection: [{ owner, x, z, range }]
   function watchers() { const T = R()?.tower; return T ? list().filter(st => st.type === 'watchtower' && hpOf(st) > 0).map(st => ({ owner: st.owner, x: st.x, z: st.z, range: T.detect ?? T.range ?? 0, sight: T.sight ?? 0 })) : []; }
   function attach(services) { rt = services; }
-  return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, ignite, torchers, watchers, attach };
+  return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, ignite, bombAt, douse, workTarget, workOn, hallRuinKey, burning, canTorch, torchers, watchers, attach };
 }

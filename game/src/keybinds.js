@@ -41,6 +41,7 @@ export const KEY_ACTIONS = [
   A('special4', 'Unit ability 4', 'Crew orders', 'Shift+KeyF'),
   A('torch', 'Torch an enemy structure in a war', 'Crew orders', [], { fixed: true, text: 'Shift + right-click' }),
   A('autoCast', 'Unit ability auto on or off', 'Crew orders', [], { fixed: true, text: 'Right-click the button' }),
+  A('workerWork', 'Send workers to build a camp site, repair or put out a fire, or order a ruin rebuilt', 'Crew orders', [], { fixed: true, text: 'Right-click it with workers selected' }),
   A('evacuate', 'Evacuate garrison', 'Crew orders', 'Shift+KeyK'),
   // Crew groups
   ...[1, 2, 3, 4].map(n => A(`group${n}`, `Select group ${n}`, 'Crew groups', `Digit${n}`)),

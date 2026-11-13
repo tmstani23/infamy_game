@@ -3,7 +3,7 @@
 import { distractionStep } from './distraction.js';
 import { stunned } from './kuroda.js';
 import { DOOR_RADIUS } from './game.js';
-export function createCrewStep({ gatling = { step: () => false }, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
+export function createCrewStep({ gatling = { step: () => false }, firebomb = { step: () => false }, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
   function crewStep(e, unit) {
     if(e.crewJob&&(e.dead||e.downed||e.jailed||e.deployment?.transfer||stunned(e,state.tick)))crewJobs.cancel(e);
     if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
@@ -28,6 +28,7 @@ export function createCrewStep({ gatling = { step: () => false }, assignments, b
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
     if (rifleman.step(e, unit)) return;
+    if (firebomb.step(e, unit)) return;   // war 7c-2: a fire-bomb thrower channels and throws (sim/firebomb.js)
     if (taunt.step(e, unit)) return;
     if (sectorCleanup.step(e,unit)) return;
     if (shinobiAssignments.step(e, unit)) return;

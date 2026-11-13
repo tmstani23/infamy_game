@@ -30,7 +30,7 @@ const noFarm = s => { s.buildings = s.buildings.filter(b => b.type !== 'farm'); 
 const add = (s, type) => s.buildings.push({ id: `x${s.buildings.length}${type}`, type, cell: null, stage: 'built', workers: 0 });
 const count = (s, type) => s.buildings.filter(b => b.type === type).length;
 
-// autoBuild off: suggestions only, zero new projects in 500 reviews; repairs and rebuilds still happen
+// autoBuild off: suggestions only, zero new projects in 500 reviews; a ruin waits for the player's Rebuild order (7c-4, Tim 2026-11-12)
 {
   const t = fresh(s => { noFarm(s); s.buildings.find(b => b.type === 'house').stage = 'ruined'; });
   const { s } = t;
@@ -41,8 +41,8 @@ const count = (s, type) => s.buildings.filter(b => b.type === type).length;
   assert.equal(count(s, 'farm'), 0, 'nothing new built without the OK');
   assert.equal(s.projects.length, 0);
   assert.equal(count(s, 'house'), 2);
-  assert.ok(s.buildings.every(b => b.stage === 'built'), 'the ruined house was rebuilt on its spot');
-  assert.equal(s.buildings.length, 2, 'rebuilt, not duplicated');
+  assert.equal(s.buildings.filter(b => b.stage === 'ruined').length, 1, 'the ruined house waits for a Rebuild order');
+  assert.equal(s.buildings.length, 2, 'not duplicated');
   assert.ok(t.maxProjects <= 1);
   assert.ok(s.report.doing && s.report.next, 'report text');
 }

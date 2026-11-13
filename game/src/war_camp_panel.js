@@ -82,10 +82,12 @@ import { msConcept } from './menu_shell.js';
 import { portrait } from './portraits.js';
 import { SPECIALS } from './sim/special_cast.js';
 import { ABOUT } from './ability_rows.js';
+import { drawBuildArea } from './camp_build_area.js';   // 7c-4: one merged build outline, darkened outside
 // what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
 const TRAITS = {
   kunoichi: 'Hidden on the island until she attacks or is hit; her first hit is an ambush. Vanish on a move order while seen. Dog handlers, Teppo riflemen and watchtowers can spot her.',
-  fire_bomber: 'Throws fire bombs: area damage to troops, sets wooden buildings alight; stone takes less.',
+  fire_bomber: 'Fights with a weak knife. His fire bomb is a special with a long cooldown and a short throw.',
+  spearman: 'Longer reach and more damage than the sword grunt, a little less health. Can torch buildings.', swordsman: 'Sword grunt. Can torch buildings.', ninja: 'Sword grunt, fast and light. Can torch buildings.', shinobi_spearman: 'Longer reach and more damage than the ninja, a little less health. Can torch buildings.',
   field_cannon: 'Siege gun: heavy damage to buildings, long range, slow to reload. Hard to push.',
   wooden_cannon: 'Siege gun: heavy damage to buildings, long range, slow to reload. Hard to push.',
   gatling_crew: 'Sets up before it fires a cone of bullets, packs up to move. Cannot fire up close or fight hand to hand.',
@@ -100,7 +102,17 @@ const DOES = {
   lumber_camp: () => 'Camp workers drop timber here.', quarry: () => 'Camp workers drop stone here.',
 };
 
-export function createWarCampPanel({ game, heroId, view, catalog, frontierData, units = null, send, blocked = () => false, onStart = () => {} }) {
+export function createWarCampPanel({ game, heroId, view, catalog, frontierData, units = null, send, blocked = () => false, onStart = () => {}, buildUI = () => null }) {
+  // 7c-4: the Workers tab shows the town worker pane for the camp (frontier_build_ui.js campWorkersHtml); its styles are
+  // written for #townpanel in menu_shell.css, so they are copied once for #warcamp .campworkers
+  let workerCss = false;
+  function ensureWorkerCss() {
+    if (workerCss) return; workerCss = true;
+    const out = [];
+    for (const sheet of document.styleSheets) { let rules; try { rules = sheet.cssRules; } catch { continue; }
+      for (const r of rules || []) if (r.selectorText?.includes('#townpanel') && /\.(w[a-z]+|workerroster|hint|harvestline)\b/.test(r.selectorText)) out.push(r.cssText.replaceAll('#townpanel', '#warcamp .campworkers')); }
+    const st = document.createElement('style'); st.textContent = out.join('\n') + '\n#warcamp .campworkers{margin-top:8px}'; document.head.appendChild(st);
+  }
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
@@ -133,9 +145,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const builders = id => (c.workers || []).filter(k => k.project === id).length, maxB = W().builders ?? 3;
     const bld = bid ? c.buildings.find(x => x.id === bid) || null : null; if (bid && !bld) bid = null;
     const faction = clan?.faction, ST = game.frontier?.structures, stOf = x => ST?.find?.(`c|${open}|${x.id}`) || null;
+    const workersH = !bld && tab === 'workers' ? (ensureWorkerCss(), buildUI()?.campWorkersHtml?.(open) || '<div class="small" style="padding:8px 0">The worker list is not ready yet.</div>') : '';
     const next = JSON.stringify([open, bid, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length,
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
-      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
+      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
     sig = next;
     // a count box being typed in keeps its focus and text across the redraw (it used to block the redraw instead)
@@ -191,12 +204,14 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
           ${x.need.length ? `<div class="lockline">Needs ${esc(x.need.map(n => n.replace(/^a built |^the /, '')).join(', '))}</div>` : `<div class="cost">${chips(x.cost, c)}</div>`}</div>`;
       }).join('')}</div>
       <div class="foot"><span class="small">Page ${page + 1} of ${pages}</span><span><button data-page="-1"${page ? '' : ' disabled'}>Prev</button> <button data-page="1"${page < pages - 1 ? '' : ' disabled'}>Next</button></span></div>
-      <div class="sec"><span>Under construction</span><b>${maxB} builders at most per site</b></div>
+      <div class="sec"><span>Under construction</span><b>select workers, right-click the site</b></div>
       ${sites.length ? sites.slice(0, 3).map(b => { const j = b.upgrade || b, n = builders(b.id);
         return `<div class="site"><div class="thumb"><img src="${esc(artUrl(b.type))}" alt=""></div><div><div style="font-weight:600">${esc(b.upgrade ? 'Camp hall upgrade' : nice(b.type))}</div><div class="prog"><i style="width:${Math.round(100 * (j.progress || 0) / Math.max(1, j.need))}%"></i></div></div>
-          <div class="pipw" title="${n} of ${maxB} builders. Idle camp workers walk over and build; workers you gave their own orders keep them.">${Array.from({ length: maxB }, (_, i) => `<i class="${i < n ? '' : 'off'}"></i>`).join('')}</div>
+          <div class="pipw" title="${n} builders. Builders are sent by hand: select camp workers and right-click the site. More workers build faster. A site with nobody on it flashes.">${n ? `${n} building` : 'no workers'}</div>
           ${b.upgrade ? '<span></span>' : `<button data-cancel="${esc(b.id)}" title="${esc(j.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button>`}</div>`; }).join('') + (sites.length > 3 ? `<div class="small" style="margin-top:4px">and ${sites.length - 3} more</div>` : '')
         : '<div class="small" style="padding:8px 0">Nothing being built. Pick a building above, then click the ground near your camp.</div>'}`;
+    } else if (tab === 'workers') {
+      body = workersH;
     } else if (tab === 'chest') {
       body = `<div class="chestbox"><div class="chestcoin" title="Ryo for troops and camp workers"><b>${Math.floor(c.chest || 0)}</b><span>ryo in the war chest</span></div>
         <div><div style="font-size:16px;color:#f3e3bd">What it pays for</div><div class="small" style="margin-top:4px">Every troop you train at a camp building and every camp worker you hire is paid from here. Camp buildings are paid in timber and stone from the camp stores instead.</div>
@@ -214,20 +229,24 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     root.innerHTML = `<div class="win" role="dialog" aria-label="War camp"><header><div><div class="eyebrow">${esc(/ clan$/i.test(clan?.name || '') ? clan.name : `${clan?.name || 'Your'} clan`)}, war camp</div><h2>${bld ? esc(nice(bld.type)) : `Siege of ${esc(town?.name || 'the town')}`}</h2></div><button data-close="1">Esc</button></header>
       <div class="lay"><aside>${bld ? (() => { const st = stOf(bld), idx = c.buildings.filter(x => x.type === bld.type).indexOf(bld) + 1;
         return `<div class="art"><img class="hall" src="${esc(artUrl(bld.type))}" alt=""></div><span class="tier">${esc(nice(bld.type))} ${idx}</span>${st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : bld.stage === 'site' ? '<div class="small">Under construction</div>' : ''}
-        <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it. Click the camp hall for more.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}</div>
-        <div class="small" style="margin-top:10px">Click the camp hall to build and upgrade. Each training building has its own menu.</div></aside>`; })() : `<div class="art"><img class="hall" src="${esc(artUrl('camp_hall'))}" alt=""><img class="flag" src="${esc(artUrl('war_banner'))}" alt=""></div>
+        <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it. Right-click the camp hall for more.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}</div>
+        <div class="small" style="margin-top:10px">Right-click the camp hall to build and upgrade. Each training building has its own menu.</div></aside>`; })() : `<div class="art"><img class="hall" src="${esc(artUrl('camp_hall'))}" alt=""><img class="flag" src="${esc(artUrl('war_banner'))}" alt=""></div>
         <span class="tier">Camp hall, tier ${tier}</span>${(() => { const st = stOf(hall || {}); return st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : ''; })()}${hall?.upgrade ? `<div class="small">Upgrading ${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%</div>` : ''}
         <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}
           ${coin('', Math.floor(c.stock.timber || 0), 'Timber', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', Math.floor(c.stock.stone || 0), 'Stone', 'Camp stores: pays for camp buildings. Camp workers gather more.')}</div>
         <div class="upg" title="${esc(`Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} in all. They gather timber and stone anywhere in the war circle outside the town ring and build your camp.`)}"><b>Workers ${(c.workers || []).length + (c.workerTraining || []).length} of ${C.workerCap ?? '?'}</b>
           <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div></div></aside>`}
-      <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['chest', 'War chest'], ['hall', 'Hall']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
+      <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['workers', 'Workers'], ['chest', 'War chest'], ['hall', 'Hall']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
     if (typing?.n) { const el = [...root.querySelectorAll('input')].find(x => x.dataset.n === typing.n); if (el) { el.focus(); try { el.setSelectionRange(typing.a, typing.b); } catch {} } }
   }
   root.addEventListener('input', e => { const k = e.target?.dataset?.n; if (k) counts[k] = e.target.value; });
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
   const count = key => { const n = Math.floor(Number(counts[key] ?? 1)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
+  // 7c-4: the Workers tab's buttons and group boxes belong to the worker pane (frontier_build_ui.js)
+  root.addEventListener('click', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.click(a.dataset, s, e)) { sig = ''; fill(); } });
+  root.addEventListener('dblclick', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
+  root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
     const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
@@ -262,7 +281,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const w = rec(placing.war); if (!w) { cancelPlacing(false); return; }
     ghost.hidden = false; ghost.width = innerWidth; ghost.height = innerHeight;
     const ctx = ghost.getContext('2d'), chain = W().chainDistance ?? 120;
-    for (const b of w.camp.buildings) ring(ctx, b.x, b.z, chain, 'rgba(224,184,90,.45)', 1.5, [8, 8]);
+    drawBuildArea(ctx, view, w, W(), placing.kind, frontierData?.workers?.gatherBuildings || []);   // 7c-4: one outline, the ground outside darkened
     if (!mouse) { hint.hidden = true; return; }
     const p = view.screenToGround(mouse.x, mouse.y); if (!p) { hint.hidden = true; return; }
     const next = `${Math.round(p.x)},${Math.round(p.z)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}|${placing.from ? `${placing.from.x},${placing.from.z}` : ''}`;

@@ -340,3 +340,8 @@ The Kuroda spell cone now has softer fill (0.16 opacity, no bloom), a thin rim (
 Shared Taunt now accepts enemy heroes and bandits. Police require a direct explicit attack; civilians are not Taunt combatants. Taunt lands instantly before pursuit, without an animation lock, so an enforcer can engage and chase during the same cast tick. Hero, bandit and police AI honor the forced target while their own stun still prevents action. Existing cooldown, radius, duration and damage reduction remain unchanged, including Kuroda's 8 s cooldown, 3 s duration, 4.5-range 90° cone and 35% self reduction. All factions use the common rules.
 
 Coordinator reports the Kuroda visual-pose, lightning, chain and sprite-pair checks passing, plus changed-JS syntax/diff checks. No final browser gameplay or visual-runtime playtest is claimed.
+
+## War: torch and fire bombs (2026-11-13)
+
+- Torch: only units in frontier.json war.structures.torch.types (thug, swordsman, spearman, ninja, ninja_tanto, shinobi_spearman) and a melee hero, never mounted, on a Torch order. A 1 second cast (torch.castTicks 20) at the building, broken by stun, stagger, knockdown, charm and taunt, not by plain hits; they retry until it burns, then hit it. One fire per building, burning at fire.damage 60 a second until workers douse it or the building falls.
+- Fire bomb (sim/firebomb.js): the fire-bomb thrower's normal attack is a knife (damage 8). The bomb is a special: 1.5 s channel with a ground ring, range 5.5, 140 damage to every enemy within 2.6, 250 to a building; stone takes x0.25 and does not burn, wood catches fire. Cooldown 15 s. Stun and the like break the channel.

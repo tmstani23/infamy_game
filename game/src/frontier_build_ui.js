@@ -7,7 +7,8 @@ import { townCellTip, townName } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
 import { spotYield, richReach, overwork, regrowChance, supportsWorkers } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
-import { workerPanelHTML, workerJob, workerStatus } from './worker_panel.js';
+import { workerPanelHTML, workerJob, workerTask, workerStatus } from './worker_panel.js';
+import { isRich } from './sim/resource_spots.js';
 import { cargoIcon, CARGO_ICON_SIZE } from './cargo_icons.js';
 import {workerDetails,workerPresentation,campSitesOf} from './worker_details.js';
 import {watchCrewGroup} from './crew_watch.js';
@@ -74,7 +75,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   let inspectionHtml = '', inspectionPressed = false;
   let pendingPlan = null, reviewHtml = '', reviewPressed = false;
   let workerPage = 0;
-  let workerTab='roster',workerLogPage=0;
+  let workerTab='roster',workerLogPage=0,workerSpotPage=0;
   let workersOpen = false;
   let rosterClick=null;
   let lastPreview = '', preview = null, seen = 0, messageUntil = 0;
@@ -148,7 +149,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const C = data.workers.carts, used = Object.values(b.store || {}).reduce((a, v) => a + v, 0), pct = Math.min(100, Math.round(100 * used / C.cap));
     const col = pct >= 100 ? '#d9694a' : pct >= 75 ? '#d9a25a' : '#7fc27a', carts = b.carts || [];
     const res = Object.entries(b.store || {}).filter(([, v]) => v > 0).map(([r, v]) => `${Math.round(v)} ${esc(r)}`).join(', ') || 'empty';
-    const where = { camp: 'At camp', out: 'To town', back: 'Returning' }, secs = t => `${Math.ceil((t || 0) / 20)}s`;
+    const where = { camp: 'At camp', out: 'To town', back: 'Returning', parked: 'Parked in town', wrecked: 'Destroyed, new cart in' }, secs = t => `${Math.ceil((t || 0) / 20)}s`;
     const chip = c => { const load = Object.values(c.load || {}).reduce((a, v) => a + v, 0);
       return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;margin:2px 0;border-radius:4px;background:rgba(255,255,255,.06)"><span>Cart, ${where[c.at] || c.at}${c.t ? `, ${secs(c.t)}` : ''}</span><span>${c.at === 'out' ? `${Math.round(load)} / ${C.maxLoad}` : `max ${C.maxLoad}`}</span></div>`; };
     const perMin = b.cartTicks ? carts.length * C.maxLoad * 1200 / (2 * b.cartTicks) : null, keep = perMin && C.workerPerMin ? Math.floor(perMin / C.workerPerMin) : null;
@@ -231,6 +232,35 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     say(`Harvest order: ${townName(spot.kind)}`);
   }
+  // 7c-4 (Tim 2026-11-12: builders, repair and douse are manual). What the selected workers can work on under the
+  // pointer: a camp building site or the camp hall while it is upgraded (build), one of their site's damaged or
+  // burning structures or a ruined town hall (douse, repair), or a ruined placed building of their town (the Rebuild
+  // order). Sends the order and returns true when there was something.
+  function workAt(x, y) {
+    const p = view.screenToGround(x, y), ST = game.frontier?.structures;
+    if (!p) return false;
+    let sent = false;
+    for (const s of workSites()) {
+      const ids = selectedLive().filter(q => q.s.id === s.id).map(q => q.w.id);
+      if (!ids.length) continue;
+      let target = null, what = '';
+      if (s.camp) {
+        const bs = s.war?.camp?.buildings || [], hit = b => Math.hypot(b.x - p.x, b.z - p.z) <= (data.war?.buildings?.[b.type]?.radius ?? 8);
+        const site = bs.find(b => (b.stage === 'site' || b.upgrade) && hit(b));
+        if (site) { target = site.id; what = 'Workers: build'; }
+        else { const b = bs.find(b => b.stage === 'built' && hit(b)), key = b && `c|${s.id}|${b.id}`; if (key && ST?.workTarget?.(s, key)) { target = key; what = 'Workers: put out the fire and repair'; } }
+      } else if (s.grid) {
+        const cell = worldToCell(s, p.x, p.z), b = cell >= 0 ? (s.buildings || []).find(q => (q.cells || [q.cell]).includes(cell)) : null;
+        if (b?.stage === 'ruined' && b.type !== 'town_hall') { command({ action: 'rebuild', settlement: s.id, building: b.id }); say('Rebuild order given'); sent = true; continue; }
+        const key = cell >= 0 ? `t|${s.id}|${b ? (b.cells || [b.cell])[0] : cell}` : null;
+        if (key && ST?.workTarget?.(s, key)) { target = key; what = b?.stage === 'ruined' ? 'Workers: repair the town hall' : 'Workers: put out the fire and repair'; }
+      }
+      if (!target) continue;
+      command({ action: 'workerOrder', town: s.id, workers: ids, kind: 'work', target });
+      say(what); sent = true;
+    }
+    return sent;
+  }
   function orderSelected(kind,position={}) {
     for(const s of workSites()) {
       const ids=selectedLive().filter(p=>p.s.id===s.id).map(p=>p.w.id);
@@ -284,6 +314,13 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       trainTown = towns().find(s => s.id === inspect.town);
       info = townCellTip(trainTown, inspect.cell, data);
     }
+    // 7c-4: a ruined placed building comes back only by a Rebuild order (the town hall: by workers sent to repair it)
+    const ruin = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell) && b.stage === 'ruined') : null;
+    if (ruin) {
+      const rebuilding = (trainTown.projects || []).some(p => p.replaces === ruin.id), cost = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
+      info = { title: `${townName(ruin.type)} (ruin)`, lines: [ruin.type === 'town_hall' ? 'Select workers and right-click it to repair it' : rebuilding ? 'Being rebuilt' : 'Stays a ruin until you order it rebuilt'] };
+      if (ruin.type !== 'town_hall' && !rebuilding) info.work = `<div class="ti-acts"><button class="ti-go" data-rebuild="${esc(ruin.id)}" data-rebuild-town="${esc(trainTown.id)}" title="The town's builders rebuild it on the same spot at the normal cost (${esc(cost)}). Not while a war is on this town. You can also right-click the ruin with workers selected.">Rebuild</button></div>`;
+    }
     if (!info) { card.hidden = true; return; }
     const bt = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell))?.type : null;
     const art = bt && data.townArt?.[bt] ? msArt(data.townArt[bt]) : '';
@@ -314,6 +351,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if(b?.hasAttribute('data-drop'))requestDrop();
     if (b?.dataset.train) requestTraining(b.dataset.train);
     if (b?.dataset.upgrade) command({ action: 'upgradeHall', settlement: b.dataset.upgrade });
+    if (b?.dataset.rebuild) { command({ action: 'rebuild', settlement: b.dataset.rebuildTown, building: b.dataset.rebuild }); return; }
     if (b?.dataset.buyCart) { command({ action: 'buyCart', town: b.dataset.cartTown, building: b.dataset.buyCart }); return; }
     if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
     if (b?.dataset.stable) { onStable(b.dataset.stable); inspect = null; card.hidden = true; return; }
@@ -368,6 +406,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!canvasEvent(e)) return;
     if (e.button === 0) { pendingPlan = null; review.hidden = true; }
     if (e.button === 2 && tool) { cancel(); consume(e); return; }
+    // 7c-4: right-click a building site, a damaged or burning building of yours, or a ruin, with workers selected
+    if (e.button === 2 && selectedLive().length && workAt(e.clientX, e.clientY)) { consume(e); return; }
     const spot = e.button === 2 && selectedLive().length ? spotAt(e.clientX, e.clientY) : null;
     if (spot) { assign(spot); consume(e); return; }
     if(e.button===2 && selectedLive().length) {
@@ -628,7 +668,19 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + `<div class="hint">${guide}<br>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. The hall is a drop-off; a lumber camp is optional.</div>`
       + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';
   }
-  return { update, html, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen,
+  // 7c-4 (items 25 and 26): the war camp's Workers tab. The same worker pane as a town's (every worker with status
+  // and job, task coins as filters, groups, log), and its Spots view lists every timber and stone spot in the camp's
+  // reach, rich or not. The camp panel (war_camp_panel.js) shows this html and passes clicks to click() with campSite(id).
+  const campSite = warId => workSites().find(s => s.camp && s.id === warId) || null;
+  function campWorkersHtml(warId) {
+    const s = campSite(warId), t = s && game.state.frontier?.settlements?.[s.war.town];
+    if (!s) return '';
+    const res = data.war?.camp?.resources || ['timber', 'stone'], R = data.war?.circleRadius ?? 0;
+    const spots = t && Number.isFinite(t.x) ? spotIndex.spotsNear(t.x, t.z, R).filter(p => res.includes(data.workers?.resources?.[p.kind]) && Math.hypot(p.x - t.x, p.z - t.z) > ringRadius(t, data) && known(p.x, p.z)) : [];
+    const spotState = p => ({ rich: isRich(p), yieldText: spotRules?.stages ? `${spotYield(p, game.state.frontier?.spots?.[p.id], spotRules.stages)} a trip` : '' });
+    return `<div class="campworkers">${workerPanelHTML(s, { overworked: overworkedSpots(s), selected, index: spotIndex, data, page: workerPage, known, tab: workerTab, logPage: workerLogPage, camp: true, spots, spotPage: workerSpotPage, spotState })}</div>`;
+  }
+  return { update, html, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen, campWorkersHtml, campSite,
     // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
     selectedWorkers:()=>selected.length>1?selectedLive().map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),id:`worker:${p.w.id}`,wid:p.w.id,worker:true,status:workerStatus(p.w,spotIndex)})):[],
     pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id]);},
@@ -651,7 +703,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-workers') {cancel();opened=false;workersOpen=!workersOpen;}
       if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id]);
       if (ds.act === 'build-worker-all')select((s.workers || []).map(w=>w.id));
-      if (ds.act === 'build-worker-job') {const ids=(s.workers || []).filter(w=>workerJob(w,spotIndex)===ds.id).map(w=>w.id);select(e?.ctrlKey || e?.shiftKey?[...new Set([...selected,...ids])]:ids);}
+      if (ds.act === 'build-worker-job') {const ids=(s.workers || []).filter(w=>workerTask(w,spotIndex)===ds.id).map(w=>w.id);select(e?.ctrlKey || e?.shiftKey?[...new Set([...selected,...ids])]:ids);}
       if (ds.act === 'build-worker-group')select((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));
       if (ds.act === 'build-worker-stop')orderSelected('hold');
       if (ds.act === 'build-worker-return')orderSelected('return');
@@ -661,6 +713,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
       if (ds.act === 'build-worker-tab') {workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}
       if (ds.act === 'build-worker-log-page')workerLogPage=Number(ds.id);
+      if (ds.act === 'build-worker-spot-page')workerSpotPage=Number(ds.id);
       if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}
       return true;
     },

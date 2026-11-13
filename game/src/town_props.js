@@ -185,7 +185,10 @@ export function townProps(towns, townArt, townLights = {}) {
         for (const [k, dx, dz] of [[0, -0.95, 0.55], [1, 0.95, 0.55], [2, 0, -0.95]]) out.push({ key: `${s.id}:${b.id}:up${phase}:${k}`, art: k === 2 && phase < 3 ? 'wall_planks' : site, x: s.x + ox + dx * c, z: s.z + oz + dz * c });
       }
       // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
-      if (b.stage === 'built') for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
+      if (b.stage === 'built' && !s.camp) for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
+      // 7c-5 war camp night lighting (Tim 2026-11-12): braziers, lantern posts and bonfires beside finished camp buildings
+      // (townLights.camp[type] = [[art, angle in degrees, distance], ...], existing lit art from data/art.json)
+      if (b.stage === 'built' && s.camp) (townLights.camp?.[b.type] || []).forEach(([art, deg, d], k) => out.push({ key: `${s.id}:${b.id}:light${k}`, art, x: s.x + ox + Math.cos(deg * Math.PI / 180) * d, z: s.z + oz + Math.sin(deg * Math.PI / 180) * d }));
     });
     for (const p of townCellsToProps(s.grid, townArt, s.zones)) out.push({ ...p, key: `${s.id}:${p.key}`, x: s.x + p.x, z: s.z + p.z });
     // a breached wall or gate cell (war checkpoint 6): rubble on open ground

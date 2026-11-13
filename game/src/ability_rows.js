@@ -8,6 +8,7 @@
 // A button shows ready / total; with none ready it is grey and counts down the shortest cooldown in the group.
 // Right-click a button: auto-cast on or off for the selected units of that type (a moving dotted border and the
 // word Auto while on). Units on a Torch order carry a small flame mark over their heads.
+// 7c-2: only grunts, spearmen, plain melee crew and a melee hero torch (a 1 second cast); Fire bomb is a special.
 // Presentation and input only; the rules are in sim/frontier/structures.js and sim/special_cast.js.
 import { SPECIALS, specialView } from './sim/special_cast.js';
 import { sharedKeybinds } from './keybinds.js';
@@ -18,6 +19,7 @@ const ICONS = {
   charm: svg('<path d="M12 20s-7-4.400-7-9.500A3.800 3.800 0 0 1 12 8a3.800 3.800 0 0 1 7 2.500C19 15.600 12 20 12 20z"/>'),
   aimed: svg('<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>'),
   taunt: svg('<path d="M4 10v4h3l5 4V6l-5 4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.500 6.500a8 8 0 0 1 0 11"/>'),
+  firebomb: svg('<circle cx="11" cy="15" r="5.500"/><path d="M14.500 10.500l3-3M17.500 7.500c1-2 3-1.500 2.500-3.500"/>'),
   hamstring: svg('<path d="M4 20L18 6M18 6h-5M18 6v5"/><path d="M5 15l4 4"/>'),
   gatling: svg('<circle cx="7" cy="15" r="4"/><path d="M9 12l11-5M10 14l11-5M20 7v2"/>'),
   dogs: svg('<path d="M4 9l3-3 2 3h6l3-3 2 3v5a6 6 0 0 1-6 5h-4a6 6 0 0 1-6-5V9z"/><path d="M9.500 13h.010M14.500 13h.010M11 16.500h2"/>'),
@@ -26,6 +28,7 @@ export const ABOUT = {
   charm: 'Then left-click near an enemy. The nearest ready geisha charms the enemy closest to the click. An enemy already charmed is skipped.',
   aimed: 'Then left-click near an enemy. The nearest ready rifleman takes a slow, heavy shot at the enemy closest to the click. A target another rifleman is already aiming at is avoided.',
   taunt: 'The ready enforcer nearest the pointer taunts the enemies around him so they turn on him. Enemies already taunted are skipped.',
+  firebomb: 'Then left-click an enemy building or the ground near enemies, within his throw. The nearest ready fire-bomb thrower winds up; a ring on the ground shows where the bomb will land. It hits every enemy in the ring hard and sets a wooden building on fire; stone takes less and does not burn. A stagger, stun or knockdown breaks the wind-up. Long cooldown. His normal attack is a weak knife.',
   hamstring: 'Then left-click near an enemy. The nearest ready archer shoots a slowing arrow at the enemy closest to the click.',
   gatling: 'Then left-click the ground. The nearest Gatling crew sets up where it stands and holds its aim at that spot, firing at every enemy in its cone. Without it the gun turns to the nearest enemy on its own once set up. Any move order packs it up and frees the aim.',
   dogs: 'Then left-click near an enemy. The nearest ready dog handler looses his dogs at the enemy closest to the click: they bite for heavy damage and knock it down for a moment. On auto he sends them at ranged or fleeing enemies.',
@@ -46,7 +49,7 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
   const torchAt = p => { const s = picked(); send({ id: heroId, type: 'order', kind: 'raze', torch: true, x: p.x, z: p.z, slack: 6, units: s.units, hero: s.hero, place: 'world' }); };
   const ABILITIES = [
     { id: 'torch', name: 'Torch', targeted: true, keyText: 'Shift + RMB',
-      about: 'Hold Shift and right-click an enemy building, wall, gate or house in your war (or click this button, then left-click it). Every selected melee unit runs over and sets it on fire. One fire per building; it burns harder with up to 3 units feeding it and dies down a few seconds after they stop. Ranged units ignore the order. A plain right-click attacks without fire.',
+      about: 'Hold Shift and right-click an enemy building, wall, gate or house in your war (or click this button, then left-click it). Every selected grunt and spearman, plain melee crew and a melee hero run over and light it with a 1 second cast. A stagger, stun, knockdown, charm or taunt breaks the cast and they start again; plain hits do not. One fire per building; it burns until workers put it out or the building falls. Once it burns they keep hitting it. Other units ignore the order. A plain right-click attacks without fire.',
       view: () => { const n = torchers(); return { have: n, ready: n }; },
       cast: p => torchAt(p) },
     ...Object.entries(SPECIALS).map(([id, S]) => ({ id, name: S.name, targeted: S.targeted, special: true, noAuto: !!S.noAuto, about: ABOUT[id] || '',

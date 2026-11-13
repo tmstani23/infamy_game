@@ -6,7 +6,7 @@ import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from
 import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature, campBlockSignature, ringRadius } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
-import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint } from './camp_carts.js';
+import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint, orderCarts, wreckCart } from './camp_carts.js';
 import { workerCap, nextTier } from './tiers.js';
 import { workerCount } from './people.js';
 const HZ=20;
@@ -107,6 +107,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const towns=()=>Object.values(state.frontier.settlements).filter(s=>!s.capital);
   // F6 war camps (checkpoint 3): a war camp is a work site like a town. The adapter below lets the worker code treat it
   // as one: camp workers/training/stock live on the war record (state.frontier.wars.list[id].camp), sealed from every town.
+  let jobs=null;   // 7c-4: repair and douse rules, attached by sim/frontier/structures.js
   const CW=()=>data.war?.camp || {};
   const campRes=()=>CW().resources || ['timber','stone'];
   const newWorker=()=>({id:world.newId('w'),spot:null,dropoff:null,phase:0,carrying:0,entity:null,elapsed:0,trip:null});
@@ -206,7 +207,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       w.by=by;
       delete w.order;delete w.nextOrder;delete w.status;delete w.retryAt;
       if(w.carrying>0){setReturnTrip(w,returns.get(w));w.nextSpot=spot.id;}
-      else { w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);w.spot=spot.id;w.trip=null;w.elapsed=0;w.phase=0;w.dropoff=null;delete w.project; }
+      else { w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);w.spot=spot.id;w.trip=null;w.elapsed=0;w.phase=0;w.dropoff=null;delete w.project;delete w.buildAt; }
+      delete w.job;
     }
     return result();
   }
@@ -286,7 +288,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const target=route.at(-1),out=Math.max(1,walkTicks(length(route)));
     return {kind:'move',origin:target,destination:target,outPath:route,backPath:[target,target],out,harvest:0,back:0,total:out,load:0,harvested:true};
   }
-  function workerOrder(s,ids,kind,{x,z,group,confirm}={}) {
+  function workerOrder(s,ids,kind,{x,z,group,confirm,target}={}) {
     if(!Array.isArray(ids) || !ids.length || new Set(ids).size!==ids.length)return result('workers must list each id once');
     const selected=ids.map(id=>s.workers?.find(w=>w.id===id));
     if(selected.some(w=>!w))return result('unknown worker');
@@ -294,7 +296,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(confirm!==true)return result('Confirm: dropped resources are permanently lost');
       for(const w of selected) {
         const here=currentPoint(w) || [s.x,s.z];w.carrying=0;w.spot=null;w.trip=null;w.elapsed=0;w.phase=0;w.departure=here;w.order={kind:'hold'};w.by='p';
-        delete w.cargoResource;delete w.nextSpot;delete w.nextOrder;delete w.project;delete w.status;delete w.retryAt;
+        delete w.cargoResource;delete w.nextSpot;delete w.nextOrder;delete w.project;delete w.buildAt;delete w.job;delete w.status;delete w.retryAt;
       }
       return result();
     }
@@ -304,7 +306,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(plans.some(p=>!p.route || !p.resource))return result('No walking route to a resource drop-off');
       for(const plan of plans) {
         const {w}=plan;setReturnTrip(w,plan);w.nextOrder={kind:'hold'};w.by='p';
-        delete w.order;delete w.nextSpot;delete w.project;delete w.status;delete w.retryAt;
+        delete w.order;delete w.nextSpot;delete w.project;delete w.buildAt;delete w.job;delete w.status;delete w.retryAt;
       }
       return result();
     }
@@ -312,6 +314,27 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(!Number.isInteger(group) || group<0 || group>(R.groups || 4))return result('invalid worker group');
       for(const w of selected)w.group=group;
       return result();
+    }
+    // 7c-4 (Tim 2026-11-12): builders, repair and douse are manual. kind 'work', target = a camp building site (or the
+    // camp hall while it is upgraded) to build, or the key of one of this site's structures to douse and repair
+    // (sim/frontier/structures.js workTarget / workOn). More workers work faster. They stay on it until it is done.
+    if(kind==='work') {
+      const b=s.camp && typeof target==='string' ? s.buildings.find(x=>x.id===target && (x.stage==='site' || x.upgrade)) : null;
+      const job=b ? null : jobs?.target?.(s,target);
+      if(!b && !job)return result(jobs?.why?.(s,target) || 'nothing to build, repair or put out there');
+      const at=b ? {x:b.x,z:b.z,r:(data.war?.buildings?.[b.type]?.radius ?? 8)*0.8} : job;
+      const others=s.workers.filter(w=>!selected.includes(w) && (b ? w.project===b.id : w.job?.key===target)).length;
+      let sent=0;
+      selected.forEach((w,i)=>{
+        const here=currentPoint(w) || [s.x,s.z],a=(others+i)*2.399963,route=path(here,[at.x+Math.cos(a)*at.r,at.z+Math.sin(a)*at.r]) || path(here,[at.x+Math.cos(a+Math.PI)*at.r,at.z+Math.sin(a+Math.PI)*at.r]);
+        if(!route)return;
+        jobs?.leave?.(s,w);
+        w.by='p';w.spot=null;w.dropoff=null;delete w.order;delete w.nextOrder;delete w.nextSpot;delete w.status;delete w.retryAt;delete w.project;delete w.buildAt;delete w.job;
+        if(w.carrying>0)w.cargoResource=cargoType(w);
+        if(b){w.project=b.id;w.buildAt=route.at(-1);}else w.job={key:target,at:route.at(-1)};
+        w.departure=here;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;sent++;
+      });
+      return sent ? result() : result('no walking route to it');
     }
     if(!['move','hold'].includes(kind))return result('unknown worker order');
     if(kind==='move' && (!Number.isFinite(x) || !Number.isFinite(z)))return result('invalid move position');
@@ -326,7 +349,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     });
     if(kind==='move' && plans.some(p=>!p.route))return result('no walking route to that position');
     for(const {w,here,route} of plans) {
-      w.by='p';delete w.project;delete w.nextSpot;delete w.status;delete w.retryAt;
+      w.by='p';delete w.project;delete w.buildAt;delete w.job;delete w.nextSpot;delete w.status;delete w.retryAt;
       if(w.carrying>0)w.cargoResource=cargoType(w);
       if(kind==='hold') {w.order={kind:'hold'};delete w.nextOrder;w.departure=here;}
       else {
@@ -340,6 +363,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   function reroute(s,w) {
     const here=currentPoint(w);if(!here)return false;
     if(w.project && w.buildAt) {const route=path(here,w.buildAt);if(!route)return false;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;return true;}   // a camp builder on its way to a site
+    if(w.job?.at) {const route=path(here,w.job.at);if(!route)return false;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;return true;}   // on its way to a repair or a fire
     // (no shared paths.clear(): one stuck worker replanning every tick made every worker re-search its routes)
     if(w.order?.kind==='move') {
       const route=path(here,w.order.target);if(!route)return false;
@@ -506,11 +530,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!left.length) {p.phase='cleared';delete p.clearWork;for(const w of selected)delete w.project;}
     return new Set(selected);
   }
-  // War camp construction (checkpoint 4): up to war.builders idle camp workers walk to each building site (and to
-  // the camp hall while it is upgraded) and build it, one progress point per worker per tick at the site. Workers the
-  // player has given their own picks are never taken; they can be sent by order later. Returns the busy builders.
+  // War camp construction (checkpoint 4; 7c-4, Tim 2026-11-12: manual). Workers sent by a 'work' order walk to the
+  // building site (or the camp hall while it is upgraded) and build it, one progress point per worker per tick at the
+  // site: more workers build faster. A site with nobody on it is marked b.idle (it flashes on screen). Only a bot
+  // clan's camp still sends up to war.builders idle workers by itself. Returns the busy builders.
   function campBuild(s) {
-    const BD=data.war?.buildings || {},max=data.war?.builders ?? 3,busy=new Set();
+    const BD=data.war?.buildings || {},max=state.clans?.[s.owner]?.bot ? data.war?.builders ?? 3 : 0,busy=new Set();
     const jobs=s.buildings.filter(b=>b.stage==='site' || b.upgrade),ids=new Set(jobs.map(b=>b.id));
     for(const w of s.workers)if(w.project && !ids.has(w.project)) {
       delete w.project;delete w.buildAt;
@@ -523,7 +548,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         const free=s.workers.filter(w=>!w.project && !w.order && !w.carrying && w.by!=='p' && w.trip?.kind!=='return')
           .map(w=>({w,d:distance(currentPoint(w) || [s.x,s.z],[b.x,b.z])})).sort((a,c)=>a.d-c.d || compare(a.w.id,c.w.id));
         for(const {w} of free.slice(0,max-crew.length)) {
-          const here=currentPoint(w) || [s.x,s.z],a=crew.length*2*Math.PI/max,goal=[b.x+Math.cos(a)*r,b.z+Math.sin(a)*r],route=path(here,goal);
+          const here=currentPoint(w) || [s.x,s.z],a=crew.length*2*Math.PI/Math.max(1,max),goal=[b.x+Math.cos(a)*r,b.z+Math.sin(a)*r],route=path(here,goal);
           if(!route)continue;
           w.project=b.id;w.buildAt=route.at(-1);w.departure=here;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;delete w.status;delete w.retryAt;
           crew.push(w);
@@ -540,11 +565,40 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         work++;
         if(e) {e.anim='hammer';e.dir=dirIndex(b.x-e.x,b.z-e.z);}
       }
+      if(crew.length)delete b.idle;else b.idle=true;
       job.progress=Math.min(job.need,(job.progress || 0)+work);
       if(job.progress>=job.need) {
         if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
         else {b.stage='built';delete b.progress;delete b.need;}
-        for(const w of crew){delete w.project;delete w.buildAt;busy.delete(w);}
+        delete b.idle;
+        for(const w of crew){delete w.project;delete w.buildAt;delete w.by;busy.delete(w);}   // done: back to the camp's own work
+      }
+    }
+    return busy;
+  }
+  // 7c-4 repair and douse: workers on a 'work' order at one of their site's structures. They walk there, then every
+  // tick the ones at it work (jobs.work: fire first, then health, paid from the site's stock). When it is done, or
+  // gone, they go back to the site's own work. Returns the busy workers.
+  function jobWork(s) {
+    const busy=new Set(),by=new Map();
+    for(const w of s.workers)if(w.job) {if(!by.has(w.job.key))by.set(w.job.key,[]);by.get(w.job.key).push(w);}
+    for(const [key,crew] of by) {
+      const t=jobs?.target?.(s,key);
+      let n=0;
+      if(t)for(const w of crew) {
+        busy.add(w);
+        if(w.trip) {
+          if(progress(s,w)) {w.elapsed++;w.phase=Math.min(1,w.elapsed/w.trip.total);if(w.elapsed>=w.trip.total){w.departure=[...w.trip.destination];w.trip=null;w.elapsed=0;w.phase=0;}}
+          continue;
+        }
+        n++;
+        const e=state.entities?.[w.entity];
+        if(e) {e.anim='hammer';e.dir=dirIndex(t.x-e.x,t.z-e.z);}
+      }
+      const r=!t ? 'done' : n ? jobs.work(s,key,n) : 'working';
+      for(const w of crew) {
+        if(r==='done') {delete w.job;delete w.by;delete w.status;busy.delete(w);if(w.trip?.kind==='move'){w.departure=currentPoint(w) || w.departure;w.trip=null;w.elapsed=0;w.phase=0;}}
+        else if(r==='waiting')w.status='waiting for timber or stone';else delete w.status;
       }
     }
     return busy;
@@ -581,10 +635,16 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         stepCarts(s,data,world.change,point,cartHome);
         for(const b of s.buildings)for(const c of b.carts || []) {   // decoration: an ox cart on the road near your units
           const e=c.entity && state.entities?.[c.entity], at=enabled && b.cartTicks ? cartPoint(c,...cartEnds(s,b),b.cartTicks) : null;
+          // 7c-5: the other side of a war on this town can destroy a cart on the road (sim/game.js frontierShield); at 0 health it is a wreck
+          if(e && (e.dead || e.downed || e.hp<=0)) {
+            (state.news ||= []).push({kind:'cartDestroyed',town:s.id,x:e.x,z:e.z,owner:s.owner});
+            if(state.clans?.[s.owner])state.clans[s.owner].notice={tick:state.tick ?? 0,text:`An ox cart of ${s.name} was destroyed`};
+            runtime.remove(e.id);wreckCart(data,c);continue;
+          }
           // Tim 2026-11-07: carts stay drawn out to carts.viewRadius (about 1.25 zoomed-out screens), never hidden by fog
           const cr=cartRules(data).viewRadius ?? R.spawnRadius;
           if(!at || !anchors.some(u=>distance(at,[u.x,u.z])<=cr)) {if(e)runtime.remove(e.id);c.entity=null;continue;}
-          if(!e) {if(spawned>=R.spawnPerTick)continue;spawned++;c.entity=runtime.spawn('civilian',cartRules(data).model || 'ox_cart',at[0],at[1],{place:'world',area:'world',cart:b.id,town:s.id,seenBy:s.owner,holdFire:true,hp:200,maxHp:200});continue;}
+          if(!e) {if(spawned>=R.spawnPerTick)continue;spawned++;c.entity=runtime.spawn('civilian',cartRules(data).model || 'ox_cart',at[0],at[1],{place:'world',area:'world',cart:b.id,town:s.id,cartOwner:s.owner,seenBy:s.owner,holdFire:true,hp:cartRules(data).hp ?? 200,maxHp:cartRules(data).hp ?? 200});continue;}
           [e.x,e.z]=at;e.dir=dirIndex(at[2],at[3]);e.anim='run';
         }
       }
@@ -601,8 +661,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         if(enabled)w.departure=waitingPoint(s,w);
         s.workers.push(w);
       }
-      const busy=s.camp ? campBuild(s) : clear(s);
+      const busy=s.camp ? campBuild(s) : clear(s),onJob=jobWork(s);
       for(const w of s.workers) {
+        if(onJob.has(w)) {   // repairing or dousing (7c-4): only its entity is kept in step
+          const e=state.entities?.[w.entity],current=position(w) || w.departure || [s.x,s.z],awake=enabled && near(current);
+          if(e) {if(!awake)suspend(w);else {e.carrying=w.carrying;e.phase=w.phase;}}
+          else if(awake && spawned<R.spawnPerTick && runtime.areas.nav.free(...current)) {wake(w,current,s);spawned++;}
+          continue;
+        }
         if(enabled && s.roadReserve && !w.order && !w.trip && !w.spot && !w.project && (!w.departure || townBlocked(...w.departure))) {
           w.departure=waitingPoint(s,w);
           const e=state.entities?.[w.entity];if(e)[e.x,e.z]=w.departure;
@@ -638,5 +704,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(next===null)delete state.frontier.spots[id];else state.frontier.spots[id]=next;
     }
   }
-  return {tick,econTick,buyCampCart,train,trainCamp,siteOf,assign,workerOrder,assignIdle,rebalance,has,position,index,attach};
+  // the repair and douse rules live in sim/frontier/structures.js: { target(s, key) -> { x, z, r } | null, why(s, key), work(s, key, n) -> 'working' | 'waiting' | 'done', leave(s, w) }
+  function attachJobs(h) { jobs=h; }
+  // 7c-5: recall a town's ox carts to the town (they park there), or send parked carts out again
+  function cartOrder(s,mode,building) {
+    if(s.camp || !cartRules(data))return result('no ox carts here');
+    if(mode!=='recall' && mode!=='send')return result('unknown cart order');
+    return orderCarts(s,data,mode,typeof building==='string' ? building : null) ? result() : result(mode==='recall' ? 'no carts on the road' : 'no parked carts');
+  }
+  return {cartOrder,tick,econTick,buyCampCart,train,trainCamp,siteOf,assign,workerOrder,assignIdle,rebalance,has,position,index,attach,attachJobs};
 }

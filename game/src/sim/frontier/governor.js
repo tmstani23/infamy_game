@@ -255,9 +255,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return false;
   }
 
-  // Repairs and rebuilds on the same spot, at normal cost; materials may be short, construction waits.
+  // Rebuilds ruins on the same spot, at normal cost; materials may be short, construction waits.
+  // 7c-4 (Tim 2026-11-12): only a governor set to build on its own, and a bot clan's town, give the Rebuild order
+  // themselves. Otherwise the owner orders each ruin rebuilt (frontier command 'rebuild').
   function maintain(s) {
     if (s.projects.length) return;
+    if (!s.autoBuild && !state.clans?.[s.owner]?.bot) return;
     // no rebuilding while a war is on the town (war checkpoint 6: ruins stay as they are until it ends)
     if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return;
     const b = s.buildings.find(x => x.stage !== 'built' && !s.projects.some(p => p.replaces === x.id));

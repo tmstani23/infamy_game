@@ -44,6 +44,7 @@ import { createTownGrowthFx } from './town_growth_fx.js';
 import { createTownHover } from './town_hover.js';
 import { createStructureBars } from './structure_bars.js';
 import { createAbilityRows } from './ability_rows.js';
+import { createSiteFlash } from './site_flash.js';   // war 7c-4: a camp building site with no workers flashes
 import { createGarrisonCard } from './garrison_card.js';
 import { createStructureCard } from './structure_card.js';   // 7c-3b: town building card, house garrisons
 import { makeSpotIndex } from './sim/resource_spots.js';
@@ -524,6 +525,7 @@ async function start() {
   // double-click a group header: follow the middle of the group's biggest cluster
   const watchGroup=(group,ids=null)=>view.watch(()=>watchCrewGroup(game.state,game.state.entities[heroId]?.owner,group,ids));
   const bar = createActionBar({ root: $('bar'), game, units, heroId, tickRate: TICK_RATE, crewInput, where, jump, watchGroup, crewRoot:$('partyframes'), send: c => pending.push(c), onInspect: id => unitFrames.inspect(id), onHeroFocus: () => view.snapBack() });
+  createSiteFlash({ root: $('structbars'), game, view, heroId });
   abilityRows = createAbilityRows({ root: $('bar'), marks: $('structbars'), game, units, view, heroId, crewInput, tickRate: TICK_RATE, send: c => pending.push(c) });
   crewInput.onShiftRight(p => abilityRows.shiftRight(p));   // war checkpoint 7: special abilities of the selection (Torch)
   onAction('useItem', () => bar.useItem());   // usable-item slot
@@ -539,7 +541,7 @@ async function start() {
   const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
   const warBlocked=()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen();
   // F6 war checkpoint 4: the camp panel (build, train, hire, hall upgrade), opened from the war coin or a camp building
-  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
+  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,buildUI:()=>frontierBuildUI,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);

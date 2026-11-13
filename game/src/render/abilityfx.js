@@ -738,7 +738,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
       // so they're easy to find and execute (Tim 2026-10-26)
       const me = state.entities[heroId]?.owner;
       for (const e of Object.values(state.entities)) {
-        if (!e.downed || e.dead || e.owner === me) continue;
+        if (!e.downed || e.dead || e.owner === me || e.cart) continue;   // 7c-5: never on an ox cart
         const sp = spriteOf(e.id);
         if (!sp || !sp.thing.mesh.visible) continue;
         const key = `${e.id}:downed`;

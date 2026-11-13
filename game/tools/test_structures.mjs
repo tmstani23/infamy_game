@@ -73,11 +73,12 @@ assert.equal(g.state.frontier.fires, undefined, 'a plain melee hit lights no fir
 assert.ok(ST.ignite('player', sWall, 'x1')); assert.ok(g.state.frontier.fires[sWall.key], 'a torch hit sets it alight'); assert.equal(ST.ignite(third, sWall, 'x2'), false);
 assert.equal(ST.damage(third, sWall, 50), false);
 
-// ---- fire: burns while fed, dies after ---------------------------------------------------------
+// ---- fire (7c-2): burns every second until workers douse it or the building falls ---------------------
 { const hp0 = enemy.cellHp[WALL]; for (let i = 0; i < 200; i++) g.step([]);
   const burned = hp0 - enemy.cellHp[WALL];
-  assert.ok(burned > 0 && burned <= S.fire.damage * Math.ceil(S.fire.lingerTicks / 20), `the fire burned ${burned} and died`);
-  assert.equal(g.state.frontier.fires, undefined, 'the fire is out');
+  assert.ok(burned >= S.fire.damage * 9, `the fire burned ${burned}`);
+  assert.ok(g.state.frontier.fires?.[sWall.key], 'it does not die by itself');
+  assert.ok(ST.douse(sWall)); assert.equal(g.state.frontier.fires, undefined, 'dousing puts it out');
   const hp1 = enemy.cellHp[WALL]; for (let i = 0; i < 60; i++) g.step([]); assert.equal(enemy.cellHp[WALL], hp1); }
 
 // ---- troops on a raze order walk over and hit it; one fire per structure -------------------------
@@ -92,8 +93,8 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.equal(ST.torchers([...troops, archer]), troops.length, 'the archer cannot torch');
   g.step([{ id: hero.id, type: 'order', kind: 'raze', torch: true, structure: sStore.key, units: [...troops, archer] }]);
   assert.ok(troops.every(id => g.state.entities[id].order?.torch), 'melee take the Torch order'); assert.ok(!g.state.entities[archer].order?.torch, 'the archer keeps its plain attack');
-  let most = 0; for (let i = 0; i < 200 && sStore.b.stage === 'built' && most < 2; i++) { g.step([]); most = Math.max(most, Object.keys(g.state.frontier.fires?.[sStore.key]?.fed || {}).length); }
-  assert.ok(most >= 2, `several units feed one fire (${most})`); assert.ok(S.fire.maxFeeders >= 1); }
+  let lit = false; for (let i = 0; i < 400 && sStore.b.stage === 'built' && !lit; i++) { g.step([]); lit = !!g.state.frontier.fires?.[sStore.key]; }
+  assert.ok(lit, 'a finished torch cast sets it alight (7c-2)'); }
 { const hp0 = sStore.b.hp; let hits = 0, fireSeen = false, t = 0;
   for (; t < 1200 && sStore.b.stage === 'built'; t++) { g.step([]); hits += g.state.structureHits?.length || 0; fireSeen ||= !!g.state.frontier.fires?.[sStore.key]; assert.ok(Object.keys(g.state.frontier.fires || {}).length <= 1); }
   assert.ok(hits > 3 && fireSeen, `troops hit it (${hits} hits) and it burned`);

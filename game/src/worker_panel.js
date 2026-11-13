@@ -8,7 +8,8 @@ export function workerStatus(w,index) {
   if(w.nextOrder)return w.nextOrder.kind==='hold'?'Returning load, then holding':'Returning load before move';
   if(w.order?.kind==='hold')return 'Standing';
   if(w.order?.kind==='move')return 'Moving';
-  if(w.project)return 'Clearing ground';
+  if(w.job)return w.trip?'Going to repair':'Repairing or putting out a fire';   // 7c-4
+  if(w.project)return w.buildAt?(w.trip?'Going to build':'Building'):'Clearing ground';
   const kind=index.get(w.spot)?.kind;
   if(kind) return w.carrying>0 ? `Returning ${kind}` : w.trip && w.elapsed>=w.trip.out ? `Harvesting ${kind}` : `Going to ${kind}`;
   return 'Waiting for orders';
@@ -16,9 +17,15 @@ export function workerStatus(w,index) {
 // Job filter (Tim 2026-11-06): the resource a worker is set to harvest, or null (moving, standing, clearing ground)
 export const JOB_ORDER=['timber','stone','fish','forage'];
 export function workerJob(w,index) {
-  if(w.garrison || w.project || w.order?.kind==='hold' || w.order?.kind==='move' || w.nextOrder)return null;
+  if(w.garrison || w.job || w.project || w.order?.kind==='hold' || w.order?.kind==='move' || w.nextOrder)return null;
   return index.get(w.spot)?.kind || null;
 }
+// Task filter (7c-4): the harvest job, or 'build' (a camp builder) or 'repair' (repairing or dousing)
+export const workerTask=(w,index)=>w.job?'repair':w.project && w.buildAt?'build':workerJob(w,index);
+const TASK_ICON={
+ build:'<svg viewBox="0 0 22 18"><g stroke="#2a1d10" stroke-width="1"><rect x="9.500" y="6" width="3" height="11" rx="1" fill="#a8844a"/><rect x="4" y="2" width="14" height="5" rx="1.500" fill="#9c988c"/></g></svg>',
+ repair:'<svg viewBox="0 0 22 18"><g stroke="#2a1d10" stroke-width="1"><path d="M11 2c2 3 5 4.500 5 8.500a5 5 0 0 1-10 0C6 8 8 7 9 5c.500 1.500 1 2 2 2.500C11 5.500 11 4 11 2z" fill="#e0703a"/><path d="M11 9c1 1.500 2 2 2 3.500a2 2 0 0 1-4 0c0-1 .500-1.500 2-3.500z" fill="#ffd27a"/></g></svg>',
+};
 // Idle filter (Tim 2026-11-05): standing, waiting for orders, stuck or route blocked
 export const workerIdle=(w,index)=>['Route blocked','Stuck','Standing','Waiting for orders','Garrisoned in stockade'].includes(workerStatus(w,index));
 // Workers tab redesign (Tim 2026-11-11): job coins on top, red sub-tabs Workers / Groups / Spots / Log, worker cards with a
@@ -29,19 +36,23 @@ const RES_ICON={
  fish:'<svg viewBox="0 0 22 14"><g stroke="#1b2a33" stroke-width="1"><path d="M2 7c3-5 10-6 14-1l4-3v8l-4-3c-4 5-11 4-14-1z" fill="#7fa7b8"/><circle cx="6" cy="6" r="1" fill="#1b2a33"/><path d="M9 4c1 2 1 4 0 6" fill="none"/></g></svg>',
  forage:'<svg viewBox="0 0 22 18"><g stroke="#2a1d10" stroke-width="1"><path d="M3 8h16l-2 8H5z" fill="#a8844a"/><path d="M5 11h12M6 14h10" stroke="#6e5428"/><circle cx="8" cy="6" r="2.4" fill="#b8473a"/><circle cx="12" cy="5" r="2.4" fill="#6f9a45"/><circle cx="15" cy="7" r="2" fill="#c9a03a"/></g></svg>',
 };
-const resIcon=k=>`<span class="wico">${RES_ICON[k]||''}</span>`;
+const resIcon=k=>`<span class="wico">${RES_ICON[k]||TASK_ICON[k]||''}</span>`;
 const cap1=k=>k?k[0].toUpperCase()+k.slice(1):'';
 const nameOf=id=>/^w\d+$/.test(id)?`Worker ${id.slice(1)}`:`Worker ${id}`;
-const HELP='Click a worker to select it, double-click a worker or group to follow it with the camera. Right-click ground to move and wait, or a resource spot to harvest. Z stops selected workers. Return resources unloads then holds. Dropped cargo is lost; you can reassign immediately afterward.';
-export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false}) {
+const HELP='Click a worker to select it, double-click a worker or group to follow it with the camera. Right-click ground to move and wait, or a resource spot to harvest. Right-click a building site to build it, or a damaged or burning building of yours to repair it and put the fire out. Z stops selected workers. Return resources unloads then holds. Dropped cargo is lost; you can reassign immediately afterward.';
+// camp (7c-4, a war camp's pane): task coins timber, stone, building and repair; spots = the camp's resource spots
+// (every one in its reach, rich or not), paged with spotPage. A town shows a Repair coin only while someone repairs.
+export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null}) {
   const all=s.workers || [],idle=all.filter(w=>workerIdle(w,index)),workers=tab==='idle'?idle:all,groups=data.workers.groups || 4,rows=data.workers.panelRows || 6;
   const button=(act,id,label,on=false,extra='')=>`<button data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" class="${on?'on':''}"${extra}>${esc(label)}</button>`;
   const pager=(act,at,pages,prev='Prev',next='Next')=>pages>1?`<div class="wpager"><span>Page ${at+1} of ${pages}</span><span>${button(act,Math.max(0,at-1),prev,false,at?'':' disabled')}${button(act,Math.min(pages-1,at+1),next,false,at<pages-1?'':' disabled')}</span></div>`:'';
   // job coins: click selects every worker on that job (Ctrl or Shift adds them), like the old Jobs buttons
-  const jobs={};for(const w of all){const k=workerJob(w,index);if(k)(jobs[k] ||= []).push(w.id);}
+  const jobs={};for(const w of all){const k=workerTask(w,index);if(k)(jobs[k] ||= []).push(w.id);}
+  const kinds=camp?['timber','stone','build','repair']:[...JOB_ORDER,...(jobs.repair?['repair']:[])];
+  const taskName=k=>k==='build'?'Building':k==='repair'?'Repair':cap1(k),taskTip=k=>k==='build'?'Select every worker building':k==='repair'?'Select every worker repairing or putting out a fire':`Select every worker harvesting ${k}`;
   const coin=(act,id,v,label,icon,on,tip,cls='')=>`<button class="wcoin${cls}${on?' on':''}" data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" title="${esc(tip)}">${icon}<b>${v}</b><span>${esc(label)}</span></button>`;
-  const coins=`<div class="wcoins">${coin('all','',all.length,'All','',false,'Select every worker in this town')}`
-    +JOB_ORDER.map(k=>coin('job',k,(jobs[k]||[]).length,cap1(k),resIcon(k),!!jobs[k]?.length && jobs[k].every(id=>selected.includes(id)),`Select every worker harvesting ${k}; Ctrl+click adds them`,jobs[k]?.length?'':' none')).join('')
+  const coins=`<div class="wcoins"${kinds.length!==4?` style="grid-template-columns:repeat(${kinds.length+2},minmax(0,1fr))"`:''}>${coin('all','',all.length,'All','',false,camp?'Select every worker of this camp':'Select every worker in this town')}`
+    +kinds.map(k=>coin('job',k,(jobs[k]||[]).length,taskName(k),resIcon(k),!!jobs[k]?.length && jobs[k].every(id=>selected.includes(id)),`${taskTip(k)}; Ctrl+click adds them`,jobs[k]?.length?'':' none')).join('')
     +coin('tab','idle',idle.length,'Idle','',tab==='idle',idle.length?'Workers standing, waiting for orders or stuck: show only them':'Nobody is idle',idle.length?' idle':' none')+'</div>';
   const T=(id,label,tip='')=>`<button role="tab" data-act="build-worker-tab" data-id="${id}" aria-selected="${tab===id || (id==='roster' && tab==='idle')}" class="${tab===id || (id==='roster' && tab==='idle')?'on':''}"${tip?` title="${esc(tip)}"`:''}>${label}</button>`;
   const tabs=`<div class="wtabs" role="tablist" aria-label="Worker views">${T('roster',`Workers ${all.length}`,HELP)}${T('groups','Groups')}${T('spots','Spots')}${T('log','Log')}</div>`;
@@ -60,6 +71,13 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
       const kinds={};for(const w of mem){const k=workerJob(w,index);if(k)kinds[k]=(kinds[k]||0)+1;}
       return `<button class="wgroup${on?' on':''}" data-act="build-worker-group" data-id="${g}" aria-pressed="${on}" title="Click selects the group, double-click follows it with the camera"><b>Group ${g}</b><span class="wbig">${mem.length}</span><small>${Object.entries(kinds).map(([k,n])=>`${resIcon(k)}${n}`).join(' ') || (mem.length?'not harvesting':'empty')}</small></button>`;};
     return head+`<div class="wsec" title="Assign workers to a group from their card on the Workers tab, or select several and use Assign selected"><span>Groups</span><b>${all.filter(w=>w.group).length} grouped</b></div><div class="wgroups">${Array.from({length:groups},(_,i)=>card(i+1)).join('')}</div>`+selectionBar()+'</div>';
+  }
+  if(tab==='spots' && spots) {   // a war camp: every resource spot in its reach, nearest first, rich or not
+    const per=rows,list=[...spots].sort((a,b)=>Math.hypot(a.x-s.x,a.z-s.z)-Math.hypot(b.x-s.x,b.z-s.z)),pages=Math.max(1,Math.ceil(list.length/per));spotPage=Math.max(0,Math.min(spotPage,pages-1));
+    return head+`<div class="wsec" title="Every timber and stone spot your camp workers can reach in the war circle, rich or not. Click Look to move the camera there; select workers and right-click its pieces to send them."><span>Resources near the camp</span><b>${list.length} spots</b></div><div class="wspots">`
+      +(list.slice(spotPage*per,(spotPage+1)*per).map(p=>{const n=all.filter(w=>w.spot===p.id).length,over=overworked.has(p.id),st=spotState(p);
+        return `<div class="wspot${over?' tired':''}" title="${esc(p.id)}">${resIcon(p.kind)}<span><b>${cap1(p.kind)}${st?.rich?' (rich)':''}</b><small>${Math.round(Math.hypot(p.x-s.x,p.z-s.z))} away, ${st?.yieldText?st.yieldText+', ':''}${n} working${over?', too many':''}</small></span>${button('spot',p.id,'Look',false,` data-kind="${esc(p.kind)}"`)}</div>`;}).join('') || '<div class="hint">No timber or stone in reach of the camp.</div>')
+      +'</div>'+pager('spot-page',spotPage,pages)+'</div>';
   }
   if(tab==='spots') {
     const spots=index.spotsNear(s.x,s.z,data.workers.range).filter(p=>known(p.x,p.z));
@@ -85,6 +103,6 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
       +(d.harvesting?`<div class="wprog"><i style="width:${Math.round(Math.max(0,Math.min(1,d.progress))*100)}%"></i></div><small class="harvestline">${d.left}s left, ${d.gathered.toFixed(1)} / ${w.trip.load}</small>`:'<div class="wprog off"><i></i></div><small class="harvestline" style="visibility:hidden">-</small>')
       +`<select class="wgrp" data-act="build-worker-assign" data-id="${esc(w.id)}" aria-label="Group for ${esc(w.id)}" title="Put this worker in a group">${options(w.group || 0)}</select>`
       +'</div></div>';}).join('');
-  return head+(cards?`<div class="wcards">${cards}</div>`:`<div class="hint">${tab==='idle'?'Nobody is idle.':'No workers yet. Train one at the town hall.'}</div>`)
+  return head+(cards?`<div class="wcards">${cards}</div>`:`<div class="hint">${tab==='idle'?'Nobody is idle.':camp?'No workers yet. Hire some on the left.':'No workers yet. Train one at the town hall.'}</div>`)
     +pager('page',page,pages)+selectionBar()+'</div>';
 }

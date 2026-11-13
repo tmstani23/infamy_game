@@ -7,7 +7,7 @@
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 import { startUpgrade } from './tiers.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'setMarketKeep'];
+const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'setMarketKeep', 'rebuild', 'cartOrder'];
 
 // hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (Tim 2026-11-07)
 export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers, hooks = {} }) {
@@ -48,7 +48,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       world.setTownOrder(e.owner, c.order);
       return receipt(e, c, true);
     }
-    if(c.action==='train' || c.action==='assign' || c.action==='workerOrder' || c.action==='buyCart') {
+    if(c.action==='train' || c.action==='assign' || c.action==='workerOrder' || c.action==='buyCart' || c.action==='cartOrder') {
       let s=typeof c.town==='string' ? world.settlement(c.town):null;
       if(!s && typeof c.town==='string' && workers?.siteOf)s=workers.siteOf(c.town);   // a war camp (town = the war id)
       if(!s)return reject(e,c,'no such settlement');
@@ -56,7 +56,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       if(s.camp && c.action==='buyCart')return reject(e,c,'a war camp has no carts');
       if(s.owner==null || s.owner!==e.owner)return reject(e,c,'not your settlement');
       if(!workers)return reject(e,c,'workers unavailable');
-      const r=c.action==='buyCart' ? workers.buyCampCart(s,c.building):c.action==='train' ? (s.camp ? workers.trainCamp(s,c.count) : workers.train(s,c.count)):c.action==='workerOrder' ? workers.workerOrder(s,c.workers,c.kind,c):workers.assign(s,c.workers,c.spot);
+      const r=c.action==='cartOrder' ? workers.cartOrder(s,c.mode,c.building):c.action==='buyCart' ? workers.buyCampCart(s,c.building):c.action==='train' ? (s.camp ? workers.trainCamp(s,c.count) : workers.train(s,c.count)):c.action==='workerOrder' ? workers.workerOrder(s,c.workers,c.kind,c):workers.assign(s,c.workers,c.spot);
       return r.ok ? receipt(e,c,true):reject(e,c,r.reason);
     }
     if (c.action === 'place' || c.action === 'remove' || c.action === 'zone') {   // L3.2/L3.3: build bar actions, named by `town`
@@ -128,6 +128,18 @@ export function createCommands({ state, data, world, economy, construction, gove
       case 'upgradeHall': {   // B3: pay now, the hall upgrades after next.upgrade.ticks economy ticks
         const r = startUpgrade(s, data, world);
         return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
+      }
+      case 'rebuild': {   // 7c-4 (Tim 2026-11-12): a ruined placed building comes back only by this order; the town's builders then rebuild it at the normal cost
+        const b = (s.buildings || []).find(x => x.id === c.building);
+        if (!b || b.stage !== 'ruined') return reject(e, c, 'no ruin there');
+        if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return reject(e, c, 'not while a war is on this town');
+        if (b.type === 'town_hall') return reject(e, c, 'send workers to repair the town hall (select them, right-click the ruin)');
+        if (s.buildings.some(x => x.type === 'town_hall' && x.stage === 'ruined')) return reject(e, c, 'the town hall is a ruin: send workers to repair it first');
+        if (s.projects.some(p => p.replaces === b.id)) return reject(e, c, 'already being rebuilt');
+        const pid = construction.queue(s.id, b.type, b.cell, { replaces: b.id });
+        if (!pid) return reject(e, c, 'could not queue it');
+        construction.authorize(pid);
+        return receipt(e, c, true);
       }
       case 'queue':
         if (!data.buildings[c.building]) return reject(e, c, 'unknown building');

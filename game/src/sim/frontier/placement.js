@@ -81,6 +81,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
   // Validates without changing anything. Returns a receipt; ok:true means place() would succeed.
   function check(s, { kind, cells, rot = 0 }) {
     if (!s?.grid) return bad('no grid');
+    // 7c-4: a ruined town hall stops the town placing anything until workers repair it
+    if ((s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return bad('the town hall is a ruin: send workers to repair it', Array.isArray(cells) ? cells : []);
     const g = s.grid, { n } = g;
     const placed = LINES[kind] || (data.buildings[kind] && sizeOf(kind) > 0);
     if (!placed) return bad('unknown kind');

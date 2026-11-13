@@ -42,6 +42,12 @@ export function createCrewFx({scene,spriteOf}){
       if(c.kind==='boarded'){for(const radius of [1.6,2.4]){const m=ring(radius,0xffd34d);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.5,expand:true});}}
       if(c.kind==='refuseMount'){for(const radius of [1.1,1.6]){const m=ring(radius,0xff5a3c);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.55,expand:true});}}
       if(c.kind==='dogsGone'){const m=ring(.45,0xcbb48a);m.position.set(c.x,.12,c.z);bursts.push({mesh:m,time:0,life:.45,expand:true});}   // a loosed dog vanishes in a dust puff (sim/dogs.js)
+      if(c.kind==='firebombMark'){   // war 7c-2: where a fire bomb will land, shown through the wind-up and the flight
+        const m=ring(c.radius,0xff5a22);m.userData.fxOpacity=.95;
+        const fill=new THREE.Mesh(new THREE.CircleGeometry(c.radius,40),material(0xff7a2a));fill.userData.fxOpacity=.28;m.add(fill);
+        const core=new THREE.Mesh(new THREE.RingGeometry(c.radius*.45-.05,c.radius*.45+.05,32),material(0xffc070));core.userData.fxOpacity=.8;m.add(core);
+        m.position.set(c.x,.15,c.z);bursts.push({mesh:m,time:0,life:(c.ticks||40)/20,steady:true});
+      }
       if(c.kind==='dogsBite'){const m=ring(.7,0xff6a4a);m.position.set(c.x,.14,c.z);bursts.push({mesh:m,time:0,life:.4});}
       if(c.kind==='hamstringHit'){
         const m=ring(.9,0x83ffd1);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.6});
@@ -91,7 +97,7 @@ export function createCrewFx({scene,spriteOf}){
         }
       }
       for(const [map,active] of [[bindings,activeBindings],[braces,activeBraces]])for(const [id,m] of map)if(!active.has(id)){remove(m);map.delete(id);}
-      for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.time+=dt;if(b.expand)b.mesh.scale.setScalar(1+b.time*3);b.mesh.traverse(n=>{if(n.material)n.material.opacity=(n.userData.fxOpacity??.65)*Math.max(0,1-b.time/b.life);});if(b.time>=b.life){remove(b.mesh);bursts.splice(i,1);}}
+      for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.time+=dt;if(b.expand)b.mesh.scale.setScalar(1+b.time*3);b.mesh.traverse(n=>{if(n.material)n.material.opacity=(n.userData.fxOpacity??.65)*(b.steady?.55+.45*Math.abs(Math.sin(b.time*7)):Math.max(0,1-b.time/b.life));});if(b.time>=b.life){remove(b.mesh);bursts.splice(i,1);}}
     }
   };
 }

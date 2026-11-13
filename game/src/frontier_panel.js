@@ -190,6 +190,14 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(', ')) + '</div>';
       h += `<div class="lab">Governor says</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
         + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ');
+      { // 7c-5 (Tim 2026-11-12): the town's ox carts in their own section: recall them into the town (also in a war), send parked ones out again
+        const camps = (s.buildings || []).filter(b => b.stage === 'built' && (b.carts || []).length), all = camps.flatMap(b => b.carts);
+        if (all.length) {
+          const parked = all.filter(c => c.at === 'parked').length, wrecked = all.filter(c => c.at === 'wrecked').length, coming = all.filter(c => c.recall).length, road = all.length - parked - wrecked - coming;
+          const parts = [road ? `${road} working` : '', coming ? `${coming} coming in` : '', parked ? `${parked} parked in town` : '', wrecked ? `${wrecked} destroyed` : ''].filter(Boolean).join(', ');
+          h += `<div class="lab">Ox carts</div><div class="row"><span>${esc(parts)}</span><span><button data-act="carts-recall"${road ? '' : ' disabled'}${tip('Every cart drives into the town and stays parked there, safe from a raid. Camps keep what workers bring until the carts go out again. Works during a war too.')}>Recall</button> <button data-act="carts-send"${parked || coming ? '' : ' disabled'}${tip('Parked carts drive back to their camps and carry on.')}>Send out</button></span></div>`;
+        }
+      }
       overH = h; h = '';
       if (!rows.projects.length && !rows.suggestions.length) h += '<div class="hint">No projects or suggestions right now.</div>';
       if (rows.projects.length) h += '<div class="lab">Projects</div>' + rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">, ${esc(p.status)}${p.canAuthorize ? ', ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
@@ -265,6 +273,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'tax': cmd({ action: 'setTax', settlement: sid, level: id }); break;
       case 'auto': cmd({ action: 'setAutoBuild', settlement: sid, on: id === 'on' }); break;
       case 'upgrade': cmd({ action: 'upgradeHall', settlement: sid }); break;   // B3
+      case 'carts-recall': cmd({ action: 'cartOrder', town: sid, mode: 'recall' }); break;   // 7c-5
+      case 'carts-send': cmd({ action: 'cartOrder', town: sid, mode: 'send' }); break;
       case 'garrison-in': {   // Stockade garrison: who goes in
         const mine = game.state.entities[heroId]?.owner;
         const ids = id === 'selected' ? pickedUnits() : Object.values(game.state.entities).filter(u => (u.owner ?? u.workerOwner) === mine && !u.garrison && u.place === 'world' && (id === 'workers' ? u.worker : !u.worker && u.type !== 'civilian')).map(u => u.id);

@@ -5,7 +5,11 @@
 // `speed`, unloads through world.change, and drives back. A full camp (store >= cap) takes no more drop-offs, so
 // workers walk to the hall or a storehouse instead. A 3rd cart can be bought at the camp (buyCart, cost from data).
 // Numbers: frontier.json workers.carts.
-// Moving carts show as an ox cart near the player's units (cartPoint; spawned by workers.js, decoration only).
+// Moving carts show as an ox cart near the player's units (cartPoint; spawned by workers.js).
+// 7c-5 (Tim 2026-11-12): a cart can be recalled (orderCarts 'recall'): it finishes its delivery or turns round, drives
+// to the town and stays parked there (at: 'parked'), also during a war; 'send' sends parked carts back to their camp.
+// In a war on the town the attacker can destroy a cart on the road (workers.js: its unit at 0 health): it is a wreck
+// (at: 'wrecked', its load lost) and a new one stands at the camp after carts.replaceTicks.
 export const cartRules = data => data.workers?.carts || null;
 export const isCamp = (data, b) => (data.workers?.gatherBuildings || []).includes(b.type);
 export const campStock = b => Object.values(b.store || {}).reduce((a, v) => a + v, 0);
@@ -37,7 +41,10 @@ export function stepCarts(s, data, change, pos, home) {
     if (b.cartGap > 0) b.cartGap--;
     const carts = ensureCarts(C, b, oneWay);
     for (const c of carts) {
+      if (c.at === 'parked') continue;
       if (c.t > 0) { c.t--; continue; }
+      if (c.at === 'wrecked') { c.at = 'camp'; c.t = 0; c.load = null; delete c.recall; continue; }   // its replacement
+      if (c.at === 'camp' && c.recall) { c.at = 'out'; c.t = oneWay; c.load = null; continue; }      // recalled: drives in empty
       if (c.at === 'camp') {
         const total = campStock(b);
         if (total <= 0) { c.t = C.waitTicks ?? 20; continue; }   // empty camp: wait a moment and look again
@@ -49,12 +56,36 @@ export function stepCarts(s, data, change, pos, home) {
       } else if (c.at === 'out') {
         for (const [r, v] of Object.entries(c.load || {})) change(s.id, r, v, 'cart');
         c.delivered = (c.delivered || 0) + campStockOf(c.load);
-        c.load = null; c.at = 'back'; c.t = oneWay;
+        c.load = null;
+        if (c.recall) { delete c.recall; c.at = 'parked'; c.t = 0; } else { c.at = 'back'; c.t = oneWay; }
       } else { c.at = 'camp'; c.t = 0; }
     }
   }
 }
 const campStockOf = l => Object.values(l || {}).reduce((a, v) => a + v, 0);
+
+// Recall or send out a town's carts (7c-5). mode 'recall': every cart on the road or at its camp heads for the town and
+// parks there; 'send': parked carts drive back to their camp. buildingId = only that camp's carts. Returns how many.
+export function orderCarts(s, data, mode, buildingId = null) {
+  const C = cartRules(data); if (!C) return 0;
+  let n = 0;
+  for (const b of s.buildings || []) {
+    if (b.stage !== 'built' || !isCamp(data, b) || (buildingId && b.id !== buildingId)) continue;
+    const oneWay = b.cartTicks || 1;
+    for (const c of b.carts || []) {
+      if (mode === 'recall' && c.at !== 'parked' && c.at !== 'wrecked' && !c.recall) {
+        c.recall = true; n++;
+        if (c.at === 'back') { c.at = 'out'; c.t = Math.max(0, oneWay - (c.t || 0)); c.load = null; }   // turns round
+      } else if (mode === 'send' && (c.at === 'parked' || c.recall)) {
+        if (c.at === 'parked') { c.at = 'back'; c.t = oneWay; }
+        delete c.recall; n++;
+      }
+    }
+  }
+  return n;
+}
+// A cart on the road was destroyed (7c-5): its load is lost; a new one stands at the camp after carts.replaceTicks
+export function wreckCart(data, c) { const C = cartRules(data); c.at = 'wrecked'; c.t = C?.replaceTicks ?? 2400; c.load = null; delete c.recall; c.entity = null; }
 
 // Workers a camp's carts keep up with: cart throughput per minute / one worker's gather rate per minute.
 export function cartWorkerLimit(data, b, workerPerMin) {
