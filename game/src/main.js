@@ -868,7 +868,8 @@ async function start() {
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
-    warLantern.update();warBanner.update();warCamp.update();utilityMenu.update();
+    warLantern.update();warBanner.update();
+    { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // Tim 2026-11-12: no Rally or War Lantern on the islandwarCamp.update();utilityMenu.update();
     hudLayout.update();
   });
 }

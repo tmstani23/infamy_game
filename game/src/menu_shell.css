@@ -444,11 +444,11 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .wlog > b { color: #a5d8a4; font-weight: 600; font-size: 11px; }
 
 /* condensed selection panel (Tim 2026-11-11): past 8 selected, 30px tiles, 9 per row, two rows then +N */
-#selpanel.many { grid-template-columns: repeat(9, 30px); gap: 3px; padding: 5px; }
+/* many selected: small tiles that wrap to the panel width, each with its health bar (Tim 2026-11-12) */
+#selpanel.many { grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 3px; padding: 5px; }
 #selpanel.many .card { padding: 1px; }
-#selpanel.many .pic { width: 28px; height: 28px; }
 #selpanel .card.more { justify-content: center; font: 600 11px system-ui, sans-serif; color: var(--ms-accent-lt); cursor: default; }
-#selpanel.hud-docked.many { grid-template-columns: repeat(auto-fit, minmax(30px, 1fr)); }
+#selpanel.hud-docked.many { grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); }
 
 /* Governor tab redesign (Tim 2026-11-11): portrait and speech box, 2x2 talk buttons, focus cards, plan cards, steer strips */
 #townpanel .govhead { display: flex; gap: 10px; align-items: stretch; margin-bottom: 8px; }

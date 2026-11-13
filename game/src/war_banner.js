@@ -80,7 +80,10 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     if (h.dead || h.downed) return { kind: 'off', why: 'Your hero is down' };
     const v = w.packView(h);
     if (v.ok) return { kind: 'pack', view: v };
-    if (h.place === 'world') { const t = rivalTownNear(h); if (t) return { kind: 'plant', town: t }; }
+    if (h.place === 'world') {
+      const own = ownCamp(); if (own) return { kind: 'planted', war: own };   // Tim 2026-11-12: your banner already stands here
+      const t = rivalTownNear(h); if (t) return { kind: 'plant', town: t };
+    }
     return { kind: 'off', why: 'Pack for war in the city or one of your towns. Plant the banner near a rival town (inside its war circle).' };
   }
 
@@ -209,6 +212,7 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const m = mode(); button.blur();
     if (m.kind === 'pack') { cancel(); open(); }
     else if (m.kind === 'plant') { if (placing) cancel(); else { onStart(); placing = m.town.id; draw(); } }
+    else if (m.kind === 'planted') openCamp?.(m.war.id);
   });
 
   // ---- war coin and splash ---------------------------------------------------------------
@@ -244,10 +248,10 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
   function update() {
     const m = mode();
     button.hidden = m.kind === 'none';
-    const label = m.kind === 'plant' ? (placing ? 'Cancel' : 'Plant banner') : 'Pack for war';
+    const label = m.kind === 'plant' ? (placing ? 'Cancel' : 'Plant banner') : m.kind === 'planted' ? 'Planted' : 'Pack for war';
     if (button.dataset.label !== label) { button.dataset.label = label; button.innerHTML = `${FLAG}<span style="display:block">${label}</span>`; }
     button.disabled = m.kind === 'off';
-    button.title = m.kind === 'pack' ? 'Pack ryo, timber and stone for a war camp' : m.kind === 'plant' ? `Plant a war camp banner by ${m.town.name}: this declares war` : m.why;
+    button.title = m.kind === 'pack' ? 'Pack ryo, timber and stone for a war camp' : m.kind === 'plant' ? `Plant a war camp banner by ${m.town.name}: this declares war` : m.kind === 'planted' ? `Your war banner stands by ${game.state.frontier?.settlements?.[m.war.town]?.name || 'this town'}. Click to open the camp hall` : m.why;
     if (placing && m.kind !== 'plant') cancel();
     if (placing) draw();
     if (!root.hidden) { if (m.kind !== 'pack') close(); else fill(); }
