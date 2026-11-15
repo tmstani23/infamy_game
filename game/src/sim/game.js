@@ -1,6 +1,7 @@
 import { modeRules } from './modes/index.js';
 import {slideWorld} from './world_slide.js';
 import {separateUnits} from './separation.js';
+import { terrainAt } from './world_data.js';
 // The game rules. Holds the state and advances it one fixed tick at a time from
 // commands. No three.js and no DOM: in multiplayer a Colyseus server runs this
 // same code, and browsers only send commands and draw the state they get back.
@@ -196,7 +197,7 @@ export function createGame(options) {
     return { city: [gd.x, gd.z], inside: [gd.x + mx / ml * 3, gd.z + mz / ml * 3], island: [x, z], side };
   })() : null;
   // knocked out on the island: up again at the nearest own town hall (sim/island_respawn.js, Tim 2026-11-06)
-  const islandRespawn = areas ? createIslandRespawn({ state, areas, gate, rules: units?.rules?.islandRespawn, cellSize: options.frontier?.townGrid?.cellSize,
+  const islandRespawn = areas ? createIslandRespawn({ state, areas, gate, rules: units?.rules?.islandRespawn, cellSize: options.frontier?.townGrid?.cellSize, warRadius: options.frontier?.war?.circleRadius,
     spawn: (...a) => spawn(...a), freeSlot: (...a) => freeSlot(...a), followOffset: (...a) => followOffset(...a), say: (clan, text) => { clan.notice = { tick: state.tick, text }; }, infirmary: () => frontier?.infirmary }) : null;
   // the omnibus out on the island (sim/omnibus.js, Tim 2026-11-06): settlers and the Hero group ride in with the hero
   const omnibus = areas ? createOmnibus({ state, rules: units?.rules, spawn: (...a) => spawn(...a), remove: id => removeUnit(id), nav: () => navOf('world'),
@@ -240,7 +241,18 @@ export function createGame(options) {
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
   const opaqueStreet = scenery.filter(s => s.solid && !s.indoor && s.item?.kind === 'buildings').map(s => s.solid);
-  const stealth = createStealth({ inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length, warRules: e => units?.types?.[e?.type]?.kunoichi || null, detectOf: e => units?.types?.[e?.type]?.detect || 0, towers: () => frontier?.structures?.watchers?.() || [], state, scenery, rooms, rules: units?.rules?.stealth,
+  // frontier stealth (Tim 2026-11-09): cover = forest, bamboo and marsh ground; light at night = inside a town ring, by a
+  // war camp building or a bandit camp (rules.stealth.frontier coverTerrain, campLight)
+  const FST = units?.rules?.stealth?.frontier || {}, coverCodes = new Set(FST.coverTerrain || ['f', 'b', 'k']);
+  const islandCover = (x, z) => !!options.world?.terrain && coverCodes.has(terrainAt(options.world, x, z));
+  const islandLit = (x, z) => {
+    const L = FST.campLight ?? 40, rings = options.frontier?.tiers?.list || [];
+    for (const s of Object.values(state.frontier?.settlements || {})) if (Number.isFinite(s.x) && !s.capital && Math.hypot(x - s.x, z - s.z) <= (rings[(s.tier || 1) - 1]?.ring ?? 150)) return true;
+    for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (Math.hypot(x - b.x, z - b.z) <= L) return true;
+    for (const c of options.world?.camps || []) if (Math.hypot(x - c.x, z - c.z) <= L) return true;
+    return false;
+  };
+  const stealth = createStealth({ islandCover, islandLit, inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length, warRules: e => units?.types?.[e?.type]?.kunoichi || null, detectOf: e => units?.types?.[e?.type]?.detect || 0, towers: () => frontier?.structures?.watchers?.() || [], state, scenery, rooms, rules: units?.rules?.stealth,
     observerKnown: (e, u) => vision.canSee(e.owner, u),
     lineOfSight: (a, b) => clearSight(a, b, a.place === 'street' ? opaqueStreet : [...roomBlockers, ...interiorDoors.filter(d => d.place === a.place && !state.interiorDoors[d.id]).map(d => d.blocker)]),
     say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });
@@ -395,7 +407,17 @@ export function createGame(options) {
   // (a.rout: war troops running off after their war ended, sim/frontier/war_end.js: they fight nobody and nobody chases them)
   const baseHostile = (a, b) => b && a !== b && !a.rout && !b.rout && !a.garrison && !b.garrison && !a.aboard && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
-    && deployment.canActAt(a, b.x, b.z, b.place);
+    && !warNeutral(a, b) && deployment.canActAt(a, b.x, b.z, b.place);
+  // F6 rules 2026-11-10: in a war circle only the two sides of that war fight each other; other clans pass through
+  // untouched (a war troop and a third clan's unit leave each other alone). Bandits and other hostiles stay fair game.
+  function warNeutral(a, b) {
+    const W = frontier?.war; if (!W || a.place !== 'world' || !state.clans?.[a.owner] || !state.clans?.[b.owner]) return false;
+    const sides = w => !!w && ((w.attacker === a.owner && w.defender === b.owner) || (w.defender === a.owner && w.attacker === b.owner));
+    const wa = a.warTroop ? W.byId(a.warTroop) : null, wb = b.warTroop ? W.byId(b.warTroop) : null;
+    if (wa || wb) return !(sides(wa) || sides(wb));
+    const here = W.warsAt(b.x, b.z);
+    return here.length > 0 && !here.some(sides);
+  }
   // Tim 2026-11-13: an enemy clan's workers in a war on their town are combatants (attack-move and auto-attack pick them; they belong to no clan, so baseHostile alone skips them)
   const warWorker = (a, b) => !!b?.worker && !!a?.owner && b.workerOwner !== a.owner && a !== b && !a.garrison && !a.aboard && !a.guide && !b.dead && !b.downed && a.place === b.place && !blind(a, b) && atWarWith(a.owner, b) && deployment.canActAt(a, b.x, b.z, b.place);
   const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&(baseHostile(a,b)||warWorker(a,b))&&!charmProtected(a,b,state);
@@ -605,7 +627,7 @@ export function createGame(options) {
     const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed && !e.pack);
     separateUnits(all.filter(e => e.place === 'street'),e=>statsOf(e).radius,tryMove);
     const island = all.filter(e => e.place === 'world' && looseOnIsland(e));
-    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),tryMove,e=>statsOf(e).weight||1);   // war cavalry carry their own radius (units.json)
+    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),tryMove,e=>statsOf(e).weight||(e.mounted?units?.rules?.riderWeight??4:1));   // war cavalry carry their own radius (units.json)
   }
 
   // Spawn a unit just outside a building's door, on a spot that is free of walls and

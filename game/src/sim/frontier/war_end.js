@@ -50,7 +50,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   const townsOf = clan => Object.values(f()?.settlements || {}).filter(s => s.owner === clan && !s.capital);
   // which outcomes the attacker may pick, each { id, ok, why }
   function outcomeList(w) {
-    const last = townsOf(w.defender).length <= 1;
+    const last = w.lastTown ?? townsOf(w.defender).length <= 1;   // lastTown: set on the screen's copy (sim_snapshot.js), which does not see every town
     return ['capture', 'sack', 'burn'].map(id => ({ id, ok: id === 'sack' || !last, why: id !== 'sack' && last ? 'Their last town can only be sacked' : '' }));
   }
   // may this hero start taking that side's hall now: { ok, reason }
@@ -88,6 +88,25 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     news({ kind: 'hallChannelStop', war: w.id, side: ch.side, by: ch.by, clan: u?.owner ?? null, why });
   }
 
+  // F6 rules 2026-11-10: a winner gets back at most the unused part of the timber and stone he brought, into his
+  // nearest own town to the camp (the camp stays sealed: what it gathered beyond that is lost). -> { town, timber, stone }
+  function materialsBack(w) {
+    const k = w.camp, out = { town: null, timber: 0, stone: 0 };
+    if (!k?.stock || !k.brought) return out;
+    let best = null, bd = Infinity;
+    for (const t of Object.values(state.frontier?.settlements || {})) {
+      if (t.owner !== w.attacker || t.capital || !Number.isFinite(t.x)) continue;
+      const d = Math.hypot(t.x - (k.x ?? w.x), t.z - (k.z ?? w.z)); if (d < bd) { bd = d; best = t; }
+    }
+    if (!best) return out;
+    out.town = best.id;
+    for (const r of ['timber', 'stone']) {
+      const n = Math.floor(Math.max(0, Math.min(k.stock[r] || 0, k.brought[r] || 0)));
+      if (n > 0) { world.change(best.id, r, n, 'war camp returned'); out[r] = n; k.stock[r] -= n; }
+    }
+    return out;
+  }
+
   // ---- the end of a war ---------------------------------------------------------------------------------------
   // result: 'captured' | 'sacked' | 'burned' | 'campFell' | anything else (called off): the chest goes home
   function finish(w, result, by = null) {
@@ -95,6 +114,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     const s = town(w.town), chest = Math.floor(w.camp?.chest || 0), attacker = state.clans?.[w.attacker];
     if (w.channel) { const u = state.entities?.[w.channel.by]; if (u?.hallChannel === w.id) delete u.hallChannel; delete w.channel; }
     let note = null;
+    war.settleDefense?.(w);   // 8b-2: the defender's chest back to the town coffers first, so an outcome takes it with the town
     if (result === 'campFell') {
       if (chest > 0 && s) world.change(s.id, 'ryo', chest, 'war spoils');
       w.spoils = chest;
@@ -103,6 +123,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
       if (['captured', 'sacked', 'burned'].includes(result)) note = outcomes?.[result]?.(w, by) || null;
       if (chest > 0 && attacker) creditRyo(state, attacker, chest, 'war chest returned');
       w.returned = chest;
+      if (['captured', 'sacked', 'burned'].includes(result)) w.materialsBack = materialsBack(w);
     }
     if (w.camp) w.camp.chest = 0;
     // every war troop of both sides routs: away from the town, fading, then gone

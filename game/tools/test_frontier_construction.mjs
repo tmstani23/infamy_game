@@ -46,8 +46,8 @@ function setup(state = { tick: 0 }) {
   const p = s.projects[0];
   assert.equal(p.paid, true);
   step(1);
-  assert.equal(s.builders, 3);
-  assert.ok(p.progress >= 3 && p.progress % 3 === 0);
+  assert.equal(s.builders, 4);   // rates.maxBuilders (Tim 2026-11-15: 4, same as camps)
+  assert.ok(p.progress >= 4 && p.progress % 4 === 0);
   step(100);
   assert.equal(s.projects.length, 0);
   assert.ok(s.buildings.some(b => b.type === 'quarry'));

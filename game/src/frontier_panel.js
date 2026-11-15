@@ -7,6 +7,7 @@ import {resourceUsage} from './sim/frontier/resource_usage.js';
 import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js';
 import { reportRows, governorSays, talkCommand } from './frontier_report.js';
 import { tierOf, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
+import { warUpgradeSeconds } from './sim/frontier/town_military.js';
 import { defaultKeep } from './sim/frontier/storage.js';
 import { workerCount } from './sim/frontier/people.js';
 import { createShipmentsTab } from './shipments_tab.js';
@@ -53,7 +54,7 @@ const STEER = {
     on: 'On: the governor zones, builds, lays roads, trains workers and sends idle workers gathering by himself.'
   }
 };
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, miniRoot = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, miniRoot = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null, onTownWar = null }) {
   // Tim 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
   // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
   const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
@@ -176,13 +177,15 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div><h1>${esc(rows.title)}</h1><div class="sub">Yours, mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div>`;
       // B3: town hall tier and its upgrade
       if (data?.tiers?.list) {
-        const tier = tierOf(s, data), next = nextTier(s, data), up = s.tierUpgrade, chk = upgradeCheck(s, data);
+        const tier = tierOf(s, data), next = nextTier(s, data), up = s.tierUpgrade, chk = upgradeCheck(s, data, game.state);
         const cost = next?.upgrade ? Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people` : '';
         const what = t => t ? `ring ${t.ring}, housing ${t.cells.housing} / farm ${t.cells.farm} / work ${t.cells.work} cells, ${t.workers} workers, storehouses ${t.placed.storehouse}, camps ${t.placed.camps}` : '';
         h += `<div class="row"><span${tip('Town hall tier limits:\n' + what(tier))}>Town hall: <b>${esc(tier.name)}</b> <span class="dim">(tier ${s.tier || 1}), workers ${workerCount(s)} / ${tier.workers}</span></span>`
           + (up ? `<span class="dim">Upgrading to ${esc(next?.name || '')}... ${Math.max(0, up.left)}s</span>`
             : next ? `<button data-act="upgrade"${tip(`Upgrade to ${next.name}: ${cost}.\nUnlocks ${what(next)}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}${chk.ok ? '' : ' class="no"'}>Upgrade to ${esc(next.name)}</button>` : '<span class="dim">Highest tier</span>') + '</div>';
       }
+      // war 8b: the town's military buildings, war chest and hall war upgrade live in the town war window
+      if (onTownWar && data?.war?.town) h += `<div class="row"><span${tip('Military buildings go inside the town ring and are built by town builders. Some need the town hall war upgrade. Troops train only while a war is on this town, paid from its war chest.')}>War upgrade: <b>${s.warHall ? 'Done' : s.warUpgrade ? (s.builders ? `Building, about ${warUpgradeSeconds(s, data)} s` : 'Waiting for builders') : 'Not bought'}</b></span><button data-act="townwar"${tip('Open the town war window: military buildings, war chest and the hall war upgrade')}>Military</button></div>`;
       h += '<div class="lab">Stock <button data-act="usage" data-id="timber">Usage</button></div><div class="stock">' + rows.stock.map(r => `<div${tip((r.tip || '')+'\n'+usageTip(s,r.key))}><button data-act="usage" data-id="${r.key}">${esc(r.label)}</button><b${r.full ? ' class="full"' : ''}>${r.value}</b>${r.cap != null ? `<span class="dim cap">/ ${r.cap}${r.full ? ' full' : ''}</span>` : ''}${arrow[r.arrow]}</div>`).join('') + '</div>';
       h += `<div class="lab">People</div><div class="row"><span>${esc(rows.pop.text)}</span><span class="dim"${tip(rows.jobsTip)}>${esc(rows.jobsText)}</span></div><div class="bar"><i style="width:${Math.round(rows.pop.fill * 100)}%"></i></div>`;
       if (rows.pop.growth || rows.pop.goodsWait) h += `<div class="hint">${esc([rows.pop.growth, rows.pop.goodsWait ? 'Houses need goods to level up (workshops make goods)' : ''].filter(Boolean).join(', '))}</div>`;   // B7
@@ -283,6 +286,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       }
       case 'garrison-out': cmd({ action: 'garrison', mode: 'leave', town: sid }); break;
       case 'openstable': onStable?.(sid); break;
+      case 'townwar': onTownWar?.(sid); break;   // war 8b
       case 'stable': cmd(id.startsWith('choose:') ? { action: 'stable', mode: 'choose', town: sid, horse: id.slice(7) } : id === 'cancel' || id === 'omnibus' ? { action: 'stable', mode: id, town: sid } : { action: 'stable', mode: 'horse', kind: id, town: sid }); break;
       case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
     }

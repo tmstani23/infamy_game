@@ -14,7 +14,7 @@ const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, reve
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
 
 export const indoorLightId = (room,index) => `room:${room}:${index}`;
-export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false, warRules = () => null, detectOf = () => 0, towers = () => [], inWarCircle = () => false }) {
+export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false, warRules = () => null, detectOf = () => 0, towers = () => [], inWarCircle = () => false, islandCover = () => false, islandLit = () => false }) {
   const R = { ...DEFAULTS, ...rules };
   // the lanterns the sim knows about: lit props (lantern posts, stone lanterns, braziers...)
   const lights = scenery.filter(s => !s.indoor && s.prop !== undefined && s.item?.lights?.length).map(s => ({ prop: s.prop, x: s.x, z: s.z,place:'street',radius:R.lightRadius }));
@@ -32,7 +32,13 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   const suspicion = new Map();
   // who can spot a hidden unit: any armed unit not on its side (other clans, police, house guards, bandits)
   const spotter = (u, e) => u.owner !== e.owner && u.type !== 'civilian' && !u.dead && !u.downed && !u.jailed && u.place === e.place;
+  // Frontier stealth (Tim 2026-11-09, built 2026-11-15; numbers in rules.stealth.frontier, placeholders): out on the island
+  // a ninja is seen from dayRange by day; at night from darkRange, or litRange near any light (a town inside its ring, a war
+  // camp, a bandit camp: islandLit); trees, bamboo and marsh (islandCover) shorten it by coverFactor. Riding reveals him.
+  const FR = { dayRange: 8, darkRange: 2, litRange: 5, coverFactor: 0.5, ...(R.frontier || {}) };
+  const islandRange = e => (state.night ? (islandLit(e.x, e.z) ? FR.litRange : FR.darkRange) : FR.dayRange) * (islandCover(e.x, e.z) ? FR.coverFactor : 1);
   function range(e) {
+    if (e.place === 'world') return islandRange(e) * (e.anim === 'run' ? R.runFactor : 1);
     const indoors=e.place!=='street',modeled=rooms.some(r=>r.name===e.place);
     const base = indoors ? !modeled||lit(e.x,e.z,e.place)?R.indoorRange:(R.indoorDarkRange??R.indoorRange*.5) : lit(e.x, e.z) ? R.litRange : R.darkRange;
     return base * (e.anim === 'run' ? R.runFactor : 1);
@@ -42,6 +48,7 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   // in plain sight whatever the cover (Tim 2026-10-26): knocking down a War Lantern always; attacking
   // only matters inside its clan's Smoke Bomb (see tick), so cancelling the attack hides it again
   const knocking = e => Object.values(state.attacks || {}).some(a => a.knock?.by === e.id);
+  const inOwnSmoke = e => !!state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r);
   const exposed = e => knocking(e) || !!(e.swing || e.attackTarget);
   function reveal(e, attacking = false) {
     { const K = e && warRules(e); if (K) { if (!e.dead && !e.downed) { e.revealUntil = state.tick + (K.revealTicks ?? 80); e.hidden = false; delete e.detectedBy; } return; } }   // war stealth: shown for a few seconds
@@ -109,10 +116,17 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     const all = Object.values(state.entities);
     for (const e of all) {
       { const K = warRules(e); if (K) { warStep(e, K, all); continue; } }
-      // inside a war circle only the kunoichi is hidden (Tim 2026-11-12): no other Shinobi unit, the hero included
-      if (e.place === 'world' && canHide(e) && inWarCircle(e.x, e.z)) { if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }
+      // riding a horse reveals a ninja (Tim 2026-11-09)
+      if (e.mounted && canHide(e)) { if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }
+      // Smoke Bomb (Tim 2026-11-09): the ninja hero in his own smoke is veiled, and stays so smokeLinger s after he walks
+      // out of it or until he attacks; while veiled Assassinate needs no hidden time (hero_abilities.js). City and island.
+      if (e.type === 'hero' && canHide(e) && inOwnSmoke(e) && !exposed(e)) (e.buffs ||= {}).veil = { until: state.tick + secs(R.smokeLinger ?? 6) };
+      // inside a war circle only the kunoichi is hidden (Tim 2026-11-12), and the ninja hero while his smoke veils him
+      if (e.place === 'world' && canHide(e) && inWarCircle(e.x, e.z)) {
+        if (e.type === 'hero' && veiled(e) && !exposed(e)) { e.hidden = true; e.stealthStatus = { lighting: 'smoke', movement: 'still', range: 0, concealment: 1, suspicion: 0, observers: [], mode: 'veil' }; suspicion.delete(e.id); continue; }
+        if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }
       if (!canHide(e)) { if (e.hidden) e.hidden = false; delete e.stealthStatus; suspicion.delete(e.id); continue; }
-      const lighting = e.place !== 'street' ? lit(e.x,e.z,e.place)?'indoors · lit':'indoors · dark' : lit(e.x, e.z) ? 'lit' : 'dark';
+      const lighting = e.place === 'world' ? (!state.night ? 'day' : islandLit(e.x, e.z) ? 'lit' : 'dark') + (islandCover(e.x, e.z) ? ', cover' : '') : e.place !== 'street' ? lit(e.x,e.z,e.place)?'indoors · lit':'indoors · dark' : lit(e.x, e.z) ? 'lit' : 'dark';
       e.stealthStatus = { lighting, movement: e.anim === 'run' ? 'running' : e.anim === 'walk' ? 'walking' : 'still', range: range(e),
         concealment: Math.max(0, Math.min(1, 1 - range(e) / (Math.max(R.litRange, R.indoorRange) * R.runFactor))), suspicion: 0, observers: [], mode: 'normal' };
       // The cloud's parting veil ignores detection and incoming-hit reveals. An

@@ -6,6 +6,7 @@ import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
 import { createWarBanner } from './war_banner.js';
 import { createWarCampPanel } from './war_camp_panel.js';
+import { createTownWarPanel } from './town_war_panel.js';
 import { createWarBar } from './war_bar.js';
 import { createWarOutcomeMenu } from './war_outcome_menu.js';
 import { createSimWorkerClient } from './sim_worker_client.js';
@@ -151,7 +152,7 @@ async function start() {
   let view;
   try {
     view = await createView({
-      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots,
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots, hallSeconds: frontier?.war?.channel?.seconds ?? 60,
       doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
@@ -409,7 +410,7 @@ async function start() {
   // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
   const goalCard = createGoalCard({ root: $('goalcard'), button: $('goalbtn'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
   const stationMenu = createStationMenu({ panel: $('stationmenu'), game, heroId, send: c => pending.push(c) });
-  const stableMenu = createStableMenu({ panel: $('stablemenu'), game, heroId, send: c => pending.push(c), data: frontier });   // Tim 2026-11-07: buy horses and vehicles
+  const stableMenu = createStableMenu({ panel: $('stablemenu'), game, heroId, send: c => pending.push(c), data: frontier, openCavalry: (t, b) => townWar.show(t, b) });   // Tim 2026-11-07: buy horses and vehicles (8b: its Cavalry tab during a war on the town)
   // the old surveyor's map tour runs on the World tab of the game map (made further down; called only after a click)
   const surveyorTalk = createSurveyorTalk({ panel: $('svtalk'), card: $('svtour'), game, heroId, send: c => pending.push(c),
     map: { tourTo: (id, span) => gameMap.tourTo(id, span), endTour: () => gameMap.endTour(), isOpen: () => gameMap.isOpen(), close: () => gameMap.close() } });
@@ -544,10 +545,12 @@ async function start() {
   const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
   const warBlocked=()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen();
   // F6 war checkpoint 4: the camp panel (build, train, hire, hall upgrade), opened from the war coin or a camp building
-  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,buildUI:()=>frontierBuildUI,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
+  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,buildUI:()=>frontierBuildUI,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();townWar?.close();}});
+  // war 8b: a defending town's war window (military buildings, war chest, hall war upgrade) and its building menus
+  const townWar=createTownWarPanel({game,heroId,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();warCamp.close();stableMenu.close();closeTown();},placeTool:(id,k)=>!!frontierBuildUI?.placeTool(id,k)});
   const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null});   // war 8a-2: both sides' morale at the top of the screen
   const warOutcome=createWarOutcomeMenu({game,heroId,send:c=>pending.push(c),blocked:warBlocked});   // war 8a-3: Use at a ruined hall takes it (the outcome picker for a town)
-  const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id)});
+  const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id),defending:()=>townWar.defendingHere(),openDefense:id=>townWar.show(id)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
@@ -630,7 +633,7 @@ async function start() {
         .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
     };
     townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
-      nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id) });
+      nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id), onTownWar: id => townWar.show(id) });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onAction('townPanel', () => townPanel.toggle());
     // the Vehicles panel (Tim 2026-11-07): Shift+Y or its icon
@@ -645,6 +648,7 @@ async function start() {
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
       send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
       openCamp: (id, b) => warCamp.show(id, b),   // 7c-3: the clicked building's own menu
+      openTownWar: (town, b) => townWar.show(town, b),   // 8b: your military buildings, and the hall or stable during a war on the town
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
     evacuateGarrison = () => townHover.evacuateAll();
     createStructureBars({ game, view, heroId, root: $('structbars') });   // war checkpoint 6: health bars over damaged structures
@@ -877,7 +881,7 @@ async function start() {
     selectionDock.update();
     warLantern.update();warBanner.update();
     { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // Tim 2026-11-12: no Rally or War Lantern on the island
-    warCamp.update();warBar.update();warOutcome.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
+    warCamp.update();townWar.update();warBar.update();warOutcome.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
     hudLayout.update();
   });
 }

@@ -20,6 +20,7 @@ import { residents } from './sim/frontier/people.js';
 import { msArt } from './menu_shell.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 import { sharedKeybinds } from './keybinds.js';
+import { isMilitary, militaryFor, militaryNeeds, militaryCount } from './sim/frontier/town_military.js';
 const keybinds = sharedKeybinds();   // rebindable keys (Tim 2026-11-12): Turn a station, Workers hold
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -277,7 +278,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const next = nextTier(s, data);
     if (s.tierUpgrade) return `<div class="hint">Upgrading to ${esc(next?.name || '')}, ${Math.max(0, s.tierUpgrade.left)} s</div>`;
     if (!next?.upgrade) return '';
-    const chk = upgradeCheck(s, data), cost = Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people`;
+    const chk = upgradeCheck(s, data, game.state), cost = Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people`;
     return `<button data-upgrade="${esc(s.id)}" class="ti-up${chk.ok ? '' : ' no'}" title="${esc(`Upgrade the town hall to ${next.name}: ${cost}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}">Upgrade to ${esc(next.name)}</button>`;
   }
   const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost,...(data.workers.goodsCost?{goods:data.workers.goodsCost}:{})},data.workers.personCost)
@@ -642,7 +643,11 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (town !== s.id) { close(); town = s.id; }
     if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
-    const capOf = id => { const g = placedGroup(id, data), max = tierOf(s, data)?.placed?.[g]; if (max === undefined) return null;
+    const capOf = id => {
+      // 8b-1: a military building shows used / the war limit, greyed with what it still needs
+      if (isMilitary(id, data)) { const max = data.war?.buildings?.[id]?.max, need = militaryNeeds(s, id, data); if (!max && !need.length) return null;
+        return { max: max ?? Infinity, used: militaryCount(s, id), locked: need.length > 0, unlock: need.includes('the town hall war upgrade') ? 'War upgrade' : need.length ? 'Needs ' + need[0].replace(/^a built /, '') : '' }; }
+      const g = placedGroup(id, data), max = tierOf(s, data)?.placed?.[g]; if (max === undefined) return null;
       const used = placedCount(s, id, data), next = (data.tiers?.list || []).find(t => (t.placed?.[g] ?? 0) > 0);
       return { max, used, locked: max === 0, unlock: next?.name || '' }; };
     const button = (id, label) => {
@@ -653,14 +658,15 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     };
     // the build bar in groups, one row each, the eraser apart at the right of the first row
     const camps = data.tiers?.camps || ['lumber_camp', 'food_camp', 'quarry'];
-    const others = Object.entries(data.buildings).filter(([k, v]) => v.size && !data.zones.fromBuilding[k] && !camps.includes(k)).map(([k]) => k);
+    const others = Object.entries(data.buildings).filter(([k, v]) => v.size && !v.military && !data.zones.fromBuilding[k] && !camps.includes(k)).map(([k]) => k);
+    const military = militaryFor(s, data, game.state);   // 8b-1: the war camp's military buildings, in their own row
     const group = (name, ids, extra = '') => `<div class="bgroup"><span class="blab">${name}</span><div class="btns">${ids.map(t => button(t, camps.includes(t) ? townName(t).replace(/ camp$/i, '') : townName(t))).join('')}${extra}</div></div>`;
     const steps = [[s.grid.zone.includes('h'),'Housing'],[s.grid.zone.includes('f'),'Farms'],[/[rg]/.test(s.grid.use),'Roads'],[!!s.workers?.length,'Train worker'],[(s.workers || []).some(w=>spotIndex.get(w.spot)?.kind==='timber'),'Assign timber']];
     const guide = steps.map(([done,label])=>`${done ? '✓' : '○'} ${label}`).join(' → ');
     // Tim 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
     if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`
       + `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
-      + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others)
+      + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
       + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.">Drag on the map, then Confirm. Right click cancels.</div>`;
     return `<div class="townbuild"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>`
       + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
@@ -681,6 +687,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     return `<div class="campworkers">${workerPanelHTML(s, { overworked: overworkedSpots(s), selected, index: spotIndex, data, page: workerPage, known, tab: workerTab, logPage: workerLogPage, filter: workerFilter, camp: true, spots, spotPage: workerSpotPage, spotState })}</div>`;
   }
   return { update, html, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen, campWorkersHtml, campSite,
+    // 8b: a card in the town hall war window hands its building type to the place tool
+    placeTool(id, kind) { town = id; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = kind; return true; },
     // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
     selectedWorkers:()=>selected.length>1?selectedLive().map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),id:`worker:${p.w.id}`,wid:p.w.id,worker:true,status:workerStatus(p.w,spotIndex)})):[],
     pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id]);},

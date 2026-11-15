@@ -35,7 +35,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 export function outcomeHtml(m) {
   const card = c => `<div class="ocard${c.why ? ' lock' : ''}" title="${esc(c.tip)}"><div class="opic${c.id === 'burn' ? ' burn' : ''}"><img class="main" src="${esc(c.art)}" alt="">${c.flag ? `<img class="flag" src="${esc(c.flag)}" alt="">` : ''}</div>
     <div class="ot">${esc(c.title)}</div>${c.lines.map(l => `<div class="ol">${l}</div>`).join('')}
-    ${c.why ? `<div class="owhy">${esc(c.why)}</div>` : `<div class="obtn"><button class="go" data-outcome="${esc(c.id)}">${esc(c.button || c.title)}</button></div>`}</div>`;
+    ${c.warn && !c.why ? `<div class="owhy">${esc(c.warn)}</div>` : ''}${c.why ? `<div class="owhy">${esc(c.why)}</div>` : `<div class="obtn"><button class="go" data-outcome="${esc(c.id)}">${esc(c.button || c.title)}</button></div>`}</div>`;
   return `<div class="win" role="dialog" aria-label="Take the town hall"><header><div><div class="eyebrow">${esc(m.clan)}, war on ${esc(m.town)}</div><h2>Take the town hall</h2></div><button data-close="1">Esc</button></header>
     <div class="cards">${m.cards.map(card).join('')}</div><div class="note">${esc(m.note)}</div></div>`;
 }
@@ -52,6 +52,7 @@ export function outcomeModel(game, heroId, w) {
     { id: 'sack', title: 'Sack', art: ART.sack, lines: [`Take <b>${ryo} ryo</b>, ${share === 50 ? 'half' : `${share} in 100 of`} its coffers`, 'The town stays theirs'], button: 'Sack', why: why.sack,
       tip: 'Sack: that share of the town coffers goes to your Clan treasury. The town stays with its clan, with its military buildings in ruins. Good for a town you cannot hold.' },
     { id: 'burn', title: 'Burn', art: ART.burn, lines: ['The town is <b>wiped out</b>', 'The land is free to found on'], button: 'Burn', why: why.burn,
+      warn: game.landOffice?.atLimit?.(me) ? 'You are at your founding limit: you could not found a town here' : '',
       tip: 'Burn: the town is destroyed and its land goes empty. You gain nothing, and have nothing to defend. Anyone may found a new town there, under the usual founding limit.' }],
     note: `Your hero channels at the hall for ${R.channel.seconds} seconds. Any hit on him starts it over, and the enemy is warned.` };
 }

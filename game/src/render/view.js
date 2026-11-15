@@ -17,6 +17,7 @@ import { placePiece } from '../sim/geometry.js';
 import { entityName } from '../selection_panel.js';
 import { specialOf } from '../sim/special_cast.js';
 import { createHQFire } from './hq_fire.js';
+import { createHallChannelFx } from './hall_channel_fx.js';
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
@@ -25,7 +26,7 @@ import { cameraDiscontinuity } from '../camera_tracking.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60 }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const minZoom = place => place === 'world' ? 0.175 : 0.35;
@@ -503,6 +504,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     hqFire.update(state);
     structureFire.update(state, cameraPlace(state.entities[followId]));   // torched war structures (checkpoint 6)
     structureFire.updateSmoke(dt, cameraPlace(state.entities[followId]));   // 7c: moving smoke over ruins
+    hallFx.update(state, cameraPlace(state.entities[followId]));   // war 8a: the fire or banner on a hall being taken
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
@@ -543,6 +545,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const banners = createBanners({ scene });
   const hqFire = createHQFire({ scene, things, lights });
   const structureFire = createStructureFire({ scene });
+  const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });

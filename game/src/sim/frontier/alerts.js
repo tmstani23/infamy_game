@@ -30,7 +30,7 @@ export function townNeed(s, frontier, data, st = {}) {
   if (full.length) why.push({ key: 'full', text: `${full.join(', ')} full`, score: Math.min(full.length, 2) * w('full') });
   if ((s.suggestions || []).length) add('suggestion', 'governor suggestion');
   if (s.housing > 0 && residents(s) >= s.housing) add('housing', 'housing full');
-  if (data.tiers?.list && upgradeCheck(s, data).ok) add('upgrade', 'can upgrade');
+  if (data.tiers?.list && upgradeCheck(s, data, { frontier }).ok) add('upgrade', 'can upgrade');
   why.sort((a, b) => b.score - a.score);
   const score = why.reduce((n, x) => n + x.score, 0), L = N.levels || {};
   const level = score >= (L.urgent ?? 50) ? 'urgent' : score >= (L.high ?? 25) ? 'high' : score >= (L.medium ?? 10) ? 'medium' : score > 0 ? 'low' : 'ok';
@@ -42,7 +42,7 @@ export function createAlerts({ state, data }) {
   const A = data.alerts || {};
   const cooldown = A.cooldownEcon ?? 20;   // economy ticks per town and kind
   const urgentKinds = new Set(['attack', 'destroyed', 'blocked']);
-  const TEXT = { attack: 'is under attack!', destroyed: 'lost a building', blocked: 'road blocked', mood: 'mood has fallen below 40', food: 'is running out of food', finished: 'project finished', suggestion: 'governor has a suggestion', tier: 'town hall upgraded' };
+  const TEXT = { militaryUpkeep: 'cannot pay the upkeep of its military buildings (they keep working)', attack: 'is under attack!', destroyed: 'lost a building', blocked: 'road blocked', mood: 'mood has fallen below 40', food: 'is running out of food', finished: 'project finished', suggestion: 'governor has a suggestion', tier: 'town hall upgraded' };
   for (const r of data.resources || []) TEXT[`full_${r}`] = `${r} store is full`;   // B2 storage caps
 
   function econTick() {
@@ -63,9 +63,10 @@ export function createAlerts({ state, data }) {
       cond('mood', (s.mood ?? 100) < (A.moodBelow ?? 40));
       cond('food', (s.report?.waiting || []).includes('food'));
       cond('suggestion', (s.suggestions || []).length > 0);
+      cond('militaryUpkeep', !!s.militaryShort);   // 8b-1: a warning only
       if (s.tierUpAt === f.econTick) say('tier');   // B3
       // Tim 2026-11-05: a repeating reminder while the hall upgrade is affordable (the player starts it)
-      if (data.tiers?.list && upgradeCheck(s, data).ok) {
+      if (data.tiers?.list && upgradeCheck(s, data, state).ok) {
         if (st.upAt === undefined || f.econTick - st.upAt >= (A.upgradeEveryEcon ?? 120)) {
           st.upAt = f.econTick;
           (state.news ||= []).push({ kind: 'town', event: 'upgrade', clan: s.owner, settlement: s.id, name: s.name, text: `${s.name} can upgrade to ${nextTier(s, data).name}`, tip: 'Open the town panel or click the town hall, then Upgrade.', urgent: false });

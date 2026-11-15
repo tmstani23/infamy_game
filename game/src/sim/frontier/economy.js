@@ -8,6 +8,7 @@
 import { residents } from './people.js';
 import { isFull, storageCap, defaultKeep } from './storage.js';
 import { upgradeTick } from './tiers.js';
+import { warUpgradeTick, warUpgradeBuilding } from './town_military.js';
 import { noteArrival, noteTierUp } from './arrivals.js';
 import { foldFlow } from './flow.js';
 const EPS = 1e-9;
@@ -59,7 +60,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
       }
     };
     if (foodShort(s)) fill(b => type(b).output?.food, z => z.food);
-    const wantBuilders = s.projects.some(p => p.paid && p.progress < p.need);
+    const wantBuilders = s.projects.some(p => p.paid && p.progress < p.need) || warUpgradeBuilding(s);   // 8b: the hall war upgrade is built by the town builders too
     s.builders = wantBuilders ? Math.min(rates.maxBuilders, free) : 0;
     free -= s.builders;
     for (const kind of data.priorities[s.priority] || []) fill(b => b.type === kind, z => z.as.includes(kind));
@@ -217,6 +218,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     init(s);
     s.report.waiting = [];
     if (upgradeTick(s)) { s.tierUpAt = f().econTick; noteTierUp(s, state); }   // B3: town hall upgrade finished (alerts announce it)
+    if (warUpgradeTick(s) && s.owner) (state.news ||= []).push({ kind: 'town', event: 'warHall', clan: s.owner, settlement: s.id, name: s.name, text: `${s.name}: the town hall war upgrade is done. Military buildings that need it can be built` });   // 8b-1
     // B2: caps for the town panel (null = no cap); derived each economy tick, never read back by rules.
     s.storageCaps = Object.fromEntries(data.resources.map(r => { const c = storageCap(s, data, r); return [r, Number.isFinite(c) ? c : null]; }));
     if (zones?.on(s)) zones.migrate(s);   // L3.3: old house/farm/workshop buildings become zones

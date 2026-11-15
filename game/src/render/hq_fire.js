@@ -8,11 +8,11 @@ import { shared, FOG_QUAD } from './shading.js';
 // Each flame's height and thickness keep changing, and tongues curl apart with
 // deep U gaps between them (Tim 2026-10-26), so the fire never settles.
 // The quad sits in the building's sorted extras so units in front still draw over it.
-const PAD_W = 1.25, PAD_H = 1.9;      // quad size relative to the building art
+export const PAD_W = 1.25, PAD_H = 1.9;      // quad size relative to the building art
 const SOURCES = 72;
 
 const fireFragment = (sourceCount = SOURCES) => /* glsl */`
-uniform float uTime; uniform float uNight; uniform float uAspect; uniform float uSeed; uniform float uSoft;
+uniform float uTime; uniform float uNight; uniform float uAspect; uniform float uSeed; uniform float uSoft; uniform float uGrow;
 uniform vec4 uSrc[${sourceCount}];   // x, y in art space (0..1, y up from the art's bottom), size, seed
 ${FOG_QUAD}
 varying vec2 vUv;
@@ -49,7 +49,7 @@ void main() {
   float env = exp(-sx * sx) * smoothstep(-0.05, 0.15, sv) * (1.0 - smoothstep(0.6, 1.25, sv));
   float sn = fbm(vec2(q.x * 3.0 + sv * 1.5, q.y * 2.2 - t * 0.35));
   float sa = clamp(env * 1.7 + (sn - 0.5) * 1.6 - 0.3, 0.0, 1.0);
-  sa = sa * sa * (3.0 - 2.0 * sa) * 0.8;
+  sa = sa * sa * (3.0 - 2.0 * sa) * 0.8 * uGrow;   // uGrow: render/hall_channel_fx.js grows the smoke with its fire (1 otherwise)
   float lit = 1.0 - smoothstep(0.0, 0.4, sv);
   vec3 smokeCol = mix(vec3(0.14, 0.12, 0.11), vec3(0.55, 0.24, 0.08), lit * 0.7);
   smokeCol = mix(smokeCol, vec3(0.32, 0.31, 0.3), (1.0 - uNight) * 0.6);
@@ -111,9 +111,9 @@ void main() {
   gl_FragColor = vec4(col * fog, a * fog);
 }`;
 
-function fireMaterial(aspect, sources, seed, soft = 0) {
+export function fireMaterial(aspect, sources, seed, soft = 0) {
   return new THREE.ShaderMaterial({
-    uniforms: { ...shared, uAspect: { value: aspect }, uSeed: { value: seed }, uSoft: { value: soft },
+    uniforms: { ...shared, uAspect: { value: aspect }, uSeed: { value: seed }, uSoft: { value: soft }, uGrow: { value: 1 },
       uSrc: { value: sources.map(s => new THREE.Vector4(...s)) } },
     vertexShader: `varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -126,8 +126,10 @@ void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(
 // Where flames start, in art space (x 0..1 across, y up from the art's bottom; sizes in
 // art heights). Only small flames (Tim 2026-10-26): a big fire is a cluster of them,
 // tallest in the middle and shorter towards its edges. Clusters sit on the roof and round
-// the front base (the two lower edges of the footprint diamond).
-function fireSources(aspect) {
+// the front base (the two lower edges of the footprint diamond). The biggest flames are always round the
+// base, smaller ones up on the roof (Tim 2026-11-15). The first ROOF_SOURCES are the roof's.
+export const ROOF_SOURCES = 42;
+export function fireSources(aspect) {
   const r = Math.random, out = [];
   const cluster = (x, y, size, count) => {
     for (let i = 0; i < count && out.length < SOURCES; i++) {
@@ -138,12 +140,12 @@ function fireSources(aspect) {
   };
   for (let i = 0; i < 6; i++) {                 // roof: 6 clusters of 7
     const k = (i + 0.25 + r() * 0.5) / 6;
-    cluster(0.22 + 0.5 * k, 0.58 + 0.28 * k - r() * 0.12, 0.22 + r() * 0.12, 7);
+    cluster(0.22 + 0.5 * k, 0.58 + 0.28 * k - r() * 0.12, 0.12 + r() * 0.07, 7);
   }
   for (let i = 0; i < 7; i++) {                 // base: 7 clusters of 4
     const k = (i + 0.25 + r() * 0.5) / 7, x = 0.08 + 0.86 * k;
     const y = x < 0.58 ? 0.27 - 0.22 * (x - 0.08) / 0.5 : 0.05 + 0.2 * (x - 0.58) / 0.36;
-    cluster(x, y + 0.02, 0.12 + r() * 0.08, 4);
+    cluster(x, y + 0.02, 0.22 + r() * 0.12, 4);
   }
   while (out.length < SOURCES) out.push([0.5, -5, 0.05, 0]);   // unused: far below the quad
   return out;

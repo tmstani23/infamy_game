@@ -239,6 +239,16 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   assert.ok(menu.use()); flush();
   assert.ok(!s.w().channel, 'Use again stops it'); assert.equal(menu.channelOf('w1'), null);
   assert.equal(menu.prompt(), 'Space  Take the town hall');
+  // the screen's copy of the war (sim_snapshot.js): it carries the last-town rule without listing the defender's towns
+  const { frontierFor } = await import('../src/sim_snapshot.js');
+  const all = { isDiscovered: () => false, siteDiscovered: () => false };
+  let snap = frontierFor(S.frontier, 'player', all, [], new Map());
+  assert.equal(snap.wars.list.w1.lastTown, true, 'only Enemyton left');
+  g.frontier.world.addTown({ id: 'tG', name: 'Hidden', owner: s.rival, x: s.site2.x, z: s.site2.z, pop: 3, founded: true, stock: {}, buildings: [{ type: s.frontier.founding.townHall, stage: 'built', cell: 0 }] });
+  snap = frontierFor(S.frontier, 'player', all, [], new Map());
+  assert.equal(snap.wars.list.w1.lastTown, false); assert.ok(!snap.settlements.tG, 'the other town stays hidden');
+  assert.deepEqual(WE.outcomeList(snap.wars.list.w1).map(o => o.ok), [true, true, true]);
+  assert.equal(S.frontier.wars.list.w1.lastTown, undefined, 'never on the saved record');
   console.log('screen ok');
 }
 console.log('war end ok');

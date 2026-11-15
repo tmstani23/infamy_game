@@ -368,5 +368,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     waterEffects.capture(camera, time, waterVisible, hidden);
   }
   function setTowns(list) { towns = list; propAt = null; }
-  return { update, setTowns, captureWater, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
+  // war 8a (render/hall_channel_fx.js): the thing drawing a prop by its key ('town:' + town_props key), and a new
+  // thing for an art name the caller owns (added to the scene and disposed by the caller)
+  const thingAt = key => sprites.get(key) || null, artThing = p => makeThing(p) || null;
+  return { update, setTowns, captureWater, thingAt, artThing, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
 }

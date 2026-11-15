@@ -26,6 +26,8 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   // towns counted against the founding limit: the ones the clan founded, never ones it captured in a war (8a)
   const townsOf = id => Object.values(fr()?.settlements || {}).filter(s => s.owner === id && s.founded && !s.captured).length;
 
+  // at its founding limit: no more towns can be founded (captured towns never count; 8a). The Burn outcome card says so (F6 rules 2026-11-10)
+  const atLimit = id => { const clan = state.clans?.[id]; if (!clan) return false; return townsOf(id) >= (clan.bot ? (P.maxTowns ?? 1) : maxTowns(id, P.maxTowns ?? 1)); };
   // { ok, reason, rows: [{ label, have, need, ok }], ryo } for the menu and the command alike
   function permitStatus(id) {
     const clan = state.clans?.[id];
@@ -223,6 +225,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { mayLeave, office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
+  return { mayLeave, office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, atLimit, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botDay, botBudget, botSite, settlerPrice, day };
 }

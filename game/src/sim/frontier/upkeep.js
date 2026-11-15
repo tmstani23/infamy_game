@@ -6,7 +6,7 @@ import { workerCount } from './people.js';
 
 export function payUpkeep(s, data, world) {
   const U = data.upkeep, out = { zone: {}, goods: 1 };
-  s.goodsShort = false; s.wagesShort = false;
+  s.goodsShort = false; s.wagesShort = false; s.militaryShort = false;
   if (!U || !s.grid) return out;
   const g = s.grid, kinds = data.zones?.kinds || {}, byChar = {};
   for (const [name, k] of Object.entries(kinds)) byChar[k.char] = name;
@@ -22,7 +22,8 @@ export function payUpkeep(s, data, world) {
   // bills by resource, remembering who asked for what
   const bills = [], add = (who, rates, n) => { for (const [r, v] of Object.entries(rates || {})) if (v * n > 0) bills.push({ who, r, need: v * n }); };
   for (const [name, n] of Object.entries(levels)) add(`zone:${name}`, U.zones?.[name], n * share);
-  for (const b of s.buildings || []) if (b.stage === 'built') add('buildings', U.buildings?.[b.type], 1);
+  // 8b-1: military buildings pay the same placed-building upkeep, billed apart so a shortfall can warn (it has no other effect)
+  for (const b of s.buildings || []) if (b.stage === 'built') add(data.buildings?.[b.type]?.military ? 'military' : 'buildings', U.buildings?.[b.type], 1);
   for (const [ch, rates] of Object.entries(U.lines || {})) { let n = 0; for (let i = 0; i < g.use.length; i++) if (g.use[i] === ch) n++; add('lines', rates, n); }
   add('wages', U.workerWage, workerCount(s));
   const goodsNeed = stages.reduce((sum, st) => sum + (U.goodsByStage?.[st - 1] || 0), 0);
@@ -38,7 +39,9 @@ export function payUpkeep(s, data, world) {
   for (const b of bills) {
     if (b.who.startsWith('zone:')) { const z = b.who.slice(5); out.zone[z] = Math.min(out.zone[z] ?? 1, frac[b.r]); }
     if (b.who === 'wages' && frac[b.r] < 1) s.wagesShort = true;
+    if (b.who === 'military' && frac[b.r] < 1 - 1e-9) s.militaryShort = true;
     if (b.who === 'goods') { out.goods = frac[b.r]; s.goodsShort = frac[b.r] < 1 - 1e-9; }
   }
+  if (s.militaryShort && s.report?.waiting && !s.report.waiting.includes('military upkeep')) s.report.waiting.push('military upkeep');
   return out;
 }

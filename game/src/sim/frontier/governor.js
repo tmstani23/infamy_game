@@ -332,12 +332,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
   // B3: when the town presses on a tier limit and can afford the next tier, say so. The upgrade itself is
   // the player's choice (town panel); towns owned by a bot clan with autoBuild upgrade on their own.
   function upgradeHint(s) {
-    if (!data.tiers?.list || !upgradeCheck(s, data).ok) return;
+    if (!data.tiers?.list || !upgradeCheck(s, data, state).ok) return;
     const t = tierOf(s, data), atLimit = (zones?.on(s) && Object.entries(t.cells || {}).some(([k, cap]) => zoneCells(s, data.zones.kinds[k]?.char) >= cap))
       || workerCount(s) >= t.workers || data.resources.some(r => isFull(s, data, r));
     if (!atLimit) return;
     if (s.autoBuild && s.owner && s.owner !== 'player') {
-      startUpgrade(s, data, world);
+      startUpgrade(s, data, world, state);
       s.report.next = 'Upgrading the town hall';
     } else s.report.next = `Upgrade the town hall to ${nextTier(s, data).name}: the town is at its tier limits`;
   }

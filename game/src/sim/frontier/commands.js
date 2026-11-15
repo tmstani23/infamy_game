@@ -6,8 +6,9 @@
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 import { startUpgrade } from './tiers.js';
+import { militaryWhy, startWarUpgrade } from './town_military.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'setMarketKeep', 'rebuild', 'cartOrder'];
+const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'warUpgradeHall', 'setMarketKeep', 'rebuild', 'cartOrder'];
 
 // hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (Tim 2026-11-07)
 export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers, hooks = {} }) {
@@ -126,7 +127,11 @@ export function createCommands({ state, data, world, economy, construction, gove
         construction.cancel(hit.project.id);
         return receipt(e, c, true);
       case 'upgradeHall': {   // B3: pay now, the hall upgrades after next.upgrade.ticks economy ticks
-        const r = startUpgrade(s, data, world);
+        const r = startUpgrade(s, data, world, state);
+        return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
+      }
+      case 'warUpgradeHall': {   // 8b-1: the town hall war upgrade (unlocks the military buildings that need it); pay now, done later
+        const r = startWarUpgrade(s, data, world, state);
         return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
       }
       case 'rebuild': {   // 7c-4 (Tim 2026-11-12): a ruined placed building comes back only by this order; the town's builders then rebuild it at the normal cost
@@ -143,6 +148,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       }
       case 'queue':
         if (!data.buildings[c.building]) return reject(e, c, 'unknown building');
+        { const mil = militaryWhy(s, c.building, data, state); if (mil) return reject(e, c, mil); }
         return construction.queue(s.id, c.building, c.cell ?? null) ? receipt(e, c, true) : reject(e, c, 'could not queue it');
     }
     return reject(e, c, 'unknown action');

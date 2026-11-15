@@ -71,7 +71,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       const pts = cs.map(i => cellToWorld(s, i));
       const x = pts.reduce((n, p) => n + p[0], 0) / pts.length, z = pts.reduce((n, p) => n + p[1], 0) / pts.length;
       const bx = cs.flatMap(i => boxes.get(i) || []);
-      list.push({ key: `t|${s.id}|${cs[0]}`, kind: 'building', type: b.type, town: s.id, owner: s.owner, b, s, x, z, r: Math.sqrt(cs.length) * g.cell / 2, boxes: bx, max, military: b.type === 'stockade' });
+      list.push({ key: `t|${s.id}|${cs[0]}`, kind: 'building', type: b.type, town: s.id, owner: s.owner, b, s, x, z, r: Math.sqrt(cs.length) * g.cell / 2, boxes: bx, max, military: b.type === 'stockade' || !!data.buildings?.[b.type]?.military });
     }
     for (let i = 0; i < g.use.length; i++) {
       const u = g.use[i];

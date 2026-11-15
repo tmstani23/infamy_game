@@ -160,14 +160,14 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   addEventListener('mousedown', e => { if (e.button === 0) down = { x: e.clientX, y: e.clientY }; }, { capture: true });
   addEventListener('mouseup', e => {
     if (e.button !== 0 || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
-    if (e.target?.closest?.('button, #structcard, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #crewcommands')) return;
+    if (e.target?.closest?.('button, #structcard, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #townwar, #crewcommands')) return;
     if (unitNear(e.clientX, e.clientY)) { close(); return; }
     const st = at(e.clientX, e.clientY);
     if (st) open(st); else close();   // a click on open ground or a unit puts it away; another building swaps to it
   }, { capture: true });
   // Ctrl + right-click your own house, workshop or farmhouse with troops selected: they go in (capture: before move orders)
   addEventListener('mousedown', e => {
-    if (e.button !== 2 || !e.ctrlKey || e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp')) return;
+    if (e.button !== 2 || !e.ctrlKey || e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp, #townwar')) return;
     const ids = troopsSelected(); if (!ids.length) return;
     const st = at(e.clientX, e.clientY);
     if (!st || st.site || st.owner !== owner() || !zoneOk(st)) return;
@@ -179,7 +179,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   let nudgeAt = 0;
   addEventListener('mousemove', e => {
     const now = performance.now(); if (now - nudgeAt < 80) return; nudgeAt = now;
-    const st = !e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp') && troopsSelected().length ? at(e.clientX, e.clientY) : null;
+    const st = !e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp, #townwar') && troopsSelected().length ? at(e.clientX, e.clientY) : null;
     const show = !!st && !st.site && st.owner === owner() && zoneOk(st) && ST().hpOf(st) > 0;
     nudge.hidden = !show;
     if (show) { nudge.style.left = `${e.clientX + 16}px`; nudge.style.top = `${e.clientY + 18}px`; }

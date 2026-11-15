@@ -9,6 +9,7 @@ import { freeCell, setUse, inCore, hallRoadCell,cellOffset } from './town_grid.j
 import { buildingSafety } from './building_safety.js';
 import {coversResources} from './resource_clearance.js';
 import { shapeOf } from './station_layout.js';
+import { warUpgradeBuilding } from './town_military.js';
 const EPS = 1e-9;
 
 export function createConstruction({ state, data, world,resourceIndex }) {
@@ -102,6 +103,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
     // else the first in line (which then waits for its materials). A costly project waiting for timber
     // must not block a cheap one that can be built (Tim's playtest 2026-11-04).
     const auth = s.projects.filter(x => x.authorized);
+    if (auth.length && warUpgradeBuilding(s)) { wait(s, 'war upgrade'); return; }   // 8b: the builders are on the hall war upgrade; projects wait their turn
     const p = auth.find(x => x.paid) || auth.find(x => Object.entries(x.cost).every(([r, n]) => s.stock[r] + EPS >= n)) || auth[0];
     if (!p) return;
     if (p.phase === 'clearing') { wait(s, 'workers'); return; }   // L3.5 workers clear the footprint over time

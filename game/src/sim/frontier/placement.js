@@ -15,6 +15,7 @@ import { buildingSafety } from './building_safety.js';
 import { coversResources } from './resource_clearance.js';
 import { placedRoom } from './tiers.js';
 import { shapeOf } from './station_layout.js';
+import { militaryWhy } from './town_military.js';
 
 const LINES = { road: 'r', wall: 'w', gate: 'g' };
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
@@ -107,6 +108,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
     const needsRing = kind !== 'road' && !data.tiers?.camps?.includes(kind);
     if (needsRing && cover.some(i => !inCore(s, i, data))) return bad('outside the town ring', cover);
     if (!LINES[kind] && placedRoom(s, kind, data) < 1) return bad('town hall tier limit', cover);
+    const mil = !LINES[kind] && militaryWhy(s, kind, data, state);   // 8b-1: military buildings share the war camp's limits and needs
+    if (mil) return bad(mil, cover);
     // what-if: would the town lose a path?
     let use = g.use;
     const mark = LINES[kind] || 'B';

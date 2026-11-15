@@ -7,7 +7,9 @@ import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
 import { makeBots, makeSave, loadSave, heroOf } from '../src/sim/save.js';
 import { makeFile, validName } from '../src/save_store.js';
-import { cellToWorld, zoneStructureAt, centreCell } from '../src/sim/frontier/town_grid.js';
+import { cellToWorld, zoneStructureAt, centreCell, setUse } from '../src/sim/frontier/town_grid.js';
+import { createPlacement } from '../src/sim/frontier/placement.js';
+import { militaryFor } from '../src/sim/frontier/town_military.js';
 import { storageCap } from '../src/sim/frontier/storage.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
@@ -160,6 +162,27 @@ function warTest(game, heroId) {
       G.ground = put(G.ground, i, 'c'); G.zone = put(G.zone, i, want[k][0]); G.stage = put(G.stage, i, String(want[k][1])); G.by = put(G.by, i, 'g'); k++;
     }
     if (k < want.length) throw new Error('war_test_yakuza: no room for Kurogane houses'); }
+  // war 8b (Tim 2026-11-15): Kurogane gets everything a defending town can have at this point: tier 2 (Village), the
+  // town hall war upgrade, a stockade and a stable, and every military building its clan may build up to the war
+  // limits, all built; and 1500 ryo in the defender's war chest. (The Kuroda bot trains with them from 8d.)
+  { const t = S.frontier.settlements.war_test_town, F = options.frontier, P = createPlacement({ data: F, state: S, construction: {} });
+    t.tier = 2; t.warHall = true; t.pop = Math.max(t.pop || 0, 20);
+    const C = centreCell(t.grid.n), n = t.grid.n, order = [...Array(n * n).keys()].sort((a, b) => Math.hypot(a % n - C % n, Math.floor(a / n) - Math.floor(C / n)) - Math.hypot(b % n - C % n, Math.floor(b / n) - Math.floor(C / n)) || a - b);
+    const put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
+    const build = kind => {
+      for (const i of order) {
+        const r = P.check(t, { kind, cells: [i] });
+        if (!r.ok) { if (/^(Needs|A town has|Your clan|town hall tier)/.test(r.reason)) return false; continue; }
+        for (const c of r.cells) { t.grid.ground = put(t.grid.ground, c, 'c'); setUse(t, c, 'B'); t.grid.by = put(t.grid.by, c, 'g'); }
+        t.buildings.push({ id: game.frontier.world.newId('b'), type: kind, cell: r.cells[0], cells: r.cells, stage: 'built', workers: 0, paidCost: { ...(F.buildings[kind].cost || {}) } });
+        return true;
+      }
+      return false;
+    };
+    const wanted = ['stockade', 'stable', ...['barracks', 'rifle_range', 'clan_hall', 'kennel', 'hidden_dojo', 'foundry', 'armory', 'field_clinic', 'supply_tents', 'watchtower'].filter(k => militaryFor(t, F, S).includes(k))];
+    for (const kind of wanted) { const max = F.war.buildings[kind]?.max ?? 1; let k = 0; while (k < max && build(kind)) k++; if (!k) throw new Error(`war_test_yakuza: no room for a ${kind} in Kurogane`); }
+    game.frontier.world.recount?.(t.id);
+    rec.defense = { chest: 1500, put: 1500 }; }
   delete S.clans[hero.owner].warPack;
   const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
   // 7c (Tim 2026-11-12): the war test starts with only the camp hall (tier 1) and enough ryo, timber and stone to build everything

@@ -21,6 +21,8 @@ export function createInfirmary({ state, data }) {
     // (war.buildings.field_clinic.heal: radius and healFactor)
     const C = data.war?.buildings?.field_clinic?.heal;
     if (C) for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (b.type === 'field_clinic' && b.stage === 'built') spots.push([w.attacker, b.x, b.z, C.radius, C.healFactor]);
+    // 8b-2: a town's finished field clinic does the same for its owner's units near it
+    if (C) for (const s of Object.values(state.frontier?.settlements || {})) if (s.owner && s.grid) for (const b of s.buildings || []) if (b.type === 'field_clinic' && b.stage === 'built') spots.push([s.owner, ...centre(s, b), C.radius, C.healFactor]);
     for (const u of Object.values(state.entities || {})) {
       if (u.place !== 'world') { if (u.infirmary) delete u.infirmary; continue; }
       const owner = u.owner ?? u.workerOwner;

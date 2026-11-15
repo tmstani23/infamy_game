@@ -226,8 +226,11 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   assert.equal(hall.tier, 2, 'workers build the upgrade');
   assert.ok(war.upgraded(rec.camp) && war.campBuildList(rec.id).find(b => b.type === 'stable').ok, 'the upgrade unlocks stables');
   // training and the troop cap
-  assert.deepEqual(war.troopView(rec.id), { troops: 0, queued: 0, cap: W.troopCap.base });
-  { const r = cmd({ action: 'campTrain', war: rec.id, building: barracks.id, unit: 'grunt', count: W.troopCap.base + 1 }); assert.ok(r && !r.ok && /Troop cap/.test(r.reason), 'over the cap is refused'); }
+  // the hero crew in the war circle count toward the cap (F6 phase 4); the hero does not
+  const crew0 = war.crewIn(rec, rec.attacker);
+  assert.equal(crew0, Object.values(g.state.entities).filter(e => e.owner === rec.attacker && e.place === 'world' && !e.dead && !e.warTroop && !e.worker && e.type !== 'hero' && e.type !== 'settler' && e.type !== 'civilian' && !e.guard && !e.captain && !e.guide && Math.hypot(e.x - g.state.frontier.settlements[rec.town].x, e.z - g.state.frontier.settlements[rec.town].z) <= W.circleRadius).length);
+  assert.deepEqual(war.troopView(rec.id), { troops: crew0, queued: 0, cap: W.troopCap.base });
+  { const r = cmd({ action: 'campTrain', war: rec.id, building: barracks.id, unit: 'grunt', count: W.troopCap.base - crew0 + 1 }); assert.ok(r && !r.ok && /Troop cap/.test(r.reason), 'over the cap is refused'); }
   const chestT = rec.camp.chest;
   { const r = cmd({ action: 'campTrain', war: rec.id, building: barracks.id, unit: 'grunt', count: 3 }); assert.ok(r?.ok, r?.reason); }
   assert.equal(rec.camp.chest, chestT - 3 * U.grunt.ryo, 'troops paid from the war chest');
@@ -238,7 +241,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   assert.equal(troops.length, 2, 'two troops trained');
   assert.ok(troops.every(e => e.owner === 'player' && e.type === U.grunt.type[g.state.clans.player.faction] && e.place === 'world'), 'clan grunts of the attacker');
   assert.ok(troops.every(e => Math.hypot(e.x - barracks.x, e.z - barracks.z) < 20), 'they appear at their barracks');
-  assert.deepEqual(war.troopView(rec.id), { troops: 2, queued: 0, cap: W.troopCap.base });
+  assert.deepEqual(war.troopView(rec.id), { troops: 2 + crew0, queued: 0, cap: W.troopCap.base });
   // supply tents raise the cap
   { const p3 = spotFor('supply_tents'); assert.ok(cmd({ action: 'campPlace', war: rec.id, kind: 'supply_tents', ...p3 })?.ok); }
   const tents = rec.camp.buildings.at(-1);
@@ -302,7 +305,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   assert.equal(by('enforcer').model, U.enforcer.model.yakuza, 'the clan body');
   assert.equal(by('enforcer').maxHp, Math.round(types.war_enforcer.hp * W.clanBonus.yakuza.enforcer.hp), 'Yakuza melee are tougher');
   assert.ok(!by('enforcer').taunt && !types.war_enforcer.taunt, 'no taunt in war');
-  assert.equal(war.troopView(rec.id).troops, 8, 'two grunts plus six; horses are not troops');
+  assert.equal(war.troopView(rec.id).troops, 8 + war.crewIn(rec, rec.attacker), 'two grunts plus six; horses are not troops');
   // cavalry: on the horse from the start, and never get off
   const rider = by('sword_rider'), horse = g.state.entities[rider.ride?.horse];
   assert.ok(rider.mounted && rider.cavalry && horse?.type === 'horse' && horse.rider === rider.id && horse.cavalry, 'cavalry spawn mounted');

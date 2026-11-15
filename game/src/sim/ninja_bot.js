@@ -343,8 +343,8 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     if (by && standing(by) && by.place === h.place && !sneaking && (!by.cop || by.wave)) out.push({ id: hero, type: 'attack', target: by.id });
     if (!close.length) return;
     if (h.hp < h.maxHp * B.smokeHp && cast('R')) return;
-    // Assassinate: hidden long enough, a target right next to it
-    const held = h.hidden && h.hiddenAt != null ? (state.tick - h.hiddenAt) / 20 : 0;
+    // Assassinate: hidden long enough (or veiled by his own smoke: no wait, Tim 2026-11-09), a target right next to it
+    const held = h.hidden && (h.buffs?.veil?.until ?? -1) > state.tick ? Infinity : h.hidden && h.hiddenAt != null ? (state.tick - h.hiddenAt) / 20 : 0;
     const t = close[0];
     if (held >= (F.hiddenSeconds ?? 3) && dist(h, t) <= (F.reach ?? 1.5) + 0.6 && (!sneaking || t.type === 'hero') && cast('F', { x: t.x, z: t.z, target: t.id })) return;
     // the boss it hunts runs off: caltrops on him; two foes close: caltrops too

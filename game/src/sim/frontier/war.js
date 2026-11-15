@@ -20,6 +20,7 @@ import { buildable, passable } from '../world_data.js';
 import { ringRadius } from './town_grid.js';
 import { coversResources } from './resource_clearance.js';
 import { debitRyo, creditRyo } from '../treasury.js';
+import { createWarDefense } from './war_defense.js';
 
 export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000 }) {
   const W = data.war || null;
@@ -167,6 +168,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function end(warId, result = 'ended') {
     const st = store(), war = st.list[warId];
     if (!war) return false;
+    defense?.settle(war);   // 8b-2: the defender's chest and queued ryo go back to the town coffers
     delete st.list[warId];
     Object.assign(war, { state: 'ended', result, ended: state.tick ?? 0 });
     // the history keeps only a head count of the camp workers (their units leave with the war; routes would bloat saves)
@@ -280,7 +282,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function missing(camp, type) {
     const out = [];
     for (const n of BD()[type]?.needs || []) {
-      if (n === 'upgrade') { if (!upgraded(camp)) out.push('the camp hall upgrade'); }
+      if (n === 'upgrade' || n === 'tier2') { if (!upgraded(camp)) out.push('the camp hall upgrade'); }   // tier2: a camp has no tiers, the hall upgrade stands in (Tim 2026-11-15)
       else if (!builtCount(camp, n)) out.push(`a built ${nice(n)}`);
     }
     return out;
@@ -435,14 +437,17 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // down). Paid in ryo from the war chest when queued. Troops alive plus queued stay within the troop cap:
   // war.troopCap.base + each built supply tents' cap, never above war.troopCap.max. A finished troop appears at
   // its building as a unit of the attacker tagged warTroop: <war id> (not city crew: no crew cap, no clinic).
-  let runtime = null;
+  let runtime = null, defense = null;
   const UD = () => W?.units || {};
   const factionOf = clanId => state.clans?.[clanId]?.faction || 'yakuza';
   // clan bonus multiplier (war.clanBonus[faction][unit][key], checkpoint 5): ryo, trainTicks, hp, damage
   const bonus = (clanId, unit, key) => W?.clanBonus?.[factionOf(clanId)]?.[unit]?.[key] ?? 1;
   const ryoOf = (clanId, unit) => Math.round((UD()[unit]?.ryo || 0) * bonus(clanId, unit, 'ryo'));
   const ticksOf = (clanId, unit) => Math.max(1, Math.round((UD()[unit]?.trainTicks || 1) * bonus(clanId, unit, 'trainTicks')));
-  const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).length;
+  // the side's hero crew standing in the war circle count toward the troop cap too (F6 phase 4; not the hero, workers or settlers)
+  const crewIn = (war, clan) => { const t = town(war.town), R = W?.circleRadius ?? 900; if (!t) return 0;
+    return Object.values(state.entities || {}).filter(e => e.owner === clan && e.place === 'world' && !e.dead && !e.warTroop && !e.worker && e.type !== 'hero' && e.type !== 'settler' && e.type !== 'civilian' && !e.guard && !e.captain && !e.guide && Math.hypot(e.x - t.x, e.z - t.z) <= R).length; };
+  const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).length + crewIn(war, war.attacker);
   const queuedOf = war => war.camp.buildings.reduce((n, b) => n + (b.queue?.length || 0), 0);
   function troopCap(war) {
     const T = W?.troopCap || {}, tents = war.camp.buildings.filter(b => b.stage === 'built').reduce((n, b) => n + (BD()[b.type]?.cap || 0), 0);
@@ -537,6 +542,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       b.queue.shift();
       if (!b.queue.length) delete b.queue;
     }
+    defense?.tick(runtime);   // 8b-2: the defending town's queues
     standIn();
   }
   // Stand-in defender (checkpoint 4; the bot general replaces it at 8d): a bot clan's town at war trains grunts
@@ -598,6 +604,11 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
+    if (['warChestTown', 'townTrain', 'townUntrain'].includes(c.action)) {   // 8b-2: the defending town
+      const r = defense.command(e, c);
+      if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
+      return receipt(e, c, r.ok, r.reason || '');
+    }
     if (c.action === 'devStartWar') {   // dev build only (data.dev)
       if (!data.dev) return receipt(e, c, false, 'dev only');
       const r = devStart(e, c);
@@ -611,5 +622,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  return { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; } };
+  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; },
+    get defense() { return defense; }, settleDefense: w => defense.settle(w) };
+  defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
+  return api;
 }

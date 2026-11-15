@@ -21,10 +21,12 @@ export function placedRoom(s, type, data) {
   return max === undefined ? Infinity : max - placedCount(s, type, data);
 }
 // Can this town start the next town hall upgrade? { ok, reason, cost, ticks }
-export function upgradeCheck(s, data) {
+// (state: F6 rules 2026-11-10, no tier upgrade starts while a war is on the town)
+export function upgradeCheck(s, data, state = null) {
   const next = nextTier(s, data), up = next?.upgrade;
   if (!up) return { ok: false, reason: 'already the highest tier' };
   if (s.tierUpgrade) return { ok: false, reason: 'upgrade already under way' };
+  if (Object.values(state?.frontier?.wars?.list || {}).some(w => w.town === s.id)) return { ok: false, reason: 'not while a war is on this town', cost: up.cost, ticks: up.ticks };
   if (!(s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'built')) return { ok: false, reason: 'needs a town hall' };
   const people = (s.pop || 0) + (s.workers?.length || 0) + (s.workerTraining?.length || 0);
   if (people < (up.pop || 0)) return { ok: false, reason: `needs ${up.pop} people`, cost: up.cost, ticks: up.ticks };
@@ -33,8 +35,8 @@ export function upgradeCheck(s, data) {
   return { ok: true, reason: '', cost: { ...(up.cost || {}) }, ticks: up.ticks || 1 };
 }
 // Start the next upgrade (players via the upgradeHall command, bot governors directly): pay now, arrive later.
-export function startUpgrade(s, data, world) {
-  const r = upgradeCheck(s, data);
+export function startUpgrade(s, data, world, state = null) {
+  const r = upgradeCheck(s, data, state);
   if (!r.ok) return r;
   for (const [res, v] of Object.entries(r.cost)) world.change(s.id, res, -v, 'upgrade');
   s.tierUpgrade = { to: (s.tier || 1) + 1, left: r.ticks, total: r.ticks };

@@ -3,7 +3,7 @@
 import { drawableTowns, drawableWarSites, townPlots, plotInfo, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
-export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null }) {
+export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null, openTownWar = null }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
   const owner = () => game.state.entities[heroId]?.owner;
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
@@ -104,7 +104,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     tipEl.hidden = false;
     tipEl.style.left = `${Math.min(innerWidth - 260, x + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, y + 16)}px`;
   }
-  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp');
+  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar');
   // keeps the cooldown counting down while the pointer rests on a gun
   setInterval(() => { if (hoverCannon) { const c = cannonAt(mouse.x, mouse.y); showCannon(c, mouse.x, mouse.y); if (!c) tipEl.hidden = true; } }, 250);
 
@@ -115,7 +115,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   }
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
-    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp');
+    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar');
     const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
     if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
     const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities, owner());
@@ -135,7 +135,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   }, { capture: true });
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
-    if (e.button !== 2 || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #structcard')) return;
+    if (e.button !== 2 || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #townwar, #structcard')) return;
     const p = plotAt(e.clientX, e.clientY);
     // right-click one of your war camp's buildings: its menu (the camp hall and the banner open the hall menu)
     if (!e.ctrlKey && p?.camp && openCamp && game.state.frontier?.wars?.list?.[p.camp]?.attacker === owner()) {
@@ -159,6 +159,11 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
     e.stopImmediatePropagation(); e.preventDefault();
     flash(p);
+    // war 8b: right-click your military building: its menu; the town hall during a war on the town: the town war window
+    if (!e.ctrlKey && openTownWar && p.kind === 'building') {
+      const defending = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === p.town && w.defender === owner());
+      if (p.type === 'town_hall' ? defending && openTownWar(p.town, null) : openTownWar(p.town, p.id)) return;
+    }
     // Ctrl + right-click your finished stockade with crew selected (Tim 2026-11-07, Ctrl since 2026-11-12): they go in (far ones walk over first)
     const s = game.state.frontier?.settlements?.[p.town], ids = selected().length ? selected() : [heroId], b = s?.buildings?.find(x => x.id === p.id);
     if (!e.ctrlKey && p.kind === 'building' && p.type === 'stockade' && s?.owner === owner() && openGarrison?.(p.town, p.id)) return;   // plain right-click: its garrison card

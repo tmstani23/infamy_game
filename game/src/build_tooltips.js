@@ -14,6 +14,17 @@ export const BUILD_DETAILS={
   quarry:['A gathering camp: workers drop off stone only, and reach stone further out from it.','Delivery credits town stock immediately; no second haul. With trained workers it has no extra passive stone production.'],
   storehouse:['Storage only: each one raises every storage cap by 500.','Workers do not drop off here; they use the town hall or a matching work camp.'],
   market:['Sells goods above the town keep level for ryo (about 1 ryo per goods).','Village tier, one per town. Set the keep level under Steer in the town panel (default 400).'],
+  // 8b-1: military buildings, the same as at a war camp; they train only while a war is on the town
+  barracks:['Military: trains grunts, spearmen, brutes and enforcers while a war is on this town.','Counts on the town morale bar in a war.'],
+  supply_tents:['Military: raises the town troop cap in a war.','Counts toward the troop cap while built.'],
+  watchtower:['Military: shoots at enemy troops in a war, lets you see round it and spots hidden units.','Counts on the town morale bar in a war.'],
+  rifle_range:['Military: trains archers and riflemen while a war is on this town.','Needed for the clan hall.'],
+  field_clinic:['Military: your troops near it recover faster in a war.',''],
+  clan_hall:['Military: trains your clan special units while a war is on this town.','Needed for the kennel or hidden dojo.'],
+  kennel:['Military: trains dog handlers while a war is on this town.',''],
+  hidden_dojo:['Military: trains kunoichi while a war is on this town.',''],
+  foundry:['Military: builds siege weapons and the Gatling gun while a war is on this town.',''],
+  armory:['Military: blade and rifle upgrades (later).','Counts on the town morale bar in a war.'],
   stockade:['A 4-cell fort: shelter up to 40 of your units inside (town panel).','Hits on units inside land on the stockade; if it breaks, everyone piles out and the governor rebuilds it.'],
   stable:['Raise horses by hand on its production bar (Calico or Black Beauty, paid in food and goods); pick which one is your mount there. H on the island rides her, at 3.75x run speed.','Right-click one of your horses on the island to ride her.'],
   station:['Railway station: lay track from here to another of your towns or the capital (Town tier 2+); each open line gets a steam train.','Space at it: lay track, see when trains come in, and board a train while it stands here (it waits about a minute; the prompt shows when it leaves).'],
@@ -39,6 +50,14 @@ export function buildTooltip(id,s,data,requirements) {
     if(U?.zones?.[id])needs.push(`upkeep ${Object.entries(U.zones[id]).map(([r,v])=>`${(v*60).toFixed(2)} ${r}/min`).join(' + ')} per grown level once the town passes ${U.freeLevels || 0} free levels`);
     if(zone.needs.food)needs.push('food to remain healthy');
     if(zone.needs.workersPerCell)needs.push(`${zone.needs.workersPerCell} townsperson per grown cell`);
+  }
+  if(building?.military) {   // 8b-1: limits and needs shared with the war camp (war.buildings)
+    const W=data.war?.buildings?.[id] || {};
+    for(const n of W.needs || [])needs.push(n==='upgrade'?'the town hall war upgrade (town hall menu)':n==='tier2'?'a town hall at tier 2 or higher':`a built ${n.replace(/_/g,' ')}`);
+    if(W.max)needs.push(`at most ${W.max} in a town`);
+    if(W.clan)needs.push(`${W.clan} clan only`);
+    const up=data.upkeep?.buildings?.[id];
+    if(up)needs.push(`upkeep ${Object.entries(up).map(([r,v])=>`${(v*60).toFixed(2)} ${r}/min`).join(' + ')}; if unpaid the town is warned and it keeps working`);
   }
   if(building?.size)needs.push(`${building.size} × ${building.size} free cells`, 'construction work and time');
   return [purpose,cellsLine,`Requirements: ${id==='eraser'?'an existing structure or zone':needs.join('; ')}.`,

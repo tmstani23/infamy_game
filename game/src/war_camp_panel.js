@@ -76,6 +76,7 @@ const CSS = `
 #warcamphint{position:fixed;pointer-events:none;z-index:22;padding:8px 11px;background:rgba(12,18,24,.94);max-width:300px;border:1px solid;border-radius:8px;font:12px/1.4 system-ui}
 #warcamphint[hidden]{display:none}
 `;
+export const WAR_PANEL_CSS = CSS;   // 8b-3: the town war window (town_war_panel.js) uses the same look under #townwar
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const PER_PAGE = 8, UPP = 3;
@@ -86,7 +87,7 @@ import { ABOUT } from './ability_rows.js';
 import { listVehicles } from './vehicles_panel.js';
 import { drawBuildArea } from './camp_build_area.js';   // 7c-4: one merged build outline, darkened outside
 // what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
-const TRAITS = {
+export const TRAITS = {
   kunoichi: 'Hidden on the island until she attacks or is hit; her first hit is an ambush. Vanish on a move order while seen. Dog handlers, Teppo riflemen and watchtowers can spot her.',
   fire_bomber: 'Knife and fire bomb. Fights with a weak knife. His fire bomb is a special with a long cooldown and a short throw.',
   spearman: 'Spear grunt. Longer reach and more damage than the sword grunt, a little less health. Can torch buildings.', swordsman: 'Sword grunt. Can torch buildings.', ninja: 'Sword grunt, fast and light. Can torch buildings.', shinobi_spearman: 'Spear grunt. Longer reach and more damage than the ninja, a little less health. Can torch buildings.',
@@ -97,7 +98,7 @@ const TRAITS = {
   sword_rider: 'Cavalry: fast, hits hard on the charge.', mounted_pikeman: 'Cavalry with a long reach.',
 };
 // what a building does (its own menu, when it trains nothing)
-const DOES = {
+export const DOES = {
   supply_tents: d => `Adds ${d.cap ?? 0} to the troop cap.`, watchtower: () => 'Shoots arrows at enemies in range and lets you see the ground round it, day and night.',
   field_clinic: () => 'Your troops, hero and crew near it recover much faster once they are out of the fight.', armory: () => 'Troop upgrades come later.',
   palisade: () => 'A wall: blocks the way.', gate: () => 'A gate in the palisade: your troops pass, enemies must break it.',
@@ -241,7 +242,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         <div><div style="font-size:16px;color:#f3e3bd">What it pays for</div><div class="small" style="margin-top:4px">Every troop you train at a camp building and every camp worker you hire is paid from here. Camp buildings are paid in timber and stone from the camp stores instead.</div>
         <div style="font-size:16px;color:#f3e3bd;margin-top:12px">Where the ryo comes from</div><div class="small" style="margin-top:4px">What you packed for war at the capital when you planted the banner, and refunds from cancelled training. Only this war can spend it; what is left comes home when the war ends.</div></div></div>`;
     } else {
-      const H = W().hallUpgrade || {}, unlocks = Object.entries(B).filter(([, d]) => (d?.needs || []).includes('upgrade')).map(([t]) => t);
+      const H = W().hallUpgrade || {}, unlocks = Object.entries(B).filter(([, d]) => (d?.needs || []).some(n => n === 'upgrade' || n === 'tier2')).map(([t]) => t);
       body = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
         <div><div style="font-size:16px;color:#f3e3bd">${tier >= 2 ? 'Camp hall upgraded' : hall?.upgrade ? 'Upgrade under way' : 'Upgrade the camp hall'}</div>
           <div class="small">Workers build it like a site</div>
@@ -253,7 +254,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     root.innerHTML = `<div class="win" role="dialog" aria-label="War camp"><header><div><div class="eyebrow">${esc(/ clan$/i.test(clan?.name || '') ? clan.name : `${clan?.name || 'Your'} clan`)}, war camp</div><h2>${bld ? esc(nice(bld.type)) : `Siege of ${esc(town?.name || 'the town')}`}</h2></div><button data-close="1">Esc</button></header>
       <div class="lay"><aside>${bld ? (() => { const st = stOf(bld), idx = c.buildings.filter(x => x.type === bld.type).indexOf(bld) + 1;
         return `<div class="art"><img class="hall" src="${esc(artUrl(bld.type))}" alt=""></div><span class="tier">${esc(nice(bld.type))} ${idx}</span>${st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : bld.stage === 'site' ? '<div class="small">Under construction</div>' : ''}
-        <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it. Right-click the camp hall for more.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}</div>
+        <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it. Right-click the camp hall for more.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap. Your hero crew in the war circle count too.')}</div>
         <div class="small" style="margin-top:10px">Right-click the camp hall to build and upgrade. Each training building has its own menu.</div></aside>`; })() : `<div class="art"><img class="hall" src="${esc(artUrl('camp_hall'))}" alt=""><img class="flag" src="${esc(artUrl('war_banner'))}" alt=""></div>
         <span class="tier">Camp hall, tier ${tier}</span>${(() => { const st = stOf(hall || {}); return st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : ''; })()}${hall?.upgrade ? `<div class="small">Upgrading ${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%</div>` : ''}
         <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}

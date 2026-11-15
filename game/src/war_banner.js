@@ -54,7 +54,7 @@ const CSS = `
 #warbannerhint{position:fixed;pointer-events:none;z-index:22;padding:8px 11px;background:rgba(12,18,24,.94);max-width:300px;border:1px solid;border-radius:8px;font:12px/1.4 system-ui}
 `;
 
-export function createWarBanner({ button, game, heroId, view, catalog, send, blocked = () => false, onStart = () => {}, openCamp = () => {} }) {
+export function createWarBanner({ button, game, heroId, view, catalog, send, blocked = () => false, onStart = () => {}, openCamp = () => {}, defending = () => null, openDefense = () => {} }) {
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   button.id = 'warbannerbtn'; button.type = 'button'; button.dataset.icon = '';
   const war = () => game.frontier?.war;
@@ -219,8 +219,8 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
   const coin = document.createElement('div'); coin.id = 'warcoin'; coin.hidden = true; document.body.append(coin);
   // Camp readout (checkpoint 3): inside the circle of a war you are fighting, the coin shows the camp chest.
   // Checkpoint 4: clicking it opens the camp panel (build, train, hire workers, hall upgrade).
-  let campId = null;
-  coin.addEventListener('click', () => { if (campId) openCamp(campId); });
+  let campId = null, defId = null;
+  coin.addEventListener('click', () => { if (campId) openCamp(campId); else if (defId) openDefense(defId); });   // 8b: a defender's coin opens the town war window
   function ownCamp() {
     const h = hero(), R = W()?.circleRadius ?? 900;
     if (!h) return null;
@@ -259,8 +259,18 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const camp = ownCamp(), C = W()?.camp || {};
     campId = camp?.id || null;
     const csig = camp ? `${camp.id}|${Math.floor(camp.camp.chest)}|${Math.floor(camp.camp.stock.timber)}|${Math.floor(camp.camp.stock.stone)}|${camp.camp.workers.length}|${(camp.camp.workerTraining || []).length}` : '';
-    coin.classList.toggle('camp', !pack && !!camp);
-    if (!pack && camp) {
+    const def = !pack && !camp ? defending() : null;   // 8b: in a town of yours under attack the coin shows its war chest
+    defId = def?.town || null;
+    coin.classList.toggle('camp', !pack && (!!camp || !!def));
+    if (def) {
+      const chest = Math.floor(def.defense?.chest || 0), dsig = `d|${def.id}|${chest}`;
+      if (dsig !== coinSig) {
+        coinSig = dsig; coin.hidden = false;
+        const tn = game.state.frontier.settlements?.[def.town]?.name || 'your town';
+        coin.innerHTML = `<div><b>${chest}</b><small>WAR CHEST</small>Defending</div>`;
+        coin.title = `War chest of ${tn}: ${chest} ryo to train defenders. Put money in from the town coffers at the town hall. What is left goes back to the coffers when the war ends. Click to open the town war window.`;
+      }
+    } else if (!pack && camp) {
       if (csig !== coinSig) {
         coinSig = csig; coin.hidden = false;
         const k = camp.camp, n = k.workers.length, tr = (k.workerTraining || []).length;

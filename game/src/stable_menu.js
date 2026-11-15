@@ -8,7 +8,7 @@
 import { listVehicles } from './vehicles_panel.js';
 import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msPager, msNote, msProg } from './menu_shell.js';
 const PER = 5;   // rows a page, no scrollbars (look: shared menu shell, menu restyle 2026-11-10)
-export function createStableMenu({ panel, game, heroId, send, data }) {
+export function createStableMenu({ panel, game, heroId, send, data, openCavalry = null }) {
   let open = false, townId = null, shown = '', view = 'buy', bpage = 0, ypage = 0;
   const hero = () => game.state.entities[heroId];
   const owner = () => hero()?.owner;
@@ -62,6 +62,7 @@ export function createStableMenu({ panel, game, heroId, send, data }) {
     const b = e.target.closest?.('button'); if (!b || b.disabled) return;
     const d = b.dataset;
     if (d.close !== undefined || d.msClose !== undefined) return close();
+    if (d.stableWar !== undefined) { const s = town(), st = builtStable(s); if (st && openCavalry?.(townId, st.id)) close(); return; }   // 8b: war cavalry train in the town war window
     if (d.stableView) { view = d.stableView; shown = ''; return update(); }
     if (d.stablePage) { bpage += +d.stablePage; shown = ''; return update(); }
     if (d.stableYpage) { ypage += +d.stableYpage; shown = ''; return update(); }
@@ -86,7 +87,7 @@ export function createStableMenu({ panel, game, heroId, send, data }) {
     const runs = list => list.reduce((r, x) => { const last = r.at(-1); if (last?.k === x.kind) last.n++; else r.push({ k: x.kind, n: 1 }); return r; }, []).map(r => `${r.n}x ${name(r.k)}`);
     const myClan = game.state.clans?.[me];
     const list = listVehicles(game, heroId);
-    let body = `<div class="ms-tabs"><button class="ms-tab${view === 'buy' ? ' on' : ''}" data-stable-view="buy">Buy</button><button class="ms-tab${view === 'yours' ? ' on' : ''}" data-stable-view="yours">Yours (${list.length})</button></div>`;
+    let body = `<div class="ms-tabs"><button class="ms-tab${view === 'buy' ? ' on' : ''}" data-stable-view="buy">Buy</button><button class="ms-tab${view === 'yours' ? ' on' : ''}" data-stable-view="yours">Yours (${list.length})</button>${!capital() && openCavalry && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === townId && w.defender === me) ? '<button class="ms-tab" data-stable-war="1" title="Train war cavalry for the defence of this town (needs the town hall war upgrade)">Cavalry</button>' : ''}</div>`;
     if (view === 'buy') {
       if (!capital()) body += msSec('Making', j ? `Queue ${jobs.length} of ${C().queue ?? 10}` : 'Nothing being made', j ? runs(jobs).join(', ') : '')
         + (j ? msRow({ name: `${esc(name(j.kind))}, ${Math.ceil(j.left / 20)} s`, sub: msProg(1 - j.left / j.total), right: msBtn({ label: 'Cancel last', data: 'data-cancel="1"', hover: 'Cancel the last job in the queue (refunded)' }) }) : '');
