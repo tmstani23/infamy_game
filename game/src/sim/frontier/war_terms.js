@@ -39,7 +39,7 @@ import { tierOf } from './tiers.js';
 
 export function createWarTerms({ state, data, war, world, morale, warEnd, seed = () => state.campaignSeed ?? 1 }) {
   const W = () => data.war || {};
-  const S = () => ({ offerSeconds: 60, gapSeconds: 30, outcomeSeconds: 60, cooldownDays: 3, noise: 0.1, ...W().surrender });
+  const S = () => ({ offerSeconds: 60, firstSeconds: 60, gapSeconds: 30, outcomeSeconds: 60, cooldownDays: 3, noise: 0.1, ...W().surrender });
   const BOT = () => ({ everySeconds: 30, notBeforeSeconds: 300, lossAt: 0.85, chance: 0.03, answerSeconds: 3, maxLow: 3, raise: 1.25, maxOffers: 3, ...S().bot });
   const WORTH = () => ({ tier: [0, 300, 900, 2000], material: 0.5, building: 0.5, hero: 300, crew: 80, town: 400, business: 60, weight: 12, ...S().worth });
   let runtime = null;
@@ -161,7 +161,7 @@ export function createWarTerms({ state, data, war, world, morale, warEnd, seed =
     if (!w || w.state !== 'active' || !side) return { ok: false, reason: 'Not your war' };
     if (w.terms) return { ok: false, reason: w.terms.by === side ? 'You have already surrendered' : 'The other side has already surrendered' };
     warEnd.stopChannel?.(w, 'surrender');
-    w.terms = { by: side, clan: e.owner, at: now(), offers: 0, offer: null, until: now() + secs(S().gapSeconds), last: null, low: 0 };
+    w.terms = { by: side, clan: e.owner, at: now(), offers: 0, offer: null, until: now() + secs(S().firstSeconds), last: null, low: 0 };
     w.terms.suggest = suggestFor(w, side); w.terms.fair = fairFor(w, side);
     standDown(w);
     const s = town(w.town);
@@ -286,7 +286,7 @@ export function createWarTerms({ state, data, war, world, morale, warEnd, seed =
       if (t.offer) {
         if (isBot(clanAt(w, other(t.by)))) { if (n >= t.offer.at + secs(BOT().answerSeconds)) botAnswer(w); }
         else if (n >= t.offer.until) refuse(w, 'timeout');
-      } else if (isBot(clanAt(w, t.by))) { if (n >= t.until - secs(S().gapSeconds) + secs(BOT().answerSeconds)) botOffer(w); }
+      } else if (isBot(clanAt(w, t.by))) { if (n >= t.until - secs(t.offers ? S().gapSeconds : S().firstSeconds) + secs(BOT().answerSeconds)) botOffer(w); }   // the first offer has its own, longer clock
       else if (n >= t.until) refuse(w, 'timeout');
     }
   }

@@ -59,7 +59,7 @@ g.state.clans.player.ryo = 5000; enemy.stock.ryo = 3000;
 { const a = surrenderFoot({ side: 'attacker', town: 'Holdfast', terms: false, confirm: false });
   assert.ok(a.includes('data-surrender="ask"') && !a.includes('data-surrender="yes"') && a.includes('cannot be taken back'));
   const b = surrenderFoot({ side: 'defender', town: 'Holdfast', terms: false, confirm: true });
-  assert.ok(b.includes('data-surrender="yes"') && b.includes('Keep fighting') && b.includes('the town falls'));
+  assert.ok(b.includes('data-surrender="yes"') && b.includes('Keep fighting') && b.includes('the enemy decides what happens to'));
   const c = surrenderFoot({ side: 'defender', town: 'Holdfast', terms: true, confirm: true });
   assert.ok(c.includes('data-terms="1"') && !c.includes('data-surrender'), 'during terms it only opens the window'); }
 

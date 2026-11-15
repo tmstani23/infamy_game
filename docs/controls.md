@@ -359,9 +359,9 @@ War camp (2026-11-10, campaign):
 - Right-click an enemy building, wall, gate or house of a war you are in with nothing selected: the hero attacks it. With the hero or his crew in the selection he goes with the troops.
 - Right-click an enemy on the island: the hero goes into attack mode. He chases the target, then the nearest war enemy in range. WASD breaks the chase, the mode stays. A building that falls ends it there (the next one takes a new right-click, or X). Esc or Z ends attack mode. A tag under the hero's health bar shows it.
 - Crew panel, out on the island: one group, Frontier crew, with the hero first, then his crew on foot, vehicles and riders. In the city the hero heads the Hero group. The hero card is selectable and shows his health; it cannot be dragged.
-- Surrender (War chest tab of the camp or town panel): confirm; it cannot be taken back and ends in your loss.
+- Surrender (War chest tab of the camp or town panel): confirm; it cannot be taken back. It always ends the war, on your terms or in your defeat: with no offer in time or a refusal for good, an attacker loses his war chest to the town, and for a defender the enemy decides what happens to the town.
 - Surrender terms window: opens by itself when terms start or change.
-- Offer: type a ransom and send it; one offer at a time, wait for the answer.
+- Offer: type a ransom and send it; one offer at a time, wait for the answer. You have 60 s to make your first offer and 30 s to offer again after a No; no offer in time counts as giving up.
 - Answer an offer: Accept, No (a new offer may come) or Refuse for good.
 - After a refused defender surrender: the attacker picks Capture, Sack or Burn.
 - Double-click one of your war troops' cards in the selection pane, or one of your troops in the target frame: selects every troop of that type nearby. Selection pane cards show the unit's control group number in the corner of the picture.

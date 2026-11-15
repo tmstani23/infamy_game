@@ -2536,10 +2536,12 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
 8c. Surrender. **Built 2026-11-15:**
    - sim/frontier/war_terms.js (module `warTerms`). `war.terms = { by, clan, at, offers, offer { amount, at, until }, until, last, low, state, ended }`.
    - Commands: `warSurrender { war }`, `warOffer { war, amount }`, `warLeave { war }`, `warAnswer { war, answer: accept | no | never }`, `warOutcome { war, outcome }`.
-   - One offer at a time: a new offer only after the last one is answered. Each offer is open `war.surrender.offerSeconds` (60); after a No the next offer must come within `gapSeconds` (30) or it counts as refused for good. A defender's refused surrender gives the attacker `outcomeSeconds` (60) to pick capture, sack or burn, else sack.
+   - One offer at a time: a new offer only after the last one is answered. Each offer is open `war.surrender.offerSeconds` (60); The first offer must come within `war.surrender.firstSeconds` (60) of the surrender, and after a No the next within `gapSeconds` (30); running out counts as refused for good. A defender's refused surrender gives the attacker `outcomeSeconds` (60) to pick capture, sack or burn, else sack.
    - Ceasefire while `war.terms` is set: the two sides do not attack each other, towers and garrisons do not fire, fires go out, channels stop, no training (game.js warNeutral, structures.js).
    - Results on the history record: `ransomed` (accepted), `attackerSurrendered` (as campFell), or captured / sacked / burned with `terms.by` 'defender'. Cooldown `war.surrender.cooldownDays` 3.
    - Estimate and price: `chance(w, clan)` from what that clan has spotted (`war.spotted[clan]`), never a war chest, seeded noise; `price(w, viewer)`. Snapshots hide the other side's `suggest` / `fair` and `spotted`.
+   - The confirm box states that the war ends on the surrendering side's terms or in its defeat, the 60 s for the first offer, and what a defeat costs: an attacker's war chest goes to the town; for a defender the enemy decides what happens to the town (src/war_surrender_foot.js).
+   - A bot's first offer comes `war.surrender.bot.answerSeconds` after its surrender.
    - Bots answer after 3 s, refuse for good after 3 offers below their price, and start a surrender rarely (`war.surrender.bot`).
    - Screens: src/war_terms_panel.js (offer, answer, outcome and lost faces; opens by itself when the terms change), src/war_surrender_foot.js (Surrender line on the camp and town War chest tabs), war bar "Ceasefire" line, news callouts and pings with a bell.
    - war_end.js finish(w, result, by, { days }); island_respawn fallBack options; game.js warSendHome.

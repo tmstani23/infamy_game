@@ -152,12 +152,14 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   const s = scene({ attackerIsPlayer: true }), { S, hero, rival, town, T } = s;
   let r = s.cmd({ action: 'warSurrender', war: 'w1' }); assert.ok(r.ok, r.reason);
   let v = T.view('w1', 'player'); assert.equal(v.purse, S.clans.player.ryo, 'an attacker pays from his Clan treasury only');
-  assert.ok(v.seconds > 25 && v.seconds <= 30, 'the gap clock');
-  const coffers = town.stock.ryo;
-  s.run(s.frontier.war.surrender.gapSeconds * 20 + 2);
+  assert.ok(v.seconds > 55 && v.seconds <= 60, 'the first offer clock');
+  s.run(s.frontier.war.surrender.firstSeconds * 20 - 5);
+  assert.ok(!s.ended(), 'still open just before the first offer clock runs out');
+  const coffers = town.stock.ryo;   // read late: the town's own economy moves its coffers over a minute
+  s.run(7);
   const rec = s.ended();
   assert.ok(rec && rec.result === 'attackerSurrendered' && rec.terms.ended === 'timeout' && rec.spoils === 800, JSON.stringify(rec?.terms));
-  assert.ok(town.stock.ryo > coffers + 700 && town.stock.ryo <= coffers + 800, 'his war chest goes to the town coffers');
+  assert.ok(town.stock.ryo > coffers + 700 && town.stock.ryo <= coffers + 810, 'his war chest goes to the town coffers');
   assert.ok(Math.hypot(hero.x - s.g.gate.island[0], hero.z - s.g.gate.island[1]) < 30, 'no own town: the hero falls back to the city gate');
 }
 
